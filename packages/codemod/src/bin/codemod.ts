@@ -6,6 +6,7 @@ import { transform } from '../lib/transform';
 import { upgrade, upgradeV4, upgradeV5, upgradeV6 } from '../lib/upgrade';
 import { TransformOptions } from '../lib/transform-options';
 
+// eslint-disable-next-line no-unused-vars
 const log = debug('codemod');
 const error = debug('codemod:error');
 debug.enable('codemod:*');

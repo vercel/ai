@@ -18,8 +18,11 @@ import {
   lazySchema,
   parseProviderOptions,
   zodSchema,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
-import { LumaImageSettings, LumaReferenceType } from './luma-image-settings';
+import { LumaReferenceType } from './luma-image-settings';
 import { z } from 'zod/v4';
 
 const DEFAULT_POLL_INTERVAL_MILLIS = 500;
@@ -28,7 +31,7 @@ const DEFAULT_MAX_POLL_ATTEMPTS = 60000 / DEFAULT_POLL_INTERVAL_MILLIS;
 interface LumaImageModelConfig {
   provider: string;
   baseURL: string;
-  headers: () => Record<string, string>;
+  headers?: () => Record<string, string>;
   fetch?: FetchFunction;
   _internal?: {
     currentDate?: () => Date;
@@ -45,6 +48,20 @@ export class LumaImageModel implements ImageModelV4 {
     return this.config.provider;
   }
 
+  static [WORKFLOW_SERIALIZE](model: LumaImageModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: string;
+    config: LumaImageModelConfig;
+  }) {
+    return new LumaImageModel(options.modelId, options.config);
+  }
+
   constructor(
     readonly modelId: string,
     private readonly config: LumaImageModelConfig,
@@ -52,7 +69,6 @@ export class LumaImageModel implements ImageModelV4 {
 
   async doGenerate({
     prompt,
-    n,
     size,
     aspectRatio,
     seed,
@@ -108,7 +124,7 @@ export class LumaImageModel implements ImageModelV4 {
     );
 
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
-    const fullHeaders = combineHeaders(this.config.headers(), headers);
+    const fullHeaders = combineHeaders(this.config.headers?.(), headers);
     const { value: generationResponse, responseHeaders } = await postJsonToApi({
       url: this.getLumaGenerationsUrl(),
       headers: fullHeaders,

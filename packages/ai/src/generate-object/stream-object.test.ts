@@ -1843,7 +1843,7 @@ describe('streamObject', () => {
         expect(events).toEqual(['onStart', 'doStream']);
       });
 
-      it('should provide the correct event properties', async () => {
+      it('should send correct information with text prompt', async () => {
         let startEvent: any;
 
         const { partialObjectStream } = streamObject({
@@ -1873,6 +1873,50 @@ describe('streamObject', () => {
           prompt: 'test-prompt',
           temperature: 0.5,
           maxOutputTokens: 100,
+          telemetry: {
+            functionId: 'test-function',
+          },
+          experimental_onStart: event => {
+            startEvent = event;
+          },
+          _internal: {
+            generateId: () => 'test-call-id',
+          },
+        });
+
+        await convertAsyncIterableToArray(partialObjectStream);
+
+        expect(startEvent).toMatchSnapshot();
+      });
+
+      it('should accept deprecated experimental_telemetry as an alias for telemetry', async () => {
+        let startEvent: any;
+
+        const { partialObjectStream } = streamObject({
+          model: new MockLanguageModelV4({
+            doStream: async () => ({
+              stream: convertArrayToReadableStream([
+                { type: 'text-start', id: '1' },
+                {
+                  type: 'text-delta',
+                  id: '1',
+                  delta: '{ "content": "Hello, world!" }',
+                },
+                { type: 'text-end', id: '1' },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                  usage: testUsage,
+                },
+              ]),
+            }),
+          }),
+          schema: z.object({ content: z.string() }),
+          prompt: 'prompt',
+          experimental_telemetry: {
+            isEnabled: true,
+            functionId: 'deprecated-fn',
+          },
           experimental_onStart: event => {
             startEvent = event;
           },
@@ -1880,15 +1924,8 @@ describe('streamObject', () => {
 
         await convertAsyncIterableToArray(partialObjectStream);
 
-        expect(startEvent.operationId).toBe('ai.streamObject');
-        expect(startEvent.provider).toBe('test-provider');
-        expect(startEvent.modelId).toBe('test-model');
-        expect(startEvent.prompt).toBe('test-prompt');
-        expect(startEvent.temperature).toBe(0.5);
-        expect(startEvent.maxOutputTokens).toBe(100);
-        expect(startEvent.schemaName).toBe('test-schema');
-        expect(startEvent.schemaDescription).toBe('A test schema');
-        expect(startEvent.callId).toBeDefined();
+        expect(startEvent).not.toHaveProperty('isEnabled');
+        expect(startEvent).not.toHaveProperty('functionId');
       });
     });
 

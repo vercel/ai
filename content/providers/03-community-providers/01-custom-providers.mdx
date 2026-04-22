@@ -774,6 +774,66 @@ private handleError(error: unknown): never {
 }
 ```
 
+### Step 6: Add Workflow Serialization Support
+
+To make your provider compatible with [Workflow DevKit](https://useworkflow.dev), model instances need to be serializable when they cross workflow step boundaries. The AI SDK provides helpers that make this straightforward.
+
+First, make `headers` optional in your config type so deserialized models work without pre-configured auth:
+
+```ts filename="custom-chat-language-model.ts"
+type CustomChatConfig = {
+  provider: string;
+  baseURL: string;
+  headers?: () => Record<string, string | undefined>; // must be optional
+  fetch?: FetchFunction;
+  generateId?: () => string;
+};
+```
+
+Then add the static serialization methods to your model class:
+
+```ts filename="custom-chat-language-model.ts"
+import {
+  serializeModel,
+  deserializeModel,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
+} from '@ai-sdk/provider-utils';
+
+class CustomChatLanguageModel implements LanguageModelV4 {
+  // Note: classId is generated automatically by the workflow SWC compiler at build time
+
+  static [WORKFLOW_SERIALIZE](model: CustomChatLanguageModel) {
+    return serializeModel(model);
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: string;
+    config: CustomChatConfig;
+  }) {
+    return deserializeModel(CustomChatLanguageModel, options);
+  }
+
+  // ... rest of class
+}
+```
+
+`serializeModel()` automatically extracts only serializable config properties (strings, numbers, booleans), filtering out functions like `headers`, `fetch`, and `generateId`.
+
+Since headers are not serialized, update any call sites to use optional chaining:
+
+```ts
+// Before
+headers: combineHeaders(this.config.headers(), options.headers),
+
+// After
+headers: combineHeaders(this.config.headers?.(), options.headers),
+```
+
+<Note>
+  The deserialized model will not have auth headers. In a workflow context, authentication is typically handled through environment variables or request-level options available in the step execution environment.
+</Note>
+
 ## Next Steps
 
 - Dig into the [Language Model Specification V4](https://github.com/vercel/ai/tree/main/packages/provider/src/language-model/v4)

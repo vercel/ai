@@ -63,9 +63,9 @@ export const weatherTool = tool({
             {
               name: 'needsApproval',
               isOptional: true,
-              type: 'boolean | ((input: INPUT, options: { toolCallId: string; messages: ModelMessage[]; experimental_context: CONTEXT }) => boolean | Promise<boolean>)',
+              type: 'boolean | ((input: INPUT, options: { toolCallId: string; messages: ModelMessage[]; context: CONTEXT }) => boolean | Promise<boolean>)',
               description:
-                'Whether the tool needs user approval before execution. Can be a boolean or a function that receives the tool input plus execution metadata, including the typed `experimental_context`.',
+                'Whether the tool needs user approval before execution. Can be a boolean or a function that receives the tool input plus execution metadata, including the typed `context`.',
             },
             {
               name: 'inputSchema',
@@ -85,7 +85,7 @@ export const weatherTool = tool({
               isOptional: true,
               type: 'Zod Schema | JSON Schema',
               description:
-                'An optional schema that describes the context expected by the tool. When provided, the `experimental_context` type in `execute`, `needsApproval`, and the input lifecycle callbacks is inferred from this schema.',
+                'An optional schema that describes the tool-specific context expected by the tool. When provided, the `context` type in `execute`, `needsApproval`, and the input lifecycle callbacks is inferred from this schema. The value is supplied via the tool\'s entry in `toolsContext`.',
             },
             {
               name: 'strict',
@@ -124,10 +124,10 @@ export const weatherTool = tool({
                         'An optional abort signal that indicates that the overall operation should be aborted.',
                     },
                     {
-                      name: 'experimental_context',
+                      name: 'context',
                       type: 'CONTEXT',
                       description:
-                        'User-defined context that is passed into tool execution. When `contextSchema` is provided, this type is inferred from that schema. Experimental (can break in patch releases).',
+                        'Tool-specific context passed into tool execution. When `contextSchema` is provided, this type is inferred from that schema and supplied from the matching entry in `toolsContext`.',
                     },
                   ],
                 },

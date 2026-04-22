@@ -16,6 +16,7 @@ export type {
 export type { Context } from './context';
 export type { DataContent } from './data-content';
 export { executeTool } from './execute-tool';
+export { isExecutableTool, type ExecutableTool } from './executable-tool';
 export type { InferToolContext } from './infer-tool-context';
 export type { InferToolInput } from './infer-tool-input';
 export type { InferToolOutput } from './infer-tool-output';

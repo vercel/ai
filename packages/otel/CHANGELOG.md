@@ -1,5 +1,339 @@
 # @ai-sdk/otel
 
+## 1.0.0-beta.57
+
+### Major Changes
+
+- 6542d93: feat(ai): change naming nomenclature for `*TelemetryIntegration` to `*Telemetry`
+
+### Patch Changes
+
+- Updated dependencies [f319fde]
+- Updated dependencies [1949571]
+- Updated dependencies [511902c]
+- Updated dependencies [6542d93]
+- Updated dependencies [2e98477]
+- Updated dependencies [876fd3e]
+- Updated dependencies [f32c750]
+  - ai@7.0.0-beta.111
+
+## 1.0.0-beta.56
+
+### Patch Changes
+
+- Updated dependencies [72cb801]
+  - ai@7.0.0-beta.110
+
+## 1.0.0-beta.55
+
+### Patch Changes
+
+- eea8d98: refactoring: rename tool execution events
+- Updated dependencies [ec98264]
+- Updated dependencies [eea8d98]
+- Updated dependencies [75ef93e]
+  - ai@7.0.0-beta.109
+
+## 1.0.0-beta.54
+
+### Patch Changes
+
+- ai@7.0.0-beta.108
+
+## 1.0.0-beta.53
+
+### Patch Changes
+
+- Updated dependencies [350ea38]
+  - ai@7.0.0-beta.107
+
+## 1.0.0-beta.52
+
+### Patch Changes
+
+- ai@7.0.0-beta.106
+
+## 1.0.0-beta.51
+
+### Patch Changes
+
+- Updated dependencies [33d099c]
+  - ai@7.0.0-beta.105
+
+## 1.0.0-beta.50
+
+### Patch Changes
+
+- Updated dependencies [2a74d43]
+  - ai@7.0.0-beta.104
+
+## 1.0.0-beta.49
+
+### Patch Changes
+
+- 382d53b: refactoring: rename context to runtimeContext
+- 7bf7d7f: feat(ai): enable:true for telemetry by default
+- c3d4019: chore(ai): rename 'TelemetrySettings' to 'TelemetryOptions'
+- 083947b: feat(ai): separate toolsContext from context
+- Updated dependencies [382d53b]
+- Updated dependencies [7bf7d7f]
+- Updated dependencies [c3d4019]
+- Updated dependencies [083947b]
+  - ai@7.0.0-beta.103
+
+## 1.0.0-beta.48
+
+### Patch Changes
+
+- ai@7.0.0-beta.102
+
+## 1.0.0-beta.47
+
+### Patch Changes
+
+- Updated dependencies [4873966]
+  - ai@7.0.0-beta.101
+
+## 1.0.0-beta.46
+
+### Patch Changes
+
+- Updated dependencies [add1126]
+  - ai@7.0.0-beta.100
+
+## 1.0.0-beta.45
+
+### Patch Changes
+
+- Updated dependencies [2a9c144]
+  - ai@7.0.0-beta.99
+
+## 1.0.0-beta.44
+
+### Patch Changes
+
+- ai@7.0.0-beta.98
+
+## 1.0.0-beta.43
+
+### Patch Changes
+
+- Updated dependencies [208d045]
+  - ai@7.0.0-beta.97
+
+## 1.0.0-beta.42
+
+### Patch Changes
+
+- ai@7.0.0-beta.96
+
+## 1.0.0-beta.41
+
+### Patch Changes
+
+- Updated dependencies [c4f4b5f]
+  - ai@7.0.0-beta.95
+
+## 1.0.0-beta.40
+
+### Patch Changes
+
+- 1582efa: chore(ai): remove the metadata field from the telemetry settings
+- Updated dependencies [1582efa]
+  - ai@7.0.0-beta.94
+
+## 1.0.0-beta.39
+
+### Patch Changes
+
+- Updated dependencies [bc47739]
+  - ai@7.0.0-beta.93
+
+## 1.0.0-beta.38
+
+### Patch Changes
+
+- ai@7.0.0-beta.92
+
+## 1.0.0-beta.37
+
+### Patch Changes
+
+- ai@7.0.0-beta.91
+
+## 1.0.0-beta.36
+
+### Patch Changes
+
+- 1db29c8: feat(ai): break `CallSettings` apart into `LanguageModelCallOptions` and `RequestOptions`
+- Updated dependencies [1db29c8]
+  - ai@7.0.0-beta.90
+
+## 1.0.0-beta.35
+
+### Patch Changes
+
+- Updated dependencies [ff5eba1]
+  - @ai-sdk/provider@4.0.0-beta.12
+  - ai@7.0.0-beta.89
+
+## 1.0.0-beta.34
+
+### Major Changes
+
+- ef992f8: Remove CommonJS exports from all packages. All packages are now ESM-only (`"type": "module"`). Consumers using `require()` must switch to ESM `import` syntax.
+
+### Patch Changes
+
+- Updated dependencies [ef992f8]
+  - ai@7.0.0-beta.88
+  - @ai-sdk/provider@4.0.0-beta.11
+
+## 1.0.0-beta.33
+
+### Patch Changes
+
+- ai@7.0.0-beta.87
+
+## 1.0.0-beta.32
+
+### Patch Changes
+
+- Updated dependencies [5a6f514]
+  - ai@7.0.0-beta.86
+
+## 1.0.0-beta.31
+
+### Patch Changes
+
+- Updated dependencies [57bf606]
+  - ai@7.0.0-beta.85
+
+## 1.0.0-beta.30
+
+### Patch Changes
+
+- 90e2d8a: chore: fix unused vars not being flagged by our lint tooling
+- Updated dependencies [90e2d8a]
+  - ai@7.0.0-beta.84
+
+## 1.0.0-beta.29
+
+### Patch Changes
+
+- ai@7.0.0-beta.83
+
+## 1.0.0-beta.28
+
+### Patch Changes
+
+- Updated dependencies [e27ed76]
+  - ai@7.0.0-beta.82
+
+## 1.0.0-beta.27
+
+### Patch Changes
+
+- Updated dependencies [2fe1099]
+- Updated dependencies [f04adcb]
+  - ai@7.0.0-beta.81
+
+## 1.0.0-beta.26
+
+### Patch Changes
+
+- Updated dependencies [3ae1786]
+  - ai@7.0.0-beta.80
+
+## 1.0.0-beta.25
+
+### Patch Changes
+
+- Updated dependencies [6866afe]
+  - ai@7.0.0-beta.79
+
+## 1.0.0-beta.24
+
+### Patch Changes
+
+- Updated dependencies [f372547]
+  - ai@7.0.0-beta.78
+
+## 1.0.0-beta.23
+
+### Patch Changes
+
+- Updated dependencies [2add429]
+  - ai@7.0.0-beta.77
+
+## 1.0.0-beta.22
+
+### Patch Changes
+
+- Updated dependencies [fcc6869]
+  - ai@7.0.0-beta.76
+
+## 1.0.0-beta.21
+
+### Patch Changes
+
+- Updated dependencies [176466a]
+  - @ai-sdk/provider@4.0.0-beta.10
+  - ai@7.0.0-beta.75
+
+## 1.0.0-beta.20
+
+### Patch Changes
+
+- Updated dependencies [e311194]
+  - ai@7.0.0-beta.74
+  - @ai-sdk/provider@4.0.0-beta.9
+
+## 1.0.0-beta.19
+
+### Patch Changes
+
+- ai@7.0.0-beta.73
+
+## 1.0.0-beta.18
+
+### Patch Changes
+
+- Updated dependencies [664a0eb]
+  - ai@7.0.0-beta.72
+
+## 1.0.0-beta.17
+
+### Patch Changes
+
+- fc15550: feat(otel): add the genAI semantic otel integration
+- Updated dependencies [e68be55]
+  - ai@7.0.0-beta.71
+
+## 1.0.0-beta.16
+
+### Patch Changes
+
+- ai@7.0.0-beta.70
+
+## 1.0.0-beta.15
+
+### Patch Changes
+
+- Updated dependencies [34bd95d]
+- Updated dependencies [008271d]
+- Updated dependencies [72223e7]
+  - @ai-sdk/provider@4.0.0-beta.8
+  - ai@7.0.0-beta.69
+
+## 1.0.0-beta.14
+
+### Patch Changes
+
+- Updated dependencies [b0c2869]
+- Updated dependencies [7e26e81]
+  - ai@7.0.0-beta.68
+
 ## 1.0.0-beta.13
 
 ### Patch Changes

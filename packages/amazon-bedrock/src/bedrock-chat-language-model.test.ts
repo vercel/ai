@@ -1936,6 +1936,10 @@ describe('doStream', () => {
           "type": "response-metadata",
         },
         {
+          "id": "0",
+          "type": "reasoning-start",
+        },
+        {
           "delta": "",
           "id": "0",
           "providerMetadata": {
@@ -4282,6 +4286,37 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should forward display in adaptive reasoningConfig to thinking', async () => {
+    server.urls[newerAnthropicGenerateUrl].response = {
+      type: 'json-value' as const,
+      body: {
+        output: {
+          message: { content: [{ text: 'Hello' }], role: 'assistant' },
+        },
+        stopReason: 'stop_sequence',
+        usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+      },
+    };
+
+    await newerAnthropicModel.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        bedrock: {
+          reasoningConfig: {
+            type: 'adaptive',
+            display: 'summarized',
+          },
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.additionalModelRequestFields?.thinking).toEqual({
+      type: 'adaptive',
+      display: 'summarized',
+    });
+  });
+
   it('should pass serviceTier provider option in generate requests', async () => {
     prepareJsonFixtureResponse('bedrock-text');
 
@@ -4580,6 +4615,65 @@ describe('doGenerate', () => {
     expect(result.providerMetadata?.bedrock?.isJsonResponseFromTool).toBe(true);
   });
 
+  it('should use native output_config.format for models with structured output support even without thinking enabled', async () => {
+    server.urls[newerAnthropicGenerateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            content: [{ text: '{"name":"Test"}' }],
+            role: 'assistant',
+          },
+        },
+        usage: { inputTokens: 4, outputTokens: 10, totalTokens: 14 },
+        stopReason: 'end_turn',
+      },
+    };
+
+    await newerAnthropicModel.doGenerate({
+      prompt: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Generate a name' }],
+        },
+      ],
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+          },
+          required: ['name'],
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    expect(requestBody.toolConfig).toBeUndefined();
+
+    expect(requestBody.additionalModelRequestFields?.output_config)
+      .toMatchInlineSnapshot(`
+      {
+        "format": {
+          "schema": {
+            "properties": {
+              "name": {
+                "type": "string",
+              },
+            },
+            "required": [
+              "name",
+            ],
+            "type": "object",
+          },
+          "type": "json_schema",
+        },
+      }
+    `);
+  });
+
   it('should extract reasoning text with signature', async () => {
     server.urls[generateUrl].response = {
       type: 'json-value',
@@ -4618,6 +4712,76 @@ describe('doGenerate', () => {
             },
           },
           "text": "I need to think about this problem carefully...",
+          "type": "reasoning",
+        },
+        {
+          "text": "The answer is 42.",
+          "type": "text",
+        },
+      ]
+    `);
+  });
+
+  it('should preserve empty text blocks between reasoning blocks', async () => {
+    server.urls[generateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [
+              {
+                reasoningContent: {
+                  reasoningText: {
+                    text: 'thinking...',
+                    signature: 'sig-1',
+                  },
+                },
+              },
+              { text: '' },
+              {
+                reasoningContent: {
+                  reasoningText: {
+                    text: 'more thinking...',
+                    signature: 'sig-2',
+                  },
+                },
+              },
+              { text: 'The answer is 42.' },
+            ],
+          },
+        },
+        usage: { inputTokens: 4, outputTokens: 34, totalTokens: 38 },
+        stopReason: 'stop_sequence',
+      },
+    };
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(result.content).toMatchInlineSnapshot(`
+      [
+        {
+          "providerMetadata": {
+            "bedrock": {
+              "signature": "sig-1",
+            },
+          },
+          "text": "thinking...",
+          "type": "reasoning",
+        },
+        {
+          "text": "",
+          "type": "text",
+        },
+        {
+          "providerMetadata": {
+            "bedrock": {
+              "signature": "sig-2",
+            },
+          },
+          "text": "more thinking...",
           "type": "reasoning",
         },
         {

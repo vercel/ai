@@ -68,7 +68,7 @@ export const customTool = dynamicTool({
             {
               name: 'needsApproval',
               isOptional: true,
-              type: 'boolean | ((input: unknown, options: { toolCallId: string; messages: ModelMessage[]; experimental_context: Context }) => boolean | Promise<boolean>)',
+              type: 'boolean | ((input: unknown, options: { toolCallId: string; messages: ModelMessage[]; context: Context }) => boolean | Promise<boolean>)',
               description:
                 'Whether the tool needs user approval before execution. Can be a boolean or a function that receives the tool input plus execution metadata.'
             },
@@ -104,9 +104,9 @@ export const customTool = dynamicTool({
                         description: "An optional abort signal."
                       },
                       {
-                        name: "experimental_context",
+                        name: "context",
                         type: "Context",
-                        description: "User-defined context that is passed into tool execution. Experimental (can break in patch releases)."
+                        description: "Tool-specific context passed into tool execution. This value comes from the matching entry in `toolsContext`."
                       }
                     ]
                   }

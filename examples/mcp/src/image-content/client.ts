@@ -22,7 +22,7 @@ async function main() {
     console.log('Calling get-image tool...\n');
     const result = await tool.execute!(
       {},
-      { messages: [], toolCallId: '1', experimental_context: {} },
+      { messages: [], toolCallId: '1', context: {} },
     );
 
     console.log('Raw execute() result (MCP format):');
@@ -39,7 +39,7 @@ async function main() {
 
       console.log('\nImage content properly converted:');
       console.log('  - MCP: type="image", mimeType="image/png"');
-      console.log('  - SDK: type="image-data", mediaType="image/png"');
+      console.log('  - SDK: type="file-data", mediaType="image/png"');
     } else {
       console.log('\ntoModelOutput not available (main branch)');
       console.log('Bug: raw MCP content passed to model without conversion');

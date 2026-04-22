@@ -4,11 +4,23 @@ import {
   convertReadableStreamToArray,
   mockId,
 } from '@ai-sdk/provider-utils/test';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
+import { TypeValidationError } from '../error';
 import { asLanguageModelUsage } from '../types/usage';
 import { createExecuteToolsTransformation } from './create-execute-tools-transformation';
-import { ModelCallStreamPart } from './stream-model-call';
+import { LanguageModelStreamPart } from './stream-language-model-call';
+import {
+  ToolExecutionEndEvent,
+  ToolExecutionStartEvent,
+} from './tool-execution-events';
+
+// mock now function
+vi.mock('../util/now', () => ({
+  now: vi.fn(),
+}));
+import { now } from '../util/now';
+const mockNow = vi.mocked(now);
 
 const finishChunk = {
   type: 'model-call-end' as const,
@@ -30,6 +42,11 @@ const finishChunk = {
 };
 
 describe('createExecuteToolsTransformation', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockNow.mockReturnValue(0);
+  });
+
   it('should handle async tool execution', async () => {
     const tools = {
       syncTool: tool({
@@ -38,7 +55,7 @@ describe('createExecuteToolsTransformation', () => {
       }),
     };
 
-    const inputStream: ReadableStream<ModelCallStreamPart<typeof tools>> =
+    const inputStream: ReadableStream<LanguageModelStreamPart<typeof tools>> =
       convertArrayToReadableStream([
         {
           type: 'tool-call',
@@ -53,12 +70,11 @@ describe('createExecuteToolsTransformation', () => {
       createExecuteToolsTransformation({
         generateId: mockId({ prefix: 'id' }),
         tools,
-        telemetry: undefined,
         callId: 'test-telemetry-call-id',
         messages: [],
         timeout: undefined,
         abortSignal: undefined,
-        experimental_context: {},
+        toolsContext: {},
       }),
     );
 
@@ -117,7 +133,7 @@ describe('createExecuteToolsTransformation', () => {
       }),
     };
 
-    const inputStream: ReadableStream<ModelCallStreamPart<typeof tools>> =
+    const inputStream: ReadableStream<LanguageModelStreamPart<typeof tools>> =
       convertArrayToReadableStream([
         {
           type: 'tool-call',
@@ -131,12 +147,11 @@ describe('createExecuteToolsTransformation', () => {
     const transformedStream = createExecuteToolsTransformation({
       generateId: mockId({ prefix: 'id' }),
       tools,
-      telemetry: undefined,
       callId: 'test-telemetry-call-id',
       messages: [],
       abortSignal: undefined,
       timeout: undefined,
-      experimental_context: {},
+      toolsContext: {},
     });
 
     expect(
@@ -202,7 +217,7 @@ describe('createExecuteToolsTransformation', () => {
 
     let toolExecuted = false;
 
-    const inputStream: ReadableStream<ModelCallStreamPart<typeof tools>> =
+    const inputStream: ReadableStream<LanguageModelStreamPart<typeof tools>> =
       convertArrayToReadableStream([
         {
           type: 'tool-call',
@@ -226,12 +241,11 @@ describe('createExecuteToolsTransformation', () => {
       createExecuteToolsTransformation({
         generateId: mockId({ prefix: 'id' }),
         tools,
-        telemetry: undefined,
         callId: 'test-telemetry-call-id',
         messages: [],
         abortSignal: undefined,
         timeout: undefined,
-        experimental_context: {},
+        toolsContext: {},
       }),
     );
 
@@ -240,8 +254,235 @@ describe('createExecuteToolsTransformation', () => {
     expect(toolExecuted).toBe(false);
   });
 
-  describe('onToolCallStart and onToolCallFinish callbacks', () => {
-    it('should call onToolCallStart before tool execution and onToolCallFinish after', async () => {
+  it('should emit approval request and approved response before executing auto-approved tools', async () => {
+    const execute = vi.fn(async ({ value }: { value: string }) => {
+      return `${value}-approved-result`;
+    });
+
+    const tools = {
+      approvedTool: tool({
+        inputSchema: z.object({ value: z.string() }),
+        execute,
+      }),
+    };
+
+    const inputStream: ReadableStream<LanguageModelStreamPart<typeof tools>> =
+      convertArrayToReadableStream([
+        {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'approvedTool',
+          input: { value: 'test' },
+        },
+        finishChunk,
+      ]);
+
+    const transformedStream = inputStream.pipeThrough(
+      createExecuteToolsTransformation({
+        generateId: mockId({ prefix: 'id' }),
+        tools,
+        callId: 'test-telemetry-call-id',
+        messages: [],
+        abortSignal: undefined,
+        timeout: undefined,
+        toolsContext: {},
+        toolApproval: {
+          approvedTool: {
+            type: 'approved',
+            reason: 'trusted internal tool',
+          },
+        },
+      }),
+    );
+
+    expect(await convertReadableStreamToArray(transformedStream))
+      .toMatchInlineSnapshot(`
+        [
+          {
+            "input": {
+              "value": "test",
+            },
+            "toolCallId": "call-1",
+            "toolName": "approvedTool",
+            "type": "tool-call",
+          },
+          {
+            "approvalId": "id-0",
+            "isAutomatic": true,
+            "toolCall": {
+              "input": {
+                "value": "test",
+              },
+              "toolCallId": "call-1",
+              "toolName": "approvedTool",
+              "type": "tool-call",
+            },
+            "type": "tool-approval-request",
+          },
+          {
+            "approvalId": "id-0",
+            "approved": true,
+            "providerExecuted": undefined,
+            "reason": "trusted internal tool",
+            "toolCall": {
+              "input": {
+                "value": "test",
+              },
+              "toolCallId": "call-1",
+              "toolName": "approvedTool",
+              "type": "tool-call",
+            },
+            "type": "tool-approval-response",
+          },
+          {
+            "finishReason": "stop",
+            "rawFinishReason": "stop",
+            "type": "model-call-end",
+            "usage": {
+              "cachedInputTokens": undefined,
+              "inputTokenDetails": {
+                "cacheReadTokens": undefined,
+                "cacheWriteTokens": undefined,
+                "noCacheTokens": 3,
+              },
+              "inputTokens": 3,
+              "outputTokenDetails": {
+                "reasoningTokens": undefined,
+                "textTokens": 10,
+              },
+              "outputTokens": 10,
+              "raw": undefined,
+              "reasoningTokens": undefined,
+              "totalTokens": 13,
+            },
+          },
+          {
+            "dynamic": false,
+            "input": {
+              "value": "test",
+            },
+            "output": "test-approved-result",
+            "toolCallId": "call-1",
+            "toolName": "approvedTool",
+            "type": "tool-result",
+          },
+        ]
+      `);
+
+    expect(execute).toHaveBeenCalledTimes(1);
+  });
+
+  it('should emit approval request and denied response without executing auto-denied tools', async () => {
+    let toolExecuted = false;
+
+    const tools = {
+      deniedTool: tool({
+        inputSchema: z.object({ value: z.string() }),
+        execute: async ({ value }) => {
+          toolExecuted = true;
+          return `${value}-denied-result`;
+        },
+      }),
+    };
+
+    const inputStream: ReadableStream<LanguageModelStreamPart<typeof tools>> =
+      convertArrayToReadableStream([
+        {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'deniedTool',
+          input: { value: 'test' },
+        },
+        finishChunk,
+      ]);
+
+    const transformedStream = inputStream.pipeThrough(
+      createExecuteToolsTransformation({
+        generateId: mockId({ prefix: 'id' }),
+        tools,
+        callId: 'test-telemetry-call-id',
+        messages: [],
+        abortSignal: undefined,
+        timeout: undefined,
+        toolsContext: {},
+        toolApproval: {
+          deniedTool: {
+            type: 'denied',
+            reason: 'blocked by policy',
+          },
+        },
+      }),
+    );
+
+    expect(await convertReadableStreamToArray(transformedStream))
+      .toMatchInlineSnapshot(`
+        [
+          {
+            "input": {
+              "value": "test",
+            },
+            "toolCallId": "call-1",
+            "toolName": "deniedTool",
+            "type": "tool-call",
+          },
+          {
+            "approvalId": "id-0",
+            "isAutomatic": true,
+            "toolCall": {
+              "input": {
+                "value": "test",
+              },
+              "toolCallId": "call-1",
+              "toolName": "deniedTool",
+              "type": "tool-call",
+            },
+            "type": "tool-approval-request",
+          },
+          {
+            "approvalId": "id-0",
+            "approved": false,
+            "providerExecuted": undefined,
+            "reason": "blocked by policy",
+            "toolCall": {
+              "input": {
+                "value": "test",
+              },
+              "toolCallId": "call-1",
+              "toolName": "deniedTool",
+              "type": "tool-call",
+            },
+            "type": "tool-approval-response",
+          },
+          {
+            "finishReason": "stop",
+            "rawFinishReason": "stop",
+            "type": "model-call-end",
+            "usage": {
+              "cachedInputTokens": undefined,
+              "inputTokenDetails": {
+                "cacheReadTokens": undefined,
+                "cacheWriteTokens": undefined,
+                "noCacheTokens": 3,
+              },
+              "inputTokens": 3,
+              "outputTokenDetails": {
+                "reasoningTokens": undefined,
+                "textTokens": 10,
+              },
+              "outputTokens": 10,
+              "raw": undefined,
+              "reasoningTokens": undefined,
+              "totalTokens": 13,
+            },
+          },
+        ]
+      `);
+
+    expect(toolExecuted).toBe(false);
+  });
+
+  describe('onToolExecutionStart and onToolExecutionEnd callbacks', () => {
+    it('should call onToolExecutionStart before tool execution and onToolExecutionEnd after', async () => {
       const tools = {
         testTool: tool({
           inputSchema: z.object({ value: z.string() }),
@@ -254,7 +495,7 @@ describe('createExecuteToolsTransformation', () => {
 
       const callOrder: string[] = [];
 
-      const inputStream: ReadableStream<ModelCallStreamPart<typeof tools>> =
+      const inputStream: ReadableStream<LanguageModelStreamPart<typeof tools>> =
         convertArrayToReadableStream([
           {
             type: 'tool-call',
@@ -269,17 +510,16 @@ describe('createExecuteToolsTransformation', () => {
         createExecuteToolsTransformation({
           generateId: mockId({ prefix: 'id' }),
           tools,
-          telemetry: undefined,
           callId: 'test-telemetry-call-id',
           messages: [],
           timeout: undefined,
           abortSignal: undefined,
-          experimental_context: {},
-          onToolCallStart: async () => {
-            callOrder.push('onToolCallStart');
+          toolsContext: {},
+          onToolExecutionStart: async () => {
+            callOrder.push('onToolExecutionStart');
           },
-          onToolCallFinish: async () => {
-            callOrder.push('onToolCallFinish');
+          onToolExecutionEnd: async () => {
+            callOrder.push('onToolExecutionEnd');
           },
         }),
       );
@@ -287,9 +527,9 @@ describe('createExecuteToolsTransformation', () => {
       await convertReadableStreamToArray(transformedStream);
 
       expect(callOrder).toEqual([
-        'onToolCallStart',
+        'onToolExecutionStart',
         'execute',
-        'onToolCallFinish',
+        'onToolExecutionEnd',
       ]);
     });
 
@@ -301,10 +541,10 @@ describe('createExecuteToolsTransformation', () => {
         }),
       };
 
-      const startEvents: unknown[] = [];
-      const finishEvents: unknown[] = [];
+      const startEvents: ToolExecutionStartEvent<typeof tools>[] = [];
+      const finishEvents: ToolExecutionEndEvent<typeof tools>[] = [];
 
-      const inputStream: ReadableStream<ModelCallStreamPart<typeof tools>> =
+      const inputStream: ReadableStream<LanguageModelStreamPart<typeof tools>> =
         convertArrayToReadableStream([
           {
             type: 'tool-call',
@@ -319,55 +559,64 @@ describe('createExecuteToolsTransformation', () => {
         createExecuteToolsTransformation({
           generateId: mockId({ prefix: 'id' }),
           tools,
-          telemetry: undefined,
           callId: 'test-telemetry-call-id',
           messages: [],
           timeout: undefined,
           abortSignal: undefined,
-          experimental_context: {},
-          stepNumber: 2,
-          provider: 'test-provider',
-          modelId: 'test-model',
-          onToolCallStart: async event => {
-            startEvents.push({
-              stepNumber: event.stepNumber,
-              provider: event.provider,
-              modelId: event.modelId,
-              toolName: event.toolCall.toolName,
-            });
+          toolsContext: { testTool: { value: 'test' } },
+          onToolExecutionStart: async event => {
+            startEvents.push(event);
           },
-          onToolCallFinish: async event => {
-            finishEvents.push({
-              stepNumber: event.stepNumber,
-              provider: event.provider,
-              modelId: event.modelId,
-              toolName: event.toolCall.toolName,
-            });
+          onToolExecutionEnd: async event => {
+            finishEvents.push(event);
           },
         }),
       );
 
       await convertReadableStreamToArray(transformedStream);
 
-      expect(startEvents).toEqual([
-        {
-          stepNumber: 2,
-          provider: 'test-provider',
-          modelId: 'test-model',
-          toolName: 'testTool',
-        },
-      ]);
-      expect(finishEvents).toEqual([
-        {
-          stepNumber: 2,
-          provider: 'test-provider',
-          modelId: 'test-model',
-          toolName: 'testTool',
-        },
-      ]);
+      expect(startEvents).toMatchInlineSnapshot(`
+        [
+          {
+            "callId": "test-telemetry-call-id",
+            "context": {
+              "value": "test",
+            },
+            "toolCall": {
+              "input": {
+                "value": "test",
+              },
+              "toolCallId": "call-1",
+              "toolName": "testTool",
+              "type": "tool-call",
+            },
+          },
+        ]
+      `);
+      expect(finishEvents).toMatchInlineSnapshot(`
+        [
+          {
+            "callId": "test-telemetry-call-id",
+            "context": {
+              "value": "test",
+            },
+            "durationMs": 0,
+            "output": "test-result",
+            "success": true,
+            "toolCall": {
+              "input": {
+                "value": "test",
+              },
+              "toolCallId": "call-1",
+              "toolName": "testTool",
+              "type": "tool-call",
+            },
+          },
+        ]
+      `);
     });
 
-    it('should call onToolCallFinish with success data', async () => {
+    it('should call onToolExecutionEnd with success data', async () => {
       const tools = {
         testTool: tool({
           inputSchema: z.object({ value: z.string() }),
@@ -375,9 +624,9 @@ describe('createExecuteToolsTransformation', () => {
         }),
       };
 
-      const finishEvents: unknown[] = [];
+      const toolExecutionEndEvents: ToolExecutionEndEvent<typeof tools>[] = [];
 
-      const inputStream: ReadableStream<ModelCallStreamPart<typeof tools>> =
+      const inputStream: ReadableStream<LanguageModelStreamPart<typeof tools>> =
         convertArrayToReadableStream([
           {
             type: 'tool-call',
@@ -392,33 +641,41 @@ describe('createExecuteToolsTransformation', () => {
         createExecuteToolsTransformation({
           generateId: mockId({ prefix: 'id' }),
           tools,
-          telemetry: undefined,
           callId: 'test-telemetry-call-id',
           messages: [],
           timeout: undefined,
           abortSignal: undefined,
-          experimental_context: {},
-          onToolCallFinish: async event => {
-            finishEvents.push(event);
+          toolsContext: {},
+          onToolExecutionEnd: async event => {
+            toolExecutionEndEvents.push(event);
           },
         }),
       );
 
       await convertReadableStreamToArray(transformedStream);
 
-      expect(finishEvents.length).toBe(1);
-      expect(finishEvents[0]).toMatchObject({
-        success: true,
-        output: 'abc-result',
-        toolCall: {
-          toolName: 'testTool',
-          toolCallId: 'call-1',
-        },
-      });
-      expect((finishEvents[0] as any).durationMs).toBeGreaterThanOrEqual(0);
+      expect(toolExecutionEndEvents).toMatchInlineSnapshot(`
+        [
+          {
+            "callId": "test-telemetry-call-id",
+            "context": undefined,
+            "durationMs": 0,
+            "output": "abc-result",
+            "success": true,
+            "toolCall": {
+              "input": {
+                "value": "abc",
+              },
+              "toolCallId": "call-1",
+              "toolName": "testTool",
+              "type": "tool-call",
+            },
+          },
+        ]
+      `);
     });
 
-    it('should call onToolCallFinish with error data when tool fails', async () => {
+    it('should call onToolExecutionEnd with error data when tool fails', async () => {
       const tools = {
         failingTool: tool({
           inputSchema: z.object({ value: z.string() }),
@@ -431,10 +688,9 @@ describe('createExecuteToolsTransformation', () => {
         }),
       };
 
-      const finishEvents: unknown[] = [];
-      const toolError = new Error('tool failed');
+      const toolExecutionEndEvents: ToolExecutionEndEvent<typeof tools>[] = [];
 
-      const inputStream: ReadableStream<ModelCallStreamPart<typeof tools>> =
+      const inputStream: ReadableStream<LanguageModelStreamPart<typeof tools>> =
         convertArrayToReadableStream([
           {
             type: 'tool-call',
@@ -449,29 +705,38 @@ describe('createExecuteToolsTransformation', () => {
         createExecuteToolsTransformation({
           generateId: mockId({ prefix: 'id' }),
           tools,
-          telemetry: undefined,
           callId: 'test-telemetry-call-id',
           messages: [],
           timeout: undefined,
           abortSignal: undefined,
-          experimental_context: {},
-          onToolCallFinish: async event => {
-            finishEvents.push(event);
+          toolsContext: {},
+          onToolExecutionEnd: async event => {
+            toolExecutionEndEvents.push(event);
           },
         }),
       );
 
       await convertReadableStreamToArray(transformedStream);
 
-      expect(finishEvents.length).toBe(1);
-      expect(finishEvents[0]).toMatchObject({
-        success: false,
-        error: toolError,
-        toolCall: {
-          toolName: 'failingTool',
-          toolCallId: 'call-1',
-        },
-      });
+      expect(toolExecutionEndEvents).toMatchInlineSnapshot(`
+        [
+          {
+            "callId": "test-telemetry-call-id",
+            "context": undefined,
+            "durationMs": 0,
+            "error": [Error: tool failed],
+            "success": false,
+            "toolCall": {
+              "input": {
+                "value": "test",
+              },
+              "toolCallId": "call-1",
+              "toolName": "failingTool",
+              "type": "tool-call",
+            },
+          },
+        ]
+      `);
     });
 
     it('should not call callbacks for tools without execute', async () => {
@@ -481,10 +746,11 @@ describe('createExecuteToolsTransformation', () => {
         }),
       };
 
-      const startEvents: unknown[] = [];
-      const finishEvents: unknown[] = [];
+      const toolExecutionStartEvents: ToolExecutionStartEvent<typeof tools>[] =
+        [];
+      const toolExecutionEndEvents: ToolExecutionEndEvent<typeof tools>[] = [];
 
-      const inputStream: ReadableStream<ModelCallStreamPart<typeof tools>> =
+      const inputStream: ReadableStream<LanguageModelStreamPart<typeof tools>> =
         convertArrayToReadableStream([
           {
             type: 'tool-call',
@@ -499,25 +765,24 @@ describe('createExecuteToolsTransformation', () => {
         createExecuteToolsTransformation({
           generateId: mockId({ prefix: 'id' }),
           tools,
-          telemetry: undefined,
           callId: 'test-telemetry-call-id',
           messages: [],
           timeout: undefined,
           abortSignal: undefined,
-          experimental_context: {},
-          onToolCallStart: async event => {
-            startEvents.push(event);
+          toolsContext: {},
+          onToolExecutionStart: async event => {
+            toolExecutionStartEvents.push(event);
           },
-          onToolCallFinish: async event => {
-            finishEvents.push(event);
+          onToolExecutionEnd: async event => {
+            toolExecutionEndEvents.push(event);
           },
         }),
       );
 
       await convertReadableStreamToArray(transformedStream);
 
-      expect(startEvents.length).toBe(0);
-      expect(finishEvents.length).toBe(0);
+      expect(toolExecutionStartEvents).toMatchInlineSnapshot(`[]`);
+      expect(toolExecutionEndEvents).toMatchInlineSnapshot(`[]`);
     });
 
     it('should call callbacks for each tool in a multi-tool stream', async () => {
@@ -528,10 +793,11 @@ describe('createExecuteToolsTransformation', () => {
         }),
       };
 
-      const startEvents: unknown[] = [];
-      const finishEvents: unknown[] = [];
+      const toolExecutionStartEvents: ToolExecutionStartEvent<typeof tools>[] =
+        [];
+      const toolExecutionEndEvents: ToolExecutionEndEvent<typeof tools>[] = [];
 
-      const inputStream: ReadableStream<ModelCallStreamPart<typeof tools>> =
+      const inputStream: ReadableStream<LanguageModelStreamPart<typeof tools>> =
         convertArrayToReadableStream([
           {
             type: 'tool-call',
@@ -552,25 +818,84 @@ describe('createExecuteToolsTransformation', () => {
         createExecuteToolsTransformation({
           generateId: mockId({ prefix: 'id' }),
           tools,
-          telemetry: undefined,
           callId: 'test-telemetry-call-id',
           messages: [],
           timeout: undefined,
           abortSignal: undefined,
-          experimental_context: {},
-          onToolCallStart: async event => {
-            startEvents.push(event.toolCall.toolCallId);
+          toolsContext: {},
+          onToolExecutionStart: async event => {
+            toolExecutionStartEvents.push(event);
           },
-          onToolCallFinish: async event => {
-            finishEvents.push(event.toolCall.toolCallId);
+          onToolExecutionEnd: async event => {
+            toolExecutionEndEvents.push(event);
           },
         }),
       );
 
       await convertReadableStreamToArray(transformedStream);
 
-      expect(startEvents).toEqual(['call-1', 'call-2']);
-      expect(finishEvents).toEqual(['call-1', 'call-2']);
+      expect(toolExecutionStartEvents).toMatchInlineSnapshot(`
+        [
+          {
+            "callId": "test-telemetry-call-id",
+            "context": undefined,
+            "toolCall": {
+              "input": {
+                "value": "a",
+              },
+              "toolCallId": "call-1",
+              "toolName": "testTool",
+              "type": "tool-call",
+            },
+          },
+          {
+            "callId": "test-telemetry-call-id",
+            "context": undefined,
+            "toolCall": {
+              "input": {
+                "value": "b",
+              },
+              "toolCallId": "call-2",
+              "toolName": "testTool",
+              "type": "tool-call",
+            },
+          },
+        ]
+      `);
+      expect(toolExecutionEndEvents).toMatchInlineSnapshot(`
+        [
+          {
+            "callId": "test-telemetry-call-id",
+            "context": undefined,
+            "durationMs": 0,
+            "output": "a-result",
+            "success": true,
+            "toolCall": {
+              "input": {
+                "value": "a",
+              },
+              "toolCallId": "call-1",
+              "toolName": "testTool",
+              "type": "tool-call",
+            },
+          },
+          {
+            "callId": "test-telemetry-call-id",
+            "context": undefined,
+            "durationMs": 0,
+            "output": "b-result",
+            "success": true,
+            "toolCall": {
+              "input": {
+                "value": "b",
+              },
+              "toolCallId": "call-2",
+              "toolName": "testTool",
+              "type": "tool-call",
+            },
+          },
+        ]
+      `);
     });
 
     it('should not call callbacks for provider-executed tools', async () => {
@@ -581,10 +906,11 @@ describe('createExecuteToolsTransformation', () => {
         }),
       };
 
-      const startEvents: unknown[] = [];
-      const finishEvents: unknown[] = [];
+      const toolExecutionStartEvents: ToolExecutionStartEvent<typeof tools>[] =
+        [];
+      const toolExecutionEndEvents: ToolExecutionEndEvent<typeof tools>[] = [];
 
-      const inputStream: ReadableStream<ModelCallStreamPart<typeof tools>> =
+      const inputStream: ReadableStream<LanguageModelStreamPart<typeof tools>> =
         convertArrayToReadableStream([
           {
             type: 'tool-call',
@@ -608,29 +934,81 @@ describe('createExecuteToolsTransformation', () => {
         createExecuteToolsTransformation({
           generateId: mockId({ prefix: 'id' }),
           tools,
-          telemetry: undefined,
           callId: 'test-telemetry-call-id',
           messages: [],
           timeout: undefined,
           abortSignal: undefined,
-          experimental_context: {},
-          onToolCallStart: async event => {
-            startEvents.push(event);
+          toolsContext: {},
+          onToolExecutionStart: async event => {
+            toolExecutionStartEvents.push(event);
           },
-          onToolCallFinish: async event => {
-            finishEvents.push(event);
+          onToolExecutionEnd: async event => {
+            toolExecutionEndEvents.push(event);
           },
         }),
       );
 
       await convertReadableStreamToArray(transformedStream);
 
-      expect(startEvents.length).toBe(0);
-      expect(finishEvents.length).toBe(0);
+      expect(toolExecutionStartEvents).toMatchInlineSnapshot(`[]`);
+      expect(toolExecutionEndEvents).toMatchInlineSnapshot(`[]`);
     });
   });
 
   describe('tool execution error handling', () => {
+    it('should throw TypeValidationError before approval callbacks run', async () => {
+      const needsApproval = vi.fn(() => true);
+
+      const tools = {
+        guardedTool: tool({
+          inputSchema: z.object({ value: z.string() }),
+          contextSchema: z.object({ apiKey: z.string() }),
+          needsApproval,
+          execute: async ({ value }) => `${value}-result`,
+        }),
+      };
+
+      const transformedStream = convertArrayToReadableStream<
+        LanguageModelStreamPart<typeof tools>
+      >([
+        {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'guardedTool',
+          input: { value: 'test' },
+        },
+        finishChunk,
+      ]).pipeThrough(
+        createExecuteToolsTransformation({
+          generateId: mockId({ prefix: 'id' }),
+          tools,
+          callId: 'test-telemetry-call-id',
+          messages: [],
+          abortSignal: undefined,
+          timeout: undefined,
+          toolsContext: {
+            guardedTool: { apiKey: 123 } as any,
+          },
+        }),
+      );
+
+      try {
+        await convertReadableStreamToArray(transformedStream);
+        expect.unreachable('expected stream consumption to throw');
+      } catch (error) {
+        expect(needsApproval).not.toHaveBeenCalled();
+        expect(TypeValidationError.isInstance(error)).toBe(true);
+
+        if (TypeValidationError.isInstance(error)) {
+          expect(error.value).toEqual({ apiKey: 123 });
+          expect(error.context).toEqual({
+            field: 'tool context',
+            entityName: 'guardedTool',
+          });
+        }
+      }
+    });
+
     it('should handle error thrown in async tool execution', async () => {
       const tools = {
         failingTool: tool({
@@ -645,7 +1023,7 @@ describe('createExecuteToolsTransformation', () => {
         }),
       };
 
-      const inputStream: ReadableStream<ModelCallStreamPart<typeof tools>> =
+      const inputStream: ReadableStream<LanguageModelStreamPart<typeof tools>> =
         convertArrayToReadableStream([
           {
             type: 'tool-call',
@@ -662,12 +1040,11 @@ describe('createExecuteToolsTransformation', () => {
         createExecuteToolsTransformation({
           generateId: mockId({ prefix: 'id' }),
           tools,
-          telemetry: undefined,
           callId: 'test-telemetry-call-id',
           messages: [],
           abortSignal: undefined,
           timeout: undefined,
-          experimental_context: {},
+          toolsContext: {},
         }),
       );
 
@@ -732,7 +1109,7 @@ describe('createExecuteToolsTransformation', () => {
         }),
       };
 
-      const inputStream: ReadableStream<ModelCallStreamPart<typeof tools>> =
+      const inputStream: ReadableStream<LanguageModelStreamPart<typeof tools>> =
         convertArrayToReadableStream([
           {
             type: 'tool-call',
@@ -749,11 +1126,10 @@ describe('createExecuteToolsTransformation', () => {
         createExecuteToolsTransformation({
           generateId: mockId({ prefix: 'id' }),
           tools,
-          telemetry: undefined,
           callId: 'test-telemetry-call-id',
           messages: [],
           abortSignal: undefined,
-          experimental_context: {},
+          toolsContext: {},
         }),
       );
 

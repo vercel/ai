@@ -326,7 +326,7 @@ import {
   ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import { createMCPSamplingProvider } from '@mcpc-tech/mcp-sampling-ai-provider';
-import { generateText } from 'ai';
+import { generateText, isStepCount } from 'ai';
 import { z } from 'zod';
 
 const server = new Server(
@@ -376,7 +376,7 @@ server.setRequestHandler(CallToolRequestSchema, async request => {
       prompt:
         request.params.arguments?.question ||
         'What is the weather in San Francisco?',
-      maxSteps: 5,
+      stopWhen: isStepCount(5),
     });
 
     return { content: [{ type: 'text', text: result.text }] };

@@ -1124,7 +1124,7 @@ describe('generateObject', () => {
         expect(events).toEqual(['onStart', 'doGenerate']);
       });
 
-      it('should provide the correct event properties', async () => {
+      it('should send correct information with text prompt', async () => {
         const model = new MockLanguageModelV4({
           provider: 'test-provider',
           modelId: 'test-model',
@@ -1144,20 +1144,83 @@ describe('generateObject', () => {
           prompt: 'test-prompt',
           temperature: 0.5,
           maxOutputTokens: 100,
+          telemetry: {
+            functionId: 'test-function',
+          },
+          experimental_onStart: event => {
+            startEvent = event;
+          },
+          _internal: {
+            generateId: () => 'test-call-id',
+          },
+        });
+
+        expect(startEvent).toMatchInlineSnapshot(`
+          {
+            "callId": "test-call-id",
+            "frequencyPenalty": undefined,
+            "headers": {
+              "user-agent": "ai/0.0.0-test",
+            },
+            "maxOutputTokens": 100,
+            "maxRetries": 2,
+            "messages": undefined,
+            "modelId": "test-model",
+            "operationId": "ai.generateObject",
+            "output": "object",
+            "presencePenalty": undefined,
+            "prompt": "test-prompt",
+            "provider": "test-provider",
+            "providerOptions": undefined,
+            "schema": {
+              "$schema": "http://json-schema.org/draft-07/schema#",
+              "additionalProperties": false,
+              "properties": {
+                "content": {
+                  "type": "string",
+                },
+              },
+              "required": [
+                "content",
+              ],
+              "type": "object",
+            },
+            "schemaDescription": "A test schema",
+            "schemaName": "test-schema",
+            "seed": undefined,
+            "system": undefined,
+            "temperature": 0.5,
+            "topK": undefined,
+            "topP": undefined,
+          }
+        `);
+      });
+
+      it('should accept deprecated experimental_telemetry as an alias for telemetry', async () => {
+        const model = new MockLanguageModelV4({
+          doGenerate: {
+            ...dummyResponseValues,
+            content: [{ type: 'text', text: '{ "content": "Hello, world!" }' }],
+          },
+        });
+
+        let startEvent: any;
+
+        await generateObject({
+          model,
+          schema: z.object({ content: z.string() }),
+          prompt: 'prompt',
+          experimental_telemetry: {
+            isEnabled: true,
+            functionId: 'deprecated-fn',
+          },
           experimental_onStart: event => {
             startEvent = event;
           },
         });
 
-        expect(startEvent.operationId).toBe('ai.generateObject');
-        expect(startEvent.provider).toBe('test-provider');
-        expect(startEvent.modelId).toBe('test-model');
-        expect(startEvent.prompt).toBe('test-prompt');
-        expect(startEvent.temperature).toBe(0.5);
-        expect(startEvent.maxOutputTokens).toBe(100);
-        expect(startEvent.schemaName).toBe('test-schema');
-        expect(startEvent.schemaDescription).toBe('A test schema');
-        expect(startEvent.callId).toBeDefined();
+        expect(startEvent).not.toHaveProperty('isEnabled');
+        expect(startEvent).not.toHaveProperty('functionId');
       });
     });
 

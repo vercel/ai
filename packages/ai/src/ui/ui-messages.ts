@@ -3,8 +3,8 @@ import {
   InferToolOutput,
   Tool,
   ToolCall,
+  ToolSet,
 } from '@ai-sdk/provider-utils';
-import { ToolSet } from '../generate-text';
 import { ProviderMetadata } from '../types/provider-metadata';
 import { ProviderReference } from '../types/provider-reference';
 import { DeepPartial } from '../util/deep-partial';
@@ -306,6 +306,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
         id: string;
         approved?: never;
         reason?: never;
+        isAutomatic?: boolean;
       };
     }
   | {
@@ -318,6 +319,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
         id: string;
         approved: boolean;
         reason?: string;
+        isAutomatic?: boolean;
       };
     }
   | {
@@ -332,6 +334,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
         id: string;
         approved: true;
         reason?: string;
+        isAutomatic?: boolean;
       };
     }
   | {
@@ -346,6 +349,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
         id: string;
         approved: true;
         reason?: string;
+        isAutomatic?: boolean;
       };
     }
   | {
@@ -358,6 +362,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
         id: string;
         approved: false;
         reason?: string;
+        isAutomatic?: boolean;
       };
     }
 );
@@ -413,6 +418,7 @@ export type DynamicToolUIPart = {
         id: string;
         approved?: never;
         reason?: never;
+        isAutomatic?: boolean;
       };
     }
   | {
@@ -425,6 +431,7 @@ export type DynamicToolUIPart = {
         id: string;
         approved: boolean;
         reason?: string;
+        isAutomatic?: boolean;
       };
     }
   | {
@@ -439,6 +446,7 @@ export type DynamicToolUIPart = {
         id: string;
         approved: true;
         reason?: string;
+        isAutomatic?: boolean;
       };
     }
   | {
@@ -452,6 +460,7 @@ export type DynamicToolUIPart = {
         id: string;
         approved: true;
         reason?: string;
+        isAutomatic?: boolean;
       };
     }
   | {
@@ -464,6 +473,7 @@ export type DynamicToolUIPart = {
         id: string;
         approved: false;
         reason?: string;
+        isAutomatic?: boolean;
       };
     }
 );
@@ -547,11 +557,6 @@ export function isToolUIPart<TOOLS extends UITools>(
 ): part is ToolUIPart<TOOLS> | DynamicToolUIPart {
   return isStaticToolUIPart(part) || isDynamicToolUIPart(part);
 }
-
-/**
- * @deprecated Use isToolUIPart instead.
- */
-export const isToolOrDynamicToolUIPart = isToolUIPart;
 
 /**
  * Returns the name of the static tool.

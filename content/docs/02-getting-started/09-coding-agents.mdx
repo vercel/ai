@@ -87,27 +87,24 @@ Install the DevTools package:
   </Tabs>
 </div>
 
-### Add the middleware
+### Register the integration
 
-Wrap your language model with the DevTools middleware using [`wrapLanguageModel`](/docs/ai-sdk-core/middleware):
+Register `DevToolsTelemetry` globally so it captures all AI SDK calls:
 
 ```ts
-import { wrapLanguageModel, gateway } from 'ai';
-import { devToolsMiddleware } from '@ai-sdk/devtools';
+import { registerTelemetry } from 'ai';
+import { DevToolsTelemetry } from '@ai-sdk/devtools';
 
-const model = wrapLanguageModel({
-  model: gateway('anthropic/claude-sonnet-4.5'),
-  middleware: devToolsMiddleware(),
-});
+registerTelemetry(DevToolsTelemetry());
 ```
 
-Use the wrapped model with any AI SDK Core function:
+Once an integration is registered, [telemetry](/docs/ai-sdk-core/telemetry) is enabled automatically for all your AI SDK calls:
 
 ```ts
 import { generateText } from 'ai';
 
 const result = await generateText({
-  model, // wrapped model with DevTools middleware
+  model: openai('gpt-4o'),
   prompt: 'What cities are in the United States?',
 });
 ```

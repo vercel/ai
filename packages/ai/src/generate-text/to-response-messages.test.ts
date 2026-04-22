@@ -791,6 +791,7 @@ describe('toResponseMessages', () => {
           web_search: tool({
             type: 'provider',
             id: 'test.web_search',
+            isProviderExecuted: true,
             inputSchema: z.object({
               query: z.string(),
             }),
@@ -907,6 +908,7 @@ describe('toResponseMessages', () => {
               },
               {
                 "approvalId": "approval-1",
+                "isAutomatic": undefined,
                 "toolCallId": "123",
                 "type": "tool-approval-request",
               },
@@ -960,6 +962,7 @@ describe('toResponseMessages', () => {
               },
               {
                 "approvalId": "mcp-approval-1",
+                "isAutomatic": undefined,
                 "toolCallId": "mcp-call-1",
                 "type": "tool-approval-request",
               },
@@ -969,6 +972,508 @@ describe('toResponseMessages', () => {
         ]
       `);
     });
+
+    it('should preserve automatic approval request stage in the assistant message', async () => {
+      const result = await toResponseMessages({
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'weather',
+            input: { city: 'Tokyo' },
+          },
+          {
+            type: 'tool-approval-request',
+            approvalId: 'approval-1',
+            toolCall: {
+              type: 'tool-call',
+              toolCallId: 'call-1',
+              toolName: 'weather',
+              input: { city: 'Tokyo' },
+            },
+            isAutomatic: true,
+          },
+        ],
+        tools: {
+          weather: tool({
+            description: 'Get weather information',
+            inputSchema: z.object({ city: z.string() }),
+          }),
+        },
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "input": {
+                  "city": "Tokyo",
+                },
+                "providerExecuted": undefined,
+                "providerOptions": undefined,
+                "toolCallId": "call-1",
+                "toolName": "weather",
+                "type": "tool-call",
+              },
+              {
+                "approvalId": "approval-1",
+                "isAutomatic": true,
+                "toolCallId": "call-1",
+                "type": "tool-approval-request",
+              },
+            ],
+            "role": "assistant",
+          },
+        ]
+      `);
+    });
+
+    it('should include approval response and tool result stages in the tool message', async () => {
+      const result = await toResponseMessages({
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'weather',
+            input: { city: 'Tokyo' },
+          },
+          {
+            type: 'tool-approval-request',
+            approvalId: 'approval-1',
+            toolCall: {
+              type: 'tool-call',
+              toolCallId: 'call-1',
+              toolName: 'weather',
+              input: { city: 'Tokyo' },
+            },
+            isAutomatic: true,
+          },
+          {
+            type: 'tool-approval-response',
+            approvalId: 'approval-1',
+            approved: true,
+            toolCall: {
+              type: 'tool-call',
+              toolCallId: 'call-1',
+              toolName: 'weather',
+              input: { city: 'Tokyo' },
+            },
+          },
+          {
+            type: 'tool-result',
+            toolCallId: 'call-1',
+            toolName: 'weather',
+            input: { city: 'Tokyo' },
+            output: '72F and sunny',
+          },
+        ],
+        tools: {
+          weather: tool({
+            description: 'Get weather information',
+            inputSchema: z.object({ city: z.string() }),
+          }),
+        },
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "input": {
+                  "city": "Tokyo",
+                },
+                "providerExecuted": undefined,
+                "providerOptions": undefined,
+                "toolCallId": "call-1",
+                "toolName": "weather",
+                "type": "tool-call",
+              },
+              {
+                "approvalId": "approval-1",
+                "isAutomatic": true,
+                "toolCallId": "call-1",
+                "type": "tool-approval-request",
+              },
+            ],
+            "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "approvalId": "approval-1",
+                "approved": true,
+                "providerExecuted": undefined,
+                "reason": undefined,
+                "type": "tool-approval-response",
+              },
+              {
+                "output": {
+                  "type": "text",
+                  "value": "72F and sunny",
+                },
+                "toolCallId": "call-1",
+                "toolName": "weather",
+                "type": "tool-result",
+              },
+            ],
+            "role": "tool",
+          },
+        ]
+      `);
+    });
+
+    it('should add an execution-denied tool result when tool approval is denied', async () => {
+      const result = await toResponseMessages({
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'weather',
+            input: { city: 'Tokyo' },
+          },
+          {
+            type: 'tool-approval-request',
+            approvalId: 'approval-1',
+            toolCall: {
+              type: 'tool-call',
+              toolCallId: 'call-1',
+              toolName: 'weather',
+              input: { city: 'Tokyo' },
+            },
+          },
+          {
+            type: 'tool-approval-response',
+            approvalId: 'approval-1',
+            approved: false,
+            reason: 'User denied access',
+            toolCall: {
+              type: 'tool-call',
+              toolCallId: 'call-1',
+              toolName: 'weather',
+              input: { city: 'Tokyo' },
+            },
+          },
+        ],
+        tools: {
+          weather: tool({
+            description: 'Get weather information',
+            inputSchema: z.object({ city: z.string() }),
+          }),
+        },
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "input": {
+                  "city": "Tokyo",
+                },
+                "providerExecuted": undefined,
+                "providerOptions": undefined,
+                "toolCallId": "call-1",
+                "toolName": "weather",
+                "type": "tool-call",
+              },
+              {
+                "approvalId": "approval-1",
+                "isAutomatic": undefined,
+                "toolCallId": "call-1",
+                "type": "tool-approval-request",
+              },
+            ],
+            "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "approvalId": "approval-1",
+                "approved": false,
+                "providerExecuted": undefined,
+                "reason": "User denied access",
+                "type": "tool-approval-response",
+              },
+              {
+                "output": {
+                  "reason": "User denied access",
+                  "type": "execution-denied",
+                },
+                "toolCallId": "call-1",
+                "toolName": "weather",
+                "type": "tool-result",
+              },
+            ],
+            "role": "tool",
+          },
+        ]
+      `);
+    });
+
+    it('should include provider-executed approval response stages in the tool message', async () => {
+      const result = await toResponseMessages({
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'mcp-call-1',
+            toolName: 'mcp_tool',
+            input: { query: 'test' },
+            providerExecuted: true,
+            dynamic: true,
+          },
+          {
+            type: 'tool-approval-request',
+            approvalId: 'mcp-approval-1',
+            toolCall: {
+              type: 'tool-call',
+              toolCallId: 'mcp-call-1',
+              toolName: 'mcp_tool',
+              input: { query: 'test' },
+              providerExecuted: true,
+              dynamic: true,
+            },
+          },
+          {
+            type: 'tool-approval-response',
+            approvalId: 'mcp-approval-1',
+            approved: true,
+            providerExecuted: true,
+            toolCall: {
+              type: 'tool-call',
+              toolCallId: 'mcp-call-1',
+              toolName: 'mcp_tool',
+              input: { query: 'test' },
+              providerExecuted: true,
+              dynamic: true,
+            },
+          },
+        ],
+        tools: {},
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "input": {
+                  "query": "test",
+                },
+                "providerExecuted": true,
+                "providerOptions": undefined,
+                "toolCallId": "mcp-call-1",
+                "toolName": "mcp_tool",
+                "type": "tool-call",
+              },
+              {
+                "approvalId": "mcp-approval-1",
+                "isAutomatic": undefined,
+                "toolCallId": "mcp-call-1",
+                "type": "tool-approval-request",
+              },
+            ],
+            "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "approvalId": "mcp-approval-1",
+                "approved": true,
+                "providerExecuted": true,
+                "reason": undefined,
+                "type": "tool-approval-response",
+              },
+            ],
+            "role": "tool",
+          },
+        ]
+      `);
+    });
+
+    it('should keep provider-executed tool result stages in the assistant message only', async () => {
+      const result = await toResponseMessages({
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'mcp-call-1',
+            toolName: 'mcp_tool',
+            input: { query: 'test' },
+            providerExecuted: true,
+            dynamic: true,
+          },
+          {
+            type: 'tool-result',
+            toolCallId: 'mcp-call-1',
+            toolName: 'mcp_tool',
+            input: { query: 'test' },
+            output: { value: 'provider result' },
+            providerExecuted: true,
+            dynamic: true,
+          },
+        ],
+        tools: {},
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "input": {
+                  "query": "test",
+                },
+                "providerExecuted": true,
+                "providerOptions": undefined,
+                "toolCallId": "mcp-call-1",
+                "toolName": "mcp_tool",
+                "type": "tool-call",
+              },
+              {
+                "output": {
+                  "type": "json",
+                  "value": {
+                    "value": "provider result",
+                  },
+                },
+                "providerOptions": undefined,
+                "toolCallId": "mcp-call-1",
+                "toolName": "mcp_tool",
+                "type": "tool-result",
+              },
+            ],
+            "role": "assistant",
+          },
+        ]
+      `);
+    });
+  });
+
+  it('should sanitize invalid tool call with non-object input to empty object', async () => {
+    const result = await toResponseMessages({
+      content: [
+        {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'weather',
+          input: '{ city: San Francisco, }',
+          dynamic: true,
+          invalid: true,
+          error: new Error('JSON parsing failed'),
+        },
+        {
+          type: 'tool-error',
+          toolCallId: 'call-1',
+          toolName: 'weather',
+          input: '{ city: San Francisco, }',
+          error: 'Invalid input for tool weather: JSON parsing failed',
+          dynamic: true,
+        },
+      ],
+      tools: {
+        weather: tool({
+          description: 'Get weather',
+          inputSchema: z.object({ city: z.string() }),
+        }),
+      },
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "content": [
+            {
+              "input": {},
+              "providerExecuted": undefined,
+              "providerOptions": undefined,
+              "toolCallId": "call-1",
+              "toolName": "weather",
+              "type": "tool-call",
+            },
+          ],
+          "role": "assistant",
+        },
+        {
+          "content": [
+            {
+              "output": {
+                "type": "error-text",
+                "value": "Invalid input for tool weather: JSON parsing failed",
+              },
+              "toolCallId": "call-1",
+              "toolName": "weather",
+              "type": "tool-result",
+            },
+          ],
+          "role": "tool",
+        },
+      ]
+    `);
+  });
+
+  it('should preserve valid object input on invalid tool call', async () => {
+    const result = await toResponseMessages({
+      content: [
+        {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'weather',
+          input: { cities: 'San Francisco' },
+          dynamic: true,
+          invalid: true,
+          error: new Error('Type validation failed'),
+        },
+        {
+          type: 'tool-error',
+          toolCallId: 'call-1',
+          toolName: 'weather',
+          input: { cities: 'San Francisco' },
+          error: 'Invalid input for tool weather: Type validation failed',
+          dynamic: true,
+        },
+      ],
+      tools: {
+        weather: tool({
+          description: 'Get weather',
+          inputSchema: z.object({ city: z.string() }),
+        }),
+      },
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "content": [
+            {
+              "input": {
+                "cities": "San Francisco",
+              },
+              "providerExecuted": undefined,
+              "providerOptions": undefined,
+              "toolCallId": "call-1",
+              "toolName": "weather",
+              "type": "tool-call",
+            },
+          ],
+          "role": "assistant",
+        },
+        {
+          "content": [
+            {
+              "output": {
+                "type": "error-text",
+                "value": "Invalid input for tool weather: Type validation failed",
+              },
+              "toolCallId": "call-1",
+              "toolName": "weather",
+              "type": "tool-result",
+            },
+          ],
+          "role": "tool",
+        },
+      ]
+    `);
   });
 
   it('should include provider metadata in the text parts', async () => {

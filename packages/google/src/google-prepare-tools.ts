@@ -4,7 +4,7 @@ import {
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { convertJSONSchemaToOpenAPISchema } from './convert-json-schema-to-openapi-schema';
-import { GoogleGenerativeAIModelId } from './google-generative-ai-options';
+import { GoogleModelId } from './google-options';
 
 export function prepareTools({
   tools,
@@ -13,7 +13,7 @@ export function prepareTools({
 }: {
   tools: LanguageModelV4CallOptions['tools'];
   toolChoice?: LanguageModelV4CallOptions['toolChoice'];
-  modelId: GoogleGenerativeAIModelId;
+  modelId: GoogleModelId;
 }): {
   tools:
     | Array<
@@ -33,6 +33,7 @@ export function prepareTools({
         functionCallingConfig?: {
           mode: 'AUTO' | 'NONE' | 'ANY' | 'VALIDATED';
           allowedFunctionNames?: string[];
+          streamFunctionCallArguments?: boolean;
         };
         includeServerSideToolInvocations?: boolean;
       };
@@ -48,7 +49,7 @@ export function prepareTools({
       'gemini-flash-latest',
       'gemini-flash-lite-latest',
       'gemini-pro-latest',
-    ] as const satisfies GoogleGenerativeAIModelId[]
+    ] as const satisfies GoogleModelId[]
   ).some(id => id === modelId);
   const isGemini2orNewer =
     modelId.includes('gemini-2') ||

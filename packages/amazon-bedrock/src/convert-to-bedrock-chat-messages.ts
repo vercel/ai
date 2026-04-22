@@ -181,7 +181,7 @@ export async function convertToBedrockChatMessages(
                       switch (contentPart.type) {
                         case 'text':
                           return { text: contentPart.text };
-                        case 'image-data':
+                        case 'file-data':
                           if (!contentPart.mediaType.startsWith('image/')) {
                             throw new UnsupportedFunctionalityError({
                               functionality: `media type: ${contentPart.mediaType}`,
@@ -213,7 +213,7 @@ export async function convertToBedrockChatMessages(
                     break;
                   case 'execution-denied':
                     toolResultContent = [
-                      { text: output.reason ?? 'Tool execution denied.' },
+                      { text: output.reason ?? 'Tool call execution denied.' },
                     ];
                     break;
                   case 'json':
@@ -260,6 +260,9 @@ export async function convertToBedrockChatMessages(
           const message = block.messages[j];
           const isLastMessage = j === block.messages.length - 1;
           const { content } = message;
+          const hasReasoningBlocks = content.some(
+            part => part.type === 'reasoning',
+          );
 
           for (let k = 0; k < content.length; k++) {
             const part = content[k];
@@ -267,8 +270,8 @@ export async function convertToBedrockChatMessages(
 
             switch (part.type) {
               case 'text': {
-                // Skip empty text blocks
-                if (!part.text.trim()) {
+                // Skip empty text blocks unless reasoning blocks are present
+                if (!part.text.trim() && !hasReasoningBlocks) {
                   break;
                 }
 
@@ -365,12 +368,6 @@ export async function convertToBedrockChatMessages(
   }
 
   return { system, messages };
-}
-
-function isBedrockImageFormat(format: string): format is BedrockImageFormat {
-  return Object.values(BEDROCK_IMAGE_MIME_TYPES).includes(
-    format as BedrockImageFormat,
-  );
 }
 
 function getBedrockImageFormat(mimeType?: string): BedrockImageFormat {

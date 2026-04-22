@@ -138,7 +138,7 @@ export async function convertToOpenResponsesInput({
                 contentValue = output.value;
                 break;
               case 'execution-denied':
-                contentValue = output.reason ?? 'Tool execution denied.';
+                contentValue = output.reason ?? 'Tool call execution denied.';
                 break;
               case 'json':
               case 'error-json':
@@ -159,26 +159,33 @@ export async function convertToOpenResponsesInput({
                       });
                       break;
                     }
-                    case 'image-data': {
-                      contentParts.push({
-                        type: 'input_image',
-                        image_url: `data:${item.mediaType};base64,${item.data}`,
-                      });
-                      break;
-                    }
-                    case 'image-url': {
-                      contentParts.push({
-                        type: 'input_image',
-                        image_url: item.url,
-                      });
-                      break;
-                    }
                     case 'file-data': {
-                      contentParts.push({
-                        type: 'input_file',
-                        filename: item.filename ?? 'data',
-                        file_data: `data:${item.mediaType};base64,${item.data}`,
-                      });
+                      if (item.mediaType.startsWith('image/')) {
+                        contentParts.push({
+                          type: 'input_image',
+                          image_url: `data:${item.mediaType};base64,${item.data}`,
+                        });
+                      } else {
+                        contentParts.push({
+                          type: 'input_file',
+                          filename: item.filename ?? 'data',
+                          file_data: `data:${item.mediaType};base64,${item.data}`,
+                        });
+                      }
+                      break;
+                    }
+                    case 'file-url': {
+                      if (item.mediaType.startsWith('image/')) {
+                        contentParts.push({
+                          type: 'input_image',
+                          image_url: item.url,
+                        });
+                      } else {
+                        contentParts.push({
+                          type: 'input_file',
+                          file_url: item.url,
+                        });
+                      }
                       break;
                     }
                     default: {

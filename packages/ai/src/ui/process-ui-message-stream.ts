@@ -1,4 +1,3 @@
-import { TypeValidationContext } from '@ai-sdk/provider';
 import { FlexibleSchema, validateTypes } from '@ai-sdk/provider-utils';
 import { UIMessageStreamError } from '../error/ui-message-stream-error';
 import { ProviderMetadata } from '../types';
@@ -115,6 +114,24 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 chunkType: 'tool-invocation',
                 chunkId: toolCallId,
                 message: `No tool invocation found for tool call ID "${toolCallId}".`,
+              });
+            }
+
+            return toolInvocation;
+          }
+
+          function getToolInvocationByApprovalId(approvalId: string) {
+            const toolInvocations = state.message.parts.filter(isToolUIPart);
+
+            const toolInvocation = toolInvocations.find(
+              invocation => invocation.approval?.id === approvalId,
+            );
+
+            if (toolInvocation == null) {
+              throw new UIMessageStreamError({
+                chunkType: 'tool-approval-response',
+                chunkId: approvalId,
+                message: `No tool invocation found for approval ID "${approvalId}".`,
               });
             }
 
@@ -663,7 +680,36 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             case 'tool-approval-request': {
               const toolInvocation = getToolInvocation(chunk.toolCallId);
               toolInvocation.state = 'approval-requested';
-              toolInvocation.approval = { id: chunk.approvalId };
+              toolInvocation.approval =
+                chunk.isAutomatic === true
+                  ? { id: chunk.approvalId, isAutomatic: true }
+                  : { id: chunk.approvalId };
+              write();
+              break;
+            }
+
+            case 'tool-approval-response': {
+              const toolInvocation = getToolInvocationByApprovalId(
+                chunk.approvalId,
+              );
+              const approval =
+                toolInvocation.approval == null
+                  ? { id: chunk.approvalId }
+                  : toolInvocation.approval;
+
+              toolInvocation.state = 'approval-responded';
+              toolInvocation.approval = {
+                id: chunk.approvalId,
+                approved: chunk.approved,
+                ...(chunk.reason != null ? { reason: chunk.reason } : {}),
+                ...(approval.isAutomatic === true ? { isAutomatic: true } : {}),
+              };
+              if (chunk.providerExecuted != null) {
+                toolInvocation.providerExecuted = chunk.providerExecuted;
+              }
+              if (chunk.providerMetadata != null) {
+                toolInvocation.callProviderMetadata = chunk.providerMetadata;
+              }
               write();
               break;
             }
