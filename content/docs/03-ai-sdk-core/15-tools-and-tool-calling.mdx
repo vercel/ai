@@ -165,14 +165,34 @@ toolApproval: {
 }
 ```
 
-`toolApproval` can be a `GenericToolApprovalFunction`: a single function that runs
-for every tool call and receives `toolCall`, `tools`, `toolsContext`, and
-`messages`, so you can apply one policy across all tools.
+#### Generic `toolApproval` function
 
-Alternatively, use a per-tool object. Each key can be a
-`SingleToolApprovalFunction` that receives the tool input and options
-`toolCallId`, `messages`, and `context` (the same `context` shape as tool
-execution, without `abortSignal`).
+Pass a `GenericToolApprovalFunction` as `toolApproval` to handle every tool
+call in one place. The callback receives `toolCall`, `tools`, `toolsContext`, and
+`messages`:
+
+```ts highlight="4-10"
+const result = await generateText({
+  model: __MODEL__,
+  tools: { runCommand },
+  toolApproval: ({ toolCall, tools, toolsContext, messages }) => {
+    if (toolCall.toolName === 'runCommand' && !toolCall.dynamic) {
+      // Inspect toolCall.input, cross-tool state, or messages for policy.
+      return 'user-approval';
+    }
+    return 'not-applicable';
+  },
+  prompt: 'Remove the most recent file in the downloads folder',
+});
+```
+
+The same pattern works for `streamText` and for `toolApproval` on
+[`ToolLoopAgent`](/docs/agents/building-agents#tools) when you need one policy
+across all tools.
+
+For a per-tool object instead, each key can be a `SingleToolApprovalFunction`
+that receives the tool input and options `toolCallId`, `messages`, and
+`context` (the same `context` shape as tool execution, without `abortSignal`).
 
 This is useful for tools that perform sensitive operations like executing commands, processing payments, modifying data, and more potentially dangerous actions.
 
