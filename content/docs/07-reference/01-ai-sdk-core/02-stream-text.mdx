@@ -1823,13 +1823,13 @@ To see `streamText` in action, check out [these examples](#examples).
     },
     {
       name: 'experimental_onStart',
-      type: '(event: OnStartEvent) => PromiseLike<void> | void',
+      type: '(event: GenerateTextStartEvent) => PromiseLike<void> | void',
       isOptional: true,
       description:
         'Callback that is called when the streamText operation begins, before any LLM calls are made. Errors thrown in this callback are silently caught and do not break the generation flow. Experimental (can break in patch releases).',
       properties: [
         {
-          type: 'OnStartEvent',
+          type: 'GenerateTextStartEvent',
           parameters: [
             {
               name: 'model',
@@ -1970,13 +1970,13 @@ To see `streamText` in action, check out [these examples](#examples).
     },
     {
       name: 'experimental_onStepStart',
-      type: '(event: OnStepStartEvent) => PromiseLike<void> | void',
+      type: '(event: GenerateTextStepStartEvent) => PromiseLike<void> | void',
       isOptional: true,
       description:
         'Callback that is called when a step (LLM call) begins, before the provider is called. Errors thrown in this callback are silently caught and do not break the generation flow. Experimental (can break in patch releases).',
       properties: [
         {
-          type: 'OnStepStartEvent',
+          type: 'GenerateTextStepStartEvent',
           parameters: [
             {
               name: 'stepNumber',

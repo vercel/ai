@@ -34,12 +34,12 @@ const result = await generateText({
   content={[
     {
       name: 'experimental_onStart',
-      type: '(event: OnStartEvent) => void | Promise<void>',
+      type: '(event: GenerateTextStartEvent) => void | Promise<void>',
       description: 'Called when generation begins, before any LLM calls.',
     },
     {
       name: 'experimental_onStepStart',
-      type: '(event: OnStepStartEvent) => void | Promise<void>',
+      type: '(event: GenerateTextStepStartEvent) => void | Promise<void>',
       description:
         'Called when a step (LLM call) begins, before the provider is called.',
     },
@@ -55,12 +55,12 @@ const result = await generateText({
     },
     {
       name: 'onStepFinish',
-      type: '(event: OnStepFinishEvent) => void | Promise<void>',
+      type: '(event: GenerateTextStepEndEvent) => void | Promise<void>',
       description: 'Called when a step (LLM call) completes.',
     },
     {
       name: 'onFinish',
-      type: '(event: OnFinishEvent) => void | Promise<void>',
+      type: '(event: GenerateTextEndEvent) => void | Promise<void>',
       description:
         'Called when the entire generation completes (all steps finished).',
     },
