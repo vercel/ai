@@ -18,7 +18,7 @@ const result = await generateText({
   model: openai('gpt-4o'),
   prompt: 'What is the weather in San Francisco?',
   experimental_onStart: event => {
-    console.log('Generation started:', event.model.modelId);
+    console.log('Generation started:', event.modelId);
   },
   onFinish: event => {
     console.log('Generation finished:', event.totalUsage);
@@ -118,8 +118,8 @@ const result = await generateText({
   model: openai('gpt-4o'),
   prompt: 'Hello!',
   experimental_onStart: event => {
-    console.log('Model:', event.model.modelId);
-    console.log('Temperature:', event.temperature);
+    console.log('Model:', event.modelId);
+    console.log('Messages:', event.messages.length);
   },
 });
 ```
@@ -127,9 +127,14 @@ const result = await generateText({
 <PropertiesTable
   content={[
     {
-      name: 'model',
-      type: '{ provider: string; modelId: string }',
-      description: 'The model being used for generation.',
+      name: 'provider',
+      type: 'string',
+      description: 'The provider identifier (e.g., "openai", "anthropic").',
+    },
+    {
+      name: 'modelId',
+      type: 'string',
+      description: 'The specific model identifier (e.g., "gpt-4o").',
     },
     {
       name: 'system',
@@ -137,15 +142,9 @@ const result = await generateText({
       description: 'The system message(s) provided to the model.',
     },
     {
-      name: 'prompt',
-      type: 'string | Array<ModelMessage> | undefined',
-      description:
-        'The prompt string or array of messages if using the prompt option.',
-    },
-    {
       name: 'messages',
-      type: 'Array<ModelMessage> | undefined',
-      description: 'The messages array if using the messages option.',
+      type: 'Array<ModelMessage>',
+      description: 'The messages for this generation.',
     },
     {
       name: 'tools',
@@ -267,7 +266,7 @@ const result = await generateText({
   model: openai('gpt-4o'),
   prompt: 'Hello!',
   experimental_onStepStart: event => {
-    console.log('Step:', event.stepNumber);
+    console.log('Step:', event.steps.length);
     console.log('Messages:', event.messages.length);
   },
 });
@@ -276,14 +275,14 @@ const result = await generateText({
 <PropertiesTable
   content={[
     {
-      name: 'stepNumber',
-      type: 'number',
-      description: 'Zero-based index of the current step.',
+      name: 'provider',
+      type: 'string',
+      description: 'The provider identifier (e.g., "openai", "anthropic").',
     },
     {
-      name: 'model',
-      type: '{ provider: string; modelId: string }',
-      description: 'The model being used for this step.',
+      name: 'modelId',
+      type: 'string',
+      description: 'The specific model identifier (e.g., "gpt-4o").',
     },
     {
       name: 'system',
@@ -386,15 +385,9 @@ const result = await generateText({
 <PropertiesTable
   content={[
     {
-      name: 'stepNumber',
-      type: 'number | undefined',
-      description:
-        'Zero-based index of the current step where this tool call occurs.',
-    },
-    {
-      name: 'model',
-      type: '{ provider: string; modelId: string } | undefined',
-      description: 'The model being used for this step.',
+      name: 'callId',
+      type: 'string',
+      description: 'Unique identifier for this generation call, used to correlate events.',
     },
     {
       name: 'toolCall',
@@ -432,16 +425,11 @@ const result = await generateText({
       name: 'messages',
       type: 'Array<ModelMessage>',
       description:
-        'The conversation messages available at tool execution time.',
+        'Messages that were sent to the language model to initiate the response that contained the tool call. Does not include the system prompt nor the assistant response that contained the tool call.',
     },
     {
-      name: 'abortSignal',
-      type: 'AbortSignal | undefined',
-      description: 'Signal for cancelling the operation.',
-    },
-    {
-      name: 'context',
-      type: 'CONTEXT',
+      name: 'toolContext',
+      type: 'InferToolSetContext<TOOLS>',
       description:
         'Tool-specific context object for the tool call that is about to execute.',
     },
@@ -450,7 +438,7 @@ const result = await generateText({
 
 #### `experimental_onToolExecutionEnd`
 
-Called after a tool's `execute` function completes or errors. Uses a discriminated union on the `success` field.
+Called after a tool's `execute` function completes or errors. The `toolOutput` field is a discriminated union: check `toolOutput.type` to determine whether it is a `'tool-result'` (success) or `'tool-error'` (failure).
 
 ```ts
 const result = await generateText({
@@ -461,10 +449,10 @@ const result = await generateText({
     console.log('Tool:', event.toolCall.toolName);
     console.log('Duration:', event.durationMs, 'ms');
 
-    if (event.success) {
-      console.log('Output:', event.output);
+    if (event.toolOutput.type === 'tool-result') {
+      console.log('Output:', event.toolOutput.output);
     } else {
-      console.error('Error:', event.error);
+      console.error('Error:', event.toolOutput.error);
     }
   },
 });
@@ -473,15 +461,9 @@ const result = await generateText({
 <PropertiesTable
   content={[
     {
-      name: 'stepNumber',
-      type: 'number | undefined',
-      description:
-        'Zero-based index of the current step where this tool call occurred.',
-    },
-    {
-      name: 'model',
-      type: '{ provider: string; modelId: string } | undefined',
-      description: 'The model being used for this step.',
+      name: 'callId',
+      type: 'string',
+      description: 'Unique identifier for this generation call, used to correlate events.',
     },
     {
       name: 'toolCall',
@@ -516,44 +498,27 @@ const result = await generateText({
       ],
     },
     {
-      name: 'messages',
-      type: 'Array<ModelMessage>',
-      description:
-        'The conversation messages available at tool execution time.',
-    },
-    {
-      name: 'abortSignal',
-      type: 'AbortSignal | undefined',
-      description: 'Signal for cancelling the operation.',
-    },
-    {
       name: 'durationMs',
       type: 'number',
       description: 'Execution time of the tool call in milliseconds.',
     },
     {
-      name: 'context',
-      type: 'CONTEXT',
+      name: 'messages',
+      type: 'Array<ModelMessage>',
+      description:
+        'Messages that were sent to the language model to initiate the response that contained the tool call. Does not include the system prompt nor the assistant response that contained the tool call.',
+    },
+    {
+      name: 'toolContext',
+      type: 'InferToolSetContext<TOOLS>',
       description:
         'Tool-specific context object for the tool call that just completed.',
     },
     {
-      name: 'success',
-      type: 'boolean',
+      name: 'toolOutput',
+      type: 'ToolOutput',
       description:
-        'Discriminator indicating whether the tool call succeeded. When true, output is available. When false, error is available.',
-    },
-    {
-      name: 'output',
-      type: 'unknown',
-      description:
-        "The tool's return value (only present when success is true).",
-    },
-    {
-      name: 'error',
-      type: 'unknown',
-      description:
-        'The error that occurred during tool execution (only present when success is false).',
+        "Discriminated union representing the tool execution result. When `type` is `'tool-result'`, the `output` field contains the tool's return value. When `type` is `'tool-error'`, the `error` field contains the error.",
     },
   ]}
 />
@@ -1134,8 +1099,8 @@ const result = await generateText({
   prompt: 'Hello!',
   experimental_onStart: event => {
     console.log(`[${new Date().toISOString()}] Generation started`, {
-      model: event.model.modelId,
-      provider: event.model.provider,
+      model: event.modelId,
+      provider: event.provider,
     });
   },
   onStepFinish: event => {
@@ -1169,12 +1134,15 @@ const result = await generateText({
     console.log(`Tool "${event.toolCall.toolName}" starting...`);
   },
   experimental_onToolExecutionEnd: event => {
-    if (event.success) {
+    if (event.toolOutput.type === 'tool-result') {
       console.log(
         `Tool "${event.toolCall.toolName}" completed in ${event.durationMs}ms`,
       );
     } else {
-      console.error(`Tool "${event.toolCall.toolName}" failed:`, event.error);
+      console.error(
+        `Tool "${event.toolCall.toolName}" failed:`,
+        event.toolOutput.error,
+      );
     }
   },
 });

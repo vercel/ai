@@ -8,7 +8,7 @@ import type { Warning } from '../types/warning';
  *
  * Called when the operation begins, before the reranking model is called.
  */
-export interface RerankOnStartEvent {
+export type RerankOnStartEvent = {
   /** Unique identifier for this rerank call, used to correlate events. */
   readonly callId: string;
 
@@ -36,14 +36,14 @@ export interface RerankOnStartEvent {
 
   /** Additional provider-specific options. */
   readonly providerOptions: ProviderOptions | undefined;
-}
+};
 
 /**
  * Event passed to the `onFinish` callback for rerank operations.
  *
  * Called when the operation completes, after the reranking model returns.
  */
-export interface RerankOnFinishEvent {
+export type RerankOnFinishEvent = {
   /** Unique identifier for this rerank call, used to correlate events. */
   readonly callId: string;
 
@@ -83,12 +83,12 @@ export interface RerankOnFinishEvent {
     headers?: Record<string, string>;
     body?: unknown;
   };
-}
+};
 
 /**
  * Event fired when an individual reranking model call (inner doRerank) begins.
  */
-export interface RerankStartEvent {
+export type RerankStartEvent = {
   /** Unique identifier for this rerank call, used to correlate events. */
   readonly callId: string;
 
@@ -112,14 +112,14 @@ export interface RerankStartEvent {
 
   /** Number of top documents to return. */
   readonly topN: number | undefined;
-}
+};
 
 /**
  * Event fired when an individual reranking model call (doRerank) completes.
  *
  * Contains the ranking results from the model response.
  */
-export interface RerankFinishEvent {
+export type RerankFinishEvent = {
   /** Unique identifier for this rerank call, used to correlate events. */
   readonly callId: string;
 
@@ -137,4 +137,4 @@ export interface RerankFinishEvent {
 
   /** The ranking results from the model. */
   readonly ranking: Array<{ index: number; relevanceScore: number }>;
-}
+};

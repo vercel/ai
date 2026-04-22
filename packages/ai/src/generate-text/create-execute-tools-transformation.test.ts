@@ -579,9 +579,7 @@ describe('createExecuteToolsTransformation', () => {
         [
           {
             "callId": "test-telemetry-call-id",
-            "context": {
-              "value": "test",
-            },
+            "messages": [],
             "toolCall": {
               "input": {
                 "value": "test",
@@ -589,6 +587,9 @@ describe('createExecuteToolsTransformation', () => {
               "toolCallId": "call-1",
               "toolName": "testTool",
               "type": "tool-call",
+            },
+            "toolContext": {
+              "value": "test",
             },
           },
         ]
@@ -597,12 +598,8 @@ describe('createExecuteToolsTransformation', () => {
         [
           {
             "callId": "test-telemetry-call-id",
-            "context": {
-              "value": "test",
-            },
             "durationMs": 0,
-            "output": "test-result",
-            "success": true,
+            "messages": [],
             "toolCall": {
               "input": {
                 "value": "test",
@@ -610,6 +607,19 @@ describe('createExecuteToolsTransformation', () => {
               "toolCallId": "call-1",
               "toolName": "testTool",
               "type": "tool-call",
+            },
+            "toolContext": {
+              "value": "test",
+            },
+            "toolOutput": {
+              "dynamic": false,
+              "input": {
+                "value": "test",
+              },
+              "output": "test-result",
+              "toolCallId": "call-1",
+              "toolName": "testTool",
+              "type": "tool-result",
             },
           },
         ]
@@ -658,10 +668,8 @@ describe('createExecuteToolsTransformation', () => {
         [
           {
             "callId": "test-telemetry-call-id",
-            "context": undefined,
             "durationMs": 0,
-            "output": "abc-result",
-            "success": true,
+            "messages": [],
             "toolCall": {
               "input": {
                 "value": "abc",
@@ -669,6 +677,17 @@ describe('createExecuteToolsTransformation', () => {
               "toolCallId": "call-1",
               "toolName": "testTool",
               "type": "tool-call",
+            },
+            "toolContext": undefined,
+            "toolOutput": {
+              "dynamic": false,
+              "input": {
+                "value": "abc",
+              },
+              "output": "abc-result",
+              "toolCallId": "call-1",
+              "toolName": "testTool",
+              "type": "tool-result",
             },
           },
         ]
@@ -722,10 +741,8 @@ describe('createExecuteToolsTransformation', () => {
         [
           {
             "callId": "test-telemetry-call-id",
-            "context": undefined,
             "durationMs": 0,
-            "error": [Error: tool failed],
-            "success": false,
+            "messages": [],
             "toolCall": {
               "input": {
                 "value": "test",
@@ -733,6 +750,17 @@ describe('createExecuteToolsTransformation', () => {
               "toolCallId": "call-1",
               "toolName": "failingTool",
               "type": "tool-call",
+            },
+            "toolContext": undefined,
+            "toolOutput": {
+              "dynamic": false,
+              "error": [Error: tool failed],
+              "input": {
+                "value": "test",
+              },
+              "toolCallId": "call-1",
+              "toolName": "failingTool",
+              "type": "tool-error",
             },
           },
         ]
@@ -838,7 +866,7 @@ describe('createExecuteToolsTransformation', () => {
         [
           {
             "callId": "test-telemetry-call-id",
-            "context": undefined,
+            "messages": [],
             "toolCall": {
               "input": {
                 "value": "a",
@@ -847,10 +875,11 @@ describe('createExecuteToolsTransformation', () => {
               "toolName": "testTool",
               "type": "tool-call",
             },
+            "toolContext": undefined,
           },
           {
             "callId": "test-telemetry-call-id",
-            "context": undefined,
+            "messages": [],
             "toolCall": {
               "input": {
                 "value": "b",
@@ -859,6 +888,7 @@ describe('createExecuteToolsTransformation', () => {
               "toolName": "testTool",
               "type": "tool-call",
             },
+            "toolContext": undefined,
           },
         ]
       `);
@@ -866,10 +896,8 @@ describe('createExecuteToolsTransformation', () => {
         [
           {
             "callId": "test-telemetry-call-id",
-            "context": undefined,
             "durationMs": 0,
-            "output": "a-result",
-            "success": true,
+            "messages": [],
             "toolCall": {
               "input": {
                 "value": "a",
@@ -878,13 +906,22 @@ describe('createExecuteToolsTransformation', () => {
               "toolName": "testTool",
               "type": "tool-call",
             },
+            "toolContext": undefined,
+            "toolOutput": {
+              "dynamic": false,
+              "input": {
+                "value": "a",
+              },
+              "output": "a-result",
+              "toolCallId": "call-1",
+              "toolName": "testTool",
+              "type": "tool-result",
+            },
           },
           {
             "callId": "test-telemetry-call-id",
-            "context": undefined,
             "durationMs": 0,
-            "output": "b-result",
-            "success": true,
+            "messages": [],
             "toolCall": {
               "input": {
                 "value": "b",
@@ -892,6 +929,17 @@ describe('createExecuteToolsTransformation', () => {
               "toolCallId": "call-2",
               "toolName": "testTool",
               "type": "tool-call",
+            },
+            "toolContext": undefined,
+            "toolOutput": {
+              "dynamic": false,
+              "input": {
+                "value": "b",
+              },
+              "output": "b-result",
+              "toolCallId": "call-2",
+              "toolName": "testTool",
+              "type": "tool-result",
             },
           },
         ]
