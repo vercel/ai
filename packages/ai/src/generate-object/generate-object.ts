@@ -112,7 +112,18 @@ const originalGenerateId = createIdGenerator({ prefix: 'aiobj', size: 24 });
  * @returns
  * A result object that contains the generated object, the finish reason, the token usage, and additional information.
  *
- * @deprecated Use `generateText` with an `output` setting instead.
+ * @deprecated Use `generateText` with the `output` setting instead.
+ *
+ * @example
+ * ```ts
+ * import { generateText, Output } from 'ai';
+ * import { z } from 'zod';
+ *
+ * const { output } = await generateText({
+ *   model,
+ *   prompt: '...',
+ *   output: Output.object({ schema: z.object({ ... }) })
+ * });
  */
 export async function generateObject<
   SCHEMA extends FlexibleSchema<unknown> = FlexibleSchema<JSONValue>,

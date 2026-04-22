@@ -173,7 +173,27 @@ export type StreamObjectOnFinishCallback<RESULT> = (event: {
  * @returns
  * A result object for accessing the partial object stream and additional information.
  *
- * @deprecated Use `streamText` with an `output` setting instead.
+ * @deprecated Use `streamText` with the `output` setting instead.
+ *
+ * @example
+ * ```ts
+ * import { streamText, Output } from 'ai';
+ * import { z } from 'zod';
+ *
+ * const { partialOutputStream, output } = await streamText({
+ *   model,
+ *   prompt: '...',
+ *   output: Output.object({ schema: z.object({ ... }) })
+ * });
+ *
+ * // Stream partial JSON parsing
+ * for await (const partial of partialOutputStream) {
+ *   // ...
+ * }
+ *
+ * // Or wait for the final fully-parsed promise to resolve
+ * const finalObject = await output;
+ * ```
  */
 export function streamObject<
   SCHEMA extends FlexibleSchema<unknown> = FlexibleSchema<JSONValue>,
