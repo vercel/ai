@@ -77,17 +77,17 @@ const codeAgent = new ToolLoopAgent({
 });
 ```
 
-You can also require approval before a tool executes. Use `needsApproval` on the
-tool itself for the default behavior, or set `toolApproval` on the
-`ToolLoopAgent` when approval should be configured per agent. `toolApproval` can
-be a `GenericToolApprovalFunction` (one callback for every tool call) or a
-per-tool object of statuses and/or `SingleToolApprovalFunction` handlers. For
-the default execution path, use `'not-applicable'` or return `undefined` from
-an approval function. Use `'user-approval'` for
-manual review, or `'approved'` / `'denied'` when you want explicit automatic
-approval records in the output. For automatic approvals and denials, you can
-also return an object such as `{ type: 'denied', reason: 'blocked by policy' }`
-to attach a reason to the approval response:
+You can also require approval before a tool executes. Configure approval on the
+`ToolLoopAgent` with `toolApproval`. The older `needsApproval` property on
+tools is deprecated for `ToolLoopAgent`. `toolApproval` can be a
+`GenericToolApprovalFunction` (one callback for every tool call) or a per-tool
+object of statuses and/or `SingleToolApprovalFunction` handlers. For the
+default execution path, use `'not-applicable'` or return `undefined` from an
+approval function. Use `'user-approval'` for manual review, or `'approved'` /
+`'denied'` when you want explicit automatic approval records in the output. For
+automatic approvals and denials, you can also return an object such as
+`{ type: 'denied', reason: 'blocked by policy' }` to attach a reason to the
+approval response:
 
 ```ts
 const agent = new ToolLoopAgent({

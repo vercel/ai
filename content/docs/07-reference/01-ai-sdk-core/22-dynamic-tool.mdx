@@ -70,7 +70,7 @@ export const customTool = dynamicTool({
               isOptional: true,
               type: 'boolean | ((input: unknown, options: { toolCallId: string; messages: ModelMessage[]; context: Context }) => boolean | Promise<boolean>)',
               description:
-                'Whether the tool needs user approval before execution. Can be a boolean or a function that receives the tool input plus execution metadata.'
+                'Deprecated. For `generateText`, `streamText`, and `ToolLoopAgent`, configure approval with `toolApproval` instead. Existing `needsApproval` usages still work as a compatibility fallback. When used, it can be a boolean or a function that receives the tool input plus execution metadata.'
             },
             {
               name: 'inputSchema',

@@ -43,6 +43,8 @@ export interface ToolExecutionOptions<
 
 /**
  * Function that is called to determine if the tool needs approval before it can be executed.
+ *
+ * @deprecated Tool approval is handled on a `generateText` / `streamText` level now.
  */
 export type ToolNeedsApprovalFunction<
   INPUT,
@@ -184,6 +186,8 @@ export type Tool<
 
   /**
    * Whether the tool needs approval before it can be executed.
+   *
+   * @deprecated Tool approval is handled on a `generateText` / `streamText` level now.
    */
   needsApproval?:
     | boolean
