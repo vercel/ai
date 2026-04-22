@@ -107,32 +107,16 @@ tool({
 
 ## Tool Execution Approval
 
-By default, tools with an `execute` function run automatically as the model calls them. You can require approval before execution in two ways:
+By default, tools with an `execute` function run automatically as the model calls them. Configure approval with `toolApproval` on `generateText`, `streamText`, or `ToolLoopAgent`.
 
-- Set `needsApproval` on an individual tool to define its default approval behavior
-- Set `toolApproval` on `generateText`, `streamText`, or `ToolLoopAgent` to configure approval at call or agent level: a `GenericToolApprovalFunction` for all tool calls, or a per-tool map of statuses and/or `SingleToolApprovalFunction` callbacks (either function may return `undefined` for the same effect as `'not-applicable'`)
+`toolApproval` can be either:
 
-Use `needsApproval` when the tool should usually require approval wherever it is used. Use `toolApproval` when approval depends on the specific request or runtime context. If both are provided, `toolApproval` takes precedence.
+- A `GenericToolApprovalFunction` for all tool calls
+- A per-tool map of statuses and/or `SingleToolApprovalFunction` callbacks (either function may return `undefined` for the same effect as `'not-applicable'`)
 
-### Tool-Level Approval with `needsApproval`
+The older `needsApproval` property on `tool()` definitions is deprecated. Existing code still works, but new code should move approval logic to `toolApproval`.
 
-```ts highlight="13"
-import { tool } from 'ai';
-import { z } from 'zod';
-
-const runCommand = tool({
-  description: 'Run a shell command',
-  inputSchema: z.object({
-    command: z.string().describe('The shell command to execute'),
-  }),
-  needsApproval: true,
-  execute: async ({ command }) => {
-    // your command execution logic here
-  },
-});
-```
-
-### Call-Level Approval with `toolApproval`
+### Configure `toolApproval`
 
 ```ts highlight="8-10"
 const result = await generateText({
@@ -201,19 +185,18 @@ This is useful for tools that perform sensitive operations like executing comman
 
 When a tool requires manual approval, `generateText` and `streamText` don't pause execution. Instead, they complete and return `tool-approval-request` parts in the result content. This means the manual approval flow requires two calls to the model: the first returns the approval request, and the second (after receiving the approval response) either executes the tool or informs the model that approval was denied.
 
-Manual approval can come from either tool-level `needsApproval` or call-level
-`toolApproval` returning `'user-approval'`. If the tool should just execute
-normally, use `'not-applicable'`, return `undefined` from a `GenericToolApprovalFunction` or
-`SingleToolApprovalFunction`, or omit the setting entirely. If
-`toolApproval` returns `'approved'` or `'denied'` or their object forms, the
-SDK records that decision automatically in the same generation by emitting
-approval request/response parts. When you provide a `reason` on an automatic
-approval or denial, that reason is included in the emitted approval response
-and can be rendered in the UI.
+Manual approval comes from `toolApproval` returning `'user-approval'`. If the
+tool should just execute normally, use `'not-applicable'`, return `undefined`
+from a `GenericToolApprovalFunction` or `SingleToolApprovalFunction`, or omit
+the setting entirely. If `toolApproval` returns `'approved'` or `'denied'` or
+their object forms, the SDK records that decision automatically in the same
+generation by emitting approval request/response parts. When you provide a
+`reason` on an automatic approval or denial, that reason is included in the
+emitted approval response and can be rendered in the UI.
 
 Here's the manual approval flow:
 
-1. Call `generateText` or `streamText` with approval configured via `needsApproval` or `toolApproval`
+1. Call `generateText` or `streamText` with `toolApproval`
 2. The model generates a tool call
 3. The call returns `tool-approval-request` parts in `result.content`
 4. Your app requests approval and collects the user's decision
@@ -287,13 +270,14 @@ prompting the user again.
 
 <Note>
   Provider-executed tools are executed provider-side without considering the tool
-  approval setting. `needsApproval` and `toolApproval` only control tools
-  that the AI SDK executes locally.
+  approval setting. `toolApproval` (and the deprecated `needsApproval`) only
+  control tools that the AI SDK executes locally.
 </Note>
 
 ### Dynamic Approval
 
-You can make approval decisions based on tool input by providing an async function:
+You can make approval decisions based on tool input by providing an async
+function in a per-tool `toolApproval` object:
 
 ```ts
 const paymentTool = tool({
@@ -302,14 +286,26 @@ const paymentTool = tool({
     amount: z.number(),
     recipient: z.string(),
   }),
-  needsApproval: async ({ amount }) => amount > 1000,
   execute: async ({ amount, recipient }) => {
     return await processPayment(amount, recipient);
   },
 });
+
+const result = await generateText({
+  model: __MODEL__,
+  tools: {
+    processPayment: paymentTool,
+  },
+  toolApproval: {
+    processPayment: async ({ amount }) =>
+      amount > 1000 ? 'user-approval' : undefined,
+  },
+  prompt: 'Send $1500 to the contractor',
+});
 ```
 
-In this example, only transactions over $1000 require approval. Smaller transactions execute automatically.
+In this example, only transactions over $1000 require approval. Smaller
+transactions execute automatically.
 
 You can use a `SingleToolApprovalFunction` in a per-tool `toolApproval` object when you want to return
 `'not-applicable'`, `undefined` (equivalent to `'not-applicable'`), `'approved'`, `'denied'`, or `'user-approval'` at call time

@@ -334,7 +334,9 @@ export function Chat() {
 
 ### No Tool Approvals in Subagents
 
-Subagent tools cannot use `needsApproval`. All tools must execute automatically without user confirmation.
+Subagent tools cannot use approval flows such as `toolApproval` (or the
+deprecated `needsApproval`). All tools must execute automatically without user
+confirmation.
 
 ### Subagent Context is Isolated
 
