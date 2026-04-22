@@ -8,7 +8,7 @@ import {
   ToolExecutionOptions,
   ToolSet,
 } from '@ai-sdk/provider-utils';
-import { TypedToolCall } from '../..';
+import { TypedToolCall } from './tool-call';
 
 /**
  * The approval status of a tool configuration. This can be one of the following:
