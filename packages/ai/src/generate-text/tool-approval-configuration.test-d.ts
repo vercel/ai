@@ -54,11 +54,11 @@ describe('ToolApprovalConfiguration', () => {
       };
     });
 
-    it('infers per-tool callback input, context, and execution options (context, not toolContext)', () => {
+    it('infers per-tool callback input, toolContext, and execution options (toolContext, not context)', () => {
       const _config: ToolApprovalConfiguration<Tools> = {
-        weather: (input, { context, toolCallId, messages }) => {
+        weather: (input, { toolContext, toolCallId, messages }) => {
           expectTypeOf(input).toEqualTypeOf<{ location: string }>();
-          expectTypeOf(context).toEqualTypeOf<{ weatherApiKey: string }>();
+          expectTypeOf(toolContext).toEqualTypeOf<{ weatherApiKey: string }>();
           expectTypeOf(toolCallId).toEqualTypeOf<string>();
           expectTypeOf(messages).toEqualTypeOf<ModelMessage[]>();
 
@@ -68,11 +68,11 @@ describe('ToolApprovalConfiguration', () => {
       };
     });
 
-    it('infers `context: never` for tools without a context schema', () => {
+    it('infers `toolContext: never` for tools without a context schema', () => {
       const _config: ToolApprovalConfiguration<Tools> = {
         calculator: (input, options) => {
           expectTypeOf(input).toEqualTypeOf<{ expression: string }>();
-          expectTypeOf(options.context).toEqualTypeOf<never>();
+          expectTypeOf(options.toolContext).toEqualTypeOf<never>();
 
           return 'denied';
         },
@@ -81,9 +81,9 @@ describe('ToolApprovalConfiguration', () => {
 
     it('allows async per-tool approval callbacks (MaybePromiseLike)', () => {
       const _config: ToolApprovalConfiguration<Tools> = {
-        weather: async (input, { context }) => {
+        weather: async (input, { toolContext }) => {
           expectTypeOf(input).toEqualTypeOf<{ location: string }>();
-          expectTypeOf(context).toEqualTypeOf<{ weatherApiKey: string }>();
+          expectTypeOf(toolContext).toEqualTypeOf<{ weatherApiKey: string }>();
           return Promise.resolve('approved' as const);
         },
       };

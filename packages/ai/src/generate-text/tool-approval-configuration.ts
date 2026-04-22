@@ -44,7 +44,10 @@ export type SingleToolApprovalFunction<
   TOOL_CONTEXT extends Context | unknown | never,
 > = (
   input: INPUT,
-  options: Omit<ToolExecutionOptions<TOOL_CONTEXT>, 'abortSignal'>,
+  options: Omit<
+    ToolExecutionOptions<TOOL_CONTEXT>,
+    'abortSignal' | 'context'
+  > & { toolContext: TOOL_CONTEXT },
 ) => MaybePromiseLike<ToolApprovalStatus>;
 
 /**

@@ -192,7 +192,7 @@ across all tools.
 
 For a per-tool object instead, each key can be a `SingleToolApprovalFunction`
 that receives the tool input and options `toolCallId`, `messages`, and
-`context` (the same `context` shape as tool execution, without `abortSignal`).
+`toolContext` (the same shape as tool execution `context`, without `abortSignal`).
 Return `undefined` for the same effect as `'not-applicable'`.
 
 This is useful for tools that perform sensitive operations like executing commands, processing payments, modifying data, and more potentially dangerous actions.

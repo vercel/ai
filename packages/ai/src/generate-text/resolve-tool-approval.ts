@@ -77,7 +77,7 @@ export async function resolveToolApproval<TOOLS extends ToolSet>({
         ? await userDefinedToolApprovalStatus(input, {
             toolCallId: toolCall.toolCallId,
             messages,
-            context: await validateToolContext({
+            toolContext: await validateToolContext({
               toolName,
               context:
                 toolsContext?.[toolName as keyof InferToolSetContext<TOOLS>],

@@ -196,7 +196,7 @@ describe('resolveToolApproval', () => {
   });
 
   describe('SingleToolApprovalFunction (per-tool approval)', () => {
-    it('passes the same messages reference and validated context to the per-tool function', async () => {
+    it('passes the same messages reference and validated toolContext to the per-tool function', async () => {
       const modelMessages: ModelMessage[] = [
         { role: 'user' as const, content: 'step 1' },
         { role: 'user' as const, content: 'step 2' },
@@ -207,7 +207,7 @@ describe('resolveToolApproval', () => {
           _options: {
             toolCallId: string;
             messages: ModelMessage[];
-            context: { apiKey: string };
+            toolContext: { apiKey: string };
           },
         ) => 'approved' as const,
       );
@@ -234,7 +234,7 @@ describe('resolveToolApproval', () => {
         {
           toolCallId: 'call-1',
           messages: modelMessages,
-          context: { apiKey: 'secret' },
+          toolContext: { apiKey: 'secret' },
         },
       );
       expect(singleToolApproval).toHaveBeenCalled();
@@ -242,11 +242,15 @@ describe('resolveToolApproval', () => {
       expect(secondArg.messages).toBe(modelMessages);
     });
 
-    it('passes toolsContext entry through as context after schema validation', async () => {
+    it('passes toolsContext entry through as toolContext after schema validation', async () => {
       const singleToolApproval = vi.fn(
         (
           _input: { city: string },
-          _options: { toolCallId: string; messages: unknown; context: unknown },
+          _options: {
+            toolCallId: string;
+            messages: unknown;
+            toolContext: unknown;
+          },
         ) => 'not-applicable' as const,
       );
 
@@ -271,7 +275,7 @@ describe('resolveToolApproval', () => {
 
       expect(singleToolApproval).toHaveBeenCalled();
       const [, secondArg] = singleToolApproval.mock.calls[0]!;
-      expect(secondArg.context).toEqual({
+      expect(secondArg.toolContext).toEqual({
         apiKey: 'k',
         region: 'us-east-1',
       });
@@ -389,7 +393,7 @@ describe('resolveToolApproval', () => {
       {
         toolCallId: 'call-1',
         messages: [...messages],
-        context: { apiKey: 'secret' },
+        toolContext: { apiKey: 'secret' },
       },
     );
     expect(toolDefinedNeedsApproval).not.toHaveBeenCalled();
@@ -441,7 +445,7 @@ describe('resolveToolApproval', () => {
       {
         toolCallId: 'call-1',
         messages: [...messages],
-        context: undefined,
+        toolContext: undefined,
       },
     );
   });
