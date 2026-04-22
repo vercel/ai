@@ -117,13 +117,13 @@ const { embedding } = await embed({
     },
     {
       name: 'experimental_onStart',
-      type: '(event: EmbedOnStartEvent) => PromiseLike<void> | void',
+      type: '(event: EmbedStartEvent) => PromiseLike<void> | void',
       isOptional: true,
       description:
         'Callback that is called when the embed operation begins, before the embedding model is called. Errors thrown in this callback are silently caught and do not break the embedding flow. Experimental (can break in patch releases).',
       properties: [
         {
-          type: 'EmbedOnStartEvent',
+          type: 'EmbedStartEvent',
           parameters: [
             {
               name: 'callId',
@@ -171,13 +171,13 @@ const { embedding } = await embed({
     },
     {
       name: 'experimental_onFinish',
-      type: '(event: EmbedOnFinishEvent) => PromiseLike<void> | void',
+      type: '(event: EmbedEndEvent) => PromiseLike<void> | void',
       isOptional: true,
       description:
         'Callback that is called when the embed operation completes, after the embedding model returns. Errors thrown in this callback are silently caught and do not break the embedding flow. Experimental (can break in patch releases).',
       properties: [
         {
-          type: 'EmbedOnFinishEvent',
+          type: 'EmbedEndEvent',
           parameters: [
             {
               name: 'callId',
