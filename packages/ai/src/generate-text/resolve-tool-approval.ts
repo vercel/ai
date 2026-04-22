@@ -51,13 +51,25 @@ export async function resolveToolApproval<TOOLS extends ToolSet>({
    */
   toolsContext: InferToolSetContext<TOOLS>;
 }): Promise<Exclude<ToolApprovalStatus, string>> {
+  // user-defined generic tool approval
+  if (toolApproval != null && typeof toolApproval === 'function') {
+    return normalizeToolApprovalStatus(
+      await toolApproval({
+        toolCall,
+        tools,
+        toolsContext,
+        messages,
+      }),
+    );
+  }
+
   const toolName = toolCall.toolName;
   const tool = tools?.[toolName];
 
   // assume that the input has been validated and matches the tool's input schema
   const input = toolCall.input as InferToolInput<TOOLS[keyof TOOLS]>;
 
-  // user-defined tool approval
+  // user-defined per-tool approval
   const userDefinedToolApprovalStatus = toolApproval?.[toolName];
   if (userDefinedToolApprovalStatus != null) {
     const approvalStatus: ToolApprovalStatus =
@@ -65,7 +77,7 @@ export async function resolveToolApproval<TOOLS extends ToolSet>({
         ? await userDefinedToolApprovalStatus(input, {
             toolCallId: toolCall.toolCallId,
             messages,
-            toolContext: await validateToolContext({
+            context: await validateToolContext({
               toolName,
               context:
                 toolsContext?.[toolName as keyof InferToolSetContext<TOOLS>],
@@ -74,10 +86,7 @@ export async function resolveToolApproval<TOOLS extends ToolSet>({
           })
         : userDefinedToolApprovalStatus;
 
-    // normalize the approval status to the object status shape
-    return typeof approvalStatus === 'string'
-      ? { type: approvalStatus }
-      : approvalStatus;
+    return normalizeToolApprovalStatus(approvalStatus);
   }
 
   // tool-defined approval
@@ -100,4 +109,10 @@ export async function resolveToolApproval<TOOLS extends ToolSet>({
       : tool.needsApproval;
 
   return needsApproval ? { type: 'user-approval' } : { type: 'not-applicable' };
+}
+
+function normalizeToolApprovalStatus(
+  status: ToolApprovalStatus,
+): Exclude<ToolApprovalStatus, string> {
+  return typeof status === 'string' ? { type: status } : status;
 }

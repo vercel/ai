@@ -57,7 +57,7 @@ export type GenericToolApprovalFunction<
   /**
    * All tools that are available for the model to call.
    */
-  tools: TOOLS;
+  tools: TOOLS | undefined;
 
   /**
    * Tool context for all tools that are available for the model to call.
