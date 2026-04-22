@@ -1,5 +1,40 @@
 # @ai-sdk/google-vertex
 
+## 3.0.132
+
+### Patch Changes
+
+- 5543cd1: Add AI Gateway hint to provider READMEs
+- Updated dependencies [5543cd1]
+- Updated dependencies [6eeeb6f]
+- Updated dependencies [e1ed246]
+  - @ai-sdk/anthropic@2.0.77
+  - @ai-sdk/google@2.0.70
+  - @ai-sdk/openai-compatible@1.0.36
+
+## 3.0.131
+
+### Patch Changes
+
+- Updated dependencies [2fe3997]
+  - @ai-sdk/anthropic@2.0.76
+
+## 3.0.130
+
+### Patch Changes
+
+- 4b40033: feat(provider/anthropic): add support for Opus 4.7 and relevant API enhancements
+- Updated dependencies [4b40033]
+  - @ai-sdk/anthropic@2.0.75
+
+## 3.0.129
+
+### Patch Changes
+
+- bfaafad: chore(provider/google): update available models
+- Updated dependencies [bfaafad]
+  - @ai-sdk/google@2.0.69
+
 ## 3.0.128
 
 ### Patch Changes

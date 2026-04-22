@@ -1,5 +1,35 @@
 # @ai-sdk/amazon-bedrock
 
+## 3.0.97
+
+### Patch Changes
+
+- b446c83: fix(provider/amazon-bedrock): fix Anthropic reasoning behavior related to Opus 4.7
+
+## 3.0.96
+
+### Patch Changes
+
+- 5543cd1: Add AI Gateway hint to provider READMEs
+- Updated dependencies [5543cd1]
+- Updated dependencies [e1ed246]
+  - @ai-sdk/anthropic@2.0.77
+
+## 3.0.95
+
+### Patch Changes
+
+- Updated dependencies [2fe3997]
+  - @ai-sdk/anthropic@2.0.76
+
+## 3.0.94
+
+### Patch Changes
+
+- 4b40033: feat(provider/anthropic): add support for Opus 4.7 and relevant API enhancements
+- Updated dependencies [4b40033]
+  - @ai-sdk/anthropic@2.0.75
+
 ## 3.0.93
 
 ### Patch Changes

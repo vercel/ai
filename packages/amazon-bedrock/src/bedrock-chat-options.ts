@@ -7,6 +7,10 @@ export type BedrockChatModelId =
   | 'anthropic.claude-v2'
   | 'anthropic.claude-v2:1'
   | 'anthropic.claude-instant-v1'
+  | 'anthropic.claude-opus-4-7'
+  | 'anthropic.claude-opus-4-6-v1'
+  | 'anthropic.claude-sonnet-4-6-v1'
+  | 'anthropic.claude-opus-4-5-20251101-v1:0'
   | 'anthropic.claude-haiku-4-5-20251001-v1:0'
   | 'anthropic.claude-sonnet-4-20250514-v1:0'
   | 'anthropic.claude-sonnet-4-5-20250929-v1:0'
@@ -51,6 +55,11 @@ export type BedrockChatModelId =
   | 'us.anthropic.claude-3-5-haiku-20241022-v1:0'
   | 'us.anthropic.claude-3-5-sonnet-20241022-v2:0'
   | 'us.anthropic.claude-3-7-sonnet-20250219-v1:0'
+  | 'us.anthropic.claude-opus-4-7'
+  | 'us.anthropic.claude-opus-4-6-v1'
+  | 'us.anthropic.claude-sonnet-4-6-v1'
+  | 'us.anthropic.claude-opus-4-5-20251101-v1:0'
+  | 'us.anthropic.claude-sonnet-4-5-20250929-v1:0'
   | 'us.anthropic.claude-sonnet-4-20250514-v1:0'
   | 'us.anthropic.claude-sonnet-4-5-20250929-v1:0'
   | 'us.anthropic.claude-opus-4-20250514-v1:0'
@@ -108,13 +117,26 @@ export const bedrockProviderOptions = z.object({
         ])
         .optional(),
       budgetTokens: z.number().optional(),
-      maxReasoningEffort: z.enum(['low', 'medium', 'high', 'max']).optional(),
+      maxReasoningEffort: z
+        .enum(['low', 'medium', 'high', 'xhigh', 'max'])
+        .optional(),
+      display: z.enum(['omitted', 'summarized']).optional(),
     })
     .optional(),
   /**
    * Anthropic beta features to enable
    */
   anthropicBeta: z.array(z.string()).optional(),
+  /**
+   * Service tier for the request.
+   * @see https://docs.aws.amazon.com/bedrock/latest/userguide/service-tiers-inference.html
+   *
+   * - 'reserved': Uses provisioned throughput capacity
+   * - 'priority': Prioritizes low-latency inference when capacity is available
+   * - 'default': Standard on-demand tier
+   * - 'flex': Lower-cost tier for flexible latency workloads
+   */
+  serviceTier: z.enum(['reserved', 'priority', 'default', 'flex']).optional(),
 });
 
 export type BedrockProviderOptions = z.infer<typeof bedrockProviderOptions>;

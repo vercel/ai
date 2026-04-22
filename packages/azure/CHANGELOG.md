@@ -1,5 +1,13 @@
 # @ai-sdk/azure
 
+## 2.0.105
+
+### Patch Changes
+
+- 5543cd1: Add AI Gateway hint to provider READMEs
+- Updated dependencies [5543cd1]
+  - @ai-sdk/openai@2.0.103
+
 ## 2.0.104
 
 ### Patch Changes

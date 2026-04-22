@@ -201,21 +201,35 @@ describe('AnthropicMessagesLanguageModel', () => {
         `);
       });
 
-      it('should throw error when thinking type is enabled without budgetTokens', async () => {
+      it('should use default budget when thinking type is enabled without budgetTokens', async () => {
         prepareJsonResponse({
           content: [{ type: 'text', text: 'Hello, World!' }],
         });
 
-        await expect(
-          provider('claude-sonnet-4-5').doGenerate({
-            prompt: TEST_PROMPT,
-            providerOptions: {
-              anthropic: {
-                thinking: { type: 'enabled' },
-              } satisfies AnthropicProviderOptions,
-            },
-          }),
-        ).rejects.toThrow('thinking requires a budget');
+        const result = await provider('claude-sonnet-4-5').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            anthropic: {
+              thinking: { type: 'enabled' },
+            } satisfies AnthropicProviderOptions,
+          },
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody).toMatchObject({
+          thinking: {
+            type: 'enabled',
+            budget_tokens: 1024,
+          },
+        });
+
+        expect(result.warnings).toEqual([
+          {
+            type: 'other',
+            message:
+              'thinking budget is required when thinking is enabled. using default budget of 1024 tokens.',
+          },
+        ]);
       });
     });
 
@@ -576,6 +590,24 @@ describe('AnthropicMessagesLanguageModel', () => {
               },
             ],
             "model": "claude-sonnet-4-5",
+            "output_config": {
+              "format": {
+                "schema": {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "additionalProperties": false,
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "name",
+                  ],
+                  "type": "object",
+                },
+                "type": "json_schema",
+              },
+            },
             "output_format": {
               "schema": {
                 "$schema": "http://json-schema.org/draft-07/schema#",
@@ -656,6 +688,24 @@ describe('AnthropicMessagesLanguageModel', () => {
               },
             ],
             "model": "claude-unknown",
+            "output_config": {
+              "format": {
+                "schema": {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "additionalProperties": false,
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "name",
+                  ],
+                  "type": "object",
+                },
+                "type": "json_schema",
+              },
+            },
             "output_format": {
               "schema": {
                 "$schema": "http://json-schema.org/draft-07/schema#",
@@ -996,6 +1046,50 @@ describe('AnthropicMessagesLanguageModel', () => {
       `);
 
       expect(warnings).toMatchInlineSnapshot(`[]`);
+    });
+
+    it('should use default thinking budget when it is not set', async () => {
+      prepareJsonResponse({});
+
+      const { warnings } = await provider('claude-haiku-4-5').doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          anthropic: {
+            thinking: { type: 'enabled' },
+          } satisfies AnthropicProviderOptions,
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "max_tokens": 64000,
+          "messages": [
+            {
+              "content": [
+                {
+                  "text": "Hello",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+          "model": "claude-haiku-4-5",
+          "thinking": {
+            "budget_tokens": 1024,
+            "type": "enabled",
+          },
+        }
+      `);
+
+      expect(warnings).toMatchInlineSnapshot(`
+        [
+          {
+            "message": "thinking budget is required when thinking is enabled. using default budget of 1024 tokens.",
+            "type": "other",
+          },
+        ]
+      `);
     });
 
     it('should pass tools and toolChoice', async () => {
@@ -3077,6 +3171,47 @@ describe('AnthropicMessagesLanguageModel', () => {
       expect(result.warnings).toStrictEqual([]);
     });
 
+    it('should set inference_geo in request body', async () => {
+      prepareJsonFixtureResponse('anthropic-text');
+
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          anthropic: {
+            inferenceGeo: 'us',
+          } satisfies AnthropicProviderOptions,
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "inference_geo": "us",
+          "max_tokens": 4096,
+          "messages": [
+            {
+              "content": [
+                {
+                  "text": "Hello",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+          "model": "claude-3-haiku-20240307",
+        }
+      `);
+      expect(await server.calls[0].requestHeaders).toMatchInlineSnapshot(`
+        {
+          "anthropic-version": "2023-06-01",
+          "content-type": "application/json",
+          "x-api-key": "test-api-key",
+        }
+      `);
+
+      expect(result.warnings).toStrictEqual([]);
+    });
+
     it('should pass cache_control to request body', async () => {
       prepareJsonResponse({});
 
@@ -3888,6 +4023,44 @@ describe('AnthropicMessagesLanguageModel', () => {
               },
             ],
             "model": "claude-sonnet-4-5",
+            "output_config": {
+              "format": {
+                "schema": {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "additionalProperties": false,
+                  "properties": {
+                    "characters": {
+                      "items": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "class": {
+                            "type": "string",
+                          },
+                          "description": {
+                            "type": "string",
+                          },
+                          "name": {
+                            "type": "string",
+                          },
+                        },
+                        "required": [
+                          "name",
+                          "class",
+                          "description",
+                        ],
+                        "type": "object",
+                      },
+                      "type": "array",
+                    },
+                  },
+                  "required": [
+                    "characters",
+                  ],
+                  "type": "object",
+                },
+                "type": "json_schema",
+              },
+            },
             "output_format": {
               "schema": {
                 "$schema": "http://json-schema.org/draft-07/schema#",
@@ -5679,6 +5852,139 @@ describe('AnthropicMessagesLanguageModel', () => {
           },
         ]
       `);
+    });
+  });
+});
+
+describe('claude-opus-4-7 specific behavior', () => {
+  const server = createTestServer({
+    'https://api.anthropic.com/v1/messages': {},
+  });
+
+  function prepareJsonFixtureResponse(filename: string) {
+    server.urls['https://api.anthropic.com/v1/messages'].response = {
+      type: 'json-value',
+      body: JSON.parse(
+        fs.readFileSync(`src/__fixtures__/${filename}.json`, 'utf8'),
+      ),
+    };
+  }
+
+  const provider = createAnthropic({ apiKey: 'test-api-key' });
+  const opusModel = provider('claude-opus-4-7');
+
+  it('should warn and strip temperature when set', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    const { warnings } = await opusModel.doGenerate({
+      prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
+      temperature: 0.7,
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.temperature).toBeUndefined();
+    expect(warnings).toContainEqual(
+      expect.objectContaining({
+        type: 'unsupported-setting',
+        setting: 'temperature',
+      }),
+    );
+  });
+
+  it('should warn and strip topK when set', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    const { warnings } = await opusModel.doGenerate({
+      prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
+      topK: 40,
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.top_k).toBeUndefined();
+    expect(warnings).toContainEqual(
+      expect.objectContaining({
+        type: 'unsupported-setting',
+        setting: 'topK',
+      }),
+    );
+  });
+
+  it('should warn and strip topP when set', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    const { warnings } = await opusModel.doGenerate({
+      prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
+      topP: 0.9,
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.top_p).toBeUndefined();
+    expect(warnings).toContainEqual(
+      expect.objectContaining({
+        type: 'unsupported-setting',
+        setting: 'topP',
+      }),
+    );
+  });
+
+  it('should include task_budget in output_config and add beta header', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    await opusModel.doGenerate({
+      prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
+      providerOptions: {
+        anthropic: {
+          taskBudget: { type: 'tokens', total: 400000 },
+        } satisfies AnthropicProviderOptions,
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.output_config?.task_budget).toEqual({
+      type: 'tokens',
+      total: 400000,
+    });
+
+    const betaHeader = server.calls[0].requestHeaders['anthropic-beta'];
+    expect(betaHeader).toContain('task-budgets-2026-03-13');
+  });
+
+  it('should include remaining in task_budget when provided', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    await opusModel.doGenerate({
+      prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
+      providerOptions: {
+        anthropic: {
+          taskBudget: { type: 'tokens', total: 400000, remaining: 215000 },
+        } satisfies AnthropicProviderOptions,
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.output_config?.task_budget).toEqual({
+      type: 'tokens',
+      total: 400000,
+      remaining: 215000,
+    });
+  });
+
+  it('should include display in thinking block when set', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    await opusModel.doGenerate({
+      prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
+      providerOptions: {
+        anthropic: {
+          thinking: { type: 'adaptive', display: 'summarized' },
+        } satisfies AnthropicProviderOptions,
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.thinking).toEqual({
+      type: 'adaptive',
+      display: 'summarized',
     });
   });
 });

@@ -1,5 +1,13 @@
 # @ai-sdk/alibaba
 
+## 0.0.6
+
+### Patch Changes
+
+- 5543cd1: Add AI Gateway hint to provider READMEs
+- Updated dependencies [5543cd1]
+  - @ai-sdk/openai-compatible@1.0.36
+
 ## 0.0.5
 
 ### Patch Changes

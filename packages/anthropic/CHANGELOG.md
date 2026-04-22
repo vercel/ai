@@ -1,5 +1,24 @@
 # @ai-sdk/anthropic
 
+## 2.0.77
+
+### Patch Changes
+
+- 5543cd1: Add AI Gateway hint to provider READMEs
+- e1ed246: fix(anthropic): use default thinking budget when unspecified
+
+## 2.0.76
+
+### Patch Changes
+
+- 2fe3997: feat (provider/anthropic): add support for inference_geo provider option
+
+## 2.0.75
+
+### Patch Changes
+
+- 4b40033: feat(provider/anthropic): add support for Opus 4.7 and relevant API enhancements
+
 ## 2.0.74
 
 ### Patch Changes

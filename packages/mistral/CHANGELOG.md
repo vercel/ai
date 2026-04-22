@@ -1,5 +1,11 @@
 # @ai-sdk/mistral
 
+## 2.0.31
+
+### Patch Changes
+
+- 5543cd1: Add AI Gateway hint to provider READMEs
+
 ## 2.0.30
 
 ### Patch Changes

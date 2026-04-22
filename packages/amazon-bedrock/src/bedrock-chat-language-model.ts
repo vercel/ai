@@ -180,6 +180,10 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
       thinkingType === 'enabled'
         ? bedrockOptions.reasoningConfig?.budgetTokens
         : undefined;
+    const thinkingDisplay =
+      thinkingType === 'adaptive'
+        ? bedrockOptions.reasoningConfig?.display
+        : undefined;
     const isAnthropicThinkingEnabled = isAnthropicModel && isThinkingRequested;
 
     const inferenceConfig = {
@@ -209,6 +213,7 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
           ...bedrockOptions.additionalModelRequestFields,
           thinking: {
             type: 'adaptive',
+            ...(thinkingDisplay != null && { display: thinkingDisplay }),
           },
         };
       }
@@ -326,6 +331,7 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
     const {
       reasoningConfig: _,
       additionalModelRequestFields: __,
+      serviceTier: ___,
       ...filteredBedrockOptions
     } = providerOptions?.bedrock || {};
 
@@ -344,6 +350,11 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
         }),
         ...(Object.keys(inferenceConfig).length > 0 && {
           inferenceConfig,
+        }),
+        ...(bedrockOptions.serviceTier != null && {
+          serviceTier: {
+            type: bedrockOptions.serviceTier,
+          },
         }),
         ...filteredBedrockOptions,
         ...(toolConfig.tools !== undefined && toolConfig.tools.length > 0
@@ -755,6 +766,13 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
                 'signature' in reasoningContent &&
                 reasoningContent.signature
               ) {
+                if (contentBlocks[blockIndex] == null) {
+                  contentBlocks[blockIndex] = { type: 'reasoning' };
+                  controller.enqueue({
+                    type: 'reasoning-start',
+                    id: String(blockIndex),
+                  });
+                }
                 controller.enqueue({
                   type: 'reasoning-delta',
                   id: String(blockIndex),
@@ -766,6 +784,13 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
                   },
                 });
               } else if ('data' in reasoningContent && reasoningContent.data) {
+                if (contentBlocks[blockIndex] == null) {
+                  contentBlocks[blockIndex] = { type: 'reasoning' };
+                  controller.enqueue({
+                    type: 'reasoning-start',
+                    id: String(blockIndex),
+                  });
+                }
                 controller.enqueue({
                   type: 'reasoning-delta',
                   id: String(blockIndex),

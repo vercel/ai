@@ -1,5 +1,35 @@
 # @ai-sdk/gateway
 
+## 2.0.82
+
+### Patch Changes
+
+- eacfb5e: feat (provider/gateway): add get-generation support
+
+## 2.0.81
+
+### Patch Changes
+
+- dc91bcc: Backport: chore(provider/gateway): update gateway model settings files
+
+## 2.0.80
+
+### Patch Changes
+
+- 4b40033: feat(provider/anthropic): add support for Opus 4.7 and relevant API enhancements
+
+## 2.0.79
+
+### Patch Changes
+
+- d4fbea5: feat (provider/gateway): add sort options
+
+## 2.0.78
+
+### Patch Changes
+
+- 140640d: feat (provider/gateway): make model list resilient to unknown model types
+
 ## 2.0.77
 
 ### Patch Changes
