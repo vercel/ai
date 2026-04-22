@@ -30,7 +30,7 @@ export type ToolApprovalStatus =
 /**
  * Function that is called to determine if the tool needs approval before it can be executed.
  */
-export type ToolApprovalFunction<
+export type SingleToolApprovalFunction<
   INPUT,
   TOOL_CONTEXT extends Context | unknown | never,
 > = (
@@ -76,7 +76,7 @@ export type ToolApprovalFunction<
 export type ToolApprovalConfiguration<TOOLS extends ToolSet> = {
   [key in keyof TOOLS]?:
     | ToolApprovalStatus
-    | ToolApprovalFunction<
+    | SingleToolApprovalFunction<
         InferToolInput<TOOLS[key]>,
         InferToolContext<TOOLS[key]>
       >;
