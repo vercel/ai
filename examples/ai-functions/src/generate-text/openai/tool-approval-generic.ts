@@ -62,6 +62,8 @@ run(async () => {
           if (locationLower.includes('new york') || locationLower === 'nyc') {
             return { type: 'denied', reason: 'blocked by policy' };
           }
+
+          return 'user-approval';
         }
       },
       messages,
