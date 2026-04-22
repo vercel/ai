@@ -98,6 +98,42 @@ describe('resolveToolApproval', () => {
       expect(result).toEqual({ type: 'user-approval' });
     });
 
+    it('treats undefined returned by the generic function as not-applicable', async () => {
+      const genericToolApproval = vi.fn(() => undefined);
+
+      const result = await resolveToolApproval({
+        tools: {
+          weather: tool({
+            inputSchema: z.object({ city: z.string() }),
+          }),
+        },
+        toolApproval: genericToolApproval,
+        toolCall: createToolCall(),
+        messages: [...messages],
+        toolsContext: {},
+      });
+
+      expect(result).toEqual({ type: 'not-applicable' });
+    });
+
+    it('treats Promise undefined returned by the generic function as not-applicable', async () => {
+      const genericToolApproval = vi.fn(() => Promise.resolve(undefined));
+
+      const result = await resolveToolApproval({
+        tools: {
+          weather: tool({
+            inputSchema: z.object({ city: z.string() }),
+          }),
+        },
+        toolApproval: genericToolApproval,
+        toolCall: createToolCall(),
+        messages: [...messages],
+        toolsContext: {},
+      });
+
+      expect(result).toEqual({ type: 'not-applicable' });
+    });
+
     it('passes through an object status including reason from the generic function', async () => {
       const genericToolApproval = vi.fn(() => ({
         type: 'denied' as const,
@@ -239,6 +275,42 @@ describe('resolveToolApproval', () => {
         apiKey: 'k',
         region: 'us-east-1',
       });
+    });
+
+    it('treats undefined returned by a per-tool approval function as not-applicable', async () => {
+      const singleToolApproval = vi.fn(() => undefined);
+
+      const result = await resolveToolApproval({
+        tools: {
+          weather: tool({
+            inputSchema: z.object({ city: z.string() }),
+          }),
+        },
+        toolApproval: { weather: singleToolApproval },
+        toolCall: createToolCall(),
+        messages: [...messages],
+        toolsContext: {},
+      });
+
+      expect(result).toEqual({ type: 'not-applicable' });
+    });
+
+    it('treats Promise undefined returned by a per-tool approval function as not-applicable', async () => {
+      const singleToolApproval = vi.fn(() => Promise.resolve(undefined));
+
+      const result = await resolveToolApproval({
+        tools: {
+          weather: tool({
+            inputSchema: z.object({ city: z.string() }),
+          }),
+        },
+        toolApproval: { weather: singleToolApproval },
+        toolCall: createToolCall(),
+        messages: [...messages],
+        toolsContext: {},
+      });
+
+      expect(result).toEqual({ type: 'not-applicable' });
     });
   });
 

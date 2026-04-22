@@ -19,8 +19,11 @@ import { TypedToolCall } from './tool-call';
  * - 'user-approval': The tool requires user approval.
  *
  * In addition to the string statuses, you can also use object statuses with a reason property.
+ *
+ * `undefined` is treated as the `not-applicable` status.
  */
 export type ToolApprovalStatus =
+  | undefined
   | 'not-applicable'
   | 'approved'
   | 'denied'
@@ -32,6 +35,8 @@ export type ToolApprovalStatus =
 
 /**
  * Function that is called to determine if the tool needs approval before it can be executed.
+ *
+ * Return `undefined` for the same effect as the `not-applicable` status.
  */
 // Parameters are similar to ToolExecuteFunction (except for the abort signal)
 export type SingleToolApprovalFunction<
@@ -44,6 +49,8 @@ export type SingleToolApprovalFunction<
 
 /**
  * Function that is called to determine if a tool call needs approval before it can be executed.
+ *
+ * Return `undefined` for the same effect as the `not-applicable` status.
  */
 export type GenericToolApprovalFunction<
   TOOLS extends ToolSet,
