@@ -1645,7 +1645,7 @@ class DefaultStreamTextResult<
                     provider: stepModel.provider,
                     modelId: stepModel.modelId,
                     messages: stepMessages,
-                    stepTools,
+                    tools: stepTools,
                   },
                   callbacks: [
                     onLanguageModelCallStart,

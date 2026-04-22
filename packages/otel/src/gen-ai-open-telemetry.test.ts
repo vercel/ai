@@ -206,7 +206,7 @@ function makeLanguageModelCallStartEvent(overrides?: Record<string, unknown>) {
     provider: model.provider,
     modelId: model.modelId,
     messages: [],
-    stepTools: undefined,
+    tools: undefined,
     ...overrides,
   } as Parameters<NonNullable<Telemetry['onLanguageModelCallStart']>>[0];
 }
@@ -501,14 +501,14 @@ describe('GenAIOpenTelemetry', () => {
       `);
     });
 
-    it('sets gen_ai.tool.definitions when stepTools provided', () => {
+    it('sets gen_ai.tool.definitions when tools provided', () => {
       const tools = [
         { type: 'function', name: 'get_weather', description: 'Get weather' },
       ];
       integration.onStart!(makeOnStartEvent());
       integration.onStepStart!(makeStepStartEvent());
       integration.onLanguageModelCallStart!(
-        makeLanguageModelCallStartEvent({ stepTools: tools }),
+        makeLanguageModelCallStartEvent({ tools }),
       );
 
       const attrs = getStartSpanAttributes(tracer, 2);

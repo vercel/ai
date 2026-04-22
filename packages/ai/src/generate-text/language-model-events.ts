@@ -1,19 +1,20 @@
-import type { ModelMessage, ToolSet } from '@ai-sdk/provider-utils';
+import type { ToolSet } from '@ai-sdk/provider-utils';
 import type { Callback } from '../util/callback';
 import type { LanguageModelUsage } from '../types/usage';
 import type { GeneratedFile } from './generated-file';
 import type { StepResult } from './step-result';
 import type { TypedToolCall } from './tool-call';
+import { StandardizedPrompt } from '../prompt/standardize-prompt';
 
 /**
  * Common model information used across callback events.
  */
-export interface CallbackModelInfo {
+export type CallbackModelInfo = {
   /** The provider identifier (e.g., 'openai', 'anthropic'). */
   readonly provider: string;
   /** The specific model identifier (e.g., 'gpt-4o'). */
   readonly modelId: string;
-}
+};
 
 /**
  * Event passed to the `onLanguageModelCallStart` callback.
@@ -21,16 +22,13 @@ export interface CallbackModelInfo {
  * Called immediately before the provider model call begins.
  * Unlike `onStepStart`, this only represents model invocation work.
  */
-export interface LanguageModelCallStartEvent extends CallbackModelInfo {
+export type LanguageModelCallStartEvent = CallbackModelInfo & {
   /** Unique identifier for this generation call, used to correlate events. */
   readonly callId: string;
 
-  /** The step messages that will be sent to the model. */
-  readonly messages: Array<ModelMessage>;
-
   /** Prepared tool definitions for the model call, if any. */
-  readonly stepTools: ReadonlyArray<Record<string, unknown>> | undefined;
-}
+  readonly tools: ReadonlyArray<Record<string, unknown>> | undefined;
+} & StandardizedPrompt;
 
 /**
  * Event passed to the `onLanguageModelCallEnd` callback.
@@ -38,33 +36,32 @@ export interface LanguageModelCallStartEvent extends CallbackModelInfo {
  * Called after the model response has been normalized and parsed, but before
  * any client-side tool execution begins.
  */
-export interface LanguageModelCallEndEvent<
-  TOOLS extends ToolSet = ToolSet,
-> extends CallbackModelInfo {
-  /** Unique identifier for this generation call, used to correlate events. */
-  readonly callId: string;
+export type LanguageModelCallEndEvent<TOOLS extends ToolSet = ToolSet> =
+  CallbackModelInfo & {
+    /** Unique identifier for this generation call, used to correlate events. */
+    readonly callId: string;
 
-  /** The unified reason why the model call finished. */
-  readonly finishReason: StepResult<TOOLS>['finishReason'];
+    /** The unified reason why the model call finished. */
+    readonly finishReason: StepResult<TOOLS>['finishReason'];
 
-  /** The token usage reported by the model call. */
-  readonly usage: LanguageModelUsage;
+    /** The token usage reported by the model call. */
+    readonly usage: LanguageModelUsage;
 
-  /** The generated text from the model call. */
-  readonly text: string;
+    /** The generated text from the model call. */
+    readonly text: string;
 
-  /** The generated reasoning text segments from the model call. */
-  readonly reasoning: ReadonlyArray<{ text?: string }>;
+    /** The generated reasoning text segments from the model call. */
+    readonly reasoning: ReadonlyArray<{ text?: string }>;
 
-  /** Files generated directly by the model call. */
-  readonly files: ReadonlyArray<GeneratedFile>;
+    /** Files generated directly by the model call. */
+    readonly files: ReadonlyArray<GeneratedFile>;
 
-  /** Parsed tool calls emitted by the model call. */
-  readonly toolCalls: ReadonlyArray<TypedToolCall<TOOLS>>;
+    /** Parsed tool calls emitted by the model call. */
+    readonly toolCalls: ReadonlyArray<TypedToolCall<TOOLS>>;
 
-  /** The provider-returned response id for this model call. */
-  readonly responseId: string;
-}
+    /** The provider-returned response id for this model call. */
+    readonly responseId: string;
+  };
 
 /**
  * Callback that is set using the `experimental_onLanguageModelCallStart` option.

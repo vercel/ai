@@ -555,8 +555,7 @@ export class GenAIOpenTelemetry implements Telemetry {
         },
       },
       'gen_ai.tool.definitions': {
-        input: () =>
-          event.stepTools ? JSON.stringify(event.stepTools) : undefined,
+        input: () => (event.tools ? JSON.stringify(event.tools) : undefined),
       },
     });
 
