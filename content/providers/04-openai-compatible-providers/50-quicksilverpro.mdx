@@ -89,7 +89,7 @@ const quicksilverpro = createOpenAICompatible({
 });
 
 const result = streamText({
-  model: quicksilverpro('deepseek-r1'),
+  model: quicksilverpro('deepseek-v3'),
   prompt: 'Explain the halting problem in three sentences.',
 });
 
@@ -98,9 +98,32 @@ for await (const chunk of result.textStream) {
 }
 ```
 
-### Reasoning traces (DeepSeek R1)
+### Reasoning Models
 
-`deepseek-r1` emits chain-of-thought reasoning inside `<think>...</think>` tags within the completion text. The AI SDK surfaces this through the standard content channel — parse or strip the wrapper in your application if you want to present only the final answer to users.
+QuickSilver Pro exposes the chain-of-thought of `deepseek-r1` in the generated text using the `<think>` tag. Use the `extractReasoningMiddleware` helper to pull the reasoning out and expose it as a separate `reasoning` property on the result:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { wrapLanguageModel, extractReasoningMiddleware, generateText } from 'ai';
+
+const quicksilverpro = createOpenAICompatible({
+  name: 'quicksilverpro',
+  baseURL: 'https://api.quicksilverpro.io/v1',
+  apiKey: process.env.QSP_API_KEY,
+});
+
+const enhancedModel = wrapLanguageModel({
+  model: quicksilverpro('deepseek-r1'),
+  middleware: extractReasoningMiddleware({ tagName: 'think' }),
+});
+
+const { text, reasoningText } = await generateText({
+  model: enhancedModel,
+  prompt: 'Explain the halting problem in three sentences.',
+});
+```
+
+The wrapped model is a drop-in replacement — you can use it with `generateText`, `streamText`, or any other AI SDK function the base provider supports.
 
 ### Including model ids for auto-completion
 
