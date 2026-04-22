@@ -22,7 +22,8 @@ export type LanguageModelV4ProviderTool = {
   name: string;
 
   /**
-   * The arguments for configuring the tool. Must match the expected arguments defined by the provider for this tool.
+   * The arguments for configuring the tool.
+   * Must match the expected arguments defined by the provider for this tool.
    */
-  args: Record<string, unknown>;
+  args: object;
 };

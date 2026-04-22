@@ -5,10 +5,13 @@ import {
   InferToolSetContext,
   MaybePromiseLike,
   ModelMessage,
+  NotProviderExecutedTools,
   ToolExecutionOptions,
   ToolSet,
 } from '@ai-sdk/provider-utils';
 import { TypedToolCall } from './tool-call';
+
+type ApprovableTools<TOOLS extends ToolSet> = NotProviderExecutedTools<TOOLS>;
 
 /**
  * The approval status of a tool configuration. This can be one of the following:
@@ -61,18 +64,18 @@ export type SingleToolApprovalFunction<
  */
 export type GenericToolApprovalFunction<
   TOOLS extends ToolSet,
-  TOOLS_CONTEXT extends InferToolSetContext<TOOLS>,
+  TOOLS_CONTEXT extends InferToolSetContext<ApprovableTools<TOOLS>>,
   RUNTIME_CONTEXT extends Context | unknown | never,
 > = (options: {
   /**
    * The tool call that needs approval.
    */
-  toolCall: TypedToolCall<TOOLS>;
+  toolCall: TypedToolCall<ApprovableTools<TOOLS>>;
 
   /**
    * All tools that are available for the model to call.
    */
-  tools: TOOLS | undefined;
+  tools: ApprovableTools<TOOLS> | undefined;
 
   /**
    * Tool context for all tools that are available for the model to call.
@@ -114,11 +117,16 @@ export type ToolApprovalConfiguration<
 > =
   | GenericToolApprovalFunction<
       TOOLS,
-      InferToolSetContext<TOOLS>,
+      InferToolSetContext<ApprovableTools<TOOLS>>,
       RUNTIME_CONTEXT
     >
   | {
-      [key in keyof TOOLS]?:
+      [key in keyof TOOLS as TOOLS[key] extends {
+        type: 'provider';
+        isProviderExecuted: true;
+      }
+        ? never
+        : key]?:
         | ToolApprovalStatus
         | SingleToolApprovalFunction<
             InferToolInput<TOOLS[key]>,

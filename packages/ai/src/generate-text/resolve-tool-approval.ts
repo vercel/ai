@@ -3,6 +3,7 @@ import {
   InferToolInput,
   InferToolSetContext,
   ModelMessage,
+  NotProviderExecutedTools,
   ToolSet,
 } from '@ai-sdk/provider-utils';
 import {
@@ -65,9 +66,11 @@ export async function resolveToolApproval<
   if (toolApproval != null && typeof toolApproval === 'function') {
     return normalizeToolApprovalStatus(
       await toolApproval({
-        toolCall,
-        tools,
-        toolsContext,
+        toolCall: toolCall as TypedToolCall<NotProviderExecutedTools<TOOLS>>,
+        tools: tools as NotProviderExecutedTools<TOOLS> | undefined,
+        toolsContext: toolsContext as unknown as InferToolSetContext<
+          NotProviderExecutedTools<TOOLS>
+        >,
         messages,
         runtimeContext,
       }),
@@ -81,7 +84,25 @@ export async function resolveToolApproval<
   const input = toolCall.input as InferToolInput<TOOLS[keyof TOOLS]>;
 
   // user-defined per-tool approval
-  const userDefinedToolApprovalStatus = toolApproval?.[toolName];
+  const userDefinedToolApprovalStatus = (
+    toolApproval as
+      | Partial<
+          Record<
+            string,
+            | ToolApprovalStatus
+            | ((
+                input: InferToolInput<TOOLS[keyof TOOLS]>,
+                options: {
+                  toolCallId: string;
+                  messages: ModelMessage[];
+                  toolContext: unknown;
+                  runtimeContext: RUNTIME_CONTEXT;
+                },
+              ) => ToolApprovalStatus | PromiseLike<ToolApprovalStatus>)
+          >
+        >
+      | undefined
+  )?.[toolName];
   if (userDefinedToolApprovalStatus != null) {
     const approvalStatus: ToolApprovalStatus | undefined =
       typeof userDefinedToolApprovalStatus === 'function'

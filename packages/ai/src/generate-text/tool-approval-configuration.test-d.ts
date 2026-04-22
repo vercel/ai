@@ -1,7 +1,9 @@
 import {
   Context,
+  createProviderExecutedToolFactory,
   InferToolSetContext,
   ModelMessage,
+  NotProviderExecutedTools,
   tool,
 } from '@ai-sdk/provider-utils';
 import { describe, expectTypeOf, it } from 'vitest';
@@ -28,6 +30,47 @@ describe('ToolApprovalConfiguration', () => {
 
   type Tools = typeof tools;
   type ToolSetContext = InferToolSetContext<Tools>;
+  const providerExecutedToolFactory = createProviderExecutedToolFactory<
+    {},
+    { action: string },
+    { maxResults?: number }
+  >({
+    id: 'test.search',
+    inputSchema: z.object({}),
+    outputSchema: z.object({
+      action: z.string(),
+    }),
+  });
+
+  const toolsWithProviderExecuted = {
+    weather: tool({
+      inputSchema: z.object({
+        location: z.string(),
+      }),
+      contextSchema: z.object({
+        weatherApiKey: z.string(),
+      }),
+    }),
+    providerDefined: tool({
+      type: 'provider',
+      isProviderExecuted: false,
+      id: 'test.lookup',
+      args: {
+        mode: 'safe',
+      },
+      inputSchema: z.object({
+        query: z.string(),
+      }),
+      outputSchema: z.object({
+        ok: z.boolean(),
+      }),
+    }),
+    providerExecuted: providerExecutedToolFactory({
+      maxResults: 5,
+    }),
+  };
+
+  type ToolsWithProviderExecuted = typeof toolsWithProviderExecuted;
 
   describe('per-tool (object) configuration', () => {
     it('allows string statuses and object statuses with an optional reason', () => {
@@ -165,6 +208,27 @@ describe('ToolApprovalConfiguration', () => {
       const _async: ToolApprovalConfiguration<Tools, Context> = async () =>
         Promise.resolve(undefined);
     });
+
+    it('filters provider-executed tools out of generic approval inference', () => {
+      const _config: ToolApprovalConfiguration<
+        ToolsWithProviderExecuted,
+        Context
+      > = ({ toolCall, tools: toolsArg, toolsContext }) => {
+        expectTypeOf(toolCall).toEqualTypeOf<
+          TypedToolCall<NotProviderExecutedTools<ToolsWithProviderExecuted>>
+        >();
+        expectTypeOf(toolsArg).toEqualTypeOf<
+          NotProviderExecutedTools<ToolsWithProviderExecuted> | undefined
+        >();
+        expectTypeOf(toolsContext).toEqualTypeOf<
+          InferToolSetContext<
+            NotProviderExecutedTools<ToolsWithProviderExecuted>
+          >
+        >();
+
+        return 'approved';
+      };
+    });
   });
 
   describe('negative cases', () => {
@@ -187,6 +251,18 @@ describe('ToolApprovalConfiguration', () => {
       const _config: ToolApprovalConfiguration<Tools, Context> = {
         // @ts-expect-error approval callbacks must return a valid approval state
         calculator: () => true,
+      };
+    });
+
+    it('rejects per-tool approval entries for provider-executed tools', () => {
+      const _config: ToolApprovalConfiguration<
+        ToolsWithProviderExecuted,
+        Context
+      > = {
+        weather: 'approved',
+        providerDefined: 'denied',
+        // @ts-expect-error provider-executed tools cannot be configured for approval
+        providerExecuted: 'user-approval',
       };
     });
 
