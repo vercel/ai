@@ -516,4 +516,43 @@ await browserbase.closeSession();`,
     websiteUrl: 'https://www.browserbase.com',
     npmUrl: 'https://www.npmjs.com/package/@browserbasehq/ai-sdk',
   },
+  {
+    slug: 'global-chat',
+    name: 'Global Chat',
+    description:
+      'Cross-protocol agent discovery infrastructure. Search a directory of AI agents, validate agents.txt files, and discover agent capabilities across MCP, A2A, and x402 protocols. Provides tools for agent directory search, agent detail lookup, and agents.txt compliance validation.',
+    packageName: '@globalchatadsapp/mcp-server',
+    tags: ['agents', 'discovery', 'mcp', 'directory'],
+    installCommand: {
+      pnpm: 'pnpm add @globalchatadsapp/mcp-server',
+      npm: 'npm install @globalchatadsapp/mcp-server',
+      yarn: 'yarn add @globalchatadsapp/mcp-server',
+      bun: 'bun add @globalchatadsapp/mcp-server',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { experimental_createMCPClient as createMCPClient } from 'ai';
+import { Experimental_StdioMCPTransport as StdioMCPTransport } from 'ai';
+
+const client = await createMCPClient({
+  transport: new StdioMCPTransport({
+    command: 'npx',
+    args: ['-y', '@globalchatadsapp/mcp-server'],
+  }),
+});
+
+const tools = await client.tools();
+
+const { text } = await generateText({
+  model: 'anthropic/claude-sonnet-4',
+  prompt: 'Search the agent directory for payment agents that support USDC',
+  tools,
+  stopWhen: isStepCount(5),
+});
+
+console.log(text);
+await client.close();`,
+    docsUrl: 'https://github.com/pumanitro/global-chat',
+    websiteUrl: 'https://global-chat.io',
+    npmUrl: 'https://www.npmjs.com/package/@globalchatadsapp/mcp-server',
+  },
 ];
