@@ -276,6 +276,7 @@ type ProviderToolProperties = {
   /**
    * Flag that indicates whether the tool is executed by the provider.
    */
+  // TODO change/introduce to supportsApproval instead?
   isProviderExecuted: boolean;
 
   /**
