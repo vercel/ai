@@ -1,22 +1,36 @@
-import type { InferToolSetContext, ToolSet } from '@ai-sdk/provider-utils';
+import type {
+  InferToolSetContext,
+  ModelMessage,
+  ToolSet,
+} from '@ai-sdk/provider-utils';
 import { Callback } from '../util/callback';
 import type { TypedToolCall } from './tool-call';
+import { ToolOutput } from './tool-output';
 
 /**
  * Event passed to the `onToolExecutionStart` callback.
  *
  * Called when a tool execution begins, before the tool's `execute` function is invoked.
  */
-export interface ToolExecutionStartEvent<TOOLS extends ToolSet = ToolSet> {
+export type ToolExecutionStartEvent<TOOLS extends ToolSet = ToolSet> = {
   /** Unique identifier for this generation call, used to correlate events. */
   readonly callId: string;
+
+  // readonly tool: TOOLS[keyof TOOLS];
+
+  /**
+   * Messages that were sent to the language model to initiate the response that contained the tool call.
+   * The messages **do not** include the system prompt nor the assistant response that contained the tool call.
+   */
+  readonly messages: ModelMessage[];
 
   /** The full tool call object. */
   readonly toolCall: TypedToolCall<TOOLS>;
 
   /** User-defined context object flowing through the generation. */
-  readonly context: InferToolSetContext<TOOLS>;
-}
+  // TODO: restrict the tool context to only that particular tool, and not the entire tool set
+  readonly toolContext: InferToolSetContext<TOOLS>;
+};
 
 /**
  * Event passed to the `onToolExecutionEnd` callback.
@@ -28,30 +42,26 @@ export type ToolExecutionEndEvent<TOOLS extends ToolSet = ToolSet> = {
   /** Unique identifier for this generation call, used to correlate events. */
   readonly callId: string;
 
+  // readonly tool: TOOLS[keyof TOOLS];
+
   /** The full tool call object. */
   readonly toolCall: TypedToolCall<TOOLS>;
 
   /** Execution time of the tool call in milliseconds. */
   readonly durationMs: number;
 
+  /**
+   * Messages that were sent to the language model to initiate the response that contained the tool call.
+   * The messages **do not** include the system prompt nor the assistant response that contained the tool call.
+   */
+  readonly messages: ModelMessage[];
+
   /** User-defined context object flowing through the generation. */
-  readonly context: InferToolSetContext<TOOLS>;
-} & (
-  | {
-      /** Indicates the tool call succeeded. */
-      readonly success: true;
-      /** The tool's return value. */
-      readonly output: unknown;
-      readonly error?: never;
-    }
-  | {
-      /** Indicates the tool call failed. */
-      readonly success: false;
-      readonly output?: never;
-      /** The error that occurred during tool execution. */
-      readonly error: unknown;
-    }
-);
+  // TODO: restrict the tool context to only that particular tool, and not the entire tool set
+  readonly toolContext: InferToolSetContext<TOOLS>;
+
+  readonly toolOutput: ToolOutput<TOOLS>;
+};
 
 /**
  * Callback that is set using the `experimental_onToolExecutionStart` option.

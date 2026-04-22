@@ -162,8 +162,7 @@ function makeOnStartEvent(overrides?: Record<string, unknown>) {
     provider: model.provider,
     modelId: model.modelId,
     system: undefined,
-    prompt: 'Hello',
-    messages: undefined,
+    messages: [{ role: 'user', content: 'Hello' }],
     tools: undefined,
     toolChoice: undefined,
     activeTools: undefined,
@@ -193,7 +192,6 @@ function makeOnStartEvent(overrides?: Record<string, unknown>) {
 function makeStepStartEvent(overrides?: Record<string, unknown>) {
   return {
     callId,
-    stepNumber: 0,
     provider: model.provider,
     modelId: model.modelId,
     system: undefined,
@@ -302,7 +300,8 @@ function makeToolCallStartEvent(overrides?: Record<string, unknown>) {
     },
     abortSignal: undefined,
     ...telemetryFields(),
-    context: {},
+    messages: [],
+    toolContext: {},
     toolsContext: {},
     ...overrides,
   } as Parameters<NonNullable<Telemetry['onToolExecutionStart']>>[0];
@@ -323,7 +322,8 @@ function makeToolCallFinishEvent(
     abortSignal: undefined,
     durationMs: 42,
     ...telemetryFields(),
-    context: {},
+    messages: [],
+    toolContext: {},
     toolsContext: {},
     ...overrides,
   };
@@ -331,14 +331,26 @@ function makeToolCallFinishEvent(
   if (success) {
     return {
       ...base,
-      success: true as const,
-      output: { result: 'ok' },
+      toolOutput: {
+        type: 'tool-result' as const,
+        toolCallId: 'tool-call-1',
+        toolName: 'myTool',
+        input: { query: 'test' },
+        output: { result: 'ok' },
+        dynamic: false,
+      },
     } as Parameters<NonNullable<Telemetry['onToolExecutionEnd']>>[0];
   }
   return {
     ...base,
-    success: false as const,
-    error: new Error('tool failed'),
+    toolOutput: {
+      type: 'tool-error' as const,
+      toolCallId: 'tool-call-1',
+      toolName: 'myTool',
+      input: { query: 'test' },
+      error: new Error('tool failed'),
+      dynamic: false,
+    },
   } as Parameters<NonNullable<Telemetry['onToolExecutionEnd']>>[0];
 }
 
@@ -746,10 +758,10 @@ describe('OpenTelemetry', () => {
     it('allows a new step span after finishing a step', () => {
       otelIntegration.onStart!(makeOnStartEvent());
 
-      otelIntegration.onStepStart!(makeStepStartEvent({ stepNumber: 0 }));
+      otelIntegration.onStepStart!(makeStepStartEvent());
       otelIntegration.onStepFinish!(makeStepFinishEvent({ stepNumber: 0 }));
 
-      otelIntegration.onStepStart!(makeStepStartEvent({ stepNumber: 1 }));
+      otelIntegration.onStepStart!(makeStepStartEvent({ steps: [{}] }));
       otelIntegration.onStepFinish!(makeStepFinishEvent({ stepNumber: 1 }));
 
       expect(tracer.spans).toHaveLength(3);
@@ -1095,12 +1107,12 @@ describe('OpenTelemetry', () => {
     it('creates correct span hierarchy for multi-step generation', () => {
       otelIntegration.onStart!(makeOnStartEvent());
 
-      otelIntegration.onStepStart!(makeStepStartEvent({ stepNumber: 0 }));
+      otelIntegration.onStepStart!(makeStepStartEvent());
       otelIntegration.onToolExecutionStart!(makeToolCallStartEvent());
       otelIntegration.onToolExecutionEnd!(makeToolCallFinishEvent(true));
       otelIntegration.onStepFinish!(makeStepFinishEvent({ stepNumber: 0 }));
 
-      otelIntegration.onStepStart!(makeStepStartEvent({ stepNumber: 1 }));
+      otelIntegration.onStepStart!(makeStepStartEvent({ steps: [{}] }));
       otelIntegration.onStepFinish!(makeStepFinishEvent({ stepNumber: 1 }));
 
       otelIntegration.onFinish!(makeFinishEvent());
@@ -1383,7 +1395,7 @@ describe('OpenTelemetry integration with generateText', () => {
             "ai.model.id": "mock-model-id",
             "ai.model.provider": "mock-provider",
             "ai.operationId": "ai.generateText",
-            "ai.prompt": "{"prompt":"test-input"}",
+            "ai.prompt": "{"messages":[{"role":"user","content":"test-input"}]}",
             "ai.request.headers.user-agent": "ai/0.0.0-test",
             "ai.response.finishReason": "stop",
             "ai.response.text": "",
@@ -3219,7 +3231,7 @@ describe('OpenTelemetry integration with streamText stopWhen (2 steps with trans
             "ai.model.id": "mock-model-id",
             "ai.model.provider": "mock-provider",
             "ai.operationId": "ai.streamText",
-            "ai.prompt": "{"prompt":"test-input"}",
+            "ai.prompt": "{"messages":[{"role":"user","content":"test-input"}]}",
             "ai.response.finishReason": "stop",
             "ai.response.text": "Hello, world!",
             "ai.settings.maxRetries": 2,

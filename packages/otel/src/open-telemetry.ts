@@ -250,7 +250,6 @@ export class OpenTelemetry implements Telemetry {
         input: () =>
           JSON.stringify({
             system: event.system,
-            prompt: event.prompt,
             messages: event.messages,
           }),
       },
@@ -613,12 +612,13 @@ export class OpenTelemetry implements Telemetry {
     const { span } = toolSpanEntry;
     const { telemetry } = state;
 
-    if (event.success) {
+    const { toolOutput } = event;
+    if (toolOutput.type === 'tool-result') {
       try {
         span.setAttributes(
           selectAttributes(telemetry, {
             'ai.toolCall.result': {
-              output: () => JSON.stringify(event.output),
+              output: () => JSON.stringify(toolOutput.output),
             },
           }),
         );
@@ -626,7 +626,7 @@ export class OpenTelemetry implements Telemetry {
         // JSON.stringify might fail for non-serializable results
       }
     } else {
-      recordSpanError(span, event.error);
+      recordSpanError(span, toolOutput.error);
     }
 
     span.end();
