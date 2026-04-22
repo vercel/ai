@@ -4,7 +4,7 @@ import type { LanguageModelUsage } from '../types/usage';
 import type { GeneratedFile } from './generated-file';
 import type { StepResult } from './step-result';
 import type { TypedToolCall } from './tool-call';
-import { StandardizedPrompt } from '../prompt/standardize-prompt';
+import type { StandardizedPrompt } from '../prompt/standardize-prompt';
 
 /**
  * Common model information used across callback events.
