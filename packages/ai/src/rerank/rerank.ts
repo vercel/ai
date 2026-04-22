@@ -8,7 +8,7 @@ import { TelemetryOptions } from '../telemetry/telemetry-options';
 import { RerankingModel } from '../types';
 import type { Callback } from '../util/callback';
 import { notify } from '../util/notify';
-import type { RerankOnFinishEvent, RerankOnStartEvent } from './rerank-events';
+import type { RerankEndEvent, RerankStartEvent } from './rerank-events';
 import { RerankResult } from './rerank-result';
 
 const originalGenerateCallId = createIdGenerator({
@@ -108,13 +108,13 @@ export async function rerank<VALUE extends JSONObject | string>({
    * Callback that is called when the rerank operation begins,
    * before the reranking model is called.
    */
-  experimental_onStart?: Callback<RerankOnStartEvent>;
+  experimental_onStart?: Callback<RerankStartEvent>;
 
   /**
    * Callback that is called when the rerank operation completes,
    * after the reranking model returns.
    */
-  experimental_onFinish?: Callback<RerankOnFinishEvent>;
+  experimental_onFinish?: Callback<RerankEndEvent>;
 
   /**
    * Internal. For test use only. May change without notice.

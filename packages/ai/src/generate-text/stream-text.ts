@@ -84,10 +84,10 @@ import { prepareRetries } from '../util/prepare-retries';
 import { collectToolApprovals } from './collect-tool-approvals';
 import { ContentPart } from './content-part';
 import type {
-  OnFinishEvent,
-  OnStartEvent,
-  OnStepFinishEvent,
-  OnStepStartEvent,
+  GenerateTextEndEvent,
+  GenerateTextStartEvent,
+  GenerateTextStepEndEvent,
+  GenerateTextStepStartEvent,
 } from './core-events';
 import { createExecuteToolsTransformation } from './create-execute-tools-transformation';
 import { executeToolCall } from './execute-tool-call';
@@ -168,7 +168,7 @@ export type StreamTextOnErrorCallback = Callback<{
 export type StreamTextOnStepFinishCallback<
   TOOLS extends ToolSet,
   RUNTIME_CONTEXT extends Context,
-> = Callback<OnStepFinishEvent<TOOLS, RUNTIME_CONTEXT>>;
+> = Callback<GenerateTextStepEndEvent<TOOLS, RUNTIME_CONTEXT>>;
 
 /**
  * Callback that is set using the `onChunk` option.
@@ -201,7 +201,7 @@ export type StreamTextOnChunkCallback<TOOLS extends ToolSet> = (event: {
 export type StreamTextOnFinishCallback<
   TOOLS extends ToolSet,
   RUNTIME_CONTEXT extends Context,
-> = Callback<OnFinishEvent<TOOLS, RUNTIME_CONTEXT>>;
+> = Callback<GenerateTextEndEvent<TOOLS, RUNTIME_CONTEXT>>;
 
 /**
  * Callback that is set using the `onAbort` option.
@@ -231,7 +231,7 @@ export type StreamTextOnStartCallback<
   TOOLS extends ToolSet = ToolSet,
   RUNTIME_CONTEXT extends Context = Context,
   OUTPUT extends Output = Output,
-> = Callback<OnStartEvent<TOOLS, RUNTIME_CONTEXT, OUTPUT>>;
+> = Callback<GenerateTextStartEvent<TOOLS, RUNTIME_CONTEXT, OUTPUT>>;
 
 /**
  * Callback that is set using the `experimental_onStepStart` option.
@@ -246,7 +246,7 @@ export type StreamTextOnStepStartCallback<
   TOOLS extends ToolSet = ToolSet,
   RUNTIME_CONTEXT extends Context = Context,
   OUTPUT extends Output = Output,
-> = Callback<OnStepStartEvent<TOOLS, RUNTIME_CONTEXT, OUTPUT>>;
+> = Callback<GenerateTextStepStartEvent<TOOLS, RUNTIME_CONTEXT, OUTPUT>>;
 
 /**
  * Generate a text and call tools for a given prompt using a language model.

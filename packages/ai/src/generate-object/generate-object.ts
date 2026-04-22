@@ -35,10 +35,10 @@ import { getOutputStrategy } from './output-strategy';
 import { parseAndValidateObjectResultWithRepair } from './parse-and-validate-object-result';
 import { RepairTextFunction } from './repair-text';
 import type {
-  ObjectOnFinishEvent,
-  ObjectOnStartEvent,
-  ObjectOnStepFinishEvent,
-  ObjectOnStepStartEvent,
+  GenerateObjectEndEvent,
+  GenerateObjectStartEvent,
+  GenerateObjectStepEndEvent,
+  GenerateObjectStepStartEvent,
 } from './structured-output-events';
 import { validateObjectGenerationInput } from './validate-object-generation-input';
 
@@ -197,25 +197,25 @@ export async function generateObject<
        * Callback that is called when the generateObject operation begins,
        * before the LLM call is made.
        */
-      experimental_onStart?: Callback<ObjectOnStartEvent>;
+      experimental_onStart?: Callback<GenerateObjectStartEvent>;
 
       /**
        * Callback that is called when the model call (step) begins,
        * before the provider is called.
        */
-      experimental_onStepStart?: Callback<ObjectOnStepStartEvent>;
+      experimental_onStepStart?: Callback<GenerateObjectStepStartEvent>;
 
       /**
        * Callback that is called when the model call (step) completes,
        * with the raw result before JSON parsing.
        */
-      onStepFinish?: Callback<ObjectOnStepFinishEvent>;
+      onStepFinish?: Callback<GenerateObjectStepEndEvent>;
 
       /**
        * Callback that is called when the entire operation completes
        * with the final parsed and validated object.
        */
-      onFinish?: Callback<ObjectOnFinishEvent<RESULT>>;
+      onFinish?: Callback<GenerateObjectEndEvent<RESULT>>;
 
       /**
        * Internal. For test use only. May change without notice.
@@ -396,7 +396,7 @@ export async function generateObject<
       model: model.modelId,
     });
 
-    const stepFinishEvent: ObjectOnStepFinishEvent = {
+    const stepFinishEvent: GenerateObjectStepEndEvent = {
       callId,
       stepNumber: 0 as const,
       provider: model.provider,
