@@ -588,10 +588,10 @@ describe('options.experimental_onStart', () => {
       },
     });
 
-    expect(startEvent.isEnabled).toBe(true);
-    expect(startEvent.recordInputs).toBe(false);
-    expect(startEvent.recordOutputs).toBe(true);
-    expect(startEvent.functionId).toBe('embed-many-fn');
+    expect(startEvent).not.toHaveProperty('isEnabled');
+    expect(startEvent).not.toHaveProperty('recordInputs');
+    expect(startEvent).not.toHaveProperty('recordOutputs');
+    expect(startEvent).not.toHaveProperty('functionId');
   });
 
   it('should accept deprecated experimental_telemetry as an alias for telemetry', async () => {
@@ -614,10 +614,10 @@ describe('options.experimental_onStart', () => {
       },
     });
 
-    expect(startEvent.isEnabled).toBe(true);
-    expect(startEvent.recordInputs).toBe(false);
-    expect(startEvent.recordOutputs).toBe(true);
-    expect(startEvent.functionId).toBe('embed-many-fn-deprecated');
+    expect(startEvent).not.toHaveProperty('isEnabled');
+    expect(startEvent).not.toHaveProperty('recordInputs');
+    expect(startEvent).not.toHaveProperty('recordOutputs');
+    expect(startEvent).not.toHaveProperty('functionId');
   });
 
   it('should include model information', async () => {

@@ -377,7 +377,7 @@ describe('ToolLoopAgent', () => {
         });
       });
 
-      it('should honor toolNeedsApproval in generate', async () => {
+      it('should honor toolApproval in generate', async () => {
         let modelCallCount = 0;
         const execute = vi.fn(async () => 'tool-result');
 
@@ -446,8 +446,8 @@ describe('ToolLoopAgent', () => {
               execute,
             }),
           },
-          toolNeedsApproval: {
-            testTool: true,
+          toolApproval: {
+            testTool: 'user-approval',
           },
         });
 
@@ -657,7 +657,7 @@ describe('ToolLoopAgent', () => {
     `);
     });
 
-    it('should honor toolNeedsApproval in stream', async () => {
+    it('should honor toolApproval in stream', async () => {
       let modelCallCount = 0;
       const execute = vi.fn(async () => 'tool-result');
 
@@ -747,8 +747,8 @@ describe('ToolLoopAgent', () => {
             execute,
           }),
         },
-        toolNeedsApproval: {
-          testTool: true,
+        toolApproval: {
+          testTool: 'user-approval',
         },
       });
 
@@ -1972,16 +1972,6 @@ describe('ToolLoopAgent', () => {
           {
             "callId": "call-0",
             "context": undefined,
-            "functionId": undefined,
-            "messages": [
-              {
-                "content": "test",
-                "role": "user",
-              },
-            ],
-            "modelId": "mock-model-id",
-            "provider": "mock-provider",
-            "stepNumber": 0,
             "toolCall": {
               "input": {
                 "value": "test",
@@ -2186,16 +2176,6 @@ describe('ToolLoopAgent', () => {
           {
             "callId": "call-1",
             "context": undefined,
-            "functionId": undefined,
-            "messages": [
-              {
-                "content": "test",
-                "role": "user",
-              },
-            ],
-            "modelId": "mock-model-id",
-            "provider": "mock-provider",
-            "stepNumber": 0,
             "toolCall": {
               "input": {
                 "value": "test",
@@ -2408,17 +2388,7 @@ describe('ToolLoopAgent', () => {
             "callId": "call-2",
             "context": undefined,
             "durationMs": 0,
-            "functionId": undefined,
-            "messages": [
-              {
-                "content": "test",
-                "role": "user",
-              },
-            ],
-            "modelId": "mock-model-id",
             "output": "hello-result",
-            "provider": "mock-provider",
-            "stepNumber": 0,
             "success": true,
             "toolCall": {
               "input": {
@@ -2625,17 +2595,7 @@ describe('ToolLoopAgent', () => {
             "callId": "call-3",
             "context": undefined,
             "durationMs": 0,
-            "functionId": undefined,
-            "messages": [
-              {
-                "content": "test",
-                "role": "user",
-              },
-            ],
-            "modelId": "mock-model-id",
             "output": "hello-result",
-            "provider": "mock-provider",
-            "stepNumber": 0,
             "success": true,
             "toolCall": {
               "input": {

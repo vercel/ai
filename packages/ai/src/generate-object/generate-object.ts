@@ -18,7 +18,7 @@ import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-mode
 import { Prompt } from '../prompt/prompt';
 import { standardizePrompt } from '../prompt/standardize-prompt';
 import { wrapGatewayError } from '../prompt/wrap-gateway-error';
-import { createUnifiedTelemetry } from '../telemetry/create-unified-telemetry';
+import { createTelemetryDispatcher } from '../telemetry/create-telemetry-dispatcher';
 import { TelemetryOptions } from '../telemetry/telemetry-options';
 import { LanguageModel } from '../types/language-model';
 import { LanguageModelRequestMetadata } from '../types/language-model-request-metadata';
@@ -286,8 +286,8 @@ export async function generateObject<
     `ai/${VERSION}`,
   );
 
-  const unifiedTelemetry = createUnifiedTelemetry({
-    integrations: telemetry?.integrations,
+  const telemetryDispatcher = createTelemetryDispatcher({
+    telemetry,
   });
 
   const jsonSchema = await outputStrategy.jsonSchema();
@@ -316,12 +316,8 @@ export async function generateObject<
       schema: jsonSchema as Record<string, unknown> | undefined,
       schemaName,
       schemaDescription,
-      isEnabled: telemetry?.isEnabled ?? true,
-      recordInputs: telemetry?.recordInputs,
-      recordOutputs: telemetry?.recordOutputs,
-      functionId: telemetry?.functionId,
     },
-    callbacks: [onStart, unifiedTelemetry.onStart],
+    callbacks: [onStart, telemetryDispatcher.onStart],
   });
 
   try {
@@ -346,10 +342,9 @@ export async function generateObject<
         modelId: model.modelId,
         providerOptions,
         headers: headersWithUserAgent,
-        functionId: telemetry?.functionId,
         promptMessages,
       },
-      callbacks: [onStepStart, unifiedTelemetry.onObjectStepStart],
+      callbacks: [onStepStart, telemetryDispatcher.onObjectStepStart],
     });
 
     const generateResult = await retry(() =>
@@ -415,12 +410,11 @@ export async function generateObject<
       request,
       response,
       providerMetadata: resultProviderMetadata,
-      functionId: telemetry?.functionId,
     };
 
     await notify({
       event: stepFinishEvent,
-      callbacks: [onStepFinish, unifiedTelemetry.onObjectStepFinish],
+      callbacks: [onStepFinish, telemetryDispatcher.onObjectStepFinish],
     });
 
     const object = await parseAndValidateObjectResultWithRepair(
@@ -446,9 +440,8 @@ export async function generateObject<
         request,
         response,
         providerMetadata: resultProviderMetadata,
-        functionId: telemetry?.functionId,
       },
-      callbacks: [onFinish, unifiedTelemetry.onFinish],
+      callbacks: [onFinish, telemetryDispatcher.onFinish],
     });
 
     return new DefaultGenerateObjectResult({
@@ -462,7 +455,7 @@ export async function generateObject<
       providerMetadata: resultProviderMetadata,
     });
   } catch (error) {
-    await unifiedTelemetry.onError?.({ callId, error });
+    await telemetryDispatcher.onError?.({ callId, error });
     throw wrapGatewayError(error);
   }
 }

@@ -5,11 +5,9 @@ exports[`generateText > options.experimental_onStart > should send correct infor
   "activeTools": undefined,
   "callId": "test-telemetry-call-id",
   "frequencyPenalty": undefined,
-  "functionId": "test-function",
   "headers": {
     "user-agent": "ai/0.0.0-test",
   },
-  "isEnabled": true,
   "maxOutputTokens": undefined,
   "maxRetries": 2,
   "messages": undefined,
@@ -21,8 +19,6 @@ exports[`generateText > options.experimental_onStart > should send correct infor
   "provider": "mock-provider",
   "providerOptions": undefined,
   "reasoning": undefined,
-  "recordInputs": undefined,
-  "recordOutputs": undefined,
   "runtimeContext": {},
   "seed": undefined,
   "stopSequences": undefined,
@@ -51,7 +47,6 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
   "dynamicToolResults": [],
   "files": [],
   "finishReason": "stop",
-  "functionId": undefined,
   "model": {
     "modelId": "mock-model-id",
     "provider": "mock-provider",
@@ -143,7 +138,6 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
         },
       ],
       "finishReason": "tool-calls",
-      "functionId": undefined,
       "model": {
         "modelId": "mock-model-id",
         "provider": "mock-provider",
@@ -220,7 +214,6 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
         },
       ],
       "finishReason": "stop",
-      "functionId": undefined,
       "model": {
         "modelId": "mock-model-id",
         "provider": "mock-provider",
@@ -370,7 +363,6 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
       },
     ],
     "finishReason": "tool-calls",
-    "functionId": undefined,
     "model": {
       "modelId": "mock-model-id",
       "provider": "mock-provider",
@@ -447,7 +439,6 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
       },
     ],
     "finishReason": "stop",
-    "functionId": undefined,
     "model": {
       "modelId": "mock-model-id",
       "provider": "mock-provider",
@@ -602,7 +593,6 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > resul
       },
     ],
     "finishReason": "tool-calls",
-    "functionId": undefined,
     "model": {
       "modelId": "mock-model-id",
       "provider": "mock-provider",
@@ -679,7 +669,6 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > resul
       },
     ],
     "finishReason": "stop",
-    "functionId": undefined,
     "model": {
       "modelId": "mock-model-id",
       "provider": "mock-provider",
@@ -790,7 +779,6 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
       },
     ],
     "finishReason": "tool-calls",
-    "functionId": undefined,
     "model": {
       "modelId": "mock-model-id",
       "provider": "mock-provider",
@@ -869,7 +857,6 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
       },
     ],
     "finishReason": "stop",
-    "functionId": undefined,
     "model": {
       "modelId": "mock-model-id",
       "provider": "mock-provider",
@@ -1026,7 +1013,6 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
       },
     ],
     "finishReason": "tool-calls",
-    "functionId": undefined,
     "model": {
       "modelId": "mock-model-id",
       "provider": "mock-provider",
@@ -1105,7 +1091,6 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
       },
     ],
     "finishReason": "stop",
-    "functionId": undefined,
     "model": {
       "modelId": "mock-model-id",
       "provider": "mock-provider",
@@ -1640,7 +1625,6 @@ exports[`generateText > result.steps > should add the reasoning from the model r
       },
     ],
     "finishReason": "stop",
-    "functionId": undefined,
     "model": {
       "modelId": "mock-model-id",
       "provider": "mock-provider",
@@ -1741,7 +1725,6 @@ exports[`generateText > result.steps > should contain files 1`] = `
       },
     ],
     "finishReason": "stop",
-    "functionId": undefined,
     "model": {
       "modelId": "mock-model-id",
       "provider": "mock-provider",
@@ -1840,7 +1823,6 @@ exports[`generateText > result.steps > should contain sources 1`] = `
       },
     ],
     "finishReason": "stop",
-    "functionId": undefined,
     "model": {
       "modelId": "mock-model-id",
       "provider": "mock-provider",

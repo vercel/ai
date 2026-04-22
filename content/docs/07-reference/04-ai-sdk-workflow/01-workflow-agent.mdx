@@ -764,6 +764,10 @@ console.log(result.output);
 
 ### Agent with Tool Approval
 
+For `WorkflowAgent`, tool approval is configured on the tool definition with
+`needsApproval`. For `generateText`, `streamText`, and `ToolLoopAgent`, use
+`toolApproval` instead.
+
 ```ts
 import { WorkflowAgent } from '@ai-sdk/workflow';
 import { tool } from 'ai';

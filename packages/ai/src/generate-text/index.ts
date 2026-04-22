@@ -61,7 +61,14 @@ export type {
   TextStreamPart,
   UIMessageStreamOptions,
 } from './stream-text-result';
+export type {
+  GenericToolApprovalFunction,
+  SingleToolApprovalFunction,
+  ToolApprovalConfiguration,
+  ToolApprovalStatus,
+} from './tool-approval-configuration';
 export type { ToolApprovalRequestOutput } from './tool-approval-request-output';
+export type { ToolApprovalResponseOutput } from './tool-approval-response-output';
 export type {
   DynamicToolCall,
   StaticToolCall,
@@ -79,7 +86,6 @@ export type {
   ToolExecutionEndEvent,
   ToolExecutionStartEvent,
 } from './tool-execution-events';
-export type { ToolNeedsApprovalConfiguration } from './tool-needs-approval-configuration';
 export type {
   StaticToolOutputDenied,
   TypedToolOutputDenied,

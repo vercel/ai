@@ -109,18 +109,6 @@ export interface OnStartEvent<
   /** The output specification for structured outputs, if configured. */
   readonly output: OUTPUT | undefined;
 
-  /** Whether telemetry is enabled. Defaults to `true`. */
-  readonly isEnabled: boolean | undefined;
-
-  /** Whether to record inputs in telemetry. Enabled by default. */
-  readonly recordInputs: boolean | undefined;
-
-  /** Whether to record outputs in telemetry. Enabled by default. */
-  readonly recordOutputs: boolean | undefined;
-
-  /** Identifier from telemetry settings for grouping related operations. */
-  readonly functionId: string | undefined;
-
   /**
    * Tool context.
    */
@@ -186,26 +174,8 @@ export interface OnStepStartEvent<
   /** Additional provider-specific options for this step. */
   readonly providerOptions: ProviderOptions | undefined;
 
-  /**
-   * Timeout configuration for the generation.
-   * Can be a number (milliseconds) or an object with totalMs, stepMs, chunkMs, toolMs, and per-tool overrides via tools.
-   */
-  readonly timeout: TimeoutConfiguration<TOOLS> | undefined;
-
-  /** Additional HTTP headers sent with the request. */
-  readonly headers: Record<string, string | undefined> | undefined;
-
-  /**
-   * Condition(s) for stopping the generation.
-   * When the condition is an array, any of the conditions can be met to stop.
-   */
-  readonly stopWhen: Arrayable<StopCondition<TOOLS, RUNTIME_CONTEXT>>;
-
   /** The output specification for structured outputs, if configured. */
   readonly output: OUTPUT | undefined;
-
-  /** Identifier from telemetry settings for grouping related operations. */
-  readonly functionId: string | undefined;
 
   /**
    * Runtime context. May be updated from `prepareStep` between steps.
@@ -262,7 +232,4 @@ export type OnFinishEvent<
 
   /** Aggregated token usage across all steps. */
   readonly totalUsage: LanguageModelUsage;
-
-  /** Identifier from telemetry settings for grouping related operations. */
-  readonly functionId: string | undefined;
 };

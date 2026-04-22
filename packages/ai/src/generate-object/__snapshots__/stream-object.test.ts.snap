@@ -4,9 +4,7 @@ exports[`streamObject > callbacks > experimental_onStart > should send correct i
 {
   "callId": "test-call-id",
   "frequencyPenalty": undefined,
-  "functionId": "test-function",
   "headers": undefined,
-  "isEnabled": true,
   "maxOutputTokens": 100,
   "maxRetries": 2,
   "messages": undefined,
@@ -17,8 +15,6 @@ exports[`streamObject > callbacks > experimental_onStart > should send correct i
   "prompt": "test-prompt",
   "provider": "test-provider",
   "providerOptions": undefined,
-  "recordInputs": undefined,
-  "recordOutputs": undefined,
   "schema": {
     "$schema": "http://json-schema.org/draft-07/schema#",
     "additionalProperties": false,
@@ -47,7 +43,6 @@ exports[`streamObject > output = "object" > options.onFinish > should be called 
   "callId": "test-id",
   "error": undefined,
   "finishReason": "stop",
-  "functionId": undefined,
   "object": {
     "content": "Hello, world!",
   },
@@ -90,7 +85,6 @@ exports[`streamObject > output = "object" > options.onFinish > should be called 
   "callId": "test-id",
   "error": [AI_NoObjectGeneratedError: No object generated: response did not match schema.],
   "finishReason": "stop",
-  "functionId": undefined,
   "object": undefined,
   "providerMetadata": undefined,
   "reasoning": undefined,
