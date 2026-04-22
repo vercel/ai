@@ -1,8 +1,8 @@
 import type { ToolSet } from '@ai-sdk/provider-utils';
 import type { Callback } from '../util/callback';
+import type { FinishReason } from '../types/language-model';
 import type { LanguageModelUsage } from '../types/usage';
 import type { GeneratedFile } from './generated-file';
-import type { StepResult } from './step-result';
 import type { TypedToolCall } from './tool-call';
 import type { StandardizedPrompt } from '../prompt/standardize-prompt';
 
@@ -42,7 +42,7 @@ export type LanguageModelCallEndEvent<TOOLS extends ToolSet = ToolSet> =
     readonly callId: string;
 
     /** The unified reason why the model call finished. */
-    readonly finishReason: StepResult<TOOLS>['finishReason'];
+    readonly finishReason: FinishReason;
 
     /** The token usage reported by the model call. */
     readonly usage: LanguageModelUsage;
