@@ -1,4 +1,5 @@
 import {
+  Context,
   InferToolInput,
   InferToolSetContext,
   ModelMessage,
@@ -17,12 +18,16 @@ import { validateToolContext } from './validate-tool-context';
  * User-defined approval settings take precedence over tool-defined settings.
  * If no approval settings are provided, the tool call does not require approval.
  */
-export async function resolveToolApproval<TOOLS extends ToolSet>({
+export async function resolveToolApproval<
+  TOOLS extends ToolSet,
+  RUNTIME_CONTEXT extends Context | unknown | never,
+>({
   tools,
   toolCall,
   toolApproval,
   messages,
   toolsContext,
+  runtimeContext,
 }: {
   /**
    * Tools that are available for the model to call.
@@ -39,7 +44,7 @@ export async function resolveToolApproval<TOOLS extends ToolSet>({
    *
    * This configuration takes precedence over tool-defined approval settings.
    */
-  toolApproval: ToolApprovalConfiguration<TOOLS> | undefined;
+  toolApproval: ToolApprovalConfiguration<TOOLS, RUNTIME_CONTEXT> | undefined;
 
   /**
    * Messages that were sent to the language model to initiate the response that contained the tool call.
@@ -50,6 +55,11 @@ export async function resolveToolApproval<TOOLS extends ToolSet>({
    * Tool context as defined by the tool's context schema.
    */
   toolsContext: InferToolSetContext<TOOLS>;
+
+  /**
+   * User-defined runtime context (same as `runtimeContext` on `generateText` / `streamText`).
+   */
+  runtimeContext: RUNTIME_CONTEXT;
 }): Promise<Exclude<ToolApprovalStatus, string | undefined>> {
   // user-defined generic tool approval
   if (toolApproval != null && typeof toolApproval === 'function') {
@@ -59,6 +69,7 @@ export async function resolveToolApproval<TOOLS extends ToolSet>({
         tools,
         toolsContext,
         messages,
+        runtimeContext,
       }),
     );
   }
@@ -83,6 +94,7 @@ export async function resolveToolApproval<TOOLS extends ToolSet>({
                 toolsContext?.[toolName as keyof InferToolSetContext<TOOLS>],
               contextSchema: tool?.contextSchema,
             }),
+            runtimeContext,
           })
         : userDefinedToolApprovalStatus;
 

@@ -42,12 +42,16 @@ export type ToolApprovalStatus =
 export type SingleToolApprovalFunction<
   INPUT,
   TOOL_CONTEXT extends Context | unknown | never,
+  RUNTIME_CONTEXT extends Context | unknown | never,
 > = (
   input: INPUT,
   options: Omit<
     ToolExecutionOptions<TOOL_CONTEXT>,
     'abortSignal' | 'context'
-  > & { toolContext: TOOL_CONTEXT },
+  > & {
+    toolContext: TOOL_CONTEXT;
+    runtimeContext: RUNTIME_CONTEXT;
+  },
 ) => MaybePromiseLike<ToolApprovalStatus>;
 
 /**
@@ -58,6 +62,7 @@ export type SingleToolApprovalFunction<
 export type GenericToolApprovalFunction<
   TOOLS extends ToolSet,
   TOOLS_CONTEXT extends InferToolSetContext<TOOLS>,
+  RUNTIME_CONTEXT extends Context | unknown | never,
 > = (options: {
   /**
    * The tool call that needs approval.
@@ -73,6 +78,11 @@ export type GenericToolApprovalFunction<
    * Tool context for all tools that are available for the model to call.
    */
   toolsContext: TOOLS_CONTEXT;
+
+  /**
+   * Runtime context.
+   */
+  runtimeContext: RUNTIME_CONTEXT;
 
   /**
    * Messages that were sent to the language model to initiate the response that contained the tool call.
@@ -98,13 +108,21 @@ export type GenericToolApprovalFunction<
  *
  * In addition to the string statuses, you can also use object statuses with a reason property.
  */
-export type ToolApprovalConfiguration<TOOLS extends ToolSet> =
-  | GenericToolApprovalFunction<TOOLS, InferToolSetContext<TOOLS>>
+export type ToolApprovalConfiguration<
+  TOOLS extends ToolSet,
+  RUNTIME_CONTEXT extends Context | unknown | never,
+> =
+  | GenericToolApprovalFunction<
+      TOOLS,
+      InferToolSetContext<TOOLS>,
+      RUNTIME_CONTEXT
+    >
   | {
       [key in keyof TOOLS]?:
         | ToolApprovalStatus
         | SingleToolApprovalFunction<
             InferToolInput<TOOLS[key]>,
-            InferToolContext<TOOLS[key]>
+            InferToolContext<TOOLS[key]>,
+            RUNTIME_CONTEXT
           >;
     };

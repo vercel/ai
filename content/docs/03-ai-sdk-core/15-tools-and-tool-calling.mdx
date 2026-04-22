@@ -168,16 +168,18 @@ toolApproval: {
 #### Generic `toolApproval` function
 
 Pass a `GenericToolApprovalFunction` as `toolApproval` to handle every tool
-call in one place. The callback receives `toolCall`, `tools`, `toolsContext`, and
-`messages`. It may return `undefined` for the same effect as `'not-applicable'`.
+call in one place. The callback receives `toolCall`, `tools`, `toolsContext`,
+`messages`, and `runtimeContext` (the same `runtimeContext` you pass to
+`generateText` or `streamText`, typed as the second `ToolApprovalConfiguration`
+type parameter; it defaults to `Context`). It may return `undefined` for the same effect as `'not-applicable'`.
 
 ```ts highlight="4-10"
 const result = await generateText({
   model: __MODEL__,
   tools: { runCommand },
-  toolApproval: ({ toolCall, tools, toolsContext, messages }) => {
+  toolApproval: ({ toolCall, tools, toolsContext, messages, runtimeContext }) => {
     if (toolCall.toolName === 'runCommand' && !toolCall.dynamic) {
-      // Inspect toolCall.input, cross-tool state, or messages for policy.
+      // Inspect toolCall.input, cross-tool state, messages, or runtimeContext for policy.
       return 'user-approval';
     }
     return undefined; // or 'not-applicable'
@@ -191,9 +193,9 @@ The same pattern works for `streamText` and for `toolApproval` on
 across all tools.
 
 For a per-tool object instead, each key can be a `SingleToolApprovalFunction`
-that receives the tool input and options `toolCallId`, `messages`, and
-`toolContext` (the same shape as tool execution `context`, without `abortSignal`).
-Return `undefined` for the same effect as `'not-applicable'`.
+that receives the tool input and options `toolCallId`, `messages`, `toolContext`
+(the same shape as tool execution `context`, without `abortSignal`), and
+`runtimeContext`. Return `undefined` for the same effect as `'not-applicable'`.
 
 This is useful for tools that perform sensitive operations like executing commands, processing payments, modifying data, and more potentially dangerous actions.
 

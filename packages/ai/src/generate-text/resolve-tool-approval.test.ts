@@ -25,6 +25,7 @@ describe('resolveToolApproval', () => {
       toolCall: createToolCall(),
       messages: [...messages],
       toolsContext: {},
+      runtimeContext: {},
     });
 
     expect(result).toEqual({ type: 'not-applicable' });
@@ -46,6 +47,7 @@ describe('resolveToolApproval', () => {
         toolCall: createToolCall(),
         messages: [...messages],
         toolsContext: {},
+        runtimeContext: {},
       });
 
       expect(result).toEqual({ type: 'denied' });
@@ -53,13 +55,14 @@ describe('resolveToolApproval', () => {
       expect(toolDefinedNeedsApproval).not.toHaveBeenCalled();
     });
 
-    it('passes toolCall, tools, toolsContext, and messages to the generic function', async () => {
+    it('passes toolCall, tools, toolsContext, messages, and runtimeContext to the generic function', async () => {
       const tools = {
         weather: tool({
           inputSchema: z.object({ city: z.string() }),
         }),
       } as const;
       const toolsContext = { weather: { requestId: 'req-1' } };
+      const runtimeContext = { tenantId: 't-1' };
       const genericToolApproval = vi.fn(() => 'not-applicable' as const);
 
       await resolveToolApproval({
@@ -68,6 +71,7 @@ describe('resolveToolApproval', () => {
         toolCall: createToolCall(),
         messages: [...messages],
         toolsContext,
+        runtimeContext,
       });
 
       expect(genericToolApproval).toHaveBeenCalledWith({
@@ -75,6 +79,7 @@ describe('resolveToolApproval', () => {
         tools,
         toolsContext,
         messages: [...messages],
+        runtimeContext,
       });
     });
 
@@ -93,6 +98,7 @@ describe('resolveToolApproval', () => {
         toolCall: createToolCall(),
         messages: [...messages],
         toolsContext: {},
+        runtimeContext: {},
       });
 
       expect(result).toEqual({ type: 'user-approval' });
@@ -111,6 +117,7 @@ describe('resolveToolApproval', () => {
         toolCall: createToolCall(),
         messages: [...messages],
         toolsContext: {},
+        runtimeContext: {},
       });
 
       expect(result).toEqual({ type: 'not-applicable' });
@@ -129,6 +136,7 @@ describe('resolveToolApproval', () => {
         toolCall: createToolCall(),
         messages: [...messages],
         toolsContext: {},
+        runtimeContext: {},
       });
 
       expect(result).toEqual({ type: 'not-applicable' });
@@ -150,6 +158,7 @@ describe('resolveToolApproval', () => {
         toolCall: createToolCall(),
         messages: [...messages],
         toolsContext: {},
+        runtimeContext: {},
       });
 
       expect(result).toEqual({
@@ -167,12 +176,14 @@ describe('resolveToolApproval', () => {
         weather: { scope: 'read' },
         otherTool: { flag: true },
       };
+      const runtimeContext = { traceId: 'trace-1' };
       const genericToolApproval = vi.fn(
         (_: {
           toolCall: unknown;
           tools: unknown;
           toolsContext: unknown;
           messages: ModelMessage[];
+          runtimeContext: unknown;
         }) => 'not-applicable' as const,
       );
 
@@ -186,12 +197,14 @@ describe('resolveToolApproval', () => {
         toolCall: createToolCall(),
         messages: modelMessages,
         toolsContext,
+        runtimeContext,
       });
 
       expect(genericToolApproval).toHaveBeenCalled();
       const [arg] = genericToolApproval.mock.calls[0]!;
       expect(arg.messages).toBe(modelMessages);
       expect(arg.toolsContext).toBe(toolsContext);
+      expect(arg.runtimeContext).toBe(runtimeContext);
     });
   });
 
@@ -208,6 +221,7 @@ describe('resolveToolApproval', () => {
             toolCallId: string;
             messages: ModelMessage[];
             toolContext: { apiKey: string };
+            runtimeContext: Record<string, never>;
           },
         ) => 'approved' as const,
       );
@@ -227,6 +241,7 @@ describe('resolveToolApproval', () => {
         toolsContext: {
           weather: { apiKey: 'secret' },
         },
+        runtimeContext: {},
       });
 
       expect(singleToolApproval).toHaveBeenCalledWith(
@@ -235,6 +250,7 @@ describe('resolveToolApproval', () => {
           toolCallId: 'call-1',
           messages: modelMessages,
           toolContext: { apiKey: 'secret' },
+          runtimeContext: {},
         },
       );
       expect(singleToolApproval).toHaveBeenCalled();
@@ -250,6 +266,7 @@ describe('resolveToolApproval', () => {
             toolCallId: string;
             messages: unknown;
             toolContext: unknown;
+            runtimeContext: unknown;
           },
         ) => 'not-applicable' as const,
       );
@@ -271,6 +288,7 @@ describe('resolveToolApproval', () => {
         messages: [...messages],
         // Runtime value before validation omits `region`; zod default is applied in `validateToolContext`.
         toolsContext: { weather: { apiKey: 'k' } } as any,
+        runtimeContext: {},
       });
 
       expect(singleToolApproval).toHaveBeenCalled();
@@ -294,6 +312,7 @@ describe('resolveToolApproval', () => {
         toolCall: createToolCall(),
         messages: [...messages],
         toolsContext: {},
+        runtimeContext: {},
       });
 
       expect(result).toEqual({ type: 'not-applicable' });
@@ -312,6 +331,7 @@ describe('resolveToolApproval', () => {
         toolCall: createToolCall(),
         messages: [...messages],
         toolsContext: {},
+        runtimeContext: {},
       });
 
       expect(result).toEqual({ type: 'not-applicable' });
@@ -334,6 +354,7 @@ describe('resolveToolApproval', () => {
       toolCall: createToolCall(),
       messages: [...messages],
       toolsContext: {},
+      runtimeContext: {},
     });
 
     expect(result).toEqual({ type: 'denied' });
@@ -356,6 +377,7 @@ describe('resolveToolApproval', () => {
       toolCall: createToolCall(),
       messages: [...messages],
       toolsContext: {},
+      runtimeContext: {},
     });
 
     expect(result).toEqual({
@@ -384,6 +406,7 @@ describe('resolveToolApproval', () => {
       toolsContext: {
         weather: { apiKey: 'secret' },
       },
+      runtimeContext: {},
     });
 
     expect(result).toEqual({ type: 'approved' });
@@ -394,6 +417,7 @@ describe('resolveToolApproval', () => {
         toolCallId: 'call-1',
         messages: [...messages],
         toolContext: { apiKey: 'secret' },
+        runtimeContext: {},
       },
     );
     expect(toolDefinedNeedsApproval).not.toHaveBeenCalled();
@@ -415,6 +439,7 @@ describe('resolveToolApproval', () => {
       toolCall: createToolCall(),
       messages: [...messages],
       toolsContext: {},
+      runtimeContext: {},
     });
 
     expect(result).toEqual({
@@ -438,6 +463,7 @@ describe('resolveToolApproval', () => {
       toolCall: createToolCall(),
       messages: [...messages],
       toolsContext: {},
+      runtimeContext: {},
     });
 
     expect(userDefinedNeedsApproval).toHaveBeenCalledWith(
@@ -446,6 +472,7 @@ describe('resolveToolApproval', () => {
         toolCallId: 'call-1',
         messages: [...messages],
         toolContext: undefined,
+        runtimeContext: {},
       },
     );
   });
@@ -463,6 +490,7 @@ describe('resolveToolApproval', () => {
       toolCall: createToolCall(),
       messages: [...messages],
       toolsContext: {},
+      runtimeContext: {},
     });
 
     expect(result).toEqual({ type: 'user-approval' });
@@ -480,6 +508,7 @@ describe('resolveToolApproval', () => {
       toolCall: createToolCall(),
       messages: [...messages],
       toolsContext: {},
+      runtimeContext: {},
     });
 
     const notApplicableToolResult = await resolveToolApproval({
@@ -493,6 +522,7 @@ describe('resolveToolApproval', () => {
       toolCall: createToolCall(),
       messages: [...messages],
       toolsContext: {},
+      runtimeContext: {},
     });
 
     expect(approvedToolResult).toEqual({ type: 'user-approval' });
@@ -516,6 +546,7 @@ describe('resolveToolApproval', () => {
       toolsContext: {
         weather: { apiKey: 'secret' },
       },
+      runtimeContext: {},
     });
 
     expect(result).toEqual({ type: 'user-approval' });
@@ -549,6 +580,7 @@ describe('resolveToolApproval', () => {
         toolsContext: {
           weather: { apiKey: 123 } as any,
         },
+        runtimeContext: {},
       });
 
       expect.unreachable('expected resolveToolApproval to throw');
@@ -585,6 +617,7 @@ describe('resolveToolApproval', () => {
         toolsContext: {
           weather: { apiKey: 123 } as any,
         },
+        runtimeContext: {},
       });
 
       expect.unreachable('expected resolveToolApproval to throw');
