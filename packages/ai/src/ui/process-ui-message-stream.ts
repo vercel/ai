@@ -45,6 +45,9 @@ export type StreamingUIMessageState<UI_MESSAGE extends UIMessage> = {
     }
   >;
   finishReason?: FinishReason;
+  _reusableText?: TextUIPart[];
+  _reusableReasoning?: ReasoningUIPart[];
+  _reusableData?: Record<string, any[]>;
 };
 
 export function createStreamingUIMessageState<UI_MESSAGE extends UIMessage>({
@@ -54,22 +57,49 @@ export function createStreamingUIMessageState<UI_MESSAGE extends UIMessage>({
   lastMessage: UI_MESSAGE | undefined;
   messageId: string;
 }): StreamingUIMessageState<UI_MESSAGE> {
+  const isResume = lastMessage?.role === 'assistant';
+  const message = isResume
+    ? lastMessage
+    : ({
+        id: messageId,
+        metadata: undefined,
+        role: 'assistant',
+        parts: [] as UIMessagePart<
+          InferUIMessageData<UI_MESSAGE>,
+          InferUIMessageTools<UI_MESSAGE>
+        >[],
+      } as UI_MESSAGE);
+
+  // Pre-index existing parts into FIFO queues so that on resume the replayed
+  // `-start` events recycle the same part objects instead of pushing duplicates.
+  // Relies on replay preserving the original event order.
+  const _reusableText: TextUIPart[] = [];
+  const _reusableReasoning: ReasoningUIPart[] = [];
+  const _reusableData: Record<string, any[]> = {};
+  if (isResume) {
+    for (const part of message.parts) {
+      if (part.type === 'text') {
+        _reusableText.push(part as TextUIPart);
+      } else if (part.type === 'reasoning') {
+        _reusableReasoning.push(part as ReasoningUIPart);
+      } else if (
+        typeof part.type === 'string' &&
+        part.type.startsWith('data-') &&
+        !('id' in part)
+      ) {
+        (_reusableData[part.type] ??= []).push(part);
+      }
+    }
+  }
+
   return {
-    message:
-      lastMessage?.role === 'assistant'
-        ? lastMessage
-        : ({
-            id: messageId,
-            metadata: undefined,
-            role: 'assistant',
-            parts: [] as UIMessagePart<
-              InferUIMessageData<UI_MESSAGE>,
-              InferUIMessageTools<UI_MESSAGE>
-            >[],
-          } as UI_MESSAGE),
+    message,
     activeTextParts: {},
     activeReasoningParts: {},
     partialToolCalls: {},
+    _reusableText,
+    _reusableReasoning,
+    _reusableData,
   };
 }
 
@@ -369,6 +399,15 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
 
           switch (chunk.type) {
             case 'text-start': {
+              const reused = state._reusableText?.shift();
+              if (reused) {
+                reused.text = '';
+                reused.state = 'streaming';
+                reused.providerMetadata = chunk.providerMetadata;
+                state.activeTextParts[chunk.id] = reused;
+                write();
+                break;
+              }
               const textPart: TextUIPart = {
                 type: 'text',
                 text: '',
@@ -430,6 +469,15 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             }
 
             case 'reasoning-start': {
+              const reused = state._reusableReasoning?.shift();
+              if (reused) {
+                reused.text = '';
+                reused.state = 'streaming';
+                reused.providerMetadata = chunk.providerMetadata;
+                state.activeReasoningParts[chunk.id] = reused;
+                write();
+                break;
+              }
               const reasoningPart: ReasoningUIPart = {
                 type: 'reasoning',
                 text: '',
