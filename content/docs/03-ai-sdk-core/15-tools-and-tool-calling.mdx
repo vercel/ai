@@ -110,7 +110,7 @@ tool({
 By default, tools with an `execute` function run automatically as the model calls them. You can require approval before execution in two ways:
 
 - Set `needsApproval` on an individual tool to define its default approval behavior
-- Set `toolApproval` on `generateText` or `streamText` to configure approval for specific tools at call time
+- Set `toolApproval` on `generateText` or `streamText` to configure approval for specific tools at call time using approval statuses
 
 Use `needsApproval` when the tool should usually require approval wherever it is used. Use `toolApproval` when approval depends on the specific request or runtime context. If both are provided, `toolApproval` takes precedence.
 
@@ -139,23 +139,52 @@ const result = await generateText({
   model: __MODEL__,
   tools: { runCommand },
   toolApproval: {
-    runCommand: true,
+    runCommand: 'user-approval',
   },
   prompt: 'Remove the most recent file in the downloads folder',
 });
 ```
 
-`toolApproval` can also be a function per tool, which lets you decide dynamically based on the tool input and runtime options such as `toolCallId`, `messages`, and `context`.
+`toolApproval` accepts one of four statuses per tool, either as a string or as
+an object with a `type` field:
+
+- `'not-applicable'`: the tool is executed without an approval flow. This is the default behavior.
+- `'approved'`: record an automatic approval by emitting approval request/response parts in the output, then execute the tool
+- `'denied'`: record an automatic denial by emitting approval request/response parts in the output, then surface a denied tool output
+- `'user-approval'`: emit an approval request and wait for an explicit response
+
+For automatic approvals and denials, you can also return an object to include a
+reason:
+
+```ts
+toolApproval: {
+  runCommand: {
+    type: 'denied',
+    reason: 'blocked by policy',
+  },
+}
+```
+
+`toolApproval` can also be a function per tool, which lets you return one of
+these string or object statuses dynamically based on the tool input and runtime
+options such as `toolCallId`, `messages`, and `toolContext`.
 
 This is useful for tools that perform sensitive operations like executing commands, processing payments, modifying data, and more potentially dangerous actions.
 
 ### How It Works
 
-When a tool requires approval, `generateText` and `streamText` don't pause execution. Instead, they complete and return `tool-approval-request` parts in the result content. This means the approval flow requires two calls to the model: the first returns the approval request, and the second (after receiving the approval response) either executes the tool or informs the model that approval was denied.
+When a tool requires manual approval, `generateText` and `streamText` don't pause execution. Instead, they complete and return `tool-approval-request` parts in the result content. This means the manual approval flow requires two calls to the model: the first returns the approval request, and the second (after receiving the approval response) either executes the tool or informs the model that approval was denied.
 
-The approval requirement can come from either tool-level `needsApproval` or call-level `toolApproval`.
+Manual approval can come from either tool-level `needsApproval` or call-level
+`toolApproval` returning `'user-approval'`. If the tool should just execute
+normally, use `'not-applicable'` or omit the setting entirely. If
+`toolApproval` returns `'approved'` or `'denied'` or their object forms, the
+SDK records that decision automatically in the same generation by emitting
+approval request/response parts. When you provide a `reason` on an automatic
+approval or denial, that reason is included in the emitted approval response
+and can be rendered in the UI.
 
-Here's the complete flow:
+Here's the manual approval flow:
 
 1. Call `generateText` or `streamText` with approval configured via `needsApproval` or `toolApproval`
 2. The model generates a tool call
@@ -184,7 +213,7 @@ const result = await generateText({
 messages.push(...result.response.messages);
 
 for (const part of result.content) {
-  if (part.type === 'tool-approval-request') {
+  if (part.type === 'tool-approval-request' && !part.isAutomatic) {
     console.log(part.approvalId); // Unique ID for this approval request
     console.log(part.toolCall); // Contains toolName, input, etc.
   }
@@ -199,7 +228,7 @@ import { type ToolApprovalResponse } from 'ai';
 const approvals: ToolApprovalResponse[] = [];
 
 for (const part of result.content) {
-  if (part.type === 'tool-approval-request') {
+  if (part.type === 'tool-approval-request' && !part.isAutomatic) {
     const response: ToolApprovalResponse = {
       type: 'tool-approval-response',
       approvalId: part.approvalId,
@@ -215,6 +244,13 @@ messages.push({ role: 'tool', content: approvals });
 ```
 
 Then call `generateText` or `streamText` again with the updated messages. If approved, the tool executes. If denied, the model receives the denial and can respond accordingly.
+
+When the tool should execute without any approval metadata in the output, use
+`'not-applicable'` or omit `toolApproval`. Use `'approved'`, `'denied'`, or
+their object forms only when you want the result to include an automatic
+`tool-approval-request` with `isAutomatic: true` followed by a
+`tool-approval-response`, so you can inspect or render the decision without
+prompting the user again.
 
 <Note>
   When a tool execution is denied, consider adding a system instruction like
@@ -248,7 +284,12 @@ const paymentTool = tool({
 
 In this example, only transactions over $1000 require approval. Smaller transactions execute automatically.
 
-You can use the same function shape in `toolApproval` when you want that decision to be defined at call time instead of on the tool itself.
+You can use a similar function in `toolApproval` when you want to return
+`'not-applicable'`, `'approved'`, `'denied'`, or `'user-approval'` at call time
+instead of defining the default on the tool itself. For automatic approvals and
+denials, the callback can also return `{ type, reason }`, for example
+`{ type: 'denied', reason: 'blocked by policy' }`. Return `'not-applicable'`
+for the normal execution path.
 
 ### Tool Execution Approval with useChat
 

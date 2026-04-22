@@ -3,7 +3,7 @@ import { createIdGenerator, ProviderOptions } from '@ai-sdk/provider-utils';
 import { prepareRetries } from '../../src/util/prepare-retries';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveRerankingModel } from '../model/resolve-model';
-import { createUnifiedTelemetry } from '../telemetry/create-unified-telemetry';
+import { createTelemetryDispatcher } from '../telemetry/create-telemetry-dispatcher';
 import { TelemetryOptions } from '../telemetry/telemetry-options';
 import { RerankingModel } from '../types';
 import type { Callback } from '../util/callback';
@@ -126,8 +126,8 @@ export async function rerank<VALUE extends JSONObject | string>({
   const model = resolveRerankingModel(modelArg);
   const callId = generateCallId();
 
-  const unifiedTelemetry = createUnifiedTelemetry({
-    integrations: telemetry?.integrations,
+  const telemetryDispatcher = createTelemetryDispatcher({
+    telemetry,
   });
 
   if (documents.length === 0) {
@@ -143,12 +143,8 @@ export async function rerank<VALUE extends JSONObject | string>({
         maxRetries: maxRetriesArg ?? 2,
         headers,
         providerOptions,
-        isEnabled: telemetry?.isEnabled ?? true,
-        recordInputs: telemetry?.recordInputs,
-        recordOutputs: telemetry?.recordOutputs,
-        functionId: telemetry?.functionId,
       },
-      callbacks: [onStart, unifiedTelemetry.onStart],
+      callbacks: [onStart, telemetryDispatcher.onStart],
     });
 
     await notify({
@@ -166,12 +162,8 @@ export async function rerank<VALUE extends JSONObject | string>({
           timestamp: new Date(),
           modelId: model.modelId,
         },
-        isEnabled: telemetry?.isEnabled ?? true,
-        recordInputs: telemetry?.recordInputs,
-        recordOutputs: telemetry?.recordOutputs,
-        functionId: telemetry?.functionId,
       },
-      callbacks: [onFinish, unifiedTelemetry.onFinish],
+      callbacks: [onFinish, telemetryDispatcher.onFinish],
     });
 
     return new DefaultRerankResult({
@@ -207,12 +199,8 @@ export async function rerank<VALUE extends JSONObject | string>({
       maxRetries,
       headers,
       providerOptions,
-      isEnabled: telemetry?.isEnabled ?? true,
-      recordInputs: telemetry?.recordInputs,
-      recordOutputs: telemetry?.recordOutputs,
-      functionId: telemetry?.functionId,
     },
-    callbacks: [onStart, unifiedTelemetry.onStart],
+    callbacks: [onStart, telemetryDispatcher.onStart],
   });
 
   try {
@@ -228,12 +216,8 @@ export async function rerank<VALUE extends JSONObject | string>({
             documentsType: documentsToSend.type,
             query,
             topN,
-            isEnabled: telemetry?.isEnabled ?? true,
-            recordInputs: telemetry?.recordInputs,
-            recordOutputs: telemetry?.recordOutputs,
-            functionId: telemetry?.functionId,
           },
-          callbacks: [unifiedTelemetry.onRerankStart],
+          callbacks: [telemetryDispatcher.onRerankStart],
         });
 
         const modelResponse = await model.doRerank({
@@ -256,7 +240,7 @@ export async function rerank<VALUE extends JSONObject | string>({
             documentsType: documentsToSend.type,
             ranking,
           },
-          callbacks: [unifiedTelemetry.onRerankFinish],
+          callbacks: [telemetryDispatcher.onRerankFinish],
         });
 
         return {
@@ -296,12 +280,8 @@ export async function rerank<VALUE extends JSONObject | string>({
           headers: response?.headers,
           body: response?.body,
         },
-        isEnabled: telemetry?.isEnabled ?? true,
-        recordInputs: telemetry?.recordInputs,
-        recordOutputs: telemetry?.recordOutputs,
-        functionId: telemetry?.functionId,
       },
-      callbacks: [onFinish, unifiedTelemetry.onFinish],
+      callbacks: [onFinish, telemetryDispatcher.onFinish],
     });
 
     return new DefaultRerankResult({
@@ -321,7 +301,7 @@ export async function rerank<VALUE extends JSONObject | string>({
       },
     });
   } catch (error) {
-    await unifiedTelemetry.onError?.({ callId, error });
+    await telemetryDispatcher.onError?.({ callId, error });
     throw error;
   }
 }

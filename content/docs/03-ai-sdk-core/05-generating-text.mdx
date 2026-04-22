@@ -127,8 +127,8 @@ const result = await generateText({
     // ... your tools
   },
 
-  experimental_onStart({ model, settings, functionId }) {
-    console.log('Generation started', { model, functionId });
+  experimental_onStart({ model }) {
+    console.log('Generation started', { model });
   },
 
   experimental_onStepStart({ stepNumber, model, promptMessages }) {

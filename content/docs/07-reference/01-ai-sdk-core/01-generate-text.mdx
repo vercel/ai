@@ -541,10 +541,10 @@ To see `generateText` in action, check out [these examples](#examples).
     },
     {
       name: 'toolApproval',
-      type: 'Record<TOOLNAME, boolean | ((input, options) => boolean | Promise<boolean>)>',
+      type: 'ToolApprovalConfiguration<TOOLS>',
       isOptional: true,
       description:
-        "Per-tool approval configuration for this call. Each tool can be set to `true` / `false` or to a function that decides dynamically based on the tool input and options such as `toolCallId`, `messages`, and `context`. This setting takes precedence over a tool's `needsApproval` default.",
+        "Per-tool approval configuration for this call. Each tool can be set to `'not-applicable'`, `'approved'`, `'denied'`, or `'user-approval'`, to an object form such as `{ type: 'denied', reason: 'blocked by policy' }`, or to a function that returns one of those statuses based on the tool input and options such as `toolCallId`, `messages`, and `toolContext`. `'not-applicable'` is the default execution path and runs the tool without approval metadata. Use `'approved'`, `'denied'`, or their object forms when you want explicit automatic approval request/response parts in the output. Automatic approvals and denials can include a `reason`, which is forwarded to the emitted approval response. This setting takes precedence over a tool's `needsApproval` default.",
     },
     {
       name: 'stopWhen',
@@ -1046,12 +1046,6 @@ To see `generateText` in action, check out [these examples](#examples).
                 'Settings for controlling what data is included in step results.',
             },
             {
-              name: 'functionId',
-              type: 'string | undefined',
-              description:
-                'Identifier from telemetry settings for grouping related operations.',
-            },
-            {
               name: 'runtimeContext',
               type: 'CONTEXT',
               description:
@@ -1158,12 +1152,6 @@ To see `generateText` in action, check out [these examples](#examples).
               type: '{ requestBody?: boolean; responseBody?: boolean } | undefined',
               description:
                 'Settings for controlling what data is included in step results.',
-            },
-            {
-              name: 'functionId',
-              type: 'string | undefined',
-              description:
-                'Identifier from telemetry settings for grouping related operations.',
             },
             {
               name: 'runtimeContext',
@@ -1319,12 +1307,6 @@ To see `generateText` in action, check out [these examples](#examples).
               description: 'Signal for cancelling the operation.',
             },
             {
-              name: 'functionId',
-              type: 'string | undefined',
-              description:
-                'Identifier from telemetry settings for grouping related operations.',
-            },
-            {
               name: 'context',
               type: 'CONTEXT',
               description:
@@ -1380,12 +1362,6 @@ To see `generateText` in action, check out [these examples](#examples).
                 'The wall-clock duration of the tool execution in milliseconds.',
             },
             {
-              name: 'functionId',
-              type: 'string | undefined',
-              description:
-                'Identifier from telemetry settings for grouping related operations.',
-            },
-            {
               name: 'context',
               type: 'CONTEXT',
               description:
@@ -1433,12 +1409,6 @@ To see `generateText` in action, check out [these examples](#examples).
               type: '{ provider: string; modelId: string }',
               description:
                 'Information about the model that produced this step.',
-            },
-            {
-              name: 'functionId',
-              type: 'string | undefined',
-              description:
-                'Identifier from telemetry settings for grouping related operations.',
             },
             {
               name: 'runtimeContext',
@@ -1711,12 +1681,6 @@ To see `generateText` in action, check out [these examples](#examples).
               type: '{ provider: string; modelId: string }',
               description:
                 'Information about the model that produced the final step.',
-            },
-            {
-              name: 'functionId',
-              type: 'string | undefined',
-              description:
-                'Identifier from telemetry settings for grouping related operations.',
             },
             {
               name: 'finishReason',
@@ -2521,12 +2485,6 @@ To see `generateText` in action, check out [these examples](#examples).
               type: '{ provider: string; modelId: string }',
               description:
                 'Information about the model that produced this step.',
-            },
-            {
-              name: 'functionId',
-              type: 'string | undefined',
-              description:
-                'Identifier from telemetry settings for grouping related operations.',
             },
             {
               name: 'runtimeContext',

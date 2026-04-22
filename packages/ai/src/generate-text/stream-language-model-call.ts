@@ -42,6 +42,7 @@ import {
   TextStreamReasoningFilePart,
   TextStreamTextDeltaPart,
   TextStreamToolApprovalRequestPart,
+  TextStreamToolApprovalResponsePart,
   TextStreamToolCallPart,
   TextStreamToolErrorPart,
   TextStreamToolResultPart,
@@ -70,6 +71,7 @@ export type LanguageModelStreamPart<TOOLS extends ToolSet = ToolSet> =
   | TextStreamFilePart
   | TextStreamReasoningFilePart
   | TextStreamToolApprovalRequestPart<TOOLS>
+  | TextStreamToolApprovalResponsePart<TOOLS>
   | TextStreamToolCallPart<TOOLS>
   | TextStreamToolResultPart<TOOLS>
   | TextStreamToolErrorPart<TOOLS>

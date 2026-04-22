@@ -639,6 +639,112 @@ describe('WorkflowAgent', () => {
 
       consoleWarnSpy.mockRestore();
     });
+
+    it('should keep invalid tool calls on the error path without executing them', async () => {
+      const execute = vi.fn(async () => 'should-not-run');
+      const tools: ToolSet = {
+        testTool: {
+          description: 'A test tool',
+          inputSchema: z.object({ city: z.string() }),
+          execute,
+        },
+      };
+
+      const mockModel = createMockModel();
+
+      const agent = new WorkflowAgent({
+        model: mockModel,
+        tools,
+      });
+
+      const writes: any[] = [];
+      const mockWritable = new WritableStream({
+        write: chunk => {
+          writes.push(chunk);
+        },
+        close: vi.fn(),
+      });
+
+      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const invalidError = new Error('Invalid input for tool testTool');
+      const mockMessages: LanguageModelV4Prompt = [
+        { role: 'user', content: [{ type: 'text', text: 'test' }] },
+      ];
+      const finalMessages: LanguageModelV4Prompt = [
+        ...mockMessages,
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'text',
+              text: 'done',
+            },
+          ],
+        },
+      ];
+      const mockIterator = {
+        next: vi
+          .fn()
+          .mockResolvedValueOnce({
+            done: false,
+            value: {
+              toolCalls: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'invalid-call-id',
+                  toolName: 'testTool',
+                  input: { cities: 'San Francisco' },
+                  invalid: true,
+                  error: invalidError,
+                } satisfies ParsedToolCall,
+              ],
+              messages: mockMessages,
+            },
+          })
+          .mockResolvedValueOnce({
+            done: true,
+            value: finalMessages,
+          }),
+      };
+      vi.mocked(streamTextIterator).mockReturnValue(
+        mockIterator as unknown as MockIterator,
+      );
+
+      const result = await agent.stream({
+        messages: [{ role: 'user', content: 'test' }],
+        writable: mockWritable,
+      });
+
+      expect(execute).not.toHaveBeenCalled();
+      expect(mockIterator.next).toHaveBeenCalledTimes(2);
+      expect(mockIterator.next.mock.calls[1][0]).toMatchInlineSnapshot(`
+        [
+          {
+            "output": {
+              "type": "error-text",
+              "value": "Invalid input for tool testTool",
+            },
+            "toolCallId": "invalid-call-id",
+            "toolName": "testTool",
+            "type": "tool-result",
+          },
+        ]
+      `);
+      expect(writes).toEqual([
+        { type: 'finish-step' },
+        { type: 'start-step' },
+        { type: 'finish' },
+      ]);
+      expect(result.toolCalls).toMatchObject([
+        {
+          type: 'tool-call',
+          toolCallId: 'invalid-call-id',
+          toolName: 'testTool',
+          input: { cities: 'San Francisco' },
+        },
+      ]);
+      expect(result.toolResults).toHaveLength(0);
+    });
   });
 
   describe('client-side tools (tools without execute)', () => {

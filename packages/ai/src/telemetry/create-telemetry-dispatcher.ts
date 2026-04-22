@@ -1,61 +1,103 @@
-import type { Arrayable } from '@ai-sdk/provider-utils';
 import { asArray } from '@ai-sdk/provider-utils';
 import { Callback } from '../util/callback';
 import { mergeCallbacks } from '../util/merge-callbacks';
-import type { Telemetry } from './telemetry';
+import type {
+  InferTelemetryEvent,
+  Telemetry,
+  TelemetryDispatcher,
+} from './telemetry';
 import { getGlobalTelemetryIntegrations } from './telemetry-registry';
+import type { TelemetryOptions } from './telemetry-options';
 
 /**
- * The subset of `Telemetry` keys whose values are Callback callbacks.
+ * The subset of `TelemetryDispatcher` keys whose values are Callback callbacks.
  * This excludes non-Callback properties such as `executeTool`.
  */
 type TelemetryCallbackKey = keyof {
-  [K in keyof Telemetry as Telemetry[K] extends Callback<any> | undefined
+  [K in keyof TelemetryDispatcher as TelemetryDispatcher[K] extends
+    | Callback<any>
+    | undefined
     ? K
     : never]: true;
 };
 
 /**
- * Resolves the event type accepted by a telemetry Callback key.
- * For example, `'onStepStart'` maps to `OnStepStartEvent`.
+ * Resolves the public event type accepted by a telemetry callback key.
  */
-type TelemetryEvent<K extends TelemetryCallbackKey> = Telemetry[K] extends
-  | Callback<infer EVENT>
-  | undefined
-  ? EVENT
-  : never;
+type TelemetryEvent<K extends TelemetryCallbackKey> =
+  TelemetryDispatcher[K] extends Callback<infer EVENT> | undefined
+    ? EVENT
+    : never;
+
+function augmentEvent<EVENT>(
+  event: EVENT,
+  telemetry: Pick<
+    TelemetryOptions,
+    'recordInputs' | 'recordOutputs' | 'functionId'
+  >,
+): InferTelemetryEvent<EVENT> {
+  return Object.assign(
+    Object.create(Object.getPrototypeOf(event)),
+    event,
+    telemetry,
+  );
+}
 
 /**
- * Creates a unified telemetry target that sends telemetry events
+ * Creates a telemetry dispatcher that sends telemetry events
  * to the resolved set of integrations.
  *
  * When per-call integrations are provided, they take precedence over the globally
  * registered integrations for that call. When no per-call integrations are
  * provided, the globally registered integrations are used.
  *
- * @param args.integrations - Optional per-call integrations to onlysend telemetry events to.
+ * @param args.telemetry - Optional per-call telemetry settings and integrations.
  *
- * @returns A telemetry target that fans out lifecycle events to the resolved
- * set of integrations.
+ * @returns A telemetry dispatcher that fans out lifecycle events to the
+ * resolved set of integrations.
  */
-export function createUnifiedTelemetry({
-  integrations: localIntegrations,
+export function createTelemetryDispatcher({
+  telemetry,
 }: {
-  integrations?: Arrayable<Telemetry>;
-}): Telemetry {
+  telemetry?: TelemetryOptions;
+}): TelemetryDispatcher {
+  // When telemetry is explicitly disabled, return a dispatcher
+  // that performs no work and lets tool execution pass through unwrapped.
+  if (telemetry?.isEnabled === false) {
+    return {};
+  }
+
+  const localIntegrations = telemetry?.integrations;
   const integrations: Array<Telemetry> =
     localIntegrations != null
       ? asArray(localIntegrations)
       : getGlobalTelemetryIntegrations();
 
+  const telemetryMetadata = {
+    recordInputs: telemetry?.recordInputs,
+    recordOutputs: telemetry?.recordOutputs,
+    functionId: telemetry?.functionId,
+  };
+
   const mergeTelemetryCallback = <KEY extends TelemetryCallbackKey>(
     key: KEY,
-  ): Callback<TelemetryEvent<KEY>> | undefined =>
-    mergeCallbacks(
-      ...(integrations
-        .map(integration => integration[key]?.bind(integration))
-        .filter(Boolean) as Array<Callback<TelemetryEvent<KEY>>>),
+  ): Callback<TelemetryEvent<KEY>> => {
+    return mergeCallbacks(
+      ...(
+        integrations
+          .map(integration => integration[key]?.bind(integration))
+          .filter(Boolean) as Array<
+          Callback<InferTelemetryEvent<TelemetryEvent<KEY>>>
+        >
+      ).map(
+        callback =>
+          ((event: TelemetryEvent<KEY>) =>
+            callback(augmentEvent(event, telemetryMetadata))) as Callback<
+            TelemetryEvent<KEY>
+          >,
+      ),
     );
+  };
 
   const executeWrappers = integrations
     .map(integration => integration.executeTool?.bind(integration))

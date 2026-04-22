@@ -36,18 +36,6 @@ export interface RerankOnStartEvent {
 
   /** Additional provider-specific options. */
   readonly providerOptions: ProviderOptions | undefined;
-
-  /** Whether telemetry is enabled. Defaults to `true`. */
-  readonly isEnabled: boolean | undefined;
-
-  /** Whether to record inputs in telemetry. Enabled by default. */
-  readonly recordInputs: boolean | undefined;
-
-  /** Whether to record outputs in telemetry. Enabled by default. */
-  readonly recordOutputs: boolean | undefined;
-
-  /** Identifier from telemetry settings for grouping related operations. */
-  readonly functionId: string | undefined;
 }
 
 /**
@@ -95,18 +83,6 @@ export interface RerankOnFinishEvent {
     headers?: Record<string, string>;
     body?: unknown;
   };
-
-  /** Whether telemetry is enabled. Defaults to `true`. */
-  readonly isEnabled: boolean | undefined;
-
-  /** Whether to record inputs in telemetry. Enabled by default. */
-  readonly recordInputs: boolean | undefined;
-
-  /** Whether to record outputs in telemetry. Enabled by default. */
-  readonly recordOutputs: boolean | undefined;
-
-  /** Identifier from telemetry settings for grouping related operations. */
-  readonly functionId: string | undefined;
 }
 
 /**
@@ -136,18 +112,6 @@ export interface RerankStartEvent {
 
   /** Number of top documents to return. */
   readonly topN: number | undefined;
-
-  /** Whether telemetry is enabled. Defaults to `true`. */
-  readonly isEnabled: boolean | undefined;
-
-  /** Whether to record inputs in telemetry. Enabled by default. */
-  readonly recordInputs: boolean | undefined;
-
-  /** Whether to record outputs in telemetry. Enabled by default. */
-  readonly recordOutputs: boolean | undefined;
-
-  /** Identifier from telemetry settings for grouping related operations. */
-  readonly functionId: string | undefined;
 }
 
 /**

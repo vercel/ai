@@ -900,8 +900,8 @@ describe('generateText', () => {
         },
       });
 
-      expect(startEvent.isEnabled).toBe(true);
-      expect(startEvent.functionId).toBe('deprecated-fn');
+      expect(startEvent).not.toHaveProperty('isEnabled');
+      expect(startEvent).not.toHaveProperty('functionId');
     });
 
     it('should send correct information with system and messages', async () => {
@@ -1804,16 +1804,6 @@ describe('generateText', () => {
           {
             "callId": "test-telemetry-call-id",
             "context": undefined,
-            "functionId": undefined,
-            "messages": [
-              {
-                "content": "test-input",
-                "role": "user",
-              },
-            ],
-            "modelId": "mock-model-id",
-            "provider": "mock-provider",
-            "stepNumber": 0,
             "toolCall": {
               "input": {
                 "value": "test-arg",
@@ -1873,16 +1863,6 @@ describe('generateText', () => {
           {
             "callId": "test-telemetry-call-id",
             "context": undefined,
-            "functionId": undefined,
-            "messages": [
-              {
-                "content": "prompt",
-                "role": "user",
-              },
-            ],
-            "modelId": "mock-model-id",
-            "provider": "mock-provider",
-            "stepNumber": 0,
             "toolCall": {
               "input": {
                 "value": "a",
@@ -1898,16 +1878,6 @@ describe('generateText', () => {
           {
             "callId": "test-telemetry-call-id",
             "context": undefined,
-            "functionId": undefined,
-            "messages": [
-              {
-                "content": "prompt",
-                "role": "user",
-              },
-            ],
-            "modelId": "mock-model-id",
-            "provider": "mock-provider",
-            "stepNumber": 0,
             "toolCall": {
               "input": {
                 "value": "b",
@@ -2069,16 +2039,6 @@ describe('generateText', () => {
             "context": {
               "context": "test",
             },
-            "functionId": undefined,
-            "messages": [
-              {
-                "content": "prompt",
-                "role": "user",
-              },
-            ],
-            "modelId": "mock-model-id",
-            "provider": "mock-provider",
-            "stepNumber": 0,
             "toolCall": {
               "input": {
                 "value": "test",
@@ -2134,17 +2094,7 @@ describe('generateText', () => {
             "callId": "test-telemetry-call-id",
             "context": undefined,
             "durationMs": 0,
-            "functionId": undefined,
-            "messages": [
-              {
-                "content": "prompt",
-                "role": "user",
-              },
-            ],
-            "modelId": "mock-model-id",
             "output": "test-arg-result",
-            "provider": "mock-provider",
-            "stepNumber": 0,
             "success": true,
             "toolCall": {
               "input": {
@@ -2203,16 +2153,6 @@ describe('generateText', () => {
             "context": undefined,
             "durationMs": 0,
             "error": [Error: tool execution failed],
-            "functionId": undefined,
-            "messages": [
-              {
-                "content": "prompt",
-                "role": "user",
-              },
-            ],
-            "modelId": "mock-model-id",
-            "provider": "mock-provider",
-            "stepNumber": 0,
             "success": false,
             "toolCall": {
               "input": {
@@ -2372,17 +2312,7 @@ describe('generateText', () => {
               "context": "test",
             },
             "durationMs": 0,
-            "functionId": undefined,
-            "messages": [
-              {
-                "content": "prompt",
-                "role": "user",
-              },
-            ],
-            "modelId": "mock-model-id",
             "output": "test-result",
-            "provider": "mock-provider",
-            "stepNumber": 0,
             "success": true,
             "toolCall": {
               "input": {
@@ -2445,16 +2375,6 @@ describe('generateText', () => {
             },
             "durationMs": 0,
             "error": [Error: Tool execution failed],
-            "functionId": undefined,
-            "messages": [
-              {
-                "content": "prompt",
-                "role": "user",
-              },
-            ],
-            "modelId": "mock-model-id",
-            "provider": "mock-provider",
-            "stepNumber": 0,
             "success": false,
             "toolCall": {
               "input": {
@@ -2623,16 +2543,6 @@ describe('generateText', () => {
           {
             "callId": "test-telemetry-call-id",
             "context": undefined,
-            "functionId": undefined,
-            "messages": [
-              {
-                "content": "prompt",
-                "role": "user",
-              },
-            ],
-            "modelId": "mock-model-id",
-            "provider": "mock-provider",
-            "stepNumber": 0,
             "toolCall": {
               "input": {
                 "value": "step0",
@@ -2648,45 +2558,6 @@ describe('generateText', () => {
           {
             "callId": "test-telemetry-call-id",
             "context": undefined,
-            "functionId": undefined,
-            "messages": [
-              {
-                "content": "prompt",
-                "role": "user",
-              },
-              {
-                "content": [
-                  {
-                    "input": {
-                      "value": "step0",
-                    },
-                    "providerExecuted": undefined,
-                    "providerOptions": undefined,
-                    "toolCallId": "call-1",
-                    "toolName": "tool1",
-                    "type": "tool-call",
-                  },
-                ],
-                "role": "assistant",
-              },
-              {
-                "content": [
-                  {
-                    "output": {
-                      "type": "text",
-                      "value": "step0-result",
-                    },
-                    "toolCallId": "call-1",
-                    "toolName": "tool1",
-                    "type": "tool-result",
-                  },
-                ],
-                "role": "tool",
-              },
-            ],
-            "modelId": "mock-model-id",
-            "provider": "mock-provider",
-            "stepNumber": 1,
             "toolCall": {
               "input": {
                 "value": "step1",
@@ -2707,17 +2578,7 @@ describe('generateText', () => {
             "callId": "test-telemetry-call-id",
             "context": undefined,
             "durationMs": 0,
-            "functionId": undefined,
-            "messages": [
-              {
-                "content": "prompt",
-                "role": "user",
-              },
-            ],
-            "modelId": "mock-model-id",
             "output": "step0-result",
-            "provider": "mock-provider",
-            "stepNumber": 0,
             "success": true,
             "toolCall": {
               "input": {
@@ -2735,46 +2596,7 @@ describe('generateText', () => {
             "callId": "test-telemetry-call-id",
             "context": undefined,
             "durationMs": 0,
-            "functionId": undefined,
-            "messages": [
-              {
-                "content": "prompt",
-                "role": "user",
-              },
-              {
-                "content": [
-                  {
-                    "input": {
-                      "value": "step0",
-                    },
-                    "providerExecuted": undefined,
-                    "providerOptions": undefined,
-                    "toolCallId": "call-1",
-                    "toolName": "tool1",
-                    "type": "tool-call",
-                  },
-                ],
-                "role": "assistant",
-              },
-              {
-                "content": [
-                  {
-                    "output": {
-                      "type": "text",
-                      "value": "step0-result",
-                    },
-                    "toolCallId": "call-1",
-                    "toolName": "tool1",
-                    "type": "tool-result",
-                  },
-                ],
-                "role": "tool",
-              },
-            ],
-            "modelId": "mock-model-id",
             "output": "step1-result",
-            "provider": "mock-provider",
-            "stepNumber": 1,
             "success": true,
             "toolCall": {
               "input": {
@@ -2873,7 +2695,6 @@ describe('generateText', () => {
           "dynamicToolResults": [],
           "files": [],
           "finishReason": "stop",
-          "functionId": undefined,
           "model": {
             "modelId": "mock-model-id",
             "provider": "mock-provider",
@@ -2987,7 +2808,6 @@ describe('generateText', () => {
                 },
               ],
               "finishReason": "stop",
-              "functionId": undefined,
               "model": {
                 "modelId": "mock-model-id",
                 "provider": "mock-provider",
@@ -3516,7 +3336,6 @@ describe('generateText', () => {
                     },
                   ],
                   "finishReason": "tool-calls",
-                  "functionId": undefined,
                   "model": {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
@@ -3595,7 +3414,6 @@ describe('generateText', () => {
                     },
                   ],
                   "finishReason": "stop",
-                  "functionId": undefined,
                   "model": {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
@@ -3747,7 +3565,6 @@ describe('generateText', () => {
                     },
                   ],
                   "finishReason": "tool-calls",
-                  "functionId": undefined,
                   "model": {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
@@ -3826,7 +3643,6 @@ describe('generateText', () => {
                     },
                   ],
                   "finishReason": "stop",
-                  "functionId": undefined,
                   "model": {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
@@ -4217,7 +4033,6 @@ describe('generateText', () => {
                     },
                   ],
                   "finishReason": "tool-calls",
-                  "functionId": undefined,
                   "model": {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
@@ -4316,7 +4131,6 @@ describe('generateText', () => {
                     },
                   ],
                   "finishReason": "tool-calls",
-                  "functionId": undefined,
                   "model": {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
@@ -7485,7 +7299,6 @@ describe('generateText', () => {
                 },
               ],
               "finishReason": "tool-calls",
-              "functionId": undefined,
               "model": {
                 "modelId": "mock-model-id",
                 "provider": "mock-provider",
@@ -7710,7 +7523,7 @@ describe('generateText', () => {
             }),
           },
           toolApproval: {
-            tool1: true,
+            tool1: 'user-approval',
           },
           stopWhen: isStepCount(3),
           prompt: 'test-input',
@@ -7779,6 +7592,7 @@ describe('generateText', () => {
                 },
                 {
                   "approvalId": "id-1",
+                  "isAutomatic": undefined,
                   "toolCallId": "call-1",
                   "type": "tool-approval-request",
                 },
@@ -7884,6 +7698,7 @@ describe('generateText', () => {
                 },
                 {
                   "approvalId": "id-1",
+                  "isAutomatic": undefined,
                   "toolCallId": "call-1",
                   "type": "tool-approval-request",
                 },
@@ -7933,7 +7748,9 @@ describe('generateText', () => {
           toolApproval: {
             tool1: (input, options) => {
               needsApprovalCalls.push({ input, options });
-              return input.value === 'value-needs-approval';
+              return input.value === 'value-needs-approval'
+                ? 'user-approval'
+                : 'not-applicable';
             },
           },
           stopWhen: isStepCount(3),
@@ -8034,6 +7851,7 @@ describe('generateText', () => {
                 },
                 {
                   "approvalId": "id-1",
+                  "isAutomatic": undefined,
                   "toolCallId": "call-1",
                   "type": "tool-approval-request",
                 },
@@ -8066,7 +7884,6 @@ describe('generateText', () => {
                 "value": "value-needs-approval",
               },
               "options": {
-                "context": undefined,
                 "messages": [
                   {
                     "content": "test-input",
@@ -8074,6 +7891,7 @@ describe('generateText', () => {
                   },
                 ],
                 "toolCallId": "call-1",
+                "toolContext": undefined,
               },
             },
             {
@@ -8081,7 +7899,6 @@ describe('generateText', () => {
                 "value": "value-no-approval",
               },
               "options": {
-                "context": undefined,
                 "messages": [
                   {
                     "content": "test-input",
@@ -8089,6 +7906,7 @@ describe('generateText', () => {
                   },
                 ],
                 "toolCallId": "call-2",
+                "toolContext": undefined,
               },
             },
           ]
@@ -8127,7 +7945,7 @@ describe('generateText', () => {
             }),
           },
           toolApproval: {
-            tool1: true,
+            tool1: 'user-approval',
           },
           stopWhen: isStepCount(3),
           _internal: {
@@ -8295,7 +8113,7 @@ describe('generateText', () => {
             }),
           },
           toolApproval: {
-            tool1: true,
+            tool1: 'user-approval',
           },
           stopWhen: isStepCount(3),
           _internal: {
@@ -8411,7 +8229,7 @@ describe('generateText', () => {
             }),
           },
           toolApproval: {
-            tool1: true,
+            tool1: 'user-approval',
           },
           stopWhen: isStepCount(3),
           _internal: {
@@ -8541,6 +8359,401 @@ describe('generateText', () => {
       });
     });
 
+    describe('when a single tool is automatically rejected', () => {
+      let result: GenerateTextResult<any, any, any>;
+      let prompts: LanguageModelV4Prompt[];
+      let executeFunction: ToolExecuteFunction<any, any, any>;
+
+      beforeEach(async () => {
+        prompts = [];
+        executeFunction = vi.fn().mockReturnValue('result1');
+
+        let step = 0;
+        result = await generateText({
+          model: new MockLanguageModelV4({
+            doGenerate: async ({ prompt }) => {
+              prompts.push(prompt);
+              switch (step++) {
+                case 0:
+                  return {
+                    ...dummyResponseValues,
+                    content: [
+                      {
+                        type: 'tool-call',
+                        toolCallType: 'function',
+                        toolCallId: 'call-1',
+                        toolName: 'tool1',
+                        input: `{ "value": "value" }`,
+                      },
+                    ],
+                    finishReason: { unified: 'tool-calls', raw: undefined },
+                  };
+
+                default:
+                  return {
+                    ...dummyResponseValues,
+                    content: [
+                      {
+                        type: 'text',
+                        text: 'Hello, world!',
+                      },
+                    ],
+                    finishReason: { unified: 'stop', raw: 'stop' },
+                  };
+              }
+            },
+          }),
+          prompt: 'test-input',
+          stopWhen: isStepCount(3),
+          _internal: {
+            generateId: mockId({ prefix: 'id' }),
+            generateCallId: () => 'test-telemetry-call-id',
+          },
+          tools: {
+            tool1: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: executeFunction,
+            }),
+          },
+          toolApproval: {
+            tool1: {
+              type: 'denied',
+              reason: 'blocked by policy',
+            },
+          },
+        });
+      });
+
+      it('should continue to a second step with text and not execute the tool', async () => {
+        expect(executeFunction).not.toHaveBeenCalled();
+        expect(result.text).toBe('Hello, world!');
+        expect(result.steps.length).toBe(2);
+      });
+
+      it('should call the model again for the second step', async () => {
+        expect(prompts).toMatchInlineSnapshot(`
+          [
+            [
+              {
+                "content": [
+                  {
+                    "text": "test-input",
+                    "type": "text",
+                  },
+                ],
+                "providerOptions": undefined,
+                "role": "user",
+              },
+            ],
+            [
+              {
+                "content": [
+                  {
+                    "text": "test-input",
+                    "type": "text",
+                  },
+                ],
+                "providerOptions": undefined,
+                "role": "user",
+              },
+              {
+                "content": [
+                  {
+                    "input": {
+                      "value": "value",
+                    },
+                    "providerExecuted": undefined,
+                    "providerOptions": undefined,
+                    "toolCallId": "call-1",
+                    "toolName": "tool1",
+                    "type": "tool-call",
+                  },
+                ],
+                "providerOptions": undefined,
+                "role": "assistant",
+              },
+              {
+                "content": [
+                  {
+                    "output": {
+                      "reason": "blocked by policy",
+                      "type": "execution-denied",
+                    },
+                    "providerOptions": undefined,
+                    "toolCallId": "call-1",
+                    "toolName": "tool1",
+                    "type": "tool-result",
+                  },
+                ],
+                "providerOptions": undefined,
+                "role": "tool",
+              },
+            ],
+          ]
+        `);
+      });
+
+      it('should produce response messages', async () => {
+        expect(result.response.messages).toMatchInlineSnapshot(`
+          [
+            {
+              "content": [
+                {
+                  "input": {
+                    "value": "value",
+                  },
+                  "providerExecuted": undefined,
+                  "providerOptions": undefined,
+                  "toolCallId": "call-1",
+                  "toolName": "tool1",
+                  "type": "tool-call",
+                },
+                {
+                  "approvalId": "id-1",
+                  "isAutomatic": true,
+                  "toolCallId": "call-1",
+                  "type": "tool-approval-request",
+                },
+              ],
+              "role": "assistant",
+            },
+            {
+              "content": [
+                {
+                  "approvalId": "id-1",
+                  "approved": false,
+                  "providerExecuted": undefined,
+                  "reason": "blocked by policy",
+                  "type": "tool-approval-response",
+                },
+                {
+                  "output": {
+                    "reason": "blocked by policy",
+                    "type": "execution-denied",
+                  },
+                  "toolCallId": "call-1",
+                  "toolName": "tool1",
+                  "type": "tool-result",
+                },
+              ],
+              "role": "tool",
+            },
+            {
+              "content": [
+                {
+                  "providerOptions": undefined,
+                  "text": "Hello, world!",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          ]
+        `);
+      });
+    });
+
+    describe('when a single tool is automatically approved', () => {
+      let result: GenerateTextResult<any, any, any>;
+      let prompts: LanguageModelV4Prompt[];
+      let executeFunction: ToolExecuteFunction<any, any, any>;
+
+      beforeEach(async () => {
+        prompts = [];
+        executeFunction = vi.fn().mockReturnValue('result1');
+
+        let step = 0;
+        result = await generateText({
+          model: new MockLanguageModelV4({
+            doGenerate: async ({ prompt }) => {
+              prompts.push(prompt);
+              switch (step++) {
+                case 0:
+                  return {
+                    ...dummyResponseValues,
+                    content: [
+                      {
+                        type: 'tool-call',
+                        toolCallType: 'function',
+                        toolCallId: 'call-1',
+                        toolName: 'tool1',
+                        input: `{ "value": "value" }`,
+                      },
+                    ],
+                    finishReason: { unified: 'tool-calls', raw: undefined },
+                  };
+
+                default:
+                  return {
+                    ...dummyResponseValues,
+                    content: [
+                      {
+                        type: 'text',
+                        text: 'Hello, world!',
+                      },
+                    ],
+                    finishReason: { unified: 'stop', raw: 'stop' },
+                  };
+              }
+            },
+          }),
+          prompt: 'test-input',
+          stopWhen: isStepCount(3),
+          _internal: {
+            generateId: mockId({ prefix: 'id' }),
+            generateCallId: () => 'test-telemetry-call-id',
+          },
+          tools: {
+            tool1: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: executeFunction,
+            }),
+          },
+          toolApproval: {
+            tool1: {
+              type: 'approved',
+              reason: 'trusted internal tool',
+            },
+          },
+        });
+      });
+
+      it('should continue to a second step and execute the tool', async () => {
+        expect(executeFunction).toHaveBeenCalledWith(
+          { value: 'value' },
+          expect.objectContaining({
+            abortSignal: undefined,
+            toolCallId: 'call-1',
+            messages: expect.any(Array),
+          }),
+        );
+        expect(result.text).toBe('Hello, world!');
+        expect(result.steps.length).toBe(2);
+      });
+
+      it('should call the model again for the second step with the tool result', async () => {
+        expect(prompts).toMatchInlineSnapshot(`
+          [
+            [
+              {
+                "content": [
+                  {
+                    "text": "test-input",
+                    "type": "text",
+                  },
+                ],
+                "providerOptions": undefined,
+                "role": "user",
+              },
+            ],
+            [
+              {
+                "content": [
+                  {
+                    "text": "test-input",
+                    "type": "text",
+                  },
+                ],
+                "providerOptions": undefined,
+                "role": "user",
+              },
+              {
+                "content": [
+                  {
+                    "input": {
+                      "value": "value",
+                    },
+                    "providerExecuted": undefined,
+                    "providerOptions": undefined,
+                    "toolCallId": "call-1",
+                    "toolName": "tool1",
+                    "type": "tool-call",
+                  },
+                ],
+                "providerOptions": undefined,
+                "role": "assistant",
+              },
+              {
+                "content": [
+                  {
+                    "output": {
+                      "type": "text",
+                      "value": "result1",
+                    },
+                    "providerOptions": undefined,
+                    "toolCallId": "call-1",
+                    "toolName": "tool1",
+                    "type": "tool-result",
+                  },
+                ],
+                "providerOptions": undefined,
+                "role": "tool",
+              },
+            ],
+          ]
+        `);
+      });
+
+      it('should produce response messages with automatic approval metadata', async () => {
+        expect(result.response.messages).toMatchInlineSnapshot(`
+          [
+            {
+              "content": [
+                {
+                  "input": {
+                    "value": "value",
+                  },
+                  "providerExecuted": undefined,
+                  "providerOptions": undefined,
+                  "toolCallId": "call-1",
+                  "toolName": "tool1",
+                  "type": "tool-call",
+                },
+                {
+                  "approvalId": "id-1",
+                  "isAutomatic": true,
+                  "toolCallId": "call-1",
+                  "type": "tool-approval-request",
+                },
+              ],
+              "role": "assistant",
+            },
+            {
+              "content": [
+                {
+                  "approvalId": "id-1",
+                  "approved": true,
+                  "providerExecuted": undefined,
+                  "reason": "trusted internal tool",
+                  "type": "tool-approval-response",
+                },
+                {
+                  "output": {
+                    "type": "text",
+                    "value": "result1",
+                  },
+                  "toolCallId": "call-1",
+                  "toolName": "tool1",
+                  "type": "tool-result",
+                },
+              ],
+              "role": "tool",
+            },
+            {
+              "content": [
+                {
+                  "providerOptions": undefined,
+                  "text": "Hello, world!",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          ]
+        `);
+      });
+    });
+
     describe('when two calls from a single tool that needs approval are approved', () => {
       let result: GenerateTextResult<any, any, any>;
       let prompts: LanguageModelV4Prompt[];
@@ -8572,7 +8785,7 @@ describe('generateText', () => {
             }),
           },
           toolApproval: {
-            tool1: true,
+            tool1: 'user-approval',
           },
           stopWhen: isStepCount(3),
           _internal: {
@@ -8849,6 +9062,7 @@ describe('generateText', () => {
                   },
                   {
                     "approvalId": "mcp-approval-1",
+                    "isAutomatic": undefined,
                     "toolCallId": "mcp-call-1",
                     "type": "tool-approval-request",
                   },

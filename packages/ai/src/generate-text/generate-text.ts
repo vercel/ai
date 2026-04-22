@@ -37,7 +37,7 @@ import {
 } from '../prompt/request-options';
 import { standardizePrompt } from '../prompt/standardize-prompt';
 import { wrapGatewayError } from '../prompt/wrap-gateway-error';
-import { createUnifiedTelemetry } from '../telemetry/create-unified-telemetry';
+import { createTelemetryDispatcher } from '../telemetry/create-telemetry-dispatcher';
 import type { Telemetry } from '../telemetry/telemetry';
 import { TelemetryOptions } from '../telemetry/telemetry-options';
 import {
@@ -71,7 +71,7 @@ import { executeToolCall } from './execute-tool-call';
 import { filterActiveTools } from './filter-active-tool';
 import { GenerateTextResult } from './generate-text-result';
 import { DefaultGeneratedFile } from './generated-file';
-import { isToolApprovalNeeded } from './is-tool-approval-needed';
+import { resolveToolApproval } from './resolve-tool-approval';
 import { Output, text } from './output';
 import { InferCompleteOutput } from './output-utils';
 import { parseToolCall } from './parse-tool-call';
@@ -87,6 +87,7 @@ import {
 import { toResponseMessages } from './to-response-messages';
 import { ToolApprovalConfiguration } from './tool-approval-configuration';
 import { ToolApprovalRequestOutput } from './tool-approval-request-output';
+import { ToolApprovalResponseOutput } from './tool-approval-response-output';
 import { TypedToolCall } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair-function';
 import { TypedToolError } from './tool-error';
@@ -491,8 +492,8 @@ export async function generateText<
 
   const callId = generateCallId();
 
-  const unifiedTelemetry = createUnifiedTelemetry({
-    integrations: telemetry?.integrations,
+  const telemetryDispatcher = createTelemetryDispatcher({
+    telemetry,
   });
 
   await notify({
@@ -522,16 +523,12 @@ export async function generateText<
       providerOptions,
       stopWhen,
       output,
-      isEnabled: telemetry?.isEnabled ?? true,
-      recordInputs: telemetry?.recordInputs,
-      recordOutputs: telemetry?.recordOutputs,
-      functionId: telemetry?.functionId,
       runtimeContext,
       toolsContext,
     },
     callbacks: [
       onStart,
-      unifiedTelemetry.onStart as
+      telemetryDispatcher.onStart as
         | undefined
         | GenerateTextOnStartCallback<TOOLS, RUNTIME_CONTEXT, OUTPUT>,
     ],
@@ -557,21 +554,17 @@ export async function generateText<
           toolApproval => toolApproval.toolCall,
         ),
         tools: tools as TOOLS,
-        telemetry,
         callId,
         messages: initialMessages,
         abortSignal: mergedAbortSignal,
         timeout,
         toolsContext,
-        stepNumber: 0,
-        provider: model.provider,
-        modelId: model.modelId,
         onToolExecutionStart: event =>
           notify({
             event,
             callbacks: [
               onToolExecutionStart,
-              unifiedTelemetry.onToolExecutionStart as
+              telemetryDispatcher.onToolExecutionStart as
                 | undefined
                 | OnToolExecutionStartCallback<TOOLS>,
             ],
@@ -581,12 +574,12 @@ export async function generateText<
             event,
             callbacks: [
               onToolExecutionEnd,
-              unifiedTelemetry.onToolExecutionEnd as
+              telemetryDispatcher.onToolExecutionEnd as
                 | undefined
                 | OnToolExecutionEndCallback<TOOLS>,
             ],
           }),
-        executeToolInTelemetryContext: unifiedTelemetry.executeTool,
+        executeToolInTelemetryContext: telemetryDispatcher.executeTool,
       });
 
       const toolContent: Array<any> = [];
@@ -643,6 +636,9 @@ export async function generateText<
     };
     let clientToolCalls: Array<TypedToolCall<TOOLS>> = [];
     let clientToolOutputs: Array<ToolOutput<TOOLS>> = [];
+    let toolApprovalResponses: Array<ToolApprovalResponseOutput<TOOLS>> = [];
+    let deniedToolApprovalResponses: Array<ToolApprovalResponseOutput<TOOLS>> =
+      [];
     const steps: GenerateTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>['steps'] =
       [];
 
@@ -723,11 +719,7 @@ export async function generateText<
             activeTools: prepareStepResult?.activeTools ?? activeTools,
             steps: [...steps],
             providerOptions: stepProviderOptions,
-            timeout,
-            headers,
-            stopWhen,
             output,
-            functionId: telemetry?.functionId,
             runtimeContext,
             promptMessages,
             stepTools,
@@ -736,7 +728,7 @@ export async function generateText<
           },
           callbacks: [
             onStepStart,
-            unifiedTelemetry.onStepStart as
+            telemetryDispatcher.onStepStart as
               | undefined
               | GenerateTextOnStepStartCallback<TOOLS, RUNTIME_CONTEXT, OUTPUT>,
           ],
@@ -752,7 +744,7 @@ export async function generateText<
           },
           callbacks: [
             onModelCallStart,
-            unifiedTelemetry.onModelCallStart as
+            telemetryDispatcher.onModelCallStart as
               | undefined
               | GenerateTextOnModelCallStartCallback,
           ],
@@ -802,11 +794,18 @@ export async function generateText<
           string,
           ToolApprovalRequestOutput<TOOLS>
         > = {};
+        const stepToolApprovalResponses: Record<
+          string,
+          ToolApprovalResponseOutput<TOOLS>
+        > = {};
+        const blockedToolCallIds = new Set<string>();
+
         const modelCallContent = asContent({
           content: currentModelResponse.content,
           toolCalls: stepToolCalls,
           toolOutputs: [],
           toolApprovalRequests: [],
+          toolApprovalResponses: [],
           tools,
         });
 
@@ -832,7 +831,7 @@ export async function generateText<
           },
           callbacks: [
             onModelCallEnd,
-            unifiedTelemetry.onModelCallEnd as
+            telemetryDispatcher.onModelCallEnd as
               | undefined
               | GenerateTextOnModelCallEndCallback<TOOLS>,
           ],
@@ -862,20 +861,65 @@ export async function generateText<
             });
           }
 
-          if (
-            await isToolApprovalNeeded({
-              tools,
-              toolApproval,
-              toolCall,
-              messages: stepInputMessages,
-              toolsContext,
-            })
-          ) {
-            toolApprovalRequests[toolCall.toolCallId] = {
-              type: 'tool-approval-request',
-              approvalId: generateId(),
-              toolCall,
-            };
+          const toolApprovalStatus = await resolveToolApproval({
+            tools,
+            toolApproval,
+            toolCall,
+            messages: stepInputMessages,
+            toolsContext,
+          });
+
+          switch (toolApprovalStatus.type) {
+            case 'user-approval': {
+              toolApprovalRequests[toolCall.toolCallId] = {
+                type: 'tool-approval-request',
+                approvalId: generateId(),
+                toolCall,
+              };
+              blockedToolCallIds.add(toolCall.toolCallId);
+              break;
+            }
+
+            case 'approved': {
+              const approvalId = generateId();
+
+              toolApprovalRequests[toolCall.toolCallId] = {
+                type: 'tool-approval-request',
+                approvalId,
+                toolCall,
+                isAutomatic: true,
+              };
+              stepToolApprovalResponses[toolCall.toolCallId] = {
+                type: 'tool-approval-response',
+                approvalId,
+                toolCall,
+                approved: true,
+                reason: toolApprovalStatus.reason,
+                providerExecuted: toolCall.providerExecuted,
+              };
+              break;
+            }
+
+            case 'denied': {
+              const approvalId = generateId();
+
+              toolApprovalRequests[toolCall.toolCallId] = {
+                type: 'tool-approval-request',
+                approvalId,
+                toolCall,
+                isAutomatic: true,
+              };
+              stepToolApprovalResponses[toolCall.toolCallId] = {
+                type: 'tool-approval-response',
+                approvalId,
+                toolCall,
+                approved: false,
+                reason: toolApprovalStatus.reason,
+                providerExecuted: toolCall.providerExecuted,
+              };
+              blockedToolCallIds.add(toolCall.toolCallId);
+              break;
+            }
           }
         }
 
@@ -902,6 +946,10 @@ export async function generateText<
         clientToolCalls = stepToolCalls.filter(
           toolCall => !toolCall.providerExecuted,
         );
+        toolApprovalResponses = Object.values(stepToolApprovalResponses);
+        deniedToolApprovalResponses = toolApprovalResponses.filter(
+          toolApprovalResponse => toolApprovalResponse.approved === false,
+        );
 
         if (tools != null) {
           clientToolOutputs.push(
@@ -909,24 +957,20 @@ export async function generateText<
               toolCalls: clientToolCalls.filter(
                 toolCall =>
                   !toolCall.invalid &&
-                  toolApprovalRequests[toolCall.toolCallId] == null,
+                  !blockedToolCallIds.has(toolCall.toolCallId),
               ),
               tools,
-              telemetry,
               callId,
               messages: stepInputMessages,
               abortSignal: mergedAbortSignal,
               timeout,
               toolsContext,
-              stepNumber,
-              provider: stepModel.provider,
-              modelId: stepModel.modelId,
               onToolExecutionStart: event =>
                 notify({
                   event,
                   callbacks: [
                     onToolExecutionStart,
-                    unifiedTelemetry.onToolExecutionStart as
+                    telemetryDispatcher.onToolExecutionStart as
                       | undefined
                       | OnToolExecutionStartCallback<TOOLS>,
                   ],
@@ -936,12 +980,12 @@ export async function generateText<
                   event,
                   callbacks: [
                     onToolExecutionEnd,
-                    unifiedTelemetry.onToolExecutionEnd as
+                    telemetryDispatcher.onToolExecutionEnd as
                       | undefined
                       | OnToolExecutionEndCallback<TOOLS>,
                   ],
                 }),
-              executeToolInTelemetryContext: unifiedTelemetry.executeTool,
+              executeToolInTelemetryContext: telemetryDispatcher.executeTool,
             })),
           );
         }
@@ -981,6 +1025,7 @@ export async function generateText<
           toolCalls: stepToolCalls,
           toolOutputs: clientToolOutputs,
           toolApprovalRequests: Object.values(toolApprovalRequests),
+          toolApprovalResponses,
           tools,
         });
 
@@ -1017,7 +1062,6 @@ export async function generateText<
             stepNumber,
             provider: stepModel.provider,
             modelId: stepModel.modelId,
-            functionId: telemetry?.functionId,
             runtimeContext,
             content: stepContent,
             finishReason: currentModelResponse.finishReason.unified,
@@ -1042,7 +1086,7 @@ export async function generateText<
           event: currentStepResult,
           callbacks: [
             onStepFinish,
-            unifiedTelemetry.onStepFinish as
+            telemetryDispatcher.onStepFinish as
               | undefined
               | GenerateTextOnStepFinishCallback<TOOLS, RUNTIME_CONTEXT>,
           ],
@@ -1054,10 +1098,11 @@ export async function generateText<
       }
     } while (
       // Continue if:
-      // 1. There are client tool calls that have all been executed, OR
+      // 1. There are client tool calls that have all been executed or denied, OR
       // 2. There are pending deferred results from provider-executed tools
       ((clientToolCalls.length > 0 &&
-        clientToolOutputs.length === clientToolCalls.length) ||
+        clientToolOutputs.length + deniedToolApprovalResponses.length ===
+          clientToolCalls.length) ||
         pendingDeferredToolCalls.size > 0) &&
       // continue until a stop condition is met:
       !(await isStopConditionMet({ stopConditions, steps }))
@@ -1082,7 +1127,6 @@ export async function generateText<
       callId,
       stepNumber: lastStep.stepNumber,
       model: lastStep.model,
-      functionId: lastStep.functionId,
       runtimeContext: lastStep.runtimeContext,
       finishReason: lastStep.finishReason,
       rawFinishReason: lastStep.rawFinishReason,
@@ -1112,7 +1156,7 @@ export async function generateText<
       event: onFinishEvent,
       callbacks: [
         onFinish,
-        unifiedTelemetry.onFinish as
+        telemetryDispatcher.onFinish as
           | undefined
           | GenerateTextOnFinishCallback<TOOLS, RUNTIME_CONTEXT>,
       ],
@@ -1138,7 +1182,7 @@ export async function generateText<
       output: resolvedOutput,
     });
   } catch (error) {
-    await unifiedTelemetry.onError?.({ callId, error });
+    await telemetryDispatcher.onError?.({ callId, error });
     throw wrapGatewayError(error);
   }
 }
@@ -1146,30 +1190,22 @@ export async function generateText<
 async function executeTools<TOOLS extends ToolSet>({
   toolCalls,
   tools,
-  telemetry,
   callId,
   messages,
   abortSignal,
   timeout,
   toolsContext,
-  stepNumber,
-  provider,
-  modelId,
   onToolExecutionStart,
   onToolExecutionEnd,
   executeToolInTelemetryContext,
 }: {
   toolCalls: Array<TypedToolCall<TOOLS>>;
   tools: TOOLS;
-  telemetry: TelemetryOptions | undefined;
   callId: string;
   messages: ModelMessage[];
   abortSignal: AbortSignal | undefined;
   timeout?: TimeoutConfiguration<TOOLS>;
   toolsContext: InferToolSetContext<TOOLS>;
-  stepNumber: number;
-  provider: string;
-  modelId: string;
   onToolExecutionStart?: OnToolExecutionStartCallback<TOOLS>;
   onToolExecutionEnd?: OnToolExecutionEndCallback<TOOLS>;
   executeToolInTelemetryContext?: Telemetry['executeTool'];
@@ -1180,15 +1216,11 @@ async function executeTools<TOOLS extends ToolSet>({
         await executeToolCall({
           toolCall,
           tools,
-          telemetry,
           callId,
           messages,
           abortSignal,
           timeout,
           toolsContext,
-          stepNumber,
-          provider,
-          modelId,
           onToolExecutionStart,
           onToolExecutionEnd,
           executeToolInTelemetryContext,
@@ -1314,15 +1346,24 @@ function asContent<TOOLS extends ToolSet>({
   toolCalls,
   toolOutputs,
   toolApprovalRequests,
+  toolApprovalResponses,
   tools,
 }: {
   content: Array<LanguageModelV4Content>;
   toolCalls: Array<TypedToolCall<TOOLS>>;
   toolOutputs: Array<ToolOutput<TOOLS>>;
   toolApprovalRequests: Array<ToolApprovalRequestOutput<TOOLS>>;
+  toolApprovalResponses: Array<ToolApprovalResponseOutput<TOOLS>>;
   tools: TOOLS | undefined;
 }): Array<ContentPart<TOOLS>> {
   const contentParts: Array<ContentPart<TOOLS>> = [];
+  const toolOutputsWithApprovalResponses: Array<ToolOutput<TOOLS>> = [];
+  const toolOutputsWithoutApprovalResponses: Array<ToolOutput<TOOLS>> = [];
+  const toolCallIdsWithApprovalResponses = new Set(
+    toolApprovalResponses.map(
+      toolApprovalResponse => toolApprovalResponse.toolCall.toolCallId,
+    ),
+  );
 
   for (const part of content) {
     switch (part.type) {
@@ -1453,5 +1494,19 @@ function asContent<TOOLS extends ToolSet>({
     }
   }
 
-  return [...contentParts, ...toolOutputs, ...toolApprovalRequests];
+  for (const toolOutput of toolOutputs) {
+    if (toolCallIdsWithApprovalResponses.has(toolOutput.toolCallId)) {
+      toolOutputsWithApprovalResponses.push(toolOutput);
+    } else {
+      toolOutputsWithoutApprovalResponses.push(toolOutput);
+    }
+  }
+
+  return [
+    ...contentParts,
+    ...toolOutputsWithoutApprovalResponses,
+    ...toolApprovalRequests,
+    ...toolApprovalResponses,
+    ...toolOutputsWithApprovalResponses,
+  ];
 }
