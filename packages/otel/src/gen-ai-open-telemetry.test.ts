@@ -233,10 +233,7 @@ function makeLanguageModelCallEndEvent(overrides?: Record<string, unknown>) {
         reasoningTokens: undefined,
       },
     },
-    text: 'Hello world',
-    reasoning: [],
-    files: [],
-    toolCalls: [],
+    content: [{ type: 'text', text: 'Hello world' }],
     responseId: 'test-response-id',
     ...overrides,
   } as Parameters<NonNullable<Telemetry['onLanguageModelCallEnd']>>[0];
@@ -592,8 +589,7 @@ describe('GenAIOpenTelemetry', () => {
       integration.onLanguageModelCallStart!(makeLanguageModelCallStartEvent());
       integration.onLanguageModelCallEnd!(
         makeLanguageModelCallEndEvent({
-          text: undefined,
-          toolCalls: [
+          content: [
             {
               type: 'tool-call' as const,
               toolCallId: 'tc1',
@@ -1020,7 +1016,7 @@ describe('GenAIOpenTelemetry', () => {
       integration.onLanguageModelCallEnd!(
         makeLanguageModelCallEndEvent({
           finishReason: 'tool-calls',
-          toolCalls: [
+          content: [
             {
               type: 'tool-call' as const,
               toolCallId: 'tool-call-1',
@@ -1028,7 +1024,6 @@ describe('GenAIOpenTelemetry', () => {
               input: { query: 'test' },
             },
           ],
-          text: undefined,
         }),
       );
       integration.onToolExecutionStart!(makeToolCallStartEvent());

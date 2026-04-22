@@ -2149,24 +2149,10 @@ To see `streamText` in action, check out [these examples](#examples).
               description: 'Token usage reported by the model call.',
             },
             {
-              name: 'text',
-              type: 'string',
-              description: 'Generated text from the model call.',
-            },
-            {
-              name: 'reasoning',
-              type: 'ReadonlyArray<{ text?: string }>',
-              description: 'Reasoning text segments emitted by the model call.',
-            },
-            {
-              name: 'files',
-              type: 'ReadonlyArray<GeneratedFile>',
-              description: 'Files generated directly by the model call.',
-            },
-            {
-              name: 'toolCalls',
-              type: 'ReadonlyArray<TypedToolCall<TOOLS>>',
-              description: 'Parsed tool calls emitted by the model call.',
+              name: 'content',
+              type: 'ReadonlyArray<ContentPart<TOOLS>>',
+              description:
+                'The content parts produced by the model call (text, reasoning, files, tool calls, etc.).',
             },
           ],
         },

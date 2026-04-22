@@ -441,7 +441,7 @@ const result = await generateText({
   prompt: 'What is the weather?',
   experimental_onLanguageModelCallEnd: event => {
     console.log('Finish reason:', event.finishReason);
-    console.log('Tool calls:', event.toolCalls.length);
+    console.log('Content parts:', event.content.length);
   },
 });
 ```
@@ -474,24 +474,10 @@ const result = await generateText({
       description: 'Token usage reported by the model call.',
     },
     {
-      name: 'text',
-      type: 'string',
-      description: 'Generated text from the model call.',
-    },
-    {
-      name: 'reasoning',
-      type: 'ReadonlyArray<{ text?: string }>',
-      description: 'Reasoning text segments emitted by the model call.',
-    },
-    {
-      name: 'files',
-      type: 'ReadonlyArray<GeneratedFile>',
-      description: 'Files generated directly by the model call.',
-    },
-    {
-      name: 'toolCalls',
-      type: 'ReadonlyArray<TypedToolCall>',
-      description: 'Parsed tool calls emitted by the model call.',
+      name: 'content',
+      type: 'ReadonlyArray<ContentPart<TOOLS>>',
+      description:
+        'The content parts produced by the model call (text, reasoning, files, tool calls, etc.).',
     },
   ]}
 />

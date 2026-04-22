@@ -2,8 +2,7 @@ import type { ToolSet } from '@ai-sdk/provider-utils';
 import type { Callback } from '../util/callback';
 import type { FinishReason } from '../types/language-model';
 import type { LanguageModelUsage } from '../types/usage';
-import type { GeneratedFile } from './generated-file';
-import type { TypedToolCall } from './tool-call';
+import type { ContentPart } from './content-part';
 import type { StandardizedPrompt } from '../prompt/standardize-prompt';
 
 /**
@@ -47,17 +46,8 @@ export type LanguageModelCallEndEvent<TOOLS extends ToolSet = ToolSet> =
     /** The token usage reported by the model call. */
     readonly usage: LanguageModelUsage;
 
-    /** The generated text from the model call. */
-    readonly text: string;
-
-    /** The generated reasoning text segments from the model call. */
-    readonly reasoning: ReadonlyArray<{ text?: string }>;
-
-    /** Files generated directly by the model call. */
-    readonly files: ReadonlyArray<GeneratedFile>;
-
-    /** Parsed tool calls emitted by the model call. */
-    readonly toolCalls: ReadonlyArray<TypedToolCall<TOOLS>>;
+    /** The content parts produced by the model call. */
+    readonly content: ReadonlyArray<ContentPart<TOOLS>>;
 
     /** The provider-returned response id for this model call. */
     readonly responseId: string;

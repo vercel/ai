@@ -8,9 +8,9 @@ import { TimeoutConfiguration } from '../prompt/request-options';
 import type { Telemetry } from '../telemetry/telemetry';
 import type { Callback } from '../util/callback';
 import { notify } from '../util/notify';
+import type { ContentPart } from './content-part';
 import type { LanguageModelCallEndEvent } from './language-model-events';
 import { executeToolCall } from './execute-tool-call';
-import type { GeneratedFile } from './generated-file';
 import { resolveToolApproval } from './resolve-tool-approval';
 import { LanguageModelStreamPart } from './stream-language-model-call';
 import { ToolApprovalConfiguration } from './tool-approval-configuration';
@@ -57,10 +57,11 @@ export function createExecuteToolsTransformation<TOOLS extends ToolSet>({
   LanguageModelStreamPart<TOOLS>
 > {
   const toolCallsToExecute: Array<TypedToolCall<TOOLS>> = [];
-  const modelToolCalls: Array<TypedToolCall<TOOLS>> = [];
-  const modelFiles: Array<GeneratedFile> = [];
-  const modelReasoning: Array<{ text?: string }> = [];
-  let modelText = '';
+
+  // Accumulate streamed content parts (text deltas, reasoning, files, tool calls)
+  // and response metadata so we can provide the complete content to the
+  // onLanguageModelCallEnd callback.
+  const modelContent: Array<ContentPart<TOOLS>> = [];
   let responseModelId = modelId ?? '';
   let responseId = '';
 
@@ -86,7 +87,7 @@ export function createExecuteToolsTransformation<TOOLS extends ToolSet>({
             return;
           }
 
-          modelToolCalls.push(chunk);
+          modelContent.push(chunk);
 
           const tool = tools?.[chunk.toolName];
 
@@ -170,27 +171,35 @@ export function createExecuteToolsTransformation<TOOLS extends ToolSet>({
         }
 
         case 'text-delta': {
-          modelText += chunk.text;
+          const lastText = modelContent.at(-1);
+          if (lastText != null && lastText.type === 'text') {
+            lastText.text += chunk.text;
+          } else {
+            modelContent.push({ type: 'text', text: chunk.text });
+          }
           break;
         }
 
         case 'reasoning-start': {
-          modelReasoning.push({ text: '' });
+          modelContent.push({ type: 'reasoning', text: '' });
           break;
         }
 
         case 'reasoning-delta': {
-          const lastReasoning = modelReasoning.at(-1);
-          if (lastReasoning == null) {
-            modelReasoning.push({ text: chunk.text });
-          } else {
+          const lastReasoning = modelContent.at(-1);
+          if (lastReasoning != null && lastReasoning.type === 'reasoning') {
             lastReasoning.text = `${lastReasoning.text ?? ''}${chunk.text}`;
+          } else {
+            modelContent.push({ type: 'reasoning', text: chunk.text });
           }
           break;
         }
 
         case 'file': {
-          modelFiles.push(chunk.file);
+          modelContent.push({
+            type: 'file',
+            file: chunk.file,
+          });
           break;
         }
 
@@ -208,10 +217,7 @@ export function createExecuteToolsTransformation<TOOLS extends ToolSet>({
               modelId: modelId ?? responseModelId,
               finishReason: chunk.finishReason,
               usage: chunk.usage,
-              text: modelText,
-              reasoning: modelReasoning,
-              files: modelFiles,
-              toolCalls: modelToolCalls,
+              content: modelContent,
               responseId,
             },
             callbacks: onLanguageModelCallEnd,

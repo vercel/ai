@@ -547,14 +547,11 @@ describe('createExecuteToolsTransformation', () => {
         [
           {
             "callId": "test-telemetry-call-id",
-            "files": [],
-            "finishReason": "stop",
-            "modelId": "test-model",
-            "provider": "test-provider",
-            "reasoning": [],
-            "responseId": "response-1",
-            "text": "Hello ",
-            "toolCalls": [
+            "content": [
+              {
+                "text": "Hello ",
+                "type": "text",
+              },
               {
                 "input": {
                   "value": "hello",
@@ -564,6 +561,10 @@ describe('createExecuteToolsTransformation', () => {
                 "type": "tool-call",
               },
             ],
+            "finishReason": "stop",
+            "modelId": "test-model",
+            "provider": "test-provider",
+            "responseId": "response-1",
             "usage": {
               "cachedInputTokens": undefined,
               "inputTokenDetails": {

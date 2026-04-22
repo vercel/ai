@@ -1720,14 +1720,11 @@ describe('generateText', () => {
         [
           {
             "callId": "test-telemetry-call-id",
-            "files": [],
-            "finishReason": "tool-calls",
-            "modelId": "mock-model-id",
-            "provider": "mock-provider",
-            "reasoning": [],
-            "responseId": "response-1",
-            "text": "Before tool.",
-            "toolCalls": [
+            "content": [
+              {
+                "text": "Before tool.",
+                "type": "text",
+              },
               {
                 "input": {
                   "value": "test-arg",
@@ -1740,6 +1737,10 @@ describe('generateText', () => {
                 "type": "tool-call",
               },
             ],
+            "finishReason": "tool-calls",
+            "modelId": "mock-model-id",
+            "provider": "mock-provider",
+            "responseId": "response-1",
             "usage": {
               "cachedInputTokens": undefined,
               "inputTokenDetails": {

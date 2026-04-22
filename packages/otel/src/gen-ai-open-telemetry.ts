@@ -591,10 +591,16 @@ export class GenAIOpenTelemetry implements Telemetry {
           output: () =>
             JSON.stringify(
               formatOutputMessages({
-                text: event.text || undefined,
-                reasoning: event.reasoning,
-                toolCalls: event.toolCalls,
-                files: event.files,
+                text:
+                  event.content
+                    .filter(p => p.type === 'text')
+                    .map(p => p.text)
+                    .join('') || undefined,
+                reasoning: event.content.filter(p => p.type === 'reasoning'),
+                toolCalls: event.content.filter(p => p.type === 'tool-call'),
+                files: event.content
+                  .filter(p => p.type === 'file')
+                  .map(p => p.file),
                 finishReason: event.finishReason,
               }),
             ),

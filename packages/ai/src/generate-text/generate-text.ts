@@ -796,17 +796,7 @@ export async function generateText<
             modelId: stepModel.modelId,
             finishReason: currentModelResponse.finishReason.unified,
             usage: asLanguageModelUsage(currentModelResponse.usage),
-            text: modelCallContent
-              .filter(part => part.type === 'text')
-              .map(part => part.text)
-              .join(''),
-            reasoning: modelCallContent.flatMap(part =>
-              part.type === 'reasoning' ? [{ text: part.text }] : [],
-            ),
-            files: modelCallContent
-              .filter(part => part.type === 'file')
-              .map(part => part.file),
-            toolCalls: stepToolCalls,
+            content: modelCallContent,
             responseId: currentModelResponse.response.id,
           },
           callbacks: [
