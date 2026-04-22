@@ -14,14 +14,18 @@ const agent = new ToolLoopAgent({
     'Just say that the tool execution was not approved.' +
     'You can call a denied tool call with a different input.',
   tools: { weather: weatherTool },
-  toolApproval: ({ toolCall, tools, toolsContext, messages }) => {
+  runtimeContext: {
+    weatherDeniedLocations: ['new york', 'new york, ny', 'nyc'],
+    weatherApprovedLocations: ['san francisco', 'san francisco, ca', 'sf'],
+  },
+  toolApproval: ({ toolCall, runtimeContext }) => {
     if (!toolCall.dynamic && toolCall.toolName === 'weather') {
       const locationLower = toolCall.input.location.toLowerCase();
-      if (locationLower.includes('san francisco') || locationLower === 'sf') {
+      if (runtimeContext.weatherApprovedLocations.includes(locationLower)) {
         return 'approved';
       }
 
-      if (locationLower.includes('new york') || locationLower === 'nyc') {
+      if (runtimeContext.weatherDeniedLocations.includes(locationLower)) {
         return { type: 'denied', reason: 'blocked by policy' };
       }
 
