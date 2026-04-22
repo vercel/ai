@@ -9021,6 +9021,7 @@ describe('processUIMessageStream', () => {
       state = createStreamingUIMessageState({
         messageId: 'msg-123',
         lastMessage,
+        isResume: true,
       });
 
       const stream = createUIMessageStream([
@@ -9053,6 +9054,66 @@ describe('processUIMessageStream', () => {
       });
     });
 
+    it('should NOT reuse existing text when a new step appends content after a tool result', async () => {
+      // Continuation flow (not a resume): addToolOutput appended a tool result
+      // to the assistant message, then triggered a new makeRequest. The next
+      // step's text-start must produce a NEW text part, not overwrite step 1.
+      const lastMessage: UIMessage = {
+        id: 'msg-123',
+        role: 'assistant',
+        metadata: undefined,
+        parts: [
+          { type: 'step-start' },
+          {
+            type: 'text',
+            text: 'let me search the docs',
+            state: 'done',
+            providerMetadata: undefined,
+          },
+          // tool part would be here in a real flow; text reuse must not happen
+          // regardless of what sits between the old text and the new step.
+        ],
+      };
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage,
+      });
+
+      const stream = createUIMessageStream([
+        { type: 'start', messageId: 'msg-123' },
+        { type: 'start-step' },
+        { type: 'text-start', id: 'text-2' },
+        { type: 'text-delta', id: 'text-2', delta: "here's the answer" },
+        { type: 'text-end', id: 'text-2' },
+        { type: 'finish-step' },
+        { type: 'finish' },
+      ]);
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+
+      const textParts = state!.message.parts.filter(p => p.type === 'text');
+      expect(textParts).toHaveLength(2);
+      expect(textParts[0]).toMatchObject({
+        type: 'text',
+        text: 'let me search the docs',
+        state: 'done',
+      });
+      expect(textParts[1]).toMatchObject({
+        type: 'text',
+        text: "here's the answer",
+        state: 'done',
+      });
+    });
+
     it('should not duplicate reasoning parts when reasoning-start is replayed', async () => {
       const lastMessage: UIMessage = {
         id: 'msg-123',
@@ -9072,6 +9133,7 @@ describe('processUIMessageStream', () => {
       state = createStreamingUIMessageState({
         messageId: 'msg-123',
         lastMessage,
+        isResume: true,
       });
 
       const stream = createUIMessageStream([

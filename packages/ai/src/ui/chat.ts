@@ -657,6 +657,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
         state: createStreamingUIMessageState({
           lastMessage: this.state.snapshot(lastMessage),
           messageId: this.generateId(),
+          isResume: trigger === 'resume-stream',
         }),
         abortController: new AbortController(),
       } as ActiveResponse<UI_MESSAGE>;

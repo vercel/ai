@@ -53,30 +53,39 @@ export type StreamingUIMessageState<UI_MESSAGE extends UIMessage> = {
 export function createStreamingUIMessageState<UI_MESSAGE extends UIMessage>({
   lastMessage,
   messageId,
+  isResume = false,
 }: {
   lastMessage: UI_MESSAGE | undefined;
   messageId: string;
+  /**
+   * Set to true when the stream being processed is a replay of a previously
+   * emitted stream (e.g. `resumable-stream` reconnection). Enables FIFO reuse
+   * of existing text/reasoning/id-less data parts on `-start` chunks so the
+   * replayed events don't push duplicates. Must be false for continuation
+   * flows (e.g. after `addToolOutput`) where `lastMessage` is also an
+   * assistant message but the incoming stream emits new content.
+   */
+  isResume?: boolean;
 }): StreamingUIMessageState<UI_MESSAGE> {
-  const isResume = lastMessage?.role === 'assistant';
-  const message = isResume
-    ? lastMessage
-    : ({
-        id: messageId,
-        metadata: undefined,
-        role: 'assistant',
-        parts: [] as UIMessagePart<
-          InferUIMessageData<UI_MESSAGE>,
-          InferUIMessageTools<UI_MESSAGE>
-        >[],
-      } as UI_MESSAGE);
+  const message =
+    lastMessage?.role === 'assistant'
+      ? lastMessage
+      : ({
+          id: messageId,
+          metadata: undefined,
+          role: 'assistant',
+          parts: [] as UIMessagePart<
+            InferUIMessageData<UI_MESSAGE>,
+            InferUIMessageTools<UI_MESSAGE>
+          >[],
+        } as UI_MESSAGE);
 
-  // Pre-index existing parts into FIFO queues so that on resume the replayed
-  // `-start` events recycle the same part objects instead of pushing duplicates.
-  // Relies on replay preserving the original event order.
+  // Only build reuse queues for true resumes. Continuation flows share the
+  // same `lastMessage?.role === 'assistant'` shape but must append new parts.
   const _reusableText: TextUIPart[] = [];
   const _reusableReasoning: ReasoningUIPart[] = [];
   const _reusableData: Record<string, any[]> = {};
-  if (isResume) {
+  if (isResume && lastMessage?.role === 'assistant') {
     for (const part of message.parts) {
       if (part.type === 'text') {
         _reusableText.push(part as TextUIPart);
