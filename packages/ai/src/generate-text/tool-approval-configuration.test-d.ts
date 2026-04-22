@@ -89,6 +89,15 @@ describe('ToolApprovalConfiguration', () => {
       };
     });
 
+    it('allows per-tool callbacks that return undefined (treated as not-applicable at runtime)', () => {
+      const _sync: ToolApprovalConfiguration<Tools> = {
+        weather: () => undefined,
+      };
+      const _async: ToolApprovalConfiguration<Tools> = {
+        weather: async () => Promise.resolve(undefined),
+      };
+    });
+
     it('allows an empty or partial per-tool object', () => {
       const _empty: ToolApprovalConfiguration<Tools> = {};
       const _partial: ToolApprovalConfiguration<Tools> = {
@@ -119,6 +128,12 @@ describe('ToolApprovalConfiguration', () => {
         expectTypeOf(options.toolsContext).toEqualTypeOf<ToolSetContext>();
         return Promise.resolve('not-applicable' as const);
       };
+    });
+
+    it('allows generic approval functions that return undefined (treated as not-applicable at runtime)', () => {
+      const _sync: ToolApprovalConfiguration<Tools> = () => undefined;
+      const _async: ToolApprovalConfiguration<Tools> = async () =>
+        Promise.resolve(undefined);
     });
   });
 

@@ -50,7 +50,7 @@ export async function resolveToolApproval<TOOLS extends ToolSet>({
    * Tool context as defined by the tool's context schema.
    */
   toolsContext: InferToolSetContext<TOOLS>;
-}): Promise<Exclude<ToolApprovalStatus, string>> {
+}): Promise<Exclude<ToolApprovalStatus, string | undefined>> {
   // user-defined generic tool approval
   if (toolApproval != null && typeof toolApproval === 'function') {
     return normalizeToolApprovalStatus(
@@ -72,7 +72,7 @@ export async function resolveToolApproval<TOOLS extends ToolSet>({
   // user-defined per-tool approval
   const userDefinedToolApprovalStatus = toolApproval?.[toolName];
   if (userDefinedToolApprovalStatus != null) {
-    const approvalStatus: ToolApprovalStatus =
+    const approvalStatus: ToolApprovalStatus | undefined =
       typeof userDefinedToolApprovalStatus === 'function'
         ? await userDefinedToolApprovalStatus(input, {
             toolCallId: toolCall.toolCallId,
@@ -112,7 +112,11 @@ export async function resolveToolApproval<TOOLS extends ToolSet>({
 }
 
 function normalizeToolApprovalStatus(
-  status: ToolApprovalStatus,
-): Exclude<ToolApprovalStatus, string> {
-  return typeof status === 'string' ? { type: status } : status;
+  status: ToolApprovalStatus | undefined,
+): Exclude<ToolApprovalStatus, string | undefined> {
+  return status === undefined
+    ? { type: 'not-applicable' }
+    : typeof status === 'string'
+      ? { type: status }
+      : status;
 }
