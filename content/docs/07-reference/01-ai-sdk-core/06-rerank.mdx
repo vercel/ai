@@ -82,20 +82,20 @@ const { ranking } = await rerank({
       description: 'Provider-specific options for the reranking request.',
     },
     {
-      name: 'experimental_telemetry',
-      type: 'TelemetrySettings',
+      name: 'telemetry',
+      type: 'TelemetryOptions',
       isOptional: true,
-      description: 'Telemetry configuration. Experimental feature.',
+      description: 'Telemetry configuration.',
       properties: [
         {
-          type: 'TelemetrySettings',
+          type: 'TelemetryOptions',
           parameters: [
             {
               name: 'isEnabled',
               type: 'boolean',
               isOptional: true,
               description:
-                'Enable or disable telemetry. Disabled by default while experimental.',
+                'Enable or disable telemetry. Enabled by default. Set to `false` to opt out.',
             },
             {
               name: 'recordInputs',
@@ -119,17 +119,11 @@ const { ranking } = await rerank({
                 'Identifier for this function. Used to group telemetry data by function.',
             },
             {
-              name: 'metadata',
+              name: 'integrations',
               isOptional: true,
-              type: 'Record<string, string | number | boolean | Array<null | undefined | string> | Array<null | undefined | number> | Array<null | undefined | boolean>>',
+              type: 'Telemetry | Telemetry[]',
               description:
-                'Additional information to include in the telemetry data.',
-            },
-            {
-              name: 'tracer',
-              type: 'Tracer',
-              isOptional: true,
-              description: 'A custom tracer to use for the telemetry data.',
+                'Per-call telemetry integrations that receive lifecycle events. When provided, these replace any globally registered integrations for this call.',
             },
           ],
         },

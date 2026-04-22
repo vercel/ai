@@ -44,13 +44,13 @@ const result = await generateText({
         'Called when a step (LLM call) begins, before the provider is called.',
     },
     {
-      name: 'experimental_onToolCallStart',
-      type: '(event: OnToolCallStartEvent) => void | Promise<void>',
+      name: 'experimental_onToolExecutionStart',
+      type: '(event: ToolExecutionStartEvent) => void | Promise<void>',
       description: "Called when a tool's execute function is about to run.",
     },
     {
-      name: 'experimental_onToolCallFinish',
-      type: '(event: OnToolCallFinishEvent) => void | Promise<void>',
+      name: 'experimental_onToolExecutionEnd',
+      type: '(event: ToolExecutionEndEvent) => void | Promise<void>',
       description: "Called when a tool's execute function completes or errors.",
     },
     {
@@ -244,21 +244,16 @@ const result = await generateText({
         'Settings for controlling what data is included in step results.',
     },
     {
-      name: 'functionId',
-      type: 'string | undefined',
+      name: 'runtimeContext',
+      type: 'CONTEXT',
       description:
-        'Identifier from telemetry settings for grouping related operations.',
+        'User-defined shared runtime context object that flows through the generation lifecycle.',
     },
     {
-      name: 'metadata',
-      type: 'Record<string, unknown> | undefined',
-      description: 'Additional metadata passed to the generation.',
-    },
-    {
-      name: 'experimental_context',
-      type: 'unknown',
+      name: 'toolsContext',
+      type: 'InferToolSetContext<TOOLS>',
       description:
-        'User-defined context object that flows through the entire generation lifecycle.',
+        'Per-tool context map passed via `toolsContext`, keyed by tool name.',
     },
   ]}
 />
@@ -358,26 +353,21 @@ const result = await generateText({
         'Settings for controlling what data is included in step results.',
     },
     {
-      name: 'functionId',
-      type: 'string | undefined',
+      name: 'runtimeContext',
+      type: 'CONTEXT',
       description:
-        'Identifier from telemetry settings for grouping related operations.',
+        'User-defined shared runtime context object. May be updated from prepareStep between steps.',
     },
     {
-      name: 'metadata',
-      type: 'Record<string, unknown> | undefined',
-      description: 'Additional metadata from telemetry settings.',
-    },
-    {
-      name: 'experimental_context',
-      type: 'unknown',
+      name: 'toolsContext',
+      type: 'InferToolSetContext<TOOLS>',
       description:
-        'User-defined context object. May be updated from prepareStep between steps.',
+        'Per-tool context map. May be updated from prepareStep between steps.',
     },
   ]}
 />
 
-#### `experimental_onToolCallStart`
+#### `experimental_onToolExecutionStart`
 
 Called before a tool's `execute` function runs.
 
@@ -386,7 +376,7 @@ const result = await generateText({
   model: openai('gpt-4o'),
   prompt: 'What is the weather?',
   tools: { getWeather },
-  experimental_onToolCallStart: event => {
+  experimental_onToolExecutionStart: event => {
     console.log('Tool:', event.toolCall.toolName);
     console.log('Input:', event.toolCall.input);
   },
@@ -450,26 +440,15 @@ const result = await generateText({
       description: 'Signal for cancelling the operation.',
     },
     {
-      name: 'functionId',
-      type: 'string | undefined',
+      name: 'context',
+      type: 'CONTEXT',
       description:
-        'Identifier from telemetry settings for grouping related operations.',
-    },
-    {
-      name: 'metadata',
-      type: 'Record<string, unknown> | undefined',
-      description: 'Additional metadata from telemetry settings.',
-    },
-    {
-      name: 'experimental_context',
-      type: 'unknown',
-      description:
-        'User-defined context object flowing through the generation.',
+        'Tool-specific context object for the tool call that is about to execute.',
     },
   ]}
 />
 
-#### `experimental_onToolCallFinish`
+#### `experimental_onToolExecutionEnd`
 
 Called after a tool's `execute` function completes or errors. Uses a discriminated union on the `success` field.
 
@@ -478,7 +457,7 @@ const result = await generateText({
   model: openai('gpt-4o'),
   prompt: 'What is the weather?',
   tools: { getWeather },
-  experimental_onToolCallFinish: event => {
+  experimental_onToolExecutionEnd: event => {
     console.log('Tool:', event.toolCall.toolName);
     console.log('Duration:', event.durationMs, 'ms');
 
@@ -553,21 +532,10 @@ const result = await generateText({
       description: 'Execution time of the tool call in milliseconds.',
     },
     {
-      name: 'functionId',
-      type: 'string | undefined',
+      name: 'context',
+      type: 'CONTEXT',
       description:
-        'Identifier from telemetry settings for grouping related operations.',
-    },
-    {
-      name: 'metadata',
-      type: 'Record<string, unknown> | undefined',
-      description: 'Additional metadata from telemetry settings.',
-    },
-    {
-      name: 'experimental_context',
-      type: 'unknown',
-      description:
-        'User-defined context object flowing through the generation.',
+        'Tool-specific context object for the tool call that just completed.',
     },
     {
       name: 'success',
@@ -707,21 +675,16 @@ const result = await generateText({
         'Additional response information including id, modelId, timestamp, headers, and messages.',
     },
     {
-      name: 'functionId',
-      type: 'string | undefined',
+      name: 'runtimeContext',
+      type: 'CONTEXT',
       description:
-        'Identifier from telemetry settings for grouping related operations.',
+        'User-defined shared runtime context object flowing through the generation.',
     },
     {
-      name: 'metadata',
-      type: 'Record<string, unknown> | undefined',
-      description: 'Additional metadata from telemetry settings.',
-    },
-    {
-      name: 'experimental_context',
-      type: 'unknown',
+      name: 'toolsContext',
+      type: 'InferToolSetContext<TOOLS>',
       description:
-        'User-defined context object flowing through the generation.',
+        'Per-tool context map for the generation step.',
     },
     {
       name: 'providerMetadata',
@@ -860,20 +823,16 @@ const result = await generateText({
       description: 'Additional response information from the final step.',
     },
     {
-      name: 'functionId',
-      type: 'string | undefined',
+      name: 'runtimeContext',
+      type: 'CONTEXT',
       description:
-        'Identifier from telemetry settings for grouping related operations.',
+        'The final state of the user-defined shared runtime context object.',
     },
     {
-      name: 'metadata',
-      type: 'Record<string, unknown> | undefined',
-      description: 'Additional metadata from telemetry settings.',
-    },
-    {
-      name: 'experimental_context',
-      type: 'unknown',
-      description: 'The final state of the user-defined context object.',
+      name: 'toolsContext',
+      type: 'InferToolSetContext<TOOLS>',
+      description:
+        'The final state of the per-tool context map passed via `toolsContext`.',
     },
     {
       name: 'providerMetadata',
@@ -946,17 +905,6 @@ const result = await embed({
       type: 'ProviderOptions | undefined',
       description: 'Additional provider-specific options.',
     },
-    {
-      name: 'functionId',
-      type: 'string | undefined',
-      description:
-        'Identifier from telemetry settings for grouping related operations.',
-    },
-    {
-      name: 'metadata',
-      type: 'Record<string, JSONValue> | undefined',
-      description: 'Additional metadata from telemetry settings.',
-    },
   ]}
 />
 
@@ -1026,17 +974,6 @@ const result = await embedMany({
       type: '{ headers?: Record<string, string>; body?: unknown } | Array<{ headers?: Record<string, string>; body?: unknown } | undefined> | undefined',
       description:
         'Response data. A single response for embed, or an array for embedMany (one per chunk).',
-    },
-    {
-      name: 'functionId',
-      type: 'string | undefined',
-      description:
-        'Identifier from telemetry settings for grouping related operations.',
-    },
-    {
-      name: 'metadata',
-      type: 'Record<string, JSONValue> | undefined',
-      description: 'Additional metadata from telemetry settings.',
     },
   ]}
 />
@@ -1113,17 +1050,6 @@ const result = await rerank({
       type: 'ProviderOptions | undefined',
       description: 'Additional provider-specific options.',
     },
-    {
-      name: 'functionId',
-      type: 'string | undefined',
-      description:
-        'Identifier from telemetry settings for grouping related operations.',
-    },
-    {
-      name: 'metadata',
-      type: 'Record<string, JSONValue> | undefined',
-      description: 'Additional metadata from telemetry settings.',
-    },
   ]}
 />
 
@@ -1193,17 +1119,6 @@ const result = await rerank({
       type: '{ id?: string; timestamp: Date; modelId: string; headers?: Record<string, string>; body?: unknown }',
       description: 'Response data including headers and body.',
     },
-    {
-      name: 'functionId',
-      type: 'string | undefined',
-      description:
-        'Identifier from telemetry settings for grouping related operations.',
-    },
-    {
-      name: 'metadata',
-      type: 'Record<string, JSONValue> | undefined',
-      description: 'Additional metadata from telemetry settings.',
-    },
   ]}
 />
 
@@ -1250,10 +1165,10 @@ const result = await generateText({
   model: openai('gpt-4o'),
   prompt: 'What is the weather?',
   tools: { getWeather },
-  experimental_onToolCallStart: event => {
+  experimental_onToolExecutionStart: event => {
     console.log(`Tool "${event.toolCall.toolName}" starting...`);
   },
-  experimental_onToolCallFinish: event => {
+  experimental_onToolExecutionEnd: event => {
     if (event.success) {
       console.log(
         `Tool "${event.toolCall.toolName}" completed in ${event.durationMs}ms`,

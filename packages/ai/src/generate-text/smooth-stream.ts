@@ -1,7 +1,7 @@
 import { delay as originalDelay } from '@ai-sdk/provider-utils';
 import { SharedV4ProviderMetadata } from '@ai-sdk/provider';
 import { TextStreamPart } from './stream-text-result';
-import { ToolSet } from './tool-set';
+import type { ToolSet } from '@ai-sdk/provider-utils';
 import { InvalidArgumentError } from '@ai-sdk/provider';
 
 const CHUNKING_REGEXPS = {

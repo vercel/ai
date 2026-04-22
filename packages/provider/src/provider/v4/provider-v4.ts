@@ -1,9 +1,11 @@
 import { EmbeddingModelV4 } from '../../embedding-model/v4/embedding-model-v4';
+import { FilesV4 } from '../../files/v4/files-v4';
 import { ImageModelV4 } from '../../image-model/v4/image-model-v4';
 import { LanguageModelV4 } from '../../language-model/v4/language-model-v4';
 import { RerankingModelV4 } from '../../reranking-model/v4/reranking-model-v4';
 import { SpeechModelV4 } from '../../speech-model/v4/speech-model-v4';
 import { TranscriptionModelV4 } from '../../transcription-model/v4/transcription-model-v4';
+import { SkillsV4 } from '../../skills/v4/skills-v4';
 
 /**
  * Provider for language, text embedding, and image generation models.
@@ -76,4 +78,18 @@ export interface ProviderV4 {
    * @throws {NoSuchModelError} If no such model exists.
    */
   rerankingModel?(modelId: string): RerankingModelV4;
+
+  /**
+   * Returns the files interface for uploading files to the provider.
+   * The returned interface can be passed to the `uploadFile` function.
+   *
+   * @returns {FilesV4} The files interface for this provider.
+   */
+  files?(): FilesV4;
+
+  /**
+   * Returns the skills interface for uploading skills to the provider.
+   * The returned interface can be passed to the `uploadSkill` function.
+   */
+  skills?(): SkillsV4;
 }

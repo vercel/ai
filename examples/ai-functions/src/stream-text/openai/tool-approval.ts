@@ -1,7 +1,7 @@
 import { openai } from '@ai-sdk/openai';
 import {
   ModelMessage,
-  stepCountIs,
+  isStepCount,
   streamText,
   tool,
   ToolApprovalResponse,
@@ -24,7 +24,6 @@ const weatherTool = tool({
     location,
     temperature: 72 + Math.floor(Math.random() * 21) - 10,
   }),
-  needsApproval: true,
 });
 
 run(async () => {
@@ -41,37 +40,85 @@ run(async () => {
     approvals = [];
 
     const result = streamText({
-      model: openai('gpt-5-mini'),
+      model: openai('gpt-5.4-mini'),
       // context engineering required to make sure the model does not retry
-      // the tool execution if it is not approved:
+      // the tool execution if it is not approved for a particular tool call:
       system:
-        'When a tool execution is not approved by the user, do not retry it.' +
-        'Just say that the tool execution was not approved.',
+        'When a tool call was not approved by the user, ' +
+        'do not retry the tool call with the same input.' +
+        'Just say that the tool execution was not approved.' +
+        'You can call a denied tool call with a different input.',
       tools: { weather: weatherTool },
+      toolApproval: {
+        weather: ({ location }) => {
+          const locationLower = location.toLowerCase();
+          if (
+            locationLower.includes('san francisco') ||
+            locationLower === 'sf'
+          ) {
+            return 'approved';
+          }
+
+          if (locationLower.includes('new york') || locationLower === 'nyc') {
+            return { type: 'denied', reason: 'blocked by policy' };
+          }
+
+          return 'user-approval';
+        },
+      },
       messages,
-      stopWhen: stepCountIs(5),
+      stopWhen: isStepCount(5),
     });
 
-    process.stdout.write('\nAssistant: ');
-    for await (const delta of result.textStream) {
-      process.stdout.write(delta);
-    }
+    for await (const chunk of result.fullStream) {
+      switch (chunk.type) {
+        case 'text-start': {
+          process.stdout.write('\nAssistant:\n');
+          break;
+        }
 
-    // go through each approval request and ask the user for approval
-    const content = await result.content;
-    for (const part of content) {
-      if (part.type === 'tool-approval-request') {
-        if (part.toolCall.toolName === 'weather' && !part.toolCall.dynamic) {
-          const answer = await terminal.question(
-            `\nCan I retrieve the weather for ${part.toolCall.input.location} (y/n)?`,
-          );
+        case 'text-delta': {
+          process.stdout.write(chunk.text);
+          break;
+        }
 
-          approvals.push({
-            type: 'tool-approval-response',
-            approvalId: part.approvalId,
-            approved:
-              answer.toLowerCase() === 'y' || answer.toLowerCase() === 'yes',
-          });
+        case 'tool-approval-request': {
+          if (
+            chunk.toolCall.toolName === 'weather' &&
+            !chunk.toolCall.dynamic &&
+            !chunk.isAutomatic
+          ) {
+            const answer = await terminal.question(
+              `\nCan I retrieve the weather for ${chunk.toolCall.input.location} (y/n)?`,
+            );
+
+            approvals.push({
+              type: 'tool-approval-response',
+              approvalId: chunk.approvalId,
+              approved:
+                answer.toLowerCase() === 'y' || answer.toLowerCase() === 'yes',
+            });
+          }
+          break;
+        }
+
+        case 'tool-approval-response': {
+          if (
+            chunk.toolCall.toolName === 'weather' &&
+            !chunk.toolCall.dynamic
+          ) {
+            process.stdout.write(
+              `\nWeather tool execution for ${chunk.toolCall.input.location} was automatically ${
+                chunk.approved
+                  ? '\x1b[32mapproved\x1b[0m' // dark green
+                  : '\x1b[31mdenied\x1b[0m' // dark red
+              }.\n`,
+            );
+            if (chunk.reason != null) {
+              process.stdout.write(`Reason: ${chunk.reason}\n`);
+            }
+          }
+          break;
         }
       }
     }

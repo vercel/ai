@@ -1,5 +1,254 @@
 # @ai-sdk/amazon-bedrock
 
+## 5.0.0-beta.41
+
+### Patch Changes
+
+- ed60b47: fix(provider/amazon-bedrock): fix Anthropic reasoning behavior related to Opus 4.7
+- Updated dependencies [2e98477]
+  - @ai-sdk/provider-utils@5.0.0-beta.26
+  - @ai-sdk/anthropic@4.0.0-beta.37
+
+## 5.0.0-beta.40
+
+### Patch Changes
+
+- Updated dependencies [eea8d98]
+  - @ai-sdk/provider-utils@5.0.0-beta.25
+  - @ai-sdk/anthropic@4.0.0-beta.36
+
+## 5.0.0-beta.39
+
+### Patch Changes
+
+- Updated dependencies [f807e45]
+  - @ai-sdk/provider-utils@5.0.0-beta.24
+  - @ai-sdk/anthropic@4.0.0-beta.35
+
+## 5.0.0-beta.38
+
+### Patch Changes
+
+- Updated dependencies [350ea38]
+  - @ai-sdk/provider-utils@5.0.0-beta.23
+  - @ai-sdk/anthropic@4.0.0-beta.34
+
+## 5.0.0-beta.37
+
+### Patch Changes
+
+- Updated dependencies [832f86f]
+  - @ai-sdk/anthropic@4.0.0-beta.33
+
+## 5.0.0-beta.36
+
+### Patch Changes
+
+- Updated dependencies [ad0b376]
+  - @ai-sdk/anthropic@4.0.0-beta.32
+
+## 5.0.0-beta.35
+
+### Patch Changes
+
+- Updated dependencies [083947b]
+  - @ai-sdk/provider-utils@5.0.0-beta.22
+  - @ai-sdk/anthropic@4.0.0-beta.31
+
+## 5.0.0-beta.34
+
+### Patch Changes
+
+- 0d8f107: feat(provider/anthropic): add support for Opus 4.7 and relevant API enhancements
+- Updated dependencies [0d8f107]
+  - @ai-sdk/anthropic@4.0.0-beta.30
+
+## 5.0.0-beta.33
+
+### Patch Changes
+
+- Updated dependencies [add1126]
+  - @ai-sdk/provider-utils@5.0.0-beta.21
+  - @ai-sdk/anthropic@4.0.0-beta.29
+
+## 5.0.0-beta.32
+
+### Patch Changes
+
+- b3976a2: Add workflow serialization support to all provider models.
+
+  **`@ai-sdk/provider-utils`:** New `serializeModel()` helper that extracts only serializable properties from a model instance, filtering out functions and objects containing functions. Third-party provider authors can use this to add workflow support to their own models.
+
+  **All providers:** `headers` is now optional in provider config types. This is non-breaking — existing code that passes `headers` continues to work. Custom provider implementations that construct model configs manually can now omit `headers`, which is useful when models are deserialized from a workflow step boundary where auth is provided separately.
+
+  All provider model classes now include `WORKFLOW_SERIALIZE` and `WORKFLOW_DESERIALIZE` static methods, enabling them to cross workflow step boundaries without serialization errors.
+
+- ff5eba1: feat: roll `image-*` tool output types into their equivalent `file-*` types
+- Updated dependencies [b3976a2]
+- Updated dependencies [ff5eba1]
+  - @ai-sdk/provider-utils@5.0.0-beta.20
+  - @ai-sdk/anthropic@4.0.0-beta.28
+  - @ai-sdk/provider@4.0.0-beta.12
+
+## 5.0.0-beta.31
+
+### Major Changes
+
+- ef992f8: Remove CommonJS exports from all packages. All packages are now ESM-only (`"type": "module"`). Consumers using `require()` must switch to ESM `import` syntax.
+
+### Patch Changes
+
+- Updated dependencies [ef992f8]
+  - @ai-sdk/anthropic@4.0.0-beta.27
+  - @ai-sdk/provider@4.0.0-beta.11
+  - @ai-sdk/provider-utils@5.0.0-beta.19
+
+## 5.0.0-beta.30
+
+### Patch Changes
+
+- 90e2d8a: chore: fix unused vars not being flagged by our lint tooling
+- Updated dependencies [90e2d8a]
+  - @ai-sdk/provider-utils@5.0.0-beta.18
+  - @ai-sdk/anthropic@4.0.0-beta.26
+
+## 5.0.0-beta.29
+
+### Patch Changes
+
+- Updated dependencies [09bd27b]
+  - @ai-sdk/anthropic@4.0.0-beta.25
+
+## 5.0.0-beta.28
+
+### Patch Changes
+
+- Updated dependencies [3ae1786]
+  - @ai-sdk/provider-utils@5.0.0-beta.17
+  - @ai-sdk/anthropic@4.0.0-beta.24
+
+## 5.0.0-beta.27
+
+### Patch Changes
+
+- Updated dependencies [176466a]
+  - @ai-sdk/provider@4.0.0-beta.10
+  - @ai-sdk/anthropic@4.0.0-beta.23
+  - @ai-sdk/provider-utils@5.0.0-beta.16
+
+## 5.0.0-beta.26
+
+### Patch Changes
+
+- Updated dependencies [e311194]
+  - @ai-sdk/provider@4.0.0-beta.9
+  - @ai-sdk/anthropic@4.0.0-beta.22
+  - @ai-sdk/provider-utils@5.0.0-beta.15
+
+## 5.0.0-beta.25
+
+### Patch Changes
+
+- 24ac76f: fix(amazon-bedrock): preserve empty text blocks when reasoning content is present
+- cdc15f3: feat(bedrock): support native structured output for anthropic models without reasoning
+- Updated dependencies [34bd95d]
+- Updated dependencies [008271d]
+  - @ai-sdk/anthropic@4.0.0-beta.21
+  - @ai-sdk/provider@4.0.0-beta.8
+  - @ai-sdk/provider-utils@5.0.0-beta.14
+
+## 5.0.0-beta.24
+
+### Patch Changes
+
+- Updated dependencies [b0c2869]
+- Updated dependencies [7e26e81]
+  - @ai-sdk/provider-utils@5.0.0-beta.13
+  - @ai-sdk/anthropic@4.0.0-beta.20
+
+## 5.0.0-beta.23
+
+### Patch Changes
+
+- Updated dependencies [46d1149]
+  - @ai-sdk/provider-utils@5.0.0-beta.12
+  - @ai-sdk/anthropic@4.0.0-beta.19
+
+## 5.0.0-beta.22
+
+### Patch Changes
+
+- Updated dependencies [6fd51c0]
+  - @ai-sdk/provider-utils@5.0.0-beta.11
+  - @ai-sdk/provider@4.0.0-beta.7
+  - @ai-sdk/anthropic@4.0.0-beta.18
+
+## 5.0.0-beta.21
+
+### Patch Changes
+
+- c29a26f: feat(provider): add support for provider references and uploading files as supported per provider
+- Updated dependencies [c29a26f]
+  - @ai-sdk/provider-utils@5.0.0-beta.10
+  - @ai-sdk/anthropic@4.0.0-beta.17
+  - @ai-sdk/provider@4.0.0-beta.6
+
+## 5.0.0-beta.20
+
+### Patch Changes
+
+- 38fc777: Add AI Gateway hint to provider READMEs
+- Updated dependencies [38fc777]
+  - @ai-sdk/anthropic@4.0.0-beta.16
+
+## 5.0.0-beta.19
+
+### Patch Changes
+
+- Updated dependencies [f57c702]
+  - @ai-sdk/anthropic@4.0.0-beta.15
+
+## 5.0.0-beta.18
+
+### Patch Changes
+
+- Updated dependencies [2e17091]
+  - @ai-sdk/provider-utils@5.0.0-beta.9
+  - @ai-sdk/anthropic@4.0.0-beta.14
+
+## 5.0.0-beta.17
+
+### Patch Changes
+
+- Updated dependencies [986c6fd]
+- Updated dependencies [493295c]
+  - @ai-sdk/provider-utils@5.0.0-beta.8
+  - @ai-sdk/anthropic@4.0.0-beta.13
+
+## 5.0.0-beta.16
+
+### Patch Changes
+
+- 6d8716c: feat(bedrock): add support for service tier for model inference
+
+## 5.0.0-beta.15
+
+### Patch Changes
+
+- 4b20a5d: fix(provider/amazon-bedrock): transform bedrock/anthropic error responses to anthropic format
+
+## 5.0.0-beta.14
+
+### Patch Changes
+
+- b0c59e8: fix(amazon-bedrock): preserve reasoning text when signature is present
+
+## 5.0.0-beta.13
+
+### Patch Changes
+
+- 1921625: fix(provider/amazon-bedrock): add tool search beta for Anthropic
+
 ## 5.0.0-beta.12
 
 ### Patch Changes

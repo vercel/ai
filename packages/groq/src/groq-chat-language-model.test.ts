@@ -452,6 +452,32 @@ describe('doGenerate', () => {
     `);
   });
 
+  it('should pass performance serviceTier provider option', async () => {
+    prepareJsonFixtureResponse('groq-text');
+
+    await provider('gemma2-9b-it').doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        groq: {
+          serviceTier: 'performance',
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": "Hello",
+            "role": "user",
+          },
+        ],
+        "model": "gemma2-9b-it",
+        "service_tier": "performance",
+      }
+    `);
+  });
+
   it('should pass tools and toolChoice', async () => {
     prepareJsonFixtureResponse('groq-text');
 
@@ -1493,7 +1519,7 @@ describe('doStream', () => {
           },
           {
             "error": [AI_JSONParseError: JSON parsing failed: Text: {unparsable}.
-        Error message: Expected property name or '}' in JSON at position 1 (line 1 column 2)],
+        Error message: SyntaxError: Expected property name or '}' in JSON at position 1 (line 1 column 2)],
             "type": "error",
           },
           {

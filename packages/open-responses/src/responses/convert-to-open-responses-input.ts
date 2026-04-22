@@ -1,5 +1,9 @@
-import { LanguageModelV4Prompt, SharedV4Warning } from '@ai-sdk/provider';
-import { convertToBase64 } from '@ai-sdk/provider-utils';
+import {
+  LanguageModelV4Prompt,
+  SharedV4Warning,
+  UnsupportedFunctionalityError,
+} from '@ai-sdk/provider';
+import { convertToBase64, isProviderReference } from '@ai-sdk/provider-utils';
 import {
   FunctionCallItemParam,
   FunctionCallOutputItemParam,
@@ -43,6 +47,12 @@ export async function convertToOpenResponsesInput({
               break;
             }
             case 'file': {
+              if (isProviderReference(part.data)) {
+                throw new UnsupportedFunctionalityError({
+                  functionality: 'file parts with provider references',
+                });
+              }
+
               if (!part.mediaType.startsWith('image/')) {
                 warnings.push({
                   type: 'other',
@@ -128,7 +138,7 @@ export async function convertToOpenResponsesInput({
                 contentValue = output.value;
                 break;
               case 'execution-denied':
-                contentValue = output.reason ?? 'Tool execution denied.';
+                contentValue = output.reason ?? 'Tool call execution denied.';
                 break;
               case 'json':
               case 'error-json':
@@ -149,26 +159,33 @@ export async function convertToOpenResponsesInput({
                       });
                       break;
                     }
-                    case 'image-data': {
-                      contentParts.push({
-                        type: 'input_image',
-                        image_url: `data:${item.mediaType};base64,${item.data}`,
-                      });
-                      break;
-                    }
-                    case 'image-url': {
-                      contentParts.push({
-                        type: 'input_image',
-                        image_url: item.url,
-                      });
-                      break;
-                    }
                     case 'file-data': {
-                      contentParts.push({
-                        type: 'input_file',
-                        filename: item.filename ?? 'data',
-                        file_data: `data:${item.mediaType};base64,${item.data}`,
-                      });
+                      if (item.mediaType.startsWith('image/')) {
+                        contentParts.push({
+                          type: 'input_image',
+                          image_url: `data:${item.mediaType};base64,${item.data}`,
+                        });
+                      } else {
+                        contentParts.push({
+                          type: 'input_file',
+                          filename: item.filename ?? 'data',
+                          file_data: `data:${item.mediaType};base64,${item.data}`,
+                        });
+                      }
+                      break;
+                    }
+                    case 'file-url': {
+                      if (item.mediaType.startsWith('image/')) {
+                        contentParts.push({
+                          type: 'input_image',
+                          image_url: item.url,
+                        });
+                      } else {
+                        contentParts.push({
+                          type: 'input_file',
+                          file_url: item.url,
+                        });
+                      }
                       break;
                     }
                     default: {

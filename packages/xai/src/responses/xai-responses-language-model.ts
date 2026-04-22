@@ -19,6 +19,9 @@ import {
   parseProviderOptions,
   ParseResult,
   postJsonToApi,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { getResponseMetadata } from '../get-response-metadata';
@@ -40,7 +43,7 @@ import { prepareResponsesTools } from './xai-responses-prepare-tools';
 type XaiResponsesConfig = {
   provider: string;
   baseURL: string | undefined;
-  headers: () => Record<string, string | undefined>;
+  headers?: () => Record<string, string | undefined>;
   generateId: () => string;
   fetch?: FetchFunction;
 };
@@ -51,6 +54,20 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
   readonly modelId: XaiResponsesModelId;
 
   private readonly config: XaiResponsesConfig;
+
+  static [WORKFLOW_SERIALIZE](model: XaiResponsesLanguageModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: XaiResponsesModelId;
+    config: XaiResponsesConfig;
+  }) {
+    return new XaiResponsesLanguageModel(options.modelId, options.config);
+  }
 
   constructor(modelId: XaiResponsesModelId, config: XaiResponsesConfig) {
     this.modelId = modelId;
@@ -113,7 +130,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
 
     const { input, inputWarnings } = await convertToXaiResponsesInput({
       prompt,
-      store: true,
+      store: options.store ?? true,
     });
     warnings.push(...inputWarnings);
 
@@ -246,7 +263,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
       rawValue: rawResponse,
     } = await postJsonToApi({
       url: `${this.config.baseURL ?? 'https://api.x.ai/v1'}/responses`,
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body,
       failedResponseHandler: xaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -257,6 +274,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
     });
 
     const content: Array<LanguageModelV4Content> = [];
+    let hasFunctionCall = false;
 
     const webSearchSubTools = [
       'web_search',
@@ -379,6 +397,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
         }
 
         case 'function_call': {
+          hasFunctionCall = true;
           content.push({
             type: 'tool-call',
             toolCallId: part.call_id,
@@ -398,11 +417,13 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
             .filter(text => text && text.length > 0)
             .join('');
 
-          if (reasoningText) {
-            if (part.encrypted_content || part.id) {
-              content.push({
-                type: 'reasoning',
-                text: reasoningText,
+          // condition changed here since encrypted content can now come with empty reasoning text
+          if (reasoningText || part.encrypted_content) {
+            const hasMetadata = part.encrypted_content || part.id;
+            content.push({
+              type: 'reasoning',
+              text: reasoningText,
+              ...(hasMetadata && {
                 providerMetadata: {
                   xai: {
                     ...(part.encrypted_content && {
@@ -411,13 +432,8 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
                     ...(part.id && { itemId: part.id }),
                   },
                 },
-              });
-            } else {
-              content.push({
-                type: 'reasoning',
-                text: reasoningText,
-              });
-            }
+              }),
+            });
           }
           break;
         }
@@ -431,7 +447,9 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
     return {
       content,
       finishReason: {
-        unified: mapXaiResponsesFinishReason(response.status),
+        unified: hasFunctionCall
+          ? 'tool-calls'
+          : mapXaiResponsesFinishReason(response.status),
         raw: response.status ?? undefined,
       },
       usage: response.usage
@@ -440,6 +458,13 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
             inputTokens: { total: 0, noCache: 0, cacheRead: 0, cacheWrite: 0 },
             outputTokens: { total: 0, text: 0, reasoning: 0 },
           },
+      ...(response.usage?.cost_in_usd_ticks != null && {
+        providerMetadata: {
+          xai: {
+            costInUsdTicks: response.usage.cost_in_usd_ticks,
+          },
+        },
+      }),
       request: { body },
       response: {
         ...getResponseMetadata(response),
@@ -469,7 +494,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL ?? 'https://api.x.ai/v1'}/responses`,
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body,
       failedResponseHandler: xaiFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(
@@ -483,7 +508,9 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
       unified: 'other',
       raw: undefined,
     };
+    let hasFunctionCall = false;
     let usage: LanguageModelV4Usage | undefined = undefined;
+    let costInUsdTicks: number | undefined = undefined;
     let isFirstChunk = true;
     const contentBlocks: Record<string, { type: 'text' }> = {};
     const seenToolCalls = new Set<string>();
@@ -666,21 +693,55 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
 
             if (
               event.type === 'response.done' ||
-              event.type === 'response.completed'
+              event.type === 'response.completed' ||
+              event.type === 'response.incomplete'
             ) {
               const response = event.response;
 
               if (response.usage) {
                 usage = convertXaiResponsesUsage(response.usage);
+                costInUsdTicks = response.usage.cost_in_usd_ticks ?? undefined;
               }
 
-              if (response.status) {
+              if (event.type === 'response.incomplete') {
+                const reason =
+                  'incomplete_details' in response
+                    ? response.incomplete_details?.reason
+                    : undefined;
                 finishReason = {
-                  unified: mapXaiResponsesFinishReason(response.status),
+                  unified: reason
+                    ? mapXaiResponsesFinishReason(reason)
+                    : 'other',
+                  raw: reason ?? 'incomplete',
+                };
+              } else if ('status' in response && response.status) {
+                finishReason = {
+                  unified: hasFunctionCall
+                    ? 'tool-calls'
+                    : mapXaiResponsesFinishReason(response.status),
                   raw: response.status,
                 };
               }
 
+              return;
+            }
+
+            if (event.type === 'response.failed') {
+              const reason = event.response.incomplete_details?.reason;
+              finishReason = {
+                unified: reason ? mapXaiResponsesFinishReason(reason) : 'error',
+                raw: reason ?? 'error',
+              };
+
+              if (event.response.usage) {
+                usage = convertXaiResponsesUsage(event.response.usage);
+              }
+
+              return;
+            }
+
+            if (event.type === 'error') {
+              controller.enqueue({ type: 'error', error: event });
               return;
             }
 
@@ -944,6 +1005,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
                     toolName: part.name,
                   });
                 } else if (event.type === 'response.output_item.done') {
+                  hasFunctionCall = true;
                   ongoingToolCalls[event.output_index] = undefined;
 
                   controller.enqueue({
@@ -984,6 +1046,13 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
                 },
                 outputTokens: { total: 0, text: 0, reasoning: 0 },
               },
+              ...(costInUsdTicks != null && {
+                providerMetadata: {
+                  xai: {
+                    costInUsdTicks,
+                  },
+                },
+              }),
             });
           },
         }),

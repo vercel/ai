@@ -4,7 +4,7 @@ import {
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { MistralPrompt } from './mistral-chat-prompt';
-import { convertToBase64 } from '@ai-sdk/provider-utils';
+import { convertToBase64, isProviderReference } from '@ai-sdk/provider-utils';
 
 function formatFileUrl({
   data,
@@ -43,6 +43,12 @@ export function convertToMistralChatMessages(
               }
 
               case 'file': {
+                if (isProviderReference(part.data)) {
+                  throw new UnsupportedFunctionalityError({
+                    functionality: 'file parts with provider references',
+                  });
+                }
+
                 if (part.mediaType.startsWith('image/')) {
                   const mediaType =
                     part.mediaType === 'image/*'
@@ -134,7 +140,7 @@ export function convertToMistralChatMessages(
               contentValue = output.value;
               break;
             case 'execution-denied':
-              contentValue = output.reason ?? 'Tool execution denied.';
+              contentValue = output.reason ?? 'Tool call execution denied.';
               break;
             case 'content':
             case 'json':

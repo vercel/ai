@@ -1,20 +1,18 @@
 export type { ContentPart } from './content-part';
 export type {
+  OnChunkEvent,
   OnFinishEvent,
   OnStartEvent,
   OnStepFinishEvent,
   OnStepStartEvent,
-  OnToolCallFinishEvent,
-  OnToolCallStartEvent,
 } from './core-events';
+export { filterActiveTools as experimental_filterActiveTools } from './filter-active-tool';
 export {
   generateText,
   type GenerateTextOnFinishCallback,
   type GenerateTextOnStartCallback,
   type GenerateTextOnStepFinishCallback,
   type GenerateTextOnStepStartCallback,
-  type GenerateTextOnToolCallFinishCallback,
-  type GenerateTextOnToolCallStartCallback,
 } from './generate-text';
 export type { GenerateTextResult } from './generate-text-result';
 export {
@@ -23,6 +21,7 @@ export {
   type GeneratedFile,
 } from './generated-file';
 export * as Output from './output';
+export type { Output as OutputInterface } from './output';
 export type {
   InferCompleteOutput as InferGenerateOutput,
   InferPartialOutput as InferStreamOutput,
@@ -32,11 +31,21 @@ export { pruneMessages } from './prune-messages';
 export type { ReasoningFileOutput, ReasoningOutput } from './reasoning-output';
 export { smoothStream, type ChunkDetector } from './smooth-stream';
 export type { StepResult } from './step-result';
-export { hasToolCall, stepCountIs, type StopCondition } from './stop-condition';
 export {
-  streamModelCall as experimental_streamModelCall,
-  type ModelCallStreamPart as Experimental_ModelCallStreamPart,
-} from './stream-model-call';
+  hasToolCall,
+  isLoopFinished,
+  isStepCount,
+
+  /**
+   * @deprecated Use `isStepCount` instead.
+   */
+  isStepCount as stepCountIs,
+  type StopCondition,
+} from './stop-condition';
+export {
+  streamLanguageModelCall as experimental_streamLanguageModelCall,
+  type LanguageModelStreamPart as Experimental_LanguageModelStreamPart,
+} from './stream-language-model-call';
 export {
   streamText,
   type StreamTextOnChunkCallback,
@@ -45,8 +54,6 @@ export {
   type StreamTextOnStartCallback,
   type StreamTextOnStepFinishCallback,
   type StreamTextOnStepStartCallback,
-  type StreamTextOnToolCallFinishCallback,
-  type StreamTextOnToolCallStartCallback,
   type StreamTextTransform,
 } from './stream-text';
 export type {
@@ -54,7 +61,13 @@ export type {
   TextStreamPart,
   UIMessageStreamOptions,
 } from './stream-text-result';
+export type {
+  ToolApprovalConfiguration,
+  ToolApprovalFunction,
+  ToolApprovalStatus,
+} from './tool-approval-configuration';
 export type { ToolApprovalRequestOutput } from './tool-approval-request-output';
+export type { ToolApprovalResponseOutput } from './tool-approval-response-output';
 export type {
   DynamicToolCall,
   StaticToolCall,
@@ -67,6 +80,12 @@ export type {
   TypedToolError,
 } from './tool-error';
 export type {
+  OnToolExecutionEndCallback,
+  OnToolExecutionStartCallback,
+  ToolExecutionEndEvent,
+  ToolExecutionStartEvent,
+} from './tool-execution-events';
+export type {
   StaticToolOutputDenied,
   TypedToolOutputDenied,
 } from './tool-output-denied';
@@ -75,4 +94,3 @@ export type {
   StaticToolResult,
   TypedToolResult,
 } from './tool-result';
-export type { ToolSet } from './tool-set';

@@ -514,6 +514,37 @@ console.log(amazonResult.text); // text response
 See [AI SDK UI: Chatbot](/docs/ai-sdk-ui/chatbot#reasoning) for more details
 on how to integrate reasoning into your chatbot.
 
+## Service Tiers
+
+Amazon Bedrock supports selecting an inference service tier per request via the `serviceTier` provider option.
+
+```ts
+import {
+  bedrock,
+  type AmazonBedrockLanguageModelOptions,
+} from '@ai-sdk/amazon-bedrock';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: bedrock('us.anthropic.claude-sonnet-4-20250514-v1:0'),
+  prompt: 'Summarize this support ticket backlog.',
+  providerOptions: {
+    bedrock: {
+      serviceTier: 'priority',
+    } satisfies AmazonBedrockLanguageModelOptions,
+  },
+});
+```
+
+Supported values are:
+
+- `reserved`
+- `priority`
+- `default`
+- `flex`
+
+See the [Amazon Bedrock service tiers documentation](https://docs.aws.amazon.com/bedrock/latest/userguide/service-tiers-inference.html) for model availability and behavior.
+
 ## Extended Context Window
 
 Claude Sonnet 4 models on Amazon Bedrock support an extended context window of up to 1 million tokens when using the `context-1m-2025-08-07` beta feature.
@@ -1443,7 +1474,7 @@ They are available via the `tools` property of the provider instance.
 
 ```ts
 import { bedrockAnthropic } from '@ai-sdk/amazon-bedrock/anthropic';
-import { generateText, stepCountIs } from 'ai';
+import { generateText, isStepCount } from 'ai';
 
 const result = await generateText({
   model: bedrockAnthropic('us.anthropic.claude-sonnet-4-5-20250929-v1:0'),
@@ -1456,7 +1487,7 @@ const result = await generateText({
     }),
   },
   prompt: 'List the files in my directory.',
-  stopWhen: stepCountIs(2),
+  stopWhen: isStepCount(2),
 });
 ```
 
@@ -1464,7 +1495,7 @@ const result = await generateText({
 
 ```ts
 import { bedrockAnthropic } from '@ai-sdk/amazon-bedrock/anthropic';
-import { generateText, stepCountIs } from 'ai';
+import { generateText, isStepCount } from 'ai';
 
 const result = await generateText({
   model: bedrockAnthropic('us.anthropic.claude-sonnet-4-5-20250929-v1:0'),
@@ -1477,7 +1508,7 @@ const result = await generateText({
     }),
   },
   prompt: 'Update my README file.',
-  stopWhen: stepCountIs(5),
+  stopWhen: isStepCount(5),
 });
 ```
 
@@ -1485,7 +1516,7 @@ const result = await generateText({
 
 ```ts
 import { bedrockAnthropic } from '@ai-sdk/amazon-bedrock/anthropic';
-import { generateText, stepCountIs } from 'ai';
+import { generateText, isStepCount } from 'ai';
 import fs from 'fs';
 
 const result = await generateText({
@@ -1520,7 +1551,7 @@ const result = await generateText({
     }),
   },
   prompt: 'Take a screenshot.',
-  stopWhen: stepCountIs(3),
+  stopWhen: isStepCount(3),
 });
 ```
 
@@ -1528,6 +1559,7 @@ const result = await generateText({
 
 Anthropic has reasoning support for Claude 3.7 and Claude 4 models on Bedrock, including:
 
+- `us.anthropic.claude-opus-4-7`
 - `us.anthropic.claude-opus-4-6-v1`
 - `us.anthropic.claude-opus-4-5-20251101-v1:0`
 - `us.anthropic.claude-sonnet-4-5-20250929-v1:0`
@@ -1564,6 +1596,7 @@ on how to integrate reasoning into your chatbot.
 
 | Model                                          | Image Input         | Object Generation   | Tool Usage          | Computer Use        | Reasoning           |
 | ---------------------------------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `us.anthropic.claude-opus-4-7`                 | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `us.anthropic.claude-opus-4-6-v1`              | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `us.anthropic.claude-opus-4-5-20251101-v1:0`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `us.anthropic.claude-sonnet-4-5-20250929-v1:0` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |

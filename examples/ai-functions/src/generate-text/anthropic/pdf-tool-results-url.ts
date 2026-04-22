@@ -1,4 +1,4 @@
-import { generateText, stepCountIs, tool } from 'ai';
+import { generateText, isStepCount, tool } from 'ai';
 import { run } from '../../lib/run';
 import { z } from 'zod';
 import { anthropic } from '@ai-sdk/anthropic';
@@ -43,7 +43,7 @@ run(async () => {
     tools: {
       readPDFDocument,
     },
-    stopWhen: stepCountIs(4),
+    stopWhen: isStepCount(4),
   });
 
   console.log(`Assisstant response : ${JSON.stringify(result.text, null, 2)}`);

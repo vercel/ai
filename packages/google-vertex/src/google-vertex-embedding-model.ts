@@ -8,6 +8,9 @@ import {
   postJsonToApi,
   resolve,
   parseProviderOptions,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { googleVertexFailedResponseHandler } from './google-vertex-error';
@@ -24,6 +27,20 @@ export class GoogleVertexEmbeddingModel implements EmbeddingModelV4 {
   readonly supportsParallelCalls = true;
 
   private readonly config: GoogleVertexConfig;
+
+  static [WORKFLOW_SERIALIZE](model: GoogleVertexEmbeddingModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: string;
+    config: GoogleVertexConfig;
+  }) {
+    return new GoogleVertexEmbeddingModel(options.modelId, options.config);
+  }
 
   get provider(): string {
     return this.config.provider;
@@ -71,7 +88,7 @@ export class GoogleVertexEmbeddingModel implements EmbeddingModelV4 {
     }
 
     const mergedHeaders = combineHeaders(
-      await resolve(this.config.headers),
+      this.config.headers ? await resolve(this.config.headers) : undefined,
       headers,
     );
 

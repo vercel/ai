@@ -1289,6 +1289,125 @@ describe('validateUIMessages', () => {
       `);
     });
 
+    it('should skip validation for tool part in output-available state when tool schema is missing', async () => {
+      const inputMessages: TestMessage[] = [
+        {
+          id: '1',
+          role: 'assistant',
+          parts: [
+            {
+              type: 'tool-bar' as 'tool-foo',
+              toolCallId: '1',
+              state: 'output-available',
+              input: { foo: 'bar' },
+              output: { result: 'success' },
+              providerExecuted: true,
+            },
+          ],
+        },
+      ];
+
+      const result = await validateUIMessages<TestMessage>({
+        messages: inputMessages,
+        tools: {
+          foo: testTool,
+        },
+      });
+
+      expect(result).toEqual(inputMessages);
+    });
+
+    it('should skip validation for tool part in output-error state when tool schema is missing', async () => {
+      const inputMessages: TestMessage[] = [
+        {
+          id: '1',
+          role: 'assistant',
+          parts: [
+            {
+              type: 'tool-bar' as 'tool-foo',
+              toolCallId: '1',
+              state: 'output-error',
+              input: { foo: 'bar' },
+              errorText: 'Tool execution failed',
+              providerExecuted: true,
+            },
+          ],
+        },
+      ];
+
+      const result = await validateUIMessages<TestMessage>({
+        messages: inputMessages,
+        tools: {
+          foo: testTool,
+        },
+      });
+
+      expect(result).toEqual(inputMessages);
+    });
+
+    it('should skip validation for tool part in output-denied state when tool schema is missing', async () => {
+      const inputMessages: TestMessage[] = [
+        {
+          id: '1',
+          role: 'assistant',
+          parts: [
+            {
+              type: 'tool-bar' as 'tool-foo',
+              toolCallId: '1',
+              state: 'output-denied',
+              input: { foo: 'bar' },
+              approval: {
+                id: 'approval-1',
+                approved: false,
+              },
+            },
+          ],
+        },
+      ];
+
+      const result = await validateUIMessages<TestMessage>({
+        messages: inputMessages,
+        tools: {
+          foo: testTool,
+        },
+      });
+
+      expect(result).toEqual(inputMessages);
+    });
+
+    it('should validate automatic approval reasons on output parts', async () => {
+      const inputMessages: TestMessage[] = [
+        {
+          id: '1',
+          role: 'assistant',
+          parts: [
+            {
+              type: 'tool-foo',
+              toolCallId: '1',
+              state: 'output-available',
+              input: { foo: 'bar' },
+              output: { result: 'ok' },
+              approval: {
+                id: 'approval-1',
+                approved: true,
+                isAutomatic: true,
+                reason: 'trusted internal tool',
+              },
+            },
+          ],
+        },
+      ];
+
+      const result = await validateUIMessages<TestMessage>({
+        messages: inputMessages,
+        tools: {
+          foo: testTool,
+        },
+      });
+
+      expect(result).toEqual(inputMessages);
+    });
+
     it('should throw error when tool input validation fails', async () => {
       await expect(
         validateUIMessages<TestMessage>({

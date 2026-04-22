@@ -1,15 +1,19 @@
-import type { WeatherUIToolWithApprovalInvocation } from '@/tool/weather-tool-with-approval';
+import type { WeatherUIToolInvocation } from '@/tool/weather-tool';
 import type { ChatAddToolApproveResponseFunction } from 'ai';
 
 export default function WeatherWithApprovalView({
   invocation,
   addToolApprovalResponse,
 }: {
-  invocation: WeatherUIToolWithApprovalInvocation;
+  invocation: WeatherUIToolInvocation;
   addToolApprovalResponse: ChatAddToolApproveResponseFunction;
 }) {
   switch (invocation.state) {
     case 'approval-requested':
+      if (invocation.approval.isAutomatic) {
+        return <></>; // will be immediately replaced by the approval response
+      }
+
       return (
         <div className="text-gray-500">
           Can I retrieve the weather for {invocation.input.city}?
@@ -40,6 +44,25 @@ export default function WeatherWithApprovalView({
         </div>
       );
     case 'approval-responded':
+      if (invocation.approval.isAutomatic) {
+        return (
+          <div className="text-gray-500">
+            Weather tool execution for{' '}
+            <span className="font-semibold">{invocation.input.city}</span> was
+            automatically{' '}
+            {invocation.approval.approved ? (
+              <span className="text-green-600">approved</span>
+            ) : (
+              <span className="text-red-600">denied</span>
+            )}
+            .
+            {invocation.approval.reason != null
+              ? ` Reason: ${invocation.approval.reason}`
+              : ''}
+          </div>
+        );
+      }
+
       return (
         <div className="text-gray-500">
           Can I retrieve the weather for {invocation.input.city}?
@@ -49,19 +72,44 @@ export default function WeatherWithApprovalView({
 
     case 'output-available':
       return (
-        <div className="text-gray-500">
-          {invocation.output.state === 'loading'
-            ? 'Fetching weather information...'
-            : `Weather in ${invocation.input.city}: ${invocation.output.weather}`}
-        </div>
+        <>
+          {invocation.approval && (
+            <div className="text-gray-500">
+              Weather tool execution for{' '}
+              <span className="font-semibold">{invocation.input.city}</span> was
+              {invocation.approval.isAutomatic ? ' automatically' : ''}{' '}
+              {invocation.approval.approved ? (
+                <span className="text-green-600">approved</span>
+              ) : (
+                <span className="text-red-600">denied</span>
+              )}
+              .
+              {invocation.approval.reason != null
+                ? ` Reason: ${invocation.approval.reason}`
+                : ''}
+            </div>
+          )}
+          <div className="text-gray-500">
+            {invocation.output.state === 'loading'
+              ? 'Fetching weather information...'
+              : `Weather in ${invocation.input.city}: ${invocation.output.weather}`}
+          </div>
+        </>
       );
+
     case 'output-denied':
       return (
         <div className="text-gray-500">
-          Weather in {invocation.input.city}:{' '}
-          <span className="text-red-500">Tool execution denied.</span>
+          Weather tool execution for{' '}
+          <span className="font-semibold">{invocation.input.city}</span> was
+          {invocation.approval.isAutomatic ? ' automatically' : ''}{' '}
+          <span className="text-red-600">denied</span>.
+          {invocation.approval.reason != null
+            ? ` Reason: ${invocation.approval.reason}`
+            : ''}
         </div>
       );
+
     case 'output-error':
       return <div className="text-red-500">Error: {invocation.errorText}</div>;
   }

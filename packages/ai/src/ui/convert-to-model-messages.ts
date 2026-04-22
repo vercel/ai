@@ -8,7 +8,7 @@ import {
   ToolApprovalResponse,
   ToolResultPart,
 } from '@ai-sdk/provider-utils';
-import { ToolSet } from '../generate-text/tool-set';
+import type { ToolSet } from '@ai-sdk/provider-utils';
 import { createToolModelOutput } from '../prompt/create-tool-model-output';
 import { MessageConversionError } from '../prompt/message-conversion-error';
 import {
@@ -114,7 +114,7 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                   type: 'file' as const,
                   mediaType: part.mediaType,
                   filename: part.filename,
-                  data: part.url,
+                  data: part.providerReference ?? part.url,
                   ...(part.providerMetadata != null
                     ? { providerOptions: part.providerMetadata }
                     : {}),
@@ -176,7 +176,7 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                   type: 'file' as const,
                   mediaType: part.mediaType,
                   filename: part.filename,
-                  data: part.url,
+                  data: part.providerReference ?? part.url,
                   ...(part.providerMetadata != null
                     ? { providerOptions: part.providerMetadata }
                     : {}),
@@ -218,6 +218,7 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                       type: 'tool-approval-request' as const,
                       approvalId: part.approval.id,
                       toolCallId: part.toolCallId,
+                      isAutomatic: part.approval.isAutomatic,
                     });
                   }
 
@@ -299,6 +300,25 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                     });
                   }
 
+                  // add synthetic execution-denied result for denied tool approvals
+                  if (
+                    toolPart.state === 'approval-responded' &&
+                    toolPart.approval?.approved === false
+                  ) {
+                    content.push({
+                      type: 'tool-result',
+                      toolCallId: toolPart.toolCallId,
+                      toolName: getToolName(toolPart),
+                      output: {
+                        type: 'execution-denied' as const,
+                        reason: toolPart.approval.reason,
+                      },
+                      ...(toolPart.callProviderMetadata != null
+                        ? { providerOptions: toolPart.callProviderMetadata }
+                        : {}),
+                    });
+                  }
+
                   // For provider-executed tools, the tool result is already in the
                   // assistant content. Skip adding to tool message to avoid duplicates
                   // (which would create orphaned function_call_output entries).
@@ -316,7 +336,7 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                           type: 'error-text' as const,
                           value:
                             toolPart.approval.reason ??
-                            'Tool execution denied.',
+                            'Tool call execution denied.',
                         },
                         ...(toolPart.callProviderMetadata != null
                           ? { providerOptions: toolPart.callProviderMetadata }

@@ -1,10 +1,10 @@
 {
   "name": "@ai-sdk/google-vertex",
-  "version": "5.0.0-beta.23",
+  "version": "5.0.0-beta.58",
+  "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
-  "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "files": [
     "dist/**/*",
@@ -18,7 +18,9 @@
     "README.md",
     "edge.d.ts",
     "anthropic/edge.d.ts",
-    "anthropic/index.d.ts"
+    "anthropic/index.d.ts",
+    "maas/edge.d.ts",
+    "maas/index.d.ts"
   ],
   "directories": {
     "doc": "./docs"
@@ -40,28 +42,39 @@
     "./package.json": "./package.json",
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.mjs",
-      "require": "./dist/index.js"
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
     },
     "./edge": {
       "types": "./dist/edge/index.d.ts",
-      "import": "./dist/edge/index.mjs",
-      "require": "./dist/edge/index.js"
+      "import": "./dist/edge/index.js",
+      "default": "./dist/edge/index.js"
     },
     "./anthropic": {
       "types": "./dist/anthropic/index.d.ts",
-      "import": "./dist/anthropic/index.mjs",
-      "require": "./dist/anthropic/index.js"
+      "import": "./dist/anthropic/index.js",
+      "default": "./dist/anthropic/index.js"
     },
     "./anthropic/edge": {
       "types": "./dist/anthropic/edge/index.d.ts",
-      "import": "./dist/anthropic/edge/index.mjs",
-      "require": "./dist/anthropic/edge/index.js"
+      "import": "./dist/anthropic/edge/index.js",
+      "default": "./dist/anthropic/edge/index.js"
+    },
+    "./maas": {
+      "types": "./dist/maas/index.d.ts",
+      "import": "./dist/maas/index.js",
+      "default": "./dist/maas/index.js"
+    },
+    "./maas/edge": {
+      "types": "./dist/maas/edge/index.d.ts",
+      "import": "./dist/maas/edge/index.js",
+      "default": "./dist/maas/edge/index.js"
     }
   },
   "dependencies": {
     "@ai-sdk/anthropic": "workspace:*",
     "@ai-sdk/google": "workspace:*",
+    "@ai-sdk/openai-compatible": "workspace:*",
     "@ai-sdk/provider": "workspace:*",
     "@ai-sdk/provider-utils": "workspace:*",
     "google-auth-library": "^10.5.0"

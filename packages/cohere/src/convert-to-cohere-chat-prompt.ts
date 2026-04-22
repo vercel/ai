@@ -3,6 +3,7 @@ import {
   LanguageModelV4Prompt,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
+import { isProviderReference } from '@ai-sdk/provider-utils';
 import { CohereAssistantMessage, CohereChatPrompt } from './cohere-chat-prompt';
 
 export function convertToCohereChatPrompt(prompt: LanguageModelV4Prompt): {
@@ -33,6 +34,12 @@ export function convertToCohereChatPrompt(prompt: LanguageModelV4Prompt): {
                   return part.text;
                 }
                 case 'file': {
+                  if (isProviderReference(part.data)) {
+                    throw new UnsupportedFunctionalityError({
+                      functionality: 'file parts with provider references',
+                    });
+                  }
+
                   // Extract documents for RAG
                   let textContent: string;
 
@@ -126,7 +133,7 @@ export function convertToCohereChatPrompt(prompt: LanguageModelV4Prompt): {
                   contentValue = output.value;
                   break;
                 case 'execution-denied':
-                  contentValue = output.reason ?? 'Tool execution denied.';
+                  contentValue = output.reason ?? 'Tool call execution denied.';
                   break;
                 case 'content':
                 case 'json':

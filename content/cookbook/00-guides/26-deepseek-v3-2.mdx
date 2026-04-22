@@ -158,7 +158,7 @@ Let's add a weather tool to your agent. Update your route handler at `app/api/ch
 import { deepseek } from '@ai-sdk/deepseek';
 import {
   convertToModelMessages,
-  stepCountIs,
+  isStepCount,
   streamText,
   tool,
   UIMessage,
@@ -184,14 +184,14 @@ export async function POST(req: Request) {
         }),
       }),
     },
-    stopWhen: stepCountIs(5),
+    stopWhen: isStepCount(5),
   });
 
   return result.toUIMessageStreamResponse({ sendReasoning: true });
 }
 ```
 
-This adds a weather tool that the model can call when needed. The `stopWhen: stepCountIs(5)` parameter allows the agent to continue executing for multiple steps (up to 5), enabling it to use tools and reason iteratively before stopping. Learn more about [loop control](/docs/agents/loop-control) to customize when and how your agent stops execution.
+This adds a weather tool that the model can call when needed. The `stopWhen: isStepCount(5)` parameter allows the agent to continue executing for multiple steps (up to 5), enabling it to use tools and reason iteratively before stopping. Learn more about [loop control](/docs/agents/loop-control) to customize when and how your agent stops execution.
 
 ## Get Started
 

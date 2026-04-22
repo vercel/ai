@@ -1,6 +1,7 @@
 import { JSONValue } from '@ai-sdk/provider';
 import { DataContent } from './data-content';
 import { ProviderOptions } from './provider-options';
+import { ProviderReference } from './provider-reference';
 
 /**
  * Text content part of a prompt. It contains a string of text.
@@ -32,8 +33,9 @@ export interface ImagePart {
    *
    * - data: a base64-encoded string, a Uint8Array, an ArrayBuffer, or a Buffer
    * - URL: a URL that points to the image
+   * - ProviderReference: a provider reference from `uploadFile`
    */
-  image: DataContent | URL;
+  image: DataContent | URL | ProviderReference;
 
   /**
    * Optional IANA media type of the image.
@@ -60,9 +62,10 @@ export interface FilePart {
    * File data. Can either be:
    *
    * - data: a base64-encoded string, a Uint8Array, an ArrayBuffer, or a Buffer
-   * - URL: a URL that points to the image
+   * - URL: a URL that points to the file
+   * - ProviderReference: a provider reference from `uploadFile`
    */
-  data: DataContent | URL;
+  data: DataContent | URL | ProviderReference;
 
   /**
    * Optional filename of the file.
@@ -291,14 +294,6 @@ export type ToolResultOutput =
             providerOptions?: ProviderOptions;
           }
         | {
-            /**
-             * @deprecated Use image-data or file-data instead.
-             */
-            type: 'media';
-            data: string;
-            mediaType: string;
-          }
-        | {
             type: 'file-data';
 
             /**
@@ -331,11 +326,20 @@ export type ToolResultOutput =
             url: string;
 
             /**
+             * IANA media type.
+             * @see https://www.iana.org/assignments/media-types/media-types.xhtml
+             */
+            mediaType?: string; // Temporarily optional. TODO: make required in v8, after migration period.
+
+            /**
              * Provider-specific options.
              */
             providerOptions?: ProviderOptions;
           }
         | {
+            /**
+             * @deprecated Use file-reference instead.
+             */
             type: 'file-id';
 
             /**
@@ -354,8 +358,22 @@ export type ToolResultOutput =
             providerOptions?: ProviderOptions;
           }
         | {
+            type: 'file-reference';
+
             /**
-             * Images that are referenced using base64 encoded data.
+             * Provider-specific references for the file.
+             * The key is the provider name, e.g. 'openai' or 'anthropic'.
+             */
+            providerReference: ProviderReference;
+
+            /**
+             * Provider-specific options.
+             */
+            providerOptions?: ProviderOptions;
+          }
+        | {
+            /**
+             * @deprecated Use file-data instead.
              */
             type: 'image-data';
 
@@ -377,7 +395,7 @@ export type ToolResultOutput =
           }
         | {
             /**
-             * Images that are referenced using a URL.
+             * @deprecated Use file-url instead.
              */
             type: 'image-url';
 
@@ -393,7 +411,7 @@ export type ToolResultOutput =
           }
         | {
             /**
-             * Images that are referenced using a provider file id.
+             * @deprecated Use file-reference instead.
              */
             type: 'image-file-id';
 
@@ -406,6 +424,23 @@ export type ToolResultOutput =
              * name, e.g. 'openai' or 'anthropic'.
              */
             fileId: string | Record<string, string>;
+
+            /**
+             * Provider-specific options.
+             */
+            providerOptions?: ProviderOptions;
+          }
+        | {
+            /**
+             * @deprecated Use file-reference instead.
+             */
+            type: 'image-file-reference';
+
+            /**
+             * Provider-specific references for the image file.
+             * The key is the provider name, e.g. 'openai' or 'anthropic'.
+             */
+            providerReference: ProviderReference;
 
             /**
              * Provider-specific options.

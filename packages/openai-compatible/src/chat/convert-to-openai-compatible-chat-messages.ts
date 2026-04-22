@@ -7,6 +7,7 @@ import { OpenAICompatibleChatPrompt } from './openai-compatible-api-types';
 import {
   convertBase64ToUint8Array,
   convertToBase64,
+  isProviderReference,
 } from '@ai-sdk/provider-utils';
 
 function getOpenAIMetadata(message: {
@@ -58,6 +59,12 @@ export function convertToOpenAICompatibleChatMessages(
                 return { type: 'text', text: part.text, ...partMetadata };
               }
               case 'file': {
+                if (isProviderReference(part.data)) {
+                  throw new UnsupportedFunctionalityError({
+                    functionality: 'file parts with provider references',
+                  });
+                }
+
                 if (part.mediaType.startsWith('image/')) {
                   const mediaType =
                     part.mediaType === 'image/*'
@@ -202,7 +209,7 @@ export function convertToOpenAICompatibleChatMessages(
 
         messages.push({
           role: 'assistant',
-          content: text,
+          content: text || null,
           ...(reasoning.length > 0 ? { reasoning_content: reasoning } : {}),
           tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
           ...metadata,
@@ -226,7 +233,7 @@ export function convertToOpenAICompatibleChatMessages(
               contentValue = output.value;
               break;
             case 'execution-denied':
-              contentValue = output.reason ?? 'Tool execution denied.';
+              contentValue = output.reason ?? 'Tool call execution denied.';
               break;
             case 'content':
             case 'json':

@@ -1,5 +1,5 @@
 import { openai } from '@ai-sdk/openai';
-import { stepCountIs, streamText, tool } from 'ai';
+import { isStepCount, streamText, tool } from 'ai';
 import { z } from 'zod';
 import { run } from '../../lib/run';
 
@@ -31,7 +31,7 @@ run(async () => {
       }
     },
     activeTools: [],
-    stopWhen: stepCountIs(5),
+    stopWhen: isStepCount(5),
   });
 
   await result.consumeStream();

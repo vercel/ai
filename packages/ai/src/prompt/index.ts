@@ -1,4 +1,17 @@
-export type { CallSettings, TimeoutConfiguration } from './call-settings';
+export type { LanguageModelCallOptions } from './language-model-call-options';
+export type { RequestOptions, TimeoutConfiguration } from './request-options';
+
+import type { LanguageModelCallOptions } from './language-model-call-options';
+import type { RequestOptions } from './request-options';
+/** @deprecated Use `LanguageModelCallOptions` combined with `RequestOptions` instead. */
+export type CallSettings = LanguageModelCallOptions &
+  Omit<RequestOptions, 'timeout'>;
+export {
+  getTotalTimeoutMs,
+  getStepTimeoutMs,
+  getChunkTimeoutMs,
+  getToolTimeoutMs,
+} from './request-options';
 export {
   assistantModelMessageSchema,
   modelMessageSchema,
@@ -7,6 +20,7 @@ export {
   userModelMessageSchema,
 } from './message';
 export type { Prompt } from './prompt';
+export { convertDataContentToBase64String } from './data-content';
 
 // re-export types from provider-utils
 export type {

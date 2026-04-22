@@ -10,6 +10,7 @@ export { LoadAPIKeyError } from './load-api-key-error';
 export { LoadSettingError } from './load-setting-error';
 export { NoContentGeneratedError } from './no-content-generated-error';
 export { NoSuchModelError } from './no-such-model-error';
+export { NoSuchProviderReferenceError } from './no-such-provider-reference-error';
 export { TooManyEmbeddingValuesForCallError } from './too-many-embedding-values-for-call-error';
 export type { TypeValidationContext } from './type-validation-error';
 export { TypeValidationError } from './type-validation-error';

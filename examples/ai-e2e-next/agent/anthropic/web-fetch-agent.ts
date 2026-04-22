@@ -7,6 +7,9 @@ export const anthropicWebFetchAgent = new ToolLoopAgent({
     web_fetch: anthropic.tools.webFetch_20250910(),
   },
   reasoning: 'medium',
+  telemetry: {
+    functionId: 'anthropic-web-fetch-agent',
+  },
 });
 
 export type AnthropicWebFetchMessage = InferAgentUIMessage<
