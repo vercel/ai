@@ -129,6 +129,88 @@ describe('HttpMCPTransport', () => {
     ).toBeUndefined();
   });
 
+  it('should reset inbound SSE state and ignore stale reconnection timers between sessions', async () => {
+    vi.useFakeTimers();
+
+    let getCallCount = 0;
+    const fetchFn = vi.fn(
+      async (_input: RequestInfo | URL, init?: RequestInit) => {
+        const method = init?.method ?? 'GET';
+
+        if (method === 'GET') {
+          getCallCount += 1;
+          if (getCallCount === 1) {
+            throw new Error('connection lost');
+          }
+
+          return new Response(null, {
+            status: 405,
+            statusText: 'Method Not Allowed',
+          });
+        }
+
+        return new Response(null, { status: 200 });
+      },
+    );
+
+    transport = new HttpMCPTransport({
+      url: 'http://localhost:4000/mcp',
+      fetch: fetchFn,
+    });
+    transport.onerror = () => {};
+
+    try {
+      await transport.start();
+
+      await vi.waitFor(() => {
+        expect(fetchFn).toHaveBeenCalledTimes(1);
+      });
+
+      (
+        transport as unknown as {
+          lastInboundEventId?: string;
+          inboundReconnectAttempts: number;
+        }
+      ).lastInboundEventId = 'event-123';
+
+      await transport.close();
+
+      expect(
+        (
+          transport as unknown as {
+            lastInboundEventId?: string;
+          }
+        ).lastInboundEventId,
+      ).toBeUndefined();
+      expect(
+        (
+          transport as unknown as {
+            inboundReconnectAttempts: number;
+          }
+        ).inboundReconnectAttempts,
+      ).toBe(0);
+
+      await transport.start();
+
+      await vi.waitFor(() => {
+        expect(fetchFn).toHaveBeenCalledTimes(2);
+      });
+
+      expect(fetchFn.mock.calls[1]?.[1]?.headers).toMatchObject({
+        accept: 'text/event-stream',
+      });
+      expect(fetchFn.mock.calls[1]?.[1]?.headers).not.toHaveProperty(
+        'last-event-id',
+      );
+
+      await vi.advanceTimersByTimeAsync(1000);
+
+      expect(fetchFn).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('should handle text/event-stream responses', async () => {
     transport = new HttpMCPTransport({ url: 'http://localhost:4000/stream' });
     const controller = new TestResponseController();
