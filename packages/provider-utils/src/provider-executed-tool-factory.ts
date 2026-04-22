@@ -8,7 +8,7 @@ import { Context } from './types/context';
 export type ProviderExecutedToolFactory<
   INPUT,
   OUTPUT,
-  ARGS extends object,
+  ARGS extends Record<string, unknown>,
   CONTEXT extends Context = {},
 > = (
   options: ARGS & {
@@ -21,7 +21,7 @@ export type ProviderExecutedToolFactory<
 export function createProviderExecutedToolFactory<
   INPUT,
   OUTPUT,
-  ARGS extends object,
+  ARGS extends Record<string, unknown>,
   CONTEXT extends Context = {},
 >({
   id,

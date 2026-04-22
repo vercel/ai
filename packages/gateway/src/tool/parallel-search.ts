@@ -45,7 +45,7 @@ export interface ParallelSearchFetchPolicy {
   maxAgeSeconds?: number;
 }
 
-export interface ParallelSearchConfig {
+export type ParallelSearchConfig = {
   /**
    * Mode preset for different use cases:
    * - "one-shot": Comprehensive results with longer excerpts for single-response answers (default)
@@ -73,7 +73,7 @@ export interface ParallelSearchConfig {
    * Default fetch policy for controlling content freshness.
    */
   fetchPolicy?: ParallelSearchFetchPolicy;
-}
+};
 
 export interface ParallelSearchResult {
   /** URL of the search result */

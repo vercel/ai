@@ -278,7 +278,7 @@ type ProviderToolProperties = {
    * The arguments for configuring the tool.
    * Must match the expected arguments defined by the provider for this tool.
    */
-  args: object;
+  args: Record<string, unknown>;
 
   /**
    * Whether this provider-executed tool supports deferred results.
