@@ -79,7 +79,9 @@ const codeAgent = new ToolLoopAgent({
 
 You can also require approval before a tool executes. Use `needsApproval` on the
 tool itself for the default behavior, or set `toolApproval` on the
-`ToolLoopAgent` when approval should be configured per agent. Use
+`ToolLoopAgent` when approval should be configured per agent. `toolApproval` can
+be a `GenericToolApprovalFunction` (one callback for every tool call) or a
+per-tool object of statuses and/or `SingleToolApprovalFunction` handlers. Use
 `'not-applicable'` for the default execution path, `'user-approval'` for
 manual review, or `'approved'` / `'denied'` when you want explicit automatic
 approval records in the output. For automatic approvals and denials, you can

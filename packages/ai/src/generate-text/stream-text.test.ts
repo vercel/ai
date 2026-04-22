@@ -21942,6 +21942,7 @@ describe('streamText', () => {
                 "value": "value-needs-approval",
               },
               "options": {
+                "context": undefined,
                 "messages": [
                   {
                     "content": "test-input",
@@ -21949,7 +21950,6 @@ describe('streamText', () => {
                   },
                 ],
                 "toolCallId": "call-1",
-                "toolContext": undefined,
               },
             },
             {
@@ -21957,6 +21957,7 @@ describe('streamText', () => {
                 "value": "value-no-approval",
               },
               "options": {
+                "context": undefined,
                 "messages": [
                   {
                     "content": "test-input",
@@ -21964,7 +21965,6 @@ describe('streamText', () => {
                   },
                 ],
                 "toolCallId": "call-2",
-                "toolContext": undefined,
               },
             },
           ]

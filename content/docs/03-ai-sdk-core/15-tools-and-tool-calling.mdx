@@ -110,7 +110,7 @@ tool({
 By default, tools with an `execute` function run automatically as the model calls them. You can require approval before execution in two ways:
 
 - Set `needsApproval` on an individual tool to define its default approval behavior
-- Set `toolApproval` on `generateText` or `streamText` to configure approval for specific tools at call time using approval statuses
+- Set `toolApproval` on `generateText`, `streamText`, or `ToolLoopAgent` to configure approval at call or agent level: a `GenericToolApprovalFunction` for all tool calls, or a per-tool map of statuses and/or `SingleToolApprovalFunction` callbacks
 
 Use `needsApproval` when the tool should usually require approval wherever it is used. Use `toolApproval` when approval depends on the specific request or runtime context. If both are provided, `toolApproval` takes precedence.
 
@@ -145,8 +145,8 @@ const result = await generateText({
 });
 ```
 
-`toolApproval` accepts one of four statuses per tool, either as a string or as
-an object with a `type` field:
+In the per-tool object form, each key can be one of four statuses, either as a
+string or as an object with a `type` field:
 
 - `'not-applicable'`: the tool is executed without an approval flow. This is the default behavior.
 - `'approved'`: record an automatic approval by emitting approval request/response parts in the output, then execute the tool
@@ -165,9 +165,34 @@ toolApproval: {
 }
 ```
 
-`toolApproval` can also be a function per tool, which lets you return one of
-these string or object statuses dynamically based on the tool input and runtime
-options such as `toolCallId`, `messages`, and `toolContext`.
+#### Generic `toolApproval` function
+
+Pass a `GenericToolApprovalFunction` as `toolApproval` to handle every tool
+call in one place. The callback receives `toolCall`, `tools`, `toolsContext`, and
+`messages`:
+
+```ts highlight="4-10"
+const result = await generateText({
+  model: __MODEL__,
+  tools: { runCommand },
+  toolApproval: ({ toolCall, tools, toolsContext, messages }) => {
+    if (toolCall.toolName === 'runCommand' && !toolCall.dynamic) {
+      // Inspect toolCall.input, cross-tool state, or messages for policy.
+      return 'user-approval';
+    }
+    return 'not-applicable';
+  },
+  prompt: 'Remove the most recent file in the downloads folder',
+});
+```
+
+The same pattern works for `streamText` and for `toolApproval` on
+[`ToolLoopAgent`](/docs/agents/building-agents#tools) when you need one policy
+across all tools.
+
+For a per-tool object instead, each key can be a `SingleToolApprovalFunction`
+that receives the tool input and options `toolCallId`, `messages`, and
+`context` (the same `context` shape as tool execution, without `abortSignal`).
 
 This is useful for tools that perform sensitive operations like executing commands, processing payments, modifying data, and more potentially dangerous actions.
 
@@ -284,12 +309,14 @@ const paymentTool = tool({
 
 In this example, only transactions over $1000 require approval. Smaller transactions execute automatically.
 
-You can use a similar function in `toolApproval` when you want to return
+You can use a `SingleToolApprovalFunction` in a per-tool `toolApproval` object when you want to return
 `'not-applicable'`, `'approved'`, `'denied'`, or `'user-approval'` at call time
 instead of defining the default on the tool itself. For automatic approvals and
 denials, the callback can also return `{ type, reason }`, for example
 `{ type: 'denied', reason: 'blocked by policy' }`. Return `'not-applicable'`
-for the normal execution path.
+for the normal execution path. For decisions that need the full `toolCall` or
+several tools at once, pass a `GenericToolApprovalFunction` as `toolApproval` instead
+of a per-tool map.
 
 ### Tool Execution Approval with useChat
 
