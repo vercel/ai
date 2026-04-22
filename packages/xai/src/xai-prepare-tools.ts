@@ -1,4 +1,5 @@
 import {
+  JSONSchema7,
   LanguageModelV4CallOptions,
   SharedV4Warning,
   UnsupportedFunctionalityError,
@@ -58,7 +59,7 @@ export function prepareTools({
         function: {
           name: tool.name,
           description: tool.description,
-          parameters: tool.inputSchema,
+          parameters: removeAdditionalProperties(tool.inputSchema as JSONSchema7),
           ...(tool.strict != null ? { strict: tool.strict } : {}),
         },
       });
@@ -95,4 +96,70 @@ export function prepareTools({
       });
     }
   }
+}
+
+/**
+ * xAI rejects schemas containing `additionalProperties: false` because it
+ * treats `false` as an unsupported boolean property schema.  The AI SDK's
+ * `addAdditionalPropertiesToJsonSchema` adds this field globally, so we
+ * strip it here before sending to xAI.
+ *
+ * @see https://docs.x.ai/docs/guides/structured-outputs
+ */
+export function removeAdditionalProperties(schema: JSONSchema7): JSONSchema7 {
+  if (schema == null || typeof schema !== 'object') {
+    return schema;
+  }
+
+  const result = { ...schema };
+
+  if ('additionalProperties' in result) {
+    delete result.additionalProperties;
+  }
+
+  if (result.properties != null) {
+    result.properties = Object.fromEntries(
+      Object.entries(result.properties).map(([key, value]) => [
+        key,
+        typeof value === 'object' && value !== null
+          ? removeAdditionalProperties(value as JSONSchema7)
+          : value,
+      ]),
+    );
+  }
+
+  if (result.items != null) {
+    result.items = Array.isArray(result.items)
+      ? result.items.map(item =>
+          typeof item === 'object' && item !== null
+            ? removeAdditionalProperties(item as JSONSchema7)
+            : item,
+        )
+      : typeof result.items === 'object' && result.items !== null
+        ? removeAdditionalProperties(result.items as JSONSchema7)
+        : result.items;
+  }
+
+  for (const keyword of ['anyOf', 'allOf', 'oneOf'] as const) {
+    if (result[keyword] != null) {
+      result[keyword] = (result[keyword] as JSONSchema7[]).map(s =>
+        typeof s === 'object' && s !== null
+          ? removeAdditionalProperties(s as JSONSchema7)
+          : s,
+      );
+    }
+  }
+
+  if (result.definitions != null) {
+    result.definitions = Object.fromEntries(
+      Object.entries(result.definitions).map(([key, value]) => [
+        key,
+        typeof value === 'object' && value !== null
+          ? removeAdditionalProperties(value as JSONSchema7)
+          : value,
+      ]),
+    );
+  }
+
+  return result;
 }

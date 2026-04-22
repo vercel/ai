@@ -36,7 +36,7 @@ import {
   xaiLanguageModelChatOptions,
 } from './xai-chat-options';
 import { xaiFailedResponseHandler } from './xai-error';
-import { prepareTools } from './xai-prepare-tools';
+import { prepareTools, removeAdditionalProperties } from './xai-prepare-tools';
 
 type XaiChatConfig = {
   provider: string;
@@ -182,7 +182,7 @@ export class XaiChatLanguageModel implements LanguageModelV4 {
                 type: 'json_schema',
                 json_schema: {
                   name: responseFormat.name ?? 'response',
-                  schema: responseFormat.schema,
+                  schema: removeAdditionalProperties(responseFormat.schema),
                   strict: true,
                 },
               }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { prepareTools } from './xai-prepare-tools';
+import { prepareTools, removeAdditionalProperties } from './xai-prepare-tools';
 
 describe('prepareTools', () => {
   it('should return undefined tools and toolChoice when tools are undefined', () => {
@@ -352,6 +352,77 @@ describe('prepareTools', () => {
           ],
         }
       `);
+    });
+  });
+});
+
+describe('removeAdditionalProperties', () => {
+  it('should remove additionalProperties from top-level object schema', () => {
+    const result = removeAdditionalProperties({
+      type: 'object',
+      properties: { name: { type: 'string' } },
+      required: ['name'],
+      additionalProperties: false,
+    });
+    expect(result).toEqual({
+      type: 'object',
+      properties: { name: { type: 'string' } },
+      required: ['name'],
+    });
+  });
+
+  it('should remove additionalProperties from nested object schemas', () => {
+    const result = removeAdditionalProperties({
+      type: 'object',
+      properties: {
+        address: {
+          type: 'object',
+          properties: { city: { type: 'string' } },
+          additionalProperties: false,
+        },
+      },
+      additionalProperties: false,
+    });
+    expect(result).toEqual({
+      type: 'object',
+      properties: {
+        address: {
+          type: 'object',
+          properties: { city: { type: 'string' } },
+        },
+      },
+    });
+  });
+
+  it('should handle schemas without additionalProperties', () => {
+    const schema = {
+      type: 'object' as const,
+      properties: { name: { type: 'string' as const } },
+    };
+    const result = removeAdditionalProperties(schema);
+    expect(result).toEqual(schema);
+  });
+
+  it('should strip additionalProperties from tool parameters in prepareTools', () => {
+    const result = prepareTools({
+      tools: [
+        {
+          type: 'function',
+          name: 'test',
+          description: 'test',
+          inputSchema: {
+            type: 'object',
+            properties: { value: { type: 'string' } },
+            required: ['value'],
+            additionalProperties: false,
+          },
+        },
+      ],
+    });
+    expect(result.tools![0].function.parameters).toEqual({
+      type: 'object',
+      properties: { value: { type: 'string' } },
+      required: ['value'],
     });
   });
 });
