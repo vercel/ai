@@ -10,7 +10,7 @@ import {
   isAbortError,
   ProviderOptions,
 } from '@ai-sdk/provider-utils';
-import { Span } from '@opentelemetry/api';
+import { Span, SpanKind } from '@opentelemetry/api';
 import { ServerResponse } from 'node:http';
 import { NoOutputGeneratedError } from '../error';
 import { NoOutputSpecifiedError } from '../error/no-output-specified-error';
@@ -30,6 +30,12 @@ import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { stringifyForTelemetry } from '../telemetry/stringify-for-telemetry';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
+import {
+  convertToOTelGenAIInputMessages,
+  convertToOTelGenAIOutputMessages,
+  convertToOTelGenAIToolDefinitions,
+  getGenAIOperationName,
+} from '../telemetry/convert-to-otel-genai-messages';
 import { createTextStreamResponse } from '../text-stream/create-text-stream-response';
 import { pipeTextStreamToResponse } from '../text-stream/pipe-text-stream-to-response';
 import { LanguageModelRequestMetadata } from '../types';
@@ -1108,13 +1114,18 @@ class DefaultStreamTextResult<
               activeTools: prepareStepResult?.activeTools ?? activeTools,
             });
 
+          const genAIOperationName = getGenAIOperationName(
+            'ai.streamText.doStream',
+          );
+
           const {
             result: { stream, response, request },
             doStreamSpan,
             startTimestampMs,
           } = await retry(() =>
             recordSpan({
-              name: 'ai.streamText.doStream',
+              name: `${genAIOperationName} ${stepModel.modelId}`,
+              kind: SpanKind.CLIENT,
               attributes: selectTelemetryAttributes({
                 telemetry,
                 attributes: {
@@ -1142,6 +1153,8 @@ class DefaultStreamTextResult<
                   },
 
                   // standardized gen-ai llm span attributes:
+                  'gen_ai.operation.name': genAIOperationName,
+                  'gen_ai.provider.name': stepModel.provider,
                   'gen_ai.system': stepModel.provider,
                   'gen_ai.request.model': stepModel.modelId,
                   'gen_ai.request.frequency_penalty':
@@ -1153,6 +1166,20 @@ class DefaultStreamTextResult<
                   'gen_ai.request.temperature': callSettings.temperature,
                   'gen_ai.request.top_k': callSettings.topK,
                   'gen_ai.request.top_p': callSettings.topP,
+                  'gen_ai.input.messages': {
+                    input: () =>
+                      JSON.stringify(
+                        convertToOTelGenAIInputMessages(promptMessages),
+                      ),
+                  },
+                  'gen_ai.tool.definitions': {
+                    input: () =>
+                      stepTools
+                        ? JSON.stringify(
+                            convertToOTelGenAIToolDefinitions(stepTools),
+                          )
+                        : undefined,
+                  },
                 },
               }),
               tracer,
@@ -1450,6 +1477,20 @@ class DefaultStreamTextResult<
                           'gen_ai.response.model': stepResponse.modelId,
                           'gen_ai.usage.input_tokens': stepUsage.inputTokens,
                           'gen_ai.usage.output_tokens': stepUsage.outputTokens,
+                          'gen_ai.output.messages': {
+                            output: () =>
+                              JSON.stringify(
+                                convertToOTelGenAIOutputMessages({
+                                  text: activeText || undefined,
+                                  toolCalls: stepToolCalls.map(tc => ({
+                                    toolCallId: tc.toolCallId,
+                                    toolName: tc.toolName,
+                                    input: tc.input,
+                                  })),
+                                  finishReason: stepFinishReason,
+                                }),
+                              ),
+                          },
                         },
                       }),
                     );
