@@ -1,9 +1,9 @@
 import {
   Context,
+  ExcludeProviderExecutedTools,
   InferToolInput,
   InferToolSetContext,
   ModelMessage,
-  NotProviderExecutedTools,
   ToolSet,
 } from '@ai-sdk/provider-utils';
 import {
@@ -66,10 +66,12 @@ export async function resolveToolApproval<
   if (toolApproval != null && typeof toolApproval === 'function') {
     return normalizeToolApprovalStatus(
       await toolApproval({
-        toolCall: toolCall as TypedToolCall<NotProviderExecutedTools<TOOLS>>,
-        tools: tools as NotProviderExecutedTools<TOOLS> | undefined,
+        toolCall: toolCall as TypedToolCall<
+          ExcludeProviderExecutedTools<TOOLS>
+        >,
+        tools: tools as ExcludeProviderExecutedTools<TOOLS> | undefined,
         toolsContext: toolsContext as unknown as InferToolSetContext<
-          NotProviderExecutedTools<TOOLS>
+          ExcludeProviderExecutedTools<TOOLS>
         >,
         messages,
         runtimeContext,

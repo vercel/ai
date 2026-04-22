@@ -22,7 +22,7 @@ export type { InferToolInput } from './infer-tool-input';
 export type { InferToolOutput } from './infer-tool-output';
 export type { InferToolSetContext } from './infer-tool-set-context';
 export type { ModelMessage } from './model-message';
-export type { NotProviderExecutedTools } from './not-provider-executed-tools';
+export type { ExcludeProviderExecutedTools } from './exclude-provider-executed-tools';
 export type { ProviderOptions } from './provider-options';
 export type { ProviderReference } from './provider-reference';
 export type { SystemModelMessage } from './system-model-message';

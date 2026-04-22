@@ -1,17 +1,18 @@
 import {
   Context,
+  ExcludeProviderExecutedTools,
   InferToolContext,
   InferToolInput,
   InferToolSetContext,
   MaybePromiseLike,
   ModelMessage,
-  NotProviderExecutedTools,
   ToolExecutionOptions,
   ToolSet,
 } from '@ai-sdk/provider-utils';
 import { TypedToolCall } from './tool-call';
 
-type ApprovableTools<TOOLS extends ToolSet> = NotProviderExecutedTools<TOOLS>;
+type ApprovableTools<TOOLS extends ToolSet> =
+  ExcludeProviderExecutedTools<TOOLS>;
 
 /**
  * The approval status of a tool configuration. This can be one of the following:

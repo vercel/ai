@@ -1,9 +1,9 @@
 import {
   Context,
   createProviderExecutedToolFactory,
+  ExcludeProviderExecutedTools,
   InferToolSetContext,
   ModelMessage,
-  NotProviderExecutedTools,
   tool,
 } from '@ai-sdk/provider-utils';
 import { describe, expectTypeOf, it } from 'vitest';
@@ -215,14 +215,14 @@ describe('ToolApprovalConfiguration', () => {
         Context
       > = ({ toolCall, tools: toolsArg, toolsContext }) => {
         expectTypeOf(toolCall).toEqualTypeOf<
-          TypedToolCall<NotProviderExecutedTools<ToolsWithProviderExecuted>>
+          TypedToolCall<ExcludeProviderExecutedTools<ToolsWithProviderExecuted>>
         >();
         expectTypeOf(toolsArg).toEqualTypeOf<
-          NotProviderExecutedTools<ToolsWithProviderExecuted> | undefined
+          ExcludeProviderExecutedTools<ToolsWithProviderExecuted> | undefined
         >();
         expectTypeOf(toolsContext).toEqualTypeOf<
           InferToolSetContext<
-            NotProviderExecutedTools<ToolsWithProviderExecuted>
+            ExcludeProviderExecutedTools<ToolsWithProviderExecuted>
           >
         >();
 

@@ -1,10 +1,10 @@
 import { describe, expectTypeOf, it } from 'vitest';
 import { z } from 'zod/v4';
 import { createProviderExecutedToolFactory } from '../provider-executed-tool-factory';
-import type { NotProviderExecutedTools } from './not-provider-executed-tools';
+import type { ExcludeProviderExecutedTools } from './exclude-provider-executed-tools';
 import { tool } from './tool';
 
-describe('NotProviderExecutedTools', () => {
+describe('ExcludeProviderExecutedTools', () => {
   const providerExecutedToolFactory = createProviderExecutedToolFactory<
     {},
     { action: string },
@@ -43,7 +43,7 @@ describe('NotProviderExecutedTools', () => {
   };
 
   it('removes provider-executed tools from a mixed tool set', () => {
-    type FilteredTools = NotProviderExecutedTools<typeof tools>;
+    type FilteredTools = ExcludeProviderExecutedTools<typeof tools>;
 
     expectTypeOf<keyof FilteredTools>().toEqualTypeOf<
       'weather' | 'providerDefined'
@@ -66,7 +66,7 @@ describe('NotProviderExecutedTools', () => {
     };
 
     expectTypeOf<
-      NotProviderExecutedTools<typeof toolsWithoutProviderExecution>
+      ExcludeProviderExecutedTools<typeof toolsWithoutProviderExecution>
     >().toEqualTypeOf<typeof toolsWithoutProviderExecution>();
   });
 
@@ -76,7 +76,7 @@ describe('NotProviderExecutedTools', () => {
     };
 
     expectTypeOf<
-      NotProviderExecutedTools<typeof onlyProviderExecutedTools>
+      ExcludeProviderExecutedTools<typeof onlyProviderExecutedTools>
     >().toEqualTypeOf<{}>();
   });
 });
