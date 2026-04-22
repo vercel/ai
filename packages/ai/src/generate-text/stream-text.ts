@@ -8,6 +8,7 @@ import type {
   Arrayable,
   Context,
   InferToolSetContext,
+  ToolApprovalResponse,
   ToolSet,
 } from '@ai-sdk/provider-utils';
 import {
@@ -39,7 +40,7 @@ import {
 } from '../prompt/request-options';
 import { standardizePrompt } from '../prompt/standardize-prompt';
 import { wrapGatewayError } from '../prompt/wrap-gateway-error';
-import { createUnifiedTelemetry } from '../telemetry/create-unified-telemetry';
+import { createTelemetryDispatcher } from '../telemetry/create-telemetry-dispatcher';
 import { TelemetryOptions } from '../telemetry/telemetry-options';
 import { createTextStreamResponse } from '../text-stream/create-text-stream-response';
 import { pipeTextStreamToResponse } from '../text-stream/pipe-text-stream-to-response';
@@ -118,16 +119,16 @@ import {
   UIMessageStreamOptions,
 } from './stream-text-result';
 import { toResponseMessages } from './to-response-messages';
+import { ToolApprovalConfiguration } from './tool-approval-configuration';
 import { TypedToolCall } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair-function';
-import { ToolNeedsApprovalConfiguration } from './tool-needs-approval-configuration';
-import { ToolOutput } from './tool-output';
-import { StaticToolOutputDenied } from './tool-output-denied';
-import { ToolsContextParameter } from './tools-context-parameter';
 import {
   OnToolExecutionEndCallback,
   OnToolExecutionStartCallback,
 } from './tool-execution-events';
+import { ToolOutput } from './tool-output';
+import { StaticToolOutputDenied } from './tool-output-denied';
+import { ToolsContextParameter } from './tools-context-parameter';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -312,7 +313,7 @@ export function streamText<
   headers,
   stopWhen = isStepCount(1),
   output,
-  toolNeedsApproval,
+  toolApproval,
   experimental_telemetry,
   telemetry = experimental_telemetry,
   prepareStep,
@@ -405,7 +406,7 @@ export function streamText<
      *
      * This configuration takes precedence over tool-defined approval settings.
      */
-    toolNeedsApproval?: ToolNeedsApprovalConfiguration<TOOLS>;
+    toolApproval?: ToolApprovalConfiguration<TOOLS>;
 
     /**
      * Optional function that you can use to provide different settings for a step.
@@ -578,7 +579,7 @@ export function streamText<
     repairToolCall,
     stopConditions: asArray(stopWhen),
     output,
-    toolNeedsApproval,
+    toolApproval,
     providerOptions,
     prepareStep,
     includeRawChunks,
@@ -762,7 +763,7 @@ class DefaultStreamTextResult<
     repairToolCall,
     stopConditions,
     output,
-    toolNeedsApproval,
+    toolApproval,
     providerOptions,
     prepareStep,
     includeRawChunks,
@@ -809,7 +810,7 @@ class DefaultStreamTextResult<
       StopCondition<NoInfer<TOOLS>, NoInfer<RUNTIME_CONTEXT>>
     >;
     output: OUTPUT | undefined;
-    toolNeedsApproval: ToolNeedsApprovalConfiguration<TOOLS> | undefined;
+    toolApproval: ToolApprovalConfiguration<TOOLS> | undefined;
     providerOptions: ProviderOptions | undefined;
     prepareStep:
       | PrepareStepFunction<NoInfer<TOOLS>, NoInfer<RUNTIME_CONTEXT>>
@@ -861,8 +862,8 @@ class DefaultStreamTextResult<
     this.includeRawChunks = includeRawChunks;
     this.tools = tools;
 
-    const unifiedTelemetry = createUnifiedTelemetry({
-      integrations: telemetry?.integrations,
+    const telemetryDispatcher = createTelemetryDispatcher({
+      telemetry,
     });
 
     // promise to ensure that the step has been fully processed by the event processor
@@ -927,6 +928,17 @@ class DefaultStreamTextResult<
 
         if (part.type === 'error') {
           await onError({ error: wrapGatewayError(part.error) });
+        }
+
+        if (
+          part.type === 'custom' ||
+          part.type === 'source' ||
+          part.type === 'tool-call' ||
+          part.type === 'tool-approval-request' ||
+          part.type === 'tool-approval-response' ||
+          part.type === 'tool-error'
+        ) {
+          recordedContent.push(part);
         }
 
         if (part.type === 'text-start') {
@@ -1037,27 +1049,7 @@ class DefaultStreamTextResult<
           });
         }
 
-        if (part.type === 'custom') {
-          recordedContent.push(part);
-        }
-
-        if (part.type === 'source') {
-          recordedContent.push(part);
-        }
-
-        if (part.type === 'tool-call') {
-          recordedContent.push(part);
-        }
-
         if (part.type === 'tool-result' && !part.preliminary) {
-          recordedContent.push(part);
-        }
-
-        if (part.type === 'tool-approval-request') {
-          recordedContent.push(part);
-        }
-
-        if (part.type === 'tool-error') {
           recordedContent.push(part);
         }
 
@@ -1084,7 +1076,6 @@ class DefaultStreamTextResult<
               stepNumber: recordedSteps.length,
               provider: model.provider,
               modelId: model.modelId,
-              ...callbackTelemetryProps,
               runtimeContext,
               toolsContext,
               content: recordedContent,
@@ -1102,7 +1093,7 @@ class DefaultStreamTextResult<
 
           await notify({
             event: currentStepResult,
-            callbacks: [onStepFinish, unifiedTelemetry.onStepFinish],
+            callbacks: [onStepFinish, telemetryDispatcher.onStepFinish],
           });
 
           logWarnings({
@@ -1166,7 +1157,6 @@ class DefaultStreamTextResult<
               toolsContext: finalStep.toolsContext,
               stepNumber: finalStep.stepNumber,
               model: finalStep.model,
-              functionId: finalStep.functionId,
               runtimeContext: finalStep.runtimeContext,
               finishReason: finalStep.finishReason,
               rawFinishReason: finalStep.rawFinishReason,
@@ -1192,7 +1182,7 @@ class DefaultStreamTextResult<
             },
             callbacks: [
               onFinish,
-              unifiedTelemetry.onFinish as
+              telemetryDispatcher.onFinish as
                 | undefined
                 | StreamTextOnFinishCallback<
                     NoInfer<TOOLS>,
@@ -1304,15 +1294,6 @@ class DefaultStreamTextResult<
     const self = this;
 
     const callId = generateCallId();
-    const callbackTelemetryProps = {
-      functionId: telemetry?.functionId,
-    };
-    const onStartTelemetryProps = {
-      isEnabled: telemetry?.isEnabled ?? true,
-      recordInputs: telemetry?.recordInputs,
-      recordOutputs: telemetry?.recordOutputs,
-      functionId: telemetry?.functionId,
-    };
 
     (async () => {
       const initialPrompt = await standardizePrompt({
@@ -1348,13 +1329,12 @@ class DefaultStreamTextResult<
           providerOptions,
           stopWhen,
           output,
-          ...onStartTelemetryProps,
           runtimeContext,
           toolsContext,
         },
         callbacks: [
           onStart,
-          unifiedTelemetry.onStart as
+          telemetryDispatcher.onStart as
             | undefined
             | StreamTextOnStartCallback<TOOLS, RUNTIME_CONTEXT, OUTPUT>,
         ],
@@ -1411,28 +1391,24 @@ class DefaultStreamTextResult<
               const result = await executeToolCall({
                 toolCall: toolApproval.toolCall,
                 tools,
-                telemetry,
                 callId,
                 messages: initialMessages,
                 abortSignal,
                 timeout,
                 toolsContext,
-                stepNumber: recordedSteps.length,
-                provider: model.provider,
-                modelId: model.modelId,
                 onToolExecutionStart: filterNullable(
                   onToolExecutionStart,
-                  unifiedTelemetry.onToolExecutionStart as
+                  telemetryDispatcher.onToolExecutionStart as
                     | OnToolExecutionStartCallback<TOOLS>
                     | undefined,
                 ),
                 onToolExecutionEnd: filterNullable(
                   onToolExecutionEnd,
-                  unifiedTelemetry.onToolExecutionEnd as
+                  telemetryDispatcher.onToolExecutionEnd as
                     | OnToolExecutionEndCallback<TOOLS>
                     | undefined,
                 ),
-                executeToolInTelemetryContext: unifiedTelemetry.executeTool,
+                executeToolInTelemetryContext: telemetryDispatcher.executeTool,
                 onPreliminaryToolResult: result => {
                   toolExecutionStepStreamController?.enqueue(result);
                 },
@@ -1617,20 +1593,16 @@ class DefaultStreamTextResult<
                     activeTools: prepareStepResult?.activeTools ?? activeTools,
                     steps: [...recordedSteps],
                     providerOptions: stepProviderOptions,
-                    timeout,
-                    headers,
-                    stopWhen,
-                    output,
-                    ...callbackTelemetryProps,
                     runtimeContext,
                     toolsContext,
+                    output,
                     promptMessages,
                     stepTools,
                     stepToolChoice,
                   },
                   callbacks: [
                     onStepStart,
-                    unifiedTelemetry.onStepStart as
+                    telemetryDispatcher.onStepStart as
                       | undefined
                       | StreamTextOnStepStartCallback<
                           TOOLS,
@@ -1655,30 +1627,26 @@ class DefaultStreamTextResult<
           const streamWithToolResults = stream2.pipeThrough(
             createExecuteToolsTransformation({
               tools,
-              telemetry,
               callId,
               messages: stepInputMessages,
               abortSignal,
               timeout,
               toolsContext,
-              toolNeedsApproval,
+              toolApproval,
               generateId,
-              stepNumber: recordedSteps.length,
-              provider: stepModel.provider,
-              modelId: stepModel.modelId,
               onToolExecutionStart: filterNullable(
                 onToolExecutionStart,
-                unifiedTelemetry.onToolExecutionStart as
+                telemetryDispatcher.onToolExecutionStart as
                   | OnToolExecutionStartCallback<TOOLS>
                   | undefined,
               ),
               onToolExecutionEnd: filterNullable(
                 onToolExecutionEnd,
-                unifiedTelemetry.onToolExecutionEnd as
+                telemetryDispatcher.onToolExecutionEnd as
                   | OnToolExecutionEndCallback<TOOLS>
                   | undefined,
               ),
-              executeToolInTelemetryContext: unifiedTelemetry.executeTool,
+              executeToolInTelemetryContext: telemetryDispatcher.executeTool,
             }),
           );
 
@@ -1690,6 +1658,7 @@ class DefaultStreamTextResult<
               : { ...request, body: undefined };
           const stepToolCalls: TypedToolCall<TOOLS>[] = [];
           const stepToolOutputs: ToolOutput<TOOLS>[] = [];
+          const stepToolApprovalResponses: ToolApprovalResponse[] = [];
           let warnings: SharedV4Warning[] | undefined;
 
           let stepFinishReason: FinishReason = 'other';
@@ -1729,7 +1698,7 @@ class DefaultStreamTextResult<
                       warnings: warnings ?? [],
                     });
 
-                    void unifiedTelemetry.onChunk?.({
+                    void telemetryDispatcher.onChunk?.({
                       chunk: {
                         type: 'ai.stream.firstChunk',
                         callId,
@@ -1743,9 +1712,19 @@ class DefaultStreamTextResult<
 
                   const chunkType = chunk.type;
                   switch (chunkType) {
-                    case 'tool-approval-request':
+                    case 'file':
+                    case 'custom':
+                    case 'source':
                     case 'text-start':
-                    case 'text-end': {
+                    case 'text-end':
+                    case 'reasoning-start':
+                    case 'reasoning-end':
+                    case 'reasoning-delta':
+                    case 'reasoning-file':
+                    case 'tool-input-start':
+                    case 'tool-input-end':
+                    case 'tool-input-delta':
+                    case 'tool-approval-request': {
                       controller.enqueue(chunk);
                       break;
                     }
@@ -1757,26 +1736,16 @@ class DefaultStreamTextResult<
                       break;
                     }
 
-                    case 'reasoning-start':
-                    case 'reasoning-end': {
-                      controller.enqueue(chunk);
-                      break;
-                    }
-
-                    case 'custom': {
-                      controller.enqueue(chunk);
-                      break;
-                    }
-
-                    case 'reasoning-delta': {
-                      controller.enqueue(chunk);
-                      break;
-                    }
-
                     case 'tool-call': {
                       controller.enqueue(chunk);
                       // store tool calls for onFinish callback and toolCalls promise:
                       stepToolCalls.push(chunk);
+                      break;
+                    }
+
+                    case 'tool-approval-response': {
+                      controller.enqueue(chunk);
+                      stepToolApprovalResponses.push(chunk);
                       break;
                     }
 
@@ -1813,7 +1782,7 @@ class DefaultStreamTextResult<
                       stepRawFinishReason = chunk.rawFinishReason;
                       stepProviderMetadata = chunk.providerMetadata;
                       const msToFinish = now() - stepStartTimestampMs;
-                      void unifiedTelemetry.onChunk?.({
+                      void telemetryDispatcher.onChunk?.({
                         chunk: {
                           type: 'ai.stream.finish',
                           callId,
@@ -1827,24 +1796,6 @@ class DefaultStreamTextResult<
                         },
                       });
 
-                      break;
-                    }
-
-                    case 'file':
-                    case 'reasoning-file': {
-                      controller.enqueue(chunk);
-                      break;
-                    }
-
-                    case 'source': {
-                      controller.enqueue(chunk);
-                      break;
-                    }
-
-                    case 'tool-input-start':
-                    case 'tool-input-end':
-                    case 'tool-input-delta': {
-                      controller.enqueue(chunk);
                       break;
                     }
 
@@ -1871,7 +1822,7 @@ class DefaultStreamTextResult<
                     chunkType !== 'model-call-end' &&
                     chunkType !== 'model-call-response-metadata'
                   ) {
-                    void unifiedTelemetry.onChunk?.({ chunk });
+                    void telemetryDispatcher.onChunk?.({ chunk });
                   }
                 },
 
@@ -1901,6 +1852,11 @@ class DefaultStreamTextResult<
                   const clientToolOutputs = stepToolOutputs.filter(
                     toolOutput => toolOutput.providerExecuted !== true,
                   );
+                  const deniedToolApprovalResponses =
+                    stepToolApprovalResponses.filter(
+                      toolApprovalResponse =>
+                        toolApprovalResponse.approved === false,
+                    );
 
                   // Track provider-executed tool calls that support deferred results.
                   // In programmatic tool calling, a server tool (e.g., code_execution) may
@@ -1944,10 +1900,12 @@ class DefaultStreamTextResult<
 
                   if (
                     // Continue if:
-                    // 1. There are client tool calls that have all been executed, OR
-                    // 2. There are pending deferred results from provider-executed tools
+                    // 1. There are client tool calls that have all been executed or denied, OR
+                    // 2. There are pending deferred results from provider-executed tools, OR
                     ((clientToolCalls.length > 0 &&
-                      clientToolOutputs.length === clientToolCalls.length) ||
+                      clientToolCalls.length ===
+                        clientToolOutputs.length +
+                          deniedToolApprovalResponses.length) ||
                       pendingDeferredToolCalls.size > 0) &&
                     // continue until a stop condition is met:
                     !(await isStopConditionMet({
@@ -2006,7 +1964,7 @@ class DefaultStreamTextResult<
         usage: createNullLanguageModelUsage(),
       });
     })().catch(async error => {
-      await unifiedTelemetry.onError?.({ callId, error });
+      await telemetryDispatcher.onError?.({ callId, error });
 
       // add an error stream part and close the streams:
       self.addStream(
@@ -2467,6 +2425,22 @@ class DefaultStreamTextResult<
                 type: 'tool-approval-request',
                 approvalId: part.approvalId,
                 toolCallId: part.toolCall.toolCallId,
+                ...(part.isAutomatic != null
+                  ? { isAutomatic: part.isAutomatic }
+                  : {}),
+              });
+              break;
+            }
+
+            case 'tool-approval-response': {
+              controller.enqueue({
+                type: 'tool-approval-response',
+                approvalId: part.approvalId,
+                approved: part.approved,
+                ...(part.reason != null ? { reason: part.reason } : {}),
+                ...(part.providerExecuted != null
+                  ? { providerExecuted: part.providerExecuted }
+                  : {}),
               });
               break;
             }

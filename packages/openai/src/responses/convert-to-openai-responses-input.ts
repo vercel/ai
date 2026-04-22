@@ -743,7 +743,7 @@ export async function convertToOpenAIResponsesInput({
                 outputValue = output.value;
                 break;
               case 'execution-denied':
-                outputValue = output.reason ?? 'Tool execution denied.';
+                outputValue = output.reason ?? 'Tool call execution denied.';
                 break;
               case 'json':
               case 'error-json':
@@ -806,7 +806,7 @@ export async function convertToOpenAIResponsesInput({
               contentValue = output.value;
               break;
             case 'execution-denied':
-              contentValue = output.reason ?? 'Tool execution denied.';
+              contentValue = output.reason ?? 'Tool call execution denied.';
               break;
             case 'json':
             case 'error-json':

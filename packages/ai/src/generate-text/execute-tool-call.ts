@@ -13,7 +13,6 @@ import {
   getToolTimeoutMs,
   TimeoutConfiguration,
 } from '../prompt/request-options';
-import { TelemetryOptions } from '../telemetry/telemetry-options';
 import { mergeAbortSignals } from '../util/merge-abort-signals';
 import { notify } from '../util/notify';
 import { now } from '../util/now';
@@ -42,14 +41,10 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   toolCall,
   tools,
   toolsContext,
-  telemetry,
   callId,
   messages,
   abortSignal,
   timeout,
-  stepNumber,
-  provider,
-  modelId,
   onPreliminaryToolResult,
   onToolExecutionStart,
   onToolExecutionEnd,
@@ -57,15 +52,11 @@ export async function executeToolCall<TOOLS extends ToolSet>({
 }: {
   toolCall: TypedToolCall<TOOLS>;
   tools: TOOLS | undefined;
-  telemetry: TelemetryOptions | undefined;
   callId: string;
   messages: ModelMessage[];
   abortSignal: AbortSignal | undefined;
   toolsContext: InferToolSetContext<TOOLS>;
   timeout?: TimeoutConfiguration<TOOLS>;
-  stepNumber?: number;
-  provider?: string;
-  modelId?: string;
   onPreliminaryToolResult?: (result: TypedToolResult<TOOLS>) => void;
   onToolExecutionStart?: Arrayable<OnToolExecutionStartCallback<TOOLS>>;
   onToolExecutionEnd?: Arrayable<OnToolExecutionEndCallback<TOOLS>>;
@@ -90,12 +81,7 @@ export async function executeToolCall<TOOLS extends ToolSet>({
 
   const baseCallbackEvent = {
     callId,
-    stepNumber,
-    provider,
-    modelId,
     toolCall,
-    messages,
-    functionId: telemetry?.functionId,
     context, // TODO rename to toolContext
   };
 

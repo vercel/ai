@@ -1,5 +1,5 @@
 import {
-  createProviderToolFactory,
+  createProviderDefinedToolFactory,
   lazySchema,
   zodSchema,
 } from '@ai-sdk/provider-utils';
@@ -27,7 +27,7 @@ export const customArgsSchema = lazySchema(() =>
 
 const customInputSchema = lazySchema(() => zodSchema(z.string()));
 
-export const customToolFactory = createProviderToolFactory<
+export const customToolFactory = createProviderDefinedToolFactory<
   string,
   {
     /**

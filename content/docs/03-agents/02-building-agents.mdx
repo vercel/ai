@@ -78,8 +78,13 @@ const codeAgent = new ToolLoopAgent({
 ```
 
 You can also require approval before a tool executes. Use `needsApproval` on the
-tool itself for the default behavior, or set `toolNeedsApproval` on the
-`ToolLoopAgent` when approval should be configured per agent:
+tool itself for the default behavior, or set `toolApproval` on the
+`ToolLoopAgent` when approval should be configured per agent. Use
+`'not-applicable'` for the default execution path, `'user-approval'` for
+manual review, or `'approved'` / `'denied'` when you want explicit automatic
+approval records in the output. For automatic approvals and denials, you can
+also return an object such as `{ type: 'denied', reason: 'blocked by policy' }`
+to attach a reason to the approval response:
 
 ```ts
 const agent = new ToolLoopAgent({
@@ -93,8 +98,8 @@ const agent = new ToolLoopAgent({
       execute: async ({ code }) => ({ output: code }),
     }),
   },
-  toolNeedsApproval: {
-    runCode: true,
+  toolApproval: {
+    runCode: 'user-approval',
   },
 });
 ```
@@ -364,8 +369,8 @@ These are useful for logging, observability, debugging, and custom telemetry.
 const result = await myAgent.generate({
   prompt: 'Research and summarize the latest AI trends',
 
-  experimental_onStart({ model, functionId }) {
-    console.log('Agent started', { model: model.modelId, functionId });
+  experimental_onStart({ model }) {
+    console.log('Agent started', { model: model.modelId });
   },
 
   experimental_onStepStart({ stepNumber, model }) {
