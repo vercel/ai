@@ -1,0 +1,264 @@
+{
+  "id": "resp_0b650d19425923170069c1706f5aa481938059b663b25e820b",
+  "object": "response",
+  "created_at": 1774284911,
+  "status": "completed",
+  "background": false,
+  "completed_at": 1774284912,
+  "content_filters": [
+    {
+      "blocked": false,
+      "source_type": "prompt",
+      "content_filter_raw": [],
+      "content_filter_results": {
+        "hate": {
+          "filtered": false,
+          "severity": "safe"
+        },
+        "sexual": {
+          "filtered": false,
+          "severity": "safe"
+        },
+        "violence": {
+          "filtered": false,
+          "severity": "safe"
+        },
+        "self_harm": {
+          "filtered": false,
+          "severity": "safe"
+        }
+      },
+      "content_filter_offsets": {
+        "start_offset": 0,
+        "end_offset": 70,
+        "check_offset": 0
+      }
+    },
+    {
+      "blocked": false,
+      "source_type": "completion",
+      "content_filter_raw": [],
+      "content_filter_results": {
+        "hate": {
+          "filtered": false,
+          "severity": "safe"
+        },
+        "sexual": {
+          "filtered": false,
+          "severity": "safe"
+        },
+        "violence": {
+          "filtered": false,
+          "severity": "safe"
+        },
+        "self_harm": {
+          "filtered": false,
+          "severity": "safe"
+        }
+      },
+      "content_filter_offsets": {
+        "start_offset": 0,
+        "end_offset": 1419,
+        "check_offset": 0
+      }
+    }
+  ],
+  "error": null,
+  "frequency_penalty": 0,
+  "incomplete_details": null,
+  "instructions": null,
+  "max_output_tokens": null,
+  "max_tool_calls": null,
+  "model": "gpt-5.4",
+  "output": [
+    {
+      "id": "tsc_0b650d19425923170069c1706fcf5c8193a22c9ea4ff856a82",
+      "type": "tool_search_call",
+      "status": "completed",
+      "arguments": {
+        "paths": [
+          "get_weather"
+        ]
+      },
+      "call_id": null,
+      "execution": "server"
+    },
+    {
+      "id": "tso_0b650d19425923170069c1706fe1388193ac1c9df80af5a125",
+      "type": "tool_search_output",
+      "status": "completed",
+      "call_id": null,
+      "execution": "server",
+      "tools": [
+        {
+          "type": "function",
+          "defer_loading": true,
+          "description": "Get the current weather at a specific location",
+          "name": "get_weather",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "location": {
+                "type": "string",
+                "description": "The city and state, e.g. San Francisco, CA"
+              },
+              "unit": {
+                "type": "string",
+                "enum": [
+                  "celsius",
+                  "fahrenheit"
+                ],
+                "description": "Temperature unit"
+              }
+            },
+            "required": [
+              "location",
+              "unit"
+            ],
+            "additionalProperties": false
+          },
+          "strict": true
+        }
+      ]
+    },
+    {
+      "id": "fc_0b650d19425923170069c1707035508193bfc65be25143136a",
+      "type": "function_call",
+      "status": "completed",
+      "arguments": "{\"location\":\"San Francisco, CA\",\"unit\":\"fahrenheit\"}",
+      "call_id": "call_ePxqBm0PnR4anXjTGQBmGvDX",
+      "name": "get_weather",
+      "namespace": "get_weather"
+    }
+  ],
+  "parallel_tool_calls": true,
+  "presence_penalty": 0,
+  "previous_response_id": null,
+  "prompt_cache_key": null,
+  "prompt_cache_retention": null,
+  "reasoning": {
+    "effort": "none",
+    "summary": null
+  },
+  "safety_identifier": null,
+  "service_tier": "default",
+  "store": true,
+  "temperature": 1,
+  "text": {
+    "format": {
+      "type": "text"
+    },
+    "verbosity": "medium"
+  },
+  "tool_choice": "auto",
+  "tools": [
+    {
+      "type": "function",
+      "defer_loading": true,
+      "description": "Get the current weather at a specific location",
+      "name": "get_weather",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "location": {
+            "type": "string",
+            "description": "The city and state, e.g. San Francisco, CA"
+          },
+          "unit": {
+            "type": "string",
+            "enum": [
+              "celsius",
+              "fahrenheit"
+            ],
+            "description": "Temperature unit"
+          }
+        },
+        "required": [
+          "location",
+          "unit"
+        ],
+        "additionalProperties": false
+      },
+      "strict": true
+    },
+    {
+      "type": "function",
+      "defer_loading": true,
+      "description": "Search through files in the workspace",
+      "name": "search_files",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "The search query"
+          },
+          "file_types": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Filter by file types"
+          }
+        },
+        "required": [
+          "query",
+          "file_types"
+        ],
+        "additionalProperties": false
+      },
+      "strict": true
+    },
+    {
+      "type": "function",
+      "defer_loading": true,
+      "description": "Send an email to a recipient",
+      "name": "send_email",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "to": {
+            "type": "string",
+            "description": "Recipient email address"
+          },
+          "subject": {
+            "type": "string",
+            "description": "Email subject"
+          },
+          "body": {
+            "type": "string",
+            "description": "Email body content"
+          }
+        },
+        "required": [
+          "to",
+          "subject",
+          "body"
+        ],
+        "additionalProperties": false
+      },
+      "strict": true
+    },
+    {
+      "type": "tool_search",
+      "description": null,
+      "parameters": null
+    }
+  ],
+  "top_logprobs": 0,
+  "top_p": 0.98,
+  "truncation": "disabled",
+  "usage": {
+    "input_tokens": 643,
+    "input_tokens_details": {
+      "cached_tokens": 0
+    },
+    "output_tokens": 46,
+    "output_tokens_details": {
+      "reasoning_tokens": 20
+    },
+    "total_tokens": 689
+  },
+  "user": null,
+  "metadata": {}
+}

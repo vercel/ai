@@ -1,0 +1,198 @@
+{
+  "id": "resp_0911d318162227a30169c1706d9ab081909f1d832dbe03d9d9",
+  "object": "response",
+  "created_at": 1774284909,
+  "status": "completed",
+  "background": false,
+  "completed_at": 1774284910,
+  "content_filters": [
+    {
+      "blocked": false,
+      "source_type": "prompt",
+      "content_filter_raw": [],
+      "content_filter_results": {
+        "hate": {
+          "filtered": false,
+          "severity": "safe"
+        },
+        "sexual": {
+          "filtered": false,
+          "severity": "safe"
+        },
+        "violence": {
+          "filtered": false,
+          "severity": "safe"
+        },
+        "self_harm": {
+          "filtered": false,
+          "severity": "safe"
+        }
+      },
+      "content_filter_offsets": {
+        "start_offset": 0,
+        "end_offset": 70,
+        "check_offset": 0
+      }
+    },
+    {
+      "blocked": false,
+      "source_type": "completion",
+      "content_filter_raw": [],
+      "content_filter_results": {
+        "hate": {
+          "filtered": false,
+          "severity": "safe"
+        },
+        "sexual": {
+          "filtered": false,
+          "severity": "safe"
+        },
+        "violence": {
+          "filtered": false,
+          "severity": "safe"
+        },
+        "self_harm": {
+          "filtered": false,
+          "severity": "safe"
+        }
+      },
+      "content_filter_offsets": {
+        "start_offset": 0,
+        "end_offset": 1299,
+        "check_offset": 0
+      }
+    }
+  ],
+  "error": null,
+  "frequency_penalty": 0,
+  "incomplete_details": null,
+  "instructions": null,
+  "max_output_tokens": null,
+  "max_tool_calls": null,
+  "model": "gpt-5.4",
+  "output": [
+    {
+      "id": "tsc_0911d318162227a30169c1706e43c48190a7832911a96b4d70",
+      "type": "tool_search_call",
+      "status": "completed",
+      "arguments": {
+        "goal": "find a tool to get current weather in San Francisco"
+      },
+      "call_id": "call_qr2GKQpAP4LSaaSEdSzc6dLd",
+      "execution": "client"
+    }
+  ],
+  "parallel_tool_calls": true,
+  "presence_penalty": 0,
+  "previous_response_id": null,
+  "prompt_cache_key": null,
+  "prompt_cache_retention": null,
+  "reasoning": {
+    "effort": "none",
+    "summary": null
+  },
+  "safety_identifier": null,
+  "service_tier": "default",
+  "store": false,
+  "temperature": 1,
+  "text": {
+    "format": {
+      "type": "text"
+    },
+    "verbosity": "medium"
+  },
+  "tool_choice": "auto",
+  "tools": [
+    {
+      "type": "function",
+      "defer_loading": true,
+      "description": "Get the current weather at a specific location",
+      "name": "get_weather",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "location": {
+            "type": "string",
+            "description": "The city and state, e.g. San Francisco, CA"
+          },
+          "unit": {
+            "type": "string",
+            "enum": [
+              "celsius",
+              "fahrenheit"
+            ],
+            "description": "Temperature unit"
+          }
+        },
+        "required": [
+          "location",
+          "unit"
+        ],
+        "additionalProperties": false
+      },
+      "strict": true
+    },
+    {
+      "type": "function",
+      "defer_loading": true,
+      "description": "Search through files in the workspace",
+      "name": "search_files",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "The search query"
+          },
+          "file_types": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Filter by file types"
+          }
+        },
+        "required": [
+          "query",
+          "file_types"
+        ],
+        "additionalProperties": false
+      },
+      "strict": true
+    },
+    {
+      "type": "tool_search",
+      "description": "Search for available tools based on what the user needs.",
+      "execution": "client",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "goal": {
+            "type": "string",
+            "description": "What the user is trying to accomplish"
+          }
+        },
+        "required": [
+          "goal"
+        ],
+        "additionalProperties": false
+      }
+    }
+  ],
+  "top_logprobs": 0,
+  "top_p": 0.98,
+  "truncation": "disabled",
+  "usage": {
+    "input_tokens": 68,
+    "input_tokens_details": {
+      "cached_tokens": 0
+    },
+    "output_tokens": 28,
+    "output_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "total_tokens": 96
+  },
+  "user": null,
+  "metadata": {}
+}
