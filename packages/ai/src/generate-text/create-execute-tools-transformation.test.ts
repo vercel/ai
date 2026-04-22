@@ -75,6 +75,7 @@ describe('createExecuteToolsTransformation', () => {
         timeout: undefined,
         abortSignal: undefined,
         toolsContext: {},
+        runtimeContext: {},
       }),
     );
 
@@ -152,6 +153,7 @@ describe('createExecuteToolsTransformation', () => {
       abortSignal: undefined,
       timeout: undefined,
       toolsContext: {},
+      runtimeContext: {},
     });
 
     expect(
@@ -246,6 +248,7 @@ describe('createExecuteToolsTransformation', () => {
         abortSignal: undefined,
         timeout: undefined,
         toolsContext: {},
+        runtimeContext: {},
       }),
     );
 
@@ -286,6 +289,7 @@ describe('createExecuteToolsTransformation', () => {
         abortSignal: undefined,
         timeout: undefined,
         toolsContext: {},
+        runtimeContext: {},
         toolApproval: {
           approvedTool: {
             type: 'approved',
@@ -405,6 +409,7 @@ describe('createExecuteToolsTransformation', () => {
         abortSignal: undefined,
         timeout: undefined,
         toolsContext: {},
+        runtimeContext: {},
         toolApproval: {
           deniedTool: {
             type: 'denied',
@@ -515,6 +520,7 @@ describe('createExecuteToolsTransformation', () => {
           timeout: undefined,
           abortSignal: undefined,
           toolsContext: {},
+          runtimeContext: {},
           onToolExecutionStart: async () => {
             callOrder.push('onToolExecutionStart');
           },
@@ -564,6 +570,7 @@ describe('createExecuteToolsTransformation', () => {
           timeout: undefined,
           abortSignal: undefined,
           toolsContext: { testTool: { value: 'test' } },
+          runtimeContext: {},
           onToolExecutionStart: async event => {
             startEvents.push(event);
           },
@@ -646,6 +653,7 @@ describe('createExecuteToolsTransformation', () => {
           timeout: undefined,
           abortSignal: undefined,
           toolsContext: {},
+          runtimeContext: {},
           onToolExecutionEnd: async event => {
             toolExecutionEndEvents.push(event);
           },
@@ -710,6 +718,7 @@ describe('createExecuteToolsTransformation', () => {
           timeout: undefined,
           abortSignal: undefined,
           toolsContext: {},
+          runtimeContext: {},
           onToolExecutionEnd: async event => {
             toolExecutionEndEvents.push(event);
           },
@@ -770,6 +779,7 @@ describe('createExecuteToolsTransformation', () => {
           timeout: undefined,
           abortSignal: undefined,
           toolsContext: {},
+          runtimeContext: {},
           onToolExecutionStart: async event => {
             toolExecutionStartEvents.push(event);
           },
@@ -823,6 +833,7 @@ describe('createExecuteToolsTransformation', () => {
           timeout: undefined,
           abortSignal: undefined,
           toolsContext: {},
+          runtimeContext: {},
           onToolExecutionStart: async event => {
             toolExecutionStartEvents.push(event);
           },
@@ -939,6 +950,7 @@ describe('createExecuteToolsTransformation', () => {
           timeout: undefined,
           abortSignal: undefined,
           toolsContext: {},
+          runtimeContext: {},
           onToolExecutionStart: async event => {
             toolExecutionStartEvents.push(event);
           },
@@ -989,6 +1001,7 @@ describe('createExecuteToolsTransformation', () => {
           toolsContext: {
             guardedTool: { apiKey: 123 } as any,
           },
+          runtimeContext: {},
         }),
       );
 
@@ -1045,6 +1058,7 @@ describe('createExecuteToolsTransformation', () => {
           abortSignal: undefined,
           timeout: undefined,
           toolsContext: {},
+          runtimeContext: {},
         }),
       );
 
@@ -1130,6 +1144,7 @@ describe('createExecuteToolsTransformation', () => {
           messages: [],
           abortSignal: undefined,
           toolsContext: {},
+          runtimeContext: {},
         }),
       );
 

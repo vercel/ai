@@ -406,7 +406,7 @@ export function streamText<
      *
      * This configuration takes precedence over tool-defined approval settings.
      */
-    toolApproval?: ToolApprovalConfiguration<TOOLS>;
+    toolApproval?: ToolApprovalConfiguration<TOOLS, RUNTIME_CONTEXT>;
 
     /**
      * Optional function that you can use to provide different settings for a step.
@@ -810,7 +810,7 @@ class DefaultStreamTextResult<
       StopCondition<NoInfer<TOOLS>, NoInfer<RUNTIME_CONTEXT>>
     >;
     output: OUTPUT | undefined;
-    toolApproval: ToolApprovalConfiguration<TOOLS> | undefined;
+    toolApproval: ToolApprovalConfiguration<TOOLS, RUNTIME_CONTEXT> | undefined;
     providerOptions: ProviderOptions | undefined;
     prepareStep:
       | PrepareStepFunction<NoInfer<TOOLS>, NoInfer<RUNTIME_CONTEXT>>
@@ -1633,6 +1633,7 @@ class DefaultStreamTextResult<
               timeout,
               toolsContext,
               toolApproval,
+              runtimeContext,
               generateId,
               onToolExecutionStart: filterNullable(
                 onToolExecutionStart,

@@ -133,7 +133,7 @@ export type ToolLoopAgentSettings<
      *
      * This configuration takes precedence over tool-defined approval settings.
      */
-    toolApproval?: ToolApprovalConfiguration<NoInfer<TOOLS>>;
+    toolApproval?: ToolApprovalConfiguration<NoInfer<TOOLS>, RUNTIME_CONTEXT>;
 
     /**
      * Optional function that you can use to provide different settings for a step.
