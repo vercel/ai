@@ -84,9 +84,9 @@ import { prepareRetries } from '../util/prepare-retries';
 import { collectToolApprovals } from './collect-tool-approvals';
 import { ContentPart } from './content-part';
 import type {
-  ModelCallEndEvent,
-  ModelCallStartEvent,
   OnFinishEvent,
+  OnModelCallEndCallback,
+  OnModelCallStartCallback,
   OnStartEvent,
   OnStepFinishEvent,
   OnStepStartEvent,
@@ -249,26 +249,6 @@ export type StreamTextOnStepStartCallback<
   RUNTIME_CONTEXT extends Context = Context,
   OUTPUT extends Output = Output,
 > = Callback<OnStepStartEvent<TOOLS, RUNTIME_CONTEXT, OUTPUT>>;
-
-/**
- * Callback that is set using the `experimental_onModelCallStart` option.
- *
- * Called immediately before the provider model call begins.
- *
- * @param event - The event object containing model-call-specific inputs.
- */
-export type StreamTextOnModelCallStartCallback = Callback<ModelCallStartEvent>;
-
-/**
- * Callback that is set using the `experimental_onModelCallEnd` option.
- *
- * Called after the model response has been normalized and parsed, but before
- * any client-side tool execution begins.
- *
- * @param event - The event object containing model-call-specific outputs.
- */
-export type StreamTextOnModelCallEndCallback<TOOLS extends ToolSet = ToolSet> =
-  Callback<ModelCallEndEvent<TOOLS>>;
 
 /**
  * Generate a text and call tools for a given prompt using a language model.
@@ -532,15 +512,13 @@ export function streamText<
     /**
      * Callback that is called immediately before the provider model call begins.
      */
-    experimental_onModelCallStart?: StreamTextOnModelCallStartCallback;
+    experimental_onModelCallStart?: OnModelCallStartCallback;
 
     /**
      * Callback that is called after the model response has been normalized and parsed,
      * but before any client-side tool execution begins.
      */
-    experimental_onModelCallEnd?: StreamTextOnModelCallEndCallback<
-      NoInfer<TOOLS>
-    >;
+    experimental_onModelCallEnd?: OnModelCallEndCallback<NoInfer<TOOLS>>;
 
     /**
      * Callback that is called right before a tool's execute function runs.
@@ -896,10 +874,8 @@ class DefaultStreamTextResult<
           NoInfer<RUNTIME_CONTEXT>,
           NoInfer<OUTPUT>
         >;
-    onModelCallStart: undefined | StreamTextOnModelCallStartCallback;
-    onModelCallEnd:
-      | undefined
-      | StreamTextOnModelCallEndCallback<NoInfer<TOOLS>>;
+    onModelCallStart: undefined | OnModelCallStartCallback;
+    onModelCallEnd: undefined | OnModelCallEndCallback<NoInfer<TOOLS>>;
     onToolExecutionStart: undefined | OnToolExecutionStartCallback<TOOLS>;
     onToolExecutionEnd: undefined | OnToolExecutionEndCallback<TOOLS>;
   }) {
@@ -1669,7 +1645,7 @@ class DefaultStreamTextResult<
                     onModelCallStart,
                     telemetryDispatcher.onModelCallStart as
                       | undefined
-                      | StreamTextOnModelCallStartCallback,
+                      | OnModelCallStartCallback,
                   ],
                 });
               },
@@ -1712,7 +1688,7 @@ class DefaultStreamTextResult<
               onModelCallEnd: filterNullable(
                 onModelCallEnd,
                 telemetryDispatcher.onModelCallEnd as
-                  | StreamTextOnModelCallEndCallback<TOOLS>
+                  | OnModelCallEndCallback<TOOLS>
                   | undefined,
               ),
               executeToolInTelemetryContext: telemetryDispatcher.executeTool,

@@ -8,6 +8,7 @@ import type {
   ToolSet,
 } from '@ai-sdk/provider-utils';
 import type { TimeoutConfiguration } from '../prompt/request-options';
+import type { Callback } from '../util/callback';
 import type { GeneratedFile } from './generated-file';
 import type { ToolChoice } from '../types/language-model';
 import type { LanguageModelUsage } from '../types/usage';
@@ -286,3 +287,26 @@ export type OnFinishEvent<
   /** Aggregated token usage across all steps. */
   readonly totalUsage: LanguageModelUsage;
 };
+
+/**
+ * Callback that is set using the `experimental_onModelCallStart` option.
+ *
+ * Called immediately before the provider model call begins.
+ * Unlike step-start callbacks, this is scoped to model work only and
+ * excludes any later client-side tool execution.
+ *
+ * @param event - The event object containing model-call-specific inputs.
+ */
+export type OnModelCallStartCallback = Callback<ModelCallStartEvent>;
+
+/**
+ * Callback that is set using the `experimental_onModelCallEnd` option.
+ *
+ * Called after the model response has been normalized and parsed, but before
+ * any client-side tool execution begins.
+ *
+ * @param event - The event object containing model-call-specific outputs.
+ */
+export type OnModelCallEndCallback<TOOLS extends ToolSet = ToolSet> = Callback<
+  ModelCallEndEvent<TOOLS>
+>;

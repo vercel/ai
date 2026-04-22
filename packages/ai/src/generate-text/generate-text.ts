@@ -60,9 +60,9 @@ import { VERSION } from '../version';
 import { collectToolApprovals } from './collect-tool-approvals';
 import { ContentPart } from './content-part';
 import type {
-  ModelCallEndEvent,
-  ModelCallStartEvent,
   OnFinishEvent,
+  OnModelCallEndCallback,
+  OnModelCallStartCallback,
   OnStartEvent,
   OnStepFinishEvent,
   OnStepStartEvent,
@@ -138,28 +138,6 @@ export type GenerateTextOnStepStartCallback<
   RUNTIME_CONTEXT extends Context = Context,
   OUTPUT extends Output = Output,
 > = Callback<OnStepStartEvent<TOOLS, RUNTIME_CONTEXT, OUTPUT>>;
-
-/**
- * Callback that is set using the `experimental_onModelCallStart` option.
- *
- * Called immediately before the provider model call begins.
- *
- * @param event - The event object containing model-call-specific inputs.
- */
-export type GenerateTextOnModelCallStartCallback =
-  Callback<ModelCallStartEvent>;
-
-/**
- * Callback that is set using the `experimental_onModelCallEnd` option.
- *
- * Called after the model response has been normalized and parsed, but before
- * any client-side tool execution begins.
- *
- * @param event - The event object containing model-call-specific outputs.
- */
-export type GenerateTextOnModelCallEndCallback<
-  TOOLS extends ToolSet = ToolSet,
-> = Callback<ModelCallEndEvent<TOOLS>>;
 
 /**
  * Callback that is set using the `onStepFinish` option.
@@ -389,15 +367,13 @@ export async function generateText<
     /**
      * Callback that is called immediately before the provider model call begins.
      */
-    experimental_onModelCallStart?: GenerateTextOnModelCallStartCallback;
+    experimental_onModelCallStart?: OnModelCallStartCallback;
 
     /**
      * Callback that is called after the model response has been normalized and parsed,
      * but before any client-side tool execution begins.
      */
-    experimental_onModelCallEnd?: GenerateTextOnModelCallEndCallback<
-      NoInfer<TOOLS>
-    >;
+    experimental_onModelCallEnd?: OnModelCallEndCallback<NoInfer<TOOLS>>;
 
     /**
      * Callback that is called right before a tool's execute function runs.
@@ -746,7 +722,7 @@ export async function generateText<
             onModelCallStart,
             telemetryDispatcher.onModelCallStart as
               | undefined
-              | GenerateTextOnModelCallStartCallback,
+              | OnModelCallStartCallback,
           ],
         });
 
@@ -833,7 +809,7 @@ export async function generateText<
             onModelCallEnd,
             telemetryDispatcher.onModelCallEnd as
               | undefined
-              | GenerateTextOnModelCallEndCallback<TOOLS>,
+              | OnModelCallEndCallback<TOOLS>,
           ],
         });
 

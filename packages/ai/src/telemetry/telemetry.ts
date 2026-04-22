@@ -16,6 +16,8 @@ import type {
   ModelCallStartEvent,
   OnChunkEvent,
   OnFinishEvent,
+  OnModelCallEndCallback,
+  OnModelCallStartCallback,
   OnStartEvent,
   OnStepFinishEvent,
   OnStepStartEvent,
@@ -51,8 +53,8 @@ type OperationFinishEvent =
 export interface TelemetryDispatcher {
   onStart?: Callback<OperationStartEvent>;
   onStepStart?: Callback<OnStepStartEvent>;
-  onModelCallStart?: Callback<ModelCallStartEvent>;
-  onModelCallEnd?: Callback<ModelCallEndEvent>;
+  onModelCallStart?: OnModelCallStartCallback;
+  onModelCallEnd?: OnModelCallEndCallback;
   onToolExecutionStart?: Callback<ToolExecutionStartEvent>;
   onToolExecutionEnd?: Callback<ToolExecutionEndEvent>;
   onChunk?: Callback<OnChunkEvent>;
@@ -98,13 +100,13 @@ export interface Telemetry {
    * Unlike `onStepStart`, this callback is scoped to model work only and
    * excludes any later client-side tool execution.
    */
-  onModelCallStart?: Callback<ModelCallStartEvent>;
+  onModelCallStart?: Callback<InferTelemetryEvent<ModelCallStartEvent>>;
 
   /**
    * Called after the model response has been normalized and parsed, but before
    * any client-side tool execution begins.
    */
-  onModelCallEnd?: Callback<ModelCallEndEvent>;
+  onModelCallEnd?: Callback<InferTelemetryEvent<ModelCallEndEvent>>;
 
   /**
    * Called when a tool execution begins, before the tool's `execute` function
