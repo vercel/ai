@@ -62,8 +62,9 @@ export type {
   UIMessageStreamOptions,
 } from './stream-text-result';
 export type {
-  ToolApprovalConfiguration,
+  GenericToolApprovalFunction,
   SingleToolApprovalFunction,
+  ToolApprovalConfiguration,
   ToolApprovalStatus,
 } from './tool-approval-configuration';
 export type { ToolApprovalRequestOutput } from './tool-approval-request-output';
