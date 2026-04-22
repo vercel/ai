@@ -110,7 +110,7 @@ tool({
 By default, tools with an `execute` function run automatically as the model calls them. You can require approval before execution in two ways:
 
 - Set `needsApproval` on an individual tool to define its default approval behavior
-- Set `toolApproval` on `generateText`, `streamText`, or `ToolLoopAgent` to configure approval at call or agent level: a `GenericToolApprovalFunction` for all tool calls, or a per-tool map of statuses and/or `SingleToolApprovalFunction` callbacks
+- Set `toolApproval` on `generateText`, `streamText`, or `ToolLoopAgent` to configure approval at call or agent level: a `GenericToolApprovalFunction` for all tool calls, or a per-tool map of statuses and/or `SingleToolApprovalFunction` callbacks (either function may return `undefined` for the same effect as `'not-applicable'`)
 
 Use `needsApproval` when the tool should usually require approval wherever it is used. Use `toolApproval` when approval depends on the specific request or runtime context. If both are provided, `toolApproval` takes precedence.
 
@@ -169,7 +169,7 @@ toolApproval: {
 
 Pass a `GenericToolApprovalFunction` as `toolApproval` to handle every tool
 call in one place. The callback receives `toolCall`, `tools`, `toolsContext`, and
-`messages`:
+`messages`. It may return `undefined` for the same effect as `'not-applicable'`.
 
 ```ts highlight="4-10"
 const result = await generateText({
@@ -180,7 +180,7 @@ const result = await generateText({
       // Inspect toolCall.input, cross-tool state, or messages for policy.
       return 'user-approval';
     }
-    return 'not-applicable';
+    return undefined; // or 'not-applicable'
   },
   prompt: 'Remove the most recent file in the downloads folder',
 });
@@ -193,6 +193,7 @@ across all tools.
 For a per-tool object instead, each key can be a `SingleToolApprovalFunction`
 that receives the tool input and options `toolCallId`, `messages`, and
 `context` (the same `context` shape as tool execution, without `abortSignal`).
+Return `undefined` for the same effect as `'not-applicable'`.
 
 This is useful for tools that perform sensitive operations like executing commands, processing payments, modifying data, and more potentially dangerous actions.
 
@@ -202,7 +203,8 @@ When a tool requires manual approval, `generateText` and `streamText` don't paus
 
 Manual approval can come from either tool-level `needsApproval` or call-level
 `toolApproval` returning `'user-approval'`. If the tool should just execute
-normally, use `'not-applicable'` or omit the setting entirely. If
+normally, use `'not-applicable'`, return `undefined` from a `GenericToolApprovalFunction` or
+`SingleToolApprovalFunction`, or omit the setting entirely. If
 `toolApproval` returns `'approved'` or `'denied'` or their object forms, the
 SDK records that decision automatically in the same generation by emitting
 approval request/response parts. When you provide a `reason` on an automatic
@@ -271,7 +273,7 @@ messages.push({ role: 'tool', content: approvals });
 Then call `generateText` or `streamText` again with the updated messages. If approved, the tool executes. If denied, the model receives the denial and can respond accordingly.
 
 When the tool should execute without any approval metadata in the output, use
-`'not-applicable'` or omit `toolApproval`. Use `'approved'`, `'denied'`, or
+`'not-applicable'`, return `undefined` from an approval function, or omit `toolApproval`. Use `'approved'`, `'denied'`, or
 their object forms only when you want the result to include an automatic
 `tool-approval-request` with `isAutomatic: true` followed by a
 `tool-approval-response`, so you can inspect or render the decision without
@@ -310,13 +312,12 @@ const paymentTool = tool({
 In this example, only transactions over $1000 require approval. Smaller transactions execute automatically.
 
 You can use a `SingleToolApprovalFunction` in a per-tool `toolApproval` object when you want to return
-`'not-applicable'`, `'approved'`, `'denied'`, or `'user-approval'` at call time
+`'not-applicable'`, `undefined` (equivalent to `'not-applicable'`), `'approved'`, `'denied'`, or `'user-approval'` at call time
 instead of defining the default on the tool itself. For automatic approvals and
 denials, the callback can also return `{ type, reason }`, for example
-`{ type: 'denied', reason: 'blocked by policy' }`. Return `'not-applicable'`
-for the normal execution path. For decisions that need the full `toolCall` or
+`{ type: 'denied', reason: 'blocked by policy' }`. For decisions that need the full `toolCall` or
 several tools at once, pass a `GenericToolApprovalFunction` as `toolApproval` instead
-of a per-tool map.
+of a per-tool map. The generic function can return `undefined` the same way.
 
 ### Tool Execution Approval with useChat
 
