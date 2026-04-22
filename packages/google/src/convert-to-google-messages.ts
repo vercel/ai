@@ -260,13 +260,17 @@ export function convertToGoogleMessages(
           role: 'model',
           parts: content
             .map(part => {
-              const providerOpts =
-                part.providerOptions?.[providerOptionsName] ??
-                (providerOptionsName !== 'google'
+              const ownProviderOpts =
+                part.providerOptions?.[providerOptionsName];
+              const fallbackProviderOpts =
+                providerOptionsName !== 'google'
                   ? part.providerOptions?.google
-                  : part.providerOptions?.vertex);
+                  : part.providerOptions?.vertex;
+              const providerOpts = ownProviderOpts ?? fallbackProviderOpts;
+              const isCrossProvider =
+                !ownProviderOpts && !!fallbackProviderOpts;
               const thoughtSignature =
-                providerOpts?.thoughtSignature != null
+                !isCrossProvider && providerOpts?.thoughtSignature != null
                   ? String(providerOpts.thoughtSignature)
                   : undefined;
 
@@ -352,7 +356,7 @@ export function convertToGoogleMessages(
 
                 case 'tool-call': {
                   const serverToolCallId =
-                    providerOpts?.serverToolCallId != null
+                    !isCrossProvider && providerOpts?.serverToolCallId != null
                       ? String(providerOpts.serverToolCallId)
                       : undefined;
                   const serverToolType =
@@ -385,7 +389,7 @@ export function convertToGoogleMessages(
 
                 case 'tool-result': {
                   const serverToolCallId =
-                    providerOpts?.serverToolCallId != null
+                    !isCrossProvider && providerOpts?.serverToolCallId != null
                       ? String(providerOpts.serverToolCallId)
                       : undefined;
                   const serverToolType =
@@ -425,13 +429,18 @@ export function convertToGoogleMessages(
             continue;
           }
 
-          const partProviderOpts =
-            part.providerOptions?.[providerOptionsName] ??
-            (providerOptionsName !== 'google'
+          const ownPartProviderOpts =
+            part.providerOptions?.[providerOptionsName];
+          const fallbackPartProviderOpts =
+            providerOptionsName !== 'google'
               ? part.providerOptions?.google
-              : part.providerOptions?.vertex);
+              : part.providerOptions?.vertex;
+          const partProviderOpts =
+            ownPartProviderOpts ?? fallbackPartProviderOpts;
+          const isPartCrossProvider =
+            !ownPartProviderOpts && !!fallbackPartProviderOpts;
           const serverToolCallId =
-            partProviderOpts?.serverToolCallId != null
+            !isPartCrossProvider && partProviderOpts?.serverToolCallId != null
               ? String(partProviderOpts.serverToolCallId)
               : undefined;
           const serverToolType =
@@ -441,7 +450,7 @@ export function convertToGoogleMessages(
 
           if (serverToolCallId && serverToolType) {
             const serverThoughtSignature =
-              partProviderOpts?.thoughtSignature != null
+              !isPartCrossProvider && partProviderOpts?.thoughtSignature != null
                 ? String(partProviderOpts.thoughtSignature)
                 : undefined;
 
