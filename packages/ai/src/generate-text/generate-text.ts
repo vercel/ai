@@ -65,6 +65,10 @@ import type {
   OnStepFinishEvent,
   OnStepStartEvent,
 } from './core-events';
+import type {
+  OnLanguageModelCallEndCallback,
+  OnLanguageModelCallStartCallback,
+} from './language-model-events';
 import { executeToolCall } from './execute-tool-call';
 import { filterActiveTools } from './filter-active-tool';
 import { GenerateTextResult } from './generate-text-result';
@@ -253,6 +257,8 @@ export async function generateText<
   } = {},
   experimental_onStart: onStart,
   experimental_onStepStart: onStepStart,
+  experimental_onLanguageModelCallStart: onLanguageModelCallStart,
+  experimental_onLanguageModelCallEnd: onLanguageModelCallEnd,
   experimental_onToolExecutionStart: onToolExecutionStart,
   experimental_onToolExecutionEnd: onToolExecutionEnd,
   onStepFinish,
@@ -358,6 +364,19 @@ export async function generateText<
       NoInfer<TOOLS>,
       NoInfer<RUNTIME_CONTEXT>,
       NoInfer<OUTPUT>
+    >;
+
+    /**
+     * Callback that is called immediately before the provider model call begins.
+     */
+    experimental_onLanguageModelCallStart?: OnLanguageModelCallStartCallback;
+
+    /**
+     * Callback that is called after the model response has been normalized and parsed,
+     * but before any client-side tool execution begins.
+     */
+    experimental_onLanguageModelCallEnd?: OnLanguageModelCallEndCallback<
+      NoInfer<TOOLS>
     >;
 
     /**
@@ -665,11 +684,12 @@ export async function generateText<
           providerOptions,
           prepareStepResult?.providerOptions,
         );
+        const stepNumber = steps.length;
 
         await notify({
           event: {
             callId,
-            stepNumber: steps.length,
+            stepNumber,
             provider: stepModel.provider,
             modelId: stepModel.modelId,
             system: stepSystem,
@@ -691,6 +711,22 @@ export async function generateText<
             telemetryDispatcher.onStepStart as
               | undefined
               | GenerateTextOnStepStartCallback<TOOLS, RUNTIME_CONTEXT, OUTPUT>,
+          ],
+        });
+
+        await notify({
+          event: {
+            callId,
+            provider: stepModel.provider,
+            modelId: stepModel.modelId,
+            messages: stepMessages,
+            tools: stepTools,
+          },
+          callbacks: [
+            onLanguageModelCallStart,
+            telemetryDispatcher.onLanguageModelCallStart as
+              | undefined
+              | OnLanguageModelCallStartCallback,
           ],
         });
 
@@ -743,6 +779,33 @@ export async function generateText<
           ToolApprovalResponseOutput<TOOLS>
         > = {};
         const blockedToolCallIds = new Set<string>();
+
+        const modelCallContent = asContent({
+          content: currentModelResponse.content,
+          toolCalls: stepToolCalls,
+          toolOutputs: [],
+          toolApprovalRequests: [],
+          toolApprovalResponses: [],
+          tools,
+        });
+
+        await notify({
+          event: {
+            callId,
+            provider: stepModel.provider,
+            modelId: stepModel.modelId,
+            finishReason: currentModelResponse.finishReason.unified,
+            usage: asLanguageModelUsage(currentModelResponse.usage),
+            content: modelCallContent,
+            responseId: currentModelResponse.response.id,
+          },
+          callbacks: [
+            onLanguageModelCallEnd,
+            telemetryDispatcher.onLanguageModelCallEnd as
+              | undefined
+              | OnLanguageModelCallEndCallback<TOOLS>,
+          ],
+        });
 
         // notify the tools that the tool calls are available:
         for (const toolCall of stepToolCalls) {
@@ -962,8 +1025,6 @@ export async function generateText<
               ? currentModelResponse.response?.body
               : undefined,
         };
-
-        const stepNumber = steps.length;
 
         const currentStepResult: StepResult<TOOLS, RUNTIME_CONTEXT> =
           new DefaultStepResult({

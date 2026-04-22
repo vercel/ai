@@ -6,6 +6,13 @@ export type {
   OnStepFinishEvent,
   OnStepStartEvent,
 } from './core-events';
+export type {
+  CallbackModelInfo,
+  LanguageModelCallEndEvent,
+  LanguageModelCallStartEvent,
+  OnLanguageModelCallEndCallback,
+  OnLanguageModelCallStartCallback,
+} from './language-model-events';
 export { filterActiveTools as experimental_filterActiveTools } from './filter-active-tool';
 export {
   generateText,

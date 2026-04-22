@@ -1,11 +1,15 @@
-import type { Arrayable, ToolSet } from '@ai-sdk/provider-utils';
-import {
-  IdGenerator,
+import type {
+  Arrayable,
   InferToolSetContext,
-  ModelMessage,
+  ToolSet,
 } from '@ai-sdk/provider-utils';
+import { IdGenerator, ModelMessage } from '@ai-sdk/provider-utils';
 import { TimeoutConfiguration } from '../prompt/request-options';
 import type { Telemetry } from '../telemetry/telemetry';
+import type { Callback } from '../util/callback';
+import { notify } from '../util/notify';
+import type { ContentPart } from './content-part';
+import type { LanguageModelCallEndEvent } from './language-model-events';
 import { executeToolCall } from './execute-tool-call';
 import { resolveToolApproval } from './resolve-tool-approval';
 import { LanguageModelStreamPart } from './stream-language-model-call';
@@ -25,6 +29,9 @@ export function createExecuteToolsTransformation<TOOLS extends ToolSet>({
   toolsContext,
   toolApproval,
   generateId,
+  provider,
+  modelId,
+  onLanguageModelCallEnd,
   onToolExecutionStart,
   onToolExecutionEnd,
   executeToolInTelemetryContext,
@@ -37,6 +44,11 @@ export function createExecuteToolsTransformation<TOOLS extends ToolSet>({
   toolsContext: InferToolSetContext<TOOLS>;
   toolApproval?: ToolApprovalConfiguration<TOOLS>;
   generateId: IdGenerator;
+  provider?: string;
+  modelId?: string;
+  onLanguageModelCallEnd?: Arrayable<
+    Callback<LanguageModelCallEndEvent<TOOLS>>
+  >;
   onToolExecutionStart?: Arrayable<OnToolExecutionStartCallback<TOOLS>>;
   onToolExecutionEnd?: Arrayable<OnToolExecutionEndCallback<TOOLS>>;
   executeToolInTelemetryContext?: Telemetry['executeTool'];
@@ -45,6 +57,13 @@ export function createExecuteToolsTransformation<TOOLS extends ToolSet>({
   LanguageModelStreamPart<TOOLS>
 > {
   const toolCallsToExecute: Array<TypedToolCall<TOOLS>> = [];
+
+  // Accumulate streamed content parts (text deltas, reasoning, files, tool calls)
+  // and response metadata so we can provide the complete content to the
+  // onLanguageModelCallEnd callback.
+  const modelContent: Array<ContentPart<TOOLS>> = [];
+  let responseModelId = modelId ?? '';
+  let responseId = '';
 
   // forward stream
   return new TransformStream<
@@ -67,6 +86,8 @@ export function createExecuteToolsTransformation<TOOLS extends ToolSet>({
           if (chunk.invalid) {
             return;
           }
+
+          modelContent.push(chunk);
 
           const tool = tools?.[chunk.toolName];
 
@@ -149,7 +170,59 @@ export function createExecuteToolsTransformation<TOOLS extends ToolSet>({
           return;
         }
 
+        case 'text-delta': {
+          const lastText = modelContent.at(-1);
+          if (lastText != null && lastText.type === 'text') {
+            lastText.text += chunk.text;
+          } else {
+            modelContent.push({ type: 'text', text: chunk.text });
+          }
+          break;
+        }
+
+        case 'reasoning-start': {
+          modelContent.push({ type: 'reasoning', text: '' });
+          break;
+        }
+
+        case 'reasoning-delta': {
+          const lastReasoning = modelContent.at(-1);
+          if (lastReasoning != null && lastReasoning.type === 'reasoning') {
+            lastReasoning.text = `${lastReasoning.text ?? ''}${chunk.text}`;
+          } else {
+            modelContent.push({ type: 'reasoning', text: chunk.text });
+          }
+          break;
+        }
+
+        case 'file': {
+          modelContent.push({
+            type: 'file',
+            file: chunk.file,
+          });
+          break;
+        }
+
+        case 'model-call-response-metadata': {
+          responseModelId = chunk.modelId ?? responseModelId;
+          responseId = chunk.id ?? responseId;
+          break;
+        }
+
         case 'model-call-end': {
+          await notify({
+            event: {
+              callId,
+              provider: provider ?? '',
+              modelId: modelId ?? responseModelId,
+              finishReason: chunk.finishReason,
+              usage: chunk.usage,
+              content: modelContent,
+              responseId,
+            },
+            callbacks: onLanguageModelCallEnd,
+          });
+
           await Promise.all(
             toolCallsToExecute.map(async toolCall => {
               try {
