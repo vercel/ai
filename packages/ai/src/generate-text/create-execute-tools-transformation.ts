@@ -8,7 +8,7 @@ import { TimeoutConfiguration } from '../prompt/request-options';
 import type { Telemetry } from '../telemetry/telemetry';
 import type { Callback } from '../util/callback';
 import { notify } from '../util/notify';
-import type { ModelCallEndEvent } from './core-events';
+import type { ModelCallEndEvent } from './language-model-events';
 import { executeToolCall } from './execute-tool-call';
 import type { GeneratedFile } from './generated-file';
 import { resolveToolApproval } from './resolve-tool-approval';

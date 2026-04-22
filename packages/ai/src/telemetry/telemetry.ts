@@ -12,16 +12,18 @@ import type {
   ObjectOnStepStartEvent,
 } from '../generate-object/structured-output-events';
 import type {
-  ModelCallEndEvent,
-  ModelCallStartEvent,
   OnChunkEvent,
   OnFinishEvent,
-  OnModelCallEndCallback,
-  OnModelCallStartCallback,
   OnStartEvent,
   OnStepFinishEvent,
   OnStepStartEvent,
 } from '../generate-text/core-events';
+import type {
+  ModelCallEndEvent,
+  ModelCallStartEvent,
+  OnModelCallEndCallback,
+  OnModelCallStartCallback,
+} from '../generate-text/language-model-events';
 import type {
   ToolExecutionEndEvent,
   ToolExecutionStartEvent,

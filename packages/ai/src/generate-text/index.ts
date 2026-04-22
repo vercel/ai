@@ -1,15 +1,18 @@
 export type { ContentPart } from './content-part';
 export type {
-  ModelCallEndEvent,
-  ModelCallStartEvent,
   OnChunkEvent,
   OnFinishEvent,
-  OnModelCallEndCallback,
-  OnModelCallStartCallback,
   OnStartEvent,
   OnStepFinishEvent,
   OnStepStartEvent,
 } from './core-events';
+export type {
+  CallbackModelInfo,
+  ModelCallEndEvent,
+  ModelCallStartEvent,
+  OnModelCallEndCallback,
+  OnModelCallStartCallback,
+} from './language-model-events';
 export { filterActiveTools as experimental_filterActiveTools } from './filter-active-tool';
 export {
   generateText,

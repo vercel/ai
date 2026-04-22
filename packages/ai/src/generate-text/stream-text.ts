@@ -85,12 +85,14 @@ import { collectToolApprovals } from './collect-tool-approvals';
 import { ContentPart } from './content-part';
 import type {
   OnFinishEvent,
-  OnModelCallEndCallback,
-  OnModelCallStartCallback,
   OnStartEvent,
   OnStepFinishEvent,
   OnStepStartEvent,
 } from './core-events';
+import type {
+  OnModelCallEndCallback,
+  OnModelCallStartCallback,
+} from './language-model-events';
 import { createExecuteToolsTransformation } from './create-execute-tools-transformation';
 import { executeToolCall } from './execute-tool-call';
 import { filterActiveTools } from './filter-active-tool';
