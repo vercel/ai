@@ -211,13 +211,13 @@ export function myIntegration(): Telemetry {
   content={[
     {
       name: 'onStart',
-      type: '(event: OnStartEvent) => void | PromiseLike<void>',
+      type: '(event: GenerateTextStartEvent) => void | PromiseLike<void>',
       description:
         'Called when the generation operation begins, before any LLM calls.',
     },
     {
       name: 'onStepStart',
-      type: '(event: OnStepStartEvent) => void | PromiseLike<void>',
+      type: '(event: GenerateTextStepStartEvent) => void | PromiseLike<void>',
       description:
         'Called when a step (LLM call) begins, before the provider is called.',
     },
@@ -245,12 +245,12 @@ export function myIntegration(): Telemetry {
     },
     {
       name: 'onStepFinish',
-      type: '(event: OnStepFinishEvent) => void | PromiseLike<void>',
+      type: '(event: GenerateTextStepEndEvent) => void | PromiseLike<void>',
       description: 'Called when a step (LLM call) completes.',
     },
     {
       name: 'onFinish',
-      type: '(event: OnFinishEvent) => void | PromiseLike<void>',
+      type: '(event: GenerateTextEndEvent) => void | PromiseLike<void>',
       description:
         'Called when the entire generation completes (all steps finished).',
     },
