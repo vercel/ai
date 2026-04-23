@@ -1446,6 +1446,116 @@ describe('assistant messages', () => {
     expect(warnings).toMatchInlineSnapshot(`[]`);
   });
 
+  it('should reorder regular tool_use after server_tool_use + result when both appear in same turn', async () => {
+    const warnings: SharedV3Warning[] = [];
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'text',
+              text: "I'll search for news and check the schema.",
+            },
+            {
+              type: 'tool-call',
+              toolCallId: 'toolu_01Regular',
+              toolName: 'get_table_schema',
+              input: {},
+            },
+            {
+              type: 'tool-call',
+              toolCallId: 'srvtoolu_01Web',
+              toolName: 'web_search',
+              input: { query: 'latest news' },
+              providerExecuted: true,
+            },
+            {
+              type: 'tool-result',
+              toolCallId: 'srvtoolu_01Web',
+              toolName: 'web_search',
+              output: {
+                type: 'json',
+                value: [
+                  {
+                    type: 'web_search_result',
+                    url: 'https://example.com',
+                    title: 'News',
+                    pageAge: '1h',
+                    encryptedContent: 'enc123',
+                  },
+                ],
+              },
+              providerExecuted: true,
+            },
+          ],
+        },
+      ],
+      sendReasoning: false,
+      warnings,
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    const assistantMsg = result.prompt.messages[0];
+    expect(assistantMsg.role).toBe('assistant');
+    const content = (
+      assistantMsg as { role: 'assistant'; content: Array<{ type: string }> }
+    ).content;
+    const types = content.map(p => p.type);
+
+    // text should come first, then server_tool_use + result, then regular tool_use last
+    expect(types).toEqual([
+      'text',
+      'server_tool_use',
+      'web_search_tool_result',
+      'tool_use',
+    ]);
+
+    expect(warnings).toEqual([]);
+  });
+
+  it('should not reorder when only regular tool_use is present (no server tools)', async () => {
+    const warnings: SharedV3Warning[] = [];
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'text',
+              text: 'Let me check both.',
+            },
+            {
+              type: 'tool-call',
+              toolCallId: 'toolu_01A',
+              toolName: 'tool_a',
+              input: {},
+            },
+            {
+              type: 'tool-call',
+              toolCallId: 'toolu_01B',
+              toolName: 'tool_b',
+              input: { key: 'value' },
+            },
+          ],
+        },
+      ],
+      sendReasoning: false,
+      warnings,
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    const assistantMsg = result.prompt.messages[0];
+    const content = (
+      assistantMsg as { role: 'assistant'; content: Array<{ type: string }> }
+    ).content;
+    const types = content.map(p => p.type);
+
+    // Order should be preserved as-is (no reordering needed)
+    expect(types).toEqual(['text', 'tool_use', 'tool_use']);
+    expect(warnings).toEqual([]);
+  });
+
   it('should convert anthropic web_fetch tool call and result parts', async () => {
     const warnings: SharedV4Warning[] = [];
     const result = await convertToAnthropicMessagesPrompt({

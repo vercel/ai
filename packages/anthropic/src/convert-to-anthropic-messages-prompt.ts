@@ -1054,7 +1054,35 @@ export async function convertToAnthropicMessagesPrompt({
           }
         }
 
-        messages.push({ role: 'assistant', content: anthropicContent });
+        // Reorder content so regular tool_use blocks come last.
+        // Anthropic API requires tool_use to be the last content items in
+        // assistant messages. When server_tool_use + result pairs appear
+        // after tool_use (e.g. web_search alongside a regular tool call),
+        // the API fails to match tool_result blocks. Sort into:
+        // (1) text/thinking/other, (2) server tool use + results, (3) tool_use
+        const regularToolUseTypes = new Set(['tool_use']);
+        const hasRegularToolUse = anthropicContent.some(p =>
+          regularToolUseTypes.has(p.type),
+        );
+        const hasContentAfterToolUse = (() => {
+          if (!hasRegularToolUse) return false;
+          const lastToolUseIdx = anthropicContent.reduce(
+            (acc, p, i) => (regularToolUseTypes.has(p.type) ? i : acc),
+            -1,
+          );
+          return anthropicContent
+            .slice(lastToolUseIdx + 1)
+            .some(p => !regularToolUseTypes.has(p.type));
+        })();
+
+        const reorderedContent = hasContentAfterToolUse
+          ? [
+              ...anthropicContent.filter(p => !regularToolUseTypes.has(p.type)),
+              ...anthropicContent.filter(p => regularToolUseTypes.has(p.type)),
+            ]
+          : anthropicContent;
+
+        messages.push({ role: 'assistant', content: reorderedContent });
 
         break;
       }
