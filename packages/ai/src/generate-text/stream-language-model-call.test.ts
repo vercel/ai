@@ -11,6 +11,10 @@ import { describe, expect, it } from 'vitest';
 import z from 'zod';
 import { NoSuchToolError } from '../error/no-such-tool-error';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
+import type {
+  LanguageModelCallEndEvent,
+  LanguageModelCallStartEvent,
+} from './language-model-events';
 import { streamLanguageModelCall } from './stream-language-model-call';
 import { ToolCallRepairFunction } from './tool-call-repair-function';
 import type { ToolSet } from '@ai-sdk/provider-utils';
@@ -56,6 +60,173 @@ async function streamLanguageModelCallResult<TOOLS extends ToolSet>({
 }
 
 describe('streamLanguageModelCall', () => {
+  describe('model-call callbacks', () => {
+    it('should call onLanguageModelCallStart before doStream', async () => {
+      const callOrder: string[] = [];
+      let startEvent!: LanguageModelCallStartEvent;
+
+      await streamLanguageModelCall({
+        model: new MockLanguageModelV4({
+          doStream: async () => {
+            callOrder.push('doStream');
+            return {
+              stream: convertArrayToReadableStream([
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                  usage: testUsage,
+                },
+              ]),
+            };
+          },
+        }),
+        prompt: 'test prompt',
+        tools: {
+          testTool: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => `${value}-result`,
+          }),
+        },
+        callId: 'test-telemetry-call-id',
+        onLanguageModelCallStart: async event => {
+          callOrder.push('onLanguageModelCallStart');
+          startEvent = event;
+        },
+      });
+
+      expect(callOrder).toEqual(['onLanguageModelCallStart', 'doStream']);
+      expect(startEvent).toMatchInlineSnapshot(`
+        {
+          "callId": "test-telemetry-call-id",
+          "messages": [
+            {
+              "content": "test prompt",
+              "role": "user",
+            },
+          ],
+          "modelId": "mock-model-id",
+          "provider": "mock-provider",
+          "system": undefined,
+          "tools": [
+            {
+              "description": undefined,
+              "inputSchema": {
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "additionalProperties": false,
+                "properties": {
+                  "value": {
+                    "type": "string",
+                  },
+                },
+                "required": [
+                  "value",
+                ],
+                "type": "object",
+              },
+              "name": "testTool",
+              "providerOptions": undefined,
+              "type": "function",
+            },
+          ],
+        }
+      `);
+    });
+
+    it('should call onLanguageModelCallEnd with parsed model-call content', async () => {
+      const tools = {
+        testTool: tool({
+          inputSchema: z.object({ value: z.string() }),
+          execute: async ({ value }) => `${value}-result`,
+        }),
+      };
+      const modelCallEndEvents: LanguageModelCallEndEvent<typeof tools>[] = [];
+
+      const { stream } = await streamLanguageModelCall({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'response-metadata',
+                id: 'response-1',
+                timestamp: new Date('2025-01-01T00:00:00.000Z'),
+                modelId: 'response-model',
+              },
+              { type: 'text-start', id: 'text-1' },
+              { type: 'text-delta', id: 'text-1', delta: 'Hello ' },
+              { type: 'text-delta', id: 'text-1', delta: 'world' },
+              { type: 'text-end', id: 'text-1' },
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'testTool',
+                input: '{ "value": "hello" }',
+              },
+              {
+                type: 'finish',
+                finishReason: { unified: 'tool-calls', raw: undefined },
+                usage: testUsage,
+              },
+            ]),
+          }),
+        }),
+        tools,
+        prompt: 'test prompt',
+        callId: 'test-telemetry-call-id',
+        onLanguageModelCallEnd: async event => {
+          modelCallEndEvents.push(event);
+        },
+      });
+
+      await convertReadableStreamToArray(stream);
+
+      expect(modelCallEndEvents).toMatchInlineSnapshot(`
+        [
+          {
+            "callId": "test-telemetry-call-id",
+            "content": [
+              {
+                "text": "Hello world",
+                "type": "text",
+              },
+              {
+                "input": {
+                  "value": "hello",
+                },
+                "providerExecuted": undefined,
+                "providerMetadata": undefined,
+                "title": undefined,
+                "toolCallId": "call-1",
+                "toolName": "testTool",
+                "type": "tool-call",
+              },
+            ],
+            "finishReason": "tool-calls",
+            "modelId": "mock-model-id",
+            "provider": "mock-provider",
+            "responseId": "response-1",
+            "usage": {
+              "cachedInputTokens": undefined,
+              "inputTokenDetails": {
+                "cacheReadTokens": undefined,
+                "cacheWriteTokens": undefined,
+                "noCacheTokens": 3,
+              },
+              "inputTokens": 3,
+              "outputTokenDetails": {
+                "reasoningTokens": undefined,
+                "textTokens": 10,
+              },
+              "outputTokens": 10,
+              "raw": undefined,
+              "reasoningTokens": undefined,
+              "totalTokens": 13,
+            },
+          },
+        ]
+      `);
+    });
+  });
+
   describe('stream-start parts', () => {
     it('should convert stream-start to init-model-call', async () => {
       const model = new MockLanguageModelV4({

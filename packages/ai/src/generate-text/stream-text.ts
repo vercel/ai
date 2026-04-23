@@ -1606,6 +1606,19 @@ class DefaultStreamTextResult<
               providerOptions: stepProviderOptions,
               download,
               output,
+              callId,
+              onLanguageModelCallStart: filterNullable(
+                onLanguageModelCallStart,
+                telemetryDispatcher.onLanguageModelCallStart as
+                  | undefined
+                  | OnLanguageModelCallStartCallback,
+              ),
+              onLanguageModelCallEnd: filterNullable(
+                onLanguageModelCallEnd,
+                telemetryDispatcher.onLanguageModelCallEnd as
+                  | undefined
+                  | OnLanguageModelCallEndCallback<TOOLS>,
+              ),
               onStart: async ({ promptMessages }) => {
                 await notify({
                   event: {
@@ -1638,22 +1651,6 @@ class DefaultStreamTextResult<
                         >,
                   ],
                 });
-
-                await notify({
-                  event: {
-                    callId,
-                    provider: stepModel.provider,
-                    modelId: stepModel.modelId,
-                    messages: stepMessages,
-                    tools: stepTools,
-                  },
-                  callbacks: [
-                    onLanguageModelCallStart,
-                    telemetryDispatcher.onLanguageModelCallStart as
-                      | undefined
-                      | OnLanguageModelCallStartCallback,
-                  ],
-                });
               },
               ...callSettings,
             }),
@@ -1678,8 +1675,6 @@ class DefaultStreamTextResult<
               toolApproval,
               runtimeContext,
               generateId,
-              provider: stepModel.provider,
-              modelId: stepModel.modelId,
               onToolExecutionStart: filterNullable(
                 onToolExecutionStart,
                 telemetryDispatcher.onToolExecutionStart as
@@ -1690,12 +1685,6 @@ class DefaultStreamTextResult<
                 onToolExecutionEnd,
                 telemetryDispatcher.onToolExecutionEnd as
                   | OnToolExecutionEndCallback<TOOLS>
-                  | undefined,
-              ),
-              onLanguageModelCallEnd: filterNullable(
-                onLanguageModelCallEnd,
-                telemetryDispatcher.onLanguageModelCallEnd as
-                  | OnLanguageModelCallEndCallback<TOOLS>
                   | undefined,
               ),
               executeToolInTelemetryContext: telemetryDispatcher.executeTool,
