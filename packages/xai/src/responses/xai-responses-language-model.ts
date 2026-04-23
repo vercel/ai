@@ -949,6 +949,26 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
                   });
                 }
 
+                // Emit tool-result on done so UIs transition from
+                // "in progress" to "completed" (fixes #13218)
+                if (event.type === 'response.output_item.done') {
+                  const result: Record<string, unknown> = {};
+
+                  if ('results' in part && part.results != null) {
+                    result.results = part.results;
+                  }
+                  if ('output' in part && part.output != null) {
+                    result.output = part.output;
+                  }
+
+                  controller.enqueue({
+                    type: 'tool-result',
+                    toolCallId: part.id,
+                    toolName,
+                    result,
+                  });
+                }
+
                 return;
               }
 
