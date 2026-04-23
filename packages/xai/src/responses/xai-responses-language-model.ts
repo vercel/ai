@@ -512,7 +512,10 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
     let usage: LanguageModelV4Usage | undefined = undefined;
     let costInUsdTicks: number | undefined = undefined;
     let isFirstChunk = true;
-    const contentBlocks: Record<string, { type: 'text' }> = {};
+    const contentBlocks: Record<
+      string,
+      { type: 'text'; streamedLength: number }
+    > = {};
     const seenToolCalls = new Set<string>();
 
     // Track ongoing function calls by output_index so we can stream
@@ -639,12 +642,14 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
               const blockId = `text-${event.item_id}`;
 
               if (contentBlocks[blockId] == null) {
-                contentBlocks[blockId] = { type: 'text' };
+                contentBlocks[blockId] = { type: 'text', streamedLength: 0 };
                 controller.enqueue({
                   type: 'text-start',
                   id: blockId,
                 });
               }
+
+              contentBlocks[blockId].streamedLength += event.delta.length;
 
               controller.enqueue({
                 type: 'text-delta',
@@ -957,18 +962,27 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
                   if (contentPart.text && contentPart.text.length > 0) {
                     const blockId = `text-${part.id}`;
 
-                    // Only emit text if we haven't already streamed it via output_text.delta events
                     if (contentBlocks[blockId] == null) {
-                      contentBlocks[blockId] = { type: 'text' };
+                      contentBlocks[blockId] = {
+                        type: 'text',
+                        streamedLength: 0,
+                      };
                       controller.enqueue({
                         type: 'text-start',
                         id: blockId,
                       });
+                    }
 
+                    // Only emit text that wasn't already delivered via
+                    // output_text.delta events to avoid duplicates.
+                    const remaining = contentPart.text.slice(
+                      contentBlocks[blockId].streamedLength,
+                    );
+                    if (remaining.length > 0) {
                       controller.enqueue({
                         type: 'text-delta',
                         id: blockId,
-                        delta: contentPart.text,
+                        delta: remaining,
                       });
                     }
                   }
