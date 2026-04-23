@@ -181,6 +181,20 @@ describe('result.warnings', () => {
 
     expect(result.warnings).toStrictEqual(expectedWarnings);
   });
+
+  it('should handle undefined warnings from provider (embedding model v2)', async () => {
+    const result = await embed({
+      model: new MockEmbeddingModelV4({
+        doEmbed: async () => ({
+          // Simulate EmbeddingModelV2 provider that returns undefined warnings
+          embeddings: [dummyEmbedding],
+        }),
+      }),
+      value: testValue,
+    });
+
+    expect(result.warnings).toStrictEqual([]);
+  });
 });
 
 describe('logWarnings', () => {

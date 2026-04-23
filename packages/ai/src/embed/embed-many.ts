@@ -327,7 +327,7 @@ export async function embedMany({
 
       for (const result of results) {
         embeddings.push(...result.embeddings);
-        warnings.push(...result.warnings);
+        warnings.push(...(result.warnings ?? []));
         responses.push(result.response);
         tokens += result.usage.tokens;
         if (result.providerMetadata) {
