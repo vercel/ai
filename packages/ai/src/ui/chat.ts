@@ -255,6 +255,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
   private sendAutomaticallyWhen?: ChatInit<UI_MESSAGE>['sendAutomaticallyWhen'];
 
   private activeResponse: ActiveResponse<UI_MESSAGE> | undefined = undefined;
+  private resumePromise: Promise<void> | undefined = undefined;
   private jobExecutor = new SerialJobExecutor();
 
   constructor({
@@ -460,9 +461,17 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
 
   /**
    * Attempt to resume an ongoing streaming response.
+   * Deduplicates concurrent calls so only one resume request is made,
+   * even when multiple useChat hooks share the same Chat instance.
    */
   resumeStream = async (options: ChatRequestOptions = {}): Promise<void> => {
-    await this.makeRequest({ trigger: 'resume-stream', ...options });
+    if (this.resumePromise) {
+      return this.resumePromise;
+    }
+    this.resumePromise = this.makeRequest({ trigger: 'resume-stream', ...options }).finally(() => {
+      this.resumePromise = undefined;
+    });
+    return this.resumePromise;
   };
 
   /**
