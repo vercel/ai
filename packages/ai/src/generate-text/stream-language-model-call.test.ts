@@ -81,6 +81,15 @@ describe('streamLanguageModelCall', () => {
           },
         }),
         prompt: 'test prompt',
+        maxOutputTokens: 128,
+        temperature: 0.7,
+        topP: 0.9,
+        topK: 40,
+        presencePenalty: 0.2,
+        frequencyPenalty: 0.1,
+        stopSequences: ['stop'],
+        seed: 123,
+        reasoning: 'high',
         tools: {
           testTool: tool({
             inputSchema: z.object({ value: z.string() }),
@@ -98,6 +107,8 @@ describe('streamLanguageModelCall', () => {
       expect(startEvent).toMatchInlineSnapshot(`
         {
           "callId": "test-telemetry-call-id",
+          "frequencyPenalty": 0.1,
+          "maxOutputTokens": 128,
           "messages": [
             {
               "content": "test prompt",
@@ -105,8 +116,15 @@ describe('streamLanguageModelCall', () => {
             },
           ],
           "modelId": "mock-model-id",
+          "presencePenalty": 0.2,
           "provider": "mock-provider",
+          "reasoning": "high",
+          "seed": 123,
+          "stopSequences": [
+            "stop",
+          ],
           "system": undefined,
+          "temperature": 0.7,
           "tools": [
             {
               "description": undefined,
@@ -128,6 +146,8 @@ describe('streamLanguageModelCall', () => {
               "type": "function",
             },
           ],
+          "topK": 40,
+          "topP": 0.9,
         }
       `);
     });

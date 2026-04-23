@@ -280,6 +280,7 @@ export async function streamLanguageModelCall<
       system: standardizedPrompt.system,
       messages: standardizedPrompt.messages,
       tools: stepTools,
+      ...callSettings,
     },
     callbacks: onLanguageModelCallStart,
   });

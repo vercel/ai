@@ -4,6 +4,7 @@ import type { FinishReason } from '../types/language-model';
 import type { LanguageModelUsage } from '../types/usage';
 import type { ContentPart } from './content-part';
 import type { StandardizedPrompt } from '../prompt/standardize-prompt';
+import type { LanguageModelCallOptions } from '../prompt';
 
 /**
  * Common model information used across callback events.
@@ -27,7 +28,8 @@ export type LanguageModelCallStartEvent = ModelInfo & {
 
   /** Prepared tool definitions for the model call, if any. */
   readonly tools: ReadonlyArray<Record<string, unknown>> | undefined;
-} & StandardizedPrompt;
+} & StandardizedPrompt &
+  LanguageModelCallOptions;
 
 /**
  * Event passed to the `onLanguageModelCallEnd` callback.

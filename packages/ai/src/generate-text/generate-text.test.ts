@@ -26,6 +26,7 @@ import {
 } from 'vitest';
 import { z } from 'zod/v4';
 import {
+  LanguageModelCallStartEvent,
   LanguageModelCallEndEvent,
   Output,
   ToolExecutionEndEvent,
@@ -1624,6 +1625,7 @@ describe('generateText', () => {
   describe('options.experimental_onLanguageModelCallStart and experimental_onLanguageModelCallEnd', () => {
     it('should fire the model-call callbacks before tool execution and step finish', async () => {
       const callOrder: string[] = [];
+      let modelCallStartEvent!: LanguageModelCallStartEvent;
 
       await generateText({
         model: new MockLanguageModelV4({
@@ -1647,12 +1649,23 @@ describe('generateText', () => {
             execute: async ({ value }) => `${value}-result`,
           }),
         },
+        system: 'test-system',
         prompt: 'test-input',
+        maxOutputTokens: 128,
+        temperature: 0.7,
+        topP: 0.9,
+        topK: 40,
+        presencePenalty: 0.2,
+        frequencyPenalty: 0.1,
+        stopSequences: ['stop'],
+        seed: 123,
+        reasoning: 'high',
         experimental_onStepStart: async () => {
           callOrder.push('onStepStart');
         },
-        experimental_onLanguageModelCallStart: async () => {
+        experimental_onLanguageModelCallStart: async event => {
           callOrder.push('onLanguageModelCallStart');
+          modelCallStartEvent = event;
         },
         experimental_onLanguageModelCallEnd: async () => {
           callOrder.push('onLanguageModelCallEnd');
@@ -1666,6 +1679,9 @@ describe('generateText', () => {
         onStepFinish: async () => {
           callOrder.push('onStepFinish');
         },
+        _internal: {
+          generateCallId: () => 'test-telemetry-call-id',
+        },
       });
 
       expect(callOrder).toEqual([
@@ -1676,6 +1692,52 @@ describe('generateText', () => {
         'onToolExecutionEnd',
         'onStepFinish',
       ]);
+      expect(modelCallStartEvent).toMatchInlineSnapshot(`
+        {
+          "callId": "test-telemetry-call-id",
+          "frequencyPenalty": 0.1,
+          "maxOutputTokens": 128,
+          "messages": [
+            {
+              "content": "test-input",
+              "role": "user",
+            },
+          ],
+          "modelId": "mock-model-id",
+          "presencePenalty": 0.2,
+          "provider": "mock-provider",
+          "reasoning": "high",
+          "seed": 123,
+          "stopSequences": [
+            "stop",
+          ],
+          "system": "test-system",
+          "temperature": 0.7,
+          "tools": [
+            {
+              "description": undefined,
+              "inputSchema": {
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "additionalProperties": false,
+                "properties": {
+                  "value": {
+                    "type": "string",
+                  },
+                },
+                "required": [
+                  "value",
+                ],
+                "type": "object",
+              },
+              "name": "tool1",
+              "providerOptions": undefined,
+              "type": "function",
+            },
+          ],
+          "topK": 40,
+          "topP": 0.9,
+        }
+      `);
     });
 
     it('should provide parsed tool calls on model-call end', async () => {

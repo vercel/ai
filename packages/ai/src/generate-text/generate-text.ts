@@ -719,8 +719,10 @@ export async function generateText<
             callId,
             provider: stepModel.provider,
             modelId: stepModel.modelId,
+            system: stepSystem,
             messages: stepMessages,
             tools: stepTools,
+            ...callSettings,
           },
           callbacks: [
             onLanguageModelCallStart,
