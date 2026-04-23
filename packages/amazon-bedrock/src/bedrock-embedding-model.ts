@@ -2,6 +2,7 @@ import {
   EmbeddingModelV4,
   TooManyEmbeddingValuesForCallError,
 } from '@ai-sdk/provider';
+import { bedrockEncodeModelId } from './bedrock-encode-model-id';
 import {
   FetchFunction,
   Resolvable,
@@ -56,7 +57,7 @@ export class BedrockEmbeddingModel implements EmbeddingModelV4 {
   ) {}
 
   private getUrl(modelId: string): string {
-    const encodedModelId = encodeURIComponent(modelId);
+    const encodedModelId = bedrockEncodeModelId(modelId);
     return `${this.config.baseUrl()}/model/${encodedModelId}/invoke`;
   }
 
