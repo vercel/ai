@@ -270,6 +270,19 @@ describe('doStream', () => {
         }
       `);
     });
+
+    it('should include request body', async () => {
+      const result = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      expect(result.request).toBeDefined();
+      expect(result.request?.body).toBeDefined();
+      expect(result.request?.body).toMatchObject({
+        messages: expect.any(Array),
+      });
+    });
   });
 
   describe('reasoning', () => {
@@ -3136,6 +3149,18 @@ describe('doGenerate', () => {
           "test-header": "test-value",
         }
       `);
+    });
+
+    it('should include request body', async () => {
+      const { request } = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(request).toBeDefined();
+      expect(request?.body).toBeDefined();
+      expect(request?.body).toMatchObject({
+        messages: expect.any(Array),
+      });
     });
   });
 
