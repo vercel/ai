@@ -3,7 +3,7 @@ import {
   SharedV4Warning,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import { AnthropicTool, AnthropicToolChoice } from './anthropic-messages-api';
+import { AnthropicTool, AnthropicToolChoice } from './anthropic-api';
 import { CacheControlValidator } from './get-cache-control';
 import { textEditor_20250728ArgsSchema } from './tool/text-editor_20250728';
 import { webSearch_20260209ArgsSchema } from './tool/web-search_20260209';

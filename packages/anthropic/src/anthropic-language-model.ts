@@ -40,24 +40,24 @@ import { anthropicFailedResponseHandler } from './anthropic-error';
 import { AnthropicMessageMetadata } from './anthropic-message-metadata';
 import {
   AnthropicContainer,
-  anthropicMessagesChunkSchema,
-  anthropicMessagesResponseSchema,
+  anthropicChunkSchema,
+  anthropicResponseSchema,
   AnthropicReasoningMetadata,
   AnthropicResponseContextManagement,
   AnthropicTool,
   Citation,
-} from './anthropic-messages-api';
+} from './anthropic-api';
 import {
-  AnthropicMessagesModelId,
+  AnthropicModelId,
   AnthropicLanguageModelOptions,
   anthropicLanguageModelOptions,
-} from './anthropic-messages-options';
+} from './anthropic-options';
 import { prepareTools } from './anthropic-prepare-tools';
 import {
-  AnthropicMessagesUsage,
-  convertAnthropicMessagesUsage,
-} from './convert-anthropic-messages-usage';
-import { convertToAnthropicMessagesPrompt } from './convert-to-anthropic-messages-prompt';
+  AnthropicUsage,
+  convertAnthropicUsage,
+} from './convert-anthropic-usage';
+import { convertToAnthropicPrompt } from './convert-to-anthropic-prompt';
 import { CacheControlValidator } from './get-cache-control';
 import { mapAnthropicStopReason } from './map-anthropic-stop-reason';
 
@@ -120,7 +120,7 @@ function createCitationSource(
   };
 }
 
-type AnthropicMessagesConfig = {
+type AnthropicLanguageModelConfig = {
   provider: string;
   baseURL: string;
   headers?: Resolvable<Record<string, string | undefined>>;
@@ -145,15 +145,15 @@ type AnthropicMessagesConfig = {
   supportsStrictTools?: boolean;
 };
 
-export class AnthropicMessagesLanguageModel implements LanguageModelV4 {
+export class AnthropicLanguageModel implements LanguageModelV4 {
   readonly specificationVersion = 'v4';
 
-  readonly modelId: AnthropicMessagesModelId;
+  readonly modelId: AnthropicModelId;
 
-  private readonly config: AnthropicMessagesConfig;
+  private readonly config: AnthropicLanguageModelConfig;
   private readonly generateId: () => string;
 
-  static [WORKFLOW_SERIALIZE](model: AnthropicMessagesLanguageModel) {
+  static [WORKFLOW_SERIALIZE](model: AnthropicLanguageModel) {
     return serializeModelOptions({
       modelId: model.modelId,
       config: model.config,
@@ -161,16 +161,13 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV4 {
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
-    modelId: AnthropicMessagesModelId;
-    config: AnthropicMessagesConfig;
+    modelId: AnthropicModelId;
+    config: AnthropicLanguageModelConfig;
   }) {
-    return new AnthropicMessagesLanguageModel(options.modelId, options.config);
+    return new AnthropicLanguageModel(options.modelId, options.config);
   }
 
-  constructor(
-    modelId: AnthropicMessagesModelId,
-    config: AnthropicMessagesConfig,
-  ) {
+  constructor(modelId: AnthropicModelId, config: AnthropicLanguageModelConfig) {
     this.modelId = modelId;
     this.config = config;
     this.generateId = config.generateId ?? generateId;
@@ -382,14 +379,13 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV4 {
       },
     });
 
-    const { prompt: messagesPrompt, betas } =
-      await convertToAnthropicMessagesPrompt({
-        prompt,
-        sendReasoning: anthropicOptions?.sendReasoning ?? true,
-        warnings,
-        cacheControlValidator,
-        toolNameMapping,
-      });
+    const { prompt: messagesPrompt, betas } = await convertToAnthropicPrompt({
+      prompt,
+      sendReasoning: anthropicOptions?.sendReasoning ?? true,
+      warnings,
+      cacheControlValidator,
+      toolNameMapping,
+    });
 
     /*
      * Map top-level `reasoning` to Anthropic thinking/effort when provider
@@ -900,7 +896,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV4 {
       body: this.transformRequestBody(args, betas),
       failedResponseHandler: anthropicFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
-        anthropicMessagesResponseSchema,
+        anthropicResponseSchema,
       ),
       abortSignal: options.abortSignal,
       fetch: this.config.fetch,
@@ -1291,7 +1287,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV4 {
         }),
         raw: response.stop_reason ?? undefined,
       },
-      usage: convertAnthropicMessagesUsage({ usage: response.usage }),
+      usage: convertAnthropicUsage({ usage: response.usage }),
       request: { body: args },
       response: {
         id: response.id ?? undefined,
@@ -1377,9 +1373,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV4 {
       headers: await this.getHeaders({ betas, headers: options.headers }),
       body: this.transformRequestBody(body, betas),
       failedResponseHandler: anthropicFailedResponseHandler,
-      successfulResponseHandler: createEventSourceResponseHandler(
-        anthropicMessagesChunkSchema,
-      ),
+      successfulResponseHandler:
+        createEventSourceResponseHandler(anthropicChunkSchema),
       abortSignal: options.abortSignal,
       fetch: this.config.fetch,
     });
@@ -1388,7 +1383,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV4 {
       unified: 'other',
       raw: undefined,
     };
-    const usage: AnthropicMessagesUsage = {
+    const usage: AnthropicUsage = {
       input_tokens: 0,
       output_tokens: 0,
       cache_creation_input_tokens: 0,
@@ -1448,7 +1443,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV4 {
 
     const transformedStream = response.pipeThrough(
       new TransformStream<
-        ParseResult<InferSchema<typeof anthropicMessagesChunkSchema>>,
+        ParseResult<InferSchema<typeof anthropicChunkSchema>>,
         LanguageModelV4StreamPart
       >({
         start(controller) {
@@ -2310,7 +2305,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV4 {
               controller.enqueue({
                 type: 'finish',
                 finishReason,
-                usage: convertAnthropicMessagesUsage({ usage, rawUsage }),
+                usage: convertAnthropicUsage({ usage, rawUsage }),
                 providerMetadata,
               });
               return;

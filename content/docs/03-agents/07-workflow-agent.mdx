@@ -430,7 +430,7 @@ Agents provide lifecycle callbacks for logging, observability, and custom teleme
 const agent = new WorkflowAgent({
   model: "anthropic/claude-sonnet-4-6",
 
-  experimental_onStart({ model, messages }) {
+  experimental_onStart({ modelId, messages }) {
     console.log("Agent started");
   },
 
@@ -442,7 +442,7 @@ const agent = new WorkflowAgent({
     console.log(`Calling tool: ${toolCall.toolName}`);
   },
 
-  experimental_onToolExecutionEnd({ toolCall, result, error }) {
+  experimental_onToolExecutionEnd({ toolCall, toolOutput }) {
     console.log(`Tool finished: ${toolCall.toolName}`);
   },
 
