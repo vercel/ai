@@ -100,8 +100,12 @@ const { text } = await generateText({
 ```
 
 <Note>
-  The `reasoningEffort` parameter is only supported by o1 and has no effect on
-  other models.
+  The `reasoningEffort` parameter is only supported by reasoning models. If you
+  set it on a non-reasoning model, the AI SDK will strip it and log a warning
+  rather than throwing an error. This can cause the setting to be silently
+  ignored. See [Unsupported Feature
+  Warnings](/docs/ai-sdk-ui/error-handling#unsupported-feature-warnings) for how
+  to detect this during development.
 </Note>
 
 ### Generating Structured Data

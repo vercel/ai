@@ -90,6 +90,13 @@ const { text } = await generateText({
 });
 ```
 
+<Note>
+  If you set `reasoningEffort` on a non-reasoning model, the AI SDK will strip
+  it and log a warning rather than throwing an error. See [Unsupported Feature
+  Warnings](/docs/ai-sdk-ui/error-handling#unsupported-feature-warnings) for how
+  to detect this during development.
+</Note>
+
 ### Generating Structured Data
 
 While text generation can be useful, you might want to generate structured JSON data. For example, you might want to extract information from text, classify data, or generate synthetic data. AI SDK Core provides [`generateText`](/docs/reference/ai-sdk-core/generate-text) and [`streamText`](/docs/reference/ai-sdk-core/stream-text) with `Output` to generate structured data, allowing you to constrain model outputs to a specific schema.
