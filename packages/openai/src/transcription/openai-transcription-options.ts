@@ -44,6 +44,22 @@ export const openAITranscriptionModelOptions = lazySchema(() =>
         .array(z.enum(['word', 'segment']))
         .default(['segment'])
         .optional(),
+
+      /**
+       * The chunking strategy to use for the transcription.
+       * Required for gpt-4o-transcribe-diarize if the audio is longer than 30 seconds.
+       */
+      chunkingStrategy: z
+        .union([
+          z.literal('auto'),
+          z.object({
+            type: z.literal('server_vad'),
+            prefixPaddingMs: z.number().int().optional(),
+            silenceDurationMs: z.number().int().optional(),
+            threshold: z.number().min(0).max(1).optional(),
+          }),
+        ])
+        .optional(),
     }),
   ),
 );

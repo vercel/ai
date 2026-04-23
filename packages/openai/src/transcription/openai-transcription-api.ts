@@ -19,16 +19,19 @@ export const openaiTranscriptionResponseSchema = lazySchema(() =>
       segments: z
         .array(
           z.object({
-            id: z.number(),
-            seek: z.number(),
+            id: z.union([z.number(), z.string()]),
+            seek: z.number().nullish(),
             start: z.number(),
             end: z.number(),
             text: z.string(),
-            tokens: z.array(z.number()),
-            temperature: z.number(),
-            avg_logprob: z.number(),
-            compression_ratio: z.number(),
-            no_speech_prob: z.number(),
+            tokens: z.array(z.number()).nullish(),
+            temperature: z.number().nullish(),
+            avg_logprob: z.number().nullish(),
+            compression_ratio: z.number().nullish(),
+            no_speech_prob: z.number().nullish(),
+            // additional properties for diarized_json response format:
+            type: z.string().nullish(),
+            speaker: z.string().nullish(),
           }),
         )
         .nullish(),
