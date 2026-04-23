@@ -2102,9 +2102,9 @@ To see `streamText` in action, check out [these examples](#examples).
             },
             {
               name: 'toolContext',
-              type: 'InferToolSetContext<TOOLS>',
+              type: 'InferToolContext<TOOLS[toolName]>',
               description:
-                'Tool-specific context object for the tool call that is about to execute.',
+                'Tool-specific context object for the tool call that is about to execute. Narrowed to the context type of the individual tool, not the entire tool set.',
             },
           ],
         },
@@ -2145,9 +2145,9 @@ To see `streamText` in action, check out [these examples](#examples).
             },
             {
               name: 'toolContext',
-              type: 'InferToolSetContext<TOOLS>',
+              type: 'InferToolContext<TOOLS[toolName]>',
               description:
-                'Tool-specific context object for the tool call that just completed.',
+                'Tool-specific context object for the tool call that just completed. Narrowed to the context type of the individual tool, not the entire tool set.',
             },
             {
               name: 'toolOutput',

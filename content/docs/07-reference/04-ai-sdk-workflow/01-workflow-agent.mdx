@@ -222,8 +222,8 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
             },
             {
               name: 'toolContext',
-              type: 'InferToolSetContext<TOOLS>',
-              description: 'Tool-specific context object for the tool call that is about to execute.',
+              type: 'InferToolContext<TOOLS[toolName]>',
+              description: 'Tool-specific context object for the tool call that is about to execute. Narrowed to the context type of the individual tool, not the entire tool set.',
             },
           ],
         },
@@ -261,8 +261,8 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
             },
             {
               name: 'toolContext',
-              type: 'InferToolSetContext<TOOLS>',
-              description: 'Tool-specific context object for the tool call that just completed.',
+              type: 'InferToolContext<TOOLS[toolName]>',
+              description: 'Tool-specific context object for the tool call that just completed. Narrowed to the context type of the individual tool, not the entire tool set.',
             },
             {
               name: 'toolOutput',

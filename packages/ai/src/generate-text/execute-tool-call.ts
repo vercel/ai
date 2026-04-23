@@ -21,6 +21,8 @@ import { TypedToolError } from './tool-error';
 import {
   OnToolExecutionEndCallback,
   OnToolExecutionStartCallback,
+  ToolExecutionEndEvent,
+  ToolExecutionStartEvent,
 } from './tool-execution-events';
 import { ToolOutput } from './tool-output';
 import { TypedToolResult } from './tool-result';
@@ -88,7 +90,10 @@ export async function executeToolCall<TOOLS extends ToolSet>({
 
   let output: unknown;
 
-  await notify({ event: baseCallbackEvent, callbacks: onToolExecutionStart });
+  await notify({
+    event: baseCallbackEvent as ToolExecutionStartEvent<TOOLS>,
+    callbacks: onToolExecutionStart,
+  });
 
   const toolTimeoutMs = getToolTimeoutMs<TOOLS>(timeout, toolName);
   const toolAbortSignal = mergeAbortSignals(abortSignal, toolTimeoutMs);
@@ -152,7 +157,7 @@ export async function executeToolCall<TOOLS extends ToolSet>({
         ...baseCallbackEvent,
         toolOutput: toolError,
         durationMs,
-      },
+      } as ToolExecutionEndEvent<TOOLS>,
       callbacks: onToolExecutionEnd,
     });
 
@@ -176,7 +181,7 @@ export async function executeToolCall<TOOLS extends ToolSet>({
       ...baseCallbackEvent,
       toolOutput: toolResult,
       durationMs,
-    },
+    } as ToolExecutionEndEvent<TOOLS>,
     callbacks: onToolExecutionEnd,
   });
 
