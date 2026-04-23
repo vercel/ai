@@ -30,7 +30,7 @@ export interface CallbackModelInfo {
  *
  * Called when the generation operation begins, before any LLM calls.
  */
-export interface OnStartEvent<
+export interface GenerateTextStartEvent<
   TOOLS extends ToolSet = ToolSet,
   RUNTIME_CONTEXT extends Context = Context,
   OUTPUT extends Output = Output,
@@ -126,7 +126,7 @@ export interface OnStartEvent<
  * Called when a step (LLM call) begins, before the provider is called.
  * Each step represents a single LLM invocation.
  */
-export interface OnStepStartEvent<
+export interface GenerateTextStepStartEvent<
   TOOLS extends ToolSet = ToolSet,
   RUNTIME_CONTEXT extends Context = Context,
   OUTPUT extends Output = Output,
@@ -195,7 +195,7 @@ export interface OnStepStartEvent<
  * The chunk is either a content part (text-delta, tool-call, etc.) or
  * a stream lifecycle marker (`ai.stream.firstChunk` / `ai.stream.finish`).
  */
-export interface OnChunkEvent<TOOLS extends ToolSet = ToolSet> {
+export interface StreamTextChunkEvent<TOOLS extends ToolSet = ToolSet> {
   readonly chunk:
     | TextStreamPart<TOOLS>
     | {
@@ -212,7 +212,7 @@ export interface OnChunkEvent<TOOLS extends ToolSet = ToolSet> {
  * Called when a step (LLM call) completes.
  * Includes the StepResult for that step along with the call identifier.
  */
-export type OnStepFinishEvent<
+export type GenerateTextStepEndEvent<
   TOOLS extends ToolSet = ToolSet,
   RUNTIME_CONTEXT extends Context = Context,
 > = StepResult<TOOLS, RUNTIME_CONTEXT>;
@@ -223,7 +223,7 @@ export type OnStepFinishEvent<
  * Called when the entire generation completes (all steps finished).
  * Includes the final step's result along with aggregated data from all steps.
  */
-export type OnFinishEvent<
+export type GenerateTextEndEvent<
   TOOLS extends ToolSet = ToolSet,
   RUNTIME_CONTEXT extends Context = Context,
 > = StepResult<TOOLS, RUNTIME_CONTEXT> & {
@@ -233,3 +233,33 @@ export type OnFinishEvent<
   /** Aggregated token usage across all steps. */
   readonly totalUsage: LanguageModelUsage;
 };
+
+/** @deprecated Use `GenerateTextStartEvent` instead. */
+export type OnStartEvent<
+  TOOLS extends ToolSet = ToolSet,
+  RUNTIME_CONTEXT extends Context = Context,
+  OUTPUT extends Output = Output,
+> = GenerateTextStartEvent<TOOLS, RUNTIME_CONTEXT, OUTPUT>;
+
+/** @deprecated Use `GenerateTextStepStartEvent` instead. */
+export type OnStepStartEvent<
+  TOOLS extends ToolSet = ToolSet,
+  RUNTIME_CONTEXT extends Context = Context,
+  OUTPUT extends Output = Output,
+> = GenerateTextStepStartEvent<TOOLS, RUNTIME_CONTEXT, OUTPUT>;
+
+/** @deprecated Use `StreamTextChunkEvent` instead. */
+export type OnChunkEvent<TOOLS extends ToolSet = ToolSet> =
+  StreamTextChunkEvent<TOOLS>;
+
+/** @deprecated Use `GenerateTextStepEndEvent` instead. */
+export type OnStepFinishEvent<
+  TOOLS extends ToolSet = ToolSet,
+  RUNTIME_CONTEXT extends Context = Context,
+> = GenerateTextStepEndEvent<TOOLS, RUNTIME_CONTEXT>;
+
+/** @deprecated Use `GenerateTextEndEvent` instead. */
+export type OnFinishEvent<
+  TOOLS extends ToolSet = ToolSet,
+  RUNTIME_CONTEXT extends Context = Context,
+> = GenerateTextEndEvent<TOOLS, RUNTIME_CONTEXT>;

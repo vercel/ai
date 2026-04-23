@@ -150,7 +150,7 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
         'Callback called when the agent starts streaming, before any LLM calls. Receives the model and messages. If also specified in `stream()`, both callbacks fire (constructor first). Experimental (can break in patch releases).',
       properties: [
         {
-          type: 'OnStartEvent',
+          type: 'GenerateTextStartEvent',
           parameters: [
             {
               name: 'model',
@@ -174,7 +174,7 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
         'Callback called before each step (LLM call) begins. Receives step number, model, and messages. If also specified in `stream()`, both callbacks fire (constructor first). Experimental (can break in patch releases).',
       properties: [
         {
-          type: 'OnStepStartEvent',
+          type: 'GenerateTextStepStartEvent',
           parameters: [
             {
               name: 'stepNumber',

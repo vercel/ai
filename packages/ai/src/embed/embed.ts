@@ -12,7 +12,7 @@ import type { Callback } from '../util/callback';
 import { notify } from '../util/notify';
 import { prepareRetries } from '../util/prepare-retries';
 import { VERSION } from '../version';
-import type { EmbedOnFinishEvent, EmbedOnStartEvent } from './embed-events';
+import type { EmbedEndEvent, EmbedStartEvent } from './embed-events';
 import { EmbedResult } from './embed-result';
 
 const originalGenerateCallId = createIdGenerator({
@@ -102,13 +102,13 @@ export async function embed({
    * Callback that is called when the embed operation begins,
    * before the embedding model is called.
    */
-  experimental_onStart?: Callback<EmbedOnStartEvent>;
+  experimental_onStart?: Callback<EmbedStartEvent>;
 
   /**
    * Callback that is called when the embed operation completes,
    * after the embedding model returns.
    */
-  experimental_onFinish?: Callback<EmbedOnFinishEvent>;
+  experimental_onFinish?: Callback<EmbedEndEvent>;
 
   /**
    * Internal. For test use only. May change without notice.

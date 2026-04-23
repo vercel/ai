@@ -131,14 +131,14 @@ const { ranking } = await rerank({
     },
     {
       name: 'experimental_onStart',
-      type: '(event: RerankOnStartEvent) => void | Promise<void>',
+      type: '(event: RerankStartEvent) => void | Promise<void>',
       isOptional: true,
       description:
         'Called when the rerank operation begins, before the reranking model is called.',
     },
     {
       name: 'experimental_onFinish',
-      type: '(event: RerankOnFinishEvent) => void | Promise<void>',
+      type: '(event: RerankEndEvent) => void | Promise<void>',
       isOptional: true,
       description:
         'Called when the rerank operation completes, after the reranking model returns.',
