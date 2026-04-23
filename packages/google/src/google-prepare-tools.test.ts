@@ -852,3 +852,59 @@ it('should use AUTO mode when no tools have strict: true', () => {
     functionCallingConfig: { mode: 'AUTO' },
   });
 });
+
+it('should not include includeServerSideToolInvocations for Vertex provider on Gemini 3', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'function',
+        name: 'testFunction',
+        description: 'A test function',
+        inputSchema: { type: 'object', properties: {} },
+      },
+      {
+        type: 'provider',
+        id: 'google.google_search',
+        name: 'google_search',
+        args: {},
+      },
+    ],
+    modelId: 'gemini-3-flash-preview',
+    isVertexProvider: true,
+  });
+
+  expect(result.toolConfig).toEqual({
+    functionCallingConfig: { mode: 'VALIDATED' },
+  });
+  expect(result.toolConfig).not.toHaveProperty(
+    'includeServerSideToolInvocations',
+  );
+  expect(result.toolWarnings).toEqual([]);
+});
+
+it('should include includeServerSideToolInvocations for non-Vertex provider on Gemini 3', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'function',
+        name: 'testFunction',
+        description: 'A test function',
+        inputSchema: { type: 'object', properties: {} },
+      },
+      {
+        type: 'provider',
+        id: 'google.google_search',
+        name: 'google_search',
+        args: {},
+      },
+    ],
+    modelId: 'gemini-3-flash-preview',
+    isVertexProvider: false,
+  });
+
+  expect(result.toolConfig).toEqual({
+    functionCallingConfig: { mode: 'VALIDATED' },
+    includeServerSideToolInvocations: true,
+  });
+  expect(result.toolWarnings).toEqual([]);
+});
