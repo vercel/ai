@@ -11,7 +11,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import {
   anthropicTools,
-  AnthropicMessagesLanguageModel,
+  AnthropicLanguageModel,
 } from '@ai-sdk/anthropic/internal';
 import { GoogleVertexAnthropicMessagesModelId } from './google-vertex-anthropic-messages-options';
 
@@ -180,7 +180,7 @@ export function createVertexAnthropic(
   };
 
   const createChatModel = (modelId: GoogleVertexAnthropicMessagesModelId) =>
-    new AnthropicMessagesLanguageModel(modelId, {
+    new AnthropicLanguageModel(modelId, {
       provider: 'vertex.anthropic.messages',
       baseURL: getBaseURL(),
       headers: options.headers ?? {},

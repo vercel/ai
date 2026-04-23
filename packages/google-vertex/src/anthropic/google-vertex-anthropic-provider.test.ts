@@ -3,7 +3,7 @@ import {
   vertexAnthropicTools,
 } from './google-vertex-anthropic-provider';
 import { NoSuchModelError } from '@ai-sdk/provider';
-import { AnthropicMessagesLanguageModel } from '@ai-sdk/anthropic/internal';
+import { AnthropicLanguageModel } from '@ai-sdk/anthropic/internal';
 import { vi, describe, beforeEach, it, expect } from 'vitest';
 
 // Mock the imported modules
@@ -28,7 +28,7 @@ vi.mock('@ai-sdk/anthropic/internal', async () => {
   const originalModule = await vi.importActual('@ai-sdk/anthropic/internal');
   return {
     ...originalModule,
-    AnthropicMessagesLanguageModel: vi.fn(),
+    AnthropicLanguageModel: vi.fn(),
   };
 });
 
@@ -45,7 +45,7 @@ describe('google-vertex-anthropic-provider', () => {
     provider('test-model-id');
 
     // Assert that the model constructor was called with the correct arguments
-    expect(AnthropicMessagesLanguageModel).toHaveBeenCalledWith(
+    expect(AnthropicLanguageModel).toHaveBeenCalledWith(
       'test-model-id',
       expect.objectContaining({
         baseURL: expect.stringContaining(
@@ -78,7 +78,7 @@ describe('google-vertex-anthropic-provider', () => {
     provider('test-model-id');
 
     // Assert that the constructor was called with the correct baseURL
-    expect(AnthropicMessagesLanguageModel).toHaveBeenCalledWith(
+    expect(AnthropicLanguageModel).toHaveBeenCalledWith(
       expect.anything(), // modelId
       expect.objectContaining({
         baseURL: customBaseURL,
@@ -121,7 +121,7 @@ describe('google-vertex-anthropic-provider', () => {
     provider('test-model-id');
 
     // Assert that the model constructor was called with the correct headers
-    expect(AnthropicMessagesLanguageModel).toHaveBeenCalledWith(
+    expect(AnthropicLanguageModel).toHaveBeenCalledWith(
       expect.anything(), // modelId
       expect.objectContaining({
         headers: customHeaders,
@@ -147,7 +147,7 @@ describe('google-vertex-anthropic-provider', () => {
     provider('test-model-id');
 
     // Assert that the model constructor was called with supportedUrls function
-    expect(AnthropicMessagesLanguageModel).toHaveBeenCalledWith(
+    expect(AnthropicLanguageModel).toHaveBeenCalledWith(
       'test-model-id',
       expect.objectContaining({
         supportedUrls: expect.any(Function),
@@ -155,8 +155,9 @@ describe('google-vertex-anthropic-provider', () => {
     );
 
     // Get the actual config passed to the constructor
-    const constructorCall = vi.mocked(AnthropicMessagesLanguageModel).mock
-      .calls[vi.mocked(AnthropicMessagesLanguageModel).mock.calls.length - 1];
+    const constructorCall = vi.mocked(AnthropicLanguageModel).mock.calls[
+      vi.mocked(AnthropicLanguageModel).mock.calls.length - 1
+    ];
     const config = constructorCall[1];
 
     // Verify that supportedUrls returns empty object to force base64 conversion
@@ -170,7 +171,7 @@ describe('google-vertex-anthropic-provider', () => {
     });
     provider('test-model-id');
 
-    expect(AnthropicMessagesLanguageModel).toHaveBeenCalledWith(
+    expect(AnthropicLanguageModel).toHaveBeenCalledWith(
       'test-model-id',
       expect.objectContaining({
         baseURL:
@@ -187,7 +188,7 @@ describe('google-vertex-anthropic-provider', () => {
     });
     provider('test-model-id');
 
-    expect(AnthropicMessagesLanguageModel).toHaveBeenCalledWith(
+    expect(AnthropicLanguageModel).toHaveBeenCalledWith(
       'test-model-id',
       expect.objectContaining({
         baseURL:
@@ -206,9 +207,9 @@ describe('google-vertex-anthropic-provider', () => {
     // Create a model instance
     const model = provider('claude-3-5-sonnet-v2@20241022');
 
-    // Verify the model was created using AnthropicMessagesLanguageModel
+    // Verify the model was created using AnthropicLanguageModel
     // which already supports combining tools with structured outputs
-    expect(AnthropicMessagesLanguageModel).toHaveBeenCalledWith(
+    expect(AnthropicLanguageModel).toHaveBeenCalledWith(
       'claude-3-5-sonnet-v2@20241022',
       expect.objectContaining({
         provider: 'vertex.anthropic.messages',
