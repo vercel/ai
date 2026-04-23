@@ -29,6 +29,12 @@ type BaseToolExecutionStartFields = {
   readonly messages: ModelMessage[];
 };
 
+/**
+ * Precise start event union for statically known tools.
+ *
+ * Each union member ties a specific `toolCall.toolName` to that tool's
+ * validated `toolContext` type.
+ */
 type StaticToolExecutionStartEvent<TOOLS extends ToolSet> = ValueOf<{
   [NAME in keyof TOOLS]: BaseToolExecutionStartFields & {
     readonly toolCall: Extract<StaticToolCall<TOOLS>, { toolName: NAME }>;
@@ -36,11 +42,20 @@ type StaticToolExecutionStartEvent<TOOLS extends ToolSet> = ValueOf<{
   };
 }>;
 
+/**
+ * Start event shape for dynamic or untyped tool calls.
+ */
 type DynamicToolExecutionStartEvent = BaseToolExecutionStartFields & {
   readonly toolCall: DynamicToolCall;
   readonly toolContext: unknown;
 };
 
+/**
+ * Broad start event shape used for the default `ToolSet` specialization.
+ *
+ * This keeps generic collectors ergonomic when the caller is not working with
+ * a concrete tool set and therefore cannot benefit from per-tool narrowing.
+ */
 type WidenedToolExecutionStartEvent = BaseToolExecutionStartFields & {
   readonly toolCall: StaticToolCall<ToolSet> | DynamicToolCall;
   readonly toolContext: unknown;
@@ -71,6 +86,12 @@ type BaseToolExecutionEndFields = {
   readonly messages: ModelMessage[];
 };
 
+/**
+ * Precise end event union for statically known tools.
+ *
+ * Each union member preserves the link between `toolCall.toolName`, the
+ * corresponding validated `toolContext`, and the tool execution result.
+ */
 type StaticToolExecutionEndEvent<TOOLS extends ToolSet> = ValueOf<{
   [NAME in keyof TOOLS]: BaseToolExecutionEndFields & {
     readonly toolCall: Extract<StaticToolCall<TOOLS>, { toolName: NAME }>;
@@ -79,6 +100,9 @@ type StaticToolExecutionEndEvent<TOOLS extends ToolSet> = ValueOf<{
   };
 }>;
 
+/**
+ * End event shape for dynamic or untyped tool calls.
+ */
 type DynamicToolExecutionEndEvent<TOOLS extends ToolSet> =
   BaseToolExecutionEndFields & {
     readonly toolCall: DynamicToolCall;
@@ -86,6 +110,12 @@ type DynamicToolExecutionEndEvent<TOOLS extends ToolSet> =
     readonly toolOutput: ToolOutput<TOOLS>;
   };
 
+/**
+ * Broad end event shape used for the default `ToolSet` specialization.
+ *
+ * This provides an assignable catch-all event type for generic consumers while
+ * the concrete-tool specialization retains full per-tool narrowing.
+ */
 type WidenedToolExecutionEndEvent = BaseToolExecutionEndFields & {
   readonly toolCall: StaticToolCall<ToolSet> | DynamicToolCall;
   readonly toolContext: unknown;
