@@ -483,8 +483,7 @@ export async function generateText<
       provider: model.provider,
       modelId: model.modelId,
       system,
-      prompt,
-      messages,
+      messages: initialPrompt.messages,
       tools,
       toolChoice,
       activeTools,
@@ -689,9 +688,9 @@ export async function generateText<
         await notify({
           event: {
             callId,
-            stepNumber,
             provider: stepModel.provider,
             modelId: stepModel.modelId,
+            stepNumber: steps.length,
             system: stepSystem,
             messages: stepMessages,
             tools,

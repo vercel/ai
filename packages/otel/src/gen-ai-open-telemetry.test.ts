@@ -146,8 +146,7 @@ function makeOnStartEvent(overrides?: Record<string, unknown>) {
     provider: model.provider,
     modelId: model.modelId,
     system: undefined,
-    prompt: 'Hello',
-    messages: undefined,
+    messages: [{ role: 'user', content: 'Hello' }],
     tools: undefined,
     toolChoice: undefined,
     activeTools: undefined,
@@ -177,9 +176,9 @@ function makeOnStartEvent(overrides?: Record<string, unknown>) {
 function makeStepStartEvent(overrides?: Record<string, unknown>) {
   return {
     callId,
-    stepNumber: 0,
     provider: model.provider,
     modelId: model.modelId,
+    stepNumber: 0,
     system: undefined,
     messages: [],
     tools: undefined,
@@ -325,7 +324,8 @@ function makeToolCallStartEvent(overrides?: Record<string, unknown>) {
     },
     abortSignal: undefined,
     ...telemetryFields(),
-    context: {},
+    messages: [],
+    toolContext: {},
     toolsContext: {},
     ...overrides,
   } as Parameters<NonNullable<Telemetry['onToolExecutionStart']>>[0];
@@ -346,7 +346,8 @@ function makeToolCallFinishEvent(
     abortSignal: undefined,
     durationMs: 42,
     ...telemetryFields(),
-    context: {},
+    messages: [],
+    toolContext: {},
     toolsContext: {},
     ...overrides,
   };
@@ -354,14 +355,26 @@ function makeToolCallFinishEvent(
   if (success) {
     return {
       ...base,
-      success: true as const,
-      output: { result: 'ok' },
+      toolOutput: {
+        type: 'tool-result' as const,
+        toolCallId: 'tool-call-1',
+        toolName: 'myTool',
+        input: { query: 'test' },
+        output: { result: 'ok' },
+        dynamic: false,
+      },
     } as Parameters<NonNullable<Telemetry['onToolExecutionEnd']>>[0];
   }
   return {
     ...base,
-    success: false as const,
-    error: new Error('tool failed'),
+    toolOutput: {
+      type: 'tool-error' as const,
+      toolCallId: 'tool-call-1',
+      toolName: 'myTool',
+      input: { query: 'test' },
+      error: new Error('tool failed'),
+      dynamic: false,
+    },
   } as Parameters<NonNullable<Telemetry['onToolExecutionEnd']>>[0];
 }
 
@@ -1043,7 +1056,7 @@ describe('GenAIOpenTelemetry', () => {
         }),
       );
 
-      integration.onStepStart!(makeStepStartEvent({ stepNumber: 1 }));
+      integration.onStepStart!(makeStepStartEvent({ steps: [{}] }));
       integration.onLanguageModelCallStart!(
         makeLanguageModelCallStartEvent({
           messages: [{ role: 'assistant', content: 'Tool result received' }],
@@ -1178,7 +1191,7 @@ describe('GenAIOpenTelemetry', () => {
         }),
       );
 
-      integration.onStepStart!(makeStepStartEvent({ stepNumber: 1 }));
+      integration.onStepStart!(makeStepStartEvent({ steps: [{}] }));
       integration.onLanguageModelCallStart!(makeLanguageModelCallStartEvent());
       integration.onLanguageModelCallEnd!(makeLanguageModelCallEndEvent());
       integration.onStepFinish!(makeStepFinishEvent({ stepNumber: 1 }));

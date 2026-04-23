@@ -255,7 +255,7 @@ export class GenAIOpenTelemetry implements Telemetry {
         input: () =>
           JSON.stringify(
             formatModelMessages({
-              prompt: event.prompt,
+              prompt: undefined,
               messages: event.messages,
             }),
           ),
@@ -507,7 +507,7 @@ export class GenAIOpenTelemetry implements Telemetry {
     });
 
     state.stepSpan = this.tracer.startSpan(
-      `step ${event.stepNumber + 1}`,
+      `step ${event.steps.length + 1}`,
       { attributes: stepAttributes, kind: SpanKind.INTERNAL },
       state.rootContext,
     );
@@ -654,12 +654,13 @@ export class GenAIOpenTelemetry implements Telemetry {
     const { span } = toolSpanEntry;
     const { telemetry } = state;
 
-    if (event.success) {
+    const { toolOutput } = event;
+    if (toolOutput.type === 'tool-result') {
       try {
         span.setAttributes(
           selectAttributes(telemetry, {
             'gen_ai.tool.call.result': {
-              output: () => JSON.stringify(event.output),
+              output: () => JSON.stringify(toolOutput.output),
             },
           }),
         );
@@ -667,7 +668,7 @@ export class GenAIOpenTelemetry implements Telemetry {
         // JSON.stringify might fail for non-serializable results
       }
     } else {
-      recordSpanError(span, event.error);
+      recordSpanError(span, toolOutput.error);
     }
 
     span.end();

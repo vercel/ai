@@ -174,7 +174,7 @@ import type { Telemetry } from 'ai';
 
 class MyIntegration implements Telemetry {
   async onStart(event) {
-    console.log('Generation started:', event.model.modelId);
+    console.log('Generation started:', event.modelId);
   }
 
   async onStepFinish(event) {
@@ -186,12 +186,15 @@ class MyIntegration implements Telemetry {
   }
 
   async onToolExecutionEnd(event) {
-    if (event.success) {
+    if (event.toolOutput.type === 'tool-result') {
       console.log(
         `Tool "${event.toolCall.toolName}" took ${event.durationMs}ms`,
       );
     } else {
-      console.error(`Tool "${event.toolCall.toolName}" failed:`, event.error);
+      console.error(
+        `Tool "${event.toolCall.toolName}" failed:`,
+        event.toolOutput.error,
+      );
     }
   }
 

@@ -43,7 +43,7 @@ function makeStartEvent(overrides: Record<string, unknown> = {}) {
 function makeStepStartEvent(overrides: Record<string, unknown> = {}) {
   return {
     callId: 'call-1',
-    stepNumber: 0,
+    steps: [],
     provider: 'test-provider',
     modelId: 'test-model',
     messages: [{ role: 'user', content: 'hello' }],

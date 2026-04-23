@@ -1336,8 +1336,7 @@ class DefaultStreamTextResult<
           provider: model.provider,
           modelId: model.modelId,
           system,
-          prompt,
-          messages,
+          messages: initialPrompt.messages,
           tools,
           toolChoice,
           activeTools,
@@ -1623,9 +1622,9 @@ class DefaultStreamTextResult<
                 await notify({
                   event: {
                     callId,
-                    stepNumber: recordedSteps.length,
                     provider: stepModel.provider,
                     modelId: stepModel.modelId,
+                    stepNumber: recordedSteps.length,
                     system: stepSystem,
                     messages: stepMessages,
                     tools,

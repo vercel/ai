@@ -21,6 +21,8 @@ import { TypedToolError } from './tool-error';
 import {
   OnToolExecutionEndCallback,
   OnToolExecutionStartCallback,
+  ToolExecutionEndEvent,
+  ToolExecutionStartEvent,
 } from './tool-execution-events';
 import { ToolOutput } from './tool-output';
 import { TypedToolResult } from './tool-result';
@@ -82,12 +84,16 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   const baseCallbackEvent = {
     callId,
     toolCall,
-    context, // TODO rename to toolContext
+    messages,
+    toolContext: context,
   };
 
   let output: unknown;
 
-  await notify({ event: baseCallbackEvent, callbacks: onToolExecutionStart });
+  await notify({
+    event: baseCallbackEvent as ToolExecutionStartEvent<TOOLS>,
+    callbacks: onToolExecutionStart,
+  });
 
   const toolTimeoutMs = getToolTimeoutMs<TOOLS>(timeout, toolName);
   const toolAbortSignal = mergeAbortSignals(abortSignal, toolTimeoutMs);
@@ -134,17 +140,7 @@ export async function executeToolCall<TOOLS extends ToolSet>({
       },
     });
   } catch (error) {
-    await notify({
-      event: {
-        ...baseCallbackEvent,
-        success: false as const,
-        error,
-        durationMs,
-      },
-      callbacks: onToolExecutionEnd,
-    });
-
-    return {
+    const toolError = {
       type: 'tool-error',
       toolCallId,
       toolName,
@@ -155,19 +151,20 @@ export async function executeToolCall<TOOLS extends ToolSet>({
         ? { providerMetadata: toolCall.providerMetadata }
         : {}),
     } as TypedToolError<TOOLS>;
+
+    await notify({
+      event: {
+        ...baseCallbackEvent,
+        toolOutput: toolError,
+        durationMs,
+      } as ToolExecutionEndEvent<TOOLS>,
+      callbacks: onToolExecutionEnd,
+    });
+
+    return toolError;
   }
 
-  await notify({
-    event: {
-      ...baseCallbackEvent,
-      success: true as const,
-      output,
-      durationMs,
-    },
-    callbacks: onToolExecutionEnd,
-  });
-
-  return {
+  const toolResult = {
     type: 'tool-result',
     toolCallId,
     toolName,
@@ -178,4 +175,15 @@ export async function executeToolCall<TOOLS extends ToolSet>({
       ? { providerMetadata: toolCall.providerMetadata }
       : {}),
   } as TypedToolResult<TOOLS>;
+
+  await notify({
+    event: {
+      ...baseCallbackEvent,
+      toolOutput: toolResult,
+      durationMs,
+    } as ToolExecutionEndEvent<TOOLS>,
+    callbacks: onToolExecutionEnd,
+  });
+
+  return toolResult;
 }

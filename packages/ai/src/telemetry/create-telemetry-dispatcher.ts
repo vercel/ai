@@ -60,6 +60,7 @@ export function createTelemetryDispatcher({
   telemetry,
 }: {
   telemetry?: TelemetryOptions;
+  // operationId: string;
 }): TelemetryDispatcher {
   // When telemetry is explicitly disabled, return a dispatcher
   // that performs no work and lets tool execution pass through unwrapped.
