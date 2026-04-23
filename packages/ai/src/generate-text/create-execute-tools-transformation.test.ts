@@ -530,6 +530,7 @@ describe('createExecuteToolsTransformation', () => {
           timeout: undefined,
           abortSignal: undefined,
           toolsContext: {},
+          runtimeContext: {},
           provider: 'test-provider',
           modelId: 'test-model',
           onLanguageModelCallEnd: async event => {
