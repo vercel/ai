@@ -129,13 +129,13 @@ const { embeddings } = await embedMany({
     },
     {
       name: 'experimental_onStart',
-      type: '(event: EmbedOnStartEvent) => PromiseLike<void> | void',
+      type: '(event: EmbedStartEvent) => PromiseLike<void> | void',
       isOptional: true,
       description:
         'Callback that is called when the embedMany operation begins, before the embedding model is called. Errors thrown in this callback are silently caught and do not break the embedding flow. Experimental (can break in patch releases).',
       properties: [
         {
-          type: 'EmbedOnStartEvent',
+          type: 'EmbedStartEvent',
           parameters: [
             {
               name: 'callId',
@@ -178,25 +178,19 @@ const { embeddings } = await embedMany({
               type: 'ProviderOptions | undefined',
               description: 'Additional provider-specific options.',
             },
-            {
-              name: 'functionId',
-              type: 'string | undefined',
-              description:
-                'Identifier from telemetry settings for grouping related operations.',
-            },
           ],
         },
       ],
     },
     {
       name: 'experimental_onFinish',
-      type: '(event: EmbedOnFinishEvent) => PromiseLike<void> | void',
+      type: '(event: EmbedEndEvent) => PromiseLike<void> | void',
       isOptional: true,
       description:
         'Callback that is called when the embedMany operation completes, after all embedding model calls return. Errors thrown in this callback are silently caught and do not break the embedding flow. Experimental (can break in patch releases).',
       properties: [
         {
-          type: 'EmbedOnFinishEvent',
+          type: 'EmbedEndEvent',
           parameters: [
             {
               name: 'callId',
@@ -245,12 +239,6 @@ const { embeddings } = await embedMany({
               type: 'Array<{ headers?: Record<string, string>; body?: unknown } | undefined>',
               description:
                 'Response data from each embedding call. There may be multiple responses if the request was split into chunks.',
-            },
-            {
-              name: 'functionId',
-              type: 'string | undefined',
-              description:
-                'Identifier from telemetry settings for grouping related operations.',
             },
           ],
         },

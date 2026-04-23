@@ -546,7 +546,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
 
       // GAP: WorkflowAgent's onStart event doesn't include system, temperature,
       // maxOutputTokens, experimental_context, or resolved model yet.
-      // These fields need to be added to match ToolLoopAgent's OnStartEvent.
+      // These fields need to be added to match ToolLoopAgent's GenerateTextStartEvent.
       it('should pass correct event information', async () => {
         let startEvent!: any;
 
@@ -725,7 +725,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
 
       // GAP: WorkflowAgent's onStepStart event doesn't include system,
       // experimental_context, or resolved model yet.
-      // These fields need to be added to match ToolLoopAgent's OnStepStartEvent.
+      // These fields need to be added to match ToolLoopAgent's GenerateTextStepStartEvent.
       it('should pass correct event information', async () => {
         let stepStartEvent!: any;
 

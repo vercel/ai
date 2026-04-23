@@ -131,7 +131,6 @@ let callIdCounter = 0;
 
 function telemetryFields() {
   return {
-    isEnabled: true as const,
     recordInputs: undefined,
     recordOutputs: undefined,
     functionId: undefined,
@@ -188,14 +187,11 @@ function makeStepStartEvent(overrides?: Record<string, unknown>) {
     activeTools: undefined,
     steps: [],
     providerOptions: undefined,
-    timeout: undefined,
-    headers: undefined,
-    stopWhen: undefined,
-    output: undefined,
     abortSignal: undefined,
     include: undefined,
-    functionId: undefined,
+    output: undefined,
     runtimeContext: {},
+    ...telemetryFields(),
     toolsContext: {},
     promptMessages: undefined,
     stepTools: undefined,
@@ -209,7 +205,6 @@ function makeStepFinishEvent(overrides?: Record<string, unknown>) {
     callId,
     stepNumber: 0,
     model,
-    functionId: undefined,
     content: [{ type: 'text' as const, text: 'Hello world' }],
     text: 'Hello world',
     reasoning: [],
@@ -249,6 +244,7 @@ function makeStepFinishEvent(overrides?: Record<string, unknown>) {
       messages: [],
     },
     providerMetadata: undefined,
+    ...telemetryFields(),
     runtimeContext: {},
     toolsContext: {},
     ...overrides,
@@ -282,18 +278,14 @@ function makeFinishEvent(overrides?: Record<string, unknown>) {
 function makeToolCallStartEvent(overrides?: Record<string, unknown>) {
   return {
     callId,
-    stepNumber: 0,
-    provider: model.provider,
-    modelId: model.modelId,
     toolCall: {
       type: 'tool-call' as const,
       toolCallId: 'tool-call-1',
       toolName: 'myTool',
       input: { query: 'test' },
     },
-    messages: [],
     abortSignal: undefined,
-    functionId: undefined,
+    ...telemetryFields(),
     context: {},
     toolsContext: {},
     ...overrides,
@@ -306,19 +298,15 @@ function makeToolCallFinishEvent(
 ) {
   const base = {
     callId,
-    stepNumber: 0,
-    provider: model.provider,
-    modelId: model.modelId,
     toolCall: {
       type: 'tool-call' as const,
       toolCallId: 'tool-call-1',
       toolName: 'myTool',
       input: { query: 'test' },
     },
-    messages: [],
     abortSignal: undefined,
     durationMs: 42,
-    functionId: undefined,
+    ...telemetryFields(),
     context: {},
     toolsContext: {},
     ...overrides,
@@ -385,12 +373,6 @@ describe('GenAIOpenTelemetry', () => {
           ],
         }
       `);
-    });
-
-    it('does not create a span when telemetry is disabled', () => {
-      integration.onStart!(makeOnStartEvent({ isEnabled: false }));
-
-      expect(tracer.startSpan).not.toHaveBeenCalled();
     });
 
     it('preserves functionId as gen_ai.agent.name', () => {

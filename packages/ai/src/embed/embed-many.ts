@@ -5,7 +5,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveEmbeddingModel } from '../model/resolve-model';
-import { createUnifiedTelemetry } from '../telemetry/create-unified-telemetry';
+import { createTelemetryDispatcher } from '../telemetry/create-telemetry-dispatcher';
 import { TelemetryOptions } from '../telemetry/telemetry-options';
 import { Embedding, EmbeddingModel, ProviderMetadata } from '../types';
 import { Warning } from '../types/warning';
@@ -13,7 +13,7 @@ import type { Callback } from '../util/callback';
 import { notify } from '../util/notify';
 import { prepareRetries } from '../util/prepare-retries';
 import { splitArray } from '../util/split-array';
-import type { EmbedOnFinishEvent, EmbedOnStartEvent } from './embed-events';
+import type { EmbedEndEvent, EmbedStartEvent } from './embed-events';
 import { EmbedManyResult } from './embed-many-result';
 import { VERSION } from '../version';
 
@@ -118,13 +118,13 @@ export async function embedMany({
    * Callback that is called when the embedMany operation begins,
    * before the embedding model is called.
    */
-  experimental_onStart?: Callback<EmbedOnStartEvent>;
+  experimental_onStart?: Callback<EmbedStartEvent>;
 
   /**
    * Callback that is called when the embedMany operation completes,
    * after all embedding model calls return.
    */
-  experimental_onFinish?: Callback<EmbedOnFinishEvent>;
+  experimental_onFinish?: Callback<EmbedEndEvent>;
 
   /**
    * Internal. For test use only. May change without notice.
@@ -147,8 +147,8 @@ export async function embedMany({
 
   const callId = generateCallId();
 
-  const unifiedTelemetry = createUnifiedTelemetry({
-    integrations: telemetry?.integrations,
+  const telemetryDispatcher = createTelemetryDispatcher({
+    telemetry,
   });
 
   await notify({
@@ -161,12 +161,8 @@ export async function embedMany({
       maxRetries,
       headers: headersWithUserAgent,
       providerOptions,
-      isEnabled: telemetry?.isEnabled ?? true,
-      recordInputs: telemetry?.recordInputs,
-      recordOutputs: telemetry?.recordOutputs,
-      functionId: telemetry?.functionId,
     },
-    callbacks: [onStart, unifiedTelemetry.onStart],
+    callbacks: [onStart, telemetryDispatcher.onStart],
   });
 
   try {
@@ -188,12 +184,8 @@ export async function embedMany({
               provider: model.provider,
               modelId: model.modelId,
               values,
-              isEnabled: telemetry?.isEnabled ?? true,
-              recordInputs: telemetry?.recordInputs,
-              recordOutputs: telemetry?.recordOutputs,
-              functionId: telemetry?.functionId,
             },
-            callbacks: [unifiedTelemetry.onEmbedStart],
+            callbacks: [telemetryDispatcher.onEmbedStart],
           });
 
           const modelResponse = await model.doEmbed({
@@ -217,7 +209,7 @@ export async function embedMany({
               embeddings,
               usage,
             },
-            callbacks: [unifiedTelemetry.onEmbedFinish],
+            callbacks: [telemetryDispatcher.onEmbedFinish],
           });
 
           return {
@@ -247,12 +239,8 @@ export async function embedMany({
           warnings,
           providerMetadata,
           response: [response],
-          isEnabled: telemetry?.isEnabled ?? true,
-          recordInputs: telemetry?.recordInputs,
-          recordOutputs: telemetry?.recordOutputs,
-          functionId: telemetry?.functionId,
         },
-        callbacks: [onFinish, unifiedTelemetry.onFinish],
+        callbacks: [onFinish, telemetryDispatcher.onFinish],
       });
 
       return new DefaultEmbedManyResult({
@@ -298,12 +286,8 @@ export async function embedMany({
                 provider: model.provider,
                 modelId: model.modelId,
                 values: chunk,
-                isEnabled: telemetry?.isEnabled ?? true,
-                recordInputs: telemetry?.recordInputs,
-                recordOutputs: telemetry?.recordOutputs,
-                functionId: telemetry?.functionId,
               },
-              callbacks: [unifiedTelemetry.onEmbedStart],
+              callbacks: [telemetryDispatcher.onEmbedStart],
             });
 
             const modelResponse = await model.doEmbed({
@@ -327,7 +311,7 @@ export async function embedMany({
                 embeddings: chunkEmbeddings,
                 usage,
               },
-              callbacks: [unifiedTelemetry.onEmbedFinish],
+              callbacks: [telemetryDispatcher.onEmbedFinish],
             });
 
             return {
@@ -381,12 +365,8 @@ export async function embedMany({
         warnings,
         providerMetadata,
         response: responses,
-        isEnabled: telemetry?.isEnabled ?? true,
-        recordInputs: telemetry?.recordInputs,
-        recordOutputs: telemetry?.recordOutputs,
-        functionId: telemetry?.functionId,
       },
-      callbacks: [onFinish, unifiedTelemetry.onFinish],
+      callbacks: [onFinish, telemetryDispatcher.onFinish],
     });
 
     return new DefaultEmbedManyResult({
@@ -398,7 +378,7 @@ export async function embedMany({
       responses,
     });
   } catch (error) {
-    await unifiedTelemetry.onError?.({ callId, error });
+    await telemetryDispatcher.onError?.({ callId, error });
     throw error;
   }
 }

@@ -11,26 +11,27 @@ import {
   Tracer,
 } from '@opentelemetry/api';
 import type {
-  EmbedFinishEvent,
-  EmbedOnFinishEvent,
-  EmbedOnStartEvent,
+  EmbeddingModelCallEndEvent,
+  EmbedEndEvent,
   EmbedStartEvent,
-  ObjectOnFinishEvent,
-  ObjectOnStartEvent,
-  ObjectOnStepFinishEvent,
-  ObjectOnStepStartEvent,
-  OnChunkEvent,
-  OnFinishEvent,
-  OnStartEvent,
-  OnStepFinishEvent,
-  OnStepStartEvent,
+  EmbeddingModelCallStartEvent,
+  GenerateObjectEndEvent,
+  GenerateObjectStartEvent,
+  GenerateObjectStepEndEvent,
+  GenerateObjectStepStartEvent,
+  StreamTextChunkEvent,
+  GenerateTextEndEvent,
+  GenerateTextStartEvent,
+  GenerateTextStepEndEvent,
+  GenerateTextStepStartEvent,
   ToolExecutionEndEvent,
   ToolExecutionStartEvent,
   OutputInterface as Output,
-  RerankFinishEvent,
-  RerankOnFinishEvent,
-  RerankOnStartEvent,
+  RerankingModelCallEndEvent,
+  RerankEndEvent,
   RerankStartEvent,
+  RerankingModelCallStartEvent,
+  InferTelemetryEvent,
   Telemetry,
   TelemetryOptions,
   ToolSet,
@@ -112,7 +113,7 @@ interface OtelStepStartEvent<
   TOOLS extends ToolSet = ToolSet,
   RUNTIME_CONTEXT extends AISDKContext = AISDKContext,
   OUTPUT extends Output = Output,
-> extends OnStepStartEvent<TOOLS, RUNTIME_CONTEXT, OUTPUT> {
+> extends GenerateTextStepStartEvent<TOOLS, RUNTIME_CONTEXT, OUTPUT> {
   readonly promptMessages?: LanguageModelV4Prompt;
   readonly stepTools?: ReadonlyArray<Record<string, unknown>>;
   readonly stepToolChoice?: unknown;
@@ -176,23 +177,23 @@ export class OpenTelemetry implements Telemetry {
 
   onStart(
     event:
-      | OnStartEvent
-      | ObjectOnStartEvent
-      | EmbedOnStartEvent
-      | RerankOnStartEvent,
+      | InferTelemetryEvent<GenerateTextStartEvent>
+      | InferTelemetryEvent<GenerateObjectStartEvent>
+      | InferTelemetryEvent<EmbedStartEvent>
+      | InferTelemetryEvent<RerankStartEvent>,
   ): void {
-    if (event.isEnabled === false) return;
-
     if (
       event.operationId === 'ai.embed' ||
       event.operationId === 'ai.embedMany'
     ) {
-      this.onEmbedOperationStart(event as EmbedOnStartEvent);
+      this.onEmbedOperationStart(event as InferTelemetryEvent<EmbedStartEvent>);
       return;
     }
 
     if (event.operationId === 'ai.rerank') {
-      this.onRerankOperationStart(event as RerankOnStartEvent);
+      this.onRerankOperationStart(
+        event as InferTelemetryEvent<RerankStartEvent>,
+      );
       return;
     }
 
@@ -200,16 +201,19 @@ export class OpenTelemetry implements Telemetry {
       event.operationId === 'ai.generateObject' ||
       event.operationId === 'ai.streamObject'
     ) {
-      this.onObjectOperationStart(event as ObjectOnStartEvent);
+      this.onObjectOperationStart(
+        event as InferTelemetryEvent<GenerateObjectStartEvent>,
+      );
       return;
     }
 
-    this.onGenerateStart(event as OnStartEvent);
+    this.onGenerateStart(event as InferTelemetryEvent<GenerateTextStartEvent>);
   }
 
-  private onGenerateStart(event: OnStartEvent): void {
+  private onGenerateStart(
+    event: InferTelemetryEvent<GenerateTextStartEvent>,
+  ): void {
     const telemetry: TelemetryOptions = {
-      isEnabled: event.isEnabled,
       recordInputs: event.recordInputs,
       recordOutputs: event.recordOutputs,
       functionId: event.functionId,
@@ -270,9 +274,10 @@ export class OpenTelemetry implements Telemetry {
     });
   }
 
-  private onObjectOperationStart(event: ObjectOnStartEvent): void {
+  private onObjectOperationStart(
+    event: InferTelemetryEvent<GenerateObjectStartEvent>,
+  ): void {
     const telemetry: TelemetryOptions = {
-      isEnabled: event.isEnabled,
       recordInputs: event.recordInputs,
       recordOutputs: event.recordOutputs,
       functionId: event.functionId,
@@ -337,7 +342,7 @@ export class OpenTelemetry implements Telemetry {
   }
 
   /** @deprecated */
-  onObjectStepStart(event: ObjectOnStepStartEvent): void {
+  onObjectStepStart(event: GenerateObjectStepStartEvent): void {
     const state = this.getCallState(event.callId);
     if (!state?.rootSpan || !state.rootContext) return;
 
@@ -388,7 +393,7 @@ export class OpenTelemetry implements Telemetry {
   }
 
   /** @deprecated */
-  onObjectStepFinish(event: ObjectOnStepFinishEvent): void {
+  onObjectStepFinish(event: GenerateObjectStepEndEvent): void {
     const state = this.getCallState(event.callId);
     if (!state?.stepSpan) return;
 
@@ -441,9 +446,10 @@ export class OpenTelemetry implements Telemetry {
     state.stepContext = undefined;
   }
 
-  private onEmbedOperationStart(event: EmbedOnStartEvent): void {
+  private onEmbedOperationStart(
+    event: InferTelemetryEvent<EmbedStartEvent>,
+  ): void {
     const telemetry: TelemetryOptions = {
-      isEnabled: event.isEnabled,
       recordInputs: event.recordInputs,
       recordOutputs: event.recordOutputs,
       functionId: event.functionId,
@@ -627,7 +633,7 @@ export class OpenTelemetry implements Telemetry {
     state.toolSpans.delete(event.toolCall.toolCallId);
   }
 
-  onStepFinish(event: OnStepFinishEvent<ToolSet>): void {
+  onStepFinish(event: GenerateTextStepEndEvent<ToolSet>): void {
     const state = this.getCallState(event.callId);
     if (!state?.stepSpan) return;
 
@@ -710,10 +716,10 @@ export class OpenTelemetry implements Telemetry {
 
   onFinish(
     event:
-      | OnFinishEvent<ToolSet>
-      | ObjectOnFinishEvent<unknown>
-      | EmbedOnFinishEvent
-      | RerankOnFinishEvent,
+      | GenerateTextEndEvent<ToolSet>
+      | GenerateObjectEndEvent<unknown>
+      | EmbedEndEvent
+      | RerankEndEvent,
   ): void {
     const state = this.getCallState(event.callId);
     if (!state?.rootSpan) return;
@@ -722,12 +728,12 @@ export class OpenTelemetry implements Telemetry {
       state.operationId === 'ai.embed' ||
       state.operationId === 'ai.embedMany'
     ) {
-      this.onEmbedOperationFinish(event as EmbedOnFinishEvent);
+      this.onEmbedOperationFinish(event as EmbedEndEvent);
       return;
     }
 
     if (state.operationId === 'ai.rerank') {
-      this.onRerankOperationFinish(event as RerankOnFinishEvent);
+      this.onRerankOperationFinish(event as RerankEndEvent);
       return;
     }
 
@@ -735,14 +741,14 @@ export class OpenTelemetry implements Telemetry {
       state.operationId === 'ai.generateObject' ||
       state.operationId === 'ai.streamObject'
     ) {
-      this.onObjectOperationFinish(event as ObjectOnFinishEvent<unknown>);
+      this.onObjectOperationFinish(event as GenerateObjectEndEvent<unknown>);
       return;
     }
 
-    this.onGenerateFinish(event as OnFinishEvent<ToolSet>);
+    this.onGenerateFinish(event as GenerateTextEndEvent<ToolSet>);
   }
 
-  private onGenerateFinish(event: OnFinishEvent<ToolSet>): void {
+  private onGenerateFinish(event: GenerateTextEndEvent<ToolSet>): void {
     const state = this.getCallState(event.callId);
     if (!state?.rootSpan) return;
 
@@ -813,7 +819,9 @@ export class OpenTelemetry implements Telemetry {
     this.cleanupCallState(event.callId);
   }
 
-  private onObjectOperationFinish(event: ObjectOnFinishEvent<unknown>): void {
+  private onObjectOperationFinish(
+    event: GenerateObjectEndEvent<unknown>,
+  ): void {
     const state = this.getCallState(event.callId);
     if (!state?.rootSpan) return;
 
@@ -842,7 +850,7 @@ export class OpenTelemetry implements Telemetry {
     this.cleanupCallState(event.callId);
   }
 
-  private onEmbedOperationFinish(event: EmbedOnFinishEvent): void {
+  private onEmbedOperationFinish(event: EmbedEndEvent): void {
     const state = this.getCallState(event.callId);
     if (!state?.rootSpan) return;
 
@@ -871,7 +879,7 @@ export class OpenTelemetry implements Telemetry {
     this.cleanupCallState(event.callId);
   }
 
-  onEmbedStart(event: EmbedStartEvent): void {
+  onEmbedStart(event: EmbeddingModelCallStartEvent): void {
     const state = this.getCallState(event.callId);
     if (!state?.rootSpan || !state.rootContext) return;
 
@@ -901,7 +909,7 @@ export class OpenTelemetry implements Telemetry {
     });
   }
 
-  onEmbedFinish(event: EmbedFinishEvent): void {
+  onEmbedFinish(event: EmbeddingModelCallEndEvent): void {
     const state = this.getCallState(event.callId);
     if (!state) return;
 
@@ -925,9 +933,10 @@ export class OpenTelemetry implements Telemetry {
     state.embedSpans.delete(event.embedCallId);
   }
 
-  private onRerankOperationStart(event: RerankOnStartEvent): void {
+  private onRerankOperationStart(
+    event: InferTelemetryEvent<RerankStartEvent>,
+  ): void {
     const telemetry: TelemetryOptions = {
-      isEnabled: event.isEnabled,
       recordInputs: event.recordInputs,
       recordOutputs: event.recordOutputs,
       functionId: event.functionId,
@@ -973,7 +982,7 @@ export class OpenTelemetry implements Telemetry {
     });
   }
 
-  private onRerankOperationFinish(event: RerankOnFinishEvent): void {
+  private onRerankOperationFinish(event: RerankEndEvent): void {
     const state = this.getCallState(event.callId);
     if (!state?.rootSpan) return;
 
@@ -981,7 +990,7 @@ export class OpenTelemetry implements Telemetry {
     this.cleanupCallState(event.callId);
   }
 
-  onRerankStart(event: RerankStartEvent): void {
+  onRerankStart(event: RerankingModelCallStartEvent): void {
     const state = this.getCallState(event.callId);
     if (!state?.rootSpan || !state.rootContext) return;
 
@@ -1008,7 +1017,7 @@ export class OpenTelemetry implements Telemetry {
     state.rerankSpan = { span: rerankSpan, context: rerankContext };
   }
 
-  onRerankFinish(event: RerankFinishEvent): void {
+  onRerankFinish(event: RerankingModelCallEndEvent): void {
     const state = this.getCallState(event.callId);
     if (!state?.rerankSpan) return;
 
@@ -1028,7 +1037,7 @@ export class OpenTelemetry implements Telemetry {
     state.rerankSpan = undefined;
   }
 
-  onChunk(event: OnChunkEvent<ToolSet>): void {
+  onChunk(event: StreamTextChunkEvent<ToolSet>): void {
     const chunk = event.chunk as {
       type: string;
       callId?: unknown;

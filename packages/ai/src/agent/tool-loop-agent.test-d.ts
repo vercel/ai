@@ -106,13 +106,14 @@ describe('ToolLoopAgent', () => {
             expectTypeOf(input).toEqualTypeOf<{ value: string }>();
             expectTypeOf(options.toolCallId).toEqualTypeOf<string>();
             expectTypeOf(options.messages).toMatchTypeOf<Array<any>>();
+            expectTypeOf(options.runtimeContext).toEqualTypeOf<Context>();
 
-            return true;
+            return 'user-approval';
           },
         },
         prepareCall: options => {
           expectTypeOf(options.toolApproval).toEqualTypeOf<
-            ToolApprovalConfiguration<typeof tools> | undefined
+            ToolApprovalConfiguration<typeof tools, Context> | undefined
           >();
 
           return {

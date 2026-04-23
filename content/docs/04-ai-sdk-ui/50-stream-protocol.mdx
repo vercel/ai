@@ -350,6 +350,36 @@ data: {"type":"tool-input-available","toolCallId":"call_fJdQDqnXeGxTmr4E3YPSR7Ar
 
 ```
 
+### Tool Approval Request Part
+
+Indicates that a tool call requires approval, or records that the approval decision was made automatically.
+
+Format: Server-Sent Event with JSON object
+
+Example:
+
+```
+data: {"type":"tool-approval-request","toolCallId":"call_fJdQDqnXeGxTmr4E3YPSR7Ar","approvalId":"approval_123","isAutomatic":true}
+
+```
+
+When `isAutomatic` is omitted, the request expects an explicit approval response from the client.
+
+### Tool Approval Response Part
+
+Records the approval decision for a tool call.
+
+Format: Server-Sent Event with JSON object
+
+Example:
+
+```
+data: {"type":"tool-approval-response","approvalId":"approval_123","approved":false,"reason":"User denied the request"}
+
+```
+
+For provider-executed tools, the response can also include `providerExecuted: true`.
+
 ### Tool Output Available Part
 
 Contains the result of tool execution.
@@ -360,6 +390,19 @@ Example:
 
 ```
 data: {"type":"tool-output-available","toolCallId":"call_fJdQDqnXeGxTmr4E3YPSR7Ar","output":{"city":"San Francisco","weather":"sunny"}}
+
+```
+
+### Tool Output Denied Part
+
+Indicates that tool execution was denied after the approval flow completed.
+
+Format: Server-Sent Event with JSON object
+
+Example:
+
+```
+data: {"type":"tool-output-denied","toolCallId":"call_fJdQDqnXeGxTmr4E3YPSR7Ar"}
 
 ```
 

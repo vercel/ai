@@ -1,11 +1,11 @@
 import type {
-  OnStartEvent,
-  OnStepStartEvent,
-  OnStepFinishEvent,
-  OnChunkEvent,
-  ObjectOnStartEvent,
-  ObjectOnStepStartEvent,
-  ObjectOnStepFinishEvent,
+  GenerateTextStartEvent,
+  GenerateTextStepStartEvent,
+  GenerateTextStepEndEvent,
+  StreamTextChunkEvent,
+  GenerateObjectStartEvent,
+  GenerateObjectStepStartEvent,
+  GenerateObjectStepEndEvent,
   Telemetry,
   ToolSet,
 } from 'ai';
@@ -199,7 +199,12 @@ export function DevToolsTelemetry(): Telemetry {
         return;
       }
 
-      const startEvent = event as OnStartEvent<ToolSet> | ObjectOnStartEvent;
+      const startEvent = event as (
+        | GenerateTextStartEvent<ToolSet>
+        | GenerateObjectStartEvent
+      ) & {
+        functionId?: string | undefined;
+      };
 
       const parentInfo = resolveParentInfo();
 
@@ -213,7 +218,7 @@ export function DevToolsTelemetry(): Telemetry {
     },
 
     onStepStart: async event => {
-      const stepStartEvent = event as OnStepStartEvent<ToolSet> & {
+      const stepStartEvent = event as GenerateTextStepStartEvent<ToolSet> & {
         promptMessages?: unknown[];
       };
 
@@ -267,7 +272,7 @@ export function DevToolsTelemetry(): Telemetry {
     },
 
     onObjectStepStart: async event => {
-      const stepStartEvent = event as ObjectOnStepStartEvent & {
+      const stepStartEvent = event as GenerateObjectStepStartEvent & {
         promptMessages?: unknown[];
       };
 
@@ -311,7 +316,7 @@ export function DevToolsTelemetry(): Telemetry {
     },
 
     onChunk: async event => {
-      const { chunk } = event as OnChunkEvent;
+      const { chunk } = event as StreamTextChunkEvent;
 
       if (chunk.type === 'raw') {
         const rawValue = (chunk as { rawValue: unknown }).rawValue;
@@ -359,7 +364,7 @@ export function DevToolsTelemetry(): Telemetry {
     },
 
     onStepFinish: async event => {
-      const stepResult = event as OnStepFinishEvent<ToolSet>;
+      const stepResult = event as GenerateTextStepEndEvent<ToolSet>;
 
       const state = callStates.get(stepResult.callId);
       if (!state) return;
@@ -407,7 +412,7 @@ export function DevToolsTelemetry(): Telemetry {
     },
 
     onObjectStepFinish: async event => {
-      const stepResult = event as ObjectOnStepFinishEvent;
+      const stepResult = event as GenerateObjectStepEndEvent;
 
       const state = callStates.get(stepResult.callId);
       if (!state) return;

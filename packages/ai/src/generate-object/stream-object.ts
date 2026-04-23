@@ -23,7 +23,7 @@ import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-mode
 import { Prompt } from '../prompt/prompt';
 import { standardizePrompt } from '../prompt/standardize-prompt';
 import { wrapGatewayError } from '../prompt/wrap-gateway-error';
-import { createUnifiedTelemetry } from '../telemetry/create-unified-telemetry';
+import { createTelemetryDispatcher } from '../telemetry/create-telemetry-dispatcher';
 import { TelemetryOptions } from '../telemetry/telemetry-options';
 import { createTextStreamResponse } from '../text-stream/create-text-stream-response';
 import { pipeTextStreamToResponse } from '../text-stream/pipe-text-stream-to-response';
@@ -52,10 +52,10 @@ import { notify } from '../util/notify';
 import { now as originalNow } from '../util/now';
 import { prepareRetries } from '../util/prepare-retries';
 import type {
-  ObjectOnFinishEvent,
-  ObjectOnStartEvent,
-  ObjectOnStepFinishEvent,
-  ObjectOnStepStartEvent,
+  GenerateObjectEndEvent,
+  GenerateObjectStartEvent,
+  GenerateObjectStepEndEvent,
+  GenerateObjectStepStartEvent,
 } from './structured-output-events';
 import { getOutputStrategy, OutputStrategy } from './output-strategy';
 import { parseAndValidateObjectResultWithRepair } from './parse-and-validate-object-result';
@@ -259,19 +259,19 @@ export function streamObject<
        * Callback that is called when the streamObject operation begins,
        * before the LLM call is made.
        */
-      experimental_onStart?: Callback<ObjectOnStartEvent>;
+      experimental_onStart?: Callback<GenerateObjectStartEvent>;
 
       /**
        * Callback that is called when the model call (step) begins,
        * before the provider is called.
        */
-      experimental_onStepStart?: Callback<ObjectOnStepStartEvent>;
+      experimental_onStepStart?: Callback<GenerateObjectStepStartEvent>;
 
       /**
        * Callback that is called when the model streaming step completes,
        * with the raw accumulated text before final schema validation.
        */
-      onStepFinish?: Callback<ObjectOnStepFinishEvent>;
+      onStepFinish?: Callback<GenerateObjectStepEndEvent>;
 
       /**
        * Callback that is invoked when an error occurs during streaming.
@@ -283,7 +283,7 @@ export function streamObject<
       /**
        * Callback that is called when the LLM response and the final object validation are finished.
        */
-      onFinish?: Callback<ObjectOnFinishEvent<RESULT>>;
+      onFinish?: Callback<GenerateObjectEndEvent<RESULT>>;
 
       /**
        * Internal. For test use only. May change without notice.
@@ -450,11 +450,11 @@ class DefaultStreamObjectResult<
     schemaDescription: string | undefined;
     providerOptions: ProviderOptions | undefined;
     repairText: RepairTextFunction | undefined;
-    onStart: Callback<ObjectOnStartEvent> | undefined;
-    onStepStart: Callback<ObjectOnStepStartEvent> | undefined;
-    onStepFinish: Callback<ObjectOnStepFinishEvent> | undefined;
+    onStart: Callback<GenerateObjectStartEvent> | undefined;
+    onStepStart: Callback<GenerateObjectStepStartEvent> | undefined;
+    onStepFinish: Callback<GenerateObjectStepEndEvent> | undefined;
     onError: StreamObjectOnErrorCallback;
-    onFinish: Callback<ObjectOnFinishEvent<RESULT>> | undefined;
+    onFinish: Callback<GenerateObjectEndEvent<RESULT>> | undefined;
     download: DownloadFunction | undefined;
     generateId: () => string;
     currentDate: () => Date;
@@ -469,8 +469,8 @@ class DefaultStreamObjectResult<
 
     const callSettings = prepareLanguageModelCallOptions(settings);
 
-    const unifiedTelemetry = createUnifiedTelemetry({
-      integrations: telemetry?.integrations,
+    const telemetryDispatcher = createTelemetryDispatcher({
+      telemetry,
     });
 
     const self = this;
@@ -525,12 +525,8 @@ class DefaultStreamObjectResult<
           schema: jsonSchema as Record<string, unknown> | undefined,
           schemaName,
           schemaDescription,
-          isEnabled: telemetry?.isEnabled ?? true,
-          recordInputs: telemetry?.recordInputs,
-          recordOutputs: telemetry?.recordOutputs,
-          functionId: telemetry?.functionId,
         },
-        callbacks: [onStart, unifiedTelemetry.onStart],
+        callbacks: [onStart, telemetryDispatcher.onStart],
       });
 
       const standardizedPrompt = await standardizePrompt({
@@ -567,10 +563,9 @@ class DefaultStreamObjectResult<
           modelId: model.modelId,
           providerOptions,
           headers,
-          functionId: telemetry?.functionId,
           promptMessages: callOptions.prompt,
         },
-        callbacks: [onStepStart, unifiedTelemetry.onObjectStepStart],
+        callbacks: [onStepStart, telemetryDispatcher.onObjectStepStart],
       });
 
       const transformer: Transformer<
@@ -784,11 +779,10 @@ class DefaultStreamObjectResult<
                       headers: response?.headers,
                     },
                     providerMetadata,
-                    functionId: telemetry?.functionId,
                   },
                   callbacks: [
                     onStepFinish,
-                    unifiedTelemetry.onObjectStepFinish,
+                    telemetryDispatcher.onObjectStepFinish,
                   ],
                 });
 
@@ -807,9 +801,8 @@ class DefaultStreamObjectResult<
                       headers: response?.headers,
                     },
                     providerMetadata,
-                    functionId: telemetry?.functionId,
                   },
-                  callbacks: [onFinish, unifiedTelemetry.onFinish],
+                  callbacks: [onFinish, telemetryDispatcher.onFinish],
                 });
               } catch (error) {
                 controller.enqueue({ type: 'error', error });
@@ -821,7 +814,7 @@ class DefaultStreamObjectResult<
       stitchableStream.addStream(transformedStream);
     })()
       .catch(async error => {
-        await unifiedTelemetry.onError?.({ callId, error });
+        await telemetryDispatcher.onError?.({ callId, error });
 
         stitchableStream.addStream(
           new ReadableStream({

@@ -323,6 +323,60 @@ const result = await generateText({
 console.log(result.output);
 ```
 
+### Tools: Migrate Deprecated `needsApproval` to `toolApproval`
+
+The `needsApproval` property on `tool()` and `dynamicTool()` is deprecated in
+AI SDK 7 for `generateText`, `streamText`, and `ToolLoopAgent`.
+
+Move approval logic to the `toolApproval` setting on the call or agent instead.
+This keeps approval policy close to the generation or agent configuration and
+lets you vary it by request.
+
+```tsx filename="AI SDK 6"
+const deleteFile = tool({
+  inputSchema: z.object({
+    path: z.string(),
+  }),
+  needsApproval: async ({ path }) => !path.startsWith('/tmp/'),
+  execute: async ({ path }) => {
+    await removeFile(path);
+    return { success: true };
+  },
+});
+
+await streamText({
+  model: yourModel,
+  tools: { deleteFile },
+});
+```
+
+```tsx filename="AI SDK 7"
+const deleteFile = tool({
+  inputSchema: z.object({
+    path: z.string(),
+  }),
+  execute: async ({ path }) => {
+    await removeFile(path);
+    return { success: true };
+  },
+});
+
+await streamText({
+  model: yourModel,
+  tools: { deleteFile },
+  toolApproval: {
+    deleteFile: async ({ path }) =>
+      path.startsWith('/tmp/') ? undefined : 'user-approval',
+  },
+});
+```
+
+If you were using `needsApproval: true`, migrate it to
+`toolApproval: { myTool: 'user-approval' }`. If you were using a
+`needsApproval` function, move that logic into a per-tool
+`SingleToolApprovalFunction` or a generic `toolApproval` callback. This
+guidance applies to `generateText`, `streamText`, and `ToolLoopAgent`.
+
 ### Tools: Remove Deprecated `experimental_activeTools` Option
 
 The deprecated `experimental_activeTools` option has been removed in AI SDK 7. Replace all remaining usages with `activeTools`.
