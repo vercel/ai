@@ -2936,7 +2936,10 @@ describe('doStream', () => {
           "warnings": [],
         },
         {
-          "error": "Incorrect API key provided: as***T7. You can obtain an API key from https://console.api.com.",
+          "error": {
+            "code": "Client specified an invalid argument",
+            "message": "Incorrect API key provided: as***T7. You can obtain an API key from https://console.api.com.",
+          },
           "type": "error",
         },
         {
@@ -2965,6 +2968,36 @@ describe('doStream', () => {
         },
       ]
     `);
+  });
+
+  it('should handle error stream parts with null code', async () => {
+    server.urls['https://my.api.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"error":{"message":"The server had an error processing your request.","type":"server_error","param":null,"code":null}}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const parts = await convertReadableStreamToArray(stream);
+    const errorPart = parts.find(
+      (part: Record<string, unknown>) => part.type === 'error',
+    );
+
+    expect(errorPart).toEqual({
+      type: 'error',
+      error: {
+        message: 'The server had an error processing your request.',
+        type: 'server_error',
+        param: null,
+        code: null,
+      },
+    });
   });
 
   it.skipIf(isNodeVersion(20))(
