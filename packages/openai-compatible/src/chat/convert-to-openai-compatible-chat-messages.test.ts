@@ -409,21 +409,58 @@ describe('user messages', () => {
     ]);
   });
 
-  it('should throw error for unsupported file types', async () => {
-    expect(() =>
-      convertToOpenAICompatibleChatMessages([
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'file',
-              data: new Uint8Array([0, 1, 2, 3]),
-              mediaType: 'video/mp4',
-            },
-          ],
-        },
-      ]),
-    ).toThrow("'file part media type video/mp4' functionality not supported");
+  it('should convert video file parts with URL to video_url', async () => {
+    const result = convertToOpenAICompatibleChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: new URL('https://example.com/video.mp4'),
+            mediaType: 'video/mp4',
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'video_url',
+            video_url: { url: 'https://example.com/video.mp4' },
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should convert video file parts with binary data to base64 data URI', async () => {
+    const result = convertToOpenAICompatibleChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: new Uint8Array([0, 1, 2, 3]),
+            mediaType: 'video/mp4',
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'video_url',
+            video_url: { url: 'data:video/mp4;base64,AAECAw==' },
+          },
+        ],
+      },
+    ]);
   });
 });
 
