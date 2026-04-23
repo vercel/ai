@@ -1209,7 +1209,7 @@ function resolveBedrockReasoningConfig({
   isAnthropicModel: boolean;
   modelId: string;
 }): AmazonBedrockLanguageModelOptions {
-  if (!isCustomReasoning(reasoning) || bedrockOptions.reasoningConfig != null) {
+  if (!isCustomReasoning(reasoning)) {
     return bedrockOptions;
   }
 
@@ -1229,6 +1229,7 @@ function resolveBedrockReasoningConfig({
       result.reasoningConfig = {
         type: 'adaptive',
         maxReasoningEffort: effort,
+        ...bedrockOptions.reasoningConfig,
       };
     } else {
       const budgetTokens = mapReasoningToProviderBudget({
@@ -1241,6 +1242,7 @@ function resolveBedrockReasoningConfig({
         result.reasoningConfig = {
           type: 'enabled',
           budgetTokens,
+          ...bedrockOptions.reasoningConfig,
         };
       }
     }
@@ -1250,7 +1252,21 @@ function resolveBedrockReasoningConfig({
       effortMap: bedrockReasoningEffortMap,
       warnings,
     });
-    result.reasoningConfig = { maxReasoningEffort: effort };
+    result.reasoningConfig = {
+      maxReasoningEffort: effort,
+      ...bedrockOptions.reasoningConfig,
+    };
+  }
+
+  /*
+   * Mirror anthropic-messages-language-model.ts: when the merged type ends up
+   * 'disabled' (user override combined with a non-none reasoning), strip
+   * derived effort/budget so downstream does not emit output_config.effort
+   * alongside disabled thinking.
+   */
+  if (result.reasoningConfig?.type === 'disabled') {
+    delete result.reasoningConfig.maxReasoningEffort;
+    delete result.reasoningConfig.budgetTokens;
   }
 
   return result;
