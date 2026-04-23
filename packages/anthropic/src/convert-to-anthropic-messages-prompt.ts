@@ -692,7 +692,7 @@ export async function convertToAnthropicMessagesPrompt({
                   type: 'tool_use',
                   id: part.toolCallId,
                   name: part.toolName,
-                  input: part.input,
+                  input: part.input ?? {},
                   ...(caller && { caller }),
                   cache_control: cacheControl,
                 });

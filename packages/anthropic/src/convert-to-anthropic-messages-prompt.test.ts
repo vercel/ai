@@ -566,6 +566,195 @@ describe('tool messages', () => {
     });
   });
 
+  it('should convert error-text tool result with is_error flag', async () => {
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            { type: 'text', text: 'Let me edit the file.' },
+            {
+              type: 'tool-call',
+              toolCallId: 'toolu_error',
+              toolName: 'edit',
+              input: {},
+            },
+            { type: 'text', text: 'And also search.' },
+            {
+              type: 'tool-call',
+              toolCallId: 'toolu_ok',
+              toolName: 'search',
+              input: { query: 'test' },
+            },
+          ],
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'toolu_error',
+              toolName: 'edit',
+              output: {
+                type: 'error-text',
+                value: 'Tool execution aborted',
+              },
+            },
+            {
+              type: 'tool-result',
+              toolCallId: 'toolu_ok',
+              toolName: 'search',
+              output: {
+                type: 'text',
+                value: 'Search results here',
+              },
+            },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings: [],
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    expect(result.prompt.messages).toHaveLength(2);
+
+    // Assistant message should have both tool_use blocks
+    const assistantMsg = result.prompt.messages[0];
+    expect(assistantMsg.role).toBe('assistant');
+    const toolUses = assistantMsg.content.filter(
+      (b: any) => b.type === 'tool_use',
+    );
+    expect(toolUses).toHaveLength(2);
+
+    // User message should have both tool_result blocks
+    const userMsg = result.prompt.messages[1];
+    expect(userMsg.role).toBe('user');
+    expect(userMsg.content).toEqual([
+      {
+        type: 'tool_result',
+        tool_use_id: 'toolu_error',
+        content: 'Tool execution aborted',
+        is_error: true,
+        cache_control: undefined,
+      },
+      {
+        type: 'tool_result',
+        tool_use_id: 'toolu_ok',
+        content: 'Search results here',
+        is_error: undefined,
+        cache_control: undefined,
+      },
+    ]);
+  });
+
+  it('should convert error-json tool result with is_error flag', async () => {
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'tool-call-1',
+              toolName: 'tool-1',
+              output: {
+                type: 'error-json',
+                value: { error: 'something failed' },
+              },
+            },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings: [],
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    expect(result.prompt.messages[0].content).toEqual([
+      {
+        type: 'tool_result',
+        tool_use_id: 'tool-call-1',
+        content: JSON.stringify({ error: 'something failed' }),
+        is_error: true,
+        cache_control: undefined,
+      },
+    ]);
+  });
+
+  it('should convert execution-denied tool result', async () => {
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'tool-call-1',
+              toolName: 'tool-1',
+              output: {
+                type: 'execution-denied',
+                reason: 'User denied this tool',
+              },
+            },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings: [],
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    expect(result.prompt.messages[0].content).toEqual([
+      {
+        type: 'tool_result',
+        tool_use_id: 'tool-call-1',
+        content: 'User denied this tool',
+        is_error: undefined,
+        cache_control: undefined,
+      },
+    ]);
+  });
+
+  it('should handle tool-call with undefined input by defaulting to empty object', async () => {
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'toolu_1',
+              toolName: 'edit',
+              input: undefined as any,
+            },
+          ],
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'toolu_1',
+              toolName: 'edit',
+              output: {
+                type: 'error-text',
+                value: 'Tool execution aborted',
+              },
+            },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings: [],
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    const assistantContent = result.prompt.messages[0].content;
+    const toolUse = assistantContent.find((b: any) => b.type === 'tool_use');
+    expect((toolUse as any).input).toEqual({});
+  });
+
   it('should convert multiple tool results into an anthropic user message', async () => {
     const result = await convertToAnthropicMessagesPrompt({
       prompt: [
