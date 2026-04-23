@@ -2084,12 +2084,15 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV4 {
 
                     // for the code execution 20250825, we need to add
                     // the type to the delta and change the tool name.
+                    // Only transform if the delta starts with '{' to avoid
+                    // malformed JSON when the first chunk is partial.
                     if (
                       contentBlock.firstDelta &&
                       (contentBlock.providerToolName ===
                         'bash_code_execution' ||
                         contentBlock.providerToolName ===
-                          'text_editor_code_execution')
+                          'text_editor_code_execution') &&
+                      delta.startsWith('{')
                     ) {
                       delta = `{"type": "${contentBlock.providerToolName}",${delta.substring(1)}`;
                     }
