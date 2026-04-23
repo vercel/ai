@@ -138,6 +138,13 @@ It currently does not support accepting notifications from an MCP server, and cu
               description: 'Handler for uncaught errors',
             },
             {
+              name: 'onNotification',
+              type: '(notification: JSONRPCNotification) => void',
+              isOptional: true,
+              description:
+                'Handler for server-initiated notifications (e.g. notifications/message for server log events). When omitted, notifications are silently dropped.',
+            },
+            {
               name: 'capabilities',
               type: 'ClientCapabilities',
               isOptional: true,

@@ -109,6 +109,11 @@ export interface MCPClientConfig {
    * NOTE: It is up to the client application to handle the requests properly. This parameter just helps surface the request from the server
    */
   capabilities?: ClientCapabilities;
+  /**
+   * Optional callback for server-initiated notifications (e.g. notifications/message for server logs).
+   * Called with the raw JSON-RPC notification message whenever the server sends one.
+   */
+  onNotification?: (notification: JSONRPCNotification) => void;
 }
 
 export async function createMCPClient(
@@ -193,13 +198,13 @@ export interface MCPClient {
  * This client is meant to be used to communicate with a single server. To communicate and fetch tools across multiple servers, it's recommended to create a new client instance per server.
  *
  * Not supported:
- * - Accepting notifications
  * - Session management (when passing a sessionId to an instance of the Streamable HTTP transport)
  * - Resumable SSE streams
  */
 class DefaultMCPClient implements MCPClient {
   private transport: MCPTransport;
   private onUncaughtError?: (error: unknown) => void;
+  private onNotification?: (notification: JSONRPCNotification) => void;
   private clientInfo: ClientConfiguration;
   private clientCapabilities: ClientCapabilities;
   private requestMessageId = 0;
@@ -219,9 +224,11 @@ class DefaultMCPClient implements MCPClient {
     name = 'ai-sdk-mcp-client',
     version = CLIENT_VERSION,
     onUncaughtError,
+    onNotification,
     capabilities,
   }: MCPClientConfig) {
     this.onUncaughtError = onUncaughtError;
+    this.onNotification = onNotification;
     this.clientCapabilities = capabilities ?? {};
 
     if (isCustomMcpTransport(transportConfig)) {
@@ -237,11 +244,7 @@ class DefaultMCPClient implements MCPClient {
         if ('id' in message) {
           this.onRequestMessage(message);
         } else {
-          this.onError(
-            new MCPClientError({
-              message: 'Unsupported message type',
-            }),
-          );
+          this.onNotification?.(message);
         }
         return;
       }
