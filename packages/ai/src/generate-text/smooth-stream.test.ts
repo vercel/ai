@@ -1549,6 +1549,42 @@ describe('smoothStream', () => {
       });
     });
 
+    it('should preserve providerMetadata when buffer is empty (signature arrives after all text chunked)', async () => {
+      const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+        { type: 'reasoning-start', id: '1' },
+        // Single word that gets fully chunked out immediately
+        { text: 'Think ', type: 'reasoning-delta', id: '1' },
+        // Signature arrives as empty delta after all text is flushed
+        {
+          text: '',
+          type: 'reasoning-delta',
+          id: '1',
+          providerMetadata: {
+            anthropic: { signature: 'sig_empty_buffer' },
+          },
+        },
+        { type: 'reasoning-end', id: '1' },
+      ]).pipeThrough(
+        smoothStream({
+          delayInMs: 10,
+          _internal: { delay },
+        })({ tools: {} }),
+      );
+
+      await consumeStream(stream);
+
+      // The providerMetadata must be preserved even though the buffer was empty
+      // when the signature delta arrived
+      const reasoningDeltas = events.filter(
+        (e: any) => e.type === 'reasoning-delta',
+      );
+      const hasSignature = reasoningDeltas.some(
+        (e: any) =>
+          e.providerMetadata?.anthropic?.signature === 'sig_empty_buffer',
+      );
+      expect(hasSignature).toBe(true);
+    });
+
     it('should preserve providerMetadata on reasoning-start for redacted thinking', async () => {
       const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
         {
