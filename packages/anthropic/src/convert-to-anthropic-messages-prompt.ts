@@ -487,6 +487,10 @@ export async function convertToAnthropicMessagesPrompt({
                   | undefined;
 
                 if (textMetadata?.type === 'compaction') {
+                  if (part.text.length === 0) {
+                    break;
+                  }
+
                   anthropicContent.push({
                     type: 'compaction',
                     content: part.text,

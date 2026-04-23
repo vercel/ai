@@ -5302,6 +5302,47 @@ describe('AnthropicMessagesLanguageModel', () => {
         });
       });
 
+      it('should skip empty compaction blocks when converting assistant history back to a request', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        await model.doGenerate({
+          prompt: [
+            ...TEST_PROMPT,
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'text',
+                  text: '',
+                  providerOptions: {
+                    anthropic: {
+                      type: 'compaction',
+                    },
+                  },
+                },
+                {
+                  type: 'text',
+                  text: 'Visible assistant reply',
+                },
+              ],
+            },
+          ],
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          messages: [
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'Hello' }],
+            },
+            {
+              role: 'assistant',
+              content: [{ type: 'text', text: 'Visible assistant reply' }],
+            },
+          ],
+        });
+      });
+
       it('should parse context_management with compact_20260112 from response', async () => {
         server.urls['https://api.anthropic.com/v1/messages'].response = {
           type: 'json-value',
