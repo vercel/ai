@@ -5801,6 +5801,7 @@ describe('streamText', () => {
 
       await result.consumeStream();
 
+      expect(stepStartEvent.stepNumber).toBe(0);
       expect(stepStartEvent.steps.length).toBe(0);
       expect(stepStartEvent.provider).toBe('mock-provider');
       expect(stepStartEvent.modelId).toBe('mock-model-id');
@@ -5896,7 +5897,9 @@ describe('streamText', () => {
       await result.consumeStream();
 
       expect(stepStartEvents.length).toBe(2);
+      expect(stepStartEvents[0].stepNumber).toBe(0);
       expect(stepStartEvents[0].steps.length).toBe(0);
+      expect(stepStartEvents[1].stepNumber).toBe(1);
       expect(stepStartEvents[1].steps.length).toBe(1);
     });
 

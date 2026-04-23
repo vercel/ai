@@ -990,6 +990,7 @@ describe('generateText', () => {
         },
       });
 
+      expect(stepStartEvent.stepNumber).toBe(0);
       expect(stepStartEvent.steps.length).toBe(0);
       expect(stepStartEvent.provider).toBe('mock-provider');
       expect(stepStartEvent.modelId).toBe('mock-model-id');
@@ -1049,7 +1050,9 @@ describe('generateText', () => {
       });
 
       expect(stepStartEvents.length).toBe(2);
+      expect(stepStartEvents[0].stepNumber).toBe(0);
       expect(stepStartEvents[0].steps.length).toBe(0);
+      expect(stepStartEvents[1].stepNumber).toBe(1);
       expect(stepStartEvents[1].steps.length).toBe(1);
     });
 
@@ -1169,6 +1172,7 @@ describe('generateText', () => {
         },
       });
 
+      expect(stepStartEvent.stepNumber).toBe(0);
       expect(stepStartEvent.steps).toEqual([]);
       expect(stepStartEvent.steps.length).toBe(0);
     });
@@ -1604,7 +1608,7 @@ describe('generateText', () => {
         prompt: 'test-input',
         stopWhen: isStepCount(3),
         experimental_onStepStart: async event => {
-          startStepNumbers.push(event.steps.length);
+          startStepNumbers.push(event.stepNumber);
         },
         onStepFinish: async event => {
           finishStepNumbers.push(event.stepNumber);

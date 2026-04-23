@@ -434,8 +434,8 @@ const agent = new WorkflowAgent({
     console.log("Agent started");
   },
 
-  experimental_onStepStart({ steps }) {
-    console.log(`Step ${steps.length} starting`);
+  experimental_onStepStart({ stepNumber }) {
+    console.log(`Step ${stepNumber} starting`);
   },
 
   experimental_onToolExecutionStart({ toolCall }) {

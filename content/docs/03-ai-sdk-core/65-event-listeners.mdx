@@ -266,7 +266,7 @@ const result = await generateText({
   model: openai('gpt-4o'),
   prompt: 'Hello!',
   experimental_onStepStart: event => {
-    console.log('Step:', event.steps.length);
+    console.log('Step:', event.stepNumber);
     console.log('Messages:', event.messages.length);
   },
 });
@@ -274,6 +274,11 @@ const result = await generateText({
 
 <PropertiesTable
   content={[
+    {
+      name: 'stepNumber',
+      type: 'number',
+      description: 'Zero-based index of the current step.',
+    },
     {
       name: 'provider',
       type: 'string',

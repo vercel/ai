@@ -376,8 +376,8 @@ const result = await myAgent.generate({
     console.log('Agent started', { modelId });
   },
 
-  experimental_onStepStart({ steps, modelId }) {
-    console.log(`Step ${steps.length} starting`, { modelId });
+  experimental_onStepStart({ stepNumber, modelId }) {
+    console.log(`Step ${stepNumber} starting`, { modelId });
   },
 
   experimental_onToolExecutionStart({ toolCall }) {
@@ -411,7 +411,7 @@ const result = await myAgent.generate({
 The available lifecycle callbacks are:
 
 - **`experimental_onStart`**: Called once when the agent operation begins, before any LLM calls. Receives model info, messages, settings, and `runtimeContext`.
-- **`experimental_onStepStart`**: Called before each step (LLM call). Receives the model, messages being sent, tools, and prior steps (use `steps.length` for the step index).
+- **`experimental_onStepStart`**: Called before each step (LLM call). Receives the step number, model, messages being sent, tools, and prior steps.
 - **`experimental_onToolExecutionStart`**: Called right before a tool's `execute` function runs. Receives the tool call object, messages, and `toolContext`.
 - **`experimental_onToolExecutionEnd`**: Called right after a tool's `execute` function completes or errors. Receives the tool call, `durationMs`, and a `toolOutput` discriminated union (`type: 'tool-result'` with `output`, or `type: 'tool-error'` with `error`).
 - **`onStepFinish`**: Called after each step finishes. Receives step results including usage, finish reason, and tool calls.

@@ -117,6 +117,9 @@ export type OnStepStartEvent<
   /** The specific model identifier (e.g., 'gpt-4o'). */
   readonly modelId: string;
 
+  /** Zero-based index of the current step. */
+  readonly stepNumber: number;
+
   /** The tools available for this generation. */
   readonly tools: TOOLS | undefined;
 

@@ -1978,6 +1978,11 @@ To see `streamText` in action, check out [these examples](#examples).
           type: 'OnStepStartEvent',
           parameters: [
             {
+              name: 'stepNumber',
+              type: 'number',
+              description: 'Zero-based index of the current step.',
+            },
+            {
               name: 'provider',
               type: 'string',
               description: 'The provider identifier (e.g., "openai", "anthropic").',

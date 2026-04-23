@@ -1584,6 +1584,7 @@ class DefaultStreamTextResult<
                     callId,
                     provider: stepModel.provider,
                     modelId: stepModel.modelId,
+                    stepNumber: recordedSteps.length,
                     system: stepSystem,
                     messages: stepMessages,
                     tools,

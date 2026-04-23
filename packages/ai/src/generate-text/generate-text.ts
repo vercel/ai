@@ -670,6 +670,7 @@ export async function generateText<
             callId,
             provider: stepModel.provider,
             modelId: stepModel.modelId,
+            stepNumber: steps.length,
             system: stepSystem,
             messages: stepMessages,
             tools,
