@@ -1,6 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`AnthropicMessagesLanguageModel > doGenerate > agent skills > should expose container information as provider metadata 1`] = `
+exports[`AnthropicLanguageModel > doGenerate > agent skills > should expose container information as provider metadata 1`] = `
 {
   "anthropic": {
     "container": {
@@ -36,7 +36,7 @@ exports[`AnthropicMessagesLanguageModel > doGenerate > agent skills > should exp
 }
 `;
 
-exports[`AnthropicMessagesLanguageModel > doGenerate > code execution 20250825 > should expose container information as provider metadata 1`] = `
+exports[`AnthropicLanguageModel > doGenerate > code execution 20250825 > should expose container information as provider metadata 1`] = `
 {
   "anthropic": {
     "container": {
@@ -66,7 +66,7 @@ exports[`AnthropicMessagesLanguageModel > doGenerate > code execution 20250825 >
 }
 `;
 
-exports[`AnthropicMessagesLanguageModel > doGenerate > code execution 20250825 > should include code execution tool call and result in content 1`] = `
+exports[`AnthropicLanguageModel > doGenerate > code execution 20250825 > should include code execution tool call and result in content 1`] = `
 [
   {
     "text": "I'll create a Python script to calculate Fibonacci numbers and then execute it to find the 10th Fibonacci number.",
@@ -135,7 +135,7 @@ The script uses an iterative approach to calculate Fibonacci numbers efficiently
 ]
 `;
 
-exports[`AnthropicMessagesLanguageModel > doGenerate > code execution 20250825 > should include file id list in code execution tool generate call result. 1`] = `
+exports[`AnthropicLanguageModel > doGenerate > code execution 20250825 > should include file id list in code execution tool generate call result. 1`] = `
 {
   "content": [
     {
@@ -652,7 +652,7 @@ Both files have been exported and are ready for download!",
 }
 `;
 
-exports[`AnthropicMessagesLanguageModel > doGenerate > code execution 20260120 > should include code execution tool call and result in content 1`] = `
+exports[`AnthropicLanguageModel > doGenerate > code execution 20260120 > should include code execution tool call and result in content 1`] = `
 [
   {
     "text": "I'll create a Python script to calculate Fibonacci numbers and then execute it to find the 10th Fibonacci number.",
@@ -721,7 +721,7 @@ The script uses an iterative approach to calculate Fibonacci numbers efficiently
 ]
 `;
 
-exports[`AnthropicMessagesLanguageModel > doGenerate > mcp servers > should include mcp tool call and result in content 1`] = `
+exports[`AnthropicLanguageModel > doGenerate > mcp servers > should include mcp tool call and result in content 1`] = `
 [
   {
     "dynamic": true,
@@ -765,7 +765,7 @@ As expected, it simply echoes back the exact message that was sent to it!",
 ]
 `;
 
-exports[`AnthropicMessagesLanguageModel > doGenerate > memory 20250818 > should include memory tool call and result in content 1`] = `
+exports[`AnthropicLanguageModel > doGenerate > memory 20250818 > should include memory tool call and result in content 1`] = `
 [
   {
     "input": "{"command":"view","path":"/memories"}",
@@ -776,7 +776,7 @@ exports[`AnthropicMessagesLanguageModel > doGenerate > memory 20250818 > should 
 ]
 `;
 
-exports[`AnthropicMessagesLanguageModel > doGenerate > programmatic tool calling > with fixture (multi-turn dice game) > should parse content with text, server_tool_use, tool_use with caller, and code_execution_tool_result 1`] = `
+exports[`AnthropicLanguageModel > doGenerate > programmatic tool calling > with fixture (multi-turn dice game) > should parse content with text, server_tool_use, tool_use with caller, and code_execution_tool_result 1`] = `
 [
   {
     "text": "I'll help you simulate this dice game between two players! Let me run the game where both players roll dice each round until one player wins 3 rounds.",
@@ -907,7 +907,7 @@ The loaded die gave Player 1 a significant advantage, allowing them to win the g
 ]
 `;
 
-exports[`AnthropicMessagesLanguageModel > doGenerate > tool search tool > bm25 variant > should include tool search tool call and result in content 1`] = `
+exports[`AnthropicLanguageModel > doGenerate > tool search tool > bm25 variant > should include tool search tool call and result in content 1`] = `
 [
   {
     "text": "I'll search for a weather-related tool to help you get the current weather in San Francisco.",
@@ -952,7 +952,7 @@ exports[`AnthropicMessagesLanguageModel > doGenerate > tool search tool > bm25 v
 ]
 `;
 
-exports[`AnthropicMessagesLanguageModel > doGenerate > tool search tool > regex variant > should include tool search tool call and result in content 1`] = `
+exports[`AnthropicLanguageModel > doGenerate > tool search tool > regex variant > should include tool search tool call and result in content 1`] = `
 [
   {
     "input": "{"pattern":"weather|SF|San Francisco|forecast|temperature|climate","limit":10}",
@@ -993,7 +993,7 @@ exports[`AnthropicMessagesLanguageModel > doGenerate > tool search tool > regex 
 ]
 `;
 
-exports[`AnthropicMessagesLanguageModel > doGenerate > web fetch tool > 20260209 text response > should include web fetch 20260209 tool call and result in content 1`] = `
+exports[`AnthropicLanguageModel > doGenerate > web fetch tool > 20260209 text response > should include web fetch 20260209 tool call and result in content 1`] = `
 [
   {
     "input": "{"type":"programmatic-tool-call","code":"\\nimport json\\nresult = await web_fetch({\\"url\\": \\"https://example.com\\"})\\nparsed = json.loads(result) if isinstance(result, str) else result\\nif isinstance(parsed, list):\\n    print(parsed[0][\\"content\\"][:500])\\nelse:\\n    print(parsed)\\n"}",
@@ -1055,7 +1055,7 @@ This domain is for use in documentation examples without needing permission. Avo
 ]
 `;
 
-exports[`AnthropicMessagesLanguageModel > doGenerate > web fetch tool > text response > should include web fetch tool call and result in content 1`] = `
+exports[`AnthropicLanguageModel > doGenerate > web fetch tool > text response > should include web fetch tool call and result in content 1`] = `
 [
   {
     "text": "I'll fetch the Wikipedia page about Maglemosian culture to tell you what it's about.",
@@ -1153,7 +1153,7 @@ The page provides both historical context about this important prehistoric cultu
 ]
 `;
 
-exports[`AnthropicMessagesLanguageModel > doGenerate > web fetch tool > text response without title > should include web fetch tool call and result in content 1`] = `
+exports[`AnthropicLanguageModel > doGenerate > web fetch tool > text response without title > should include web fetch tool call and result in content 1`] = `
 [
   {
     "text": "I'll fetch the PDF from the URL you provided to see what it says about AI.",
@@ -1211,7 +1211,7 @@ However, due to copyright restrictions, I cannot reproduce the full text content
 ]
 `;
 
-exports[`AnthropicMessagesLanguageModel > doGenerate > web fetch tool > unavailable error > should include web fetch tool call and result in content 1`] = `
+exports[`AnthropicLanguageModel > doGenerate > web fetch tool > unavailable error > should include web fetch tool call and result in content 1`] = `
 [
   {
     "text": "I'll fetch the PDF document from the URL you provided to see what it says about AI.",
@@ -1241,7 +1241,7 @@ exports[`AnthropicMessagesLanguageModel > doGenerate > web fetch tool > unavaila
 ]
 `;
 
-exports[`AnthropicMessagesLanguageModel > doGenerate > web search tool > with fixture > should include web search tool call and result in content 1`] = `
+exports[`AnthropicLanguageModel > doGenerate > web search tool > with fixture > should include web search tool call and result in content 1`] = `
 [
   {
     "input": "{"query":"tech news today September 26 2024"}",
@@ -1551,7 +1551,7 @@ For the most current breaking tech news today, I'd recommend checking major tech
 ]
 `;
 
-exports[`AnthropicMessagesLanguageModel > doStream > agent skills > should stream code execution tool results 1`] = `
+exports[`AnthropicLanguageModel > doStream > agent skills > should stream code execution tool results 1`] = `
 [
   {
     "type": "stream-start",
@@ -5285,7 +5285,7 @@ The presentation has",
 ]
 `;
 
-exports[`AnthropicMessagesLanguageModel > doStream > code execution 20250825 tool > should include file id list in code execution tool call result. 1`] = `
+exports[`AnthropicLanguageModel > doStream > code execution 20250825 tool > should include file id list in code execution tool call result. 1`] = `
 [
   {
     "type": "stream-start",
@@ -10359,7 +10359,7 @@ Error message: SyntaxError: Unexpected end of JSON input],
 ]
 `;
 
-exports[`AnthropicMessagesLanguageModel > doStream > code execution 20250825 tool > should stream code execution tool results 1`] = `
+exports[`AnthropicLanguageModel > doStream > code execution 20250825 tool > should stream code execution tool results 1`] = `
 [
   {
     "type": "stream-start",
@@ -11677,7 +11677,7 @@ The Fibonacci sequence starts with 0, ",
 ]
 `;
 
-exports[`AnthropicMessagesLanguageModel > doStream > code execution 20260120 tool > should stream code execution tool results without beta header 1`] = `
+exports[`AnthropicLanguageModel > doStream > code execution 20260120 tool > should stream code execution tool results without beta header 1`] = `
 [
   {
     "type": "stream-start",
@@ -12995,7 +12995,7 @@ The Fibonacci sequence starts with 0, ",
 ]
 `;
 
-exports[`AnthropicMessagesLanguageModel > doStream > json schema response format with output format (supported model) > should stream the text output 1`] = `
+exports[`AnthropicLanguageModel > doStream > json schema response format with output format (supported model) > should stream the text output 1`] = `
 [
   {
     "type": "stream-start",
@@ -13637,7 +13637,7 @@ exports[`AnthropicMessagesLanguageModel > doStream > json schema response format
 ]
 `;
 
-exports[`AnthropicMessagesLanguageModel > doStream > mcp servers > should stream code execution tool results 1`] = `
+exports[`AnthropicLanguageModel > doStream > mcp servers > should stream code execution tool results 1`] = `
 [
   {
     "type": "stream-start",
@@ -13767,7 +13767,7 @@ It simply echoed back",
 ]
 `;
 
-exports[`AnthropicMessagesLanguageModel > doStream > programmatic tool calling > with fixture (multi-turn dice game) > should stream programmatic tool calling with multiple message_start/stop sequences 1`] = `
+exports[`AnthropicLanguageModel > doStream > programmatic tool calling > with fixture (multi-turn dice game) > should stream programmatic tool calling with multiple message_start/stop sequences 1`] = `
 [
   {
     "type": "stream-start",
@@ -16225,7 +16225,7 @@ The",
 ]
 `;
 
-exports[`AnthropicMessagesLanguageModel > doStream > tool search tool > bm25 variant > should stream tool search bm25 results 1`] = `
+exports[`AnthropicLanguageModel > doStream > tool search tool > bm25 variant > should stream tool search bm25 results 1`] = `
 [
   {
     "type": "stream-start",
@@ -16554,7 +16554,7 @@ exports[`AnthropicMessagesLanguageModel > doStream > tool search tool > bm25 var
 ]
 `;
 
-exports[`AnthropicMessagesLanguageModel > doStream > tool search tool > regex variant > should stream tool search regex results 1`] = `
+exports[`AnthropicLanguageModel > doStream > tool search tool > regex variant > should stream tool search regex results 1`] = `
 [
   {
     "type": "stream-start",
@@ -16914,7 +16914,7 @@ The weather in",
 ]
 `;
 
-exports[`AnthropicMessagesLanguageModel > doStream > web fetch 20260209 tool > input provided in content_block_start > should stream web fetch 20260209 tool results 1`] = `
+exports[`AnthropicLanguageModel > doStream > web fetch 20260209 tool > input provided in content_block_start > should stream web fetch 20260209 tool results 1`] = `
 [
   {
     "type": "stream-start",
@@ -17248,7 +17248,7 @@ This domain is for use in documentation examples without needing permission. Avo
 ]
 `;
 
-exports[`AnthropicMessagesLanguageModel > doStream > web fetch tool > txt response > should stream web search tool results 1`] = `
+exports[`AnthropicLanguageModel > doStream > web fetch tool > txt response > should stream web search tool results 1`] = `
 [
   {
     "type": "stream-start",
@@ -17673,7 +17673,7 @@ The page also discusses",
 ]
 `;
 
-exports[`AnthropicMessagesLanguageModel > doStream > web search tool > should stream web search tool results 1`] = `
+exports[`AnthropicLanguageModel > doStream > web search tool > should stream web search tool results 1`] = `
 [
   {
     "type": "stream-start",

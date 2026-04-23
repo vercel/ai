@@ -11,7 +11,7 @@ export type AnthropicUsageIteration = {
   output_tokens: number;
 };
 
-export type AnthropicMessagesUsage = {
+export type AnthropicUsage = {
   input_tokens: number;
   output_tokens: number;
   cache_creation_input_tokens?: number | null;
@@ -25,11 +25,11 @@ export type AnthropicMessagesUsage = {
   iterations?: AnthropicUsageIteration[] | null;
 };
 
-export function convertAnthropicMessagesUsage({
+export function convertAnthropicUsage({
   usage,
   rawUsage,
 }: {
-  usage: AnthropicMessagesUsage;
+  usage: AnthropicUsage;
   rawUsage?: JSONObject;
 }): LanguageModelV4Usage {
   const cacheCreationTokens = usage.cache_creation_input_tokens ?? 0;

@@ -37,7 +37,7 @@ Language models are used for text generation and structured generation workflows
 - **Model specification**
   - `LanguageModelV4` - [`packages/provider/src/language-model/v4/language-model-v4.ts`](packages/provider/src/language-model/v4/language-model-v4.ts)
 - **Provider implementations (examples)**
-  - [`OpenAIChatLanguageModel`](packages/openai/src/chat/openai-chat-language-model.ts), [`AnthropicMessagesLanguageModel`](packages/anthropic/src/anthropic-messages-language-model.ts)
+  - [`OpenAIChatLanguageModel`](packages/openai/src/chat/openai-chat-language-model.ts), [`AnthropicLanguageModel`](packages/anthropic/src/anthropic-language-model.ts)
 
 ```mermaid
 classDiagram
