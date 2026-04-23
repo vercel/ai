@@ -2098,4 +2098,154 @@ describe('smoothStream', () => {
       `);
     });
   });
+
+  describe('flush on stream close', () => {
+    it('should flush remaining text buffer when stream closes', async () => {
+      const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+        { type: 'text-start', id: '1' },
+        { text: 'Hello', type: 'text-delta', id: '1' },
+        { text: ', world', type: 'text-delta', id: '1' },
+      ]).pipeThrough(
+        smoothStream({
+          delayInMs: 10,
+          _internal: { delay },
+        })({ tools: {} }),
+      );
+
+      await consumeStream(stream);
+
+      expect(events).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "1",
+            "type": "text-start",
+          },
+          {
+            "id": "1",
+            "text": "Hello, world",
+            "type": "text-delta",
+          },
+        ]
+      `);
+    });
+
+    it('should flush remaining reasoning buffer when stream closes', async () => {
+      const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+        { type: 'reasoning-start', id: '1' },
+        { text: 'thinking about', type: 'reasoning-delta', id: '1' },
+        { text: ' this', type: 'reasoning-delta', id: '1' },
+      ]).pipeThrough(
+        smoothStream({
+          delayInMs: 10,
+          _internal: { delay },
+        })({ tools: {} }),
+      );
+
+      await consumeStream(stream);
+
+      expect(events).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "1",
+            "type": "reasoning-start",
+          },
+          {
+            "id": "1",
+            "text": "thinking about this",
+            "type": "reasoning-delta",
+          },
+        ]
+      `);
+    });
+
+    it('should flush text buffer with partial word before tool call on stream close', async () => {
+      const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+        { type: 'text-start', id: '1' },
+        { text: 'I will check the weather', type: 'text-delta', id: '1' },
+        {
+          type: 'tool-call',
+          toolCallId: '1',
+          toolName: 'weather',
+          input: { city: 'London' },
+        },
+        { text: 'The weather is sunny', type: 'text-delta', id: '1' },
+      ]).pipeThrough(
+        smoothStream({
+          delayInMs: 10,
+          _internal: { delay },
+        })({ tools: {} }),
+      );
+
+      await consumeStream(stream);
+
+      expect(events).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "1",
+            "type": "text-start",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "I ",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "will ",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "check ",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "the ",
+            "type": "text-delta",
+          },
+          {
+            "id": "1",
+            "text": "weather",
+            "type": "text-delta",
+          },
+          {
+            "input": {
+              "city": "London",
+            },
+            "toolCallId": "1",
+            "toolName": "weather",
+            "type": "tool-call",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "The ",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "weather ",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "is ",
+            "type": "text-delta",
+          },
+          {
+            "id": "1",
+            "text": "sunny",
+            "type": "text-delta",
+          },
+        ]
+      `);
+    });
+  });
 });

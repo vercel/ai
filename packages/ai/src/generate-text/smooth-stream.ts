@@ -157,6 +157,10 @@ export function smoothStream<TOOLS extends ToolSet>({
           await delay(delayInMs);
         }
       },
+
+      flush(controller) {
+        flushBuffer(controller);
+      },
     });
   };
 }
