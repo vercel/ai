@@ -18,6 +18,7 @@ import { wrapLanguageModel } from '../middleware/wrap-language-model';
 import { asProviderV4 } from '../model/as-provider-v4';
 import { ImageModelMiddleware, LanguageModelMiddleware } from '../types';
 import { NoSuchProviderError } from './no-such-provider-error';
+import { resolveLatestVersion } from './latest-versions';
 
 type ExtractLiteralUnion<T> = T extends string
   ? string extends T
@@ -235,8 +236,12 @@ class DefaultProviderRegistry<
     id: `${KEY & string}${SEPARATOR}${string}`,
   ): LanguageModelV4 {
     const [providerId, modelId] = this.splitId(id, 'languageModel');
+    
+    // 🔥 NEW: Resolve --latest suffix to actual model version
+    const resolvedModelId = resolveLatestVersion(providerId, modelId);
+    
     let model = this.getProvider(providerId, 'languageModel').languageModel?.(
-      modelId,
+      resolvedModelId,
     );
 
     if (model == null) {
