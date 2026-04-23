@@ -4218,11 +4218,6 @@ describe('generateText', () => {
         abortSignal: abortController.signal,
       });
 
-      // Abort the operation
-      abortController.abort();
-
-      await generateTextPromise;
-
       expect(toolExecuteMock).toHaveBeenCalledWith(
         { value: 'value' },
         {
@@ -4232,6 +4227,66 @@ describe('generateText', () => {
           context: undefined,
         },
       );
+    });
+
+    it('should throw AbortError when signal fires between multi-step iterations', async () => {
+      // The abort fires after the first step (tool execution completes normally
+      // but the signal is already set before the next model call starts).
+      // Providers may return a partial result with finishReason:'other' instead
+      // of throwing when aborted; the loop guard must re-throw.
+      const abortController = new AbortController();
+      let stepCount = 0;
+
+      const generateTextPromise = generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => {
+            stepCount++;
+            if (stepCount === 1) {
+              // First step returns a tool call
+              return {
+                ...dummyResponseValues,
+                content: [
+                  {
+                    type: 'tool-call' as const,
+                    toolCallType: 'function' as const,
+                    toolCallId: 'call-1',
+                    toolName: 'tool1',
+                    input: `{ "value": "test" }`,
+                  },
+                ],
+              };
+            }
+            // Second step — signal is already aborted but provider returned a result
+            return {
+              ...dummyResponseValues,
+              content: [{ type: 'text' as const, text: '' }],
+              finishReason: 'other' as const,
+            };
+          },
+        }),
+        tools: {
+          tool1: {
+            inputSchema: z.object({ value: z.string() }),
+            execute: async () => {
+              // Abort mid-tool-execution
+              abortController.abort();
+              return 'tool result';
+            },
+          },
+        },
+        stopWhen: stepCountIs(5),
+        prompt: 'test-input',
+        abortSignal: abortController.signal,
+      });
+
+      await expect(generateTextPromise).rejects.toSatisfy(
+        (err: unknown) =>
+          err instanceof Error &&
+          (err.name === 'AbortError' || err instanceof DOMException),
+      );
+
+      // The second model call should never have been reached
+      expect(stepCount).toBe(1);
     });
   });
 
