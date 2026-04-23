@@ -755,6 +755,23 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       }
 
       this.setStatus({ status: 'error', error: err as Error });
+
+      // Preserve the partially-streamed assistant message so that the UI
+      // can still display whatever content arrived before the error.
+      if (activeResponse?.state?.message) {
+        const partialMessage = activeResponse.state.message;
+        const replaceLastMessage =
+          partialMessage.id === this.lastMessage?.id;
+
+        if (replaceLastMessage) {
+          this.state.replaceMessage(
+            this.state.messages.length - 1,
+            partialMessage,
+          );
+        } else {
+          this.state.pushMessage(partialMessage);
+        }
+      }
     } finally {
       try {
         this.onFinish?.({
