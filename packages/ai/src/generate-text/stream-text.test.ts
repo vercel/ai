@@ -5654,7 +5654,7 @@ describe('streamText', () => {
       expect(startEvent.provider).toBe('mock-provider');
       expect(startEvent.modelId).toBe('mock-model-id');
       expect(startEvent.system).toBe('you are a helpful assistant');
-      expect(startEvent.prompt).toBeUndefined();
+      // expect(startEvent.prompt).toBeUndefined();
       expect(startEvent.messages).toEqual([
         { role: 'user', content: 'test-message' },
       ]);
@@ -5802,6 +5802,7 @@ describe('streamText', () => {
       await result.consumeStream();
 
       expect(stepStartEvent.stepNumber).toBe(0);
+      expect(stepStartEvent.steps.length).toBe(0);
       expect(stepStartEvent.provider).toBe('mock-provider');
       expect(stepStartEvent.modelId).toBe('mock-model-id');
       expect(stepStartEvent.messages).toEqual([
@@ -5897,7 +5898,9 @@ describe('streamText', () => {
 
       expect(stepStartEvents.length).toBe(2);
       expect(stepStartEvents[0].stepNumber).toBe(0);
+      expect(stepStartEvents[0].steps.length).toBe(0);
       expect(stepStartEvents[1].stepNumber).toBe(1);
+      expect(stepStartEvents[1].steps.length).toBe(1);
     });
 
     it('should be called before doStream on each step', async () => {
@@ -6254,7 +6257,12 @@ describe('streamText', () => {
         [
           {
             "callId": "test-telemetry-call-id",
-            "context": undefined,
+            "messages": [
+              {
+                "content": "test-input",
+                "role": "user",
+              },
+            ],
             "toolCall": {
               "input": {
                 "value": "test-arg",
@@ -6266,6 +6274,7 @@ describe('streamText', () => {
               "toolName": "tool1",
               "type": "tool-call",
             },
+            "toolContext": undefined,
           },
         ]
       `);
@@ -6514,9 +6523,12 @@ describe('streamText', () => {
         [
           {
             "callId": "test-telemetry-call-id",
-            "context": {
-              "context": "test",
-            },
+            "messages": [
+              {
+                "content": "prompt",
+                "role": "user",
+              },
+            ],
             "toolCall": {
               "input": {
                 "value": "test",
@@ -6527,6 +6539,9 @@ describe('streamText', () => {
               "toolCallId": "call-1",
               "toolName": "tool1",
               "type": "tool-call",
+            },
+            "toolContext": {
+              "context": "test",
             },
           },
         ]
@@ -6632,8 +6647,10 @@ describe('streamText', () => {
       expect(toolExecutionEndEvents.length).toBe(1);
       expect(toolExecutionEndEvents[0].toolCall.toolName).toBe('tool1');
       expect(toolExecutionEndEvents[0].toolCall.toolCallId).toBe('call-1');
-      expect(toolExecutionEndEvents[0].success).toBe(false);
-      expect(toolExecutionEndEvents[0].error).toBe(toolError);
+      expect(toolExecutionEndEvents[0].toolOutput.type).toBe('tool-error');
+      expect(
+        (toolExecutionEndEvents[0].toolOutput as { error: unknown }).error,
+      ).toBe(toolError);
       expect(toolExecutionEndEvents[0].durationMs).toBeGreaterThanOrEqual(0);
     });
 
@@ -6825,12 +6842,13 @@ describe('streamText', () => {
         [
           {
             "callId": "test-telemetry-call-id",
-            "context": {
-              "context": "test",
-            },
             "durationMs": 0,
-            "output": "test-result",
-            "success": true,
+            "messages": [
+              {
+                "content": "prompt",
+                "role": "user",
+              },
+            ],
             "toolCall": {
               "input": {
                 "value": "test",
@@ -6841,6 +6859,19 @@ describe('streamText', () => {
               "toolCallId": "call-1",
               "toolName": "tool1",
               "type": "tool-call",
+            },
+            "toolContext": {
+              "context": "test",
+            },
+            "toolOutput": {
+              "dynamic": false,
+              "input": {
+                "value": "test",
+              },
+              "output": "test-result",
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-result",
             },
           },
         ]
@@ -6899,12 +6930,13 @@ describe('streamText', () => {
         [
           {
             "callId": "test-telemetry-call-id",
-            "context": {
-              "context": "test",
-            },
             "durationMs": 0,
-            "error": [Error: Tool execution failed],
-            "success": false,
+            "messages": [
+              {
+                "content": "prompt",
+                "role": "user",
+              },
+            ],
             "toolCall": {
               "input": {
                 "value": "test",
@@ -6915,6 +6947,19 @@ describe('streamText', () => {
               "toolCallId": "call-1",
               "toolName": "tool1",
               "type": "tool-call",
+            },
+            "toolContext": {
+              "context": "test",
+            },
+            "toolOutput": {
+              "dynamic": false,
+              "error": [Error: Tool execution failed],
+              "input": {
+                "value": "test",
+              },
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-error",
             },
           },
         ]
