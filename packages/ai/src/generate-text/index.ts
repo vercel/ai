@@ -1,13 +1,15 @@
 export type { ContentPart } from './content-part';
 export type {
-  ChunkEvent,
   StreamTextChunkEvent,
   GenerateTextEndEvent,
   GenerateTextStartEvent,
   GenerateTextStepEndEvent,
   GenerateTextStepStartEvent,
+  OnChunkEvent,
   OnFinishEvent,
+  OnStartEvent,
   OnStepFinishEvent,
+  OnStepStartEvent,
 } from './core-events';
 export { filterActiveTools as experimental_filterActiveTools } from './filter-active-tool';
 export {
@@ -84,6 +86,8 @@ export type {
   TypedToolError,
 } from './tool-error';
 export type {
+  OnToolCallFinishEvent,
+  OnToolCallStartEvent,
   OnToolExecutionEndCallback,
   OnToolExecutionStartCallback,
   ToolExecutionEndEvent,

@@ -234,8 +234,22 @@ export type GenerateTextEndEvent<
   readonly totalUsage: LanguageModelUsage;
 };
 
+/** @deprecated Use `GenerateTextStartEvent` instead. */
+export type OnStartEvent<
+  TOOLS extends ToolSet = ToolSet,
+  RUNTIME_CONTEXT extends Context = Context,
+  OUTPUT extends Output = Output,
+> = GenerateTextStartEvent<TOOLS, RUNTIME_CONTEXT, OUTPUT>;
+
+/** @deprecated Use `GenerateTextStepStartEvent` instead. */
+export type OnStepStartEvent<
+  TOOLS extends ToolSet = ToolSet,
+  RUNTIME_CONTEXT extends Context = Context,
+  OUTPUT extends Output = Output,
+> = GenerateTextStepStartEvent<TOOLS, RUNTIME_CONTEXT, OUTPUT>;
+
 /** @deprecated Use `StreamTextChunkEvent` instead. */
-export type ChunkEvent<TOOLS extends ToolSet = ToolSet> =
+export type OnChunkEvent<TOOLS extends ToolSet = ToolSet> =
   StreamTextChunkEvent<TOOLS>;
 
 /** @deprecated Use `GenerateTextStepEndEvent` instead. */
