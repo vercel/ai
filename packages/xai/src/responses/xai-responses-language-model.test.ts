@@ -2132,6 +2132,76 @@ describe('XaiResponsesLanguageModel', () => {
         const fullTextDelta = textDeltas.find(d => d.delta === 'Hello world');
         expect(fullTextDelta).toBeUndefined();
       });
+
+      it('should emit the unseen text suffix from repeated message output_item events', async () => {
+        prepareStreamChunks([
+          JSON.stringify({
+            type: 'response.created',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              model: 'grok-4-fast-non-reasoning',
+              created_at: 1700000000,
+              status: 'in_progress',
+              output: [],
+            },
+          }),
+          JSON.stringify({
+            type: 'response.output_item.added',
+            item: {
+              type: 'message',
+              id: 'msg_123',
+              status: 'in_progress',
+              role: 'assistant',
+              content: [
+                {
+                  type: 'output_text',
+                  text: 'Hello',
+                  annotations: [],
+                },
+              ],
+            },
+            output_index: 0,
+          }),
+          JSON.stringify({
+            type: 'response.output_item.done',
+            item: {
+              type: 'message',
+              id: 'msg_123',
+              status: 'completed',
+              role: 'assistant',
+              content: [
+                {
+                  type: 'output_text',
+                  text: 'Hello world',
+                  annotations: [],
+                },
+              ],
+            },
+            output_index: 0,
+          }),
+          JSON.stringify({
+            type: 'response.done',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              status: 'completed',
+              output: [],
+              usage: { input_tokens: 10, output_tokens: 5 },
+            },
+          }),
+        ]);
+
+        const { stream } = await createModel().doStream({
+          prompt: TEST_PROMPT,
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+        const textDeltas = parts.filter(part => part.type === 'text-delta');
+
+        expect(textDeltas).toHaveLength(2);
+        expect(textDeltas.map(part => part.delta)).toEqual(['Hello', ' world']);
+      });
     });
 
     describe('tool call streaming', () => {
