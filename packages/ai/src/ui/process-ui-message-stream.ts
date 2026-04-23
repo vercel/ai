@@ -579,12 +579,18 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 partialToolCall.text,
               );
 
+              // Use parsed JSON when available, otherwise fall back to raw
+              // text so that freeform (non-JSON) tool inputs are visible
+              // during streaming (e.g. OpenAI customTool with format: text).
+              const input =
+                partialArgs !== undefined ? partialArgs : partialToolCall.text;
+
               if (partialToolCall.dynamic) {
                 updateDynamicToolPart({
                   toolCallId: chunk.toolCallId,
                   toolName: partialToolCall.toolName,
                   state: 'input-streaming',
-                  input: partialArgs,
+                  input,
                   title: partialToolCall.title,
                 });
               } else {
@@ -592,7 +598,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   toolCallId: chunk.toolCallId,
                   toolName: partialToolCall.toolName,
                   state: 'input-streaming',
-                  input: partialArgs,
+                  input,
                   title: partialToolCall.title,
                 });
               }
