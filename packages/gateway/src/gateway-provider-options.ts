@@ -100,6 +100,15 @@ const gatewayProviderOptions = lazySchema(() =>
           byok: z.record(z.string(), z.number().int().min(1000)).optional(),
         })
         .optional(),
+      /**
+       * Enables automatic prompt caching across providers.
+       * When set to `'auto'`, AI Gateway applies the appropriate caching
+       * strategy based on the provider (e.g., adding `cache_control` breakpoints
+       * for Anthropic or MiniMax, which require explicit cache markers).
+       *
+       * Supported providers: Anthropic (direct, Vertex, Bedrock), MiniMax.
+       */
+      caching: z.enum(['auto']).optional(),
     }),
   ),
 );
