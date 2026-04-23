@@ -178,6 +178,7 @@ function makeStepStartEvent(overrides?: Record<string, unknown>) {
     callId,
     provider: model.provider,
     modelId: model.modelId,
+    stepNumber: 0,
     system: undefined,
     messages: [],
     tools: undefined,
