@@ -8,7 +8,7 @@ import type { StandardizedPrompt } from '../prompt/standardize-prompt';
 /**
  * Common model information used across callback events.
  */
-export type CallbackModelInfo = {
+export type ModelInfo = {
   /** The provider identifier (e.g., 'openai', 'anthropic'). */
   readonly provider: string;
   /** The specific model identifier (e.g., 'gpt-4o'). */
@@ -21,7 +21,7 @@ export type CallbackModelInfo = {
  * Called immediately before the provider model call begins.
  * Unlike `onStepStart`, this only represents model invocation work.
  */
-export type LanguageModelCallStartEvent = CallbackModelInfo & {
+export type LanguageModelCallStartEvent = ModelInfo & {
   /** Unique identifier for this generation call, used to correlate events. */
   readonly callId: string;
 
@@ -36,7 +36,7 @@ export type LanguageModelCallStartEvent = CallbackModelInfo & {
  * any client-side tool execution begins.
  */
 export type LanguageModelCallEndEvent<TOOLS extends ToolSet = ToolSet> =
-  CallbackModelInfo & {
+  ModelInfo & {
     /** Unique identifier for this generation call, used to correlate events. */
     readonly callId: string;
 

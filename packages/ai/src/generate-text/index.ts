@@ -12,7 +12,7 @@ export type {
   OnStepStartEvent,
 } from './core-events';
 export type {
-  CallbackModelInfo,
+  ModelInfo,
   LanguageModelCallEndEvent,
   LanguageModelCallStartEvent,
   OnLanguageModelCallEndCallback,
