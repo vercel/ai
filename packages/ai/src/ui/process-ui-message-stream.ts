@@ -17,10 +17,12 @@ import {
   DataUIPart,
   DynamicToolUIPart,
   getStaticToolName,
+  getToolName,
   InferUIMessageData,
   InferUIMessageMetadata,
   InferUIMessageToolCall,
   InferUIMessageTools,
+  isDynamicToolUIPart,
   isStaticToolUIPart,
   isToolUIPart,
   ReasoningUIPart,
@@ -54,22 +56,44 @@ export function createStreamingUIMessageState<UI_MESSAGE extends UIMessage>({
   lastMessage: UI_MESSAGE | undefined;
   messageId: string;
 }): StreamingUIMessageState<UI_MESSAGE> {
+  const message: UI_MESSAGE =
+    lastMessage?.role === 'assistant'
+      ? lastMessage
+      : ({
+          id: messageId,
+          metadata: undefined,
+          role: 'assistant',
+          parts: [] as UIMessagePart<
+            InferUIMessageData<UI_MESSAGE>,
+            InferUIMessageTools<UI_MESSAGE>
+          >[],
+        } as UI_MESSAGE);
+
+  // Rebuild partialToolCalls from any existing input-streaming tool parts
+  // so that resumed streams can continue appending tool-input-delta chunks.
+  const partialToolCalls: StreamingUIMessageState<UI_MESSAGE>['partialToolCalls'] =
+    {};
+
+  const toolParts = message.parts.filter(isToolUIPart);
+  for (const part of toolParts) {
+    if (part.state === 'input-streaming') {
+      const inputText = part.input != null ? JSON.stringify(part.input) : '';
+
+      partialToolCalls[part.toolCallId] = {
+        text: inputText,
+        index: toolParts.indexOf(part),
+        toolName: getToolName(part),
+        dynamic: isDynamicToolUIPart(part) || undefined,
+        title: part.title,
+      };
+    }
+  }
+
   return {
-    message:
-      lastMessage?.role === 'assistant'
-        ? lastMessage
-        : ({
-            id: messageId,
-            metadata: undefined,
-            role: 'assistant',
-            parts: [] as UIMessagePart<
-              InferUIMessageData<UI_MESSAGE>,
-              InferUIMessageTools<UI_MESSAGE>
-            >[],
-          } as UI_MESSAGE),
+    message,
     activeTextParts: {},
     activeReasoningParts: {},
-    partialToolCalls: {},
+    partialToolCalls,
   };
 }
 

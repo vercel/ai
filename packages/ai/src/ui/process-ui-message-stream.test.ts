@@ -8996,4 +8996,137 @@ describe('processUIMessageStream', () => {
       ]);
     });
   });
+
+  describe('resume with existing input-streaming static tool part (issue #14027)', () => {
+    beforeEach(async () => {
+      const stream = createUIMessageStream([
+        { type: 'start' },
+        {
+          type: 'tool-input-delta',
+          toolCallId: 'call-1',
+          inputTextDelta: '"more"}',
+        },
+        {
+          type: 'tool-input-available',
+          toolCallId: 'call-1',
+          toolName: 'create_document',
+          input: { title: 'test', content: 'more' },
+        },
+        {
+          type: 'tool-output-available',
+          toolCallId: 'call-1',
+          output: 'doc-created',
+        },
+        { type: 'finish-step' },
+        { type: 'finish' },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: {
+          role: 'assistant',
+          id: 'msg-123',
+          parts: [
+            { type: 'step-start' },
+            {
+              type: 'tool-create_document',
+              toolCallId: 'call-1',
+              state: 'input-streaming',
+              input: { title: 'test', content: undefined },
+            } as any,
+          ],
+        },
+      });
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+    });
+
+    it('should resume processing tool-input-delta for an existing input-streaming tool part', async () => {
+      // The last write should have the tool in output-available state
+      const lastWrite = writeCalls[writeCalls.length - 1];
+      const toolPart = lastWrite.message.parts.find(
+        (p: any) => p.toolCallId === 'call-1',
+      ) as any;
+
+      expect(toolPart).toBeDefined();
+      expect(toolPart.state).toBe('output-available');
+      expect(toolPart.output).toBe('doc-created');
+      expect(toolPart.type).toBe('tool-create_document');
+    });
+  });
+
+  describe('resume with existing input-streaming dynamic tool part', () => {
+    beforeEach(async () => {
+      const stream = createUIMessageStream([
+        { type: 'start' },
+        {
+          type: 'tool-input-delta',
+          toolCallId: 'call-dyn-1',
+          inputTextDelta: '"extra"}',
+        },
+        {
+          type: 'tool-input-available',
+          toolCallId: 'call-dyn-1',
+          toolName: 'unknown_tool',
+          input: { key: 'extra' },
+          dynamic: true,
+        },
+        {
+          type: 'tool-output-available',
+          toolCallId: 'call-dyn-1',
+          output: 'dyn-result',
+        },
+        { type: 'finish-step' },
+        { type: 'finish' },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-456',
+        lastMessage: {
+          role: 'assistant',
+          id: 'msg-456',
+          parts: [
+            { type: 'step-start' },
+            {
+              type: 'dynamic-tool',
+              toolName: 'unknown_tool',
+              toolCallId: 'call-dyn-1',
+              state: 'input-streaming',
+              input: { key: undefined },
+            } as any,
+          ],
+        },
+      });
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+    });
+
+    it('should resume processing tool-input-delta for an existing input-streaming dynamic tool part', async () => {
+      const lastWrite = writeCalls[writeCalls.length - 1];
+      const toolPart = lastWrite.message.parts.find(
+        (p: any) => p.toolCallId === 'call-dyn-1',
+      ) as any;
+
+      expect(toolPart).toBeDefined();
+      expect(toolPart.state).toBe('output-available');
+      expect(toolPart.output).toBe('dyn-result');
+      expect(toolPart.type).toBe('dynamic-tool');
+    });
+  });
 });
