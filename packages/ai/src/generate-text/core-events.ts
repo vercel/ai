@@ -16,16 +16,6 @@ import type { StopCondition } from './stop-condition';
 import { TextStreamPart } from './stream-text-result';
 
 /**
- * Common model information used across callback events.
- */
-export interface CallbackModelInfo {
-  /** The provider identifier (e.g., 'openai', 'anthropic'). */
-  readonly provider: string;
-  /** The specific model identifier (e.g., 'gpt-4o'). */
-  readonly modelId: string;
-}
-
-/**
  * Event passed to the `onStart` callback.
  *
  * Called when the generation operation begins, before any LLM calls.

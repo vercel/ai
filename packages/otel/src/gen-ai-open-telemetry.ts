@@ -1,5 +1,3 @@
-import { LanguageModelV4Prompt } from '@ai-sdk/provider';
-import type { Context as AISDKContext } from '@ai-sdk/provider-utils';
 import {
   Attributes,
   AttributeValue,
@@ -16,6 +14,8 @@ import type {
   EmbedOnFinishEvent,
   EmbedOnStartEvent,
   EmbedStartEvent,
+  LanguageModelCallEndEvent,
+  LanguageModelCallStartEvent,
   ObjectOnFinishEvent,
   ObjectOnStartEvent,
   ObjectOnStepFinishEvent,
@@ -27,7 +27,6 @@ import type {
   OnStepStartEvent,
   ToolExecutionEndEvent,
   ToolExecutionStartEvent,
-  OutputInterface as Output,
   RerankFinishEvent,
   RerankOnFinishEvent,
   RerankOnStartEvent,
@@ -114,16 +113,6 @@ function selectAttributes(
   }
 
   return result;
-}
-
-interface OtelStepStartEvent<
-  TOOLS extends ToolSet = ToolSet,
-  RUNTIME_CONTEXT extends AISDKContext = AISDKContext,
-  OUTPUT extends Output = Output,
-> extends OnStepStartEvent<TOOLS, RUNTIME_CONTEXT, OUTPUT> {
-  readonly promptMessages?: LanguageModelV4Prompt;
-  readonly stepTools?: ReadonlyArray<Record<string, unknown>>;
-  readonly stepToolChoice?: unknown;
 }
 
 interface CallState {
@@ -508,12 +497,11 @@ export class GenAIOpenTelemetry implements Telemetry {
     });
   }
 
-  onStepStart(event: OtelStepStartEvent): void {
+  onStepStart(event: OnStepStartEvent<ToolSet>): void {
     const state = this.getCallState(event.callId);
     if (!state?.rootSpan || !state.rootContext) return;
 
     const { telemetry } = state;
-    const providerName = mapProviderName(event.provider);
     const stepAttributes = selectAttributes(telemetry, {
       'gen_ai.operation.name': 'agent_step',
     });
@@ -524,6 +512,14 @@ export class GenAIOpenTelemetry implements Telemetry {
       state.rootContext,
     );
     state.stepContext = trace.setSpan(state.rootContext, state.stepSpan);
+  }
+
+  onLanguageModelCallStart(event: LanguageModelCallStartEvent): void {
+    const state = this.getCallState(event.callId);
+    if (!state?.stepContext) return;
+
+    const { telemetry } = state;
+    const providerName = mapProviderName(event.provider);
 
     const inferenceAttributes = selectAttributes(telemetry, {
       'gen_ai.operation.name': 'chat',
@@ -547,14 +543,19 @@ export class GenAIOpenTelemetry implements Telemetry {
       'gen_ai.request.top_k': state.settings.topK as number | undefined,
       'gen_ai.request.top_p': state.settings.topP as number | undefined,
       'gen_ai.input.messages': {
-        input: () =>
-          event.promptMessages
-            ? JSON.stringify(formatInputMessages(event.promptMessages))
-            : undefined,
+        input: () => {
+          const formattedMessages = formatModelMessages({
+            prompt: undefined,
+            messages: event.messages,
+          });
+
+          return formattedMessages.length > 0
+            ? JSON.stringify(formattedMessages)
+            : undefined;
+        },
       },
       'gen_ai.tool.definitions': {
-        input: () =>
-          event.stepTools ? JSON.stringify(event.stepTools) : undefined,
+        input: () => (event.tools ? JSON.stringify(event.tools) : undefined),
       },
     });
 
@@ -567,6 +568,49 @@ export class GenAIOpenTelemetry implements Telemetry {
       state.stepContext,
       state.inferenceSpan,
     );
+  }
+
+  onLanguageModelCallEnd(event: LanguageModelCallEndEvent<ToolSet>): void {
+    const state = this.getCallState(event.callId);
+    if (!state?.inferenceSpan) return;
+
+    const { telemetry } = state;
+
+    state.inferenceSpan.setAttributes(
+      selectAttributes(telemetry, {
+        'gen_ai.response.finish_reasons': [event.finishReason],
+        'gen_ai.response.id': event.responseId,
+        'gen_ai.usage.input_tokens': event.usage.inputTokens,
+        'gen_ai.usage.output_tokens': event.usage.outputTokens,
+        'gen_ai.usage.cache_read.input_tokens':
+          event.usage.inputTokenDetails?.cacheReadTokens ??
+          event.usage.cachedInputTokens,
+        'gen_ai.usage.cache_creation.input_tokens':
+          event.usage.inputTokenDetails?.cacheWriteTokens,
+        'gen_ai.output.messages': {
+          output: () =>
+            JSON.stringify(
+              formatOutputMessages({
+                text:
+                  event.content
+                    .filter(p => p.type === 'text')
+                    .map(p => p.text)
+                    .join('') || undefined,
+                reasoning: event.content.filter(p => p.type === 'reasoning'),
+                toolCalls: event.content.filter(p => p.type === 'tool-call'),
+                files: event.content
+                  .filter(p => p.type === 'file')
+                  .map(p => p.file),
+                finishReason: event.finishReason,
+              }),
+            ),
+        },
+      }),
+    );
+
+    state.inferenceSpan.end();
+    state.inferenceSpan = undefined;
+    state.inferenceContext = undefined;
   }
 
   onToolExecutionStart(event: ToolExecutionStartEvent<ToolSet>): void {
@@ -632,40 +676,7 @@ export class GenAIOpenTelemetry implements Telemetry {
 
   onStepFinish(event: OnStepFinishEvent<ToolSet>): void {
     const state = this.getCallState(event.callId);
-    if (!state?.stepSpan || !state.inferenceSpan) return;
-
-    const { telemetry } = state;
-
-    state.inferenceSpan.setAttributes(
-      selectAttributes(telemetry, {
-        'gen_ai.response.finish_reasons': [event.finishReason],
-        'gen_ai.response.id': event.response.id,
-        'gen_ai.response.model': event.response.modelId,
-        'gen_ai.usage.input_tokens': event.usage.inputTokens,
-        'gen_ai.usage.output_tokens': event.usage.outputTokens,
-        'gen_ai.usage.cache_read.input_tokens':
-          event.usage.inputTokenDetails?.cacheReadTokens ??
-          event.usage.cachedInputTokens,
-        'gen_ai.usage.cache_creation.input_tokens':
-          event.usage.inputTokenDetails?.cacheWriteTokens,
-        'gen_ai.output.messages': {
-          output: () =>
-            JSON.stringify(
-              formatOutputMessages({
-                text: event.text ?? undefined,
-                reasoning: event.reasoning as ReadonlyArray<{ text?: string }>,
-                toolCalls: event.toolCalls,
-                files: event.files,
-                finishReason: event.finishReason,
-              }),
-            ),
-        },
-      }),
-    );
-
-    state.inferenceSpan.end();
-    state.inferenceSpan = undefined;
-    state.inferenceContext = undefined;
+    if (!state?.stepSpan) return;
 
     state.stepSpan.end();
     state.stepSpan = undefined;
