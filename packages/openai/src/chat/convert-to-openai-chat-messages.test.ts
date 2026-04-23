@@ -603,3 +603,40 @@ describe('tool calls', () => {
     `);
   });
 });
+
+describe('assistant messages', () => {
+  it('should set content to null for assistant messages with only tool calls and no text', () => {
+    const result = convertToOpenAIChatMessages({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'call1',
+              toolName: 'searchTool',
+              input: { query: 'Weather' },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.messages).toEqual([
+      {
+        role: 'assistant',
+        content: null,
+        tool_calls: [
+          {
+            id: 'call1',
+            type: 'function',
+            function: {
+              name: 'searchTool',
+              arguments: JSON.stringify({ query: 'Weather' }),
+            },
+          },
+        ],
+      },
+    ]);
+  });
+});
