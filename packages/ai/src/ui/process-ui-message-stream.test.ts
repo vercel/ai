@@ -226,11 +226,15 @@ describe('processUIMessageStream', () => {
   });
 
   describe('malformed stream errors', () => {
-    it('should throw descriptive error when text-delta is received without text-start', async () => {
+    it('should lazily create text part when text-delta is received without text-start', async () => {
       const stream = createUIMessageStream([
         { type: 'start', messageId: 'msg-123' },
         { type: 'start-step' },
         { type: 'text-delta', id: 'text-1', delta: 'Hello' },
+        { type: 'text-delta', id: 'text-1', delta: ' world' },
+        { type: 'text-end', id: 'text-1' },
+        { type: 'finish-step' },
+        { type: 'finish' },
       ]);
 
       state = createStreamingUIMessageState({
@@ -238,30 +242,36 @@ describe('processUIMessageStream', () => {
         lastMessage: undefined,
       });
 
-      await expect(
-        consumeStream({
-          stream: processUIMessageStream({
-            stream,
-            runUpdateMessageJob,
-            onError: error => {
-              throw error;
-            },
-          }),
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
           onError: error => {
             throw error;
           },
         }),
-      ).rejects.toThrow(
-        'Received text-delta for missing text part with ID "text-1". ' +
-          'Ensure a "text-start" chunk is sent before any "text-delta" chunks.',
-      );
+      });
+
+      expect(state.message.parts).toEqual([
+        { type: 'step-start' },
+        {
+          type: 'text',
+          text: 'Hello world',
+          providerMetadata: undefined,
+          state: 'done',
+        },
+      ]);
     });
 
-    it('should throw descriptive error when reasoning-delta is received without reasoning-start', async () => {
+    it('should lazily create reasoning part when reasoning-delta is received without reasoning-start', async () => {
       const stream = createUIMessageStream([
         { type: 'start', messageId: 'msg-123' },
         { type: 'start-step' },
         { type: 'reasoning-delta', id: 'reasoning-1', delta: 'Thinking...' },
+        { type: 'reasoning-delta', id: 'reasoning-1', delta: ' more' },
+        { type: 'reasoning-end', id: 'reasoning-1' },
+        { type: 'finish-step' },
+        { type: 'finish' },
       ]);
 
       state = createStreamingUIMessageState({
@@ -269,23 +279,25 @@ describe('processUIMessageStream', () => {
         lastMessage: undefined,
       });
 
-      await expect(
-        consumeStream({
-          stream: processUIMessageStream({
-            stream,
-            runUpdateMessageJob,
-            onError: error => {
-              throw error;
-            },
-          }),
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
           onError: error => {
             throw error;
           },
         }),
-      ).rejects.toThrow(
-        'Received reasoning-delta for missing reasoning part with ID "reasoning-1". ' +
-          'Ensure a "reasoning-start" chunk is sent before any "reasoning-delta" chunks.',
-      );
+      });
+
+      expect(state.message.parts).toEqual([
+        { type: 'step-start' },
+        {
+          type: 'reasoning',
+          text: 'Thinking... more',
+          providerMetadata: undefined,
+          state: 'done',
+        },
+      ]);
     });
 
     it('should throw descriptive error when tool-input-delta is received without tool-input-start', async () => {
@@ -323,11 +335,13 @@ describe('processUIMessageStream', () => {
       );
     });
 
-    it('should throw descriptive error when text-end is received without text-start', async () => {
+    it('should silently ignore text-end received without text-start', async () => {
       const stream = createUIMessageStream([
         { type: 'start', messageId: 'msg-123' },
         { type: 'start-step' },
         { type: 'text-end', id: 'text-1' },
+        { type: 'finish-step' },
+        { type: 'finish' },
       ]);
 
       state = createStreamingUIMessageState({
@@ -335,30 +349,26 @@ describe('processUIMessageStream', () => {
         lastMessage: undefined,
       });
 
-      await expect(
-        consumeStream({
-          stream: processUIMessageStream({
-            stream,
-            runUpdateMessageJob,
-            onError: error => {
-              throw error;
-            },
-          }),
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
           onError: error => {
             throw error;
           },
         }),
-      ).rejects.toThrow(
-        'Received text-end for missing text part with ID "text-1". ' +
-          'Ensure a "text-start" chunk is sent before any "text-end" chunks.',
-      );
+      });
+
+      expect(state.message.parts).toEqual([{ type: 'step-start' }]);
     });
 
-    it('should throw descriptive error when reasoning-end is received without reasoning-start', async () => {
+    it('should silently ignore reasoning-end received without reasoning-start', async () => {
       const stream = createUIMessageStream([
         { type: 'start', messageId: 'msg-123' },
         { type: 'start-step' },
         { type: 'reasoning-end', id: 'reasoning-1' },
+        { type: 'finish-step' },
+        { type: 'finish' },
       ]);
 
       state = createStreamingUIMessageState({
@@ -366,30 +376,27 @@ describe('processUIMessageStream', () => {
         lastMessage: undefined,
       });
 
-      await expect(
-        consumeStream({
-          stream: processUIMessageStream({
-            stream,
-            runUpdateMessageJob,
-            onError: error => {
-              throw error;
-            },
-          }),
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
           onError: error => {
             throw error;
           },
         }),
-      ).rejects.toThrow(
-        'Received reasoning-end for missing reasoning part with ID "reasoning-1". ' +
-          'Ensure a "reasoning-start" chunk is sent before any "reasoning-end" chunks.',
-      );
+      });
+
+      expect(state.message.parts).toEqual([{ type: 'step-start' }]);
     });
 
-    it('should throw UIMessageStreamError with correct properties for text-delta without text-start', async () => {
+    it('should lazily create text part for text-delta without text-start', async () => {
       const stream = createUIMessageStream([
         { type: 'start', messageId: 'msg-123' },
         { type: 'start-step' },
         { type: 'text-delta', id: 'missing-id', delta: 'Hello' },
+        { type: 'text-end', id: 'missing-id' },
+        { type: 'finish-step' },
+        { type: 'finish' },
       ]);
 
       state = createStreamingUIMessageState({
@@ -397,29 +404,25 @@ describe('processUIMessageStream', () => {
         lastMessage: undefined,
       });
 
-      let caughtError: unknown;
-      try {
-        await consumeStream({
-          stream: processUIMessageStream({
-            stream,
-            runUpdateMessageJob,
-            onError: error => {
-              throw error;
-            },
-          }),
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
           onError: error => {
             throw error;
           },
-        });
-      } catch (error) {
-        caughtError = error;
-      }
+        }),
+      });
 
-      expect(UIMessageStreamError.isInstance(caughtError)).toBe(true);
-      expect((caughtError as UIMessageStreamError).chunkType).toBe(
-        'text-delta',
-      );
-      expect((caughtError as UIMessageStreamError).chunkId).toBe('missing-id');
+      expect(state.message.parts).toEqual([
+        { type: 'step-start' },
+        {
+          type: 'text',
+          text: 'Hello',
+          providerMetadata: undefined,
+          state: 'done',
+        },
+      ]);
     });
 
     it('should throw UIMessageStreamError with correct properties for tool-input-delta without tool-input-start', async () => {
@@ -8993,6 +8996,118 @@ describe('processUIMessageStream', () => {
             },
           },
         },
+      ]);
+    });
+  });
+
+  describe('stream resume – text-delta without prior text-start (#13160)', () => {
+    it('should lazily create a text part and append deltas when resumed stream starts with text-delta', async () => {
+      const stream = createUIMessageStream([
+        { type: 'start', messageId: 'msg-resume' },
+        { type: 'start-step' },
+        // Resumed stream begins mid-text — no text-start was sent
+        { type: 'text-delta', id: 'part-A', delta: ' and loved well' },
+        { type: 'text-delta', id: 'part-A', delta: ', and that' },
+        { type: 'text-delta', id: 'part-A', delta: ' thou depar' },
+        { type: 'text-end', id: 'part-A' },
+        { type: 'finish-step' },
+        { type: 'finish' },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-resume',
+        lastMessage: undefined,
+      });
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+
+      expect(state.message.parts).toEqual([
+        { type: 'step-start' },
+        {
+          type: 'text',
+          text: ' and loved well, and that thou depar',
+          providerMetadata: undefined,
+          state: 'done',
+        },
+      ]);
+    });
+
+    it('should lazily create a reasoning part when resumed stream starts with reasoning-delta', async () => {
+      const stream = createUIMessageStream([
+        { type: 'start', messageId: 'msg-resume' },
+        { type: 'start-step' },
+        { type: 'reasoning-delta', id: 'r-1', delta: 'continued reasoning' },
+        { type: 'reasoning-end', id: 'r-1' },
+        { type: 'finish-step' },
+        { type: 'finish' },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-resume',
+        lastMessage: undefined,
+      });
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+
+      expect(state.message.parts).toEqual([
+        { type: 'step-start' },
+        {
+          type: 'reasoning',
+          text: 'continued reasoning',
+          providerMetadata: undefined,
+          state: 'done',
+        },
+      ]);
+    });
+
+    it('should handle orphaned text-end gracefully on resume', async () => {
+      const stream = createUIMessageStream([
+        { type: 'start', messageId: 'msg-resume' },
+        { type: 'start-step' },
+        // The text-start and all deltas were sent before the disconnect;
+        // the resumed stream only contains the closing text-end.
+        { type: 'text-end', id: 'old-part' },
+        { type: 'text-start', id: 'new-part' },
+        { type: 'text-delta', id: 'new-part', delta: 'Fresh text' },
+        { type: 'text-end', id: 'new-part' },
+        { type: 'finish-step' },
+        { type: 'finish' },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-resume',
+        lastMessage: undefined,
+      });
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+
+      expect(state.message.parts).toEqual([
+        { type: 'step-start' },
+        { type: 'text', text: 'Fresh text', state: 'done' },
       ]);
     });
   });
