@@ -1,5 +1,10 @@
 export type { ContentPart } from './content-part';
 export type {
+  StreamTextChunkEvent,
+  GenerateTextEndEvent,
+  GenerateTextStartEvent,
+  GenerateTextStepEndEvent,
+  GenerateTextStepStartEvent,
   OnChunkEvent,
   OnFinishEvent,
   OnStartEvent,
@@ -61,7 +66,14 @@ export type {
   TextStreamPart,
   UIMessageStreamOptions,
 } from './stream-text-result';
+export type {
+  GenericToolApprovalFunction,
+  SingleToolApprovalFunction,
+  ToolApprovalConfiguration,
+  ToolApprovalStatus,
+} from './tool-approval-configuration';
 export type { ToolApprovalRequestOutput } from './tool-approval-request-output';
+export type { ToolApprovalResponseOutput } from './tool-approval-response-output';
 export type {
   DynamicToolCall,
   StaticToolCall,
@@ -74,12 +86,13 @@ export type {
   TypedToolError,
 } from './tool-error';
 export type {
+  OnToolCallFinishEvent,
+  OnToolCallStartEvent,
   OnToolExecutionEndCallback,
   OnToolExecutionStartCallback,
   ToolExecutionEndEvent,
   ToolExecutionStartEvent,
 } from './tool-execution-events';
-export type { ToolNeedsApprovalConfiguration } from './tool-needs-approval-configuration';
 export type {
   StaticToolOutputDenied,
   TypedToolOutputDenied,

@@ -1,5 +1,5 @@
 import {
-  createProviderToolFactory,
+  createProviderExecutedToolFactory,
   lazySchema,
   zodSchema,
 } from '@ai-sdk/provider-utils';
@@ -38,14 +38,12 @@ const fileSearchArgsBaseSchema = z
 
 export type GoogleFileSearchToolArgs = z.infer<typeof fileSearchArgsBaseSchema>;
 
-const fileSearchArgsSchema = lazySchema(() =>
-  zodSchema(fileSearchArgsBaseSchema),
-);
-
-export const fileSearch = createProviderToolFactory<
+export const fileSearch = createProviderExecutedToolFactory<
+  {},
   {},
   GoogleFileSearchToolArgs
 >({
   id: 'google.file_search',
-  inputSchema: fileSearchArgsSchema,
+  inputSchema: lazySchema(() => zodSchema(z.object({}))),
+  outputSchema: lazySchema(() => zodSchema(z.object({}))),
 });

@@ -84,11 +84,11 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
         'Limits the subset of tools that are available in a specific call.',
     },
     {
-      name: 'toolNeedsApproval',
-      type: 'Record<string, boolean | ((input, options) => boolean | Promise<boolean>)>',
+      name: 'toolApproval',
+      type: 'ToolApprovalConfiguration<TOOLS, RUNTIME_CONTEXT>',
       isOptional: true,
       description:
-        "Per-tool approval configuration for the agent. Each tool can be set to `true` / `false` or to a function that decides dynamically based on the tool input and options such as `toolCallId`, `messages`, and `context`. This setting takes precedence over a tool's `needsApproval` default.",
+        "Approval configuration for the agent. Pass a `GenericToolApprovalFunction` to handle all tool calls in one callback with `toolCall`, `tools`, `toolsContext`, `messages`, and `runtimeContext`, or pass a per-tool object where each key can be a status (`'not-applicable'`, `'approved'`, `'denied'`, or `'user-approval'`), an object form such as `{ type: 'denied', reason: 'blocked by policy' }`, or a `SingleToolApprovalFunction` that receives the tool input and options `toolCallId`, `messages`, `toolContext`, and `runtimeContext` (same shape as tool execution options without `abortSignal`, with `context` renamed to `toolContext`). The `RUNTIME_CONTEXT` type parameter matches the agent's `runtimeContext`. A `GenericToolApprovalFunction` or `SingleToolApprovalFunction` may return `undefined` for the same effect as `'not-applicable'`. `'not-applicable'` is the default execution path and runs the tool without approval metadata. Use `'approved'`, `'denied'`, or their object forms when you want explicit automatic approval request/response parts in the output. Automatic approvals and denials can include a `reason`, which is forwarded to the emitted approval response. This setting takes precedence over a tool's `needsApproval` default.",
     },
     {
       name: 'output',
@@ -119,7 +119,7 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
         'Callback that is called when the agent operation begins, before any LLM calls are made. Useful for logging, analytics, or initializing state. If also specified in `generate()` or `stream()`, both callbacks are called (constructor first). Experimental (can break in patch releases).',
       properties: [
         {
-          type: 'OnStartEvent',
+          type: 'GenerateTextStartEvent',
           parameters: [
             {
               name: 'model',
@@ -241,12 +241,6 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
                 'Settings for controlling what data is included in step results.',
             },
             {
-              name: 'functionId',
-              type: 'string | undefined',
-              description:
-                'Identifier from telemetry settings for grouping related operations.',
-            },
-            {
               name: 'runtimeContext',
               type: 'CONTEXT',
               description:
@@ -270,7 +264,7 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
         'Callback that is called when a step (LLM call) begins, before the provider is called. Each step represents a single LLM invocation. If also specified in `generate()` or `stream()`, both callbacks are called (constructor first). Experimental (can break in patch releases).',
       properties: [
         {
-          type: 'OnStepStartEvent',
+          type: 'GenerateTextStepStartEvent',
           parameters: [
             {
               name: 'stepNumber',
@@ -353,12 +347,6 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
                 'Settings for controlling what data is included in step results.',
             },
             {
-              name: 'functionId',
-              type: 'string | undefined',
-              description:
-                'Identifier from telemetry settings for grouping related operations.',
-            },
-            {
               name: 'runtimeContext',
               type: 'CONTEXT',
               description:
@@ -412,12 +400,6 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
               name: 'abortSignal',
               type: 'AbortSignal | undefined',
               description: 'Signal for cancelling the operation.',
-            },
-            {
-              name: 'functionId',
-              type: 'string | undefined',
-              description:
-                'Identifier from telemetry settings for grouping related operations.',
             },
             {
               name: 'context',
@@ -475,12 +457,6 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
                 'The wall-clock duration of the tool execution in milliseconds.',
             },
             {
-              name: 'functionId',
-              type: 'string | undefined',
-              description:
-                'Identifier from telemetry settings for grouping related operations.',
-            },
-            {
               name: 'context',
               type: 'CONTEXT',
               description:
@@ -520,7 +496,7 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
       type: 'ToolLoopAgentOnFinishCallback',
       isOptional: true,
       description:
-        'Callback that is called when all agent steps are finished and the response is complete. Receives step results, total usage, shared `runtimeContext`, `toolsContext`, and functionId. If also specified in `generate()` or `stream()`, both callbacks are called (constructor first).',
+        'Callback that is called when all agent steps are finished and the response is complete. Receives step results, total usage, shared `runtimeContext`, and `toolsContext`. If also specified in `generate()` or `stream()`, both callbacks are called (constructor first).',
     },
     {
       name: 'runtimeContext',
@@ -992,8 +968,8 @@ const agent = new ToolLoopAgent({
       }),
     }),
   },
-  toolNeedsApproval: {
-    weather: true,
+  toolApproval: {
+    weather: 'user-approval',
   },
 });
 

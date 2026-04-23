@@ -18,4 +18,11 @@ export type ToolApprovalRequestOutput<TOOLS extends ToolSet> = {
    * Tool call that the approval request is for.
    */
   toolCall: TypedToolCall<TOOLS>;
+
+  /**
+   * Flag indicating whether the tool was automatically approved or denied.
+   *
+   * @default false
+   */
+  isAutomatic?: boolean;
 };

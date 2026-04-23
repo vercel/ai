@@ -131,7 +131,6 @@ let callIdCounter = 0;
 
 function telemetryFields() {
   return {
-    isEnabled: true as const,
     recordInputs: undefined,
     recordOutputs: undefined,
     functionId: undefined,
@@ -188,14 +187,11 @@ function makeStepStartEvent(overrides?: Record<string, unknown>) {
     activeTools: undefined,
     steps: [],
     providerOptions: undefined,
-    timeout: undefined,
-    headers: undefined,
-    stopWhen: undefined,
-    output: undefined,
     abortSignal: undefined,
     include: undefined,
-    functionId: undefined,
+    output: undefined,
     runtimeContext: {},
+    ...telemetryFields(),
     toolsContext: {},
     promptMessages: undefined,
     stepTools: undefined,
@@ -209,7 +205,6 @@ function makeStepFinishEvent(overrides?: Record<string, unknown>) {
     callId,
     stepNumber: 0,
     model,
-    functionId: undefined,
     content: [{ type: 'text' as const, text: 'Hello world' }],
     text: 'Hello world',
     reasoning: [],
@@ -249,6 +244,7 @@ function makeStepFinishEvent(overrides?: Record<string, unknown>) {
       messages: [],
     },
     providerMetadata: undefined,
+    ...telemetryFields(),
     runtimeContext: {},
     toolsContext: {},
     ...overrides,
@@ -282,18 +278,14 @@ function makeFinishEvent(overrides?: Record<string, unknown>) {
 function makeToolCallStartEvent(overrides?: Record<string, unknown>) {
   return {
     callId,
-    stepNumber: 0,
-    provider: model.provider,
-    modelId: model.modelId,
     toolCall: {
       type: 'tool-call' as const,
       toolCallId: 'tool-call-1',
       toolName: 'myTool',
       input: { query: 'test' },
     },
-    messages: [],
     abortSignal: undefined,
-    functionId: undefined,
+    ...telemetryFields(),
     context: {},
     toolsContext: {},
     ...overrides,
@@ -306,19 +298,15 @@ function makeToolCallFinishEvent(
 ) {
   const base = {
     callId,
-    stepNumber: 0,
-    provider: model.provider,
-    modelId: model.modelId,
     toolCall: {
       type: 'tool-call' as const,
       toolCallId: 'tool-call-1',
       toolName: 'myTool',
       input: { query: 'test' },
     },
-    messages: [],
     abortSignal: undefined,
     durationMs: 42,
-    functionId: undefined,
+    ...telemetryFields(),
     context: {},
     toolsContext: {},
     ...overrides,
@@ -387,12 +375,6 @@ describe('GenAIOpenTelemetry', () => {
       `);
     });
 
-    it('does not create a span when telemetry is disabled', () => {
-      integration.onStart!(makeOnStartEvent({ isEnabled: false }));
-
-      expect(tracer.startSpan).not.toHaveBeenCalled();
-    });
-
     it('preserves functionId as gen_ai.agent.name', () => {
       integration.onStart!(
         makeOnStartEvent({
@@ -412,12 +394,22 @@ describe('GenAIOpenTelemetry', () => {
   });
 
   describe('onStepStart', () => {
-    it('creates a chat span with correct attributes', () => {
+    it('creates agent_step and chat spans with correct attributes', () => {
       integration.onStart!(makeOnStartEvent());
       integration.onStepStart!(makeStepStartEvent());
 
-      expect(tracer.startSpan).toHaveBeenCalledTimes(2);
+      expect(tracer.startSpan).toHaveBeenCalledTimes(3);
       expect(serializeSpan(tracer.spans[1], tracer)).toMatchInlineSnapshot(`
+        {
+          "ended": false,
+          "initAttributes": {
+            "gen_ai.operation.name": "agent_step",
+          },
+          "name": "step 1",
+          "runtimeAttributes": {},
+        }
+      `);
+      expect(serializeSpan(tracer.spans[2], tracer)).toMatchInlineSnapshot(`
         {
           "ended": false,
           "initAttributes": {
@@ -446,7 +438,7 @@ describe('GenAIOpenTelemetry', () => {
         }),
       );
 
-      const attrs = getStartSpanAttributes(tracer, 1);
+      const attrs = getStartSpanAttributes(tracer, 2);
       expect(parseJsonAttributes(attrs, 'gen_ai.input.messages'))
         .toMatchInlineSnapshot(`
         {
@@ -472,7 +464,7 @@ describe('GenAIOpenTelemetry', () => {
       integration.onStart!(makeOnStartEvent());
       integration.onStepStart!(makeStepStartEvent({ stepTools: tools }));
 
-      const attrs = getStartSpanAttributes(tracer, 1);
+      const attrs = getStartSpanAttributes(tracer, 2);
       expect(parseJsonAttributes(attrs, 'gen_ai.tool.definitions'))
         .toMatchInlineSnapshot(`
         {
@@ -489,12 +481,12 @@ describe('GenAIOpenTelemetry', () => {
   });
 
   describe('onStepFinish', () => {
-    it('sets response attributes and token usage on step span', () => {
+    it('sets response attributes and token usage on the chat span', () => {
       integration.onStart!(makeOnStartEvent());
       integration.onStepStart!(makeStepStartEvent());
       integration.onStepFinish!(makeStepFinishEvent());
 
-      expect(serializeSpan(tracer.spans[1], tracer)).toMatchInlineSnapshot(`
+      expect(serializeSpan(tracer.spans[2], tracer)).toMatchInlineSnapshot(`
         {
           "ended": true,
           "initAttributes": {
@@ -524,8 +516,8 @@ describe('GenAIOpenTelemetry', () => {
       integration.onStepStart!(makeStepStartEvent());
       integration.onStepFinish!(makeStepFinishEvent());
 
-      const stepSpan = tracer.spans[1];
-      expect(parseJsonAttributes(stepSpan.attributes, 'gen_ai.output.messages'))
+      const chatSpan = tracer.spans[2];
+      expect(parseJsonAttributes(chatSpan.attributes, 'gen_ai.output.messages'))
         .toMatchInlineSnapshot(`
         {
           "gen_ai.output.messages": [
@@ -562,8 +554,8 @@ describe('GenAIOpenTelemetry', () => {
         }),
       );
 
-      const stepSpan = tracer.spans[1];
-      expect(parseJsonAttributes(stepSpan.attributes, 'gen_ai.output.messages'))
+      const chatSpan = tracer.spans[2];
+      expect(parseJsonAttributes(chatSpan.attributes, 'gen_ai.output.messages'))
         .toMatchInlineSnapshot(`
         {
           "gen_ai.output.messages": [
@@ -610,13 +602,13 @@ describe('GenAIOpenTelemetry', () => {
         }),
       );
 
-      const stepSpan = tracer.spans[1];
+      const chatSpan = tracer.spans[2];
       expect({
-        inputTokens: stepSpan.attributes['gen_ai.usage.input_tokens'],
-        outputTokens: stepSpan.attributes['gen_ai.usage.output_tokens'],
-        cacheRead: stepSpan.attributes['gen_ai.usage.cache_read.input_tokens'],
+        inputTokens: chatSpan.attributes['gen_ai.usage.input_tokens'],
+        outputTokens: chatSpan.attributes['gen_ai.usage.output_tokens'],
+        cacheRead: chatSpan.attributes['gen_ai.usage.cache_read.input_tokens'],
         cacheCreation:
-          stepSpan.attributes['gen_ai.usage.cache_creation.input_tokens'],
+          chatSpan.attributes['gen_ai.usage.cache_creation.input_tokens'],
       }).toMatchInlineSnapshot(`
         {
           "cacheCreation": 10,
@@ -634,8 +626,8 @@ describe('GenAIOpenTelemetry', () => {
       integration.onStepStart!(makeStepStartEvent());
       integration.onToolExecutionStart!(makeToolCallStartEvent());
 
-      expect(tracer.spans).toHaveLength(3);
-      expect(serializeSpan(tracer.spans[2], tracer)).toMatchInlineSnapshot(`
+      expect(tracer.spans).toHaveLength(4);
+      expect(serializeSpan(tracer.spans[3], tracer)).toMatchInlineSnapshot(`
         {
           "ended": false,
           "initAttributes": {
@@ -651,13 +643,22 @@ describe('GenAIOpenTelemetry', () => {
       `);
     });
 
+    it('parents chat and execute_tool spans under the same step span', () => {
+      integration.onStart!(makeOnStartEvent());
+      integration.onStepStart!(makeStepStartEvent());
+      integration.onToolExecutionStart!(makeToolCallStartEvent());
+
+      const mock = tracer.startSpan as ReturnType<typeof vi.fn>;
+      expect(mock.mock.calls[2][2]).toBe(mock.mock.calls[3][2]);
+    });
+
     it('sets gen_ai.tool.call.result on success', () => {
       integration.onStart!(makeOnStartEvent());
       integration.onStepStart!(makeStepStartEvent());
       integration.onToolExecutionStart!(makeToolCallStartEvent());
       integration.onToolExecutionEnd!(makeToolCallFinishEvent(true));
 
-      expect(serializeSpan(tracer.spans[2], tracer)).toMatchInlineSnapshot(`
+      expect(serializeSpan(tracer.spans[3], tracer)).toMatchInlineSnapshot(`
         {
           "ended": true,
           "initAttributes": {
@@ -681,7 +682,7 @@ describe('GenAIOpenTelemetry', () => {
       integration.onToolExecutionStart!(makeToolCallStartEvent());
       integration.onToolExecutionEnd!(makeToolCallFinishEvent(false));
 
-      const toolSpan = tracer.spans[2];
+      const toolSpan = tracer.spans[3];
       expect({
         status: toolSpan.status,
         ended: toolSpan.ended,
@@ -844,8 +845,8 @@ describe('GenAIOpenTelemetry', () => {
         },
       });
 
-      const stepSpan = tracer.spans[1];
-      expect(stepSpan.events).toMatchInlineSnapshot(`[]`);
+      const chatSpan = tracer.spans[2];
+      expect(chatSpan.events).toMatchInlineSnapshot(`[]`);
     });
 
     it('does not emit events for stream finish', () => {
@@ -861,13 +862,13 @@ describe('GenAIOpenTelemetry', () => {
         },
       });
 
-      const stepSpan = tracer.spans[1];
-      expect(stepSpan.events).toMatchInlineSnapshot(`[]`);
+      const chatSpan = tracer.spans[2];
+      expect(chatSpan.events).toMatchInlineSnapshot(`[]`);
     });
   });
 
   describe('onError', () => {
-    it('records error on root and step spans', () => {
+    it('records error on root, step, and chat spans', () => {
       integration.onStart!(makeOnStartEvent());
       integration.onStepStart!(makeStepStartEvent());
 
@@ -887,6 +888,14 @@ describe('GenAIOpenTelemetry', () => {
           {
             "ended": true,
             "name": "invoke_agent gpt-4",
+            "status": {
+              "code": 2,
+              "message": "something went wrong",
+            },
+          },
+          {
+            "ended": true,
+            "name": "step 1",
             "status": {
               "code": 2,
               "message": "something went wrong",
@@ -934,11 +943,19 @@ describe('GenAIOpenTelemetry', () => {
           },
           {
             "ended": true,
+            "name": "step 1",
+          },
+          {
+            "ended": true,
             "name": "chat gpt-4",
           },
           {
             "ended": true,
             "name": "execute_tool myTool",
+          },
+          {
+            "ended": true,
+            "name": "step 2",
           },
           {
             "ended": true,
@@ -975,6 +992,14 @@ describe('GenAIOpenTelemetry', () => {
               "gen_ai.usage.input_tokens": 10,
               "gen_ai.usage.output_tokens": 20,
             },
+          },
+          {
+            "ended": true,
+            "initAttributes": {
+              "gen_ai.operation.name": "agent_step",
+            },
+            "name": "step 1",
+            "runtimeAttributes": {},
           },
           {
             "ended": true,
@@ -1041,6 +1066,14 @@ describe('GenAIOpenTelemetry', () => {
           {
             "ended": true,
             "initAttributes": {
+              "gen_ai.operation.name": "agent_step",
+            },
+            "name": "step 1",
+            "runtimeAttributes": {},
+          },
+          {
+            "ended": true,
+            "initAttributes": {
               "gen_ai.operation.name": "chat",
               "gen_ai.provider.name": "openai",
               "gen_ai.request.max_tokens": 100,
@@ -1072,6 +1105,14 @@ describe('GenAIOpenTelemetry', () => {
             "runtimeAttributes": {
               "gen_ai.tool.call.result": "{"result":"ok"}",
             },
+          },
+          {
+            "ended": true,
+            "initAttributes": {
+              "gen_ai.operation.name": "agent_step",
+            },
+            "name": "step 2",
+            "runtimeAttributes": {},
           },
           {
             "ended": true,

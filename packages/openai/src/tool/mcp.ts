@@ -1,5 +1,5 @@
 import {
-  createProviderToolFactoryWithOutputSchema,
+  createProviderExecutedToolFactory,
   lazySchema,
   zodSchema,
 } from '@ai-sdk/provider-utils';
@@ -105,7 +105,7 @@ type McpArgs = {
   serverUrl?: string;
 };
 
-export const mcpToolFactory = createProviderToolFactoryWithOutputSchema<
+export const mcpToolFactory = createProviderExecutedToolFactory<
   {},
   {
     type: 'call';

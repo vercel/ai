@@ -41,11 +41,15 @@ export { parseJsonEventStream } from './parse-json-event-stream';
 export { parseProviderOptions } from './parse-provider-options';
 export * from './post-to-api';
 export {
-  createProviderToolFactory,
-  createProviderToolFactoryWithOutputSchema,
-  type ProviderToolFactory,
-  type ProviderToolFactoryWithOutputSchema,
-} from './provider-tool-factory';
+  createProviderDefinedToolFactory,
+  createProviderDefinedToolFactoryWithOutputSchema,
+  type ProviderDefinedToolFactory,
+  type ProviderDefinedToolFactoryWithOutputSchema,
+} from './provider-defined-tool-factory';
+export {
+  createProviderExecutedToolFactory,
+  type ProviderExecutedToolFactory,
+} from './provider-executed-tool-factory';
 export {
   DEFAULT_MAX_DOWNLOAD_SIZE,
   readResponseWithSizeLimit,
