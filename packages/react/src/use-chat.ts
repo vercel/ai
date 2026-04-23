@@ -1,6 +1,7 @@
 import {
   AbstractChat,
   ChatInit,
+  ChatTransport,
   type CreateUIMessage,
   type UIMessage,
 } from 'ai';
@@ -84,9 +85,32 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
     };
   }
 
-  // Ensure the Chat instance has the latest callbacks
+  // Create a ref for transport to avoid stale closures (same pattern as callbacks).
+  // This ensures that when users pass a new transport with updated body/headers
+  // on re-renders, the Chat instance always uses the latest transport.
+  const transportRef = useRef<ChatTransport<UI_MESSAGE> | undefined>(
+    !('chat' in options) ? options.transport : undefined,
+  );
+
+  // Update transport ref on each render to keep it current
+  if (!('chat' in options)) {
+    transportRef.current = options.transport;
+  }
+
+  // Ensure the Chat instance has the latest callbacks and transport
   const optionsWithCallbacks: typeof options = {
     ...options,
+    // Wrap transport methods to always delegate to the latest transport ref,
+    // preventing stale body/headers when React state changes (#7819)
+    ...(transportRef.current != null
+      ? {
+          transport: {
+            sendMessages: opts => transportRef.current!.sendMessages(opts),
+            reconnectToStream: opts =>
+              transportRef.current!.reconnectToStream(opts),
+          } as ChatTransport<UI_MESSAGE>,
+        }
+      : {}),
     onToolCall: arg => callbacksRef.current.onToolCall?.(arg),
     onData: arg => callbacksRef.current.onData?.(arg),
     onFinish: arg => callbacksRef.current.onFinish?.(arg),
