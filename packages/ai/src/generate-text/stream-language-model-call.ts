@@ -4,8 +4,9 @@ import {
   LanguageModelV4StreamPart,
   SharedV4Headers,
 } from '@ai-sdk/provider';
-import type { Arrayable, ToolSet } from '@ai-sdk/provider-utils';
+import type { Arrayable, IdGenerator, ToolSet } from '@ai-sdk/provider-utils';
 import {
+  createIdGenerator,
   ModelMessage,
   ProviderOptions,
   SystemModelMessage,
@@ -56,6 +57,16 @@ import { TypedToolCall } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair-function';
 import { TypedToolError } from './tool-error';
 import { TypedToolResult } from './tool-result';
+
+const originalGenerateId = createIdGenerator({
+  prefix: 'aitxt',
+  size: 24,
+});
+
+const originalGenerateCallId = createIdGenerator({
+  prefix: 'call',
+  size: 24,
+});
 
 export type LanguageModelStreamPart<TOOLS extends ToolSet = ToolSet> =
   | Exclude<
@@ -175,6 +186,10 @@ export async function streamLanguageModelCall<
   providerOptions,
   repairToolCall,
   callId,
+  _internal: {
+    generateId = originalGenerateId,
+    generateCallId = originalGenerateCallId,
+  } = {},
   onStart,
   onLanguageModelCallStart,
   onLanguageModelCallEnd,
@@ -191,6 +206,10 @@ export async function streamLanguageModelCall<
   providerOptions?: ProviderOptions;
   repairToolCall?: ToolCallRepairFunction<TOOLS> | undefined;
   callId?: string;
+  _internal?: {
+    generateId?: IdGenerator;
+    generateCallId?: IdGenerator;
+  };
   onLanguageModelCallStart?: Arrayable<OnLanguageModelCallStartCallback>;
   onLanguageModelCallEnd?: Arrayable<OnLanguageModelCallEndCallback<TOOLS>>;
 
@@ -222,6 +241,7 @@ export async function streamLanguageModelCall<
   };
 }> {
   const resolvedModel = resolveLanguageModel(model);
+  const effectiveCallId = callId ?? generateCallId();
 
   const standardizedPrompt = await standardizePrompt({
     system,
@@ -254,7 +274,7 @@ export async function streamLanguageModelCall<
 
   await notify({
     event: {
-      callId: callId ?? '',
+      callId: effectiveCallId,
       provider: resolvedModel.provider,
       modelId: resolvedModel.modelId,
       system: standardizedPrompt.system,
@@ -286,9 +306,10 @@ export async function streamLanguageModelCall<
       system: standardizedPrompt.system,
       messages: standardizedPrompt.messages,
       repairToolCall,
-      callId: callId ?? '',
+      callId: effectiveCallId,
       provider: resolvedModel.provider,
       modelId: resolvedModel.modelId,
+      generateId,
       onLanguageModelCallEnd,
     }),
   );
@@ -311,6 +332,7 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
   callId,
   provider,
   modelId,
+  generateId,
   onLanguageModelCallEnd,
 }: {
   tools: TOOLS | undefined;
@@ -320,6 +342,7 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
   callId: string;
   provider: string;
   modelId: string;
+  generateId: IdGenerator;
   onLanguageModelCallEnd?: Arrayable<OnLanguageModelCallEndCallback<TOOLS>>;
 }) {
   // keep track of parsed tool calls so provider-emitted approval requests can reference them
@@ -328,7 +351,7 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
   const modelCallContent: Array<ContentPart<TOOLS>> = [];
   const textPartIndexes = new Map<string, number>();
   const reasoningPartIndexes = new Map<string, number>();
-  let responseId = '';
+  let responseId = generateId();
 
   return new TransformStream<
     LanguageModelV4StreamPart,

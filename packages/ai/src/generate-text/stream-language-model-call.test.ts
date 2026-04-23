@@ -7,7 +7,7 @@ import {
   convertArrayToReadableStream,
   convertReadableStreamToArray,
 } from '@ai-sdk/provider-utils/test';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import z from 'zod';
 import { NoSuchToolError } from '../error/no-such-tool-error';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
@@ -132,6 +132,87 @@ describe('streamLanguageModelCall', () => {
       `);
     });
 
+    it('should generate a consistent callId when one is not provided', async () => {
+      let startEvent!: LanguageModelCallStartEvent;
+      let endEvent!: LanguageModelCallEndEvent;
+      const generateId = vi.fn(() => 'aitxt-generated-response-id');
+      const generateCallId = vi.fn(() => 'call-generated-call-id');
+
+      const { stream } = await streamLanguageModelCall({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: testUsage,
+              },
+            ]),
+          }),
+        }),
+        prompt: 'test prompt',
+        _internal: {
+          generateId,
+          generateCallId,
+        },
+        onLanguageModelCallStart: async event => {
+          startEvent = event;
+        },
+        onLanguageModelCallEnd: async event => {
+          endEvent = event;
+        },
+      });
+
+      await convertReadableStreamToArray(stream);
+
+      expect({
+        startEvent,
+        endEvent,
+      }).toMatchInlineSnapshot(`
+        {
+          "endEvent": {
+            "callId": "call-generated-call-id",
+            "content": [],
+            "finishReason": "stop",
+            "modelId": "mock-model-id",
+            "provider": "mock-provider",
+            "responseId": "aitxt-generated-response-id",
+            "usage": {
+              "cachedInputTokens": undefined,
+              "inputTokenDetails": {
+                "cacheReadTokens": undefined,
+                "cacheWriteTokens": undefined,
+                "noCacheTokens": 3,
+              },
+              "inputTokens": 3,
+              "outputTokenDetails": {
+                "reasoningTokens": undefined,
+                "textTokens": 10,
+              },
+              "outputTokens": 10,
+              "raw": undefined,
+              "reasoningTokens": undefined,
+              "totalTokens": 13,
+            },
+          },
+          "startEvent": {
+            "callId": "call-generated-call-id",
+            "messages": [
+              {
+                "content": "test prompt",
+                "role": "user",
+              },
+            ],
+            "modelId": "mock-model-id",
+            "provider": "mock-provider",
+            "system": undefined,
+            "tools": undefined,
+          },
+        }
+      `);
+      expect(endEvent.callId).toBe(startEvent.callId);
+    });
+
     it('should call onLanguageModelCallEnd with parsed model-call content', async () => {
       const tools = {
         testTool: tool({
@@ -223,6 +304,63 @@ describe('streamLanguageModelCall', () => {
             },
           },
         ]
+      `);
+    });
+
+    it('should generate a responseId when the provider does not send one', async () => {
+      let endEvent!: LanguageModelCallEndEvent;
+      const generateId = vi.fn(() => 'aitxt-generated-response-id');
+
+      const { stream } = await streamLanguageModelCall({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: testUsage,
+              },
+            ]),
+          }),
+        }),
+        prompt: 'test prompt',
+        callId: 'test-telemetry-call-id',
+        _internal: {
+          generateId,
+        },
+        onLanguageModelCallEnd: async event => {
+          endEvent = event;
+        },
+      });
+
+      await convertReadableStreamToArray(stream);
+
+      expect(endEvent).toMatchInlineSnapshot(`
+        {
+          "callId": "test-telemetry-call-id",
+          "content": [],
+          "finishReason": "stop",
+          "modelId": "mock-model-id",
+          "provider": "mock-provider",
+          "responseId": "aitxt-generated-response-id",
+          "usage": {
+            "cachedInputTokens": undefined,
+            "inputTokenDetails": {
+              "cacheReadTokens": undefined,
+              "cacheWriteTokens": undefined,
+              "noCacheTokens": 3,
+            },
+            "inputTokens": 3,
+            "outputTokenDetails": {
+              "reasoningTokens": undefined,
+              "textTokens": 10,
+            },
+            "outputTokens": 10,
+            "raw": undefined,
+            "reasoningTokens": undefined,
+            "totalTokens": 13,
+          },
+        }
       `);
     });
   });
