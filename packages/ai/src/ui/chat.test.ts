@@ -892,6 +892,92 @@ describe('Chat', () => {
     });
   });
 
+  describe('stop should abort a resumed stream', () => {
+    let chat: TestChat;
+    let letOnFinishArgs: any[] = [];
+    let receivedAbortSignal: AbortSignal | undefined;
+
+    beforeEach(async () => {
+      let controller: ReadableStreamDefaultController<UIMessageChunk>;
+      const responseStream = new ReadableStream<UIMessageChunk>({
+        start: controllerArg => {
+          controller = controllerArg;
+
+          controller.enqueue({ type: 'start' });
+          controller.enqueue({ type: 'start-step' });
+          controller.enqueue({ type: 'text-start', id: 'text-1' });
+          controller.enqueue({
+            type: 'text-delta',
+            id: 'text-1',
+            delta: 'Hello',
+          });
+        },
+      });
+
+      const finishPromise = createResolvablePromise<void>();
+      letOnFinishArgs = [];
+
+      chat = new TestChat({
+        id: '123',
+        generateId: mockId(),
+        transport: {
+          sendMessages: async () => {
+            throw new Error('not implemented');
+          },
+          reconnectToStream: async options => {
+            receivedAbortSignal = options.abortSignal ?? undefined;
+
+            // Wire up the abort signal to error the stream,
+            // matching the pattern from the sendMessages stop test.
+            options.abortSignal?.addEventListener('abort', () => {
+              controller.error(
+                new DOMException('Aborted', 'AbortError'),
+              );
+            });
+
+            return responseStream;
+          },
+        },
+        onFinish: (...args) => {
+          letOnFinishArgs = args;
+          return finishPromise.resolve();
+        },
+      });
+
+      chat.resumeStream();
+
+      // wait until the stream is consumed before stopping
+      while ((chat.messages[0]?.parts[1] as any)?.text !== 'Hello') {
+        await delay();
+      }
+
+      await chat.stop();
+
+      await finishPromise.promise;
+    });
+
+    it('should pass abortSignal to reconnectToStream', () => {
+      expect(receivedAbortSignal).toBeInstanceOf(AbortSignal);
+      expect(receivedAbortSignal!.aborted).toBe(true);
+    });
+
+    it('should call onFinish with isAbort true', () => {
+      expect(letOnFinishArgs[0].isAbort).toBe(true);
+      expect(letOnFinishArgs[0].isDisconnect).toBe(false);
+      expect(letOnFinishArgs[0].isError).toBe(false);
+    });
+
+    it('should keep partial messages', () => {
+      expect(chat.messages).toHaveLength(1);
+      expect(chat.messages[0].role).toBe('assistant');
+      expect((chat.messages[0].parts[1] as any).text).toBe('Hello');
+    });
+
+    it('should have ready status', () => {
+      expect(chat.status).toBe('ready');
+    });
+  });
+
   it('should include the metadata of text message', async () => {
     server.urls['http://localhost:3000/api/chat'].response = {
       type: 'stream-chunks',
