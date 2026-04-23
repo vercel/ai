@@ -60,10 +60,10 @@ import { VERSION } from '../version';
 import { collectToolApprovals } from './collect-tool-approvals';
 import { ContentPart } from './content-part';
 import type {
-  OnFinishEvent,
-  OnStartEvent,
-  OnStepFinishEvent,
-  OnStepStartEvent,
+  GenerateTextEndEvent,
+  GenerateTextStartEvent,
+  GenerateTextStepEndEvent,
+  GenerateTextStepStartEvent,
 } from './core-events';
 import { executeToolCall } from './execute-tool-call';
 import { filterActiveTools } from './filter-active-tool';
@@ -120,7 +120,7 @@ export type GenerateTextOnStartCallback<
   TOOLS extends ToolSet = ToolSet,
   RUNTIME_CONTEXT extends Context = Context,
   OUTPUT extends Output = Output,
-> = Callback<OnStartEvent<TOOLS, RUNTIME_CONTEXT, OUTPUT>>;
+> = Callback<GenerateTextStartEvent<TOOLS, RUNTIME_CONTEXT, OUTPUT>>;
 
 /**
  * Callback that is set using the `experimental_onStepStart` option.
@@ -135,7 +135,7 @@ export type GenerateTextOnStepStartCallback<
   TOOLS extends ToolSet = ToolSet,
   RUNTIME_CONTEXT extends Context = Context,
   OUTPUT extends Output = Output,
-> = Callback<OnStepStartEvent<TOOLS, RUNTIME_CONTEXT, OUTPUT>>;
+> = Callback<GenerateTextStepStartEvent<TOOLS, RUNTIME_CONTEXT, OUTPUT>>;
 
 /**
  * Callback that is set using the `onStepFinish` option.
@@ -148,7 +148,7 @@ export type GenerateTextOnStepStartCallback<
 export type GenerateTextOnStepFinishCallback<
   TOOLS extends ToolSet = ToolSet,
   RUNTIME_CONTEXT extends Context = Context,
-> = Callback<OnStepFinishEvent<TOOLS, RUNTIME_CONTEXT>>;
+> = Callback<GenerateTextStepEndEvent<TOOLS, RUNTIME_CONTEXT>>;
 
 /**
  * Callback that is set using the `onFinish` option.
@@ -162,7 +162,7 @@ export type GenerateTextOnStepFinishCallback<
 export type GenerateTextOnFinishCallback<
   TOOLS extends ToolSet = ToolSet,
   RUNTIME_CONTEXT extends Context = Context,
-> = Callback<OnFinishEvent<TOOLS, RUNTIME_CONTEXT>>;
+> = Callback<GenerateTextEndEvent<TOOLS, RUNTIME_CONTEXT>>;
 
 /**
  * Generate a text and call tools for a given prompt using a language model.

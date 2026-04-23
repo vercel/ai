@@ -159,3 +159,11 @@ export type OnToolExecutionStartCallback<TOOLS extends ToolSet = ToolSet> =
  */
 export type OnToolExecutionEndCallback<TOOLS extends ToolSet = ToolSet> =
   Callback<ToolExecutionEndEvent<TOOLS>>;
+
+/** @deprecated Use `ToolExecutionStartEvent` instead. */
+export type OnToolCallStartEvent<TOOLS extends ToolSet = ToolSet> =
+  ToolExecutionStartEvent<TOOLS>;
+
+/** @deprecated Use `ToolExecutionEndEvent` instead. */
+export type OnToolCallFinishEvent<TOOLS extends ToolSet = ToolSet> =
+  ToolExecutionEndEvent<TOOLS>;

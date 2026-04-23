@@ -30,9 +30,7 @@ export type CallbackModelInfo = {
  *
  * Called when the generation operation begins, before any LLM calls.
  */
-
-// TODO: rename OnStartEvent to GenerateTextStartEvent
-export type OnStartEvent<
+export type GenerateTextStartEvent<
   TOOLS extends ToolSet = ToolSet,
   RUNTIME_CONTEXT extends Context = Context,
   OUTPUT extends Output = Output,
@@ -101,9 +99,7 @@ export type OnStartEvent<
  * Called when a step (LLM call) begins, before the provider is called.
  * Each step represents a single LLM invocation.
  */
-
-// rename to GenerateTextStepStartEvent
-export type OnStepStartEvent<
+export type GenerateTextStepStartEvent<
   TOOLS extends ToolSet = ToolSet,
   RUNTIME_CONTEXT extends Context = Context,
   OUTPUT extends Output = Output,
@@ -156,7 +152,7 @@ export type OnStepStartEvent<
  * The chunk is either a content part (text-delta, tool-call, etc.) or
  * a stream lifecycle marker (`ai.stream.firstChunk` / `ai.stream.finish`).
  */
-export type OnChunkEvent<TOOLS extends ToolSet = ToolSet> = {
+export type StreamTextChunkEvent<TOOLS extends ToolSet = ToolSet> = {
   readonly chunk:
     | TextStreamPart<TOOLS>
     | {
@@ -173,7 +169,7 @@ export type OnChunkEvent<TOOLS extends ToolSet = ToolSet> = {
  * Called when a step (LLM call) completes.
  * Includes the StepResult for that step along with the call identifier.
  */
-export type OnStepFinishEvent<
+export type GenerateTextStepEndEvent<
   TOOLS extends ToolSet = ToolSet,
   RUNTIME_CONTEXT extends Context = Context,
 > = StepResult<TOOLS, RUNTIME_CONTEXT>;
@@ -184,7 +180,7 @@ export type OnStepFinishEvent<
  * Called when the entire generation completes (all steps finished).
  * Includes the final step's result along with aggregated data from all steps.
  */
-export type OnFinishEvent<
+export type GenerateTextEndEvent<
   TOOLS extends ToolSet = ToolSet,
   RUNTIME_CONTEXT extends Context = Context,
 > = StepResult<TOOLS, RUNTIME_CONTEXT> & {
@@ -194,3 +190,33 @@ export type OnFinishEvent<
   /** Aggregated token usage across all steps. */
   readonly totalUsage: LanguageModelUsage;
 };
+
+/** @deprecated Use `GenerateTextStartEvent` instead. */
+export type OnStartEvent<
+  TOOLS extends ToolSet = ToolSet,
+  RUNTIME_CONTEXT extends Context = Context,
+  OUTPUT extends Output = Output,
+> = GenerateTextStartEvent<TOOLS, RUNTIME_CONTEXT, OUTPUT>;
+
+/** @deprecated Use `GenerateTextStepStartEvent` instead. */
+export type OnStepStartEvent<
+  TOOLS extends ToolSet = ToolSet,
+  RUNTIME_CONTEXT extends Context = Context,
+  OUTPUT extends Output = Output,
+> = GenerateTextStepStartEvent<TOOLS, RUNTIME_CONTEXT, OUTPUT>;
+
+/** @deprecated Use `StreamTextChunkEvent` instead. */
+export type OnChunkEvent<TOOLS extends ToolSet = ToolSet> =
+  StreamTextChunkEvent<TOOLS>;
+
+/** @deprecated Use `GenerateTextStepEndEvent` instead. */
+export type OnStepFinishEvent<
+  TOOLS extends ToolSet = ToolSet,
+  RUNTIME_CONTEXT extends Context = Context,
+> = GenerateTextStepEndEvent<TOOLS, RUNTIME_CONTEXT>;
+
+/** @deprecated Use `GenerateTextEndEvent` instead. */
+export type OnFinishEvent<
+  TOOLS extends ToolSet = ToolSet,
+  RUNTIME_CONTEXT extends Context = Context,
+> = GenerateTextEndEvent<TOOLS, RUNTIME_CONTEXT>;

@@ -119,7 +119,7 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
         'Callback that is called when the agent operation begins, before any LLM calls are made. Useful for logging, analytics, or initializing state. If also specified in `generate()` or `stream()`, both callbacks are called (constructor first). Experimental (can break in patch releases).',
       properties: [
         {
-          type: 'OnStartEvent',
+          type: 'GenerateTextStartEvent',
           parameters: [
             {
               name: 'provider',
@@ -263,7 +263,7 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
         'Callback that is called when a step (LLM call) begins, before the provider is called. Each step represents a single LLM invocation. If also specified in `generate()` or `stream()`, both callbacks are called (constructor first). Experimental (can break in patch releases).',
       properties: [
         {
-          type: 'OnStepStartEvent',
+          type: 'GenerateTextStepStartEvent',
           parameters: [
             {
               name: 'provider',

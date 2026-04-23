@@ -8,7 +8,7 @@ import type { Warning } from '../types/warning';
  *
  * Called when the operation begins, before the reranking model is called.
  */
-export type RerankOnStartEvent = {
+export type RerankStartEvent = {
   /** Unique identifier for this rerank call, used to correlate events. */
   readonly callId: string;
 
@@ -43,7 +43,7 @@ export type RerankOnStartEvent = {
  *
  * Called when the operation completes, after the reranking model returns.
  */
-export type RerankOnFinishEvent = {
+export type RerankEndEvent = {
   /** Unique identifier for this rerank call, used to correlate events. */
   readonly callId: string;
 
@@ -88,7 +88,7 @@ export type RerankOnFinishEvent = {
 /**
  * Event fired when an individual reranking model call (inner doRerank) begins.
  */
-export type RerankStartEvent = {
+export type RerankingModelCallStartEvent = {
   /** Unique identifier for this rerank call, used to correlate events. */
   readonly callId: string;
 
@@ -119,7 +119,7 @@ export type RerankStartEvent = {
  *
  * Contains the ranking results from the model response.
  */
-export type RerankFinishEvent = {
+export type RerankingModelCallEndEvent = {
   /** Unique identifier for this rerank call, used to correlate events. */
   readonly callId: string;
 

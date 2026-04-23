@@ -1,5 +1,10 @@
 export type { ContentPart } from './content-part';
 export type {
+  StreamTextChunkEvent,
+  GenerateTextEndEvent,
+  GenerateTextStartEvent,
+  GenerateTextStepEndEvent,
+  GenerateTextStepStartEvent,
   OnChunkEvent,
   OnFinishEvent,
   OnStartEvent,
@@ -81,6 +86,8 @@ export type {
   TypedToolError,
 } from './tool-error';
 export type {
+  OnToolCallFinishEvent,
+  OnToolCallStartEvent,
   OnToolExecutionEndCallback,
   OnToolExecutionStartCallback,
   ToolExecutionEndEvent,

@@ -8,7 +8,7 @@ import type { Warning } from '../types/warning';
  *
  * Called when the operation begins, before the embedding model is called.
  */
-export type EmbedOnStartEvent = {
+export type EmbedStartEvent = {
   /** Unique identifier for this embed call, used to correlate events. */
   readonly callId: string;
 
@@ -39,7 +39,7 @@ export type EmbedOnStartEvent = {
  *
  * Called when the operation completes, after the embedding model returns.
  */
-export type EmbedOnFinishEvent = {
+export type EmbedEndEvent = {
   /** Unique identifier for this embed call, used to correlate events. */
   readonly callId: string;
 
@@ -80,8 +80,7 @@ export type EmbedOnFinishEvent = {
  * For `embed`, there is one call. For `embedMany`, there may be multiple
  * calls when values are chunked.
  */
-// rename to EmbeddingModelCallStartEvent
-export type EmbedStartEvent = {
+export type EmbeddingModelCallStartEvent = {
   /** Unique identifier for this embed call, used to correlate events. */
   readonly callId: string;
 
@@ -106,7 +105,7 @@ export type EmbedStartEvent = {
  *
  * Contains the embeddings, usage, and any warnings from the model response.
  */
-export type EmbedFinishEvent = {
+export type EmbeddingModelCallEndEvent = {
   /** Unique identifier for this embed call, used to correlate events. */
   readonly callId: string;
 
