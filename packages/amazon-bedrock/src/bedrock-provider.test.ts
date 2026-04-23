@@ -391,6 +391,49 @@ describe('AmazonBedrockProvider', () => {
         );
       });
 
+      it('does not use AWS_SESSION_TOKEN from env when both access keys are passed as options', async () => {
+        mockLoadOptionalSetting.mockImplementation(
+          ({ settingValue, environmentVariableName }) => {
+            if (environmentVariableName === 'AWS_BEARER_TOKEN_BEDROCK') {
+              return settingValue;
+            }
+            if (environmentVariableName === 'AWS_SESSION_TOKEN') {
+              return 'env-session-token-should-not-be-used';
+            }
+            return settingValue;
+          },
+        );
+
+        createAmazonBedrock({
+          region: 'us-east-1',
+          accessKeyId: 'from-options-ak',
+          secretAccessKey: 'from-options-sk',
+        });
+
+        const getCredentials = mockCreateSigV4FetchFunction.mock.calls[0][0];
+        await expect(getCredentials()).resolves.toMatchObject({
+          accessKeyId: 'from-options-ak',
+          secretAccessKey: 'from-options-sk',
+          sessionToken: undefined,
+        });
+      });
+
+      it('uses options.sessionToken when both access keys are passed as options', async () => {
+        mockLoadOptionalSetting.mockImplementation(() => undefined);
+
+        createAmazonBedrock({
+          region: 'us-east-1',
+          accessKeyId: 'from-options-ak',
+          secretAccessKey: 'from-options-sk',
+          sessionToken: 'explicit-session',
+        });
+
+        const getCredentials = mockCreateSigV4FetchFunction.mock.calls[0][0];
+        await expect(getCredentials()).resolves.toMatchObject({
+          sessionToken: 'explicit-session',
+        });
+      });
+
       it('should work with credential provider when no API key is provided', () => {
         // Mock loadOptionalSetting to return undefined (no API key)
         mockLoadOptionalSetting.mockImplementation(() => undefined);
