@@ -1472,6 +1472,11 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV4 {
               return; // ignored
             }
 
+            case 'vertex_event': {
+              // Vertex AI sends additional usage events that should be ignored
+              return;
+            }
+
             case 'content_block_start': {
               const part = value.content_block;
               const contentBlockType = part.type;
