@@ -543,21 +543,46 @@ describe('detectMediaType', () => {
   });
 
   describe('MP4', () => {
-    it('should detect MP4 from bytes', () => {
-      const mp4Bytes = new Uint8Array([0x66, 0x74, 0x79, 0x70]);
+    it('should detect MP4/M4A from bytes with ftyp at offset 4', () => {
+      // Real M4A header: 4-byte box length + "ftyp" + "M4A "
+      const m4aBytes = new Uint8Array([
+        0x00, 0x00, 0x00, 0x1c, // box length (28)
+        0x66, 0x74, 0x79, 0x70, // ftyp
+        0x4d, 0x34, 0x41, 0x20, // M4A
+        0x00, 0x00, 0x02, 0x00, // minor version
+      ]);
       expect(
         detectMediaType({
-          data: mp4Bytes,
+          data: m4aBytes,
           signatures: audioMediaTypeSignatures,
         }),
       ).toBe('audio/mp4');
     });
 
-    it('should detect MP4 from base64', () => {
-      const mp4Base64 = 'ZnR5cA'; // Base64 string starting with MP4 signature
+    it('should detect MP4/M4A from base64 with ftyp at offset 4', () => {
+      const m4aBytes = new Uint8Array([
+        0x00, 0x00, 0x00, 0x1c,
+        0x66, 0x74, 0x79, 0x70,
+        0x4d, 0x34, 0x41, 0x20,
+      ]);
       expect(
         detectMediaType({
-          data: mp4Base64,
+          data: convertUint8ArrayToBase64(m4aBytes),
+          signatures: audioMediaTypeSignatures,
+        }),
+      ).toBe('audio/mp4');
+    });
+
+    it('should detect MP4 with isom brand from bytes', () => {
+      // MP4 with isom brand (common from ffmpeg)
+      const mp4Bytes = new Uint8Array([
+        0x00, 0x00, 0x00, 0x20, // box length (32)
+        0x66, 0x74, 0x79, 0x70, // ftyp
+        0x69, 0x73, 0x6f, 0x6d, // isom
+      ]);
+      expect(
+        detectMediaType({
+          data: mp4Bytes,
           signatures: audioMediaTypeSignatures,
         }),
       ).toBe('audio/mp4');
