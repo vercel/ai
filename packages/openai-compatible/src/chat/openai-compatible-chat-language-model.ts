@@ -321,10 +321,34 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
     const choice = responseBody.choices[0];
     const content: Array<LanguageModelV4Content> = [];
 
-    // text content:
-    const text = choice.message.content;
-    if (text != null && text.length > 0) {
-      content.push({ type: 'text', text });
+    // text content: some OpenAI-compatible providers (e.g. Ollama + Mistral)
+    // return an array of typed parts instead of a plain string.
+    const rawContent = choice.message.content;
+    if (rawContent != null) {
+      if (typeof rawContent === 'string') {
+        if (rawContent.length > 0) {
+          content.push({ type: 'text', text: rawContent });
+        }
+      } else {
+        for (const part of rawContent as Array<Record<string, unknown>>) {
+          if (part['type'] === 'text' && typeof part['text'] === 'string') {
+            if ((part['text'] as string).length > 0) {
+              content.push({ type: 'text', text: part['text'] as string });
+            }
+          } else if (part['type'] === 'thinking') {
+            const thinkingItems = Array.isArray(part['thinking'])
+              ? (part['thinking'] as Array<Record<string, unknown>>)
+              : [];
+            const thinkingText = thinkingItems
+              .filter(t => t['type'] === 'text')
+              .map(t => (t['text'] as string) ?? '')
+              .join('');
+            if (thinkingText.length > 0) {
+              content.push({ type: 'reasoning', text: thinkingText });
+            }
+          }
+        }
+      }
     }
 
     // reasoning content:
@@ -537,25 +561,53 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
             }
 
             if (delta.content) {
-              // end active reasoning block before text starts
-              if (isActiveReasoning) {
-                controller.enqueue({
-                  type: 'reasoning-end',
-                  id: 'reasoning-0',
-                });
-                isActiveReasoning = false;
+              const contentParts: Array<{ kind: 'text' | 'reasoning'; text: string }> = [];
+
+              if (typeof delta.content === 'string') {
+                contentParts.push({ kind: 'text', text: delta.content });
+              } else {
+                // Array of typed parts from some OpenAI-compatible providers (e.g. Ollama + Mistral)
+                for (const part of delta.content as Array<Record<string, unknown>>) {
+                  if (part['type'] === 'text' && typeof part['text'] === 'string') {
+                    contentParts.push({ kind: 'text', text: part['text'] });
+                  } else if (part['type'] === 'thinking') {
+                    const thinkingItems = Array.isArray(part['thinking'])
+                      ? (part['thinking'] as Array<Record<string, unknown>>)
+                      : [];
+                    const thinkingText = thinkingItems
+                      .filter(t => t['type'] === 'text')
+                      .map(t => (t['text'] as string) ?? '')
+                      .join('');
+                    if (thinkingText.length > 0) {
+                      contentParts.push({ kind: 'reasoning', text: thinkingText });
+                    }
+                  }
+                }
               }
 
-              if (!isActiveText) {
-                controller.enqueue({ type: 'text-start', id: 'txt-0' });
-                isActiveText = true;
+              for (const cp of contentParts) {
+                if (cp.kind === 'reasoning') {
+                  if (isActiveText) {
+                    controller.enqueue({ type: 'text-end', id: 'txt-0' });
+                    isActiveText = false;
+                  }
+                  if (!isActiveReasoning) {
+                    controller.enqueue({ type: 'reasoning-start', id: 'reasoning-0' });
+                    isActiveReasoning = true;
+                  }
+                  controller.enqueue({ type: 'reasoning-delta', id: 'reasoning-0', delta: cp.text });
+                } else {
+                  if (isActiveReasoning) {
+                    controller.enqueue({ type: 'reasoning-end', id: 'reasoning-0' });
+                    isActiveReasoning = false;
+                  }
+                  if (!isActiveText) {
+                    controller.enqueue({ type: 'text-start', id: 'txt-0' });
+                    isActiveText = true;
+                  }
+                  controller.enqueue({ type: 'text-delta', id: 'txt-0', delta: cp.text });
+                }
               }
-
-              controller.enqueue({
-                type: 'text-delta',
-                id: 'txt-0',
-                delta: delta.content,
-              });
             }
 
             if (delta.tool_calls != null) {
@@ -652,7 +704,9 @@ const OpenAICompatibleChatResponseSchema = z.looseObject({
     z.object({
       message: z.object({
         role: z.literal('assistant').nullish(),
-        content: z.string().nullish(),
+        content: z
+          .union([z.string(), z.array(z.looseObject({}))])
+          .nullish(),
         reasoning_content: z.string().nullish(),
         reasoning: z.string().nullish(),
         tool_calls: z
@@ -692,7 +746,9 @@ const chunkBaseSchema = z.looseObject({
       delta: z
         .object({
           role: z.enum(['assistant']).nullish(),
-          content: z.string().nullish(),
+          content: z
+            .union([z.string(), z.array(z.looseObject({}))])
+            .nullish(),
           // Most openai-compatible models set `reasoning_content`, but some
           // providers serving `gpt-oss` set `reasoning`. See #7866
           reasoning_content: z.string().nullish(),
