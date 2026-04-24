@@ -1572,12 +1572,15 @@ class DefaultStreamTextResult<
               system: stepSystem,
               messages: stepMessages,
               repairToolCall,
+              callId,
               abortSignal,
               headers,
               includeRawChunks,
               providerOptions: stepProviderOptions,
               download,
               output,
+              executeLanguageModelCallInTelemetryContext:
+                telemetryDispatcher.executeLanguageModelCall,
               onStart: async ({ promptMessages }) => {
                 await notify({
                   event: {

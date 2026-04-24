@@ -169,6 +169,9 @@ export async function streamLanguageModelCall<
   includeRawChunks,
   providerOptions,
   repairToolCall,
+  callId,
+  executeLanguageModelCallInTelemetryContext = async ({ execute }) =>
+    await execute(),
   onStart,
   ...callSettings
 }: {
@@ -182,6 +185,11 @@ export async function streamLanguageModelCall<
   includeRawChunks?: boolean;
   providerOptions?: ProviderOptions;
   repairToolCall?: ToolCallRepairFunction<TOOLS> | undefined;
+  callId: string;
+  executeLanguageModelCallInTelemetryContext?: <T>(params: {
+    callId: string;
+    execute: () => PromiseLike<T>;
+  }) => PromiseLike<T>;
 
   // onStart is currently required because the telemetry callbacks need
   // LanguageModelV4Prompt and we only want download URLs at most once.
@@ -245,16 +253,20 @@ export async function streamLanguageModelCall<
     stream: languageModelStream,
     response,
     request,
-  } = await resolvedModel.doStream({
-    ...callSettings,
-    tools: stepTools,
-    toolChoice: stepToolChoice,
-    responseFormat: await output?.responseFormat,
-    prompt: promptMessages,
-    providerOptions,
-    abortSignal,
-    headers,
-    includeRawChunks,
+  } = await executeLanguageModelCallInTelemetryContext({
+    callId,
+    execute: async () =>
+      await resolvedModel.doStream({
+        ...callSettings,
+        tools: stepTools,
+        toolChoice: stepToolChoice,
+        responseFormat: await output?.responseFormat,
+        prompt: promptMessages,
+        providerOptions,
+        abortSignal,
+        headers,
+        includeRawChunks,
+      }),
   });
 
   const standardizedStream = languageModelStream.pipeThrough(

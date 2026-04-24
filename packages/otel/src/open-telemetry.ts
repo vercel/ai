@@ -175,6 +175,22 @@ export class OpenTelemetry implements Telemetry {
     return context.with(toolSpanEntry.context, execute);
   }
 
+  executeLanguageModelCall<T>({
+    callId,
+    execute,
+  }: {
+    callId: string;
+    execute: () => PromiseLike<T>;
+  }): PromiseLike<T> {
+    const stepContext = this.getCallState(callId)?.stepContext;
+
+    if (stepContext == null) {
+      return execute();
+    }
+
+    return context.with(stepContext, execute);
+  }
+
   onStart(
     event:
       | InferTelemetryEvent<GenerateTextStartEvent>

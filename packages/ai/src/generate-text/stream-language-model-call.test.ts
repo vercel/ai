@@ -50,6 +50,7 @@ async function streamLanguageModelCallResult<TOOLS extends ToolSet>({
     prompt: 'test prompt',
     system: undefined,
     repairToolCall,
+    callId: 'call-1',
   });
 
   return convertReadableStreamToArray(stream);
@@ -90,6 +91,7 @@ describe('streamLanguageModelCall', () => {
         prompt: 'test prompt',
         system: undefined,
         repairToolCall: undefined,
+        callId: 'call-1',
       });
 
       expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
