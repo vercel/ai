@@ -46,7 +46,7 @@
     "@ai-sdk/provider": "workspace:*",
     "@standard-schema/spec": "^1.1.0",
     "@workflow/serde": "4.1.0",
-    "eventsource-parser": "^3.0.6"
+    "eventsource-parser": "^3.0.8"
   },
   "devDependencies": {
     "@types/node": "20.17.24",
