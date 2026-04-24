@@ -721,7 +721,7 @@ describe('assistant messages', () => {
     `);
   });
 
-  it('should trim trailing whitespace from reasoning content without signature when it is the last part', async () => {
+  it('should drop reasoning content without signature or redactedData', async () => {
     const result = await convertToBedrockChatMessages([
       {
         role: 'user',
@@ -732,8 +732,9 @@ describe('assistant messages', () => {
         content: [
           {
             type: 'reasoning',
-            text: 'This is my reasoning with trailing space    ',
+            text: 'This is unsigned reasoning that should be dropped',
           },
+          { type: 'text', text: 'The answer is 42.' },
         ],
       },
     ]);
@@ -752,11 +753,7 @@ describe('assistant messages', () => {
           {
             "content": [
               {
-                "reasoningContent": {
-                  "reasoningText": {
-                    "text": "This is my reasoning with trailing space",
-                  },
-                },
+                "text": "The answer is 42.",
               },
             ],
             "role": "assistant",
@@ -767,23 +764,46 @@ describe('assistant messages', () => {
     `);
   });
 
-  it('should only trim last reasoning part when multiple reasoning parts have trailing spaces', async () => {
+  it('should drop unsigned reasoning in multi-turn tool use and keep other content', async () => {
     const result = await convertToBedrockChatMessages([
       {
         role: 'user',
-        content: [{ type: 'text', text: 'Explain your reasoning' }],
+        content: [{ type: 'text', text: 'What is the weather?' }],
       },
       {
         role: 'assistant',
         content: [
           {
             type: 'reasoning',
-            text: 'First reasoning with trailing space    ',
+            text: 'Let me check the weather API.',
           },
           {
-            type: 'reasoning',
-            text: 'Second reasoning with trailing space    ',
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'getWeather',
+            input: { city: 'SF' },
           },
+        ],
+      },
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolCallId: 'call-1',
+            toolName: 'getWeather',
+            output: { type: 'text', value: 'Sunny, 72F' },
+          },
+        ],
+      },
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'reasoning',
+            text: 'The weather is sunny.',
+          },
+          { type: 'text', text: 'It is sunny and 72F in SF.' },
         ],
       },
     ]);
@@ -794,7 +814,7 @@ describe('assistant messages', () => {
           {
             "content": [
               {
-                "text": "Explain your reasoning",
+                "text": "What is the weather?",
               },
             ],
             "role": "user",
@@ -802,18 +822,36 @@ describe('assistant messages', () => {
           {
             "content": [
               {
-                "reasoningContent": {
-                  "reasoningText": {
-                    "text": "First reasoning with trailing space    ",
+                "toolUse": {
+                  "input": {
+                    "city": "SF",
                   },
+                  "name": "getWeather",
+                  "toolUseId": "call-1",
                 },
               },
+            ],
+            "role": "assistant",
+          },
+          {
+            "content": [
               {
-                "reasoningContent": {
-                  "reasoningText": {
-                    "text": "Second reasoning with trailing space",
-                  },
+                "toolResult": {
+                  "content": [
+                    {
+                      "text": "Sunny, 72F",
+                    },
+                  ],
+                  "toolUseId": "call-1",
                 },
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "content": [
+              {
+                "text": "It is sunny and 72F in SF.",
               },
             ],
             "role": "assistant",
