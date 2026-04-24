@@ -218,7 +218,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
       tools: openaiTools,
       toolChoice: openaiToolChoice,
       toolWarnings,
-    } = prepareTools({
+    } = await prepareTools({
       tools,
       toolChoice,
     });

@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { prepareTools } from './openai-compatible-prepare-tools';
 
 describe('prepareTools', () => {
-  it('should return undefined tools and toolChoice when tools are null', () => {
-    const result = prepareTools({
+  it('should return undefined tools and toolChoice when tools are null', async () => {
+    const result = await prepareTools({
       tools: undefined,
       toolChoice: undefined,
     });
@@ -15,8 +15,8 @@ describe('prepareTools', () => {
     });
   });
 
-  it('should return undefined tools and toolChoice when tools are empty', () => {
-    const result = prepareTools({
+  it('should return undefined tools and toolChoice when tools are empty', async () => {
+    const result = await prepareTools({
       tools: [],
       toolChoice: undefined,
     });
@@ -28,8 +28,8 @@ describe('prepareTools', () => {
     });
   });
 
-  it('should correctly prepare function tools', () => {
-    const result = prepareTools({
+  it('should correctly prepare function tools', async () => {
+    const result = await prepareTools({
       tools: [
         {
           type: 'function',
@@ -62,8 +62,8 @@ describe('prepareTools', () => {
     `);
   });
 
-  it('should add warnings for unsupported provider-defined tools', () => {
-    const result = prepareTools({
+  it('should add warnings for unsupported provider-defined tools', async () => {
+    const result = await prepareTools({
       tools: [
         {
           type: 'provider',
@@ -87,8 +87,8 @@ describe('prepareTools', () => {
     `);
   });
 
-  it('should handle tool choice "auto"', () => {
-    const result = prepareTools({
+  it('should handle tool choice "auto"', async () => {
+    const result = await prepareTools({
       tools: [
         {
           type: 'function',
@@ -103,8 +103,8 @@ describe('prepareTools', () => {
     expect(result.toolChoice).toEqual('auto');
   });
 
-  it('should handle tool choice "required"', () => {
-    const result = prepareTools({
+  it('should handle tool choice "required"', async () => {
+    const result = await prepareTools({
       tools: [
         {
           type: 'function',
@@ -119,8 +119,8 @@ describe('prepareTools', () => {
     expect(result.toolChoice).toEqual('required');
   });
 
-  it('should handle tool choice "none"', () => {
-    const result = prepareTools({
+  it('should handle tool choice "none"', async () => {
+    const result = await prepareTools({
       tools: [
         {
           type: 'function',
@@ -135,8 +135,8 @@ describe('prepareTools', () => {
     expect(result.toolChoice).toEqual('none');
   });
 
-  it('should handle tool choice "tool"', () => {
-    const result = prepareTools({
+  it('should handle tool choice "tool"', async () => {
+    const result = await prepareTools({
       tools: [
         {
           type: 'function',
@@ -155,8 +155,8 @@ describe('prepareTools', () => {
   });
 
   describe('strict mode', () => {
-    it('should pass through strict mode when strict is true', () => {
-      const result = prepareTools({
+    it('should pass through strict mode when strict is true', async () => {
+      const result = await prepareTools({
         tools: [
           {
             type: 'function',
@@ -191,8 +191,8 @@ describe('prepareTools', () => {
       `);
     });
 
-    it('should pass through strict mode when strict is false', () => {
-      const result = prepareTools({
+    it('should pass through strict mode when strict is false', async () => {
+      const result = await prepareTools({
         tools: [
           {
             type: 'function',
@@ -227,8 +227,8 @@ describe('prepareTools', () => {
       `);
     });
 
-    it('should not include strict mode when strict is undefined', () => {
-      const result = prepareTools({
+    it('should not include strict mode when strict is undefined', async () => {
+      const result = await prepareTools({
         tools: [
           {
             type: 'function',
@@ -261,8 +261,8 @@ describe('prepareTools', () => {
       `);
     });
 
-    it('should pass through strict mode for multiple tools with different strict settings', () => {
-      const result = prepareTools({
+    it('should pass through strict mode for multiple tools with different strict settings', async () => {
+      const result = await prepareTools({
         tools: [
           {
             type: 'function',

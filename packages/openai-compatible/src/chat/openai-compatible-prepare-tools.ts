@@ -3,8 +3,9 @@ import {
   SharedV4Warning,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
+import { jsonSchema } from '@ai-sdk/provider-utils';
 
-export function prepareTools({
+export async function prepareTools({
   tools,
   toolChoice,
 }: {
@@ -56,12 +57,20 @@ export function prepareTools({
         feature: `provider-defined tool ${tool.id}`,
       });
     } else {
+      const parameters =
+        tool.inputSchema ??
+        (await jsonSchema({
+          type: 'object',
+          properties: {},
+          additionalProperties: false,
+        }).jsonSchema);
+
       openaiCompatTools.push({
         type: 'function',
         function: {
           name: tool.name,
           description: tool.description,
-          parameters: tool.inputSchema,
+          parameters,
           ...(tool.strict != null ? { strict: tool.strict } : {}),
         },
       });
