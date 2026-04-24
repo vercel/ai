@@ -652,8 +652,9 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     let isDisconnect = false;
     let isError = false;
 
+    let activeResponse: ActiveResponse<UI_MESSAGE> | undefined;
     try {
-      const activeResponse = {
+      activeResponse = {
         state: createStreamingUIMessageState({
           lastMessage: this.state.snapshot(lastMessage),
           messageId: this.generateId(),
@@ -757,14 +758,16 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       this.setStatus({ status: 'error', error: err as Error });
     } finally {
       try {
-        this.onFinish?.({
-          message: this.activeResponse!.state.message,
-          messages: this.state.messages,
-          isAbort,
-          isDisconnect,
-          isError,
-          finishReason: this.activeResponse?.state.finishReason,
-        });
+        if (activeResponse) {
+          this.onFinish?.({
+            message: activeResponse.state.message,
+            messages: this.state.messages,
+            isAbort,
+            isDisconnect,
+            isError,
+            finishReason: activeResponse.state.finishReason,
+          });
+        }
       } catch (err) {
         console.error(err);
       }
