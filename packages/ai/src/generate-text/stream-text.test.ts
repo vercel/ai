@@ -4066,33 +4066,67 @@ describe('streamText', () => {
       });
 
       const reader = uiStream.getReader();
-      const chunks = [];
 
       for (let i = 0; i < 3; i++) {
         const { value, done } = await reader.read();
         if (done) break;
-        chunks.push(value);
       }
 
+      // abort before first text chunk
+      // note: even though it is stopped after chunk 3, one more chunk passes through before the abort
       abortController.abort();
-      const { value: abortChunk } = await reader.read();
-      expect(abortChunk?.type).toBe('abort');
 
+      // read rest of stream
       while (true) {
         const { done } = await reader.read();
         if (done) break;
       }
 
-      expect(onFinishCallback).toHaveBeenCalledTimes(1);
-      const callArgs = onFinishCallback.mock.calls[0][0];
-      expect(callArgs.responseMessage).toBeDefined();
-      expect(callArgs.responseMessage.role).toBe('assistant');
-      const textPart = callArgs.responseMessage.parts.find(
-        (p: any) => p.type === 'text',
-      );
-      expect(textPart).toBeDefined();
-      expect(textPart.text).toBe(''); // Text was not streamed yet when aborted
-      expect(callArgs.isAborted).toBe(true); // Stream was aborted
+      expect(onFinishCallback.mock.calls).toMatchInlineSnapshot(`
+        [
+          [
+            {
+              "finishReason": undefined,
+              "isAborted": true,
+              "isContinuation": false,
+              "messages": [
+                {
+                  "id": "",
+                  "metadata": undefined,
+                  "parts": [
+                    {
+                      "type": "step-start",
+                    },
+                    {
+                      "providerMetadata": undefined,
+                      "state": "streaming",
+                      "text": "Hello",
+                      "type": "text",
+                    },
+                  ],
+                  "role": "assistant",
+                },
+              ],
+              "responseMessage": {
+                "id": "",
+                "metadata": undefined,
+                "parts": [
+                  {
+                    "type": "step-start",
+                  },
+                  {
+                    "providerMetadata": undefined,
+                    "state": "streaming",
+                    "text": "Hello",
+                    "type": "text",
+                  },
+                ],
+                "role": "assistant",
+              },
+            },
+          ],
+        ]
+      `);
 
       reader.releaseLock();
     });
@@ -17290,11 +17324,6 @@ describe('streamText', () => {
                 "type": "start",
               },
               {
-                "request": {},
-                "type": "start-step",
-                "warnings": [],
-              },
-              {
                 "reason": "AbortError: This operation was aborted",
                 "type": "abort",
               },
@@ -17308,9 +17337,6 @@ describe('streamText', () => {
             [
               {
                 "type": "start",
-              },
-              {
-                "type": "start-step",
               },
               {
                 "reason": "AbortError: This operation was aborted",
