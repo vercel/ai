@@ -1,20 +1,20 @@
-import { executeTool, ModelMessage } from '@ai-sdk/provider-utils';
-import { Tracer } from '@opentelemetry/api';
-import { notify } from '../util/notify';
-import { assembleOperationName } from '../telemetry/assemble-operation-name';
-import { recordErrorOnSpan, recordSpan } from '../telemetry/record-span';
-import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
-import { TelemetrySettings } from '../telemetry/telemetry-settings';
-import { now } from '../util/now';
+import { executeTool, ModelMessage } from "@ai-sdk/provider-utils";
+import { Tracer } from "@opentelemetry/api";
+import { notify } from "../util/notify";
+import { assembleOperationName } from "../telemetry/assemble-operation-name";
+import { recordErrorOnSpan, recordSpan } from "../telemetry/record-span";
+import { selectTelemetryAttributes } from "../telemetry/select-telemetry-attributes";
+import { TelemetrySettings } from "../telemetry/telemetry-settings";
+import { now } from "../util/now";
 import {
   GenerateTextOnToolCallFinishCallback,
   GenerateTextOnToolCallStartCallback,
-} from './generate-text';
-import { TypedToolCall } from './tool-call';
-import { ToolOutput } from './tool-output';
-import { ToolSet } from './tool-set';
-import { TypedToolResult } from './tool-result';
-import { TypedToolError } from './tool-error';
+} from "./generate-text";
+import { TypedToolCall } from "./tool-call";
+import { ToolOutput } from "./tool-output";
+import { ToolSet } from "./tool-set";
+import { TypedToolResult } from "./tool-result";
+import { TypedToolError } from "./tool-error";
 
 /**
  * Executes a single tool call and manages its lifecycle callbacks.
@@ -35,6 +35,7 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   messages,
   abortSignal,
   experimental_context,
+  approvalData,
   stepNumber,
   model,
   onPreliminaryToolResult,
@@ -48,6 +49,7 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   messages: ModelMessage[];
   abortSignal: AbortSignal | undefined;
   experimental_context: unknown;
+  approvalData?: unknown;
   stepNumber?: number;
   model?: { provider: string; modelId: string };
   onPreliminaryToolResult?: (result: TypedToolResult<TOOLS>) => void;
@@ -77,23 +79,23 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   };
 
   return recordSpan({
-    name: 'ai.toolCall',
+    name: "ai.toolCall",
     attributes: selectTelemetryAttributes({
       telemetry,
       attributes: {
         ...assembleOperationName({
-          operationId: 'ai.toolCall',
+          operationId: "ai.toolCall",
           telemetry,
         }),
-        'ai.toolCall.name': toolName,
-        'ai.toolCall.id': toolCallId,
-        'ai.toolCall.args': {
+        "ai.toolCall.name": toolName,
+        "ai.toolCall.id": toolCallId,
+        "ai.toolCall.args": {
           output: () => JSON.stringify(input),
         },
       },
     }),
     tracer,
-    fn: async span => {
+    fn: async (span) => {
       let output: unknown;
 
       await notify({ event: baseCallbackEvent, callbacks: onToolCallStart });
@@ -109,14 +111,15 @@ export async function executeToolCall<TOOLS extends ToolSet>({
             messages,
             abortSignal,
             experimental_context,
+            approvalData,
           },
         });
 
         for await (const part of stream) {
-          if (part.type === 'preliminary') {
+          if (part.type === "preliminary") {
             onPreliminaryToolResult?.({
               ...toolCall,
-              type: 'tool-result',
+              type: "tool-result",
               output: part.output,
               preliminary: true,
             });
@@ -139,12 +142,12 @@ export async function executeToolCall<TOOLS extends ToolSet>({
 
         recordErrorOnSpan(span, error);
         return {
-          type: 'tool-error',
+          type: "tool-error",
           toolCallId,
           toolName,
           input,
           error,
-          dynamic: tool.type === 'dynamic',
+          dynamic: tool.type === "dynamic",
           ...(toolCall.providerMetadata != null
             ? { providerMetadata: toolCall.providerMetadata }
             : {}),
@@ -168,7 +171,7 @@ export async function executeToolCall<TOOLS extends ToolSet>({
           await selectTelemetryAttributes({
             telemetry,
             attributes: {
-              'ai.toolCall.result': {
+              "ai.toolCall.result": {
                 output: () => JSON.stringify(output),
               },
             },
@@ -182,12 +185,12 @@ export async function executeToolCall<TOOLS extends ToolSet>({
       }
 
       return {
-        type: 'tool-result',
+        type: "tool-result",
         toolCallId,
         toolName,
         input,
         output,
-        dynamic: tool.type === 'dynamic',
+        dynamic: tool.type === "dynamic",
         ...(toolCall.providerMetadata != null
           ? { providerMetadata: toolCall.providerMetadata }
           : {}),

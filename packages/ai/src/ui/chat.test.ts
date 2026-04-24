@@ -2662,6 +2662,53 @@ describe('Chat', () => {
           ]
         `);
       });
+
+      it('should store approval data on the tool invocation', async () => {
+        const chat = new TestChat({
+          id: '123',
+          generateId: mockId({ prefix: 'newid' }),
+          transport: new DefaultChatTransport({
+            api: 'http://localhost:3000/api/chat',
+          }),
+          messages: [
+            {
+              id: 'id-0',
+              role: 'user',
+              parts: [{ text: 'What is the weather in Tokyo?', type: 'text' }],
+            },
+            {
+              id: 'id-1',
+              role: 'assistant',
+              parts: [
+                { type: 'step-start' },
+                {
+                  type: 'tool-weather',
+                  toolCallId: 'call-1',
+                  state: 'approval-requested',
+                  input: { city: 'Tokyo' },
+                  approval: { id: 'approval-1' },
+                },
+              ],
+            },
+          ],
+        });
+
+        await chat.addToolApprovalResponse({
+          id: 'approval-1',
+          approved: true,
+          data: { token: 'abc123', confirmedBy: 'user' },
+        });
+
+        expect(chat.messages[1].parts[1]).toMatchObject({
+          type: 'tool-weather',
+          state: 'approval-responded',
+          approval: {
+            id: 'approval-1',
+            approved: true,
+            data: { token: 'abc123', confirmedBy: 'user' },
+          },
+        });
+      });
     });
 
     describe('approved with automatic sending', () => {

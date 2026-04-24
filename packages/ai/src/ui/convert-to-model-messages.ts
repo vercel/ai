@@ -6,10 +6,10 @@ import {
   TextPart,
   ToolApprovalResponse,
   ToolResultPart,
-} from '@ai-sdk/provider-utils';
-import { ToolSet } from '../generate-text/tool-set';
-import { createToolModelOutput } from '../prompt/create-tool-model-output';
-import { MessageConversionError } from '../prompt/message-conversion-error';
+} from "@ai-sdk/provider-utils";
+import { ToolSet } from "../generate-text/tool-set";
+import { createToolModelOutput } from "../prompt/create-tool-model-output";
+import { MessageConversionError } from "../prompt/message-conversion-error";
 import {
   DataUIPart,
   DynamicToolUIPart,
@@ -26,7 +26,7 @@ import {
   TextUIPart,
   ToolUIPart,
   UIMessage,
-} from './ui-messages';
+} from "./ui-messages";
 
 /**
  * Converts an array of UI messages from useChat into an array of ModelMessages that can be used
@@ -40,7 +40,7 @@ import {
  * @returns An array of ModelMessages.
  */
 export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
-  messages: Array<Omit<UI_MESSAGE, 'id'>>,
+  messages: Array<Omit<UI_MESSAGE, "id">>,
   options?: {
     tools?: ToolSet;
     ignoreIncompleteToolCalls?: boolean;
@@ -52,22 +52,22 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
   const modelMessages: ModelMessage[] = [];
 
   if (options?.ignoreIncompleteToolCalls) {
-    messages = messages.map(message => ({
+    messages = messages.map((message) => ({
       ...message,
       parts: message.parts.filter(
-        part =>
+        (part) =>
           !isToolUIPart(part) ||
-          (part.state !== 'input-streaming' &&
-            part.state !== 'input-available'),
+          (part.state !== "input-streaming" &&
+            part.state !== "input-available"),
       ),
     }));
   }
 
   for (const message of messages) {
     switch (message.role) {
-      case 'system': {
+      case "system": {
         const textParts = message.parts.filter(
-          (part): part is TextUIPart => part.type === 'text',
+          (part): part is TextUIPart => part.type === "text",
         );
 
         const providerMetadata = textParts.reduce((acc, part) => {
@@ -78,8 +78,8 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
         }, {});
 
         modelMessages.push({
-          role: 'system',
-          content: textParts.map(part => part.text).join(''),
+          role: "system",
+          content: textParts.map((part) => part.text).join(""),
           ...(Object.keys(providerMetadata).length > 0
             ? { providerOptions: providerMetadata }
             : {}),
@@ -87,15 +87,15 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
         break;
       }
 
-      case 'user': {
+      case "user": {
         modelMessages.push({
-          role: 'user',
+          role: "user",
           content: message.parts
             .map((part): TextPart | FilePart | undefined => {
               // Process text parts
               if (isTextUIPart(part)) {
                 return {
-                  type: 'text' as const,
+                  type: "text" as const,
                   text: part.text,
                   ...(part.providerMetadata != null
                     ? { providerOptions: part.providerMetadata }
@@ -106,7 +106,7 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
               // Process file parts
               if (isFileUIPart(part)) {
                 return {
-                  type: 'file' as const,
+                  type: "file" as const,
                   mediaType: part.mediaType,
                   filename: part.filename,
                   data: part.url,
@@ -129,7 +129,7 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
         break;
       }
 
-      case 'assistant': {
+      case "assistant": {
         if (message.parts != null) {
           let block: Array<
             | TextUIPart
@@ -150,7 +150,7 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
             for (const part of block) {
               if (isTextUIPart(part)) {
                 content.push({
-                  type: 'text' as const,
+                  type: "text" as const,
                   text: part.text,
                   ...(part.providerMetadata != null
                     ? { providerOptions: part.providerMetadata }
@@ -158,7 +158,7 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                 });
               } else if (isFileUIPart(part)) {
                 content.push({
-                  type: 'file' as const,
+                  type: "file" as const,
                   mediaType: part.mediaType,
                   filename: part.filename,
                   data: part.url,
@@ -168,22 +168,22 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                 });
               } else if (isReasoningUIPart(part)) {
                 content.push({
-                  type: 'reasoning' as const,
+                  type: "reasoning" as const,
                   text: part.text,
                   providerOptions: part.providerMetadata,
                 });
               } else if (isToolUIPart(part)) {
                 const toolName = getToolName(part);
 
-                if (part.state !== 'input-streaming') {
+                if (part.state !== "input-streaming") {
                   content.push({
-                    type: 'tool-call' as const,
+                    type: "tool-call" as const,
                     toolCallId: part.toolCallId,
                     toolName,
                     input:
-                      part.state === 'output-error'
+                      part.state === "output-error"
                         ? (part.input ??
-                          ('rawInput' in part ? part.rawInput : undefined))
+                          ("rawInput" in part ? part.rawInput : undefined))
                         : part.input,
                     providerExecuted: part.providerExecuted,
                     ...(part.callProviderMetadata != null
@@ -193,7 +193,7 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
 
                   if (part.approval != null) {
                     content.push({
-                      type: 'tool-approval-request' as const,
+                      type: "tool-approval-request" as const,
                       approvalId: part.approval.id,
                       toolCallId: part.toolCallId,
                     });
@@ -201,27 +201,27 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
 
                   if (
                     part.providerExecuted === true &&
-                    part.state !== 'approval-responded' &&
-                    (part.state === 'output-available' ||
-                      part.state === 'output-error')
+                    part.state !== "approval-responded" &&
+                    (part.state === "output-available" ||
+                      part.state === "output-error")
                   ) {
                     const resultProviderMetadata =
                       part.resultProviderMetadata ?? part.callProviderMetadata;
 
                     content.push({
-                      type: 'tool-result',
+                      type: "tool-result",
                       toolCallId: part.toolCallId,
                       toolName,
                       output: await createToolModelOutput({
                         toolCallId: part.toolCallId,
                         input: part.input,
                         output:
-                          part.state === 'output-error'
+                          part.state === "output-error"
                             ? part.errorText
                             : part.output,
                         tool: options?.tools?.[toolName],
                         errorMode:
-                          part.state === 'output-error' ? 'json' : 'none',
+                          part.state === "output-error" ? "json" : "none",
                       }),
                       ...(resultProviderMetadata != null
                         ? { providerOptions: resultProviderMetadata }
@@ -244,14 +244,14 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
             }
 
             modelMessages.push({
-              role: 'assistant',
+              role: "assistant",
               content,
             });
 
             // check if there are tool invocations with results in the block
             // Include non-provider-executed tools, OR provider-executed tools with approval responses
             const toolParts = block.filter(
-              part =>
+              (part) =>
                 isToolUIPart(part) &&
                 (part.providerExecuted !== true ||
                   part.approval?.approved != null),
@@ -269,11 +269,14 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                   // add approval response for approved tool calls:
                   if (toolPart.approval?.approved != null) {
                     content.push({
-                      type: 'tool-approval-response' as const,
+                      type: "tool-approval-response" as const,
                       approvalId: toolPart.approval.id,
                       approved: toolPart.approval.approved,
                       reason: toolPart.approval.reason,
                       providerExecuted: toolPart.providerExecuted,
+                      ...(toolPart.approval.data !== undefined
+                        ? { data: toolPart.approval.data }
+                        : {}),
                     });
                   }
 
@@ -285,16 +288,16 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                   }
 
                   switch (toolPart.state) {
-                    case 'output-denied': {
+                    case "output-denied": {
                       content.push({
-                        type: 'tool-result',
+                        type: "tool-result",
                         toolCallId: toolPart.toolCallId,
                         toolName: getToolName(toolPart),
                         output: {
-                          type: 'error-text' as const,
+                          type: "error-text" as const,
                           value:
                             toolPart.approval.reason ??
-                            'Tool execution denied.',
+                            "Tool execution denied.",
                         },
                         ...(toolPart.callProviderMetadata != null
                           ? { providerOptions: toolPart.callProviderMetadata }
@@ -303,23 +306,23 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                       break;
                     }
 
-                    case 'output-error':
-                    case 'output-available': {
+                    case "output-error":
+                    case "output-available": {
                       const toolName = getToolName(toolPart);
                       content.push({
-                        type: 'tool-result',
+                        type: "tool-result",
                         toolCallId: toolPart.toolCallId,
                         toolName,
                         output: await createToolModelOutput({
                           toolCallId: toolPart.toolCallId,
                           input: toolPart.input,
                           output:
-                            toolPart.state === 'output-error'
+                            toolPart.state === "output-error"
                               ? toolPart.errorText
                               : toolPart.output,
                           tool: options?.tools?.[toolName],
                           errorMode:
-                            toolPart.state === 'output-error' ? 'text' : 'none',
+                            toolPart.state === "output-error" ? "text" : "none",
                         }),
                         ...(toolPart.callProviderMetadata != null
                           ? { providerOptions: toolPart.callProviderMetadata }
@@ -332,7 +335,7 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
 
                 if (content.length > 0) {
                   modelMessages.push({
-                    role: 'tool',
+                    role: "tool",
                     content,
                   });
                 }
@@ -352,7 +355,7 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
               isDataUIPart(part)
             ) {
               block.push(part as (typeof block)[number]);
-            } else if (part.type === 'step-start') {
+            } else if (part.type === "step-start") {
               await processBlock();
             }
           }
