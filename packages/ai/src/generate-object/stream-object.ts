@@ -755,11 +755,7 @@ class DefaultStreamObjectResult<
 
             async flush(controller) {
               try {
-                const finalUsage = usage ?? {
-                  promptTokens: NaN,
-                  completionTokens: NaN,
-                  totalTokens: NaN,
-                };
+                const finalUsage = usage;
 
                 await notify({
                   event: {

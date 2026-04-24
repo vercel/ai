@@ -465,7 +465,7 @@ This is the legacy format. Consider migrating to the `GenAIOpenTelemetry` for be
   - `ai.response.toolCalls`: the tool calls that were made as part of the generation (stringified JSON)
   - `ai.response.msToFirstChunk`: the time it took to receive the first chunk in milliseconds
   - `ai.response.msToFinish`: the time it took to receive the finish part of the LLM stream in milliseconds
-  - `ai.response.avgCompletionTokensPerSecond`: the average number of completion tokens per second
+  - `ai.response.avgOutputTokensPerSecond`: the average number of output tokens per second
   - `ai.response.finishReason`: the reason why the generation finished
 
 - `ai.toolCall` (span): a tool call that is made as part of the streamText call. See [Legacy tool call spans](#legacy-tool-call-spans) for more details.
@@ -546,8 +546,8 @@ Many spans that use LLMs (`ai.generateText`, `ai.generateText.doGenerate`, `ai.s
 - `ai.settings.maxRetries`: the maximum number of retries that were set
 - `ai.telemetry.functionId`: the functionId that was set through `telemetry.functionId`
 - `ai.settings.runtimeContext.*`: the runtime context that was passed in through the `runtimeContext` option
-- `ai.usage.completionTokens`: the number of completion tokens that were used
-- `ai.usage.promptTokens`: the number of prompt tokens that were used
+- `ai.usage.outputTokens`: the number of output tokens that were used
+- `ai.usage.inputTokens`: the number of input tokens that were used
 
 ##### Call LLM span information
 
@@ -570,8 +570,8 @@ Spans that correspond to individual LLM calls (`ai.generateText.doGenerate`, `ai
   - `gen_ai.response.finish_reasons`: the finish reasons that were returned by the provider
   - `gen_ai.response.model`: the model that was used to generate the response. This can be different from the model that was requested if the provider supports aliases.
   - `gen_ai.response.id`: the id of the response. Uses the ID from the provider when available.
-  - `gen_ai.usage.input_tokens`: the number of prompt tokens that were used
-  - `gen_ai.usage.output_tokens`: the number of completion tokens that were used
+  - `gen_ai.usage.input_tokens`: the number of input tokens that were used
+  - `gen_ai.usage.output_tokens`: the number of output tokens that were used
 
 ##### Basic embedding span information
 
