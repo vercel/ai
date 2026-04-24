@@ -242,21 +242,138 @@ describe('StreamingToolCallTracker', () => {
       ).toThrow("Expected 'id' to be a string.");
     });
 
-    it('should throw when function.name is missing', () => {
+    it('should defer tool-input-start when function.name arrives in a later delta', () => {
       const tracker = new StreamingToolCallTracker();
-      const { enqueue } = createCollector();
+      const { parts, enqueue } = createCollector();
 
-      expect(() =>
-        tracker.processDelta(
-          {
-            index: 0,
-            id: 'call_1',
-            type: 'function',
-            function: {},
-          },
-          enqueue,
-        ),
-      ).toThrow("Expected 'function.name' to be a string.");
+      // First delta: id and empty arguments, but no name
+      tracker.processDelta(
+        {
+          index: 0,
+          id: 'call_123',
+          type: 'function',
+          function: { arguments: '' },
+        },
+        enqueue,
+      );
+
+      // No events emitted yet (name is pending)
+      expect(parts).toEqual([]);
+
+      parts.length = 0;
+
+      // Second delta: name arrives with first argument fragment
+      tracker.processDelta(
+        {
+          index: 0,
+          id: 'call_123',
+          type: 'function',
+          function: { name: 'bash', arguments: '{' },
+        },
+        enqueue,
+      );
+
+      expect(parts).toEqual([
+        { type: 'tool-input-start', id: 'call_123', toolName: 'bash' },
+        { type: 'tool-input-delta', id: 'call_123', delta: '{' },
+      ]);
+
+      parts.length = 0;
+
+      // Third delta: more arguments
+      tracker.processDelta(
+        {
+          index: 0,
+          function: { arguments: '"command": "ls -la"}' },
+        },
+        enqueue,
+      );
+
+      expect(parts).toEqual([
+        {
+          type: 'tool-input-delta',
+          id: 'call_123',
+          delta: '"command": "ls -la"}',
+        },
+        { type: 'tool-input-end', id: 'call_123' },
+        {
+          type: 'tool-call',
+          toolCallId: 'call_123',
+          toolName: 'bash',
+          input: '{"command": "ls -la"}',
+        },
+      ]);
+    });
+
+    it('should buffer arguments before name arrives and replay them', () => {
+      const tracker = new StreamingToolCallTracker();
+      const { parts, enqueue } = createCollector();
+
+      // First delta: id with some arguments but no name
+      tracker.processDelta(
+        {
+          index: 0,
+          id: 'call_1',
+          type: 'function',
+          function: { arguments: '{"ke' },
+        },
+        enqueue,
+      );
+
+      expect(parts).toEqual([]);
+
+      parts.length = 0;
+
+      // Second delta: name arrives
+      tracker.processDelta(
+        {
+          index: 0,
+          function: { name: 'my_tool', arguments: 'y": "val"}' },
+        },
+        enqueue,
+      );
+
+      // Should emit start + combined buffered+new arguments
+      expect(parts).toEqual([
+        { type: 'tool-input-start', id: 'call_1', toolName: 'my_tool' },
+        {
+          type: 'tool-input-delta',
+          id: 'call_1',
+          delta: '{"key": "val"}',
+        },
+        { type: 'tool-input-end', id: 'call_1' },
+        {
+          type: 'tool-call',
+          toolCallId: 'call_1',
+          toolName: 'my_tool',
+          input: '{"key": "val"}',
+        },
+      ]);
+    });
+
+    it('should not emit events for tool calls that never receive a name', () => {
+      const tracker = new StreamingToolCallTracker();
+      const { parts, enqueue } = createCollector();
+
+      // Delta without name
+      tracker.processDelta(
+        {
+          index: 0,
+          id: 'call_1',
+          type: 'function',
+          function: { arguments: '{"key": "val"}' },
+        },
+        enqueue,
+      );
+
+      expect(parts).toEqual([]);
+
+      parts.length = 0;
+
+      // Flush should skip unstarted tool calls
+      tracker.flush(enqueue);
+
+      expect(parts).toEqual([]);
     });
   });
 
