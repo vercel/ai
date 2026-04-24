@@ -177,11 +177,6 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
           type: 'GenerateTextStepStartEvent',
           parameters: [
             {
-              name: 'stepNumber',
-              type: 'number',
-              description: 'Zero-based index of the current step.',
-            },
-            {
               name: 'model',
               type: 'LanguageModel',
               description: 'The model being used for this step.',
@@ -211,14 +206,24 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
           type: 'ToolExecutionStartEvent',
           parameters: [
             {
+              name: 'callId',
+              type: 'string',
+              description: 'Unique identifier for this generation call, used to correlate events.',
+            },
+            {
               name: 'toolCall',
               type: '{ type: "tool-call"; toolCallId: string; toolName: string; input: unknown }',
               description: 'The tool call being executed.',
             },
             {
-              name: 'stepNumber',
-              type: 'number',
-              description: 'Zero-based index of the current step.',
+              name: 'messages',
+              type: 'Array<ModelMessage>',
+              description: 'Messages that were sent to the language model to initiate the response that contained the tool call.',
+            },
+            {
+              name: 'toolContext',
+              type: 'InferToolContext<TOOLS[toolName]>',
+              description: 'Tool-specific context object for the tool call that is about to execute. Narrowed to the context type of the individual tool, not the entire tool set.',
             },
           ],
         },
@@ -229,20 +234,20 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
       type: 'WorkflowAgentonToolExecutionEndCallback',
       isOptional: true,
       description:
-        "Callback called right after a tool's execute function completes or errors. Uses a discriminated union: check `success` to determine whether `output` or `error` is available. If also specified in `stream()`, both callbacks fire (constructor first). Experimental (can break in patch releases).",
+        "Callback called right after a tool's execute function completes or errors. The `toolOutput` field is a discriminated union: check `toolOutput.type` to determine whether the result is `'tool-result'` or `'tool-error'`. If also specified in `stream()`, both callbacks fire (constructor first). Experimental (can break in patch releases).",
       properties: [
         {
           type: 'ToolExecutionEndEvent',
           parameters: [
             {
+              name: 'callId',
+              type: 'string',
+              description: 'Unique identifier for this generation call, used to correlate events.',
+            },
+            {
               name: 'toolCall',
               type: '{ type: "tool-call"; toolCallId: string; toolName: string; input: unknown }',
               description: 'The tool call that was executed.',
-            },
-            {
-              name: 'stepNumber',
-              type: 'number',
-              description: 'Zero-based index of the current step.',
             },
             {
               name: 'durationMs',
@@ -250,19 +255,19 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
               description: 'Tool execution time in milliseconds.',
             },
             {
-              name: 'success',
-              type: 'boolean',
-              description: 'Whether the tool call succeeded. When true, `output` is available. When false, `error` is available.',
+              name: 'messages',
+              type: 'Array<ModelMessage>',
+              description: 'Messages that were sent to the language model to initiate the response that contained the tool call.',
             },
             {
-              name: 'output',
-              type: 'unknown',
-              description: 'The tool result (only when success is true).',
+              name: 'toolContext',
+              type: 'InferToolContext<TOOLS[toolName]>',
+              description: 'Tool-specific context object for the tool call that just completed. Narrowed to the context type of the individual tool, not the entire tool set.',
             },
             {
-              name: 'error',
-              type: 'unknown',
-              description: 'The error that occurred (only when success is false).',
+              name: 'toolOutput',
+              type: 'ToolOutput<TOOLS>',
+              description: "Discriminated union representing the tool execution result. When `type` is `'tool-result'`, the `output` field contains the tool's return value. When `type` is `'tool-error'`, the `error` field contains the error.",
             },
           ],
         },

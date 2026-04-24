@@ -1,17 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import {
-  convertAnthropicMessagesUsage,
-  AnthropicMessagesUsage,
-} from './convert-anthropic-messages-usage';
+  convertAnthropicUsage,
+  AnthropicUsage,
+} from './convert-anthropic-usage';
 
-describe('convertAnthropicMessagesUsage', () => {
+describe('convertAnthropicUsage', () => {
   it('should use usage as raw when rawUsage is not provided', () => {
     const usage = {
       input_tokens: 10,
       output_tokens: 20,
     };
 
-    const result = convertAnthropicMessagesUsage({ usage });
+    const result = convertAnthropicUsage({ usage });
 
     expect(result.raw).toBe(usage);
   });
@@ -32,13 +32,13 @@ describe('convertAnthropicMessagesUsage', () => {
       },
     };
 
-    const result = convertAnthropicMessagesUsage({ usage, rawUsage });
+    const result = convertAnthropicUsage({ usage, rawUsage });
 
     expect(result.raw).toBe(rawUsage);
   });
 
   it('should compute token totals correctly with cache tokens', () => {
-    const result = convertAnthropicMessagesUsage({
+    const result = convertAnthropicUsage({
       usage: {
         input_tokens: 10,
         output_tokens: 20,
@@ -61,14 +61,14 @@ describe('convertAnthropicMessagesUsage', () => {
   });
 
   it('should handle null cache tokens', () => {
-    const usage: AnthropicMessagesUsage = {
+    const usage: AnthropicUsage = {
       input_tokens: 100,
       output_tokens: 50,
       cache_creation_input_tokens: null,
       cache_read_input_tokens: null,
     };
 
-    const result = convertAnthropicMessagesUsage({ usage });
+    const result = convertAnthropicUsage({ usage });
 
     expect(result.inputTokens.total).toBe(100);
     expect(result.inputTokens.cacheRead).toBe(0);
@@ -77,7 +77,7 @@ describe('convertAnthropicMessagesUsage', () => {
 
   describe('compaction usage with iterations', () => {
     it('should sum across all iterations when iterations array is present', () => {
-      const usage: AnthropicMessagesUsage = {
+      const usage: AnthropicUsage = {
         input_tokens: 45000,
         output_tokens: 1234,
         iterations: [
@@ -94,7 +94,7 @@ describe('convertAnthropicMessagesUsage', () => {
         ],
       };
 
-      const result = convertAnthropicMessagesUsage({ usage });
+      const result = convertAnthropicUsage({ usage });
 
       // Total should be sum of iterations, not top-level values
       expect(result.inputTokens.total).toBe(203000); // 180000 + 23000
@@ -104,7 +104,7 @@ describe('convertAnthropicMessagesUsage', () => {
     });
 
     it('should handle single iteration (message only, no compaction triggered)', () => {
-      const usage: AnthropicMessagesUsage = {
+      const usage: AnthropicUsage = {
         input_tokens: 5000,
         output_tokens: 500,
         iterations: [
@@ -116,14 +116,14 @@ describe('convertAnthropicMessagesUsage', () => {
         ],
       };
 
-      const result = convertAnthropicMessagesUsage({ usage });
+      const result = convertAnthropicUsage({ usage });
 
       expect(result.inputTokens.total).toBe(5000);
       expect(result.outputTokens.total).toBe(500);
     });
 
     it('should handle multiple compaction iterations (long-running task)', () => {
-      const usage: AnthropicMessagesUsage = {
+      const usage: AnthropicUsage = {
         input_tokens: 10000,
         output_tokens: 500,
         iterations: [
@@ -150,7 +150,7 @@ describe('convertAnthropicMessagesUsage', () => {
         ],
       };
 
-      const result = convertAnthropicMessagesUsage({ usage });
+      const result = convertAnthropicUsage({ usage });
 
       // Total = 200000 + 50000 + 180000 + 30000 = 460000 input
       // Total = 4000 + 2000 + 3500 + 1500 = 11000 output
@@ -159,7 +159,7 @@ describe('convertAnthropicMessagesUsage', () => {
     });
 
     it('should combine iterations with cache tokens', () => {
-      const usage: AnthropicMessagesUsage = {
+      const usage: AnthropicUsage = {
         input_tokens: 45000,
         output_tokens: 1234,
         cache_creation_input_tokens: 1000,
@@ -178,7 +178,7 @@ describe('convertAnthropicMessagesUsage', () => {
         ],
       };
 
-      const result = convertAnthropicMessagesUsage({ usage });
+      const result = convertAnthropicUsage({ usage });
 
       // Total input = sum of iterations + cache tokens
       // noCache = sum of iterations only
@@ -190,7 +190,7 @@ describe('convertAnthropicMessagesUsage', () => {
     });
 
     it('should use rawUsage as raw even when iterations are present', () => {
-      const usage: AnthropicMessagesUsage = {
+      const usage: AnthropicUsage = {
         input_tokens: 45000,
         output_tokens: 1234,
         iterations: [
@@ -212,7 +212,7 @@ describe('convertAnthropicMessagesUsage', () => {
         service_tier: 'standard',
       };
 
-      const result = convertAnthropicMessagesUsage({ usage, rawUsage });
+      const result = convertAnthropicUsage({ usage, rawUsage });
 
       expect(result.raw).toBe(rawUsage);
       expect(result.inputTokens.total).toBe(203000);
@@ -221,45 +221,45 @@ describe('convertAnthropicMessagesUsage', () => {
 
   describe('edge cases', () => {
     it('should use top-level values when iterations is null', () => {
-      const usage: AnthropicMessagesUsage = {
+      const usage: AnthropicUsage = {
         input_tokens: 100,
         output_tokens: 50,
         iterations: null,
       };
 
-      const result = convertAnthropicMessagesUsage({ usage });
+      const result = convertAnthropicUsage({ usage });
 
       expect(result.inputTokens.total).toBe(100);
       expect(result.outputTokens.total).toBe(50);
     });
 
     it('should use top-level values when iterations is undefined', () => {
-      const usage: AnthropicMessagesUsage = {
+      const usage: AnthropicUsage = {
         input_tokens: 100,
         output_tokens: 50,
       };
 
-      const result = convertAnthropicMessagesUsage({ usage });
+      const result = convertAnthropicUsage({ usage });
 
       expect(result.inputTokens.total).toBe(100);
       expect(result.outputTokens.total).toBe(50);
     });
 
     it('should use top-level values when iterations array is empty', () => {
-      const usage: AnthropicMessagesUsage = {
+      const usage: AnthropicUsage = {
         input_tokens: 100,
         output_tokens: 50,
         iterations: [],
       };
 
-      const result = convertAnthropicMessagesUsage({ usage });
+      const result = convertAnthropicUsage({ usage });
 
       expect(result.inputTokens.total).toBe(100);
       expect(result.outputTokens.total).toBe(50);
     });
 
     it('should handle zero tokens in iterations', () => {
-      const usage: AnthropicMessagesUsage = {
+      const usage: AnthropicUsage = {
         input_tokens: 0,
         output_tokens: 0,
         iterations: [
@@ -276,7 +276,7 @@ describe('convertAnthropicMessagesUsage', () => {
         ],
       };
 
-      const result = convertAnthropicMessagesUsage({ usage });
+      const result = convertAnthropicUsage({ usage });
 
       expect(result.inputTokens.total).toBe(0);
       expect(result.outputTokens.total).toBe(0);
@@ -285,7 +285,7 @@ describe('convertAnthropicMessagesUsage', () => {
 
   describe('real-world scenarios from documentation', () => {
     it('should match documentation example exactly', () => {
-      const usage: AnthropicMessagesUsage = {
+      const usage: AnthropicUsage = {
         input_tokens: 45000,
         output_tokens: 1234,
         iterations: [
@@ -302,7 +302,7 @@ describe('convertAnthropicMessagesUsage', () => {
         ],
       };
 
-      const result = convertAnthropicMessagesUsage({ usage });
+      const result = convertAnthropicUsage({ usage });
 
       const expectedTotalInput = 180000 + 23000; // 203000
       const expectedTotalOutput = 3500 + 1000; // 4500
@@ -317,13 +317,13 @@ describe('convertAnthropicMessagesUsage', () => {
     });
 
     it('should handle re-applying previous compaction block (no new compaction)', () => {
-      const usage: AnthropicMessagesUsage = {
+      const usage: AnthropicUsage = {
         input_tokens: 15000,
         output_tokens: 800,
         // No iterations - previous compaction block was re-applied
       };
 
-      const result = convertAnthropicMessagesUsage({ usage });
+      const result = convertAnthropicUsage({ usage });
 
       // Top-level values are accurate when no new compaction triggered
       expect(result.inputTokens.total).toBe(15000);

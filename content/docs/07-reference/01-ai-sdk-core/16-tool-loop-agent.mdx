@@ -122,9 +122,14 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
           type: 'GenerateTextStartEvent',
           parameters: [
             {
-              name: 'model',
-              type: '{ provider: string; modelId: string }',
-              description: 'The model being used for the generation.',
+              name: 'provider',
+              type: 'string',
+              description: 'The provider identifier (e.g., "openai", "anthropic").',
+            },
+            {
+              name: 'modelId',
+              type: 'string',
+              description: 'The specific model identifier (e.g., "gpt-4o").',
             },
             {
               name: 'system',
@@ -132,15 +137,9 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
               description: 'The system message(s) provided to the model.',
             },
             {
-              name: 'prompt',
-              type: 'string | Array<ModelMessage> | undefined',
-              description:
-                'The prompt string or array of messages if using the prompt option.',
-            },
-            {
               name: 'messages',
-              type: 'Array<ModelMessage> | undefined',
-              description: 'The messages array if using the messages option.',
+              type: 'Array<ModelMessage>',
+              description: 'The messages for this generation.',
             },
             {
               name: 'tools',
@@ -267,14 +266,14 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
           type: 'GenerateTextStepStartEvent',
           parameters: [
             {
-              name: 'stepNumber',
-              type: 'number',
-              description: 'Zero-based index of the current step.',
+              name: 'provider',
+              type: 'string',
+              description: 'The provider identifier (e.g., "openai", "anthropic").',
             },
             {
-              name: 'model',
-              type: '{ provider: string; modelId: string }',
-              description: 'The model being used for this step.',
+              name: 'modelId',
+              type: 'string',
+              description: 'The specific model identifier (e.g., "gpt-4o").',
             },
             {
               name: 'system',
@@ -373,16 +372,9 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
           type: 'ToolExecutionStartEvent',
           parameters: [
             {
-              name: 'stepNumber',
-              type: 'number | undefined',
-              description:
-                'The zero-based index of the current step where this tool call occurs. May be undefined in streaming contexts.',
-            },
-            {
-              name: 'model',
-              type: '{ provider: string; modelId: string } | undefined',
-              description:
-                'Information about the model being used. May be undefined in streaming contexts.',
+              name: 'callId',
+              type: 'string',
+              description: 'Unique identifier for this generation call, used to correlate events.',
             },
             {
               name: 'toolCall',
@@ -394,18 +386,13 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
               name: 'messages',
               type: 'Array<ModelMessage>',
               description:
-                'The conversation messages available at tool execution time.',
+                'Messages that were sent to the language model to initiate the response that contained the tool call. Does not include the system prompt nor the assistant response that contained the tool call.',
             },
             {
-              name: 'abortSignal',
-              type: 'AbortSignal | undefined',
-              description: 'Signal for cancelling the operation.',
-            },
-            {
-              name: 'context',
-              type: 'CONTEXT',
+              name: 'toolContext',
+              type: 'InferToolContext<TOOLS[toolName]>',
               description:
-                'Tool-specific context object for the tool call that is about to execute.',
+                'Tool-specific context object for the tool call that is about to execute. Narrowed to the context type of the individual tool, not the entire tool set.',
             },
           ],
         },
@@ -416,22 +403,15 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
       type: 'OnToolExecutionEndCallback',
       isOptional: true,
       description:
-        "Callback that is called right after a tool's execute function completes (or errors). Uses a discriminated union on the `success` field: when `success: true`, `output` contains the tool result; when `success: false`, `error` contains the error. If also specified in `generate()` or `stream()`, both callbacks are called (constructor first). Experimental (can break in patch releases).",
+        "Callback that is called right after a tool's execute function completes (or errors). The `toolOutput` field is a discriminated union: when `toolOutput.type` is `'tool-result'`, the `output` field contains the tool result; when `toolOutput.type` is `'tool-error'`, the `error` field contains the error. If also specified in `generate()` or `stream()`, both callbacks are called (constructor first). Experimental (can break in patch releases).",
       properties: [
         {
           type: 'ToolExecutionEndEvent',
           parameters: [
             {
-              name: 'stepNumber',
-              type: 'number | undefined',
-              description:
-                'The zero-based index of the current step where this tool call occurred. May be undefined in streaming contexts.',
-            },
-            {
-              name: 'model',
-              type: '{ provider: string; modelId: string } | undefined',
-              description:
-                'Information about the model being used. May be undefined in streaming contexts.',
+              name: 'callId',
+              type: 'string',
+              description: 'Unique identifier for this generation call, used to correlate events.',
             },
             {
               name: 'toolCall',
@@ -440,45 +420,28 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
                 'The full tool call object containing toolName, toolCallId, input, and metadata.',
             },
             {
-              name: 'messages',
-              type: 'Array<ModelMessage>',
-              description:
-                'The conversation messages available at tool execution time.',
-            },
-            {
-              name: 'abortSignal',
-              type: 'AbortSignal | undefined',
-              description: 'Signal for cancelling the operation.',
-            },
-            {
               name: 'durationMs',
               type: 'number',
               description:
                 'The wall-clock duration of the tool execution in milliseconds.',
             },
             {
-              name: 'context',
-              type: 'CONTEXT',
+              name: 'messages',
+              type: 'Array<ModelMessage>',
               description:
-                'Tool-specific context object for the tool call that just completed.',
+                'Messages that were sent to the language model to initiate the response that contained the tool call. Does not include the system prompt nor the assistant response that contained the tool call.',
             },
             {
-              name: 'success',
-              type: 'boolean',
+              name: 'toolContext',
+              type: 'InferToolContext<TOOLS[toolName]>',
               description:
-                'Discriminator indicating whether the tool call succeeded. When true, output is available. When false, error is available.',
+                'Tool-specific context object for the tool call that just completed. Narrowed to the context type of the individual tool, not the entire tool set.',
             },
             {
-              name: 'output',
-              type: 'unknown',
+              name: 'toolOutput',
+              type: 'ToolOutput<TOOLS>',
               description:
-                "The tool's return value (only present when `success: true`).",
-            },
-            {
-              name: 'error',
-              type: 'unknown',
-              description:
-                'The error that occurred during tool execution (only present when `success: false`).',
+                "Discriminated union representing the tool execution result. When `type` is `'tool-result'`, the `output` field contains the tool's return value. When `type` is `'tool-error'`, the `error` field contains the error.",
             },
           ],
         },
