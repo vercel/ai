@@ -940,6 +940,53 @@ describe('options.experimental_onStart and experimental_onFinish together', () =
   });
 });
 
+
+describe('result.warnings with undefined warnings from provider', () => {
+  it('should default to empty array when provider returns undefined warnings (single call path)', async () => {
+    const result = await embedMany({
+      model: new MockEmbeddingModelV4({
+        maxEmbeddingsPerCall: null,
+        doEmbed: async () => ({
+          embeddings: dummyEmbeddings,
+          // no warnings property, simulating EmbeddingModelV2 provider
+        }),
+      }),
+      values: testValues,
+    });
+
+    expect(result.warnings).toStrictEqual([]);
+  });
+
+  it('should handle undefined warnings in chunked path', async () => {
+    let callCount = 0;
+
+    const result = await embedMany({
+      model: new MockEmbeddingModelV4({
+        maxEmbeddingsPerCall: 2,
+        doEmbed: async () => {
+          switch (callCount++) {
+            case 0:
+              return {
+                embeddings: dummyEmbeddings.slice(0, 2),
+                // no warnings property
+              };
+            case 1:
+              return {
+                embeddings: dummyEmbeddings.slice(2),
+                // no warnings property
+              };
+            default:
+              throw new Error('Unexpected call');
+          }
+        },
+      }),
+      values: testValues,
+    });
+
+    expect(result.warnings).toStrictEqual([]);
+  });
+});
+
 function mockEmbed(
   expectedValues: Array<string>,
   embeddings: Array<Embedding>,

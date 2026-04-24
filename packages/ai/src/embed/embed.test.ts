@@ -585,6 +585,23 @@ describe('options.experimental_onStart and experimental_onFinish together', () =
   });
 });
 
+
+describe('result.warnings with undefined warnings from provider', () => {
+  it('should default to empty array when provider returns undefined warnings', async () => {
+    const result = await embed({
+      model: new MockEmbeddingModelV4({
+        doEmbed: async () => ({
+          embeddings: [dummyEmbedding],
+          // no warnings property, simulating EmbeddingModelV2 provider
+        }),
+      }),
+      value: testValue,
+    });
+
+    expect(result.warnings).toStrictEqual([]);
+  });
+});
+
 function mockEmbed(
   expectedValues: Array<string>,
   embeddings: Array<Embedding>,
