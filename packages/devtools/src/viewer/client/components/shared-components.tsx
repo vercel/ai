@@ -72,7 +72,7 @@ export function JsonBlock({
       </button>
       <pre
         className={`font-mono ${sizeClasses[size]} text-muted-foreground whitespace-pre-wrap wrap-break-words bg-background rounded p-2 ${
-          compact ? 'max-h-20 overflow-hidden' : ''
+          compact ? 'overflow-hidden max-h-20' : ''
         }`}
       >
         {displayString}
@@ -108,16 +108,16 @@ export function RawDataSection({
         <ChevronRight
           className={`size-3 transition-transform ${expanded ? 'rotate-90' : ''}`}
         />
-        <span className="font-medium uppercase tracking-wider">
+        <span className="font-medium tracking-wider uppercase">
           Request / Response
         </span>
       </button>
 
       {expanded && (
-        <div className="px-4 pb-4 grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-4 px-4 pb-4">
           {rawRequest && (
             <div className="flex flex-col">
-              <div className="h-7 flex items-end mb-2">
+              <div className="flex items-end mb-2 h-7">
                 <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
                   Request
                 </span>
@@ -129,7 +129,7 @@ export function RawDataSection({
           )}
           {(rawResponse || rawChunks) && (
             <div className="flex flex-col">
-              <div className="h-7 flex items-end justify-between mb-2">
+              <div className="flex justify-between items-end mb-2 h-7">
                 <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
                   {isStream ? 'Stream' : 'Response'}
                 </span>
@@ -182,8 +182,8 @@ export function UsageDetails({ usage }: { usage: ParsedUsage }) {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 gap-4">
-        <div className="rounded-lg border border-border bg-card p-4">
-          <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-2">
+        <div className="p-4 rounded-lg border border-border bg-card">
+          <div className="mb-2 text-xs font-medium tracking-wider uppercase text-muted-foreground">
             Input Tokens
           </div>
           <div className="text-2xl font-semibold">{inputBreakdown.total}</div>
@@ -212,8 +212,8 @@ export function UsageDetails({ usage }: { usage: ParsedUsage }) {
           )}
         </div>
 
-        <div className="rounded-lg border border-border bg-card p-4">
-          <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-2">
+        <div className="p-4 rounded-lg border border-border bg-card">
+          <div className="mb-2 text-xs font-medium tracking-wider uppercase text-muted-foreground">
             Output Tokens
           </div>
           <div className="text-2xl font-semibold">{outputBreakdown.total}</div>
@@ -239,7 +239,7 @@ export function UsageDetails({ usage }: { usage: ParsedUsage }) {
 
       {usage?.raw != null && (
         <div>
-          <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-2">
+          <div className="mb-2 text-xs font-medium tracking-wider uppercase text-muted-foreground">
             Raw Provider Usage
           </div>
           <JsonBlock data={usage.raw} size="sm" />
@@ -247,7 +247,7 @@ export function UsageDetails({ usage }: { usage: ParsedUsage }) {
       )}
 
       <div>
-        <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-2">
+        <div className="mb-2 text-xs font-medium tracking-wider uppercase text-muted-foreground">
           Full Usage Object
         </div>
         <JsonBlock data={usage} size="sm" />
@@ -283,33 +283,33 @@ export function TokenBreakdownTooltip({
   }
 
   return (
-    <div className="text-xs space-y-2">
+    <div className="space-y-2 text-xs">
       <div>
-        <div className="font-medium mb-1">Input: {input.total}</div>
+        <div className="mb-1 font-medium">Input: {input.total}</div>
         {input.cacheRead !== undefined && (
-          <div className="text-muted-foreground ml-2">
+          <div className="ml-2 text-muted-foreground">
             Cache read: {input.cacheRead}
           </div>
         )}
         {input.cacheWrite !== undefined && (
-          <div className="text-muted-foreground ml-2">
+          <div className="ml-2 text-muted-foreground">
             Cache write: {input.cacheWrite}
           </div>
         )}
       </div>
       <div>
-        <div className="font-medium mb-1">Output: {output.total}</div>
+        <div className="mb-1 font-medium">Output: {output.total}</div>
         {output.text !== undefined && (
-          <div className="text-muted-foreground ml-2">Text: {output.text}</div>
+          <div className="ml-2 text-muted-foreground">Text: {output.text}</div>
         )}
         {output.reasoning !== undefined && (
-          <div className="text-muted-foreground ml-2">
+          <div className="ml-2 text-muted-foreground">
             Reasoning: {output.reasoning}
           </div>
         )}
       </div>
       {raw !== undefined && (
-        <div className="pt-1 border-t border-border mt-1">
+        <div className="pt-1 mt-1 border-t border-border">
           <div className="text-muted-foreground/70 font-mono text-[10px] max-w-[200px] truncate">
             Raw: {JSON.stringify(raw)}
           </div>
@@ -326,9 +326,9 @@ export function ReasoningBlock({ content }: { content: string }) {
     content.length > 200 ? content.slice(0, 200) + '…' : content;
 
   return (
-    <div className="rounded-md border border-amber-500/30 overflow-hidden">
+    <div className="overflow-hidden rounded-md border border-amber-500/30">
       <button
-        className="w-full flex items-center gap-2 px-3 py-2 bg-amber-500/10 hover:bg-amber-500/20 transition-colors"
+        className="flex gap-2 items-center px-3 py-2 w-full transition-colors bg-amber-500/10 hover:bg-amber-500/20"
         onClick={() => setExpanded(!expanded)}
       >
         <ChevronRight
@@ -336,7 +336,7 @@ export function ReasoningBlock({ content }: { content: string }) {
             expanded ? 'rotate-90' : ''
           }`}
         />
-        <Brain className="size-3 text-amber-500 shrink-0" />
+        <Brain className="text-amber-500 size-3 shrink-0" />
         <span className="text-xs font-medium text-amber-500">Thinking</span>
         {!expanded && (
           <span className="text-[11px] text-amber-500/70 truncate ml-1">
@@ -346,8 +346,8 @@ export function ReasoningBlock({ content }: { content: string }) {
       </button>
 
       {expanded && (
-        <div className="p-3 bg-card/50 border-t border-amber-500/30">
-          <div className="text-xs text-foreground/80 leading-relaxed whitespace-pre-wrap">
+        <div className="p-3 border-t bg-card/50 border-amber-500/30">
+          <div className="text-xs leading-relaxed whitespace-pre-wrap text-foreground/80">
             {content}
           </div>
         </div>
@@ -385,9 +385,9 @@ export function TextBlock({
   };
 
   return (
-    <div className={`rounded-md border ${borderColor} overflow-hidden`}>
+    <div className={`overflow-hidden rounded-md border ${borderColor}`}>
       <button
-        className={`w-full flex items-center gap-2 px-3 py-2 ${bgColor} ${hoverBgColor} transition-colors`}
+        className={`flex gap-2 items-center px-3 py-2 w-full transition-colors ${bgColor} ${hoverBgColor}`}
         onClick={() => setExpanded(!expanded)}
       >
         <ChevronRight
@@ -408,7 +408,7 @@ export function TextBlock({
 
       {expanded && (
         <div
-          className={`p-3 bg-card/50 border-t ${borderColor} group relative`}
+          className={`relative p-3 border-t bg-card/50 ${borderColor} group`}
         >
           <button
             onClick={handleCopy}
@@ -421,7 +421,7 @@ export function TextBlock({
               <Copy className="size-3 text-muted-foreground" />
             )}
           </button>
-          <div className="text-xs text-foreground leading-relaxed whitespace-pre-wrap max-h-60 overflow-y-auto">
+          <div className="overflow-y-auto max-h-60 text-xs leading-relaxed whitespace-pre-wrap text-foreground">
             {content}
           </div>
         </div>
@@ -434,12 +434,12 @@ export function ToolItem({ tool }: { tool: ToolDefinition }) {
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <div className="rounded-md border border-border bg-background overflow-hidden">
+    <div className="overflow-hidden rounded-md border border-border bg-background">
       <button
         className="w-full flex items-center justify-between p-2.5 hover:bg-accent/50 transition-colors"
         onClick={() => setExpanded(!expanded)}
       >
-        <span className="text-sm font-mono text-purple">{tool.name}</span>
+        <span className="font-mono text-sm text-purple">{tool.name}</span>
         {tool.parameters && (
           <ChevronRight
             className={`size-3 text-muted-foreground transition-transform ${
@@ -451,7 +451,7 @@ export function ToolItem({ tool }: { tool: ToolDefinition }) {
       {expanded && tool.parameters && (
         <div className="px-2.5 pb-2.5 border-t border-border">
           {tool.description && (
-            <p className="text-xs text-muted-foreground mb-2 pt-2">
+            <p className="pt-2 mb-2 text-xs text-muted-foreground">
               {tool.description}
             </p>
           )}
@@ -482,9 +482,9 @@ export function CollapsibleToolCall({
   const parsedData = typeof data === 'string' ? safeParseJson(data) : data;
 
   return (
-    <div className="rounded-md border border-purple/30 overflow-hidden">
+    <div className="overflow-hidden rounded-md border border-purple/30">
       <button
-        className="w-full flex items-center gap-2 px-3 py-2 bg-purple/10 hover:bg-purple/20 transition-colors"
+        className="flex gap-2 items-center px-3 py-2 w-full transition-colors bg-purple/10 hover:bg-purple/20"
         onClick={() => setExpanded(!expanded)}
       >
         <ChevronRight
@@ -493,7 +493,7 @@ export function CollapsibleToolCall({
           }`}
         />
         <Wrench className="size-3 text-purple shrink-0" />
-        <span className="text-xs font-mono font-medium text-purple">
+        <span className="font-mono text-xs font-medium text-purple">
           {toolName}
         </span>
         {!expanded &&
@@ -511,7 +511,7 @@ export function CollapsibleToolCall({
         )}
       </button>
       {expanded && (
-        <div className="p-3 bg-card/50 border-t border-purple/30">
+        <div className="p-3 border-t bg-card/50 border-purple/30">
           <JsonBlock data={parsedData} />
         </div>
       )}
@@ -531,9 +531,9 @@ export function CollapsibleToolResult({
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <div className="rounded-md border border-success/30 overflow-hidden">
+    <div className="overflow-hidden rounded-md border border-success/30">
       <button
-        className="w-full flex items-center gap-2 px-3 py-2 bg-success/10 hover:bg-success/20 transition-colors"
+        className="flex gap-2 items-center px-3 py-2 w-full transition-colors bg-success/10 hover:bg-success/20"
         onClick={() => setExpanded(!expanded)}
       >
         <ChevronRight
@@ -554,7 +554,7 @@ export function CollapsibleToolResult({
         )}
       </button>
       {expanded && (
-        <div className="p-3 bg-card/50 border-t border-success/30">
+        <div className="p-3 border-t bg-card/50 border-success/30">
           <JsonBlock data={data} />
         </div>
       )}
@@ -610,7 +610,7 @@ export function StepConfigBar({
             <span key={i}>
               {p.label}: <span className="text-foreground">{p.value}</span>
               {i < params.length - 1 && (
-                <span className="text-muted-foreground/30 mx-1">·</span>
+                <span className="mx-1 text-muted-foreground/30">·</span>
               )}
             </span>
           ))}
@@ -622,7 +622,7 @@ export function StepConfigBar({
           <span className="text-muted-foreground/30">·</span>
           <Drawer direction="right">
             <DrawerTrigger asChild>
-              <button className="inline-flex items-center gap-1 hover:text-foreground transition-colors cursor-pointer">
+              <button className="inline-flex gap-1 items-center transition-colors cursor-pointer hover:text-foreground">
                 <Wrench className="size-3" />
                 {toolCount} available {toolCount === 1 ? 'tool' : 'tools'}
               </button>
@@ -631,7 +631,7 @@ export function StepConfigBar({
               <DrawerHeader className="border-b border-border shrink-0">
                 <DrawerTitle>Available Tools ({toolCount})</DrawerTitle>
               </DrawerHeader>
-              <div className="flex-1 overflow-y-auto p-4">
+              <div className="overflow-y-auto flex-1 p-4">
                 <div className="space-y-3">
                   {input?.tools?.map((tool: ToolDefinition, i: number) => (
                     <ToolItem key={i} tool={tool} />
@@ -648,7 +648,7 @@ export function StepConfigBar({
           <span className="text-muted-foreground/30">·</span>
           <Drawer direction="right">
             <DrawerTrigger asChild>
-              <button className="inline-flex items-center gap-1 hover:text-foreground transition-colors cursor-pointer">
+              <button className="inline-flex gap-1 items-center transition-colors cursor-pointer hover:text-foreground">
                 <Settings className="size-3" />
                 Provider options
               </button>
@@ -657,7 +657,7 @@ export function StepConfigBar({
               <DrawerHeader className="border-b border-border shrink-0">
                 <DrawerTitle>Provider Options</DrawerTitle>
               </DrawerHeader>
-              <div className="flex-1 overflow-y-auto p-4">
+              <div className="overflow-y-auto flex-1 p-4">
                 <JsonBlock data={providerOptions} size="lg" />
               </div>
             </DrawerContent>
@@ -670,7 +670,7 @@ export function StepConfigBar({
           <span className="text-muted-foreground/30">·</span>
           <Drawer direction="right">
             <DrawerTrigger asChild>
-              <button className="inline-flex items-center gap-1 hover:text-foreground transition-colors cursor-pointer">
+              <button className="inline-flex gap-1 items-center transition-colors cursor-pointer hover:text-foreground">
                 <BarChart3 className="size-3" />
                 Usage
               </button>
@@ -679,7 +679,7 @@ export function StepConfigBar({
               <DrawerHeader className="border-b border-border shrink-0">
                 <DrawerTitle>Token Usage</DrawerTitle>
               </DrawerHeader>
-              <div className="flex-1 overflow-y-auto p-4">
+              <div className="overflow-y-auto flex-1 p-4">
                 <UsageDetails usage={usage} />
               </div>
             </DrawerContent>
