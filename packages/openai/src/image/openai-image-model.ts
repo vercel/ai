@@ -1,4 +1,4 @@
-import {
+import type {
   ImageModelV4,
   ImageModelV4File,
   SharedV4Warning,

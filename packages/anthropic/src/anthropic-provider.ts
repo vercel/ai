@@ -1,10 +1,10 @@
 import {
-  FilesV4,
+  type LanguageModelV4,
+  type ProviderV4,
+  type FilesV4,
+  type SkillsV4,
   InvalidArgumentError,
-  LanguageModelV4,
   NoSuchModelError,
-  ProviderV4,
-  SkillsV4,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,

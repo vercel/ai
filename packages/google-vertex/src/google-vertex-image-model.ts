@@ -1,6 +1,6 @@
 import type { GoogleLanguageModelOptions } from '@ai-sdk/google';
 import { GoogleLanguageModel } from '@ai-sdk/google/internal';
-import {
+import type {
   ImageModelV4,
   ImageModelV4File,
   LanguageModelV4Prompt,

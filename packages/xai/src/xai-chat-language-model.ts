@@ -1,14 +1,14 @@
 import {
   APICallError,
-  LanguageModelV4,
-  LanguageModelV4CallOptions,
-  LanguageModelV4Content,
-  LanguageModelV4FinishReason,
-  LanguageModelV4GenerateResult,
-  LanguageModelV4StreamPart,
-  LanguageModelV4StreamResult,
-  LanguageModelV4Usage,
-  SharedV4Warning,
+  type LanguageModelV4,
+  type LanguageModelV4CallOptions,
+  type LanguageModelV4Content,
+  type LanguageModelV4FinishReason,
+  type LanguageModelV4GenerateResult,
+  type LanguageModelV4StreamPart,
+  type LanguageModelV4StreamResult,
+  type LanguageModelV4Usage,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,

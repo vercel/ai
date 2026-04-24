@@ -1,4 +1,4 @@
-import { SharedV4Warning, TranscriptionModelV4 } from '@ai-sdk/provider';
+import type { SharedV4Warning, TranscriptionModelV4 } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createJsonResponseHandler,

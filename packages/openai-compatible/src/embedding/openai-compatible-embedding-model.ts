@@ -1,6 +1,6 @@
 import {
-  EmbeddingModelV4,
-  SharedV4Warning,
+  type EmbeddingModelV4,
+  type SharedV4Warning,
   TooManyEmbeddingValuesForCallError,
 } from '@ai-sdk/provider';
 import {

@@ -1,7 +1,7 @@
 import {
-  Experimental_VideoModelV4,
+  type Experimental_VideoModelV4,
   NoSuchModelError,
-  ProviderV4,
+  type ProviderV4,
 } from '@ai-sdk/provider';
 import type { FetchFunction } from '@ai-sdk/provider-utils';
 import { loadApiKey, withUserAgentSuffix } from '@ai-sdk/provider-utils';

@@ -1,4 +1,4 @@
-import { ImageModelV4, SharedV4Warning } from '@ai-sdk/provider';
+import type { ImageModelV4, SharedV4Warning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   convertImageModelFileToDataUri,

@@ -1,4 +1,4 @@
-import {
+import type {
   EmbeddingModelV4,
   FilesV4,
   ImageModelV4,

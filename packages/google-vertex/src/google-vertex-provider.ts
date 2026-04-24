@@ -1,5 +1,5 @@
 import { GoogleLanguageModel } from '@ai-sdk/google/internal';
-import {
+import type {
   Experimental_VideoModelV4,
   ImageModelV4,
   LanguageModelV4,

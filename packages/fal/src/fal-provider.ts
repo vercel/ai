@@ -1,10 +1,10 @@
 import {
-  Experimental_VideoModelV4,
-  ImageModelV4,
+  type Experimental_VideoModelV4,
+  type ImageModelV4,
+  type ProviderV4,
+  type SpeechModelV4,
+  type TranscriptionModelV4,
   NoSuchModelError,
-  ProviderV4,
-  SpeechModelV4,
-  TranscriptionModelV4,
 } from '@ai-sdk/provider';
 import type { FetchFunction } from '@ai-sdk/provider-utils';
 import {

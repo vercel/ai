@@ -1,4 +1,4 @@
-import {
+import type {
   TranscriptionModelV4,
   TranscriptionModelV4CallOptions,
   SharedV4Warning,

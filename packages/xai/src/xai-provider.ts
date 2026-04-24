@@ -1,10 +1,10 @@
 import {
   type Experimental_VideoModelV4,
-  FilesV4,
-  ImageModelV4,
-  LanguageModelV4,
+  type FilesV4,
+  type ImageModelV4,
+  type LanguageModelV4,
   NoSuchModelError,
-  ProviderV4,
+  type ProviderV4,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,

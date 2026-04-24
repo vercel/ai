@@ -1,4 +1,4 @@
-import {
+import type {
   ImageModelV4,
   LanguageModelV4Prompt,
   SharedV4Warning,

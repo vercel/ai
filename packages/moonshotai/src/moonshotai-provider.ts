@@ -1,8 +1,8 @@
 import { ProviderErrorStructure } from '@ai-sdk/openai-compatible';
 import {
-  LanguageModelV4,
+  type LanguageModelV4,
   NoSuchModelError,
-  ProviderV4,
+  type ProviderV4,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,

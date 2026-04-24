@@ -1,9 +1,9 @@
 import {
-  EmbeddingModelV4,
-  LanguageModelV4,
+  type EmbeddingModelV4,
+  type LanguageModelV4,
+  type RerankingModelV4,
+  type ProviderV4,
   NoSuchModelError,
-  RerankingModelV4,
-  ProviderV4,
 } from '@ai-sdk/provider';
 
 import {

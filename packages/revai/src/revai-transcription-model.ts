@@ -1,7 +1,7 @@
 import {
   AISDKError,
-  TranscriptionModelV4,
-  SharedV4Warning,
+  type TranscriptionModelV4,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,

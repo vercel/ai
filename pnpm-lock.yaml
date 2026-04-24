@@ -23,6 +23,9 @@ importers:
       husky:
         specifier: ^9.1.7
         version: 9.1.7
+      konsistent:
+        specifier: 0.0.1-alpha.13
+        version: 0.0.1-alpha.13
       lint-staged:
         specifier: ^15.5.1
         version: 15.5.2
@@ -15282,6 +15285,10 @@ packages:
 
   kolorist@1.8.0:
     resolution: {integrity: sha512-Y+60/zizpJ3HRH8DCss+q95yr6145JXZo46OTpFvDZWLfRCE4qChOyk1b26nMaNpfHHgxagk9dXT5OP0Tfe+dQ==}
+
+  konsistent@0.0.1-alpha.13:
+    resolution: {integrity: sha512-XldXAhkxQTDaVETg3Ybig2wYsefYQ3NNHLXZgwARdY5TvIH7Ehx36G95wrO/++ja2qyV5l3G8LYTfXtNUOJWIg==}
+    hasBin: true
 
   kuler@2.0.0:
     resolution: {integrity: sha512-Xq9nH7KlWZmXAtodXDDRE7vs6DU1gTU8zYDHDiWLSip45Egwq3plLHzPn27NgvzL2r1LMPC1vdqh98sQxtqj4A==}
@@ -35528,6 +35535,14 @@ snapshots:
       - supports-color
 
   kolorist@1.8.0: {}
+
+  konsistent@0.0.1-alpha.13:
+    dependencies:
+      citty: 0.1.6
+      picocolors: 1.1.1
+      tinyglobby: 0.2.15
+      typescript: 5.8.3
+      zod: 3.25.76
 
   kuler@2.0.0: {}
 

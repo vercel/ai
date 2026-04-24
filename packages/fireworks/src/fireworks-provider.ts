@@ -4,7 +4,7 @@ import {
   OpenAICompatibleEmbeddingModel,
   ProviderErrorStructure,
 } from '@ai-sdk/openai-compatible';
-import {
+import type {
   EmbeddingModelV4,
   ImageModelV4,
   LanguageModelV4,
