@@ -1,4 +1,4 @@
-import { convertBase64ToUint8Array } from '@ai-sdk/provider-utils';
+import { convertBase64ToUint8Array } from './uint8-utils';
 
 export const imageMediaTypeSignatures = [
   {
@@ -191,19 +191,19 @@ function stripID3TagsIfPresent(data: Uint8Array | string): Uint8Array | string {
   return hasId3 ? stripID3(data) : data;
 }
 
-/**
- * Detect the media IANA media type of a file using a list of signatures.
- *
- * @param data - The file data.
- * @param signatures - The signatures to use for detection.
- * @returns The media type of the file.
- */
 type MediaTypeSignatures = ReadonlyArray<{
   readonly mediaType: string;
   readonly bytesPrefix: ReadonlyArray<number | null>;
 }>;
 
-export function detectMediaType<T extends MediaTypeSignatures>({
+/**
+ * Detect the IANA media type of a file using a list of signatures.
+ *
+ * @param data - The file data.
+ * @param signatures - The signatures to use for detection.
+ * @returns The media type of the file.
+ */
+export function detectMediaTypeBySignatures<T extends MediaTypeSignatures>({
   data,
   signatures,
 }: {
@@ -232,4 +232,72 @@ export function detectMediaType<T extends MediaTypeSignatures>({
   }
 
   return undefined;
+}
+
+const topLevelSignatureTables = {
+  image: imageMediaTypeSignatures,
+  audio: audioMediaTypeSignatures,
+  video: videoMediaTypeSignatures,
+  application: documentMediaTypeSignatures,
+} as const;
+
+type TopLevelMediaType = keyof typeof topLevelSignatureTables;
+
+/**
+ * Detect the IANA media type of a file using the signature table that
+ * corresponds to the given top-level media type segment.
+ *
+ * For unsupported top-level segments (e.g. `"text"`), returns `undefined`.
+ */
+export function detectMediaTypeForTopLevelType({
+  data,
+  topLevelType,
+}: {
+  data: Uint8Array | string;
+  topLevelType: string;
+}): string | undefined {
+  const signatures = topLevelSignatureTables[topLevelType as TopLevelMediaType];
+
+  if (signatures === undefined) {
+    return undefined;
+  }
+
+  return detectMediaTypeBySignatures({ data, signatures });
+}
+
+/**
+ * Returns the top-level segment of a media type (the portion before `/`).
+ *
+ * Examples:
+ *   - `"image/png"` -> `"image"`
+ *   - `"image/*"` -> `"image"`
+ *   - `"image"` -> `"image"`
+ *   - `"image/"` -> `"image"`
+ *   - `""` -> `""`
+ *   - `"/"` -> `""`
+ */
+export function getTopLevelMediaType(mediaType: string): string {
+  const slashIndex = mediaType.indexOf('/');
+  return slashIndex === -1 ? mediaType : mediaType.substring(0, slashIndex);
+}
+
+/**
+ * Returns `true` only when the given media type has a non-empty, non-wildcard
+ * subtype (i.e. matches the form `type/subtype`, and `subtype` is not `*`).
+ *
+ * Examples:
+ *   - `"image/png"` -> `true`
+ *   - `"image/*"` -> `false`
+ *   - `"image"` -> `false`
+ *   - `"image/"` -> `false`
+ *   - `""` -> `false`
+ *   - `"/"` -> `false`
+ */
+export function isFullMediaType(mediaType: string): boolean {
+  const slashIndex = mediaType.indexOf('/');
+  if (slashIndex === -1) {
+    return false;
+  }
+  const subtype = mediaType.substring(slashIndex + 1);
+  return subtype.length > 0 && subtype !== '*';
 }

@@ -1,18 +1,20 @@
-import {
-  LanguageModelV4FilePart,
-  SharedV4ProviderReference,
-} from '@ai-sdk/provider';
+import { SharedV4ProviderReference } from '@ai-sdk/provider';
 
 /**
- * Checks whether file part data is a provider reference (a mapping of provider
- * names to provider-specific identifiers) as opposed to raw bytes or a URL.
+ * Checks whether a value is a provider reference (a mapping of provider names
+ * to provider-specific identifiers) as opposed to raw bytes, a URL, or a
+ * tagged `{ type: ... }` object.
  */
 export function isProviderReference(
-  data: LanguageModelV4FilePart['data'],
+  data: unknown,
 ): data is SharedV4ProviderReference {
   return (
     typeof data === 'object' &&
+    data !== null &&
     !(data instanceof Uint8Array) &&
-    !(data instanceof URL)
+    !(data instanceof URL) &&
+    !(data instanceof ArrayBuffer) &&
+    !(globalThis.Buffer?.isBuffer(data) ?? false) &&
+    !('type' in data)
   );
 }

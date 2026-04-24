@@ -10,6 +10,16 @@ export {
 } from './create-tool-name-mapping';
 export * from './delay';
 export { DelayedPromise } from './delayed-promise';
+export {
+  audioMediaTypeSignatures,
+  detectMediaTypeBySignatures,
+  detectMediaTypeForTopLevelType,
+  documentMediaTypeSignatures,
+  getTopLevelMediaType,
+  imageMediaTypeSignatures,
+  isFullMediaType,
+  videoMediaTypeSignatures,
+} from './detect-media-type';
 export { downloadBlob } from './download-blob';
 export { DownloadError } from './download-error';
 export * from './extract-response-headers';
@@ -56,6 +66,7 @@ export {
 } from './read-response-with-size-limit';
 export * from './remove-undefined-entries';
 export * from './resolve';
+export { resolveFullMediaType } from './resolve-full-media-type';
 export { resolveProviderReference } from './resolve-provider-reference';
 export * from './response-handler';
 export {

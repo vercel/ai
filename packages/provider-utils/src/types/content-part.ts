@@ -24,6 +24,9 @@ export interface TextPart {
 
 /**
  * Image content part of a prompt. It contains an image.
+ *
+ * @deprecated Use `FilePart` with `mediaType: 'image'` instead:
+ * `{ type: 'file', mediaType: 'image', data: { type: 'data', data } }`.
  */
 export interface ImagePart {
   type: 'image';
@@ -59,13 +62,23 @@ export interface FilePart {
   type: 'file';
 
   /**
-   * File data. Can either be:
+   * File data. Either a tagged shape or a bare shorthand:
    *
-   * - data: a base64-encoded string, a Uint8Array, an ArrayBuffer, or a Buffer
-   * - URL: a URL that points to the file
-   * - ProviderReference: a provider reference from `uploadFile`
+   * - `{ type: 'data', data }` or bare `DataContent`: raw bytes
+   *   (base64 string, Uint8Array, ArrayBuffer, Buffer)
+   * - `{ type: 'url', url }` or bare `URL`: a URL that points to the file
+   * - `{ type: 'reference', reference }` or bare `ProviderReference`:
+   *   a provider reference from `uploadFile`
+   * - `{ type: 'text', text }`: inline text content (tagged only)
    */
-  data: DataContent | URL | ProviderReference;
+  data:
+    | { type: 'data'; data: DataContent }
+    | { type: 'url'; url: URL }
+    | { type: 'reference'; reference: ProviderReference }
+    | { type: 'text'; text: string }
+    | DataContent
+    | URL
+    | ProviderReference;
 
   /**
    * Optional filename of the file.
@@ -133,12 +146,17 @@ export interface ReasoningFilePart {
   type: 'reasoning-file';
 
   /**
-   * File data. Can either be:
+   * File data. Either a tagged shape or a bare shorthand:
    *
-   * - data: a base64-encoded string, a Uint8Array, an ArrayBuffer, or a Buffer
-   * - URL: a URL that points to the file
+   * - `{ type: 'data', data }` or bare `DataContent`: raw bytes
+   *   (base64 string, Uint8Array, ArrayBuffer, Buffer)
+   * - `{ type: 'url', url }` or bare `URL`: a URL that points to the file
    */
-  data: DataContent | URL;
+  data:
+    | { type: 'data'; data: DataContent }
+    | { type: 'url'; url: URL }
+    | DataContent
+    | URL;
 
   /**
    * IANA media type of the file.
