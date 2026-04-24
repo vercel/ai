@@ -198,15 +198,23 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                 const toolName = getToolName(part);
 
                 if (part.state !== 'input-streaming') {
+                  // When state is output-error and input is undefined, rawInput
+                  // may be a raw string (e.g. invalid JSON from the model).
+                  // Providers like Anthropic require tool_use.input to be a
+                  // JSON object, so we normalise non-object values to {}.
+                  const toolInput =
+                    part.state === 'output-error'
+                      ? (part.input ??
+                        normalizeToolInput(
+                          'rawInput' in part ? part.rawInput : undefined,
+                        ))
+                      : part.input;
+
                   content.push({
                     type: 'tool-call' as const,
                     toolCallId: part.toolCallId,
                     toolName,
-                    input:
-                      part.state === 'output-error'
-                        ? (part.input ??
-                          ('rawInput' in part ? part.rawInput : undefined))
-                        : part.input,
+                    input: toolInput,
                     providerExecuted: part.providerExecuted,
                     ...(part.callProviderMetadata != null
                       ? { providerOptions: part.callProviderMetadata }
@@ -420,4 +428,18 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
   }
 
   return modelMessages;
+}
+
+/**
+ * Ensures tool call input is a plain object.
+ * Providers (e.g. Anthropic) require tool_use.input to be a JSON object.
+ * When rawInput is a non-object value (e.g. an unparseable string from the
+ * model), we fall back to an empty object so the conversation can be replayed
+ * without triggering a 400 error.
+ */
+function normalizeToolInput(value: unknown): Record<string, unknown> {
+  if (value != null && typeof value === 'object' && !Array.isArray(value)) {
+    return value as Record<string, unknown>;
+  }
+  return {};
 }

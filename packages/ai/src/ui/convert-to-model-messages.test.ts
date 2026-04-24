@@ -784,6 +784,98 @@ describe('convertToModelMessages', () => {
         ]
       `);
       });
+
+      it('should normalize string rawInput to empty object (issue #13645)', async () => {
+        const result = await convertToModelMessages([
+          {
+            role: 'assistant',
+            parts: [
+              { type: 'step-start' },
+              {
+                type: 'tool-calculator',
+                state: 'output-error',
+                toolCallId: 'call1',
+                errorText: 'Invalid JSON arguments',
+                input: undefined,
+                rawInput: 'not valid json',
+              },
+            ],
+          },
+        ]);
+
+        // rawInput was a bare string — must become {} so providers
+        // like Anthropic don't reject it with a 400.
+        const assistantMsg = result[0];
+        expect(assistantMsg.role).toBe('assistant');
+        const toolCall = (assistantMsg as any).content[0];
+        expect(toolCall.type).toBe('tool-call');
+        expect(toolCall.input).toEqual({});
+      });
+
+      it('should normalize array rawInput to empty object', async () => {
+        const result = await convertToModelMessages([
+          {
+            role: 'assistant',
+            parts: [
+              { type: 'step-start' },
+              {
+                type: 'tool-calculator',
+                state: 'output-error',
+                toolCallId: 'call1',
+                errorText: 'Invalid arguments',
+                input: undefined,
+                rawInput: [1, 2, 3],
+              },
+            ],
+          },
+        ]);
+
+        const toolCall = (result[0] as any).content[0];
+        expect(toolCall.input).toEqual({});
+      });
+
+      it('should preserve object rawInput as-is', async () => {
+        const result = await convertToModelMessages([
+          {
+            role: 'assistant',
+            parts: [
+              { type: 'step-start' },
+              {
+                type: 'tool-calculator',
+                state: 'output-error',
+                toolCallId: 'call1',
+                errorText: 'Runtime error',
+                input: undefined,
+                rawInput: { operation: 'add', numbers: [1, 2] },
+              },
+            ],
+          },
+        ]);
+
+        const toolCall = (result[0] as any).content[0];
+        expect(toolCall.input).toEqual({ operation: 'add', numbers: [1, 2] });
+      });
+
+      it('should normalize undefined rawInput to empty object when input is also undefined', async () => {
+        const result = await convertToModelMessages([
+          {
+            role: 'assistant',
+            parts: [
+              { type: 'step-start' },
+              {
+                type: 'tool-calculator',
+                state: 'output-error',
+                toolCallId: 'call1',
+                errorText: 'Some error',
+                input: undefined,
+              },
+            ],
+          },
+        ]);
+
+        const toolCall = (result[0] as any).content[0];
+        expect(toolCall.input).toEqual({});
+      });
     });
 
     it('should handle assistant message with provider-executed tool output available', async () => {
