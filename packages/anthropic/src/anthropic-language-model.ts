@@ -2211,6 +2211,52 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                         },
                       }),
                     });
+                  } else if (part.type === 'code_execution_tool_result') {
+                    if (part.content.type === 'code_execution_result') {
+                      controller.enqueue({
+                        type: 'tool-result',
+                        toolCallId: part.tool_use_id,
+                        toolName:
+                          toolNameMapping.toCustomToolName('code_execution'),
+                        result: {
+                          type: part.content.type,
+                          stdout: part.content.stdout,
+                          stderr: part.content.stderr,
+                          return_code: part.content.return_code,
+                          content: part.content.content ?? [],
+                        },
+                      });
+                    } else if (
+                      part.content.type === 'encrypted_code_execution_result'
+                    ) {
+                      controller.enqueue({
+                        type: 'tool-result',
+                        toolCallId: part.tool_use_id,
+                        toolName:
+                          toolNameMapping.toCustomToolName('code_execution'),
+                        result: {
+                          type: part.content.type,
+                          encrypted_stdout: part.content.encrypted_stdout,
+                          stderr: part.content.stderr,
+                          return_code: part.content.return_code,
+                          content: part.content.content ?? [],
+                        },
+                      });
+                    } else if (
+                      part.content.type === 'code_execution_tool_result_error'
+                    ) {
+                      controller.enqueue({
+                        type: 'tool-result',
+                        toolCallId: part.tool_use_id,
+                        toolName:
+                          toolNameMapping.toCustomToolName('code_execution'),
+                        isError: true,
+                        result: {
+                          type: 'code_execution_tool_result_error',
+                          errorCode: part.content.error_code,
+                        },
+                      });
+                    }
                   }
                 }
               }

@@ -8603,6 +8603,77 @@ describe('AnthropicLanguageModel', () => {
         expect(toolCall?.input).toBe('{"city": "London"}');
       });
 
+      it('should parse real-world pre-populated message_start fixture with unrelated caller tool id', async () => {
+        prepareChunksFixtureResponse(
+          'anthropic-message-start-prepopulated-content',
+        );
+
+        const { stream } = await model.doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'anthropic.code_execution_20250825',
+              name: 'code_execution',
+              args: {},
+            },
+            {
+              type: 'function',
+              name: 'lookup_customer',
+              inputSchema: {
+                type: 'object',
+                properties: { id: { type: 'string' } },
+              },
+            },
+          ],
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+
+        expect(parts.filter(part => part.type === 'tool-result')).toStrictEqual(
+          [
+            {
+              type: 'tool-result',
+              toolCallId: 'srvtoolu_result_1',
+              toolName: 'code_execution',
+              result: {
+                type: 'code_execution_result',
+                stdout: 'First concise code execution output\n',
+                stderr: '',
+                return_code: 0,
+                content: [],
+              },
+            },
+            {
+              type: 'tool-result',
+              toolCallId: 'srvtoolu_result_2',
+              toolName: 'code_execution',
+              result: {
+                type: 'code_execution_result',
+                stdout: 'Second concise code execution output\n',
+                stderr: '',
+                return_code: 0,
+                content: [],
+              },
+            },
+          ],
+        );
+        expect(parts.find(part => part.type === 'tool-call')).toMatchObject({
+          type: 'tool-call',
+          toolCallId: 'toolu_followup',
+          toolName: 'lookup_customer',
+          input: '{"id":"customer_123"}',
+          providerMetadata: {
+            anthropic: {
+              caller: {
+                type: 'code_execution_20250825',
+                toolId: 'srvtoolu_unrelated_caller',
+              },
+            },
+          },
+        });
+      });
+
       describe('with fixture (multi-turn dice game)', () => {
         it('should stream programmatic tool calling with multiple message_start/stop sequences', async () => {
           prepareChunksFixtureResponse('anthropic-programmatic-tool-calling.1');

@@ -932,6 +932,46 @@ export const anthropicChunkSchema = lazySchema(() =>
                     ])
                     .optional(),
                 }),
+                z.object({
+                  type: z.literal('code_execution_tool_result'),
+                  tool_use_id: z.string(),
+                  content: z.union([
+                    z.object({
+                      type: z.literal('code_execution_result'),
+                      stdout: z.string(),
+                      stderr: z.string(),
+                      return_code: z.number(),
+                      content: z
+                        .array(
+                          z.object({
+                            type: z.literal('code_execution_output'),
+                            file_id: z.string(),
+                          }),
+                        )
+                        .optional()
+                        .default([]),
+                    }),
+                    z.object({
+                      type: z.literal('encrypted_code_execution_result'),
+                      encrypted_stdout: z.string(),
+                      stderr: z.string(),
+                      return_code: z.number(),
+                      content: z
+                        .array(
+                          z.object({
+                            type: z.literal('code_execution_output'),
+                            file_id: z.string(),
+                          }),
+                        )
+                        .optional()
+                        .default([]),
+                    }),
+                    z.object({
+                      type: z.literal('code_execution_tool_result_error'),
+                      error_code: z.string(),
+                    }),
+                  ]),
+                }),
               ]),
             )
             .nullish(),
