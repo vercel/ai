@@ -12,4 +12,6 @@
  * }
  * ```
  */
-export type SharedV4ProviderReference = Record<string, string>;
+export type SharedV4ProviderReference = Record<string, string> & {
+  type?: never;
+};

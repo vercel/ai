@@ -16,14 +16,17 @@ export type LanguageModelV4File = {
   mediaType: string;
 
   /**
-   * Generated file data as base64 encoded strings or binary data.
+   * Generated file data as a tagged discriminated union:
+   *
+   * - `{ type: 'data', data }`: raw bytes (Uint8Array) or base64-encoded string.
+   * - `{ type: 'url', url }`: a URL that points to the file.
    *
    * The file data should be returned without any unnecessary conversion.
    * If the API returns base64 encoded strings, the file data should be returned
    * as base64 encoded strings. If the API returns binary data, the file data should
    * be returned as binary data.
    */
-  data: string | Uint8Array;
+  data: { type: 'data'; data: string | Uint8Array } | { type: 'url'; url: URL };
 
   /**
    * Optional provider-specific metadata for the file part.
