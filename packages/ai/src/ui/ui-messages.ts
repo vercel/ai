@@ -280,7 +280,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
    */
   providerExecuted?: boolean;
 } & (
-  | {
+    | {
       state: 'input-streaming';
       input: DeepPartial<asUITool<TOOL>['input']> | undefined;
       output?: never;
@@ -288,7 +288,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
       callProviderMetadata?: ProviderMetadata;
       approval?: never;
     }
-  | {
+    | {
       state: 'input-available';
       input: asUITool<TOOL>['input'];
       output?: never;
@@ -296,7 +296,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
       callProviderMetadata?: ProviderMetadata;
       approval?: never;
     }
-  | {
+    | {
       state: 'approval-requested';
       input: asUITool<TOOL>['input'];
       output?: never;
@@ -309,7 +309,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
         isAutomatic?: boolean;
       };
     }
-  | {
+    | {
       state: 'approval-responded';
       input: asUITool<TOOL>['input'];
       output?: never;
@@ -322,7 +322,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
         isAutomatic?: boolean;
       };
     }
-  | {
+    | {
       state: 'output-available';
       input: asUITool<TOOL>['input'];
       output: asUITool<TOOL>['output'];
@@ -337,7 +337,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
         isAutomatic?: boolean;
       };
     }
-  | {
+    | {
       state: 'output-error'; // TODO AI SDK 6: change to 'error' state
       input: asUITool<TOOL>['input'] | undefined;
       rawInput?: unknown; // TODO AI SDK 6: remove this field, input should be unknown
@@ -352,7 +352,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
         isAutomatic?: boolean;
       };
     }
-  | {
+    | {
       state: 'output-denied';
       input: asUITool<TOOL>['input'];
       output?: never;
@@ -365,7 +365,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
         isAutomatic?: boolean;
       };
     }
-);
+  );
 
 export type ToolUIPart<TOOLS extends UITools = UITools> = ValueOf<{
   [NAME in keyof TOOLS & string]: {
@@ -392,7 +392,7 @@ export type DynamicToolUIPart = {
    */
   providerExecuted?: boolean;
 } & (
-  | {
+    | {
       state: 'input-streaming';
       input: unknown | undefined;
       output?: never;
@@ -400,7 +400,7 @@ export type DynamicToolUIPart = {
       callProviderMetadata?: ProviderMetadata;
       approval?: never;
     }
-  | {
+    | {
       state: 'input-available';
       input: unknown;
       output?: never;
@@ -408,7 +408,7 @@ export type DynamicToolUIPart = {
       callProviderMetadata?: ProviderMetadata;
       approval?: never;
     }
-  | {
+    | {
       state: 'approval-requested';
       input: unknown;
       output?: never;
@@ -421,7 +421,7 @@ export type DynamicToolUIPart = {
         isAutomatic?: boolean;
       };
     }
-  | {
+    | {
       state: 'approval-responded';
       input: unknown;
       output?: never;
@@ -434,7 +434,7 @@ export type DynamicToolUIPart = {
         isAutomatic?: boolean;
       };
     }
-  | {
+    | {
       state: 'output-available';
       input: unknown;
       output: unknown;
@@ -449,7 +449,7 @@ export type DynamicToolUIPart = {
         isAutomatic?: boolean;
       };
     }
-  | {
+    | {
       state: 'output-error'; // TODO AI SDK 6: change to 'error' state
       input: unknown;
       output?: never;
@@ -463,7 +463,7 @@ export type DynamicToolUIPart = {
         isAutomatic?: boolean;
       };
     }
-  | {
+    | {
       state: 'output-denied';
       input: unknown;
       output?: never;
@@ -476,7 +476,7 @@ export type DynamicToolUIPart = {
         isAutomatic?: boolean;
       };
     }
-);
+  );
 
 /**
  * Type guard to check if a message part is a text part.
@@ -600,14 +600,14 @@ export type InferUIMessageToolOutputs<UI_MESSAGE extends UIMessage> =
 
 export type InferUIMessageToolCall<UI_MESSAGE extends UIMessage> =
   | ValueOf<{
-      [NAME in keyof InferUIMessageTools<UI_MESSAGE>]: ToolCall<
-        NAME & string,
-        InferUIMessageTools<UI_MESSAGE>[NAME] extends { input: infer INPUT }
-          ? INPUT
-          : never
-      > & { dynamic?: false };
-    }>
-  | (ToolCall<string, unknown> & { dynamic: true });
+    [NAME in keyof InferUIMessageTools<UI_MESSAGE>]: ToolCall<
+      NAME & string,
+      InferUIMessageTools<UI_MESSAGE>[NAME] extends { input: infer INPUT }
+      ? INPUT
+      : never
+    > & { dynamic?: false };
+  }>
+  | (ToolCall<string, any> & { dynamic: true });
 
 export type InferUIMessagePart<UI_MESSAGE extends UIMessage> = UIMessagePart<
   InferUIMessageData<UI_MESSAGE>,
