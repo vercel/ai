@@ -13,9 +13,11 @@ import * as assert from 'node:assert';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   Attributes,
+  context,
   Span,
   SpanOptions,
   SpanStatusCode,
+  trace,
   Tracer,
 } from '@opentelemetry/api';
 import { z } from 'zod/v4';
@@ -124,6 +126,86 @@ function createMockTracer(): MockTracer {
     startActiveSpan: vi.fn() as Tracer['startActiveSpan'],
   };
   return tracer;
+}
+
+const contextApi = context as typeof context & {
+  setGlobalContextManager: (manager: {
+    active: () => ReturnType<typeof context.active>;
+    with: <T>(
+      nextContext: ReturnType<typeof context.active>,
+      fn: (...args: any[]) => T,
+      thisArg?: any,
+      ...args: any[]
+    ) => T;
+    bind: <T>(nextContext: ReturnType<typeof context.active>, target: T) => T;
+    enable: () => unknown;
+    disable: () => unknown;
+  }) => boolean;
+  disable: () => void;
+};
+
+class TestContextManager {
+  private readonly rootContext = context.active();
+  private currentContext = this.rootContext;
+
+  active() {
+    return this.currentContext;
+  }
+
+  with<T>(
+    nextContext: ReturnType<typeof context.active>,
+    fn: (...args: any[]) => T,
+    thisArg?: any,
+    ...args: any[]
+  ): T {
+    const previousContext = this.currentContext;
+    this.currentContext = nextContext;
+
+    try {
+      const result = fn.call(thisArg, ...args);
+
+      if (
+        result != null &&
+        typeof (result as unknown as { then?: unknown }).then === 'function'
+      ) {
+        return Promise.resolve(result).finally(() => {
+          this.currentContext = previousContext;
+        }) as T;
+      }
+
+      this.currentContext = previousContext;
+      return result;
+    } catch (error) {
+      this.currentContext = previousContext;
+      throw error;
+    }
+  }
+
+  bind<T>(nextContext: ReturnType<typeof context.active>, target: T): T {
+    if (typeof target !== 'function') {
+      return target;
+    }
+
+    const manager = this;
+
+    return function (this: unknown, ...args: any[]) {
+      return manager.with(
+        nextContext,
+        target as (...args: any[]) => unknown,
+        this,
+        ...args,
+      );
+    } as T;
+  }
+
+  enable() {
+    return this;
+  }
+
+  disable() {
+    this.currentContext = this.rootContext;
+    return this;
+  }
 }
 
 function getStartSpanAttributes(
@@ -1811,6 +1893,116 @@ describe('OpenTelemetry integration with streamText', () => {
 
   beforeEach(() => {
     tracer = new IntegrationMockTracer();
+  });
+
+  it('should execute doStream inside the active doStream span context', async () => {
+    const contextManager = new TestContextManager();
+    contextApi.setGlobalContextManager(contextManager);
+
+    try {
+      let activeSpan: Span | undefined;
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => {
+            activeSpan = trace.getSpan(context.active()) ?? undefined;
+
+            return {
+              stream: convertArrayToReadableStream([
+                {
+                  type: 'response-metadata',
+                  id: 'id-0',
+                  modelId: 'mock-model-id',
+                  timestamp: new Date(0),
+                },
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: 'Hello, world!' },
+                { type: 'text-end', id: '1' },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                  usage: integrationTestUsage,
+                },
+              ]),
+            };
+          },
+        }),
+        prompt: 'test-input',
+        telemetry: {
+          integrations: new OpenTelemetry({ tracer }),
+        },
+        _internal: {
+          now: mockValues(0, 100, 500),
+        },
+      });
+
+      await result.consumeStream();
+
+      const doStreamSpan = tracer.jsonSpans.find(
+        span => span.name === 'ai.streamText.doStream',
+      );
+      const activeSpanRecord = tracer.spans.find(span => span === activeSpan);
+
+      expect({
+        activeSpanName: activeSpanRecord?.name,
+        doStreamSpan,
+      }).toMatchInlineSnapshot(`
+        {
+          "activeSpanName": "ai.streamText.doStream",
+          "doStreamSpan": {
+            "attributes": {
+              "ai.model.id": "mock-model-id",
+              "ai.model.provider": "mock-provider",
+              "ai.operationId": "ai.streamText.doStream",
+              "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"test-input"}]}]",
+              "ai.prompt.toolChoice": "{"type":"auto"}",
+              "ai.response.avgOutputTokensPerSecond": 20,
+              "ai.response.finishReason": "stop",
+              "ai.response.id": "id-0",
+              "ai.response.model": "mock-model-id",
+              "ai.response.msToFinish": 500,
+              "ai.response.msToFirstChunk": 100,
+              "ai.response.text": "Hello, world!",
+              "ai.response.timestamp": "1970-01-01T00:00:00.000Z",
+              "ai.settings.maxRetries": 2,
+              "ai.usage.inputTokenDetails.noCacheTokens": 3,
+              "ai.usage.inputTokens": 3,
+              "ai.usage.outputTokenDetails.textTokens": 10,
+              "ai.usage.outputTokens": 10,
+              "ai.usage.totalTokens": 13,
+              "gen_ai.request.model": "mock-model-id",
+              "gen_ai.response.finish_reasons": [
+                "stop",
+              ],
+              "gen_ai.response.id": "id-0",
+              "gen_ai.response.model": "mock-model-id",
+              "gen_ai.system": "mock-provider",
+              "gen_ai.usage.input_tokens": 3,
+              "gen_ai.usage.output_tokens": 10,
+              "operation.name": "ai.streamText.doStream",
+            },
+            "events": [
+              {
+                "attributes": {
+                  "ai.response.msToFirstChunk": 100,
+                },
+                "name": "ai.stream.firstChunk",
+              },
+              {
+                "attributes": {
+                  "ai.response.avgOutputTokensPerSecond": 20,
+                  "ai.response.msToFinish": 500,
+                },
+                "name": "ai.stream.finish",
+              },
+            ],
+            "name": "ai.streamText.doStream",
+          },
+        }
+      `);
+    } finally {
+      contextApi.disable();
+    }
   });
 
   it('should record telemetry data when isEnabled is not explicitly set', async () => {

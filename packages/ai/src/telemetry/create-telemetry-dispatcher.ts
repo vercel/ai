@@ -101,6 +101,12 @@ export function createTelemetryDispatcher({
   };
 
   const executeWrappers = integrations
+    .map(integration => integration.executeLanguageModelCall?.bind(integration))
+    .filter(Boolean) as Array<
+    NonNullable<Telemetry['executeLanguageModelCall']>
+  >;
+
+  const executeToolWrappers = integrations
     .map(integration => integration.executeTool?.bind(integration))
     .filter(Boolean) as Array<NonNullable<Telemetry['executeTool']>>;
 
@@ -123,7 +129,18 @@ export function createTelemetryDispatcher({
     onRerankFinish: mergeTelemetryCallback('onRerankFinish'),
     onFinish: mergeTelemetryCallback('onFinish'),
     onError: mergeTelemetryCallback('onError'),
-
+    executeLanguageModelCall:
+      executeWrappers.length > 0
+        ? async args => {
+            let execute = args.execute;
+            for (const executeWrapper of executeWrappers) {
+              const innerExecute = execute;
+              execute = () =>
+                executeWrapper({ ...args, execute: innerExecute });
+            }
+            return await execute();
+          }
+        : undefined,
     /**
      * Composes all `executeTool` wrappers around the original tool execution.
      * Each wrapper receives an `execute` function that calls the next wrapper in
@@ -131,10 +148,10 @@ export function createTelemetryDispatcher({
      * delegating to the underlying tool.
      */
     executeTool:
-      executeWrappers.length > 0
+      executeToolWrappers.length > 0
         ? async args => {
             let execute = args.execute;
-            for (const executeWrapper of executeWrappers) {
+            for (const executeWrapper of executeToolWrappers) {
               const innerExecute = execute;
               execute = () =>
                 executeWrapper({ ...args, execute: innerExecute });

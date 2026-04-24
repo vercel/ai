@@ -2,6 +2,7 @@ import type {
   LanguageModelV4CallOptions,
   LanguageModelV4Prompt,
 } from '@ai-sdk/provider';
+import { createIdGenerator } from '@ai-sdk/provider-utils';
 import {
   type Experimental_LanguageModelStreamPart as ModelCallStreamPart,
   experimental_streamLanguageModelCall as streamModelCall,
@@ -25,6 +26,11 @@ import {
 export type { Experimental_LanguageModelStreamPart as ModelCallStreamPart } from 'ai';
 
 export type ModelStopCondition = StopCondition<NoInfer<ToolSet>, any>;
+
+const generateCallId = createIdGenerator({
+  prefix: 'call',
+  size: 24,
+});
 
 /**
  * Provider-executed tool result captured from the stream.
@@ -111,6 +117,7 @@ export async function doStreamStep(
   // (tool call parsing, finish reason mapping, file wrapping).
   const { stream: modelStream } = await streamModelCall({
     model,
+    callId: generateCallId(),
     // streamModelCall expects Prompt (ModelMessage[]) but we pass the
     // pre-converted LanguageModelV4Prompt. standardizePrompt inside
     // streamModelCall handles both formats.

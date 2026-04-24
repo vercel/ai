@@ -171,6 +171,23 @@ export class GenAIOpenTelemetry implements Telemetry {
     return context.with(toolSpanEntry.context, execute);
   }
 
+  executeLanguageModelCall<T>({
+    callId,
+    execute,
+  }: {
+    callId: string;
+    execute: () => PromiseLike<T>;
+  }): PromiseLike<T> {
+    const state = this.getCallState(callId);
+    const modelCallContext = state?.inferenceContext ?? state?.stepContext;
+
+    if (modelCallContext == null) {
+      return execute();
+    }
+
+    return context.with(modelCallContext, execute);
+  }
+
   onStart(
     event:
       | InferTelemetryEvent<GenerateTextStartEvent>

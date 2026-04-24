@@ -731,16 +731,29 @@ export async function generateText<
           ],
         });
 
+        const executeLanguageModelCallInTelemetryContext =
+          telemetryDispatcher.executeLanguageModelCall ??
+          (async <T>({
+            execute,
+          }: {
+            callId: string;
+            execute: () => PromiseLike<T>;
+          }) => await execute());
+
         currentModelResponse = await retry(async () => {
-          const result = await stepModel.doGenerate({
-            ...callSettings,
-            tools: stepTools,
-            toolChoice: stepToolChoice,
-            responseFormat: await output?.responseFormat,
-            prompt: promptMessages,
-            providerOptions: stepProviderOptions,
-            abortSignal: mergedAbortSignal,
-            headers: headersWithUserAgent,
+          const result = await executeLanguageModelCallInTelemetryContext({
+            callId,
+            execute: async () =>
+              await stepModel.doGenerate({
+                ...callSettings,
+                tools: stepTools,
+                toolChoice: stepToolChoice,
+                responseFormat: await output?.responseFormat,
+                prompt: promptMessages,
+                providerOptions: stepProviderOptions,
+                abortSignal: mergedAbortSignal,
+                headers: headersWithUserAgent,
+              }),
           });
 
           const responseData = {

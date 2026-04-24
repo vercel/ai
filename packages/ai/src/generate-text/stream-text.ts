@@ -1599,13 +1599,15 @@ class DefaultStreamTextResult<
               system: stepSystem,
               messages: stepMessages,
               repairToolCall,
+              callId,
               abortSignal,
               headers,
               includeRawChunks,
               providerOptions: stepProviderOptions,
               download,
               output,
-              callId,
+              executeLanguageModelCallInTelemetryContext:
+                telemetryDispatcher.executeLanguageModelCall,
               onLanguageModelCallStart: filterNullable(
                 onLanguageModelCallStart,
                 telemetryDispatcher.onLanguageModelCallStart as

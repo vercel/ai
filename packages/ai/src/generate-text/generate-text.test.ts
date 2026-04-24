@@ -169,6 +169,42 @@ describe('generateText', () => {
     logWarningsSpy.mockRestore();
   });
 
+  describe('telemetry model-call context', () => {
+    it('should execute doGenerate inside executeLanguageModelCall context', async () => {
+      let activeContext: string | undefined;
+      let capturedContext: string | undefined;
+
+      await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => {
+            capturedContext = activeContext;
+
+            return {
+              ...dummyResponseValues,
+              content: [{ type: 'text', text: 'done' }],
+            };
+          },
+        }),
+        telemetry: {
+          isEnabled: true,
+          integrations: {
+            executeLanguageModelCall: async ({ callId, execute }) => {
+              activeContext = callId;
+              try {
+                return await execute();
+              } finally {
+                activeContext = undefined;
+              }
+            },
+          },
+        },
+        ...defaultSettings(),
+      });
+
+      expect(capturedContext).toBe('test-telemetry-call-id');
+    });
+  });
+
   describe('result.content', () => {
     it('should generate content', async () => {
       const result = await generateText({

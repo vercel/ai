@@ -186,6 +186,8 @@ export async function streamLanguageModelCall<
   providerOptions,
   repairToolCall,
   callId,
+  executeLanguageModelCallInTelemetryContext = async ({ execute }) =>
+    await execute(),
   _internal: {
     generateId = originalGenerateId,
     generateCallId = originalGenerateCallId,
@@ -205,7 +207,11 @@ export async function streamLanguageModelCall<
   includeRawChunks?: boolean;
   providerOptions?: ProviderOptions;
   repairToolCall?: ToolCallRepairFunction<TOOLS> | undefined;
-  callId?: string;
+  callId: string;
+  executeLanguageModelCallInTelemetryContext?: <T>(params: {
+    callId: string;
+    execute: () => PromiseLike<T>;
+  }) => PromiseLike<T>;
   _internal?: {
     generateId?: IdGenerator;
     generateCallId?: IdGenerator;
@@ -289,16 +295,20 @@ export async function streamLanguageModelCall<
     stream: languageModelStream,
     response,
     request,
-  } = await resolvedModel.doStream({
-    ...callSettings,
-    tools: stepTools,
-    toolChoice: stepToolChoice,
-    responseFormat: await output?.responseFormat,
-    prompt: promptMessages,
-    providerOptions,
-    abortSignal,
-    headers,
-    includeRawChunks,
+  } = await executeLanguageModelCallInTelemetryContext({
+    callId,
+    execute: async () =>
+      await resolvedModel.doStream({
+        ...callSettings,
+        tools: stepTools,
+        toolChoice: stepToolChoice,
+        responseFormat: await output?.responseFormat,
+        prompt: promptMessages,
+        providerOptions,
+        abortSignal,
+        headers,
+        includeRawChunks,
+      }),
   });
 
   const standardizedStream = languageModelStream.pipeThrough(

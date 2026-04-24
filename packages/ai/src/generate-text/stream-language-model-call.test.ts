@@ -54,6 +54,7 @@ async function streamLanguageModelCallResult<TOOLS extends ToolSet>({
     prompt: 'test prompt',
     system: undefined,
     repairToolCall,
+    callId: 'call-1',
   });
 
   return convertReadableStreamToArray(stream);
@@ -157,6 +158,7 @@ describe('streamLanguageModelCall', () => {
       let endEvent!: LanguageModelCallEndEvent;
       const generateId = vi.fn(() => 'aitxt-generated-response-id');
       const generateCallId = vi.fn(() => 'call-generated-call-id');
+      const callId = generateCallId();
 
       const { stream } = await streamLanguageModelCall({
         model: new MockLanguageModelV4({
@@ -171,9 +173,9 @@ describe('streamLanguageModelCall', () => {
           }),
         }),
         prompt: 'test prompt',
+        callId,
         _internal: {
           generateId,
-          generateCallId,
         },
         onLanguageModelCallStart: async event => {
           startEvent = event;
@@ -419,6 +421,7 @@ describe('streamLanguageModelCall', () => {
         prompt: 'test prompt',
         system: undefined,
         repairToolCall: undefined,
+        callId: 'call-1',
       });
 
       expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`

@@ -554,4 +554,72 @@ describe('createTelemetryDispatcher', () => {
       expect(integration.calls).toBe(1);
     });
   });
+
+  describe('executeLanguageModelCall', () => {
+    it('returns undefined when no integrations implement executeLanguageModelCall', () => {
+      const telemetry = createTelemetryDispatcher({
+        telemetry: { integrations: { onStart: vi.fn() } },
+      });
+
+      expect(telemetry.executeLanguageModelCall).toBeUndefined();
+    });
+
+    it('wraps execute with a single integration', async () => {
+      const execute = vi.fn().mockResolvedValue('result');
+      let wrapperCalls = 0;
+      const callOrder: string[] = [];
+      const wrapper: Telemetry['executeLanguageModelCall'] = async ({
+        execute,
+      }) => {
+        wrapperCalls += 1;
+        callOrder.push('wrapper-before');
+        const result = await execute();
+        callOrder.push('wrapper-after');
+        return result;
+      };
+
+      const telemetry = createTelemetryDispatcher({
+        telemetry: { integrations: { executeLanguageModelCall: wrapper } },
+      });
+
+      await expect(
+        telemetry.executeLanguageModelCall!({
+          callId: 'call-1',
+          execute,
+        }),
+      ).resolves.toBe('result');
+
+      expect(wrapperCalls).toBe(1);
+      expect(execute).toHaveBeenCalledOnce();
+      expect(callOrder).toEqual(['wrapper-before', 'wrapper-after']);
+    });
+
+    it('auto-binds class-based executeLanguageModelCall integrations', async () => {
+      class ExecuteLanguageModelCallIntegration implements Telemetry {
+        calls = 0;
+
+        async executeLanguageModelCall<T>({
+          execute,
+        }: {
+          callId: string;
+          execute: () => PromiseLike<T>;
+        }) {
+          this.calls += 1;
+          return execute();
+        }
+      }
+
+      const integration = new ExecuteLanguageModelCallIntegration();
+      const telemetry = createTelemetryDispatcher({
+        telemetry: { integrations: integration },
+      });
+
+      await telemetry.executeLanguageModelCall!({
+        callId: 'call-1',
+        execute: async () => 'done',
+      });
+
+      expect(integration.calls).toBe(1);
+    });
+  });
 });
