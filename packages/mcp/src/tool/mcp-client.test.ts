@@ -1082,6 +1082,41 @@ describe('MCPClient', () => {
     expect(onUncaughtError).toHaveBeenCalled();
   });
 
+  it('should call onNotification when server sends a notification', async () => {
+    const onNotification = vi.fn();
+    const mockTransport = new MockMCPTransport();
+    createMockTransport.mockImplementation(() => mockTransport);
+    client = await createMCPClient({
+      transport: { type: 'sse', url: 'https://example.com/sse' },
+      onNotification,
+    });
+
+    const notification = {
+      jsonrpc: '2.0' as const,
+      method: 'notifications/message',
+      params: { level: 'info', data: 'tool started' },
+    };
+    mockTransport.onmessage?.(notification);
+
+    expect(onNotification).toHaveBeenCalledWith(notification);
+  });
+
+  it('should not error when server sends a notification without onNotification', async () => {
+    const mockTransport = new MockMCPTransport();
+    createMockTransport.mockImplementation(() => mockTransport);
+    client = await createMCPClient({
+      transport: { type: 'sse', url: 'https://example.com/sse' },
+    });
+
+    expect(() => {
+      mockTransport.onmessage?.({
+        jsonrpc: '2.0',
+        method: 'notifications/message',
+        params: { level: 'info', data: 'tool started' },
+      });
+    }).not.toThrow();
+  });
+
   it('should support custom transports', async () => {
     const mockTransport = new MockMCPTransport();
     client = await createMCPClient({
