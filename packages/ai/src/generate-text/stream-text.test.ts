@@ -231,7 +231,7 @@ const modelWithFiles = new MockLanguageModelV4({
     stream: convertArrayToReadableStream([
       {
         type: 'file',
-        data: 'Hello World',
+        data: { type: 'data', data: 'Hello World' },
         mediaType: 'text/plain',
       },
       { type: 'text-start', id: '1' },
@@ -239,7 +239,7 @@ const modelWithFiles = new MockLanguageModelV4({
       { type: 'text-end', id: '1' },
       {
         type: 'file',
-        data: 'QkFVRw==',
+        data: { type: 'data', data: 'QkFVRw==' },
         mediaType: 'image/jpeg',
       },
       {
@@ -256,7 +256,7 @@ const modelWithFilesAndProviderMetadata = new MockLanguageModelV4({
     stream: convertArrayToReadableStream([
       {
         type: 'file',
-        data: 'Hello World',
+        data: { type: 'data', data: 'Hello World' },
         mediaType: 'text/plain',
         providerMetadata: {
           testProvider: { signature: 'sig-1' },
@@ -267,7 +267,7 @@ const modelWithFilesAndProviderMetadata = new MockLanguageModelV4({
       { type: 'text-end', id: '1' },
       {
         type: 'file',
-        data: 'QkFVRw==',
+        data: { type: 'data', data: 'QkFVRw==' },
         mediaType: 'image/jpeg',
       },
       {
@@ -417,7 +417,7 @@ const modelWithReasoningFiles = new MockLanguageModelV4({
       },
       {
         type: 'reasoning-file',
-        data: 'reasoning-file-data-1',
+        data: { type: 'data', data: 'reasoning-file-data-1' },
         mediaType: 'image/png',
       },
       { type: 'reasoning-start', id: '1' },
@@ -429,7 +429,7 @@ const modelWithReasoningFiles = new MockLanguageModelV4({
       { type: 'reasoning-end', id: '1' },
       {
         type: 'reasoning-file',
-        data: 'reasoning-file-data-2',
+        data: { type: 'data', data: 'reasoning-file-data-2' },
         mediaType: 'image/jpeg',
         providerMetadata: {
           testProvider: { signature: 'rf-sig-1' },
@@ -23715,12 +23715,15 @@ describe('streamText', () => {
                     "type": "text",
                   },
                   {
-                    "data": Uint8Array [
-                      1,
-                      2,
-                      3,
-                      4,
-                    ],
+                    "data": {
+                      "data": Uint8Array [
+                        1,
+                        2,
+                        3,
+                        4,
+                      ],
+                      "type": "data",
+                    },
                     "filename": undefined,
                     "mediaType": "image/png",
                     "providerOptions": undefined,

@@ -320,7 +320,10 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
           controller.enqueue({
             type: chunk.type,
             file: new DefaultGeneratedFileWithType({
-              data: chunk.data,
+              data:
+                chunk.data.type === 'data'
+                  ? chunk.data.data
+                  : chunk.data.url.toString(),
               mediaType: chunk.mediaType,
             }),
             providerMetadata: chunk.providerMetadata,
