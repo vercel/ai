@@ -135,6 +135,18 @@ const result = await generateText({
     console.log(`Step ${stepNumber} starting`, { modelId });
   },
 
+  experimental_onLanguageModelCallStart({ modelId, messages }) {
+    console.log('Model call starting', { modelId, messageCount: messages.length });
+  },
+
+  experimental_onLanguageModelCallEnd({ modelId, finishReason, content }) {
+    console.log('Model call finished', {
+      modelId,
+      finishReason,
+      contentParts: content.length,
+    });
+  },
+
   experimental_onToolExecutionStart({ toolCall }) {
     console.log(`Tool call starting: ${toolCall.toolName}`, {
       toolCallId: toolCall.toolCallId,
@@ -157,6 +169,8 @@ The available lifecycle callbacks are:
 
 - **`experimental_onStart`**: Called once when the `generateText` operation begins, before any LLM calls. Receives model info, messages, settings, and `runtimeContext`.
 - **`experimental_onStepStart`**: Called before each step (LLM call). Receives the step number, model, messages being sent, tools, and prior steps.
+- **`experimental_onLanguageModelCallStart`**: Called immediately before the provider model call begins. Useful when you want to observe the model invocation separately from later tool execution.
+- **`experimental_onLanguageModelCallEnd`**: Called after the model response has been normalized and parsed, but before any client-side tool execution begins. Receives the model-call content parts, usage, and finish reason.
 - **`experimental_onToolExecutionStart`**: Called right before a tool's `execute` function runs. Receives the tool call object, messages, and `toolContext`.
 - **`experimental_onToolExecutionEnd`**: Called right after a tool's `execute` function completes or errors. Receives the tool call object, `durationMs`, and a `toolOutput` discriminated union (`type: 'tool-result'` with `output`, or `type: 'tool-error'` with `error`).
 - **`onStepFinish`**: Called after each step finishes. Includes `stepNumber` (zero-based index of the completed step).
@@ -329,6 +343,18 @@ const result = streamText({
     console.log(`Step ${stepNumber} starting`, { modelId });
   },
 
+  experimental_onLanguageModelCallStart({ modelId, messages }) {
+    console.log('Model call starting', { modelId, messageCount: messages.length });
+  },
+
+  experimental_onLanguageModelCallEnd({ modelId, finishReason, content }) {
+    console.log('Model call finished', {
+      modelId,
+      finishReason,
+      contentParts: content.length,
+    });
+  },
+
   experimental_onToolExecutionStart({ toolCall }) {
     console.log(`Tool call starting: ${toolCall.toolName}`, {
       toolCallId: toolCall.toolCallId,
@@ -351,6 +377,8 @@ The available lifecycle callbacks are:
 
 - **`experimental_onStart`**: Called once when the `streamText` operation begins, before any LLM calls. Receives model info, messages, settings, and `runtimeContext`.
 - **`experimental_onStepStart`**: Called before each step (LLM call). Receives the step number, model, messages being sent, tools, and prior steps.
+- **`experimental_onLanguageModelCallStart`**: Called immediately before the provider model call begins. Useful when you want to observe the model invocation separately from later tool execution.
+- **`experimental_onLanguageModelCallEnd`**: Called after the model response has been normalized and parsed, but before any client-side tool execution begins. Receives the model-call content parts, usage, and finish reason.
 - **`experimental_onToolExecutionStart`**: Called right before a tool's `execute` function runs. Receives the tool call object, messages, and `toolContext`.
 - **`experimental_onToolExecutionEnd`**: Called right after a tool's `execute` function completes or errors. Receives the tool call object, `durationMs`, and a `toolOutput` discriminated union (`type: 'tool-result'` with `output`, or `type: 'tool-error'` with `error`).
 - **`onStepFinish`**: Called after each step finishes. Receives the finish reason, usage, and other step details.

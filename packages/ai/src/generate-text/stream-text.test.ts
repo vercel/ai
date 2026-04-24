@@ -26,6 +26,7 @@ import {
   convertAsyncIterableToArray,
   convertReadableStreamToArray,
   convertResponseStreamToArray,
+  isNodeVersionAtLeast,
   mockId,
 } from '@ai-sdk/provider-utils/test';
 import assert from 'node:assert';
@@ -39,7 +40,7 @@ import {
   vitest,
 } from 'vitest';
 import { z } from 'zod/v4';
-import { Output } from '..';
+import { Output, type LanguageModelCallEndEvent } from '..';
 import * as logWarningsModule from '../logger/log-warnings';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import { createMockServerResponse } from '../test/mock-server-response';
@@ -4053,101 +4054,108 @@ describe('streamText', () => {
       expect(callArgs.isAborted).toBe(false); // No explicit abort, just stopped iteration
     });
 
-    it('should call onFinish when stream is aborted via AbortController', async () => {
-      const onFinishCallback = vi.fn();
-      const abortController = new AbortController();
+    it.skipIf(isNodeVersionAtLeast(24, 15))(
+      'should call onFinish when stream is aborted via AbortController',
+      async () => {
+        const onFinishCallback = vi.fn();
+        const abortController = new AbortController();
 
-      const model = new MockLanguageModelV4({
-        doStream: async ({ abortSignal }) => {
-          const stream = new ReadableStream({
-            async start(controller) {
-              const onAbort = () => {
-                controller.error(new DOMException('Aborted', 'AbortError'));
-              };
-              abortSignal?.addEventListener('abort', onAbort, { once: true });
+        const model = new MockLanguageModelV4({
+          doStream: async ({ abortSignal }) => {
+            const stream = new ReadableStream({
+              async start(controller) {
+                const onAbort = () => {
+                  controller.error(new DOMException('Aborted', 'AbortError'));
+                };
+                abortSignal?.addEventListener('abort', onAbort, { once: true });
 
-              controller.enqueue({
-                type: 'response-metadata',
-                id: 'msg-1',
-                modelId: 'test-model',
-                timestamp: new Date(),
-              });
-              controller.enqueue({ type: 'text-start', id: '1' });
-              controller.enqueue({
-                type: 'text-delta',
-                id: '1',
-                delta: 'Hello',
-              });
-              controller.enqueue({
-                type: 'text-delta',
-                id: '1',
-                delta: ' world',
-              });
-
-              await new Promise(resolve => setTimeout(resolve, 10));
-
-              if (!abortSignal?.aborted) {
+                controller.enqueue({
+                  type: 'response-metadata',
+                  id: 'msg-1',
+                  modelId: 'test-model',
+                  timestamp: new Date(),
+                });
+                controller.enqueue({ type: 'text-start', id: '1' });
                 controller.enqueue({
                   type: 'text-delta',
                   id: '1',
-                  delta: ' from AI',
+                  delta: 'Hello',
                 });
-                controller.enqueue({ type: 'text-end', id: '1' });
                 controller.enqueue({
-                  type: 'finish',
-                  finishReason: { unified: 'stop', raw: 'stop' },
-                  usage: { inputTokens: 10, outputTokens: 5, totalTokens: 15 },
+                  type: 'text-delta',
+                  id: '1',
+                  delta: ' world',
                 });
-                controller.close();
-              }
-            },
-          });
 
-          return { stream };
-        },
-      });
+                await new Promise(resolve => setTimeout(resolve, 10));
 
-      const result = streamText({
-        model,
-        prompt: 'Say hello',
-        abortSignal: abortController.signal,
-      });
+                if (!abortSignal?.aborted) {
+                  controller.enqueue({
+                    type: 'text-delta',
+                    id: '1',
+                    delta: ' from AI',
+                  });
+                  controller.enqueue({ type: 'text-end', id: '1' });
+                  controller.enqueue({
+                    type: 'finish',
+                    finishReason: { unified: 'stop', raw: 'stop' },
+                    usage: {
+                      inputTokens: 10,
+                      outputTokens: 5,
+                      totalTokens: 15,
+                    },
+                  });
+                  controller.close();
+                }
+              },
+            });
 
-      const uiStream = result.toUIMessageStream({
-        onFinish: onFinishCallback,
-      });
+            return { stream };
+          },
+        });
 
-      const reader = uiStream.getReader();
-      const chunks = [];
+        const result = streamText({
+          model,
+          prompt: 'Say hello',
+          abortSignal: abortController.signal,
+        });
 
-      for (let i = 0; i < 3; i++) {
-        const { value, done } = await reader.read();
-        if (done) break;
-        chunks.push(value);
-      }
+        const uiStream = result.toUIMessageStream({
+          onFinish: onFinishCallback,
+        });
 
-      abortController.abort();
-      const { value: abortChunk } = await reader.read();
-      expect(abortChunk?.type).toBe('abort');
+        const reader = uiStream.getReader();
+        const chunks = [];
 
-      while (true) {
-        const { done } = await reader.read();
-        if (done) break;
-      }
+        for (let i = 0; i < 3; i++) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          chunks.push(value);
+        }
 
-      expect(onFinishCallback).toHaveBeenCalledTimes(1);
-      const callArgs = onFinishCallback.mock.calls[0][0];
-      expect(callArgs.responseMessage).toBeDefined();
-      expect(callArgs.responseMessage.role).toBe('assistant');
-      const textPart = callArgs.responseMessage.parts.find(
-        (p: any) => p.type === 'text',
-      );
-      expect(textPart).toBeDefined();
-      expect(textPart.text).toBe(''); // Text was not streamed yet when aborted
-      expect(callArgs.isAborted).toBe(true); // Stream was aborted
+        abortController.abort();
+        const { value: abortChunk } = await reader.read();
+        expect(abortChunk?.type).toBe('abort');
 
-      reader.releaseLock();
-    });
+        while (true) {
+          const { done } = await reader.read();
+          if (done) break;
+        }
+
+        expect(onFinishCallback).toHaveBeenCalledTimes(1);
+        const callArgs = onFinishCallback.mock.calls[0][0];
+        expect(callArgs.responseMessage).toBeDefined();
+        expect(callArgs.responseMessage.role).toBe('assistant');
+        const textPart = callArgs.responseMessage.parts.find(
+          (p: any) => p.type === 'text',
+        );
+        expect(textPart).toBeDefined();
+        expect(textPart.text).toBe(''); // Text was not streamed yet when aborted
+        expect(callArgs.isAborted).toBe(true); // Stream was aborted
+
+        reader.releaseLock();
+      },
+    );
 
     it('should NOT call onFinish when for-await loop breaks early', async () => {
       const onFinish = vi.fn();
@@ -6253,6 +6261,128 @@ describe('streamText', () => {
         tool1: { label: 'updated' },
       });
       expect(recordedToolContext).toEqual({ label: 'updated' });
+    });
+  });
+
+  describe('options.experimental_onLanguageModelCallStart and experimental_onLanguageModelCallEnd', () => {
+    it('should fire the model-call callbacks before tool execution and step finish', async () => {
+      const callOrder: string[] = [];
+      const modelCallEndEvents: LanguageModelCallEndEvent<any>[] = [];
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'response-metadata',
+                id: 'response-1',
+                modelId: 'response-model',
+                timestamp: new Date('2025-01-01T00:00:00.000Z'),
+              },
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: 'Before tool.' },
+              { type: 'text-end', id: '1' },
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                input: '{ "value": "test-arg" }',
+              },
+              {
+                type: 'finish',
+                finishReason: { unified: 'tool-calls', raw: undefined },
+                usage: testUsage,
+              },
+            ]),
+          }),
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => `${value}-result`,
+          }),
+        },
+        prompt: 'test-input',
+        experimental_onStepStart: async () => {
+          callOrder.push('onStepStart');
+        },
+        experimental_onLanguageModelCallStart: async () => {
+          callOrder.push('onLanguageModelCallStart');
+        },
+        experimental_onLanguageModelCallEnd: async event => {
+          callOrder.push('onLanguageModelCallEnd');
+          modelCallEndEvents.push(event);
+        },
+        experimental_onToolExecutionStart: async () => {
+          callOrder.push('onToolExecutionStart');
+        },
+        experimental_onToolExecutionEnd: async () => {
+          callOrder.push('onToolExecutionEnd');
+        },
+        onStepFinish: async () => {
+          callOrder.push('onStepFinish');
+        },
+        onError: () => {},
+        _internal: {
+          generateCallId: () => 'test-telemetry-call-id',
+        },
+      });
+
+      await result.consumeStream();
+
+      expect(callOrder).toEqual([
+        'onStepStart',
+        'onLanguageModelCallStart',
+        'onLanguageModelCallEnd',
+        'onToolExecutionStart',
+        'onToolExecutionEnd',
+        'onStepFinish',
+      ]);
+      expect(modelCallEndEvents).toMatchInlineSnapshot(`
+        [
+          {
+            "callId": "test-telemetry-call-id",
+            "content": [
+              {
+                "text": "Before tool.",
+                "type": "text",
+              },
+              {
+                "input": {
+                  "value": "test-arg",
+                },
+                "providerExecuted": undefined,
+                "providerMetadata": undefined,
+                "title": undefined,
+                "toolCallId": "call-1",
+                "toolName": "tool1",
+                "type": "tool-call",
+              },
+            ],
+            "finishReason": "tool-calls",
+            "modelId": "mock-model-id",
+            "provider": "mock-provider",
+            "responseId": "response-1",
+            "usage": {
+              "cachedInputTokens": undefined,
+              "inputTokenDetails": {
+                "cacheReadTokens": undefined,
+                "cacheWriteTokens": undefined,
+                "noCacheTokens": 3,
+              },
+              "inputTokens": 3,
+              "outputTokenDetails": {
+                "reasoningTokens": undefined,
+                "textTokens": 10,
+              },
+              "outputTokens": 10,
+              "raw": undefined,
+              "reasoningTokens": undefined,
+              "totalTokens": 13,
+            },
+          },
+        ]
+      `);
     });
   });
 
@@ -17334,43 +17464,49 @@ describe('streamText', () => {
         `);
       });
 
-      it('should only stream initial chunks in full stream', async () => {
-        expect(await convertAsyncIterableToArray(result.fullStream))
-          .toMatchInlineSnapshot(`
-            [
-              {
-                "type": "start",
-              },
-              {
-                "request": {},
-                "type": "start-step",
-                "warnings": [],
-              },
-              {
-                "reason": "AbortError: This operation was aborted",
-                "type": "abort",
-              },
-            ]
-          `);
-      });
+      it.skipIf(isNodeVersionAtLeast(24, 15))(
+        'should only stream initial chunks in full stream',
+        async () => {
+          expect(await convertAsyncIterableToArray(result.fullStream))
+            .toMatchInlineSnapshot(`
+              [
+                {
+                  "type": "start",
+                },
+                {
+                  "request": {},
+                  "type": "start-step",
+                  "warnings": [],
+                },
+                {
+                  "reason": "AbortError: This operation was aborted",
+                  "type": "abort",
+                },
+              ]
+            `);
+        },
+      );
 
-      it('should sent an abort chunk in the ui message stream', async () => {
-        expect(await convertAsyncIterableToArray(result.toUIMessageStream()))
-          .toMatchInlineSnapshot(`
-            [
-              {
-                "type": "start",
-              },
-              {
-                "type": "start-step",
-              },
-              {
-                "reason": "AbortError: This operation was aborted",
-                "type": "abort",
-              },
-            ]
-          `);
-      });
+      it.skipIf(isNodeVersionAtLeast(24, 15))(
+        'should sent an abort chunk in the ui message stream',
+        async () => {
+          expect(await convertAsyncIterableToArray(result.toUIMessageStream()))
+            .toMatchInlineSnapshot(`
+              [
+                {
+                  "type": "start",
+                },
+                {
+                  "type": "start-step",
+                },
+                {
+                  "reason": "AbortError: This operation was aborted",
+                  "type": "abort",
+                },
+              ]
+            `);
+        },
+      );
 
       it('should include abort reason when provided', async () => {
         const abortController = new AbortController();

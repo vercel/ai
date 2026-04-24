@@ -16,16 +16,6 @@ import { TextStreamPart } from './stream-text-result';
 import type { StandardizedPrompt } from '../prompt/standardize-prompt';
 
 /**
- * Common model information used across callback events.
- */
-export type CallbackModelInfo = {
-  /** The provider identifier (e.g., 'openai', 'anthropic'). */
-  readonly provider: string;
-  /** The specific model identifier (e.g., 'gpt-4o'). */
-  readonly modelId: string;
-};
-
-/**
  * Event passed to the `onStart` callback.
  *
  * Called when the generation operation begins, before any LLM calls.
