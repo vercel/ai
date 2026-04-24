@@ -59,6 +59,8 @@ interface TrackedToolCall {
   type: 'function';
   function: { name: string; arguments: string };
   hasFinished: boolean;
+  /** True once `tool-input-start` has been emitted (i.e. name is known). */
+  hasStarted: boolean;
   metadata?: SharedV4ProviderMetadata;
 }
 
@@ -112,7 +114,7 @@ export class StreamingToolCallTracker {
    */
   flush(enqueue: (part: LanguageModelV4StreamPart) => void): void {
     for (const toolCall of this.toolCalls) {
-      if (!toolCall.hasFinished) {
+      if (!toolCall.hasFinished && toolCall.hasStarted) {
         this.finishToolCall(toolCall, enqueue);
       }
     }
@@ -146,36 +148,31 @@ export class StreamingToolCallTracker {
       });
     }
 
-    if (toolCallDelta.function?.name == null) {
-      throw new InvalidResponseDataError({
-        data: toolCallDelta,
-        message: `Expected 'function.name' to be a string.`,
-      });
-    }
-
-    enqueue({
-      type: 'tool-input-start',
-      id: toolCallDelta.id,
-      toolName: toolCallDelta.function.name,
-    });
-
     const metadata = this.extractMetadata?.(toolCallDelta);
+    const name = toolCallDelta.function?.name ?? '';
+    const hasName = name.length > 0;
 
     this.toolCalls[index] = {
       id: toolCallDelta.id,
       type: 'function',
       function: {
-        name: toolCallDelta.function.name,
-        arguments: toolCallDelta.function.arguments ?? '',
+        name,
+        arguments: toolCallDelta.function?.arguments ?? '',
       },
       hasFinished: false,
+      hasStarted: false,
       metadata,
     };
 
     const toolCall = this.toolCalls[index];
 
-    // Emit initial delta if arguments already present
-    if (toolCall.function.arguments.length > 0) {
+    // If name is available, emit tool-input-start immediately
+    if (hasName) {
+      this.startToolCall(toolCall, enqueue);
+    }
+
+    // Emit initial delta if arguments already present and started
+    if (toolCall.hasStarted && toolCall.function.arguments.length > 0) {
       enqueue({
         type: 'tool-input-delta',
         id: toolCall.id,
@@ -185,7 +182,7 @@ export class StreamingToolCallTracker {
 
     // Check if tool call is complete
     // (some providers send the full tool call in one chunk)
-    if (isParsableJson(toolCall.function.arguments)) {
+    if (toolCall.hasStarted && isParsableJson(toolCall.function.arguments)) {
       this.finishToolCall(toolCall, enqueue);
     }
   }
@@ -201,20 +198,56 @@ export class StreamingToolCallTracker {
       return;
     }
 
-    if (toolCallDelta.function?.arguments != null) {
+    // If name arrives in a later delta, start the tool call now
+    if (
+      !toolCall.hasStarted &&
+      toolCallDelta.function?.name != null &&
+      toolCallDelta.function.name.length > 0
+    ) {
+      toolCall.function.name = toolCallDelta.function.name;
+      this.startToolCall(toolCall, enqueue);
+
+      // Replay any buffered arguments as a single delta
+      const buffered =
+        toolCall.function.arguments +
+        (toolCallDelta.function.arguments ?? '');
+      toolCall.function.arguments = buffered;
+
+      if (buffered.length > 0) {
+        enqueue({
+          type: 'tool-input-delta',
+          id: toolCall.id,
+          delta: buffered,
+        });
+      }
+    } else if (toolCallDelta.function?.arguments != null) {
       toolCall.function.arguments += toolCallDelta.function.arguments;
 
-      enqueue({
-        type: 'tool-input-delta',
-        id: toolCall.id,
-        delta: toolCallDelta.function.arguments,
-      });
+      if (toolCall.hasStarted) {
+        enqueue({
+          type: 'tool-input-delta',
+          id: toolCall.id,
+          delta: toolCallDelta.function.arguments,
+        });
+      }
     }
 
     // Check if tool call is complete
-    if (isParsableJson(toolCall.function.arguments)) {
+    if (toolCall.hasStarted && isParsableJson(toolCall.function.arguments)) {
       this.finishToolCall(toolCall, enqueue);
     }
+  }
+
+  private startToolCall(
+    toolCall: TrackedToolCall,
+    enqueue: (part: LanguageModelV4StreamPart) => void,
+  ): void {
+    enqueue({
+      type: 'tool-input-start',
+      id: toolCall.id,
+      toolName: toolCall.function.name,
+    });
+    toolCall.hasStarted = true;
   }
 
   private finishToolCall(
