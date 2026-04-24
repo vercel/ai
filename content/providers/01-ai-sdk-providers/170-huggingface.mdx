@@ -197,8 +197,9 @@ const result = await generateText({
       content: [
         { type: 'text', text: 'Describe this image in detail.' },
         {
-          type: 'image',
-          image: readFileSync('./image.png'),
+          type: 'file',
+          mediaType: 'image',
+          data: readFileSync('./image.png'),
         },
       ],
     },
@@ -210,8 +211,9 @@ You can also pass image URLs:
 
 ```ts
 {
-  type: 'image',
-  image: 'https://example.com/image.png',
+  type: 'file',
+  mediaType: 'image',
+  data: 'https://example.com/image.png',
 }
 ```
 

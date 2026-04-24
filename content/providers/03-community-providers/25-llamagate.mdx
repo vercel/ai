@@ -181,7 +181,7 @@ const { text } = await generateText({
       role: 'user',
       content: [
         { type: 'text', text: 'What is in this image?' },
-        { type: 'image', image: new URL('https://example.com/image.jpg') },
+        { type: 'file', mediaType: 'image', data: new URL('https://example.com/image.jpg') },
       ],
     },
   ],

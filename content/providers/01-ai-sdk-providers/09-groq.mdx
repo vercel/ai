@@ -259,8 +259,9 @@ const { text } = await generateText({
       content: [
         { type: 'text', text: 'What do you see in this image?' },
         {
-          type: 'image',
-          image: 'https://example.com/image.jpg',
+          type: 'file',
+          mediaType: 'image',
+          data: 'https://example.com/image.jpg',
         },
       ],
     },
@@ -285,8 +286,9 @@ const { text } = await generateText({
       content: [
         { type: 'text', text: 'Describe this image in detail.' },
         {
-          type: 'image',
-          image: `data:image/jpeg;base64,${imageData}`,
+          type: 'file',
+          mediaType: 'image',
+          data: `data:image/jpeg;base64,${imageData}`,
         },
       ],
     },
