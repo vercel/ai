@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { HttpMCPTransport } from './mcp-http-transport';
 import { LATEST_PROTOCOL_VERSION } from './types';
 import { MCPClientError } from '../error/mcp-client-error';
+import { delay } from '@ai-sdk/provider-utils';
 
 describe('HttpMCPTransport', () => {
   const server = createTestServer({
@@ -194,7 +195,7 @@ describe('HttpMCPTransport', () => {
         ) {
           resolve();
         } else {
-          setTimeout(check, 0);
+          delay(0).then(check);
         }
       };
       check();

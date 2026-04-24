@@ -7,6 +7,7 @@ import userEvent from '@testing-library/user-event';
 import { z } from 'zod/v4';
 import { experimental_useObject } from './use-object';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { delay } from '@ai-sdk/provider-utils';
 
 const server = createTestServer({
   '/api/use-object': {},
@@ -284,7 +285,7 @@ describe('text stream', () => {
         schema: z.object({ content: z.string() }),
         headers: async () => {
           // Simulate async token fetch
-          await new Promise(resolve => setTimeout(resolve, 10));
+          await delay(10);
           return {
             Authorization: 'Bearer ASYNC_TOKEN',
             'X-Request-ID': 'async-123',

@@ -7,6 +7,7 @@
 import type { UIMessage } from 'ai';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { WorkflowChatTransport } from './workflow-chat-transport.js';
+import { delay } from '@ai-sdk/provider-utils';
 
 describe('WorkflowChatTransport', () => {
   let mockFetch: ReturnType<typeof vi.fn> & typeof fetch;
@@ -653,7 +654,7 @@ describe('WorkflowChatTransport', () => {
       }
 
       // Give some time for the callback to be called
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await delay(100);
 
       expect(onChatEnd).toHaveBeenCalledWith({
         chatId: 'test-chat',

@@ -1,11 +1,12 @@
 import { convertAsyncIteratorToReadableStream } from './convert-async-iterator-to-readable-stream';
 import { describe, it, expect } from 'vitest';
+import { delay } from './delay';
 
 async function* makeGenerator(onFinally: () => void) {
   try {
     let i = 0;
     while (true) {
-      await new Promise(r => setTimeout(r, 0));
+      await delay(0);
       yield i++;
     }
   } finally {
@@ -27,7 +28,7 @@ describe('convertAsyncIteratorToReadableStream', () => {
     await reader.cancel('stop');
 
     // give microtasks a tick for finally to run
-    await new Promise(r => setTimeout(r, 0));
+    await delay(0);
 
     expect(finallyCalled).toBe(true);
   });

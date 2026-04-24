@@ -7,6 +7,7 @@ import {
   PostProcessCallback,
 } from './options';
 import { zod3ToJsonSchema } from './zod3-to-json-schema';
+import { delay } from '../../delay';
 
 describe('zod3-to-json-schema', () => {
   describe('override', () => {
@@ -323,7 +324,7 @@ describe('zod3-to-json-schema', () => {
         .string()
         .optional()
         .superRefine(async (value, ctx) => {
-          await new Promise(resolve => setTimeout(resolve, 100));
+          await delay(100);
           if (value === 'fail') {
             ctx.addIssue({
               code: z.ZodIssueCode.custom,
