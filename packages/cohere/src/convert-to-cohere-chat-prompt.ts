@@ -3,7 +3,6 @@ import {
   LanguageModelV4Prompt,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import { isProviderReference } from '@ai-sdk/provider-utils';
 import { CohereAssistantMessage, CohereChatPrompt } from './cohere-chat-prompt';
 
 export function convertToCohereChatPrompt(prompt: LanguageModelV4Prompt): {
@@ -34,38 +33,32 @@ export function convertToCohereChatPrompt(prompt: LanguageModelV4Prompt): {
                   return part.text;
                 }
                 case 'file': {
-                  if (isProviderReference(part.data)) {
-                    throw new UnsupportedFunctionalityError({
-                      functionality: 'file parts with provider references',
-                    });
-                  }
-
-                  // Extract documents for RAG
                   let textContent: string;
 
-                  if (typeof part.data === 'string') {
-                    // Base64 or text data
-                    textContent = part.data;
-                  } else if (part.data instanceof Uint8Array) {
-                    // Check if the media type is supported for text extraction
-                    if (
-                      !(
-                        part.mediaType?.startsWith('text/') ||
-                        part.mediaType === 'application/json'
-                      )
-                    ) {
+                  switch (part.data.type) {
+                    case 'reference': {
                       throw new UnsupportedFunctionalityError({
-                        functionality: `document media type: ${part.mediaType}`,
-                        message: `Media type '${part.mediaType}' is not supported. Supported media types are: text/* and application/json.`,
+                        functionality: 'file parts with provider references',
                       });
                     }
-                    textContent = new TextDecoder().decode(part.data);
-                  } else {
-                    throw new UnsupportedFunctionalityError({
-                      functionality: 'File URL data',
-                      message:
-                        'URLs should be downloaded by the AI SDK and not reach this point. This indicates a configuration issue.',
-                    });
+                    case 'url': {
+                      throw new UnsupportedFunctionalityError({
+                        functionality: 'File URL data',
+                        message:
+                          'URLs should be downloaded by the AI SDK and not reach this point. This indicates a configuration issue.',
+                      });
+                    }
+                    case 'text': {
+                      textContent = part.data.text;
+                      break;
+                    }
+                    case 'data': {
+                      textContent =
+                        typeof part.data.data === 'string'
+                          ? part.data.data
+                          : new TextDecoder().decode(part.data.data);
+                      break;
+                    }
                   }
 
                   documents.push({
@@ -75,8 +68,6 @@ export function convertToCohereChatPrompt(prompt: LanguageModelV4Prompt): {
                     },
                   });
 
-                  // Files are handled separately via the documents parameter
-                  // Return empty string to not include file content in message text
                   return '';
                 }
               }

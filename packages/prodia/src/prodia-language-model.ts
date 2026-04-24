@@ -10,9 +10,11 @@ import type { InferSchema } from '@ai-sdk/provider-utils';
 import {
   combineHeaders,
   isCustomReasoning,
-  isProviderReference,
   convertBase64ToUint8Array,
+  detectMediaTypeForTopLevelType,
   generateId,
+  getTopLevelMediaType,
+  isFullMediaType,
   lazySchema,
   parseJSON,
   parseProviderOptions,
@@ -144,25 +146,48 @@ export class ProdiaLanguageModel implements LanguageModelV4 {
       const message = options.prompt[i];
       if (message.role === 'user') {
         for (const part of message.content) {
-          if (part.type === 'file' && part.mediaType.startsWith('image/')) {
-            if (isProviderReference(part.data)) {
-              throw new UnsupportedFunctionalityError({
-                functionality: 'file parts with provider references',
+          if (
+            part.type === 'file' &&
+            getTopLevelMediaType(part.mediaType) === 'image'
+          ) {
+            switch (part.data.type) {
+              case 'reference': {
+                throw new UnsupportedFunctionalityError({
+                  functionality: 'file parts with provider references',
+                });
+              }
+              case 'text': {
+                throw new UnsupportedFunctionalityError({
+                  functionality: 'text file parts',
+                });
+              }
+              case 'data': {
+                if (part.data.data instanceof Uint8Array) {
+                  imageBytes = part.data.data;
+                } else {
+                  imageBytes = convertBase64ToUint8Array(part.data.data);
+                }
+                break;
+              }
+              case 'url': {
+                const fetchFn = this.config.fetch ?? globalThis.fetch;
+                const response = await fetchFn(part.data.url.toString());
+                const arrayBuffer = await response.arrayBuffer();
+                imageBytes = new Uint8Array(arrayBuffer);
+                break;
+              }
+            }
+            if (isFullMediaType(part.mediaType)) {
+              imageMediaType = part.mediaType;
+            } else if (imageBytes !== undefined) {
+              const detected = detectMediaTypeForTopLevelType({
+                data: imageBytes,
+                topLevelType: getTopLevelMediaType(part.mediaType),
               });
+              if (detected !== undefined) {
+                imageMediaType = detected;
+              }
             }
-
-            if (part.data instanceof Uint8Array) {
-              imageBytes = part.data;
-            } else if (typeof part.data === 'string') {
-              // base64 encoded
-              imageBytes = convertBase64ToUint8Array(part.data);
-            } else if (part.data instanceof URL) {
-              const fetchFn = this.config.fetch ?? globalThis.fetch;
-              const response = await fetchFn(part.data.toString());
-              const arrayBuffer = await response.arrayBuffer();
-              imageBytes = new Uint8Array(arrayBuffer);
-            }
-            imageMediaType = part.mediaType;
             break;
           }
         }
@@ -238,7 +263,7 @@ export class ProdiaLanguageModel implements LanguageModelV4 {
       content.push({
         type: 'file',
         mediaType: file.mediaType,
-        data: file.data,
+        data: { type: 'data', data: file.data },
       });
     }
 

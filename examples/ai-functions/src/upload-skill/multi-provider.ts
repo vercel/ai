@@ -20,7 +20,7 @@ run(async () => {
       files: [
         {
           path: 'island-rescue/SKILL.md',
-          content: skillSource,
+          data: skillSource,
         },
       ],
     }),
@@ -29,7 +29,7 @@ run(async () => {
       files: [
         {
           path: 'island-rescue/SKILL.md',
-          content: skillSource,
+          data: skillSource,
         },
       ],
       displayTitle: 'Island Rescue Test',

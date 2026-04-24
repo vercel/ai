@@ -1,6 +1,5 @@
 import {
   SharedV4Warning,
-  LanguageModelV4DataContent,
   LanguageModelV4Message,
   LanguageModelV4Prompt,
   SharedV4ProviderMetadata,
@@ -9,8 +8,9 @@ import {
 import {
   convertBase64ToUint8Array,
   convertToBase64,
-  isProviderReference,
+  getTopLevelMediaType,
   parseProviderOptions,
+  resolveFullMediaType,
   resolveProviderReference,
   validateTypes,
   isNonNullable,
@@ -33,41 +33,11 @@ import { toolSearchRegex_20251119OutputSchema as toolSearchOutputSchema } from '
 import { webFetch_20250910OutputSchema } from './tool/web-fetch-20250910';
 import { webSearch_20250305OutputSchema } from './tool/web-search_20250305';
 
-function convertToString(data: LanguageModelV4DataContent): string {
+function convertBytesDataToString(data: Uint8Array | string): string {
   if (typeof data === 'string') {
     return new TextDecoder().decode(convertBase64ToUint8Array(data));
   }
-
-  if (data instanceof Uint8Array) {
-    return new TextDecoder().decode(data);
-  }
-
-  if (data instanceof URL) {
-    throw new UnsupportedFunctionalityError({
-      functionality: 'URL-based text documents are not supported for citations',
-    });
-  }
-
-  throw new UnsupportedFunctionalityError({
-    functionality: `unsupported data type for text documents: ${typeof data}`,
-  });
-}
-
-/**
- * Checks if data is a URL (either a URL object or a URL string).
- */
-function isUrlData(
-  data: LanguageModelV4DataContent,
-): data is URL | (string & { __brand: 'url-string' }) {
-  return data instanceof URL || isUrlString(data);
-}
-
-function isUrlString(data: LanguageModelV4DataContent): boolean {
-  return typeof data === 'string' && /^https?:\/\//i.test(data);
-}
-
-function getUrlString(data: LanguageModelV4DataContent): string {
-  return data instanceof URL ? data.toString() : (data as string);
+  return new TextDecoder().decode(data);
 }
 
 export async function convertToAnthropicPrompt({
@@ -185,106 +155,154 @@ export async function convertToAnthropicPrompt({
                   }
 
                   case 'file': {
-                    if (isProviderReference(part.data)) {
-                      const fileId = resolveProviderReference({
-                        reference: part.data,
-                        provider: 'anthropic',
-                      });
-                      betas.add('files-api-2025-04-14');
-
-                      if (part.mediaType.startsWith('image/')) {
-                        anthropicContent.push({
-                          type: 'image',
-                          source: { type: 'file', file_id: fileId },
-                          cache_control: cacheControl,
+                    switch (part.data.type) {
+                      case 'reference': {
+                        const fileId = resolveProviderReference({
+                          reference: part.data.reference,
+                          provider: 'anthropic',
                         });
-                      } else {
+                        betas.add('files-api-2025-04-14');
+
+                        if (getTopLevelMediaType(part.mediaType) === 'image') {
+                          anthropicContent.push({
+                            type: 'image',
+                            source: { type: 'file', file_id: fileId },
+                            cache_control: cacheControl,
+                          });
+                        } else {
+                          anthropicContent.push({
+                            type: 'document',
+                            source: { type: 'file', file_id: fileId },
+                            cache_control: cacheControl,
+                          });
+                        }
+                        break;
+                      }
+                      case 'text': {
+                        const enableCitations = await shouldEnableCitations(
+                          part.providerOptions,
+                        );
+
+                        const metadata = await getDocumentMetadata(
+                          part.providerOptions,
+                        );
+
                         anthropicContent.push({
                           type: 'document',
-                          source: { type: 'file', file_id: fileId },
+                          source: {
+                            type: 'text',
+                            media_type: 'text/plain',
+                            data: part.data.text,
+                          },
+                          title: metadata.title ?? part.filename,
+                          ...(metadata.context && {
+                            context: metadata.context,
+                          }),
+                          ...(enableCitations && {
+                            citations: { enabled: true },
+                          }),
                           cache_control: cacheControl,
                         });
+                        break;
                       }
-                    } else if (part.mediaType.startsWith('image/')) {
-                      anthropicContent.push({
-                        type: 'image',
-                        source: isUrlData(part.data)
-                          ? {
-                              type: 'url',
-                              url: getUrlString(part.data),
-                            }
-                          : {
-                              type: 'base64',
-                              media_type:
-                                part.mediaType === 'image/*'
-                                  ? 'image/jpeg'
-                                  : part.mediaType,
-                              data: convertToBase64(part.data),
-                            },
-                        cache_control: cacheControl,
-                      });
-                    } else if (part.mediaType === 'application/pdf') {
-                      betas.add('pdfs-2024-09-25');
+                      case 'url':
+                      case 'data': {
+                        const topLevel = getTopLevelMediaType(part.mediaType);
+                        if (topLevel === 'image') {
+                          anthropicContent.push({
+                            type: 'image',
+                            source:
+                              part.data.type === 'url'
+                                ? {
+                                    type: 'url',
+                                    url: part.data.url.toString(),
+                                  }
+                                : {
+                                    type: 'base64',
+                                    media_type: resolveFullMediaType({ part }),
+                                    data: convertToBase64(part.data.data),
+                                  },
+                            cache_control: cacheControl,
+                          });
+                        } else if (
+                          topLevel === 'application' &&
+                          (part.data.type === 'url'
+                            ? part.mediaType === 'application/pdf'
+                            : resolveFullMediaType({ part }) ===
+                              'application/pdf')
+                        ) {
+                          betas.add('pdfs-2024-09-25');
 
-                      const enableCitations = await shouldEnableCitations(
-                        part.providerOptions,
-                      );
+                          const enableCitations = await shouldEnableCitations(
+                            part.providerOptions,
+                          );
 
-                      const metadata = await getDocumentMetadata(
-                        part.providerOptions,
-                      );
+                          const metadata = await getDocumentMetadata(
+                            part.providerOptions,
+                          );
 
-                      anthropicContent.push({
-                        type: 'document',
-                        source: isUrlData(part.data)
-                          ? {
-                              type: 'url',
-                              url: getUrlString(part.data),
-                            }
-                          : {
-                              type: 'base64',
-                              media_type: 'application/pdf',
-                              data: convertToBase64(part.data),
-                            },
-                        title: metadata.title ?? part.filename,
-                        ...(metadata.context && { context: metadata.context }),
-                        ...(enableCitations && {
-                          citations: { enabled: true },
-                        }),
-                        cache_control: cacheControl,
-                      });
-                    } else if (part.mediaType === 'text/plain') {
-                      const enableCitations = await shouldEnableCitations(
-                        part.providerOptions,
-                      );
+                          anthropicContent.push({
+                            type: 'document',
+                            source:
+                              part.data.type === 'url'
+                                ? {
+                                    type: 'url',
+                                    url: part.data.url.toString(),
+                                  }
+                                : {
+                                    type: 'base64',
+                                    media_type: 'application/pdf',
+                                    data: convertToBase64(part.data.data),
+                                  },
+                            title: metadata.title ?? part.filename,
+                            ...(metadata.context && {
+                              context: metadata.context,
+                            }),
+                            ...(enableCitations && {
+                              citations: { enabled: true },
+                            }),
+                            cache_control: cacheControl,
+                          });
+                        } else if (part.mediaType === 'text/plain') {
+                          const enableCitations = await shouldEnableCitations(
+                            part.providerOptions,
+                          );
 
-                      const metadata = await getDocumentMetadata(
-                        part.providerOptions,
-                      );
+                          const metadata = await getDocumentMetadata(
+                            part.providerOptions,
+                          );
 
-                      anthropicContent.push({
-                        type: 'document',
-                        source: isUrlData(part.data)
-                          ? {
-                              type: 'url',
-                              url: getUrlString(part.data),
-                            }
-                          : {
-                              type: 'text',
-                              media_type: 'text/plain',
-                              data: convertToString(part.data),
-                            },
-                        title: metadata.title ?? part.filename,
-                        ...(metadata.context && { context: metadata.context }),
-                        ...(enableCitations && {
-                          citations: { enabled: true },
-                        }),
-                        cache_control: cacheControl,
-                      });
-                    } else {
-                      throw new UnsupportedFunctionalityError({
-                        functionality: `media type: ${part.mediaType}`,
-                      });
+                          anthropicContent.push({
+                            type: 'document',
+                            source:
+                              part.data.type === 'url'
+                                ? {
+                                    type: 'url',
+                                    url: part.data.url.toString(),
+                                  }
+                                : {
+                                    type: 'text',
+                                    media_type: 'text/plain',
+                                    data: convertBytesDataToString(
+                                      part.data.data,
+                                    ),
+                                  },
+                            title: metadata.title ?? part.filename,
+                            ...(metadata.context && {
+                              context: metadata.context,
+                            }),
+                            ...(enableCitations && {
+                              citations: { enabled: true },
+                            }),
+                            cache_control: cacheControl,
+                          });
+                        } else {
+                          throw new UnsupportedFunctionalityError({
+                            functionality: `media type: ${part.mediaType}`,
+                          });
+                        }
+                        break;
+                      }
                     }
 
                     break;

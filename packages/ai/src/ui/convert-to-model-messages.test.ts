@@ -185,7 +185,10 @@ describe('convertToModelMessages', () => {
             {
               type: 'file',
               mediaType: 'image/jpeg',
-              data: 'https://example.com/image.jpg',
+              data: {
+                type: 'url',
+                url: new URL('https://example.com/image.jpg'),
+              },
             },
             { type: 'text', text: 'Check this image' },
           ],
@@ -216,7 +219,10 @@ describe('convertToModelMessages', () => {
             {
               type: 'file',
               mediaType: 'image/jpeg',
-              data: 'https://example.com/image.jpg',
+              data: {
+                type: 'url',
+                url: new URL('https://example.com/image.jpg'),
+              },
               providerOptions: { testProvider: { signature: '1234567890' } },
             },
             { type: 'text', text: 'Check this image' },
@@ -247,7 +253,10 @@ describe('convertToModelMessages', () => {
             {
               type: 'file',
               mediaType: 'image/jpeg',
-              data: 'https://example.com/image.jpg',
+              data: {
+                type: 'url',
+                url: new URL('https://example.com/image.jpg'),
+              },
               filename: 'image.jpg',
             },
           ],
@@ -280,7 +289,10 @@ describe('convertToModelMessages', () => {
               type: 'file',
               mediaType: 'application/pdf',
               filename: 'doc.pdf',
-              data: { openai: 'file-abc123' },
+              data: {
+                type: 'reference',
+                reference: { openai: 'file-abc123' },
+              },
             },
             { type: 'text', text: 'Summarize this' },
           ],
@@ -310,7 +322,10 @@ describe('convertToModelMessages', () => {
           {
             type: 'file',
             mediaType: 'image/jpeg',
-            data: 'https://example.com/image.jpg',
+            data: {
+              type: 'url',
+              url: new URL('https://example.com/image.jpg'),
+            },
           },
         ],
       },
@@ -474,7 +489,10 @@ describe('convertToModelMessages', () => {
             {
               type: 'file',
               mediaType: 'image/png',
-              data: 'data:image/png;base64,dGVzdA==',
+              data: {
+                type: 'url',
+                url: new URL('data:image/png;base64,dGVzdA=='),
+              },
             },
           ],
         },
@@ -503,7 +521,10 @@ describe('convertToModelMessages', () => {
             {
               type: 'file',
               mediaType: 'image/png',
-              data: 'data:image/png;base64,dGVzdA==',
+              data: {
+                type: 'url',
+                url: new URL('data:image/png;base64,dGVzdA=='),
+              },
               filename: 'test.png',
             },
           ],
@@ -535,7 +556,10 @@ describe('convertToModelMessages', () => {
             {
               type: 'file',
               mediaType: 'image/png',
-              data: 'data:image/png;base64,dGVzdA==',
+              data: {
+                type: 'url',
+                url: new URL('data:image/png;base64,dGVzdA=='),
+              },
               providerOptions: {
                 testProvider: { signature: 'test-signature' },
               },
@@ -569,7 +593,10 @@ describe('convertToModelMessages', () => {
               type: 'file',
               mediaType: 'application/pdf',
               filename: 'doc.pdf',
-              data: { anthropic: 'file-xyz789' },
+              data: {
+                type: 'reference',
+                reference: { anthropic: 'file-xyz789' },
+              },
             },
           ],
         },
@@ -2774,24 +2801,27 @@ describe('convertToModelMessages', () => {
         );
 
         expect(result).toMatchInlineSnapshot(`
-        [
-          {
-            "content": [
-              {
-                "text": "Hello",
-                "type": "text",
-              },
-              {
-                "data": "https://example.com/image.png",
-                "filename": undefined,
-                "mediaType": "image/png",
-                "type": "file",
-              },
-            ],
-            "role": "user",
-          },
-        ]
-      `);
+          [
+            {
+              "content": [
+                {
+                  "text": "Hello",
+                  "type": "text",
+                },
+                {
+                  "data": {
+                    "type": "url",
+                    "url": "https://example.com/image.png",
+                  },
+                  "filename": undefined,
+                  "mediaType": "image/png",
+                  "type": "file",
+                },
+              ],
+              "role": "user",
+            },
+          ]
+        `);
       });
 
       it('should preserve order of parts including converted data parts', async () => {
@@ -3125,7 +3155,10 @@ describe('convertToModelMessages', () => {
                   "type": "text",
                 },
                 {
-                  "data": "https://example.com/image.png",
+                  "data": {
+                    "type": "url",
+                    "url": "https://example.com/image.png",
+                  },
                   "filename": undefined,
                   "mediaType": "image/png",
                   "type": "file",

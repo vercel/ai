@@ -502,6 +502,20 @@ Note that `file-url` now requires a `mediaType` field so providers can correctly
 - `file-url` (replaces `image-url`) — now requires `mediaType`
 - `file-reference` (replaces `image-file-reference`, `file-id`, `image-file-id`)
 
+### Message Parts: Migrate Away From Deprecated `image` Part
+
+The `{ type: 'image', image, mediaType? }` user-message content part is deprecated. Use `{ type: 'file', data, mediaType }` with an image `mediaType` instead.
+
+```tsx filename="AI SDK 6"
+{ type: 'image', image: bytes }
+```
+
+```tsx filename="AI SDK 7"
+{ type: 'file', mediaType: 'image', data: bytes }
+```
+
+`mediaType` on `FilePart` now accepts either a full IANA type (e.g. `'image/png'`) or just a top-level segment (e.g. `'image'`). When only a top-level segment is provided, the subtype is auto-detected from inline bytes where possible.
+
 ### Message Parts: Handle New `reasoning-file` Content Type
 
 Some models can now return files as part of their reasoning trace, separate from regular output files. These files, which would have previously were using the `file` type, are now in a distinct `reasoning-file` type.

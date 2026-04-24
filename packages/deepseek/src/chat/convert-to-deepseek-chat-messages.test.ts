@@ -36,7 +36,10 @@ describe('convertToDeepSeekChatMessages', () => {
               { type: 'text', text: 'Hello' },
               {
                 type: 'file',
-                data: Buffer.from([0, 1, 2, 3]).toString('base64'),
+                data: {
+                  type: 'data' as const,
+                  data: Buffer.from([0, 1, 2, 3]).toString('base64'),
+                },
                 mediaType: 'image/png',
               },
             ],
@@ -61,6 +64,32 @@ describe('convertToDeepSeekChatMessages', () => {
           ],
         }
       `);
+    });
+
+    it('should accept top-level-only mediaType without error and not read it (category D)', async () => {
+      const result = convertToDeepSeekChatMessages({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: 'Hello' },
+              {
+                type: 'file',
+                data: {
+                  type: 'data' as const,
+                  data: Buffer.from([0, 1, 2, 3]).toString('base64'),
+                },
+                mediaType: 'image',
+              },
+            ],
+          },
+        ],
+        responseFormat: undefined,
+      });
+
+      expect(result.messages).toEqual([{ role: 'user', content: 'Hello' }]);
+      expect(JSON.stringify(result.messages)).not.toContain('image');
+      expect(JSON.stringify(result.messages)).not.toContain('mediaType');
     });
   });
 

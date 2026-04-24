@@ -443,7 +443,10 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
         case 'file':
         case 'reasoning-file': {
           const file = new DefaultGeneratedFileWithType({
-            data: chunk.data,
+            data:
+              chunk.data.type === 'data'
+                ? chunk.data.data
+                : chunk.data.url.toString(),
             mediaType: chunk.mediaType,
           });
 

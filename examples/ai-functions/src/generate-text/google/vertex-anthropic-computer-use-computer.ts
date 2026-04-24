@@ -17,7 +17,8 @@ run(async () => {
             case 'screenshot': {
               // multipart result:
               return {
-                type: 'image',
+                type: 'file',
+                mediaType: 'image',
                 data: fs
                   .readFileSync('./data/screenshot-editor.png')
                   .toString('base64'),

@@ -3,7 +3,11 @@ import {
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { GroqChatPrompt } from './groq-api-types';
-import { convertToBase64, isProviderReference } from '@ai-sdk/provider-utils';
+import {
+  convertToBase64,
+  getTopLevelMediaType,
+  resolveFullMediaType,
+} from '@ai-sdk/provider-utils';
 
 export function convertToGroqChatMessages(
   prompt: LanguageModelV4Prompt,
@@ -31,30 +35,36 @@ export function convertToGroqChatMessages(
                 return { type: 'text', text: part.text };
               }
               case 'file': {
-                if (isProviderReference(part.data)) {
-                  throw new UnsupportedFunctionalityError({
-                    functionality: 'file parts with provider references',
-                  });
+                switch (part.data.type) {
+                  case 'reference': {
+                    throw new UnsupportedFunctionalityError({
+                      functionality: 'file parts with provider references',
+                    });
+                  }
+                  case 'text': {
+                    throw new UnsupportedFunctionalityError({
+                      functionality: 'text file parts',
+                    });
+                  }
+                  case 'url':
+                  case 'data': {
+                    if (getTopLevelMediaType(part.mediaType) !== 'image') {
+                      throw new UnsupportedFunctionalityError({
+                        functionality: 'Non-image file content parts',
+                      });
+                    }
+
+                    return {
+                      type: 'image_url',
+                      image_url: {
+                        url:
+                          part.data.type === 'url'
+                            ? part.data.url.toString()
+                            : `data:${resolveFullMediaType({ part })};base64,${convertToBase64(part.data.data)}`,
+                      },
+                    };
+                  }
                 }
-
-                if (!part.mediaType.startsWith('image/')) {
-                  throw new UnsupportedFunctionalityError({
-                    functionality: 'Non-image file content parts',
-                  });
-                }
-
-                const mediaType =
-                  part.mediaType === 'image/*' ? 'image/jpeg' : part.mediaType;
-
-                return {
-                  type: 'image_url',
-                  image_url: {
-                    url:
-                      part.data instanceof URL
-                        ? part.data.toString()
-                        : `data:${mediaType};base64,${convertToBase64(part.data)}`,
-                  },
-                };
               }
             }
           }),

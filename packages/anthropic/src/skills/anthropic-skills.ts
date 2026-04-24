@@ -77,9 +77,11 @@ export class AnthropicSkills implements SkillsV4 {
 
     for (const file of params.files) {
       const content =
-        typeof file.content === 'string'
-          ? convertBase64ToUint8Array(file.content)
-          : file.content;
+        file.data.type === 'text'
+          ? new TextEncoder().encode(file.data.text)
+          : file.data.data instanceof Uint8Array
+            ? file.data.data
+            : convertBase64ToUint8Array(file.data.data);
 
       formData.append('files[]', new Blob([content]), file.path);
     }

@@ -61,7 +61,7 @@ describe('user messages', () => {
           content: [
             {
               type: 'file',
-              data: 'AAECAw==',
+              data: { type: 'data' as const, data: 'AAECAw==' },
               mediaType: 'image/png',
             },
           ],
@@ -103,7 +103,10 @@ describe('user messages', () => {
           content: [
             {
               type: 'file',
-              data: new URL('https://example.com/image.png'),
+              data: {
+                type: 'url' as const,
+                url: new URL('https://example.com/image.png'),
+              },
               mediaType: 'image/*',
             },
           ],
@@ -136,6 +139,170 @@ describe('user messages', () => {
     });
   });
 
+  describe('top-level-only media type resolution', () => {
+    const pngBase64 = Buffer.from([
+      0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
+    ]).toString('base64');
+    const pdfBase64 = Buffer.from([0x25, 0x50, 0x44, 0x46, 0x2d]).toString(
+      'base64',
+    );
+
+    it('detects image subtype from inline bytes for top-level "image"', async () => {
+      const result = await convertToAnthropicPrompt({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                data: { type: 'data' as const, data: pngBase64 },
+                mediaType: 'image',
+              },
+            ],
+          },
+        ],
+        sendReasoning: true,
+        warnings: [],
+        toolNameMapping: defaultToolNameMapping,
+      });
+      expect(result.prompt.messages[0].content[0]).toEqual({
+        type: 'image',
+        source: {
+          type: 'base64',
+          media_type: 'image/png',
+          data: pngBase64,
+        },
+      });
+    });
+
+    it('normalizes image/* via detection', async () => {
+      const result = await convertToAnthropicPrompt({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                data: { type: 'data' as const, data: pngBase64 },
+                mediaType: 'image/*',
+              },
+            ],
+          },
+        ],
+        sendReasoning: true,
+        warnings: [],
+        toolNameMapping: defaultToolNameMapping,
+      });
+      expect(
+        (result.prompt.messages[0].content[0] as any).source.media_type,
+      ).toBe('image/png');
+    });
+
+    it('passes through URL for top-level-only image (Anthropic accepts URL source)', async () => {
+      const result = await convertToAnthropicPrompt({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                data: {
+                  type: 'url' as const,
+                  url: new URL('https://example.com/x.png'),
+                },
+                mediaType: 'image',
+              },
+            ],
+          },
+        ],
+        sendReasoning: true,
+        warnings: [],
+        toolNameMapping: defaultToolNameMapping,
+      });
+      expect(result.prompt.messages[0].content[0]).toEqual({
+        type: 'image',
+        source: {
+          type: 'url',
+          url: 'https://example.com/x.png',
+        },
+      });
+    });
+
+    it('detects PDF subtype from inline bytes for top-level "application"', async () => {
+      const result = await convertToAnthropicPrompt({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                data: { type: 'data' as const, data: pdfBase64 },
+                mediaType: 'application',
+              },
+            ],
+          },
+        ],
+        sendReasoning: true,
+        warnings: [],
+        toolNameMapping: defaultToolNameMapping,
+      });
+      expect(
+        (result.prompt.messages[0].content[0] as any).source.media_type,
+      ).toBe('application/pdf');
+    });
+
+    it('preserves full image/png pass-through', async () => {
+      const result = await convertToAnthropicPrompt({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                data: { type: 'data' as const, data: pngBase64 },
+                mediaType: 'image/png',
+              },
+            ],
+          },
+        ],
+        sendReasoning: true,
+        warnings: [],
+        toolNameMapping: defaultToolNameMapping,
+      });
+      expect(
+        (result.prompt.messages[0].content[0] as any).source.media_type,
+      ).toBe('image/png');
+    });
+
+    it('still routes text/plain inline text through document source', async () => {
+      const result = await convertToAnthropicPrompt({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                data: { type: 'text' as const, text: 'hello' },
+                mediaType: 'text/plain',
+              },
+            ],
+          },
+        ],
+        sendReasoning: true,
+        warnings: [],
+        toolNameMapping: defaultToolNameMapping,
+      });
+      expect(result.prompt.messages[0].content[0]).toMatchObject({
+        type: 'document',
+        source: {
+          type: 'text',
+          media_type: 'text/plain',
+          data: 'hello',
+        },
+      });
+    });
+  });
+
   it('should treat URL strings in image file data as URLs, not base64)', async () => {
     const result = await convertToAnthropicPrompt({
       prompt: [
@@ -144,7 +311,10 @@ describe('user messages', () => {
           content: [
             {
               type: 'file',
-              data: 'https://example.com/image.png', // String URL (as if after JSON deserialization)
+              data: {
+                type: 'url' as const,
+                url: new URL('https://example.com/image.png'),
+              },
               mediaType: 'image/png',
             },
           ],
@@ -185,7 +355,10 @@ describe('user messages', () => {
           content: [
             {
               type: 'file',
-              data: 'https://example.com/document.pdf',
+              data: {
+                type: 'url' as const,
+                url: new URL('https://example.com/document.pdf'),
+              },
               mediaType: 'application/pdf',
             },
           ],
@@ -226,7 +399,7 @@ describe('user messages', () => {
           content: [
             {
               type: 'file',
-              data: 'base64PDFdata',
+              data: { type: 'data' as const, data: 'base64PDFdata' },
               mediaType: 'application/pdf',
             },
           ],
@@ -268,7 +441,10 @@ describe('user messages', () => {
           content: [
             {
               type: 'file',
-              data: new URL('https://example.com/document.pdf'),
+              data: {
+                type: 'url' as const,
+                url: new URL('https://example.com/document.pdf'),
+              },
               mediaType: 'application/pdf',
             },
           ],
@@ -309,9 +485,12 @@ describe('user messages', () => {
           content: [
             {
               type: 'file',
-              data: Buffer.from('sample text content', 'utf-8').toString(
-                'base64',
-              ),
+              data: {
+                type: 'data' as const,
+                data: Buffer.from('sample text content', 'utf-8').toString(
+                  'base64',
+                ),
+              },
               mediaType: 'text/plain',
               filename: 'sample.txt',
             },
@@ -348,6 +527,51 @@ describe('user messages', () => {
     });
   });
 
+  it('should map inline text file parts to inline text document source', async () => {
+    const result = await convertToAnthropicPrompt({
+      prompt: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: { type: 'text' as const, text: 'inline text content' },
+              mediaType: 'text/plain',
+              filename: 'inline.txt',
+            },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings: [],
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    expect(result).toEqual({
+      prompt: {
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'document',
+                source: {
+                  type: 'text',
+                  media_type: 'text/plain',
+                  data: 'inline text content',
+                },
+                title: 'inline.txt',
+                cache_control: undefined,
+              },
+            ],
+          },
+        ],
+        system: undefined,
+      },
+      betas: new Set(),
+    });
+  });
+
   it('should throw error for unsupported file types', async () => {
     await expect(
       convertToAnthropicPrompt({
@@ -357,7 +581,7 @@ describe('user messages', () => {
             content: [
               {
                 type: 'file',
-                data: 'base64data',
+                data: { type: 'data' as const, data: 'base64data' },
                 mediaType: 'video/mp4',
               },
             ],
@@ -379,7 +603,10 @@ describe('user messages', () => {
             {
               type: 'file',
               mediaType: 'image/png',
-              data: { anthropic: 'file-img-12345' },
+              data: {
+                type: 'reference' as const,
+                reference: { anthropic: 'file-img-12345' },
+              },
             },
           ],
         },
@@ -421,7 +648,10 @@ describe('user messages', () => {
             {
               type: 'file',
               mediaType: 'application/pdf',
-              data: { anthropic: 'file-pdf-12345' },
+              data: {
+                type: 'reference' as const,
+                reference: { anthropic: 'file-pdf-12345' },
+              },
             },
           ],
         },
@@ -463,7 +693,10 @@ describe('user messages', () => {
             {
               type: 'file',
               mediaType: 'text/plain',
-              data: { anthropic: 'file-txt-12345' },
+              data: {
+                type: 'reference' as const,
+                reference: { anthropic: 'file-txt-12345' },
+              },
             },
           ],
         },
@@ -506,7 +739,10 @@ describe('user messages', () => {
               {
                 type: 'file',
                 mediaType: 'application/pdf',
-                data: { openai: 'file-xyz' },
+                data: {
+                  type: 'reference' as const,
+                  reference: { openai: 'file-xyz' },
+                },
               },
             ],
           },
@@ -2897,7 +3133,7 @@ describe('citations', () => {
           content: [
             {
               type: 'file',
-              data: 'base64PDFdata',
+              data: { type: 'data' as const, data: 'base64PDFdata' },
               mediaType: 'application/pdf',
             },
           ],
@@ -2945,7 +3181,7 @@ describe('citations', () => {
           content: [
             {
               type: 'file',
-              data: 'base64PDFdata',
+              data: { type: 'data' as const, data: 'base64PDFdata' },
               mediaType: 'application/pdf',
               providerOptions: {
                 anthropic: {
@@ -3001,7 +3237,7 @@ describe('citations', () => {
           content: [
             {
               type: 'file',
-              data: 'base64PDFdata',
+              data: { type: 'data' as const, data: 'base64PDFdata' },
               mediaType: 'application/pdf',
               filename: 'original-name.pdf',
               providerOptions: {
@@ -3061,7 +3297,7 @@ describe('citations', () => {
           content: [
             {
               type: 'file',
-              data: 'base64PDFdata1',
+              data: { type: 'data' as const, data: 'base64PDFdata1' },
               mediaType: 'application/pdf',
               filename: 'doc1.pdf',
               providerOptions: {
@@ -3073,7 +3309,7 @@ describe('citations', () => {
             },
             {
               type: 'file',
-              data: 'base64PDFdata2',
+              data: { type: 'data' as const, data: 'base64PDFdata2' },
               mediaType: 'application/pdf',
               filename: 'doc2.pdf',
               providerOptions: {

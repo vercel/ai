@@ -224,7 +224,7 @@ describe('doGenerate', () => {
           {
             type: 'file',
             mediaType: 'application/pdf',
-            data: 'mock-pdf-data',
+            data: { type: 'data' as const, data: 'mock-pdf-data' },
             filename: 'test.pdf',
           },
         ],
@@ -264,7 +264,10 @@ describe('doGenerate', () => {
           {
             type: 'file',
             mediaType: 'application/pdf',
-            data: new URL('https://example.com/test.pdf'),
+            data: {
+              type: 'url' as const,
+              url: new URL('https://example.com/test.pdf'),
+            },
             filename: 'test.pdf',
           },
         ],

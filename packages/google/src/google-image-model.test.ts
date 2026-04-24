@@ -700,33 +700,26 @@ describe('GoogleImageModel (Gemini)', () => {
       });
     });
 
-    it('should handle URL-based input images', async () => {
+    it('should throw for URL-based input images without resolvable media type', async () => {
       prepareGeminiJsonResponse();
 
-      await geminiModel.doGenerate({
-        prompt: 'Add a hat to this cat',
-        files: [
-          {
-            type: 'url',
-            url: 'https://example.com/cat.png',
-          },
-        ],
-        mask: undefined,
-        n: 1,
-        size: undefined,
-        aspectRatio: undefined,
-        seed: undefined,
-        providerOptions: {},
-      });
-
-      const requestBody = await geminiServer.calls[0].requestBodyJson;
-      // image/* gets converted to image/jpeg as default in convertToGoogleMessages
-      expect(requestBody.contents[0].parts[1]).toStrictEqual({
-        fileData: {
-          mimeType: 'image/jpeg',
-          fileUri: 'https://example.com/cat.png',
-        },
-      });
+      await expect(
+        geminiModel.doGenerate({
+          prompt: 'Add a hat to this cat',
+          files: [
+            {
+              type: 'url',
+              url: 'https://example.com/cat.png',
+            },
+          ],
+          mask: undefined,
+          n: 1,
+          size: undefined,
+          aspectRatio: undefined,
+          seed: undefined,
+          providerOptions: {},
+        }),
+      ).rejects.toThrow(/media type "image\/\*".*not passed as inline bytes/);
     });
   });
 

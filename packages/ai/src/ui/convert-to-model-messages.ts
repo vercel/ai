@@ -114,7 +114,13 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                   type: 'file' as const,
                   mediaType: part.mediaType,
                   filename: part.filename,
-                  data: part.providerReference ?? part.url,
+                  data:
+                    part.providerReference != null
+                      ? {
+                          type: 'reference' as const,
+                          reference: part.providerReference,
+                        }
+                      : { type: 'url' as const, url: new URL(part.url) },
                   ...(part.providerMetadata != null
                     ? { providerOptions: part.providerMetadata }
                     : {}),
@@ -176,7 +182,13 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                   type: 'file' as const,
                   mediaType: part.mediaType,
                   filename: part.filename,
-                  data: part.providerReference ?? part.url,
+                  data:
+                    part.providerReference != null
+                      ? {
+                          type: 'reference' as const,
+                          reference: part.providerReference,
+                        }
+                      : { type: 'url' as const, url: new URL(part.url) },
                   ...(part.providerMetadata != null
                     ? { providerOptions: part.providerMetadata }
                     : {}),
@@ -184,7 +196,7 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
               } else if (isReasoningFileUIPart(part)) {
                 content.push({
                   type: 'reasoning-file' as const,
-                  data: part.url,
+                  data: { type: 'url' as const, url: new URL(part.url) },
                   mediaType: part.mediaType,
                   providerOptions: part.providerMetadata,
                 });

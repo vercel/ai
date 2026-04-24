@@ -1,6 +1,19 @@
-import { ReasoningFilePart, ReasoningPart } from '@ai-sdk/provider-utils';
+import {
+  DataContent,
+  ReasoningFilePart,
+  ReasoningPart,
+} from '@ai-sdk/provider-utils';
 import { ProviderMetadata } from '../types/provider-metadata';
 import { DefaultGeneratedFile, GeneratedFile } from './generated-file';
+
+function unwrapReasoningFileData(
+  data: ReasoningFilePart['data'],
+): DataContent | URL {
+  if (typeof data === 'object' && data !== null && 'type' in data) {
+    return data.type === 'data' ? data.data : data.url;
+  }
+  return data;
+}
 
 /**
  * Reasoning output of a text generation. It contains a reasoning.
@@ -80,15 +93,19 @@ export function convertToReasoningOutputs(
       };
     }
 
+    const rawData = unwrapReasoningFileData(part.data);
+
+    const fileData: string | Uint8Array =
+      rawData instanceof ArrayBuffer
+        ? new Uint8Array(rawData)
+        : rawData instanceof URL
+          ? rawData.toString()
+          : (rawData as string | Uint8Array);
+
     return {
       type: 'reasoning-file' as const,
       file: new DefaultGeneratedFile({
-        data:
-          part.data instanceof ArrayBuffer
-            ? new Uint8Array(part.data)
-            : part.data instanceof URL
-              ? part.data.toString()
-              : part.data,
+        data: fileData,
         mediaType: part.mediaType,
       }),
       ...(part.providerOptions != null

@@ -6,7 +6,8 @@ import {
 import { OpenAIChatPrompt } from './openai-chat-prompt';
 import {
   convertToBase64,
-  isProviderReference,
+  getTopLevelMediaType,
+  resolveFullMediaType,
   resolveProviderReference,
 } from '@ai-sdk/provider-utils';
 
@@ -70,87 +71,99 @@ export function convertToOpenAIChatMessages({
                 return { type: 'text', text: part.text };
               }
               case 'file': {
-                if (isProviderReference(part.data)) {
-                  return {
-                    type: 'file',
-                    file: {
-                      file_id: resolveProviderReference({
-                        reference: part.data,
-                        provider: 'openai',
-                      }),
-                    },
-                  };
-                }
-
-                if (part.mediaType.startsWith('image/')) {
-                  const mediaType =
-                    part.mediaType === 'image/*'
-                      ? 'image/jpeg'
-                      : part.mediaType;
-
-                  return {
-                    type: 'image_url',
-                    image_url: {
-                      url:
-                        part.data instanceof URL
-                          ? part.data.toString()
-                          : `data:${mediaType};base64,${convertToBase64(part.data)}`,
-
-                      detail: part.providerOptions?.openai?.imageDetail,
-                    },
-                  };
-                } else if (part.mediaType.startsWith('audio/')) {
-                  if (part.data instanceof URL) {
+                switch (part.data.type) {
+                  case 'reference': {
+                    return {
+                      type: 'file',
+                      file: {
+                        file_id: resolveProviderReference({
+                          reference: part.data.reference,
+                          provider: 'openai',
+                        }),
+                      },
+                    };
+                  }
+                  case 'text': {
                     throw new UnsupportedFunctionalityError({
-                      functionality: 'audio file parts with URLs',
+                      functionality: 'text file parts',
                     });
                   }
+                  case 'url':
+                  case 'data': {
+                    const topLevel = getTopLevelMediaType(part.mediaType);
 
-                  switch (part.mediaType) {
-                    case 'audio/wav': {
+                    if (topLevel === 'image') {
                       return {
-                        type: 'input_audio',
-                        input_audio: {
-                          data: convertToBase64(part.data),
-                          format: 'wav',
+                        type: 'image_url',
+                        image_url: {
+                          url:
+                            part.data.type === 'url'
+                              ? part.data.url.toString()
+                              : `data:${resolveFullMediaType({ part })};base64,${convertToBase64(part.data.data)}`,
+
+                          detail: part.providerOptions?.openai?.imageDetail,
+                        },
+                      };
+                    } else if (topLevel === 'audio') {
+                      if (part.data.type === 'url') {
+                        throw new UnsupportedFunctionalityError({
+                          functionality: 'audio file parts with URLs',
+                        });
+                      }
+
+                      const fullMediaType = resolveFullMediaType({ part });
+
+                      switch (fullMediaType) {
+                        case 'audio/wav': {
+                          return {
+                            type: 'input_audio',
+                            input_audio: {
+                              data: convertToBase64(part.data.data),
+                              format: 'wav',
+                            },
+                          };
+                        }
+                        case 'audio/mp3':
+                        case 'audio/mpeg': {
+                          return {
+                            type: 'input_audio',
+                            input_audio: {
+                              data: convertToBase64(part.data.data),
+                              format: 'mp3',
+                            },
+                          };
+                        }
+
+                        default: {
+                          throw new UnsupportedFunctionalityError({
+                            functionality: `audio content parts with media type ${fullMediaType}`,
+                          });
+                        }
+                      }
+                    }
+                    {
+                      const fullMediaType = resolveFullMediaType({ part });
+                      if (fullMediaType !== 'application/pdf') {
+                        throw new UnsupportedFunctionalityError({
+                          functionality: `file part media type ${fullMediaType}`,
+                        });
+                      }
+
+                      if (part.data.type === 'url') {
+                        throw new UnsupportedFunctionalityError({
+                          functionality: 'PDF file parts with URLs',
+                        });
+                      }
+
+                      return {
+                        type: 'file',
+                        file: {
+                          filename: part.filename ?? `part-${index}.pdf`,
+                          file_data: `data:application/pdf;base64,${convertToBase64(part.data.data)}`,
                         },
                       };
                     }
-                    case 'audio/mp3':
-                    case 'audio/mpeg': {
-                      return {
-                        type: 'input_audio',
-                        input_audio: {
-                          data: convertToBase64(part.data),
-                          format: 'mp3',
-                        },
-                      };
-                    }
-
-                    default: {
-                      throw new UnsupportedFunctionalityError({
-                        functionality: `audio content parts with media type ${part.mediaType}`,
-                      });
-                    }
                   }
-                } else if (part.mediaType === 'application/pdf') {
-                  if (part.data instanceof URL) {
-                    throw new UnsupportedFunctionalityError({
-                      functionality: 'PDF file parts with URLs',
-                    });
-                  }
-
-                  return {
-                    type: 'file',
-                    file: {
-                      filename: part.filename ?? `part-${index}.pdf`,
-                      file_data: `data:application/pdf;base64,${convertToBase64(part.data)}`,
-                    },
-                  };
-                } else {
-                  throw new UnsupportedFunctionalityError({
-                    functionality: `file part media type ${part.mediaType}`,
-                  });
                 }
               }
             }

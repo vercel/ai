@@ -91,11 +91,19 @@ export interface TextPart {
 }
 ```
 
-### `ImagePart`
+### `ImagePart` <Note type="warning">Deprecated</Note>
+
+<Note type="warning">
+  `ImagePart` is deprecated. Use [`FilePart`](#filepart) with `mediaType: 'image'`
+  (or a more specific `image/*` subtype) instead.
+</Note>
 
 Represents an image part in a user message.
 
 ```typescript
+/**
+ * @deprecated Use `FilePart` with `mediaType: 'image'` instead.
+ */
 export interface ImagePart {
   type: 'image';
 

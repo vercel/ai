@@ -1194,8 +1194,9 @@ const result = await generateText({
           text: 'Please describe the image.',
         },
         {
-          type: 'image',
-          image: readFileSync('./data/image.png'),
+          type: 'file',
+          mediaType: 'image',
+          data: readFileSync('./data/image.png'),
         },
       ],
     },
@@ -1210,8 +1211,9 @@ You can also pass a file-id from the OpenAI Files API.
 
 ```ts
 {
-  type: 'image',
-  image: 'file-8EFBcWHsQxZV7YGezBC1fq'
+  type: 'file',
+  mediaType: 'image',
+  data: 'file-8EFBcWHsQxZV7YGezBC1fq'
 }
 ```
 
@@ -1219,8 +1221,9 @@ You can also pass the URL of an image.
 
 ```ts
 {
-  type: 'image',
-  image: 'https://sample.edu/image.png',
+  type: 'file',
+  mediaType: 'image',
+  data: 'https://sample.edu/image.png',
 }
 ```
 
@@ -1931,8 +1934,9 @@ const result = await generateText({
           text: 'Please describe the image.',
         },
         {
-          type: 'image',
-          image: readFileSync('./data/image.png'),
+          type: 'file',
+          mediaType: 'image',
+          data: readFileSync('./data/image.png'),
         },
       ],
     },
@@ -1947,8 +1951,9 @@ You can also pass the URL of an image.
 
 ```ts
 {
-  type: 'image',
-  image: 'https://sample.edu/image.png',
+  type: 'file',
+  mediaType: 'image',
+  data: 'https://sample.edu/image.png',
 }
 ```
 
@@ -2065,9 +2070,9 @@ const result = await generateText({
       content: [
         { type: 'text', text: 'Describe the image in detail.' },
         {
-          type: 'image',
-          image:
-            'https://github.com/vercel/ai/blob/main/examples/ai-functions/data/comic-cat.png?raw=true',
+          type: 'file',
+          mediaType: 'image',
+          data: 'https://github.com/vercel/ai/blob/main/examples/ai-functions/data/comic-cat.png?raw=true',
 
           // OpenAI specific options - image detail:
           providerOptions: {

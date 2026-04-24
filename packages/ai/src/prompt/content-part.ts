@@ -1,5 +1,6 @@
 import {
   CustomPart,
+  DataContent,
   FilePart,
   ImagePart,
   ProviderOptions,
@@ -14,7 +15,18 @@ import {
 import { z } from 'zod/v4';
 import { jsonValueSchema } from '../types/json-value';
 import { providerMetadataSchema } from '../types/provider-metadata';
-import { dataContentSchema } from './data-content';
+
+const fileInlineDataSchema: z.ZodType<DataContent> = z.union([
+  z.string(),
+  z.instanceof(Uint8Array),
+  z.instanceof(ArrayBuffer),
+  z.custom<Buffer>(
+    // Buffer might not be available in some environments such as CloudFlare:
+    (value: unknown): value is Buffer =>
+      globalThis.Buffer?.isBuffer(value) ?? false,
+    { message: 'Must be a Buffer' },
+  ),
+]);
 
 const providerReferenceSchema = z.record(z.string(), z.string());
 
@@ -29,11 +41,13 @@ export const textPartSchema: z.ZodType<TextPart> = z.object({
 
 /**
  * @internal
+ * @deprecated Use `filePartSchema` with `mediaType: 'image'` instead:
+ * `{ type: 'file', mediaType: 'image', data: { type: 'data', data } }`.
  */
 export const imagePartSchema: z.ZodType<ImagePart> = z.object({
   type: z.literal('image'),
   image: z.union([
-    dataContentSchema,
+    fileInlineDataSchema,
     z.instanceof(URL),
     providerReferenceSchema,
   ]),
@@ -41,13 +55,29 @@ export const imagePartSchema: z.ZodType<ImagePart> = z.object({
   providerOptions: providerMetadataSchema.optional(),
 });
 
+const taggedFileDataSchema = z.discriminatedUnion('type', [
+  z.object({ type: z.literal('data'), data: fileInlineDataSchema }),
+  z.object({ type: z.literal('url'), url: z.instanceof(URL) }),
+  z.object({
+    type: z.literal('reference'),
+    reference: providerReferenceSchema,
+  }),
+  z.object({ type: z.literal('text'), text: z.string() }),
+]);
+
+const taggedReasoningFileDataSchema = z.discriminatedUnion('type', [
+  z.object({ type: z.literal('data'), data: fileInlineDataSchema }),
+  z.object({ type: z.literal('url'), url: z.instanceof(URL) }),
+]);
+
 /**
  * @internal
  */
 export const filePartSchema: z.ZodType<FilePart> = z.object({
   type: z.literal('file'),
   data: z.union([
-    dataContentSchema,
+    taggedFileDataSchema,
+    fileInlineDataSchema,
     z.instanceof(URL),
     providerReferenceSchema,
   ]),
@@ -79,7 +109,11 @@ export const customPartSchema: z.ZodType<CustomPart> = z.object({
  */
 export const reasoningFilePartSchema: z.ZodType<ReasoningFilePart> = z.object({
   type: z.literal('reasoning-file'),
-  data: z.union([dataContentSchema, z.instanceof(URL)]),
+  data: z.union([
+    taggedReasoningFileDataSchema,
+    fileInlineDataSchema,
+    z.instanceof(URL),
+  ]),
   mediaType: z.string(),
   providerOptions: providerMetadataSchema.optional(),
 });

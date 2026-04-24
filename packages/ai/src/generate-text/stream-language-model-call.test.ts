@@ -565,7 +565,7 @@ describe('streamLanguageModelCall', () => {
         streamParts: [
           {
             type: 'file',
-            data: 'SGVsbG8gV29ybGQ=', // "Hello World" base64-encoded
+            data: { type: 'data', data: 'SGVsbG8gV29ybGQ=' }, // "Hello World" base64-encoded
             mediaType: 'text/plain',
           },
           {
@@ -622,9 +622,12 @@ describe('streamLanguageModelCall', () => {
         streamParts: [
           {
             type: 'file',
-            data: new Uint8Array([
-              72, 101, 108, 108, 111, 32, 87, 111, 114, 108, 100,
-            ]), // "Hello World" as Uint8Array
+            data: {
+              type: 'data',
+              data: new Uint8Array([
+                72, 101, 108, 108, 111, 32, 87, 111, 114, 108, 100,
+              ]),
+            }, // "Hello World" as Uint8Array
             mediaType: 'text/plain',
             providerMetadata: {
               testProvider: { signature: 'test-signature' },

@@ -131,7 +131,8 @@ const toolTests = (model: LanguageModelV4) => {
               switch (action) {
                 case 'screenshot': {
                   return {
-                    type: 'image',
+                    type: 'file',
+                    mediaType: 'image',
                     data: fs
                       .readFileSync('./data/screenshot-editor.png')
                       .toString('base64'),

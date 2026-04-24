@@ -901,7 +901,7 @@ describe('responses', () => {
             {
               type: 'file',
               mediaType: 'image/jpeg',
-              data: 'assistant-abc123',
+              data: { type: 'data' as const, data: 'assistant-abc123' },
             },
           ],
         },
@@ -934,7 +934,7 @@ describe('responses', () => {
             {
               type: 'file',
               mediaType: 'application/pdf',
-              data: 'assistant-pdf123',
+              data: { type: 'data' as const, data: 'assistant-pdf123' },
             },
           ],
         },
@@ -967,7 +967,7 @@ describe('responses', () => {
             {
               type: 'file',
               mediaType: 'image/jpeg',
-              data: 'file-abc123',
+              data: { type: 'data' as const, data: 'file-abc123' },
             },
           ],
         },

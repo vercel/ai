@@ -1,7 +1,6 @@
 import { JSONValue } from '../../json-value/json-value';
 import { SharedV4ProviderOptions } from '../../shared/v4/shared-v4-provider-options';
 import { SharedV4ProviderReference } from '../../shared/v4/shared-v4-provider-reference';
-import { LanguageModelV4DataContent } from './language-model-v4-data-content';
 
 /**
  * A prompt is a list of messages.
@@ -100,9 +99,12 @@ export interface LanguageModelV4ReasoningFilePart {
   type: 'reasoning-file';
 
   /**
-   * File data. Can be a Uint8Array or base64 encoded data as a string.
+   * File data as a tagged discriminated union:
+   *
+   * - `{ type: 'data', data }`: raw bytes (Uint8Array) or base64-encoded string.
+   * - `{ type: 'url', url }`: a URL that points to the file.
    */
-  data: LanguageModelV4DataContent;
+  data: { type: 'data'; data: Uint8Array | string } | { type: 'url'; url: URL };
 
   /**
    * IANA media type of the file.
@@ -151,15 +153,28 @@ export interface LanguageModelV4FilePart {
   filename?: string;
 
   /**
-   * File data. Can be a Uint8Array, base64 encoded data as a string, a URL,
-   * or a provider reference mapping provider names to provider-specific file IDs.
+   * File data as a tagged discriminated union:
+   *
+   * - `{ type: 'data', data }`: raw bytes (Uint8Array) or base64-encoded string.
+   * - `{ type: 'url', url }`: a URL that points to the file.
+   * - `{ type: 'reference', reference }`: a provider reference (`{ [provider]: id }`).
+   * - `{ type: 'text', text }`: inline text content (e.g. an inline text document).
    */
-  data: LanguageModelV4DataContent | SharedV4ProviderReference;
+  data:
+    | { type: 'data'; data: Uint8Array | string }
+    | { type: 'url'; url: URL }
+    | { type: 'reference'; reference: SharedV4ProviderReference }
+    | { type: 'text'; text: string };
 
   /**
-   * IANA media type of the file.
+   * Either a full IANA media type (`type/subtype`, e.g. `image/png`) or just
+   * the top-level IANA segment (e.g. `image`, `audio`, `video`, `text`).
    *
-   * Can support wildcards, e.g. `image/*` (in which case the provider needs to take appropriate action).
+   * `*`-subtype wildcards (e.g. `image/*`) are normalized as equivalent to the
+   * top-level segment alone (e.g. `image`). Providers can use the helpers in
+   * `@ai-sdk/provider-utils` (`isFullMediaType`, `getTopLevelMediaType`,
+   * `detectMediaTypeForTopLevelType`) to resolve the field according to their
+   * API requirements.
    *
    * @see https://www.iana.org/assignments/media-types/media-types.xhtml
    */

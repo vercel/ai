@@ -184,7 +184,39 @@ function convertMessagePartToSemConv(
     }
 
     case 'file': {
-      const data = part.data;
+      const rawData = part.data as
+        | string
+        | Uint8Array
+        | URL
+        | ArrayBuffer
+        | { type: 'data'; data: string | Uint8Array | ArrayBuffer }
+        | { type: 'url'; url: URL }
+        | { type: 'reference'; reference: Record<string, string> }
+        | { type: 'text'; text: string };
+
+      const data: string | Uint8Array | URL | ArrayBuffer = (() => {
+        if (
+          typeof rawData === 'object' &&
+          rawData !== null &&
+          !(rawData instanceof URL) &&
+          !(rawData instanceof Uint8Array) &&
+          !(rawData instanceof ArrayBuffer) &&
+          'type' in rawData
+        ) {
+          switch (rawData.type) {
+            case 'data':
+              return rawData.data;
+            case 'url':
+              return rawData.url;
+            case 'text':
+              return rawData.text;
+            default:
+              return '';
+          }
+        }
+        return rawData as string | Uint8Array | URL | ArrayBuffer;
+      })();
+
       let content: string;
       if (data instanceof Uint8Array) {
         content = convertDataContentToBase64String(data);
@@ -198,6 +230,13 @@ function convertMessagePartToSemConv(
           };
         }
         content = data;
+      } else if (data instanceof URL) {
+        return {
+          type: 'uri',
+          modality: getModality(part.mediaType),
+          mime_type: part.mediaType ?? null,
+          uri: data.toString(),
+        };
       } else {
         content = String(data);
       }
@@ -346,7 +385,39 @@ function convertModelMessageToSemConv(
           };
         }
         case 'file': {
-          const data = part.data;
+          const rawData = part.data as
+            | string
+            | Uint8Array
+            | URL
+            | ArrayBuffer
+            | { type: 'data'; data: string | Uint8Array | ArrayBuffer }
+            | { type: 'url'; url: URL }
+            | { type: 'reference'; reference: Record<string, string> }
+            | { type: 'text'; text: string };
+
+          const data: string | Uint8Array | URL | ArrayBuffer = (() => {
+            if (
+              typeof rawData === 'object' &&
+              rawData !== null &&
+              !(rawData instanceof URL) &&
+              !(rawData instanceof Uint8Array) &&
+              !(rawData instanceof ArrayBuffer) &&
+              'type' in rawData
+            ) {
+              switch (rawData.type) {
+                case 'data':
+                  return rawData.data;
+                case 'url':
+                  return rawData.url;
+                case 'text':
+                  return rawData.text;
+                default:
+                  return '';
+              }
+            }
+            return rawData as string | Uint8Array | URL | ArrayBuffer;
+          })();
+
           if (data instanceof URL) {
             return {
               type: 'uri' as const,

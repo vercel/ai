@@ -5,9 +5,14 @@ import { SharedV4ProviderOptions } from '../../shared/v4/shared-v4-provider-opti
  */
 export type FilesV4UploadFileCallOptions = {
   /**
-   * The file data as raw bytes or a base64-encoded string.
+   * The file data.
+   *
+   * - `{ type: 'data', data }`: raw bytes (`Uint8Array`) or a base64-encoded string.
+   * - `{ type: 'text', text }`: inline text (UTF-8).
    */
-  data: Uint8Array | string;
+  data:
+    | { type: 'data'; data: Uint8Array | string }
+    | { type: 'text'; text: string };
 
   /**
    * The IANA media type of the file (e.g. `'application/pdf'`).

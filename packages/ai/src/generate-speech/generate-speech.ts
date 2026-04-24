@@ -1,15 +1,16 @@
 import { JSONObject } from '@ai-sdk/provider';
-import { ProviderOptions, withUserAgentSuffix } from '@ai-sdk/provider-utils';
+import {
+  audioMediaTypeSignatures,
+  detectMediaTypeBySignatures,
+  ProviderOptions,
+  withUserAgentSuffix,
+} from '@ai-sdk/provider-utils';
 import { NoSpeechGeneratedError } from '../error/no-speech-generated-error';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveSpeechModel } from '../model/resolve-model';
 import { SpeechModel } from '../types/speech-model';
 import { SpeechModelResponseMetadata } from '../types/speech-model-response-metadata';
 import { Warning } from '../types/warning';
-import {
-  audioMediaTypeSignatures,
-  detectMediaType,
-} from '../util/detect-media-type';
 import { prepareRetries } from '../util/prepare-retries';
 import { VERSION } from '../version';
 import { SpeechResult } from './generate-speech-result';
@@ -160,7 +161,7 @@ export async function generateSpeech({
     audio: new DefaultGeneratedAudioFile({
       data: result.audio,
       mediaType:
-        detectMediaType({
+        detectMediaTypeBySignatures({
           data: result.audio,
           signatures: audioMediaTypeSignatures,
         }) ?? 'audio/mp3',

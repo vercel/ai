@@ -7,7 +7,10 @@ import type {
 import {
   convertBase64ToUint8Array,
   type DataContent,
+  detectMediaTypeBySignatures,
+  imageMediaTypeSignatures,
   type ProviderOptions,
+  videoMediaTypeSignatures,
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
 import { NoVideoGeneratedError } from '../error/no-video-generated-error';
@@ -20,11 +23,6 @@ import { resolveVideoModel } from '../model/resolve-model';
 import type { VideoModel } from '../types/video-model';
 import type { VideoModelResponseMetadata } from '../types/video-model-response-metadata';
 import type { Warning } from '../types/warning';
-import {
-  detectMediaType,
-  imageMediaTypeSignatures,
-  videoMediaTypeSignatures,
-} from '../util/detect-media-type';
 import { createDownload } from '../util/download/create-download';
 import { prepareRetries } from '../util/prepare-retries';
 import { VERSION } from '../version';
@@ -222,7 +220,7 @@ export async function experimental_generateVideo({
           const mediaType =
             (isUsableMediaType(videoData.mediaType) && videoData.mediaType) ||
             (isUsableMediaType(downloadedMediaType) && downloadedMediaType) ||
-            detectMediaType({
+            detectMediaTypeBySignatures({
               data,
               signatures: videoMediaTypeSignatures,
             }) ||
@@ -250,7 +248,7 @@ export async function experimental_generateVideo({
         case 'binary': {
           const mediaType =
             videoData.mediaType ||
-            detectMediaType({
+            detectMediaTypeBySignatures({
               data: videoData.data,
               signatures: videoMediaTypeSignatures,
             }) ||
@@ -362,7 +360,7 @@ function normalizePrompt(promptArg: GenerateVideoPrompt): {
       } else {
         const bytes = convertBase64ToUint8Array(dataContent);
         const mediaType =
-          detectMediaType({
+          detectMediaTypeBySignatures({
             data: bytes,
             signatures: imageMediaTypeSignatures,
           }) ?? 'image/png';
@@ -375,7 +373,7 @@ function normalizePrompt(promptArg: GenerateVideoPrompt): {
       }
     } else if (dataContent instanceof Uint8Array) {
       const mediaType =
-        detectMediaType({
+        detectMediaTypeBySignatures({
           data: dataContent,
           signatures: imageMediaTypeSignatures,
         }) ?? 'image/png';

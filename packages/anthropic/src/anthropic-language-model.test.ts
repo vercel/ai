@@ -2180,7 +2180,7 @@ describe('AnthropicLanguageModel', () => {
             content: [
               {
                 type: 'file',
-                data: 'base64PDFdata',
+                data: { type: 'data' as const, data: 'base64PDFdata' },
                 mediaType: 'application/pdf',
                 filename: 'financial-report.pdf',
                 providerOptions: {
@@ -2266,7 +2266,10 @@ describe('AnthropicLanguageModel', () => {
             content: [
               {
                 type: 'file',
-                data: 'VGVzdCBkb2N1bWVudCBjb250ZW50',
+                data: {
+                  type: 'data' as const,
+                  data: 'VGVzdCBkb2N1bWVudCBjb250ZW50',
+                },
                 mediaType: 'text/plain',
                 filename: 'test.txt',
                 providerOptions: {
@@ -7994,7 +7997,7 @@ describe('AnthropicLanguageModel', () => {
               content: [
                 {
                   type: 'file',
-                  data: 'base64PDFdata',
+                  data: { type: 'data' as const, data: 'base64PDFdata' },
                   mediaType: 'application/pdf',
                   filename: 'financial-report.pdf',
                   providerOptions: {
