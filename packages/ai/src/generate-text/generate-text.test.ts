@@ -7637,6 +7637,70 @@ describe('generateText', () => {
         );
       });
 
+      it('should pass approval data to the tool execution options', async () => {
+        const executeFunction = vi.fn().mockReturnValue('result1');
+
+        await generateText({
+          model: new MockLanguageModelV3({
+            doGenerate: async () => ({
+              ...dummyResponseValues,
+              content: [{ type: 'text', text: 'Hello, world!' }],
+              finishReason: { unified: 'stop', raw: 'stop' },
+            }),
+          }),
+          tools: {
+            tool1: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: executeFunction,
+              needsApproval: true,
+            }),
+          },
+          stopWhen: stepCountIs(3),
+          _internal: {
+            generateId: mockId({ prefix: 'id' }),
+          },
+          messages: [
+            { role: 'user', content: 'test-input' },
+            {
+              role: 'assistant',
+              content: [
+                {
+                  input: { value: 'value' },
+                  providerExecuted: undefined,
+                  providerOptions: undefined,
+                  toolCallId: 'call-1',
+                  toolName: 'tool1',
+                  type: 'tool-call',
+                },
+                {
+                  approvalId: 'id-1',
+                  toolCallId: 'call-1',
+                  type: 'tool-approval-request',
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  approvalId: 'id-1',
+                  type: 'tool-approval-response',
+                  approved: true,
+                  data: { token: 'abc123', confirmedBy: 'user' },
+                },
+              ],
+            },
+          ],
+        });
+
+        expect(executeFunction).toHaveBeenCalledWith(
+          { value: 'value' },
+          expect.objectContaining({
+            approvalData: { token: 'abc123', confirmedBy: 'user' },
+          }),
+        );
+      });
+
       it('should call the model with a prompt that includes the tool result', async () => {
         expect(prompts).toMatchInlineSnapshot(`
           [
