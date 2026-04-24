@@ -31,6 +31,14 @@ const server = createTestServer({
 });
 
 describe('initial messages', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   setupTestComponent(
     ({ id: idParam }: { id: string }) => {
       const [id, _setId] = React.useState<string>(idParam);
@@ -2271,8 +2279,6 @@ describe('experimental_throttle', () => {
     await userEvent.click(screen.getByTestId('do-send'));
     expect(screen.getByTestId('message-0')).toHaveTextContent('User: hi');
 
-    vi.useFakeTimers();
-
     controller.write(formatChunk({ type: 'text-start', id: '0' }));
     controller.write(
       formatChunk({ type: 'text-delta', id: '0', delta: 'Hel' }),
@@ -2303,8 +2309,6 @@ describe('experimental_throttle', () => {
     expect(screen.getByTestId('message-1')).toHaveTextContent(
       'AI: Hello There',
     );
-
-    vi.useRealTimers();
   });
 });
 
