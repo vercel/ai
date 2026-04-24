@@ -500,3 +500,25 @@ describe('StandardSchema (StandardJSONSchemaV1)', () => {
     });
   });
 });
+
+describe('asSchema default', () => {
+  it('should return a JSON Schema object with type "object" when schema is undefined', async () => {
+    const schema = asSchema(undefined);
+
+    expect(await schema.jsonSchema).toStrictEqual({
+      type: 'object',
+      properties: {},
+      additionalProperties: false,
+    });
+  });
+
+  it('should return a JSON Schema object with type "object" when schema is null', async () => {
+    const schema = asSchema(null as any);
+
+    expect(await schema.jsonSchema).toStrictEqual({
+      type: 'object',
+      properties: {},
+      additionalProperties: false,
+    });
+  });
+});
