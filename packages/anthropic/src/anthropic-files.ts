@@ -51,7 +51,11 @@ export class AnthropicFiles implements FilesV4 {
     filename,
   }: FilesV4UploadFileCallOptions): Promise<FilesV4UploadFileResult> {
     const fileBytes =
-      data instanceof Uint8Array ? data : convertBase64ToUint8Array(data);
+      data.type === 'text'
+        ? new TextEncoder().encode(data.text)
+        : data.data instanceof Uint8Array
+          ? data.data
+          : convertBase64ToUint8Array(data.data);
 
     const blob = new Blob([fileBytes], { type: mediaType });
 

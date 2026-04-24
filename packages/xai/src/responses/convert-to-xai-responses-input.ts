@@ -5,7 +5,8 @@ import {
 } from '@ai-sdk/provider';
 import {
   convertToBase64,
-  isProviderReference,
+  getTopLevelMediaType,
+  resolveFullMediaType,
   resolveProviderReference,
 } from '@ai-sdk/provider-utils';
 import {
@@ -46,30 +47,41 @@ export async function convertToXaiResponsesInput({
             }
 
             case 'file': {
-              if (isProviderReference(block.data)) {
-                contentParts.push({
-                  type: 'input_file',
-                  file_id: resolveProviderReference({
-                    reference: block.data,
-                    provider: 'xai',
-                  }),
-                });
-              } else if (block.mediaType.startsWith('image/')) {
-                const mediaType =
-                  block.mediaType === 'image/*'
-                    ? 'image/jpeg'
-                    : block.mediaType;
+              switch (block.data.type) {
+                case 'reference': {
+                  contentParts.push({
+                    type: 'input_file',
+                    file_id: resolveProviderReference({
+                      reference: block.data.reference,
+                      provider: 'xai',
+                    }),
+                  });
+                  break;
+                }
+                case 'text': {
+                  throw new UnsupportedFunctionalityError({
+                    functionality: 'text file parts',
+                  });
+                }
+                case 'url':
+                case 'data': {
+                  if (getTopLevelMediaType(block.mediaType) === 'image') {
+                    const imageUrl =
+                      block.data.type === 'url'
+                        ? block.data.url.toString()
+                        : `data:${resolveFullMediaType({ part: block })};base64,${convertToBase64(block.data.data)}`;
 
-                const imageUrl =
-                  block.data instanceof URL
-                    ? block.data.toString()
-                    : `data:${mediaType};base64,${convertToBase64(block.data)}`;
-
-                contentParts.push({ type: 'input_image', image_url: imageUrl });
-              } else {
-                throw new UnsupportedFunctionalityError({
-                  functionality: `file part media type ${block.mediaType}`,
-                });
+                    contentParts.push({
+                      type: 'input_image',
+                      image_url: imageUrl,
+                    });
+                  } else {
+                    throw new UnsupportedFunctionalityError({
+                      functionality: `file part media type ${block.mediaType}`,
+                    });
+                  }
+                  break;
+                }
               }
               break;
             }

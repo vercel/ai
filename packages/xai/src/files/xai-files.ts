@@ -44,7 +44,11 @@ export class XaiFiles implements FilesV4 {
     })) as XaiFilesOptions | undefined;
 
     const fileBytes =
-      data instanceof Uint8Array ? data : convertBase64ToUint8Array(data);
+      data.type === 'text'
+        ? new TextEncoder().encode(data.text)
+        : data.data instanceof Uint8Array
+          ? data.data
+          : convertBase64ToUint8Array(data.data);
 
     const blob = new Blob([fileBytes], {
       type: mediaType,

@@ -387,7 +387,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
         const hasThoughtSignature = !!part.thoughtSignature;
         content.push({
           type: hasThought ? 'reasoning-file' : 'file',
-          data: part.inlineData.data,
+          data: { type: 'data', data: part.inlineData.data },
           mediaType: part.inlineData.mimeType,
           providerMetadata: hasThoughtSignature
             ? {
@@ -753,7 +753,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
                   controller.enqueue({
                     type: hasThought ? 'reasoning-file' : 'file',
                     mediaType: part.inlineData.mimeType,
-                    data: part.inlineData.data,
+                    data: { type: 'data', data: part.inlineData.data },
                     providerMetadata: fileMeta,
                   });
                 } else if ('toolCall' in part && part.toolCall) {

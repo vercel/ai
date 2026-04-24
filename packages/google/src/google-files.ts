@@ -61,9 +61,11 @@ export class GoogleFiles implements FilesV4 {
 
     const data = options.data;
     const fileBytes =
-      data instanceof Uint8Array
-        ? data
-        : Uint8Array.from(atob(data), c => c.charCodeAt(0));
+      data.type === 'text'
+        ? new TextEncoder().encode(data.text)
+        : data.data instanceof Uint8Array
+          ? data.data
+          : Uint8Array.from(atob(data.data), c => c.charCodeAt(0));
 
     const mediaType = options.mediaType;
     const displayName = googleOptions?.displayName;

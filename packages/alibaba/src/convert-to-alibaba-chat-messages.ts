@@ -1,22 +1,28 @@
 import {
-  type LanguageModelV4DataContent,
+  type LanguageModelV4FilePart,
   type LanguageModelV4Prompt,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import { convertToBase64, isProviderReference } from '@ai-sdk/provider-utils';
+import {
+  convertToBase64,
+  getTopLevelMediaType,
+  resolveFullMediaType,
+} from '@ai-sdk/provider-utils';
 import type { AlibabaChatPrompt } from './alibaba-chat-prompt';
 import type { CacheControlValidator } from './get-cache-control';
 
-function formatImageUrl({
-  data,
-  mediaType,
-}: {
-  data: LanguageModelV4DataContent;
-  mediaType: string;
-}): string {
-  return data instanceof URL
-    ? data.toString()
-    : `data:${mediaType};base64,${convertToBase64(data as Uint8Array)}`;
+function formatImageUrl({ part }: { part: LanguageModelV4FilePart }): string {
+  if (part.data.type === 'url') {
+    return part.data.url.toString();
+  }
+
+  if (part.data.type === 'data') {
+    return `data:${resolveFullMediaType({ part })};base64,${convertToBase64(part.data.data)}`;
+  }
+
+  throw new UnsupportedFunctionalityError({
+    functionality: `file part data type ${part.data.type}`,
+  });
 }
 
 export function convertToAlibabaChatMessages({
@@ -73,31 +79,35 @@ export function convertToAlibabaChatMessages({
               }
 
               case 'file': {
-                if (isProviderReference(part.data)) {
-                  throw new UnsupportedFunctionalityError({
-                    functionality: 'file parts with provider references',
-                  });
-                }
-
-                if (part.mediaType.startsWith('image/')) {
-                  const mediaType =
-                    part.mediaType === 'image/*'
-                      ? 'image/jpeg'
-                      : part.mediaType;
-
-                  return {
-                    type: 'image_url',
-                    image_url: {
-                      url: formatImageUrl({ data: part.data, mediaType }),
-                    },
-                    ...(partCacheControl
-                      ? { cache_control: partCacheControl }
-                      : {}),
-                  };
-                } else {
-                  throw new UnsupportedFunctionalityError({
-                    functionality: 'Only image file parts are supported',
-                  });
+                switch (part.data.type) {
+                  case 'reference': {
+                    throw new UnsupportedFunctionalityError({
+                      functionality: 'file parts with provider references',
+                    });
+                  }
+                  case 'text': {
+                    throw new UnsupportedFunctionalityError({
+                      functionality: 'text file parts',
+                    });
+                  }
+                  case 'url':
+                  case 'data': {
+                    if (getTopLevelMediaType(part.mediaType) === 'image') {
+                      return {
+                        type: 'image_url',
+                        image_url: {
+                          url: formatImageUrl({ part }),
+                        },
+                        ...(partCacheControl
+                          ? { cache_control: partCacheControl }
+                          : {}),
+                      };
+                    } else {
+                      throw new UnsupportedFunctionalityError({
+                        functionality: 'Only image file parts are supported',
+                      });
+                    }
+                  }
                 }
               }
             }

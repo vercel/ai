@@ -58,7 +58,12 @@ describe('AnthropicSkills', () => {
 
       const skills = provider.skills();
       await skills.uploadSkill({
-        files: [{ path: 'index.ts', content: testFileContentBase64 }],
+        files: [
+          {
+            path: 'index.ts',
+            data: { type: 'data', data: testFileContentBase64 },
+          },
+        ],
       });
 
       const body = await server.calls[0].requestBodyMultipart;
@@ -75,7 +80,12 @@ describe('AnthropicSkills', () => {
 
       const skills = provider.skills();
       await skills.uploadSkill({
-        files: [{ path: 'index.ts', content: testFileContentBase64 }],
+        files: [
+          {
+            path: 'index.ts',
+            data: { type: 'data', data: testFileContentBase64 },
+          },
+        ],
       });
 
       expect(server.calls[0].requestHeaders).toMatchObject({
@@ -93,7 +103,12 @@ describe('AnthropicSkills', () => {
 
       const skills = provider.skills();
       const result = await skills.uploadSkill({
-        files: [{ path: 'index.ts', content: testFileContentBase64 }],
+        files: [
+          {
+            path: 'index.ts',
+            data: { type: 'data', data: testFileContentBase64 },
+          },
+        ],
       });
 
       expect(result.providerReference).toEqual({
@@ -123,7 +138,12 @@ describe('AnthropicSkills', () => {
 
       const skills = provider.skills();
       await skills.uploadSkill({
-        files: [{ path: 'index.ts', content: testFileContentBase64 }],
+        files: [
+          {
+            path: 'index.ts',
+            data: { type: 'data', data: testFileContentBase64 },
+          },
+        ],
         displayTitle: 'My Custom Title',
       });
 
@@ -140,7 +160,12 @@ describe('AnthropicSkills', () => {
 
       const skills = provider.skills();
       await skills.uploadSkill({
-        files: [{ path: 'index.ts', content: testFileContentBase64 }],
+        files: [
+          {
+            path: 'index.ts',
+            data: { type: 'data', data: testFileContentBase64 },
+          },
+        ],
       });
 
       const body = await server.calls[0].requestBodyMultipart;
@@ -156,7 +181,12 @@ describe('AnthropicSkills', () => {
 
       const skills = provider.skills();
       const result = await skills.uploadSkill({
-        files: [{ path: 'index.ts', content: testFileContentBase64 }],
+        files: [
+          {
+            path: 'index.ts',
+            data: { type: 'data', data: testFileContentBase64 },
+          },
+        ],
       });
 
       expect(result.warnings).toMatchInlineSnapshot(`[]`);
