@@ -1,10 +1,13 @@
 import { openai } from '@ai-sdk/openai';
 import { generateText } from 'ai';
+import { readFile } from 'node:fs/promises';
 import { run } from '../../lib/run';
 
 run(async () => {
+  const bytes = new Uint8Array(await readFile('./data/comic-cat.png'));
+
   const result = await generateText({
-    model: openai.responses('gpt-4o-mini'),
+    model: openai('gpt-4o'),
     messages: [
       {
         role: 'user',
@@ -12,8 +15,8 @@ run(async () => {
           { type: 'text', text: 'Describe the image in detail.' },
           {
             type: 'file',
-            mediaType: 'image',
-            data: 'https://github.com/vercel/ai/blob/main/examples/ai-functions/data/comic-cat.png?raw=true',
+            mediaType: 'image/png',
+            data: { type: 'data', data: bytes },
           },
         ],
       },

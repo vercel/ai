@@ -28,7 +28,7 @@ export default defineLazyEventHandler(async () => {
                 .map(part => (part.type === 'text' ? part.text : ''))
                 .join(''),
             },
-            { type: 'image', image: new URL(data.imageUrl) },
+            { type: 'file', data: new URL(data.imageUrl), mediaType: 'image' },
           ],
         },
       ],
