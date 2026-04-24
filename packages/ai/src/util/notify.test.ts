@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import type { Callback } from './callback';
 import { notify } from './notify';
+import { delay } from '@ai-sdk/provider-utils';
 
 describe('notify', () => {
   describe('callback invocation', () => {
