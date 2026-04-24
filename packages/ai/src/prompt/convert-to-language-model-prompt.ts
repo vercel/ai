@@ -283,14 +283,24 @@ export function convertToLanguageModelMessage({
                     providerOptions,
                   };
                 }
-                const { data, mediaType } = convertToLanguageModelV4DataContent(
-                  part.data,
-                );
+                const { data: convertedData, mediaType: convertedMediaType } =
+                  convertToLanguageModelV4DataContent(part.data);
+                let data = convertedData;
+                let mediaType = convertedMediaType ?? part.mediaType;
+
+                if (data instanceof URL) {
+                  const downloadedFile = downloadedAssets[data.toString()];
+                  if (downloadedFile) {
+                    data = downloadedFile.data;
+                    mediaType ??= downloadedFile.mediaType;
+                  }
+                }
+
                 return {
                   type: 'file' as const,
                   data,
                   filename: part.filename,
-                  mediaType: mediaType ?? part.mediaType,
+                  mediaType,
                   providerOptions,
                 };
               }
@@ -302,13 +312,23 @@ export function convertToLanguageModelMessage({
                 };
               }
               case 'reasoning-file': {
-                const { data, mediaType } = convertToLanguageModelV4DataContent(
-                  part.data,
-                );
+                const { data: convertedData, mediaType: convertedMediaType } =
+                  convertToLanguageModelV4DataContent(part.data);
+                let data = convertedData;
+                let mediaType = convertedMediaType ?? part.mediaType;
+
+                if (data instanceof URL) {
+                  const downloadedFile = downloadedAssets[data.toString()];
+                  if (downloadedFile) {
+                    data = downloadedFile.data;
+                    mediaType ??= downloadedFile.mediaType;
+                  }
+                }
+
                 return {
                   type: 'reasoning-file' as const,
                   data,
-                  mediaType: mediaType ?? part.mediaType,
+                  mediaType,
                   providerOptions,
                 };
               }
@@ -402,7 +422,7 @@ export function convertToLanguageModelMessage({
 }
 
 /**
- * Downloads images and files from URLs in the messages.
+ * Downloads URL-backed assets in the messages.
  */
 async function downloadAssets(
   messages: ModelMessage[],
@@ -412,28 +432,43 @@ async function downloadAssets(
   Record<string, { mediaType: string | undefined; data: Uint8Array }>
 > {
   const plannedDownloads = messages
-    .filter(message => message.role === 'user')
-    .map(message => message.content)
-    .filter((content): content is Array<TextPart | ImagePart | FilePart> =>
-      Array.isArray(content),
-    )
-    .flat()
-    .filter(
-      (part): part is ImagePart | FilePart =>
-        part.type === 'image' || part.type === 'file',
-    )
-    .map(part => {
-      const mediaType =
-        part.mediaType ?? (part.type === 'image' ? 'image/*' : undefined);
+    .flatMap(message => {
+      if (message.role === 'user' && Array.isArray(message.content)) {
+        return message.content
+          .filter(
+            (part): part is ImagePart | FilePart =>
+              part.type === 'image' || part.type === 'file',
+          )
+          .map(part => ({
+            mediaType:
+              part.mediaType ?? (part.type === 'image' ? 'image/*' : undefined),
+            data: part.type === 'image' ? part.image : part.data,
+          }));
+      }
 
-      let data = part.type === 'image' ? part.image : part.data;
+      if (message.role === 'assistant' && Array.isArray(message.content)) {
+        return message.content
+          .filter(
+            (part): part is FilePart | ReasoningFilePart =>
+              part.type === 'file' || part.type === 'reasoning-file',
+          )
+          .map(part => ({
+            mediaType: part.mediaType,
+            data: part.data,
+          }));
+      }
+
+      return [];
+    })
+    .map(part => {
+      let data = part.data;
       if (typeof data === 'string') {
         try {
           data = new URL(data);
         } catch {}
       }
 
-      return { mediaType, data };
+      return { mediaType: part.mediaType, data };
     })
 
     .filter(
