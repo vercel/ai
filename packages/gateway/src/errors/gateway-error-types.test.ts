@@ -7,6 +7,7 @@ import {
   GatewayModelNotFoundError,
   GatewayInternalServerError,
   GatewayResponseError,
+  GatewayTimeoutError,
 } from './index';
 
 describe('GatewayAuthenticationError', () => {
@@ -274,5 +275,55 @@ describe('Error inheritance chain', () => {
     expect(error.stack).toBeDefined();
     expect(error.stack).toContain('GatewayAuthenticationError');
     expect(error.stack).toContain('Test error');
+  });
+});
+
+describe('isRetryable defaults', () => {
+  it('should be retryable for 500 (GatewayInternalServerError)', () => {
+    const error = new GatewayInternalServerError({ statusCode: 500 });
+    expect(error.isRetryable).toBe(true);
+  });
+
+  it('should be retryable for 503 (GatewayInternalServerError)', () => {
+    const error = new GatewayInternalServerError({ statusCode: 503 });
+    expect(error.isRetryable).toBe(true);
+  });
+
+  it('should be retryable for 429 (GatewayRateLimitError)', () => {
+    const error = new GatewayRateLimitError({ statusCode: 429 });
+    expect(error.isRetryable).toBe(true);
+  });
+
+  it('should be retryable for 408 (GatewayTimeoutError)', () => {
+    const error = new GatewayTimeoutError({ statusCode: 408 });
+    expect(error.isRetryable).toBe(true);
+  });
+
+  it('should NOT be retryable for 401 (GatewayAuthenticationError)', () => {
+    const error = new GatewayAuthenticationError({ statusCode: 401 });
+    expect(error.isRetryable).toBe(false);
+  });
+
+  it('should NOT be retryable for 400 (GatewayInvalidRequestError)', () => {
+    const error = new GatewayInvalidRequestError({ statusCode: 400 });
+    expect(error.isRetryable).toBe(false);
+  });
+
+  it('should NOT be retryable for 404 (GatewayModelNotFoundError)', () => {
+    const error = new GatewayModelNotFoundError({ statusCode: 404 });
+    expect(error.isRetryable).toBe(false);
+  });
+
+  it('should allow explicit isRetryable override', () => {
+    const error = new GatewayInternalServerError({
+      statusCode: 500,
+      isRetryable: false,
+    });
+    expect(error.isRetryable).toBe(false);
+  });
+
+  it('should be retryable for 502 (GatewayResponseError)', () => {
+    const error = new GatewayResponseError({ statusCode: 502 });
+    expect(error.isRetryable).toBe(true);
   });
 });

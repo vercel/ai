@@ -18,13 +18,15 @@ export class GatewayAuthenticationError extends GatewayError {
     statusCode = 401,
     cause,
     generationId,
+    isRetryable,
   }: {
     message?: string;
     statusCode?: number;
     cause?: unknown;
     generationId?: string;
+    isRetryable?: boolean;
   } = {}) {
-    super({ message, statusCode, cause, generationId });
+    super({ message, statusCode, cause, generationId, isRetryable });
   }
 
   static isInstance(error: unknown): error is GatewayAuthenticationError {
@@ -40,6 +42,7 @@ export class GatewayAuthenticationError extends GatewayError {
     statusCode = 401,
     cause,
     generationId,
+    isRetryable,
   }: {
     apiKeyProvided: boolean;
     oidcTokenProvided: boolean;
@@ -47,6 +50,7 @@ export class GatewayAuthenticationError extends GatewayError {
     statusCode?: number;
     cause?: unknown;
     generationId?: string;
+    isRetryable?: boolean;
   }): GatewayAuthenticationError {
     let contextualMessage: string;
 
@@ -78,6 +82,7 @@ Run 'npx vercel link' to link your project, then 'vc env pull' to fetch the toke
       statusCode,
       cause,
       generationId,
+      isRetryable,
     });
   }
 }

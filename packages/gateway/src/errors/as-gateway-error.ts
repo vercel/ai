@@ -58,6 +58,7 @@ export async function asGatewayError(
       defaultMessage: 'Gateway request failed',
       cause: error,
       authMethod,
+      isRetryable: error.isRetryable,
     });
   }
 
