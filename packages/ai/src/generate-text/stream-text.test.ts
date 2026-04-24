@@ -4032,7 +4032,7 @@ describe('streamText', () => {
                 delta: ' world',
               });
 
-              await new Promise(resolve => setTimeout(resolve, 10));
+              await delay(10);
 
               if (!abortSignal?.aborted) {
                 controller.enqueue({

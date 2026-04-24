@@ -1075,7 +1075,7 @@ describe('createExecuteToolsTransformation', () => {
         failingTool: tool({
           inputSchema: z.object({ value: z.string() }),
           execute: async ({ value }) => {
-            await delay(10); // TODO find elegant way to test setTimeout
+            await delay(10);
             if (value === 'test') {
               throw toolError;
             }

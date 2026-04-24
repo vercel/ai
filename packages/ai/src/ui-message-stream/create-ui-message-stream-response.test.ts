@@ -1,9 +1,10 @@
+import { delay } from '@ai-sdk/provider-utils';
 import {
   convertArrayToReadableStream,
   convertReadableStreamToArray,
 } from '@ai-sdk/provider-utils/test';
+import { describe, expect, it, vi } from 'vitest';
 import { createUIMessageStreamResponse } from './create-ui-message-stream-response';
-import { describe, it, expect, vi } from 'vitest';
 
 describe('createUIMessageStreamResponse', () => {
   it('should create a Response with correct headers and encoded stream', async () => {
@@ -120,7 +121,7 @@ describe('createUIMessageStreamResponse', () => {
     `);
 
     // Wait for consumeSseStream to complete
-    await new Promise(resolve => setTimeout(resolve, 0));
+    await delay(0);
 
     // Verify consumeSseStream received the same data
     expect(consumedData).toMatchInlineSnapshot(`

@@ -3,6 +3,7 @@ import { ServerResponse } from 'node:http';
 import { describe, it, expect } from 'vitest';
 import { writeToServerResponse } from './write-to-server-response';
 import { createMockServerResponse } from '../test/mock-server-response';
+import { delay } from '@ai-sdk/provider-utils';
 
 describe('writeToServerResponse', () => {
   it('should write data to ServerResponse', async () => {
@@ -65,12 +66,12 @@ describe('writeToServerResponse', () => {
     });
 
     // Wait for first chunk to be written
-    await new Promise(resolve => setTimeout(resolve, 10));
+    await delay(10);
     expect(mockResponse.writeCallCount).toBe(1);
 
     // Enqueue second chunk - it should trigger write which returns false (backpressure)
     readyToEnqueue!(new TextEncoder().encode('chunk2'));
-    await new Promise(resolve => setTimeout(resolve, 5));
+    await delay(5);
 
     // Second chunk write should have been called but returned false
     expect(mockResponse.writeCallCount).toBe(2);
@@ -78,14 +79,14 @@ describe('writeToServerResponse', () => {
 
     // Enqueue third chunk - it should NOT trigger write yet (still waiting for drain from chunk 2)
     readyToEnqueue!(new TextEncoder().encode('chunk3'));
-    await new Promise(resolve => setTimeout(resolve, 5));
+    await delay(5);
 
     // Third chunk shouldn't be written yet (waiting for drain)
     expect(mockResponse.writeCallCount).toBe(2);
 
     // Simulate drain to allow third write
     mockResponse.simulateDrain();
-    await new Promise(resolve => setTimeout(resolve, 10));
+    await delay(10);
     expect(mockResponse.writeCallCount).toBe(3);
 
     // Close the stream

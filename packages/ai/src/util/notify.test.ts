@@ -60,7 +60,7 @@ describe('notify', () => {
       await notify({
         event: 'test',
         callbacks: async () => {
-          await new Promise(resolve => setTimeout(resolve, 1));
+          await delay(1);
           calls.push('async done');
         },
       });
