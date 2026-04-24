@@ -1949,4 +1949,36 @@ describe('MCPClient', () => {
       expect(tools['typed-titled-tool'].title).toBe('Typed Tool Title');
     });
   });
+
+  describe('protocol version negotiation', () => {
+    it('should set protocolVersion on transport after successful init', async () => {
+      const mockTransport = new MockMCPTransport();
+
+      client = await createMCPClient({
+        transport: mockTransport,
+      });
+
+      // The mock transport returns LATEST_PROTOCOL_VERSION by default
+      expect(mockTransport.protocolVersion).toBe(
+        (await import('./types')).LATEST_PROTOCOL_VERSION,
+      );
+    });
+
+    it('should set negotiated protocolVersion on transport when server downgrades', async () => {
+      const mockTransport = new MockMCPTransport({
+        initializeResult: {
+          protocolVersion: '2025-06-18',
+          serverInfo: { name: 'test-server', version: '1.0.0' },
+          capabilities: { tools: {} },
+        },
+      });
+
+      client = await createMCPClient({
+        transport: mockTransport,
+      });
+
+      expect(mockTransport.protocolVersion).toBe('2025-06-18');
+    });
+  });
+
 });

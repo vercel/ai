@@ -452,4 +452,42 @@ describe('SseMCPTransport', () => {
       await transport.close();
     });
   });
+
+  describe('protocol version downgrade', () => {
+    it('should use negotiated protocolVersion in POST headers after it is set', async () => {
+      const controller = new TestResponseController();
+
+      server.urls['http://localhost:3000/sse'].response = {
+        type: 'controlled-stream',
+        controller,
+        headers: { 'content-type': 'text/event-stream' },
+      };
+
+      const connectPromise = transport.start();
+      controller.write(
+        'event: endpoint\ndata: http://localhost:3000/messages\n\n',
+      );
+      await connectPromise;
+
+      // Simulate protocol version negotiation
+      transport.protocolVersion = '2025-06-18';
+
+      await transport.send({
+        jsonrpc: '2.0' as const,
+        method: 'tools/list',
+        params: {},
+        id: '1',
+      });
+
+      const postCall = server.calls.find(
+        c => c.requestMethod === 'POST',
+      );
+      expect(postCall?.requestHeaders['mcp-protocol-version']).toBe(
+        '2025-06-18',
+      );
+
+      await transport.close();
+    });
+  });
+
 });
