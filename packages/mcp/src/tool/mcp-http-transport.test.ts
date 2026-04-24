@@ -2,11 +2,10 @@ import {
   createTestServer,
   TestResponseController,
 } from '@ai-sdk/test-server/with-vitest';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { HttpMCPTransport } from './mcp-http-transport';
 import { LATEST_PROTOCOL_VERSION } from './types';
 import { MCPClientError } from '../error/mcp-client-error';
-import { delay } from '@ai-sdk/provider-utils';
 
 describe('HttpMCPTransport', () => {
   const server = createTestServer({
@@ -23,7 +22,12 @@ describe('HttpMCPTransport', () => {
   let transport: HttpMCPTransport;
 
   beforeEach(() => {
+    vi.useFakeTimers();
     transport = new HttpMCPTransport({ url: 'http://localhost:4000/mcp' });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it('should POST JSON and receive JSON response', async () => {
@@ -187,19 +191,11 @@ describe('HttpMCPTransport', () => {
 
     await transport.start();
 
-    await new Promise<void>(resolve => {
-      const check = () => {
-        if (
-          server.calls.length > 0 &&
-          server.calls[0].requestMethod === 'GET'
-        ) {
-          resolve();
-        } else {
-          delay(0).then(check);
-        }
-      };
-      check();
-    });
+    while (
+      !(server.calls.length > 0 && server.calls[0].requestMethod === 'GET')
+    ) {
+      await vi.advanceTimersByTimeAsync(0);
+    }
 
     // Now make POST fail
     server.urls['http://localhost:4000/mcp'].response = {

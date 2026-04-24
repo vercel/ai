@@ -63,11 +63,13 @@ describe('text stream', () => {
   };
 
   beforeEach(() => {
+    vi.useFakeTimers();
     onErrorResult = undefined;
     onFinishCalls = [];
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     vi.restoreAllMocks();
     cleanup();
     onErrorResult = undefined;
@@ -305,6 +307,7 @@ describe('text stream', () => {
 
     render(<TestComponentWithAsyncHeaders />);
     await userEvent.click(screen.getByTestId('submit-async-headers'));
+    await vi.advanceTimersByTimeAsync(10);
 
     await waitFor(() => {
       expect(server.calls[0].requestHeaders).toStrictEqual({

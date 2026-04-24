@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { JSONSchema7 } from '@ai-sdk/provider';
 import { z } from 'zod/v3';
 import {
@@ -10,6 +10,14 @@ import { zod3ToJsonSchema } from './zod3-to-json-schema';
 import { delay } from '../../delay';
 
 describe('zod3-to-json-schema', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   describe('override', () => {
     it('the readme example', () => {
       expect(

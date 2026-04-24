@@ -4,7 +4,7 @@ import {
   convertReadableStreamToArray,
   mockId,
 } from '@ai-sdk/provider-utils/test';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
 import { TypeValidationError } from '../error';
 import { asLanguageModelUsage } from '../types/usage';
@@ -43,8 +43,13 @@ const finishChunk = {
 
 describe('createExecuteToolsTransformation', () => {
   beforeEach(() => {
+    vi.useFakeTimers();
     vi.clearAllMocks();
     mockNow.mockReturnValue(0);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it('should handle async tool execution', async () => {
@@ -1110,7 +1115,9 @@ describe('createExecuteToolsTransformation', () => {
         }),
       );
 
-      const result = await convertReadableStreamToArray(transformedStream);
+      const resultPromise = convertReadableStreamToArray(transformedStream);
+      await vi.advanceTimersByTimeAsync(10);
+      const result = await resultPromise;
 
       expect(result).toMatchInlineSnapshot(`
         [

@@ -1,9 +1,17 @@
-import { describe, it, expect } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Callback } from './callback';
 import { notify } from './notify';
 import { delay } from '@ai-sdk/provider-utils';
 
 describe('notify', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   describe('callback invocation', () => {
     it('should call a single callback with the event', async () => {
       const calls: string[] = [];
@@ -58,13 +66,16 @@ describe('notify', () => {
     it('should await async callbacks before continuing', async () => {
       const calls: string[] = [];
 
-      await notify({
+      const notifyPromise = notify({
         event: 'test',
         callbacks: async () => {
           await delay(1);
           calls.push('async done');
         },
       });
+
+      await vi.advanceTimersByTimeAsync(1);
+      await notifyPromise;
 
       calls.push('after notify');
 
