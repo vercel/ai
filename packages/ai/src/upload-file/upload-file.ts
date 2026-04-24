@@ -1,28 +1,28 @@
-import { FilesV4, ProviderV4 } from '@ai-sdk/provider';
 import {
-  convertBase64ToUint8Array,
-  DataContent,
-  ProviderOptions,
-} from '@ai-sdk/provider-utils';
-import { convertToLanguageModelV4DataContent } from '../prompt/data-content';
-import { ProviderMetadata } from '../types/provider-metadata';
-import { ProviderReference } from '../types/provider-reference';
-import { Warning } from '../types/warning';
+  FilesV4,
+  FilesV4UploadFileCallOptions,
+  ProviderV4,
+} from '@ai-sdk/provider';
 import {
   audioMediaTypeSignatures,
-  detectMediaType,
+  convertBase64ToUint8Array,
+  detectMediaTypeBySignatures,
   documentMediaTypeSignatures,
   imageMediaTypeSignatures,
   videoMediaTypeSignatures,
-} from '../util/detect-media-type';
+} from '@ai-sdk/provider-utils';
+import { ProviderMetadata } from '../types/provider-metadata';
+import { ProviderReference } from '../types/provider-reference';
+import { Warning } from '../types/warning';
 import { UploadFileResult } from './upload-file-result';
 
 /**
  * Uploads a file using a files API interface.
  *
  * @param api - The Files API interface to use for uploading.
- * @param data - The file data to upload.
- * @param mediaType - Optional IANA media type. Auto-detected from file bytes if not provided.
+ * @param data - The file data to upload (tagged `{ type: 'data' | 'text' }`).
+ * @param mediaType - Optional IANA media type. Auto-detected from file bytes
+ * when omitted (falls back to `text/plain` for the `text` variant).
  * @param filename - Optional filename for the uploaded file.
  * @param providerOptions - Additional provider-specific options.
  *
@@ -40,48 +40,38 @@ export async function uploadFile({
    * Can be a `FilesV4` instance or a `ProviderV4` instance with a `files()` method.
    */
   api: FilesV4 | ProviderV4;
+} & Omit<FilesV4UploadFileCallOptions, 'mediaType' | 'data'> & {
+    /**
+     * The file data. Accepts the tagged `{ type: 'data' | 'text' }` shapes, or
+     * the shorthand `Uint8Array | string` (treated as `{ type: 'data', data }`).
+     */
+    data: FilesV4UploadFileCallOptions['data'] | Uint8Array | string;
 
-  /**
-   * The file data to upload.
-   */
-  data: DataContent;
-
-  /**
-   * Optional IANA media type of the file.
-   * Auto-detected from file bytes if not provided.
-   */
-  mediaType?: string;
-
-  /**
-   * Optional filename for the uploaded file.
-   */
-  filename?: string;
-
-  /**
-   * Additional provider-specific options.
-   */
-  providerOptions?: ProviderOptions;
-}): Promise<UploadFileResult> {
-  const { data } = convertToLanguageModelV4DataContent(dataArg);
-
-  if (data instanceof URL) {
-    throw new Error(
-      'URL data is not supported for file uploads. Fetch the URL content first and pass the bytes.',
-    );
-  }
+    /**
+     * Optional IANA media type of the file. Auto-detected from file bytes when
+     * omitted; falls back to `text/plain` for the `text` variant.
+     */
+    mediaType?: string;
+  }): Promise<UploadFileResult> {
+  const data: FilesV4UploadFileCallOptions['data'] =
+    dataArg instanceof Uint8Array || typeof dataArg === 'string'
+      ? { type: 'data', data: dataArg }
+      : dataArg;
 
   const mediaType =
     mediaTypeArg ??
-    detectMediaType({
-      data,
-      signatures: [
-        ...imageMediaTypeSignatures,
-        ...documentMediaTypeSignatures,
-        ...audioMediaTypeSignatures,
-        ...videoMediaTypeSignatures,
-      ],
-    }) ??
-    (isLikelyText(data) ? 'text/plain' : 'application/octet-stream');
+    (data.type === 'text'
+      ? 'text/plain'
+      : (detectMediaTypeBySignatures({
+          data: data.data,
+          signatures: [
+            ...imageMediaTypeSignatures,
+            ...documentMediaTypeSignatures,
+            ...audioMediaTypeSignatures,
+            ...videoMediaTypeSignatures,
+          ],
+        }) ??
+        (isLikelyText(data.data) ? 'text/plain' : 'application/octet-stream')));
 
   const filesApi: FilesV4 =
     'uploadFile' in api

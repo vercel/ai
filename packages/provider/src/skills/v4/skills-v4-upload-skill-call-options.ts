@@ -7,9 +7,14 @@ export interface SkillsV4File {
   path: string;
 
   /**
-   * The content of the file, either as a base64 string or binary data.
+   * The file data.
+   *
+   * - `{ type: 'data', data }`: raw bytes (`Uint8Array`) or a base64-encoded string.
+   * - `{ type: 'text', text }`: inline text (UTF-8).
    */
-  content: string | Uint8Array;
+  data:
+    | { type: 'data'; data: Uint8Array | string }
+    | { type: 'text'; text: string };
 }
 
 export interface SkillsV4UploadSkillCallOptions {

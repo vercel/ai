@@ -19,10 +19,10 @@ describe('uploadFile', () => {
     warnings: [],
   };
 
-  it('should pass Uint8Array data directly to files.uploadFile', async () => {
+  it('should pass tagged data through to files.uploadFile', async () => {
     const uploadFileSpy = vi.fn().mockResolvedValue(mockResult);
 
-    const data = new Uint8Array([1, 2, 3]);
+    const data = { type: 'data' as const, data: new Uint8Array([1, 2, 3]) };
     const result = await uploadFile({
       api: createMockFiles({ uploadFile: uploadFileSpy }),
       data,
@@ -43,55 +43,33 @@ describe('uploadFile', () => {
     expect(result.warnings).toEqual([]);
   });
 
-  it('should convert ArrayBuffer data to Uint8Array', async () => {
-    const uploadFileSpy = vi.fn().mockResolvedValue(mockResult);
-
-    const arrayBuffer = new ArrayBuffer(3);
-    const view = new Uint8Array(arrayBuffer);
-    view.set([4, 5, 6]);
-
-    await uploadFile({
-      api: createMockFiles({ uploadFile: uploadFileSpy }),
-      data: arrayBuffer,
-    });
-
-    const callArg = uploadFileSpy.mock.calls[0][0];
-    expect(callArg.data).toBeInstanceOf(Uint8Array);
-    expect(Array.from(callArg.data as Uint8Array)).toEqual([4, 5, 6]);
-  });
-
-  it('should reject URL data with a clear error message', async () => {
-    const uploadFileSpy = vi.fn().mockResolvedValue(mockResult);
-
-    await expect(
-      uploadFile({
-        api: createMockFiles({ uploadFile: uploadFileSpy }),
-        data: new Uint8Array([0]),
-      }),
-    ).resolves.toBeDefined();
-
-    await expect(
-      uploadFile({
-        api: createMockFiles({ uploadFile: uploadFileSpy }),
-        // string URLs get converted to URL objects by convertToLanguageModelV4DataContent
-        data: 'https://example.com/file.pdf' as any,
-      }),
-    ).rejects.toThrow(
-      'URL data is not supported for file uploads. Fetch the URL content first and pass the bytes.',
-    );
-  });
-
-  it('should pass base64 string data through to files.uploadFile', async () => {
+  it('should pass tagged base64 string data through to files.uploadFile', async () => {
     const uploadFileSpy = vi.fn().mockResolvedValue(mockResult);
 
     const base64 = 'dGVzdA==';
     await uploadFile({
       api: createMockFiles({ uploadFile: uploadFileSpy }),
-      data: base64,
+      data: { type: 'data', data: base64 },
     });
 
     const callArg = uploadFileSpy.mock.calls[0][0];
-    expect(callArg.data).toBe(base64);
+    expect(callArg.data).toEqual({ type: 'data', data: base64 });
+  });
+
+  it('should default mediaType to text/plain for tagged text data', async () => {
+    const uploadFileSpy = vi.fn().mockResolvedValue(mockResult);
+
+    await uploadFile({
+      api: createMockFiles({ uploadFile: uploadFileSpy }),
+      data: { type: 'text', text: 'hello world' },
+    });
+
+    expect(uploadFileSpy).toHaveBeenCalledWith({
+      data: { type: 'text', text: 'hello world' },
+      mediaType: 'text/plain',
+      filename: undefined,
+      providerOptions: undefined,
+    });
   });
 
   it('should forward providerOptions to files.uploadFile', async () => {
@@ -103,12 +81,12 @@ describe('uploadFile', () => {
 
     await uploadFile({
       api: createMockFiles({ uploadFile: uploadFileSpy }),
-      data: new Uint8Array([1]),
+      data: { type: 'data', data: new Uint8Array([1]) },
       providerOptions,
     });
 
     expect(uploadFileSpy).toHaveBeenCalledWith({
-      data: new Uint8Array([1]),
+      data: { type: 'data', data: new Uint8Array([1]) },
       mediaType: 'application/octet-stream',
       filename: undefined,
       providerOptions,
@@ -120,11 +98,11 @@ describe('uploadFile', () => {
 
     await uploadFile({
       api: createMockFiles({ uploadFile: uploadFileSpy }),
-      data: new Uint8Array([1]),
+      data: { type: 'data', data: new Uint8Array([1]) },
     });
 
     expect(uploadFileSpy).toHaveBeenCalledWith({
-      data: new Uint8Array([1]),
+      data: { type: 'data', data: new Uint8Array([1]) },
       mediaType: 'application/octet-stream',
       filename: undefined,
       providerOptions: undefined,
@@ -136,7 +114,7 @@ describe('uploadFile', () => {
 
     await uploadFile({
       api: createMockFiles({ uploadFile: uploadFileSpy }),
-      data: new Uint8Array([1]),
+      data: { type: 'data', data: new Uint8Array([1]) },
       filename: 'test.pdf',
     });
 
@@ -152,7 +130,7 @@ describe('uploadFile', () => {
 
     const result = await uploadFile({
       api: createMockFiles({ uploadFile: uploadFileSpy }),
-      data: new Uint8Array([1]),
+      data: { type: 'data', data: new Uint8Array([1]) },
       filename: 'test.pdf',
     });
 
@@ -172,7 +150,10 @@ describe('uploadFile', () => {
       files: vi.fn().mockReturnValue(mockFiles),
     } satisfies ProviderV4;
 
-    await uploadFile({ api: mockProvider, data: new Uint8Array([1]) });
+    await uploadFile({
+      api: mockProvider,
+      data: { type: 'data', data: new Uint8Array([1]) },
+    });
 
     expect(mockProvider.files).toHaveBeenCalled();
     expect(uploadFileSpy).toHaveBeenCalled();
@@ -187,7 +168,10 @@ describe('uploadFile', () => {
     } satisfies ProviderV4;
 
     await expect(
-      uploadFile({ api: mockProvider, data: new Uint8Array([1]) }),
+      uploadFile({
+        api: mockProvider,
+        data: { type: 'data', data: new Uint8Array([1]) },
+      }),
     ).rejects.toThrow(
       'The provider does not support file uploads. Make sure it exposes a files() method.',
     );
@@ -201,7 +185,7 @@ describe('uploadFile', () => {
 
     const result = await uploadFile({
       api: createMockFiles({ uploadFile: uploadFileSpy }),
-      data: new Uint8Array([1]),
+      data: { type: 'data', data: new Uint8Array([1]) },
     });
 
     expect(result.providerReference).toEqual({
