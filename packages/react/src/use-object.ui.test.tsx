@@ -4,10 +4,9 @@ import {
 } from '@ai-sdk/test-server/with-vitest';
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
 import { experimental_useObject } from './use-object';
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { delay } from '@ai-sdk/provider-utils';
 
 const server = createTestServer({
   '/api/use-object': {},
@@ -63,13 +62,11 @@ describe('text stream', () => {
   };
 
   beforeEach(() => {
-    vi.useFakeTimers();
     onErrorResult = undefined;
     onFinishCalls = [];
   });
 
   afterEach(() => {
-    vi.useRealTimers();
     vi.restoreAllMocks();
     cleanup();
     onErrorResult = undefined;
@@ -287,7 +284,7 @@ describe('text stream', () => {
         schema: z.object({ content: z.string() }),
         headers: async () => {
           // Simulate async token fetch
-          await delay(10);
+          await Promise.resolve();
           return {
             Authorization: 'Bearer ASYNC_TOKEN',
             'X-Request-ID': 'async-123',
@@ -307,7 +304,6 @@ describe('text stream', () => {
 
     render(<TestComponentWithAsyncHeaders />);
     await userEvent.click(screen.getByTestId('submit-async-headers'));
-    await vi.advanceTimersByTimeAsync(10);
 
     await waitFor(() => {
       expect(server.calls[0].requestHeaders).toStrictEqual({
