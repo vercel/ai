@@ -8,7 +8,7 @@ import type { Warning } from '../types/warning';
  *
  * Called when the operation begins, before the reranking model is called.
  */
-export interface RerankOnStartEvent {
+export type RerankStartEvent = {
   /** Unique identifier for this rerank call, used to correlate events. */
   readonly callId: string;
 
@@ -36,26 +36,14 @@ export interface RerankOnStartEvent {
 
   /** Additional provider-specific options. */
   readonly providerOptions: ProviderOptions | undefined;
-
-  /** Whether telemetry is enabled. Defaults to `true`. */
-  readonly isEnabled: boolean | undefined;
-
-  /** Whether to record inputs in telemetry. Enabled by default. */
-  readonly recordInputs: boolean | undefined;
-
-  /** Whether to record outputs in telemetry. Enabled by default. */
-  readonly recordOutputs: boolean | undefined;
-
-  /** Identifier from telemetry settings for grouping related operations. */
-  readonly functionId: string | undefined;
-}
+};
 
 /**
  * Event passed to the `onFinish` callback for rerank operations.
  *
  * Called when the operation completes, after the reranking model returns.
  */
-export interface RerankOnFinishEvent {
+export type RerankEndEvent = {
   /** Unique identifier for this rerank call, used to correlate events. */
   readonly callId: string;
 
@@ -95,24 +83,12 @@ export interface RerankOnFinishEvent {
     headers?: Record<string, string>;
     body?: unknown;
   };
-
-  /** Whether telemetry is enabled. Defaults to `true`. */
-  readonly isEnabled: boolean | undefined;
-
-  /** Whether to record inputs in telemetry. Enabled by default. */
-  readonly recordInputs: boolean | undefined;
-
-  /** Whether to record outputs in telemetry. Enabled by default. */
-  readonly recordOutputs: boolean | undefined;
-
-  /** Identifier from telemetry settings for grouping related operations. */
-  readonly functionId: string | undefined;
-}
+};
 
 /**
  * Event fired when an individual reranking model call (inner doRerank) begins.
  */
-export interface RerankStartEvent {
+export type RerankingModelCallStartEvent = {
   /** Unique identifier for this rerank call, used to correlate events. */
   readonly callId: string;
 
@@ -136,26 +112,14 @@ export interface RerankStartEvent {
 
   /** Number of top documents to return. */
   readonly topN: number | undefined;
-
-  /** Whether telemetry is enabled. Defaults to `true`. */
-  readonly isEnabled: boolean | undefined;
-
-  /** Whether to record inputs in telemetry. Enabled by default. */
-  readonly recordInputs: boolean | undefined;
-
-  /** Whether to record outputs in telemetry. Enabled by default. */
-  readonly recordOutputs: boolean | undefined;
-
-  /** Identifier from telemetry settings for grouping related operations. */
-  readonly functionId: string | undefined;
-}
+};
 
 /**
  * Event fired when an individual reranking model call (doRerank) completes.
  *
  * Contains the ranking results from the model response.
  */
-export interface RerankFinishEvent {
+export type RerankingModelCallEndEvent = {
   /** Unique identifier for this rerank call, used to correlate events. */
   readonly callId: string;
 
@@ -173,4 +137,4 @@ export interface RerankFinishEvent {
 
   /** The ranking results from the model. */
   readonly ranking: Array<{ index: number; relevanceScore: number }>;
-}
+};

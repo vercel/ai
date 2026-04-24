@@ -540,11 +540,11 @@ To see `generateText` in action, check out [these examples](#examples).
         'Limits the tools that are available for the model to call without changing the tool call and result types in the result. All tools are active by default.',
     },
     {
-      name: 'toolNeedsApproval',
-      type: 'Record<TOOLNAME, boolean | ((input, options) => boolean | Promise<boolean>)>',
+      name: 'toolApproval',
+      type: 'ToolApprovalConfiguration<TOOLS, RUNTIME_CONTEXT>',
       isOptional: true,
       description:
-        "Per-tool approval configuration for this call. Each tool can be set to `true` / `false` or to a function that decides dynamically based on the tool input and options such as `toolCallId`, `messages`, and `context`. This setting takes precedence over a tool's `needsApproval` default.",
+        "Approval configuration for this call. Pass a `GenericToolApprovalFunction` to handle all tool calls in one callback with `toolCall`, `tools`, `toolsContext`, `messages`, and `runtimeContext`, or pass a per-tool object where each key can be a status (`'not-applicable'`, `'approved'`, `'denied'`, or `'user-approval'`), an object form such as `{ type: 'denied', reason: 'blocked by policy' }`, or a `SingleToolApprovalFunction` that receives the tool input and options `toolCallId`, `messages`, `toolContext`, and `runtimeContext` (same shape as tool execution options without `abortSignal`, with `context` renamed to `toolContext`). The `RUNTIME_CONTEXT` type parameter matches the call's `runtimeContext`. A `GenericToolApprovalFunction` or `SingleToolApprovalFunction` may return `undefined` for the same effect as `'not-applicable'`. `'not-applicable'` is the default execution path and runs the tool without approval metadata. Use `'approved'`, `'denied'`, or their object forms when you want explicit automatic approval request/response parts in the output. Automatic approvals and denials can include a `reason`, which is forwarded to the emitted approval response. This setting takes precedence over a tool's `needsApproval` default.",
     },
     {
       name: 'stopWhen',
@@ -916,18 +916,23 @@ To see `generateText` in action, check out [these examples](#examples).
     },
     {
       name: 'experimental_onStart',
-      type: '(event: OnStartEvent) => PromiseLike<void> | void',
+      type: '(event: GenerateTextStartEvent) => PromiseLike<void> | void',
       isOptional: true,
       description:
         'Callback that is called when the generateText operation begins, before any LLM calls are made. Errors thrown in this callback are silently caught and do not break the generation flow. Experimental (can break in patch releases).',
       properties: [
         {
-          type: 'OnStartEvent',
+          type: 'GenerateTextStartEvent',
           parameters: [
             {
-              name: 'model',
-              type: '{ provider: string; modelId: string }',
-              description: 'The model being used for the generation.',
+              name: 'provider',
+              type: 'string',
+              description: 'The provider identifier (e.g., "openai", "anthropic").',
+            },
+            {
+              name: 'modelId',
+              type: 'string',
+              description: 'The specific model identifier (e.g., "gpt-4o").',
             },
             {
               name: 'system',
@@ -935,15 +940,9 @@ To see `generateText` in action, check out [these examples](#examples).
               description: 'The system message(s) provided to the model.',
             },
             {
-              name: 'prompt',
-              type: 'string | Array<ModelMessage> | undefined',
-              description:
-                'The prompt string or array of messages if using the prompt option.',
-            },
-            {
               name: 'messages',
-              type: 'Array<ModelMessage> | undefined',
-              description: 'The messages array if using the messages option.',
+              type: 'Array<ModelMessage>',
+              description: 'The messages for this generation.',
             },
             {
               name: 'tools',
@@ -1046,12 +1045,6 @@ To see `generateText` in action, check out [these examples](#examples).
                 'Settings for controlling what data is included in step results.',
             },
             {
-              name: 'functionId',
-              type: 'string | undefined',
-              description:
-                'Identifier from telemetry settings for grouping related operations.',
-            },
-            {
               name: 'runtimeContext',
               type: 'CONTEXT',
               description:
@@ -1069,13 +1062,13 @@ To see `generateText` in action, check out [these examples](#examples).
     },
     {
       name: 'experimental_onStepStart',
-      type: '(event: OnStepStartEvent) => PromiseLike<void> | void',
+      type: '(event: GenerateTextStepStartEvent) => PromiseLike<void> | void',
       isOptional: true,
       description:
         'Callback that is called when a step (LLM call) begins, before the provider is called. Errors thrown in this callback are silently caught and do not break the generation flow. Experimental (can break in patch releases).',
       properties: [
         {
-          type: 'OnStepStartEvent',
+          type: 'GenerateTextStepStartEvent',
           parameters: [
             {
               name: 'stepNumber',
@@ -1083,9 +1076,14 @@ To see `generateText` in action, check out [these examples](#examples).
               description: 'Zero-based index of the current step.',
             },
             {
-              name: 'model',
-              type: '{ provider: string; modelId: string }',
-              description: 'The model being used for this step.',
+              name: 'provider',
+              type: 'string',
+              description: 'The provider identifier (e.g., "openai", "anthropic").',
+            },
+            {
+              name: 'modelId',
+              type: 'string',
+              description: 'The specific model identifier (e.g., "gpt-4o").',
             },
             {
               name: 'system',
@@ -1160,12 +1158,6 @@ To see `generateText` in action, check out [these examples](#examples).
                 'Settings for controlling what data is included in step results.',
             },
             {
-              name: 'functionId',
-              type: 'string | undefined',
-              description:
-                'Identifier from telemetry settings for grouping related operations.',
-            },
-            {
               name: 'runtimeContext',
               type: 'CONTEXT',
               description:
@@ -1182,6 +1174,90 @@ To see `generateText` in action, check out [these examples](#examples).
       ],
     },
     {
+      name: 'experimental_onLanguageModelCallStart',
+      type: '(event: LanguageModelCallStartEvent) => PromiseLike<void> | void',
+      isOptional: true,
+      description:
+        'Callback that is called immediately before the provider model call begins. Unlike `experimental_onStepStart`, this callback is scoped to model work only and excludes any later client-side tool execution. Errors thrown in this callback are silently caught and do not break the generation flow. Experimental (can break in patch releases).',
+      properties: [
+        {
+          type: 'LanguageModelCallStartEvent',
+          parameters: [
+            {
+              name: 'callId',
+              type: 'string',
+              description: 'Unique identifier for the generation call.',
+            },
+            {
+              name: 'provider',
+              type: 'string',
+              description: 'The provider identifier for this model call.',
+            },
+            {
+              name: 'modelId',
+              type: 'string',
+              description: 'The specific model identifier for this model call.',
+            },
+            {
+              name: 'messages',
+              type: 'Array<ModelMessage>',
+              description: 'The messages that will be sent to the model.',
+            },
+            {
+              name: 'tools',
+              type: 'ReadonlyArray<Record<string, unknown>> | undefined',
+              description: 'Prepared tool definitions for the model call, if any.',
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'experimental_onLanguageModelCallEnd',
+      type: '(event: LanguageModelCallEndEvent) => PromiseLike<void> | void',
+      isOptional: true,
+      description:
+        'Callback that is called after the model response has been normalized and parsed, but before any client-side tool execution begins. Errors thrown in this callback are silently caught and do not break the generation flow. Experimental (can break in patch releases).',
+      properties: [
+        {
+          type: 'LanguageModelCallEndEvent',
+          parameters: [
+            {
+              name: 'callId',
+              type: 'string',
+              description: 'Unique identifier for the generation call.',
+            },
+            {
+              name: 'provider',
+              type: 'string',
+              description: 'The provider identifier for this model call.',
+            },
+            {
+              name: 'modelId',
+              type: 'string',
+              description: 'The specific model identifier for this model call.',
+            },
+            {
+              name: 'finishReason',
+              type: 'FinishReason',
+              description: 'The unified reason why the model call finished.',
+            },
+            {
+              name: 'usage',
+              type: 'LanguageModelUsage',
+              description: 'Token usage reported by the model call.',
+            },
+            {
+              name: 'content',
+              type: 'ReadonlyArray<ContentPart<TOOLS>>',
+              description:
+                'The content parts produced by the model call (text, reasoning, files, tool calls, etc.).',
+            },
+          ],
+        },
+      ],
+    },
+    {
       name: 'experimental_onToolExecutionStart',
       type: '(event: ToolExecutionStartEvent) => PromiseLike<void> | void',
       isOptional: true,
@@ -1192,16 +1268,9 @@ To see `generateText` in action, check out [these examples](#examples).
           type: 'ToolExecutionStartEvent',
           parameters: [
             {
-              name: 'stepNumber',
-              type: 'number | undefined',
-              description:
-                'The zero-based index of the current step where this tool call occurs. May be undefined in streaming contexts.',
-            },
-            {
-              name: 'model',
-              type: '{ provider: string; modelId: string } | undefined',
-              description:
-                'Information about the model being used. May be undefined in streaming contexts.',
+              name: 'callId',
+              type: 'string',
+              description: 'Unique identifier for this generation call, used to correlate events.',
             },
             {
               name: 'toolCall',
@@ -1213,24 +1282,13 @@ To see `generateText` in action, check out [these examples](#examples).
               name: 'messages',
               type: 'Array<ModelMessage>',
               description:
-                'The conversation messages available at tool execution time.',
+                'Messages that were sent to the language model to initiate the response that contained the tool call. Does not include the system prompt nor the assistant response that contained the tool call.',
             },
             {
-              name: 'abortSignal',
-              type: 'AbortSignal | undefined',
-              description: 'Signal for cancelling the operation.',
-            },
-            {
-              name: 'functionId',
-              type: 'string | undefined',
+              name: 'toolContext',
+              type: 'InferToolContext<TOOLS[toolName]>',
               description:
-                'Identifier from telemetry settings for grouping related operations.',
-            },
-            {
-              name: 'context',
-              type: 'CONTEXT',
-              description:
-                'Tool-specific context object for the tool call that is about to execute.',
+                'Tool-specific context object for the tool call that is about to execute. Narrowed to the context type of the individual tool, not the entire tool set.',
             },
           ],
         },
@@ -1241,22 +1299,15 @@ To see `generateText` in action, check out [these examples](#examples).
       type: '(event: ToolExecutionEndEvent) => PromiseLike<void> | void',
       isOptional: true,
       description:
-        "Callback that is called right after a tool's execute function completes (or errors). Uses a discriminated union on the `success` field: when `success: true`, `output` contains the tool result; when `success: false`, `error` contains the error. Errors thrown in this callback are silently caught and do not break the generation flow. Experimental (can break in patch releases).",
+        "Callback that is called right after a tool's execute function completes (or errors). The `toolOutput` field is a discriminated union: when `toolOutput.type` is `'tool-result'`, the `output` field contains the tool result; when `toolOutput.type` is `'tool-error'`, the `error` field contains the error. Errors thrown in this callback are silently caught and do not break the generation flow. Experimental (can break in patch releases).",
       properties: [
         {
           type: 'ToolExecutionEndEvent',
           parameters: [
             {
-              name: 'stepNumber',
-              type: 'number | undefined',
-              description:
-                'The zero-based index of the current step where this tool call occurred. May be undefined in streaming contexts.',
-            },
-            {
-              name: 'model',
-              type: '{ provider: string; modelId: string } | undefined',
-              description:
-                'Information about the model being used. May be undefined in streaming contexts.',
+              name: 'callId',
+              type: 'string',
+              description: 'Unique identifier for this generation call, used to correlate events.',
             },
             {
               name: 'toolCall',
@@ -1265,51 +1316,28 @@ To see `generateText` in action, check out [these examples](#examples).
                 'The full tool call object containing toolName, toolCallId, input, and metadata.',
             },
             {
-              name: 'messages',
-              type: 'Array<ModelMessage>',
-              description:
-                'The conversation messages available at tool execution time.',
-            },
-            {
-              name: 'abortSignal',
-              type: 'AbortSignal | undefined',
-              description: 'Signal for cancelling the operation.',
-            },
-            {
               name: 'durationMs',
               type: 'number',
               description:
                 'The wall-clock duration of the tool execution in milliseconds.',
             },
             {
-              name: 'functionId',
-              type: 'string | undefined',
+              name: 'messages',
+              type: 'Array<ModelMessage>',
               description:
-                'Identifier from telemetry settings for grouping related operations.',
+                'Messages that were sent to the language model to initiate the response that contained the tool call. Does not include the system prompt nor the assistant response that contained the tool call.',
             },
             {
-              name: 'context',
-              type: 'CONTEXT',
+              name: 'toolContext',
+              type: 'InferToolContext<TOOLS[toolName]>',
               description:
-                'Tool-specific context object for the tool call that just completed.',
+                'Tool-specific context object for the tool call that just completed. Narrowed to the context type of the individual tool, not the entire tool set.',
             },
             {
-              name: 'success',
-              type: 'boolean',
+              name: 'toolOutput',
+              type: 'ToolOutput<TOOLS>',
               description:
-                'Discriminator indicating whether the tool call succeeded. When true, output is available. When false, error is available.',
-            },
-            {
-              name: 'output',
-              type: 'unknown',
-              description:
-                "The tool's return value (only present when `success: true`).",
-            },
-            {
-              name: 'error',
-              type: 'unknown',
-              description:
-                'The error that occurred during tool execution (only present when `success: false`).',
+                "Discriminated union representing the tool execution result. When `type` is `'tool-result'`, the `output` field contains the tool's return value. When `type` is `'tool-error'`, the `error` field contains the error.",
             },
           ],
         },
@@ -1335,12 +1363,6 @@ To see `generateText` in action, check out [these examples](#examples).
               type: '{ provider: string; modelId: string }',
               description:
                 'Information about the model that produced this step.',
-            },
-            {
-              name: 'functionId',
-              type: 'string | undefined',
-              description:
-                'Identifier from telemetry settings for grouping related operations.',
             },
             {
               name: 'runtimeContext',
@@ -1601,7 +1623,7 @@ To see `generateText` in action, check out [these examples](#examples).
         'Callback that is called when the entire generation completes (all steps finished). The event includes the final step result properties along with aggregated data from all steps.',
       properties: [
         {
-          type: 'OnFinishEvent',
+          type: 'GenerateTextEndEvent',
           parameters: [
             {
               name: 'stepNumber',
@@ -1613,12 +1635,6 @@ To see `generateText` in action, check out [these examples](#examples).
               type: '{ provider: string; modelId: string }',
               description:
                 'Information about the model that produced the final step.',
-            },
-            {
-              name: 'functionId',
-              type: 'string | undefined',
-              description:
-                'Identifier from telemetry settings for grouping related operations.',
             },
             {
               name: 'finishReason',
@@ -2423,12 +2439,6 @@ To see `generateText` in action, check out [these examples](#examples).
               type: '{ provider: string; modelId: string }',
               description:
                 'Information about the model that produced this step.',
-            },
-            {
-              name: 'functionId',
-              type: 'string | undefined',
-              description:
-                'Identifier from telemetry settings for grouping related operations.',
             },
             {
               name: 'runtimeContext',

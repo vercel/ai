@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/provider-utils",
-  "version": "5.0.0-beta.25",
+  "version": "5.0.0-beta.26",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -46,7 +46,7 @@
     "@ai-sdk/provider": "workspace:*",
     "@standard-schema/spec": "^1.1.0",
     "@workflow/serde": "4.1.0",
-    "eventsource-parser": "^3.0.6"
+    "eventsource-parser": "^3.0.8"
   },
   "devDependencies": {
     "@types/node": "20.17.24",

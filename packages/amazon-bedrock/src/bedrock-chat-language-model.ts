@@ -230,6 +230,10 @@ export class BedrockChatLanguageModel implements LanguageModelV4 {
       thinkingType === 'enabled'
         ? bedrockOptions.reasoningConfig?.budgetTokens
         : undefined;
+    const thinkingDisplay =
+      thinkingType === 'adaptive'
+        ? bedrockOptions.reasoningConfig?.display
+        : undefined;
     const isAnthropicThinkingEnabled = isAnthropicModel && isThinkingEnabled;
 
     const inferenceConfig = {
@@ -259,6 +263,7 @@ export class BedrockChatLanguageModel implements LanguageModelV4 {
           ...bedrockOptions.additionalModelRequestFields,
           thinking: {
             type: 'adaptive',
+            ...(thinkingDisplay != null && { display: thinkingDisplay }),
           },
         };
       }
@@ -889,6 +894,13 @@ export class BedrockChatLanguageModel implements LanguageModelV4 {
                 'signature' in reasoningContent &&
                 reasoningContent.signature
               ) {
+                if (contentBlocks[blockIndex] == null) {
+                  contentBlocks[blockIndex] = { type: 'reasoning' };
+                  controller.enqueue({
+                    type: 'reasoning-start',
+                    id: String(blockIndex),
+                  });
+                }
                 controller.enqueue({
                   type: 'reasoning-delta',
                   id: String(blockIndex),
@@ -900,6 +912,13 @@ export class BedrockChatLanguageModel implements LanguageModelV4 {
                   },
                 });
               } else if ('data' in reasoningContent && reasoningContent.data) {
+                if (contentBlocks[blockIndex] == null) {
+                  contentBlocks[blockIndex] = { type: 'reasoning' };
+                  controller.enqueue({
+                    type: 'reasoning-start',
+                    id: String(blockIndex),
+                  });
+                }
                 controller.enqueue({
                   type: 'reasoning-delta',
                   id: String(blockIndex),
@@ -1190,7 +1209,7 @@ function resolveBedrockReasoningConfig({
   isAnthropicModel: boolean;
   modelId: string;
 }): AmazonBedrockLanguageModelOptions {
-  if (!isCustomReasoning(reasoning) || bedrockOptions.reasoningConfig != null) {
+  if (!isCustomReasoning(reasoning)) {
     return bedrockOptions;
   }
 
@@ -1210,6 +1229,7 @@ function resolveBedrockReasoningConfig({
       result.reasoningConfig = {
         type: 'adaptive',
         maxReasoningEffort: effort,
+        ...bedrockOptions.reasoningConfig,
       };
     } else {
       const budgetTokens = mapReasoningToProviderBudget({
@@ -1222,6 +1242,7 @@ function resolveBedrockReasoningConfig({
         result.reasoningConfig = {
           type: 'enabled',
           budgetTokens,
+          ...bedrockOptions.reasoningConfig,
         };
       }
     }
@@ -1231,7 +1252,21 @@ function resolveBedrockReasoningConfig({
       effortMap: bedrockReasoningEffortMap,
       warnings,
     });
-    result.reasoningConfig = { maxReasoningEffort: effort };
+    result.reasoningConfig = {
+      maxReasoningEffort: effort,
+      ...bedrockOptions.reasoningConfig,
+    };
+  }
+
+  /*
+   * Mirror anthropic-messages-language-model.ts: when the merged type ends up
+   * 'disabled' (user override combined with a non-none reasoning), strip
+   * derived effort/budget so downstream does not emit output_config.effort
+   * alongside disabled thinking.
+   */
+  if (result.reasoningConfig?.type === 'disabled') {
+    delete result.reasoningConfig.maxReasoningEffort;
+    delete result.reasoningConfig.budgetTokens;
   }
 
   return result;

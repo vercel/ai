@@ -21,7 +21,7 @@ import type { LanguageModelUsage } from '../types/usage';
  *
  * @deprecated
  */
-export interface ObjectOnStartEvent {
+export interface GenerateObjectStartEvent {
   /** Unique identifier for this generation call, used to correlate events. */
   readonly callId: string;
 
@@ -81,18 +81,6 @@ export interface ObjectOnStartEvent {
 
   /** Optional description of the schema. */
   readonly schemaDescription: string | undefined;
-
-  /** Whether telemetry is enabled. Defaults to `true`. */
-  readonly isEnabled: boolean | undefined;
-
-  /** Whether to record inputs in telemetry. Enabled by default. */
-  readonly recordInputs: boolean | undefined;
-
-  /** Whether to record outputs in telemetry. Enabled by default. */
-  readonly recordOutputs: boolean | undefined;
-
-  /** Identifier from telemetry settings for grouping related operations. */
-  readonly functionId: string | undefined;
 }
 
 /**
@@ -104,7 +92,7 @@ export interface ObjectOnStartEvent {
  *
  * @deprecated
  */
-export interface ObjectOnStepStartEvent {
+export interface GenerateObjectStepStartEvent {
   /** Unique identifier for this generation call, used to correlate events. */
   readonly callId: string;
 
@@ -123,9 +111,6 @@ export interface ObjectOnStepStartEvent {
   /** Additional HTTP headers sent with the request. */
   readonly headers: Record<string, string | undefined> | undefined;
 
-  /** Identifier from telemetry settings for grouping related operations. */
-  readonly functionId: string | undefined;
-
   /** The prompt messages in provider format (for telemetry). */
   readonly promptMessages?: LanguageModelV4Prompt;
 }
@@ -139,7 +124,7 @@ export interface ObjectOnStepStartEvent {
  *
  * @deprecated
  */
-export interface ObjectOnStepFinishEvent {
+export interface GenerateObjectStepEndEvent {
   /** Unique identifier for this generation call, used to correlate events. */
   readonly callId: string;
 
@@ -178,9 +163,6 @@ export interface ObjectOnStepFinishEvent {
   /** Additional provider-specific metadata. */
   readonly providerMetadata: ProviderMetadata | undefined;
 
-  /** Identifier from telemetry settings for grouping related operations. */
-  readonly functionId: string | undefined;
-
   /** Milliseconds from the start of the stream to the first chunk (streaming only). */
   readonly msToFirstChunk: number | undefined;
 }
@@ -195,7 +177,7 @@ export interface ObjectOnStepFinishEvent {
  *
  * @deprecated
  */
-export interface ObjectOnFinishEvent<RESULT> {
+export interface GenerateObjectEndEvent<RESULT> {
   /** Unique identifier for this generation call, used to correlate events. */
   readonly callId: string;
 
@@ -234,7 +216,4 @@ export interface ObjectOnFinishEvent<RESULT> {
 
   /** Additional provider-specific metadata. */
   readonly providerMetadata: ProviderMetadata | undefined;
-
-  /** Identifier from telemetry settings for grouping related operations. */
-  readonly functionId: string | undefined;
 }

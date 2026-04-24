@@ -22,7 +22,7 @@ import {
  * The loop continues until:
  * - A finish reasoning other than tool-calls is returned, or
  * - A tool that is invoked does not have an execute function, or
- * - A tool call needs approval via `toolNeedsApproval` or tool-level `needsApproval`, or
+ * - A tool call needs approval via `toolApproval` or tool-level `needsApproval`, or
  * - A stop condition is met (default stop condition is isStepCount(20))
  */
 export class ToolLoopAgent<
@@ -177,7 +177,7 @@ export class ToolLoopAgent<
       onFinish: mergeCallbacks(this.settings.onFinish, onFinish),
     };
 
-    return generate({
+    return await generate({
       ...preparedCall,
       ...callbackArgs,
     } as unknown as Parameters<typeof generate>[0]);
@@ -230,7 +230,7 @@ export class ToolLoopAgent<
       onFinish: mergeCallbacks(this.settings.onFinish, onFinish),
     };
 
-    return stream({
+    return await stream({
       ...preparedCall,
       ...callbackArgs,
     } as unknown as Parameters<typeof stream>[0]);

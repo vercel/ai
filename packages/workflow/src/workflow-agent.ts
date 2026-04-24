@@ -1298,9 +1298,7 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
 
     const effectiveAbortSignal = mergeAbortSignals(
       options.abortSignal ?? effectiveGenerationSettings.abortSignal,
-      options.timeout != null
-        ? AbortSignal.timeout(options.timeout)
-        : undefined,
+      options.timeout,
     );
 
     // Merge generation settings: constructor defaults < prepareCall < stream options
@@ -1544,11 +1542,16 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
 
         // Only execute tools if there are tool calls
         if (toolCalls.length > 0) {
+          const invalidToolCalls = toolCalls.filter(tc => tc.invalid === true);
+          const validToolCalls = toolCalls.filter(tc => tc.invalid !== true);
+
           // Separate provider-executed tool calls from client-executed ones
-          const nonProviderToolCalls = toolCalls.filter(
+          const nonProviderToolCalls = validToolCalls.filter(
             tc => !tc.providerExecuted,
           );
-          const providerToolCalls = toolCalls.filter(tc => tc.providerExecuted);
+          const providerToolCalls = validToolCalls.filter(
+            tc => tc.providerExecuted,
+          );
 
           // Check which tools need approval (can be async)
           const approvalNeeded = await Promise.all(
@@ -1612,7 +1615,15 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
                 ),
               );
 
-            const resolvedResults = [...executableResults, ...providerResults];
+            const continuationInvalidResults = invalidToolCalls.map(
+              createInvalidToolResult,
+            );
+            const resolvedResults = [
+              ...executableResults,
+              ...providerResults,
+              ...continuationInvalidResults,
+            ];
+            const executedResults = [...executableResults, ...providerResults];
 
             const allToolCalls: ToolCall[] = toolCalls.map(tc => ({
               type: 'tool-call' as const,
@@ -1621,7 +1632,7 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
               input: tc.input,
             }));
 
-            const allToolResults: ToolResult[] = resolvedResults.map(r => ({
+            const allToolResults: ToolResult[] = executedResults.map(r => ({
               type: 'tool-result' as const,
               toolCallId: r.toolCallId,
               toolName: r.toolName,
@@ -1709,25 +1720,32 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
             providerToolCalls.map(toolCall =>
               resolveProviderToolResult(toolCall, providerExecutedToolResults),
             );
+          const continuationInvalidToolResults = invalidToolCalls.map(
+            createInvalidToolResult,
+          );
 
-          // Combine results in the original order
-          const toolResults = toolCalls.map(tc => {
+          // Combine executable/provider results in the original order,
+          // while preserving invalid tool calls as error results for the
+          // next model step without emitting them as synthetic UI success.
+          const continuationToolResults = toolCalls.flatMap(tc => {
+            const invalidResult = continuationInvalidToolResults.find(
+              r => r.toolCallId === tc.toolCallId,
+            );
+            if (invalidResult) return [invalidResult];
             const clientResult = clientToolResults.find(
               r => r.toolCallId === tc.toolCallId,
             );
-            if (clientResult) return clientResult;
+            if (clientResult) return [clientResult];
             const providerResult = providerToolResults.find(
               r => r.toolCallId === tc.toolCallId,
             );
-            if (providerResult) return providerResult;
-            // This should never happen, but return empty result as fallback
-            return {
-              type: 'tool-result' as const,
-              toolCallId: tc.toolCallId,
-              toolName: tc.toolName,
-              output: { type: 'text' as const, value: '' },
-            };
+            if (providerResult) return [providerResult];
+            return [];
           });
+          const executedToolResults = continuationToolResults.filter(
+            result =>
+              !invalidToolCalls.some(tc => tc.toolCallId === result.toolCallId),
+          );
 
           // Write tool results and step boundaries to the stream so the
           // UI can transition tool parts to output-available state and
@@ -1735,7 +1753,7 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
           if (options.writable) {
             await writeToolResultsWithStepBoundary(
               options.writable,
-              toolResults.map(r => ({
+              executedToolResults.map(r => ({
                 toolCallId: r.toolCallId,
                 toolName: r.toolName,
                 input: toolCalls.find(tc => tc.toolCallId === r.toolCallId)
@@ -1752,7 +1770,7 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
             toolName: tc.toolName,
             input: tc.input,
           }));
-          lastStepToolResults = toolResults.map(r => ({
+          lastStepToolResults = executedToolResults.map(r => ({
             type: 'tool-result' as const,
             toolCallId: r.toolCallId,
             toolName: r.toolName,
@@ -1760,7 +1778,7 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
             output: 'value' in r.output ? r.output.value : undefined,
           }));
 
-          result = await iterator.next(toolResults);
+          result = await iterator.next(continuationToolResults);
         } else {
           // Final step with no tool calls - reset tracking
           lastStepToolCalls = [];
@@ -2059,6 +2077,22 @@ function resolveProviderToolResult(
             type: 'json' as const,
             value: result as JSONValue,
           },
+  };
+}
+
+function createInvalidToolResult(toolCall: {
+  toolCallId: string;
+  toolName: string;
+  error?: unknown;
+}): LanguageModelV4ToolResultPart {
+  return {
+    type: 'tool-result' as const,
+    toolCallId: toolCall.toolCallId,
+    toolName: toolCall.toolName,
+    output: {
+      type: 'error-text' as const,
+      value: getErrorMessage(toolCall.error),
+    },
   };
 }
 

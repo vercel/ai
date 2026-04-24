@@ -57,11 +57,6 @@ export type StepResult<
   };
 
   /**
-   * Identifier from telemetry settings for grouping related operations.
-   */
-  readonly functionId: string | undefined;
-
-  /**
    * Tool context.
    */
   readonly toolsContext: InferToolSetContext<TOOLS>;
@@ -188,7 +183,6 @@ export class DefaultStepResult<
   readonly callId: StepResult<TOOLS, RUNTIME_CONTEXT>['callId'];
   readonly stepNumber: StepResult<TOOLS, RUNTIME_CONTEXT>['stepNumber'];
   readonly model: StepResult<TOOLS, RUNTIME_CONTEXT>['model'];
-  readonly functionId: StepResult<TOOLS, RUNTIME_CONTEXT>['functionId'];
   readonly toolsContext: StepResult<TOOLS, RUNTIME_CONTEXT>['toolsContext'];
   readonly runtimeContext: StepResult<TOOLS, RUNTIME_CONTEXT>['runtimeContext'];
   readonly content: StepResult<TOOLS, RUNTIME_CONTEXT>['content'];
@@ -211,7 +205,6 @@ export class DefaultStepResult<
     stepNumber,
     provider,
     modelId,
-    functionId,
     runtimeContext,
     toolsContext,
     content,
@@ -227,7 +220,6 @@ export class DefaultStepResult<
     stepNumber: StepResult<TOOLS, RUNTIME_CONTEXT>['stepNumber'];
     provider: StepResult<TOOLS, RUNTIME_CONTEXT>['model']['provider'];
     modelId: StepResult<TOOLS, RUNTIME_CONTEXT>['model']['modelId'];
-    functionId: StepResult<TOOLS, RUNTIME_CONTEXT>['functionId'];
     runtimeContext: StepResult<TOOLS, RUNTIME_CONTEXT>['runtimeContext'];
     toolsContext: StepResult<TOOLS, RUNTIME_CONTEXT>['toolsContext'];
     content: StepResult<TOOLS, RUNTIME_CONTEXT>['content'];
@@ -242,7 +234,6 @@ export class DefaultStepResult<
     this.callId = callId;
     this.stepNumber = stepNumber;
     this.model = { provider, modelId };
-    this.functionId = functionId;
     this.runtimeContext = runtimeContext;
     this.toolsContext = toolsContext;
     this.content = content;

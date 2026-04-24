@@ -18,7 +18,7 @@ const result = await generateText({
   model: openai('gpt-4o'),
   prompt: 'What is the weather in San Francisco?',
   experimental_onStart: event => {
-    console.log('Generation started:', event.model.modelId);
+    console.log('Generation started:', event.modelId);
   },
   onFinish: event => {
     console.log('Generation finished:', event.totalUsage);
@@ -34,14 +34,26 @@ const result = await generateText({
   content={[
     {
       name: 'experimental_onStart',
-      type: '(event: OnStartEvent) => void | Promise<void>',
+      type: '(event: GenerateTextStartEvent) => void | Promise<void>',
       description: 'Called when generation begins, before any LLM calls.',
     },
     {
       name: 'experimental_onStepStart',
-      type: '(event: OnStepStartEvent) => void | Promise<void>',
+      type: '(event: GenerateTextStepStartEvent) => void | Promise<void>',
       description:
         'Called when a step (LLM call) begins, before the provider is called.',
+    },
+    {
+      name: 'experimental_onLanguageModelCallStart',
+      type: '(event: LanguageModelCallStartEvent) => void | Promise<void>',
+      description:
+        'Called immediately before the provider model call begins. Unlike `experimental_onStepStart`, this is scoped to model work only.',
+    },
+    {
+      name: 'experimental_onLanguageModelCallEnd',
+      type: '(event: LanguageModelCallEndEvent) => void | Promise<void>',
+      description:
+        'Called after the model response has been normalized and parsed, but before any client-side tool execution begins.',
     },
     {
       name: 'experimental_onToolExecutionStart',
@@ -55,17 +67,21 @@ const result = await generateText({
     },
     {
       name: 'onStepFinish',
-      type: '(event: OnStepFinishEvent) => void | Promise<void>',
+      type: '(event: GenerateTextStepEndEvent) => void | Promise<void>',
       description: 'Called when a step (LLM call) completes.',
     },
     {
       name: 'onFinish',
-      type: '(event: OnFinishEvent) => void | Promise<void>',
+      type: '(event: GenerateTextEndEvent) => void | Promise<void>',
       description:
         'Called when the entire generation completes (all steps finished).',
     },
   ]}
 />
+
+For multi-step text generations that use tools, the callback order is typically
+`experimental_onStepStart` -> `experimental_onLanguageModelCallStart` ->
+`experimental_onLanguageModelCallEnd` -> tool execution callbacks -> `onStepFinish`.
 
 ### `embed` / `embedMany`
 
@@ -73,13 +89,13 @@ const result = await generateText({
   content={[
     {
       name: 'experimental_onStart',
-      type: '(event: EmbedOnStartEvent) => void | Promise<void>',
+      type: '(event: EmbedStartEvent) => void | Promise<void>',
       description:
         'Called when the embedding operation begins, before the embedding model is called.',
     },
     {
       name: 'experimental_onFinish',
-      type: '(event: EmbedOnFinishEvent) => void | Promise<void>',
+      type: '(event: EmbedEndEvent) => void | Promise<void>',
       description:
         'Called when the embedding operation completes, after the embedding model returns.',
     },
@@ -92,13 +108,13 @@ const result = await generateText({
   content={[
     {
       name: 'experimental_onStart',
-      type: '(event: RerankOnStartEvent) => void | Promise<void>',
+      type: '(event: RerankStartEvent) => void | Promise<void>',
       description:
         'Called when the reranking operation begins, before the reranking model is called.',
     },
     {
       name: 'experimental_onFinish',
-      type: '(event: RerankOnFinishEvent) => void | Promise<void>',
+      type: '(event: RerankEndEvent) => void | Promise<void>',
       description:
         'Called when the reranking operation completes, after the reranking model returns.',
     },
@@ -118,8 +134,8 @@ const result = await generateText({
   model: openai('gpt-4o'),
   prompt: 'Hello!',
   experimental_onStart: event => {
-    console.log('Model:', event.model.modelId);
-    console.log('Temperature:', event.temperature);
+    console.log('Model:', event.modelId);
+    console.log('Messages:', event.messages.length);
   },
 });
 ```
@@ -127,9 +143,14 @@ const result = await generateText({
 <PropertiesTable
   content={[
     {
-      name: 'model',
-      type: '{ provider: string; modelId: string }',
-      description: 'The model being used for generation.',
+      name: 'provider',
+      type: 'string',
+      description: 'The provider identifier (e.g., "openai", "anthropic").',
+    },
+    {
+      name: 'modelId',
+      type: 'string',
+      description: 'The specific model identifier (e.g., "gpt-4o").',
     },
     {
       name: 'system',
@@ -137,15 +158,9 @@ const result = await generateText({
       description: 'The system message(s) provided to the model.',
     },
     {
-      name: 'prompt',
-      type: 'string | Array<ModelMessage> | undefined',
-      description:
-        'The prompt string or array of messages if using the prompt option.',
-    },
-    {
       name: 'messages',
-      type: 'Array<ModelMessage> | undefined',
-      description: 'The messages array if using the messages option.',
+      type: 'Array<ModelMessage>',
+      description: 'The messages for this generation.',
     },
     {
       name: 'tools',
@@ -244,12 +259,6 @@ const result = await generateText({
         'Settings for controlling what data is included in step results.',
     },
     {
-      name: 'functionId',
-      type: 'string | undefined',
-      description:
-        'Identifier from telemetry settings for grouping related operations.',
-    },
-    {
       name: 'runtimeContext',
       type: 'CONTEXT',
       description:
@@ -287,9 +296,14 @@ const result = await generateText({
       description: 'Zero-based index of the current step.',
     },
     {
-      name: 'model',
-      type: '{ provider: string; modelId: string }',
-      description: 'The model being used for this step.',
+      name: 'provider',
+      type: 'string',
+      description: 'The provider identifier (e.g., "openai", "anthropic").',
+    },
+    {
+      name: 'modelId',
+      type: 'string',
+      description: 'The specific model identifier (e.g., "gpt-4o").',
     },
     {
       name: 'system',
@@ -359,12 +373,6 @@ const result = await generateText({
         'Settings for controlling what data is included in step results.',
     },
     {
-      name: 'functionId',
-      type: 'string | undefined',
-      description:
-        'Identifier from telemetry settings for grouping related operations.',
-    },
-    {
       name: 'runtimeContext',
       type: 'CONTEXT',
       description:
@@ -375,6 +383,105 @@ const result = await generateText({
       type: 'InferToolSetContext<TOOLS>',
       description:
         'Per-tool context map. May be updated from prepareStep between steps.',
+    },
+  ]}
+/>
+
+#### `experimental_onLanguageModelCallStart`
+
+Called immediately before the provider model call begins. Unlike
+`experimental_onStepStart`, this callback is scoped to model work only and
+excludes any later client-side tool execution.
+
+```ts
+const result = await generateText({
+  model: openai('gpt-4o'),
+  prompt: 'Hello!',
+  experimental_onLanguageModelCallStart: event => {
+    console.log('Model call:', event.modelId);
+    console.log('Messages:', event.messages.length);
+  },
+});
+```
+
+<PropertiesTable
+  content={[
+    {
+      name: 'callId',
+      type: 'string',
+      description: 'Unique identifier for the generation call.',
+    },
+    {
+      name: 'provider',
+      type: 'string',
+      description: 'The provider identifier for this model call.',
+    },
+    {
+      name: 'modelId',
+      type: 'string',
+      description: 'The specific model identifier for this model call.',
+    },
+    {
+      name: 'messages',
+      type: 'Array<ModelMessage>',
+      description: 'The messages that will be sent to the model.',
+    },
+    {
+      name: 'tools',
+      type: 'ReadonlyArray<Record<string, unknown>> | undefined',
+      description: 'Prepared tool definitions for the model call, if any.',
+    },
+  ]}
+/>
+
+#### `experimental_onLanguageModelCallEnd`
+
+Called after the model response has been normalized and parsed, but before any
+client-side tool execution begins.
+
+```ts
+const result = await generateText({
+  model: openai('gpt-4o'),
+  prompt: 'What is the weather?',
+  experimental_onLanguageModelCallEnd: event => {
+    console.log('Finish reason:', event.finishReason);
+    console.log('Content parts:', event.content.length);
+  },
+});
+```
+
+<PropertiesTable
+  content={[
+    {
+      name: 'callId',
+      type: 'string',
+      description: 'Unique identifier for the generation call.',
+    },
+    {
+      name: 'provider',
+      type: 'string',
+      description: 'The provider identifier for this model call.',
+    },
+    {
+      name: 'modelId',
+      type: 'string',
+      description: 'The specific model identifier for this model call.',
+    },
+    {
+      name: 'finishReason',
+      type: 'FinishReason',
+      description: 'The unified reason why the model call finished.',
+    },
+    {
+      name: 'usage',
+      type: 'LanguageModelUsage',
+      description: 'Token usage reported by the model call.',
+    },
+    {
+      name: 'content',
+      type: 'ReadonlyArray<ContentPart<TOOLS>>',
+      description:
+        'The content parts produced by the model call (text, reasoning, files, tool calls, etc.).',
     },
   ]}
 />
@@ -398,15 +505,9 @@ const result = await generateText({
 <PropertiesTable
   content={[
     {
-      name: 'stepNumber',
-      type: 'number | undefined',
-      description:
-        'Zero-based index of the current step where this tool call occurs.',
-    },
-    {
-      name: 'model',
-      type: '{ provider: string; modelId: string } | undefined',
-      description: 'The model being used for this step.',
+      name: 'callId',
+      type: 'string',
+      description: 'Unique identifier for this generation call, used to correlate events.',
     },
     {
       name: 'toolCall',
@@ -444,31 +545,20 @@ const result = await generateText({
       name: 'messages',
       type: 'Array<ModelMessage>',
       description:
-        'The conversation messages available at tool execution time.',
+        'Messages that were sent to the language model to initiate the response that contained the tool call. Does not include the system prompt nor the assistant response that contained the tool call.',
     },
     {
-      name: 'abortSignal',
-      type: 'AbortSignal | undefined',
-      description: 'Signal for cancelling the operation.',
-    },
-    {
-      name: 'functionId',
-      type: 'string | undefined',
+      name: 'toolContext',
+      type: 'InferToolContext<TOOLS[toolName]>',
       description:
-        'Identifier from telemetry settings for grouping related operations.',
-    },
-    {
-      name: 'context',
-      type: 'CONTEXT',
-      description:
-        'Tool-specific context object for the tool call that is about to execute.',
+        'Tool-specific context object for the tool call that is about to execute. Narrowed to the context type of the individual tool, not the entire tool set.',
     },
   ]}
 />
 
 #### `experimental_onToolExecutionEnd`
 
-Called after a tool's `execute` function completes or errors. Uses a discriminated union on the `success` field.
+Called after a tool's `execute` function completes or errors. The `toolOutput` field is a discriminated union: check `toolOutput.type` to determine whether it is a `'tool-result'` (success) or `'tool-error'` (failure).
 
 ```ts
 const result = await generateText({
@@ -479,10 +569,10 @@ const result = await generateText({
     console.log('Tool:', event.toolCall.toolName);
     console.log('Duration:', event.durationMs, 'ms');
 
-    if (event.success) {
-      console.log('Output:', event.output);
+    if (event.toolOutput.type === 'tool-result') {
+      console.log('Output:', event.toolOutput.output);
     } else {
-      console.error('Error:', event.error);
+      console.error('Error:', event.toolOutput.error);
     }
   },
 });
@@ -491,15 +581,9 @@ const result = await generateText({
 <PropertiesTable
   content={[
     {
-      name: 'stepNumber',
-      type: 'number | undefined',
-      description:
-        'Zero-based index of the current step where this tool call occurred.',
-    },
-    {
-      name: 'model',
-      type: '{ provider: string; modelId: string } | undefined',
-      description: 'The model being used for this step.',
+      name: 'callId',
+      type: 'string',
+      description: 'Unique identifier for this generation call, used to correlate events.',
     },
     {
       name: 'toolCall',
@@ -534,50 +618,27 @@ const result = await generateText({
       ],
     },
     {
-      name: 'messages',
-      type: 'Array<ModelMessage>',
-      description:
-        'The conversation messages available at tool execution time.',
-    },
-    {
-      name: 'abortSignal',
-      type: 'AbortSignal | undefined',
-      description: 'Signal for cancelling the operation.',
-    },
-    {
       name: 'durationMs',
       type: 'number',
       description: 'Execution time of the tool call in milliseconds.',
     },
     {
-      name: 'functionId',
-      type: 'string | undefined',
+      name: 'messages',
+      type: 'Array<ModelMessage>',
       description:
-        'Identifier from telemetry settings for grouping related operations.',
+        'Messages that were sent to the language model to initiate the response that contained the tool call. Does not include the system prompt nor the assistant response that contained the tool call.',
     },
     {
-      name: 'context',
-      type: 'CONTEXT',
+      name: 'toolContext',
+      type: 'InferToolContext<TOOLS[toolName]>',
       description:
-        'Tool-specific context object for the tool call that just completed.',
+        'Tool-specific context object for the tool call that just completed. Narrowed to the context type of the individual tool, not the entire tool set.',
     },
     {
-      name: 'success',
-      type: 'boolean',
+      name: 'toolOutput',
+      type: 'ToolOutput',
       description:
-        'Discriminator indicating whether the tool call succeeded. When true, output is available. When false, error is available.',
-    },
-    {
-      name: 'output',
-      type: 'unknown',
-      description:
-        "The tool's return value (only present when success is true).",
-    },
-    {
-      name: 'error',
-      type: 'unknown',
-      description:
-        'The error that occurred during tool execution (only present when success is false).',
+        "Discriminated union representing the tool execution result. When `type` is `'tool-result'`, the `output` field contains the tool's return value. When `type` is `'tool-error'`, the `error` field contains the error.",
     },
   ]}
 />
@@ -697,12 +758,6 @@ const result = await generateText({
       type: 'LanguageModelResponseMetadata',
       description:
         'Additional response information including id, modelId, timestamp, headers, and messages.',
-    },
-    {
-      name: 'functionId',
-      type: 'string | undefined',
-      description:
-        'Identifier from telemetry settings for grouping related operations.',
     },
     {
       name: 'runtimeContext',
@@ -853,12 +908,6 @@ const result = await generateText({
       description: 'Additional response information from the final step.',
     },
     {
-      name: 'functionId',
-      type: 'string | undefined',
-      description:
-        'Identifier from telemetry settings for grouping related operations.',
-    },
-    {
       name: 'runtimeContext',
       type: 'CONTEXT',
       description:
@@ -941,12 +990,6 @@ const result = await embed({
       type: 'ProviderOptions | undefined',
       description: 'Additional provider-specific options.',
     },
-    {
-      name: 'functionId',
-      type: 'string | undefined',
-      description:
-        'Identifier from telemetry settings for grouping related operations.',
-    },
   ]}
 />
 
@@ -1016,12 +1059,6 @@ const result = await embedMany({
       type: '{ headers?: Record<string, string>; body?: unknown } | Array<{ headers?: Record<string, string>; body?: unknown } | undefined> | undefined',
       description:
         'Response data. A single response for embed, or an array for embedMany (one per chunk).',
-    },
-    {
-      name: 'functionId',
-      type: 'string | undefined',
-      description:
-        'Identifier from telemetry settings for grouping related operations.',
     },
   ]}
 />
@@ -1098,12 +1135,6 @@ const result = await rerank({
       type: 'ProviderOptions | undefined',
       description: 'Additional provider-specific options.',
     },
-    {
-      name: 'functionId',
-      type: 'string | undefined',
-      description:
-        'Identifier from telemetry settings for grouping related operations.',
-    },
   ]}
 />
 
@@ -1173,12 +1204,6 @@ const result = await rerank({
       type: '{ id?: string; timestamp: Date; modelId: string; headers?: Record<string, string>; body?: unknown }',
       description: 'Response data including headers and body.',
     },
-    {
-      name: 'functionId',
-      type: 'string | undefined',
-      description:
-        'Identifier from telemetry settings for grouping related operations.',
-    },
   ]}
 />
 
@@ -1194,8 +1219,8 @@ const result = await generateText({
   prompt: 'Hello!',
   experimental_onStart: event => {
     console.log(`[${new Date().toISOString()}] Generation started`, {
-      model: event.model.modelId,
-      provider: event.model.provider,
+      model: event.modelId,
+      provider: event.provider,
     });
   },
   onStepFinish: event => {
@@ -1229,12 +1254,15 @@ const result = await generateText({
     console.log(`Tool "${event.toolCall.toolName}" starting...`);
   },
   experimental_onToolExecutionEnd: event => {
-    if (event.success) {
+    if (event.toolOutput.type === 'tool-result') {
       console.log(
         `Tool "${event.toolCall.toolName}" completed in ${event.durationMs}ms`,
       );
     } else {
-      console.error(`Tool "${event.toolCall.toolName}" failed:`, event.error);
+      console.error(
+        `Tool "${event.toolCall.toolName}" failed:`,
+        event.toolOutput.error,
+      );
     }
   },
 });

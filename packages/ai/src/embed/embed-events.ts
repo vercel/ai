@@ -8,7 +8,7 @@ import type { Warning } from '../types/warning';
  *
  * Called when the operation begins, before the embedding model is called.
  */
-export interface EmbedOnStartEvent {
+export type EmbedStartEvent = {
   /** Unique identifier for this embed call, used to correlate events. */
   readonly callId: string;
 
@@ -32,26 +32,14 @@ export interface EmbedOnStartEvent {
 
   /** Additional provider-specific options. */
   readonly providerOptions: ProviderOptions | undefined;
-
-  /** Whether telemetry is enabled. Defaults to `true`. */
-  readonly isEnabled: boolean | undefined;
-
-  /** Whether to record inputs in telemetry. Enabled by default. */
-  readonly recordInputs: boolean | undefined;
-
-  /** Whether to record outputs in telemetry. Enabled by default. */
-  readonly recordOutputs: boolean | undefined;
-
-  /** Identifier from telemetry settings for grouping related operations. */
-  readonly functionId: string | undefined;
-}
+};
 
 /**
  * Event passed to the `onFinish` callback for embed and embedMany operations.
  *
  * Called when the operation completes, after the embedding model returns.
  */
-export interface EmbedOnFinishEvent {
+export type EmbedEndEvent = {
   /** Unique identifier for this embed call, used to correlate events. */
   readonly callId: string;
 
@@ -84,19 +72,7 @@ export interface EmbedOnFinishEvent {
     | { headers?: Record<string, string>; body?: unknown }
     | Array<{ headers?: Record<string, string>; body?: unknown } | undefined>
     | undefined;
-
-  /** Whether telemetry is enabled. Defaults to `true`. */
-  readonly isEnabled: boolean | undefined;
-
-  /** Whether to record inputs in telemetry. Enabled by default. */
-  readonly recordInputs: boolean | undefined;
-
-  /** Whether to record outputs in telemetry. Enabled by default. */
-  readonly recordOutputs: boolean | undefined;
-
-  /** Identifier from telemetry settings for grouping related operations. */
-  readonly functionId: string | undefined;
-}
+};
 
 /**
  * Event fired when an individual embedding model call (inner operation doEmbed) begins.
@@ -104,7 +80,7 @@ export interface EmbedOnFinishEvent {
  * For `embed`, there is one call. For `embedMany`, there may be multiple
  * calls when values are chunked.
  */
-export interface EmbedStartEvent {
+export type EmbeddingModelCallStartEvent = {
   /** Unique identifier for this embed call, used to correlate events. */
   readonly callId: string;
 
@@ -122,26 +98,14 @@ export interface EmbedStartEvent {
 
   /** The values being embedded in this particular model call. */
   readonly values: Array<string>;
-
-  /** Whether telemetry is enabled. Defaults to `true`. */
-  readonly isEnabled: boolean | undefined;
-
-  /** Whether to record inputs in telemetry. Enabled by default. */
-  readonly recordInputs: boolean | undefined;
-
-  /** Whether to record outputs in telemetry. Enabled by default. */
-  readonly recordOutputs: boolean | undefined;
-
-  /** Identifier from telemetry settings for grouping related operations. */
-  readonly functionId: string | undefined;
-}
+};
 
 /**
  * Event fired when an individual embedding model call (doEmbed) completes.
  *
  * Contains the embeddings, usage, and any warnings from the model response.
  */
-export interface EmbedFinishEvent {
+export type EmbeddingModelCallEndEvent = {
   /** Unique identifier for this embed call, used to correlate events. */
   readonly callId: string;
 
@@ -165,4 +129,4 @@ export interface EmbedFinishEvent {
 
   /** Token usage for this model call. */
   readonly usage: EmbeddingModelUsage;
-}
+};

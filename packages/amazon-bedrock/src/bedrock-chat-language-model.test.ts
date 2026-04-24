@@ -1936,6 +1936,10 @@ describe('doStream', () => {
           "type": "response-metadata",
         },
         {
+          "id": "0",
+          "type": "reasoning-start",
+        },
+        {
           "delta": "",
           "id": "0",
           "providerMetadata": {
@@ -4282,6 +4286,37 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should forward display in adaptive reasoningConfig to thinking', async () => {
+    server.urls[newerAnthropicGenerateUrl].response = {
+      type: 'json-value' as const,
+      body: {
+        output: {
+          message: { content: [{ text: 'Hello' }], role: 'assistant' },
+        },
+        stopReason: 'stop_sequence',
+        usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+      },
+    };
+
+    await newerAnthropicModel.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        bedrock: {
+          reasoningConfig: {
+            type: 'adaptive',
+            display: 'summarized',
+          },
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.additionalModelRequestFields?.thinking).toEqual({
+      type: 'adaptive',
+      display: 'summarized',
+    });
+  });
+
   it('should pass serviceTier provider option in generate requests', async () => {
     prepareJsonFixtureResponse('bedrock-text');
 
@@ -5800,7 +5835,7 @@ describe('doGenerate', () => {
       ).toBe('high');
     });
 
-    it('should let providerOptions.bedrock.reasoningConfig take precedence over top-level reasoning', async () => {
+    it('should let explicit reasoningConfig fields win over derived reasoning values', async () => {
       prepareJsonFixtureResponse('bedrock-text');
 
       await model.doGenerate({
@@ -5821,6 +5856,94 @@ describe('doGenerate', () => {
         type: 'enabled',
         budget_tokens: 5000,
       });
+    });
+
+    it('should merge top-level reasoning with partial reasoningConfig for newer Anthropic models', async () => {
+      server.urls[newerAnthropicGenerateUrl].response = simpleResponse;
+
+      await newerAnthropicModel.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'high',
+        providerOptions: {
+          bedrock: {
+            reasoningConfig: { display: 'summarized' },
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.additionalModelRequestFields?.thinking).toEqual({
+        type: 'adaptive',
+        display: 'summarized',
+      });
+      expect(
+        requestBody.additionalModelRequestFields?.output_config?.effort,
+      ).toBe('high');
+    });
+
+    it('should honor reasoning "none" even when partial reasoningConfig is provided', async () => {
+      server.urls[newerAnthropicGenerateUrl].response = simpleResponse;
+
+      await newerAnthropicModel.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'none',
+        providerOptions: {
+          bedrock: {
+            reasoningConfig: { display: 'summarized' },
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(
+        requestBody.additionalModelRequestFields?.thinking,
+      ).toBeUndefined();
+      expect(
+        requestBody.additionalModelRequestFields?.output_config,
+      ).toBeUndefined();
+    });
+
+    it('should let user-specified type win while still deriving maxReasoningEffort from reasoning', async () => {
+      server.urls[newerAnthropicGenerateUrl].response = simpleResponse;
+
+      await newerAnthropicModel.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'high',
+        providerOptions: {
+          bedrock: {
+            reasoningConfig: { type: 'enabled', budgetTokens: 3000 },
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.additionalModelRequestFields?.thinking).toEqual({
+        type: 'enabled',
+        budget_tokens: 3000,
+      });
+      expect(
+        requestBody.additionalModelRequestFields?.output_config?.effort,
+      ).toBe('high');
+    });
+
+    it('should let user-specified maxReasoningEffort win over derived for non-Anthropic models', async () => {
+      server.urls[novaGenerateUrl].response = simpleResponse;
+
+      await novaModel.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'high',
+        providerOptions: {
+          bedrock: {
+            reasoningConfig: { maxReasoningEffort: 'low' },
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(
+        requestBody.additionalModelRequestFields?.reasoningConfig
+          ?.maxReasoningEffort,
+      ).toBe('low');
     });
 
     it('should strip temperature, topP, topK for Anthropic models when reasoning enables thinking', async () => {

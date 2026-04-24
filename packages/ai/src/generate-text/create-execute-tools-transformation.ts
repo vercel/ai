@@ -1,4 +1,4 @@
-import type { Arrayable, ToolSet } from '@ai-sdk/provider-utils';
+import type { Arrayable, Context, ToolSet } from '@ai-sdk/provider-utils';
 import {
   IdGenerator,
   InferToolSetContext,
@@ -6,46 +6,42 @@ import {
 } from '@ai-sdk/provider-utils';
 import { TimeoutConfiguration } from '../prompt/request-options';
 import type { Telemetry } from '../telemetry/telemetry';
-import { TelemetryOptions } from '../telemetry/telemetry-options';
 import { executeToolCall } from './execute-tool-call';
-import { isToolApprovalNeeded } from './is-tool-approval-needed';
+import { resolveToolApproval } from './resolve-tool-approval';
 import { LanguageModelStreamPart } from './stream-language-model-call';
+import { ToolApprovalConfiguration } from './tool-approval-configuration';
 import { TypedToolCall } from './tool-call';
 import {
   OnToolExecutionEndCallback,
   OnToolExecutionStartCallback,
 } from './tool-execution-events';
-import { ToolNeedsApprovalConfiguration } from './tool-needs-approval-configuration';
 
-export function createExecuteToolsTransformation<TOOLS extends ToolSet>({
+export function createExecuteToolsTransformation<
+  TOOLS extends ToolSet,
+  RUNTIME_CONTEXT extends Context | unknown | never,
+>({
   tools,
-  telemetry,
   callId,
   messages,
   abortSignal,
   timeout,
   toolsContext,
-  toolNeedsApproval,
+  toolApproval,
+  runtimeContext,
   generateId,
-  stepNumber,
-  provider,
-  modelId,
   onToolExecutionStart,
   onToolExecutionEnd,
   executeToolInTelemetryContext,
 }: {
   tools: TOOLS | undefined;
-  telemetry: TelemetryOptions | undefined;
   callId: string;
   messages: ModelMessage[];
   abortSignal: AbortSignal | undefined;
   timeout?: TimeoutConfiguration<TOOLS>;
   toolsContext: InferToolSetContext<TOOLS>;
-  toolNeedsApproval?: ToolNeedsApprovalConfiguration<TOOLS>;
+  toolApproval?: ToolApprovalConfiguration<TOOLS, RUNTIME_CONTEXT>;
+  runtimeContext: RUNTIME_CONTEXT;
   generateId: IdGenerator;
-  stepNumber?: number;
-  provider?: string;
-  modelId?: string;
   onToolExecutionStart?: Arrayable<OnToolExecutionStartCallback<TOOLS>>;
   onToolExecutionEnd?: Arrayable<OnToolExecutionEndCallback<TOOLS>>;
   executeToolInTelemetryContext?: Telemetry['executeTool'];
@@ -70,10 +66,11 @@ export function createExecuteToolsTransformation<TOOLS extends ToolSet>({
       controller.enqueue(chunk);
 
       const chunkType = chunk.type;
+
       switch (chunkType) {
         case 'tool-call': {
           if (chunk.invalid) {
-            break;
+            return;
           }
 
           const tool = tools?.[chunk.toolName];
@@ -81,24 +78,73 @@ export function createExecuteToolsTransformation<TOOLS extends ToolSet>({
           if (tool == null) {
             // ignore tool calls for tools that are not available,
             // e.g. provider-executed dynamic tools
-            break;
+            return;
           }
 
-          if (
-            await isToolApprovalNeeded({
-              tools,
-              toolCall: chunk,
-              toolNeedsApproval,
-              messages,
-              toolsContext,
-            })
-          ) {
-            controller.enqueue({
-              type: 'tool-approval-request',
-              approvalId: generateId(),
-              toolCall: chunk,
-            });
-            break;
+          const toolApprovalStatus = await resolveToolApproval({
+            tools,
+            toolCall: chunk,
+            toolApproval,
+            messages,
+            toolsContext,
+            runtimeContext,
+          });
+
+          switch (toolApprovalStatus.type) {
+            case 'user-approval': {
+              controller.enqueue({
+                type: 'tool-approval-request',
+                approvalId: generateId(),
+                toolCall: chunk,
+              });
+
+              return; // don't execute tool
+            }
+
+            case 'denied': {
+              const approvalId = generateId();
+
+              controller.enqueue({
+                type: 'tool-approval-request',
+                approvalId,
+                toolCall: chunk,
+                isAutomatic: true,
+              });
+              controller.enqueue({
+                type: 'tool-approval-response',
+                approvalId,
+                approved: false,
+                toolCall: chunk,
+                reason: toolApprovalStatus.reason,
+                providerExecuted: chunk.providerExecuted,
+              });
+
+              return; // don't execute tool
+            }
+
+            case 'approved': {
+              const approvalId = generateId();
+
+              controller.enqueue({
+                type: 'tool-approval-request',
+                approvalId,
+                toolCall: chunk,
+                isAutomatic: true,
+              });
+              controller.enqueue({
+                type: 'tool-approval-response',
+                approvalId,
+                approved: true,
+                toolCall: chunk,
+                reason: toolApprovalStatus.reason,
+                providerExecuted: chunk.providerExecuted,
+              });
+
+              break; // continue with tool execution
+            }
+
+            case 'not-applicable':
+              break; // continue with tool execution
           }
 
           // Only execute tools that are not provider-executed:
@@ -106,7 +152,7 @@ export function createExecuteToolsTransformation<TOOLS extends ToolSet>({
             toolCallsToExecute.push(chunk);
           }
 
-          break;
+          return;
         }
 
         case 'model-call-end': {
@@ -119,15 +165,11 @@ export function createExecuteToolsTransformation<TOOLS extends ToolSet>({
                 const result = await executeToolCall({
                   toolCall,
                   tools,
-                  telemetry,
                   callId,
                   messages,
                   abortSignal,
                   timeout,
                   toolsContext,
-                  stepNumber,
-                  provider,
-                  modelId,
                   onToolExecutionStart,
                   onToolExecutionEnd,
                   executeToolInTelemetryContext,
@@ -145,7 +187,7 @@ export function createExecuteToolsTransformation<TOOLS extends ToolSet>({
             }),
           );
 
-          break;
+          return;
         }
       }
     },

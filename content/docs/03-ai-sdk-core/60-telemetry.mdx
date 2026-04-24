@@ -174,7 +174,7 @@ import type { Telemetry } from 'ai';
 
 class MyIntegration implements Telemetry {
   async onStart(event) {
-    console.log('Generation started:', event.model.modelId);
+    console.log('Generation started:', event.modelId);
   }
 
   async onStepFinish(event) {
@@ -186,12 +186,15 @@ class MyIntegration implements Telemetry {
   }
 
   async onToolExecutionEnd(event) {
-    if (event.success) {
+    if (event.toolOutput.type === 'tool-result') {
       console.log(
         `Tool "${event.toolCall.toolName}" took ${event.durationMs}ms`,
       );
     } else {
-      console.error(`Tool "${event.toolCall.toolName}" failed:`, event.error);
+      console.error(
+        `Tool "${event.toolCall.toolName}" failed:`,
+        event.toolOutput.error,
+      );
     }
   }
 
@@ -211,15 +214,27 @@ export function myIntegration(): Telemetry {
   content={[
     {
       name: 'onStart',
-      type: '(event: OnStartEvent) => void | PromiseLike<void>',
+      type: '(event: GenerateTextStartEvent) => void | PromiseLike<void>',
       description:
         'Called when the generation operation begins, before any LLM calls.',
     },
     {
       name: 'onStepStart',
-      type: '(event: OnStepStartEvent) => void | PromiseLike<void>',
+      type: '(event: GenerateTextStepStartEvent) => void | PromiseLike<void>',
       description:
         'Called when a step (LLM call) begins, before the provider is called.',
+    },
+    {
+      name: 'onLanguageModelCallStart',
+      type: '(event: LanguageModelCallStartEvent) => void | PromiseLike<void>',
+      description:
+        'Called immediately before the provider model call begins. Useful for model-only spans or logging.',
+    },
+    {
+      name: 'onLanguageModelCallEnd',
+      type: '(event: LanguageModelCallEndEvent) => void | PromiseLike<void>',
+      description:
+        'Called after the model response has been normalized and parsed, but before any client-side tool execution begins.',
     },
     {
       name: 'onToolExecutionStart',
@@ -233,12 +248,12 @@ export function myIntegration(): Telemetry {
     },
     {
       name: 'onStepFinish',
-      type: '(event: OnStepFinishEvent) => void | PromiseLike<void>',
+      type: '(event: GenerateTextStepEndEvent) => void | PromiseLike<void>',
       description: 'Called when a step (LLM call) completes.',
     },
     {
       name: 'onFinish',
-      type: '(event: OnFinishEvent) => void | PromiseLike<void>',
+      type: '(event: GenerateTextEndEvent) => void | PromiseLike<void>',
       description:
         'Called when the entire generation completes (all steps finished).',
     },

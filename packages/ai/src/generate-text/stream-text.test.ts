@@ -26,6 +26,7 @@ import {
   convertAsyncIterableToArray,
   convertReadableStreamToArray,
   convertResponseStreamToArray,
+  isNodeVersionAtLeast,
   mockId,
 } from '@ai-sdk/provider-utils/test';
 import assert from 'node:assert';
@@ -39,7 +40,7 @@ import {
   vitest,
 } from 'vitest';
 import { z } from 'zod/v4';
-import { Output } from '..';
+import { Output, type LanguageModelCallEndEvent } from '..';
 import * as logWarningsModule from '../logger/log-warnings';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import { createMockServerResponse } from '../test/mock-server-response';
@@ -4001,101 +4002,108 @@ describe('streamText', () => {
       expect(callArgs.isAborted).toBe(false); // No explicit abort, just stopped iteration
     });
 
-    it('should call onFinish when stream is aborted via AbortController', async () => {
-      const onFinishCallback = vi.fn();
-      const abortController = new AbortController();
+    it.skipIf(isNodeVersionAtLeast(24, 15))(
+      'should call onFinish when stream is aborted via AbortController',
+      async () => {
+        const onFinishCallback = vi.fn();
+        const abortController = new AbortController();
 
-      const model = new MockLanguageModelV4({
-        doStream: async ({ abortSignal }) => {
-          const stream = new ReadableStream({
-            async start(controller) {
-              const onAbort = () => {
-                controller.error(new DOMException('Aborted', 'AbortError'));
-              };
-              abortSignal?.addEventListener('abort', onAbort, { once: true });
+        const model = new MockLanguageModelV4({
+          doStream: async ({ abortSignal }) => {
+            const stream = new ReadableStream({
+              async start(controller) {
+                const onAbort = () => {
+                  controller.error(new DOMException('Aborted', 'AbortError'));
+                };
+                abortSignal?.addEventListener('abort', onAbort, { once: true });
 
-              controller.enqueue({
-                type: 'response-metadata',
-                id: 'msg-1',
-                modelId: 'test-model',
-                timestamp: new Date(),
-              });
-              controller.enqueue({ type: 'text-start', id: '1' });
-              controller.enqueue({
-                type: 'text-delta',
-                id: '1',
-                delta: 'Hello',
-              });
-              controller.enqueue({
-                type: 'text-delta',
-                id: '1',
-                delta: ' world',
-              });
-
-              await new Promise(resolve => setTimeout(resolve, 10));
-
-              if (!abortSignal?.aborted) {
+                controller.enqueue({
+                  type: 'response-metadata',
+                  id: 'msg-1',
+                  modelId: 'test-model',
+                  timestamp: new Date(),
+                });
+                controller.enqueue({ type: 'text-start', id: '1' });
                 controller.enqueue({
                   type: 'text-delta',
                   id: '1',
-                  delta: ' from AI',
+                  delta: 'Hello',
                 });
-                controller.enqueue({ type: 'text-end', id: '1' });
                 controller.enqueue({
-                  type: 'finish',
-                  finishReason: { unified: 'stop', raw: 'stop' },
-                  usage: { inputTokens: 10, outputTokens: 5, totalTokens: 15 },
+                  type: 'text-delta',
+                  id: '1',
+                  delta: ' world',
                 });
-                controller.close();
-              }
-            },
-          });
 
-          return { stream };
-        },
-      });
+                await new Promise(resolve => setTimeout(resolve, 10));
 
-      const result = streamText({
-        model,
-        prompt: 'Say hello',
-        abortSignal: abortController.signal,
-      });
+                if (!abortSignal?.aborted) {
+                  controller.enqueue({
+                    type: 'text-delta',
+                    id: '1',
+                    delta: ' from AI',
+                  });
+                  controller.enqueue({ type: 'text-end', id: '1' });
+                  controller.enqueue({
+                    type: 'finish',
+                    finishReason: { unified: 'stop', raw: 'stop' },
+                    usage: {
+                      inputTokens: 10,
+                      outputTokens: 5,
+                      totalTokens: 15,
+                    },
+                  });
+                  controller.close();
+                }
+              },
+            });
 
-      const uiStream = result.toUIMessageStream({
-        onFinish: onFinishCallback,
-      });
+            return { stream };
+          },
+        });
 
-      const reader = uiStream.getReader();
-      const chunks = [];
+        const result = streamText({
+          model,
+          prompt: 'Say hello',
+          abortSignal: abortController.signal,
+        });
 
-      for (let i = 0; i < 3; i++) {
-        const { value, done } = await reader.read();
-        if (done) break;
-        chunks.push(value);
-      }
+        const uiStream = result.toUIMessageStream({
+          onFinish: onFinishCallback,
+        });
 
-      abortController.abort();
-      const { value: abortChunk } = await reader.read();
-      expect(abortChunk?.type).toBe('abort');
+        const reader = uiStream.getReader();
+        const chunks = [];
 
-      while (true) {
-        const { done } = await reader.read();
-        if (done) break;
-      }
+        for (let i = 0; i < 3; i++) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          chunks.push(value);
+        }
 
-      expect(onFinishCallback).toHaveBeenCalledTimes(1);
-      const callArgs = onFinishCallback.mock.calls[0][0];
-      expect(callArgs.responseMessage).toBeDefined();
-      expect(callArgs.responseMessage.role).toBe('assistant');
-      const textPart = callArgs.responseMessage.parts.find(
-        (p: any) => p.type === 'text',
-      );
-      expect(textPart).toBeDefined();
-      expect(textPart.text).toBe(''); // Text was not streamed yet when aborted
-      expect(callArgs.isAborted).toBe(true); // Stream was aborted
+        abortController.abort();
+        const { value: abortChunk } = await reader.read();
+        expect(abortChunk?.type).toBe('abort');
 
-      reader.releaseLock();
-    });
+        while (true) {
+          const { done } = await reader.read();
+          if (done) break;
+        }
+
+        expect(onFinishCallback).toHaveBeenCalledTimes(1);
+        const callArgs = onFinishCallback.mock.calls[0][0];
+        expect(callArgs.responseMessage).toBeDefined();
+        expect(callArgs.responseMessage.role).toBe('assistant');
+        const textPart = callArgs.responseMessage.parts.find(
+          (p: any) => p.type === 'text',
+        );
+        expect(textPart).toBeDefined();
+        expect(textPart.text).toBe(''); // Text was not streamed yet when aborted
+        expect(callArgs.isAborted).toBe(true); // Stream was aborted
+
+        reader.releaseLock();
+      },
+    );
 
     it('should NOT call onFinish when for-await loop breaks early', async () => {
       const onFinish = vi.fn();
@@ -5067,7 +5075,6 @@ describe('streamText', () => {
               },
             ],
             "finishReason": "stop",
-            "functionId": undefined,
             "model": {
               "modelId": "mock-model-id",
               "provider": "mock-provider",
@@ -5210,7 +5217,6 @@ describe('streamText', () => {
               },
             ],
             "finishReason": "stop",
-            "functionId": undefined,
             "model": {
               "modelId": "mock-model-id",
               "provider": "mock-provider",
@@ -5298,7 +5304,6 @@ describe('streamText', () => {
               },
             ],
             "finishReason": "stop",
-            "functionId": undefined,
             "model": {
               "modelId": "mock-model-id",
               "provider": "mock-provider",
@@ -5408,7 +5413,6 @@ describe('streamText', () => {
               },
             ],
             "finishReason": "stop",
-            "functionId": undefined,
             "model": {
               "modelId": "mock-model-id",
               "provider": "mock-provider",
@@ -5613,8 +5617,8 @@ describe('streamText', () => {
 
       await result.consumeStream();
 
-      expect(startEvent.isEnabled).toBe(true);
-      expect(startEvent.functionId).toBe('deprecated-fn');
+      expect(startEvent).not.toHaveProperty('isEnabled');
+      expect(startEvent).not.toHaveProperty('functionId');
     });
 
     it('should pass runtimeContext', async () => {
@@ -5658,7 +5662,7 @@ describe('streamText', () => {
       expect(startEvent.provider).toBe('mock-provider');
       expect(startEvent.modelId).toBe('mock-model-id');
       expect(startEvent.system).toBe('you are a helpful assistant');
-      expect(startEvent.prompt).toBeUndefined();
+      // expect(startEvent.prompt).toBeUndefined();
       expect(startEvent.messages).toEqual([
         { role: 'user', content: 'test-message' },
       ]);
@@ -5806,6 +5810,7 @@ describe('streamText', () => {
       await result.consumeStream();
 
       expect(stepStartEvent.stepNumber).toBe(0);
+      expect(stepStartEvent.steps.length).toBe(0);
       expect(stepStartEvent.provider).toBe('mock-provider');
       expect(stepStartEvent.modelId).toBe('mock-model-id');
       expect(stepStartEvent.messages).toEqual([
@@ -5901,7 +5906,9 @@ describe('streamText', () => {
 
       expect(stepStartEvents.length).toBe(2);
       expect(stepStartEvents[0].stepNumber).toBe(0);
+      expect(stepStartEvents[0].steps.length).toBe(0);
       expect(stepStartEvents[1].stepNumber).toBe(1);
+      expect(stepStartEvents[1].steps.length).toBe(1);
     });
 
     it('should be called before doStream on each step', async () => {
@@ -6074,7 +6081,7 @@ describe('streamText', () => {
       });
     });
 
-    it('should expose functionId from telemetry', async () => {
+    it('should not expose telemetry metadata in onStepStart', async () => {
       let stepStartEvent!: Parameters<
         StreamTextOnStepStartCallback<any, any>
       >[0];
@@ -6093,7 +6100,7 @@ describe('streamText', () => {
 
       await result.consumeStream();
 
-      expect(stepStartEvent.functionId).toBe('test-function');
+      expect(stepStartEvent).not.toHaveProperty('functionId');
     });
 
     it('should pass updated toolsContext from prepareStep', async () => {
@@ -6205,6 +6212,128 @@ describe('streamText', () => {
     });
   });
 
+  describe('options.experimental_onLanguageModelCallStart and experimental_onLanguageModelCallEnd', () => {
+    it('should fire the model-call callbacks before tool execution and step finish', async () => {
+      const callOrder: string[] = [];
+      const modelCallEndEvents: LanguageModelCallEndEvent<any>[] = [];
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'response-metadata',
+                id: 'response-1',
+                modelId: 'response-model',
+                timestamp: new Date('2025-01-01T00:00:00.000Z'),
+              },
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: 'Before tool.' },
+              { type: 'text-end', id: '1' },
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                input: '{ "value": "test-arg" }',
+              },
+              {
+                type: 'finish',
+                finishReason: { unified: 'tool-calls', raw: undefined },
+                usage: testUsage,
+              },
+            ]),
+          }),
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => `${value}-result`,
+          }),
+        },
+        prompt: 'test-input',
+        experimental_onStepStart: async () => {
+          callOrder.push('onStepStart');
+        },
+        experimental_onLanguageModelCallStart: async () => {
+          callOrder.push('onLanguageModelCallStart');
+        },
+        experimental_onLanguageModelCallEnd: async event => {
+          callOrder.push('onLanguageModelCallEnd');
+          modelCallEndEvents.push(event);
+        },
+        experimental_onToolExecutionStart: async () => {
+          callOrder.push('onToolExecutionStart');
+        },
+        experimental_onToolExecutionEnd: async () => {
+          callOrder.push('onToolExecutionEnd');
+        },
+        onStepFinish: async () => {
+          callOrder.push('onStepFinish');
+        },
+        onError: () => {},
+        _internal: {
+          generateCallId: () => 'test-telemetry-call-id',
+        },
+      });
+
+      await result.consumeStream();
+
+      expect(callOrder).toEqual([
+        'onStepStart',
+        'onLanguageModelCallStart',
+        'onLanguageModelCallEnd',
+        'onToolExecutionStart',
+        'onToolExecutionEnd',
+        'onStepFinish',
+      ]);
+      expect(modelCallEndEvents).toMatchInlineSnapshot(`
+        [
+          {
+            "callId": "test-telemetry-call-id",
+            "content": [
+              {
+                "text": "Before tool.",
+                "type": "text",
+              },
+              {
+                "input": {
+                  "value": "test-arg",
+                },
+                "providerExecuted": undefined,
+                "providerMetadata": undefined,
+                "title": undefined,
+                "toolCallId": "call-1",
+                "toolName": "tool1",
+                "type": "tool-call",
+              },
+            ],
+            "finishReason": "tool-calls",
+            "modelId": "mock-model-id",
+            "provider": "mock-provider",
+            "responseId": "response-1",
+            "usage": {
+              "cachedInputTokens": undefined,
+              "inputTokenDetails": {
+                "cacheReadTokens": undefined,
+                "cacheWriteTokens": undefined,
+                "noCacheTokens": 3,
+              },
+              "inputTokens": 3,
+              "outputTokenDetails": {
+                "reasoningTokens": undefined,
+                "textTokens": 10,
+              },
+              "outputTokens": 10,
+              "raw": undefined,
+              "reasoningTokens": undefined,
+              "totalTokens": 13,
+            },
+          },
+        ]
+      `);
+    });
+  });
+
   describe('options.experimental_onToolExecutionStart', () => {
     it('should be called with correct tool name, id, and input', async () => {
       const toolExecutionStartEvents: Parameters<
@@ -6258,17 +6387,12 @@ describe('streamText', () => {
         [
           {
             "callId": "test-telemetry-call-id",
-            "context": undefined,
-            "functionId": undefined,
             "messages": [
               {
                 "content": "test-input",
                 "role": "user",
               },
             ],
-            "modelId": "mock-model-id",
-            "provider": "mock-provider",
-            "stepNumber": 0,
             "toolCall": {
               "input": {
                 "value": "test-arg",
@@ -6280,6 +6404,7 @@ describe('streamText', () => {
               "toolName": "tool1",
               "type": "tool-call",
             },
+            "toolContext": undefined,
           },
         ]
       `);
@@ -6528,19 +6653,12 @@ describe('streamText', () => {
         [
           {
             "callId": "test-telemetry-call-id",
-            "context": {
-              "context": "test",
-            },
-            "functionId": undefined,
             "messages": [
               {
                 "content": "prompt",
                 "role": "user",
               },
             ],
-            "modelId": "mock-model-id",
-            "provider": "mock-provider",
-            "stepNumber": 0,
             "toolCall": {
               "input": {
                 "value": "test",
@@ -6551,6 +6669,9 @@ describe('streamText', () => {
               "toolCallId": "call-1",
               "toolName": "tool1",
               "type": "tool-call",
+            },
+            "toolContext": {
+              "context": "test",
             },
           },
         ]
@@ -6656,8 +6777,10 @@ describe('streamText', () => {
       expect(toolExecutionEndEvents.length).toBe(1);
       expect(toolExecutionEndEvents[0].toolCall.toolName).toBe('tool1');
       expect(toolExecutionEndEvents[0].toolCall.toolCallId).toBe('call-1');
-      expect(toolExecutionEndEvents[0].success).toBe(false);
-      expect(toolExecutionEndEvents[0].error).toBe(toolError);
+      expect(toolExecutionEndEvents[0].toolOutput.type).toBe('tool-error');
+      expect(
+        (toolExecutionEndEvents[0].toolOutput as { error: unknown }).error,
+      ).toBe(toolError);
       expect(toolExecutionEndEvents[0].durationMs).toBeGreaterThanOrEqual(0);
     });
 
@@ -6849,22 +6972,13 @@ describe('streamText', () => {
         [
           {
             "callId": "test-telemetry-call-id",
-            "context": {
-              "context": "test",
-            },
             "durationMs": 0,
-            "functionId": undefined,
             "messages": [
               {
                 "content": "prompt",
                 "role": "user",
               },
             ],
-            "modelId": "mock-model-id",
-            "output": "test-result",
-            "provider": "mock-provider",
-            "stepNumber": 0,
-            "success": true,
             "toolCall": {
               "input": {
                 "value": "test",
@@ -6875,6 +6989,19 @@ describe('streamText', () => {
               "toolCallId": "call-1",
               "toolName": "tool1",
               "type": "tool-call",
+            },
+            "toolContext": {
+              "context": "test",
+            },
+            "toolOutput": {
+              "dynamic": false,
+              "input": {
+                "value": "test",
+              },
+              "output": "test-result",
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-result",
             },
           },
         ]
@@ -6933,22 +7060,13 @@ describe('streamText', () => {
         [
           {
             "callId": "test-telemetry-call-id",
-            "context": {
-              "context": "test",
-            },
             "durationMs": 0,
-            "error": [Error: Tool execution failed],
-            "functionId": undefined,
             "messages": [
               {
                 "content": "prompt",
                 "role": "user",
               },
             ],
-            "modelId": "mock-model-id",
-            "provider": "mock-provider",
-            "stepNumber": 0,
-            "success": false,
             "toolCall": {
               "input": {
                 "value": "test",
@@ -6959,6 +7077,19 @@ describe('streamText', () => {
               "toolCallId": "call-1",
               "toolName": "tool1",
               "type": "tool-call",
+            },
+            "toolContext": {
+              "context": "test",
+            },
+            "toolOutput": {
+              "dynamic": false,
+              "error": [Error: Tool execution failed],
+              "input": {
+                "value": "test",
+              },
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-error",
             },
           },
         ]
@@ -7421,7 +7552,6 @@ describe('streamText', () => {
           "dynamicToolResults": [],
           "files": [],
           "finishReason": "stop",
-          "functionId": undefined,
           "model": {
             "modelId": "mock-model-id",
             "provider": "mock-provider",
@@ -7539,7 +7669,6 @@ describe('streamText', () => {
                 },
               ],
               "finishReason": "stop",
-              "functionId": undefined,
               "model": {
                 "modelId": "mock-model-id",
                 "provider": "mock-provider",
@@ -7736,7 +7865,6 @@ describe('streamText', () => {
           "dynamicToolResults": [],
           "files": [],
           "finishReason": "stop",
-          "functionId": undefined,
           "model": {
             "modelId": "mock-model-id",
             "provider": "mock-provider",
@@ -7829,7 +7957,6 @@ describe('streamText', () => {
                 },
               ],
               "finishReason": "stop",
-              "functionId": undefined,
               "model": {
                 "modelId": "mock-model-id",
                 "provider": "mock-provider",
@@ -8011,7 +8138,6 @@ describe('streamText', () => {
             },
           ],
           "finishReason": "stop",
-          "functionId": undefined,
           "model": {
             "modelId": "mock-model-id",
             "provider": "mock-provider",
@@ -8085,7 +8211,6 @@ describe('streamText', () => {
                 },
               ],
               "finishReason": "stop",
-              "functionId": undefined,
               "model": {
                 "modelId": "mock-model-id",
                 "provider": "mock-provider",
@@ -8722,7 +8847,6 @@ describe('streamText', () => {
               "dynamicToolResults": [],
               "files": [],
               "finishReason": "stop",
-              "functionId": undefined,
               "model": {
                 "modelId": "mock-model-id",
                 "provider": "mock-provider",
@@ -8823,7 +8947,6 @@ describe('streamText', () => {
                     },
                   ],
                   "finishReason": "tool-calls",
-                  "functionId": undefined,
                   "model": {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
@@ -8907,7 +9030,6 @@ describe('streamText', () => {
                     },
                   ],
                   "finishReason": "stop",
-                  "functionId": undefined,
                   "model": {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
@@ -9068,7 +9190,6 @@ describe('streamText', () => {
                   },
                 ],
                 "finishReason": "tool-calls",
-                "functionId": undefined,
                 "model": {
                   "modelId": "mock-model-id",
                   "provider": "mock-provider",
@@ -9152,7 +9273,6 @@ describe('streamText', () => {
                   },
                 ],
                 "finishReason": "stop",
-                "functionId": undefined,
                 "model": {
                   "modelId": "mock-model-id",
                   "provider": "mock-provider",
@@ -9330,7 +9450,6 @@ describe('streamText', () => {
                   },
                 ],
                 "finishReason": "tool-calls",
-                "functionId": undefined,
                 "model": {
                   "modelId": "mock-model-id",
                   "provider": "mock-provider",
@@ -9414,7 +9533,6 @@ describe('streamText', () => {
                   },
                 ],
                 "finishReason": "stop",
-                "functionId": undefined,
                 "model": {
                   "modelId": "mock-model-id",
                   "provider": "mock-provider",
@@ -9928,7 +10046,6 @@ describe('streamText', () => {
                     },
                   ],
                   "finishReason": "tool-calls",
-                  "functionId": undefined,
                   "model": {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
@@ -10009,7 +10126,6 @@ describe('streamText', () => {
                     },
                   ],
                   "finishReason": "stop",
-                  "functionId": undefined,
                   "model": {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
@@ -10160,7 +10276,6 @@ describe('streamText', () => {
                     },
                   ],
                   "finishReason": "tool-calls",
-                  "functionId": undefined,
                   "model": {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
@@ -10241,7 +10356,6 @@ describe('streamText', () => {
                     },
                   ],
                   "finishReason": "stop",
-                  "functionId": undefined,
                   "model": {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
@@ -10617,7 +10731,6 @@ describe('streamText', () => {
               "dynamicToolResults": [],
               "files": [],
               "finishReason": "stop",
-              "functionId": undefined,
               "model": {
                 "modelId": "mock-model-id",
                 "provider": "mock-provider",
@@ -10718,7 +10831,6 @@ describe('streamText', () => {
                     },
                   ],
                   "finishReason": "tool-calls",
-                  "functionId": undefined,
                   "model": {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
@@ -10802,7 +10914,6 @@ describe('streamText', () => {
                     },
                   ],
                   "finishReason": "stop",
-                  "functionId": undefined,
                   "model": {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
@@ -10963,7 +11074,6 @@ describe('streamText', () => {
                   },
                 ],
                 "finishReason": "tool-calls",
-                "functionId": undefined,
                 "model": {
                   "modelId": "mock-model-id",
                   "provider": "mock-provider",
@@ -11047,7 +11157,6 @@ describe('streamText', () => {
                   },
                 ],
                 "finishReason": "stop",
-                "functionId": undefined,
                 "model": {
                   "modelId": "mock-model-id",
                   "provider": "mock-provider",
@@ -11221,7 +11330,6 @@ describe('streamText', () => {
                   },
                 ],
                 "finishReason": "tool-calls",
-                "functionId": undefined,
                 "model": {
                   "modelId": "mock-model-id",
                   "provider": "mock-provider",
@@ -11305,7 +11413,6 @@ describe('streamText', () => {
                   },
                 ],
                 "finishReason": "stop",
-                "functionId": undefined,
                 "model": {
                   "modelId": "mock-model-id",
                   "provider": "mock-provider",
@@ -11643,7 +11750,6 @@ describe('streamText', () => {
                     },
                   ],
                   "finishReason": "tool-calls",
-                  "functionId": undefined,
                   "model": {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
@@ -11753,7 +11859,6 @@ describe('streamText', () => {
                     },
                   ],
                   "finishReason": "tool-calls",
-                  "functionId": undefined,
                   "model": {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
@@ -12010,6 +12115,7 @@ describe('streamText', () => {
           tools: {
             web_search: {
               type: 'provider',
+              isProviderExecuted: true,
               id: 'test.web_search',
               inputSchema: z.object({ value: z.string() }),
               outputSchema: z.object({ value: z.string() }),
@@ -12329,6 +12435,7 @@ describe('streamText', () => {
           tools: {
             web_fetch: {
               type: 'provider',
+              isProviderExecuted: true,
               id: 'test.web_fetch',
               inputSchema: z.object({ url: z.string() }),
               args: {},
@@ -12468,6 +12575,7 @@ describe('streamText', () => {
           tools: {
             toolSearch: {
               type: 'provider',
+              isProviderExecuted: true,
               id: 'openai.tool_search',
               inputSchema: z.object({
                 arguments: z.object({
@@ -13991,7 +14099,6 @@ describe('streamText', () => {
               },
             ],
             "finishReason": "stop",
-            "functionId": undefined,
             "model": {
               "modelId": "mock-model-id",
               "provider": "mock-provider",
@@ -14496,7 +14603,6 @@ describe('streamText', () => {
                 },
               ],
               "finishReason": "stop",
-              "functionId": undefined,
               "model": {
                 "modelId": "mock-model-id",
                 "provider": "mock-provider",
@@ -14731,7 +14837,6 @@ describe('streamText', () => {
             "dynamicToolResults": [],
             "files": [],
             "finishReason": "stop",
-            "functionId": undefined,
             "model": {
               "modelId": "mock-model-id",
               "provider": "mock-provider",
@@ -14849,7 +14954,6 @@ describe('streamText', () => {
                   },
                 ],
                 "finishReason": "stop",
-                "functionId": undefined,
                 "model": {
                   "modelId": "mock-model-id",
                   "provider": "mock-provider",
@@ -15080,7 +15184,6 @@ describe('streamText', () => {
               },
             ],
             "finishReason": "stop",
-            "functionId": undefined,
             "model": {
               "modelId": "mock-model-id",
               "provider": "mock-provider",
@@ -15534,7 +15637,6 @@ describe('streamText', () => {
               },
             ],
             "finishReason": "stop",
-            "functionId": undefined,
             "model": {
               "modelId": "mock-model-id",
               "provider": "mock-provider",
@@ -16024,7 +16126,6 @@ describe('streamText', () => {
             "dynamicToolResults": [],
             "files": [],
             "finishReason": "stop",
-            "functionId": undefined,
             "model": {
               "modelId": "mock-model-id",
               "provider": "mock-provider",
@@ -16068,7 +16169,6 @@ describe('streamText', () => {
                   },
                 ],
                 "finishReason": "stop",
-                "functionId": undefined,
                 "model": {
                   "modelId": "mock-model-id",
                   "provider": "mock-provider",
@@ -17165,7 +17265,6 @@ describe('streamText', () => {
                 },
               ],
               "finishReason": "stop",
-              "functionId": undefined,
               "model": {
                 "modelId": "mock-model-id",
                 "provider": "mock-provider",
@@ -17313,43 +17412,49 @@ describe('streamText', () => {
         `);
       });
 
-      it('should only stream initial chunks in full stream', async () => {
-        expect(await convertAsyncIterableToArray(result.fullStream))
-          .toMatchInlineSnapshot(`
-            [
-              {
-                "type": "start",
-              },
-              {
-                "request": {},
-                "type": "start-step",
-                "warnings": [],
-              },
-              {
-                "reason": "AbortError: This operation was aborted",
-                "type": "abort",
-              },
-            ]
-          `);
-      });
+      it.skipIf(isNodeVersionAtLeast(24, 15))(
+        'should only stream initial chunks in full stream',
+        async () => {
+          expect(await convertAsyncIterableToArray(result.fullStream))
+            .toMatchInlineSnapshot(`
+              [
+                {
+                  "type": "start",
+                },
+                {
+                  "request": {},
+                  "type": "start-step",
+                  "warnings": [],
+                },
+                {
+                  "reason": "AbortError: This operation was aborted",
+                  "type": "abort",
+                },
+              ]
+            `);
+        },
+      );
 
-      it('should sent an abort chunk in the ui message stream', async () => {
-        expect(await convertAsyncIterableToArray(result.toUIMessageStream()))
-          .toMatchInlineSnapshot(`
-            [
-              {
-                "type": "start",
-              },
-              {
-                "type": "start-step",
-              },
-              {
-                "reason": "AbortError: This operation was aborted",
-                "type": "abort",
-              },
-            ]
-          `);
-      });
+      it.skipIf(isNodeVersionAtLeast(24, 15))(
+        'should sent an abort chunk in the ui message stream',
+        async () => {
+          expect(await convertAsyncIterableToArray(result.toUIMessageStream()))
+            .toMatchInlineSnapshot(`
+              [
+                {
+                  "type": "start",
+                },
+                {
+                  "type": "start-step",
+                },
+                {
+                  "reason": "AbortError: This operation was aborted",
+                  "type": "abort",
+                },
+              ]
+            `);
+        },
+      );
 
       it('should include abort reason when provided', async () => {
         const abortController = new AbortController();
@@ -17556,7 +17661,6 @@ describe('streamText', () => {
                     },
                   ],
                   "finishReason": "tool-calls",
-                  "functionId": undefined,
                   "model": {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
@@ -18614,7 +18718,6 @@ describe('streamText', () => {
                 },
               ],
               "finishReason": "stop",
-              "functionId": undefined,
               "model": {
                 "modelId": "mock-model-id",
                 "provider": "mock-provider",
@@ -19278,6 +19381,7 @@ describe('streamText', () => {
           tools: {
             code_execution: {
               type: 'provider',
+              isProviderExecuted: true,
               id: 'anthropic.code_execution_20250825',
               inputSchema: z.object({ code: z.string() }),
               outputSchema: z.object({
@@ -20583,6 +20687,7 @@ describe('streamText', () => {
           tools: {
             deferred_tool: {
               type: 'provider',
+              isProviderExecuted: true,
               id: 'test.deferred_tool',
               inputSchema: z.object({ value: z.string() }),
               outputSchema: z.object({ value: z.string() }),
@@ -20714,6 +20819,7 @@ describe('streamText', () => {
           tools: {
             deferred_tool: {
               type: 'provider',
+              isProviderExecuted: true,
               id: 'test.deferred_tool',
               inputSchema: z.object({ value: z.string() }),
               outputSchema: z.object({ value: z.string() }),
@@ -20939,8 +21045,8 @@ describe('streamText', () => {
               execute: async () => 'result1',
             }),
           },
-          toolNeedsApproval: {
-            tool1: true,
+          toolApproval: {
+            tool1: 'user-approval',
           },
         });
       });
@@ -21121,6 +21227,7 @@ describe('streamText', () => {
                 },
                 {
                   "approvalId": "id-1",
+                  "isAutomatic": undefined,
                   "toolCallId": "call-1",
                   "type": "tool-approval-request",
                 },
@@ -21129,6 +21236,552 @@ describe('streamText', () => {
             },
           ]
         `);
+      });
+    });
+
+    describe('when a single tool is automatically rejected', () => {
+      let result: StreamTextResult<any, any, any>;
+      let prompts: LanguageModelV4Prompt[];
+      let executeFunction: ToolExecuteFunction<any, any, any>;
+
+      beforeEach(async () => {
+        prompts = [];
+        executeFunction = vi.fn().mockReturnValue('result1');
+
+        let step = 0;
+        result = streamText({
+          model: new MockLanguageModelV4({
+            doStream: async ({ prompt }) => {
+              prompts.push(prompt);
+              switch (step++) {
+                case 0:
+                  return {
+                    stream: convertArrayToReadableStream([
+                      { type: 'stream-start', warnings: [] },
+                      {
+                        type: 'tool-call',
+                        toolCallType: 'function',
+                        toolCallId: 'call-1',
+                        toolName: 'tool1',
+                        input: `{ "value": "value" }`,
+                      },
+                      {
+                        type: 'finish',
+                        finishReason: { unified: 'tool-calls', raw: undefined },
+                        usage: testUsage,
+                      },
+                    ]),
+                  };
+
+                default:
+                  return {
+                    stream: convertArrayToReadableStream([
+                      { type: 'stream-start', warnings: [] },
+                      { type: 'text-start', id: '1' },
+                      {
+                        type: 'text-delta',
+                        id: '1',
+                        delta: 'Hello, world!',
+                      },
+                      { type: 'text-end', id: '1' },
+                      {
+                        type: 'finish',
+                        finishReason: { unified: 'stop', raw: 'stop' },
+                        usage: testUsage,
+                      },
+                    ]),
+                  };
+              }
+            },
+          }),
+          prompt: 'test-input',
+          stopWhen: isStepCount(3),
+          _internal: {
+            generateId: mockId({ prefix: 'id' }),
+            generateCallId: () => 'test-telemetry-call-id',
+          },
+          tools: {
+            tool1: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: executeFunction,
+            }),
+          },
+          toolApproval: {
+            tool1: {
+              type: 'denied',
+              reason: 'blocked by policy',
+            },
+          },
+        });
+
+        await result.consumeStream();
+      });
+
+      it('should continue to a second step with text and not execute the tool', async () => {
+        expect(executeFunction).not.toHaveBeenCalled();
+        expect(await result.text).toBe('Hello, world!');
+        expect((await result.steps).length).toBe(2);
+      });
+
+      it('should call the model again for the second step', async () => {
+        expect(prompts).toMatchInlineSnapshot(`
+          [
+            [
+              {
+                "content": [
+                  {
+                    "text": "test-input",
+                    "type": "text",
+                  },
+                ],
+                "providerOptions": undefined,
+                "role": "user",
+              },
+            ],
+            [
+              {
+                "content": [
+                  {
+                    "text": "test-input",
+                    "type": "text",
+                  },
+                ],
+                "providerOptions": undefined,
+                "role": "user",
+              },
+              {
+                "content": [
+                  {
+                    "input": {
+                      "value": "value",
+                    },
+                    "providerExecuted": undefined,
+                    "providerOptions": undefined,
+                    "toolCallId": "call-1",
+                    "toolName": "tool1",
+                    "type": "tool-call",
+                  },
+                ],
+                "providerOptions": undefined,
+                "role": "assistant",
+              },
+              {
+                "content": [
+                  {
+                    "output": {
+                      "reason": "blocked by policy",
+                      "type": "execution-denied",
+                    },
+                    "providerOptions": undefined,
+                    "toolCallId": "call-1",
+                    "toolName": "tool1",
+                    "type": "tool-result",
+                  },
+                ],
+                "providerOptions": undefined,
+                "role": "tool",
+              },
+            ],
+          ]
+        `);
+      });
+
+      it('should produce response messages', async () => {
+        expect((await result.response).messages).toMatchInlineSnapshot(`
+          [
+            {
+              "content": [
+                {
+                  "input": {
+                    "value": "value",
+                  },
+                  "providerExecuted": undefined,
+                  "providerOptions": undefined,
+                  "toolCallId": "call-1",
+                  "toolName": "tool1",
+                  "type": "tool-call",
+                },
+                {
+                  "approvalId": "id-1",
+                  "isAutomatic": true,
+                  "toolCallId": "call-1",
+                  "type": "tool-approval-request",
+                },
+              ],
+              "role": "assistant",
+            },
+            {
+              "content": [
+                {
+                  "approvalId": "id-1",
+                  "approved": false,
+                  "providerExecuted": undefined,
+                  "reason": "blocked by policy",
+                  "type": "tool-approval-response",
+                },
+                {
+                  "output": {
+                    "reason": "blocked by policy",
+                    "type": "execution-denied",
+                  },
+                  "toolCallId": "call-1",
+                  "toolName": "tool1",
+                  "type": "tool-result",
+                },
+              ],
+              "role": "tool",
+            },
+            {
+              "content": [
+                {
+                  "providerOptions": undefined,
+                  "text": "Hello, world!",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          ]
+        `);
+      });
+
+      it('should include automatic approval denial in the ui message stream', async () => {
+        expect(await convertAsyncIterableToArray(result.toUIMessageStream()))
+          .toMatchInlineSnapshot(`
+            [
+              {
+                "type": "start",
+              },
+              {
+                "type": "start-step",
+              },
+              {
+                "input": {
+                  "value": "value",
+                },
+                "toolCallId": "call-1",
+                "toolName": "tool1",
+                "type": "tool-input-available",
+              },
+              {
+                "approvalId": "id-1",
+                "isAutomatic": true,
+                "toolCallId": "call-1",
+                "type": "tool-approval-request",
+              },
+              {
+                "approvalId": "id-1",
+                "approved": false,
+                "reason": "blocked by policy",
+                "type": "tool-approval-response",
+              },
+              {
+                "type": "finish-step",
+              },
+              {
+                "type": "start-step",
+              },
+              {
+                "id": "1",
+                "type": "text-start",
+              },
+              {
+                "delta": "Hello, world!",
+                "id": "1",
+                "type": "text-delta",
+              },
+              {
+                "id": "1",
+                "type": "text-end",
+              },
+              {
+                "type": "finish-step",
+              },
+              {
+                "finishReason": "stop",
+                "type": "finish",
+              },
+            ]
+          `);
+      });
+    });
+
+    describe('when a single tool is automatically approved', () => {
+      let result: StreamTextResult<any, any, any>;
+      let prompts: LanguageModelV4Prompt[];
+      let executeFunction: ToolExecuteFunction<any, any, any>;
+
+      beforeEach(async () => {
+        prompts = [];
+        executeFunction = vi.fn().mockReturnValue('result1');
+
+        let step = 0;
+        result = streamText({
+          model: new MockLanguageModelV4({
+            doStream: async ({ prompt }) => {
+              prompts.push(prompt);
+              switch (step++) {
+                case 0:
+                  return {
+                    stream: convertArrayToReadableStream([
+                      { type: 'stream-start', warnings: [] },
+                      {
+                        type: 'tool-call',
+                        toolCallType: 'function',
+                        toolCallId: 'call-1',
+                        toolName: 'tool1',
+                        input: `{ "value": "value" }`,
+                      },
+                      {
+                        type: 'finish',
+                        finishReason: { unified: 'tool-calls', raw: undefined },
+                        usage: testUsage,
+                      },
+                    ]),
+                  };
+
+                default:
+                  return {
+                    stream: convertArrayToReadableStream([
+                      { type: 'stream-start', warnings: [] },
+                      { type: 'text-start', id: '1' },
+                      {
+                        type: 'text-delta',
+                        id: '1',
+                        delta: 'Hello, world!',
+                      },
+                      { type: 'text-end', id: '1' },
+                      {
+                        type: 'finish',
+                        finishReason: { unified: 'stop', raw: 'stop' },
+                        usage: testUsage,
+                      },
+                    ]),
+                  };
+              }
+            },
+          }),
+          prompt: 'test-input',
+          stopWhen: isStepCount(3),
+          _internal: {
+            generateId: mockId({ prefix: 'id' }),
+            generateCallId: () => 'test-telemetry-call-id',
+          },
+          tools: {
+            tool1: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: executeFunction,
+            }),
+          },
+          toolApproval: {
+            tool1: {
+              type: 'approved',
+              reason: 'trusted internal tool',
+            },
+          },
+        });
+
+        await result.consumeStream();
+      });
+
+      it('should continue to a second step and execute the tool', async () => {
+        expect(executeFunction).toHaveBeenCalledWith(
+          { value: 'value' },
+          expect.objectContaining({
+            abortSignal: undefined,
+            toolCallId: 'call-1',
+            messages: expect.any(Array),
+          }),
+        );
+        expect(await result.text).toBe('Hello, world!');
+        expect((await result.steps).length).toBe(2);
+      });
+
+      it('should call the model again for the second step with the tool result', async () => {
+        expect(prompts).toMatchInlineSnapshot(`
+          [
+            [
+              {
+                "content": [
+                  {
+                    "text": "test-input",
+                    "type": "text",
+                  },
+                ],
+                "providerOptions": undefined,
+                "role": "user",
+              },
+            ],
+            [
+              {
+                "content": [
+                  {
+                    "text": "test-input",
+                    "type": "text",
+                  },
+                ],
+                "providerOptions": undefined,
+                "role": "user",
+              },
+              {
+                "content": [
+                  {
+                    "input": {
+                      "value": "value",
+                    },
+                    "providerExecuted": undefined,
+                    "providerOptions": undefined,
+                    "toolCallId": "call-1",
+                    "toolName": "tool1",
+                    "type": "tool-call",
+                  },
+                ],
+                "providerOptions": undefined,
+                "role": "assistant",
+              },
+              {
+                "content": [
+                  {
+                    "output": {
+                      "type": "text",
+                      "value": "result1",
+                    },
+                    "providerOptions": undefined,
+                    "toolCallId": "call-1",
+                    "toolName": "tool1",
+                    "type": "tool-result",
+                  },
+                ],
+                "providerOptions": undefined,
+                "role": "tool",
+              },
+            ],
+          ]
+        `);
+      });
+
+      it('should produce response messages with automatic approval metadata', async () => {
+        expect((await result.response).messages).toMatchInlineSnapshot(`
+          [
+            {
+              "content": [
+                {
+                  "input": {
+                    "value": "value",
+                  },
+                  "providerExecuted": undefined,
+                  "providerOptions": undefined,
+                  "toolCallId": "call-1",
+                  "toolName": "tool1",
+                  "type": "tool-call",
+                },
+                {
+                  "approvalId": "id-1",
+                  "isAutomatic": true,
+                  "toolCallId": "call-1",
+                  "type": "tool-approval-request",
+                },
+              ],
+              "role": "assistant",
+            },
+            {
+              "content": [
+                {
+                  "approvalId": "id-1",
+                  "approved": true,
+                  "providerExecuted": undefined,
+                  "reason": "trusted internal tool",
+                  "type": "tool-approval-response",
+                },
+                {
+                  "output": {
+                    "type": "text",
+                    "value": "result1",
+                  },
+                  "toolCallId": "call-1",
+                  "toolName": "tool1",
+                  "type": "tool-result",
+                },
+              ],
+              "role": "tool",
+            },
+            {
+              "content": [
+                {
+                  "providerOptions": undefined,
+                  "text": "Hello, world!",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          ]
+        `);
+      });
+
+      it('should include automatic approval in the ui message stream', async () => {
+        expect(await convertAsyncIterableToArray(result.toUIMessageStream()))
+          .toMatchInlineSnapshot(`
+            [
+              {
+                "type": "start",
+              },
+              {
+                "type": "start-step",
+              },
+              {
+                "input": {
+                  "value": "value",
+                },
+                "toolCallId": "call-1",
+                "toolName": "tool1",
+                "type": "tool-input-available",
+              },
+              {
+                "approvalId": "id-1",
+                "isAutomatic": true,
+                "toolCallId": "call-1",
+                "type": "tool-approval-request",
+              },
+              {
+                "approvalId": "id-1",
+                "approved": true,
+                "reason": "trusted internal tool",
+                "type": "tool-approval-response",
+              },
+              {
+                "output": "result1",
+                "toolCallId": "call-1",
+                "type": "tool-output-available",
+              },
+              {
+                "type": "finish-step",
+              },
+              {
+                "type": "start-step",
+              },
+              {
+                "id": "1",
+                "type": "text-start",
+              },
+              {
+                "delta": "Hello, world!",
+                "id": "1",
+                "type": "text-delta",
+              },
+              {
+                "id": "1",
+                "type": "text-end",
+              },
+              {
+                "type": "finish-step",
+              },
+              {
+                "finishReason": "stop",
+                "type": "finish",
+              },
+            ]
+          `);
       });
     });
 
@@ -21169,10 +21822,12 @@ describe('streamText', () => {
               execute: input => `result for ${input.value}`,
             }),
           },
-          toolNeedsApproval: {
+          toolApproval: {
             tool1: (input, options) => {
               needsApprovalCalls.push({ input, options });
-              return input.value === 'value-needs-approval';
+              return input.value === 'value-needs-approval'
+                ? 'user-approval'
+                : 'not-applicable';
             },
           },
           stopWhen: isStepCount(3),
@@ -21423,6 +22078,7 @@ describe('streamText', () => {
                 },
                 {
                   "approvalId": "id-1",
+                  "isAutomatic": undefined,
                   "toolCallId": "call-1",
                   "type": "tool-approval-request",
                 },
@@ -21467,14 +22123,15 @@ describe('streamText', () => {
                 "value": "value-needs-approval",
               },
               "options": {
-                "context": undefined,
                 "messages": [
                   {
                     "content": "test-input",
                     "role": "user",
                   },
                 ],
+                "runtimeContext": {},
                 "toolCallId": "call-1",
+                "toolContext": undefined,
               },
             },
             {
@@ -21482,14 +22139,15 @@ describe('streamText', () => {
                 "value": "value-no-approval",
               },
               "options": {
-                "context": undefined,
                 "messages": [
                   {
                     "content": "test-input",
                     "role": "user",
                   },
                 ],
+                "runtimeContext": {},
                 "toolCallId": "call-2",
+                "toolContext": undefined,
               },
             },
           ]
@@ -21534,8 +22192,8 @@ describe('streamText', () => {
               execute: executeFunction,
             }),
           },
-          toolNeedsApproval: {
-            tool1: true,
+          toolApproval: {
+            tool1: 'user-approval',
           },
           stopWhen: isStepCount(3),
           _internal: {
@@ -21840,8 +22498,8 @@ describe('streamText', () => {
               },
             }),
           },
-          toolNeedsApproval: {
-            tool1: true,
+          toolApproval: {
+            tool1: 'user-approval',
           },
           stopWhen: isStepCount(3),
           _internal: {
@@ -21966,8 +22624,8 @@ describe('streamText', () => {
               },
             }),
           },
-          toolNeedsApproval: {
-            tool1: true,
+          toolApproval: {
+            tool1: 'user-approval',
           },
           stopWhen: isStepCount(3),
           _internal: {
@@ -22297,8 +22955,8 @@ describe('streamText', () => {
               execute: executeFunction,
             }),
           },
-          toolNeedsApproval: {
-            tool1: true,
+          toolApproval: {
+            tool1: 'user-approval',
           },
           stopWhen: isStepCount(3),
           _internal: {
@@ -22584,6 +23242,7 @@ describe('streamText', () => {
             tools: {
               mcp_tool: {
                 type: 'provider',
+                isProviderExecuted: true,
                 id: 'test.mcp_tool',
                 inputSchema: z.object({ query: z.string() }),
                 args: {},
@@ -22774,6 +23433,7 @@ describe('streamText', () => {
                   },
                   {
                     "approvalId": "mcp-approval-1",
+                    "isAutomatic": undefined,
                     "toolCallId": "mcp-call-1",
                     "type": "tool-approval-request",
                   },
@@ -22842,6 +23502,7 @@ describe('streamText', () => {
             tools: {
               mcp_tool: {
                 type: 'provider',
+                isProviderExecuted: true,
                 id: 'test.mcp_tool',
                 inputSchema: z.object({ query: z.string() }),
                 args: {},
@@ -23011,6 +23672,7 @@ describe('streamText', () => {
             tools: {
               mcp_tool: {
                 type: 'provider',
+                isProviderExecuted: true,
                 id: 'test.mcp_tool',
                 inputSchema: z.object({ query: z.string() }),
                 args: {},

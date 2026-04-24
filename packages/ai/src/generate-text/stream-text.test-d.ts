@@ -321,6 +321,36 @@ describe('streamText types', () => {
         });
       });
     });
+
+    it('should pass the runtimeContext type into toolApproval callbacks', async () => {
+      type RC = { tenantId: string };
+
+      streamText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+        tools: mixedTools,
+        toolsContext: { weather: { weatherApiKey: 'k' } },
+        runtimeContext: { tenantId: 'acme' } as RC,
+        toolApproval: ({ runtimeContext }) => {
+          expectTypeOf(runtimeContext).toEqualTypeOf<RC>();
+          return 'not-applicable';
+        },
+      });
+
+      streamText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+        tools: mixedTools,
+        toolsContext: { weather: { weatherApiKey: 'k' } },
+        runtimeContext: { tenantId: 'acme' } as RC,
+        toolApproval: {
+          weather: (_input, { runtimeContext }) => {
+            expectTypeOf(runtimeContext).toEqualTypeOf<RC>();
+            return 'not-applicable';
+          },
+        },
+      });
+    });
   });
 
   describe('toolsContext', () => {

@@ -1,5 +1,12 @@
 # @ai-sdk/devtools
 
+## 1.0.0-beta.16
+
+### Major Changes
+
+- 1949571: feat(ai): make experimental_telemetry stable
+- 6542d93: feat(ai): change naming nomenclature for `*TelemetryIntegration` to `*Telemetry`
+
 ## 1.0.0-beta.15
 
 ### Patch Changes

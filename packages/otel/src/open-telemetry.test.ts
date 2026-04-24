@@ -147,7 +147,6 @@ let callIdCounter = 0;
 
 function telemetryFields() {
   return {
-    isEnabled: true as const,
     recordInputs: undefined,
     recordOutputs: undefined,
     functionId: undefined,
@@ -163,8 +162,7 @@ function makeOnStartEvent(overrides?: Record<string, unknown>) {
     provider: model.provider,
     modelId: model.modelId,
     system: undefined,
-    prompt: 'Hello',
-    messages: undefined,
+    messages: [{ role: 'user', content: 'Hello' }],
     tools: undefined,
     toolChoice: undefined,
     activeTools: undefined,
@@ -194,9 +192,9 @@ function makeOnStartEvent(overrides?: Record<string, unknown>) {
 function makeStepStartEvent(overrides?: Record<string, unknown>) {
   return {
     callId,
-    stepNumber: 0,
     provider: model.provider,
     modelId: model.modelId,
+    stepNumber: 0,
     system: undefined,
     messages: [],
     tools: undefined,
@@ -204,13 +202,10 @@ function makeStepStartEvent(overrides?: Record<string, unknown>) {
     activeTools: undefined,
     steps: [],
     providerOptions: undefined,
-    timeout: undefined,
-    headers: undefined,
-    stopWhen: undefined,
-    output: undefined,
     abortSignal: undefined,
+    output: undefined,
     include: undefined,
-    functionId: undefined,
+    ...telemetryFields(),
     runtimeContext: {},
     promptMessages: undefined,
     stepTools: undefined,
@@ -225,7 +220,7 @@ function makeStepFinishEvent(overrides?: Record<string, unknown>) {
     callId,
     stepNumber: 0,
     model,
-    functionId: undefined,
+    ...telemetryFields(),
     runtimeContext: {},
     content: [{ type: 'text' as const, text: 'Hello world' }],
     text: 'Hello world',
@@ -298,19 +293,16 @@ function makeFinishEvent(overrides?: Record<string, unknown>) {
 function makeToolCallStartEvent(overrides?: Record<string, unknown>) {
   return {
     callId,
-    stepNumber: 0,
-    provider: model.provider,
-    modelId: model.modelId,
     toolCall: {
       type: 'tool-call' as const,
       toolCallId: 'tool-call-1',
       toolName: 'myTool',
       input: { query: 'test' },
     },
-    messages: [],
     abortSignal: undefined,
-    functionId: undefined,
-    context: {},
+    ...telemetryFields(),
+    messages: [],
+    toolContext: {},
     toolsContext: {},
     ...overrides,
   } as Parameters<NonNullable<Telemetry['onToolExecutionStart']>>[0];
@@ -322,20 +314,17 @@ function makeToolCallFinishEvent(
 ) {
   const base = {
     callId,
-    stepNumber: 0,
-    provider: model.provider,
-    modelId: model.modelId,
     toolCall: {
       type: 'tool-call' as const,
       toolCallId: 'tool-call-1',
       toolName: 'myTool',
       input: { query: 'test' },
     },
-    messages: [],
     abortSignal: undefined,
     durationMs: 42,
-    functionId: undefined,
-    context: {},
+    ...telemetryFields(),
+    messages: [],
+    toolContext: {},
     toolsContext: {},
     ...overrides,
   };
@@ -343,14 +332,26 @@ function makeToolCallFinishEvent(
   if (success) {
     return {
       ...base,
-      success: true as const,
-      output: { result: 'ok' },
+      toolOutput: {
+        type: 'tool-result' as const,
+        toolCallId: 'tool-call-1',
+        toolName: 'myTool',
+        input: { query: 'test' },
+        output: { result: 'ok' },
+        dynamic: false,
+      },
     } as Parameters<NonNullable<Telemetry['onToolExecutionEnd']>>[0];
   }
   return {
     ...base,
-    success: false as const,
-    error: new Error('tool failed'),
+    toolOutput: {
+      type: 'tool-error' as const,
+      toolCallId: 'tool-call-1',
+      toolName: 'myTool',
+      input: { query: 'test' },
+      error: new Error('tool failed'),
+      dynamic: false,
+    },
   } as Parameters<NonNullable<Telemetry['onToolExecutionEnd']>>[0];
 }
 
@@ -400,22 +401,6 @@ describe('OpenTelemetry', () => {
       const attrs = getStartSpanAttributes(tracer, 0);
       expect(attrs['ai.operationId']).toBe('ai.generateText');
       expect(attrs['operation.name']).toBe('ai.generateText');
-    });
-
-    it('does not create a span when telemetry is disabled', () => {
-      otelIntegration.onStart!(
-        makeOnStartEvent({
-          isEnabled: false,
-        }),
-      );
-
-      expect(tracer.startSpan).not.toHaveBeenCalled();
-    });
-
-    it('should create a span when isEnabled is not defined explicitly', () => {
-      otelIntegration.onStart?.(makeOnStartEvent({ isEnabled: undefined }));
-
-      expect(tracer.startSpan).toHaveBeenCalled();
     });
 
     it('uses a tracer configured for the call id', () => {
@@ -774,10 +759,10 @@ describe('OpenTelemetry', () => {
     it('allows a new step span after finishing a step', () => {
       otelIntegration.onStart!(makeOnStartEvent());
 
-      otelIntegration.onStepStart!(makeStepStartEvent({ stepNumber: 0 }));
+      otelIntegration.onStepStart!(makeStepStartEvent());
       otelIntegration.onStepFinish!(makeStepFinishEvent({ stepNumber: 0 }));
 
-      otelIntegration.onStepStart!(makeStepStartEvent({ stepNumber: 1 }));
+      otelIntegration.onStepStart!(makeStepStartEvent({ steps: [{}] }));
       otelIntegration.onStepFinish!(makeStepFinishEvent({ stepNumber: 1 }));
 
       expect(tracer.spans).toHaveLength(3);
@@ -1123,12 +1108,12 @@ describe('OpenTelemetry', () => {
     it('creates correct span hierarchy for multi-step generation', () => {
       otelIntegration.onStart!(makeOnStartEvent());
 
-      otelIntegration.onStepStart!(makeStepStartEvent({ stepNumber: 0 }));
+      otelIntegration.onStepStart!(makeStepStartEvent());
       otelIntegration.onToolExecutionStart!(makeToolCallStartEvent());
       otelIntegration.onToolExecutionEnd!(makeToolCallFinishEvent(true));
       otelIntegration.onStepFinish!(makeStepFinishEvent({ stepNumber: 0 }));
 
-      otelIntegration.onStepStart!(makeStepStartEvent({ stepNumber: 1 }));
+      otelIntegration.onStepStart!(makeStepStartEvent({ steps: [{}] }));
       otelIntegration.onStepFinish!(makeStepFinishEvent({ stepNumber: 1 }));
 
       otelIntegration.onFinish!(makeFinishEvent());
@@ -1411,7 +1396,7 @@ describe('OpenTelemetry integration with generateText', () => {
             "ai.model.id": "mock-model-id",
             "ai.model.provider": "mock-provider",
             "ai.operationId": "ai.generateText",
-            "ai.prompt": "{"prompt":"test-input"}",
+            "ai.prompt": "{"messages":[{"role":"user","content":"test-input"}]}",
             "ai.request.headers.user-agent": "ai/0.0.0-test",
             "ai.response.finishReason": "stop",
             "ai.response.text": "",
@@ -3247,7 +3232,7 @@ describe('OpenTelemetry integration with streamText stopWhen (2 steps with trans
             "ai.model.id": "mock-model-id",
             "ai.model.provider": "mock-provider",
             "ai.operationId": "ai.streamText",
-            "ai.prompt": "{"prompt":"test-input"}",
+            "ai.prompt": "{"messages":[{"role":"user","content":"test-input"}]}",
             "ai.response.finishReason": "stop",
             "ai.response.text": "Hello, world!",
             "ai.settings.maxRetries": 2,

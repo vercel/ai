@@ -6,7 +6,7 @@ export type {
   AnthropicLanguageModelOptions,
   /** @deprecated Use `AnthropicLanguageModelOptions` instead. */
   AnthropicLanguageModelOptions as AnthropicProviderOptions,
-} from './anthropic-messages-options';
+} from './anthropic-options';
 export type { AnthropicToolOptions } from './anthropic-prepare-tools';
 export { anthropic, createAnthropic } from './anthropic-provider';
 export type {
