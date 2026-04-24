@@ -5,6 +5,7 @@ import type {
   LanguageModelV4StreamPart,
   LanguageModelV4GenerateResult,
   LanguageModelV4StreamResult,
+  LanguageModelV4Usage,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -101,6 +102,7 @@ export class GatewayLanguageModel implements LanguageModelV4 {
 
       return {
         ...responseBody,
+        usage: normalizeUsageToV4(responseBody.usage),
         request: { body: args },
         response: { headers: responseHeaders, body: rawResponse },
         warnings,
@@ -171,6 +173,17 @@ export class GatewayLanguageModel implements LanguageModelV4 {
                   streamPart.timestamp = new Date(streamPart.timestamp);
                 }
 
+                // Normalize V2 flat usage to V4 nested format in finish events.
+                // The gateway backend may return usage as flat numbers
+                // (V2 format) even when the spec version is declared as v4.
+                if (streamPart.type === 'finish') {
+                  controller.enqueue({
+                    ...streamPart,
+                    usage: normalizeUsageToV4(streamPart.usage),
+                  });
+                  return;
+                }
+
                 controller.enqueue(streamPart);
               } else {
                 controller.error(
@@ -235,4 +248,49 @@ export class GatewayLanguageModel implements LanguageModelV4 {
       'ai-language-model-streaming': String(streaming),
     };
   }
+}
+
+/**
+ * Normalizes gateway usage to the V4 nested format.
+ *
+ * The gateway backend currently returns usage as flat numbers (V2 format):
+ *   { inputTokens: 9, outputTokens: 11, reasoningTokens: 0, cachedInputTokens: 0 }
+ *
+ * But the SDK declares specificationVersion = "v4", so `asLanguageModelV4` skips
+ * the V2→V4 conversion, leaving `usage.inputTokens.total` as undefined.
+ *
+ * This function detects V2-format usage (where `inputTokens` is a number) and
+ * converts it to V4 nested format. Already-V4 or pass-through payloads are
+ * returned unchanged.
+ */
+function normalizeUsageToV4(usage: unknown): LanguageModelV4Usage {
+  if (usage == null || typeof usage !== 'object') {
+    return usage as LanguageModelV4Usage;
+  }
+
+  const u = usage as Record<string, unknown>;
+
+  // V2 flat format: inputTokens is a bare number. Convert to V4 nested format.
+  if (typeof u.inputTokens === 'number') {
+    return {
+      inputTokens: {
+        total: u.inputTokens,
+        noCache: undefined,
+        cacheRead:
+          typeof u.cachedInputTokens === 'number'
+            ? u.cachedInputTokens
+            : undefined,
+        cacheWrite: undefined,
+      },
+      outputTokens: {
+        total: typeof u.outputTokens === 'number' ? u.outputTokens : undefined,
+        text: undefined,
+        reasoning:
+          typeof u.reasoningTokens === 'number' ? u.reasoningTokens : undefined,
+      },
+    };
+  }
+
+  // Already V4 (inputTokens is an object) or an unrecognised shape — pass through.
+  return usage as LanguageModelV4Usage;
 }
