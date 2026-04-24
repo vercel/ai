@@ -316,22 +316,6 @@ export async function convertToBedrockChatMessages(
                       },
                     },
                   });
-                } else {
-                  // trim the last text part if it's the last message in the block
-                  // because Bedrock does not allow trailing whitespace
-                  // in pre-filled assistant responses
-                  bedrockContent.push({
-                    reasoningContent: {
-                      reasoningText: {
-                        text: trimIfLast(
-                          isLastBlock,
-                          isLastMessage,
-                          isLastContentPart,
-                          part.text,
-                        ),
-                      },
-                    },
-                  });
                 }
 
                 break;
