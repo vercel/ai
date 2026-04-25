@@ -1476,30 +1476,150 @@ describe('toResponseMessages', () => {
     `);
   });
 
-  it('should include provider metadata in the text parts', async () => {
+  it('should filter out orphaned provider-executed tool calls without matching results or approval requests', async () => {
+    // This test covers the Vertex Anthropic case where web_search_tool_result
+    // is missing from the stream when both provider and client tools are called
+    // in the same turn (see https://github.com/vercel/ai/issues/13533)
     const result = await toResponseMessages({
       content: [
         {
           type: 'text',
-          text: 'Here is a text',
-          providerMetadata: { testProvider: { signature: 'sig' } },
+          text: 'Searching for information and calling client tool',
+        },
+        {
+          type: 'tool-call',
+          toolCallId: 'web-search-1',
+          toolName: 'web_search',
+          input: { query: 'latest AI standards' },
+          providerExecuted: true,
+          dynamic: true,
+        },
+        // Note: web_search_tool_result is missing (orphaned tool call)
+        {
+          type: 'tool-call',
+          toolCallId: 'client-tool-1',
+          toolName: 'clientTool',
+          input: { data: 'test' },
+          providerExecuted: false,
+        },
+        {
+          type: 'tool-result',
+          toolCallId: 'client-tool-1',
+          toolName: 'clientTool',
+          output: 'Client tool result',
+          providerExecuted: false,
         },
       ],
-      tools: {},
+      tools: {
+        clientTool: tool({
+          description: 'A client tool',
+          inputSchema: z.object({ data: z.string() }),
+        }),
+      },
     });
 
+    // The orphaned provider-executed tool call should be filtered out
     expect(result).toMatchInlineSnapshot(`
       [
         {
           "content": [
             {
-              "providerOptions": {
-                "testProvider": {
-                  "signature": "sig",
-                },
-              },
-              "text": "Here is a text",
+              "providerOptions": undefined,
+              "text": "Searching for information and calling client tool",
               "type": "text",
+            },
+            {
+              "input": {
+                "data": "test",
+              },
+              "providerExecuted": false,
+              "providerOptions": undefined,
+              "toolCallId": "client-tool-1",
+              "toolName": "clientTool",
+              "type": "tool-call",
+            },
+          ],
+          "role": "assistant",
+        },
+        {
+          "content": [
+            {
+              "output": {
+                "type": "text",
+                "value": "Client tool result",
+              },
+              "toolCallId": "client-tool-1",
+              "toolName": "clientTool",
+              "type": "tool-result",
+            },
+          ],
+          "role": "tool",
+        },
+      ]
+    `);
+  });
+
+  it('should keep provider-executed tool calls that have matching results', async () => {
+    const result = await toResponseMessages({
+      content: [
+        {
+          type: 'text',
+          text: 'Search completed',
+        },
+        {
+          type: 'tool-call',
+          toolCallId: 'web-search-1',
+          toolName: 'web_search',
+          input: { query: 'test' },
+          providerExecuted: true,
+          dynamic: true,
+        },
+        {
+          type: 'tool-result',
+          toolCallId: 'web-search-1',
+          toolName: 'web_search',
+          output: [{ url: 'https://example.com', title: 'Example' }],
+          providerExecuted: true,
+          dynamic: true,
+        },
+      ],
+      tools: {},
+    });
+
+    // Provider-executed tool calls with results should be included
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "content": [
+            {
+              "providerOptions": undefined,
+              "text": "Search completed",
+              "type": "text",
+            },
+            {
+              "input": {
+                "query": "test",
+              },
+              "providerExecuted": true,
+              "providerOptions": undefined,
+              "toolCallId": "web-search-1",
+              "toolName": "web_search",
+              "type": "tool-call",
+            },
+            {
+              "output": {
+                "type": "json",
+                "value": [
+                  {
+                    "title": "Example",
+                    "url": "https://example.com",
+                  },
+                ],
+              },
+              "providerOptions": undefined,
+              "toolCallId": "web-search-1",
+              "toolName": "web_search",
+              "type": "tool-result",
             },
           ],
           "role": "assistant",
