@@ -114,9 +114,16 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
         schema: deepseekLanguageModelOptions,
       })) ?? {};
 
+    // Determine if thinking mode is enabled
+    const thinkingMode =
+      deepseekOptions.thinking?.type === 'enabled' ||
+      (this.modelId === 'deepseek-reasoner' &&
+        deepseekOptions.thinking?.type !== 'disabled');
+
     const { messages, warnings } = convertToDeepSeekChatMessages({
       prompt,
       responseFormat,
+      thinkingMode,
     });
 
     if (topK != null) {

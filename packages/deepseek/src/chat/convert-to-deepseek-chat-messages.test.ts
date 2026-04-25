@@ -12,6 +12,7 @@ describe('convertToDeepSeekChatMessages', () => {
           },
         ],
         responseFormat: undefined,
+        thinkingMode: false,
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -43,6 +44,7 @@ describe('convertToDeepSeekChatMessages', () => {
           },
         ],
         responseFormat: undefined,
+        thinkingMode: false,
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -92,6 +94,7 @@ describe('convertToDeepSeekChatMessages', () => {
           },
         ],
         responseFormat: undefined,
+        thinkingMode: false,
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -150,6 +153,7 @@ describe('convertToDeepSeekChatMessages', () => {
           },
         ],
         responseFormat: undefined,
+        thinkingMode: false,
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -216,6 +220,7 @@ describe('convertToDeepSeekChatMessages', () => {
           },
         ],
         responseFormat: undefined,
+        thinkingMode: true,
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -290,6 +295,7 @@ describe('convertToDeepSeekChatMessages', () => {
           },
         ],
         responseFormat: undefined,
+        thinkingMode: true,
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -327,6 +333,84 @@ describe('convertToDeepSeekChatMessages', () => {
           "warnings": [],
         }
       `);
+    });
+    it('should include empty reasoning_content in assistant turns that are part of a multi-turn tool chain', () => {
+      const { messages } = convertToDeepSeekChatMessages({
+        prompt: [
+          // User question
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'What is the weather in Berlin?' }],
+          },
+          // First assistant turn: reasoning + tool call
+          {
+            role: 'assistant',
+            content: [
+              { type: 'reasoning', text: 'I need to call the weather API.' },
+              {
+                type: 'tool-call',
+                toolCallId: 'call_1',
+                toolName: 'get_weather',
+                input: { city: 'Berlin' },
+              },
+            ],
+          },
+          // Tool response
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_1',
+                toolName: 'get_weather',
+                output: { type: 'text', value: 'Sunny, 20°C' },
+              },
+            ],
+          },
+          // Second assistant turn: only a tool call (no reasoning)
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call_2',
+                toolName: 'get_uv_index',
+                input: { city: 'Berlin' },
+              },
+            ],
+          },
+        ],
+        responseFormat: undefined,
+        thinkingMode: true,
+      });
+
+      // There should be 4 messages in the DeepSeek format:
+      // user, assistant (with reasoning + tool), tool, assistant (with tool only)
+      expect(messages).toHaveLength(4);
+
+      // Check the first assistant message
+      expect(messages[1]).toMatchObject({
+        role: 'assistant',
+        content: '',
+        reasoning_content: 'I need to call the weather API.',
+        tool_calls: [
+          {
+            id: 'call_1',
+            type: 'function',
+            function: { name: 'get_weather', arguments: '{"city":"Berlin"}' },
+          },
+        ],
+      });
+
+      // Check the second assistant message (the one without reasoning)
+      const secondAssistant =
+        messages[3] as import('./deepseek-chat-api-types').DeepSeekAssistantMessage;
+      expect(secondAssistant.role).toBe('assistant');
+      expect(secondAssistant.content).toBe('');
+      // According to DeepSeek docs, during a multi-turn tool chain,
+      // reasoning_content must be present (even if empty) to avoid 400 errors.
+      expect(secondAssistant.reasoning_content).toBe('');
+      expect(secondAssistant.tool_calls).toHaveLength(1);
     });
   });
 });

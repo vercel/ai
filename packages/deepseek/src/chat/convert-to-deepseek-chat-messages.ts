@@ -8,9 +8,11 @@ import { DeepSeekChatPrompt } from './deepseek-chat-api-types';
 export function convertToDeepSeekChatMessages({
   prompt,
   responseFormat,
+  thinkingMode = false,
 }: {
   prompt: LanguageModelV4Prompt;
   responseFormat: LanguageModelV4CallOptions['responseFormat'];
+  thinkingMode?: boolean;
 }): {
   messages: DeepSeekChatPrompt;
   warnings: Array<SharedV4Warning>;
@@ -121,10 +123,22 @@ export function convertToDeepSeekChatMessages({
           }
         }
 
+        // Only include reasoning_content if thinking mode is enabled
+        // then reasoning content *must* be provided
+        // for every assistant message in current thinking chain even if empty
+        const reasoningContent = thinkingMode
+          ? toolCalls.length > 0 &&
+            reasoning === undefined &&
+            index > lastUserMessageIndex
+            ? ''
+            : reasoning
+          : undefined;
+
         messages.push({
           role: 'assistant',
           content: text,
-          reasoning_content: reasoning,
+
+          reasoning_content: reasoningContent,
           tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
         });
 
