@@ -4190,6 +4190,37 @@ describe('streamText', () => {
       // Verify that onFinish was NOT called when stream was cancelled
       expect(onFinishCallback).not.toHaveBeenCalled();
     });
+
+    it('should call onError exactly once per error', async () => {
+      const onErrorCallback = vi.fn(() => 'error');
+      const onFinishCallback = vi.fn();
+
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            { type: 'stream-start', warnings: [] },
+            { type: 'error', error: new Error('test error') },
+          ]),
+        }),
+        prompt: 'test-input',
+      });
+
+      const chunks = await convertReadableStreamToArray(
+        result.toUIMessageStream({
+          onError: onErrorCallback,
+          onFinish: onFinishCallback,
+        }),
+      );
+
+      // Verify onError was called exactly once
+      expect(onErrorCallback).toHaveBeenCalledTimes(1);
+      // Verify the error chunk is in the stream
+      expect(chunks).toContainEqual(
+        expect.objectContaining({
+          type: 'error',
+        }),
+      );
+    });
   });
 
   describe('result.toUIMessageStreamResponse', () => {
