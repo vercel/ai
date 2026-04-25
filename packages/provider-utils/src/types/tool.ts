@@ -99,46 +99,12 @@ type NeverOptional<N, T> = 0 extends 1 & N
     : T;
 
 /**
- * Helper type to determine the output properties of a tool.
- */
-type ToolOutputProperties<
-  INPUT,
-  OUTPUT,
-  CONTEXT extends Context | unknown | never,
-> = NeverOptional<
-  OUTPUT,
-  | {
-      /**
-       * An async function that is called with the arguments from the tool call and produces a result.
-       * If not provided, the tool will not be executed automatically.
-       *
-       * @args is the input of the tool call.
-       * @options.abortSignal is a signal that can be used to abort the tool call.
-       */
-      execute: ToolExecuteFunction<INPUT, OUTPUT, CONTEXT>;
-
-      /**
-       * The schema of the output that the tool produces.
-       */
-      outputSchema?: FlexibleSchema<OUTPUT>;
-    }
-  | {
-      /**
-       * The schema of the output that the tool produces.
-       */
-      outputSchema: FlexibleSchema<OUTPUT>;
-
-      execute?: never;
-    }
->;
-
-/**
  * A tool contains the description and the schema of the input that the tool expects.
  * This enables the language model to generate the input.
  *
  * The tool can also contain an optional execute function for the actual execution function of the tool.
  */
-export type Tool<
+type ToolBase<
   INPUT extends JSONValue | unknown | never = any,
   OUTPUT extends JSONValue | unknown | never = any,
   CONTEXT extends Context | unknown | never = any,
@@ -232,35 +198,122 @@ export type Tool<
       input: [INPUT] extends [never] ? unknown : INPUT;
     } & ToolExecutionOptions<NoInfer<CONTEXT>>,
   ) => void | PromiseLike<void>;
-} & ToolOutputProperties<INPUT, OUTPUT, NoInfer<CONTEXT>> & {
+
+  /**
+   * Optional conversion function that maps the tool result to an output that can be used by the language model.
+   *
+   * If not provided, the tool result will be sent as a JSON object.
+   *
+   * This function is invoked on the server by `convertToModelMessages`, so ensure that you pass the same "tools" (ToolSet) to both "convertToModelMessages" and "streamText" (or other generation APIs).
+   */
+  toModelOutput?: (options: {
     /**
-     * Optional conversion function that maps the tool result to an output that can be used by the language model.
-     *
-     * If not provided, the tool result will be sent as a JSON object.
-     *
-     * This function is invoked on the server by `convertToModelMessages`, so ensure that you pass the same "tools" (ToolSet) to both "convertToModelMessages" and "streamText" (or other generation APIs).
+     * The ID of the tool call. You can use it e.g. when sending tool-call related information with stream data.
      */
-    toModelOutput?: (options: {
-      /**
-       * The ID of the tool call. You can use it e.g. when sending tool-call related information with stream data.
-       */
-      toolCallId: string;
+    toolCallId: string;
 
-      /**
-       * The input of the tool call.
-       */
-      input: [INPUT] extends [never] ? unknown : INPUT;
+    /**
+     * The input of the tool call.
+     */
+    input: [INPUT] extends [never] ? unknown : INPUT;
 
-      /**
-       * The output of the tool call.
-       */
-      output: 0 extends 1 & OUTPUT
+    /**
+     * The output of the tool call.
+     */
+    output: 0 extends 1 & OUTPUT
+      ? any
+      : [OUTPUT] extends [never]
         ? any
-        : [OUTPUT] extends [never]
-          ? any
-          : NoInfer<OUTPUT>;
-    }) => ToolResultOutput | PromiseLike<ToolResultOutput>;
-  } & (
+        : NoInfer<OUTPUT>;
+  }) => ToolResultOutput | PromiseLike<ToolResultOutput>;
+};
+
+/**
+ * Helper type to determine the output properties of a tool.
+ */
+type ToolOutputProperties<
+  INPUT,
+  OUTPUT,
+  CONTEXT extends Context | unknown | never,
+> = NeverOptional<
+  OUTPUT,
+  | {
+      /**
+       * An async function that is called with the arguments from the tool call and produces a result.
+       * If not provided, the tool will not be executed automatically.
+       *
+       * @args is the input of the tool call.
+       * @options.abortSignal is a signal that can be used to abort the tool call.
+       */
+      execute: ToolExecuteFunction<INPUT, OUTPUT, CONTEXT>;
+
+      /**
+       * The schema of the output that the tool produces.
+       */
+      outputSchema?: FlexibleSchema<OUTPUT>;
+    }
+  | {
+      /**
+       * The schema of the output that the tool produces.
+       */
+      outputSchema: FlexibleSchema<OUTPUT>;
+
+      execute?: never;
+    }
+>;
+
+type ProviderToolProperties = {
+  /**
+   * Tool with provider-defined input and output schemas.
+   */
+  type: 'provider';
+
+  /**
+   * The ID of the tool. Must follow the format `<provider-name>.<unique-tool-name>`.
+   */
+  id: `${string}.${string}`;
+
+  /**
+   * Flag that indicates whether the tool is executed by the provider.
+   */
+  // TODO change/introduce to supportsApproval instead?
+  isProviderExecuted: boolean;
+
+  /**
+   * The arguments for configuring the tool.
+   * Must match the expected arguments defined by the provider for this tool.
+   */
+  args: Record<string, unknown>;
+
+  /**
+   * Whether this provider-executed tool supports deferred results.
+   *
+   * When true, the tool result may not be returned in the same turn as the
+   * tool call (e.g., when using programmatic tool calling where a server tool
+   * triggers a client-executed tool, and the server tool's result is deferred
+   * until the client tool is resolved).
+   *
+   * This flag allows the AI SDK to handle tool results that arrive without
+   * a matching tool call in the current response.
+   *
+   * @default false
+   */
+  supportsDeferredResults?: boolean;
+};
+
+/**
+ * A tool contains the description and the schema of the input that the tool expects.
+ * This enables the language model to generate the input.
+ *
+ * The tool can also contain an optional execute function for the actual execution function of the tool.
+ */
+export type Tool<
+  INPUT extends JSONValue | unknown | never = any,
+  OUTPUT extends JSONValue | unknown | never = any,
+  CONTEXT extends Context | unknown | never = any,
+> = ToolBase<INPUT, OUTPUT, CONTEXT> &
+  ToolOutputProperties<INPUT, OUTPUT, NoInfer<CONTEXT>> &
+  (
     | {
         /**
          * Tool with user-defined input and output schemas.
@@ -274,48 +327,39 @@ export type Tool<
          */
         type: 'dynamic';
       }
-    | {
-        /**
-         * Tool with provider-defined input and output schemas.
-         */
-        type: 'provider';
-
-        /**
-         * The ID of the tool. Must follow the format `<provider-name>.<unique-tool-name>`.
-         */
-        id: `${string}.${string}`;
-
-        /**
-         * Flag that indicates whether the tool is executed by the provider.
-         */
-        isProviderExecuted: boolean;
-
-        /**
-         * The arguments for configuring the tool. Must match the expected arguments defined by the provider for this tool.
-         */
-        args: Record<string, unknown>;
-
-        /**
-         * Whether this provider-executed tool supports deferred results.
-         *
-         * When true, the tool result may not be returned in the same turn as the
-         * tool call (e.g., when using programmatic tool calling where a server tool
-         * triggers a client-executed tool, and the server tool's result is deferred
-         * until the client tool is resolved).
-         *
-         * This flag allows the AI SDK to handle tool results that arrive without
-         * a matching tool call in the current response.
-         *
-         * @default false
-         */
-        supportsDeferredResults?: boolean;
-      }
+    | ProviderToolProperties
   );
+
+/**
+ * A provider-executed tool is a tool that is executed by the provider.
+ */
+export type ProviderExecutedTool<
+  INPUT,
+  OUTPUT,
+  CONTEXT extends Context | unknown | never,
+> = ToolBase<INPUT, OUTPUT, CONTEXT> &
+  ProviderToolProperties & {
+    /**
+     * Flag that indicates whether the tool is executed by the provider.
+     */
+    isProviderExecuted: true;
+
+    /**
+     * The schema of the output that the tool produces.
+     */
+    outputSchema: FlexibleSchema<OUTPUT>;
+
+    execute?: never;
+    needsApproval?: never;
+  };
 
 /**
  * Helper function for inferring the execute args of a tool.
  */
 // Note: overload order is important for auto-completion
+export function tool<INPUT, OUTPUT, CONTEXT extends Context>(
+  tool: ProviderExecutedTool<INPUT, OUTPUT, CONTEXT>,
+): ProviderExecutedTool<INPUT, OUTPUT, CONTEXT>;
 export function tool<INPUT, OUTPUT, CONTEXT extends Context>(
   tool: Tool<INPUT, OUTPUT, CONTEXT>,
 ): Tool<INPUT, OUTPUT, CONTEXT>;
