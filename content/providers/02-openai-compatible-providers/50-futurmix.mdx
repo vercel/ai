@@ -1,0 +1,140 @@
+---
+title: FuturMix
+description: Use FuturMix AI Gateway with the AI SDK.
+---
+
+# FuturMix Provider
+
+[FuturMix](https://futurmix.ai/) is a unified AI gateway that provides access to 22+ models from leading providers like OpenAI, Anthropic, and Google through a single OpenAI-compatible API endpoint.
+
+- **Unified Access**: One API key for 22+ models across multiple providers
+- **OpenAI-Compatible**: Drop-in replacement using the standard OpenAI API format
+- **High Availability**: 99.99% SLA with automatic failover
+- **Cost-Effective**: Competitive pricing with pay-as-you-go billing
+
+Learn more in the [FuturMix Documentation](https://futurmix.ai/).
+
+## Setup
+
+The FuturMix provider is available via the `@ai-sdk/openai-compatible` module as it implements the OpenAI-compatible API.
+You can install it with
+
+<Tabs items={['pnpm', 'npm', 'yarn']}>
+  <Tab>
+    <Snippet text="pnpm add @ai-sdk/openai-compatible" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @ai-sdk/openai-compatible" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @ai-sdk/openai-compatible" dark />
+  </Tab>
+</Tabs>
+
+## Provider Instance
+
+To use FuturMix, you can create a custom provider instance with the `createOpenAICompatible` function from `@ai-sdk/openai-compatible`:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+
+const futurmix = createOpenAICompatible({
+  name: 'futurmix',
+  baseURL: 'https://futurmix.ai/v1',
+  headers: {
+    Authorization: `Bearer ${process.env.FUTURMIX_API_KEY}`,
+  },
+});
+```
+
+You can obtain your FuturMix API key from the [FuturMix Dashboard](https://futurmix.ai/).
+
+## Language Models
+
+You can create FuturMix models using a provider instance.
+The first argument is the model id, e.g. `gpt-4o`.
+
+```ts
+const model = futurmix('gpt-4o');
+```
+
+FuturMix supports models from multiple providers including:
+
+- **OpenAI**: `gpt-4o`, `gpt-4o-mini`, `o4-mini`
+- **Anthropic**: `claude-sonnet-4-20250514`, `claude-3-5-sonnet-20241022`
+- **Google**: `gemini-2.5-flash`, `gemini-2.5-pro`
+
+### Example
+
+You can use FuturMix language models to generate text with the `generateText` function:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText } from 'ai';
+
+const futurmix = createOpenAICompatible({
+  name: 'futurmix',
+  baseURL: 'https://futurmix.ai/v1',
+  headers: {
+    Authorization: `Bearer ${process.env.FUTURMIX_API_KEY}`,
+  },
+});
+
+const { text } = await generateText({
+  model: futurmix('gpt-4o'),
+  prompt: 'What is an AI gateway?',
+});
+
+console.log(text);
+```
+
+FuturMix language models are also able to generate text in a streaming fashion with the `streamText` function:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { streamText } from 'ai';
+
+const futurmix = createOpenAICompatible({
+  name: 'futurmix',
+  baseURL: 'https://futurmix.ai/v1',
+  headers: {
+    Authorization: `Bearer ${process.env.FUTURMIX_API_KEY}`,
+  },
+});
+
+const result = streamText({
+  model: futurmix('claude-sonnet-4-20250514'),
+  prompt: 'Explain the benefits of using an AI gateway.',
+});
+
+for await (const message of result.textStream) {
+  console.log(message);
+}
+```
+
+## Embedding Models
+
+You can create embedding models using the `.embeddingModel()` factory method:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { embed } from 'ai';
+
+const futurmix = createOpenAICompatible({
+  name: 'futurmix',
+  baseURL: 'https://futurmix.ai/v1',
+  headers: {
+    Authorization: `Bearer ${process.env.FUTURMIX_API_KEY}`,
+  },
+});
+
+const { embedding } = await embed({
+  model: futurmix.embeddingModel('text-embedding-3-small'),
+  value: 'Embed this text using FuturMix.',
+});
+```
+
+## Additional Resources
+
+- [FuturMix Website](https://futurmix.ai/)
+- [FuturMix GitHub](https://github.com/FuturMix)
