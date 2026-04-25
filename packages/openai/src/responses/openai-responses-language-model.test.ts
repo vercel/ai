@@ -7582,6 +7582,100 @@ describe('OpenAIResponsesLanguageModel', () => {
         });
       });
 
+      it('should tolerate reasoning item id rotation between added and done events', async () => {
+        server.urls['https://api.openai.com/v1/responses'].response = {
+          type: 'stream-chunks',
+          chunks: [
+            `data:{"type":"response.created","response":{"id":"resp_reasoning_rotated","object":"response","created_at":1741269019,"status":"in_progress","error":null,"incomplete_details":null,"input":[],"instructions":null,"max_output_tokens":null,"model":"o3-mini-2025-01-31","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":"low","summary":"auto"},"store":true,"temperature":null,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[],"top_p":null,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n`,
+            `data:{"type":"response.output_item.added","output_index":0,"item":{"id":"rs_reasoning_original","type":"reasoning"}}\n\n`,
+            `data:{"type":"response.output_item.done","output_index":0,"item":{"id":"rs_reasoning_rotated","type":"reasoning"}}\n\n`,
+            `data:{"type":"response.completed","response":{"id":"resp_reasoning_rotated","object":"response","created_at":1741269019,"status":"completed","error":null,"incomplete_details":null,"input":[],"instructions":null,"max_output_tokens":null,"model":"o3-mini-2025-01-31","output":[{"id":"rs_reasoning_rotated","type":"reasoning","summary":[]}],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":"low","summary":"auto"},"store":true,"temperature":null,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[],"top_p":null,"truncation":"disabled","usage":{"input_tokens":10,"input_tokens_details":{"cached_tokens":0},"output_tokens":5,"output_tokens_details":{"reasoning_tokens":5},"total_tokens":15},"user":null,"metadata":{}}}\n\n`,
+          ],
+        };
+
+        const { stream } = await createModel('o3-mini').doStream({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              reasoningEffort: 'low',
+              reasoningSummary: null,
+            },
+          },
+          includeRawChunks: false,
+        });
+
+        expect(await convertReadableStreamToArray(stream))
+          .toMatchInlineSnapshot(`
+            [
+              {
+                "type": "stream-start",
+                "warnings": [],
+              },
+              {
+                "id": "resp_reasoning_rotated",
+                "modelId": "o3-mini-2025-01-31",
+                "timestamp": 2025-03-06T13:50:19.000Z,
+                "type": "response-metadata",
+              },
+              {
+                "id": "rs_reasoning_original:0",
+                "providerMetadata": {
+                  "openai": {
+                    "itemId": "rs_reasoning_original",
+                    "reasoningEncryptedContent": null,
+                  },
+                },
+                "type": "reasoning-start",
+              },
+              {
+                "id": "rs_reasoning_original:0",
+                "providerMetadata": {
+                  "openai": {
+                    "itemId": "rs_reasoning_original",
+                    "reasoningEncryptedContent": null,
+                  },
+                },
+                "type": "reasoning-end",
+              },
+              {
+                "finishReason": {
+                  "raw": undefined,
+                  "unified": "stop",
+                },
+                "providerMetadata": {
+                  "openai": {
+                    "responseId": "resp_reasoning_rotated",
+                  },
+                },
+                "type": "finish",
+                "usage": {
+                  "inputTokens": {
+                    "cacheRead": 0,
+                    "cacheWrite": undefined,
+                    "noCache": 10,
+                    "total": 10,
+                  },
+                  "outputTokens": {
+                    "reasoning": 5,
+                    "text": 0,
+                    "total": 5,
+                  },
+                  "raw": {
+                    "input_tokens": 10,
+                    "input_tokens_details": {
+                      "cached_tokens": 0,
+                    },
+                    "output_tokens": 5,
+                    "output_tokens_details": {
+                      "reasoning_tokens": 5,
+                    },
+                  },
+                },
+              },
+            ]
+          `);
+      });
+
       it('should handle encrypted content with summary', async () => {
         server.urls['https://api.openai.com/v1/responses'].response = {
           type: 'stream-chunks',
