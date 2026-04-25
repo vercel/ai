@@ -166,6 +166,11 @@ export function fixJson(input: string): string {
             stack.push('INSIDE_OBJECT_AFTER_KEY');
             break;
           }
+
+          case '\\': {
+            stack.push('INSIDE_STRING_ESCAPE');
+            break;
+          }
         }
         break;
       }
