@@ -101,6 +101,10 @@ export class GatewayLanguageModel implements LanguageModelV4 {
 
       return {
         ...responseBody,
+        finishReason: responseBody.finishReason ?? {
+          unified: 'other',
+          raw: undefined,
+        },
         request: { body: args },
         response: { headers: responseHeaders, body: rawResponse },
         warnings,
