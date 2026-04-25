@@ -26,6 +26,12 @@ const gatewayProviderOptions = lazySchema(() =>
        */
       sort: z.enum(['cost', 'ttft', 'tps']).optional(),
       /**
+       * Automatically apply cache markers for providers that require them.
+       *
+       * Example: `'auto'`
+       */
+      caching: z.literal('auto').optional(),
+      /**
        * The unique identifier for the end user on behalf of whom the request was made.
        *
        * Used for spend tracking and attribution purposes.
