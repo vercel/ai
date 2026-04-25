@@ -105,7 +105,9 @@ export interface AzureOpenAIProviderSettings {
    * Use a different URL prefix for API calls, e.g. to use proxy servers. Either this or `resourceName` can be used.
    * When a baseURL is provided, the resourceName is ignored.
    *
-   * With a baseURL, the resolved URL is `{baseURL}/v1{path}`.
+   * With a baseURL, the resolved URL is `{baseURL}{path}` — no `/v1` is appended and no
+   * `api-version` query parameter is added. This allows custom gateways and proxies that
+   * handle routing internally to receive the URL exactly as provided.
    */
   baseURL?: string;
 
@@ -174,12 +176,18 @@ export function createAzure(
     if (options.useDeploymentBasedUrls) {
       // Use deployment-based format for compatibility with certain Azure OpenAI models
       fullUrl = new URL(`${baseUrlPrefix}/deployments/${modelId}${path}`);
+    } else if (options.baseURL) {
+      // When baseURL is explicitly provided, use it as-is without appending /v1.
+      // Callers using a custom gateway or proxy control the URL shape themselves.
+      fullUrl = new URL(`${baseUrlPrefix}${path}`);
     } else {
       // Use v1 API format - no deployment ID in URL
       fullUrl = new URL(`${baseUrlPrefix}/v1${path}`);
     }
 
-    fullUrl.searchParams.set('api-version', apiVersion);
+    if (!options.baseURL || options.useDeploymentBasedUrls) {
+      fullUrl.searchParams.set('api-version', apiVersion);
+    }
     return fullUrl.toString();
   };
 
