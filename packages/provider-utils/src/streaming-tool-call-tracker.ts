@@ -57,7 +57,14 @@ export interface StreamingToolCallTrackerOptions {
 interface TrackedToolCall {
   id: string;
   type: 'function';
-  function: { name: string; arguments: string };
+  // `name` may be unknown for one or more leading deltas — some
+  // OpenAI-compatible providers send `id` and `function.arguments`
+  // before they send `function.name`. The tracker holds the call
+  // open until a name arrives.
+  function: { name: string | null; arguments: string };
+  // Whether `tool-input-start` has been emitted yet. Gated on `name`
+  // becoming known so consumers always see a non-empty tool name.
+  hasStarted: boolean;
   hasFinished: boolean;
   metadata?: SharedV4ProviderMetadata;
 }
@@ -146,18 +153,10 @@ export class StreamingToolCallTracker {
       });
     }
 
-    if (toolCallDelta.function?.name == null) {
-      throw new InvalidResponseDataError({
-        data: toolCallDelta,
-        message: `Expected 'function.name' to be a string.`,
-      });
-    }
-
-    enqueue({
-      type: 'tool-input-start',
-      id: toolCallDelta.id,
-      toolName: toolCallDelta.function.name,
-    });
+    // `function.name` may legally arrive in a later delta — some
+    // OpenAI-compatible providers send arguments-only chunks first.
+    // The call is held open and validated when it finishes (or on
+    // flush) instead of failing eagerly here.
 
     const metadata = this.extractMetadata?.(toolCallDelta);
 
@@ -165,17 +164,20 @@ export class StreamingToolCallTracker {
       id: toolCallDelta.id,
       type: 'function',
       function: {
-        name: toolCallDelta.function.name,
-        arguments: toolCallDelta.function.arguments ?? '',
+        name: toolCallDelta.function?.name ?? null,
+        arguments: toolCallDelta.function?.arguments ?? '',
       },
+      hasStarted: false,
       hasFinished: false,
       metadata,
     };
 
     const toolCall = this.toolCalls[index];
 
+    this.maybeStart(toolCall, enqueue);
+
     // Emit initial delta if arguments already present
-    if (toolCall.function.arguments.length > 0) {
+    if (toolCall.function.arguments.length > 0 && toolCall.hasStarted) {
       enqueue({
         type: 'tool-input-delta',
         id: toolCall.id,
@@ -185,7 +187,10 @@ export class StreamingToolCallTracker {
 
     // Check if tool call is complete
     // (some providers send the full tool call in one chunk)
-    if (isParsableJson(toolCall.function.arguments)) {
+    if (
+      toolCall.function.name != null &&
+      isParsableJson(toolCall.function.arguments)
+    ) {
       this.finishToolCall(toolCall, enqueue);
     }
   }
@@ -201,26 +206,85 @@ export class StreamingToolCallTracker {
       return;
     }
 
+    // Late-arriving `function.name`: some OpenAI-compatible providers
+    // send `id` + `function.arguments` in the first delta and the
+    // name in a subsequent delta. Adopt the first non-null name we
+    // see and start the tool call once we have it.
+    if (toolCall.function.name == null && toolCallDelta.function?.name != null) {
+      toolCall.function.name = toolCallDelta.function.name;
+    }
+
+    this.maybeStart(toolCall, enqueue);
+
     if (toolCallDelta.function?.arguments != null) {
       toolCall.function.arguments += toolCallDelta.function.arguments;
 
-      enqueue({
-        type: 'tool-input-delta',
-        id: toolCall.id,
-        delta: toolCallDelta.function.arguments,
-      });
+      if (toolCall.hasStarted) {
+        enqueue({
+          type: 'tool-input-delta',
+          id: toolCall.id,
+          delta: toolCallDelta.function.arguments,
+        });
+      }
     }
 
     // Check if tool call is complete
-    if (isParsableJson(toolCall.function.arguments)) {
+    if (
+      toolCall.function.name != null &&
+      isParsableJson(toolCall.function.arguments)
+    ) {
       this.finishToolCall(toolCall, enqueue);
     }
+  }
+
+  /**
+   * Emit `tool-input-start` once a tool call has both an id and a
+   * non-null name. If the name is still pending (late-name provider
+   * shape), defer the event so consumers never see an empty toolName.
+   * Also catches up any arguments that arrived before the name.
+   */
+  private maybeStart(
+    toolCall: TrackedToolCall,
+    enqueue: (part: LanguageModelV4StreamPart) => void,
+  ): void {
+    if (toolCall.hasStarted || toolCall.function.name == null) {
+      return;
+    }
+    enqueue({
+      type: 'tool-input-start',
+      id: toolCall.id,
+      toolName: toolCall.function.name,
+    });
+    toolCall.hasStarted = true;
   }
 
   private finishToolCall(
     toolCall: TrackedToolCall,
     enqueue: (part: LanguageModelV4StreamPart) => void,
   ): void {
+    if (toolCall.function.name == null) {
+      // Reached only via flush() — a streamed tool call closed without
+      // a name ever arriving. Surface the same error shape as before
+      // rather than emitting a malformed tool-call event downstream.
+      throw new InvalidResponseDataError({
+        data: toolCall,
+        message: `Expected 'function.name' to be a string.`,
+      });
+    }
+
+    // If the call closed in a single chunk that contained both name
+    // and complete arguments, processNewToolCall may have skipped the
+    // start emission — emit it now so consumers always see a paired
+    // start/end around tool input.
+    if (!toolCall.hasStarted) {
+      enqueue({
+        type: 'tool-input-start',
+        id: toolCall.id,
+        toolName: toolCall.function.name,
+      });
+      toolCall.hasStarted = true;
+    }
+
     enqueue({
       type: 'tool-input-end',
       id: toolCall.id,

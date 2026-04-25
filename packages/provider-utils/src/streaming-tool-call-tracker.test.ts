@@ -242,7 +242,9 @@ describe('StreamingToolCallTracker', () => {
       ).toThrow("Expected 'id' to be a string.");
     });
 
-    it('should throw when function.name is missing', () => {
+    it('should throw on flush when function.name is never provided', () => {
+      // function.name is allowed to arrive in a later delta. The error is
+      // surfaced only when the stream closes without a name ever showing up.
       const tracker = new StreamingToolCallTracker();
       const { enqueue } = createCollector();
 
@@ -256,7 +258,74 @@ describe('StreamingToolCallTracker', () => {
           },
           enqueue,
         ),
-      ).toThrow("Expected 'function.name' to be a string.");
+      ).not.toThrow();
+
+      expect(() => tracker.flush(enqueue)).toThrow(
+        "Expected 'function.name' to be a string.",
+      );
+    });
+
+    it('should accept function.name arriving in a later delta', () => {
+      // OpenAI-compatible providers can send `id` + `function.arguments`
+      // first and `function.name` in a subsequent delta. The tracker must
+      // hold the call open until the name arrives, then accumulate.
+      const tracker = new StreamingToolCallTracker();
+      const { enqueue, parts } = createCollector();
+
+      tracker.processDelta(
+        {
+          index: 0,
+          id: 'call_late_name',
+          type: 'function',
+          function: { arguments: '' },
+        },
+        enqueue,
+      );
+
+      tracker.processDelta(
+        {
+          index: 0,
+          id: 'call_late_name',
+          type: 'function',
+          function: { name: 'bash', arguments: '{' },
+        },
+        enqueue,
+      );
+
+      tracker.processDelta(
+        {
+          index: 0,
+          function: { arguments: '"command":"ls"}' },
+        },
+        enqueue,
+      );
+
+      // Stream closer for OpenAI-compatible chunking is the chat-loop's
+      // flush — call it explicitly here even though the JSON happens to
+      // be parseable, to mirror the real codepath.
+      tracker.flush(enqueue);
+
+      const startEvents = parts.filter(p => p.type === 'tool-input-start');
+      const callEvents = parts.filter(p => p.type === 'tool-call');
+
+      expect(startEvents).toEqual([
+        { type: 'tool-input-start', id: 'call_late_name', toolName: 'bash' },
+      ]);
+      expect(callEvents).toEqual([
+        {
+          type: 'tool-call',
+          toolCallId: 'call_late_name',
+          toolName: 'bash',
+          input: '{"command":"ls"}',
+        },
+      ]);
+
+      // No tool-input-delta should leak before the name arrives.
+      const deltaEvents = parts.filter(p => p.type === 'tool-input-delta');
+      expect(deltaEvents.length).toBeGreaterThan(0);
+      expect(parts.indexOf(deltaEvents[0])).toBeGreaterThan(
+        parts.indexOf(startEvents[0]),
+      );
     });
   });
 
