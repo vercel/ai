@@ -21,7 +21,7 @@ run(async () => {
   console.log(`PROMPT: ${prompt}`);
 
   const { images } = await generateImage({
-    model: openai.image('gpt-image-1'),
+    model: openai.image('gpt-image-2'),
     prompt: {
       text: prompt,
       images: [imageBuffer],
