@@ -181,6 +181,20 @@ describe('result.warnings', () => {
 
     expect(result.warnings).toStrictEqual(expectedWarnings);
   });
+
+  it('should default warnings to an empty array when the provider omits them', async () => {
+    const result = await embed({
+      model: new MockEmbeddingModelV4({
+        doEmbed: async () =>
+          ({
+            embeddings: [dummyEmbedding],
+          }) as any,
+      }),
+      value: testValue,
+    });
+
+    expect(result.warnings).toStrictEqual([]);
+  });
 });
 
 describe('logWarnings', () => {
@@ -216,6 +230,25 @@ describe('logWarnings', () => {
     expect(logWarningsSpy).toHaveBeenCalledOnce();
     expect(logWarningsSpy).toHaveBeenCalledWith({
       warnings: expectedWarnings,
+      provider: 'mock-provider',
+      model: 'mock-model-id',
+    });
+  });
+
+  it('should call logWarnings with an empty array when warnings are omitted', async () => {
+    await embed({
+      model: new MockEmbeddingModelV4({
+        doEmbed: async () =>
+          ({
+            embeddings: [dummyEmbedding],
+          }) as any,
+      }),
+      value: testValue,
+    });
+
+    expect(logWarningsSpy).toHaveBeenCalledOnce();
+    expect(logWarningsSpy).toHaveBeenCalledWith({
+      warnings: [],
       provider: 'mock-provider',
       model: 'mock-model-id',
     });
