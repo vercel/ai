@@ -733,6 +733,72 @@ describe('prepareChatRequest', () => {
   });
 });
 
+describe('transport body reflects latest state (no stale closure)', () => {
+  // Verify that when a new transport is created on every render (e.g. with
+  // updated body state), the latest transport is used when sending messages,
+  // not a stale one captured at Chat construction time.
+  it('should use updated body state when transport is recreated each render', async () => {
+    const capturedBodies: Array<Record<string, unknown>> = [];
+
+    const Test = () => {
+      const [subagent, setSubagent] = React.useState('agent-A');
+      const { messages, sendMessage } = useChat({
+        transport: new DefaultChatTransport({
+          body: { subagent },
+          prepareSendMessagesRequest(options) {
+            // Capture the resolved body for assertions.
+            // This runs synchronously before the HTTP request.
+            capturedBodies.push({
+              ...(options.body as Record<string, unknown>),
+            });
+            // Return an empty body to satisfy the handler signature;
+            // we don't care about the actual response in this test.
+            return { body: {} };
+          },
+        }),
+        generateId: mockId(),
+      });
+
+      return (
+        <div>
+          {messages.map((m, idx) => (
+            <div data-testid={`message-${idx}`} key={m.id}>
+              {m.parts
+                .map(part => (part.type === 'text' ? part.text : ''))
+                .join('')}
+            </div>
+          ))}
+          <button
+            data-testid="switch-agent"
+            onClick={() => setSubagent('agent-B')}
+          />
+          <button
+            data-testid="do-send"
+            onClick={() => {
+              sendMessage({ parts: [{ text: 'hi', type: 'text' }] });
+            }}
+          />
+        </div>
+      );
+    };
+
+    render(<Test />);
+
+    // First send with initial state (agent-A)
+    await userEvent.click(screen.getByTestId('do-send'));
+    await vi.waitUntil(() => capturedBodies.length >= 1, { timeout: 2000 });
+    expect(capturedBodies[0]).toMatchObject({ subagent: 'agent-A' });
+
+    // Update state to agent-B, then send again
+    await userEvent.click(screen.getByTestId('switch-agent'));
+    await userEvent.click(screen.getByTestId('do-send'));
+    await vi.waitUntil(() => capturedBodies.length >= 2, { timeout: 2000 });
+
+    // The second send must use the updated value — not the stale agent-A
+    expect(capturedBodies[1]).toMatchObject({ subagent: 'agent-B' });
+  });
+});
+
 describe('onToolCall', () => {
   let resolve: () => void;
   let toolCallPromise: Promise<void>;
