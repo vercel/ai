@@ -481,7 +481,10 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
               finishReason = { unified: 'error', raw: undefined };
               controller.enqueue({
                 type: 'error',
-                error: chunk.value.error.message,
+                error: {
+                  message: chunk.value.error.message,
+                  code: chunk.value.error.code,
+                },
               });
               return;
             }
