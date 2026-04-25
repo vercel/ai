@@ -174,6 +174,25 @@ describe('prepareTools', () => {
       ]);
     });
 
+    it('should warn with actual tool id for unrecognized provider-defined tools on anthropic models', async () => {
+      const result = await prepareTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'anthropic.unknown_tool',
+            name: 'unknown_tool',
+            args: {},
+          },
+        ],
+        modelId: ANTHROPIC_MODEL,
+      });
+
+      expect(result.toolWarnings).toContainEqual({
+        type: 'unsupported',
+        feature: 'tool anthropic.unknown_tool',
+      });
+    });
+
     it('should return empty toolConfig when all tools are filtered out', async () => {
       const result = await prepareTools({
         tools: [
