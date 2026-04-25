@@ -14,7 +14,6 @@ import {
   UnauthorizedError,
   auth,
 } from './oauth';
-import { LATEST_PROTOCOL_VERSION } from './types';
 
 export class SseMCPTransport implements MCPTransport {
   private endpoint?: URL;
@@ -25,6 +24,7 @@ export class SseMCPTransport implements MCPTransport {
     close: () => void;
   };
   private headers?: Record<string, string>;
+  private protocolVersion?: string;
   private authProvider?: OAuthClientProvider;
   private resourceMetadataUrl?: URL;
   private redirectMode: RequestRedirect;
@@ -60,8 +60,11 @@ export class SseMCPTransport implements MCPTransport {
     const headers: Record<string, string> = {
       ...this.headers,
       ...base,
-      'mcp-protocol-version': LATEST_PROTOCOL_VERSION,
     };
+
+    if (this.protocolVersion) {
+      headers['mcp-protocol-version'] = this.protocolVersion;
+    }
 
     if (this.authProvider) {
       const tokens = await this.authProvider.tokens();
@@ -77,12 +80,17 @@ export class SseMCPTransport implements MCPTransport {
     );
   }
 
+  setProtocolVersion(protocolVersion: string): void {
+    this.protocolVersion = protocolVersion;
+  }
+
   async start(): Promise<void> {
     return new Promise<void>((resolve, reject) => {
       if (this.connected) {
         return resolve();
       }
 
+      this.protocolVersion = undefined;
       this.abortController = new AbortController();
 
       const establishConnection = async (triedAuth: boolean = false) => {
@@ -101,6 +109,7 @@ export class SseMCPTransport implements MCPTransport {
             try {
               const result = await auth(this.authProvider, {
                 serverUrl: this.url,
+                protocolVersion: this.protocolVersion,
                 resourceMetadataUrl: this.resourceMetadataUrl,
                 fetchFn: this.fetchFn,
               });
@@ -214,8 +223,13 @@ export class SseMCPTransport implements MCPTransport {
 
   async close(): Promise<void> {
     this.connected = false;
+    this.protocolVersion = undefined;
     this.sseConnection?.close();
     this.abortController?.abort();
+    this.abortController = undefined;
+    this.endpoint = undefined;
+    this.resourceMetadataUrl = undefined;
+    this.sseConnection = undefined;
     this.onclose?.();
   }
 
@@ -248,6 +262,7 @@ export class SseMCPTransport implements MCPTransport {
           try {
             const result = await auth(this.authProvider, {
               serverUrl: this.url,
+              protocolVersion: this.protocolVersion,
               resourceMetadataUrl: this.resourceMetadataUrl,
               fetchFn: this.fetchFn,
             });

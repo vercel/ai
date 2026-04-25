@@ -14,7 +14,6 @@ import {
   UnauthorizedError,
   auth,
 } from './oauth';
-import { LATEST_PROTOCOL_VERSION } from './types';
 
 /**
  * HTTP MCP transport implementing the Streamable HTTP style.
@@ -27,6 +26,7 @@ export class HttpMCPTransport implements MCPTransport {
   private url: URL;
   private abortController?: AbortController;
   private headers?: Record<string, string>;
+  private protocolVersion?: string;
   private authProvider?: OAuthClientProvider;
   private resourceMetadataUrl?: URL;
   private sessionId?: string;
@@ -37,6 +37,7 @@ export class HttpMCPTransport implements MCPTransport {
   // Inbound SSE resumption and reconnection state
   private lastInboundEventId?: string;
   private inboundReconnectAttempts = 0;
+  private inboundSseSessionId = 0;
   private readonly reconnectionOptions = {
     initialReconnectionDelay: 1000,
     maxReconnectionDelay: 30000,
@@ -74,8 +75,11 @@ export class HttpMCPTransport implements MCPTransport {
     const headers: Record<string, string> = {
       ...this.headers,
       ...base,
-      'mcp-protocol-version': LATEST_PROTOCOL_VERSION,
     };
+
+    if (this.protocolVersion) {
+      headers['mcp-protocol-version'] = this.protocolVersion;
+    }
 
     if (this.sessionId) {
       headers['mcp-session-id'] = this.sessionId;
@@ -95,6 +99,30 @@ export class HttpMCPTransport implements MCPTransport {
     );
   }
 
+  setProtocolVersion(protocolVersion: string): void {
+    this.protocolVersion = protocolVersion;
+  }
+
+  private resetInboundSseState(): void {
+    this.lastInboundEventId = undefined;
+    this.inboundReconnectAttempts = 0;
+    this.inboundSseConnection = undefined;
+  }
+
+  private startInboundSseSession(): number {
+    this.inboundSseSessionId += 1;
+    this.resetInboundSseState();
+    return this.inboundSseSessionId;
+  }
+
+  private isActiveInboundSseSession(sessionId: number): boolean {
+    return (
+      this.inboundSseSessionId === sessionId &&
+      this.abortController != null &&
+      !this.abortController.signal.aborted
+    );
+  }
+
   async start(): Promise<void> {
     if (this.abortController) {
       throw new MCPClientError({
@@ -102,12 +130,16 @@ export class HttpMCPTransport implements MCPTransport {
           'MCP HTTP Transport Error: Transport already started. Note: client.connect() calls start() automatically.',
       });
     }
-    this.abortController = new AbortController();
 
-    void this.openInboundSse();
+    this.protocolVersion = undefined;
+    this.abortController = new AbortController();
+    const inboundSseSessionId = this.startInboundSseSession();
+
+    void this.openInboundSse(false, undefined, inboundSseSessionId);
   }
 
   async close(): Promise<void> {
+    this.inboundSseSessionId += 1;
     this.inboundSseConnection?.close();
     try {
       if (
@@ -125,7 +157,12 @@ export class HttpMCPTransport implements MCPTransport {
       }
     } catch {}
 
+    this.protocolVersion = undefined;
     this.abortController?.abort();
+    this.abortController = undefined;
+    this.sessionId = undefined;
+    this.resourceMetadataUrl = undefined;
+    this.resetInboundSseState();
     this.onclose?.();
   }
 
@@ -157,6 +194,7 @@ export class HttpMCPTransport implements MCPTransport {
           try {
             const result = await auth(this.authProvider, {
               serverUrl: this.url,
+              protocolVersion: this.protocolVersion,
               resourceMetadataUrl: this.resourceMetadataUrl,
               fetchFn: this.fetchFn,
             });
@@ -176,7 +214,11 @@ export class HttpMCPTransport implements MCPTransport {
           // If inbound SSE was not available earlier (e.g. 405 before init), try again now
           // Do not await to avoid blocking send()
           if (!this.inboundSseConnection) {
-            void this.openInboundSse();
+            void this.openInboundSse(
+              false,
+              undefined,
+              this.inboundSseSessionId,
+            );
           }
           return;
         }
@@ -300,10 +342,14 @@ export class HttpMCPTransport implements MCPTransport {
     }
 
     const delay = this.getNextReconnectionDelay(this.inboundReconnectAttempts);
+    const inboundSseSessionId = this.inboundSseSessionId;
+    const resumeToken = this.lastInboundEventId;
     this.inboundReconnectAttempts += 1;
     setTimeout(async () => {
-      if (this.abortController?.signal.aborted) return;
-      await this.openInboundSse(false, this.lastInboundEventId);
+      if (!this.isActiveInboundSseSession(inboundSseSessionId)) {
+        return;
+      }
+      await this.openInboundSse(false, resumeToken, inboundSseSessionId);
     }, delay);
   }
 
@@ -311,11 +357,19 @@ export class HttpMCPTransport implements MCPTransport {
   private async openInboundSse(
     triedAuth: boolean = false,
     resumeToken?: string,
+    inboundSseSessionId: number = this.inboundSseSessionId,
   ): Promise<void> {
+    if (!this.isActiveInboundSseSession(inboundSseSessionId)) {
+      return;
+    }
+
     try {
       const headers = await this.commonHeaders({
         Accept: 'text/event-stream',
       });
+      if (!this.isActiveInboundSseSession(inboundSseSessionId)) {
+        return;
+      }
       if (resumeToken) {
         headers['last-event-id'] = resumeToken;
       }
@@ -326,6 +380,9 @@ export class HttpMCPTransport implements MCPTransport {
         signal: this.abortController?.signal,
         redirect: this.redirectMode,
       });
+      if (!this.isActiveInboundSseSession(inboundSseSessionId)) {
+        return;
+      }
 
       const sessionId = response.headers.get('mcp-session-id');
       if (sessionId) {
@@ -337,6 +394,7 @@ export class HttpMCPTransport implements MCPTransport {
         try {
           const result = await auth(this.authProvider, {
             serverUrl: this.url,
+            protocolVersion: this.protocolVersion,
             resourceMetadataUrl: this.resourceMetadataUrl,
             fetchFn: this.fetchFn,
           });
@@ -349,7 +407,7 @@ export class HttpMCPTransport implements MCPTransport {
           this.onerror?.(error);
           return;
         }
-        return this.openInboundSse(true, resumeToken);
+        return this.openInboundSse(true, resumeToken, inboundSseSessionId);
       }
 
       if (response.status === 405) {

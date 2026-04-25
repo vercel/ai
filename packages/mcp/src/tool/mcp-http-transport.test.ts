@@ -4,7 +4,6 @@ import {
 } from '@ai-sdk/test-server/with-vitest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { HttpMCPTransport } from './mcp-http-transport';
-import { LATEST_PROTOCOL_VERSION } from './types';
 import { MCPClientError } from '../error/mcp-client-error';
 
 describe('HttpMCPTransport', () => {
@@ -45,11 +44,171 @@ describe('HttpMCPTransport', () => {
     expect(received).toEqual({ jsonrpc: '2.0', id: 1, result: { ok: true } });
 
     expect(server.calls[1].requestMethod).toBe('POST');
+    expect(server.calls[0].requestHeaders).toEqual({
+      accept: 'text/event-stream',
+    });
     expect(server.calls[1].requestHeaders).toEqual({
-      'mcp-protocol-version': LATEST_PROTOCOL_VERSION,
       accept: 'application/json, text/event-stream',
       'content-type': 'application/json',
     });
+  });
+
+  it('should send negotiated protocol version on subsequent requests', async () => {
+    server.urls['http://localhost:4000/mcp'].response = ({ callNumber }) => {
+      switch (callNumber) {
+        case 0:
+          return { type: 'error', status: 405 };
+        case 1:
+          return {
+            type: 'json-value',
+            body: { jsonrpc: '2.0', id: 1, result: { ok: true } },
+          };
+        case 2:
+          return {
+            type: 'json-value',
+            body: { ok: true },
+          };
+        default:
+          return { type: 'empty', status: 200 };
+      }
+    };
+
+    await transport.start();
+    await transport.send({
+      jsonrpc: '2.0' as const,
+      method: 'initialize',
+      id: 1,
+      params: {},
+    });
+
+    (
+      transport as unknown as {
+        setProtocolVersion(protocolVersion: string): void;
+      }
+    ).setProtocolVersion('2025-06-18');
+
+    await transport.send({
+      jsonrpc: '2.0' as const,
+      method: 'notifications/initialized',
+    });
+
+    expect(server.calls[2].requestHeaders).toEqual({
+      'mcp-protocol-version': '2025-06-18',
+      accept: 'application/json, text/event-stream',
+      'content-type': 'application/json',
+    });
+  });
+
+  it('should clear negotiated protocol version between sessions', async () => {
+    server.urls['http://localhost:4000/mcp'].response = {
+      type: 'error',
+      status: 405,
+    };
+
+    await transport.start();
+
+    (
+      transport as unknown as {
+        setProtocolVersion(protocolVersion: string): void;
+        protocolVersion?: string;
+      }
+    ).setProtocolVersion('2025-06-18');
+
+    expect(
+      (transport as unknown as { protocolVersion?: string }).protocolVersion,
+    ).toBe('2025-06-18');
+
+    await transport.close();
+    expect(
+      (transport as unknown as { protocolVersion?: string }).protocolVersion,
+    ).toBeUndefined();
+
+    await transport.start();
+    expect(
+      (transport as unknown as { protocolVersion?: string }).protocolVersion,
+    ).toBeUndefined();
+  });
+
+  it('should reset inbound SSE state and ignore stale reconnection timers between sessions', async () => {
+    vi.useFakeTimers();
+
+    let getCallCount = 0;
+    const fetchFn = vi.fn(
+      async (_input: RequestInfo | URL, init?: RequestInit) => {
+        const method = init?.method ?? 'GET';
+
+        if (method === 'GET') {
+          getCallCount += 1;
+          if (getCallCount === 1) {
+            throw new Error('connection lost');
+          }
+
+          return new Response(null, {
+            status: 405,
+            statusText: 'Method Not Allowed',
+          });
+        }
+
+        return new Response(null, { status: 200 });
+      },
+    );
+
+    transport = new HttpMCPTransport({
+      url: 'http://localhost:4000/mcp',
+      fetch: fetchFn,
+    });
+    transport.onerror = () => {};
+
+    try {
+      await transport.start();
+
+      await vi.waitFor(() => {
+        expect(fetchFn).toHaveBeenCalledTimes(1);
+      });
+
+      (
+        transport as unknown as {
+          lastInboundEventId?: string;
+          inboundReconnectAttempts: number;
+        }
+      ).lastInboundEventId = 'event-123';
+
+      await transport.close();
+
+      expect(
+        (
+          transport as unknown as {
+            lastInboundEventId?: string;
+          }
+        ).lastInboundEventId,
+      ).toBeUndefined();
+      expect(
+        (
+          transport as unknown as {
+            inboundReconnectAttempts: number;
+          }
+        ).inboundReconnectAttempts,
+      ).toBe(0);
+
+      await transport.start();
+
+      await vi.waitFor(() => {
+        expect(fetchFn).toHaveBeenCalledTimes(2);
+      });
+
+      expect(fetchFn.mock.calls[1]?.[1]?.headers).toMatchObject({
+        accept: 'text/event-stream',
+      });
+      expect(fetchFn.mock.calls[1]?.[1]?.headers).not.toHaveProperty(
+        'last-event-id',
+      );
+
+      await vi.advanceTimersByTimeAsync(1000);
+
+      expect(fetchFn).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('should handle text/event-stream responses', async () => {
@@ -318,7 +477,6 @@ describe('HttpMCPTransport', () => {
     await transport.send(message);
 
     expect(server.calls[0].requestHeaders).toEqual({
-      'mcp-protocol-version': LATEST_PROTOCOL_VERSION,
       accept: 'text/event-stream',
       ...customHeaders,
     });
@@ -326,7 +484,6 @@ describe('HttpMCPTransport', () => {
 
     expect(server.calls[1].requestHeaders).toEqual({
       'content-type': 'application/json',
-      'mcp-protocol-version': LATEST_PROTOCOL_VERSION,
       accept: 'application/json, text/event-stream',
       ...customHeaders,
     });
