@@ -16,7 +16,8 @@
     "!src/**/__fixtures__",
     "CHANGELOG.md",
     "README.md",
-    "anthropic/index.d.ts"
+    "anthropic/index.d.ts",
+    "mantle/index.d.ts"
   ],
   "directories": {
     "doc": "./docs"
@@ -43,12 +44,18 @@
     },
     "./anthropic": {
       "types": "./dist/anthropic/index.d.ts",
-      "import": "./dist/anthropic/index.js",
-      "default": "./dist/anthropic/index.js"
+      "import": "./dist/anthropic/index.mjs",
+      "require": "./dist/anthropic/index.js"
+    },
+    "./mantle": {
+      "types": "./dist/mantle/index.d.ts",
+      "import": "./dist/mantle/index.mjs",
+      "require": "./dist/mantle/index.js"
     }
   },
   "dependencies": {
     "@ai-sdk/anthropic": "workspace:*",
+    "@ai-sdk/openai": "workspace:*",
     "@ai-sdk/provider": "workspace:*",
     "@ai-sdk/provider-utils": "workspace:*",
     "@smithy/eventstream-codec": "^4.0.1",

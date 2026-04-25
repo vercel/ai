@@ -19,11 +19,14 @@ vi.mock('@ai-sdk/provider-utils', async () => {
 });
 
 // Mock AwsV4Signer so that no real crypto calls are made.
+// Capture constructor options for test assertions.
+let lastSignerOptions: any = null;
 vi.mock('aws4fetch', () => {
   class MockAwsV4Signer {
     options: any;
     constructor(options: any) {
       this.options = options;
+      lastSignerOptions = options;
     }
     async sign() {
       // Return a fake Headers instance with predetermined signing headers.
@@ -130,7 +133,7 @@ describe('createSigV4FetchFunction', () => {
     expect(calledInit.body).toEqual('{"test": "data"}');
   });
 
-  it('shold handle a POST request with a Request object', async () => {
+  it('should handle a POST request with a Request object', async () => {
     const dummyResponse = new Response('Signed', { status: 200 });
     const dummyFetch = vi.fn().mockResolvedValue(dummyResponse);
     const fetchFn = createFetchFunction(dummyFetch);
@@ -378,6 +381,53 @@ describe('createSigV4FetchFunction', () => {
 
     // The underlying fetch should not be called
     expect(dummyFetch).not.toHaveBeenCalled();
+  });
+
+  it('should use default service name "bedrock" when no service parameter is provided', async () => {
+    const dummyResponse = new Response('Signed', { status: 200 });
+    const dummyFetch = vi.fn().mockResolvedValue(dummyResponse);
+    lastSignerOptions = null;
+
+    const fetchFn = createSigV4FetchFunction(
+      () => ({
+        region: 'us-west-2',
+        accessKeyId: 'test-access-key',
+        secretAccessKey: 'test-secret',
+      }),
+      dummyFetch,
+    );
+
+    await fetchFn('http://example.com', {
+      method: 'POST',
+      body: '{"test": "data"}',
+    });
+
+    expect(lastSignerOptions).not.toBeNull();
+    expect(lastSignerOptions.service).toBe('bedrock');
+  });
+
+  it('should use custom service name when service parameter is provided', async () => {
+    const dummyResponse = new Response('Signed', { status: 200 });
+    const dummyFetch = vi.fn().mockResolvedValue(dummyResponse);
+    lastSignerOptions = null;
+
+    const fetchFn = createSigV4FetchFunction(
+      () => ({
+        region: 'us-west-2',
+        accessKeyId: 'test-access-key',
+        secretAccessKey: 'test-secret',
+      }),
+      dummyFetch,
+      'bedrock-mantle',
+    );
+
+    await fetchFn('http://example.com', {
+      method: 'POST',
+      body: '{"test": "data"}',
+    });
+
+    expect(lastSignerOptions).not.toBeNull();
+    expect(lastSignerOptions.service).toBe('bedrock-mantle');
   });
 });
 
