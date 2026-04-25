@@ -18,13 +18,13 @@ import {
 } from '@ai-sdk/provider-utils';
 import {
   AnthropicAssistantMessage,
-  AnthropicMessagesPrompt,
+  AnthropicPrompt,
   anthropicReasoningMetadataSchema,
   AnthropicToolResultContent,
   AnthropicUserMessage,
   AnthropicWebFetchToolResultContent,
-} from './anthropic-messages-api';
-import { anthropicFilePartProviderOptions } from './anthropic-messages-options';
+} from './anthropic-api';
+import { anthropicFilePartProviderOptions } from './anthropic-options';
 import { CacheControlValidator } from './get-cache-control';
 import { codeExecution_20250522OutputSchema } from './tool/code-execution_20250522';
 import { codeExecution_20250825OutputSchema } from './tool/code-execution_20250825';
@@ -70,7 +70,7 @@ function getUrlString(data: LanguageModelV4DataContent): string {
   return data instanceof URL ? data.toString() : (data as string);
 }
 
-export async function convertToAnthropicMessagesPrompt({
+export async function convertToAnthropicPrompt({
   prompt,
   sendReasoning,
   warnings,
@@ -83,15 +83,15 @@ export async function convertToAnthropicMessagesPrompt({
   cacheControlValidator?: CacheControlValidator;
   toolNameMapping: ToolNameMapping;
 }): Promise<{
-  prompt: AnthropicMessagesPrompt;
+  prompt: AnthropicPrompt;
   betas: Set<string>;
 }> {
   const betas = new Set<string>();
   const blocks = groupIntoBlocks(prompt);
   const validator = cacheControlValidator || new CacheControlValidator();
 
-  let system: AnthropicMessagesPrompt['system'] = undefined;
-  const messages: AnthropicMessagesPrompt['messages'] = [];
+  let system: AnthropicPrompt['system'] = undefined;
+  const messages: AnthropicPrompt['messages'] = [];
 
   async function shouldEnableCitations(
     providerMetadata: SharedV4ProviderMetadata | undefined,

@@ -14,8 +14,8 @@ import {
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import fs from 'node:fs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { AnthropicLanguageModelOptions } from './anthropic-messages-options';
-import { getModelCapabilities } from './anthropic-messages-language-model';
+import { AnthropicLanguageModelOptions } from './anthropic-options';
+import { getModelCapabilities } from './anthropic-language-model';
 import { anthropic, createAnthropic } from './anthropic-provider';
 
 vi.mock('./version', () => ({
@@ -32,7 +32,7 @@ const provider = createAnthropic({
 });
 const model = provider('claude-3-haiku-20240307');
 
-describe('AnthropicMessagesLanguageModel', () => {
+describe('AnthropicLanguageModel', () => {
   const server = createTestServer({
     'https://api.anthropic.com/v1/messages': {},
   });
@@ -9300,17 +9300,14 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       prepareTransformJsonResponse();
 
-      const { AnthropicMessagesLanguageModel } =
-        await import('./anthropic-messages-language-model');
-      const model = new AnthropicMessagesLanguageModel(
-        'claude-3-haiku-20240307',
-        {
-          provider: 'test-provider',
-          baseURL: 'https://api.anthropic.com/v1',
-          headers: {},
-          transformRequestBody: transformFn,
-        },
-      );
+      const { AnthropicLanguageModel } =
+        await import('./anthropic-language-model');
+      const model = new AnthropicLanguageModel('claude-3-haiku-20240307', {
+        provider: 'test-provider',
+        baseURL: 'https://api.anthropic.com/v1',
+        headers: {},
+        transformRequestBody: transformFn,
+      });
 
       await model.doGenerate({
         prompt: TEST_PROMPT,
@@ -9342,17 +9339,14 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       prepareTransformStreamResponse();
 
-      const { AnthropicMessagesLanguageModel } =
-        await import('./anthropic-messages-language-model');
-      const model = new AnthropicMessagesLanguageModel(
-        'claude-3-haiku-20240307',
-        {
-          provider: 'test-provider',
-          baseURL: 'https://api.anthropic.com/v1',
-          headers: {},
-          transformRequestBody: transformFn,
-        },
-      );
+      const { AnthropicLanguageModel } =
+        await import('./anthropic-language-model');
+      const model = new AnthropicLanguageModel('claude-3-haiku-20240307', {
+        provider: 'test-provider',
+        baseURL: 'https://api.anthropic.com/v1',
+        headers: {},
+        transformRequestBody: transformFn,
+      });
 
       const { stream } = await model.doStream({
         prompt: TEST_PROMPT,
@@ -9383,16 +9377,13 @@ describe('AnthropicMessagesLanguageModel', () => {
     it('should work without transformRequestBody', async () => {
       prepareTransformJsonResponse();
 
-      const { AnthropicMessagesLanguageModel } =
-        await import('./anthropic-messages-language-model');
-      const model = new AnthropicMessagesLanguageModel(
-        'claude-3-haiku-20240307',
-        {
-          provider: 'test-provider',
-          baseURL: 'https://api.anthropic.com/v1',
-          headers: {},
-        },
-      );
+      const { AnthropicLanguageModel } =
+        await import('./anthropic-language-model');
+      const model = new AnthropicLanguageModel('claude-3-haiku-20240307', {
+        provider: 'test-provider',
+        baseURL: 'https://api.anthropic.com/v1',
+        headers: {},
+      });
 
       await model.doGenerate({
         prompt: TEST_PROMPT,

@@ -372,21 +372,21 @@ These are useful for logging, observability, debugging, and custom telemetry.
 const result = await myAgent.generate({
   prompt: 'Research and summarize the latest AI trends',
 
-  experimental_onStart({ model }) {
-    console.log('Agent started', { model: model.modelId });
+  experimental_onStart({ modelId }) {
+    console.log('Agent started', { modelId });
   },
 
-  experimental_onStepStart({ stepNumber, model }) {
-    console.log(`Step ${stepNumber} starting`, { model: model.modelId });
+  experimental_onStepStart({ stepNumber, modelId }) {
+    console.log(`Step ${stepNumber} starting`, { modelId });
   },
 
   experimental_onToolExecutionStart({ toolCall }) {
     console.log(`Tool call starting: ${toolCall.toolName}`);
   },
 
-  experimental_onToolExecutionEnd({ toolCall, durationMs, success }) {
+  experimental_onToolExecutionEnd({ toolCall, durationMs, toolOutput }) {
     console.log(`Tool call finished: ${toolCall.toolName} (${durationMs}ms)`, {
-      success,
+      success: toolOutput.type === 'tool-result',
     });
   },
 
@@ -410,10 +410,10 @@ const result = await myAgent.generate({
 
 The available lifecycle callbacks are:
 
-- **`experimental_onStart`**: Called once when the agent operation begins, before any LLM calls. Receives model info, prompt, settings, and `runtimeContext`.
+- **`experimental_onStart`**: Called once when the agent operation begins, before any LLM calls. Receives model info, messages, settings, and `runtimeContext`.
 - **`experimental_onStepStart`**: Called before each step (LLM call). Receives the step number, model, messages being sent, tools, and prior steps.
-- **`experimental_onToolExecutionStart`**: Called right before a tool's `execute` function runs. Receives the tool call object with tool name, call ID, and input.
-- **`experimental_onToolExecutionEnd`**: Called right after a tool's `execute` function completes or errors. Receives the tool call, `durationMs`, and a `success` discriminator (`output` when successful, `error` when failed).
+- **`experimental_onToolExecutionStart`**: Called right before a tool's `execute` function runs. Receives the tool call object, messages, and `toolContext`.
+- **`experimental_onToolExecutionEnd`**: Called right after a tool's `execute` function completes or errors. Receives the tool call, `durationMs`, and a `toolOutput` discriminated union (`type: 'tool-result'` with `output`, or `type: 'tool-error'` with `error`).
 - **`onStepFinish`**: Called after each step finishes. Receives step results including usage, finish reason, and tool calls.
 - **`onFinish`**: Called when all steps are finished and the response is complete. Receives all step results, total usage, and `runtimeContext`.
 

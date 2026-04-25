@@ -2,11 +2,10 @@ import type {
   Arrayable,
   Context,
   InferToolSetContext,
-  ModelMessage,
   ProviderOptions,
-  SystemModelMessage,
   ToolSet,
 } from '@ai-sdk/provider-utils';
+import type { LanguageModelCallOptions } from '../prompt/language-model-call-options';
 import type { TimeoutConfiguration } from '../prompt/request-options';
 import type { ToolChoice } from '../types/language-model';
 import type { LanguageModelUsage } from '../types/usage';
@@ -14,31 +13,23 @@ import type { Output } from './output';
 import type { StepResult } from './step-result';
 import type { StopCondition } from './stop-condition';
 import { TextStreamPart } from './stream-text-result';
-
-/**
- * Common model information used across callback events.
- */
-export interface CallbackModelInfo {
-  /** The provider identifier (e.g., 'openai', 'anthropic'). */
-  readonly provider: string;
-  /** The specific model identifier (e.g., 'gpt-4o'). */
-  readonly modelId: string;
-}
+import type { StandardizedPrompt } from '../prompt/standardize-prompt';
 
 /**
  * Event passed to the `onStart` callback.
  *
  * Called when the generation operation begins, before any LLM calls.
  */
-export interface GenerateTextStartEvent<
+export type GenerateTextStartEvent<
   TOOLS extends ToolSet = ToolSet,
   RUNTIME_CONTEXT extends Context = Context,
   OUTPUT extends Output = Output,
-> {
+> = {
   /** Unique identifier for this generation call, used to correlate events. */
   readonly callId: string;
 
   /** Identifies the operation type (e.g. 'ai.generateText' or 'ai.streamText'). */
+  // move to the telemetry dispatcher
   readonly operationId: string;
 
   /** The provider identifier (e.g., 'openai', 'anthropic'). */
@@ -46,19 +37,6 @@ export interface GenerateTextStartEvent<
 
   /** The specific model identifier (e.g., 'gpt-4o'). */
   readonly modelId: string;
-
-  /** The system message(s) provided to the model. */
-  readonly system:
-    | string
-    | SystemModelMessage
-    | Array<SystemModelMessage>
-    | undefined;
-
-  /** The prompt string or array of messages if using the prompt option. */
-  readonly prompt: string | Array<ModelMessage> | undefined;
-
-  /** The messages array if using the messages option. */
-  readonly messages: Array<ModelMessage> | undefined;
 
   /** The tools available for this generation. */
   readonly tools: TOOLS | undefined;
@@ -69,22 +47,6 @@ export interface GenerateTextStartEvent<
   /** Limits which tools are available for the model to call. */
   readonly activeTools: Array<keyof TOOLS> | undefined;
 
-  /** Maximum number of tokens to generate. */
-  readonly maxOutputTokens: number | undefined;
-  /** Sampling temperature for generation. */
-  readonly temperature: number | undefined;
-  /** Top-p (nucleus) sampling parameter. */
-  readonly topP: number | undefined;
-  /** Top-k sampling parameter. */
-  readonly topK: number | undefined;
-  /** Presence penalty for generation. */
-  readonly presencePenalty: number | undefined;
-  /** Frequency penalty for generation. */
-  readonly frequencyPenalty: number | undefined;
-  /** Sequences that will stop generation. */
-  readonly stopSequences: string[] | undefined;
-  /** Random seed for reproducible generation. */
-  readonly seed: number | undefined;
   /** Maximum number of retries for failed requests. */
   readonly maxRetries: number;
 
@@ -118,7 +80,8 @@ export interface GenerateTextStartEvent<
    * User-defined runtime context.
    */
   readonly runtimeContext: RUNTIME_CONTEXT;
-}
+} & LanguageModelCallOptions &
+  StandardizedPrompt;
 
 /**
  * Event passed to the `onStepStart` callback.
@@ -126,16 +89,13 @@ export interface GenerateTextStartEvent<
  * Called when a step (LLM call) begins, before the provider is called.
  * Each step represents a single LLM invocation.
  */
-export interface GenerateTextStepStartEvent<
+export type GenerateTextStepStartEvent<
   TOOLS extends ToolSet = ToolSet,
   RUNTIME_CONTEXT extends Context = Context,
   OUTPUT extends Output = Output,
-> {
+> = {
   /** Unique identifier for this generation call, used to correlate events. */
   readonly callId: string;
-
-  /** Zero-based index of the current step. */
-  readonly stepNumber: number;
 
   /** The provider identifier (e.g., 'openai', 'anthropic'). */
   readonly provider: string;
@@ -143,21 +103,8 @@ export interface GenerateTextStepStartEvent<
   /** The specific model identifier (e.g., 'gpt-4o'). */
   readonly modelId: string;
 
-  /**
-   * The system message for this step.
-   */
-  readonly system:
-    | string
-    | SystemModelMessage
-    | Array<SystemModelMessage>
-    | undefined;
-
-  /**
-   * The messages that will be sent to the model for this step.
-   * Uses the user-facing `ModelMessage` format.
-   * May be overridden by prepareStep.
-   */
-  readonly messages: Array<ModelMessage>;
+  /** Zero-based index of the current step. */
+  readonly stepNumber: number;
 
   /** The tools available for this generation. */
   readonly tools: TOOLS | undefined;
@@ -186,7 +133,7 @@ export interface GenerateTextStepStartEvent<
    * Tool context. May be updated from `prepareStep` between steps.
    */
   readonly toolsContext: InferToolSetContext<TOOLS>;
-}
+} & StandardizedPrompt;
 
 /**
  * Event passed to the `onChunk` callback.
@@ -195,7 +142,7 @@ export interface GenerateTextStepStartEvent<
  * The chunk is either a content part (text-delta, tool-call, etc.) or
  * a stream lifecycle marker (`ai.stream.firstChunk` / `ai.stream.finish`).
  */
-export interface StreamTextChunkEvent<TOOLS extends ToolSet = ToolSet> {
+export type StreamTextChunkEvent<TOOLS extends ToolSet = ToolSet> = {
   readonly chunk:
     | TextStreamPart<TOOLS>
     | {
@@ -204,7 +151,7 @@ export interface StreamTextChunkEvent<TOOLS extends ToolSet = ToolSet> {
         readonly stepNumber: number;
         readonly attributes?: Record<string, unknown>;
       };
-}
+};
 
 /**
  * Event passed to the `onStepFinish` callback.

@@ -14,7 +14,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import {
   anthropicTools,
-  AnthropicMessagesLanguageModel,
+  AnthropicLanguageModel,
 } from '@ai-sdk/anthropic/internal';
 import {
   BedrockCredentials,
@@ -249,7 +249,7 @@ export function createBedrockAnthropic(
   };
 
   const createChatModel = (modelId: BedrockAnthropicModelId) =>
-    new AnthropicMessagesLanguageModel(modelId, {
+    new AnthropicLanguageModel(modelId, {
       provider: 'bedrock.anthropic.messages',
       baseURL: getBaseURL(),
       headers: getHeaders,

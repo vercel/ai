@@ -2,7 +2,7 @@ import { JSONSchema7 } from '@ai-sdk/provider';
 import { InferSchema, lazySchema, zodSchema } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
-export type AnthropicMessagesPrompt = {
+export type AnthropicPrompt = {
   system: Array<AnthropicTextContent> | undefined;
   messages: AnthropicMessage[];
 };
@@ -553,7 +553,7 @@ export type AnthropicResponseContextManagement = {
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-export const anthropicMessagesResponseSchema = lazySchema(() =>
+export const anthropicResponseSchema = lazySchema(() =>
   zodSchema(
     z.object({
       type: z.literal('message'),
@@ -893,7 +893,7 @@ export const anthropicMessagesResponseSchema = lazySchema(() =>
 
 // limited version of the schema, focused on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-export const anthropicMessagesChunkSchema = lazySchema(() =>
+export const anthropicChunkSchema = lazySchema(() =>
   zodSchema(
     z.discriminatedUnion('type', [
       z.object({
@@ -1342,7 +1342,7 @@ export type AnthropicReasoningMetadata = InferSchema<
 >;
 
 export type Citation = NonNullable<
-  (InferSchema<typeof anthropicMessagesResponseSchema>['content'][number] & {
+  (InferSchema<typeof anthropicResponseSchema>['content'][number] & {
     type: 'text';
   })['citations']
 >[number];

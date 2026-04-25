@@ -60,6 +60,7 @@ export function createTelemetryDispatcher({
   telemetry,
 }: {
   telemetry?: TelemetryOptions;
+  // operationId: string;
 }): TelemetryDispatcher {
   // When telemetry is explicitly disabled, return a dispatcher
   // that performs no work and lets tool execution pass through unwrapped.
@@ -106,6 +107,10 @@ export function createTelemetryDispatcher({
   return {
     onStart: mergeTelemetryCallback('onStart'),
     onStepStart: mergeTelemetryCallback('onStepStart'),
+    onLanguageModelCallStart: mergeTelemetryCallback(
+      'onLanguageModelCallStart',
+    ),
+    onLanguageModelCallEnd: mergeTelemetryCallback('onLanguageModelCallEnd'),
     onToolExecutionStart: mergeTelemetryCallback('onToolExecutionStart'),
     onToolExecutionEnd: mergeTelemetryCallback('onToolExecutionEnd'),
     onChunk: mergeTelemetryCallback('onChunk'),
