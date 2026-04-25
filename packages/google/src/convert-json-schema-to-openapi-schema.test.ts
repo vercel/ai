@@ -682,3 +682,129 @@ it('should convert type arrays without null to anyOf', () => {
 
   expect(convertJSONSchemaToOpenAPISchema(input)).toEqual(expected);
 });
+
+it('should preserve minItems and maxItems on arrays', () => {
+  const input: JSONSchema7 = {
+    type: 'object',
+    properties: {
+      tags: {
+        type: 'array',
+        items: { type: 'string' },
+        minItems: 1,
+        maxItems: 5,
+      },
+    },
+  };
+
+  const expected = {
+    type: 'object',
+    properties: {
+      tags: {
+        type: 'array',
+        items: { type: 'string' },
+        minItems: 1,
+        maxItems: 5,
+      },
+    },
+  };
+
+  expect(convertJSONSchemaToOpenAPISchema(input)).toEqual(expected);
+});
+
+it('should preserve exact array length (minItems === maxItems)', () => {
+  const input: JSONSchema7 = {
+    type: 'object',
+    properties: {
+      answers: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            text: { type: 'string' },
+          },
+        },
+        minItems: 10,
+        maxItems: 10,
+      },
+    },
+  };
+
+  const expected = {
+    type: 'object',
+    properties: {
+      answers: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            text: { type: 'string' },
+          },
+        },
+        minItems: 10,
+        maxItems: 10,
+      },
+    },
+  };
+
+  expect(convertJSONSchemaToOpenAPISchema(input)).toEqual(expected);
+});
+
+it('should preserve minimum and maximum on numbers', () => {
+  const input: JSONSchema7 = {
+    type: 'object',
+    properties: {
+      score: {
+        type: 'number',
+        minimum: 0,
+        maximum: 100,
+      },
+      count: {
+        type: 'integer',
+        minimum: 1,
+      },
+    },
+  };
+
+  const expected = {
+    type: 'object',
+    properties: {
+      score: {
+        type: 'number',
+        minimum: 0,
+        maximum: 100,
+      },
+      count: {
+        type: 'integer',
+        minimum: 1,
+      },
+    },
+  };
+
+  expect(convertJSONSchemaToOpenAPISchema(input)).toEqual(expected);
+});
+
+it('should preserve maxLength on strings', () => {
+  const input: JSONSchema7 = {
+    type: 'object',
+    properties: {
+      name: {
+        type: 'string',
+        minLength: 1,
+        maxLength: 255,
+      },
+    },
+  };
+
+  const expected = {
+    type: 'object',
+    properties: {
+      name: {
+        type: 'string',
+        minLength: 1,
+        maxLength: 255,
+      },
+    },
+  };
+
+  expect(convertJSONSchemaToOpenAPISchema(input)).toEqual(expected);
+});
