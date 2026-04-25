@@ -86,7 +86,7 @@ describe('thought signatures', () => {
 });
 
 describe('thought signatures with vertex providerOptionsName', () => {
-  it('should resolve thoughtSignature from google namespace when using vertex providerOptionsName', async () => {
+  it('should strip cross-provider thoughtSignature when only google namespace is present and target is vertex', async () => {
     const result = convertToGoogleMessages(
       [
         {
@@ -122,12 +122,12 @@ describe('thought signatures with vertex providerOptionsName', () => {
             "parts": [
               {
                 "text": "Regular text",
-                "thoughtSignature": "sig1",
+                "thoughtSignature": undefined,
               },
               {
                 "text": "Reasoning text",
                 "thought": true,
-                "thoughtSignature": "sig2",
+                "thoughtSignature": undefined,
               },
               {
                 "functionCall": {
@@ -136,7 +136,7 @@ describe('thought signatures with vertex providerOptionsName', () => {
                   },
                   "name": "getWeather",
                 },
-                "thoughtSignature": "sig3",
+                "thoughtSignature": undefined,
               },
             ],
             "role": "model",
@@ -210,7 +210,7 @@ describe('thought signatures with vertex providerOptionsName', () => {
 });
 
 describe('thought signatures with google providerOptionsName (gateway failover)', () => {
-  it('should resolve thoughtSignature from vertex namespace when using google providerOptionsName', async () => {
+  it('should strip cross-provider thoughtSignature when only vertex namespace is present and target is google', async () => {
     const result = convertToGoogleMessages(
       [
         {
@@ -246,12 +246,12 @@ describe('thought signatures with google providerOptionsName (gateway failover)'
             "parts": [
               {
                 "text": "Regular text",
-                "thoughtSignature": "sig1",
+                "thoughtSignature": undefined,
               },
               {
                 "text": "Reasoning text",
                 "thought": true,
-                "thoughtSignature": "sig2",
+                "thoughtSignature": undefined,
               },
               {
                 "functionCall": {
@@ -260,7 +260,7 @@ describe('thought signatures with google providerOptionsName (gateway failover)'
                   },
                   "name": "getWeather",
                 },
-                "thoughtSignature": "sig3",
+                "thoughtSignature": undefined,
               },
             ],
             "role": "model",
@@ -302,7 +302,7 @@ describe('thought signatures with google providerOptionsName (gateway failover)'
     });
   });
 
-  it('should resolve thoughtSignature from vertex namespace when google namespace is absent (default providerOptionsName)', async () => {
+  it('should strip vertex-origin thoughtSignature when google namespace is absent (default providerOptionsName)', async () => {
     const result = convertToGoogleMessages([
       {
         role: 'assistant',
@@ -325,7 +325,228 @@ describe('thought signatures with google providerOptionsName (gateway failover)'
         name: 'getWeather',
         args: { location: 'London' },
       },
-      thoughtSignature: 'vertex_sig',
+      thoughtSignature: undefined,
+    });
+  });
+});
+
+describe('cross-provider thoughtSignature stripping (failover safety)', () => {
+  it('should NOT pass vertex thoughtSignature when target is google', async () => {
+    const result = convertToGoogleMessages(
+      [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'call1',
+              toolName: 'getWeather',
+              input: { location: 'London' },
+              providerOptions: {
+                vertex: { thoughtSignature: 'vertex_sig' },
+              },
+            },
+          ],
+        },
+      ],
+      { providerOptionsName: 'google' },
+    );
+
+    expect(result.contents[0].parts[0]).toEqual({
+      functionCall: {
+        name: 'getWeather',
+        args: { location: 'London' },
+      },
+      thoughtSignature: undefined,
+    });
+  });
+
+  it('should NOT pass google thoughtSignature when target is vertex', async () => {
+    const result = convertToGoogleMessages(
+      [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'text',
+              text: 'Some reasoning',
+              providerOptions: {
+                google: { thoughtSignature: 'google_sig' },
+              },
+            },
+          ],
+        },
+      ],
+      { providerOptionsName: 'vertex' },
+    );
+
+    expect(result.contents[0].parts[0]).toEqual({
+      text: 'Some reasoning',
+      thoughtSignature: undefined,
+    });
+  });
+
+  it('should still pass same-provider thoughtSignature (google→google)', async () => {
+    const result = convertToGoogleMessages(
+      [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'text',
+              text: 'hello',
+              providerOptions: {
+                google: { thoughtSignature: 'valid_sig' },
+              },
+            },
+          ],
+        },
+      ],
+      { providerOptionsName: 'google' },
+    );
+
+    expect(result.contents[0].parts[0]).toEqual({
+      text: 'hello',
+      thoughtSignature: 'valid_sig',
+    });
+  });
+
+  it('should still pass same-provider thoughtSignature (vertex→vertex)', async () => {
+    const result = convertToGoogleMessages(
+      [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'text',
+              text: 'hello',
+              providerOptions: {
+                vertex: { thoughtSignature: 'valid_sig' },
+              },
+            },
+          ],
+        },
+      ],
+      { providerOptionsName: 'vertex' },
+    );
+
+    expect(result.contents[0].parts[0]).toEqual({
+      text: 'hello',
+      thoughtSignature: 'valid_sig',
+    });
+  });
+
+  it('should strip vertex thoughtSignature from tool-result when target is google', async () => {
+    const result = convertToGoogleMessages(
+      [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'call1',
+              toolName: 'getWeather',
+              input: { location: 'London' },
+            },
+          ],
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'call1',
+              toolName: 'getWeather',
+              output: { type: 'json', value: { temp: 20 } },
+              providerOptions: {
+                vertex: {
+                  thoughtSignature: 'vertex_sig',
+                  serverToolCallId: 'vtx-123',
+                  serverToolType: 'code_execution',
+                },
+              },
+            },
+          ],
+        },
+      ],
+      { providerOptionsName: 'google' },
+    );
+
+    const toolContent = result.contents.find(
+      c => c.role === 'user' && c.parts.some(p => 'functionResponse' in p),
+    );
+    if (toolContent) {
+      for (const part of toolContent.parts) {
+        expect(part).not.toHaveProperty('thoughtSignature');
+      }
+    }
+  });
+
+  it('should strip google thoughtSignature from tool-result when target is vertex', async () => {
+    const result = convertToGoogleMessages(
+      [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'call1',
+              toolName: 'getWeather',
+              input: { location: 'London' },
+            },
+          ],
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'call1',
+              toolName: 'getWeather',
+              output: { type: 'json', value: { temp: 20 } },
+              providerOptions: {
+                google: {
+                  thoughtSignature: 'google_sig',
+                  serverToolCallId: 'goog-456',
+                  serverToolType: 'code_execution',
+                },
+              },
+            },
+          ],
+        },
+      ],
+      { providerOptionsName: 'vertex' },
+    );
+
+    const toolContent = result.contents.find(
+      c => c.role === 'user' && c.parts.some(p => 'functionResponse' in p),
+    );
+    if (toolContent) {
+      for (const part of toolContent.parts) {
+        expect(part).not.toHaveProperty('thoughtSignature');
+      }
+    }
+  });
+
+  it('should handle empty providerOptions object without error', async () => {
+    const result = convertToGoogleMessages(
+      [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'text',
+              text: 'hello',
+              providerOptions: { google: {} },
+            },
+          ],
+        },
+      ],
+      { providerOptionsName: 'google' },
+    );
+
+    expect(result.contents[0].parts[0]).toEqual({
+      text: 'hello',
     });
   });
 });
