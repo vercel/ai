@@ -7,7 +7,7 @@ description: API Reference for the WorkflowChatTransport class.
 
 A [`ChatTransport`](/docs/ai-sdk-ui/transport) implementation for [`useChat`](/docs/reference/ai-sdk-ui/use-chat) that enables automatic stream reconnection for workflow-based chat apps. It posts messages to a chat endpoint, extracts the `x-workflow-run-id` response header, and reconnects to a `/{runId}/stream` endpoint on interruption (network failures, page refreshes, function timeouts).
 
-Unlike [`DefaultChatTransport`](/docs/ai-sdk-ui/transport) which assumes the full response arrives in a single HTTP request, `WorkflowChatTransport` is designed for [Vercel Workflows](https://vercel.com/docs/workflow) where the initial response stream may be interrupted by function timeouts. The transport automatically detects missing `finish` events and reconnects to resume from where the stream left off.
+Unlike [`DefaultChatTransport`](/docs/ai-sdk-ui/transport) which assumes the full response arrives in a single HTTP request, `WorkflowChatTransport` is designed for the [Workflow SDK](https://workflow-sdk.dev/) where the initial response stream may be interrupted by function timeouts. The transport automatically detects missing `finish` events and reconnects to resume from where the stream left off.
 
 ```tsx
 'use client';

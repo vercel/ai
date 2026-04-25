@@ -5,7 +5,7 @@ description: Build durable, resumable agents with the WorkflowAgent from @ai-sdk
 
 # WorkflowAgent
 
-The `WorkflowAgent` from `@ai-sdk/workflow` is designed for building **durable, resumable agents** that run inside [Vercel Workflows](https://vercel.com/docs/workflow). It provides the same agent loop as the [`ToolLoopAgent`](/docs/agents/building-agents), but adds automatic state persistence, tool schema serialization, and built-in tool approval flows that survive workflow step boundaries.
+The `WorkflowAgent` from `@ai-sdk/workflow` is designed for building **durable, resumable agents** that run on the [Workflow SDK](https://workflow-sdk.dev/). It provides the same agent loop as the [`ToolLoopAgent`](/docs/agents/building-agents), but adds automatic state persistence, tool schema serialization, and built-in tool approval flows that survive workflow step boundaries.
 
 ## Why Durable Agents?
 
@@ -16,14 +16,14 @@ A standard `ToolLoopAgent` runs entirely in memory — if the process crashes, a
 - **Human-in-the-loop** — Tools that require user approval need to pause the agent and resume later
 - **Observability** — Each tool call runs as a discrete workflow step, visible in dashboards
 
-`WorkflowAgent` solves these by running inside a Vercel Workflow, where each tool execution is a durable step with automatic retries.
+`WorkflowAgent` solves these by running on the Workflow SDK, where each tool execution is a durable step with automatic retries.
 
 ## When to Use WorkflowAgent vs ToolLoopAgent
 
 |                         | ToolLoopAgent             | WorkflowAgent                                   |
 | ----------------------- | ------------------------- | ----------------------------------------------- |
 | **Package**             | `ai`                      | `@ai-sdk/workflow`                              |
-| **Runtime**             | In-memory                 | Vercel Workflow                                 |
+| **Runtime**             | In-memory                 | Workflow SDK                                    |
 | **Durability**          | Lost on crash             | Survives restarts                               |
 | **Tool retries**        | Manual                    | Automatic (via workflow steps)                  |
 | **Human approval**      | Built-in                  | Built-in + survives suspension                  |
