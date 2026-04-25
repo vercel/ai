@@ -1,4 +1,5 @@
 import {
+  ResponsesCompactionProviderMetadata,
   ResponsesProviderMetadata,
   ResponsesReasoningProviderMetadata,
   ResponsesSourceDocumentProviderMetadata,
@@ -11,6 +12,10 @@ export type AzureResponsesProviderMetadata = {
 
 export type AzureResponsesReasoningProviderMetadata = {
   azure: ResponsesReasoningProviderMetadata;
+};
+
+export type AzureResponsesCompactionProviderMetadata = {
+  azure: ResponsesCompactionProviderMetadata;
 };
 
 export type AzureResponsesTextProviderMetadata = {

@@ -537,6 +537,123 @@ The code interpreter tool can be configured with:
   Source Document Parts](#typed-providermetadata-in-source-document-parts).
 </Note>
 
+#### Compaction
+
+The Azure OpenAI Responses API supports server-side context compaction. When enabled, the server automatically compresses conversation context when token usage crosses a configured threshold. This is useful for long-running conversations or agent loops where you want to stay within token limits without manually managing context.
+
+The compaction item returned by the server is opaque and encrypted. The AI SDK handles it automatically: compaction items are returned as custom parts with `providerMetadata`, and when passed back in subsequent requests they are sent as compaction input items.
+
+```ts highlight="7-11"
+import {
+  azure,
+  type OpenAILanguageModelResponsesOptions,
+} from '@ai-sdk/azure';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: azure.responses('gpt-5.4'),
+  messages: conversationHistory,
+  providerOptions: {
+    azure: {
+      store: false,
+      contextManagement: [{ type: 'compaction', compactThreshold: 50000 }],
+    } satisfies OpenAILanguageModelResponsesOptions,
+  },
+});
+```
+
+**Configuration:**
+
+- **type** — Must be `'compaction'`
+- **compactThreshold** — The token count at which compaction is triggered. When the rendered input token count crosses this threshold, the server runs a compaction pass before continuing inference.
+
+<Note>
+  Server-side compaction is only supported with the default responses API, and
+  is not supported when using `azure.chat` or `azure.completion`.
+</Note>
+
+##### Detecting Compaction in Streams
+
+When using `streamText`, you can detect compaction by checking for custom parts whose `providerMetadata.azure.type` is `'compaction'`:
+
+```ts
+import {
+  azure,
+  type OpenAILanguageModelResponsesOptions,
+} from '@ai-sdk/azure';
+import { streamText } from 'ai';
+
+const result = streamText({
+  model: azure.responses('gpt-5.4'),
+  messages: conversationHistory,
+  providerOptions: {
+    azure: {
+      store: false,
+      contextManagement: [{ type: 'compaction', compactThreshold: 50000 }],
+    } satisfies OpenAILanguageModelResponsesOptions,
+  },
+});
+
+for await (const part of result.fullStream) {
+  switch (part.type) {
+    case 'custom': {
+      const isCompaction = part.providerMetadata?.azure?.type === 'compaction';
+      if (isCompaction) {
+        // ... your logic
+      }
+      break;
+    }
+    case 'text-delta': {
+      process.stdout.write(part.text);
+      break;
+    }
+  }
+}
+```
+
+##### Compaction in UI Applications
+
+When using `useChat` or other UI hooks, compaction items appear as custom parts with `providerMetadata`. You can detect and style them differently in your UI:
+
+```tsx
+{
+  message.parts.map((part, index) => {
+    if (part.type === 'custom') {
+      const isCompaction =
+        (part.providerMetadata?.azure as { type?: string } | undefined)
+          ?.type === 'compaction';
+
+      if (isCompaction) {
+        return (
+          <div
+            key={index}
+            className="bg-yellow-100 border-l-4 border-yellow-500 p-2"
+          >
+            <span className="font-bold">[Context Compacted]</span>
+            <p className="text-sm text-yellow-700">
+              The server compressed the conversation context to reduce token
+              usage.
+            </p>
+          </div>
+        );
+      }
+    }
+
+    if (part.type === 'text') {
+      return <div key={index}>{part.text}</div>;
+    }
+
+    return null;
+  });
+}
+```
+
+The metadata includes the following fields:
+
+- **type** — Always `'compaction'`
+- **itemId** _string_ — The ID of the compaction item in the Responses API
+- **encryptedContent** _string_ (optional) — The encrypted compaction state. This is automatically sent back to the API when the message is included in subsequent requests.
+
 #### PDF support
 
 The Azure OpenAI provider supports reading PDF files.
