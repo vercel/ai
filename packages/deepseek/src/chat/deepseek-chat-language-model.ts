@@ -95,6 +95,7 @@ export class DeepSeekChatLanguageModel implements LanguageModelV2 {
     const { messages, warnings } = convertToDeepSeekChatMessages({
       prompt,
       responseFormat,
+      modelId: this.modelId,
     });
 
     if (topK != null) {
