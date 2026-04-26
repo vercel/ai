@@ -8,13 +8,22 @@ import { DeepSeekChatPrompt } from './deepseek-chat-api-types';
 export function convertToDeepSeekChatMessages({
   prompt,
   responseFormat,
+  modelId,
 }: {
   prompt: LanguageModelV4Prompt;
   responseFormat: LanguageModelV4CallOptions['responseFormat'];
+  modelId: string;
 }): {
   messages: DeepSeekChatPrompt;
   warnings: Array<SharedV4Warning>;
 } {
+  // DeepSeek V4 thinking mode requires `reasoning_content` on every assistant
+  // message in multi-turn requests; without it the API returns 400 with
+  // "The `reasoning_content` in the thinking mode must be passed back to the
+  // API." DeepSeek R1 (deepseek-reasoner) requires the opposite — never echo
+  // prior reasoning back. Detect V4 by model ID so each family gets the
+  // shape it expects.
+  const isDeepSeekV4 = modelId.includes('deepseek-v4');
   const messages: DeepSeekChatPrompt = [];
   const warnings: Array<SharedV4Warning> = [];
 
@@ -96,7 +105,8 @@ export function convertToDeepSeekChatMessages({
               break;
             }
             case 'reasoning': {
-              if (index <= lastUserMessageIndex) {
+              // R1 must not receive prior reasoning; V4 requires it.
+              if (index <= lastUserMessageIndex && !isDeepSeekV4) {
                 break;
               }
 
@@ -121,10 +131,12 @@ export function convertToDeepSeekChatMessages({
           }
         }
 
+        // V4 demands the field on every assistant turn — back-fill an empty
+        // string when the source message had no reasoning part at all.
         messages.push({
           role: 'assistant',
           content: text,
-          reasoning_content: reasoning,
+          reasoning_content: reasoning ?? (isDeepSeekV4 ? '' : undefined),
           tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
         });
 
