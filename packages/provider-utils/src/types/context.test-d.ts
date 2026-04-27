@@ -16,13 +16,16 @@ describe('SensitiveContext', () => {
       requestId: false,
     } satisfies SensitiveContext<TestContext>;
 
-    expectTypeOf<typeof sensitiveContext>().toMatchTypeOf<
-      SensitiveContext<TestContext>
-    >();
+    expectTypeOf<typeof sensitiveContext>().toEqualTypeOf<{
+      userId: true;
+      requestId: false;
+    }>();
   });
 
   it('allows undefined', () => {
-    expectTypeOf<undefined>().toMatchTypeOf<SensitiveContext<TestContext>>();
+    expectTypeOf<
+      Extract<SensitiveContext<TestContext>, undefined>
+    >().toEqualTypeOf<undefined>();
   });
 
   it('does not allow unknown context properties', () => {
@@ -31,9 +34,9 @@ describe('SensitiveContext', () => {
       unknown: true,
     } satisfies SensitiveContext<TestContext>;
 
-    expectTypeOf<typeof sensitiveContext>().not.toMatchTypeOf<
-      SensitiveContext<TestContext>
-    >();
+    expectTypeOf<typeof sensitiveContext>().toEqualTypeOf<{
+      unknown: boolean;
+    }>();
   });
 
   it('does not allow nested sensitivity definitions', () => {
@@ -44,9 +47,11 @@ describe('SensitiveContext', () => {
       },
     } satisfies SensitiveContext<TestContext>;
 
-    expectTypeOf<typeof sensitiveContext>().not.toMatchTypeOf<
-      SensitiveContext<TestContext>
-    >();
+    expectTypeOf<typeof sensitiveContext>().toEqualTypeOf<{
+      metadata: {
+        secret: boolean;
+      };
+    }>();
   });
 });
 
