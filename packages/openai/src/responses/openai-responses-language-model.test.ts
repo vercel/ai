@@ -3097,6 +3097,11 @@ describe('OpenAIResponsesLanguageModel', () => {
               "type": "tool-call",
             },
             {
+              "providerMetadata": {
+                "openai": {
+                  "itemId": "sho_0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e51",
+                },
+              },
               "result": {
                 "output": [
                   {
@@ -3512,6 +3517,11 @@ describe('OpenAIResponsesLanguageModel', () => {
               "type": "tool-call",
             },
             {
+              "providerMetadata": {
+                "openai": {
+                  "itemId": "sho_01b6b3812d7541bd00698f71a46d808196b944595186d5d2b6",
+                },
+              },
               "result": {
                 "output": [
                   {
@@ -3543,6 +3553,11 @@ describe('OpenAIResponsesLanguageModel', () => {
               "type": "tool-call",
             },
             {
+              "providerMetadata": {
+                "openai": {
+                  "itemId": "sho_01b6b3812d7541bd00698f71a5a2688196a39d7a371d282f14",
+                },
+              },
               "result": {
                 "output": [
                   {

@@ -392,6 +392,20 @@ export async function convertToOpenAIResponsesInput({
                 break;
               }
 
+              const providerResultItemId = (
+                part.providerOptions?.[providerOptionsName] as
+                  | { itemId?: string }
+                  | undefined
+              )?.itemId;
+
+              if (store && providerResultItemId != null) {
+                input.push({
+                  type: 'item_reference',
+                  id: providerResultItemId,
+                });
+                break;
+              }
+
               const resolvedResultToolName = toolNameMapping.toProviderToolName(
                 part.toolName,
               );
@@ -425,13 +439,11 @@ export async function convertToOpenAIResponsesInput({
                 break;
               }
 
-              /*
-               * Shell tool results are separate output items (shell_call_output)
-               * with their own item IDs distinct from the shell_call's item ID.
-               * Since the pipeline only preserves the shell_call's item ID in
-               * callProviderMetadata, we reconstruct the full shell_call_output
-               * instead of using an item_reference with the wrong ID.
-               */
+              // Shell tool results are separate output items
+              // (shell_call_output) with their own item IDs distinct from the
+              // shell_call's item ID. If that output item ID was not preserved,
+              // reconstruct the full shell_call_output instead of using an
+              // item_reference with the wrong ID.
               if (hasShellTool && resolvedResultToolName === 'shell') {
                 if (part.output.type === 'json') {
                   const parsedOutput = await validateTypes({

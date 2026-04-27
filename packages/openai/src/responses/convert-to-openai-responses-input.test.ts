@@ -3639,6 +3639,52 @@ describe('convertToOpenAIResponsesInput', () => {
   });
 
   describe('provider tool outputs', () => {
+    it('should reference stored shell output items when item id is preserved', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call-shell',
+                toolName: 'shell',
+                output: {
+                  type: 'json',
+                  value: {
+                    output: [
+                      {
+                        stdout: 'hi\n',
+                        stderr: '',
+                        outcome: { type: 'exit', exitCode: 0 },
+                      },
+                    ],
+                  },
+                },
+                providerOptions: {
+                  openai: {
+                    itemId: 'sho_123',
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        hasShellTool: true,
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'item_reference',
+          id: 'sho_123',
+        },
+      ]);
+    });
+
     it('should include apply_patch output when multiple tool results are present', async () => {
       const result = await convertToOpenAIResponsesInput({
         toolNameMapping: testToolNameMapping,
