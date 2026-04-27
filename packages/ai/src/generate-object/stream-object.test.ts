@@ -727,6 +727,59 @@ describe('streamObject', () => {
 
         expect(result!).toMatchSnapshot();
       });
+
+      it('should call onFinish with usage using inputTokens/outputTokens fields', async () => {
+        let result: Parameters<
+          Required<Parameters<typeof streamObject>[0]>['onFinish']
+        >[0];
+
+        const { partialObjectStream } = streamObject({
+          model: new MockLanguageModelV4({
+            doStream: async () => ({
+              stream: convertArrayToReadableStream([
+                {
+                  type: 'response-metadata',
+                  id: 'id-0',
+                  modelId: 'mock-model-id',
+                  timestamp: new Date(0),
+                },
+                { type: 'text-start', id: '1' },
+                {
+                  type: 'text-delta',
+                  id: '1',
+                  delta: '{ "content": "Hello, world!" }',
+                },
+                { type: 'text-end', id: '1' },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                  usage: testUsage,
+                },
+              ]),
+            }),
+          }),
+          schema: z.object({ content: z.string() }),
+          prompt: 'prompt',
+          onFinish: async event => {
+            result = event as unknown as typeof result;
+          },
+          _internal: {
+            generateId: () => 'test-id',
+          },
+        });
+
+        await convertAsyncIterableToArray(partialObjectStream);
+
+        // verify usage uses new inputTokens/outputTokens terminology, not the
+        // deprecated promptTokens/completionTokens
+        expect(result!.usage).toMatchObject({
+          inputTokens: 3,
+          outputTokens: 10,
+          totalTokens: 13,
+        });
+        expect(result!.usage).not.toHaveProperty('promptTokens');
+        expect(result!.usage).not.toHaveProperty('completionTokens');
+      });
     });
 
     describe('options.headers', () => {
