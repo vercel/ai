@@ -101,7 +101,7 @@ describe('convertToDeepSeekChatMessages', () => {
         {
           "messages": [
             {
-              "content": "",
+              "content": null,
               "reasoning_content": undefined,
               "role": "assistant",
               "tool_calls": [
@@ -160,7 +160,7 @@ describe('convertToDeepSeekChatMessages', () => {
         {
           "messages": [
             {
-              "content": "",
+              "content": null,
               "reasoning_content": undefined,
               "role": "assistant",
               "tool_calls": [
@@ -231,7 +231,7 @@ describe('convertToDeepSeekChatMessages', () => {
               "role": "user",
             },
             {
-              "content": "",
+              "content": null,
               "reasoning_content": "I think the tool will return the correct value.",
               "role": "assistant",
               "tool_calls": [
@@ -306,7 +306,7 @@ describe('convertToDeepSeekChatMessages', () => {
               "role": "user",
             },
             {
-              "content": "",
+              "content": null,
               "reasoning_content": undefined,
               "role": "assistant",
               "tool_calls": [
@@ -391,7 +391,7 @@ describe('convertToDeepSeekChatMessages', () => {
               "role": "user",
             },
             {
-              "content": "",
+              "content": null,
               "reasoning_content": "I think the tool will return the correct value.",
               "role": "assistant",
               "tool_calls": [

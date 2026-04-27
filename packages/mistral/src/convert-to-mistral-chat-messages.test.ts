@@ -160,7 +160,7 @@ describe('tool calls', () => {
     expect(result).toMatchInlineSnapshot(`
       [
         {
-          "content": "",
+          "content": null,
           "prefix": undefined,
           "role": "assistant",
           "tool_calls": [
@@ -213,7 +213,7 @@ describe('tool calls', () => {
     expect(result).toMatchInlineSnapshot(`
       [
         {
-          "content": "",
+          "content": null,
           "prefix": undefined,
           "role": "assistant",
           "tool_calls": [
@@ -276,7 +276,7 @@ describe('tool calls', () => {
     expect(result).toMatchInlineSnapshot(`
       [
         {
-          "content": "",
+          "content": null,
           "prefix": undefined,
           "role": "assistant",
           "tool_calls": [
@@ -329,7 +329,7 @@ describe('tool calls', () => {
     expect(result).toMatchInlineSnapshot(`
       [
         {
-          "content": "",
+          "content": null,
           "prefix": undefined,
           "role": "assistant",
           "tool_calls": [
