@@ -2924,6 +2924,89 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should pass functionCallingConfig from provider options when no tools are configured', async () => {
+    prepareJsonResponse({});
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        google: {
+          functionCallingConfig: {
+            mode: 'ANY',
+            allowedFunctionNames: ['get_weather'],
+          },
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      toolConfig: {
+        functionCallingConfig: {
+          mode: 'ANY',
+          allowedFunctionNames: ['get_weather'],
+        },
+      },
+    });
+  });
+
+  it('should let provider options functionCallingConfig.mode override the toolChoice-derived mode', async () => {
+    prepareJsonResponse({});
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      tools: [
+        {
+          type: 'function',
+          name: 'get_weather',
+          description: 'Get the weather',
+          inputSchema: { type: 'object', properties: {} },
+        },
+      ],
+      toolChoice: { type: 'required' },
+      providerOptions: {
+        google: {
+          functionCallingConfig: { mode: 'NONE' },
+        },
+      },
+    });
+
+    expect(
+      (await server.calls[0].requestBodyJson).toolConfig.functionCallingConfig
+        .mode,
+    ).toBe('NONE');
+  });
+
+  it('should merge provider options functionCallingConfig with toolChoice-derived config', async () => {
+    prepareJsonResponse({});
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      tools: [
+        {
+          type: 'function',
+          name: 'get_weather',
+          description: 'Get the weather',
+          inputSchema: { type: 'object', properties: {} },
+        },
+      ],
+      toolChoice: { type: 'required' },
+      providerOptions: {
+        google: {
+          functionCallingConfig: {
+            allowedFunctionNames: ['get_weather'],
+          },
+        },
+      },
+    });
+
+    expect(
+      (await server.calls[0].requestBodyJson).toolConfig.functionCallingConfig,
+    ).toMatchObject({
+      mode: 'ANY',
+      allowedFunctionNames: ['get_weather'],
+    });
+  });
+
   it('should include non-image inlineData parts', async () => {
     server.urls[TEST_URL_GEMINI_PRO].response = {
       type: 'json-value',
