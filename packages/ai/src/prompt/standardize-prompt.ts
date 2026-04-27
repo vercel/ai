@@ -32,11 +32,9 @@ export type StandardizedPrompt = {
  * @returns The standardized prompt.
  * @throws {InvalidPromptError} When the prompt is invalid.
  */
-export async function standardizePrompt({
-  prompt,
-}: {
-  prompt: Prompt;
-}): Promise<StandardizedPrompt> {
+export async function standardizePrompt(
+  prompt: Prompt,
+): Promise<StandardizedPrompt> {
   const { allowSystemInMessages = false } = prompt;
 
   if (prompt.prompt == null && prompt.messages == null) {

@@ -6,14 +6,12 @@ describe('standardizePrompt', () => {
   it('should throw InvalidPromptError when messages contain a system message by default', async () => {
     await expect(async () => {
       await standardizePrompt({
-        prompt: {
-          messages: [
-            {
-              role: 'system',
-              content: 'INSTRUCTIONS',
-            },
-          ],
-        },
+        messages: [
+          {
+            role: 'system',
+            content: 'INSTRUCTIONS',
+          },
+        ],
       });
     }).rejects.toThrow(InvalidPromptError);
   });
@@ -21,33 +19,29 @@ describe('standardizePrompt', () => {
   it('should throw InvalidPromptError when prompt messages contain a system message by default', async () => {
     await expect(async () => {
       await standardizePrompt({
-        prompt: {
-          prompt: [
-            {
-              role: 'system',
-              content: 'INSTRUCTIONS',
-            },
-          ],
-        },
+        prompt: [
+          {
+            role: 'system',
+            content: 'INSTRUCTIONS',
+          },
+        ],
       });
     }).rejects.toThrow(InvalidPromptError);
   });
 
   it('should allow system messages in messages when allowSystemInMessages is true', async () => {
     const result = await standardizePrompt({
-      prompt: {
-        allowSystemInMessages: true,
-        messages: [
-          {
-            role: 'system',
-            content: 'INSTRUCTIONS',
-          },
-          {
-            role: 'user',
-            content: 'Hello, world!',
-          },
-        ],
-      },
+      allowSystemInMessages: true,
+      messages: [
+        {
+          role: 'system',
+          content: 'INSTRUCTIONS',
+        },
+        {
+          role: 'user',
+          content: 'Hello, world!',
+        },
+      ],
     });
 
     expect(result).toMatchInlineSnapshot(`
@@ -69,19 +63,17 @@ describe('standardizePrompt', () => {
 
   it('should allow system messages in prompt messages when allowSystemInMessages is true', async () => {
     const result = await standardizePrompt({
-      prompt: {
-        allowSystemInMessages: true,
-        prompt: [
-          {
-            role: 'system',
-            content: 'INSTRUCTIONS',
-          },
-          {
-            role: 'user',
-            content: 'Hello, world!',
-          },
-        ],
-      },
+      allowSystemInMessages: true,
+      prompt: [
+        {
+          role: 'system',
+          content: 'INSTRUCTIONS',
+        },
+        {
+          role: 'user',
+          content: 'Hello, world!',
+        },
+      ],
     });
 
     expect(result).toMatchInlineSnapshot(`
@@ -104,15 +96,13 @@ describe('standardizePrompt', () => {
   it('should throw InvalidPromptError when an allowed system message has parts', async () => {
     await expect(async () => {
       await standardizePrompt({
-        prompt: {
-          allowSystemInMessages: true,
-          messages: [
-            {
-              role: 'system',
-              content: [{ type: 'text', text: 'test' }] as any,
-            },
-          ],
-        },
+        allowSystemInMessages: true,
+        messages: [
+          {
+            role: 'system',
+            content: [{ type: 'text', text: 'test' }] as any,
+          },
+        ],
       });
     }).rejects.toThrow(InvalidPromptError);
   });
@@ -120,22 +110,18 @@ describe('standardizePrompt', () => {
   it('should throw InvalidPromptError when messages array is empty', async () => {
     await expect(async () => {
       await standardizePrompt({
-        prompt: {
-          messages: [],
-        },
+        messages: [],
       });
     }).rejects.toThrow(InvalidPromptError);
   });
 
   it('should support SystemModelMessage system message', async () => {
     const result = await standardizePrompt({
-      prompt: {
-        system: {
-          role: 'system',
-          content: 'INSTRUCTIONS',
-        },
-        prompt: 'Hello, world!',
+      system: {
+        role: 'system',
+        content: 'INSTRUCTIONS',
       },
+      prompt: 'Hello, world!',
     });
 
     expect(result).toMatchInlineSnapshot(`
@@ -156,13 +142,11 @@ describe('standardizePrompt', () => {
 
   it('should support array of SystemModelMessage system messages', async () => {
     const result = await standardizePrompt({
-      prompt: {
-        system: [
-          { role: 'system', content: 'INSTRUCTIONS' },
-          { role: 'system', content: 'INSTRUCTIONS 2' },
-        ],
-        prompt: 'Hello, world!',
-      },
+      system: [
+        { role: 'system', content: 'INSTRUCTIONS' },
+        { role: 'system', content: 'INSTRUCTIONS 2' },
+      ],
+      prompt: 'Hello, world!',
     });
 
     expect(result).toMatchInlineSnapshot(`
