@@ -5555,6 +5555,105 @@ describe('doStream', () => {
     `);
   });
 
+  it('should omit server-side tool invocation flag for Vertex Gemini 3', async () => {
+    server.urls[TEST_URL_GEMINI_3_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: { parts: [{ text: 'Hello' }], role: 'model' },
+              finishReason: 'STOP',
+              safetyRatings: SAFETY_RATINGS,
+            },
+          ],
+          usageMetadata: {
+            promptTokenCount: 1,
+            candidatesTokenCount: 1,
+            totalTokenCount: 2,
+          },
+        })}\n\n`,
+      ],
+    };
+
+    const vertexModel = new GoogleLanguageModel('gemini-3-pro-preview', {
+      provider: 'google.vertex.chat',
+      baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+      headers: { 'x-goog-api-key': 'test-api-key' },
+      generateId: () => 'test-id',
+    });
+
+    const { stream } = await vertexModel.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+      tools: [
+        {
+          type: 'function',
+          name: 'test-tool',
+          inputSchema: {
+            type: 'object',
+            properties: { value: { type: 'string' } },
+            required: ['value'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+        },
+        {
+          type: 'provider',
+          id: 'google.google_search',
+          name: 'google_search',
+          args: {},
+        },
+      ],
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect({
+      toolConfig: requestBody.toolConfig,
+      tools: requestBody.tools,
+    }).toMatchInlineSnapshot(`
+      {
+        "toolConfig": {
+          "functionCallingConfig": {
+            "mode": "VALIDATED",
+          },
+        },
+        "tools": [
+          {
+            "googleSearch": {},
+          },
+          {
+            "functionDeclarations": [
+              {
+                "description": "",
+                "name": "test-tool",
+                "parameters": {
+                  "properties": {
+                    "value": {
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "value",
+                  ],
+                  "type": "object",
+                },
+              },
+            ],
+          },
+        ],
+      }
+    `);
+
+    const events = await convertReadableStreamToArray(stream);
+    expect(events[0]).toMatchInlineSnapshot(`
+      {
+        "type": "stream-start",
+        "warnings": [],
+      }
+    `);
+  });
+
   it('should send streamFunctionCallArguments in toolConfig when provider option is set with Vertex provider', async () => {
     server.urls[TEST_URL_GEMINI_PRO].response = {
       type: 'stream-chunks',
