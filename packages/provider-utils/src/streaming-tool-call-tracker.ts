@@ -19,7 +19,9 @@ export interface StreamingToolCallDelta {
   } | null;
 }
 
-export interface StreamingToolCallTrackerOptions {
+export interface StreamingToolCallTrackerOptions<
+  DELTA extends StreamingToolCallDelta = StreamingToolCallDelta,
+> {
   /**
    * ID generator function for tool call IDs.
    * Defaults to the standard generateId.
@@ -40,9 +42,7 @@ export interface StreamingToolCallTrackerOptions {
    * The returned metadata is stored on the tool call and passed to
    * `buildToolCallProviderMetadata` when the tool call is finalized.
    */
-  extractMetadata?: (
-    delta: StreamingToolCallDelta,
-  ) => SharedV4ProviderMetadata | undefined;
+  extractMetadata?: (delta: DELTA) => SharedV4ProviderMetadata | undefined;
 
   /**
    * Build the `providerMetadata` object for a `tool-call` event.
@@ -75,13 +75,15 @@ type StreamingToolCallTrackerController = Pick<
  *
  * Used by openai, openai-compatible, groq, deepseek, and alibaba providers.
  */
-export class StreamingToolCallTracker {
+export class StreamingToolCallTracker<
+  DELTA extends StreamingToolCallDelta = StreamingToolCallDelta,
+> {
   private toolCalls: TrackedToolCall[] = [];
   private readonly controller: StreamingToolCallTrackerController;
   private readonly _generateId: () => string;
   private readonly typeValidation: 'none' | 'if-present' | 'required';
   private readonly extractMetadata?: (
-    delta: StreamingToolCallDelta,
+    delta: DELTA,
   ) => SharedV4ProviderMetadata | undefined;
   private readonly buildToolCallProviderMetadata?: (
     metadata: SharedV4ProviderMetadata | undefined,
@@ -89,7 +91,7 @@ export class StreamingToolCallTracker {
 
   constructor(
     controller: StreamingToolCallTrackerController,
-    options: StreamingToolCallTrackerOptions = {},
+    options: StreamingToolCallTrackerOptions<DELTA> = {},
   ) {
     this.controller = controller;
     this._generateId = options.generateId ?? defaultGenerateId;
@@ -103,7 +105,7 @@ export class StreamingToolCallTracker {
    * Emits tool-input-start, tool-input-delta, tool-input-end, and tool-call
    * events as appropriate.
    */
-  processDelta(toolCallDelta: StreamingToolCallDelta): void {
+  processDelta(toolCallDelta: DELTA): void {
     const index = toolCallDelta.index ?? this.toolCalls.length;
 
     if (this.toolCalls[index] == null) {
@@ -125,10 +127,7 @@ export class StreamingToolCallTracker {
     }
   }
 
-  private processNewToolCall(
-    index: number,
-    toolCallDelta: StreamingToolCallDelta,
-  ): void {
+  private processNewToolCall(index: number, toolCallDelta: DELTA): void {
     if (this.typeValidation === 'required') {
       if (toolCallDelta.type !== 'function') {
         throw new InvalidResponseDataError({
@@ -196,10 +195,7 @@ export class StreamingToolCallTracker {
     }
   }
 
-  private processExistingToolCall(
-    index: number,
-    toolCallDelta: StreamingToolCallDelta,
-  ): void {
+  private processExistingToolCall(index: number, toolCallDelta: DELTA): void {
     const toolCall = this.toolCalls[index];
 
     if (toolCall.hasFinished) {

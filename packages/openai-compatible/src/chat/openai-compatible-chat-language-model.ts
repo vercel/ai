@@ -23,6 +23,7 @@ import {
   postJsonToApi,
   ResponseHandler,
   serializeModelOptions,
+  type StreamingToolCallDelta,
   StreamingToolCallTracker,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
@@ -47,6 +48,14 @@ import {
 } from './openai-compatible-chat-options';
 import { MetadataExtractor } from './openai-compatible-metadata-extractor';
 import { prepareTools } from './openai-compatible-prepare-tools';
+
+type OpenAICompatibleStreamingToolCallDelta = StreamingToolCallDelta & {
+  extra_content?: {
+    google?: {
+      thought_signature?: string | null;
+    } | null;
+  } | null;
+};
 
 export type OpenAICompatibleChatConfig = {
   provider: string;
@@ -430,7 +439,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
     });
 
     const providerOptionsName = metadataKey;
-    let toolCallTracker: StreamingToolCallTracker;
+    let toolCallTracker: StreamingToolCallTracker<OpenAICompatibleStreamingToolCallDelta>;
 
     let finishReason: LanguageModelV4FinishReason = {
       unified: 'other',
@@ -449,17 +458,22 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
           LanguageModelV4StreamPart
         >({
           start(controller) {
-            toolCallTracker = new StreamingToolCallTracker(controller, {
-              generateId,
-              extractMetadata: delta => {
-                const sig = (delta as any).extra_content?.google
-                  ?.thought_signature;
-                return sig
-                  ? { [providerOptionsName]: { thoughtSignature: sig } }
-                  : undefined;
-              },
-              buildToolCallProviderMetadata: metadata => metadata,
-            });
+            toolCallTracker =
+              new StreamingToolCallTracker<OpenAICompatibleStreamingToolCallDelta>(
+                controller,
+                {
+                  generateId,
+                  extractMetadata: delta => {
+                    const thoughtSignature =
+                      delta.extra_content?.google?.thought_signature;
+
+                    return thoughtSignature
+                      ? { [providerOptionsName]: { thoughtSignature } }
+                      : undefined;
+                  },
+                  buildToolCallProviderMetadata: metadata => metadata,
+                },
+              );
             controller.enqueue({ type: 'stream-start', warnings });
           },
 
