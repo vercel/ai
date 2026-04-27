@@ -1,14 +1,19 @@
-import { Tool } from '@ai-sdk/provider-utils';
+import { Tool } from "@ai-sdk/provider-utils";
 
 export type ToolSet = Record<
   string,
-  (Tool<never, never> | Tool<any, any> | Tool<any, never> | Tool<never, any>) &
+  (
+    | Tool<never, never, never>
+    | Tool<any, any, any>
+    | Tool<any, never, any>
+    | Tool<never, any, any>
+  ) &
     Pick<
-      Tool<any, any>,
-      | 'execute'
-      | 'onInputAvailable'
-      | 'onInputStart'
-      | 'onInputDelta'
-      | 'needsApproval'
+      Tool<any, any, any>,
+      | "execute"
+      | "onInputAvailable"
+      | "onInputStart"
+      | "onInputDelta"
+      | "needsApproval"
     >
 >;
