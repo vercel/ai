@@ -2,8 +2,8 @@ import { Context, tool } from '@ai-sdk/provider-utils';
 import { describe, expectTypeOf, it } from 'vitest';
 import { z } from 'zod';
 import {
+  GenerateTextOnFinishCallback,
   Output,
-  StreamTextOnFinishCallback,
   ToolApprovalConfiguration,
 } from '../generate-text';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
@@ -11,12 +11,11 @@ import { AsyncIterableStream } from '../util/async-iterable-stream';
 import { DeepPartial } from '../util/deep-partial';
 import { AgentCallParameters, AgentStreamParameters } from './agent';
 import { ToolLoopAgent } from './tool-loop-agent';
-import type { ToolLoopAgentOnFinishCallback } from './tool-loop-agent-settings';
 
 describe('ToolLoopAgent', () => {
   describe('onFinish callback type compatibility', () => {
     it('should allow StreamTextOnFinishCallback where ToolLoopAgentOnFinishCallback is expected', () => {
-      const streamTextCallback: StreamTextOnFinishCallback<
+      const streamTextCallback: GenerateTextOnFinishCallback<
         {},
         {}
       > = async event => {
@@ -25,18 +24,18 @@ describe('ToolLoopAgent', () => {
       };
 
       expectTypeOf(streamTextCallback).toMatchTypeOf<
-        ToolLoopAgentOnFinishCallback<{}>
+        GenerateTextOnFinishCallback<{}>
       >();
     });
 
-    it('should allow ToolLoopAgentOnFinishCallback where StreamTextOnFinishCallback is expected', () => {
-      const agentCallback: ToolLoopAgentOnFinishCallback<{}> = async event => {
+    it('should allow ToolLoopAgentOnFinishCallback where GenerateTextOnFinishCallback is expected', () => {
+      const agentCallback: GenerateTextOnFinishCallback<{}> = async event => {
         const runtimeContext: unknown = event.runtimeContext;
         runtimeContext;
       };
 
       expectTypeOf(agentCallback).toMatchTypeOf<
-        StreamTextOnFinishCallback<{}, {}>
+        GenerateTextOnFinishCallback<{}, {}>
       >();
     });
   });

@@ -8,11 +8,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import { ToolLoopAgent } from './tool-loop-agent';
-import type {
-  ToolLoopAgentOnFinishCallback,
-  ToolLoopAgentOnStartCallback,
-  ToolLoopAgentOnStepStartCallback,
-} from './tool-loop-agent-settings';
 import {
   ToolExecutionEndEvent,
   ToolExecutionStartEvent,
@@ -23,6 +18,11 @@ vi.mock('../util/now', () => ({
   now: vi.fn(),
 }));
 import { now } from '../util/now';
+import {
+  GenerateTextOnFinishCallback,
+  GenerateTextOnStartCallback,
+  GenerateTextOnStepStartCallback,
+} from '../generate-text/generate-text-events';
 const mockNow = vi.mocked(now);
 
 const testSettings = {
@@ -931,7 +931,7 @@ describe('ToolLoopAgent', () => {
 
       it('should pass correct event information', async () => {
         let startEvent!: Parameters<
-          ToolLoopAgentOnStartCallback<{}, { userId: string }>
+          GenerateTextOnStartCallback<{}, { userId: string }>
         >[0];
 
         const agent = new ToolLoopAgent({
@@ -978,7 +978,7 @@ describe('ToolLoopAgent', () => {
       });
 
       it('should pass messages when using messages option', async () => {
-        let startEvent!: Parameters<ToolLoopAgentOnStartCallback<{}>>[0];
+        let startEvent!: Parameters<GenerateTextOnStartCallback<{}>>[0];
 
         const agent = new ToolLoopAgent({
           model: mockModel,
@@ -1116,7 +1116,7 @@ describe('ToolLoopAgent', () => {
 
       it('should pass correct event information', async () => {
         let startEvent!: Parameters<
-          ToolLoopAgentOnStartCallback<{}, { userId: string }>
+          GenerateTextOnStartCallback<{}, { userId: string }>
         >[0];
 
         const agent = new ToolLoopAgent({
@@ -1325,7 +1325,7 @@ describe('ToolLoopAgent', () => {
 
       it('should pass correct event information', async () => {
         let stepStartEvent!: Parameters<
-          ToolLoopAgentOnStepStartCallback<{}, { userId: string }>
+          GenerateTextOnStepStartCallback<{}, { userId: string }>
         >[0];
 
         const agent = new ToolLoopAgent({
@@ -1479,7 +1479,7 @@ describe('ToolLoopAgent', () => {
 
       it('should pass correct event information', async () => {
         let stepStartEvent!: Parameters<
-          ToolLoopAgentOnStepStartCallback<{}, { userId: string }>
+          GenerateTextOnStepStartCallback<{}, { userId: string }>
         >[0];
 
         const agent = new ToolLoopAgent({
@@ -2755,7 +2755,7 @@ describe('ToolLoopAgent', () => {
       });
 
       it('should pass correct event information', async () => {
-        let event!: Parameters<ToolLoopAgentOnFinishCallback>[0];
+        let event!: Parameters<GenerateTextOnFinishCallback<{}>>[0];
 
         const agent = new ToolLoopAgent({
           model: mockModel,
@@ -2906,7 +2906,7 @@ describe('ToolLoopAgent', () => {
       });
 
       it('should pass correct event information', async () => {
-        let event!: Parameters<ToolLoopAgentOnFinishCallback>[0];
+        let event!: Parameters<GenerateTextOnFinishCallback<{}>>[0];
 
         const agent = new ToolLoopAgent({
           model: mockModel,
@@ -3422,6 +3422,89 @@ describe('ToolLoopAgent', () => {
 
         expect(await result.text).toBe('Hello!');
       });
+    });
+  });
+
+  describe('callOptionsSchema', () => {
+    it('should reject options that fail callOptionsSchema validation before invoking the model', async () => {
+      let modelCalled = false;
+      const agent = new ToolLoopAgent<{ topic: 'legal' | 'medical' }>({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => {
+            modelCalled = true;
+            return {
+              content: [{ type: 'text', text: 'reply' }],
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: {
+                cachedInputTokens: undefined,
+                inputTokens: {
+                  total: 1,
+                  noCache: 1,
+                  cacheRead: undefined,
+                  cacheWrite: undefined,
+                },
+                outputTokens: {
+                  total: 1,
+                  text: 1,
+                  reasoning: undefined,
+                },
+              },
+              warnings: [],
+            };
+          },
+        }),
+        callOptionsSchema: z.object({
+          topic: z.enum(['legal', 'medical']),
+        }),
+      });
+
+      await expect(
+        agent.generate({
+          prompt: 'hi',
+          // intentionally outside the enum to exercise schema enforcement
+          options: { topic: 'evil' as 'legal' },
+        }),
+      ).rejects.toThrow(/Type validation failed for options/);
+
+      expect(modelCalled).toBe(false);
+    });
+
+    it('should pass through options that satisfy callOptionsSchema', async () => {
+      const agent = new ToolLoopAgent<{ topic: 'legal' | 'medical' }>({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => {
+            return {
+              content: [{ type: 'text', text: 'reply' }],
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: {
+                cachedInputTokens: undefined,
+                inputTokens: {
+                  total: 1,
+                  noCache: 1,
+                  cacheRead: undefined,
+                  cacheWrite: undefined,
+                },
+                outputTokens: {
+                  total: 1,
+                  text: 1,
+                  reasoning: undefined,
+                },
+              },
+              warnings: [],
+            };
+          },
+        }),
+        callOptionsSchema: z.object({
+          topic: z.enum(['legal', 'medical']),
+        }),
+      });
+
+      const result = await agent.generate({
+        prompt: 'hi',
+        options: { topic: 'legal' },
+      });
+
+      expect(result.text).toBe('reply');
     });
   });
 });

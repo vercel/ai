@@ -82,15 +82,16 @@ We greatly appreciate your pull requests. Here are the steps to submit them:
 
 3. **Add a codemod**: If the change introduces a deprecation or a breaking change, add a codemod if possible. See [how to contribute codemods](contributing/codemods.md)
 4. **Commit Your Changes**: Ensure your commits are succinct and clear, detailing what modifications have been made and the reasons behind them. We don't require a specific commit message format, but please be descriptive.
-5. **Pre-commit hooks**: A pre-commit hook automatically formats your staged files using `lint-staged` when you commit. If you stage any `package.json` changes, `pnpm install` runs automatically to keep the lockfile in sync. If you need to skip these hooks (e.g., for work-in-progress commits), set `ARTISANAL_MODE=1` before committing: `ARTISANAL_MODE=1 git commit -m "message"`.
-6. **Push the Changes to Your GitHub Repository**: After committing your changes, push them to your GitHub repository.
-7. **Open a Pull Request**: Propose your changes for review. Furnish a lucid title and description of your contributions. Make sure to link any relevant issues your PR resolves. We use the following PR title format:
+5. **Sign Your Commits**: All commits must be [signed](https://docs.github.com/en/authentication/managing-commit-signature-verification/signing-commits). Pull requests with unsigned commits cannot be merged.
+6. **Pre-commit hooks**: A pre-commit hook automatically formats your staged files using `lint-staged` when you commit. If you stage any `package.json` changes, `pnpm install` runs automatically to keep the lockfile in sync. If you need to skip these hooks (e.g., for work-in-progress commits), set `ARTISANAL_MODE=1` before committing: `ARTISANAL_MODE=1 git commit -m "message"`.
+7. **Push the Changes to Your GitHub Repository**: After committing your changes, push them to your GitHub repository.
+8. **Open a Pull Request**: Propose your changes for review. Furnish a lucid title and description of your contributions. Make sure to link any relevant issues your PR resolves. We use the following PR title format:
 
    - `fix(package-name): description` or
    - `feat(package-name): description` or
    - `chore(package-name): description` etc.
 
-8. **Respond to Feedback**: Stay receptive to and address any feedback or alteration requests from the project maintainers.
+9. **Respond to Feedback**: Stay receptive to and address any feedback or alteration requests from the project maintainers.
 
 Thank you for contributing to the AI SDK! Your efforts help us improve the project for everyone.
 

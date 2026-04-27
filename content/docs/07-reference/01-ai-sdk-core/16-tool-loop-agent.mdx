@@ -113,7 +113,7 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
     },
     {
       name: 'experimental_onStart',
-      type: 'ToolLoopAgentOnStartCallback',
+      type: 'GenerateTextOnStartCallback',
       isOptional: true,
       description:
         'Callback that is called when the agent operation begins, before any LLM calls are made. Useful for logging, analytics, or initializing state. If also specified in `generate()` or `stream()`, both callbacks are called (constructor first). Experimental (can break in patch releases).',
@@ -218,11 +218,6 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
               description: 'Additional provider-specific options.',
             },
             {
-              name: 'stopWhen',
-              type: 'StopCondition<TOOLS> | Array<StopCondition<TOOLS>> | undefined',
-              description: 'Condition(s) for stopping the generation.',
-            },
-            {
               name: 'output',
               type: 'OUTPUT | undefined',
               description:
@@ -257,7 +252,7 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
     },
     {
       name: 'experimental_onStepStart',
-      type: 'ToolLoopAgentOnStepStartCallback',
+      type: 'GenerateTextOnStepStartCallback',
       isOptional: true,
       description:
         'Callback that is called when a step (LLM call) begins, before the provider is called. Each step represents a single LLM invocation. If also specified in `generate()` or `stream()`, both callbacks are called (constructor first). Experimental (can break in patch releases).',
@@ -449,14 +444,14 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
     },
     {
       name: 'onStepFinish',
-      type: 'ToolLoopAgentOnStepFinishCallback',
+      type: 'GenerateTextOnStepFinishCallback',
       isOptional: true,
       description:
         'Callback invoked after each agent step (LLM/tool call) completes. If also specified in `generate()` or `stream()`, both callbacks are called (constructor first).',
     },
     {
       name: 'onFinish',
-      type: 'ToolLoopAgentOnFinishCallback',
+      type: 'GenerateTextOnFinishCallback',
       isOptional: true,
       description:
         'Callback that is called when all agent steps are finished and the response is complete. Receives step results, total usage, shared `runtimeContext`, and `toolsContext`. If also specified in `generate()` or `stream()`, both callbacks are called (constructor first).',
@@ -644,14 +639,14 @@ const result = await agent.generate({
     },
     {
       name: 'experimental_onStart',
-      type: 'ToolLoopAgentOnStartCallback',
+      type: 'GenerateTextOnStartCallback',
       isOptional: true,
       description:
         'Callback that is called when the agent operation begins, before any LLM calls are made. If also specified in the constructor, both callbacks are called (constructor first). Experimental (can break in patch releases).',
     },
     {
       name: 'experimental_onStepStart',
-      type: 'ToolLoopAgentOnStepStartCallback',
+      type: 'GenerateTextOnStepStartCallback',
       isOptional: true,
       description:
         'Callback that is called when a step (LLM call) begins, before the provider is called. If also specified in the constructor, both callbacks are called (constructor first). Experimental (can break in patch releases).',
@@ -672,14 +667,14 @@ const result = await agent.generate({
     },
     {
       name: 'onStepFinish',
-      type: 'ToolLoopAgentOnStepFinishCallback',
+      type: 'GenerateTextOnStepFinishCallback',
       isOptional: true,
       description:
         'Callback invoked after each agent step (LLM/tool call) completes. If also specified in the constructor, both callbacks are called (constructor first, then this one).',
     },
     {
       name: 'onFinish',
-      type: 'ToolLoopAgentOnFinishCallback',
+      type: 'GenerateTextOnFinishCallback',
       isOptional: true,
       description:
         'Callback that is called when all agent steps are finished and the response is complete. If also specified in the constructor, both callbacks are called (constructor first, then this one).',
@@ -747,14 +742,14 @@ for await (const chunk of stream.textStream) {
     },
     {
       name: 'experimental_onStart',
-      type: 'ToolLoopAgentOnStartCallback',
+      type: 'GenerateTextOnStartCallback',
       isOptional: true,
       description:
         'Callback that is called when the agent operation begins, before any LLM calls are made. If also specified in the constructor, both callbacks are called (constructor first). Experimental (can break in patch releases).',
     },
     {
       name: 'experimental_onStepStart',
-      type: 'ToolLoopAgentOnStepStartCallback',
+      type: 'GenerateTextOnStepStartCallback',
       isOptional: true,
       description:
         'Callback that is called when a step (LLM call) begins, before the provider is called. If also specified in the constructor, both callbacks are called (constructor first). Experimental (can break in patch releases).',
@@ -775,14 +770,14 @@ for await (const chunk of stream.textStream) {
     },
     {
       name: 'onStepFinish',
-      type: 'ToolLoopAgentOnStepFinishCallback',
+      type: 'GenerateTextOnStepFinishCallback',
       isOptional: true,
       description:
         'Callback invoked after each agent step (LLM/tool call) completes. If also specified in the constructor, both callbacks are called (constructor first, then this one).',
     },
     {
       name: 'onFinish',
-      type: 'ToolLoopAgentOnFinishCallback',
+      type: 'GenerateTextOnFinishCallback',
       isOptional: true,
       description:
         'Callback that is called when all agent steps are finished and the response is complete. If also specified in the constructor, both callbacks are called (constructor first, then this one).',
