@@ -430,16 +430,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
     });
 
     const providerOptionsName = metadataKey;
-    const toolCallTracker = new StreamingToolCallTracker({
-      generateId,
-      extractMetadata: delta => {
-        const sig = (delta as any).extra_content?.google?.thought_signature;
-        return sig
-          ? { [providerOptionsName]: { thoughtSignature: sig } }
-          : undefined;
-      },
-      buildToolCallProviderMetadata: metadata => metadata,
-    });
+    let toolCallTracker: StreamingToolCallTracker;
 
     let finishReason: LanguageModelV4FinishReason = {
       unified: 'other',
@@ -458,6 +449,17 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
           LanguageModelV4StreamPart
         >({
           start(controller) {
+            toolCallTracker = new StreamingToolCallTracker(controller, {
+              generateId,
+              extractMetadata: delta => {
+                const sig = (delta as any).extra_content?.google
+                  ?.thought_signature;
+                return sig
+                  ? { [providerOptionsName]: { thoughtSignature: sig } }
+                  : undefined;
+              },
+              buildToolCallProviderMetadata: metadata => metadata,
+            });
             controller.enqueue({ type: 'stream-start', warnings });
           },
 
@@ -569,10 +571,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
               }
 
               for (const toolCallDelta of delta.tool_calls) {
-                toolCallTracker.processDelta(
-                  toolCallDelta,
-                  controller.enqueue.bind(controller),
-                );
+                toolCallTracker.processDelta(toolCallDelta);
               }
             }
           },
@@ -586,7 +585,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
               controller.enqueue({ type: 'text-end', id: 'txt-0' });
             }
 
-            toolCallTracker.flush(controller.enqueue.bind(controller));
+            toolCallTracker.flush();
 
             const providerMetadata: SharedV4ProviderMetadata = {
               [providerOptionsName]: {},
