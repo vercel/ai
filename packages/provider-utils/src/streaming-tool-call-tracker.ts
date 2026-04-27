@@ -19,7 +19,9 @@ export interface StreamingToolCallDelta {
   } | null;
 }
 
-export interface StreamingToolCallTrackerOptions {
+export interface StreamingToolCallTrackerOptions<
+  DELTA extends StreamingToolCallDelta = StreamingToolCallDelta,
+> {
   /**
    * ID generator function for tool call IDs.
    * Defaults to the standard generateId.
@@ -40,9 +42,7 @@ export interface StreamingToolCallTrackerOptions {
    * The returned metadata is stored on the tool call and passed to
    * `buildToolCallProviderMetadata` when the tool call is finalized.
    */
-  extractMetadata?: (
-    delta: StreamingToolCallDelta,
-  ) => SharedV4ProviderMetadata | undefined;
+  extractMetadata?: (delta: DELTA) => SharedV4ProviderMetadata | undefined;
 
   /**
    * Build the `providerMetadata` object for a `tool-call` event.
@@ -62,6 +62,11 @@ interface TrackedToolCall {
   metadata?: SharedV4ProviderMetadata;
 }
 
+type StreamingToolCallTrackerController = Pick<
+  TransformStreamDefaultController<LanguageModelV4StreamPart>,
+  'enqueue'
+>;
+
 /**
  * Tracks streaming tool call state across multiple deltas from an
  * OpenAI-compatible chat completion stream. Handles argument accumulation,
@@ -70,18 +75,25 @@ interface TrackedToolCall {
  *
  * Used by openai, openai-compatible, groq, deepseek, and alibaba providers.
  */
-export class StreamingToolCallTracker {
+export class StreamingToolCallTracker<
+  DELTA extends StreamingToolCallDelta = StreamingToolCallDelta,
+> {
   private toolCalls: TrackedToolCall[] = [];
+  private readonly controller: StreamingToolCallTrackerController;
   private readonly _generateId: () => string;
   private readonly typeValidation: 'none' | 'if-present' | 'required';
   private readonly extractMetadata?: (
-    delta: StreamingToolCallDelta,
+    delta: DELTA,
   ) => SharedV4ProviderMetadata | undefined;
   private readonly buildToolCallProviderMetadata?: (
     metadata: SharedV4ProviderMetadata | undefined,
   ) => SharedV4ProviderMetadata | undefined;
 
-  constructor(options: StreamingToolCallTrackerOptions = {}) {
+  constructor(
+    controller: StreamingToolCallTrackerController,
+    options: StreamingToolCallTrackerOptions<DELTA> = {},
+  ) {
+    this.controller = controller;
     this._generateId = options.generateId ?? defaultGenerateId;
     this.typeValidation = options.typeValidation ?? 'none';
     this.extractMetadata = options.extractMetadata;
@@ -93,16 +105,13 @@ export class StreamingToolCallTracker {
    * Emits tool-input-start, tool-input-delta, tool-input-end, and tool-call
    * events as appropriate.
    */
-  processDelta(
-    toolCallDelta: StreamingToolCallDelta,
-    enqueue: (part: LanguageModelV4StreamPart) => void,
-  ): void {
+  processDelta(toolCallDelta: DELTA): void {
     const index = toolCallDelta.index ?? this.toolCalls.length;
 
     if (this.toolCalls[index] == null) {
-      this.processNewToolCall(index, toolCallDelta, enqueue);
+      this.processNewToolCall(index, toolCallDelta);
     } else {
-      this.processExistingToolCall(index, toolCallDelta, enqueue);
+      this.processExistingToolCall(index, toolCallDelta);
     }
   }
 
@@ -110,19 +119,15 @@ export class StreamingToolCallTracker {
    * Finalize any unfinished tool calls. Should be called during the stream's
    * flush handler to ensure all tool calls are properly completed.
    */
-  flush(enqueue: (part: LanguageModelV4StreamPart) => void): void {
+  flush(): void {
     for (const toolCall of this.toolCalls) {
       if (!toolCall.hasFinished) {
-        this.finishToolCall(toolCall, enqueue);
+        this.finishToolCall(toolCall);
       }
     }
   }
 
-  private processNewToolCall(
-    index: number,
-    toolCallDelta: StreamingToolCallDelta,
-    enqueue: (part: LanguageModelV4StreamPart) => void,
-  ): void {
+  private processNewToolCall(index: number, toolCallDelta: DELTA): void {
     if (this.typeValidation === 'required') {
       if (toolCallDelta.type !== 'function') {
         throw new InvalidResponseDataError({
@@ -153,7 +158,7 @@ export class StreamingToolCallTracker {
       });
     }
 
-    enqueue({
+    this.controller.enqueue({
       type: 'tool-input-start',
       id: toolCallDelta.id,
       toolName: toolCallDelta.function.name,
@@ -176,7 +181,7 @@ export class StreamingToolCallTracker {
 
     // Emit initial delta if arguments already present
     if (toolCall.function.arguments.length > 0) {
-      enqueue({
+      this.controller.enqueue({
         type: 'tool-input-delta',
         id: toolCall.id,
         delta: toolCall.function.arguments,
@@ -186,15 +191,11 @@ export class StreamingToolCallTracker {
     // Check if tool call is complete
     // (some providers send the full tool call in one chunk)
     if (isParsableJson(toolCall.function.arguments)) {
-      this.finishToolCall(toolCall, enqueue);
+      this.finishToolCall(toolCall);
     }
   }
 
-  private processExistingToolCall(
-    index: number,
-    toolCallDelta: StreamingToolCallDelta,
-    enqueue: (part: LanguageModelV4StreamPart) => void,
-  ): void {
+  private processExistingToolCall(index: number, toolCallDelta: DELTA): void {
     const toolCall = this.toolCalls[index];
 
     if (toolCall.hasFinished) {
@@ -204,7 +205,7 @@ export class StreamingToolCallTracker {
     if (toolCallDelta.function?.arguments != null) {
       toolCall.function.arguments += toolCallDelta.function.arguments;
 
-      enqueue({
+      this.controller.enqueue({
         type: 'tool-input-delta',
         id: toolCall.id,
         delta: toolCallDelta.function.arguments,
@@ -213,15 +214,12 @@ export class StreamingToolCallTracker {
 
     // Check if tool call is complete
     if (isParsableJson(toolCall.function.arguments)) {
-      this.finishToolCall(toolCall, enqueue);
+      this.finishToolCall(toolCall);
     }
   }
 
-  private finishToolCall(
-    toolCall: TrackedToolCall,
-    enqueue: (part: LanguageModelV4StreamPart) => void,
-  ): void {
-    enqueue({
+  private finishToolCall(toolCall: TrackedToolCall): void {
+    this.controller.enqueue({
       type: 'tool-input-end',
       id: toolCall.id,
     });
@@ -230,7 +228,7 @@ export class StreamingToolCallTracker {
       toolCall.metadata,
     );
 
-    enqueue({
+    this.controller.enqueue({
       type: 'tool-call',
       toolCallId: toolCall.id ?? this._generateId(),
       toolName: toolCall.function.name,
