@@ -41,6 +41,51 @@ If your `package.json` does not already include `"type": "module"`, add it or re
 
 ## AI SDK Core
 
+### Prompt Messages: System Messages in `prompt` or `messages` Are Rejected by Default
+
+AI SDK 7 rejects system messages in the `prompt` or `messages` fields by default. System instructions should usually be passed with the top-level `system` option.
+
+This can break older persisted chats or custom prompt arrays that include `{ role: 'system' }` messages:
+
+```tsx filename="AI SDK 6"
+const result = await generateText({
+  model: yourModel,
+  messages: [
+    { role: 'system', content: 'You are a helpful assistant.' },
+    { role: 'user', content: 'Hello!' },
+  ],
+});
+```
+
+Move system instructions to the `system` option when possible:
+
+```tsx filename="AI SDK 7"
+const result = await generateText({
+  model: yourModel,
+  system: 'You are a helpful assistant.',
+  messages: [{ role: 'user', content: 'Hello!' }],
+});
+```
+
+If you need to keep existing chat histories that already contain system messages, opt in to the previous behavior with `allowSystemInMessages: true`:
+
+<Note type="warning">
+  Only use `allowSystemInMessages` for trusted messages. If users can submit or
+  edit these messages, they could inject a system message that overrides or sets
+  the system prompt. In most cases, system instructions should only be set by
+  trusted server-side code through the `system` or `instructions` property.
+</Note>
+
+```tsx filename="AI SDK 7"
+const result = await generateText({
+  model: yourModel,
+  allowSystemInMessages: true,
+  messages: persistedMessages,
+});
+```
+
+This applies to AI SDK functions that accept `prompt` or `messages`, including `generateText`, `streamText`, `generateObject`, `streamObject`, and `streamUI`.
+
 ### Telemetry: OpenTelemetry Moved to `@ai-sdk/otel` — Explicit Registration Required
 
 OpenTelemetry span collection is no longer built into the `ai` package. To continue receiving OpenTelemetry traces, you must install the new `@ai-sdk/otel` package and register the `OpenTelemetry` instance globally.
