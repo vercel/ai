@@ -1163,6 +1163,7 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
 
     const prompt = await standardizePrompt({
       system: effectiveInstructions,
+      allowSystemInMessages: true, // TODO: consider exposing this as a parameter
       ...(effectivePrompt != null
         ? { prompt: effectivePrompt }
         : { messages: effectiveMessages! }),
