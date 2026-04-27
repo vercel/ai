@@ -712,6 +712,88 @@ describe('assistant messages', () => {
     });
   });
 
+  it('should omit assistant message reasoning parts signed by a foreign provider', async () => {
+    const result = await convertToAmazonBedrockChatMessages([
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'Explain your reasoning' }],
+      },
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'reasoning',
+            text: 'Anthropic-signed reasoning replayed to Bedrock',
+            providerOptions: {
+              anthropic: { signature: 'anthropic-signature' },
+            },
+          },
+          { type: 'text', text: 'final answer' },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual({
+      messages: [
+        {
+          role: 'user',
+          content: [{ text: 'Explain your reasoning' }],
+        },
+        {
+          role: 'assistant',
+          content: [{ text: 'final answer' }],
+        },
+      ],
+      system: [],
+    });
+  });
+
+  it('should preserve assistant message reasoning parts with amazonBedrock providerOptions', async () => {
+    const result = await convertToAmazonBedrockChatMessages([
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'Explain your reasoning' }],
+      },
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'reasoning',
+            text: 'Bedrock-signed reasoning round-tripped to Bedrock',
+            providerOptions: {
+              amazonBedrock: { signature: 'bedrock-signature' },
+            },
+          },
+          { type: 'text', text: 'final answer' },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual({
+      messages: [
+        {
+          role: 'user',
+          content: [{ text: 'Explain your reasoning' }],
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              reasoningContent: {
+                reasoningText: {
+                  text: 'Bedrock-signed reasoning round-tripped to Bedrock',
+                  signature: 'bedrock-signature',
+                },
+              },
+            },
+            { text: 'final answer' },
+          ],
+        },
+      ],
+      system: [],
+    });
+  });
+
   it('should not trim reasoning text when a signature is present', async () => {
     const result = await convertToAmazonBedrockChatMessages([
       {
