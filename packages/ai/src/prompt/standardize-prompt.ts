@@ -32,19 +32,20 @@ export type StandardizedPrompt = {
  * @returns The standardized prompt.
  * @throws {InvalidPromptError} When the prompt is invalid.
  */
-export async function standardizePrompt(
-  prompt: Prompt,
-): Promise<StandardizedPrompt> {
-  const { allowSystemInMessages = false } = prompt;
-
-  if (prompt.prompt == null && prompt.messages == null) {
+export async function standardizePrompt({
+  allowSystemInMessages = false,
+  system,
+  prompt,
+  messages,
+}: Prompt): Promise<StandardizedPrompt> {
+  if (prompt == null && messages == null) {
     throw new InvalidPromptError({
       prompt,
       message: 'prompt or messages must be defined',
     });
   }
 
-  if (prompt.prompt != null && prompt.messages != null) {
+  if (prompt != null && messages != null) {
     throw new InvalidPromptError({
       prompt,
       message: 'prompt and messages cannot be defined at the same time',
@@ -53,15 +54,8 @@ export async function standardizePrompt(
 
   // validate that system is a string or a SystemModelMessage
   if (
-    prompt.system != null &&
-    typeof prompt.system !== 'string' &&
-    !asArray(prompt.system).every(
-      message =>
-        typeof message === 'object' &&
-        message !== null &&
-        'role' in message &&
-        message.role === 'system',
-    )
+    typeof system !== 'string' &&
+    !asArray(system).every(message => message.role === 'system')
   ) {
     throw new InvalidPromptError({
       prompt,
@@ -70,15 +64,11 @@ export async function standardizePrompt(
     });
   }
 
-  let messages: ModelMessage[];
-
-  if (prompt.prompt != null && typeof prompt.prompt === 'string') {
-    messages = [{ role: 'user', content: prompt.prompt }];
-  } else if (prompt.prompt != null && Array.isArray(prompt.prompt)) {
-    messages = prompt.prompt;
-  } else if (prompt.messages != null) {
-    messages = prompt.messages;
-  } else {
+  if (prompt != null && typeof prompt === 'string') {
+    messages = [{ role: 'user', content: prompt }];
+  } else if (prompt != null && Array.isArray(prompt)) {
+    messages = prompt;
+  } else if (messages == null) {
     throw new InvalidPromptError({
       prompt,
       message: 'prompt or messages must be defined',
@@ -116,8 +106,5 @@ export async function standardizePrompt(
     });
   }
 
-  return {
-    messages,
-    system: prompt.system,
-  };
+  return { messages, system };
 }
