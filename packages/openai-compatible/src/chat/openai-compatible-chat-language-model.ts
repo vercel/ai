@@ -23,7 +23,7 @@ import {
   postJsonToApi,
   ResponseHandler,
   serializeModelOptions,
-  StreamingToolCallDelta,
+  type StreamingToolCallDelta,
   StreamingToolCallTracker,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
@@ -48,6 +48,14 @@ import {
 } from './openai-compatible-chat-options';
 import { MetadataExtractor } from './openai-compatible-metadata-extractor';
 import { prepareTools } from './openai-compatible-prepare-tools';
+
+type OpenAICompatibleStreamingToolCallDelta = StreamingToolCallDelta & {
+  extra_content?: {
+    google?: {
+      thought_signature?: string | null;
+    } | null;
+  } | null;
+};
 
 export type OpenAICompatibleChatConfig = {
   provider: string;
@@ -76,18 +84,10 @@ export type OpenAICompatibleChatConfig = {
   transformRequestBody?: (args: Record<string, any>) => Record<string, any>;
 };
 
-type OpenAICompatibleToolCallDelta = StreamingToolCallDelta & {
-  extra_content?: {
-    google?: {
-      thought_signature?: string | null;
-    } | null;
-  } | null;
-};
-
 type PendingToolCall = {
   id: string | null;
   bufferedArguments: string;
-  extraContent: OpenAICompatibleToolCallDelta['extra_content'];
+  extraContent: OpenAICompatibleStreamingToolCallDelta['extra_content'];
 };
 
 export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
@@ -445,17 +445,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
     });
 
     const providerOptionsName = metadataKey;
-    const toolCallTracker = new StreamingToolCallTracker({
-      generateId,
-      extractMetadata: delta => {
-        const sig = (delta as OpenAICompatibleToolCallDelta).extra_content
-          ?.google?.thought_signature;
-        return sig
-          ? { [providerOptionsName]: { thoughtSignature: sig } }
-          : undefined;
-      },
-      buildToolCallProviderMetadata: metadata => metadata,
-    });
+    let toolCallTracker: StreamingToolCallTracker<OpenAICompatibleStreamingToolCallDelta>;
 
     // Buffers tool-call deltas by `index` until `function.name` is known.
     // Some OpenAI-compatible providers send the first delta without
@@ -464,13 +454,12 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
     const forwardedToolCallIndices = new Set<number>();
 
     const processToolCallDelta = (
-      toolCallDelta: OpenAICompatibleToolCallDelta,
-      enqueue: (part: LanguageModelV4StreamPart) => void,
+      toolCallDelta: OpenAICompatibleStreamingToolCallDelta,
     ) => {
       const index = toolCallDelta.index;
 
       if (index == null || forwardedToolCallIndices.has(index)) {
-        toolCallTracker.processDelta(toolCallDelta, enqueue);
+        toolCallTracker.processDelta(toolCallDelta);
         return;
       }
 
@@ -501,7 +490,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
 
       const name = toolCallDelta.function?.name;
       if (name != null) {
-        const forwardDelta: OpenAICompatibleToolCallDelta = {
+        const forwardDelta: OpenAICompatibleStreamingToolCallDelta = {
           index,
           id: pending.id,
           function: {
@@ -510,7 +499,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
           },
           extra_content: pending.extraContent ?? undefined,
         };
-        toolCallTracker.processDelta(forwardDelta, enqueue);
+        toolCallTracker.processDelta(forwardDelta);
         pendingToolCalls.delete(index);
         forwardedToolCallIndices.add(index);
       }
@@ -533,6 +522,22 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
           LanguageModelV4StreamPart
         >({
           start(controller) {
+            toolCallTracker =
+              new StreamingToolCallTracker<OpenAICompatibleStreamingToolCallDelta>(
+                controller,
+                {
+                  generateId,
+                  extractMetadata: delta => {
+                    const thoughtSignature =
+                      delta.extra_content?.google?.thought_signature;
+
+                    return thoughtSignature
+                      ? { [providerOptionsName]: { thoughtSignature } }
+                      : undefined;
+                  },
+                  buildToolCallProviderMetadata: metadata => metadata,
+                },
+              );
             controller.enqueue({ type: 'stream-start', warnings });
           },
 
@@ -644,10 +649,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
               }
 
               for (const toolCallDelta of delta.tool_calls) {
-                processToolCallDelta(
-                  toolCallDelta,
-                  controller.enqueue.bind(controller),
-                );
+                processToolCallDelta(toolCallDelta);
               }
             }
           },
@@ -662,20 +664,18 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
             }
 
             // Forward any tool-call deltas that never received a
-            // `function.name`
+            // `function.name`. The tracker will throw on the missing name,
+            // preserving the original invalid-response semantics.
             for (const [index, pending] of pendingToolCalls) {
-              toolCallTracker.processDelta(
-                {
-                  index,
-                  id: pending.id,
-                  function: { arguments: pending.bufferedArguments },
-                },
-                controller.enqueue.bind(controller),
-              );
+              toolCallTracker.processDelta({
+                index,
+                id: pending.id,
+                function: { arguments: pending.bufferedArguments },
+              });
             }
             pendingToolCalls.clear();
 
-            toolCallTracker.flush(controller.enqueue.bind(controller));
+            toolCallTracker.flush();
 
             const providerMetadata: SharedV4ProviderMetadata = {
               [providerOptionsName]: {},

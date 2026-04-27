@@ -500,7 +500,6 @@ export async function generateText<
       timeout,
       headers: headersWithUserAgent,
       providerOptions,
-      stopWhen,
       output,
       runtimeContext,
       toolsContext,

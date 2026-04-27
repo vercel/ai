@@ -1,5 +1,4 @@
 import type {
-  Arrayable,
   Context,
   InferToolSetContext,
   ProviderOptions,
@@ -7,13 +6,12 @@ import type {
 } from '@ai-sdk/provider-utils';
 import type { LanguageModelCallOptions } from '../prompt/language-model-call-options';
 import type { TimeoutConfiguration } from '../prompt/request-options';
+import type { StandardizedPrompt } from '../prompt/standardize-prompt';
 import type { ToolChoice } from '../types/language-model';
 import type { LanguageModelUsage } from '../types/usage';
 import type { Output } from './output';
 import type { StepResult } from './step-result';
-import type { StopCondition } from './stop-condition';
 import { TextStreamPart } from './stream-text-result';
-import type { StandardizedPrompt } from '../prompt/standardize-prompt';
 
 /**
  * Event passed to the `onStart` callback.
@@ -61,12 +59,6 @@ export type GenerateTextStartEvent<
 
   /** Additional provider-specific options. */
   readonly providerOptions: ProviderOptions | undefined;
-
-  /**
-   * Condition(s) for stopping the generation.
-   * When the condition is an array, any of the conditions can be met to stop.
-   */
-  readonly stopWhen: Arrayable<StopCondition<NoInfer<TOOLS>, RUNTIME_CONTEXT>>;
 
   /** The output specification for structured outputs, if configured. */
   readonly output: OUTPUT | undefined;
