@@ -1,6 +1,7 @@
 import { StreamTextTransform, UIMessageStreamOptions } from '../generate-text';
 import { Output } from '../generate-text/output';
 import type { Arrayable, Context, ToolSet } from '@ai-sdk/provider-utils';
+import { InvalidArgumentError } from '../error';
 import { TimeoutConfiguration } from '../prompt/request-options';
 import { InferUIMessageChunk } from '../ui-message-stream';
 import { convertToModelMessages } from '../ui/convert-to-model-messages';
@@ -60,6 +61,21 @@ export async function createAgentUIStream<
     messages: uiMessages,
     tools: agent.tools,
   });
+
+  // Defense-in-depth: UI messages cross an untrusted (client) boundary, so
+  // reject any `role: 'system'` entries to prevent prompt injection that would
+  // otherwise be indistinguishable from the agent's own `instructions`. System
+  // instructions belong on the agent settings, not on inbound messages.
+  for (const message of validatedMessages) {
+    if (message.role === 'system') {
+      throw new InvalidArgumentError({
+        parameter: 'uiMessages',
+        value: message,
+        message:
+          "UI messages must not have role 'system'; configure system instructions via the agent's `instructions` setting.",
+      });
+    }
+  }
 
   const modelMessages = await convertToModelMessages(validatedMessages, {
     tools: agent.tools,
