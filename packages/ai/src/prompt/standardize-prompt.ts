@@ -26,6 +26,9 @@ export type StandardizedPrompt = {
  * messages.
  *
  * @param prompt - The prompt definition to standardize.
+ * Set `allowSystemInMessages` to true to allow system messages in the
+ * `prompt` or `messages` fields. System messages in the `system` option are
+ * always allowed.
  * @returns The standardized prompt.
  * @throws {InvalidPromptError} When the prompt is invalid.
  */
@@ -34,6 +37,8 @@ export async function standardizePrompt({
 }: {
   prompt: Prompt;
 }): Promise<StandardizedPrompt> {
+  const { allowSystemInMessages = false } = prompt;
+
   if (prompt.prompt == null && prompt.messages == null) {
     throw new InvalidPromptError({
       prompt,
@@ -86,6 +91,24 @@ export async function standardizePrompt({
     throw new InvalidPromptError({
       prompt,
       message: 'messages must not be empty',
+    });
+  }
+
+  if (
+    !allowSystemInMessages &&
+    Array.isArray(messages) &&
+    messages.some(
+      message =>
+        message != null &&
+        typeof message === 'object' &&
+        'role' in message &&
+        message.role === 'system',
+    )
+  ) {
+    throw new InvalidPromptError({
+      prompt,
+      message:
+        'System messages are not allowed in the prompt or messages fields. Use the system option instead.',
     });
   }
 

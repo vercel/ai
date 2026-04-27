@@ -3,10 +3,109 @@ import { standardizePrompt } from './standardize-prompt';
 import { describe, it, expect } from 'vitest';
 
 describe('standardizePrompt', () => {
-  it('should throw InvalidPromptError when system message has parts', async () => {
+  it('should throw InvalidPromptError when messages contain a system message by default', async () => {
     await expect(async () => {
       await standardizePrompt({
         prompt: {
+          messages: [
+            {
+              role: 'system',
+              content: 'INSTRUCTIONS',
+            },
+          ],
+        },
+      });
+    }).rejects.toThrow(InvalidPromptError);
+  });
+
+  it('should throw InvalidPromptError when prompt messages contain a system message by default', async () => {
+    await expect(async () => {
+      await standardizePrompt({
+        prompt: {
+          prompt: [
+            {
+              role: 'system',
+              content: 'INSTRUCTIONS',
+            },
+          ],
+        },
+      });
+    }).rejects.toThrow(InvalidPromptError);
+  });
+
+  it('should allow system messages in messages when allowSystemInMessages is true', async () => {
+    const result = await standardizePrompt({
+      prompt: {
+        allowSystemInMessages: true,
+        messages: [
+          {
+            role: 'system',
+            content: 'INSTRUCTIONS',
+          },
+          {
+            role: 'user',
+            content: 'Hello, world!',
+          },
+        ],
+      },
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": "INSTRUCTIONS",
+            "role": "system",
+          },
+          {
+            "content": "Hello, world!",
+            "role": "user",
+          },
+        ],
+        "system": undefined,
+      }
+    `);
+  });
+
+  it('should allow system messages in prompt messages when allowSystemInMessages is true', async () => {
+    const result = await standardizePrompt({
+      prompt: {
+        allowSystemInMessages: true,
+        prompt: [
+          {
+            role: 'system',
+            content: 'INSTRUCTIONS',
+          },
+          {
+            role: 'user',
+            content: 'Hello, world!',
+          },
+        ],
+      },
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": "INSTRUCTIONS",
+            "role": "system",
+          },
+          {
+            "content": "Hello, world!",
+            "role": "user",
+          },
+        ],
+        "system": undefined,
+      }
+    `);
+  });
+
+  it('should throw InvalidPromptError when an allowed system message has parts', async () => {
+    await expect(async () => {
+      await standardizePrompt({
+        prompt: {
+          allowSystemInMessages: true,
           messages: [
             {
               role: 'system',
