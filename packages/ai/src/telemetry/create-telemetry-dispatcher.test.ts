@@ -21,6 +21,8 @@ describe('createTelemetryDispatcher', () => {
 
     expect(telemetry.onStart).toBeDefined();
     expect(telemetry.onStepStart).toBeDefined();
+    expect(telemetry.onLanguageModelCallStart).toBeDefined();
+    expect(telemetry.onLanguageModelCallEnd).toBeDefined();
     expect(telemetry.onToolExecutionStart).toBeDefined();
     expect(telemetry.onToolExecutionEnd).toBeDefined();
     expect(telemetry.onChunk).toBeDefined();
@@ -139,6 +141,8 @@ describe('createTelemetryDispatcher', () => {
     const integration: Telemetry = {
       onStart: vi.fn(),
       onStepStart: vi.fn(),
+      onLanguageModelCallStart: vi.fn(),
+      onLanguageModelCallEnd: vi.fn(),
       onToolExecutionStart: vi.fn(),
       onToolExecutionEnd: vi.fn(),
       onChunk: vi.fn(),
@@ -159,6 +163,8 @@ describe('createTelemetryDispatcher', () => {
 
     await telemetry.onStart!(dummyEvent);
     await telemetry.onStepStart!(dummyEvent);
+    await telemetry.onLanguageModelCallStart!(dummyEvent);
+    await telemetry.onLanguageModelCallEnd!(dummyEvent);
     await telemetry.onToolExecutionStart!(dummyEvent);
     await telemetry.onToolExecutionEnd!(dummyEvent);
     await telemetry.onChunk!(dummyEvent);
@@ -174,6 +180,8 @@ describe('createTelemetryDispatcher', () => {
 
     expect(integration.onStart).toHaveBeenCalledOnce();
     expect(integration.onStepStart).toHaveBeenCalledOnce();
+    expect(integration.onLanguageModelCallStart).toHaveBeenCalledOnce();
+    expect(integration.onLanguageModelCallEnd).toHaveBeenCalledOnce();
     expect(integration.onToolExecutionStart).toHaveBeenCalledOnce();
     expect(integration.onToolExecutionEnd).toHaveBeenCalledOnce();
     expect(integration.onChunk).toHaveBeenCalledOnce();
