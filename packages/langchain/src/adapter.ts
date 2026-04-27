@@ -18,6 +18,7 @@ import {
   parseLangGraphEvent,
   isToolResultPart,
   extractReasoningFromContentBlocks,
+  extractFileContentBlocks,
 } from './utils';
 import { type LangGraphEventState } from './types';
 import { type StreamCallbacks } from './stream-callbacks';
@@ -132,6 +133,7 @@ function processStreamEventsEvent(
     textStarted: boolean;
     textMessageId: string | null;
     reasoningMessageId: string | null;
+    emittedImages?: Set<string>;
   },
   controller: ReadableStreamDefaultController<UIMessageChunk>,
 ): void {
@@ -194,6 +196,27 @@ function processStreamEventsEvent(
             delta: reasoning,
             id: state.reasoningMessageId ?? state.messageId,
           });
+        }
+
+        /**
+         * Handle file content blocks from contentBlocks or content array
+         * Skips blocks with empty data (common during streaming before data arrives)
+         */
+        const fileBlocks = extractFileContentBlocks(chunk);
+        for (const fileBlock of fileBlocks) {
+          if (!state.emittedImages) {
+            state.emittedImages = new Set<string>();
+          }
+          const fileKey = `cb-file:${fileBlock.mediaType}:${fileBlock.data.length}:${fileBlock.data.substring(0, Math.min(50, fileBlock.data.length))}`;
+          if (!state.emittedImages.has(fileKey)) {
+            state.emittedImages.add(fileKey);
+            controller.enqueue({
+              type: 'file',
+              mediaType: fileBlock.mediaType,
+              url: `data:${fileBlock.mediaType};base64,${fileBlock.data}`,
+            });
+            state.started = true;
+          }
         }
 
         /**

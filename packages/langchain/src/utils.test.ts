@@ -23,6 +23,7 @@ import {
   getMessageText,
   isImageGenerationOutput,
   extractImageOutputs,
+  extractFileContentBlocks,
   processLangGraphEvent,
 } from './utils';
 
@@ -711,6 +712,128 @@ describe('processModelChunk', () => {
     expect(state.messageId).toBe('msg-xyz789');
   });
 
+  it('should handle file content blocks from contentBlocks', () => {
+    const chunk = new AIMessageChunk({
+      content: '',
+      id: 'msg-1',
+    });
+    Object.defineProperty(chunk, 'contentBlocks', {
+      get: () => [{ type: 'file', mimeType: 'image/png', data: 'iVBORwkg=' }],
+    });
+
+    const state = {
+      started: false,
+      messageId: 'default',
+      reasoningStarted: false,
+      textStarted: false,
+    };
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    processModelChunk(chunk, state, controller);
+
+    expect(state.started).toBe(true);
+    expect(chunks).toEqual([
+      {
+        type: 'file',
+        mediaType: 'image/png',
+        url: 'data:image/png;base64,iVBORwkg=',
+      },
+    ]);
+  });
+
+  it('should skip file content blocks with empty data', () => {
+    const chunk = new AIMessageChunk({
+      content: '',
+      id: 'msg-1',
+    });
+    Object.defineProperty(chunk, 'contentBlocks', {
+      get: () => [{ type: 'file', mimeType: 'image/png', data: '' }],
+    });
+
+    const state = {
+      started: false,
+      messageId: 'default',
+      reasoningStarted: false,
+      textStarted: false,
+    };
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    processModelChunk(chunk, state, controller);
+
+    expect(chunks).toHaveLength(0);
+    expect(state.started).toBe(false);
+  });
+
+  it('should handle file content blocks alongside text content', () => {
+    const chunk = new AIMessageChunk({
+      content: 'Here is an image:',
+      id: 'msg-1',
+    });
+    Object.defineProperty(chunk, 'contentBlocks', {
+      get: () => [{ type: 'file', mimeType: 'image/png', data: 'abc123' }],
+    });
+
+    const state = {
+      started: false,
+      messageId: 'default',
+      reasoningStarted: false,
+      textStarted: false,
+    };
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    processModelChunk(chunk, state, controller);
+
+    expect(chunks).toEqual([
+      {
+        type: 'file',
+        mediaType: 'image/png',
+        url: 'data:image/png;base64,abc123',
+      },
+      { type: 'text-start', id: 'msg-1' },
+      { type: 'text-delta', delta: 'Here is an image:', id: 'msg-1' },
+    ]);
+  });
+
+  it('should deduplicate file content blocks across chunks', () => {
+    const state = {
+      started: false,
+      messageId: 'default',
+      reasoningStarted: false,
+      textStarted: false,
+    };
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    const chunk1 = new AIMessageChunk({
+      content: '',
+      id: 'msg-1',
+    });
+    Object.defineProperty(chunk1, 'contentBlocks', {
+      get: () => [{ type: 'file', mimeType: 'image/png', data: 'abc123' }],
+    });
+    processModelChunk(chunk1, state, controller);
+
+    const chunk2 = new AIMessageChunk({
+      content: '',
+      id: 'msg-1',
+    });
+    Object.defineProperty(chunk2, 'contentBlocks', {
+      get: () => [{ type: 'file', mimeType: 'image/png', data: 'abc123' }],
+    });
+    processModelChunk(chunk2, state, controller);
+
+    expect(chunks).toEqual([
+      {
+        type: 'file',
+        mediaType: 'image/png',
+        url: 'data:image/png;base64,abc123',
+      },
+    ]);
+  });
+
   it('should maintain consistent text IDs when chunk.id changes during text streaming', () => {
     // Similar bug can occur with text-only streaming if the ID changes between chunks
 
@@ -918,6 +1041,104 @@ describe('extractImageOutputs', () => {
   it('should return empty array when tool_outputs is not an array', () => {
     expect(extractImageOutputs({ tool_outputs: 'not-array' })).toEqual([]);
     expect(extractImageOutputs({})).toEqual([]);
+  });
+});
+
+describe('extractFileContentBlocks', () => {
+  it('should extract file content blocks from contentBlocks', () => {
+    const msg = new AIMessageChunk({ content: '', id: 'msg-1' });
+    Object.defineProperty(msg, 'contentBlocks', {
+      get: () => [{ type: 'file', mimeType: 'image/png', data: 'iVBORwkg=' }],
+    });
+
+    const result = extractFileContentBlocks(msg);
+
+    expect(result).toEqual([{ mediaType: 'image/png', data: 'iVBORwkg=' }]);
+  });
+
+  it('should skip file content blocks with empty data', () => {
+    const msg = new AIMessageChunk({ content: '', id: 'msg-1' });
+    Object.defineProperty(msg, 'contentBlocks', {
+      get: () => [{ type: 'file', mimeType: 'image/png', data: '' }],
+    });
+
+    const result = extractFileContentBlocks(msg);
+
+    expect(result).toEqual([]);
+  });
+
+  it('should default to image/png when mimeType is not provided', () => {
+    const msg = new AIMessageChunk({ content: '', id: 'msg-1' });
+    Object.defineProperty(msg, 'contentBlocks', {
+      get: () => [{ type: 'file', data: 'abc123' }],
+    });
+
+    const result = extractFileContentBlocks(msg);
+
+    expect(result).toEqual([{ mediaType: 'image/png', data: 'abc123' }]);
+  });
+
+  it('should extract file content blocks from content array', () => {
+    const msg = {
+      content: [
+        { type: 'text', text: 'Here is an image:' },
+        { type: 'file', mimeType: 'image/jpeg', data: '/9j/4AAQ' },
+      ],
+    };
+
+    const result = extractFileContentBlocks(msg);
+
+    expect(result).toEqual([{ mediaType: 'image/jpeg', data: '/9j/4AAQ' }]);
+  });
+
+  it('should extract file blocks from both contentBlocks and content array', () => {
+    const msg = {
+      content: [{ type: 'file', mimeType: 'image/jpeg', data: 'jpegdata' }],
+      contentBlocks: [{ type: 'file', mimeType: 'image/png', data: 'pngdata' }],
+    };
+
+    const result = extractFileContentBlocks(msg);
+
+    expect(result).toEqual([
+      { mediaType: 'image/png', data: 'pngdata' },
+      { mediaType: 'image/jpeg', data: 'jpegdata' },
+    ]);
+  });
+
+  it('should return empty array for null/undefined', () => {
+    expect(extractFileContentBlocks(null)).toEqual([]);
+    expect(extractFileContentBlocks(undefined)).toEqual([]);
+  });
+
+  it('should return empty array when no file blocks are present', () => {
+    const msg = new AIMessageChunk({ content: 'Hello', id: 'msg-1' });
+    Object.defineProperty(msg, 'contentBlocks', {
+      get: () => [{ type: 'text', text: 'Hello' }],
+    });
+
+    const result = extractFileContentBlocks(msg);
+
+    expect(result).toEqual([]);
+  });
+
+  it('should handle serialized LangChain messages', () => {
+    const msg = {
+      type: 'constructor',
+      id: ['langchain', 'AIMessageChunk'],
+      kwargs: {
+        content: '',
+        id: 'msg-1',
+        contentBlocks: [
+          { type: 'file', mimeType: 'image/png', data: 'serializeddata' },
+        ],
+      },
+    };
+
+    const result = extractFileContentBlocks(msg);
+
+    expect(result).toEqual([
+      { mediaType: 'image/png', data: 'serializeddata' },
+    ]);
   });
 });
 
@@ -1978,5 +2199,73 @@ describe('processLangGraphEvent', () => {
       approvalId: toolCallId,
       toolCallId: toolCallId,
     });
+  });
+
+  it('should handle file content blocks in messages event', () => {
+    const state = createMockState();
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    const msg = new AIMessageChunk({
+      content: '',
+      id: 'msg-1',
+    });
+    Object.defineProperty(msg, 'contentBlocks', {
+      get: () => [{ type: 'file', mimeType: 'image/png', data: 'base64data' }],
+    });
+
+    processLangGraphEvent(
+      ['messages', [msg, { langgraph_step: 1 }]],
+      state,
+      controller,
+    );
+
+    const fileChunks = chunks.filter(
+      c => (c as { type: string }).type === 'file',
+    );
+    expect(fileChunks).toHaveLength(1);
+    expect(fileChunks[0]).toEqual({
+      type: 'file',
+      mediaType: 'image/png',
+      url: 'data:image/png;base64,base64data',
+    });
+  });
+
+  it('should deduplicate file content blocks between messages and values events', () => {
+    const state = createMockState();
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    // First: emit file content block in messages event
+    const msg = new AIMessageChunk({
+      content: '',
+      id: 'msg-1',
+    });
+    Object.defineProperty(msg, 'contentBlocks', {
+      get: () => [{ type: 'file', mimeType: 'image/png', data: 'imagedata' }],
+    });
+
+    processLangGraphEvent(
+      ['messages', [msg, { langgraph_step: 1 }]],
+      state,
+      controller,
+    );
+
+    // Then: same file in values event should not be re-emitted
+    const valuesMsg = new AIMessage({
+      content: '',
+      id: 'msg-1',
+    });
+    Object.defineProperty(valuesMsg, 'contentBlocks', {
+      get: () => [{ type: 'file', mimeType: 'image/png', data: 'imagedata' }],
+    });
+    const values = { messages: [valuesMsg] };
+
+    processLangGraphEvent(['values', values], state, controller);
+
+    const fileChunks = chunks.filter(
+      c => (c as { type: string }).type === 'file',
+    );
+    expect(fileChunks).toHaveLength(1);
   });
 });
