@@ -3464,7 +3464,7 @@ describe('ToolLoopAgent', () => {
           // intentionally outside the enum to exercise schema enforcement
           options: { topic: 'evil' as 'legal' },
         }),
-      ).rejects.toThrow(/callOptionsSchema/);
+      ).rejects.toThrow(/Type validation failed for options/);
 
       expect(modelCalled).toBe(false);
     });
