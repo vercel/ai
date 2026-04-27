@@ -21,13 +21,19 @@ export type StandardizedPrompt = {
   messages: ModelMessage[];
 };
 
-export type StandardizePromptOptions = {
-  prompt: Prompt;
-};
-
+/**
+ * Converts a prompt input into a standardized prompt with validated model
+ * messages.
+ *
+ * @param prompt - The prompt definition to standardize.
+ * @returns The standardized prompt.
+ * @throws {InvalidPromptError} When the prompt is invalid.
+ */
 export async function standardizePrompt({
   prompt,
-}: StandardizePromptOptions): Promise<StandardizedPrompt> {
+}: {
+  prompt: Prompt;
+}): Promise<StandardizedPrompt> {
   if (prompt.prompt == null && prompt.messages == null) {
     throw new InvalidPromptError({
       prompt,
