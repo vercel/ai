@@ -742,7 +742,10 @@ function getMediaTypeFromUrl(
   try {
     const pathname = new URL(url).pathname;
     const ext = pathname.split('.').pop()?.toLowerCase();
-    if (ext && ext in URL_EXTENSION_TO_MEDIA_TYPE) {
+    // Use `Object.hasOwn` instead of `in` so attacker-controlled extensions
+    // like `constructor` cannot resolve to inherited `Object.prototype`
+    // members and leak a non-string value through this `: string` helper.
+    if (ext && Object.hasOwn(URL_EXTENSION_TO_MEDIA_TYPE, ext)) {
       return URL_EXTENSION_TO_MEDIA_TYPE[ext];
     }
   } catch {
