@@ -84,6 +84,12 @@ export type OpenAICompatibleChatConfig = {
   transformRequestBody?: (args: Record<string, any>) => Record<string, any>;
 };
 
+type PendingToolCall = {
+  id: string | null;
+  bufferedArguments: string;
+  extraContent: OpenAICompatibleStreamingToolCallDelta['extra_content'];
+};
+
 export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
   readonly specificationVersion = 'v4';
 
@@ -441,6 +447,64 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
     const providerOptionsName = metadataKey;
     let toolCallTracker: StreamingToolCallTracker<OpenAICompatibleStreamingToolCallDelta>;
 
+    // Buffers tool-call deltas by `index` until `function.name` is known.
+    // Some OpenAI-compatible providers send the first delta without
+    // `function.name`, which the shared tracker rejects on first chunk.
+    const pendingToolCalls = new Map<number, PendingToolCall>();
+    const forwardedToolCallIndices = new Set<number>();
+
+    const processToolCallDelta = (
+      toolCallDelta: OpenAICompatibleStreamingToolCallDelta,
+    ) => {
+      const index = toolCallDelta.index;
+
+      if (index == null || forwardedToolCallIndices.has(index)) {
+        toolCallTracker.processDelta(toolCallDelta);
+        return;
+      }
+
+      let pending = pendingToolCalls.get(index);
+      if (pending == null) {
+        pending = {
+          id: toolCallDelta.id ?? null,
+          bufferedArguments: '',
+          extraContent: toolCallDelta.extra_content ?? null,
+        };
+        pendingToolCalls.set(index, pending);
+      } else {
+        if (pending.id == null && toolCallDelta.id != null) {
+          pending.id = toolCallDelta.id;
+        }
+        if (
+          pending.extraContent == null &&
+          toolCallDelta.extra_content != null
+        ) {
+          pending.extraContent = toolCallDelta.extra_content;
+        }
+      }
+
+      const argumentsDelta = toolCallDelta.function?.arguments;
+      if (argumentsDelta != null) {
+        pending.bufferedArguments += argumentsDelta;
+      }
+
+      const name = toolCallDelta.function?.name;
+      if (name != null) {
+        const forwardDelta: OpenAICompatibleStreamingToolCallDelta = {
+          index,
+          id: pending.id,
+          function: {
+            name,
+            arguments: pending.bufferedArguments,
+          },
+          extra_content: pending.extraContent ?? undefined,
+        };
+        toolCallTracker.processDelta(forwardDelta);
+        pendingToolCalls.delete(index);
+        forwardedToolCallIndices.add(index);
+      }
+    };
+
     let finishReason: LanguageModelV4FinishReason = {
       unified: 'other',
       raw: undefined,
@@ -585,7 +649,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
               }
 
               for (const toolCallDelta of delta.tool_calls) {
-                toolCallTracker.processDelta(toolCallDelta);
+                processToolCallDelta(toolCallDelta);
               }
             }
           },
@@ -598,6 +662,18 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
             if (isActiveText) {
               controller.enqueue({ type: 'text-end', id: 'txt-0' });
             }
+
+            // Forward any tool-call deltas that never received a
+            // `function.name`. The tracker will throw on the missing name,
+            // preserving the original invalid-response semantics.
+            for (const [index, pending] of pendingToolCalls) {
+              toolCallTracker.processDelta({
+                index,
+                id: pending.id,
+                function: { arguments: pending.bufferedArguments },
+              });
+            }
+            pendingToolCalls.clear();
 
             toolCallTracker.flush();
 
