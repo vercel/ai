@@ -5788,7 +5788,6 @@ describe('streamText', () => {
       await result.consumeStream();
 
       expect(startEvent.timeout).toEqual({ totalMs: 5000, stepMs: 1000 });
-      expect(startEvent.stopWhen).toBeDefined();
     });
   });
 

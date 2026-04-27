@@ -603,7 +603,6 @@ export function streamText<
     prepareStep,
     includeRawChunks,
     timeout,
-    stopWhen,
     onChunk,
     onError,
     onFinish,
@@ -792,7 +791,6 @@ class DefaultStreamTextResult<
     generateId,
     generateCallId,
     timeout,
-    stopWhen,
     onChunk,
     onError,
     onFinish,
@@ -843,9 +841,6 @@ class DefaultStreamTextResult<
     generateId: () => string;
     generateCallId: () => string;
     timeout: TimeoutConfiguration<TOOLS> | undefined;
-    stopWhen: Arrayable<
-      StopCondition<NoInfer<TOOLS>, NoInfer<RUNTIME_CONTEXT>>
-    >;
     download: DownloadFunction | undefined;
     include: { requestBody?: boolean } | undefined;
 
@@ -1353,7 +1348,6 @@ class DefaultStreamTextResult<
           timeout,
           headers,
           providerOptions,
-          stopWhen,
           output,
           runtimeContext,
           toolsContext,
