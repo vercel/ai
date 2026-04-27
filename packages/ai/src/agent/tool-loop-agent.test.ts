@@ -3424,4 +3424,87 @@ describe('ToolLoopAgent', () => {
       });
     });
   });
+
+  describe('callOptionsSchema', () => {
+    it('should reject options that fail callOptionsSchema validation before invoking the model', async () => {
+      let modelCalled = false;
+      const agent = new ToolLoopAgent<{ topic: 'legal' | 'medical' }>({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => {
+            modelCalled = true;
+            return {
+              content: [{ type: 'text', text: 'reply' }],
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: {
+                cachedInputTokens: undefined,
+                inputTokens: {
+                  total: 1,
+                  noCache: 1,
+                  cacheRead: undefined,
+                  cacheWrite: undefined,
+                },
+                outputTokens: {
+                  total: 1,
+                  text: 1,
+                  reasoning: undefined,
+                },
+              },
+              warnings: [],
+            };
+          },
+        }),
+        callOptionsSchema: z.object({
+          topic: z.enum(['legal', 'medical']),
+        }),
+      });
+
+      await expect(
+        agent.generate({
+          prompt: 'hi',
+          // intentionally outside the enum to exercise schema enforcement
+          options: { topic: 'evil' as 'legal' },
+        }),
+      ).rejects.toThrow(/callOptionsSchema/);
+
+      expect(modelCalled).toBe(false);
+    });
+
+    it('should pass through options that satisfy callOptionsSchema', async () => {
+      const agent = new ToolLoopAgent<{ topic: 'legal' | 'medical' }>({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => {
+            return {
+              content: [{ type: 'text', text: 'reply' }],
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: {
+                cachedInputTokens: undefined,
+                inputTokens: {
+                  total: 1,
+                  noCache: 1,
+                  cacheRead: undefined,
+                  cacheWrite: undefined,
+                },
+                outputTokens: {
+                  total: 1,
+                  text: 1,
+                  reasoning: undefined,
+                },
+              },
+              warnings: [],
+            };
+          },
+        }),
+        callOptionsSchema: z.object({
+          topic: z.enum(['legal', 'medical']),
+        }),
+      });
+
+      const result = await agent.generate({
+        prompt: 'hi',
+        options: { topic: 'legal' },
+      });
+
+      expect(result.text).toBe('reply');
+    });
+  });
 });

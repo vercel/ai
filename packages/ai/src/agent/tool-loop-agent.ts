@@ -1,4 +1,6 @@
 import type { Context, ModelMessage, ToolSet } from '@ai-sdk/provider-utils';
+import { safeValidateTypes } from '@ai-sdk/provider-utils';
+import { InvalidArgumentError } from '../error';
 import { generateText } from '../generate-text/generate-text';
 import { GenerateTextResult } from '../generate-text/generate-text-result';
 import { Output } from '../generate-text/output';
@@ -83,6 +85,28 @@ export class ToolLoopAgent<
     > &
       Prompt
   > {
+    // Validate caller-supplied `options` against `callOptionsSchema` if one
+    // was provided. Without this, the schema was effectively dead code:
+    // developers wiring untrusted input into `options` would get no runtime
+    // protection despite naming the field `callOptionsSchema`.
+    if (
+      this.settings.callOptionsSchema != null &&
+      options.options !== undefined
+    ) {
+      const result = await safeValidateTypes({
+        value: options.options,
+        schema: this.settings.callOptionsSchema,
+      });
+      if (!result.success) {
+        throw new InvalidArgumentError({
+          parameter: 'options',
+          value: options.options,
+          message: `options failed callOptionsSchema validation: ${result.error.message}`,
+        });
+      }
+      options = { ...options, options: result.value };
+    }
+
     const {
       experimental_onStart: _settingsOnStart,
       experimental_onStepStart: _settingsOnStepStart,
