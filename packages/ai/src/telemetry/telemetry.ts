@@ -17,7 +17,7 @@ import type {
   GenerateTextStartEvent,
   GenerateTextStepEndEvent,
   GenerateTextStepStartEvent,
-} from '../generate-text/core-events';
+} from '../generate-text/generate-text-events';
 import type {
   LanguageModelCallEndEvent,
   LanguageModelCallStartEvent,

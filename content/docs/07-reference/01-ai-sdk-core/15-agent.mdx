@@ -68,11 +68,11 @@ export type AgentCallParameters<CALL_OPTIONS, TOOLS extends ToolSet = {}> = ([
     /**
      * Callback that is called when the agent operation begins, before any LLM calls.
      */
-    experimental_onStart?: ToolLoopAgentOnStartCallback<TOOLS>;
+    experimental_onStart?: GenerateTextOnStartCallback<TOOLS>;
     /**
      * Callback that is called when a step (LLM call) begins, before the provider is called.
      */
-    experimental_onStepStart?: ToolLoopAgentOnStepStartCallback<TOOLS>;
+    experimental_onStepStart?: GenerateTextOnStepStartCallback<TOOLS>;
     /**
      * Callback that is called before each tool execution begins.
      */
@@ -84,11 +84,11 @@ export type AgentCallParameters<CALL_OPTIONS, TOOLS extends ToolSet = {}> = ([
     /**
      * Callback that is called when each step (LLM call) is finished, including intermediate steps.
      */
-    onStepFinish?: ToolLoopAgentOnStepFinishCallback<TOOLS>;
+    onStepFinish?: GenerateTextOnStepFinishCallback<TOOLS>;
     /**
      * Callback that is called when all steps are finished and the response is complete.
      */
-    onFinish?: ToolLoopAgentOnFinishCallback<TOOLS>;
+    onFinish?: GenerateTextOnFinishCallback<TOOLS>;
   };
 
 /**

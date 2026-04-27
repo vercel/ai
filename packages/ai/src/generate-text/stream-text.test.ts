@@ -51,17 +51,17 @@ import {
 } from '../types/usage';
 import { StepResult } from './step-result';
 import { isLoopFinished, isStepCount } from './stop-condition';
-import {
-  streamText,
-  StreamTextOnFinishCallback,
-  StreamTextOnStartCallback,
-  StreamTextOnStepStartCallback,
-} from './stream-text';
+import { streamText } from './stream-text';
 import { StreamTextResult, TextStreamPart } from './stream-text-result';
 import {
   OnToolExecutionEndCallback,
   OnToolExecutionStartCallback,
 } from './tool-execution-events';
+import {
+  GenerateTextOnFinishCallback,
+  GenerateTextOnStartCallback,
+  GenerateTextOnStepStartCallback,
+} from './generate-text-events';
 
 const defaultSettings = () =>
   ({
@@ -5576,7 +5576,7 @@ describe('streamText', () => {
 
   describe('options.experimental_onStart', () => {
     it('should send correct information with text prompt', async () => {
-      let startEvent!: Parameters<StreamTextOnStartCallback>[0];
+      let startEvent!: Parameters<GenerateTextOnStartCallback>[0];
 
       const result = streamText({
         model: createTestModel(),
@@ -5600,7 +5600,7 @@ describe('streamText', () => {
     });
 
     it('should accept deprecated experimental_telemetry as an alias for telemetry', async () => {
-      let startEvent!: Parameters<StreamTextOnStartCallback>[0];
+      let startEvent!: Parameters<GenerateTextOnStartCallback>[0];
 
       const result = streamText({
         model: createTestModel(),
@@ -5643,7 +5643,7 @@ describe('streamText', () => {
     });
 
     it('should send correct information with system and messages', async () => {
-      let startEvent!: Parameters<StreamTextOnStartCallback>[0];
+      let startEvent!: Parameters<GenerateTextOnStartCallback>[0];
 
       const result = streamText({
         model: createTestModel(),
@@ -5728,7 +5728,7 @@ describe('streamText', () => {
     });
 
     it('should expose tools and toolChoice', async () => {
-      let startEvent!: Parameters<StreamTextOnStartCallback<any>>[0];
+      let startEvent!: Parameters<GenerateTextOnStartCallback<any>>[0];
 
       const testTool = tool({
         inputSchema: z.object({ value: z.string() }),
@@ -5752,7 +5752,7 @@ describe('streamText', () => {
     });
 
     it('should expose providerOptions', async () => {
-      let startEvent!: Parameters<StreamTextOnStartCallback>[0];
+      let startEvent!: Parameters<GenerateTextOnStartCallback>[0];
 
       const result = streamText({
         model: createTestModel(),
@@ -5772,7 +5772,7 @@ describe('streamText', () => {
     });
 
     it('should expose timeout and stopWhen', async () => {
-      let startEvent!: Parameters<StreamTextOnStartCallback>[0];
+      let startEvent!: Parameters<GenerateTextOnStartCallback>[0];
 
       const result = streamText({
         model: createTestModel(),
@@ -5794,7 +5794,7 @@ describe('streamText', () => {
   describe('options.experimental_onStepStart', () => {
     it('should be called with correct data for a single step', async () => {
       let stepStartEvent!: Parameters<
-        StreamTextOnStepStartCallback<any, any>
+        GenerateTextOnStepStartCallback<any, any>
       >[0];
 
       const result = streamText({
@@ -5823,7 +5823,7 @@ describe('streamText', () => {
 
     it('should be called once per step in a multi-step tool loop', async () => {
       const stepStartEvents: Parameters<
-        StreamTextOnStepStartCallback<any, any>
+        GenerateTextOnStepStartCallback<any, any>
       >[0][] = [];
       let responseCount = 0;
 
@@ -5968,7 +5968,7 @@ describe('streamText', () => {
 
     it('should reflect model changes from prepareStep', async () => {
       const stepStartEvents: Parameters<
-        StreamTextOnStepStartCallback<any, any>
+        GenerateTextOnStepStartCallback<any, any>
       >[0][] = [];
       let responseCount = 0;
 
@@ -6056,7 +6056,7 @@ describe('streamText', () => {
 
     it('should expose providerOptions and runtimeContext', async () => {
       let stepStartEvent!: Parameters<
-        StreamTextOnStepStartCallback<any, any>
+        GenerateTextOnStepStartCallback<any, any>
       >[0];
 
       const result = streamText({
@@ -6082,7 +6082,7 @@ describe('streamText', () => {
 
     it('should not expose telemetry metadata in onStepStart', async () => {
       let stepStartEvent!: Parameters<
-        StreamTextOnStepStartCallback<any, any>
+        GenerateTextOnStepStartCallback<any, any>
       >[0];
 
       const result = streamText({
@@ -6105,7 +6105,7 @@ describe('streamText', () => {
     it('should pass updated toolsContext from prepareStep', async () => {
       const prepareStepToolsContexts: Array<unknown> = [];
       const stepStartEvents: Parameters<
-        StreamTextOnStepStartCallback<any, any>
+        GenerateTextOnStepStartCallback<any, any>
       >[0][] = [];
       let responseCount = 0;
       let recordedToolContext: unknown;
@@ -7469,7 +7469,7 @@ describe('streamText', () => {
 
   describe('options.onFinish', () => {
     it('should send correct information', async () => {
-      let result!: Parameters<StreamTextOnFinishCallback<any, any>>[0];
+      let result!: Parameters<GenerateTextOnFinishCallback<any, any>>[0];
 
       const resultObject = streamText({
         model: createTestModel({
@@ -8446,7 +8446,7 @@ describe('streamText', () => {
 
   describe('options.stopWhen', () => {
     let result: StreamTextResult<any, any, any>;
-    let onFinishResult: Parameters<StreamTextOnFinishCallback<any, any>>[0];
+    let onFinishResult: Parameters<GenerateTextOnFinishCallback<any, any>>[0];
     let onStepFinishResults: StepResult<any, any>[];
     let stepInputs: Array<any>;
 
@@ -19104,7 +19104,7 @@ describe('streamText', () => {
   describe('programmatic tool calling', () => {
     describe('5 steps: code_execution triggers client tool across multiple turns (dice game fixture)', () => {
       let result: StreamTextResult<any, any, any>;
-      let onFinishResult: Parameters<StreamTextOnFinishCallback<any, any>>[0];
+      let onFinishResult: Parameters<GenerateTextOnFinishCallback<any, any>>[0];
       let onStepFinishResults: StepResult<any, any>[];
       let doStreamCalls: Array<LanguageModelV4CallOptions>;
       let prepareStepCalls: Array<{

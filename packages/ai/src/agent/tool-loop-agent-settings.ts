@@ -12,11 +12,11 @@ import {
   SystemModelMessage,
 } from '@ai-sdk/provider-utils';
 import type {
-  GenerateTextEndEvent,
-  GenerateTextStartEvent,
-  GenerateTextStepEndEvent,
-  GenerateTextStepStartEvent,
-} from '../generate-text/core-events';
+  GenerateTextOnFinishCallback,
+  GenerateTextOnStartCallback,
+  GenerateTextOnStepFinishCallback,
+  GenerateTextOnStepStartCallback,
+} from '../generate-text/generate-text-events';
 import { Output } from '../generate-text/output';
 import { PrepareStepFunction } from '../generate-text/prepare-step';
 import { StopCondition } from '../generate-text/stop-condition';
@@ -32,31 +32,8 @@ import { Prompt } from '../prompt/prompt';
 import { RequestOptions } from '../prompt/request-options';
 import { TelemetryOptions } from '../telemetry/telemetry-options';
 import { LanguageModel, ToolChoice } from '../types/language-model';
-import type { Callback } from '../util/callback';
 import { DownloadFunction } from '../util/download/download-function';
 import { AgentCallParameters } from './agent';
-
-export type ToolLoopAgentOnStartCallback<
-  TOOLS extends ToolSet = ToolSet,
-  RUNTIME_CONTEXT extends Context = Context,
-  OUTPUT extends Output = Output,
-> = Callback<GenerateTextStartEvent<TOOLS, RUNTIME_CONTEXT, OUTPUT>>;
-
-export type ToolLoopAgentOnStepStartCallback<
-  TOOLS extends ToolSet = ToolSet,
-  RUNTIME_CONTEXT extends Context = Context,
-  OUTPUT extends Output = Output,
-> = Callback<GenerateTextStepStartEvent<TOOLS, RUNTIME_CONTEXT, OUTPUT>>;
-
-export type ToolLoopAgentOnStepFinishCallback<
-  TOOLS extends ToolSet = ToolSet,
-  RUNTIME_CONTEXT extends Context = Context,
-> = Callback<GenerateTextStepEndEvent<TOOLS, RUNTIME_CONTEXT>>;
-
-export type ToolLoopAgentOnFinishCallback<
-  TOOLS extends ToolSet = ToolSet,
-  RUNTIME_CONTEXT extends Context = Context,
-> = Callback<GenerateTextEndEvent<TOOLS, RUNTIME_CONTEXT>>;
 
 /**
  * Configuration options for an agent.
@@ -148,7 +125,7 @@ export type ToolLoopAgentSettings<
     /**
      * Callback that is called when the agent operation begins, before any LLM calls.
      */
-    experimental_onStart?: ToolLoopAgentOnStartCallback<
+    experimental_onStart?: GenerateTextOnStartCallback<
       NoInfer<TOOLS>,
       RUNTIME_CONTEXT,
       NoInfer<OUTPUT>
@@ -157,7 +134,7 @@ export type ToolLoopAgentSettings<
     /**
      * Callback that is called when a step (LLM call) begins, before the provider is called.
      */
-    experimental_onStepStart?: ToolLoopAgentOnStepStartCallback<
+    experimental_onStepStart?: GenerateTextOnStepStartCallback<
       NoInfer<TOOLS>,
       NoInfer<RUNTIME_CONTEXT>,
       NoInfer<OUTPUT>
@@ -180,7 +157,7 @@ export type ToolLoopAgentSettings<
     /**
      * Callback that is called when each step (LLM call) is finished, including intermediate steps.
      */
-    onStepFinish?: ToolLoopAgentOnStepFinishCallback<
+    onStepFinish?: GenerateTextOnStepFinishCallback<
       NoInfer<TOOLS>,
       NoInfer<RUNTIME_CONTEXT>
     >;
@@ -188,7 +165,7 @@ export type ToolLoopAgentSettings<
     /**
      * Callback that is called when all steps are finished and the response is complete.
      */
-    onFinish?: ToolLoopAgentOnFinishCallback<
+    onFinish?: GenerateTextOnFinishCallback<
       NoInfer<TOOLS>,
       NoInfer<RUNTIME_CONTEXT>
     >;

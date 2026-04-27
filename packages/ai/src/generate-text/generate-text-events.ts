@@ -9,6 +9,7 @@ import type { TimeoutConfiguration } from '../prompt/request-options';
 import type { StandardizedPrompt } from '../prompt/standardize-prompt';
 import type { ToolChoice } from '../types/language-model';
 import type { LanguageModelUsage } from '../types/usage';
+import { Callback } from '../util/callback';
 import type { Output } from './output';
 import type { StepResult } from './step-result';
 import { TextStreamPart } from './stream-text-result';
@@ -202,3 +203,60 @@ export type OnFinishEvent<
   TOOLS extends ToolSet = ToolSet,
   RUNTIME_CONTEXT extends Context = Context,
 > = GenerateTextEndEvent<TOOLS, RUNTIME_CONTEXT>;
+
+/**
+ * Callback that is set using the `experimental_onStart` option.
+ *
+ * Called when the generateText operation begins, before any LLM calls.
+ * Use this callback for logging, analytics, or initializing state at the
+ * start of a generation.
+ *
+ * @param event - The event object containing generation configuration.
+ */
+export type GenerateTextOnStartCallback<
+  TOOLS extends ToolSet = ToolSet,
+  RUNTIME_CONTEXT extends Context = Context,
+  OUTPUT extends Output = Output,
+> = Callback<GenerateTextStartEvent<TOOLS, RUNTIME_CONTEXT, OUTPUT>>;
+
+/**
+ * Callback that is set using the `experimental_onStepStart` option.
+ *
+ * Called when a step (LLM call) begins, before the provider is called.
+ * Each step represents a single LLM invocation. Multiple steps occur when
+ * using tool calls (the model may be called multiple times in a loop).
+ *
+ * @param event - The event object containing step configuration.
+ */
+export type GenerateTextOnStepStartCallback<
+  TOOLS extends ToolSet = ToolSet,
+  RUNTIME_CONTEXT extends Context = Context,
+  OUTPUT extends Output = Output,
+> = Callback<GenerateTextStepStartEvent<TOOLS, RUNTIME_CONTEXT, OUTPUT>>;
+
+/**
+ * Callback that is set using the `onStepFinish` option.
+ *
+ * Called when a step (LLM call) completes. The event includes all step result
+ * properties (text, tool calls, usage, etc.) along with additional metadata.
+ *
+ * @param stepResult - The result of the step.
+ */
+export type GenerateTextOnStepFinishCallback<
+  TOOLS extends ToolSet = ToolSet,
+  RUNTIME_CONTEXT extends Context = Context,
+> = Callback<GenerateTextStepEndEvent<TOOLS, RUNTIME_CONTEXT>>;
+
+/**
+ * Callback that is set using the `onFinish` option.
+ *
+ * Called when the entire generation completes (all steps finished).
+ * The event includes the final step's result properties along with
+ * aggregated data from all steps.
+ *
+ * @param event - The final result along with aggregated step data.
+ */
+export type GenerateTextOnFinishCallback<
+  TOOLS extends ToolSet = ToolSet,
+  RUNTIME_CONTEXT extends Context = Context,
+> = Callback<GenerateTextEndEvent<TOOLS, RUNTIME_CONTEXT>>;
