@@ -94,14 +94,7 @@ export async function standardizePrompt(
 
   if (
     !allowSystemInMessages &&
-    Array.isArray(messages) &&
-    messages.some(
-      message =>
-        message != null &&
-        typeof message === 'object' &&
-        'role' in message &&
-        message.role === 'system',
-    )
+    messages.some(message => message.role === 'system')
   ) {
     throw new InvalidPromptError({
       prompt,
