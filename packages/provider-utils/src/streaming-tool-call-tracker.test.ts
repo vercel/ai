@@ -4,26 +4,25 @@ import { StreamingToolCallTracker } from './streaming-tool-call-tracker';
 
 function createCollector() {
   const parts: LanguageModelV4StreamPart[] = [];
-  const enqueue = (part: LanguageModelV4StreamPart) => parts.push(part);
-  return { parts, enqueue };
+  const controller = {
+    enqueue: (part: LanguageModelV4StreamPart) => parts.push(part),
+  };
+  return { parts, controller };
 }
 
 describe('StreamingToolCallTracker', () => {
   describe('processDelta', () => {
     it('should handle a single tool call accumulated across multiple deltas', () => {
-      const tracker = new StreamingToolCallTracker();
-      const { parts, enqueue } = createCollector();
+      const { parts, controller } = createCollector();
+      const tracker = new StreamingToolCallTracker(controller);
 
       // First delta: new tool call with id and name
-      tracker.processDelta(
-        {
-          index: 0,
-          id: 'call_1',
-          type: 'function',
-          function: { name: 'get_weather', arguments: '{"ci' },
-        },
-        enqueue,
-      );
+      tracker.processDelta({
+        index: 0,
+        id: 'call_1',
+        type: 'function',
+        function: { name: 'get_weather', arguments: '{"ci' },
+      });
 
       expect(parts).toEqual([
         { type: 'tool-input-start', id: 'call_1', toolName: 'get_weather' },
@@ -33,13 +32,10 @@ describe('StreamingToolCallTracker', () => {
       parts.length = 0;
 
       // Second delta: more arguments
-      tracker.processDelta(
-        {
-          index: 0,
-          function: { arguments: 'ty": "San' },
-        },
-        enqueue,
-      );
+      tracker.processDelta({
+        index: 0,
+        function: { arguments: 'ty": "San' },
+      });
 
       expect(parts).toEqual([
         {
@@ -52,13 +48,10 @@ describe('StreamingToolCallTracker', () => {
       parts.length = 0;
 
       // Third delta: completes the JSON
-      tracker.processDelta(
-        {
-          index: 0,
-          function: { arguments: ' Francisco"}' },
-        },
-        enqueue,
-      );
+      tracker.processDelta({
+        index: 0,
+        function: { arguments: ' Francisco"}' },
+      });
 
       expect(parts).toEqual([
         {
@@ -77,21 +70,18 @@ describe('StreamingToolCallTracker', () => {
     });
 
     it('should handle a full tool call in a single chunk', () => {
-      const tracker = new StreamingToolCallTracker();
-      const { parts, enqueue } = createCollector();
+      const { parts, controller } = createCollector();
+      const tracker = new StreamingToolCallTracker(controller);
 
-      tracker.processDelta(
-        {
-          index: 0,
-          id: 'call_1',
-          type: 'function',
-          function: {
-            name: 'get_weather',
-            arguments: '{"city": "London"}',
-          },
+      tracker.processDelta({
+        index: 0,
+        id: 'call_1',
+        type: 'function',
+        function: {
+          name: 'get_weather',
+          arguments: '{"city": "London"}',
         },
-        enqueue,
-      );
+      });
 
       expect(parts).toEqual([
         { type: 'tool-input-start', id: 'call_1', toolName: 'get_weather' },
@@ -111,28 +101,22 @@ describe('StreamingToolCallTracker', () => {
     });
 
     it('should handle multiple concurrent tool calls', () => {
-      const tracker = new StreamingToolCallTracker();
-      const { parts, enqueue } = createCollector();
+      const { parts, controller } = createCollector();
+      const tracker = new StreamingToolCallTracker(controller);
 
-      tracker.processDelta(
-        {
-          index: 0,
-          id: 'call_1',
-          type: 'function',
-          function: { name: 'get_weather', arguments: '' },
-        },
-        enqueue,
-      );
+      tracker.processDelta({
+        index: 0,
+        id: 'call_1',
+        type: 'function',
+        function: { name: 'get_weather', arguments: '' },
+      });
 
-      tracker.processDelta(
-        {
-          index: 1,
-          id: 'call_2',
-          type: 'function',
-          function: { name: 'get_time', arguments: '' },
-        },
-        enqueue,
-      );
+      tracker.processDelta({
+        index: 1,
+        id: 'call_2',
+        type: 'function',
+        function: { name: 'get_time', arguments: '' },
+      });
 
       expect(parts).toEqual([
         { type: 'tool-input-start', id: 'call_1', toolName: 'get_weather' },
@@ -141,84 +125,66 @@ describe('StreamingToolCallTracker', () => {
     });
 
     it('should skip deltas for already-finished tool calls', () => {
-      const tracker = new StreamingToolCallTracker();
-      const { parts, enqueue } = createCollector();
+      const { parts, controller } = createCollector();
+      const tracker = new StreamingToolCallTracker(controller);
 
       // Complete tool call in one chunk
-      tracker.processDelta(
-        {
-          index: 0,
-          id: 'call_1',
-          type: 'function',
-          function: { name: 'fn', arguments: '{}' },
-        },
-        enqueue,
-      );
+      tracker.processDelta({
+        index: 0,
+        id: 'call_1',
+        type: 'function',
+        function: { name: 'fn', arguments: '{}' },
+      });
 
       parts.length = 0;
 
       // Late delta for the same tool call
-      tracker.processDelta(
-        {
-          index: 0,
-          function: { arguments: 'extra' },
-        },
-        enqueue,
-      );
+      tracker.processDelta({
+        index: 0,
+        function: { arguments: 'extra' },
+      });
 
       expect(parts).toEqual([]);
     });
 
     it('should skip delta emission when arguments are null', () => {
-      const tracker = new StreamingToolCallTracker();
-      const { parts, enqueue } = createCollector();
+      const { parts, controller } = createCollector();
+      const tracker = new StreamingToolCallTracker(controller);
 
       // Create tool call
-      tracker.processDelta(
-        {
-          index: 0,
-          id: 'call_1',
-          type: 'function',
-          function: { name: 'fn', arguments: '' },
-        },
-        enqueue,
-      );
+      tracker.processDelta({
+        index: 0,
+        id: 'call_1',
+        type: 'function',
+        function: { name: 'fn', arguments: '' },
+      });
 
       parts.length = 0;
 
       // Delta with null arguments
-      tracker.processDelta(
-        {
-          index: 0,
-          function: { arguments: null },
-        },
-        enqueue,
-      );
+      tracker.processDelta({
+        index: 0,
+        function: { arguments: null },
+      });
 
       expect(parts).toEqual([]);
     });
 
     it('should use index fallback when index is not provided', () => {
-      const tracker = new StreamingToolCallTracker();
-      const { parts, enqueue } = createCollector();
+      const { parts, controller } = createCollector();
+      const tracker = new StreamingToolCallTracker(controller);
 
-      tracker.processDelta(
-        {
-          id: 'call_1',
-          type: 'function',
-          function: { name: 'fn1', arguments: '{}' },
-        },
-        enqueue,
-      );
+      tracker.processDelta({
+        id: 'call_1',
+        type: 'function',
+        function: { name: 'fn1', arguments: '{}' },
+      });
 
-      tracker.processDelta(
-        {
-          id: 'call_2',
-          type: 'function',
-          function: { name: 'fn2', arguments: '{}' },
-        },
-        enqueue,
-      );
+      tracker.processDelta({
+        id: 'call_2',
+        type: 'function',
+        function: { name: 'fn2', arguments: '{}' },
+      });
 
       expect(parts.filter(p => p.type === 'tool-input-start')).toEqual([
         { type: 'tool-input-start', id: 'call_1', toolName: 'fn1' },
@@ -227,145 +193,121 @@ describe('StreamingToolCallTracker', () => {
     });
 
     it('should throw when id is missing', () => {
-      const tracker = new StreamingToolCallTracker();
-      const { enqueue } = createCollector();
+      const { controller } = createCollector();
+      const tracker = new StreamingToolCallTracker(controller);
 
       expect(() =>
-        tracker.processDelta(
-          {
-            index: 0,
-            type: 'function',
-            function: { name: 'fn' },
-          },
-          enqueue,
-        ),
+        tracker.processDelta({
+          index: 0,
+          type: 'function',
+          function: { name: 'fn' },
+        }),
       ).toThrow("Expected 'id' to be a string.");
     });
 
     it('should throw when function.name is missing', () => {
-      const tracker = new StreamingToolCallTracker();
-      const { enqueue } = createCollector();
+      const { controller } = createCollector();
+      const tracker = new StreamingToolCallTracker(controller);
 
       expect(() =>
-        tracker.processDelta(
-          {
-            index: 0,
-            id: 'call_1',
-            type: 'function',
-            function: {},
-          },
-          enqueue,
-        ),
+        tracker.processDelta({
+          index: 0,
+          id: 'call_1',
+          type: 'function',
+          function: {},
+        }),
       ).toThrow("Expected 'function.name' to be a string.");
     });
   });
 
   describe('typeValidation', () => {
     it('should not validate type with typeValidation: none', () => {
-      const tracker = new StreamingToolCallTracker({
+      const { controller } = createCollector();
+      const tracker = new StreamingToolCallTracker(controller, {
         typeValidation: 'none',
       });
-      const { enqueue } = createCollector();
 
       // Should not throw even with a non-function type
       expect(() =>
-        tracker.processDelta(
-          {
-            index: 0,
-            id: 'call_1',
-            type: 'custom',
-            function: { name: 'fn', arguments: '' },
-          },
-          enqueue,
-        ),
+        tracker.processDelta({
+          index: 0,
+          id: 'call_1',
+          type: 'custom',
+          function: { name: 'fn', arguments: '' },
+        }),
       ).not.toThrow();
     });
 
     it('should validate type when present with typeValidation: if-present', () => {
-      const tracker = new StreamingToolCallTracker({
+      const { controller } = createCollector();
+      const tracker = new StreamingToolCallTracker(controller, {
         typeValidation: 'if-present',
       });
-      const { enqueue } = createCollector();
 
       // Should throw for non-function type
       expect(() =>
-        tracker.processDelta(
-          {
-            index: 0,
-            id: 'call_1',
-            type: 'custom',
-            function: { name: 'fn', arguments: '' },
-          },
-          enqueue,
-        ),
+        tracker.processDelta({
+          index: 0,
+          id: 'call_1',
+          type: 'custom',
+          function: { name: 'fn', arguments: '' },
+        }),
       ).toThrow("Expected 'function' type.");
 
       // Should not throw when type is null
       expect(() =>
-        tracker.processDelta(
-          {
-            index: 0,
-            id: 'call_1',
-            function: { name: 'fn', arguments: '' },
-          },
-          enqueue,
-        ),
+        tracker.processDelta({
+          index: 0,
+          id: 'call_1',
+          function: { name: 'fn', arguments: '' },
+        }),
       ).not.toThrow();
     });
 
     it('should require function type with typeValidation: required', () => {
-      const tracker = new StreamingToolCallTracker({
+      const { controller } = createCollector();
+      const tracker = new StreamingToolCallTracker(controller, {
         typeValidation: 'required',
       });
-      const { enqueue } = createCollector();
 
       // Should throw when type is null/undefined
       expect(() =>
-        tracker.processDelta(
-          {
-            index: 0,
-            id: 'call_1',
-            function: { name: 'fn', arguments: '' },
-          },
-          enqueue,
-        ),
+        tracker.processDelta({
+          index: 0,
+          id: 'call_1',
+          function: { name: 'fn', arguments: '' },
+        }),
       ).toThrow("Expected 'function' type.");
 
       // Should not throw for 'function' type
       expect(() =>
-        tracker.processDelta(
-          {
-            index: 0,
-            id: 'call_1',
-            type: 'function',
-            function: { name: 'fn', arguments: '' },
-          },
-          enqueue,
-        ),
+        tracker.processDelta({
+          index: 0,
+          id: 'call_1',
+          type: 'function',
+          function: { name: 'fn', arguments: '' },
+        }),
       ).not.toThrow();
     });
   });
 
   describe('flush', () => {
     it('should finalize unfinished tool calls on flush', () => {
-      const tracker = new StreamingToolCallTracker();
-      const { parts, enqueue } = createCollector();
+      const { parts, controller } = createCollector();
+      const tracker = new StreamingToolCallTracker(controller);
 
       // Start a tool call but don't complete it
-      tracker.processDelta(
-        {
-          index: 0,
-          id: 'call_1',
-          type: 'function',
-          function: { name: 'fn', arguments: '{"key": "val' },
-        },
-        enqueue,
-      );
+      tracker.processDelta({
+        index: 0,
+        id: 'call_1',
+        type: 'function',
+        function: { name: 'fn', arguments: '{"key": "val' },
+      });
 
       parts.length = 0;
 
       // Flush should finalize
-      tracker.flush(enqueue);
+      tracker.flush();
 
       expect(parts).toEqual([
         { type: 'tool-input-end', id: 'call_1' },
@@ -379,23 +321,20 @@ describe('StreamingToolCallTracker', () => {
     });
 
     it('should not re-finalize already finished tool calls', () => {
-      const tracker = new StreamingToolCallTracker();
-      const { parts, enqueue } = createCollector();
+      const { parts, controller } = createCollector();
+      const tracker = new StreamingToolCallTracker(controller);
 
       // Complete tool call in one chunk
-      tracker.processDelta(
-        {
-          index: 0,
-          id: 'call_1',
-          type: 'function',
-          function: { name: 'fn', arguments: '{}' },
-        },
-        enqueue,
-      );
+      tracker.processDelta({
+        index: 0,
+        id: 'call_1',
+        type: 'function',
+        function: { name: 'fn', arguments: '{}' },
+      });
 
       parts.length = 0;
 
-      tracker.flush(enqueue);
+      tracker.flush();
 
       // No events should be emitted since tool call was already finished
       expect(parts).toEqual([]);
@@ -404,7 +343,8 @@ describe('StreamingToolCallTracker', () => {
 
   describe('metadata', () => {
     it('should extract and include provider metadata in tool-call events', () => {
-      const tracker = new StreamingToolCallTracker({
+      const { parts, controller } = createCollector();
+      const tracker = new StreamingToolCallTracker(controller, {
         extractMetadata: delta => {
           const sig = (delta as any).extra_content?.google?.thought_signature;
           return sig ? { thoughtSignature: sig } : undefined;
@@ -416,18 +356,14 @@ describe('StreamingToolCallTracker', () => {
           return undefined;
         },
       });
-      const { parts, enqueue } = createCollector();
 
-      tracker.processDelta(
-        {
-          index: 0,
-          id: 'call_1',
-          type: 'function',
-          function: { name: 'fn', arguments: '{}' },
-          extra_content: { google: { thought_signature: 'sig123' } },
-        } as any,
-        enqueue,
-      );
+      tracker.processDelta({
+        index: 0,
+        id: 'call_1',
+        type: 'function',
+        function: { name: 'fn', arguments: '{}' },
+        extra_content: { google: { thought_signature: 'sig123' } },
+      } as any);
 
       const toolCallEvent = parts.find(p => p.type === 'tool-call');
       expect(toolCallEvent).toEqual({
@@ -442,27 +378,24 @@ describe('StreamingToolCallTracker', () => {
     });
 
     it('should include provider metadata for unfinished tool calls finalized in flush', () => {
-      const tracker = new StreamingToolCallTracker({
+      const { parts, controller } = createCollector();
+      const tracker = new StreamingToolCallTracker(controller, {
         extractMetadata: () => ({ custom: { key: 'value' } }),
         buildToolCallProviderMetadata: metadata => {
           return metadata ? { provider: metadata } : undefined;
         },
       });
-      const { parts, enqueue } = createCollector();
 
-      tracker.processDelta(
-        {
-          index: 0,
-          id: 'call_1',
-          type: 'function',
-          function: { name: 'fn', arguments: '{"incomplete' },
-        },
-        enqueue,
-      );
+      tracker.processDelta({
+        index: 0,
+        id: 'call_1',
+        type: 'function',
+        function: { name: 'fn', arguments: '{"incomplete' },
+      });
 
       parts.length = 0;
 
-      tracker.flush(enqueue);
+      tracker.flush();
 
       const toolCallEvent = parts.find(p => p.type === 'tool-call');
       expect(toolCallEvent).toEqual({
@@ -475,21 +408,18 @@ describe('StreamingToolCallTracker', () => {
     });
 
     it('should not include providerMetadata when buildToolCallProviderMetadata returns undefined', () => {
-      const tracker = new StreamingToolCallTracker({
+      const { parts, controller } = createCollector();
+      const tracker = new StreamingToolCallTracker(controller, {
         extractMetadata: () => undefined,
         buildToolCallProviderMetadata: () => undefined,
       });
-      const { parts, enqueue } = createCollector();
 
-      tracker.processDelta(
-        {
-          index: 0,
-          id: 'call_1',
-          type: 'function',
-          function: { name: 'fn', arguments: '{}' },
-        },
-        enqueue,
-      );
+      tracker.processDelta({
+        index: 0,
+        id: 'call_1',
+        type: 'function',
+        function: { name: 'fn', arguments: '{}' },
+      });
 
       const toolCallEvent = parts.find(p => p.type === 'tool-call');
       expect(toolCallEvent).toEqual({
@@ -505,26 +435,23 @@ describe('StreamingToolCallTracker', () => {
   describe('generateId', () => {
     it('should use custom generateId for tool call IDs when id is missing in fallback', () => {
       const mockGenerateId = vi.fn(() => 'custom-id');
-      const tracker = new StreamingToolCallTracker({
+      const { parts, controller } = createCollector();
+      const tracker = new StreamingToolCallTracker(controller, {
         generateId: mockGenerateId,
       });
-      const { parts, enqueue } = createCollector();
 
       // Start a tool call
-      tracker.processDelta(
-        {
-          index: 0,
-          id: 'call_1',
-          type: 'function',
-          function: { name: 'fn', arguments: '{"key": "val' },
-        },
-        enqueue,
-      );
+      tracker.processDelta({
+        index: 0,
+        id: 'call_1',
+        type: 'function',
+        function: { name: 'fn', arguments: '{"key": "val' },
+      });
 
       parts.length = 0;
 
       // Flush to finalize
-      tracker.flush(enqueue);
+      tracker.flush();
 
       // The toolCallId should use the original id since it's present
       const toolCallEvent = parts.find(p => p.type === 'tool-call');
