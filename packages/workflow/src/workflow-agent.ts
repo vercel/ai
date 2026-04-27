@@ -16,7 +16,7 @@ import {
   Output,
   type StepResult,
   type StopCondition,
-  type StreamTextOnStepFinishCallback,
+  type GenerateTextOnStepFinishCallback,
   type SystemModelMessage,
   type ToolCallRepairFunction,
   type ToolChoice,
@@ -37,12 +37,12 @@ export type { CompatibleLanguageModel } from './types.js';
 
 /**
  * Callback function to be called after each step completes.
- * Alias for the AI SDK's StreamTextOnStepFinishCallback, using
+ * Alias for the AI SDK's GenerateTextOnStepFinishCallback, using
  * WorkflowAgent-consistent naming.
  */
 export type WorkflowAgentOnStepFinishCallback<
   TTools extends ToolSet = ToolSet,
-> = StreamTextOnStepFinishCallback<TTools, any>;
+> = GenerateTextOnStepFinishCallback<TTools, any>;
 
 /**
  * Infer the type of the tools of a workflow agent.
