@@ -10,10 +10,12 @@ export function prepareTools({
   tools,
   toolChoice,
   modelId,
+  isVertexProvider = false,
 }: {
   tools: LanguageModelV4CallOptions['tools'];
   toolChoice?: LanguageModelV4CallOptions['toolChoice'];
   modelId: GoogleModelId;
+  isVertexProvider?: boolean;
 }): {
   tools:
     | Array<
@@ -202,10 +204,12 @@ export function prepareTools({
           mode: 'VALIDATED' | 'ANY' | 'NONE';
           allowedFunctionNames?: string[];
         };
-        includeServerSideToolInvocations: true;
+        includeServerSideToolInvocations?: true;
       } = {
         functionCallingConfig: { mode: 'VALIDATED' },
-        includeServerSideToolInvocations: true,
+        ...(!isVertexProvider && {
+          includeServerSideToolInvocations: true,
+        }),
       };
 
       if (toolChoice != null) {
