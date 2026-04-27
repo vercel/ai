@@ -966,6 +966,40 @@ describe('MCPClient', () => {
     `);
   });
 
+  it('should expose instructions from initialization when server provides them', async () => {
+    createMockTransport.mockImplementation(
+      () =>
+        new MockMCPTransport({
+          initializeResult: {
+            protocolVersion: '2025-11-25',
+            serverInfo: {
+              name: 'mock-mcp-server',
+              version: '1.0.0',
+            },
+            capabilities: { tools: {} },
+            instructions:
+              'Use search tools to resolve IDs — never ask the user.',
+          },
+        }),
+    );
+
+    client = await createMCPClient({
+      transport: { type: 'sse', url: 'https://example.com/sse' },
+    });
+
+    expect(client.instructions).toBe(
+      'Use search tools to resolve IDs — never ask the user.',
+    );
+  });
+
+  it('should expose undefined instructions when server omits them', async () => {
+    client = await createMCPClient({
+      transport: { type: 'sse', url: 'https://example.com/sse' },
+    });
+
+    expect(client.instructions).toBeUndefined();
+  });
+
   it('should close transport when client is closed', async () => {
     const mockTransport = new MockMCPTransport();
     const closeSpy = vi.spyOn(mockTransport, 'close');
