@@ -2,7 +2,8 @@ import { z } from 'zod/v4';
 
 export type XaiResponsesIncludeValue =
   | 'file_search_call.results'
-  | 'reasoning.encrypted_content';
+  | 'reasoning.encrypted_content'
+  | 'no_inline_citations';
 
 export type XaiResponsesIncludeOptions =
   | Array<XaiResponsesIncludeValue>
