@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createDefaultDownloadFunction } from '../util/download/download-function';
 import {
   convertToLanguageModelMessage,
@@ -2025,6 +2025,327 @@ describe('convertToLanguageModelMessage', () => {
       `);
     });
 
+    describe('deprecated content type warnings', () => {
+      let mockProcessEmitWarning: ReturnType<typeof vi.spyOn>;
+
+      beforeEach(() => {
+        mockProcessEmitWarning = vi
+          .spyOn(process, 'emitWarning')
+          .mockImplementation(() => {});
+      });
+
+      afterEach(() => {
+        mockProcessEmitWarning.mockRestore();
+      });
+
+      it('should emit DeprecationWarning for image-data', () => {
+        convertToLanguageModelMessage({
+          message: {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolName: 'toolName',
+                toolCallId: 'toolCallId',
+                output: {
+                  type: 'content',
+                  value: [
+                    {
+                      type: 'image-data',
+                      data: 'dGVzdA==',
+                      mediaType: 'image/png',
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+          downloadedAssets: {},
+        });
+
+        expect(mockProcessEmitWarning).toHaveBeenCalledOnce();
+        expect(mockProcessEmitWarning).toHaveBeenCalledWith(
+          'AI SDK Warning: Deprecated: ""tool-result" content of type "image-data"". The "image-data" type for tool result content is deprecated. Use the "file-data" type instead.',
+          { type: 'DeprecationWarning' },
+        );
+      });
+
+      it('should emit DeprecationWarning for image-url', () => {
+        convertToLanguageModelMessage({
+          message: {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolName: 'toolName',
+                toolCallId: 'toolCallId',
+                output: {
+                  type: 'content',
+                  value: [
+                    { type: 'image-url', url: 'https://example.com/image.png' },
+                  ],
+                },
+              },
+            ],
+          },
+          downloadedAssets: {},
+        });
+
+        expect(mockProcessEmitWarning).toHaveBeenCalledOnce();
+        expect(mockProcessEmitWarning).toHaveBeenCalledWith(
+          'AI SDK Warning: Deprecated: ""tool-result" content of type "image-url"". The "image-url" type for tool result content is deprecated. Use the "file-url" type instead.',
+          { type: 'DeprecationWarning' },
+        );
+      });
+
+      it('should emit DeprecationWarning for image-file-reference', () => {
+        convertToLanguageModelMessage({
+          message: {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolName: 'toolName',
+                toolCallId: 'toolCallId',
+                output: {
+                  type: 'content',
+                  value: [
+                    {
+                      type: 'image-file-reference',
+                      providerReference: { 'test-provider': 'fileId' },
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+          downloadedAssets: {},
+        });
+
+        expect(mockProcessEmitWarning).toHaveBeenCalledOnce();
+        expect(mockProcessEmitWarning).toHaveBeenCalledWith(
+          'AI SDK Warning: Deprecated: ""tool-result" content of type "image-file-reference"". The "image-file-reference" type for tool result content is deprecated. Use the "file-reference" type instead.',
+          { type: 'DeprecationWarning' },
+        );
+      });
+
+      it('should emit DeprecationWarning for image-file-id with object fileId', () => {
+        convertToLanguageModelMessage({
+          message: {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolName: 'toolName',
+                toolCallId: 'toolCallId',
+                output: {
+                  type: 'content',
+                  value: [
+                    {
+                      type: 'image-file-id',
+                      fileId: { 'test-provider': 'fileId' },
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+          downloadedAssets: {},
+        });
+
+        expect(mockProcessEmitWarning).toHaveBeenCalledOnce();
+        expect(mockProcessEmitWarning).toHaveBeenCalledWith(
+          'AI SDK Warning: Deprecated: ""tool-result" content of type "image-file-id"". The "image-file-id" type for tool result content is deprecated. Use the "file-reference" type instead.',
+          { type: 'DeprecationWarning' },
+        );
+      });
+
+      it('should emit DeprecationWarning for file-id with object fileId', () => {
+        convertToLanguageModelMessage({
+          message: {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolName: 'toolName',
+                toolCallId: 'toolCallId',
+                output: {
+                  type: 'content',
+                  value: [
+                    {
+                      type: 'file-id',
+                      fileId: { 'test-provider': 'fileId' },
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+          downloadedAssets: {},
+        });
+
+        expect(mockProcessEmitWarning).toHaveBeenCalledOnce();
+        expect(mockProcessEmitWarning).toHaveBeenCalledWith(
+          'AI SDK Warning: Deprecated: ""tool-result" content of type "file-id"". The "file-id" type for tool result content is deprecated. Use the "file-reference" type instead.',
+          { type: 'DeprecationWarning' },
+        );
+      });
+
+      it('should emit DeprecationWarning for file-url without mediaType (inferred)', () => {
+        convertToLanguageModelMessage({
+          message: {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolName: 'toolName',
+                toolCallId: 'toolCallId',
+                output: {
+                  type: 'content',
+                  value: [
+                    { type: 'file-url', url: 'https://example.com/image.png' },
+                  ],
+                },
+              },
+            ],
+          },
+          downloadedAssets: {},
+        });
+
+        expect(mockProcessEmitWarning).toHaveBeenCalledOnce();
+        expect(mockProcessEmitWarning).toHaveBeenCalledWith(
+          `AI SDK Warning: Deprecated: ""tool-result" content of type "file-url" without mediaType". The "file-url" tool result content part with URL "https://example.com/image.png" is missing a "mediaType". Inferred media type 'image/png' from URL.`,
+          { type: 'DeprecationWarning' },
+        );
+      });
+
+      it('should emit DeprecationWarning for file-url without mediaType (not inferable)', () => {
+        convertToLanguageModelMessage({
+          message: {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolName: 'toolName',
+                toolCallId: 'toolCallId',
+                output: {
+                  type: 'content',
+                  value: [
+                    { type: 'file-url', url: 'https://example.com/file' },
+                  ],
+                },
+              },
+            ],
+          },
+          downloadedAssets: {},
+        });
+
+        expect(mockProcessEmitWarning).toHaveBeenCalledOnce();
+        expect(mockProcessEmitWarning).toHaveBeenCalledWith(
+          `AI SDK Warning: Deprecated: ""tool-result" content of type "file-url" without mediaType". The "file-url" tool result content part with URL "https://example.com/file" is missing a "mediaType". Unable to infer media type from URL. Defaulting to 'application/octet-stream'.`,
+          { type: 'DeprecationWarning' },
+        );
+      });
+
+      it('should emit DeprecationWarning for deprecated types in assistant message tool-result content', () => {
+        convertToLanguageModelMessage({
+          message: {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'toolCallId',
+                toolName: 'toolName',
+                output: {
+                  type: 'content',
+                  value: [
+                    {
+                      type: 'image-data',
+                      data: 'dGVzdA==',
+                      mediaType: 'image/png',
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+          downloadedAssets: {},
+        });
+
+        expect(mockProcessEmitWarning).toHaveBeenCalledOnce();
+        expect(mockProcessEmitWarning).toHaveBeenCalledWith(
+          'AI SDK Warning: Deprecated: ""tool-result" content of type "image-data"". The "image-data" type for tool result content is deprecated. Use the "file-data" type instead.',
+          { type: 'DeprecationWarning' },
+        );
+      });
+
+      it('should emit one DeprecationWarning per deprecated item', () => {
+        convertToLanguageModelMessage({
+          message: {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolName: 'toolName',
+                toolCallId: 'toolCallId',
+                output: {
+                  type: 'content',
+                  value: [
+                    {
+                      type: 'image-data',
+                      data: 'dGVzdA==',
+                      mediaType: 'image/png',
+                    },
+                    { type: 'image-url', url: 'https://example.com/image.png' },
+                  ],
+                },
+              },
+            ],
+          },
+          downloadedAssets: {},
+        });
+
+        expect(mockProcessEmitWarning).toHaveBeenCalledTimes(2);
+      });
+
+      it('should not emit warnings for non-deprecated content types', () => {
+        convertToLanguageModelMessage({
+          message: {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolName: 'toolName',
+                toolCallId: 'toolCallId',
+                output: {
+                  type: 'content',
+                  value: [
+                    {
+                      type: 'file-data',
+                      data: 'dGVzdA==',
+                      mediaType: 'image/png',
+                    },
+                    {
+                      type: 'file-url',
+                      url: 'https://example.com/image.png',
+                      mediaType: 'image/png',
+                    },
+                    {
+                      type: 'file-reference',
+                      providerReference: { 'test-provider': 'fileId' },
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+          downloadedAssets: {},
+        });
+
+        expect(mockProcessEmitWarning).not.toHaveBeenCalled();
+      });
+    });
+
     it('should include multipart content', () => {
       const result = convertToLanguageModelMessage({
         message: {
@@ -2037,7 +2358,11 @@ describe('convertToLanguageModelMessage', () => {
               output: {
                 type: 'content',
                 value: [
-                  { type: 'file-url', url: 'https://example.com/image.png' },
+                  {
+                    type: 'file-url',
+                    url: 'https://example.com/image.png',
+                    mediaType: 'image/png',
+                  },
                   {
                     type: 'file-data',
                     data: 'dGVzdA==',

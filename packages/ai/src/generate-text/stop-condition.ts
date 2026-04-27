@@ -13,9 +13,9 @@ import { StepResult } from './step-result';
  */
 export type StopCondition<
   TOOLS extends ToolSet,
-  USER_CONTEXT extends Context = Context,
+  RUNTIME_CONTEXT extends Context = Context,
 > = (options: {
-  steps: Array<StepResult<TOOLS, USER_CONTEXT>>;
+  steps: Array<StepResult<TOOLS, RUNTIME_CONTEXT>>;
 }) => PromiseLike<boolean> | boolean;
 
 /**
@@ -63,13 +63,13 @@ export function hasToolCall<TOOLS extends ToolSet>(
  */
 export async function isStopConditionMet<
   TOOLS extends ToolSet,
-  USER_CONTEXT extends Context = Context,
+  RUNTIME_CONTEXT extends Context = Context,
 >({
   stopConditions,
   steps,
 }: {
-  stopConditions: Array<StopCondition<TOOLS, USER_CONTEXT>>;
-  steps: Array<StepResult<TOOLS, USER_CONTEXT>>;
+  stopConditions: Array<StopCondition<TOOLS, RUNTIME_CONTEXT>>;
+  steps: Array<StepResult<TOOLS, RUNTIME_CONTEXT>>;
 }): Promise<boolean> {
   return (
     await Promise.all(stopConditions.map(condition => condition({ steps })))

@@ -53,23 +53,23 @@ Install the Vercel OpenTelemetry integration:
 pnpm i @opentelemetry/api @vercel/otel @ai-sdk/otel
 ```
 
-Create `instrumentation.ts` in your project root and register the `OpenTelemetryIntegration` alongside your OTel provider setup:
+Create `instrumentation.ts` in your project root and register the `OpenTelemetry` alongside your OTel provider setup:
 
 ```ts filename="instrumentation.ts"
-import { registerTelemetryIntegration } from 'ai';
-import { OpenTelemetryIntegration } from '@ai-sdk/otel';
+import { registerTelemetry } from 'ai';
+import { OpenTelemetry } from '@ai-sdk/otel';
 import { registerOTel } from '@vercel/otel';
 
-registerTelemetryIntegration(new OpenTelemetryIntegration());
+registerTelemetry(new OpenTelemetry());
 
 export async function register() {
   registerOTel({ serviceName: 'next-app' });
 }
 ```
 
-Then enable telemetry where you call the AI SDK:
+Once the integration is registered, telemetry is emitted automatically for your AI SDK calls:
 
-```ts filename="route.ts" highlight="8"
+```ts filename="route.ts"
 import { generateText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
@@ -79,7 +79,6 @@ export async function POST(req: Request) {
   const { text } = await generateText({
     model: openai('gpt-5'),
     prompt,
-    experimental_telemetry: { isEnabled: true },
   });
 
   return new Response(JSON.stringify({ text }), {
@@ -100,8 +99,8 @@ For other Node.js frameworks, wire up the OpenTelemetry Node SDK and OTLP export
 
 ```ts filename="main.ts"
 import { init } from 'mlflow-tracing';
-import { registerTelemetryIntegration, generateText } from 'ai';
-import { OpenTelemetryIntegration } from '@ai-sdk/otel';
+import { registerTelemetry, generateText } from 'ai';
+import { OpenTelemetry } from '@ai-sdk/otel';
 import { openai } from '@ai-sdk/openai';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { SimpleSpanProcessor } from '@opentelemetry/sdk-trace-node';
@@ -120,13 +119,11 @@ const sdk = new NodeSDK({
 
 sdk.start();
 init();
-registerTelemetryIntegration(new OpenTelemetryIntegration());
+registerTelemetry(new OpenTelemetry());
 
-// Make an AI SDK call with telemetry enabled
 const result = await generateText({
   model: openai('gpt-5'),
   prompt: 'What is MLflow?',
-  experimental_telemetry: { isEnabled: true },
 });
 
 console.log(result.text);
@@ -139,7 +136,7 @@ npx tsx main.ts
 
 ## Streaming
 
-Streaming is supported. As with `generateText`, set `experimental_telemetry.isEnabled` to `true`.
+Streaming is supported. Like `generateText`, traces are captured automatically once the integration is registered.
 
 ```ts
 import { streamText } from 'ai';
@@ -148,7 +145,6 @@ import { openai } from '@ai-sdk/openai';
 const stream = await streamText({
   model: openai('gpt-5'),
   prompt: 'Explain vector databases in one paragraph.',
-  experimental_telemetry: { isEnabled: true },
 });
 
 for await (const part of stream.textStream) {
@@ -158,7 +154,7 @@ for await (const part of stream.textStream) {
 
 ## Disable auto-tracing
 
-To disable tracing for Vercel AI SDK, set `experimental_telemetry: { isEnabled: false }` on the AI SDK call.
+To disable tracing for Vercel AI SDK, set `telemetry: { isEnabled: false }` on the AI SDK call.
 
 ## Learn more
 

@@ -3,14 +3,15 @@ import type {
   LanguageModelV4Prompt,
   LanguageModelV4ToolResultPart,
 } from '@ai-sdk/provider';
-import type {
-  Experimental_LanguageModelStreamPart as ModelCallStreamPart,
-  ModelMessage,
-  StepResult,
-  StreamTextOnStepFinishCallback,
-  ToolCallRepairFunction,
-  ToolChoice,
-  ToolSet,
+import {
+  type Experimental_LanguageModelStreamPart as ModelCallStreamPart,
+  type LanguageModel,
+  type ModelMessage,
+  type StepResult,
+  type ToolCallRepairFunction,
+  type ToolChoice,
+  type ToolSet,
+  experimental_filterActiveTools as filterActiveTools,
 } from 'ai';
 import {
   doStreamStep,
@@ -22,11 +23,11 @@ import { serializeToolSet } from './serializable-schema.js';
 import type {
   GenerationSettings,
   PrepareStepCallback,
-  StreamTextOnErrorCallback,
-  TelemetrySettings,
+  WorkflowAgentOnErrorCallback,
+  WorkflowAgentOnStepFinishCallback,
+  TelemetryOptions,
   WorkflowAgentOnStepStartCallback,
 } from './workflow-agent.js';
-import type { CompatibleLanguageModel } from './types.js';
 
 // Re-export for consumers
 export type { ProviderExecutedToolResult } from './do-stream-step.js';
@@ -55,7 +56,6 @@ export async function* streamTextIterator({
   writable,
   model,
   stopConditions,
-  maxSteps,
   onStepFinish,
   onStepStart,
   onError,
@@ -63,7 +63,7 @@ export async function* streamTextIterator({
   generationSettings,
   toolChoice,
   experimental_context,
-  experimental_telemetry,
+  telemetry,
   includeRawChunks = false,
   repairToolCall,
   responseFormat,
@@ -71,20 +71,16 @@ export async function* streamTextIterator({
   prompt: LanguageModelV4Prompt;
   tools: ToolSet;
   writable?: WritableStream<ModelCallStreamPart<ToolSet>>;
-  model:
-    | string
-    | CompatibleLanguageModel
-    | (() => Promise<CompatibleLanguageModel>);
+  model: LanguageModel;
   stopConditions?: ModelStopCondition[] | ModelStopCondition;
-  maxSteps?: number;
-  onStepFinish?: StreamTextOnStepFinishCallback<any, any>;
+  onStepFinish?: WorkflowAgentOnStepFinishCallback<any>;
   onStepStart?: WorkflowAgentOnStepStartCallback;
-  onError?: StreamTextOnErrorCallback;
+  onError?: WorkflowAgentOnErrorCallback;
   prepareStep?: PrepareStepCallback<any>;
   generationSettings?: GenerationSettings;
   toolChoice?: ToolChoice<ToolSet>;
   experimental_context?: unknown;
-  experimental_telemetry?: TelemetrySettings;
+  telemetry?: TelemetryOptions;
   includeRawChunks?: boolean;
   repairToolCall?: ToolCallRepairFunction<ToolSet>;
   responseFormat?: LanguageModelV4CallOptions['responseFormat'];
@@ -94,10 +90,7 @@ export async function* streamTextIterator({
   LanguageModelV4ToolResultPart[]
 > {
   let conversationPrompt = [...prompt]; // Create a mutable copy
-  let currentModel:
-    | string
-    | CompatibleLanguageModel
-    | (() => Promise<CompatibleLanguageModel>) = model;
+  let currentModel: LanguageModel = model;
   let currentGenerationSettings = generationSettings ?? {};
   let currentToolChoice = toolChoice;
   let currentContext = experimental_context;
@@ -110,16 +103,7 @@ export async function* streamTextIterator({
   let lastStep: StepResult<any, any> | undefined;
   let lastStepWasToolCalls = false;
 
-  // Default maxSteps to Infinity to preserve backwards compatibility
-  // (agent loops until completion unless explicitly limited)
-  const effectiveMaxSteps = maxSteps ?? Infinity;
-
   while (!done) {
-    // Check if we've exceeded the maximum number of steps
-    if (stepNumber >= effectiveMaxSteps) {
-      break;
-    }
-
     // Check for abort signal
     if (currentGenerationSettings.abortSignal?.aborted) {
       break;
@@ -248,6 +232,7 @@ export async function* streamTextIterator({
         stepNumber,
         model: currentModel,
         messages: conversationPrompt as unknown as ModelMessage[],
+        steps: [...steps],
       });
     }
 
@@ -255,7 +240,10 @@ export async function* streamTextIterator({
       // Filter tools if activeTools is specified
       const effectiveTools =
         currentActiveTools && currentActiveTools.length > 0
-          ? filterToolSet(tools, currentActiveTools)
+          ? (filterActiveTools({
+              tools,
+              activeTools: currentActiveTools,
+            }) ?? tools)
           : tools;
 
       // Serialize tools before crossing the step boundary — zod schemas
@@ -273,7 +261,7 @@ export async function* streamTextIterator({
             ...currentGenerationSettings,
             toolChoice: currentToolChoice,
             includeRawChunks,
-            experimental_telemetry,
+            telemetry,
             repairToolCall,
             responseFormat,
           },
@@ -397,19 +385,6 @@ export async function* streamTextIterator({
   }
 
   return conversationPrompt;
-}
-
-/**
- * Filter a tool set to only include the specified active tools.
- */
-function filterToolSet(tools: ToolSet, activeTools: string[]): ToolSet {
-  const filtered: ToolSet = {};
-  for (const toolName of activeTools) {
-    if (toolName in tools) {
-      filtered[toolName] = tools[toolName];
-    }
-  }
-  return filtered;
 }
 
 /**

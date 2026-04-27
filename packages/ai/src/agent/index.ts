@@ -8,8 +8,6 @@ export {
   type ToolLoopAgentOnStartCallback,
   type ToolLoopAgentOnStepFinishCallback,
   type ToolLoopAgentOnStepStartCallback,
-  type ToolLoopAgentOnToolCallFinishCallback,
-  type ToolLoopAgentOnToolCallStartCallback,
   type ToolLoopAgentSettings,
 
   /**

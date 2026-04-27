@@ -1,5 +1,61 @@
 # @ai-sdk/xai
 
+## 4.0.0-beta.43
+
+### Patch Changes
+
+- a0b0a0c: expose costInUsdTicks in responses provider metadata
+- Updated dependencies [2e98477]
+- Updated dependencies [bfb756d]
+  - @ai-sdk/provider-utils@5.0.0-beta.26
+  - @ai-sdk/openai-compatible@3.0.0-beta.31
+
+## 4.0.0-beta.42
+
+### Patch Changes
+
+- Updated dependencies [eea8d98]
+  - @ai-sdk/provider-utils@5.0.0-beta.25
+  - @ai-sdk/openai-compatible@3.0.0-beta.30
+
+## 4.0.0-beta.41
+
+### Patch Changes
+
+- Updated dependencies [f807e45]
+  - @ai-sdk/provider-utils@5.0.0-beta.24
+  - @ai-sdk/openai-compatible@3.0.0-beta.29
+
+## 4.0.0-beta.40
+
+### Patch Changes
+
+- Updated dependencies [350ea38]
+  - @ai-sdk/provider-utils@5.0.0-beta.23
+  - @ai-sdk/openai-compatible@3.0.0-beta.28
+
+## 4.0.0-beta.39
+
+### Patch Changes
+
+- Updated dependencies [083947b]
+  - @ai-sdk/provider-utils@5.0.0-beta.22
+  - @ai-sdk/openai-compatible@3.0.0-beta.27
+
+## 4.0.0-beta.38
+
+### Patch Changes
+
+- Updated dependencies [add1126]
+  - @ai-sdk/provider-utils@5.0.0-beta.21
+  - @ai-sdk/openai-compatible@3.0.0-beta.26
+
+## 4.0.0-beta.37
+
+### Patch Changes
+
+- 8d87577: fix(xai): support encrypted reasoning round-trip for ZDR
+
 ## 4.0.0-beta.36
 
 ### Patch Changes

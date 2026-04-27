@@ -1,5 +1,5 @@
 import type { GoogleLanguageModelOptions } from '@ai-sdk/google';
-import { GoogleGenerativeAILanguageModel } from '@ai-sdk/google/internal';
+import { GoogleLanguageModel } from '@ai-sdk/google/internal';
 import {
   ImageModelV4,
   ImageModelV4File,
@@ -292,7 +292,7 @@ export class GoogleVertexImageModel implements ImageModelV4 {
       { role: 'user', content: userContent },
     ];
 
-    const languageModel = new GoogleGenerativeAILanguageModel(this.modelId, {
+    const languageModel = new GoogleLanguageModel(this.modelId, {
       provider: this.config.provider,
       baseURL: this.config.baseURL,
       headers: this.config.headers ?? {},

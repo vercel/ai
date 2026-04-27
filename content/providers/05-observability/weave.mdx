@@ -42,16 +42,16 @@ OTEL_EXPORTER_OTLP_ENDPOINT="https://trace.wandb.ai/otel/v1/traces"
 OTEL_EXPORTER_OTLP_HEADERS="Authorization=Basic <BASE64_AUTH_STRING>,project_id=<YOUR_TEAM_NAME>/<YOUR_PROJECT_NAME>"
 ```
 
-Install `@ai-sdk/otel` and register the `OpenTelemetryIntegration` in your `instrumentation.ts` file:
+Install `@ai-sdk/otel` and register the `OpenTelemetry` in your `instrumentation.ts` file:
 
 ```typescript filename="instrumentation.ts"
-import { registerTelemetryIntegration } from 'ai';
-import { OpenTelemetryIntegration } from '@ai-sdk/otel';
+import { registerTelemetry } from 'ai';
+import { OpenTelemetry } from '@ai-sdk/otel';
 
-registerTelemetryIntegration(new OpenTelemetryIntegration());
+registerTelemetry(new OpenTelemetry());
 ```
 
-You can then use the `experimental_telemetry` option to enable telemetry on supported AI SDK function calls:
+You can then use the `telemetry` option to enable telemetry on supported AI SDK function calls:
 
 ```typescript
 import { generateText } from 'ai';
@@ -60,8 +60,7 @@ import { openai } from '@ai-sdk/openai';
 const result = await generateText({
   model: openai('gpt-4o-mini'),
   prompt: 'What is 2 + 2?',
-  experimental_telemetry: {
-    isEnabled: true,
+  telemetry: {
     metadata: {
       query: 'math',
       difficulty: 'easy',

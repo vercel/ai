@@ -4,6 +4,7 @@ export type OpenAIImageModelId =
   | 'gpt-image-1'
   | 'gpt-image-1-mini'
   | 'gpt-image-1.5'
+  | 'gpt-image-2'
   | 'chatgpt-image-latest'
   | (string & {});
 
@@ -14,6 +15,7 @@ export const modelMaxImagesPerCall: Record<OpenAIImageModelId, number> = {
   'gpt-image-1': 10,
   'gpt-image-1-mini': 10,
   'gpt-image-1.5': 10,
+  'gpt-image-2': 10,
   'chatgpt-image-latest': 10,
 };
 
@@ -22,6 +24,7 @@ const defaultResponseFormatPrefixes = [
   'gpt-image-1-mini',
   'gpt-image-1.5',
   'gpt-image-1',
+  'gpt-image-2',
 ];
 
 export function hasDefaultResponseFormat(modelId: string): boolean {

@@ -1,6 +1,6 @@
 import {
   google,
-  GoogleGenerativeAIProviderMetadata,
+  GoogleProviderMetadata,
   type GoogleLanguageModelOptions,
 } from '@ai-sdk/google';
 import { generateText } from 'ai';
@@ -24,7 +24,7 @@ run(async () => {
   });
 
   const metadata = providerMetadata?.google as
-    | GoogleGenerativeAIProviderMetadata
+    | GoogleProviderMetadata
     | undefined;
   const groundingMetadata = metadata?.groundingMetadata;
 

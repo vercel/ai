@@ -75,6 +75,15 @@ export const uiMessageChunkSchema = lazySchema(() =>
         type: z.literal('tool-approval-request'),
         approvalId: z.string(),
         toolCallId: z.string(),
+        isAutomatic: z.boolean().optional(),
+      }),
+      z.strictObject({
+        type: z.literal('tool-approval-response'),
+        approvalId: z.string(),
+        approved: z.boolean(),
+        reason: z.string().optional(),
+        providerExecuted: z.boolean().optional(),
+        providerMetadata: providerMetadataSchema.optional(),
       }),
       z.strictObject({
         type: z.literal('tool-output-available'),
@@ -271,6 +280,15 @@ export type UIMessageChunk<
       type: 'tool-approval-request';
       approvalId: string;
       toolCallId: string;
+      isAutomatic?: boolean;
+    }
+  | {
+      type: 'tool-approval-response';
+      approvalId: string;
+      approved: boolean;
+      reason?: string;
+      providerExecuted?: boolean;
+      providerMetadata?: ProviderMetadata;
     }
   | {
       type: 'tool-output-available';

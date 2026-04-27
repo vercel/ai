@@ -23,6 +23,8 @@ export type SerializableToolDef = {
   inputSchema: JSONSchema7;
   /** Present on provider tools (e.g. anthropic.tools.webSearch). */
   type?: 'provider';
+  /** Provider tool is executed by the provider. */
+  isProviderExecuted?: boolean;
   /** Provider tool ID, e.g. 'anthropic.web_search_20250305'. */
   id?: `${string}.${string}`;
   /** Provider tool configuration args (maxUses, allowedDomains, etc.). */
@@ -49,6 +51,7 @@ export function serializeToolSet(
       // them as provider-executed tools (e.g. anthropic webSearch).
       if ((t as any).type === 'provider') {
         def.type = 'provider';
+        def.isProviderExecuted = (t as any).isProviderExecuted ?? false;
         def.id = (t as any).id;
         def.args = (t as any).args;
       }
@@ -81,6 +84,7 @@ export function resolveSerializableTools(
             type: 'provider' as const,
             id: t.id!,
             args: t.args ?? {},
+            isProviderExecuted: t.isProviderExecuted ?? false,
             inputSchema: jsonSchema(t.inputSchema),
           }),
         ];

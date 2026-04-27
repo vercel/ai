@@ -48,7 +48,7 @@ const createSearchGroundedModel = (
 };
 
 createFeatureTestSuite({
-  name: 'Google Generative AI',
+  name: 'Google',
   models: {
     invalidModel: provider.chat('no-such-model'),
     languageModels: [

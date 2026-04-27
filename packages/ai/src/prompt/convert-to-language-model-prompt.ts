@@ -6,6 +6,7 @@ import {
   LanguageModelV4ToolResultOutput,
 } from '@ai-sdk/provider';
 import {
+  asArray,
   CustomPart,
   DataContent,
   FilePart,
@@ -29,9 +30,10 @@ import {
   DownloadFunction,
 } from '../util/download/download-function';
 import { convertToLanguageModelV4DataContent } from './data-content';
+import { logWarnings } from '../logger/log-warnings';
+import type { Warning } from '../types/warning';
 import { InvalidMessageRoleError } from './invalid-message-role-error';
 import { StandardizedPrompt } from './standardize-prompt';
-import { asArray } from '../util/as-array';
 import { MissingToolResultsError } from '../error/missing-tool-result-error';
 
 export async function convertToLanguageModelPrompt({
@@ -191,6 +193,8 @@ export function convertToLanguageModelMessage({
   >;
   provider?: string;
 }): LanguageModelV4Message {
+  const warnings: Warning[] = [];
+
   const role = message.role;
   switch (role) {
     case 'system': {
@@ -210,14 +214,18 @@ export function convertToLanguageModelMessage({
         };
       }
 
-      return {
-        role: 'user',
+      const converted = {
+        role: 'user' as const,
         content: message.content
           .map(part => convertPartToLanguageModelPart(part, downloadedAssets))
           // remove empty text parts:
           .filter(part => part.type !== 'text' || part.text !== ''),
         providerOptions: message.providerOptions,
       };
+      if (warnings.length > 0) {
+        logWarnings({ warnings });
+      }
+      return converted;
     }
 
     case 'assistant': {
@@ -229,8 +237,8 @@ export function convertToLanguageModelMessage({
         };
       }
 
-      return {
-        role: 'assistant',
+      const converted = {
+        role: 'assistant' as const,
         content: message.content
           .filter(
             // remove empty text parts (no text, and no provider options):
@@ -329,6 +337,7 @@ export function convertToLanguageModelMessage({
                   output: mapToolResultOutput({
                     output: part.output,
                     provider,
+                    warnings,
                   }),
                   providerOptions,
                 };
@@ -337,11 +346,15 @@ export function convertToLanguageModelMessage({
           }),
         providerOptions: message.providerOptions,
       };
+      if (warnings.length > 0) {
+        logWarnings({ warnings });
+      }
+      return converted;
     }
 
     case 'tool': {
-      return {
-        role: 'tool',
+      const converted = {
+        role: 'tool' as const,
         content: message.content
           .filter(
             // Only include tool-approval-response for provider-executed tools
@@ -358,6 +371,7 @@ export function convertToLanguageModelMessage({
                   output: mapToolResultOutput({
                     output: part.output,
                     provider,
+                    warnings,
                   }),
                   providerOptions: part.providerOptions,
                 };
@@ -374,6 +388,10 @@ export function convertToLanguageModelMessage({
           }),
         providerOptions: message.providerOptions,
       };
+      if (warnings.length > 0) {
+        logWarnings({ warnings });
+      }
+      return converted;
     }
 
     default: {
@@ -552,9 +570,11 @@ function mapToolResultOutput({
   // `provider` is only needed here to convert legacy "file-id" and "image-file-id" types to provider references, in case they are using string ID values.
   // TODO: remove in v8 when "file-id" and "image-file-id" types are removed
   provider,
+  warnings = [],
 }: {
   output: ToolResultOutput;
   provider?: string;
+  warnings?: Warning[];
 }): LanguageModelV4ToolResultOutput {
   if (output.type !== 'content') {
     return output;
@@ -567,6 +587,11 @@ function mapToolResultOutput({
         // The "image-*" types are legacy and deprecated.
         // TODO: remove migration in v8 in combination with the removal of these types from the provider utils.
         case 'image-data': {
+          warnings.push({
+            type: 'deprecated',
+            setting: '"tool-result" content of type "image-data"',
+            message: `The "image-data" type for tool result content is deprecated. Use the "file-data" type instead.`,
+          });
           return {
             type: 'file-data' as const,
             data: item.data,
@@ -575,6 +600,11 @@ function mapToolResultOutput({
           };
         }
         case 'image-url': {
+          warnings.push({
+            type: 'deprecated',
+            setting: '"tool-result" content of type "image-url"',
+            message: `The "image-url" type for tool result content is deprecated. Use the "file-url" type instead.`,
+          });
           return {
             type: 'file-url' as const,
             url: item.url,
@@ -583,6 +613,11 @@ function mapToolResultOutput({
           };
         }
         case 'image-file-id': {
+          warnings.push({
+            type: 'deprecated',
+            setting: '"tool-result" content of type "image-file-id"',
+            message: `The "image-file-id" type for tool result content is deprecated. Use the "file-reference" type instead.`,
+          });
           return {
             type: 'file-reference' as const,
             providerReference: convertFileIdToProviderReference({
@@ -593,6 +628,11 @@ function mapToolResultOutput({
           };
         }
         case 'image-file-reference': {
+          warnings.push({
+            type: 'deprecated',
+            setting: '"tool-result" content of type "image-file-reference"',
+            message: `The "image-file-reference" type for tool result content is deprecated. Use the "file-reference" type instead.`,
+          });
           return {
             type: 'file-reference' as const,
             providerReference: item.providerReference,
@@ -600,6 +640,11 @@ function mapToolResultOutput({
           };
         }
         case 'file-id': {
+          warnings.push({
+            type: 'deprecated',
+            setting: '"tool-result" content of type "file-id"',
+            message: `The "file-id" type for tool result content is deprecated. Use the "file-reference" type instead.`,
+          });
           return {
             type: 'file-reference' as const,
             providerReference: convertFileIdToProviderReference({
@@ -612,19 +657,18 @@ function mapToolResultOutput({
         case 'file-url': {
           const mediaType = item.mediaType ?? getMediaTypeFromUrl(item.url);
           if (!item.mediaType) {
-            if (mediaType === 'application/octet-stream') {
-              console.warn(
-                `AI SDK: 'file-url' tool result content part is missing 'mediaType'. ` +
-                  `Unable to infer media type from URL. Defaulting to 'application/octet-stream'. ` +
-                  `Provide 'mediaType' on the 'file-url' part for correct provider behavior.`,
-              );
-            } else {
-              console.warn(
-                `AI SDK: 'file-url' tool result content part is missing 'mediaType'. ` +
-                  `Inferred '${mediaType}' from URL. ` +
-                  `Provide 'mediaType' on the 'file-url' part for correct provider behavior.`,
-              );
-            }
+            const messageSuffix =
+              mediaType === 'application/octet-stream'
+                ? `Unable to infer media type from URL. Defaulting to 'application/octet-stream'.`
+                : `Inferred media type '${mediaType}' from URL.`;
+            warnings.push({
+              type: 'deprecated',
+              setting:
+                '"tool-result" content of type "file-url" without mediaType',
+              message:
+                `The "file-url" tool result content part with URL "${item.url}" is missing a "mediaType". ` +
+                messageSuffix,
+            });
           }
           return {
             type: 'file-url' as const,

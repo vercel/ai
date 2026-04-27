@@ -1540,6 +1540,107 @@ describe('convertToModelMessages', () => {
         ]
       `);
     });
+
+    it('should convert a denied provider-executed tool approval request with an execution-denied result', async () => {
+      const result = await convertToModelMessages(
+        [
+          {
+            role: 'assistant',
+            parts: [
+              { type: 'step-start' },
+              {
+                type: 'dynamic-tool',
+                toolName: 'screenshot',
+                state: 'approval-responded',
+                toolCallId: 'call-1',
+                input: { value: 'value-1' },
+                providerExecuted: true,
+                callProviderMetadata: {
+                  'test-provider': {
+                    'key-a': 'test-value-1',
+                  },
+                },
+                approval: {
+                  id: 'approval-1',
+                  approved: false,
+                  reason: 'User denied the request',
+                },
+              },
+            ],
+          },
+          {
+            role: 'user',
+            parts: [{ type: 'text', text: 'Thanks!' }],
+          },
+        ],
+        { ignoreIncompleteToolCalls: true },
+      );
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "input": {
+                  "value": "value-1",
+                },
+                "providerExecuted": true,
+                "providerOptions": {
+                  "test-provider": {
+                    "key-a": "test-value-1",
+                  },
+                },
+                "toolCallId": "call-1",
+                "toolName": "screenshot",
+                "type": "tool-call",
+              },
+              {
+                "approvalId": "approval-1",
+                "isAutomatic": undefined,
+                "toolCallId": "call-1",
+                "type": "tool-approval-request",
+              },
+            ],
+            "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "approvalId": "approval-1",
+                "approved": false,
+                "providerExecuted": true,
+                "reason": "User denied the request",
+                "type": "tool-approval-response",
+              },
+              {
+                "output": {
+                  "reason": "User denied the request",
+                  "type": "execution-denied",
+                },
+                "providerOptions": {
+                  "test-provider": {
+                    "key-a": "test-value-1",
+                  },
+                },
+                "toolCallId": "call-1",
+                "toolName": "screenshot",
+                "type": "tool-result",
+              },
+            ],
+            "role": "tool",
+          },
+          {
+            "content": [
+              {
+                "text": "Thanks!",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+        ]
+      `);
+    });
   });
 
   describe('when converting tool approval request responses', () => {
@@ -1601,6 +1702,7 @@ describe('convertToModelMessages', () => {
               },
               {
                 "approvalId": "approval-1",
+                "isAutomatic": undefined,
                 "toolCallId": "call-1",
                 "type": "tool-approval-request",
               },
@@ -1682,6 +1784,7 @@ describe('convertToModelMessages', () => {
               },
               {
                 "approvalId": "approval-1",
+                "isAutomatic": undefined,
                 "toolCallId": "call-1",
                 "type": "tool-approval-request",
               },
@@ -1696,6 +1799,100 @@ describe('convertToModelMessages', () => {
                 "providerExecuted": undefined,
                 "reason": undefined,
                 "type": "tool-approval-response",
+              },
+            ],
+            "role": "tool",
+          },
+        ]
+      `);
+    });
+
+    it('should preserve automatic approval metadata for approved tool results', async () => {
+      const result = await convertToModelMessages([
+        {
+          parts: [
+            {
+              text: 'What is the weather in Tokyo?',
+              type: 'text',
+            },
+          ],
+          role: 'user',
+        },
+        {
+          parts: [
+            { type: 'step-start' },
+            {
+              approval: {
+                approved: true,
+                id: 'approval-1',
+                isAutomatic: true,
+                reason: 'trusted internal tool',
+              },
+              input: {
+                city: 'Tokyo',
+              },
+              output: {
+                weather: 'Sunny',
+              },
+              state: 'output-available',
+              toolCallId: 'call-1',
+              type: 'tool-weather',
+            },
+          ],
+          role: 'assistant',
+        },
+      ]);
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "What is the weather in Tokyo?",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "content": [
+              {
+                "input": {
+                  "city": "Tokyo",
+                },
+                "providerExecuted": undefined,
+                "toolCallId": "call-1",
+                "toolName": "weather",
+                "type": "tool-call",
+              },
+              {
+                "approvalId": "approval-1",
+                "isAutomatic": true,
+                "toolCallId": "call-1",
+                "type": "tool-approval-request",
+              },
+            ],
+            "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "approvalId": "approval-1",
+                "approved": true,
+                "providerExecuted": undefined,
+                "reason": "trusted internal tool",
+                "type": "tool-approval-response",
+              },
+              {
+                "output": {
+                  "type": "json",
+                  "value": {
+                    "weather": "Sunny",
+                  },
+                },
+                "toolCallId": "call-1",
+                "toolName": "weather",
+                "type": "tool-result",
               },
             ],
             "role": "tool",
@@ -1768,6 +1965,7 @@ describe('convertToModelMessages', () => {
               },
               {
                 "approvalId": "approval-1",
+                "isAutomatic": undefined,
                 "toolCallId": "call-1",
                 "type": "tool-approval-request",
               },
@@ -1782,6 +1980,15 @@ describe('convertToModelMessages', () => {
                 "providerExecuted": undefined,
                 "reason": "I don't want to approve this",
                 "type": "tool-approval-response",
+              },
+              {
+                "output": {
+                  "reason": "I don't want to approve this",
+                  "type": "execution-denied",
+                },
+                "toolCallId": "call-1",
+                "toolName": "weather",
+                "type": "tool-result",
               },
             ],
             "role": "tool",
@@ -1864,6 +2071,7 @@ describe('convertToModelMessages', () => {
               },
               {
                 "approvalId": "approval-1",
+                "isAutomatic": undefined,
                 "toolCallId": "call-1",
                 "type": "tool-approval-request",
               },
@@ -1878,6 +2086,15 @@ describe('convertToModelMessages', () => {
                 "providerExecuted": undefined,
                 "reason": "I don't want to approve this",
                 "type": "tool-approval-response",
+              },
+              {
+                "output": {
+                  "reason": "I don't want to approve this",
+                  "type": "execution-denied",
+                },
+                "toolCallId": "call-1",
+                "toolName": "weather",
+                "type": "tool-result",
               },
             ],
             "role": "tool",
@@ -1953,6 +2170,7 @@ describe('convertToModelMessages', () => {
               },
               {
                 "approvalId": "approval-1",
+                "isAutomatic": undefined,
                 "toolCallId": "call-1",
                 "type": "tool-approval-request",
               },
@@ -2043,6 +2261,7 @@ describe('convertToModelMessages', () => {
               },
               {
                 "approvalId": "approval-1",
+                "isAutomatic": undefined,
                 "toolCallId": "call-1",
                 "type": "tool-approval-request",
               },
@@ -2139,6 +2358,7 @@ describe('convertToModelMessages', () => {
               },
               {
                 "approvalId": "approval-1",
+                "isAutomatic": undefined,
                 "toolCallId": "call-1",
                 "type": "tool-approval-request",
               },
@@ -2244,6 +2464,7 @@ describe('convertToModelMessages', () => {
               },
               {
                 "approvalId": "approval-1",
+                "isAutomatic": undefined,
                 "toolCallId": "call-1",
                 "type": "tool-approval-request",
               },

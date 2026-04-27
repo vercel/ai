@@ -213,7 +213,7 @@ export async function convertToBedrockChatMessages(
                     break;
                   case 'execution-denied':
                     toolResultContent = [
-                      { text: output.reason ?? 'Tool execution denied.' },
+                      { text: output.reason ?? 'Tool call execution denied.' },
                     ];
                     break;
                   case 'json':

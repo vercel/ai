@@ -11,9 +11,9 @@ import {
 } from '@ai-sdk/provider-utils';
 import {
   anthropicTools,
-  AnthropicMessagesLanguageModel,
+  AnthropicLanguageModel,
 } from '@ai-sdk/anthropic/internal';
-import { GoogleVertexAnthropicMessagesModelId } from './google-vertex-anthropic-messages-options';
+import { GoogleVertexAnthropicModelId } from './google-vertex-anthropic-options';
 
 /**
  * Tools supported by Google Vertex Anthropic.
@@ -105,12 +105,12 @@ export interface GoogleVertexAnthropicProvider extends ProviderV4 {
   /**
    * Creates a model for text generation.
    */
-  (modelId: GoogleVertexAnthropicMessagesModelId): LanguageModelV4;
+  (modelId: GoogleVertexAnthropicModelId): LanguageModelV4;
 
   /**
    * Creates a model for text generation.
    */
-  languageModel(modelId: GoogleVertexAnthropicMessagesModelId): LanguageModelV4;
+  languageModel(modelId: GoogleVertexAnthropicModelId): LanguageModelV4;
 
   /**
    * Anthropic tools supported by Google Vertex.
@@ -179,8 +179,8 @@ export function createVertexAnthropic(
     );
   };
 
-  const createChatModel = (modelId: GoogleVertexAnthropicMessagesModelId) =>
-    new AnthropicMessagesLanguageModel(modelId, {
+  const createChatModel = (modelId: GoogleVertexAnthropicModelId) =>
+    new AnthropicLanguageModel(modelId, {
       provider: 'vertex.anthropic.messages',
       baseURL: getBaseURL(),
       headers: options.headers ?? {},
@@ -206,7 +206,7 @@ export function createVertexAnthropic(
       supportsStrictTools: false,
     });
 
-  const provider = function (modelId: GoogleVertexAnthropicMessagesModelId) {
+  const provider = function (modelId: GoogleVertexAnthropicModelId) {
     if (new.target) {
       throw new Error(
         'The Anthropic model function cannot be called with the new keyword.',

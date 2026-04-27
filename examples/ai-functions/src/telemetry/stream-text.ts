@@ -2,8 +2,8 @@ import { anthropic } from '@ai-sdk/anthropic';
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { ConsoleSpanExporter } from '@opentelemetry/sdk-trace-node';
-import { streamText, registerTelemetryIntegration } from 'ai';
-import { OpenTelemetryIntegration } from '@ai-sdk/otel';
+import { streamText, registerTelemetry } from 'ai';
+import { OpenTelemetry } from '@ai-sdk/otel';
 import { run } from '../lib/run';
 
 const sdk = new NodeSDK({
@@ -12,20 +12,19 @@ const sdk = new NodeSDK({
 });
 
 sdk.start();
-registerTelemetryIntegration(new OpenTelemetryIntegration());
+registerTelemetry(new OpenTelemetry());
 
 run(async () => {
   const result = streamText({
     model: anthropic('claude-3-5-sonnet-20240620'),
     maxOutputTokens: 50,
     prompt: 'Invent a new holiday and describe its traditions.',
-    experimental_telemetry: {
-      isEnabled: true,
+    runtimeContext: {
+      something: 'custom',
+      someOtherThing: 'other-value',
+    },
+    telemetry: {
       functionId: 'my-awesome-function',
-      metadata: {
-        something: 'custom',
-        someOtherThing: 'other-value',
-      },
     },
   });
 

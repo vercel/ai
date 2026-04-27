@@ -7,8 +7,7 @@ export const anthropicWebFetchAgent = new ToolLoopAgent({
     web_fetch: anthropic.tools.webFetch_20250910(),
   },
   reasoning: 'medium',
-  experimental_telemetry: {
-    isEnabled: true,
+  telemetry: {
     functionId: 'anthropic-web-fetch-agent',
   },
 });

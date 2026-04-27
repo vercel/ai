@@ -39,8 +39,8 @@ npm install ai @ai-sdk/openai @ai-sdk/otel @vercel/otel @arizeai/openinference-v
 Then, in your `instrumentation.ts` file add the following, including the AI SDK telemetry integration registration:
 
 ```typescript filename="instrumentation"
-import { registerTelemetryIntegration } from 'ai';
-import { OpenTelemetryIntegration } from '@ai-sdk/otel';
+import { registerTelemetry } from 'ai';
+import { OpenTelemetry } from '@ai-sdk/otel';
 import { registerOTel } from '@vercel/otel';
 import {
   isOpenInferenceSpan,
@@ -48,7 +48,7 @@ import {
 } from '@arizeai/openinference-vercel';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-proto';
 
-registerTelemetryIntegration(new OpenTelemetryIntegration());
+registerTelemetry(new OpenTelemetry());
 
 export function register() {
   registerOTel({
@@ -75,7 +75,7 @@ export function register() {
 
 Spans will show up in Arize AX under the project specified in the `model_id` field above.
 
-Set the `experimental_telemetry` flag to true in all calls using the AI SDK:
+Once the integration is registered, telemetry is emitted automatically for all AI SDK calls:
 
 ```typescript
 import { generateText } from 'ai';
@@ -84,9 +84,6 @@ import { openai } from '@ai-sdk/openai';
 const result = await generateText({
   model: openai('gpt-5-mini'),
   prompt: 'Please write a haiku.',
-  experimental_telemetry: {
-    isEnabled: true,
-  },
 });
 ```
 
@@ -105,8 +102,8 @@ npm install ai @ai-sdk/openai @ai-sdk/otel @opentelemetry/sdk-node @arizeai/open
 Then, in your instrumentation.ts file add the following:
 
 ```typescript
-import { registerTelemetryIntegration } from 'ai';
-import { OpenTelemetryIntegration } from '@ai-sdk/otel';
+import { registerTelemetry } from 'ai';
+import { OpenTelemetry } from '@ai-sdk/otel';
 import {
   isOpenInferenceSpan,
   OpenInferenceSimpleSpanProcessor,
@@ -135,20 +132,17 @@ const sdk = new NodeSDK({
 });
 
 sdk.start();
-registerTelemetryIntegration(new OpenTelemetryIntegration());
+registerTelemetry(new OpenTelemetry());
 ```
 
 Spans will show up in Arize AX under the project specified in the `model_id` field above.
 
-You must set the `experimental_telemetry` flag to true in all calls using the AI SDK.
+Once the integration is registered, telemetry is emitted automatically for all AI SDK calls:
 
 ```typescript
 const result = await generateText({
   model: openai('gpt-5-mini'),
   prompt: 'Please write a haiku.',
-  experimental_telemetry: {
-    isEnabled: true,
-  },
 });
 ```
 
@@ -163,8 +157,8 @@ npm install ai @ai-sdk/openai @ai-sdk/otel @opentelemetry/sdk-trace-node @arizea
 Then, in your instrumentation.ts file add the following:
 
 ```typescript
-import { registerTelemetryIntegration } from 'ai';
-import { OpenTelemetryIntegration } from '@ai-sdk/otel';
+import { registerTelemetry } from 'ai';
+import { OpenTelemetry } from '@ai-sdk/otel';
 import {
   isOpenInferenceSpan,
   OpenInferenceSimpleSpanProcessor,
@@ -192,20 +186,17 @@ const provider = new NodeTracerProvider({
   ],
 });
 provider.register();
-registerTelemetryIntegration(new OpenTelemetryIntegration());
+registerTelemetry(new OpenTelemetry());
 ```
 
 Spans will show up in Arize AX under the project specified in the `model_id` field above.
 
-You must set the `experimental_telemetry` flag to true in all calls using the AI SDK.
+Once the integration is registered, telemetry is emitted automatically for all AI SDK calls:
 
 ```typescript
 const result = await generateText({
   model: openai('gpt-5-mini'),
   prompt: 'Please write a haiku.',
-  experimental_telemetry: {
-    isEnabled: true,
-  },
 });
 ```
 

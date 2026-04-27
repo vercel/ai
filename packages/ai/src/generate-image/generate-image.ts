@@ -168,23 +168,24 @@ export async function generateImage({
   });
 
   const results = await Promise.all(
-    callImageCounts.map(async callImageCount =>
-      retry(() => {
-        const { prompt, files, mask } = normalizePrompt(promptArg);
+    callImageCounts.map(
+      async callImageCount =>
+        await retry(() => {
+          const { prompt, files, mask } = normalizePrompt(promptArg);
 
-        return model.doGenerate({
-          prompt,
-          files,
-          mask,
-          n: callImageCount,
-          abortSignal,
-          headers: headersWithUserAgent,
-          size,
-          aspectRatio,
-          seed,
-          providerOptions: providerOptions ?? {},
-        });
-      }),
+          return model.doGenerate({
+            prompt,
+            files,
+            mask,
+            n: callImageCount,
+            abortSignal,
+            headers: headersWithUserAgent,
+            size,
+            aspectRatio,
+            seed,
+            providerOptions: providerOptions ?? {},
+          });
+        }),
     ),
   );
 
