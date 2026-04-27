@@ -36,6 +36,7 @@ Available examples/folders:
 
 - `sse` - SSE Transport (Legacy)
 - `http` - Streamable HTTP Transport (Stateful)
+- `openregistry` - Streamable HTTP client connecting to OpenRegistry (https://openregistry.sophymarine.com/mcp), a free hosted MCP server proxying 27 national company registries
 - `mcp-with-auth` - MCP with authentication
 - `mcp-prompts` - MCP prompts example
 - `mcp-resources` - MCP resources example
