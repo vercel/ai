@@ -23,6 +23,7 @@ import {
   postJsonToApi,
   ResponseHandler,
   serializeModelOptions,
+  StreamingToolCallDelta,
   StreamingToolCallTracker,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
@@ -73,6 +74,20 @@ export type OpenAICompatibleChatConfig = {
    * than the official OpenAI API.
    */
   transformRequestBody?: (args: Record<string, any>) => Record<string, any>;
+};
+
+type OpenAICompatibleToolCallDelta = StreamingToolCallDelta & {
+  extra_content?: {
+    google?: {
+      thought_signature?: string | null;
+    } | null;
+  } | null;
+};
+
+type PendingToolCall = {
+  id: string | null;
+  bufferedArguments: string;
+  extraContent: OpenAICompatibleToolCallDelta['extra_content'];
 };
 
 export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
@@ -433,13 +448,73 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
     const toolCallTracker = new StreamingToolCallTracker({
       generateId,
       extractMetadata: delta => {
-        const sig = (delta as any).extra_content?.google?.thought_signature;
+        const sig = (delta as OpenAICompatibleToolCallDelta).extra_content
+          ?.google?.thought_signature;
         return sig
           ? { [providerOptionsName]: { thoughtSignature: sig } }
           : undefined;
       },
       buildToolCallProviderMetadata: metadata => metadata,
     });
+
+    // Buffers tool-call deltas by `index` until `function.name` is known.
+    // Some OpenAI-compatible providers send the first delta without
+    // `function.name`, which the shared tracker rejects on first chunk.
+    const pendingToolCalls = new Map<number, PendingToolCall>();
+    const forwardedToolCallIndices = new Set<number>();
+
+    const processToolCallDelta = (
+      toolCallDelta: OpenAICompatibleToolCallDelta,
+      enqueue: (part: LanguageModelV4StreamPart) => void,
+    ) => {
+      const index = toolCallDelta.index;
+
+      if (index == null || forwardedToolCallIndices.has(index)) {
+        toolCallTracker.processDelta(toolCallDelta, enqueue);
+        return;
+      }
+
+      let pending = pendingToolCalls.get(index);
+      if (pending == null) {
+        pending = {
+          id: toolCallDelta.id ?? null,
+          bufferedArguments: '',
+          extraContent: toolCallDelta.extra_content ?? null,
+        };
+        pendingToolCalls.set(index, pending);
+      } else {
+        if (pending.id == null && toolCallDelta.id != null) {
+          pending.id = toolCallDelta.id;
+        }
+        if (
+          pending.extraContent == null &&
+          toolCallDelta.extra_content != null
+        ) {
+          pending.extraContent = toolCallDelta.extra_content;
+        }
+      }
+
+      const argumentsDelta = toolCallDelta.function?.arguments;
+      if (argumentsDelta != null) {
+        pending.bufferedArguments += argumentsDelta;
+      }
+
+      const name = toolCallDelta.function?.name;
+      if (name != null) {
+        const forwardDelta: OpenAICompatibleToolCallDelta = {
+          index,
+          id: pending.id,
+          function: {
+            name,
+            arguments: pending.bufferedArguments,
+          },
+          extra_content: pending.extraContent ?? undefined,
+        };
+        toolCallTracker.processDelta(forwardDelta, enqueue);
+        pendingToolCalls.delete(index);
+        forwardedToolCallIndices.add(index);
+      }
+    };
 
     let finishReason: LanguageModelV4FinishReason = {
       unified: 'other',
@@ -569,7 +644,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
               }
 
               for (const toolCallDelta of delta.tool_calls) {
-                toolCallTracker.processDelta(
+                processToolCallDelta(
                   toolCallDelta,
                   controller.enqueue.bind(controller),
                 );
@@ -585,6 +660,20 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
             if (isActiveText) {
               controller.enqueue({ type: 'text-end', id: 'txt-0' });
             }
+
+            // Forward any tool-call deltas that never received a
+            // `function.name`
+            for (const [index, pending] of pendingToolCalls) {
+              toolCallTracker.processDelta(
+                {
+                  index,
+                  id: pending.id,
+                  function: { arguments: pending.bufferedArguments },
+                },
+                controller.enqueue.bind(controller),
+              );
+            }
+            pendingToolCalls.clear();
 
             toolCallTracker.flush(controller.enqueue.bind(controller));
 
