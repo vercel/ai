@@ -10,7 +10,7 @@ description: Learn how to use the Doubleword provider for the AI SDK.
 ## Features
 
 - **Unified routing** — access any model configured in your Doubleword control layer through a single provider
-- **Batch pricing** — transparently batch concurrent requests via [`autobatcher`](https://www.npmjs.com/package/autobatcher) for up to 90% cost savings with the [Doubleword Inference API](https://docs.doubleword.ai)
+- **Three pricing tiers** — realtime via `createDoubleword`, async (1-hour flex) via `createDoublewordAsync`, and 24-hour batch via `createDoublewordBatch` — all powered by [`autobatcher`](https://www.npmjs.com/package/autobatcher) for the off-realtime tiers, with up to 90% cost savings on the [Doubleword Inference API](https://docs.doubleword.ai)
 - **OpenAI-compatible** — language models and embedding models work with all AI SDK features
 - **Automatic credential resolution** — reads API key from environment, constructor option, or `~/.dw/credentials.toml`
 
@@ -154,7 +154,7 @@ const { embedding } = await embed({
 
 ### Batch Pricing
 
-For background workloads where latency is not critical, use `createDoublewordBatch` to transparently route requests through the [Doubleword Inference API](https://docs.doubleword.ai) Batch API, cutting inference costs by up to 90%. Powered by [`autobatcher`](https://www.npmjs.com/package/autobatcher) under the hood.
+For background workloads where latency is not critical, use `createDoublewordBatch` to transparently route requests through the [Doubleword Inference API](https://docs.doubleword.ai) Batch API on the **24-hour batch tier** — the deepest discount available, cutting inference costs by up to 90%. Powered by [`autobatcher`](https://www.npmjs.com/package/autobatcher) under the hood.
 
 ```ts
 import { generateText } from 'ai';
@@ -174,6 +174,27 @@ await doubleword.close();
 ```
 
 The interface is identical to the real-time provider — only streaming is not supported (batch results return all at once).
+
+### Async (Flex) Pricing
+
+Same machinery as `createDoublewordBatch`, but pinned to Doubleword's **1-hour async (flex)** tier — between realtime and 24-hour batch on both cost and latency. Use this when next-day batch turnaround is too slow but realtime is too expensive — typical for fan-out workflows that need results within minutes-to-an-hour at significant cost savings over realtime inference.
+
+```ts
+import { generateText } from 'ai';
+import { createDoublewordAsync } from '@doubleword/vercel-ai';
+
+const doubleword = createDoublewordAsync();
+
+const results = await Promise.all([
+  generateText({ model: doubleword('Qwen/Qwen3.5-397B-A17B-FP8'), prompt: 'Summarize chapter 1.' }),
+  generateText({ model: doubleword('Qwen/Qwen3.5-397B-A17B-FP8'), prompt: 'Summarize chapter 2.' }),
+  generateText({ model: doubleword('Qwen/Qwen3.5-397B-A17B-FP8'), prompt: 'Summarize chapter 3.' }),
+]);
+
+await doubleword.close();
+```
+
+Identical surface to `createDoublewordBatch`; the only difference is the underlying `autobatcher` client defaults to the `1h` completion window rather than `24h`.
 
 ## End-to-End Examples
 
