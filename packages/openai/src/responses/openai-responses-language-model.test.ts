@@ -9041,5 +9041,44 @@ describe('OpenAIResponsesLanguageModel', () => {
         });
       });
     });
+
+    it('should skip truncated response.* SSE events and still stream text', async () => {
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          // truncated response.created (simulates ~30KB instructions field cut off):
+          `data:{"type":"response.created","response":{"id":"resp_truncated","object":"response","created_at":1776224493,"status":"in_progress","instructions":"This is a very long system prompt that gets truncated by the SSE buffer before the JSON object is closed properly so JSON.parse will fail with Unterminated string\n\n`,
+          // truncated response.in_progress:
+          `data:{"type":"response.in_progress","response":{"id":"resp_truncated","object":"response","created_at":1776224493,"status":"in_progress","instructions":"Also truncated here\n\n`,
+          // normal streaming events:
+          `data:{"type":"response.output_item.added","output_index":0,"item":{"id":"msg_001","type":"message","status":"in_progress","role":"assistant","content":[]}}\n\n`,
+          `data:{"type":"response.content_part.added","item_id":"msg_001","output_index":0,"content_index":0,"part":{"type":"output_text","text":"","annotations":[]}}\n\n`,
+          `data:{"type":"response.output_text.delta","item_id":"msg_001","output_index":0,"content_index":0,"delta":"Hello"}\n\n`,
+          `data:{"type":"response.output_text.delta","item_id":"msg_001","output_index":0,"content_index":0,"delta":", world!"}\n\n`,
+          `data:{"type":"response.output_text.done","item_id":"msg_001","output_index":0,"content_index":0,"text":"Hello, world!"}\n\n`,
+          `data:{"type":"response.content_part.done","item_id":"msg_001","output_index":0,"content_index":0,"part":{"type":"output_text","text":"Hello, world!","annotations":[]}}\n\n`,
+          `data:{"type":"response.output_item.done","output_index":0,"item":{"id":"msg_001","type":"message","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Hello, world!","annotations":[]}]}}\n\n`,
+          // truncated response.completed:
+          `data:{"type":"response.completed","response":{"id":"resp_truncated","object":"response","created_at":1776224493,"status":"completed","instructions":"Truncated again in completed event\n\n`,
+          `data: [DONE]\n\n`,
+        ],
+      };
+
+      const { stream } = await createModel('gpt-4o').doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+      const deltas = parts
+        .filter(
+          (p): p is LanguageModelV4StreamPart & { type: 'text-delta' } =>
+            p.type === 'text-delta',
+        )
+        .map(p => p.delta);
+
+      expect(deltas.join('')).toBe('Hello, world!');
+      expect(parts.some(p => p.type === 'error')).toBe(false);
+    });
   });
 });
