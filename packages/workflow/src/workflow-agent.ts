@@ -1161,10 +1161,12 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
     }
 
     const prompt = await standardizePrompt({
-      system: effectiveInstructions,
-      ...(effectivePrompt != null
-        ? { prompt: effectivePrompt }
-        : { messages: effectiveMessages! }),
+      prompt: {
+        system: effectiveInstructions,
+        ...(effectivePrompt != null
+          ? { prompt: effectivePrompt }
+          : { messages: effectiveMessages! }),
+      },
     });
 
     // Process tool approval responses before starting the agent loop.

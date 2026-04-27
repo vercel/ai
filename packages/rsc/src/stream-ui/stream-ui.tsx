@@ -269,10 +269,12 @@ export async function streamUI<
   const { retry } = prepareRetries({ maxRetries, abortSignal });
 
   const validatedPrompt = await standardizePrompt({
-    system,
-    prompt,
-    messages,
-  } as Prompt);
+    prompt: {
+      system,
+      prompt,
+      messages,
+    } as Prompt,
+  });
   const languageModelTools = await prepareTools({
     tools: tools,
   });

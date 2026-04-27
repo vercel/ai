@@ -21,9 +21,13 @@ export type StandardizedPrompt = {
   messages: ModelMessage[];
 };
 
-export async function standardizePrompt(
-  prompt: Prompt,
-): Promise<StandardizedPrompt> {
+export type StandardizePromptOptions = {
+  prompt: Prompt;
+};
+
+export async function standardizePrompt({
+  prompt,
+}: StandardizePromptOptions): Promise<StandardizedPrompt> {
   if (prompt.prompt == null && prompt.messages == null) {
     throw new InvalidPromptError({
       prompt,

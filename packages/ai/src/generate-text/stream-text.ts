@@ -1324,10 +1324,12 @@ class DefaultStreamTextResult<
 
     (async () => {
       const initialPrompt = await standardizePrompt({
-        system,
-        prompt,
-        messages,
-      } as Prompt);
+        prompt: {
+          system,
+          prompt,
+          messages,
+        } as Prompt,
+      });
 
       await notify({
         event: {

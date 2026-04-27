@@ -530,10 +530,12 @@ class DefaultStreamObjectResult<
       });
 
       const standardizedPrompt = await standardizePrompt({
-        system,
-        prompt,
-        messages,
-      } as Prompt);
+        prompt: {
+          system,
+          prompt,
+          messages,
+        } as Prompt,
+      });
 
       const callOptions = {
         responseFormat: {

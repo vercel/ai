@@ -322,10 +322,12 @@ export async function generateObject<
 
   try {
     const standardizedPrompt = await standardizePrompt({
-      system,
-      prompt,
-      messages,
-    } as Prompt);
+      prompt: {
+        system,
+        prompt,
+        messages,
+      } as Prompt,
+    });
 
     const promptMessages = await convertToLanguageModelPrompt({
       prompt: standardizedPrompt,

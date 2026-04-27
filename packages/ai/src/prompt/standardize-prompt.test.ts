@@ -6,12 +6,14 @@ describe('standardizePrompt', () => {
   it('should throw InvalidPromptError when system message has parts', async () => {
     await expect(async () => {
       await standardizePrompt({
-        messages: [
-          {
-            role: 'system',
-            content: [{ type: 'text', text: 'test' }] as any,
-          },
-        ],
+        prompt: {
+          messages: [
+            {
+              role: 'system',
+              content: [{ type: 'text', text: 'test' }] as any,
+            },
+          ],
+        },
       });
     }).rejects.toThrow(InvalidPromptError);
   });
@@ -19,18 +21,22 @@ describe('standardizePrompt', () => {
   it('should throw InvalidPromptError when messages array is empty', async () => {
     await expect(async () => {
       await standardizePrompt({
-        messages: [],
+        prompt: {
+          messages: [],
+        },
       });
     }).rejects.toThrow(InvalidPromptError);
   });
 
   it('should support SystemModelMessage system message', async () => {
     const result = await standardizePrompt({
-      system: {
-        role: 'system',
-        content: 'INSTRUCTIONS',
+      prompt: {
+        system: {
+          role: 'system',
+          content: 'INSTRUCTIONS',
+        },
+        prompt: 'Hello, world!',
       },
-      prompt: 'Hello, world!',
     });
 
     expect(result).toMatchInlineSnapshot(`
@@ -51,11 +57,13 @@ describe('standardizePrompt', () => {
 
   it('should support array of SystemModelMessage system messages', async () => {
     const result = await standardizePrompt({
-      system: [
-        { role: 'system', content: 'INSTRUCTIONS' },
-        { role: 'system', content: 'INSTRUCTIONS 2' },
-      ],
-      prompt: 'Hello, world!',
+      prompt: {
+        system: [
+          { role: 'system', content: 'INSTRUCTIONS' },
+          { role: 'system', content: 'INSTRUCTIONS 2' },
+        ],
+        prompt: 'Hello, world!',
+      },
     });
 
     expect(result).toMatchInlineSnapshot(`

@@ -465,10 +465,12 @@ export async function generateText<
   );
 
   const initialPrompt = await standardizePrompt({
-    system,
-    prompt,
-    messages,
-  } as Prompt);
+    prompt: {
+      system,
+      prompt,
+      messages,
+    } as Prompt,
+  });
 
   const callId = generateCallId();
 
