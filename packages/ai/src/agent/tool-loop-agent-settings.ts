@@ -3,6 +3,7 @@ import type {
   Context,
   IdGenerator,
   InferToolSetContext,
+  SensitiveContext,
   ToolSet,
 } from '@ai-sdk/provider-utils';
 import {
@@ -20,7 +21,6 @@ import type {
 import type { ActiveTools } from '../generate-text/active-tools';
 import { Output } from '../generate-text/output';
 import { PrepareStepFunction } from '../generate-text/prepare-step';
-import { SensitiveContext } from '../generate-text/sensitive-context';
 import { StopCondition } from '../generate-text/stop-condition';
 import { ToolApprovalConfiguration } from '../generate-text/tool-approval-configuration';
 import { ToolCallRepairFunction } from '../generate-text/tool-call-repair-function';
