@@ -102,6 +102,7 @@ export async function streamUI<
   system,
   prompt,
   messages,
+  allowSystemInMessages,
   maxRetries,
   abortSignal,
   headers,
@@ -269,6 +270,7 @@ export async function streamUI<
     system,
     prompt,
     messages,
+    allowSystemInMessages,
   } as Prompt);
   const result = await retry(async () =>
     model.doStream({

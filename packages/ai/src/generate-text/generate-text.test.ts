@@ -770,6 +770,39 @@ describe('generateText', () => {
       expect(startEvent.maxRetries).toBe(2);
     });
 
+    it('should reject system messages in messages by default', async () => {
+      await expect(async () => {
+        await generateText({
+          model: new MockLanguageModelV4({
+            doGenerate: async () => ({
+              content: [{ type: 'text', text: 'Hello!' }],
+              ...dummyResponseValues,
+            }),
+          }),
+          messages: [{ role: 'system', content: 'INSTRUCTIONS' }],
+        });
+      }).rejects.toThrow(InvalidPromptError);
+    });
+
+    it('should allow system messages in messages when allowSystemInMessages is true', async () => {
+      const model = new MockLanguageModelV4({
+        doGenerate: async () => ({
+          content: [{ type: 'text', text: 'Hello!' }],
+          ...dummyResponseValues,
+        }),
+      });
+
+      await generateText({
+        model,
+        allowSystemInMessages: true,
+        messages: [{ role: 'system', content: 'INSTRUCTIONS' }],
+      });
+
+      expect(model.doGenerateCalls[0].prompt).toEqual([
+        { role: 'system', content: 'INSTRUCTIONS' },
+      ]);
+    });
+
     it('should be called before doGenerate', async () => {
       const callOrder: string[] = [];
 
