@@ -1,9 +1,10 @@
 import { JSONValue } from '@ai-sdk/provider';
 import { FlexibleSchema } from '../schema';
 import { ToolResultOutput } from './content-part';
+import { Context } from './context';
 import { ModelMessage } from './model-message';
 import { ProviderOptions } from './provider-options';
-import { Context } from './context';
+import { SensitiveContext } from './sensitive-context';
 
 /**
  * Additional options that are sent into each tool execution.
@@ -183,6 +184,12 @@ export type Tool<
    * The context is passed to execute function as part of the execution options.
    */
   contextSchema?: FlexibleSchema<CONTEXT>;
+
+  /**
+   * Marks top-level context properties that contain sensitive data and should be excluded from telemetry.
+   * Properties marked as `true` are omitted from telemetry integrations.
+   */
+  sensitiveContext?: SensitiveContext<CONTEXT>;
 
   /**
    * Whether the tool needs approval before it can be executed.

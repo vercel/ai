@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/angular",
-  "version": "3.0.0-beta.111",
+  "version": "3.0.0-beta.112",
   "type": "module",
   "description": "Angular implementation of ai-sdk.",
   "license": "Apache-2.0",
@@ -44,7 +44,7 @@
     "jsdom": "^24.0.0",
     "tsup": "^7.2.0",
     "typescript": "5.8.3",
-    "vitest": "^4.1.0",
+    "vitest": "^4.1.5",
     "zod": "3.25.76"
   },
   "peerDependencies": {
@@ -52,5 +52,9 @@
   },
   "engines": {
     "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
   }
 }

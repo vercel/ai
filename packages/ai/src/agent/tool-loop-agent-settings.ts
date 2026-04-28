@@ -3,6 +3,7 @@ import type {
   Context,
   IdGenerator,
   InferToolSetContext,
+  SensitiveContext,
   ToolSet,
 } from '@ai-sdk/provider-utils';
 import {
@@ -17,6 +18,7 @@ import type {
   GenerateTextOnStepFinishCallback,
   GenerateTextOnStepStartCallback,
 } from '../generate-text/generate-text-events';
+import type { ActiveTools } from '../generate-text/active-tools';
 import { Output } from '../generate-text/output';
 import { PrepareStepFunction } from '../generate-text/prepare-step';
 import { StopCondition } from '../generate-text/stop-condition';
@@ -92,7 +94,7 @@ export type ToolLoopAgentSettings<
      * Limits the tools that are available for the model to call without
      * changing the tool call and result types in the result.
      */
-    activeTools?: Array<keyof NoInfer<TOOLS>>;
+    activeTools?: ActiveTools<NoInfer<TOOLS>>;
 
     /**
      * Optional specification for generating structured outputs.
@@ -104,6 +106,12 @@ export type ToolLoopAgentSettings<
      * If you need to mutate runtime context, update it in `prepareStep`.
      */
     runtimeContext?: RUNTIME_CONTEXT;
+
+    /**
+     * Top-level runtime context properties that contain sensitive data and
+     * should be excluded from telemetry.
+     */
+    sensitiveRuntimeContext?: SensitiveContext<NoInfer<RUNTIME_CONTEXT>>;
 
     /**
      * Optional tool approval configuration.
@@ -238,6 +246,7 @@ export type ToolLoopAgentSettings<
           | 'providerOptions'
           | 'experimental_download'
           | 'runtimeContext'
+          | 'sensitiveRuntimeContext'
           | '_internal'
         > & { toolsContext: InferToolSetContext<TOOLS> },
     ) => MaybePromiseLike<
@@ -268,6 +277,7 @@ export type ToolLoopAgentSettings<
         | 'providerOptions'
         | 'experimental_download'
         | 'runtimeContext'
+        | 'sensitiveRuntimeContext'
         | '_internal'
       > &
         Omit<Prompt, 'system'> & {

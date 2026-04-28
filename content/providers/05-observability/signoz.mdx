@@ -49,13 +49,13 @@ export default nextConfig;
 
 ```jsx
 import { registerTelemetry } from 'ai';
-import { OpenTelemetry } from '@ai-sdk/otel';
+import { LegacyOpenTelemetry } from '@ai-sdk/otel';
 import { registerOTel, OTLPHttpJsonTraceExporter } from '@vercel/otel';
 // Add otel logging
 import { diag, DiagConsoleLogger, DiagLogLevel } from '@opentelemetry/api';
 diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.ERROR); // set diag log level to DEBUG when debugging
 
-registerTelemetry(new OpenTelemetry());
+registerTelemetry(new LegacyOpenTelemetry());
 
 export function register() {
   registerOTel({
@@ -121,15 +121,15 @@ const result = await generateText({
 
 ## Custom Tracer
 
-If you want your traces to use a `TracerProvider` other than the one provided by the `@opentelemetry/api` singleton, pass a custom `Tracer` to the `OpenTelemetry` constructor:
+If you want your traces to use a `TracerProvider` other than the one provided by the `@opentelemetry/api` singleton, pass a custom `Tracer` to the `LegacyOpenTelemetry` constructor:
 
 ```jsx
 import { registerTelemetry, generateText } from 'ai';
-import { OpenTelemetry } from '@ai-sdk/otel';
+import { LegacyOpenTelemetry } from '@ai-sdk/otel';
 
 const tracerProvider = new NodeTracerProvider();
 registerTelemetry(
-  new OpenTelemetry({
+  new LegacyOpenTelemetry({
     tracer: tracerProvider.getTracer('ai'),
   }),
 );

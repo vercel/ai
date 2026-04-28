@@ -27,7 +27,7 @@ import {
   resourceUrlStripSlash,
 } from '../util/oauth-util';
 import { LATEST_PROTOCOL_VERSION } from './types';
-import { FetchFunction } from '@ai-sdk/provider-utils';
+import { FetchFunction, parseJSON } from '@ai-sdk/provider-utils';
 
 export type AuthResult = 'AUTHORIZED' | 'REDIRECT';
 
@@ -591,7 +591,9 @@ export async function parseErrorResponse(
   const body = input instanceof Response ? await input.text() : input;
 
   try {
-    const result = OAuthErrorResponseSchema.parse(JSON.parse(body));
+    const result = OAuthErrorResponseSchema.parse(
+      await parseJSON({ text: body }),
+    );
     const { error, error_description, error_uri } = result;
     const errorClass = OAUTH_ERRORS[error] || ServerError;
     return new errorClass({

@@ -104,6 +104,7 @@ export async function streamUI<
   system,
   prompt,
   messages,
+  allowSystemInMessages,
   maxRetries,
   abortSignal,
   headers,
@@ -272,6 +273,7 @@ export async function streamUI<
     system,
     prompt,
     messages,
+    allowSystemInMessages,
   } as Prompt);
   const languageModelTools = await prepareTools({
     tools: tools,

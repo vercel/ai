@@ -115,6 +115,7 @@ export async function doStreamStep(
     // pre-converted LanguageModelV4Prompt. standardizePrompt inside
     // streamModelCall handles both formats.
     messages: conversationPrompt as unknown as ModelMessage[],
+    allowSystemInMessages: true,
     tools,
     toolChoice: options?.toolChoice,
     includeRawChunks: options?.includeRawChunks,

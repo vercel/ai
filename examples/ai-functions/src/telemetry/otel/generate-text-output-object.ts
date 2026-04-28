@@ -3,9 +3,9 @@ import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentation
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { ConsoleSpanExporter } from '@opentelemetry/sdk-trace-node';
 import { generateText, Output, registerTelemetry } from 'ai';
-import { OpenTelemetry } from '@ai-sdk/otel';
+import { LegacyOpenTelemetry } from '@ai-sdk/otel';
 import { z } from 'zod';
-import { run } from '../lib/run';
+import { run } from '../../lib/run';
 
 const sdk = new NodeSDK({
   traceExporter: new ConsoleSpanExporter(),
@@ -13,10 +13,10 @@ const sdk = new NodeSDK({
 });
 
 sdk.start();
-registerTelemetry(new OpenTelemetry());
+registerTelemetry(new LegacyOpenTelemetry());
 
 run(async () => {
-  const result = await generateText({
+  await generateText({
     model: openai('gpt-4o-mini'),
     output: Output.object({
       schema: z.object({
@@ -37,8 +37,6 @@ run(async () => {
       functionId: 'my-awesome-function',
     },
   });
-
-  console.log(JSON.stringify(result.output?.recipe, null, 2));
 
   await sdk.shutdown();
 });

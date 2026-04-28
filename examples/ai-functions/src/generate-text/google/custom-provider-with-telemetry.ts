@@ -1,6 +1,6 @@
 import { createGoogle } from '@ai-sdk/google';
 import { generateText, registerTelemetry } from 'ai';
-import { OpenTelemetry } from '@ai-sdk/otel';
+import { LegacyOpenTelemetry } from '@ai-sdk/otel';
 
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { ConsoleSpanExporter } from '@opentelemetry/sdk-trace-node';
@@ -13,7 +13,7 @@ const sdk = new NodeSDK({
 });
 
 sdk.start();
-registerTelemetry(new OpenTelemetry());
+registerTelemetry(new LegacyOpenTelemetry());
 
 run(async () => {
   const myCustomProvider = createGoogle({

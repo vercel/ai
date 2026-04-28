@@ -190,6 +190,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       tools,
       toolChoice,
       modelId: this.modelId,
+      isVertexProvider,
     });
 
     const resolvedThinking = resolveThinkingConfig({

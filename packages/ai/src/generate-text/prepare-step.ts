@@ -9,6 +9,7 @@ import {
   SystemModelMessage,
 } from '@ai-sdk/provider-utils';
 import { LanguageModel, ToolChoice } from '../types/language-model';
+import type { ActiveTools } from './active-tools';
 import { StepResult } from './step-result';
 
 /**
@@ -84,7 +85,7 @@ export type PrepareStepResult<
       /**
        * If provided, only these tools are enabled/available for this step.
        */
-      activeTools?: Array<keyof NoInfer<TOOLS>>;
+      activeTools?: ActiveTools<NoInfer<TOOLS>>;
 
       /**
        * Optionally override the system message(s) sent to the model for this step.

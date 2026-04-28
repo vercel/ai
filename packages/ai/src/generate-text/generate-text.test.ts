@@ -1,4 +1,5 @@
 import {
+  InvalidPromptError,
   LanguageModelV4CallOptions,
   LanguageModelV4FunctionTool,
   LanguageModelV4Prompt,
@@ -937,6 +938,39 @@ describe('generateText', () => {
       expect(startEvent.maxOutputTokens).toBe(100);
       expect(startEvent.temperature).toBe(0.5);
       expect(startEvent.maxRetries).toBe(2);
+    });
+
+    it('should reject system messages in messages by default', async () => {
+      await expect(async () => {
+        await generateText({
+          model: new MockLanguageModelV4({
+            doGenerate: async () => ({
+              content: [{ type: 'text', text: 'Hello!' }],
+              ...dummyResponseValues,
+            }),
+          }),
+          messages: [{ role: 'system', content: 'INSTRUCTIONS' }],
+        });
+      }).rejects.toThrow(InvalidPromptError);
+    });
+
+    it('should allow system messages in messages when allowSystemInMessages is true', async () => {
+      const model = new MockLanguageModelV4({
+        doGenerate: async () => ({
+          content: [{ type: 'text', text: 'Hello!' }],
+          ...dummyResponseValues,
+        }),
+      });
+
+      await generateText({
+        model,
+        allowSystemInMessages: true,
+        messages: [{ role: 'system', content: 'INSTRUCTIONS' }],
+      });
+
+      expect(model.doGenerateCalls[0].prompt).toEqual([
+        { role: 'system', content: 'INSTRUCTIONS' },
+      ]);
     });
 
     it('should be called before doGenerate', async () => {
@@ -7275,6 +7309,96 @@ describe('generateText', () => {
       expect(recordedContext).toStrictEqual({
         context: 'test',
       });
+    });
+
+    it('should pass sensitive runtimeContext properties to callbacks', async () => {
+      const callbackContexts: unknown[] = [];
+
+      await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            content: [{ type: 'text', text: 'Hello, world!' }],
+            finishReason: { unified: 'stop', raw: 'stop' },
+          }),
+        }),
+        runtimeContext: {
+          userId: 'user-123',
+          requestId: 'request-123',
+        },
+        sensitiveRuntimeContext: {
+          userId: true,
+        },
+        prompt: 'test-input',
+        experimental_onStart: ({ runtimeContext }) => {
+          callbackContexts.push(runtimeContext);
+        },
+        experimental_onStepStart: ({ runtimeContext }) => {
+          callbackContexts.push(runtimeContext);
+        },
+        onStepFinish: ({ runtimeContext }) => {
+          callbackContexts.push(runtimeContext);
+        },
+        onFinish: ({ runtimeContext }) => {
+          callbackContexts.push(runtimeContext);
+        },
+      });
+
+      expect(callbackContexts).toEqual([
+        { userId: 'user-123', requestId: 'request-123' },
+        { userId: 'user-123', requestId: 'request-123' },
+        { userId: 'user-123', requestId: 'request-123' },
+        { userId: 'user-123', requestId: 'request-123' },
+      ]);
+    });
+
+    it('should exclude sensitive runtimeContext properties from telemetry', async () => {
+      const telemetryContexts: unknown[] = [];
+
+      await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            content: [{ type: 'text', text: 'Hello, world!' }],
+            finishReason: { unified: 'stop', raw: 'stop' },
+          }),
+        }),
+        runtimeContext: {
+          userId: 'user-123',
+          requestId: 'request-123',
+        },
+        sensitiveRuntimeContext: {
+          userId: true,
+        },
+        prompt: 'test-input',
+        telemetry: {
+          integrations: {
+            onStart: event => {
+              telemetryContexts.push(
+                (event as { runtimeContext: unknown }).runtimeContext,
+              );
+            },
+            onStepStart: ({ runtimeContext }) => {
+              telemetryContexts.push(runtimeContext);
+            },
+            onStepFinish: ({ runtimeContext }) => {
+              telemetryContexts.push(runtimeContext);
+            },
+            onFinish: event => {
+              telemetryContexts.push(
+                (event as { runtimeContext: unknown }).runtimeContext,
+              );
+            },
+          },
+        },
+      });
+
+      expect(telemetryContexts).toEqual([
+        { requestId: 'request-123' },
+        { requestId: 'request-123' },
+        { requestId: 'request-123' },
+        { requestId: 'request-123' },
+      ]);
     });
   });
 

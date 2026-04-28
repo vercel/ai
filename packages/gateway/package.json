@@ -1,7 +1,7 @@
 {
   "name": "@ai-sdk/gateway",
   "private": false,
-  "version": "4.0.0-beta.62",
+  "version": "4.0.0-beta.63",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -64,7 +64,8 @@
     "node": ">=18"
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "provenance": true
   },
   "homepage": "https://ai-sdk.dev/docs",
   "repository": {

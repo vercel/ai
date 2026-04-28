@@ -174,7 +174,7 @@ const result = await generateText({
     },
     {
       name: 'activeTools',
-      type: 'Array<keyof TOOLS> | undefined',
+      type: 'ActiveTools<TOOLS>',
       description: 'Limits which tools are available for the model to call.',
     },
     {
@@ -322,7 +322,7 @@ const result = await generateText({
     },
     {
       name: 'activeTools',
-      type: 'Array<keyof TOOLS> | undefined',
+      type: 'ActiveTools<TOOLS>',
       description: 'Limits which tools are available for this step.',
     },
     {

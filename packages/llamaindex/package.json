@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/llamaindex",
-  "version": "3.0.0-beta.111",
+  "version": "3.0.0-beta.112",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -48,7 +48,8 @@
     "node": ">=18"
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "provenance": true
   },
   "homepage": "https://ai-sdk.dev/docs",
   "repository": {

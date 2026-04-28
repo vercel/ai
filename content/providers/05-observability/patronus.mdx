@@ -29,7 +29,7 @@ import { registerOTel } from '@vercel/otel';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-node';
 import { registerTelemetry } from 'ai';
-import { OpenTelemetry } from '@ai-sdk/otel';
+import { LegacyOpenTelemetry } from '@ai-sdk/otel';
 
 export function register() {
   registerOTel({
@@ -47,7 +47,7 @@ export function register() {
   });
 }
 
-registerTelemetry(new OpenTelemetry());
+registerTelemetry(new LegacyOpenTelemetry());
 ```
 
 <Note>

@@ -92,9 +92,9 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
     },
     {
       name: 'activeTools',
-      type: 'Array<string>',
+      type: 'ActiveTools<TTools>',
       isOptional: true,
-      description: 'Default set of active tools. Limits which tools the model can call. Per-stream values override this default.',
+      description: 'Default set of active tools. Limits which tools the model can call without changing tool call and result types. Per-stream values override this default.',
     },
     {
       name: 'output',
@@ -425,9 +425,9 @@ const result = await agent.stream({
     },
     {
       name: 'activeTools',
-      type: 'Array<string>',
+      type: 'ActiveTools<TTools>',
       isOptional: true,
-      description: 'Limits the subset of tools available for this call.',
+      description: 'Limits the subset of tools available for this call without changing tool call and result types.',
     },
     {
       name: 'output',
@@ -612,6 +612,16 @@ const uiChunk = toUIMessageChunk(modelCallPart);
 ```
 
 ## Types
+
+### `ActiveTools`
+
+```ts
+type ActiveTools<TTools extends ToolSet> =
+  | ReadonlyArray<keyof TTools & string>
+  | undefined;
+```
+
+Limits a workflow agent call to the listed tool names. `undefined` means no tool restriction is applied.
 
 ### `InferWorkflowAgentUIMessage`
 

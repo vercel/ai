@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/mcp",
-  "version": "2.0.0-beta.33",
+  "version": "2.0.0-beta.34",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -52,7 +52,7 @@
     "@vercel/ai-tsconfig": "workspace:*",
     "tsup": "^8",
     "typescript": "5.8.3",
-    "vitest": "^4.1.0",
+    "vitest": "^4.1.5",
     "zod": "3.25.76"
   },
   "peerDependencies": {
@@ -62,7 +62,8 @@
     "node": ">=18"
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "provenance": true
   },
   "homepage": "https://ai-sdk.dev/docs",
   "repository": {

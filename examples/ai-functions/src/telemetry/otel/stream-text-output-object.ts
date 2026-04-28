@@ -3,9 +3,9 @@ import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentation
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { ConsoleSpanExporter } from '@opentelemetry/sdk-trace-node';
 import { Output, streamText, registerTelemetry } from 'ai';
-import { OpenTelemetry } from '@ai-sdk/otel';
+import { LegacyOpenTelemetry } from '@ai-sdk/otel';
 import { z } from 'zod';
-import { run } from '../lib/run';
+import { run } from '../../lib/run';
 
 const sdk = new NodeSDK({
   traceExporter: new ConsoleSpanExporter(),
@@ -13,7 +13,7 @@ const sdk = new NodeSDK({
 });
 
 sdk.start();
-registerTelemetry(new OpenTelemetry());
+registerTelemetry(new LegacyOpenTelemetry());
 
 run(async () => {
   const result = streamText({
@@ -42,10 +42,7 @@ run(async () => {
     },
   });
 
-  for await (const partialOutput of result.partialOutputStream) {
-    console.clear();
-    console.log(partialOutput);
-  }
+  await result.consumeStream();
 
   await sdk.shutdown();
 });

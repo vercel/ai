@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/klingai",
-  "version": "4.0.0-beta.28",
+  "version": "4.0.0-beta.29",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -54,7 +54,8 @@
     "node": ">=18"
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "provenance": true
   },
   "homepage": "https://ai-sdk.dev/docs",
   "repository": {

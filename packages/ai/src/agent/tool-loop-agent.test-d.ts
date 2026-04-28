@@ -236,6 +236,28 @@ describe('ToolLoopAgent', () => {
       });
     });
 
+    it('should accept sensitiveRuntimeContext for runtimeContext keys', async () => {
+      new ToolLoopAgent<never, {}, { userId: string; requestId: string }>({
+        model: new MockLanguageModelV4(),
+        runtimeContext: { userId: 'user-123', requestId: 'request-123' },
+        sensitiveRuntimeContext: {
+          userId: true,
+          requestId: false,
+        },
+      });
+    });
+
+    it('should reject unknown sensitiveRuntimeContext keys', async () => {
+      new ToolLoopAgent<never, {}, { userId: string }>({
+        model: new MockLanguageModelV4(),
+        runtimeContext: { userId: 'user-123' },
+        sensitiveRuntimeContext: {
+          // @ts-expect-error sensitiveRuntimeContext only supports runtimeContext properties
+          unknown: true,
+        },
+      });
+    });
+
     describe('prepareStep', () => {
       it('should expose default runtimeContext type', async () => {
         new ToolLoopAgent({
@@ -298,6 +320,30 @@ describe('ToolLoopAgent', () => {
               telemetryId: string;
             }>();
             expectTypeOf(toolsContext).toEqualTypeOf<{}>();
+          },
+        });
+      });
+    });
+
+    describe('prepareCall', () => {
+      it('should expose sensitiveRuntimeContext type', async () => {
+        new ToolLoopAgent<never, {}, { userId: string; requestId: string }>({
+          model: new MockLanguageModelV4(),
+          runtimeContext: { userId: 'user-123', requestId: 'request-123' },
+          sensitiveRuntimeContext: { userId: true },
+          prepareCall: options => {
+            expectTypeOf(options.sensitiveRuntimeContext).toEqualTypeOf<
+              | {
+                  userId?: boolean | undefined;
+                  requestId?: boolean | undefined;
+                }
+              | undefined
+            >();
+
+            return {
+              ...options,
+              prompt: 'Hello, world!',
+            };
           },
         });
       });

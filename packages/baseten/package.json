@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/baseten",
-  "version": "2.0.0-beta.31",
+  "version": "2.0.0-beta.32",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -61,7 +61,8 @@
     "node": ">=18"
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "provenance": true
   },
   "homepage": "https://ai-sdk.dev/docs",
   "repository": {

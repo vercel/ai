@@ -135,6 +135,7 @@ export type LanguageModelStreamPart<TOOLS extends ToolSet = ToolSet> =
  * @param system - A system message that will be part of the prompt.
  * @param prompt - A simple text prompt. You can either use `prompt` or `messages` but not both.
  * @param messages - A list of messages. You can either use `prompt` or `messages` but not both.
+ * @param allowSystemInMessages - Whether system messages are allowed in the `prompt` or `messages` fields. Default: false.
  *
  * @param maxOutputTokens - Maximum number of tokens to generate.
  * @param temperature - Temperature setting.
@@ -179,6 +180,7 @@ export async function streamLanguageModelCall<
   prompt,
   system,
   messages,
+  allowSystemInMessages,
   download,
   abortSignal,
   headers,
@@ -247,6 +249,7 @@ export async function streamLanguageModelCall<
     system,
     prompt,
     messages,
+    allowSystemInMessages,
   } as Prompt);
 
   const promptMessages = await convertToLanguageModelPrompt({

@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/workflow",
-  "version": "1.0.0-beta.26",
+  "version": "1.0.0-beta.27",
   "description": "WorkflowAgent for building AI agents with AI SDK",
   "license": "Apache-2.0",
   "main": "./dist/index.js",
@@ -59,7 +59,8 @@
     "node": ">=18"
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "provenance": true
   },
   "homepage": "https://ai-sdk.dev/docs",
   "repository": {
