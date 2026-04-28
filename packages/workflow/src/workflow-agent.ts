@@ -948,6 +948,16 @@ export interface WorkflowAgentStreamResult<
   toolResults: ToolResult[];
 
   /**
+   * The finish reason from the last step.
+   */
+  finishReason: FinishReason;
+
+  /**
+   * The total token usage across all steps.
+   */
+  totalUsage: LanguageModelUsage;
+
+  /**
    * The generated structured output. It uses the `output` specification.
    * Only available when `output` is specified.
    */
@@ -1454,6 +1464,8 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
         steps,
         toolCalls: [],
         toolResults: [],
+        finishReason: 'other',
+        totalUsage: aggregateUsage(steps),
         output: undefined as OUTPUT,
       };
     }
@@ -1612,15 +1624,17 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
             }
 
             const messages = iterMessages as unknown as ModelMessage[];
+            const lastStep = steps[steps.length - 1];
+            const totalUsage = aggregateUsage(steps);
+            const finishReason = lastStep?.finishReason ?? 'other';
 
             if (mergedOnFinish && !wasAborted) {
-              const lastStep = steps[steps.length - 1];
               await mergedOnFinish({
                 steps,
                 messages,
                 text: lastStep?.text ?? '',
-                finishReason: lastStep?.finishReason ?? 'other',
-                totalUsage: aggregateUsage(steps),
+                finishReason,
+                totalUsage,
                 experimental_context: experimentalContext,
                 output: undefined as OUTPUT,
               });
@@ -1660,6 +1674,8 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
               steps,
               toolCalls: allToolCalls,
               toolResults: allToolResults,
+              finishReason,
+              totalUsage,
               output: undefined as OUTPUT,
             };
           }
@@ -1792,15 +1808,18 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
       }
     }
 
+    const lastStep = steps[steps.length - 1];
+    const totalUsage = aggregateUsage(steps);
+    const finishReason = lastStep?.finishReason ?? 'other';
+
     // Call onFinish callback if provided (always call, even on errors, but not on abort)
     if (mergedOnFinish && !wasAborted) {
-      const lastStep = steps[steps.length - 1];
       await mergedOnFinish({
         steps,
         messages: messages as ModelMessage[],
         text: lastStep?.text ?? '',
-        finishReason: lastStep?.finishReason ?? 'other',
-        totalUsage: aggregateUsage(steps),
+        finishReason,
+        totalUsage,
         experimental_context: experimentalContext,
         output: experimentalOutput,
       });
@@ -1833,6 +1852,8 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
       steps,
       toolCalls: lastStepToolCalls,
       toolResults: lastStepToolResults,
+      finishReason,
+      totalUsage,
       output: experimentalOutput,
     };
   }
