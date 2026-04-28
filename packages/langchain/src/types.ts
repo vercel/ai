@@ -60,6 +60,15 @@ export interface GPT5ReasoningOutput {
 }
 
 /**
+ * Type for file content blocks in contentBlocks (e.g., from Anthropic)
+ */
+export interface FileContentBlock {
+  type: 'file';
+  mimeType?: string;
+  data?: string;
+}
+
+/**
  * Type for image generation tool outputs from LangChain/OpenAI
  */
 export interface ImageGenerationOutput {

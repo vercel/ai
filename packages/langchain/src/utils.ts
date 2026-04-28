@@ -22,6 +22,7 @@ import {
   type ThinkingContentBlock,
   type GPT5ReasoningOutput,
   type ImageGenerationOutput,
+  type FileContentBlock,
 } from './types';
 
 /**
@@ -434,6 +435,24 @@ export function processModelChunk(
         type: 'file',
         mediaType,
         url: `data:${mediaType};base64,${imageOutput.result}`,
+      });
+      state.started = true;
+    }
+  }
+
+  /**
+   * Handle file content blocks from contentBlocks or content array
+   * Skips blocks with empty data (common during streaming before data arrives)
+   */
+  const fileBlocks = extractFileContentBlocks(chunk);
+  for (const fileBlock of fileBlocks) {
+    const fileKey = `cb-file:${fileBlock.mediaType}:${fileBlock.data.length}:${fileBlock.data.substring(0, Math.min(50, fileBlock.data.length))}`;
+    if (!state.emittedImages!.has(fileKey)) {
+      state.emittedImages!.add(fileKey);
+      controller.enqueue({
+        type: 'file',
+        mediaType: fileBlock.mediaType,
+        url: `data:${fileBlock.mediaType};base64,${fileBlock.data}`,
       });
       state.started = true;
     }
@@ -951,6 +970,69 @@ export function extractImageOutputs(
 }
 
 /**
+ * Extracts file content blocks from contentBlocks or content array.
+ * Returns file blocks that have non-empty data, skipping empty ones.
+ *
+ * @param msg - The message to extract file content blocks from.
+ * @returns Array of extracted file blocks with mediaType and data.
+ */
+export function extractFileContentBlocks(
+  msg: unknown,
+): Array<{ mediaType: string; data: string }> {
+  if (msg == null || typeof msg !== 'object') return [];
+
+  const msgObj = msg as Record<string, unknown>;
+  const kwargs =
+    msgObj.kwargs && typeof msgObj.kwargs === 'object'
+      ? (msgObj.kwargs as Record<string, unknown>)
+      : msgObj;
+
+  const results: Array<{ mediaType: string; data: string }> = [];
+
+  const contentBlocks = (kwargs as { contentBlocks?: unknown[] }).contentBlocks;
+  if (Array.isArray(contentBlocks)) {
+    for (const block of contentBlocks) {
+      if (
+        block != null &&
+        typeof block === 'object' &&
+        'type' in block &&
+        (block as { type: string }).type === 'file'
+      ) {
+        const fileBlock = block as FileContentBlock;
+        if (fileBlock.data) {
+          results.push({
+            mediaType: fileBlock.mimeType || 'image/png',
+            data: fileBlock.data,
+          });
+        }
+      }
+    }
+  }
+
+  const content = (kwargs as { content?: unknown }).content;
+  if (Array.isArray(content)) {
+    for (const block of content) {
+      if (
+        block != null &&
+        typeof block === 'object' &&
+        'type' in block &&
+        (block as { type: string }).type === 'file'
+      ) {
+        const fileBlock = block as FileContentBlock;
+        if (fileBlock.data) {
+          results.push({
+            mediaType: fileBlock.mimeType || 'image/png',
+            data: fileBlock.data,
+          });
+        }
+      }
+    }
+  }
+
+  return results;
+}
+
+/**
  * Processes a LangGraph event and emits UI message chunks.
  *
  * @param event - The event to process.
@@ -1097,6 +1179,23 @@ export function processLangGraphEvent(
               type: 'file',
               mediaType,
               url: `data:${mediaType};base64,${imageOutput.result}`,
+            });
+          }
+        }
+
+        /**
+         * Handle file content blocks from contentBlocks or content array
+         * Skips blocks with empty data (common during streaming before data arrives)
+         */
+        const fileBlocks = extractFileContentBlocks(msg);
+        for (const fileBlock of fileBlocks) {
+          const fileKey = `cb-file:${fileBlock.mediaType}:${fileBlock.data.length}:${fileBlock.data.substring(0, Math.min(50, fileBlock.data.length))}`;
+          if (!emittedImages.has(fileKey)) {
+            emittedImages.add(fileKey);
+            controller.enqueue({
+              type: 'file',
+              mediaType: fileBlock.mediaType,
+              url: `data:${fileBlock.mediaType};base64,${fileBlock.data}`,
             });
           }
         }
@@ -1521,6 +1620,24 @@ export function processLangGraphEvent(
                 });
                 controller.enqueue({ type: 'reasoning-end', id: msgId });
                 emittedReasoningIds.add(reasoningId);
+              }
+            }
+
+            /**
+             * Check for file content blocks that weren't streamed
+             * Skip blocks we've already emitted during the messages phase
+             */
+            const fileBlocks = extractFileContentBlocks(msg);
+            for (let i = 0; i < fileBlocks.length; i++) {
+              const fileBlock = fileBlocks[i];
+              const fileKey = `cb-file:${fileBlock.mediaType}:${fileBlock.data.length}:${fileBlock.data.substring(0, Math.min(50, fileBlock.data.length))}`;
+              if (!emittedImages.has(fileKey)) {
+                emittedImages.add(fileKey);
+                controller.enqueue({
+                  type: 'file',
+                  mediaType: fileBlock.mediaType,
+                  url: `data:${fileBlock.mediaType};base64,${fileBlock.data}`,
+                });
               }
             }
           }
