@@ -1,5 +1,10 @@
 import type { Context, ModelMessage, ToolSet } from '@ai-sdk/provider-utils';
+import { validateTypes } from '@ai-sdk/provider-utils';
 import { generateText } from '../generate-text/generate-text';
+import {
+  GenerateTextOnStartCallback,
+  GenerateTextOnStepStartCallback,
+} from '../generate-text/generate-text-events';
 import { GenerateTextResult } from '../generate-text/generate-text-result';
 import { Output } from '../generate-text/output';
 import { isStepCount } from '../generate-text/stop-condition';
@@ -8,11 +13,7 @@ import { StreamTextResult } from '../generate-text/stream-text-result';
 import { Prompt } from '../prompt';
 import { mergeCallbacks } from '../util/merge-callbacks';
 import { Agent, AgentCallParameters, AgentStreamParameters } from './agent';
-import {
-  ToolLoopAgentOnStartCallback,
-  ToolLoopAgentOnStepStartCallback,
-  ToolLoopAgentSettings,
-} from './tool-loop-agent-settings';
+import type { ToolLoopAgentSettings } from './tool-loop-agent-settings';
 
 /**
  * A tool loop agent is an agent that runs tools in a loop. In each step,
@@ -83,6 +84,18 @@ export class ToolLoopAgent<
     > &
       Prompt
   > {
+    if (
+      this.settings.callOptionsSchema != null &&
+      options.options !== undefined
+    ) {
+      const validatedOptions = await validateTypes({
+        value: options.options,
+        schema: this.settings.callOptionsSchema,
+        context: { field: 'options' },
+      });
+      options = { ...options, options: validatedOptions };
+    }
+
     const {
       experimental_onStart: _settingsOnStart,
       experimental_onStepStart: _settingsOnStepStart,
@@ -156,13 +169,13 @@ export class ToolLoopAgent<
       experimental_onStart: mergeCallbacks(
         this.settings.experimental_onStart,
         experimental_onStart as
-          | ToolLoopAgentOnStartCallback<TOOLS, RUNTIME_CONTEXT, OUTPUT>
+          | GenerateTextOnStartCallback<TOOLS, RUNTIME_CONTEXT, OUTPUT>
           | undefined,
       ),
       experimental_onStepStart: mergeCallbacks(
         this.settings.experimental_onStepStart,
         experimental_onStepStart as
-          | ToolLoopAgentOnStepStartCallback<TOOLS, RUNTIME_CONTEXT, OUTPUT>
+          | GenerateTextOnStepStartCallback<TOOLS, RUNTIME_CONTEXT, OUTPUT>
           | undefined,
       ),
       experimental_onToolExecutionStart: mergeCallbacks(
@@ -209,13 +222,13 @@ export class ToolLoopAgent<
       experimental_onStart: mergeCallbacks(
         this.settings.experimental_onStart,
         experimental_onStart as
-          | ToolLoopAgentOnStartCallback<TOOLS, RUNTIME_CONTEXT, OUTPUT>
+          | GenerateTextOnStartCallback<TOOLS, RUNTIME_CONTEXT, OUTPUT>
           | undefined,
       ),
       experimental_onStepStart: mergeCallbacks(
         this.settings.experimental_onStepStart,
         experimental_onStepStart as
-          | ToolLoopAgentOnStepStartCallback<TOOLS, RUNTIME_CONTEXT, OUTPUT>
+          | GenerateTextOnStepStartCallback<TOOLS, RUNTIME_CONTEXT, OUTPUT>
           | undefined,
       ),
       experimental_onToolExecutionStart: mergeCallbacks(

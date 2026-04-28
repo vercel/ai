@@ -25,25 +25,27 @@ import {
   vitest,
 } from 'vitest';
 import { z } from 'zod/v4';
-import {
-  LanguageModelCallStartEvent,
-  LanguageModelCallEndEvent,
-  Output,
-  ToolExecutionEndEvent,
-  ToolExecutionStartEvent,
-} from '.';
 import * as logWarningsModule from '../logger/log-warnings';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
+import { generateText } from './generate-text';
 import {
-  generateText,
   GenerateTextOnFinishCallback,
   GenerateTextOnStartCallback,
   GenerateTextOnStepFinishCallback,
   GenerateTextOnStepStartCallback,
-} from './generate-text';
+} from './generate-text-events';
 import { GenerateTextResult } from './generate-text-result';
+import * as Output from './output';
 import { StepResult } from './step-result';
 import { isLoopFinished, isStepCount } from './stop-condition';
+import {
+  ToolExecutionEndEvent,
+  ToolExecutionStartEvent,
+} from './tool-execution-events';
+import {
+  LanguageModelCallEndEvent,
+  LanguageModelCallStartEvent,
+} from './language-model-events';
 
 vi.mock('../version', () => {
   return {

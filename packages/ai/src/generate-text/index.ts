@@ -1,7 +1,12 @@
 export type { ContentPart } from './content-part';
+export { filterActiveTools as experimental_filterActiveTools } from './filter-active-tool';
+export { generateText } from './generate-text';
 export type {
-  StreamTextChunkEvent,
   GenerateTextEndEvent,
+  GenerateTextOnFinishCallback,
+  GenerateTextOnStartCallback,
+  GenerateTextOnStepFinishCallback,
+  GenerateTextOnStepStartCallback,
   GenerateTextStartEvent,
   GenerateTextStepEndEvent,
   GenerateTextStepStartEvent,
@@ -10,28 +15,21 @@ export type {
   OnStartEvent,
   OnStepFinishEvent,
   OnStepStartEvent,
-} from './core-events';
-export type {
-  ModelInfo,
-  LanguageModelCallEndEvent,
-  LanguageModelCallStartEvent,
-  OnLanguageModelCallEndCallback,
-  OnLanguageModelCallStartCallback,
-} from './language-model-events';
-export { filterActiveTools as experimental_filterActiveTools } from './filter-active-tool';
-export {
-  generateText,
-  type GenerateTextOnFinishCallback,
-  type GenerateTextOnStartCallback,
-  type GenerateTextOnStepFinishCallback,
-  type GenerateTextOnStepStartCallback,
-} from './generate-text';
+  StreamTextChunkEvent,
+} from './generate-text-events';
 export type { GenerateTextResult } from './generate-text-result';
 export {
   DefaultGeneratedFile,
   type GeneratedFile as Experimental_GeneratedImage, // Image for backwards compatibility, TODO remove in v7
   type GeneratedFile,
 } from './generated-file';
+export type {
+  LanguageModelCallEndEvent,
+  LanguageModelCallStartEvent,
+  ModelInfo,
+  OnLanguageModelCallEndCallback,
+  OnLanguageModelCallStartCallback,
+} from './language-model-events';
 export * as Output from './output';
 export type { Output as OutputInterface } from './output';
 export type {
@@ -62,10 +60,6 @@ export {
   streamText,
   type StreamTextOnChunkCallback,
   type StreamTextOnErrorCallback,
-  type StreamTextOnFinishCallback,
-  type StreamTextOnStartCallback,
-  type StreamTextOnStepFinishCallback,
-  type StreamTextOnStepStartCallback,
   type StreamTextTransform,
 } from './stream-text';
 export type {

@@ -1,14 +1,15 @@
-import { ServerResponse } from 'node:http';
-import { StreamTextTransform, UIMessageStreamOptions } from '../generate-text';
-import { Output } from '../generate-text/output';
 import type { Arrayable, Context, ToolSet } from '@ai-sdk/provider-utils';
+import { ServerResponse } from 'node:http';
+import { GenerateTextOnStepFinishCallback } from '../generate-text/generate-text-events';
+import { Output } from '../generate-text/output';
+import { StreamTextTransform } from '../generate-text/stream-text';
+import { UIMessageStreamOptions } from '../generate-text/stream-text-result';
 import { TimeoutConfiguration } from '../prompt/request-options';
 import { pipeUIMessageStreamToResponse } from '../ui-message-stream';
 import { UIMessageStreamResponseInit } from '../ui-message-stream/ui-message-stream-response-init';
 import { InferUITools, UIMessage } from '../ui/ui-messages';
 import { Agent } from './agent';
 import { createAgentUIStream } from './create-agent-ui-stream';
-import type { ToolLoopAgentOnStepFinishCallback } from './tool-loop-agent-settings';
 
 /**
  * Pipes the agent UI message stream to a Node.js ServerResponse object.
@@ -47,7 +48,7 @@ export async function pipeAgentUIStreamToResponse<
   timeout?: TimeoutConfiguration<TOOLS>;
   options?: CALL_OPTIONS;
   experimental_transform?: Arrayable<StreamTextTransform<TOOLS>>;
-  onStepFinish?: ToolLoopAgentOnStepFinishCallback<TOOLS>;
+  onStepFinish?: GenerateTextOnStepFinishCallback<TOOLS>;
 } & UIMessageStreamResponseInit &
   UIMessageStreamOptions<
     UIMessage<MESSAGE_METADATA, never, InferUITools<TOOLS>>

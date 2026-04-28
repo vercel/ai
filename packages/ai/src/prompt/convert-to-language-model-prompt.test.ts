@@ -2247,6 +2247,41 @@ describe('convertToLanguageModelMessage', () => {
         );
       });
 
+      it('should fall back when file-url extension collides with Object.prototype (e.g. `.constructor`)', () => {
+        // Regression: a previous implementation used `ext in URL_EXTENSION_TO_MEDIA_TYPE`,
+        // which traverses the prototype chain and returned the `Object`
+        // constructor (a function) for attacker-controlled extensions like
+        // `.constructor`, breaking the helper's `: string` contract.
+        convertToLanguageModelMessage({
+          message: {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolName: 'toolName',
+                toolCallId: 'toolCallId',
+                output: {
+                  type: 'content',
+                  value: [
+                    {
+                      type: 'file-url',
+                      url: 'https://example.com/foo.constructor',
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+          downloadedAssets: {},
+        });
+
+        expect(mockProcessEmitWarning).toHaveBeenCalledOnce();
+        expect(mockProcessEmitWarning).toHaveBeenCalledWith(
+          `AI SDK Warning: Deprecated: ""tool-result" content of type "file-url" without mediaType". The "file-url" tool result content part with URL "https://example.com/foo.constructor" is missing a "mediaType". Unable to infer media type from URL. Defaulting to 'application/octet-stream'.`,
+          { type: 'DeprecationWarning' },
+        );
+      });
+
       it('should emit DeprecationWarning for deprecated types in assistant message tool-result content', () => {
         convertToLanguageModelMessage({
           message: {

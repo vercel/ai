@@ -283,10 +283,7 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
       fetch: this.config.fetch,
     });
 
-    const toolCallTracker = new StreamingToolCallTracker({
-      generateId,
-      typeValidation: 'required',
-    });
+    let toolCallTracker: StreamingToolCallTracker;
 
     let finishReason: LanguageModelV4FinishReason = {
       unified: 'other',
@@ -322,6 +319,10 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
           LanguageModelV4StreamPart
         >({
           start(controller) {
+            toolCallTracker = new StreamingToolCallTracker(controller, {
+              generateId,
+              typeValidation: 'required',
+            });
             controller.enqueue({ type: 'stream-start', warnings });
           },
 
@@ -430,10 +431,7 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
               }
 
               for (const toolCallDelta of delta.tool_calls) {
-                toolCallTracker.processDelta(
-                  toolCallDelta,
-                  controller.enqueue.bind(controller),
-                );
+                toolCallTracker.processDelta(toolCallDelta);
               }
             }
           },
@@ -447,7 +445,7 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
               controller.enqueue({ type: 'text-end', id: 'txt-0' });
             }
 
-            toolCallTracker.flush(controller.enqueue.bind(controller));
+            toolCallTracker.flush();
 
             controller.enqueue({
               type: 'finish',

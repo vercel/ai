@@ -84,12 +84,6 @@ import { prepareRetries } from '../util/prepare-retries';
 import { collectToolApprovals } from './collect-tool-approvals';
 import { ContentPart } from './content-part';
 import type {
-  GenerateTextEndEvent,
-  GenerateTextStartEvent,
-  GenerateTextStepEndEvent,
-  GenerateTextStepStartEvent,
-} from './core-events';
-import type {
   OnLanguageModelCallEndCallback,
   OnLanguageModelCallStartCallback,
 } from './language-model-events';
@@ -133,6 +127,12 @@ import {
 import { ToolOutput } from './tool-output';
 import { StaticToolOutputDenied } from './tool-output-denied';
 import { ToolsContextParameter } from './tools-context-parameter';
+import {
+  GenerateTextOnFinishCallback,
+  GenerateTextOnStartCallback,
+  GenerateTextOnStepFinishCallback,
+  GenerateTextOnStepStartCallback,
+} from './generate-text-events';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -165,16 +165,6 @@ export type StreamTextOnErrorCallback = Callback<{
 }>;
 
 /**
- * Callback that is set using the `onStepFinish` option.
- *
- * @param stepResult - The result of the step.
- */
-export type StreamTextOnStepFinishCallback<
-  TOOLS extends ToolSet,
-  RUNTIME_CONTEXT extends Context,
-> = Callback<GenerateTextStepEndEvent<TOOLS, RUNTIME_CONTEXT>>;
-
-/**
  * Callback that is set using the `onChunk` option.
  *
  * @param event - The event that is passed to the callback.
@@ -198,16 +188,6 @@ export type StreamTextOnChunkCallback<TOOLS extends ToolSet> = (event: {
 }) => PromiseLike<void> | void;
 
 /**
- * Callback that is set using the `onFinish` option.
- *
- * @param event - The event that is passed to the callback.
- */
-export type StreamTextOnFinishCallback<
-  TOOLS extends ToolSet,
-  RUNTIME_CONTEXT extends Context,
-> = Callback<GenerateTextEndEvent<TOOLS, RUNTIME_CONTEXT>>;
-
-/**
  * Callback that is set using the `onAbort` option.
  *
  * @param event - The event that is passed to the callback.
@@ -221,36 +201,6 @@ export type StreamTextOnAbortCallback<
    */
   readonly steps: StepResult<TOOLS, RUNTIME_CONTEXT>[];
 }>;
-
-/**
- * Callback that is set using the `experimental_onStart` option.
- *
- * Called when the streamText operation begins, before any LLM calls.
- * Use this callback for logging, analytics, or initializing state at the
- * start of a generation.
- *
- * @param event - The event object containing generation configuration.
- */
-export type StreamTextOnStartCallback<
-  TOOLS extends ToolSet = ToolSet,
-  RUNTIME_CONTEXT extends Context = Context,
-  OUTPUT extends Output = Output,
-> = Callback<GenerateTextStartEvent<TOOLS, RUNTIME_CONTEXT, OUTPUT>>;
-
-/**
- * Callback that is set using the `experimental_onStepStart` option.
- *
- * Called when a step (LLM call) begins, before the provider is called.
- * Each step represents a single LLM invocation. Multiple steps occur when
- * using tool calls (the model may be called multiple times in a loop).
- *
- * @param event - The event object containing step configuration.
- */
-export type StreamTextOnStepStartCallback<
-  TOOLS extends ToolSet = ToolSet,
-  RUNTIME_CONTEXT extends Context = Context,
-  OUTPUT extends Output = Output,
-> = Callback<GenerateTextStepStartEvent<TOOLS, RUNTIME_CONTEXT, OUTPUT>>;
 
 /**
  * Generate a text and call tools for a given prompt using a language model.
@@ -473,7 +423,7 @@ export function streamText<
      *
      * The usage is the combined usage of all steps.
      */
-    onFinish?: StreamTextOnFinishCallback<
+    onFinish?: GenerateTextOnFinishCallback<
       NoInfer<TOOLS>,
       NoInfer<RUNTIME_CONTEXT>
     >;
@@ -486,7 +436,7 @@ export function streamText<
     /**
      * Callback that is called when each step (LLM call) is finished, including intermediate steps.
      */
-    onStepFinish?: StreamTextOnStepFinishCallback<
+    onStepFinish?: GenerateTextOnStepFinishCallback<
       NoInfer<TOOLS>,
       NoInfer<RUNTIME_CONTEXT>
     >;
@@ -495,7 +445,7 @@ export function streamText<
      * Callback that is called when the streamText operation begins,
      * before any LLM calls are made.
      */
-    experimental_onStart?: StreamTextOnStartCallback<
+    experimental_onStart?: GenerateTextOnStartCallback<
       NoInfer<TOOLS>,
       NoInfer<RUNTIME_CONTEXT>,
       NoInfer<OUTPUT>
@@ -505,7 +455,7 @@ export function streamText<
      * Callback that is called when a step (LLM call) begins,
      * before the provider is called.
      */
-    experimental_onStepStart?: StreamTextOnStepStartCallback<
+    experimental_onStepStart?: GenerateTextOnStepStartCallback<
       NoInfer<TOOLS>,
       NoInfer<RUNTIME_CONTEXT>,
       NoInfer<OUTPUT>
@@ -849,26 +799,26 @@ class DefaultStreamTextResult<
     onError: StreamTextOnErrorCallback;
     onFinish:
       | undefined
-      | StreamTextOnFinishCallback<NoInfer<TOOLS>, NoInfer<RUNTIME_CONTEXT>>;
+      | GenerateTextOnFinishCallback<NoInfer<TOOLS>, NoInfer<RUNTIME_CONTEXT>>;
     onAbort:
       | undefined
       | StreamTextOnAbortCallback<NoInfer<TOOLS>, NoInfer<RUNTIME_CONTEXT>>;
     onStepFinish:
       | undefined
-      | StreamTextOnStepFinishCallback<
+      | GenerateTextOnStepFinishCallback<
           NoInfer<TOOLS>,
           NoInfer<RUNTIME_CONTEXT>
         >;
     onStart:
       | undefined
-      | StreamTextOnStartCallback<
+      | GenerateTextOnStartCallback<
           NoInfer<TOOLS>,
           NoInfer<RUNTIME_CONTEXT>,
           NoInfer<OUTPUT>
         >;
     onStepStart:
       | undefined
-      | StreamTextOnStepStartCallback<
+      | GenerateTextOnStepStartCallback<
           NoInfer<TOOLS>,
           NoInfer<RUNTIME_CONTEXT>,
           NoInfer<OUTPUT>
@@ -1206,7 +1156,7 @@ class DefaultStreamTextResult<
               onFinish,
               telemetryDispatcher.onFinish as
                 | undefined
-                | StreamTextOnFinishCallback<
+                | GenerateTextOnFinishCallback<
                     NoInfer<TOOLS>,
                     NoInfer<RUNTIME_CONTEXT>
                   >,
@@ -1356,7 +1306,7 @@ class DefaultStreamTextResult<
           onStart,
           telemetryDispatcher.onStart as
             | undefined
-            | StreamTextOnStartCallback<TOOLS, RUNTIME_CONTEXT, OUTPUT>,
+            | GenerateTextOnStartCallback<TOOLS, RUNTIME_CONTEXT, OUTPUT>,
         ],
       });
 
@@ -1637,7 +1587,7 @@ class DefaultStreamTextResult<
                     onStepStart,
                     telemetryDispatcher.onStepStart as
                       | undefined
-                      | StreamTextOnStepStartCallback<
+                      | GenerateTextOnStepStartCallback<
                           TOOLS,
                           RUNTIME_CONTEXT,
                           OUTPUT

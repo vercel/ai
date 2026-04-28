@@ -1,6 +1,8 @@
-import { StreamTextTransform, UIMessageStreamOptions } from '../generate-text';
-import { Output } from '../generate-text/output';
 import type { Arrayable, Context, ToolSet } from '@ai-sdk/provider-utils';
+import { GenerateTextOnStepFinishCallback } from '../generate-text/generate-text-events';
+import { Output } from '../generate-text/output';
+import { StreamTextTransform } from '../generate-text/stream-text';
+import { UIMessageStreamOptions } from '../generate-text/stream-text-result';
 import { TimeoutConfiguration } from '../prompt/request-options';
 import { InferUIMessageChunk } from '../ui-message-stream';
 import { convertToModelMessages } from '../ui/convert-to-model-messages';
@@ -8,7 +10,6 @@ import { InferUITools, UIMessage } from '../ui/ui-messages';
 import { validateUIMessages } from '../ui/validate-ui-messages';
 import { AsyncIterableStream } from '../util/async-iterable-stream';
 import { Agent } from './agent';
-import type { ToolLoopAgentOnStepFinishCallback } from './tool-loop-agent-settings';
 
 /**
  * Runs the agent and stream the output as a UI message stream.
@@ -45,7 +46,7 @@ export async function createAgentUIStream<
   timeout?: TimeoutConfiguration<TOOLS>;
   options?: CALL_OPTIONS;
   experimental_transform?: Arrayable<StreamTextTransform<TOOLS>>;
-  onStepFinish?: ToolLoopAgentOnStepFinishCallback<TOOLS>;
+  onStepFinish?: GenerateTextOnStepFinishCallback<TOOLS>;
   // TODO `originalMessages` is part of this for bc, omit in v7
 } & UIMessageStreamOptions<
   UIMessage<MESSAGE_METADATA, never, InferUITools<TOOLS>>
