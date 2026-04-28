@@ -1,13 +1,13 @@
 import { anthropic } from '@ai-sdk/anthropic';
 import { generateText, ToolLoopAgent, registerTelemetry } from 'ai';
-import { GenAIOpenTelemetry, OpenTelemetry } from '@ai-sdk/otel';
+import { GenAIOpenTelemetry, LegacyOpenTelemetry } from '@ai-sdk/otel';
 import { DevToolsTelemetry } from '@ai-sdk/devtools';
 import { LangfuseSpanProcessor } from '@langfuse/otel';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { run } from '../../lib/run';
 import { z } from 'zod';
 
-registerTelemetry(new OpenTelemetry(), DevToolsTelemetry());
+registerTelemetry(new LegacyOpenTelemetry(), DevToolsTelemetry());
 
 const sdk = new NodeSDK({
   spanProcessors: [new LangfuseSpanProcessor()],

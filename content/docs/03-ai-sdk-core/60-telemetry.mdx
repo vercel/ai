@@ -28,9 +28,9 @@ pnpm install @ai-sdk/otel
 
 ```ts
 import { registerTelemetry } from 'ai';
-import { OpenTelemetry } from '@ai-sdk/otel';
+import { LegacyOpenTelemetry } from '@ai-sdk/otel';
 
-registerTelemetry(new OpenTelemetry());
+registerTelemetry(new LegacyOpenTelemetry());
 ```
 
 For Next.js applications, place this in your `instrumentation.ts` file alongside your OpenTelemetry provider setup. See the [Next.js OpenTelemetry guide](https://nextjs.org/docs/app/building-your-application/optimizing/open-telemetry) for more details on setting up the provider.
@@ -165,15 +165,15 @@ Properties set to `false` or omitted are still sent. `sensitiveContext` is suppo
 
 ## Custom Tracer
 
-If you want your traces to use a `TracerProvider` other than the one provided by the `@opentelemetry/api` singleton, pass a custom `Tracer` to the `OpenTelemetry` constructor:
+If you want your traces to use a `TracerProvider` other than the one provided by the `@opentelemetry/api` singleton, pass a custom `Tracer` to the `LegacyOpenTelemetry` constructor:
 
 ```ts highlight="6-8"
 import { registerTelemetry } from 'ai';
-import { OpenTelemetry } from '@ai-sdk/otel';
+import { LegacyOpenTelemetry } from '@ai-sdk/otel';
 
 const tracerProvider = new NodeTracerProvider();
 registerTelemetry(
-  new OpenTelemetry({
+  new LegacyOpenTelemetry({
     tracer: tracerProvider.getTracer('ai'),
   }),
 );
@@ -185,7 +185,7 @@ The `GenAIOpenTelemetry` also accepts a custom `Tracer` in the same way.
 
 Telemetry integrations let you hook into the generation lifecycle to build custom observability — logging, analytics, DevTools, or any other monitoring system. Instead of wiring up individual callbacks on every call, you implement a `Telemetry` once and register it globally or pass it via `telemetry.integrations`.
 
-The `GenAIOpenTelemetry` and `OpenTelemetry` from `@ai-sdk/otel` are the built-in integrations for collecting OpenTelemetry spans (see [Enabling telemetry](#enabling-telemetry) above).
+The `GenAIOpenTelemetry` and `LegacyOpenTelemetry` from `@ai-sdk/otel` are the built-in integrations for collecting OpenTelemetry spans (see [Enabling telemetry](#enabling-telemetry) above).
 
 ### Registering integrations globally
 
@@ -193,20 +193,20 @@ Use `registerTelemetry` to register an integration once for all AI SDK calls:
 
 ```ts
 import { registerTelemetry } from 'ai';
-import { OpenTelemetry } from '@ai-sdk/otel';
+import { LegacyOpenTelemetry } from '@ai-sdk/otel';
 
-registerTelemetry(new OpenTelemetry());
+registerTelemetry(new LegacyOpenTelemetry());
 ```
 
 You can also register multiple integrations in a single call by passing them as additional arguments. They all receive the same lifecycle events:
 
 ```ts
 import { registerTelemetryIntegration } from 'ai';
-import { OpenTelemetryIntegration } from '@ai-sdk/otel';
+import { LegacyOpenTelemetry } from '@ai-sdk/otel';
 import { DevToolsTelemetry } from '@ai-sdk/devtools';
 
 registerTelemetryIntegration(
-  new OpenTelemetryIntegration(),
+  new LegacyOpenTelemetry(),
   DevToolsTelemetry(),
 );
 ```
@@ -339,7 +339,7 @@ The event types for each method are the same as the corresponding [event callbac
 
 The `@ai-sdk/otel` package provides two integrations that emit different span formats.
 The `GenAIOpenTelemetry` follows the [OpenTelemetry GenAI Semantic Conventions](https://opentelemetry.io/docs/specs/semconv/gen-ai/) and is the recommended integration.
-The `OpenTelemetry` integration emits legacy AI SDK-specific spans.
+The `LegacyOpenTelemetry` integration emits legacy AI SDK-specific spans.
 
 ### GenAI Semantic Conventions
 
@@ -482,9 +482,9 @@ Tool call spans (`execute_tool {toolName}`) are nested under the step span and c
 - `gen_ai.tool.call.arguments`: the input arguments (stringified JSON, when `recordInputs` is enabled)
 - `gen_ai.tool.call.result`: the output result (stringified JSON, when `recordOutputs` is enabled). Only set when the tool call succeeds.
 
-### Legacy AI SDK Spans (`OpenTelemetry`)
+### Legacy AI SDK Spans (`LegacyOpenTelemetry`)
 
-The `OpenTelemetry` integration emits spans using AI SDK-specific `ai.*` prefixed attributes.
+The `LegacyOpenTelemetry` integration emits spans using AI SDK-specific `ai.*` prefixed attributes.
 This is the legacy format. Consider migrating to the `GenAIOpenTelemetry` for better compatibility with observability platforms.
 
 #### generateText function
