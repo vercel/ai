@@ -256,9 +256,6 @@ export function streamText<
   TOOLS extends ToolSet,
   RUNTIME_CONTEXT extends Context = Context,
   OUTPUT extends Output = Output<string, string, never>,
-  const SENSITIVE_RUNTIME_CONTEXT extends SensitiveContext<
-    NoInfer<RUNTIME_CONTEXT>
-  > = undefined,
 >({
   model,
   tools,
@@ -296,7 +293,7 @@ export function streamText<
   experimental_onToolExecutionStart: onToolExecutionStart,
   experimental_onToolExecutionEnd: onToolExecutionEnd,
   runtimeContext = {} as RUNTIME_CONTEXT,
-  sensitiveRuntimeContext = undefined as SENSITIVE_RUNTIME_CONTEXT,
+  sensitiveRuntimeContext,
   toolsContext = {} as InferToolSetContext<TOOLS>,
   experimental_include: include,
   _internal: {
@@ -355,7 +352,7 @@ export function streamText<
     /**
      * Top-level runtime context properties that contain sensitive data.
      */
-    sensitiveRuntimeContext?: SENSITIVE_RUNTIME_CONTEXT;
+    sensitiveRuntimeContext?: SensitiveContext<NoInfer<RUNTIME_CONTEXT>>;
 
     /**
      * Limits the tools that are available for the model to call without
@@ -531,12 +528,7 @@ export function streamText<
     stepTimeoutMs != null ? new AbortController() : undefined;
   const chunkAbortController =
     chunkTimeoutMs != null ? new AbortController() : undefined;
-  return new DefaultStreamTextResult<
-    TOOLS,
-    RUNTIME_CONTEXT,
-    OUTPUT,
-    SENSITIVE_RUNTIME_CONTEXT
-  >({
+  return new DefaultStreamTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>({
     model: resolveLanguageModel(model),
     telemetry,
     headers,
@@ -558,8 +550,7 @@ export function streamText<
     tools,
     toolsContext,
     runtimeContext,
-    sensitiveRuntimeContext:
-      sensitiveRuntimeContext as SENSITIVE_RUNTIME_CONTEXT,
+    sensitiveRuntimeContext,
     toolChoice,
     transforms: asArray(transform),
     activeTools,
@@ -700,7 +691,6 @@ class DefaultStreamTextResult<
   TOOLS extends ToolSet,
   RUNTIME_CONTEXT extends Context,
   OUTPUT extends Output,
-  SENSITIVE_RUNTIME_CONTEXT extends SensitiveContext<RUNTIME_CONTEXT>,
 > implements StreamTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT> {
   private readonly _totalUsage = new DelayedPromise<
     Awaited<StreamTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>['usage']>
@@ -789,7 +779,7 @@ class DefaultStreamTextResult<
     chunkAbortController: AbortController | undefined;
     toolsContext: InferToolSetContext<TOOLS>;
     runtimeContext: RUNTIME_CONTEXT;
-    sensitiveRuntimeContext: SENSITIVE_RUNTIME_CONTEXT;
+    sensitiveRuntimeContext: SensitiveContext<RUNTIME_CONTEXT>;
     system: Prompt['system'];
     prompt: Prompt['prompt'];
     messages: Prompt['messages'];
@@ -858,7 +848,6 @@ class DefaultStreamTextResult<
     const telemetryDispatcher = createRestrictedTelemetryDispatcher<
       TOOLS,
       RUNTIME_CONTEXT,
-      SENSITIVE_RUNTIME_CONTEXT,
       OUTPUT
     >({
       telemetry,

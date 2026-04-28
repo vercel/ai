@@ -170,8 +170,6 @@ export async function generateText<
   TOOLS extends ToolSet,
   RUNTIME_CONTEXT extends Context = Context,
   OUTPUT extends Output = Output<string, string>,
-  SENSITIVE_RUNTIME_CONTEXT extends SensitiveContext<NoInfer<RUNTIME_CONTEXT>> =
-    undefined,
 >({
   model: modelArg,
   tools,
@@ -194,7 +192,7 @@ export async function generateText<
   experimental_repairToolCall: repairToolCall,
   experimental_download: download,
   runtimeContext = {} as RUNTIME_CONTEXT,
-  sensitiveRuntimeContext = undefined as SENSITIVE_RUNTIME_CONTEXT,
+  sensitiveRuntimeContext,
   toolsContext = {} as InferToolSetContext<TOOLS>,
   experimental_include: include,
   _internal: {
@@ -260,7 +258,7 @@ export async function generateText<
     /**
      * Top-level runtime context properties that contain sensitive data.
      */
-    sensitiveRuntimeContext?: SENSITIVE_RUNTIME_CONTEXT;
+    sensitiveRuntimeContext?: SensitiveContext<NoInfer<RUNTIME_CONTEXT>>;
 
     /**
      * Limits the tools that are available for the model to call without
@@ -426,12 +424,10 @@ export async function generateText<
   const telemetryDispatcher = createRestrictedTelemetryDispatcher<
     TOOLS,
     RUNTIME_CONTEXT,
-    SENSITIVE_RUNTIME_CONTEXT,
     OUTPUT
   >({
     telemetry,
-    sensitiveRuntimeContext:
-      sensitiveRuntimeContext as SENSITIVE_RUNTIME_CONTEXT,
+    sensitiveRuntimeContext,
   });
 
   await notify({

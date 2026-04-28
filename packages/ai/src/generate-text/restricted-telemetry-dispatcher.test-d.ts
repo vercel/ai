@@ -19,7 +19,6 @@ describe('createRestrictedTelemetryDispatcher types', () => {
   const telemetryDispatcher = createRestrictedTelemetryDispatcher<
     ToolSet,
     RuntimeContext,
-    { userId: true },
     Output
   >({
     sensitiveRuntimeContext: { userId: true },

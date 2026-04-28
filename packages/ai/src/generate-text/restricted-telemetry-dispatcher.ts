@@ -33,13 +33,12 @@ type RestrictedTelemetryDispatcher<
 function restrictStepResult<
   TOOLS extends ToolSet,
   RUNTIME_CONTEXT extends Context,
-  SENSITIVE_RUNTIME_CONTEXT extends SensitiveContext<RUNTIME_CONTEXT>,
 >({
   step,
   sensitiveRuntimeContext,
 }: {
   step: StepResult<TOOLS, RUNTIME_CONTEXT>;
-  sensitiveRuntimeContext: SENSITIVE_RUNTIME_CONTEXT;
+  sensitiveRuntimeContext: SensitiveContext<RUNTIME_CONTEXT>;
 }) {
   return new DefaultStepResult({
     callId: step.callId,
@@ -65,14 +64,13 @@ function restrictStepResult<
 export function createRestrictedTelemetryDispatcher<
   TOOLS extends ToolSet,
   RUNTIME_CONTEXT extends Context,
-  SENSITIVE_RUNTIME_CONTEXT extends SensitiveContext<RUNTIME_CONTEXT>,
   OUTPUT extends Output,
 >({
   telemetry,
   sensitiveRuntimeContext,
 }: {
   telemetry?: TelemetryOptions;
-  sensitiveRuntimeContext: SENSITIVE_RUNTIME_CONTEXT;
+  sensitiveRuntimeContext: SensitiveContext<RUNTIME_CONTEXT>;
 }): RestrictedTelemetryDispatcher<TOOLS, RUNTIME_CONTEXT, OUTPUT> {
   const telemetryDispatcher = createTelemetryDispatcher({ telemetry });
 
