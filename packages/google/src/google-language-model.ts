@@ -972,7 +972,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
                   groundingMetadata: lastGroundingMetadata,
                   urlContextMetadata: lastUrlContextMetadata,
                   safetyRatings: candidate.safetyRatings ?? null,
-                  usageMetadata: usageMetadata ?? null,
+                  usageMetadata: usage ?? null,
                   finishMessage: candidate.finishMessage ?? null,
                   serviceTier,
                 } satisfies GoogleProviderMetadata,
