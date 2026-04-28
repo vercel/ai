@@ -3,7 +3,7 @@ import { StreamTextResult } from 'ai';
 export async function printFullStream({
   result,
 }: {
-  result: StreamTextResult<any, any>;
+  result: StreamTextResult<any, any, any>;
 }) {
   for await (const chunk of result.fullStream) {
     switch (chunk.type) {

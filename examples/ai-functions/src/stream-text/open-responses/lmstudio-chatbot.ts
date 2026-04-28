@@ -1,5 +1,5 @@
 import { createOpenResponses } from '@ai-sdk/open-responses';
-import { stepCountIs, ModelMessage, streamText, APICallError } from 'ai';
+import { isStepCount, ModelMessage, streamText, APICallError } from 'ai';
 import * as readline from 'node:readline/promises';
 import { run } from '../../lib/run';
 import { weatherTool } from '../../tools/weather-tool';
@@ -26,7 +26,7 @@ run(async () => {
       model: lmstudio('zai-org/glm-4.7-flash'),
       tools: { weather: weatherTool },
       system: `You are a helpful, respectful and honest assistant.`,
-      stopWhen: stepCountIs(5),
+      stopWhen: isStepCount(5),
       messages,
       onError: ({ error }) => {
         console.log('onError');

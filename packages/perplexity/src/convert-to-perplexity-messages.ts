@@ -1,15 +1,18 @@
 import {
-  LanguageModelV3Prompt,
+  LanguageModelV4Prompt,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
   PerplexityMessageContent,
   PerplexityPrompt,
 } from './perplexity-language-model-prompt';
-import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
+import {
+  convertUint8ArrayToBase64,
+  isProviderReference,
+} from '@ai-sdk/provider-utils';
 
 export function convertToPerplexityMessages(
-  prompt: LanguageModelV3Prompt,
+  prompt: LanguageModelV4Prompt,
 ): PerplexityPrompt {
   const messages: PerplexityPrompt = [];
 
@@ -38,6 +41,12 @@ export function convertToPerplexityMessages(
                 };
               }
               case 'file': {
+                if (isProviderReference(part.data)) {
+                  throw new UnsupportedFunctionalityError({
+                    functionality: 'file parts with provider references',
+                  });
+                }
+
                 if (part.mediaType === 'application/pdf') {
                   return part.data instanceof URL
                     ? {

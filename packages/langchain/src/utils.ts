@@ -1021,7 +1021,10 @@ export function processLangGraphEvent(
       if (!msgId) return;
 
       /**
-       * Track LangGraph step changes and emit start-step/finish-step events
+       * Track LangGraph step changes and emit start-step/finish-step events.
+       * Before emitting finish-step, close any open text/reasoning parts so
+       * the client does not receive orphaned deltas after its
+       * activeReasoningParts / activeTextParts have been cleared.
        */
       const langgraphStep =
         typeof metadata?.langgraph_step === 'number'
@@ -1029,6 +1032,17 @@ export function processLangGraphEvent(
           : null;
       if (langgraphStep !== null && langgraphStep !== state.currentStep) {
         if (state.currentStep !== null) {
+          for (const [id, seen] of Object.entries(messageSeen)) {
+            if (seen.text) {
+              controller.enqueue({ type: 'text-end', id });
+            }
+            if (seen.reasoning) {
+              controller.enqueue({ type: 'reasoning-end', id });
+            }
+            delete messageSeen[id];
+            delete messageConcat[id];
+            delete messageReasoningIds[id];
+          }
           controller.enqueue({ type: 'finish-step' });
         }
         controller.enqueue({ type: 'start-step' });

@@ -1,4 +1,4 @@
-import type { GoogleGenerativeAIProviderMetadata } from '@ai-sdk/google';
+import type { GoogleProviderMetadata } from '@ai-sdk/google';
 import type {
   EmbeddingModelV3,
   EmbeddingModelV4,
@@ -14,7 +14,7 @@ import {
   generateImage,
   generateText,
   Output,
-  stepCountIs,
+  isStepCount,
   streamText,
 } from 'ai';
 import fs from 'fs';
@@ -749,7 +749,7 @@ export function createFeatureTestSuite({
                       },
                     },
                   },
-                  stopWhen: stepCountIs(10),
+                  stopWhen: isStepCount(10),
                 });
 
                 expect(weatherCalls).toBe(1);
@@ -968,7 +968,7 @@ export function createFeatureTestSuite({
                 expect(result.usage?.totalTokens).toBeGreaterThan(0);
 
                 const metadata = result.providerMetadata?.google as
-                  | GoogleGenerativeAIProviderMetadata
+                  | GoogleProviderMetadata
                   | undefined;
                 verifyGroundingMetadata(metadata?.groundingMetadata);
               });
@@ -985,7 +985,7 @@ export function createFeatureTestSuite({
                 }
 
                 const metadata = (await result.providerMetadata)?.google as
-                  | GoogleGenerativeAIProviderMetadata
+                  | GoogleProviderMetadata
                   | undefined;
 
                 const completeText = chunks.join('');
@@ -1003,7 +1003,7 @@ export function createFeatureTestSuite({
                 });
 
                 const metadata = result.providerMetadata?.google as
-                  | GoogleGenerativeAIProviderMetadata
+                  | GoogleProviderMetadata
                   | undefined;
                 verifySafetyRatings(metadata?.safetyRatings ?? []);
               });
@@ -1019,7 +1019,7 @@ export function createFeatureTestSuite({
                 }
 
                 const metadata = (await result.providerMetadata)?.google as
-                  | GoogleGenerativeAIProviderMetadata
+                  | GoogleProviderMetadata
                   | undefined;
 
                 verifySafetyRatings(metadata?.safetyRatings ?? []);

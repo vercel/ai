@@ -280,7 +280,7 @@ const result = await generateText({
 
 <Note type="warning">
   Only a few providers and models currently support file parts: [Google
-  Generative AI](/providers/ai-sdk-providers/google-generative-ai), [Google
+  Generative AI](/providers/ai-sdk-providers/google), [Google
   Vertex AI](/providers/ai-sdk-providers/google-vertex),
   [OpenAI](/providers/ai-sdk-providers/openai) (for `wav` and `mp3` audio with
   `gpt-4o-audio-preview`), [Anthropic](/providers/ai-sdk-providers/anthropic),
@@ -581,7 +581,7 @@ const result = await generateText({
                 text: 'Here is the nutrition data for the cheese:',
               },
               {
-                type: 'image-data',
+                type: 'file-data',
                 data: fs
                   .readFileSync('./data/roquefort-nutrition-data.png')
                   .toString('base64'),

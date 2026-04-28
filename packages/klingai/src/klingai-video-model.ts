@@ -1,8 +1,8 @@
 import {
   AISDKError,
-  type Experimental_VideoModelV3,
+  type Experimental_VideoModelV4,
   NoSuchModelError,
-  type SharedV3Warning,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -188,14 +188,16 @@ export type KlingAIVideoModelOptions = {
     duration: string;
   }> | null;
 
-  // --- v3.0 element control (I2V only) ---
+  // --- v3.0 element control (I2V and Motion Control) ---
 
   /**
-   * Reference elements for element control (Kling v3.0+ I2V).
+   * Reference elements for element control (Kling v3.0+).
    * Supports video character elements and multi-image elements.
-   * Up to 3 reference elements.
    *
-   * Cannot coexist with voiceList on the I2V endpoint.
+   * - I2V: Up to 3 reference elements. Cannot coexist with voiceList.
+   * - Motion Control: Currently only 1 element supported.
+   *   When referencing an element, the generated video can only
+   *   refer to the orientation of the person in the video.
    */
   elementList?: Array<{
     element_id: number;
@@ -215,6 +217,13 @@ export type KlingAIVideoModelOptions = {
   voiceList?: Array<{
     voice_id: string;
   }> | null;
+
+  // --- Shared options ---
+
+  /**
+   * Whether to generate watermarked results simultaneously.
+   */
+  watermarkEnabled?: boolean | null;
 
   // --- Motion-control-specific options ---
 
@@ -242,11 +251,6 @@ export type KlingAIVideoModelOptions = {
    * Default: `'yes'`.
    */
   keepOriginalSound?: 'yes' | 'no' | null;
-
-  /**
-   * Whether to generate watermarked results simultaneously.
-   */
-  watermarkEnabled?: boolean | null;
 
   [key: string]: unknown; // For passthrough
 };
@@ -368,8 +372,8 @@ interface KlingAIVideoModelConfig {
   };
 }
 
-export class KlingAIVideoModel implements Experimental_VideoModelV3 {
-  readonly specificationVersion = 'v3';
+export class KlingAIVideoModel implements Experimental_VideoModelV4 {
+  readonly specificationVersion = 'v4';
   readonly maxVideosPerCall = 1;
 
   get provider(): string {
@@ -382,10 +386,10 @@ export class KlingAIVideoModel implements Experimental_VideoModelV3 {
   ) {}
 
   async doGenerate(
-    options: Parameters<Experimental_VideoModelV3['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<Experimental_VideoModelV3['doGenerate']>>> {
+    options: Parameters<Experimental_VideoModelV4['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<Experimental_VideoModelV4['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
-    const warnings: SharedV3Warning[] = [];
+    const warnings: SharedV4Warning[] = [];
     const mode = detectMode(this.modelId);
 
     const klingaiOptions = (await parseProviderOptions({
@@ -573,9 +577,9 @@ export class KlingAIVideoModel implements Experimental_VideoModelV3 {
   }
 
   private buildT2VBody(
-    options: Parameters<Experimental_VideoModelV3['doGenerate']>[0],
+    options: Parameters<Experimental_VideoModelV4['doGenerate']>[0],
     klingaiOptions: KlingAIVideoModelOptions | undefined,
-    warnings: SharedV3Warning[],
+    warnings: SharedV4Warning[],
   ): Record<string, unknown> {
     const mode = 't2v' as const;
     const body: Record<string, unknown> = {
@@ -634,6 +638,10 @@ export class KlingAIVideoModel implements Experimental_VideoModelV3 {
       body.voice_list = klingaiOptions.voiceList;
     }
 
+    if (klingaiOptions?.watermarkEnabled != null) {
+      body.watermark_info = { enabled: klingaiOptions.watermarkEnabled };
+    }
+
     // Image is not supported for T2V
     if (options.image != null) {
       warnings.push({
@@ -650,9 +658,9 @@ export class KlingAIVideoModel implements Experimental_VideoModelV3 {
   }
 
   private buildI2VBody(
-    options: Parameters<Experimental_VideoModelV3['doGenerate']>[0],
+    options: Parameters<Experimental_VideoModelV4['doGenerate']>[0],
     klingaiOptions: KlingAIVideoModelOptions | undefined,
-    warnings: SharedV3Warning[],
+    warnings: SharedV4Warning[],
   ): Record<string, unknown> {
     const mode = 'i2v' as const;
     const body: Record<string, unknown> = {
@@ -731,6 +739,10 @@ export class KlingAIVideoModel implements Experimental_VideoModelV3 {
       body.voice_list = klingaiOptions.voiceList;
     }
 
+    if (klingaiOptions?.watermarkEnabled != null) {
+      body.watermark_info = { enabled: klingaiOptions.watermarkEnabled };
+    }
+
     // Map standard SDK duration (number → string)
     if (options.duration != null) {
       body.duration = String(options.duration);
@@ -753,9 +765,9 @@ export class KlingAIVideoModel implements Experimental_VideoModelV3 {
   }
 
   private buildMotionControlBody(
-    options: Parameters<Experimental_VideoModelV3['doGenerate']>[0],
+    options: Parameters<Experimental_VideoModelV4['doGenerate']>[0],
     klingaiOptions: KlingAIVideoModelOptions | undefined,
-    warnings: SharedV3Warning[],
+    warnings: SharedV4Warning[],
   ): Record<string, unknown> {
     if (
       !klingaiOptions?.videoUrl ||
@@ -769,7 +781,9 @@ export class KlingAIVideoModel implements Experimental_VideoModelV3 {
       });
     }
 
+    const mode = 'motion-control' as const;
     const body: Record<string, unknown> = {
+      model_name: getApiModelName(this.modelId, mode),
       video_url: klingaiOptions.videoUrl,
       character_orientation: klingaiOptions.characterOrientation,
       mode: klingaiOptions.mode,
@@ -797,6 +811,11 @@ export class KlingAIVideoModel implements Experimental_VideoModelV3 {
 
     if (klingaiOptions.watermarkEnabled != null) {
       body.watermark_info = { enabled: klingaiOptions.watermarkEnabled };
+    }
+
+    // v3.0 element control
+    if (klingaiOptions.elementList != null) {
+      body.element_list = klingaiOptions.elementList;
     }
 
     // Warn about unsupported standard options for motion control

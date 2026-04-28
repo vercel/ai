@@ -33,18 +33,22 @@ In Next.js applications, use one of the OpenInference span processors with `regi
 First, install the required dependencies for the AI SDK, OpenTelemetry and OpenInference.
 
 ```bash
-npm install ai @ai-sdk/openai @vercel/otel @arizeai/openinference-vercel @opentelemetry/exporter-trace-otlp-proto
+npm install ai @ai-sdk/openai @ai-sdk/otel @vercel/otel @arizeai/openinference-vercel @opentelemetry/exporter-trace-otlp-proto
 ```
 
-Then, in your `instrumentation.ts` file add the following:
+Then, in your `instrumentation.ts` file add the following, including the AI SDK telemetry integration registration:
 
-```typescript
+```typescript filename="instrumentation"
+import { registerTelemetry } from 'ai';
+import { OpenTelemetry } from '@ai-sdk/otel';
 import { registerOTel } from '@vercel/otel';
 import {
   isOpenInferenceSpan,
   OpenInferenceSimpleSpanProcessor,
 } from '@arizeai/openinference-vercel';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-proto';
+
+registerTelemetry(new OpenTelemetry());
 
 export function register() {
   registerOTel({
@@ -71,15 +75,15 @@ export function register() {
 
 Spans will show up in Arize AX under the project specified in the `model_id` field above.
 
-You must set the `experimental_telemetry` flag to true in all calls using the AI SDK.
+Once the integration is registered, telemetry is emitted automatically for all AI SDK calls:
 
 ```typescript
+import { generateText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
 const result = await generateText({
   model: openai('gpt-5-mini'),
   prompt: 'Please write a haiku.',
-  experimental_telemetry: {
-    isEnabled: true,
-  },
 });
 ```
 
@@ -92,12 +96,14 @@ In Node.js you can use the `NodeSDK` or the `NodeTraceProvider`.
 First, install the required dependencies for the AI SDK, OpenTelemetry and OpenInference.
 
 ```bash
-npm install ai @ai-sdk/openai @opentelemetry/sdk-node @arizeai/openinference-vercel @opentelemetry/exporter-trace-otlp-proto @opentelemetry/resources
+npm install ai @ai-sdk/openai @ai-sdk/otel @opentelemetry/sdk-node @arizeai/openinference-vercel @opentelemetry/exporter-trace-otlp-proto @opentelemetry/resources
 ```
 
 Then, in your instrumentation.ts file add the following:
 
 ```typescript
+import { registerTelemetry } from 'ai';
+import { OpenTelemetry } from '@ai-sdk/otel';
 import {
   isOpenInferenceSpan,
   OpenInferenceSimpleSpanProcessor,
@@ -126,19 +132,17 @@ const sdk = new NodeSDK({
 });
 
 sdk.start();
+registerTelemetry(new OpenTelemetry());
 ```
 
 Spans will show up in Arize AX under the project specified in the `model_id` field above.
 
-You must set the `experimental_telemetry` flag to true in all calls using the AI SDK.
+Once the integration is registered, telemetry is emitted automatically for all AI SDK calls:
 
 ```typescript
 const result = await generateText({
   model: openai('gpt-5-mini'),
   prompt: 'Please write a haiku.',
-  experimental_telemetry: {
-    isEnabled: true,
-  },
 });
 ```
 
@@ -147,12 +151,14 @@ const result = await generateText({
 First, install the required dependencies for the AI SDK, OpenTelemetry and OpenInference.
 
 ```bash
-npm install ai @ai-sdk/openai @opentelemetry/sdk-trace-node @arizeai/openinference-vercel @opentelemetry/exporter-trace-otlp-proto @opentelemetry/resources
+npm install ai @ai-sdk/openai @ai-sdk/otel @opentelemetry/sdk-trace-node @arizeai/openinference-vercel @opentelemetry/exporter-trace-otlp-proto @opentelemetry/resources
 ```
 
 Then, in your instrumentation.ts file add the following:
 
 ```typescript
+import { registerTelemetry } from 'ai';
+import { OpenTelemetry } from '@ai-sdk/otel';
 import {
   isOpenInferenceSpan,
   OpenInferenceSimpleSpanProcessor,
@@ -180,19 +186,17 @@ const provider = new NodeTracerProvider({
   ],
 });
 provider.register();
+registerTelemetry(new OpenTelemetry());
 ```
 
 Spans will show up in Arize AX under the project specified in the `model_id` field above.
 
-You must set the `experimental_telemetry` flag to true in all calls using the AI SDK.
+Once the integration is registered, telemetry is emitted automatically for all AI SDK calls:
 
 ```typescript
 const result = await generateText({
   model: openai('gpt-5-mini'),
   prompt: 'Please write a haiku.',
-  experimental_telemetry: {
-    isEnabled: true,
-  },
 });
 ```
 

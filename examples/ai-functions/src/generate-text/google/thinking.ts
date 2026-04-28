@@ -6,11 +6,11 @@ run(async () => {
   const result = await generateText({
     model: google('gemini-2.5-flash'),
     prompt: 'what is the sum of the first 10 prime numbers?',
+    reasoning: 'medium',
     providerOptions: {
       google: {
         thinkingConfig: {
-          thinkingBudget: 2048,
-          // includeThoughts: true,
+          includeThoughts: true,
         },
       } satisfies GoogleLanguageModelOptions,
     },

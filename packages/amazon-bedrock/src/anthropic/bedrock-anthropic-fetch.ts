@@ -3,13 +3,39 @@ import {
   FetchFunction,
   safeParseJSON,
 } from '@ai-sdk/provider-utils';
+import { z } from 'zod/v4';
 import { createBedrockEventStreamDecoder } from '../bedrock-event-stream-decoder';
+
+const bedrockErrorSchema = z.looseObject({
+  message: z.string().optional(),
+});
 
 export function createBedrockAnthropicFetch(
   baseFetch: FetchFunction,
 ): FetchFunction {
   return async (url, options) => {
     const response = await baseFetch(url, options);
+
+    // Transform Bedrock error responses into Anthropic error format
+    // so that anthropicFailedResponseHandler can extract the message.
+    if (!response.ok) {
+      const text = await response.text();
+      const parsed = await safeParseJSON({ text, schema: bedrockErrorSchema });
+
+      const message =
+        parsed.success && parsed.value.message ? parsed.value.message : text;
+
+      const anthropicError = JSON.stringify({
+        type: 'error',
+        error: { type: 'error', message },
+      });
+
+      return new Response(anthropicError, {
+        status: response.status,
+        statusText: response.statusText,
+        headers: response.headers,
+      });
+    }
 
     const contentType = response.headers.get('content-type');
     if (

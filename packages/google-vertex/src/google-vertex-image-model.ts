@@ -1,10 +1,10 @@
 import type { GoogleLanguageModelOptions } from '@ai-sdk/google';
-import { GoogleGenerativeAILanguageModel } from '@ai-sdk/google/internal';
+import { GoogleLanguageModel } from '@ai-sdk/google/internal';
 import {
-  ImageModelV3,
-  ImageModelV3File,
-  LanguageModelV3Prompt,
-  SharedV3Warning,
+  ImageModelV4,
+  ImageModelV4File,
+  LanguageModelV4Prompt,
+  SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   Resolvable,
@@ -16,6 +16,9 @@ import {
   parseProviderOptions,
   postJsonToApi,
   resolve,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { googleVertexFailedResponseHandler } from './google-vertex-error';
@@ -33,8 +36,22 @@ interface GoogleVertexImageModelConfig {
 }
 
 // https://cloud.google.com/vertex-ai/generative-ai/docs/image/generate-images
-export class GoogleVertexImageModel implements ImageModelV3 {
-  readonly specificationVersion = 'v3';
+export class GoogleVertexImageModel implements ImageModelV4 {
+  readonly specificationVersion = 'v4';
+
+  static [WORKFLOW_SERIALIZE](model: GoogleVertexImageModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: string;
+    config: GoogleVertexImageModelConfig;
+  }) {
+    return new GoogleVertexImageModel(options.modelId, options.config);
+  }
 
   get maxImagesPerCall(): number {
     if (isGeminiModel(this.modelId)) {
@@ -53,8 +70,8 @@ export class GoogleVertexImageModel implements ImageModelV3 {
   ) {}
 
   async doGenerate(
-    options: Parameters<ImageModelV3['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<ImageModelV3['doGenerate']>>> {
+    options: Parameters<ImageModelV4['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<ImageModelV4['doGenerate']>>> {
     if (isGeminiModel(this.modelId)) {
       return this.doGenerateGemini(options);
     }
@@ -72,10 +89,10 @@ export class GoogleVertexImageModel implements ImageModelV3 {
     abortSignal,
     files,
     mask,
-  }: Parameters<ImageModelV3['doGenerate']>[0]): Promise<
-    Awaited<ReturnType<ImageModelV3['doGenerate']>>
+  }: Parameters<ImageModelV4['doGenerate']>[0]): Promise<
+    Awaited<ReturnType<ImageModelV4['doGenerate']>>
   > {
-    const warnings: Array<SharedV3Warning> = [];
+    const warnings: Array<SharedV4Warning> = [];
 
     if (size != null) {
       warnings.push({
@@ -164,7 +181,10 @@ export class GoogleVertexImageModel implements ImageModelV3 {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { value: response, responseHeaders } = await postJsonToApi({
       url: `${this.config.baseURL}/models/${this.modelId}:predict`,
-      headers: combineHeaders(await resolve(this.config.headers), headers),
+      headers: combineHeaders(
+        this.config.headers ? await resolve(this.config.headers) : undefined,
+        headers,
+      ),
       body,
       failedResponseHandler: googleVertexFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -212,10 +232,10 @@ export class GoogleVertexImageModel implements ImageModelV3 {
     abortSignal,
     files,
     mask,
-  }: Parameters<ImageModelV3['doGenerate']>[0]): Promise<
-    Awaited<ReturnType<ImageModelV3['doGenerate']>>
+  }: Parameters<ImageModelV4['doGenerate']>[0]): Promise<
+    Awaited<ReturnType<ImageModelV4['doGenerate']>>
   > {
-    const warnings: Array<SharedV3Warning> = [];
+    const warnings: Array<SharedV4Warning> = [];
 
     if (mask != null) {
       throw new Error(
@@ -268,11 +288,11 @@ export class GoogleVertexImageModel implements ImageModelV3 {
       }
     }
 
-    const languageModelPrompt: LanguageModelV3Prompt = [
+    const languageModelPrompt: LanguageModelV4Prompt = [
       { role: 'user', content: userContent },
     ];
 
-    const languageModel = new GoogleGenerativeAILanguageModel(this.modelId, {
+    const languageModel = new GoogleLanguageModel(this.modelId, {
       provider: this.config.provider,
       baseURL: this.config.baseURL,
       headers: this.config.headers ?? {},
@@ -433,9 +453,9 @@ export type GoogleVertexImageModelOptions = z.infer<
 >;
 
 /**
- * Helper to convert ImageModelV3File data to base64 string
+ * Helper to convert ImageModelV4File data to base64 string
  */
-function getBase64Data(file: ImageModelV3File): string {
+function getBase64Data(file: ImageModelV4File): string {
   if (file.type === 'url') {
     throw new Error(
       'URL-based images are not supported for Google Vertex image editing. Please provide the image data directly.',

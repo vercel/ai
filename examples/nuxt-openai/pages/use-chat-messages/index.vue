@@ -5,8 +5,16 @@ import { createIdGenerator } from 'ai';
 import { computed, ref } from 'vue';
 
 const messages = ref<UIMessage[]>([
-  { id: 'message-0', role: 'user', parts: [{ type: 'text', text: 'Greetings.' }] },
-  { id: 'message-1', role: 'assistant', parts: [{ type: 'text', text: 'Hello.' }] },
+  {
+    id: 'message-0',
+    role: 'user',
+    parts: [{ type: 'text', text: 'Greetings.' }],
+  },
+  {
+    id: 'message-1',
+    role: 'assistant',
+    parts: [{ type: 'text', text: 'Hello.' }],
+  },
 ]);
 
 const chat = new Chat({

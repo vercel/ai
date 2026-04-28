@@ -1,46 +1,53 @@
 import { createBedrockAnthropic } from './bedrock-anthropic-provider';
 import { NoSuchModelError } from '@ai-sdk/provider';
 import {
-  AnthropicMessagesLanguageModel,
+  AnthropicLanguageModel,
   anthropicTools,
 } from '@ai-sdk/anthropic/internal';
 import { vi, describe, beforeEach, it, expect } from 'vitest';
 
-vi.mock('@ai-sdk/provider-utils', () => ({
-  loadOptionalSetting: vi.fn().mockImplementation(({ settingValue }) => {
-    // Return undefined for API key to test SigV4 flow
-    if (settingValue === undefined) return undefined;
-    return settingValue;
-  }),
-  loadSetting: vi.fn().mockImplementation(({ settingValue, settingName }) => {
-    if (settingValue) return settingValue;
-    // Return mock values for required settings
-    if (settingName === 'region') return 'us-east-1';
-    if (settingName === 'accessKeyId') return 'mock-access-key';
-    if (settingName === 'secretAccessKey') return 'mock-secret-key';
-    return settingValue;
-  }),
-  withoutTrailingSlash: vi.fn().mockImplementation(url => url),
-  withUserAgentSuffix: vi.fn().mockImplementation((headers, suffix) => ({
-    ...headers,
-    'user-agent': suffix,
-  })),
-  resolve: vi.fn().mockImplementation(async value => {
-    if (typeof value === 'function') return value();
-    return value;
-  }),
-  createJsonErrorResponseHandler: vi.fn(),
-  createProviderToolFactory: vi.fn(),
-  createProviderToolFactoryWithOutputSchema: vi.fn(),
-  lazySchema: vi.fn(),
-  zodSchema: vi.fn(),
-}));
+vi.mock('@ai-sdk/provider-utils', async () => {
+  const actual = await vi.importActual('@ai-sdk/provider-utils');
+  return {
+    WORKFLOW_SERIALIZE: (actual as any).WORKFLOW_SERIALIZE,
+    WORKFLOW_DESERIALIZE: (actual as any).WORKFLOW_DESERIALIZE,
+    serializeModelOptions: (actual as any).serializeModelOptions,
+    loadOptionalSetting: vi.fn().mockImplementation(({ settingValue }) => {
+      // Return undefined for API key to test SigV4 flow
+      if (settingValue === undefined) return undefined;
+      return settingValue;
+    }),
+    loadSetting: vi.fn().mockImplementation(({ settingValue, settingName }) => {
+      if (settingValue) return settingValue;
+      // Return mock values for required settings
+      if (settingName === 'region') return 'us-east-1';
+      if (settingName === 'accessKeyId') return 'mock-access-key';
+      if (settingName === 'secretAccessKey') return 'mock-secret-key';
+      return settingValue;
+    }),
+    withoutTrailingSlash: vi.fn().mockImplementation(url => url),
+    withUserAgentSuffix: vi.fn().mockImplementation((headers, suffix) => ({
+      ...headers,
+      'user-agent': suffix,
+    })),
+    resolve: vi.fn().mockImplementation(async value => {
+      if (typeof value === 'function') return value();
+      return value;
+    }),
+    createJsonErrorResponseHandler: vi.fn(),
+    createProviderDefinedToolFactory: vi.fn(),
+    createProviderDefinedToolFactoryWithOutputSchema: vi.fn(),
+    createProviderExecutedToolFactory: vi.fn(),
+    lazySchema: vi.fn(),
+    zodSchema: vi.fn(),
+  };
+});
 
 vi.mock('@ai-sdk/anthropic/internal', async () => {
   const originalModule = await vi.importActual('@ai-sdk/anthropic/internal');
   return {
     ...originalModule,
-    AnthropicMessagesLanguageModel: vi.fn(),
+    AnthropicLanguageModel: vi.fn(),
   };
 });
 
@@ -62,7 +69,7 @@ describe('bedrock-anthropic-provider', () => {
     });
     provider('anthropic.claude-3-5-sonnet-20241022-v2:0');
 
-    expect(AnthropicMessagesLanguageModel).toHaveBeenCalledWith(
+    expect(AnthropicLanguageModel).toHaveBeenCalledWith(
       'anthropic.claude-3-5-sonnet-20241022-v2:0',
       expect.objectContaining({
         baseURL: expect.stringContaining('bedrock-runtime'),
@@ -98,7 +105,7 @@ describe('bedrock-anthropic-provider', () => {
     });
     provider('test-model-id');
 
-    expect(AnthropicMessagesLanguageModel).toHaveBeenCalledWith(
+    expect(AnthropicLanguageModel).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
         baseURL: customBaseURL,
@@ -150,15 +157,16 @@ describe('bedrock-anthropic-provider', () => {
     });
     provider('test-model-id');
 
-    expect(AnthropicMessagesLanguageModel).toHaveBeenCalledWith(
+    expect(AnthropicLanguageModel).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
         headers: expect.any(Function),
       }),
     );
 
-    const constructorCall = vi.mocked(AnthropicMessagesLanguageModel).mock
-      .calls[vi.mocked(AnthropicMessagesLanguageModel).mock.calls.length - 1];
+    const constructorCall = vi.mocked(AnthropicLanguageModel).mock.calls[
+      vi.mocked(AnthropicLanguageModel).mock.calls.length - 1
+    ];
     const config = constructorCall[1];
 
     expect(config.headers).toEqual(expect.any(Function));
@@ -175,8 +183,9 @@ describe('bedrock-anthropic-provider', () => {
     });
     provider('anthropic.claude-3-sonnet-20240229-v1:0');
 
-    const constructorCall = vi.mocked(AnthropicMessagesLanguageModel).mock
-      .calls[vi.mocked(AnthropicMessagesLanguageModel).mock.calls.length - 1];
+    const constructorCall = vi.mocked(AnthropicLanguageModel).mock.calls[
+      vi.mocked(AnthropicLanguageModel).mock.calls.length - 1
+    ];
     const config = constructorCall[1];
 
     const url = config.buildRequestUrl?.(
@@ -196,8 +205,9 @@ describe('bedrock-anthropic-provider', () => {
     });
     provider('anthropic.claude-3-sonnet-20240229-v1:0');
 
-    const constructorCall = vi.mocked(AnthropicMessagesLanguageModel).mock
-      .calls[vi.mocked(AnthropicMessagesLanguageModel).mock.calls.length - 1];
+    const constructorCall = vi.mocked(AnthropicLanguageModel).mock.calls[
+      vi.mocked(AnthropicLanguageModel).mock.calls.length - 1
+    ];
     const config = constructorCall[1];
 
     const url = config.buildRequestUrl?.(
@@ -217,8 +227,9 @@ describe('bedrock-anthropic-provider', () => {
     });
     provider('test-model-id');
 
-    const constructorCall = vi.mocked(AnthropicMessagesLanguageModel).mock
-      .calls[vi.mocked(AnthropicMessagesLanguageModel).mock.calls.length - 1];
+    const constructorCall = vi.mocked(AnthropicLanguageModel).mock.calls[
+      vi.mocked(AnthropicLanguageModel).mock.calls.length - 1
+    ];
     const config = constructorCall[1];
 
     const transformedBody = config.transformRequestBody?.(
@@ -246,8 +257,9 @@ describe('bedrock-anthropic-provider', () => {
     });
     provider('test-model-id');
 
-    const constructorCall = vi.mocked(AnthropicMessagesLanguageModel).mock
-      .calls[vi.mocked(AnthropicMessagesLanguageModel).mock.calls.length - 1];
+    const constructorCall = vi.mocked(AnthropicLanguageModel).mock.calls[
+      vi.mocked(AnthropicLanguageModel).mock.calls.length - 1
+    ];
     const config = constructorCall[1];
 
     const transformedBody = config.transformRequestBody?.(
@@ -272,8 +284,9 @@ describe('bedrock-anthropic-provider', () => {
     });
     provider('test-model-id');
 
-    const constructorCall = vi.mocked(AnthropicMessagesLanguageModel).mock
-      .calls[vi.mocked(AnthropicMessagesLanguageModel).mock.calls.length - 1];
+    const constructorCall = vi.mocked(AnthropicLanguageModel).mock.calls[
+      vi.mocked(AnthropicLanguageModel).mock.calls.length - 1
+    ];
     const config = constructorCall[1];
 
     const transformedBody = config.transformRequestBody?.(
@@ -303,8 +316,9 @@ describe('bedrock-anthropic-provider', () => {
     });
     provider('test-model-id');
 
-    const constructorCall = vi.mocked(AnthropicMessagesLanguageModel).mock
-      .calls[vi.mocked(AnthropicMessagesLanguageModel).mock.calls.length - 1];
+    const constructorCall = vi.mocked(AnthropicLanguageModel).mock.calls[
+      vi.mocked(AnthropicLanguageModel).mock.calls.length - 1
+    ];
     const config = constructorCall[1];
 
     const transformedBody = config.transformRequestBody?.(
@@ -335,8 +349,9 @@ describe('bedrock-anthropic-provider', () => {
     });
     provider('test-model-id');
 
-    const constructorCall = vi.mocked(AnthropicMessagesLanguageModel).mock
-      .calls[vi.mocked(AnthropicMessagesLanguageModel).mock.calls.length - 1];
+    const constructorCall = vi.mocked(AnthropicLanguageModel).mock.calls[
+      vi.mocked(AnthropicLanguageModel).mock.calls.length - 1
+    ];
     const config = constructorCall[1];
 
     const transformedBody = config.transformRequestBody?.(
@@ -368,8 +383,9 @@ describe('bedrock-anthropic-provider', () => {
     });
     provider('test-model-id');
 
-    const constructorCall = vi.mocked(AnthropicMessagesLanguageModel).mock
-      .calls[vi.mocked(AnthropicMessagesLanguageModel).mock.calls.length - 1];
+    const constructorCall = vi.mocked(AnthropicLanguageModel).mock.calls[
+      vi.mocked(AnthropicLanguageModel).mock.calls.length - 1
+    ];
     const config = constructorCall[1];
 
     const transformedBody = config.transformRequestBody?.(
@@ -395,8 +411,9 @@ describe('bedrock-anthropic-provider', () => {
     });
     provider('test-model-id');
 
-    const constructorCall = vi.mocked(AnthropicMessagesLanguageModel).mock
-      .calls[vi.mocked(AnthropicMessagesLanguageModel).mock.calls.length - 1];
+    const constructorCall = vi.mocked(AnthropicLanguageModel).mock.calls[
+      vi.mocked(AnthropicLanguageModel).mock.calls.length - 1
+    ];
     const config = constructorCall[1];
 
     const transformedBody = config.transformRequestBody?.(
@@ -423,8 +440,9 @@ describe('bedrock-anthropic-provider', () => {
     });
     provider('test-model-id');
 
-    const constructorCall = vi.mocked(AnthropicMessagesLanguageModel).mock
-      .calls[vi.mocked(AnthropicMessagesLanguageModel).mock.calls.length - 1];
+    const constructorCall = vi.mocked(AnthropicLanguageModel).mock.calls[
+      vi.mocked(AnthropicLanguageModel).mock.calls.length - 1
+    ];
     const config = constructorCall[1];
 
     const transformedBody = config.transformRequestBody?.(
@@ -454,8 +472,9 @@ describe('bedrock-anthropic-provider', () => {
     });
     provider('test-model-id');
 
-    const constructorCall = vi.mocked(AnthropicMessagesLanguageModel).mock
-      .calls[vi.mocked(AnthropicMessagesLanguageModel).mock.calls.length - 1];
+    const constructorCall = vi.mocked(AnthropicLanguageModel).mock.calls[
+      vi.mocked(AnthropicLanguageModel).mock.calls.length - 1
+    ];
     const config = constructorCall[1];
 
     expect(config.supportedUrls?.()).toEqual({});
@@ -468,7 +487,7 @@ describe('bedrock-anthropic-provider', () => {
       secretAccessKey: 'test-secret',
     });
 
-    expect(provider.specificationVersion).toBe('v3');
+    expect(provider.specificationVersion).toBe('v4');
   });
 
   it('should provide languageModel as alias', () => {
@@ -482,6 +501,37 @@ describe('bedrock-anthropic-provider', () => {
     expect(typeof provider.languageModel).toBe('function');
   });
 
+  it('should add tool-search-tool beta when tool search tools are present', () => {
+    const provider = createBedrockAnthropic({
+      region: 'us-east-1',
+      accessKeyId: 'test-key',
+      secretAccessKey: 'test-secret',
+    });
+    provider('test-model-id');
+
+    const constructorCall = vi.mocked(AnthropicLanguageModel).mock.calls[
+      vi.mocked(AnthropicLanguageModel).mock.calls.length - 1
+    ];
+    const config = constructorCall[1];
+
+    const transformedBody = config.transformRequestBody?.(
+      {
+        model: 'test-model-id',
+        messages: [{ role: 'user', content: 'Hello' }],
+        max_tokens: 1024,
+        tools: [
+          { type: 'tool_search_tool_regex_20251119', name: 'tool_search' },
+          { type: 'tool_search_tool_bm25_20251119', name: 'tool_search_bm25' },
+        ],
+      },
+      new Set(),
+    );
+
+    expect(transformedBody?.anthropic_beta).toContain(
+      'tool-search-tool-2025-10-19',
+    );
+  });
+
   it('should handle models with us. prefix for inference profiles', () => {
     const provider = createBedrockAnthropic({
       region: 'us-east-1',
@@ -490,8 +540,9 @@ describe('bedrock-anthropic-provider', () => {
     });
     provider('us.anthropic.claude-3-5-sonnet-20240620-v1:0');
 
-    const constructorCall = vi.mocked(AnthropicMessagesLanguageModel).mock
-      .calls[vi.mocked(AnthropicMessagesLanguageModel).mock.calls.length - 1];
+    const constructorCall = vi.mocked(AnthropicLanguageModel).mock.calls[
+      vi.mocked(AnthropicLanguageModel).mock.calls.length - 1
+    ];
     const config = constructorCall[1];
 
     const url = config.buildRequestUrl?.(

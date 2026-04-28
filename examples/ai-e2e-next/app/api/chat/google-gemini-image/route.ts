@@ -1,4 +1,4 @@
-import { google, type GoogleLanguageModelOptions } from '@ai-sdk/google';
+import { google } from '@ai-sdk/google';
 import { streamText, convertToModelMessages } from 'ai';
 
 export const maxDuration = 30;
@@ -9,13 +9,11 @@ export async function POST(req: Request) {
   const result = streamText({
     model: google('gemini-3.1-flash-image-preview'),
     messages: await convertToModelMessages(messages),
+    reasoning: 'high',
     providerOptions: {
       google: {
         responseModalities: ['TEXT', 'IMAGE'],
-        thinkingConfig: {
-          thinkingLevel: 'high',
-        },
-      } satisfies GoogleLanguageModelOptions,
+      },
     },
     includeRawChunks: true,
   });

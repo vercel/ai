@@ -1,5 +1,5 @@
 import { anthropic } from '@ai-sdk/anthropic';
-import { generateText, stepCountIs } from 'ai';
+import { generateText, isStepCount } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
@@ -22,7 +22,7 @@ run(async () => {
       }),
     },
     prompt: 'List the files in my home directory.',
-    stopWhen: stepCountIs(2),
+    stopWhen: isStepCount(2),
   });
 
   console.log(result.text);

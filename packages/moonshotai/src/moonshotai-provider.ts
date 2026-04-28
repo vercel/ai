@@ -1,8 +1,8 @@
 import { ProviderErrorStructure } from '@ai-sdk/openai-compatible';
 import {
-  LanguageModelV3,
+  LanguageModelV4,
   NoSuchModelError,
-  ProviderV3,
+  ProviderV4,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -50,21 +50,21 @@ export interface MoonshotAIProviderSettings {
   fetch?: FetchFunction;
 }
 
-export interface MoonshotAIProvider extends ProviderV3 {
+export interface MoonshotAIProvider extends ProviderV4 {
   /**
    * Creates a model for text generation.
    */
-  (modelId: MoonshotAIChatModelId): LanguageModelV3;
+  (modelId: MoonshotAIChatModelId): LanguageModelV4;
 
   /**
    * Creates a chat model for text generation.
    */
-  chatModel(modelId: MoonshotAIChatModelId): LanguageModelV3;
+  chatModel(modelId: MoonshotAIChatModelId): LanguageModelV4;
 
   /**
    * Creates a language model for text generation.
    */
-  languageModel(modelId: MoonshotAIChatModelId): LanguageModelV3;
+  languageModel(modelId: MoonshotAIChatModelId): LanguageModelV4;
 }
 
 const defaultBaseURL = 'https://api.moonshot.ai/v1';
@@ -133,7 +133,7 @@ export function createMoonshotAI(
 
   const provider = (modelId: MoonshotAIChatModelId) => createChatModel(modelId);
 
-  provider.specificationVersion = 'v3' as const;
+  provider.specificationVersion = 'v4' as const;
   provider.chatModel = createChatModel;
   provider.languageModel = createChatModel;
 

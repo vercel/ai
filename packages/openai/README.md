@@ -3,6 +3,8 @@
 The **[OpenAI provider](https://ai-sdk.dev/providers/ai-sdk-providers/openai)** for the [AI SDK](https://ai-sdk.dev/docs)
 contains language model support for the OpenAI chat and completion APIs and embedding model support for the OpenAI embeddings API.
 
+> **Deploying to Vercel?** With Vercel's AI Gateway you can access OpenAI (and hundreds of models from other providers) — no additional packages, API keys, or extra cost. [Get started with AI Gateway](https://vercel.com/ai-gateway).
+
 ## Setup
 
 The OpenAI provider is available in the `@ai-sdk/openai` module. You can install it with

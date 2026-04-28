@@ -312,7 +312,7 @@ describe('LumaImageModel', () => {
 
       expect(model.provider).toBe('luma');
       expect(model.modelId).toBe('test-model');
-      expect(model.specificationVersion).toBe('v3');
+      expect(model.specificationVersion).toBe('v4');
       expect(model.maxImagesPerCall).toBe(1);
     });
   });

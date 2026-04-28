@@ -1,9 +1,6 @@
-import {
-  type AnthropicLanguageModelOptions,
-  anthropic,
-  createAnthropic,
-} from '@ai-sdk/anthropic';
-import { generateText, stepCountIs } from 'ai';
+import { anthropic, createAnthropic } from '@ai-sdk/anthropic';
+import { generateText, isStepCount, registerTelemetry } from 'ai';
+import { OpenTelemetry } from '@ai-sdk/otel';
 import { LangfuseSpanProcessor } from '@langfuse/otel';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { run } from '../../lib/run';
@@ -14,6 +11,7 @@ const sdk = new NodeSDK({
 });
 
 sdk.start();
+registerTelemetry(new OpenTelemetry());
 
 run(async () => {
   const myCustomProvider = createAnthropic({
@@ -22,7 +20,7 @@ run(async () => {
 
   const result = await generateText({
     model: anthropic('claude-sonnet-4-5-20250929'),
-    prompt: 'How many "r"s are in the word "strawberry?',
+    prompt: 'what is the weather in Tokyo?',
     tools: {
       getWeather: {
         description: 'Get the weather for a given city',
@@ -37,20 +35,10 @@ run(async () => {
         },
       },
     },
-    providerOptions: {
-      anthropic: {
-        thinking: { type: 'enabled', budgetTokens: 12000 },
-      } satisfies AnthropicLanguageModelOptions,
-    },
-    stopWhen: stepCountIs(5),
-    experimental_telemetry: {
-      isEnabled: true,
+    reasoning: 'medium',
+    stopWhen: isStepCount(5),
+    telemetry: {
       functionId: 'anthropic-custom-provider-demo',
-      metadata: {
-        environment: 'demo',
-        endpoint_type: 'my-anthropic-proxy',
-        cost_tracking: 'enabled',
-      },
     },
   });
 

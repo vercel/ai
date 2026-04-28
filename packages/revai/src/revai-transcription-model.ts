@@ -1,7 +1,7 @@
 import {
   AISDKError,
-  TranscriptionModelV3,
-  SharedV3Warning,
+  TranscriptionModelV4,
+  SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -12,6 +12,9 @@ import {
   getFromApi,
   parseProviderOptions,
   postFormDataToApi,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { RevaiConfig } from './revai-config';
@@ -220,11 +223,25 @@ interface RevaiTranscriptionModelConfig extends RevaiConfig {
   };
 }
 
-export class RevaiTranscriptionModel implements TranscriptionModelV3 {
-  readonly specificationVersion = 'v3';
+export class RevaiTranscriptionModel implements TranscriptionModelV4 {
+  readonly specificationVersion = 'v4';
 
   get provider(): string {
     return this.config.provider;
+  }
+
+  static [WORKFLOW_SERIALIZE](model: RevaiTranscriptionModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: RevaiTranscriptionModelId;
+    config: RevaiTranscriptionModelConfig;
+  }) {
+    return new RevaiTranscriptionModel(options.modelId, options.config);
   }
 
   constructor(
@@ -236,8 +253,8 @@ export class RevaiTranscriptionModel implements TranscriptionModelV3 {
     audio,
     mediaType,
     providerOptions,
-  }: Parameters<TranscriptionModelV3['doGenerate']>[0]) {
-    const warnings: SharedV3Warning[] = [];
+  }: Parameters<TranscriptionModelV4['doGenerate']>[0]) {
+    const warnings: SharedV4Warning[] = [];
 
     // Parse provider options
     const revaiOptions = await parseProviderOptions({
@@ -314,8 +331,8 @@ export class RevaiTranscriptionModel implements TranscriptionModelV3 {
   }
 
   async doGenerate(
-    options: Parameters<TranscriptionModelV3['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<TranscriptionModelV3['doGenerate']>>> {
+    options: Parameters<TranscriptionModelV4['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<TranscriptionModelV4['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { formData, warnings } = await this.getArgs(options);
 
@@ -324,7 +341,7 @@ export class RevaiTranscriptionModel implements TranscriptionModelV3 {
         path: '/speechtotext/v1/jobs',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       formData,
       failedResponseHandler: revaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -364,7 +381,7 @@ export class RevaiTranscriptionModel implements TranscriptionModelV3 {
           path: `/speechtotext/v1/jobs/${jobId}`,
           modelId: this.modelId,
         }),
-        headers: combineHeaders(this.config.headers(), options.headers),
+        headers: combineHeaders(this.config.headers?.(), options.headers),
         failedResponseHandler: revaiFailedResponseHandler,
         successfulResponseHandler: createJsonResponseHandler(
           revaiTranscriptionJobResponseSchema,
@@ -398,7 +415,7 @@ export class RevaiTranscriptionModel implements TranscriptionModelV3 {
         path: `/speechtotext/v1/jobs/${jobId}/transcript`,
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       failedResponseHandler: revaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         revaiTranscriptionResponseSchema,

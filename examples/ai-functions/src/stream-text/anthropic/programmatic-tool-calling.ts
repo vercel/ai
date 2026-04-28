@@ -3,7 +3,7 @@ import {
   forwardAnthropicContainerIdFromLastStep,
   type AnthropicLanguageModelOptions,
 } from '@ai-sdk/anthropic';
-import { streamText, stepCountIs, tool } from 'ai';
+import { streamText, isStepCount, tool } from 'ai';
 import { z } from 'zod';
 import { run } from '../../lib/run';
 
@@ -12,7 +12,7 @@ run(async () => {
 
   const result = streamText({
     model: anthropic('claude-sonnet-4-5'),
-    stopWhen: stepCountIs(20),
+    stopWhen: isStepCount(20),
     prompt:
       'Two players are playing a game. ' +
       'Each round both players roll a die. ' +

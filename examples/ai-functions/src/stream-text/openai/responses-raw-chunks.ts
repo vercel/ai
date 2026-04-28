@@ -9,9 +9,9 @@ run(async () => {
   const result = streamText({
     model: openai.responses('o3-mini'),
     prompt: 'How many "r"s are in the word "strawberry"?',
+    reasoning: 'low',
     providerOptions: {
       openai: {
-        reasoningEffort: 'low',
         reasoningSummary: 'auto',
       } satisfies OpenAILanguageModelResponsesOptions,
     },

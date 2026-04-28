@@ -28,7 +28,7 @@ export const postJsonToApi = async <T>({
   abortSignal?: AbortSignal;
   fetch?: FetchFunction;
 }) =>
-  postToApi({
+  await postToApi({
     url,
     headers: {
       'Content-Type': 'application/json',
@@ -61,7 +61,7 @@ export const postFormDataToApi = async <T>({
   abortSignal?: AbortSignal;
   fetch?: FetchFunction;
 }) =>
-  postToApi({
+  await postToApi({
     url,
     headers,
     body: {

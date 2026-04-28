@@ -5,7 +5,6 @@ import {
   TestResponseController,
 } from '@ai-sdk/test-server/with-vitest';
 import { mockId } from '@ai-sdk/provider-utils/test';
-import '@testing-library/jest-dom/vitest';
 import { screen, waitFor, render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {
@@ -34,7 +33,7 @@ const server = createTestServer({
 describe('initial messages', () => {
   setupTestComponent(
     ({ id: idParam }: { id: string }) => {
-      const [id, setId] = React.useState<string>(idParam);
+      const [id, _setId] = React.useState<string>(idParam);
       const {
         messages,
         status,

@@ -1,7 +1,7 @@
 import {
-  ImageModelV3,
-  ImageModelV3File,
-  SharedV3Warning,
+  ImageModelV4,
+  ImageModelV4File,
+  SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -12,6 +12,9 @@ import {
   createJsonResponseHandler,
   postJsonToApi,
   resolve,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
 import {
   BedrockImageModelId,
@@ -22,16 +25,30 @@ import { z } from 'zod/v4';
 
 type BedrockImageModelConfig = {
   baseUrl: () => string;
-  headers: Resolvable<Record<string, string | undefined>>;
+  headers?: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
   _internal?: {
     currentDate?: () => Date;
   };
 };
 
-export class BedrockImageModel implements ImageModelV3 {
-  readonly specificationVersion = 'v3';
+export class BedrockImageModel implements ImageModelV4 {
+  readonly specificationVersion = 'v4';
   readonly provider = 'amazon-bedrock';
+
+  static [WORKFLOW_SERIALIZE](model: BedrockImageModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: string;
+    config: BedrockImageModelConfig;
+  }) {
+    return new BedrockImageModel(options.modelId, options.config);
+  }
 
   get maxImagesPerCall(): number {
     return modelMaxImagesPerCall[this.modelId] ?? 1;
@@ -58,10 +75,10 @@ export class BedrockImageModel implements ImageModelV3 {
     abortSignal,
     files,
     mask,
-  }: Parameters<ImageModelV3['doGenerate']>[0]): Promise<
-    Awaited<ReturnType<ImageModelV3['doGenerate']>>
+  }: Parameters<ImageModelV4['doGenerate']>[0]): Promise<
+    Awaited<ReturnType<ImageModelV4['doGenerate']>>
   > {
-    const warnings: Array<SharedV3Warning> = [];
+    const warnings: Array<SharedV4Warning> = [];
     const [width, height] = size ? size.split('x').map(Number) : [];
 
     const hasFiles = files != null && files.length > 0;
@@ -220,7 +237,10 @@ export class BedrockImageModel implements ImageModelV3 {
     const { value: response, responseHeaders } = await postJsonToApi({
       url: this.getUrl(this.modelId),
       headers: await resolve(
-        combineHeaders(await resolve(this.config.headers), headers),
+        combineHeaders(
+          this.config.headers ? await resolve(this.config.headers) : undefined,
+          headers,
+        ),
       ),
       body: args,
       failedResponseHandler: createJsonErrorResponseHandler({
@@ -265,7 +285,7 @@ export class BedrockImageModel implements ImageModelV3 {
   }
 }
 
-function getBase64Data(file: ImageModelV3File): string {
+function getBase64Data(file: ImageModelV4File): string {
   if (file.type === 'url') {
     throw new Error(
       'URL-based images are not supported for Amazon Bedrock image editing. ' +

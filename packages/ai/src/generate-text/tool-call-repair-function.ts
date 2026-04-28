@@ -2,7 +2,7 @@ import { JSONSchema7, LanguageModelV4ToolCall } from '@ai-sdk/provider';
 import { InvalidToolInputError } from '../error/invalid-tool-input-error';
 import { NoSuchToolError } from '../error/no-such-tool-error';
 import { ModelMessage, SystemModelMessage } from '../prompt';
-import { ToolSet } from './tool-set';
+import type { ToolSet } from '@ai-sdk/provider-utils';
 
 /**
  * A function that attempts to repair a tool call that failed to parse.

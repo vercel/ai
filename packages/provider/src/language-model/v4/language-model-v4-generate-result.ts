@@ -1,5 +1,5 @@
-import { SharedV3Headers, SharedV3Warning } from '../../shared';
-import { SharedV3ProviderMetadata } from '../../shared/v3/shared-v3-provider-metadata';
+import { SharedV4Headers, SharedV4Warning } from '../../shared';
+import { SharedV4ProviderMetadata } from '../../shared/v4/shared-v4-provider-metadata';
 import { LanguageModelV4Content } from './language-model-v4-content';
 import { LanguageModelV4FinishReason } from './language-model-v4-finish-reason';
 import { LanguageModelV4ResponseMetadata } from './language-model-v4-response-metadata';
@@ -29,7 +29,7 @@ export type LanguageModelV4GenerateResult = {
    * from the provider to the AI SDK and enable provider-specific
    * results that can be fully encapsulated in the provider.
    */
-  providerMetadata?: SharedV3ProviderMetadata;
+  providerMetadata?: SharedV4ProviderMetadata;
 
   /**
    * Optional request information for telemetry and debugging purposes.
@@ -48,7 +48,7 @@ export type LanguageModelV4GenerateResult = {
     /**
      * Response headers.
      */
-    headers?: SharedV3Headers;
+    headers?: SharedV4Headers;
 
     /**
      * Response HTTP body.
@@ -59,5 +59,5 @@ export type LanguageModelV4GenerateResult = {
   /**
    * Warnings for the call, e.g. unsupported settings.
    */
-  warnings: Array<SharedV3Warning>;
+  warnings: Array<SharedV4Warning>;
 };

@@ -1,9 +1,12 @@
-import { SpeechModelV3, SharedV3Warning } from '@ai-sdk/provider';
+import { SpeechModelV4, SharedV4Warning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createBinaryResponseHandler,
   parseProviderOptions,
   postJsonToApi,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { HumeConfig } from './hume-config';
@@ -92,11 +95,25 @@ interface HumeSpeechModelConfig extends HumeConfig {
   };
 }
 
-export class HumeSpeechModel implements SpeechModelV3 {
-  readonly specificationVersion = 'v3';
+export class HumeSpeechModel implements SpeechModelV4 {
+  readonly specificationVersion = 'v4';
 
   get provider(): string {
     return this.config.provider;
+  }
+
+  static [WORKFLOW_SERIALIZE](model: HumeSpeechModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: '';
+    config: HumeSpeechModelConfig;
+  }) {
+    return new HumeSpeechModel(options.modelId as '', options.config);
   }
 
   constructor(
@@ -112,8 +129,8 @@ export class HumeSpeechModel implements SpeechModelV3 {
     instructions,
     language,
     providerOptions,
-  }: Parameters<SpeechModelV3['doGenerate']>[0]) {
-    const warnings: SharedV3Warning[] = [];
+  }: Parameters<SpeechModelV4['doGenerate']>[0]) {
+    const warnings: SharedV4Warning[] = [];
 
     // Parse provider options
     const humeOptions = await parseProviderOptions({
@@ -201,8 +218,8 @@ export class HumeSpeechModel implements SpeechModelV3 {
   }
 
   async doGenerate(
-    options: Parameters<SpeechModelV3['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<SpeechModelV3['doGenerate']>>> {
+    options: Parameters<SpeechModelV4['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<SpeechModelV4['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { requestBody, warnings } = await this.getArgs(options);
 
@@ -215,7 +232,7 @@ export class HumeSpeechModel implements SpeechModelV3 {
         path: '/v0/tts/file',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body: requestBody,
       failedResponseHandler: humeFailedResponseHandler,
       successfulResponseHandler: createBinaryResponseHandler(),

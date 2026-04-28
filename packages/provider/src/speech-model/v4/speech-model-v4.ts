@@ -1,7 +1,5 @@
-import { JSONObject } from '../../json-value';
-import { SharedV2Headers } from '../../shared';
-import { SharedV4Warning } from '../../shared/v4/shared-v4-warning';
 import { SpeechModelV4CallOptions } from './speech-model-v4-call-options';
+import { SpeechModelV4Result } from './speech-model-v4-result';
 
 /**
  * Speech model specification version 3.
@@ -29,61 +27,7 @@ export type SpeechModelV4 = {
   /**
    * Generates speech audio from text.
    */
-  doGenerate(options: SpeechModelV4CallOptions): PromiseLike<{
-    /**
-     * Generated audio as an ArrayBuffer.
-     * The audio should be returned without any unnecessary conversion.
-     * If the API returns base64 encoded strings, the audio should be returned
-     * as base64 encoded strings. If the API returns binary data, the audio
-     * should be returned as binary data.
-     */
-    audio: string | Uint8Array;
-
-    /**
-     * Warnings for the call, e.g. unsupported settings.
-     */
-    warnings: Array<SharedV4Warning>;
-
-    /**
-     * Optional request information for telemetry and debugging purposes.
-     */
-    request?: {
-      /**
-       * Response body (available only for providers that use HTTP requests).
-       */
-      body?: unknown;
-    };
-
-    /**
-     * Response information for telemetry and debugging purposes.
-     */
-    response: {
-      /**
-       * Timestamp for the start of the generated response.
-       */
-      timestamp: Date;
-
-      /**
-       * The ID of the response model that was used to generate the response.
-       */
-      modelId: string;
-
-      /**
-       * Response headers.
-       */
-      headers?: SharedV2Headers;
-
-      /**
-       * Response body.
-       */
-      body?: unknown;
-    };
-
-    /**
-     * Additional provider-specific metadata. They are passed through
-     * from the provider to the AI SDK and enable provider-specific
-     * results that can be fully encapsulated in the provider.
-     */
-    providerMetadata?: Record<string, JSONObject>;
-  }>;
+  doGenerate(
+    options: SpeechModelV4CallOptions,
+  ): PromiseLike<SpeechModelV4Result>;
 };

@@ -1,7 +1,7 @@
 import {
-  ImageModelV3,
-  ImageModelV3File,
-  SharedV3Warning,
+  ImageModelV4,
+  ImageModelV4File,
+  SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -11,6 +11,9 @@ import {
   downloadBlob,
   postFormDataToApi,
   postJsonToApi,
+  serializeModelOptions,
+  WORKFLOW_DESERIALIZE,
+  WORKFLOW_SERIALIZE,
 } from '@ai-sdk/provider-utils';
 import { OpenAIConfig } from '../openai-config';
 import { openaiFailedResponseHandler } from '../openai-error';
@@ -27,8 +30,22 @@ interface OpenAIImageModelConfig extends OpenAIConfig {
   };
 }
 
-export class OpenAIImageModel implements ImageModelV3 {
-  readonly specificationVersion = 'v3';
+export class OpenAIImageModel implements ImageModelV4 {
+  readonly specificationVersion = 'v4';
+
+  static [WORKFLOW_SERIALIZE](model: OpenAIImageModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: OpenAIImageModelId;
+    config: OpenAIImageModelConfig;
+  }) {
+    return new OpenAIImageModel(options.modelId, options.config);
+  }
 
   get maxImagesPerCall(): number {
     return modelMaxImagesPerCall[this.modelId] ?? 1;
@@ -54,10 +71,10 @@ export class OpenAIImageModel implements ImageModelV3 {
     providerOptions,
     headers,
     abortSignal,
-  }: Parameters<ImageModelV3['doGenerate']>[0]): Promise<
-    Awaited<ReturnType<ImageModelV3['doGenerate']>>
+  }: Parameters<ImageModelV4['doGenerate']>[0]): Promise<
+    Awaited<ReturnType<ImageModelV4['doGenerate']>>
   > {
-    const warnings: Array<SharedV3Warning> = [];
+    const warnings: Array<SharedV4Warning> = [];
 
     if (aspectRatio != null) {
       warnings.push({
@@ -80,7 +97,7 @@ export class OpenAIImageModel implements ImageModelV3 {
           path: '/images/edits',
           modelId: this.modelId,
         }),
-        headers: combineHeaders(this.config.headers(), headers),
+        headers: combineHeaders(this.config.headers?.(), headers),
         formData: convertToFormData<OpenAIImageEditInput>({
           model: this.modelId,
           prompt,
@@ -158,7 +175,7 @@ export class OpenAIImageModel implements ImageModelV3 {
         path: '/images/generations',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers(), headers),
+      headers: combineHeaders(this.config.headers?.(), headers),
       body: {
         model: this.modelId,
         prompt,
@@ -332,7 +349,7 @@ type OpenAIImageEditInput = {
 };
 
 async function fileToBlob(
-  file: ImageModelV3File | undefined,
+  file: ImageModelV4File | undefined,
 ): Promise<Blob | undefined> {
   if (!file) return undefined;
 

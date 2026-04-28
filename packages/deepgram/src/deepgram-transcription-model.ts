@@ -1,9 +1,12 @@
-import { SharedV3Warning, TranscriptionModelV3 } from '@ai-sdk/provider';
+import { SharedV4Warning, TranscriptionModelV4 } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createJsonResponseHandler,
   parseProviderOptions,
   postToApi,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { DeepgramTranscriptionAPITypes } from './deepgram-api-types';
@@ -61,11 +64,25 @@ interface DeepgramTranscriptionModelConfig extends DeepgramConfig {
   };
 }
 
-export class DeepgramTranscriptionModel implements TranscriptionModelV3 {
-  readonly specificationVersion = 'v3';
+export class DeepgramTranscriptionModel implements TranscriptionModelV4 {
+  readonly specificationVersion = 'v4';
 
   get provider(): string {
     return this.config.provider;
+  }
+
+  static [WORKFLOW_SERIALIZE](model: DeepgramTranscriptionModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: DeepgramTranscriptionModelId;
+    config: DeepgramTranscriptionModelConfig;
+  }) {
+    return new DeepgramTranscriptionModel(options.modelId, options.config);
   }
 
   constructor(
@@ -75,8 +92,8 @@ export class DeepgramTranscriptionModel implements TranscriptionModelV3 {
 
   private async getArgs({
     providerOptions,
-  }: Parameters<TranscriptionModelV3['doGenerate']>[0]) {
-    const warnings: SharedV3Warning[] = [];
+  }: Parameters<TranscriptionModelV4['doGenerate']>[0]) {
+    const warnings: SharedV4Warning[] = [];
 
     // Parse provider options
     const deepgramOptions = await parseProviderOptions({
@@ -125,8 +142,8 @@ export class DeepgramTranscriptionModel implements TranscriptionModelV3 {
   }
 
   async doGenerate(
-    options: Parameters<TranscriptionModelV3['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<TranscriptionModelV3['doGenerate']>>> {
+    options: Parameters<TranscriptionModelV4['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<TranscriptionModelV4['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { queryParams, warnings } = await this.getArgs(options);
 
@@ -143,7 +160,7 @@ export class DeepgramTranscriptionModel implements TranscriptionModelV3 {
         '?' +
         queryParams.toString(),
       headers: {
-        ...combineHeaders(this.config.headers(), options.headers),
+        ...combineHeaders(this.config.headers?.(), options.headers),
         'Content-Type': options.mediaType,
       },
       body: {

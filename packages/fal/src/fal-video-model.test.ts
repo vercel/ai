@@ -105,7 +105,7 @@ describe('FalVideoModel', () => {
 
       expect(model.provider).toBe('fal.video');
       expect(model.modelId).toBe('luma-dream-machine');
-      expect(model.specificationVersion).toBe('v3');
+      expect(model.specificationVersion).toBe('v4');
       expect(model.maxVideosPerCall).toBe(1);
     });
 

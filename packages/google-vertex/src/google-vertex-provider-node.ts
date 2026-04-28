@@ -7,8 +7,7 @@ import {
   GoogleVertexProviderSettings as GoogleVertexProviderSettingsOriginal,
 } from './google-vertex-provider';
 
-export interface GoogleVertexProviderSettings
-  extends GoogleVertexProviderSettingsOriginal {
+export interface GoogleVertexProviderSettings extends GoogleVertexProviderSettingsOriginal {
   /**
    * Optional. The Authentication options provided by google-auth-library.
    * Complete list of authentication options is documented in the

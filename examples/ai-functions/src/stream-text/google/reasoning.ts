@@ -1,21 +1,15 @@
-import { google, type GoogleLanguageModelOptions } from '@ai-sdk/google';
-import { stepCountIs, streamText } from 'ai';
+import { google } from '@ai-sdk/google';
+import { isStepCount, streamText } from 'ai';
 import { weatherTool } from '../../tools/weather-tool';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: google('gemini-2.5-flash-preview-05-20'),
+    model: google('gemini-2.5-flash'),
     tools: { weather: weatherTool },
     prompt: 'What is the weather in San Francisco?',
-    stopWhen: stepCountIs(2),
-    providerOptions: {
-      google: {
-        thinkingConfig: {
-          thinkingBudget: 1024,
-        },
-      } satisfies GoogleLanguageModelOptions,
-    },
+    stopWhen: isStepCount(2),
+    reasoning: 'low',
     onError: console.error,
   });
 

@@ -55,7 +55,7 @@ type AssistantModelMessage = {
   content: AssistantContent;
 };
 
-type AssistantContent = string | Array<TextPart | ToolCallPart>;
+type AssistantContent = string | Array<TextPart | CustomPart | ToolCallPart>;
 ```
 
 You can access the Zod schema for `AssistantModelMessage` with the `assistantModelMessageSchema` export.
@@ -103,8 +103,9 @@ export interface ImagePart {
    * Image data. Can either be:
    * - data: a base64-encoded string, a Uint8Array, an ArrayBuffer, or a Buffer
    * - URL: a URL that points to the image
+   * - ProviderReference: a provider reference from `uploadFile`
    */
-  image: DataContent | URL;
+  image: DataContent | URL | ProviderReference;
 
   /**
    * Optional IANA media type of the image.
@@ -126,8 +127,9 @@ export interface FilePart {
    * File data. Can either be:
    * - data: a base64-encoded string, a Uint8Array, an ArrayBuffer, or a Buffer
    * - URL: a URL that points to the file
+   * - ProviderReference: a provider reference from `uploadFile`
    */
-  data: DataContent | URL;
+  data: DataContent | URL | ProviderReference;
 
   /**
    * Optional filename of the file.
@@ -138,6 +140,26 @@ export interface FilePart {
    * IANA media type of the file.
    */
   mediaType: string;
+}
+```
+
+### `CustomPart`
+
+Represents a provider-specific custom content part. The `kind` field identifies the content type in the format `{provider}.{provider-type}`.
+
+```typescript
+export interface CustomPart {
+  type: 'custom';
+
+  /**
+   * The kind of custom content, in the format `{provider}.{provider-type}`.
+   */
+  kind: `${string}.${string}`;
+
+  /**
+   * Additional provider-specific metadata.
+   */
+  providerOptions?: ProviderOptions;
 }
 ```
 
@@ -187,7 +209,7 @@ export interface ToolResultPart {
   /**
    * Result of the tool call. This is a JSON-serializable object.
    */
-  output: LanguageModelV3ToolResultOutput;
+  output: LanguageModelV4ToolResultOutput;
 
   /**
   Additional provider-specific metadata. They are passed through
@@ -198,7 +220,7 @@ export interface ToolResultPart {
 }
 ```
 
-### `LanguageModelV3ToolResultOutput`
+### `LanguageModelV4ToolResultOutput`
 
 ```ts
 /**
@@ -317,11 +339,21 @@ IANA media type.
             url: string;
 
             /**
+             * IANA media type of the file.
+             * Used by providers to determine how to handle the file (e.g. image vs document).
+             * Optional; if omitted, the SDK will attempt to infer it from the URL file extension.
+             */
+            mediaType?: string;
+
+            /**
              * Provider-specific options.
              */
             providerOptions?: ProviderOptions;
           }
         | {
+            /**
+             * @deprecated Use file-reference instead.
+             */
             type: 'file-id';
 
             /**
@@ -340,7 +372,22 @@ IANA media type.
             providerOptions?: ProviderOptions;
           }
         | {
+            type: 'file-reference';
+
             /**
+             * Provider-specific references for the file.
+             * The key is the provider name, e.g. 'openai' or 'anthropic'.
+             */
+            providerReference: ProviderReference;
+
+            /**
+             * Provider-specific options.
+             */
+            providerOptions?: ProviderOptions;
+          }
+        | {
+            /**
+             * @deprecated Use file-data instead.
              * Images that are referenced using base64 encoded data.
              */
             type: 'image-data';
@@ -363,6 +410,7 @@ IANA media type.
           }
         | {
             /**
+             * @deprecated Use file-url instead.
              * Images that are referenced using a URL.
              */
             type: 'image-url';
@@ -379,6 +427,7 @@ IANA media type.
           }
         | {
             /**
+             * @deprecated Use file-reference instead.
              * Images that are referenced using a provider file id.
              */
             type: 'image-file-id';
@@ -392,6 +441,24 @@ IANA media type.
              * name, e.g. 'openai' or 'anthropic'.
              */
             fileId: string | Record<string, string>;
+
+            /**
+             * Provider-specific options.
+             */
+            providerOptions?: ProviderOptions;
+          }
+        | {
+            /**
+             * @deprecated Use file-reference instead.
+             * Images that are referenced using a provider reference.
+             */
+            type: 'image-file-reference';
+
+            /**
+             * Provider-specific references for the image file.
+             * The key is the provider name, e.g. 'openai' or 'anthropic'.
+             */
+            providerReference: ProviderReference;
 
             /**
              * Provider-specific options.

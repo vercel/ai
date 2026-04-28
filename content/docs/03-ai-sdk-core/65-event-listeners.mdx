@@ -1,15 +1,15 @@
 ---
 title: Event Callbacks
-description: Subscribe to lifecycle events in generateText and streamText calls
+description: Subscribe to lifecycle events in generateText, streamText, embed, embedMany, and rerank calls
 ---
 
 # Event Callbacks
 
-The AI SDK provides per-call event callbacks that you can pass to `generateText` and `streamText` to observe lifecycle events. This is useful for building observability tools, logging systems, analytics, and debugging utilities.
+The AI SDK provides per-call event callbacks that you can pass to `generateText`, `streamText`, `embed`, `embedMany`, and `rerank` to observe lifecycle events. This is useful for building observability tools, logging systems, analytics, and debugging utilities.
 
 ## Basic Usage
 
-Pass callbacks directly to `generateText` or `streamText`:
+Pass callbacks directly to `generateText`, `streamText`, `embed`, `embedMany`, or `rerank`:
 
 ```ts
 import { generateText } from 'ai';
@@ -18,7 +18,7 @@ const result = await generateText({
   model: openai('gpt-4o'),
   prompt: 'What is the weather in San Francisco?',
   experimental_onStart: event => {
-    console.log('Generation started:', event.model.modelId);
+    console.log('Generation started:', event.modelId);
   },
   onFinish: event => {
     console.log('Generation finished:', event.totalUsage);
@@ -28,46 +28,104 @@ const result = await generateText({
 
 ## Available Callbacks
 
+### `generateText` / `streamText`
+
 <PropertiesTable
   content={[
     {
       name: 'experimental_onStart',
-      type: '(event: OnStartEvent) => void | Promise<void>',
+      type: '(event: GenerateTextStartEvent) => void | Promise<void>',
       description: 'Called when generation begins, before any LLM calls.',
     },
     {
       name: 'experimental_onStepStart',
-      type: '(event: OnStepStartEvent) => void | Promise<void>',
+      type: '(event: GenerateTextStepStartEvent) => void | Promise<void>',
       description:
         'Called when a step (LLM call) begins, before the provider is called.',
     },
     {
-      name: 'experimental_onToolCallStart',
-      type: '(event: OnToolCallStartEvent) => void | Promise<void>',
+      name: 'experimental_onLanguageModelCallStart',
+      type: '(event: LanguageModelCallStartEvent) => void | Promise<void>',
+      description:
+        'Called immediately before the provider model call begins. Unlike `experimental_onStepStart`, this is scoped to model work only.',
+    },
+    {
+      name: 'experimental_onLanguageModelCallEnd',
+      type: '(event: LanguageModelCallEndEvent) => void | Promise<void>',
+      description:
+        'Called after the model response has been normalized and parsed, but before any client-side tool execution begins.',
+    },
+    {
+      name: 'experimental_onToolExecutionStart',
+      type: '(event: ToolExecutionStartEvent) => void | Promise<void>',
       description: "Called when a tool's execute function is about to run.",
     },
     {
-      name: 'experimental_onToolCallFinish',
-      type: '(event: OnToolCallFinishEvent) => void | Promise<void>',
+      name: 'experimental_onToolExecutionEnd',
+      type: '(event: ToolExecutionEndEvent) => void | Promise<void>',
       description: "Called when a tool's execute function completes or errors.",
     },
     {
       name: 'onStepFinish',
-      type: '(event: OnStepFinishEvent) => void | Promise<void>',
+      type: '(event: GenerateTextStepEndEvent) => void | Promise<void>',
       description: 'Called when a step (LLM call) completes.',
     },
     {
       name: 'onFinish',
-      type: '(event: OnFinishEvent) => void | Promise<void>',
+      type: '(event: GenerateTextEndEvent) => void | Promise<void>',
       description:
         'Called when the entire generation completes (all steps finished).',
     },
   ]}
 />
 
+For multi-step text generations that use tools, the callback order is typically
+`experimental_onStepStart` -> `experimental_onLanguageModelCallStart` ->
+`experimental_onLanguageModelCallEnd` -> tool execution callbacks -> `onStepFinish`.
+
+### `embed` / `embedMany`
+
+<PropertiesTable
+  content={[
+    {
+      name: 'experimental_onStart',
+      type: '(event: EmbedStartEvent) => void | Promise<void>',
+      description:
+        'Called when the embedding operation begins, before the embedding model is called.',
+    },
+    {
+      name: 'experimental_onFinish',
+      type: '(event: EmbedEndEvent) => void | Promise<void>',
+      description:
+        'Called when the embedding operation completes, after the embedding model returns.',
+    },
+  ]}
+/>
+
+### `rerank`
+
+<PropertiesTable
+  content={[
+    {
+      name: 'experimental_onStart',
+      type: '(event: RerankStartEvent) => void | Promise<void>',
+      description:
+        'Called when the reranking operation begins, before the reranking model is called.',
+    },
+    {
+      name: 'experimental_onFinish',
+      type: '(event: RerankEndEvent) => void | Promise<void>',
+      description:
+        'Called when the reranking operation completes, after the reranking model returns.',
+    },
+  ]}
+/>
+
 ## Event Reference
 
-### `experimental_onStart`
+### `generateText` / `streamText`
+
+#### `experimental_onStart`
 
 Called when the generation operation begins, before any LLM calls are made.
 
@@ -76,8 +134,8 @@ const result = await generateText({
   model: openai('gpt-4o'),
   prompt: 'Hello!',
   experimental_onStart: event => {
-    console.log('Model:', event.model.modelId);
-    console.log('Temperature:', event.temperature);
+    console.log('Model:', event.modelId);
+    console.log('Messages:', event.messages.length);
   },
 });
 ```
@@ -85,9 +143,14 @@ const result = await generateText({
 <PropertiesTable
   content={[
     {
-      name: 'model',
-      type: '{ provider: string; modelId: string }',
-      description: 'The model being used for generation.',
+      name: 'provider',
+      type: 'string',
+      description: 'The provider identifier (e.g., "openai", "anthropic").',
+    },
+    {
+      name: 'modelId',
+      type: 'string',
+      description: 'The specific model identifier (e.g., "gpt-4o").',
     },
     {
       name: 'system',
@@ -95,15 +158,9 @@ const result = await generateText({
       description: 'The system message(s) provided to the model.',
     },
     {
-      name: 'prompt',
-      type: 'string | Array<ModelMessage> | undefined',
-      description:
-        'The prompt string or array of messages if using the prompt option.',
-    },
-    {
       name: 'messages',
-      type: 'Array<ModelMessage> | undefined',
-      description: 'The messages array if using the messages option.',
+      type: 'Array<ModelMessage>',
+      description: 'The messages for this generation.',
     },
     {
       name: 'tools',
@@ -181,11 +238,6 @@ const result = await generateText({
       description: 'Additional provider-specific options.',
     },
     {
-      name: 'stopWhen',
-      type: 'StopCondition | Array<StopCondition> | undefined',
-      description: 'Condition(s) for stopping the generation.',
-    },
-    {
       name: 'output',
       type: 'Output | undefined',
       description: 'The output specification for structured outputs.',
@@ -202,26 +254,21 @@ const result = await generateText({
         'Settings for controlling what data is included in step results.',
     },
     {
-      name: 'functionId',
-      type: 'string | undefined',
+      name: 'runtimeContext',
+      type: 'CONTEXT',
       description:
-        'Identifier from telemetry settings for grouping related operations.',
+        'User-defined shared runtime context object that flows through the generation lifecycle.',
     },
     {
-      name: 'metadata',
-      type: 'Record<string, unknown> | undefined',
-      description: 'Additional metadata passed to the generation.',
-    },
-    {
-      name: 'experimental_context',
-      type: 'unknown',
+      name: 'toolsContext',
+      type: 'InferToolSetContext<TOOLS>',
       description:
-        'User-defined context object that flows through the entire generation lifecycle.',
+        'Per-tool context map passed via `toolsContext`, keyed by tool name.',
     },
   ]}
 />
 
-### `experimental_onStepStart`
+#### `experimental_onStepStart`
 
 Called before each step (LLM call) begins. Useful for tracking multi-step generations.
 
@@ -244,9 +291,14 @@ const result = await generateText({
       description: 'Zero-based index of the current step.',
     },
     {
-      name: 'model',
-      type: '{ provider: string; modelId: string }',
-      description: 'The model being used for this step.',
+      name: 'provider',
+      type: 'string',
+      description: 'The provider identifier (e.g., "openai", "anthropic").',
+    },
+    {
+      name: 'modelId',
+      type: 'string',
+      description: 'The specific model identifier (e.g., "gpt-4o").',
     },
     {
       name: 'system',
@@ -265,7 +317,7 @@ const result = await generateText({
     },
     {
       name: 'toolChoice',
-      type: 'LanguageModelV3ToolChoice | undefined',
+      type: 'LanguageModelV4ToolChoice | undefined',
       description: 'The tool choice configuration for this step.',
     },
     {
@@ -316,26 +368,120 @@ const result = await generateText({
         'Settings for controlling what data is included in step results.',
     },
     {
-      name: 'functionId',
-      type: 'string | undefined',
+      name: 'runtimeContext',
+      type: 'CONTEXT',
       description:
-        'Identifier from telemetry settings for grouping related operations.',
+        'User-defined shared runtime context object. May be updated from prepareStep between steps.',
     },
     {
-      name: 'metadata',
-      type: 'Record<string, unknown> | undefined',
-      description: 'Additional metadata from telemetry settings.',
-    },
-    {
-      name: 'experimental_context',
-      type: 'unknown',
+      name: 'toolsContext',
+      type: 'InferToolSetContext<TOOLS>',
       description:
-        'User-defined context object. May be updated from prepareStep between steps.',
+        'Per-tool context map. May be updated from prepareStep between steps.',
     },
   ]}
 />
 
-### `experimental_onToolCallStart`
+#### `experimental_onLanguageModelCallStart`
+
+Called immediately before the provider model call begins. Unlike
+`experimental_onStepStart`, this callback is scoped to model work only and
+excludes any later client-side tool execution.
+
+```ts
+const result = await generateText({
+  model: openai('gpt-4o'),
+  prompt: 'Hello!',
+  experimental_onLanguageModelCallStart: event => {
+    console.log('Model call:', event.modelId);
+    console.log('Messages:', event.messages.length);
+  },
+});
+```
+
+<PropertiesTable
+  content={[
+    {
+      name: 'callId',
+      type: 'string',
+      description: 'Unique identifier for the generation call.',
+    },
+    {
+      name: 'provider',
+      type: 'string',
+      description: 'The provider identifier for this model call.',
+    },
+    {
+      name: 'modelId',
+      type: 'string',
+      description: 'The specific model identifier for this model call.',
+    },
+    {
+      name: 'messages',
+      type: 'Array<ModelMessage>',
+      description: 'The messages that will be sent to the model.',
+    },
+    {
+      name: 'tools',
+      type: 'ReadonlyArray<Record<string, unknown>> | undefined',
+      description: 'Prepared tool definitions for the model call, if any.',
+    },
+  ]}
+/>
+
+#### `experimental_onLanguageModelCallEnd`
+
+Called after the model response has been normalized and parsed, but before any
+client-side tool execution begins.
+
+```ts
+const result = await generateText({
+  model: openai('gpt-4o'),
+  prompt: 'What is the weather?',
+  experimental_onLanguageModelCallEnd: event => {
+    console.log('Finish reason:', event.finishReason);
+    console.log('Content parts:', event.content.length);
+  },
+});
+```
+
+<PropertiesTable
+  content={[
+    {
+      name: 'callId',
+      type: 'string',
+      description: 'Unique identifier for the generation call.',
+    },
+    {
+      name: 'provider',
+      type: 'string',
+      description: 'The provider identifier for this model call.',
+    },
+    {
+      name: 'modelId',
+      type: 'string',
+      description: 'The specific model identifier for this model call.',
+    },
+    {
+      name: 'finishReason',
+      type: 'FinishReason',
+      description: 'The unified reason why the model call finished.',
+    },
+    {
+      name: 'usage',
+      type: 'LanguageModelUsage',
+      description: 'Token usage reported by the model call.',
+    },
+    {
+      name: 'content',
+      type: 'ReadonlyArray<ContentPart<TOOLS>>',
+      description:
+        'The content parts produced by the model call (text, reasoning, files, tool calls, etc.).',
+    },
+  ]}
+/>
+
+#### `experimental_onToolExecutionStart`
 
 Called before a tool's `execute` function runs.
 
@@ -344,7 +490,7 @@ const result = await generateText({
   model: openai('gpt-4o'),
   prompt: 'What is the weather?',
   tools: { getWeather },
-  experimental_onToolCallStart: event => {
+  experimental_onToolExecutionStart: event => {
     console.log('Tool:', event.toolCall.toolName);
     console.log('Input:', event.toolCall.input);
   },
@@ -354,15 +500,9 @@ const result = await generateText({
 <PropertiesTable
   content={[
     {
-      name: 'stepNumber',
-      type: 'number | undefined',
-      description:
-        'Zero-based index of the current step where this tool call occurs.',
-    },
-    {
-      name: 'model',
-      type: '{ provider: string; modelId: string } | undefined',
-      description: 'The model being used for this step.',
+      name: 'callId',
+      type: 'string',
+      description: 'Unique identifier for this generation call, used to correlate events.',
     },
     {
       name: 'toolCall',
@@ -400,50 +540,34 @@ const result = await generateText({
       name: 'messages',
       type: 'Array<ModelMessage>',
       description:
-        'The conversation messages available at tool execution time.',
+        'Messages that were sent to the language model to initiate the response that contained the tool call. Does not include the system prompt nor the assistant response that contained the tool call.',
     },
     {
-      name: 'abortSignal',
-      type: 'AbortSignal | undefined',
-      description: 'Signal for cancelling the operation.',
-    },
-    {
-      name: 'functionId',
-      type: 'string | undefined',
+      name: 'toolContext',
+      type: 'InferToolContext<TOOLS[toolName]>',
       description:
-        'Identifier from telemetry settings for grouping related operations.',
-    },
-    {
-      name: 'metadata',
-      type: 'Record<string, unknown> | undefined',
-      description: 'Additional metadata from telemetry settings.',
-    },
-    {
-      name: 'experimental_context',
-      type: 'unknown',
-      description:
-        'User-defined context object flowing through the generation.',
+        'Tool-specific context object for the tool call that is about to execute. Narrowed to the context type of the individual tool, not the entire tool set.',
     },
   ]}
 />
 
-### `experimental_onToolCallFinish`
+#### `experimental_onToolExecutionEnd`
 
-Called after a tool's `execute` function completes or errors. Uses a discriminated union on the `success` field.
+Called after a tool's `execute` function completes or errors. The `toolOutput` field is a discriminated union: check `toolOutput.type` to determine whether it is a `'tool-result'` (success) or `'tool-error'` (failure).
 
 ```ts
 const result = await generateText({
   model: openai('gpt-4o'),
   prompt: 'What is the weather?',
   tools: { getWeather },
-  experimental_onToolCallFinish: event => {
+  experimental_onToolExecutionEnd: event => {
     console.log('Tool:', event.toolCall.toolName);
     console.log('Duration:', event.durationMs, 'ms');
 
-    if (event.success) {
-      console.log('Output:', event.output);
+    if (event.toolOutput.type === 'tool-result') {
+      console.log('Output:', event.toolOutput.output);
     } else {
-      console.error('Error:', event.error);
+      console.error('Error:', event.toolOutput.error);
     }
   },
 });
@@ -452,15 +576,9 @@ const result = await generateText({
 <PropertiesTable
   content={[
     {
-      name: 'stepNumber',
-      type: 'number | undefined',
-      description:
-        'Zero-based index of the current step where this tool call occurred.',
-    },
-    {
-      name: 'model',
-      type: '{ provider: string; modelId: string } | undefined',
-      description: 'The model being used for this step.',
+      name: 'callId',
+      type: 'string',
+      description: 'Unique identifier for this generation call, used to correlate events.',
     },
     {
       name: 'toolCall',
@@ -495,60 +613,32 @@ const result = await generateText({
       ],
     },
     {
-      name: 'messages',
-      type: 'Array<ModelMessage>',
-      description:
-        'The conversation messages available at tool execution time.',
-    },
-    {
-      name: 'abortSignal',
-      type: 'AbortSignal | undefined',
-      description: 'Signal for cancelling the operation.',
-    },
-    {
       name: 'durationMs',
       type: 'number',
       description: 'Execution time of the tool call in milliseconds.',
     },
     {
-      name: 'functionId',
-      type: 'string | undefined',
+      name: 'messages',
+      type: 'Array<ModelMessage>',
       description:
-        'Identifier from telemetry settings for grouping related operations.',
+        'Messages that were sent to the language model to initiate the response that contained the tool call. Does not include the system prompt nor the assistant response that contained the tool call.',
     },
     {
-      name: 'metadata',
-      type: 'Record<string, unknown> | undefined',
-      description: 'Additional metadata from telemetry settings.',
+      name: 'toolContext',
+      type: 'InferToolContext<TOOLS[toolName]>',
+      description:
+        'Tool-specific context object for the tool call that just completed. Narrowed to the context type of the individual tool, not the entire tool set.',
     },
     {
-      name: 'experimental_context',
-      type: 'unknown',
+      name: 'toolOutput',
+      type: 'ToolOutput',
       description:
-        'User-defined context object flowing through the generation.',
-    },
-    {
-      name: 'success',
-      type: 'boolean',
-      description:
-        'Discriminator indicating whether the tool call succeeded. When true, output is available. When false, error is available.',
-    },
-    {
-      name: 'output',
-      type: 'unknown',
-      description:
-        "The tool's return value (only present when success is true).",
-    },
-    {
-      name: 'error',
-      type: 'unknown',
-      description:
-        'The error that occurred during tool execution (only present when success is false).',
+        "Discriminated union representing the tool execution result. When `type` is `'tool-result'`, the `output` field contains the tool's return value. When `type` is `'tool-error'`, the `error` field contains the error.",
     },
   ]}
 />
 
-### `onStepFinish`
+#### `onStepFinish`
 
 Called after each step (LLM call) completes. Provides the full `StepResult`.
 
@@ -630,7 +720,7 @@ const result = await generateText({
     },
     {
       name: 'reasoning',
-      type: 'Array<ReasoningPart>',
+      type: 'Array<ReasoningPart | ReasoningFilePart>',
       description: 'The reasoning that was generated during the generation.',
     },
     {
@@ -665,21 +755,16 @@ const result = await generateText({
         'Additional response information including id, modelId, timestamp, headers, and messages.',
     },
     {
-      name: 'functionId',
-      type: 'string | undefined',
+      name: 'runtimeContext',
+      type: 'CONTEXT',
       description:
-        'Identifier from telemetry settings for grouping related operations.',
+        'User-defined shared runtime context object flowing through the generation.',
     },
     {
-      name: 'metadata',
-      type: 'Record<string, unknown> | undefined',
-      description: 'Additional metadata from telemetry settings.',
-    },
-    {
-      name: 'experimental_context',
-      type: 'unknown',
+      name: 'toolsContext',
+      type: 'InferToolSetContext<TOOLS>',
       description:
-        'User-defined context object flowing through the generation.',
+        'Per-tool context map for the generation step.',
     },
     {
       name: 'providerMetadata',
@@ -689,7 +774,7 @@ const result = await generateText({
   ]}
 />
 
-### `onFinish`
+#### `onFinish`
 
 Called when the entire generation completes (all steps finished). Includes aggregated data.
 
@@ -783,7 +868,7 @@ const result = await generateText({
     },
     {
       name: 'reasoning',
-      type: 'Array<ReasoningPart>',
+      type: 'Array<ReasoningPart | ReasoningFilePart>',
       description: 'The reasoning that was generated.',
     },
     {
@@ -818,25 +903,301 @@ const result = await generateText({
       description: 'Additional response information from the final step.',
     },
     {
-      name: 'functionId',
-      type: 'string | undefined',
+      name: 'runtimeContext',
+      type: 'CONTEXT',
       description:
-        'Identifier from telemetry settings for grouping related operations.',
+        'The final state of the user-defined shared runtime context object.',
     },
     {
-      name: 'metadata',
-      type: 'Record<string, unknown> | undefined',
-      description: 'Additional metadata from telemetry settings.',
-    },
-    {
-      name: 'experimental_context',
-      type: 'unknown',
-      description: 'The final state of the user-defined context object.',
+      name: 'toolsContext',
+      type: 'InferToolSetContext<TOOLS>',
+      description:
+        'The final state of the per-tool context map passed via `toolsContext`.',
     },
     {
       name: 'providerMetadata',
       type: 'ProviderMetadata | undefined',
       description: 'Additional provider-specific metadata from the final step.',
+    },
+  ]}
+/>
+
+### `embed` / `embedMany`
+
+#### `experimental_onStart`
+
+Called when the embedding operation begins, before the embedding model is called. Both `embed` and `embedMany` share the same event interface; the `operationId` field distinguishes them (`'ai.embed'` vs `'ai.embedMany'`), and the `value` field is a single string for `embed` or an array of strings for `embedMany`.
+
+```ts
+import { embed } from 'ai';
+
+const result = await embed({
+  model: openai.embedding('text-embedding-3-small'),
+  value: 'sunny day at the beach',
+  experimental_onStart: event => {
+    console.log('Operation:', event.operationId);
+    console.log('Model:', event.model.modelId);
+  },
+});
+```
+
+<PropertiesTable
+  content={[
+    {
+      name: 'callId',
+      type: 'string',
+      description: 'Unique identifier for this embed call.',
+    },
+    {
+      name: 'operationId',
+      type: 'string',
+      description:
+        "Identifies the operation type ('ai.embed' or 'ai.embedMany').",
+    },
+    {
+      name: 'model',
+      type: '{ provider: string; modelId: string }',
+      description: 'The embedding model being used.',
+    },
+    {
+      name: 'value',
+      type: 'string | Array<string>',
+      description:
+        'The value(s) being embedded. A single string for embed, or an array for embedMany.',
+    },
+    {
+      name: 'maxRetries',
+      type: 'number',
+      description: 'Maximum number of retries for failed requests.',
+    },
+    {
+      name: 'abortSignal',
+      type: 'AbortSignal | undefined',
+      description: 'Abort signal for cancelling the operation.',
+    },
+    {
+      name: 'headers',
+      type: 'Record<string, string | undefined> | undefined',
+      description: 'Additional HTTP headers sent with the request.',
+    },
+    {
+      name: 'providerOptions',
+      type: 'ProviderOptions | undefined',
+      description: 'Additional provider-specific options.',
+    },
+  ]}
+/>
+
+#### `experimental_onFinish`
+
+Called when the embedding operation completes. For `embed`, `embedding` is a single vector and `response` is a single response object. For `embedMany`, `embedding` is an array of vectors and `response` is an array of response objects (one per chunk).
+
+```ts
+import { embedMany } from 'ai';
+
+const result = await embedMany({
+  model: openai.embedding('text-embedding-3-small'),
+  values: ['sunny day at the beach', 'rainy afternoon in the city'],
+  experimental_onFinish: event => {
+    console.log('Operation:', event.operationId);
+    console.log('Usage:', event.usage);
+  },
+});
+```
+
+<PropertiesTable
+  content={[
+    {
+      name: 'callId',
+      type: 'string',
+      description: 'Unique identifier for this embed call.',
+    },
+    {
+      name: 'operationId',
+      type: 'string',
+      description:
+        "Identifies the operation type ('ai.embed' or 'ai.embedMany').",
+    },
+    {
+      name: 'model',
+      type: '{ provider: string; modelId: string }',
+      description: 'The embedding model that was used.',
+    },
+    {
+      name: 'value',
+      type: 'string | Array<string>',
+      description: 'The value(s) that were embedded.',
+    },
+    {
+      name: 'embedding',
+      type: 'Embedding | Array<Embedding>',
+      description:
+        'The resulting embedding(s). A single vector for embed, or an array for embedMany.',
+    },
+    {
+      name: 'usage',
+      type: 'EmbeddingModelUsage',
+      description: 'Token usage for the embedding operation.',
+    },
+    {
+      name: 'warnings',
+      type: 'Array<Warning>',
+      description: 'Warnings from the embedding model.',
+    },
+    {
+      name: 'providerMetadata',
+      type: 'ProviderMetadata | undefined',
+      description: 'Optional provider-specific metadata.',
+    },
+    {
+      name: 'response',
+      type: '{ headers?: Record<string, string>; body?: unknown } | Array<{ headers?: Record<string, string>; body?: unknown } | undefined> | undefined',
+      description:
+        'Response data. A single response for embed, or an array for embedMany (one per chunk).',
+    },
+  ]}
+/>
+
+### `rerank`
+
+#### `experimental_onStart`
+
+Called when the reranking operation begins, before the reranking model is called.
+
+```ts
+import { rerank } from 'ai';
+
+const result = await rerank({
+  model: cohere.reranking('rerank-v3.5'),
+  documents: ['sunny day at the beach', 'rainy afternoon in the city'],
+  query: 'talk about rain',
+  experimental_onStart: event => {
+    console.log('Operation:', event.operationId);
+    console.log('Model:', event.model.modelId);
+  },
+});
+```
+
+<PropertiesTable
+  content={[
+    {
+      name: 'callId',
+      type: 'string',
+      description: 'Unique identifier for this rerank call.',
+    },
+    {
+      name: 'operationId',
+      type: 'string',
+      description: "Identifies the operation type ('ai.rerank').",
+    },
+    {
+      name: 'model',
+      type: '{ provider: string; modelId: string }',
+      description: 'The reranking model being used.',
+    },
+    {
+      name: 'documents',
+      type: 'Array<JSONObject | string>',
+      description: 'The documents being reranked.',
+    },
+    {
+      name: 'query',
+      type: 'string',
+      description: 'The query to rerank the documents against.',
+    },
+    {
+      name: 'topN',
+      type: 'number | undefined',
+      description: 'Number of top documents to return.',
+    },
+    {
+      name: 'maxRetries',
+      type: 'number',
+      description: 'Maximum number of retries for failed requests.',
+    },
+    {
+      name: 'abortSignal',
+      type: 'AbortSignal | undefined',
+      description: 'Abort signal for cancelling the operation.',
+    },
+    {
+      name: 'headers',
+      type: 'Record<string, string | undefined> | undefined',
+      description: 'Additional HTTP headers sent with the request.',
+    },
+    {
+      name: 'providerOptions',
+      type: 'ProviderOptions | undefined',
+      description: 'Additional provider-specific options.',
+    },
+  ]}
+/>
+
+#### `experimental_onFinish`
+
+Called when the reranking operation completes, after the reranking model returns.
+
+```ts
+import { rerank } from 'ai';
+
+const result = await rerank({
+  model: cohere.reranking('rerank-v3.5'),
+  documents: ['sunny day at the beach', 'rainy afternoon in the city'],
+  query: 'talk about rain',
+  experimental_onFinish: event => {
+    console.log('Operation:', event.operationId);
+    console.log('Rankings:', event.ranking.length);
+  },
+});
+```
+
+<PropertiesTable
+  content={[
+    {
+      name: 'callId',
+      type: 'string',
+      description: 'Unique identifier for this rerank call.',
+    },
+    {
+      name: 'operationId',
+      type: 'string',
+      description: "Identifies the operation type ('ai.rerank').",
+    },
+    {
+      name: 'model',
+      type: '{ provider: string; modelId: string }',
+      description: 'The reranking model that was used.',
+    },
+    {
+      name: 'documents',
+      type: 'Array<JSONObject | string>',
+      description: 'The documents that were reranked.',
+    },
+    {
+      name: 'query',
+      type: 'string',
+      description: 'The query that documents were reranked against.',
+    },
+    {
+      name: 'ranking',
+      type: 'Array<{ originalIndex: number; score: number; document: JSONObject | string }>',
+      description:
+        'The reranked results sorted by relevance score in descending order.',
+    },
+    {
+      name: 'warnings',
+      type: 'Array<Warning>',
+      description: 'Warnings from the reranking model.',
+    },
+    {
+      name: 'providerMetadata',
+      type: 'ProviderMetadata | undefined',
+      description: 'Optional provider-specific metadata.',
+    },
+    {
+      name: 'response',
+      type: '{ id?: string; timestamp: Date; modelId: string; headers?: Record<string, string>; body?: unknown }',
+      description: 'Response data including headers and body.',
     },
   ]}
 />
@@ -853,8 +1214,8 @@ const result = await generateText({
   prompt: 'Hello!',
   experimental_onStart: event => {
     console.log(`[${new Date().toISOString()}] Generation started`, {
-      model: event.model.modelId,
-      provider: event.model.provider,
+      model: event.modelId,
+      provider: event.provider,
     });
   },
   onStepFinish: event => {
@@ -884,24 +1245,49 @@ const result = await generateText({
   model: openai('gpt-4o'),
   prompt: 'What is the weather?',
   tools: { getWeather },
-  experimental_onToolCallStart: event => {
+  experimental_onToolExecutionStart: event => {
     console.log(`Tool "${event.toolCall.toolName}" starting...`);
   },
-  experimental_onToolCallFinish: event => {
-    if (event.success) {
+  experimental_onToolExecutionEnd: event => {
+    if (event.toolOutput.type === 'tool-result') {
       console.log(
         `Tool "${event.toolCall.toolName}" completed in ${event.durationMs}ms`,
       );
     } else {
-      console.error(`Tool "${event.toolCall.toolName}" failed:`, event.error);
+      console.error(
+        `Tool "${event.toolCall.toolName}" failed:`,
+        event.toolOutput.error,
+      );
     }
+  },
+});
+```
+
+### Embedding Observability
+
+```ts
+import { embedMany } from 'ai';
+
+const result = await embedMany({
+  model: openai.embedding('text-embedding-3-small'),
+  values: ['sunny day at the beach', 'rainy afternoon in the city'],
+  experimental_onStart: event => {
+    console.log(`Embedding started (${event.operationId})`, {
+      model: event.model.modelId,
+      valueCount: Array.isArray(event.value) ? event.value.length : 1,
+    });
+  },
+  experimental_onFinish: event => {
+    console.log(`Embedding complete (${event.operationId})`, {
+      tokens: event.usage.tokens,
+    });
   },
 });
 ```
 
 ## Error Handling
 
-Errors thrown inside callbacks are caught and do not break the generation flow. This ensures that monitoring code cannot disrupt your application:
+Errors thrown inside callbacks are caught and do not break the generation, embedding, or reranking flow. This ensures that monitoring code cannot disrupt your application:
 
 ```ts
 const result = await generateText({

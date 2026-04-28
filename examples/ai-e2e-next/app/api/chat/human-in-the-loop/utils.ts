@@ -51,7 +51,7 @@ export async function processToolCalls<
   executeFunctions: {
     [K in keyof Tools & keyof ExecutableTools]?: (
       args: ExecutableTools[K] extends Tool<infer P> ? P : never,
-      context: ToolExecutionOptions,
+      context: ToolExecutionOptions<{}>,
     ) => Promise<any>;
   },
 ): Promise<HumanInTheLoopUIMessage[]> {
@@ -86,6 +86,7 @@ export async function processToolCalls<
           result = await toolInstance(part.input, {
             messages: await convertToModelMessages(messages),
             toolCallId: part.toolCallId,
+            context: {},
           });
         } else {
           result = 'Error: No execute function found on tool';

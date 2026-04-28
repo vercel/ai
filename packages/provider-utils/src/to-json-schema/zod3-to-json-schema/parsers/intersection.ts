@@ -42,7 +42,7 @@ export function parseIntersectionDef(
         'additionalProperties' in schema &&
         schema.additionalProperties === false
       ) {
-        const { additionalProperties, ...rest } = schema;
+        const { additionalProperties: _additionalProperties, ...rest } = schema;
         nestedSchema = rest;
       }
       mergedAllOf.push(nestedSchema);

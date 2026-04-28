@@ -34,7 +34,7 @@ describe('GatewayVideoModel', () => {
 
       expect(model.modelId).toBe(TEST_MODEL_ID);
       expect(model.provider).toBe('gateway');
-      expect(model.specificationVersion).toBe('v3');
+      expect(model.specificationVersion).toBe('v4');
       expect(model.maxVideosPerCall).toBe(Number.MAX_SAFE_INTEGER);
     });
 
@@ -117,7 +117,7 @@ describe('GatewayVideoModel', () => {
       const headers = server.calls[0].requestHeaders;
       expect(headers).toMatchObject({
         authorization: 'Bearer test-token',
-        'ai-video-model-specification-version': '3',
+        'ai-video-model-specification-version': '4',
         'ai-model-id': TEST_MODEL_ID,
       });
     });
@@ -482,7 +482,7 @@ describe('GatewayVideoModel', () => {
       expect(headers).toMatchObject({
         authorization: 'Bearer test-token',
         'x-custom-header': 'custom-value',
-        'ai-video-model-specification-version': '3',
+        'ai-video-model-specification-version': '4',
         'ai-model-id': TEST_MODEL_ID,
       });
     });

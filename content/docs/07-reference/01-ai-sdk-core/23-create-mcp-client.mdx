@@ -108,6 +108,13 @@ It currently does not support accepting notifications from an MCP server, and cu
                       description:
                         'Optional OAuth provider for authorization to access protected remote MCP servers.',
                     },
+                    {
+                      name: 'redirect',
+                      type: "'follow' | 'error'",
+                      isOptional: true,
+                      description:
+                        "Controls how HTTP redirects are handled for transport requests. Set to 'follow' to allow redirect responses. Defaults to 'error' to reject any redirect response, preventing servers from redirecting requests to unintended hosts.",
+                    },
                   ],
                 },
               ],

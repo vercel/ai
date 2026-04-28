@@ -1,5 +1,5 @@
 import { openai } from '@ai-sdk/openai';
-import { streamText, stepCountIs } from 'ai';
+import { streamText, isStepCount } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
@@ -7,7 +7,6 @@ run(async () => {
     model: openai.responses('gpt-5.2-codex'),
     tools: {
       write_sql: openai.tools.customTool({
-        name: 'write_sql',
         description: 'Write a SQL SELECT query to answer the user question.',
         format: {
           type: 'grammar',
@@ -21,7 +20,7 @@ run(async () => {
       }),
     },
     prompt: 'How many users are older than 25? Use SQL to find out.',
-    stopWhen: stepCountIs(3),
+    stopWhen: isStepCount(3),
   });
 
   for await (const chunk of result.fullStream) {

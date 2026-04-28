@@ -1,8 +1,10 @@
-import { ReasoningPart } from '@ai-sdk/provider-utils';
+import { ReasoningPart, ReasoningFilePart } from '@ai-sdk/provider-utils';
 
 export function asReasoningText(
-  reasoningParts: Array<ReasoningPart>,
+  reasoningParts: Array<ReasoningPart | ReasoningFilePart>,
 ): string | undefined {
-  const reasoningText = reasoningParts.map(part => part.text).join('');
+  const reasoningText = reasoningParts
+    .map(part => ('text' in part ? part.text : ''))
+    .join('');
   return reasoningText.length > 0 ? reasoningText : undefined;
 }

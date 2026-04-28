@@ -1,9 +1,9 @@
 ---
-title: LanguageModelV3Middleware
+title: LanguageModelV4Middleware
 description: Middleware for enhancing language model behavior (API Reference)
 ---
 
-# `LanguageModelV3Middleware`
+# `LanguageModelV4Middleware`
 
 <Note type="warning">
   Language model middleware is an experimental feature.
@@ -18,7 +18,7 @@ See [Language Model Middleware](/docs/ai-sdk-core/middleware) for more informati
 ## Import
 
 <Snippet
-  text={`import { LanguageModelV3Middleware } from "ai"`}
+  text={`import { LanguageModelV4Middleware } from "ai"`}
   prompt={false}
 />
 
@@ -33,40 +33,40 @@ See [Language Model Middleware](/docs/ai-sdk-core/middleware) for more informati
     },
     {
       name: 'transformParams',
-      type: '({ type: "generate" | "stream", params: LanguageModelV3CallOptions, model: LanguageModelV3 }) => PromiseLike<LanguageModelV3CallOptions>',
+      type: '({ type: "generate" | "stream", params: LanguageModelV4CallOptions, model: LanguageModelV4 }) => PromiseLike<LanguageModelV4CallOptions>',
       isOptional: true,
       description:
         'Transforms the parameters before they are passed to the language model.',
     },
     {
       name: 'wrapGenerate',
-      type: '({ doGenerate: () => PromiseLike<LanguageModelV3GenerateResult>, doStream: () => PromiseLike<LanguageModelV3StreamResult>, params: LanguageModelV3CallOptions, model: LanguageModelV3 }) => PromiseLike<LanguageModelV3GenerateResult>',
+      type: '({ doGenerate: () => PromiseLike<LanguageModelV4GenerateResult>, doStream: () => PromiseLike<LanguageModelV4StreamResult>, params: LanguageModelV4CallOptions, model: LanguageModelV4 }) => PromiseLike<LanguageModelV4GenerateResult>',
       isOptional: true,
       description:
         'Wraps the generate operation of the language model. Receives both doGenerate and doStream functions.',
     },
     {
       name: 'wrapStream',
-      type: '({ doGenerate: () => PromiseLike<LanguageModelV3GenerateResult>, doStream: () => PromiseLike<LanguageModelV3StreamResult>, params: LanguageModelV3CallOptions, model: LanguageModelV3 }) => PromiseLike<LanguageModelV3StreamResult>',
+      type: '({ doGenerate: () => PromiseLike<LanguageModelV4GenerateResult>, doStream: () => PromiseLike<LanguageModelV4StreamResult>, params: LanguageModelV4CallOptions, model: LanguageModelV4 }) => PromiseLike<LanguageModelV4StreamResult>',
       isOptional: true,
       description:
         'Wraps the stream operation of the language model. Receives both doGenerate and doStream functions.',
     },
     {
       name: 'overrideProvider',
-      type: '(options: { model: LanguageModelV3 }) => string',
+      type: '(options: { model: LanguageModelV4 }) => string',
       isOptional: true,
       description: 'Override the provider ID of the model.',
     },
     {
       name: 'overrideModelId',
-      type: '(options: { model: LanguageModelV3 }) => string',
+      type: '(options: { model: LanguageModelV4 }) => string',
       isOptional: true,
       description: 'Override the model ID of the model.',
     },
     {
       name: 'overrideSupportedUrls',
-      type: '(options: { model: LanguageModelV3 }) => PromiseLike<Record<string, RegExp[]>> | Record<string, RegExp[]>',
+      type: '(options: { model: LanguageModelV4 }) => PromiseLike<Record<string, RegExp[]>> | Record<string, RegExp[]>',
       isOptional: true,
       description: 'Override the supported URLs for the model.',
     },

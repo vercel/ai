@@ -19,4 +19,5 @@ export type KlingAIVideoModelId =
   | 'kling-v3.0-i2v'
   // Motion Control
   | 'kling-v2.6-motion-control'
+  | 'kling-v3.0-motion-control'
   | (string & {});

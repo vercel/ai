@@ -1,7 +1,9 @@
 import {
-  type ImageModelV3,
+  type Experimental_VideoModelV4,
+  type ImageModelV4,
+  type LanguageModelV4,
   NoSuchModelError,
-  type ProviderV3,
+  type ProviderV4,
 } from '@ai-sdk/provider';
 import type { FetchFunction } from '@ai-sdk/provider-utils';
 import {
@@ -11,6 +13,10 @@ import {
 } from '@ai-sdk/provider-utils';
 import { ProdiaImageModel } from './prodia-image-model';
 import type { ProdiaImageModelId } from './prodia-image-settings';
+import { ProdiaLanguageModel } from './prodia-language-model';
+import type { ProdiaLanguageModelId } from './prodia-language-model-settings';
+import { ProdiaVideoModel } from './prodia-video-model';
+import type { ProdiaVideoModelId } from './prodia-video-model-settings';
 import { VERSION } from './version';
 
 export interface ProdiaProviderSettings {
@@ -36,16 +42,31 @@ export interface ProdiaProviderSettings {
   fetch?: FetchFunction;
 }
 
-export interface ProdiaProvider extends ProviderV3 {
+export interface ProdiaProvider extends ProviderV4 {
   /**
-   * Creates a model for image generation.
+   * Creates a language model for multimodal generation (img2img with text+image output).
    */
-  image(modelId: ProdiaImageModelId): ImageModelV3;
+  languageModel(modelId: ProdiaLanguageModelId): LanguageModelV4;
 
   /**
    * Creates a model for image generation.
    */
-  imageModel(modelId: ProdiaImageModelId): ImageModelV3;
+  image(modelId: ProdiaImageModelId): ImageModelV4;
+
+  /**
+   * Creates a model for image generation.
+   */
+  imageModel(modelId: ProdiaImageModelId): ImageModelV4;
+
+  /**
+   * Creates a model for video generation.
+   */
+  video(modelId: ProdiaVideoModelId): Experimental_VideoModelV4;
+
+  /**
+   * Creates a model for video generation.
+   */
+  videoModel(modelId: ProdiaVideoModelId): Experimental_VideoModelV4;
 
   /**
    * @deprecated Use `embeddingModel` instead.
@@ -80,6 +101,22 @@ export function createProdia(
       fetch: options.fetch,
     });
 
+  const createLanguageModel = (modelId: ProdiaLanguageModelId) =>
+    new ProdiaLanguageModel(modelId, {
+      provider: 'prodia.language',
+      baseURL: baseURL ?? defaultBaseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+
+  const createVideoModel = (modelId: ProdiaVideoModelId) =>
+    new ProdiaVideoModel(modelId, {
+      provider: 'prodia.video',
+      baseURL: baseURL ?? defaultBaseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+
   const embeddingModel = (modelId: string) => {
     throw new NoSuchModelError({
       modelId,
@@ -87,18 +124,13 @@ export function createProdia(
     });
   };
 
-  const languageModel = (modelId: string) => {
-    throw new NoSuchModelError({
-      modelId,
-      modelType: 'languageModel',
-    });
-  };
-
   return {
-    specificationVersion: 'v3',
+    specificationVersion: 'v4',
+    languageModel: createLanguageModel,
     imageModel: createImageModel,
     image: createImageModel,
-    languageModel,
+    videoModel: createVideoModel,
+    video: createVideoModel,
     embeddingModel,
     textEmbeddingModel: embeddingModel,
   };

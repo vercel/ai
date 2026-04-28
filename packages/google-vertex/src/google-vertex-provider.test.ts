@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { createVertex } from './google-vertex-provider';
-import { GoogleGenerativeAILanguageModel } from '@ai-sdk/google/internal';
+import { GoogleLanguageModel } from '@ai-sdk/google/internal';
 import { GoogleVertexEmbeddingModel } from './google-vertex-embedding-model';
 import { GoogleVertexImageModel } from './google-vertex-image-model';
 import { GoogleVertexVideoModel } from './google-vertex-video-model';
@@ -35,7 +35,7 @@ vi.mock('@ai-sdk/provider-utils', async importOriginal => {
 });
 
 vi.mock('@ai-sdk/google/internal', () => ({
-  GoogleGenerativeAILanguageModel: vi.fn(),
+  GoogleLanguageModel: vi.fn(),
   googleTools: {
     googleSearch: vi.fn(),
     urlContext: vi.fn(),
@@ -73,7 +73,7 @@ describe('google-vertex-provider', () => {
     });
     provider('test-model-id');
 
-    expect(GoogleGenerativeAILanguageModel).toHaveBeenCalledWith(
+    expect(GoogleLanguageModel).toHaveBeenCalledWith(
       'test-model-id',
       expect.objectContaining({
         provider: 'google.vertex.chat',
@@ -120,7 +120,7 @@ describe('google-vertex-provider', () => {
     });
     provider('test-model-id');
 
-    expect(GoogleGenerativeAILanguageModel).toHaveBeenCalledWith(
+    expect(GoogleLanguageModel).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
         headers: expect.any(Function),
@@ -137,7 +137,7 @@ describe('google-vertex-provider', () => {
     });
     provider('test-model-id');
 
-    expect(GoogleGenerativeAILanguageModel).toHaveBeenCalledWith(
+    expect(GoogleLanguageModel).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
         generateId: customGenerateId,
@@ -152,7 +152,7 @@ describe('google-vertex-provider', () => {
     });
     provider.languageModel('test-model-id');
 
-    expect(GoogleGenerativeAILanguageModel).toHaveBeenCalledWith(
+    expect(GoogleLanguageModel).toHaveBeenCalledWith(
       'test-model-id',
       expect.any(Object),
     );
@@ -167,7 +167,7 @@ describe('google-vertex-provider', () => {
     });
     provider('test-model-id');
 
-    expect(GoogleGenerativeAILanguageModel).toHaveBeenCalledWith(
+    expect(GoogleLanguageModel).toHaveBeenCalledWith(
       'test-model-id',
       expect.objectContaining({
         baseURL: customBaseURL,
@@ -200,7 +200,7 @@ describe('google-vertex-provider', () => {
     });
     provider('test-model-id');
 
-    expect(GoogleGenerativeAILanguageModel).toHaveBeenCalledWith(
+    expect(GoogleLanguageModel).toHaveBeenCalledWith(
       'test-model-id',
       expect.objectContaining({
         provider: 'google.vertex.chat',
@@ -267,7 +267,7 @@ describe('google-vertex-provider', () => {
     });
     provider('test-model-id');
 
-    expect(GoogleGenerativeAILanguageModel).toHaveBeenCalledWith(
+    expect(GoogleLanguageModel).toHaveBeenCalledWith(
       'test-model-id',
       expect.objectContaining({
         provider: 'google.vertex.chat',
@@ -285,7 +285,7 @@ describe('google-vertex-provider', () => {
     });
     provider('test-model-id');
 
-    expect(GoogleGenerativeAILanguageModel).toHaveBeenCalledWith(
+    expect(GoogleLanguageModel).toHaveBeenCalledWith(
       'test-model-id',
       expect.objectContaining({
         baseURL: 'https://aiplatform.googleapis.com/v1/publishers/google',
@@ -299,8 +299,7 @@ describe('google-vertex-provider', () => {
     });
     provider('test-model-id');
 
-    const calledConfig = vi.mocked(GoogleGenerativeAILanguageModel).mock
-      .calls[0][1];
+    const calledConfig = vi.mocked(GoogleLanguageModel).mock.calls[0][1];
     const customFetch = calledConfig.fetch;
 
     expect(customFetch).toBeDefined();

@@ -44,7 +44,7 @@ export function convertToLanguageModelV4DataContent(
   if (typeof content === 'string') {
     try {
       content = new URL(content);
-    } catch (error) {
+    } catch {
       // ignored
     }
   }
@@ -128,7 +128,7 @@ export function convertDataContentToUint8Array(
 export function convertUint8ArrayToText(uint8Array: Uint8Array): string {
   try {
     return new TextDecoder().decode(uint8Array);
-  } catch (error) {
+  } catch {
     throw new Error('Error decoding Uint8Array to text');
   }
 }

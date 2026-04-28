@@ -1,7 +1,7 @@
 import {
-  LanguageModelV3,
+  LanguageModelV4,
   NoSuchModelError,
-  ProviderV3,
+  ProviderV4,
 } from '@ai-sdk/provider';
 import { OpenAICompatibleChatLanguageModel } from '@ai-sdk/openai-compatible';
 import {
@@ -33,16 +33,16 @@ export interface VercelProviderSettings {
   fetch?: FetchFunction;
 }
 
-export interface VercelProvider extends ProviderV3 {
+export interface VercelProvider extends ProviderV4 {
   /**
    * Creates a model for text generation.
    */
-  (modelId: VercelChatModelId): LanguageModelV3;
+  (modelId: VercelChatModelId): LanguageModelV4;
 
   /**
    * Creates a language model for text generation.
    */
-  languageModel(modelId: VercelChatModelId): LanguageModelV3;
+  languageModel(modelId: VercelChatModelId): LanguageModelV4;
 
   /**
    * @deprecated Use `embeddingModel` instead.
@@ -91,7 +91,7 @@ export function createVercel(
 
   const provider = (modelId: VercelChatModelId) => createChatModel(modelId);
 
-  provider.specificationVersion = 'v3' as const;
+  provider.specificationVersion = 'v4' as const;
   provider.languageModel = createChatModel;
   provider.embeddingModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'embeddingModel' });

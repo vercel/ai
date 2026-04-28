@@ -1,4 +1,4 @@
-import { LanguageModelV3Usage } from '@ai-sdk/provider';
+import { LanguageModelV4Usage } from '@ai-sdk/provider';
 import { jsonSchema, tool } from '@ai-sdk/provider-utils';
 import {
   convertAsyncIterableToArray,
@@ -16,7 +16,7 @@ import {
 import { streamText } from '../generate-text';
 import * as logWarningsModule from '../logger/log-warnings';
 import { wrapLanguageModel } from '../middleware/wrap-language-model';
-import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
+import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import { simulateStreamingMiddleware } from './simulate-streaming-middleware';
 
 const DEFAULT_SETTINGs = {
@@ -27,7 +27,7 @@ const DEFAULT_SETTINGs = {
   },
 };
 
-const testUsage: LanguageModelV3Usage = {
+const testUsage: LanguageModelV4Usage = {
   inputTokens: {
     total: 5,
     noCache: 5,
@@ -58,7 +58,7 @@ describe('simulateStreamingMiddleware', () => {
   });
 
   it('should simulate streaming with text response', async () => {
-    const mockModel = new MockLanguageModelV3({
+    const mockModel = new MockLanguageModelV4({
       async doGenerate() {
         return {
           content: [{ type: 'text', text: 'This is a test response' }],
@@ -157,7 +157,7 @@ describe('simulateStreamingMiddleware', () => {
   });
 
   it('should simulate streaming with reasoning as string', async () => {
-    const mockModel = new MockLanguageModelV3({
+    const mockModel = new MockLanguageModelV4({
       async doGenerate() {
         return {
           content: [
@@ -278,7 +278,7 @@ describe('simulateStreamingMiddleware', () => {
   });
 
   it('should simulate streaming with reasoning as array of text objects', async () => {
-    const mockModel = new MockLanguageModelV3({
+    const mockModel = new MockLanguageModelV4({
       async doGenerate() {
         return {
           content: [
@@ -445,7 +445,7 @@ describe('simulateStreamingMiddleware', () => {
   });
 
   it('should simulate streaming with reasoning as array of mixed objects', async () => {
-    const mockModel = new MockLanguageModelV3({
+    const mockModel = new MockLanguageModelV4({
       async doGenerate() {
         return {
           content: [
@@ -594,7 +594,7 @@ describe('simulateStreamingMiddleware', () => {
   });
 
   it('should simulate streaming with tool calls', async () => {
-    const mockModel = new MockLanguageModelV3({
+    const mockModel = new MockLanguageModelV4({
       async doGenerate() {
         return {
           content: [
@@ -746,7 +746,7 @@ describe('simulateStreamingMiddleware', () => {
   });
 
   it('should preserve additional metadata in the response', async () => {
-    const mockModel = new MockLanguageModelV3({
+    const mockModel = new MockLanguageModelV4({
       async doGenerate() {
         return {
           content: [{ type: 'text', text: 'This is a test response' }],
@@ -850,7 +850,7 @@ describe('simulateStreamingMiddleware', () => {
   });
 
   it('should handle empty text response', async () => {
-    const mockModel = new MockLanguageModelV3({
+    const mockModel = new MockLanguageModelV4({
       async doGenerate() {
         return {
           content: [{ type: 'text', text: '' }],
@@ -875,7 +875,7 @@ describe('simulateStreamingMiddleware', () => {
   });
 
   it('should pass through warnings from the model', async () => {
-    const mockModel = new MockLanguageModelV3({
+    const mockModel = new MockLanguageModelV4({
       async doGenerate() {
         return {
           content: [{ type: 'text', text: 'This is a test response' }],

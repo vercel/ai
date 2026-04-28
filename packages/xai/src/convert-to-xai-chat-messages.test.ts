@@ -91,6 +91,81 @@ describe('convertToXaiChatMessages', () => {
     ]);
   });
 
+  it('should convert image file parts with provider reference', () => {
+    const { messages, warnings } = convertToXaiChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            mediaType: 'image/png',
+            data: { xai: 'file-abc123', openai: 'file-xyz789' },
+          },
+        ],
+      },
+    ]);
+
+    expect(warnings).toEqual([]);
+    expect(messages).toEqual([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            file: { file_id: 'file-abc123' },
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should convert non-image file parts with provider reference', () => {
+    const { messages, warnings } = convertToXaiChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            mediaType: 'application/pdf',
+            data: { xai: 'file-pdf456' },
+          },
+        ],
+      },
+    ]);
+
+    expect(warnings).toEqual([]);
+    expect(messages).toEqual([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            file: { file_id: 'file-pdf456' },
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should throw error when provider reference is missing xai key', () => {
+    expect(() => {
+      convertToXaiChatMessages([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              mediaType: 'image/png',
+              data: { openai: 'file-xyz789' },
+            },
+          ],
+        },
+      ]);
+    }).toThrow(
+      "No provider reference found for provider 'xai'. Available providers: openai",
+    );
+  });
+
   it('should throw error for unsupported file types', () => {
     expect(() => {
       convertToXaiChatMessages([

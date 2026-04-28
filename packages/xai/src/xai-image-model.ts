@@ -1,4 +1,4 @@
-import { ImageModelV3, SharedV3Warning } from '@ai-sdk/provider';
+import { ImageModelV4, SharedV4Warning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   convertImageModelFileToDataUri,
@@ -9,6 +9,9 @@ import {
   getFromApi,
   parseProviderOptions,
   postJsonToApi,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { xaiFailedResponseHandler } from './xai-error';
@@ -18,19 +21,33 @@ import { XaiImageModelId } from './xai-image-settings';
 interface XaiImageModelConfig {
   provider: string;
   baseURL: string | undefined;
-  headers: () => Record<string, string | undefined>;
+  headers?: () => Record<string, string | undefined>;
   fetch?: FetchFunction;
   _internal?: {
     currentDate?: () => Date;
   };
 }
 
-export class XaiImageModel implements ImageModelV3 {
-  readonly specificationVersion = 'v3';
-  readonly maxImagesPerCall = 1;
+export class XaiImageModel implements ImageModelV4 {
+  readonly specificationVersion = 'v4';
+  readonly maxImagesPerCall = 3;
 
   get provider(): string {
     return this.config.provider;
+  }
+
+  static [WORKFLOW_SERIALIZE](model: XaiImageModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: XaiImageModelId;
+    config: XaiImageModelConfig;
+  }) {
+    return new XaiImageModel(options.modelId, options.config);
   }
 
   constructor(
@@ -49,10 +66,10 @@ export class XaiImageModel implements ImageModelV3 {
     abortSignal,
     files,
     mask,
-  }: Parameters<ImageModelV3['doGenerate']>[0]): Promise<
-    Awaited<ReturnType<ImageModelV3['doGenerate']>>
+  }: Parameters<ImageModelV4['doGenerate']>[0]): Promise<
+    Awaited<ReturnType<ImageModelV4['doGenerate']>>
   > {
-    const warnings: Array<SharedV3Warning> = [];
+    const warnings: Array<SharedV4Warning> = [];
 
     if (size != null) {
       warnings.push({
@@ -84,19 +101,9 @@ export class XaiImageModel implements ImageModelV3 {
     });
 
     const hasFiles = files != null && files.length > 0;
-    let imageUrl: string | undefined;
-
-    if (hasFiles) {
-      imageUrl = convertImageModelFileToDataUri(files[0]);
-
-      if (files.length > 1) {
-        warnings.push({
-          type: 'other',
-          message:
-            'xAI only supports a single input image. Additional images are ignored.',
-        });
-      }
-    }
+    const imageUrls = hasFiles
+      ? files.map(file => convertImageModelFileToDataUri(file))
+      : [];
 
     const endpoint = hasFiles ? '/images/edits' : '/images/generations';
 
@@ -104,7 +111,7 @@ export class XaiImageModel implements ImageModelV3 {
       model: this.modelId,
       prompt,
       n,
-      response_format: 'url',
+      response_format: 'b64_json',
     };
 
     if (aspectRatio != null) {
@@ -127,15 +134,25 @@ export class XaiImageModel implements ImageModelV3 {
       body.resolution = xaiOptions.resolution;
     }
 
-    if (imageUrl != null) {
-      body.image = { url: imageUrl, type: 'image_url' };
+    if (xaiOptions?.quality != null) {
+      body.quality = xaiOptions.quality;
+    }
+
+    if (xaiOptions?.user != null) {
+      body.user = xaiOptions.user;
+    }
+
+    if (imageUrls.length === 1) {
+      body.image = { url: imageUrls[0], type: 'image_url' };
+    } else if (imageUrls.length > 1) {
+      body.images = imageUrls.map(url => ({ url, type: 'image_url' }));
     }
 
     const baseURL = this.config.baseURL ?? 'https://api.x.ai/v1';
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { value: response, responseHeaders } = await postJsonToApi({
       url: `${baseURL}${endpoint}`,
-      headers: combineHeaders(this.config.headers(), headers),
+      headers: combineHeaders(this.config.headers?.(), headers),
       body,
       failedResponseHandler: xaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -145,12 +162,18 @@ export class XaiImageModel implements ImageModelV3 {
       fetch: this.config.fetch,
     });
 
-    const downloadedImages = await Promise.all(
-      response.data.map(image => this.downloadImage(image.url, abortSignal)),
-    );
+    const hasAllBase64 = response.data.every(image => image.b64_json != null);
+
+    const images = hasAllBase64
+      ? response.data.map(image => image.b64_json!)
+      : await Promise.all(
+          response.data.map(image =>
+            this.downloadImage(image.url!, abortSignal),
+          ),
+        );
 
     return {
-      images: downloadedImages,
+      images,
       warnings,
       response: {
         timestamp: currentDate,
@@ -164,6 +187,9 @@ export class XaiImageModel implements ImageModelV3 {
               ? { revisedPrompt: item.revised_prompt }
               : {}),
           })),
+          ...(response.usage?.cost_in_usd_ticks != null
+            ? { costInUsdTicks: response.usage.cost_in_usd_ticks }
+            : {}),
         },
       },
     };
@@ -187,8 +213,14 @@ export class XaiImageModel implements ImageModelV3 {
 const xaiImageResponseSchema = z.object({
   data: z.array(
     z.object({
-      url: z.string(),
+      url: z.string().nullish(),
+      b64_json: z.string().nullish(),
       revised_prompt: z.string().nullish(),
     }),
   ),
+  usage: z
+    .object({
+      cost_in_usd_ticks: z.number().nullish(),
+    })
+    .nullish(),
 });

@@ -4,25 +4,30 @@ import {
   prepareTools,
 } from '@ai-sdk/openai-compatible/internal';
 import {
-  InvalidResponseDataError,
-  type LanguageModelV3,
-  type LanguageModelV3CallOptions,
-  type LanguageModelV3Content,
-  type LanguageModelV3FinishReason,
-  type LanguageModelV3GenerateResult,
-  type LanguageModelV3StreamPart,
-  type LanguageModelV3StreamResult,
-  type SharedV3Warning,
+  type LanguageModelV4,
+  type LanguageModelV4CallOptions,
+  type LanguageModelV4Content,
+  type LanguageModelV4FinishReason,
+  type LanguageModelV4GenerateResult,
+  type LanguageModelV4StreamPart,
+  type LanguageModelV4StreamResult,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   generateId,
-  isParsableJson,
+  type InferSchema,
+  isCustomReasoning,
+  mapReasoningToProviderBudget,
   parseProviderOptions,
   postJsonToApi,
   type ParseResult,
+  serializeModelOptions,
+  StreamingToolCallTracker,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import {
@@ -38,17 +43,31 @@ import { CacheControlValidator } from './get-cache-control';
 /**
  * Alibaba language model implementation.
  *
- * Implements LanguageModelV3 interface for Alibaba Cloud's Qwen models.
+ * Implements LanguageModelV4 interface for Alibaba Cloud's Qwen models.
  * Supports OpenAI-compatible chat completions API with Alibaba-specific features:
  * - Reasoning/thinking mode (enable_thinking, reasoning_content)
  * - Thinking budget control (thinking_budget)
  * - Prompt caching (cached_tokens tracking)
  */
-export class AlibabaLanguageModel implements LanguageModelV3 {
-  readonly specificationVersion = 'v3';
+export class AlibabaLanguageModel implements LanguageModelV4 {
+  readonly specificationVersion = 'v4';
   readonly modelId: AlibabaChatModelId;
 
   private readonly config: AlibabaConfig;
+
+  static [WORKFLOW_SERIALIZE](model: AlibabaLanguageModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: AlibabaChatModelId;
+    config: AlibabaConfig;
+  }) {
+    return new AlibabaLanguageModel(options.modelId, options.config);
+  }
 
   constructor(modelId: AlibabaChatModelId, config: AlibabaConfig) {
     this.modelId = modelId;
@@ -78,11 +97,12 @@ export class AlibabaLanguageModel implements LanguageModelV3 {
     stopSequences,
     responseFormat,
     seed,
+    reasoning,
     providerOptions,
     tools,
     toolChoice,
-  }: LanguageModelV3CallOptions) {
-    const warnings: SharedV3Warning[] = [];
+  }: LanguageModelV4CallOptions) {
+    const warnings: SharedV4Warning[] = [];
 
     const cacheControlValidator = new CacheControlValidator();
 
@@ -121,13 +141,11 @@ export class AlibabaLanguageModel implements LanguageModelV3 {
             : { type: 'json_object' }
           : undefined,
 
-      // Alibaba-specific options
-      ...(alibabaOptions?.enableThinking != null
-        ? { enable_thinking: alibabaOptions.enableThinking }
-        : {}),
-      ...(alibabaOptions?.thinkingBudget != null
-        ? { thinking_budget: alibabaOptions.thinkingBudget }
-        : {}),
+      ...resolveAlibabaThinking({
+        reasoning,
+        alibabaOptions,
+        warnings,
+      }),
 
       // Convert messages with cache control support
       messages: convertToAlibabaChatMessages({
@@ -160,8 +178,8 @@ export class AlibabaLanguageModel implements LanguageModelV3 {
   }
 
   async doGenerate(
-    options: LanguageModelV3CallOptions,
-  ): Promise<LanguageModelV3GenerateResult> {
+    options: LanguageModelV4CallOptions,
+  ): Promise<LanguageModelV4GenerateResult> {
     const { args, warnings } = await this.getArgs(options);
 
     const {
@@ -170,7 +188,7 @@ export class AlibabaLanguageModel implements LanguageModelV3 {
       rawValue: rawResponse,
     } = await postJsonToApi({
       url: `${this.config.baseURL}/chat/completions`,
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body: args,
       failedResponseHandler: alibabaFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -181,7 +199,7 @@ export class AlibabaLanguageModel implements LanguageModelV3 {
     });
 
     const choice = response.choices[0];
-    const content: Array<LanguageModelV3Content> = [];
+    const content: Array<LanguageModelV4Content> = [];
 
     // text content:
     const text = choice.message.content;
@@ -203,7 +221,7 @@ export class AlibabaLanguageModel implements LanguageModelV3 {
       for (const toolCall of choice.message.tool_calls) {
         content.push({
           type: 'tool-call',
-          toolCallId: toolCall.id,
+          toolCallId: toolCall.id ?? generateId(),
           toolName: toolCall.function.name,
           input: toolCall.function.arguments!,
         });
@@ -228,8 +246,8 @@ export class AlibabaLanguageModel implements LanguageModelV3 {
   }
 
   async doStream(
-    options: LanguageModelV3CallOptions,
-  ): Promise<LanguageModelV3StreamResult> {
+    options: LanguageModelV4CallOptions,
+  ): Promise<LanguageModelV4StreamResult> {
     const { args, warnings } = await this.getArgs(options);
     const body = {
       ...args,
@@ -241,7 +259,7 @@ export class AlibabaLanguageModel implements LanguageModelV3 {
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/chat/completions`,
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body,
       failedResponseHandler: alibabaFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(
@@ -252,7 +270,7 @@ export class AlibabaLanguageModel implements LanguageModelV3 {
     });
 
     // Track state across chunks
-    let finishReason: LanguageModelV3FinishReason = {
+    let finishReason: LanguageModelV4FinishReason = {
       unified: 'other',
       raw: undefined,
     };
@@ -262,21 +280,18 @@ export class AlibabaLanguageModel implements LanguageModelV3 {
     let activeText = false;
     let activeReasoningId: string | null = null;
 
-    // Track tool calls for accumulation across chunks
-    const toolCalls: Array<{
-      id: string;
-      type: 'function';
-      function: { name: string; arguments: string };
-      hasFinished: boolean;
-    }> = [];
+    let toolCallTracker: StreamingToolCallTracker;
 
     return {
       stream: response.pipeThrough(
         new TransformStream<
           ParseResult<z.infer<typeof alibabaChatChunkSchema>>,
-          LanguageModelV3StreamPart
+          LanguageModelV4StreamPart
         >({
           start(controller) {
+            toolCallTracker = new StreamingToolCallTracker(controller, {
+              generateId,
+            });
             controller.enqueue({ type: 'stream-start', warnings });
           },
 
@@ -381,106 +396,7 @@ export class AlibabaLanguageModel implements LanguageModelV3 {
               }
 
               for (const toolCallDelta of delta.tool_calls) {
-                const index = toolCallDelta.index ?? toolCalls.length;
-
-                // New tool call - first chunk with id and name
-                if (toolCalls[index] == null) {
-                  if (toolCallDelta.id == null) {
-                    throw new InvalidResponseDataError({
-                      data: toolCallDelta,
-                      message: `Expected 'id' to be a string.`,
-                    });
-                  }
-
-                  if (toolCallDelta.function?.name == null) {
-                    throw new InvalidResponseDataError({
-                      data: toolCallDelta,
-                      message: `Expected 'function.name' to be a string.`,
-                    });
-                  }
-
-                  controller.enqueue({
-                    type: 'tool-input-start',
-                    id: toolCallDelta.id,
-                    toolName: toolCallDelta.function.name,
-                  });
-
-                  toolCalls[index] = {
-                    id: toolCallDelta.id,
-                    type: 'function',
-                    function: {
-                      name: toolCallDelta.function.name,
-                      arguments: toolCallDelta.function.arguments ?? '',
-                    },
-                    hasFinished: false,
-                  };
-
-                  const toolCall = toolCalls[index];
-
-                  // Send initial delta if arguments started
-                  if (toolCall.function.arguments.length > 0) {
-                    controller.enqueue({
-                      type: 'tool-input-delta',
-                      id: toolCall.id,
-                      delta: toolCall.function.arguments,
-                    });
-                  }
-
-                  // Check if already complete (some providers send full tool call at once)
-                  if (isParsableJson(toolCall.function.arguments)) {
-                    controller.enqueue({
-                      type: 'tool-input-end',
-                      id: toolCall.id,
-                    });
-
-                    controller.enqueue({
-                      type: 'tool-call',
-                      toolCallId: toolCall.id,
-                      toolName: toolCall.function.name,
-                      input: toolCall.function.arguments,
-                    });
-
-                    toolCall.hasFinished = true;
-                  }
-
-                  continue;
-                }
-
-                // Existing tool call - accumulate arguments
-                const toolCall = toolCalls[index];
-
-                if (toolCall.hasFinished) {
-                  continue;
-                }
-
-                // Append arguments if not null (skip arguments: null chunks)
-                if (toolCallDelta.function?.arguments != null) {
-                  toolCall.function.arguments +=
-                    toolCallDelta.function.arguments;
-
-                  controller.enqueue({
-                    type: 'tool-input-delta',
-                    id: toolCall.id,
-                    delta: toolCallDelta.function.arguments,
-                  });
-                }
-
-                // Check if tool call is now complete
-                if (isParsableJson(toolCall.function.arguments)) {
-                  controller.enqueue({
-                    type: 'tool-input-end',
-                    id: toolCall.id,
-                  });
-
-                  controller.enqueue({
-                    type: 'tool-call',
-                    toolCallId: toolCall.id,
-                    toolName: toolCall.function.name,
-                    input: toolCall.function.arguments,
-                  });
-
-                  toolCall.hasFinished = true;
-                }
+                toolCallTracker.processDelta(toolCallDelta);
               }
             }
 
@@ -505,6 +421,8 @@ export class AlibabaLanguageModel implements LanguageModelV3 {
               controller.enqueue({ type: 'text-end', id: '0' });
             }
 
+            toolCallTracker.flush();
+
             controller.enqueue({
               type: 'finish',
               finishReason,
@@ -517,6 +435,50 @@ export class AlibabaLanguageModel implements LanguageModelV3 {
       response: { headers: responseHeaders },
     };
   }
+}
+
+function resolveAlibabaThinking({
+  reasoning,
+  alibabaOptions,
+  warnings,
+}: {
+  reasoning: LanguageModelV4CallOptions['reasoning'];
+  alibabaOptions: InferSchema<typeof alibabaLanguageModelOptions> | undefined;
+  warnings: SharedV4Warning[];
+}): { enable_thinking?: boolean; thinking_budget?: number } {
+  if (
+    alibabaOptions?.enableThinking != null ||
+    alibabaOptions?.thinkingBudget != null
+  ) {
+    return {
+      ...(alibabaOptions.enableThinking != null
+        ? { enable_thinking: alibabaOptions.enableThinking }
+        : {}),
+      ...(alibabaOptions.thinkingBudget != null
+        ? { thinking_budget: alibabaOptions.thinkingBudget }
+        : {}),
+    };
+  }
+
+  if (!isCustomReasoning(reasoning)) {
+    return {};
+  }
+
+  if (reasoning === 'none') {
+    return { enable_thinking: false };
+  }
+
+  const thinkingBudget = mapReasoningToProviderBudget({
+    reasoning,
+    maxOutputTokens: 16384,
+    maxReasoningBudget: 16384,
+    warnings,
+  });
+
+  return {
+    enable_thinking: true,
+    ...(thinkingBudget != null ? { thinking_budget: thinkingBudget } : {}),
+  };
 }
 
 /**

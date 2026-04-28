@@ -112,9 +112,9 @@ run(async () => {
         }),
       }),
     },
+    reasoning: 'low',
     providerOptions: {
       anthropic: {
-        thinking: { type: 'enabled', budgetTokens: 5000 },
         contextManagement: {
           edits: [
             {

@@ -43,7 +43,7 @@ export async function parseJSON<T>({
       return value;
     }
 
-    return validateTypes<T>({ value, schema });
+    return await validateTypes<T>({ value, schema });
   } catch (error) {
     if (
       JSONParseError.isInstance(error) ||

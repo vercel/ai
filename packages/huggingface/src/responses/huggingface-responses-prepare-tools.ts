@@ -1,4 +1,4 @@
-import { LanguageModelV3CallOptions, SharedV3Warning } from '@ai-sdk/provider';
+import { LanguageModelV4CallOptions, SharedV4Warning } from '@ai-sdk/provider';
 
 export type HuggingFaceResponsesTool = {
   type: 'function';
@@ -16,17 +16,17 @@ export function prepareResponsesTools({
   tools,
   toolChoice,
 }: {
-  tools: LanguageModelV3CallOptions['tools'];
-  toolChoice?: LanguageModelV3CallOptions['toolChoice'];
+  tools: LanguageModelV4CallOptions['tools'];
+  toolChoice?: LanguageModelV4CallOptions['toolChoice'];
 }): {
   tools?: HuggingFaceResponsesTool[];
   toolChoice?: HuggingFaceResponsesToolChoice;
-  toolWarnings: SharedV3Warning[];
+  toolWarnings: SharedV4Warning[];
 } {
   // when the tools array is empty, change it to undefined to prevent errors:
   tools = tools?.length ? tools : undefined;
 
-  const toolWarnings: SharedV3Warning[] = [];
+  const toolWarnings: SharedV4Warning[] = [];
 
   if (tools == null) {
     return { tools: undefined, toolChoice: undefined, toolWarnings };

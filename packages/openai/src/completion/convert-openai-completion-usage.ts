@@ -1,4 +1,4 @@
-import { LanguageModelV3Usage } from '@ai-sdk/provider';
+import { LanguageModelV4Usage } from '@ai-sdk/provider';
 
 export type OpenAICompletionUsage = {
   prompt_tokens?: number | null;
@@ -8,7 +8,7 @@ export type OpenAICompletionUsage = {
 
 export function convertOpenAICompletionUsage(
   usage: OpenAICompletionUsage | undefined | null,
-): LanguageModelV3Usage {
+): LanguageModelV4Usage {
   if (usage == null) {
     return {
       inputTokens: {

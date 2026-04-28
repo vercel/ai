@@ -4,7 +4,7 @@ import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { OpenAICompatibleImageModel } from './openai-compatible-image-model';
 import { z } from 'zod/v4';
 import { ProviderErrorStructure } from '../openai-compatible-error';
-import { ImageModelV3CallOptions } from '@ai-sdk/provider';
+import { ImageModelV4CallOptions } from '@ai-sdk/provider';
 
 const prompt = 'A photorealistic astronaut riding a horse';
 
@@ -31,7 +31,7 @@ function createBasicModel({
   });
 }
 
-function createDefaultGenerateParams(overrides = {}): ImageModelV3CallOptions {
+function createDefaultGenerateParams(overrides = {}): ImageModelV4CallOptions {
   return {
     prompt: 'A photorealistic astronaut riding a horse',
     files: undefined,
@@ -84,7 +84,7 @@ describe('OpenAICompatibleImageModel', () => {
 
       expect(model.provider).toBe('openai-compatible');
       expect(model.modelId).toBe('dall-e-3');
-      expect(model.specificationVersion).toBe('v3');
+      expect(model.specificationVersion).toBe('v4');
       expect(model.maxImagesPerCall).toBe(10);
     });
   });
@@ -132,6 +132,50 @@ describe('OpenAICompatibleImageModel', () => {
         style: 'vector_illustration',
         response_format: 'b64_json',
       });
+    });
+
+    it('should emit deprecated warning when raw provider options key is used for hyphenated provider', async () => {
+      const model = new OpenAICompatibleImageModel('dall-e-3', {
+        provider: 'black-forest-labs.image',
+        headers: () => ({ Authorization: 'Bearer test-key' }),
+        url: ({ modelId, path }) => `https://api.example.com/${modelId}${path}`,
+      });
+
+      const result = await model.doGenerate(
+        createDefaultGenerateParams({
+          providerOptions: {
+            'black-forest-labs': { quality: 'hd' },
+          },
+        }),
+      );
+
+      expect(result.warnings).toMatchInlineSnapshot(`
+        [
+          {
+            "message": "Use 'blackForestLabs' instead.",
+            "setting": "providerOptions key 'black-forest-labs'",
+            "type": "deprecated",
+          },
+        ]
+      `);
+    });
+
+    it('should not emit deprecated warning when camelCase provider options key is used', async () => {
+      const model = new OpenAICompatibleImageModel('dall-e-3', {
+        provider: 'black-forest-labs.image',
+        headers: () => ({ Authorization: 'Bearer test-key' }),
+        url: ({ modelId, path }) => `https://api.example.com/${modelId}${path}`,
+      });
+
+      const result = await model.doGenerate(
+        createDefaultGenerateParams({
+          providerOptions: {
+            blackForestLabs: { quality: 'hd' },
+          },
+        }),
+      );
+
+      expect(result.warnings).toMatchInlineSnapshot(`[]`);
     });
 
     it('should add warnings for unsupported settings', async () => {

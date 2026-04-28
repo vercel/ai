@@ -1,7 +1,7 @@
 import {
   AISDKError,
-  TranscriptionModelV3,
-  SharedV3Warning,
+  TranscriptionModelV4,
+  SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -12,6 +12,9 @@ import {
   getFromApi,
   parseProviderOptions,
   postJsonToApi,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { FalConfig } from './fal-config';
@@ -67,11 +70,25 @@ interface FalTranscriptionModelConfig extends FalConfig {
   };
 }
 
-export class FalTranscriptionModel implements TranscriptionModelV3 {
-  readonly specificationVersion = 'v3';
+export class FalTranscriptionModel implements TranscriptionModelV4 {
+  readonly specificationVersion = 'v4';
 
   get provider(): string {
     return this.config.provider;
+  }
+
+  static [WORKFLOW_SERIALIZE](model: FalTranscriptionModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: FalTranscriptionModelId;
+    config: FalTranscriptionModelConfig;
+  }) {
+    return new FalTranscriptionModel(options.modelId, options.config);
   }
 
   constructor(
@@ -81,8 +98,8 @@ export class FalTranscriptionModel implements TranscriptionModelV3 {
 
   private async getArgs({
     providerOptions,
-  }: Parameters<TranscriptionModelV3['doGenerate']>[0]) {
-    const warnings: SharedV3Warning[] = [];
+  }: Parameters<TranscriptionModelV4['doGenerate']>[0]) {
+    const warnings: SharedV4Warning[] = [];
 
     // Parse provider options
     const falOptions = await parseProviderOptions({
@@ -121,8 +138,8 @@ export class FalTranscriptionModel implements TranscriptionModelV3 {
   }
 
   async doGenerate(
-    options: Parameters<TranscriptionModelV3['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<TranscriptionModelV3['doGenerate']>>> {
+    options: Parameters<TranscriptionModelV4['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<TranscriptionModelV4['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { body, warnings } = await this.getArgs(options);
 
@@ -138,7 +155,7 @@ export class FalTranscriptionModel implements TranscriptionModelV3 {
         path: `https://queue.fal.run/fal-ai/${this.modelId}`,
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body: {
         ...body,
         audio_url: audioUrl,
@@ -170,7 +187,7 @@ export class FalTranscriptionModel implements TranscriptionModelV3 {
             path: `https://queue.fal.run/fal-ai/${this.modelId}/requests/${queueResponse.request_id}`,
             modelId: this.modelId,
           }),
-          headers: combineHeaders(this.config.headers(), options.headers),
+          headers: combineHeaders(this.config.headers?.(), options.headers),
           failedResponseHandler: async ({
             requestBodyValues,
             response,

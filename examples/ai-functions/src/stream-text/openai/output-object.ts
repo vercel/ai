@@ -1,5 +1,5 @@
 import { openai, OpenAILanguageModelResponsesOptions } from '@ai-sdk/openai';
-import { Output, stepCountIs, streamText } from 'ai';
+import { Output, isStepCount, streamText } from 'ai';
 import { z } from 'zod';
 import { print } from '../../lib/print';
 import { run } from '../../lib/run';
@@ -16,7 +16,7 @@ run(async () => {
     tools: {
       weather: weatherTool,
     },
-    stopWhen: stepCountIs(5),
+    stopWhen: isStepCount(5),
     output: Output.object({
       schema: z.object({
         elements: z.array(

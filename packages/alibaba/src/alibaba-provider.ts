@@ -1,8 +1,8 @@
 import {
-  type Experimental_VideoModelV3,
-  type LanguageModelV3,
+  type Experimental_VideoModelV4,
+  type LanguageModelV4,
   NoSuchModelError,
-  type ProviderV3,
+  type ProviderV4,
 } from '@ai-sdk/provider';
 import {
   createJsonErrorResponseHandler,
@@ -33,28 +33,28 @@ export const alibabaFailedResponseHandler = createJsonErrorResponseHandler({
   errorToMessage: data => data.error.message,
 });
 
-export interface AlibabaProvider extends ProviderV3 {
-  (modelId: AlibabaChatModelId): LanguageModelV3;
+export interface AlibabaProvider extends ProviderV4 {
+  (modelId: AlibabaChatModelId): LanguageModelV4;
 
   /**
    * Creates a model for text generation.
    */
-  languageModel(modelId: AlibabaChatModelId): LanguageModelV3;
+  languageModel(modelId: AlibabaChatModelId): LanguageModelV4;
 
   /**
    * Creates a chat model for text generation.
    */
-  chatModel(modelId: AlibabaChatModelId): LanguageModelV3;
+  chatModel(modelId: AlibabaChatModelId): LanguageModelV4;
 
   /**
    * Creates a model for video generation.
    */
-  video(modelId: AlibabaVideoModelId): Experimental_VideoModelV3;
+  video(modelId: AlibabaVideoModelId): Experimental_VideoModelV4;
 
   /**
    * Creates a model for video generation.
    */
-  videoModel(modelId: AlibabaVideoModelId): Experimental_VideoModelV3;
+  videoModel(modelId: AlibabaVideoModelId): Experimental_VideoModelV4;
 }
 
 export interface AlibabaProviderSettings {
@@ -151,7 +151,7 @@ export function createAlibaba(
     return createLanguageModel(modelId);
   };
 
-  provider.specificationVersion = 'v3' as const;
+  provider.specificationVersion = 'v4' as const;
   provider.languageModel = createLanguageModel;
   provider.chatModel = createLanguageModel;
   provider.video = createVideoModel;

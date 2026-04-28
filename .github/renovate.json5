@@ -1,13 +1,13 @@
 {
   // Enable Renovate
   $schema: "https://docs.renovatebot.com/renovate-schema.json",
-  
+
   // Extend from recommended base configuration
   extends: ["config:recommended", ":disableDependencyDashboard"],
-  
+
   // Timezone for schedules (adjust as needed)
   timezone: "America/Los_Angeles",
-  
+
   // Package rules for different update schedules
   packageRules: [
     {
@@ -29,7 +29,11 @@
     {
       // Rule 3: Update all other package.json files on first Friday of each quarter
       description: "Update all other package.json files quarterly",
-      matchFileNames: ["package.json", "examples/*/package.json", "tools/*/package.json"],
+      matchFileNames: [
+        "package.json",
+        "examples/*/package.json",
+        "tools/*/package.json"
+      ],
       // Cron: At 5am on Friday during days 1-7 in Jan, Apr, Jul, Oct
       schedule: ["* 5 1-7 1,4,7,10 5"]
     },
@@ -42,4 +46,3 @@
     }
   ]
 }
-

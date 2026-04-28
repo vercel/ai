@@ -1,5 +1,5 @@
 import {
-  EmbeddingModelV3,
+  EmbeddingModelV4,
   TooManyEmbeddingValuesForCallError,
 } from '@ai-sdk/provider';
 import {
@@ -11,6 +11,9 @@ import {
   parseProviderOptions,
   postJsonToApi,
   resolve,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
 import {
   BedrockEmbeddingModelId,
@@ -21,17 +24,31 @@ import { z } from 'zod/v4';
 
 type BedrockEmbeddingConfig = {
   baseUrl: () => string;
-  headers: Resolvable<Record<string, string | undefined>>;
+  headers?: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
 };
 
-type DoEmbedResponse = Awaited<ReturnType<EmbeddingModelV3['doEmbed']>>;
+type DoEmbedResponse = Awaited<ReturnType<EmbeddingModelV4['doEmbed']>>;
 
-export class BedrockEmbeddingModel implements EmbeddingModelV3 {
-  readonly specificationVersion = 'v3';
+export class BedrockEmbeddingModel implements EmbeddingModelV4 {
+  readonly specificationVersion = 'v4';
   readonly provider = 'amazon-bedrock';
   readonly maxEmbeddingsPerCall = 1;
   readonly supportsParallelCalls = true;
+
+  static [WORKFLOW_SERIALIZE](model: BedrockEmbeddingModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: string;
+    config: BedrockEmbeddingConfig;
+  }) {
+    return new BedrockEmbeddingModel(options.modelId, options.config);
+  }
 
   constructor(
     readonly modelId: BedrockEmbeddingModelId,
@@ -48,7 +65,7 @@ export class BedrockEmbeddingModel implements EmbeddingModelV3 {
     headers,
     abortSignal,
     providerOptions,
-  }: Parameters<EmbeddingModelV3['doEmbed']>[0]): Promise<DoEmbedResponse> {
+  }: Parameters<EmbeddingModelV4['doEmbed']>[0]): Promise<DoEmbedResponse> {
     if (values.length > this.maxEmbeddingsPerCall) {
       throw new TooManyEmbeddingValuesForCallError({
         provider: this.provider,
@@ -107,7 +124,10 @@ export class BedrockEmbeddingModel implements EmbeddingModelV3 {
     const { value: response } = await postJsonToApi({
       url,
       headers: await resolve(
-        combineHeaders(await resolve(this.config.headers), headers),
+        combineHeaders(
+          this.config.headers ? await resolve(this.config.headers) : undefined,
+          headers,
+        ),
       ),
       body: args,
       failedResponseHandler: createJsonErrorResponseHandler({

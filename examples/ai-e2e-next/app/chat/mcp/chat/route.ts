@@ -1,6 +1,6 @@
 import { openai } from '@ai-sdk/openai';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
-import { convertToModelMessages, stepCountIs, streamText } from 'ai';
+import { convertToModelMessages, isStepCount, streamText } from 'ai';
 import { createMCPClient } from '@ai-sdk/mcp';
 
 export async function POST(req: Request) {
@@ -21,7 +21,7 @@ export async function POST(req: Request) {
     const result = streamText({
       model: openai('gpt-4o-mini'),
       tools,
-      stopWhen: stepCountIs(5),
+      stopWhen: isStepCount(5),
       onStepFinish: async ({ toolResults }) => {
         console.log(`STEP RESULTS: ${JSON.stringify(toolResults, null, 2)}`);
       },

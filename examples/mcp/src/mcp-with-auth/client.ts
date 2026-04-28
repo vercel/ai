@@ -1,5 +1,5 @@
 import { openai } from '@ai-sdk/openai';
-import { generateText, stepCountIs } from 'ai';
+import { generateText, isStepCount } from 'ai';
 
 /**
  * @deprecated Use the `@ai-sdk/mcp` package instead.
@@ -199,7 +199,7 @@ async function main() {
   const { text: answer } = await generateText({
     model: openai('gpt-4o-mini'),
     tools,
-    stopWhen: stepCountIs(10),
+    stopWhen: isStepCount(10),
     onStepFinish: async ({ toolResults }) => {
       if (toolResults.length > 0) {
         console.log('Tool execution results:');

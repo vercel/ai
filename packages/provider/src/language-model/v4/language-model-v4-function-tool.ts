@@ -1,5 +1,5 @@
 import { JSONSchema7 } from 'json-schema';
-import { SharedV3ProviderOptions } from '../../shared';
+import { SharedV4ProviderOptions } from '../../shared';
 import { JSONObject } from '../../json-value';
 
 /**
@@ -49,5 +49,5 @@ export type LanguageModelV4FunctionTool = {
   /**
    * The provider-specific options for the tool.
    */
-  providerOptions?: SharedV3ProviderOptions;
+  providerOptions?: SharedV4ProviderOptions;
 };

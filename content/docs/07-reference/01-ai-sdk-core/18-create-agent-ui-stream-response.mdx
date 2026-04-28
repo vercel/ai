@@ -89,7 +89,7 @@ export async function POST(request: Request) {
     },
     {
       name: 'onStepFinish',
-      type: 'ToolLoopAgentOnStepFinishCallback',
+      type: 'GenerateTextOnStepFinishCallback',
       isRequired: false,
       description:
         'Callback invoked after each agent step (LLM/tool call) completes. Useful for tracking token usage or logging intermediate steps.',

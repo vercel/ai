@@ -1,4 +1,4 @@
-import type { LanguageModelV3Prompt } from '@ai-sdk/provider';
+import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
 import {
   convertReadableStreamToArray,
   mockId,
@@ -8,7 +8,7 @@ import fs from 'node:fs';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { PerplexityLanguageModel } from './perplexity-language-model';
 
-const TEST_PROMPT: LanguageModelV3Prompt = [
+const TEST_PROMPT: LanguageModelV4Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
@@ -216,7 +216,7 @@ describe('doGenerate', () => {
   it('should handle PDF files with base64 encoding', async () => {
     prepareJsonFixtureResponse('perplexity-text');
 
-    const prompt: LanguageModelV3Prompt = [
+    const prompt: LanguageModelV4Prompt = [
       {
         role: 'user',
         content: [
@@ -256,7 +256,7 @@ describe('doGenerate', () => {
   it('should handle PDF files with URLs', async () => {
     prepareJsonFixtureResponse('perplexity-text');
 
-    const prompt: LanguageModelV3Prompt = [
+    const prompt: LanguageModelV4Prompt = [
       {
         role: 'user',
         content: [
@@ -326,6 +326,7 @@ describe('doGenerate', () => {
     expect(result.providerMetadata).toMatchInlineSnapshot(`
       {
         "perplexity": {
+          "cost": null,
           "images": [
             {
               "height": 100,
@@ -399,6 +400,7 @@ describe('doGenerate', () => {
     expect(result.providerMetadata).toMatchInlineSnapshot(`
       {
         "perplexity": {
+          "cost": null,
           "images": null,
           "usage": {
             "citationTokens": 30,
@@ -407,6 +409,26 @@ describe('doGenerate', () => {
         },
       }
     `);
+  });
+
+  describe('warnings', () => {
+    beforeEach(() => {
+      prepareJsonFixtureResponse('perplexity-text');
+    });
+
+    it('should warn about unsupported reasoning', async () => {
+      const result = await perplexityModel.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'medium',
+      });
+
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'reasoning',
+        }),
+      );
+    });
   });
 });
 
@@ -577,6 +599,7 @@ describe('doStream', () => {
     expect(finish?.providerMetadata).toMatchInlineSnapshot(`
       {
         "perplexity": {
+          "cost": null,
           "images": [
             {
               "height": 100,
@@ -666,6 +689,7 @@ describe('doStream', () => {
     expect(finish?.providerMetadata).toMatchInlineSnapshot(`
       {
         "perplexity": {
+          "cost": null,
           "images": null,
           "usage": {
             "citationTokens": 30,
@@ -729,7 +753,7 @@ describe('doStream', () => {
           "type": "response-metadata",
         },
         {
-          "id": "id-67",
+          "id": "id-73",
           "sourceType": "url",
           "type": "source",
           "url": "https://example.com",
@@ -844,6 +868,7 @@ describe('doStream', () => {
           },
           "providerMetadata": {
             "perplexity": {
+              "cost": null,
               "images": null,
               "usage": {
                 "citationTokens": null,

@@ -1,5 +1,5 @@
 import { openai } from '@ai-sdk/openai';
-import { generateText, stepCountIs } from 'ai';
+import { generateText, isStepCount } from 'ai';
 import { executeShellCommand } from '../../lib/shell-executor';
 import { run } from '../../lib/run';
 
@@ -19,7 +19,7 @@ run(async () => {
       }),
     },
     prompt: 'Run uname -a',
-    stopWhen: stepCountIs(5),
+    stopWhen: isStepCount(5),
   });
 
   console.log('Turn 1:', result1.text);
@@ -43,7 +43,7 @@ run(async () => {
       ...result1.response.messages,
       { role: 'user', content: 'What architecture do you run in?' },
     ],
-    stopWhen: stepCountIs(5),
+    stopWhen: isStepCount(5),
   });
 
   console.log('Turn 2:', result2.text);

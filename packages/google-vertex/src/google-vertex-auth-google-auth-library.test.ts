@@ -7,7 +7,7 @@ import { GoogleAuth } from 'google-auth-library';
 
 vi.mock('google-auth-library', () => {
   return {
-    GoogleAuth: vi.fn().mockImplementation(() => {
+    GoogleAuth: vi.fn(function () {
       return {
         getClient: vi.fn().mockResolvedValue({
           getAccessToken: vi.fn().mockResolvedValue({ token: 'mocked-token' }),
@@ -33,15 +33,14 @@ describe('generateAuthToken', () => {
     vi.mocked(GoogleAuth).mockReset();
 
     // Create a new mock implementation
-    vi.mocked(GoogleAuth).mockImplementation(
-      () =>
-        ({
-          getClient: vi.fn().mockResolvedValue({
-            getAccessToken: vi.fn().mockResolvedValue({ token: null }),
-          }),
-          isGCE: vi.fn(),
-        }) as unknown as GoogleAuth,
-    );
+    vi.mocked(GoogleAuth).mockImplementation(function () {
+      return {
+        getClient: vi.fn().mockResolvedValue({
+          getAccessToken: vi.fn().mockResolvedValue({ token: null }),
+        }),
+        isGCE: vi.fn(),
+      } as unknown as GoogleAuth;
+    });
 
     const token = await generateAuthToken();
     expect(token).toBeNull();

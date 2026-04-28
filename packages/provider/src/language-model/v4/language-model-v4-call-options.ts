@@ -1,5 +1,5 @@
 import { JSONSchema7 } from 'json-schema';
-import { SharedV3ProviderOptions } from '../../shared/v3/shared-v3-provider-options';
+import { SharedV4ProviderOptions } from '../../shared/v4/shared-v4-provider-options';
 import { LanguageModelV4FunctionTool } from './language-model-v4-function-tool';
 import { LanguageModelV4Prompt } from './language-model-v4-prompt';
 import { LanguageModelV4ProviderTool } from './language-model-v4-provider-tool';
@@ -117,9 +117,22 @@ export type LanguageModelV4CallOptions = {
   headers?: Record<string, string | undefined>;
 
   /**
+   * Reasoning effort level for the model. Controls how much reasoning
+   * the model performs before generating a response. Defaults to 'provider-default'.
+   */
+  reasoning?:
+    | 'provider-default'
+    | 'none'
+    | 'minimal'
+    | 'low'
+    | 'medium'
+    | 'high'
+    | 'xhigh';
+
+  /**
    * Additional provider-specific options. They are passed through
    * to the provider from the AI SDK and enable provider-specific
    * functionality that can be fully encapsulated in the provider.
    */
-  providerOptions?: SharedV3ProviderOptions;
+  providerOptions?: SharedV4ProviderOptions;
 };

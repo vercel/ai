@@ -1,8 +1,7 @@
-import { TypeValidationContext, TypeValidationError } from '@ai-sdk/provider';
+import { TypeValidationError } from '@ai-sdk/provider';
 import {
   FlexibleSchema,
   lazySchema,
-  StandardSchemaV1,
   Tool,
   validateTypes,
   zodSchema,
@@ -42,6 +41,11 @@ const uiMessagesSchema = lazySchema(() =>
                   providerMetadata: providerMetadataSchema.optional(),
                 }),
                 z.object({
+                  type: z.literal('custom'),
+                  kind: z.string(),
+                  providerMetadata: providerMetadataSchema.optional(),
+                }),
+                z.object({
                   type: z.literal('source-url'),
                   sourceId: z.string(),
                   url: z.string(),
@@ -60,6 +64,12 @@ const uiMessagesSchema = lazySchema(() =>
                   type: z.literal('file'),
                   mediaType: z.string(),
                   filename: z.string().optional(),
+                  url: z.string(),
+                  providerMetadata: providerMetadataSchema.optional(),
+                }),
+                z.object({
+                  type: z.literal('reasoning-file'),
+                  mediaType: z.string(),
                   url: z.string(),
                   providerMetadata: providerMetadataSchema.optional(),
                 }),
@@ -109,6 +119,7 @@ const uiMessagesSchema = lazySchema(() =>
                     id: z.string(),
                     approved: z.never().optional(),
                     reason: z.never().optional(),
+                    isAutomatic: z.boolean().optional(),
                   }),
                 }),
                 z.object({
@@ -125,6 +136,7 @@ const uiMessagesSchema = lazySchema(() =>
                     id: z.string(),
                     approved: z.boolean(),
                     reason: z.string().optional(),
+                    isAutomatic: z.boolean().optional(),
                   }),
                 }),
                 z.object({
@@ -144,6 +156,7 @@ const uiMessagesSchema = lazySchema(() =>
                       id: z.string(),
                       approved: z.literal(true),
                       reason: z.string().optional(),
+                      isAutomatic: z.boolean().optional(),
                     })
                     .optional(),
                 }),
@@ -164,6 +177,7 @@ const uiMessagesSchema = lazySchema(() =>
                       id: z.string(),
                       approved: z.literal(true),
                       reason: z.string().optional(),
+                      isAutomatic: z.boolean().optional(),
                     })
                     .optional(),
                 }),
@@ -181,6 +195,7 @@ const uiMessagesSchema = lazySchema(() =>
                     id: z.string(),
                     approved: z.literal(false),
                     reason: z.string().optional(),
+                    isAutomatic: z.boolean().optional(),
                   }),
                 }),
                 z.object({
@@ -218,6 +233,7 @@ const uiMessagesSchema = lazySchema(() =>
                     id: z.string(),
                     approved: z.never().optional(),
                     reason: z.never().optional(),
+                    isAutomatic: z.boolean().optional(),
                   }),
                 }),
                 z.object({
@@ -233,6 +249,7 @@ const uiMessagesSchema = lazySchema(() =>
                     id: z.string(),
                     approved: z.boolean(),
                     reason: z.string().optional(),
+                    isAutomatic: z.boolean().optional(),
                   }),
                 }),
                 z.object({
@@ -251,6 +268,7 @@ const uiMessagesSchema = lazySchema(() =>
                       id: z.string(),
                       approved: z.literal(true),
                       reason: z.string().optional(),
+                      isAutomatic: z.boolean().optional(),
                     })
                     .optional(),
                 }),
@@ -270,6 +288,7 @@ const uiMessagesSchema = lazySchema(() =>
                       id: z.string(),
                       approved: z.literal(true),
                       reason: z.string().optional(),
+                      isAutomatic: z.boolean().optional(),
                     })
                     .optional(),
                 }),
@@ -286,6 +305,7 @@ const uiMessagesSchema = lazySchema(() =>
                     id: z.string(),
                     approved: z.literal(false),
                     reason: z.string().optional(),
+                    isAutomatic: z.boolean().optional(),
                   }),
                 }),
               ]),
@@ -404,6 +424,15 @@ export async function safeValidateUIMessages<UI_MESSAGE extends UIMessage>({
             >;
             const toolName = toolPart.type.slice(5);
             const tool = tools[toolName];
+
+            if (
+              !tool &&
+              (toolPart.state === 'output-available' ||
+                toolPart.state === 'output-error' ||
+                toolPart.state === 'output-denied')
+            ) {
+              continue;
+            }
 
             // TODO support dynamic tools
             if (!tool) {

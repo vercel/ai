@@ -1,6 +1,6 @@
 import {
-  TranscriptionModelV3,
-  ProviderV3,
+  TranscriptionModelV4,
+  ProviderV4,
   NoSuchModelError,
 } from '@ai-sdk/provider';
 import {
@@ -12,7 +12,7 @@ import { RevaiTranscriptionModel } from './revai-transcription-model';
 import { RevaiTranscriptionModelId } from './revai-transcription-options';
 import { VERSION } from './version';
 
-export interface RevaiProvider extends ProviderV3 {
+export interface RevaiProvider extends ProviderV4 {
   (
     modelId: 'machine',
     settings?: {},
@@ -23,7 +23,7 @@ export interface RevaiProvider extends ProviderV3 {
   /**
    * Creates a model for transcription.
    */
-  transcription(modelId: RevaiTranscriptionModelId): TranscriptionModelV3;
+  transcription(modelId: RevaiTranscriptionModelId): TranscriptionModelV4;
 
   /**
    * @deprecated Use `embeddingModel` instead.
@@ -82,7 +82,7 @@ export function createRevai(
     };
   };
 
-  provider.specificationVersion = 'v3' as const;
+  provider.specificationVersion = 'v4' as const;
   provider.transcription = createTranscriptionModel;
   provider.transcriptionModel = createTranscriptionModel;
 

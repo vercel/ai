@@ -1,8 +1,8 @@
-import { LanguageModelV3FinishReason } from '@ai-sdk/provider';
+import { LanguageModelV4FinishReason } from '@ai-sdk/provider';
 
 export function mapCohereFinishReason(
   finishReason: string | null | undefined,
-): LanguageModelV3FinishReason['unified'] {
+): LanguageModelV4FinishReason['unified'] {
   switch (finishReason) {
     case 'COMPLETE':
     case 'STOP_SEQUENCE':

@@ -569,7 +569,7 @@ describe('BlackForestLabsImageModel', () => {
 
       expect(model.provider).toBe('black-forest-labs.image');
       expect(model.modelId).toBe('test-model');
-      expect(model.specificationVersion).toBe('v3');
+      expect(model.specificationVersion).toBe('v4');
       expect(model.maxImagesPerCall).toBe(1);
     });
   });

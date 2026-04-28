@@ -64,7 +64,7 @@ export const createJsonErrorResponseHandler =
           isRetryable: isRetryable?.(response, parsedError),
         }),
       };
-    } catch (parseError) {
+    } catch {
       return {
         responseHeaders,
         value: new APICallError({

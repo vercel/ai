@@ -2,26 +2,24 @@ import { z } from 'zod/v4';
 
 // https://docs.mistral.ai/getting-started/models/models_overview/
 export type MistralChatModelId =
-  // premier
   | 'ministral-3b-latest'
   | 'ministral-8b-latest'
+  | 'ministral-14b-latest'
   | 'mistral-large-latest'
   | 'mistral-medium-latest'
+  | 'mistral-large-2512'
   | 'mistral-medium-2508'
   | 'mistral-medium-2505'
-  | 'mistral-small-latest'
+  | 'mistral-small-2506'
   | 'pixtral-large-latest'
+  // reasoning config support models
+  | 'mistral-small-latest'
+  | 'mistral-small-2603'
   // reasoning models
-  | 'magistral-small-2507'
-  | 'magistral-medium-2507'
-  | 'magistral-small-2506'
-  | 'magistral-medium-2506'
-  // free
-  | 'pixtral-12b-2409'
-  // legacy
-  | 'open-mistral-7b'
-  | 'open-mixtral-8x7b'
-  | 'open-mixtral-8x22b'
+  | 'magistral-medium-latest'
+  | 'magistral-small-latest'
+  | 'magistral-medium-2509'
+  | 'magistral-small-2509'
   | (string & {});
 
 export const mistralLanguageModelOptions = z.object({
@@ -56,6 +54,14 @@ export const mistralLanguageModelOptions = z.object({
    * @default true
    */
   parallelToolCalls: z.boolean().optional(),
+
+  /**
+   * Controls the reasoning effort for models that support adjustable reasoning.
+   *
+   * - `'high'`: Enable reasoning
+   * - `'none'`: Disable reasoning
+   */
+  reasoningEffort: z.enum(['high', 'none']).optional(),
 });
 
 export type MistralLanguageModelOptions = z.infer<

@@ -1,6 +1,6 @@
 import { openai } from '@ai-sdk/openai';
 import { weatherTool } from '../../tools/weather-tool';
-import { stepCountIs, streamText, dynamicTool, ToolSet } from 'ai';
+import { isStepCount, streamText, dynamicTool, ToolSet } from 'ai';
 import { z } from 'zod';
 import { run } from '../../lib/run';
 
@@ -22,7 +22,7 @@ function dynamicTools(): ToolSet {
 run(async () => {
   const result = streamText({
     model: openai('gpt-4o'),
-    stopWhen: stepCountIs(5),
+    stopWhen: isStepCount(5),
     tools: {
       ...dynamicTools(),
       weather: weatherTool,

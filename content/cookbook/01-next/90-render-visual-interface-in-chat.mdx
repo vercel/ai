@@ -211,7 +211,7 @@ import {
   type UIDataTypes,
   type UIMessage,
   convertToModelMessages,
-  stepCountIs,
+  isStepCount,
   streamText,
   tool,
 } from 'ai';
@@ -264,7 +264,7 @@ export async function POST(request: Request) {
     model: 'openai/gpt-4.1',
     messages: await convertToModelMessages(messages),
     tools,
-    stopWhen: stepCountIs(5),
+    stopWhen: isStepCount(5),
   });
 
   return result.toUIMessageStreamResponse();

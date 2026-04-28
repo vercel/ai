@@ -1,197 +1,189 @@
-import { executeTool, ModelMessage } from '@ai-sdk/provider-utils';
-import { Tracer } from '@opentelemetry/api';
-import { notify } from '../util/notify';
-import { assembleOperationName } from '../telemetry/assemble-operation-name';
-import { recordErrorOnSpan, recordSpan } from '../telemetry/record-span';
-import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
-import { TelemetrySettings } from '../telemetry/telemetry-settings';
-import { now } from '../util/now';
+import type {
+  Arrayable,
+  InferToolInput,
+  InferToolSetContext,
+  ToolSet,
+} from '@ai-sdk/provider-utils';
 import {
-  GenerateTextOnToolCallFinishCallback,
-  GenerateTextOnToolCallStartCallback,
-} from './generate-text';
+  executeTool,
+  isExecutableTool,
+  ModelMessage,
+} from '@ai-sdk/provider-utils';
+import {
+  getToolTimeoutMs,
+  TimeoutConfiguration,
+} from '../prompt/request-options';
+import { mergeAbortSignals } from '../util/merge-abort-signals';
+import { notify } from '../util/notify';
+import { now } from '../util/now';
 import { TypedToolCall } from './tool-call';
-import { ToolOutput } from './tool-output';
-import { ToolSet } from './tool-set';
-import { TypedToolResult } from './tool-result';
 import { TypedToolError } from './tool-error';
+import {
+  OnToolExecutionEndCallback,
+  OnToolExecutionStartCallback,
+  ToolExecutionEndEvent,
+  ToolExecutionStartEvent,
+} from './tool-execution-events';
+import { ToolOutput } from './tool-output';
+import { TypedToolResult } from './tool-result';
+import { validateToolContext } from './validate-tool-context';
 
 /**
  * Executes a single tool call and manages its lifecycle callbacks.
  *
  * This function handles the complete tool execution flow:
- * 1. Invokes `onToolCallStart` callback before execution
+ * 1. Invokes `onToolExecutionStart` callback before execution
  * 2. Executes the tool's `execute` function with proper context
  * 3. Handles streaming outputs via `onPreliminaryToolResult`
- * 4. Invokes `onToolCallFinish` callback with success or error result
+ * 4. Invokes `onToolExecutionEnd` callback with success or error result
  *
  * @returns The tool output (result or error), or undefined if the tool has no execute function.
  */
 export async function executeToolCall<TOOLS extends ToolSet>({
   toolCall,
   tools,
-  tracer,
-  telemetry,
+  toolsContext,
+  callId,
   messages,
   abortSignal,
-  experimental_context,
-  stepNumber,
-  model,
+  timeout,
   onPreliminaryToolResult,
-  onToolCallStart,
-  onToolCallFinish,
+  onToolExecutionStart,
+  onToolExecutionEnd,
+  executeToolInTelemetryContext = async ({ execute }) => await execute(),
 }: {
   toolCall: TypedToolCall<TOOLS>;
   tools: TOOLS | undefined;
-  tracer: Tracer;
-  telemetry: TelemetrySettings | undefined;
+  callId: string;
   messages: ModelMessage[];
   abortSignal: AbortSignal | undefined;
-  experimental_context: unknown;
-  stepNumber?: number;
-  model?: { provider: string; modelId: string };
+  toolsContext: InferToolSetContext<TOOLS>;
+  timeout?: TimeoutConfiguration<TOOLS>;
   onPreliminaryToolResult?: (result: TypedToolResult<TOOLS>) => void;
-  onToolCallStart?:
-    | GenerateTextOnToolCallStartCallback<TOOLS>
-    | Array<GenerateTextOnToolCallStartCallback<TOOLS> | undefined | null>;
-  onToolCallFinish?:
-    | GenerateTextOnToolCallFinishCallback<TOOLS>
-    | Array<GenerateTextOnToolCallFinishCallback<TOOLS> | undefined | null>;
+  onToolExecutionStart?: Arrayable<OnToolExecutionStartCallback<TOOLS>>;
+  onToolExecutionEnd?: Arrayable<OnToolExecutionEndCallback<TOOLS>>;
+  executeToolInTelemetryContext?: <T>(params: {
+    callId: string;
+    toolCallId: string;
+    execute: () => PromiseLike<T>;
+  }) => PromiseLike<T>;
 }): Promise<ToolOutput<TOOLS> | undefined> {
   const { toolName, toolCallId, input } = toolCall;
   const tool = tools?.[toolName];
 
-  if (tool?.execute == null) {
+  if (!isExecutableTool(tool)) {
     return undefined;
   }
 
+  const context = await validateToolContext({
+    toolName,
+    context: toolsContext?.[toolName as keyof typeof toolsContext],
+    contextSchema: tool.contextSchema,
+  });
+
   const baseCallbackEvent = {
-    stepNumber,
-    model,
+    callId,
     toolCall,
     messages,
-    abortSignal,
-    functionId: telemetry?.functionId,
-    metadata: telemetry?.metadata as Record<string, unknown> | undefined,
-    experimental_context,
+    toolContext: context,
   };
 
-  return recordSpan({
-    name: 'ai.toolCall',
-    attributes: selectTelemetryAttributes({
-      telemetry,
-      attributes: {
-        ...assembleOperationName({
-          operationId: 'ai.toolCall',
-          telemetry,
-        }),
-        'ai.toolCall.name': toolName,
-        'ai.toolCall.id': toolCallId,
-        'ai.toolCall.args': {
-          output: () => JSON.stringify(input),
-        },
-      },
-    }),
-    tracer,
-    fn: async span => {
-      let output: unknown;
+  let output: unknown;
 
-      await notify({ event: baseCallbackEvent, callbacks: onToolCallStart });
-
-      const startTime = now();
-
-      try {
-        const stream = executeTool({
-          execute: tool.execute!.bind(tool),
-          input,
-          options: {
-            toolCallId,
-            messages,
-            abortSignal,
-            experimental_context,
-          },
-        });
-
-        for await (const part of stream) {
-          if (part.type === 'preliminary') {
-            onPreliminaryToolResult?.({
-              ...toolCall,
-              type: 'tool-result',
-              output: part.output,
-              preliminary: true,
-            });
-          } else {
-            output = part.output;
-          }
-        }
-      } catch (error) {
-        const durationMs = now() - startTime;
-
-        await notify({
-          event: {
-            ...baseCallbackEvent,
-            success: false as const,
-            error,
-            durationMs,
-          },
-          callbacks: onToolCallFinish,
-        });
-
-        recordErrorOnSpan(span, error);
-        return {
-          type: 'tool-error',
-          toolCallId,
-          toolName,
-          input,
-          error,
-          dynamic: tool.type === 'dynamic',
-          ...(toolCall.providerMetadata != null
-            ? { providerMetadata: toolCall.providerMetadata }
-            : {}),
-        } as TypedToolError<TOOLS>;
-      }
-
-      const durationMs = now() - startTime;
-
-      await notify({
-        event: {
-          ...baseCallbackEvent,
-          success: true as const,
-          output,
-          durationMs,
-        },
-        callbacks: onToolCallFinish,
-      });
-
-      try {
-        span.setAttributes(
-          await selectTelemetryAttributes({
-            telemetry,
-            attributes: {
-              'ai.toolCall.result': {
-                output: () => JSON.stringify(output),
-              },
-            },
-          }),
-        );
-      } catch (ignored) {
-        // JSON stringify might fail if the result is not serializable,
-        // in which case we just ignore it. In the future we might want to
-        // add an optional serialize method to the tool interface and warn
-        // if the result is not serializable.
-      }
-
-      return {
-        type: 'tool-result',
-        toolCallId,
-        toolName,
-        input,
-        output,
-        dynamic: tool.type === 'dynamic',
-        ...(toolCall.providerMetadata != null
-          ? { providerMetadata: toolCall.providerMetadata }
-          : {}),
-      } as TypedToolResult<TOOLS>;
-    },
+  await notify({
+    event: baseCallbackEvent as ToolExecutionStartEvent<TOOLS>,
+    callbacks: onToolExecutionStart,
   });
+
+  const toolTimeoutMs = getToolTimeoutMs<TOOLS>(timeout, toolName);
+  const toolAbortSignal = mergeAbortSignals(abortSignal, toolTimeoutMs);
+
+  let durationMs = 0;
+  try {
+    // In order to correctly nest telemetry spans within tool calls spans, telemetry integrations need
+    // to be able to execute the tool call in a telemetry-integration-specific context.
+    //
+    // The call id and the tool call id are provided to the telemetry integration so that it can correctly
+    // identify the parent span.
+    await executeToolInTelemetryContext({
+      callId,
+      toolCallId,
+      execute: async () => {
+        const startTime = now();
+        try {
+          const stream = executeTool({
+            tool,
+            input: input as InferToolInput<typeof tool>,
+            options: {
+              toolCallId,
+              messages,
+              abortSignal: toolAbortSignal,
+              context,
+            },
+          });
+
+          for await (const part of stream) {
+            if (part.type === 'preliminary') {
+              onPreliminaryToolResult?.({
+                ...toolCall,
+                type: 'tool-result',
+                output: part.output,
+                preliminary: true,
+              });
+            } else {
+              output = part.output;
+            }
+          }
+        } finally {
+          durationMs = now() - startTime;
+        }
+      },
+    });
+  } catch (error) {
+    const toolError = {
+      type: 'tool-error',
+      toolCallId,
+      toolName,
+      input,
+      error,
+      dynamic: tool.type === 'dynamic',
+      ...(toolCall.providerMetadata != null
+        ? { providerMetadata: toolCall.providerMetadata }
+        : {}),
+    } as TypedToolError<TOOLS>;
+
+    await notify({
+      event: {
+        ...baseCallbackEvent,
+        toolOutput: toolError,
+        durationMs,
+      } as ToolExecutionEndEvent<TOOLS>,
+      callbacks: onToolExecutionEnd,
+    });
+
+    return toolError;
+  }
+
+  const toolResult = {
+    type: 'tool-result',
+    toolCallId,
+    toolName,
+    input,
+    output,
+    dynamic: tool.type === 'dynamic',
+    ...(toolCall.providerMetadata != null
+      ? { providerMetadata: toolCall.providerMetadata }
+      : {}),
+  } as TypedToolResult<TOOLS>;
+
+  await notify({
+    event: {
+      ...baseCallbackEvent,
+      toolOutput: toolResult,
+      durationMs,
+    } as ToolExecutionEndEvent<TOOLS>,
+    callbacks: onToolExecutionEnd,
+  });
+
+  return toolResult;
 }

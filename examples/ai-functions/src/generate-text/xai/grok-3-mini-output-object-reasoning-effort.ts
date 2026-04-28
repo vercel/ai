@@ -1,4 +1,4 @@
-import { xai, type XaiLanguageModelChatOptions } from '@ai-sdk/xai';
+import { xai } from '@ai-sdk/xai';
 import { generateText, Output } from 'ai';
 import { z } from 'zod';
 import { run } from '../../lib/run';
@@ -21,11 +21,7 @@ run(async () => {
           'my name is john doe, i am 35 years old and work as a software engineer',
       },
     ],
-    providerOptions: {
-      xai: {
-        reasoningEffort: 'high',
-      } satisfies XaiLanguageModelChatOptions,
-    },
+    reasoning: 'high',
   });
 
   console.log('extracted person:', result.output);

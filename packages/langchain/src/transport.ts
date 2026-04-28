@@ -45,9 +45,9 @@ export type LangSmithDeploymentTransportOptions = Omit<
  * });
  * ```
  */
-export class LangSmithDeploymentTransport<UI_MESSAGE extends UIMessage>
-  implements ChatTransport<UI_MESSAGE>
-{
+export class LangSmithDeploymentTransport<
+  UI_MESSAGE extends UIMessage,
+> implements ChatTransport<UI_MESSAGE> {
   protected graph: RemoteGraph;
 
   constructor(options: LangSmithDeploymentTransportOptions) {

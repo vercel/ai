@@ -146,7 +146,7 @@ export function validateSyntax(code: string, extension: string): void {
   };
 
   // Override module resolution
-  host.resolveModuleNameLiterals = (moduleLiterals, containingFile) => {
+  host.resolveModuleNameLiterals = moduleLiterals => {
     return moduleLiterals.map(moduleLiteral => ({
       resolvedModule: {
         resolvedFileName: `${moduleLiteral.text}.d.ts`,

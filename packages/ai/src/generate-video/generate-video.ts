@@ -180,22 +180,23 @@ export async function experimental_generateVideo({
   });
 
   const results = await Promise.all(
-    callVideoCounts.map(async callVideoCount =>
-      retry(() =>
-        model.doGenerate({
-          prompt,
-          n: callVideoCount,
-          aspectRatio,
-          resolution,
-          duration,
-          fps,
-          seed,
-          image,
-          providerOptions: providerOptions ?? {},
-          headers: headersWithUserAgent,
-          abortSignal,
-        } satisfies Experimental_VideoModelV4CallOptions),
-      ),
+    callVideoCounts.map(
+      async callVideoCount =>
+        await retry(() =>
+          model.doGenerate({
+            prompt,
+            n: callVideoCount,
+            aspectRatio,
+            resolution,
+            duration,
+            fps,
+            seed,
+            image,
+            providerOptions: providerOptions ?? {},
+            headers: headersWithUserAgent,
+            abortSignal,
+          } satisfies Experimental_VideoModelV4CallOptions),
+        ),
     ),
   );
 

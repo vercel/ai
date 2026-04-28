@@ -282,7 +282,7 @@ describe('parseToolCall', () => {
     expect(result).toMatchInlineSnapshot(`
       {
         "dynamic": true,
-        "error": [AI_InvalidToolInputError: Invalid input for tool testTool: Type validation failed: Value: {"param1":"test"}.
+        "error": [AI_InvalidToolInputError: Invalid input for tool testTool: AI_TypeValidationError: Type validation failed: Value: {"param1":"test"}.
       Error message: [
         {
           "expected": "number",
@@ -393,8 +393,8 @@ describe('parseToolCall', () => {
       expect(result).toMatchInlineSnapshot(`
         {
           "dynamic": true,
-          "error": [AI_InvalidToolInputError: Invalid input for tool testTool: JSON parsing failed: Text: invalid json.
-        Error message: Unexpected token 'i', "invalid json" is not valid JSON],
+          "error": [AI_InvalidToolInputError: Invalid input for tool testTool: AI_JSONParseError: JSON parsing failed: Text: invalid json.
+        Error message: SyntaxError: Unexpected token 'i', "invalid json" is not valid JSON],
           "input": "invalid json",
           "invalid": true,
           "providerExecuted": undefined,
@@ -433,7 +433,7 @@ describe('parseToolCall', () => {
       expect(result).toMatchInlineSnapshot(`
         {
           "dynamic": true,
-          "error": [AI_ToolCallRepairError: Error repairing tool call: test error],
+          "error": [AI_ToolCallRepairError: Error repairing tool call: Error: test error],
           "input": "invalid json",
           "invalid": true,
           "providerExecuted": undefined,

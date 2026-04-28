@@ -1,4 +1,4 @@
-import { SharedV3ProviderMetadata } from '../../shared/v3/shared-v3-provider-metadata';
+import { SharedV4ProviderMetadata } from '../../shared/v4/shared-v4-provider-metadata';
 
 /**
  * Tool calls that the model has generated.
@@ -37,5 +37,5 @@ export type LanguageModelV4ToolCall = {
   /**
    * Additional provider-specific metadata for the tool call.
    */
-  providerMetadata?: SharedV3ProviderMetadata;
+  providerMetadata?: SharedV4ProviderMetadata;
 };
