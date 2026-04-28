@@ -6,17 +6,17 @@ on:
       - main
       - release-v*
     paths:
-      - '.changeset/**'
-      - '.github/workflows/release.yml'
+      - ".changeset/**"
+      - ".github/workflows/release.yml"
   workflow_dispatch:
     inputs:
       snapshot:
-        description: 'Publish a snapshot release instead of a normal release'
+        description: "Publish a snapshot release instead of a normal release"
         type: boolean
         default: false
 
 concurrency:
-  group: 'release'
+  group: "release"
   cancel-in-progress: false
 
 permissions:
@@ -32,6 +32,11 @@ jobs:
     # do not attempt running in forks
     if: github.repository_owner == 'vercel'
     steps:
+      - name: Configure Git
+        run: |
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+
       - name: Checkout Repo
         uses: actions/checkout@v6
         with:
