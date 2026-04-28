@@ -6,7 +6,7 @@ describe('web-search tool type', () => {
   it('should have Tool type', () => {
     const webSearchTool = webSearch();
 
-    expectTypeOf(webSearchTool).toEqualTypeOf<
+    expectTypeOf(webSearchTool).toMatchTypeOf<
       Tool<{}, InferSchema<typeof webSearchOutputSchema>, {}>
     >();
   });

@@ -5,7 +5,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
 
-export interface PerplexitySearchConfig {
+export type PerplexitySearchConfig = {
   /**
    * Default maximum number of search results to return (1-20, default: 10).
    */
@@ -45,7 +45,7 @@ export interface PerplexitySearchConfig {
    * Cannot be combined with searchAfterDate/searchBeforeDate at runtime.
    */
   searchRecencyFilter?: 'day' | 'week' | 'month' | 'year';
-}
+};
 
 export interface PerplexitySearchResult {
   /** Title of the search result */
