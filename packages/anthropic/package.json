@@ -72,7 +72,8 @@
   "homepage": "https://ai-sdk.dev/docs",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/vercel/ai.git"
+    "url": "https://github.com/vercel/ai",
+    "directory": "packages/anthropic"
   },
   "bugs": {
     "url": "https://github.com/vercel/ai/issues"

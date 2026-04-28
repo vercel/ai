@@ -65,7 +65,8 @@
   "homepage": "https://ai-sdk.dev/docs",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/vercel/ai.git"
+    "url": "https://github.com/vercel/ai",
+    "directory": "packages/cerebras"
   },
   "bugs": {
     "url": "https://github.com/vercel/ai/issues"
@@ -74,6 +75,5 @@
     "ai"
   ],
   "description": "The **Cerebras provider** for the [AI SDK](https://ai-sdk.dev/docs) contains language model support for [Cerebras](https://cerebras.ai), offering high-speed AI model inference powered by Cerebras Wafer-Scale Engines and CS-3 systems.",
-  "author": "",
   "type": "commonjs"
 }
