@@ -37,45 +37,20 @@ type RestrictedTelemetryDispatcher<
   onToolExecutionEnd?: OnToolExecutionEndCallback<TOOLS>;
 };
 
-type SensitiveContextKeys<
-  CONTEXT extends Context,
-  SENSITIVE_CONTEXT extends SensitiveContext<CONTEXT>,
-> = SENSITIVE_CONTEXT extends undefined
-  ? never
-  : {
-      [KEY in keyof CONTEXT]: NonNullable<SENSITIVE_CONTEXT> extends {
-        [K in KEY]?: infer VALUE;
-      }
-        ? VALUE extends true
-          ? KEY
-          : never
-        : never;
-    }[keyof CONTEXT];
-
-type RestrictedContext<
-  CONTEXT extends Context,
-  SENSITIVE_CONTEXT extends SensitiveContext<CONTEXT>,
-> = Omit<CONTEXT, SensitiveContextKeys<CONTEXT, SENSITIVE_CONTEXT>>;
-
-function filterContext<
-  CONTEXT extends Context,
-  SENSITIVE_CONTEXT extends SensitiveContext<CONTEXT>,
->({
+function filterContext<CONTEXT extends Context>({
   context,
   sensitiveContext,
 }: {
   context: CONTEXT;
-  sensitiveContext: SENSITIVE_CONTEXT;
-}): RestrictedContext<CONTEXT, SENSITIVE_CONTEXT> {
-  if (sensitiveContext == null) {
-    return context as RestrictedContext<CONTEXT, SENSITIVE_CONTEXT>;
-  }
-
-  return Object.fromEntries(
-    Object.entries(context).filter(
-      ([key]) => sensitiveContext[key as keyof CONTEXT] !== true,
-    ),
-  ) as RestrictedContext<CONTEXT, SENSITIVE_CONTEXT>;
+  sensitiveContext: SensitiveContext<CONTEXT>;
+}): Context {
+  return sensitiveContext == null
+    ? context
+    : Object.fromEntries(
+        Object.entries(context).filter(
+          ([key]) => sensitiveContext[key as keyof CONTEXT] !== true,
+        ),
+      );
 }
 
 function restrictStepResult<
