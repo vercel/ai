@@ -1,6 +1,7 @@
 import { describe, expectTypeOf, it } from 'vitest';
 import { z } from 'zod/v4';
 import { Tool, tool } from '@ai-sdk/provider-utils';
+import { ActiveTools } from './active-tools';
 import { filterActiveTools } from './filter-active-tools';
 
 const mockTools = {
@@ -79,5 +80,37 @@ describe('filterActiveTools types', () => {
       | Pick<typeof mockToolsWithProviderDefined, 'tool1' | 'providerTool'>
       | undefined
     >();
+  });
+
+  it('should infer undefined when tools are undefined', () => {
+    const result = filterActiveTools({
+      tools: undefined,
+      activeTools: ['tool1'] as const,
+    });
+
+    expectTypeOf<typeof result>().toEqualTypeOf<undefined>();
+  });
+
+  it('should preserve the full tool set for maybe undefined activeTools', () => {
+    const activeTools: ActiveTools<typeof mockToolsWithProviderDefined> = [
+      'tool1',
+    ];
+
+    const result = filterActiveTools({
+      tools: mockToolsWithProviderDefined,
+      activeTools,
+    });
+
+    expectTypeOf<typeof result>().toEqualTypeOf<
+      typeof mockToolsWithProviderDefined
+    >();
+  });
+
+  it('should reject invalid active tool names', () => {
+    filterActiveTools({
+      tools: mockToolsWithProviderDefined,
+      // @ts-expect-error activeTools only accepts keys of the tool set
+      activeTools: ['unknownTool'] as const,
+    });
   });
 });
