@@ -534,10 +534,10 @@ To see `generateText` in action, check out [these examples](#examples).
     },
     {
       name: 'activeTools',
-      type: 'Array<TOOLNAME>',
+      type: 'ActiveTools<TOOLS>',
       isOptional: true,
       description:
-        'Limits the tools that are available for the model to call without changing the tool call and result types in the result. All tools are active by default.',
+        'Limits the tools that are available for the model to call without changing the tool call and result types in the result. All tools are active by default. Tool names are restricted to the string keys of the tool set.',
     },
     {
       name: 'toolApproval',
@@ -633,7 +633,7 @@ To see `generateText` in action, check out [these examples](#examples).
             },
             {
               name: 'activeTools',
-              type: 'Array<keyof TOOLS>',
+              type: 'ActiveTools<TOOLS>',
               isOptional: true,
               description:
                 'If provided, only these tools are enabled/available for this step.',
@@ -682,6 +682,13 @@ To see `generateText` in action, check out [these examples](#examples).
       isOptional: true,
       description:
         'User-defined shared runtime context object passed to `prepareStep` and lifecycle callbacks.',
+    },
+    {
+      name: 'sensitiveRuntimeContext',
+      type: 'SensitiveContext<CONTEXT>',
+      isOptional: true,
+      description:
+        'Top-level runtime context properties that contain sensitive data and should be excluded from telemetry. Properties marked as `true` are omitted from telemetry integrations. Lifecycle callbacks and returned results still receive the full `runtimeContext`.',
     },
     {
       name: 'toolsContext',
@@ -956,7 +963,7 @@ To see `generateText` in action, check out [these examples](#examples).
             },
             {
               name: 'activeTools',
-              type: 'Array<keyof TOOLS> | undefined',
+              type: 'ActiveTools<TOOLS>',
               description:
                 'Limits which tools are available for the model to call.',
             },
@@ -1102,7 +1109,7 @@ To see `generateText` in action, check out [these examples](#examples).
             },
             {
               name: 'activeTools',
-              type: 'Array<keyof TOOLS> | undefined',
+              type: 'ActiveTools<TOOLS>',
               description: 'Limits which tools are available for this step.',
             },
             {
@@ -2773,6 +2780,28 @@ To see `generateText` in action, check out [these examples](#examples).
     },
   ]}
 />
+
+## Types
+
+### `ActiveTools`
+
+```ts
+type ActiveTools<TOOLS extends ToolSet> =
+  | ReadonlyArray<keyof TOOLS & string>
+  | undefined;
+```
+
+Limits a generation step to the listed tool names. `undefined` means no tool restriction is applied.
+
+### `SensitiveContext`
+
+```ts
+type SensitiveContext<CONTEXT extends Context> =
+  | { [KEY in keyof CONTEXT]?: boolean }
+  | undefined;
+```
+
+Marks top-level `runtimeContext` properties that should be excluded from telemetry. Set a property to `true` to omit it from telemetry integrations; omitted or `false` properties are still sent.
 
 ## Examples
 

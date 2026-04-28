@@ -81,14 +81,40 @@ const result = await generateText({
   model: __MODEL__,
   prompt: 'Write a short story about a cat.',
   runtimeContext: {
-    something: 'custom',
-    someOtherThing: 'other-value',
+    userId: 'user_123',
+    requestId: 'req_abc',
   },
   telemetry: {
     functionId: 'my-awesome-function',
   },
 });
 ```
+
+### Sensitive runtime context
+
+`runtimeContext` can contain values that are useful inside your application but should not be sent to telemetry providers, such as user identifiers, tenant IDs, or credentials. Use `sensitiveRuntimeContext` to mark top-level `runtimeContext` properties that should be excluded from telemetry:
+
+```ts highlight="8-10"
+const result = await generateText({
+  model: __MODEL__,
+  prompt: 'Write a short story about a cat.',
+  runtimeContext: {
+    userId: 'user_123',
+    requestId: 'req_abc',
+  },
+  sensitiveRuntimeContext: {
+    userId: true,
+  },
+});
+```
+
+In this example, telemetry integrations receive `runtimeContext` as `{ requestId: 'req_abc' }`. Properties set to `false` or omitted are still sent. `sensitiveRuntimeContext` is supported by `generateText`, `streamText`, and `ToolLoopAgent`.
+
+<Note>
+  `sensitiveRuntimeContext` only filters telemetry integrations, including
+  OpenTelemetry integrations. Lifecycle callbacks and returned results still
+  receive the full `runtimeContext`.
+</Note>
 
 ## Custom Tracer
 
@@ -557,7 +583,7 @@ Many spans that use LLMs (`ai.generateText`, `ai.generateText.doGenerate`, `ai.s
 - `ai.response.providerMetadata`: provider specific metadata returned with the generation response
 - `ai.settings.maxRetries`: the maximum number of retries that were set
 - `ai.telemetry.functionId`: the functionId that was set through `telemetry.functionId`
-- `ai.settings.runtimeContext.*`: the runtime context that was passed in through the `runtimeContext` option
+- `ai.settings.runtimeContext.*`: the runtime context that was passed in through the `runtimeContext` option, excluding top-level properties marked with `sensitiveRuntimeContext`
 - `ai.usage.completionTokens`: the number of completion tokens that were used
 - `ai.usage.promptTokens`: the number of prompt tokens that were used
 
