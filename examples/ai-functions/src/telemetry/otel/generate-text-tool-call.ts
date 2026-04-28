@@ -2,12 +2,12 @@ import { openai } from '@ai-sdk/openai';
 import { GenAIOpenTelemetry } from '@ai-sdk/otel';
 import { generateText, registerTelemetry, tool } from 'ai';
 import { z } from 'zod';
-import { weatherTool } from '../tools/weather-tool';
+import { weatherTool } from '../../tools/weather-tool';
 
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { ConsoleSpanExporter } from '@opentelemetry/sdk-trace-node';
-import { run } from '../lib/run';
+import { run } from '../../lib/run';
 
 const sdk = new NodeSDK({
   traceExporter: new ConsoleSpanExporter(),

@@ -5,7 +5,7 @@ import { ConsoleSpanExporter } from '@opentelemetry/sdk-trace-node';
 import { generateText, Output, registerTelemetry } from 'ai';
 import { OpenTelemetry } from '@ai-sdk/otel';
 import { z } from 'zod';
-import { run } from '../lib/run';
+import { run } from '../../lib/run';
 
 const sdk = new NodeSDK({
   traceExporter: new ConsoleSpanExporter(),

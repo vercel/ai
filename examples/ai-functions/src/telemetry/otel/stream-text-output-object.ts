@@ -2,9 +2,10 @@ import { openai } from '@ai-sdk/openai';
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { ConsoleSpanExporter } from '@opentelemetry/sdk-trace-node';
-import { streamText, registerTelemetry } from 'ai';
+import { Output, streamText, registerTelemetry } from 'ai';
 import { OpenTelemetry } from '@ai-sdk/otel';
-import { run } from '../lib/run';
+import { z } from 'zod';
+import { run } from '../../lib/run';
 
 const sdk = new NodeSDK({
   traceExporter: new ConsoleSpanExporter(),
@@ -16,15 +17,25 @@ registerTelemetry(new OpenTelemetry());
 
 run(async () => {
   const result = streamText({
-    model: openai('gpt-5-mini'),
-    prompt: 'Invent a new holiday and describe its traditions.',
+    model: openai('gpt-4o-mini'),
+    output: Output.object({
+      schema: z.object({
+        recipe: z.object({
+          name: z.string(),
+          ingredients: z.array(
+            z.object({
+              name: z.string(),
+              amount: z.string(),
+            }),
+          ),
+          steps: z.array(z.string()),
+        }),
+      }),
+    }),
+    prompt: 'Generate a lasagna recipe.',
     runtimeContext: {
       something: 'custom',
       someOtherThing: 'other-value',
-      secretApiKey: 'sk-secret',
-    },
-    sensitiveRuntimeContext: {
-      secretApiKey: true,
     },
     telemetry: {
       functionId: 'my-awesome-function',

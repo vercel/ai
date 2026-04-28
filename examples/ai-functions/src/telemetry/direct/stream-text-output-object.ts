@@ -1,19 +1,10 @@
 import { openai } from '@ai-sdk/openai';
-import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
-import { NodeSDK } from '@opentelemetry/sdk-node';
-import { ConsoleSpanExporter } from '@opentelemetry/sdk-trace-node';
 import { Output, streamText, registerTelemetry } from 'ai';
-import { OpenTelemetry } from '@ai-sdk/otel';
 import { z } from 'zod';
-import { run } from '../lib/run';
+import { run } from '../../lib/run';
+import { consoleTelemetry } from './console-telemetry';
 
-const sdk = new NodeSDK({
-  traceExporter: new ConsoleSpanExporter(),
-  instrumentations: [getNodeAutoInstrumentations()],
-});
-
-sdk.start();
-registerTelemetry(new OpenTelemetry());
+registerTelemetry(consoleTelemetry);
 
 run(async () => {
   const result = streamText({
@@ -43,6 +34,4 @@ run(async () => {
   });
 
   await result.consumeStream();
-
-  await sdk.shutdown();
 });
