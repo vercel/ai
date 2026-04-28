@@ -65,6 +65,8 @@ jobs:
           version: pnpm ci:version
           publish: pnpm ci:release
           setupGitUser: false
+          # When using "github-api", all commits and tags are GPG-signed and attributed to the user or app who owns the GITHUB_TOKEN
+          commitMode: 'github-api'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
