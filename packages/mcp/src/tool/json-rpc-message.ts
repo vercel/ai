@@ -1,4 +1,3 @@
-import { JSONParseError } from '@ai-sdk/provider';
 import { parseJSON } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { BaseParamsSchema, RequestSchema, ResultSchema } from './types';
@@ -65,13 +64,5 @@ export type JSONRPCMessage = z.infer<typeof JSONRPCMessageSchema>;
 export async function parseJSONRPCMessage(
   text: string,
 ): Promise<JSONRPCMessage> {
-  try {
-    return JSONRPCMessageSchema.parse(await parseJSON({ text }));
-  } catch (error) {
-    if (JSONParseError.isInstance(error) && error.cause != null) {
-      throw error.cause;
-    }
-
-    throw error;
-  }
+  return JSONRPCMessageSchema.parse(await parseJSON({ text }));
 }

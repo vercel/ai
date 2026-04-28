@@ -27,7 +27,6 @@ import {
   resourceUrlStripSlash,
 } from '../util/oauth-util';
 import { LATEST_PROTOCOL_VERSION } from './types';
-import { JSONParseError } from '@ai-sdk/provider';
 import { FetchFunction, parseJSON } from '@ai-sdk/provider-utils';
 
 export type AuthResult = 'AUTHORIZED' | 'REDIRECT';
@@ -602,12 +601,8 @@ export async function parseErrorResponse(
       cause: error_uri,
     });
   } catch (error) {
-    const cause =
-      JSONParseError.isInstance(error) && error.cause != null
-        ? error.cause
-        : error;
     // Not a valid OAuth error response, but try to inform the user of the raw data anyway
-    const errorMessage = `${statusCode ? `HTTP ${statusCode}: ` : ''}Invalid OAuth error response: ${cause}. Raw body: ${body}`;
+    const errorMessage = `${statusCode ? `HTTP ${statusCode}: ` : ''}Invalid OAuth error response: ${error}. Raw body: ${body}`;
     return new ServerError({ message: errorMessage });
   }
 }

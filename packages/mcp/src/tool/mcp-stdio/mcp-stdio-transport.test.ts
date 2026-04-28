@@ -231,7 +231,10 @@ describe('StdioMCPTransport', () => {
       await expect(
         deserializeMessage(malicious),
       ).rejects.toThrowErrorMatchingInlineSnapshot(
-        `[SyntaxError: Object contains forbidden prototype property]`,
+        `
+        [AI_JSONParseError: JSON parsing failed: Text: {"jsonrpc":"2.0","id":1,"result":{"__proto__":{"polluted":true}}}.
+        Error message: SyntaxError: Object contains forbidden prototype property]
+      `,
       );
       expect(({} as Record<string, unknown>).polluted).toBeUndefined();
     });
@@ -243,7 +246,10 @@ describe('StdioMCPTransport', () => {
       await expect(
         deserializeMessage(malicious),
       ).rejects.toThrowErrorMatchingInlineSnapshot(
-        `[SyntaxError: Object contains forbidden prototype property]`,
+        `
+        [AI_JSONParseError: JSON parsing failed: Text: {"jsonrpc":"2.0","id":1,"result":{"constructor":{"prototype":{"polluted":true}}}}.
+        Error message: SyntaxError: Object contains forbidden prototype property]
+      `,
       );
       expect(({} as Record<string, unknown>).polluted).toBeUndefined();
     });

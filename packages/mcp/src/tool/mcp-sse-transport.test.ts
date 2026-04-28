@@ -164,7 +164,8 @@ describe('SseMCPTransport', () => {
       cause: ((error as { cause?: Error }).cause as Error | undefined)?.message,
     }).toMatchInlineSnapshot(`
       {
-        "cause": "Object contains forbidden prototype property",
+        "cause": "JSON parsing failed: Text: {"jsonrpc":"2.0","id":1,"result":{"__proto__":{"polluted":true}}}.
+      Error message: SyntaxError: Object contains forbidden prototype property",
         "message": "MCP SSE Transport Error: Failed to parse message",
       }
     `);
@@ -501,7 +502,10 @@ describe('deserializeMessage', () => {
     await expect(
       deserializeMessage(malicious),
     ).rejects.toThrowErrorMatchingInlineSnapshot(
-      `[SyntaxError: Object contains forbidden prototype property]`,
+      `
+      [AI_JSONParseError: JSON parsing failed: Text: {"jsonrpc":"2.0","id":1,"result":{"__proto__":{"polluted":true}}}.
+      Error message: SyntaxError: Object contains forbidden prototype property]
+    `,
     );
     expect(({} as Record<string, unknown>).polluted).toBeUndefined();
   });
@@ -513,7 +517,10 @@ describe('deserializeMessage', () => {
     await expect(
       deserializeMessage(malicious),
     ).rejects.toThrowErrorMatchingInlineSnapshot(
-      `[SyntaxError: Object contains forbidden prototype property]`,
+      `
+      [AI_JSONParseError: JSON parsing failed: Text: {"jsonrpc":"2.0","id":1,"result":{"constructor":{"prototype":{"polluted":true}}}}.
+      Error message: SyntaxError: Object contains forbidden prototype property]
+    `,
     );
     expect(({} as Record<string, unknown>).polluted).toBeUndefined();
   });
