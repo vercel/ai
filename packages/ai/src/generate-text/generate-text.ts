@@ -429,6 +429,7 @@ export async function generateText<
     OUTPUT
   >({
     telemetry,
+    tools,
     sensitiveRuntimeContext,
   });
 

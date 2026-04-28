@@ -853,6 +853,7 @@ class DefaultStreamTextResult<
       OUTPUT
     >({
       telemetry,
+      tools,
       sensitiveRuntimeContext,
     });
 
