@@ -15,7 +15,7 @@ sdk.start();
 registerTelemetry(new OpenTelemetry());
 
 run(async () => {
-  const result = await generateText({
+  await generateText({
     model: openai('gpt-4o'),
     maxOutputTokens: 50,
     prompt: 'Invent a new holiday and describe its traditions.',
@@ -25,10 +25,12 @@ run(async () => {
     runtimeContext: {
       something: 'custom',
       someOtherThing: 'other-value',
+      secretApiKey: 'sk-secret',
+    },
+    sensitiveRuntimeContext: {
+      secretApiKey: true,
     },
   });
-
-  console.log(result.text);
 
   await sdk.shutdown();
 });

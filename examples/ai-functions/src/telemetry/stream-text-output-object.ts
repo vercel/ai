@@ -42,10 +42,7 @@ run(async () => {
     },
   });
 
-  for await (const partialOutput of result.partialOutputStream) {
-    console.clear();
-    console.log(partialOutput);
-  }
+  await result.consumeStream();
 
   await sdk.shutdown();
 });

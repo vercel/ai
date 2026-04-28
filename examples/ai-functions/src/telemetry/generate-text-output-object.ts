@@ -16,7 +16,7 @@ sdk.start();
 registerTelemetry(new OpenTelemetry());
 
 run(async () => {
-  const result = await generateText({
+  await generateText({
     model: openai('gpt-4o-mini'),
     output: Output.object({
       schema: z.object({
@@ -37,8 +37,6 @@ run(async () => {
       functionId: 'my-awesome-function',
     },
   });
-
-  console.log(JSON.stringify(result.output?.recipe, null, 2));
 
   await sdk.shutdown();
 });

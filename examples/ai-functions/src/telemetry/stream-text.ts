@@ -22,15 +22,17 @@ run(async () => {
     runtimeContext: {
       something: 'custom',
       someOtherThing: 'other-value',
+      secretApiKey: 'sk-secret',
+    },
+    sensitiveRuntimeContext: {
+      secretApiKey: true,
     },
     telemetry: {
       functionId: 'my-awesome-function',
     },
   });
 
-  for await (const textPart of result.textStream) {
-    process.stdout.write(textPart);
-  }
+  await result.consumeStream();
 
   await sdk.shutdown();
 });
