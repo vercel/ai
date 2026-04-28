@@ -494,25 +494,25 @@ describe('SseMCPTransport', () => {
 });
 
 describe('deserializeMessage', () => {
-  it('should reject payloads containing __proto__ (prototype pollution)', () => {
+  it('should reject payloads containing __proto__ (prototype pollution)', async () => {
     const malicious =
       '{"jsonrpc":"2.0","id":1,"result":{"__proto__":{"polluted":true}}}';
 
-    expect(() =>
+    await expect(
       deserializeMessage(malicious),
-    ).toThrowErrorMatchingInlineSnapshot(
+    ).rejects.toThrowErrorMatchingInlineSnapshot(
       `[SyntaxError: Object contains forbidden prototype property]`,
     );
     expect(({} as Record<string, unknown>).polluted).toBeUndefined();
   });
 
-  it('should reject payloads containing constructor.prototype', () => {
+  it('should reject payloads containing constructor.prototype', async () => {
     const malicious =
       '{"jsonrpc":"2.0","id":1,"result":{"constructor":{"prototype":{"polluted":true}}}}';
 
-    expect(() =>
+    await expect(
       deserializeMessage(malicious),
-    ).toThrowErrorMatchingInlineSnapshot(
+    ).rejects.toThrowErrorMatchingInlineSnapshot(
       `[SyntaxError: Object contains forbidden prototype property]`,
     );
     expect(({} as Record<string, unknown>).polluted).toBeUndefined();

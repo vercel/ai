@@ -3,10 +3,9 @@ import {
   FetchFunction,
   withUserAgentSuffix,
   getRuntimeEnvironmentUserAgent,
-  secureJsonParse,
 } from '@ai-sdk/provider-utils';
 import { MCPClientError } from '../error/mcp-client-error';
-import { JSONRPCMessage, JSONRPCMessageSchema } from './json-rpc-message';
+import { JSONRPCMessage, parseJSONRPCMessage } from './json-rpc-message';
 import { MCPTransport } from './mcp-transport';
 import { VERSION } from '../version';
 import {
@@ -169,9 +168,7 @@ export class SseMCPTransport implements MCPTransport {
                   resolve();
                 } else if (event === 'message') {
                   try {
-                    const message = JSONRPCMessageSchema.parse(
-                      secureJsonParse(data),
-                    );
+                    const message = await parseJSONRPCMessage(data);
                     this.onmessage?.(message);
                   } catch (error) {
                     const e = new MCPClientError({
@@ -281,6 +278,8 @@ export class SseMCPTransport implements MCPTransport {
   }
 }
 
-export function deserializeMessage(line: string): JSONRPCMessage {
-  return JSONRPCMessageSchema.parse(secureJsonParse(line));
+export async function deserializeMessage(
+  line: string,
+): Promise<JSONRPCMessage> {
+  return parseJSONRPCMessage(line);
 }

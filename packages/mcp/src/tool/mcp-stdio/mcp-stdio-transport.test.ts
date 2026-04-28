@@ -201,7 +201,9 @@ describe('StdioMCPTransport', () => {
       };
 
       mockStdout.emit('data', Buffer.from(JSON.stringify(message) + '\n'));
-      expect(onMessageSpy).toHaveBeenCalledWith(message);
+      await vi.waitFor(() => {
+        expect(onMessageSpy).toHaveBeenCalledWith(message);
+      });
     });
 
     it('should handle partial messages correctly', async () => {
@@ -215,30 +217,32 @@ describe('StdioMCPTransport', () => {
       const messageStr = JSON.stringify(message);
       mockStdout.emit('data', Buffer.from(messageStr.slice(0, 10)));
       mockStdout.emit('data', Buffer.from(messageStr.slice(10) + '\n'));
-      expect(onMessageSpy).toHaveBeenCalledWith(message);
+      await vi.waitFor(() => {
+        expect(onMessageSpy).toHaveBeenCalledWith(message);
+      });
     });
   });
 
   describe('deserializeMessage', () => {
-    it('should reject payloads containing __proto__ (prototype pollution)', () => {
+    it('should reject payloads containing __proto__ (prototype pollution)', async () => {
       const malicious =
         '{"jsonrpc":"2.0","id":1,"result":{"__proto__":{"polluted":true}}}';
 
-      expect(() =>
+      await expect(
         deserializeMessage(malicious),
-      ).toThrowErrorMatchingInlineSnapshot(
+      ).rejects.toThrowErrorMatchingInlineSnapshot(
         `[SyntaxError: Object contains forbidden prototype property]`,
       );
       expect(({} as Record<string, unknown>).polluted).toBeUndefined();
     });
 
-    it('should reject payloads containing constructor.prototype', () => {
+    it('should reject payloads containing constructor.prototype', async () => {
       const malicious =
         '{"jsonrpc":"2.0","id":1,"result":{"constructor":{"prototype":{"polluted":true}}}}';
 
-      expect(() =>
+      await expect(
         deserializeMessage(malicious),
-      ).toThrowErrorMatchingInlineSnapshot(
+      ).rejects.toThrowErrorMatchingInlineSnapshot(
         `[SyntaxError: Object contains forbidden prototype property]`,
       );
       expect(({} as Record<string, unknown>).polluted).toBeUndefined();
