@@ -69,7 +69,7 @@ export class GroqTranscriptionModel implements TranscriptionModelV4 {
     const formData = new FormData();
     const blob =
       audio instanceof Uint8Array
-        ? new Blob([audio])
+        ? new Blob([new Uint8Array(audio)])
         : new Blob([convertBase64ToUint8Array(audio)]);
 
     formData.append('model', this.modelId);
@@ -88,7 +88,7 @@ export class GroqTranscriptionModel implements TranscriptionModelV4 {
       > = {
         language: groqOptions.language ?? undefined,
         prompt: groqOptions.prompt ?? undefined,
-        response_format: groqOptions.responseFormat ?? undefined,
+        response_format: 'verbose_json',
         temperature: groqOptions.temperature ?? undefined,
         timestamp_granularities:
           groqOptions.timestampGranularities ?? undefined,
@@ -149,7 +149,13 @@ export class GroqTranscriptionModel implements TranscriptionModelV4 {
           text: segment.text,
           startSecond: segment.start,
           endSecond: segment.end,
-        })) ?? [],
+        })) ??
+        response.words?.map(word => ({
+          text: word.word,
+          startSecond: word.start,
+          endSecond: word.end,
+        })) ??
+        [],
       language: response.language ?? undefined,
       durationInSeconds: response.duration ?? undefined,
       warnings,
@@ -172,6 +178,15 @@ const groqTranscriptionResponseSchema = z.object({
   task: z.string().nullish(),
   language: z.string().nullish(),
   duration: z.number().nullish(),
+  words: z
+    .array(
+      z.object({
+        word: z.string(),
+        start: z.number(),
+        end: z.number(),
+      }),
+    )
+    .nullish(),
   segments: z
     .array(
       z.object({
