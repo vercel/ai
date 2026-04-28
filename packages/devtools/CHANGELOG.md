@@ -1,5 +1,16 @@
 # @ai-sdk/devtools
 
+## 1.0.0-beta.17
+
+### Major Changes
+
+- cf93359: feat(ai): remove/refactor event data sent via callbacks
+- 116c89f: feat(ai): remove telemetry data from the user-facing event data
+
+### Patch Changes
+
+- 29d8cf4: feat(ai): rename the core-event types
+
 ## 1.0.0-beta.16
 
 ### Major Changes

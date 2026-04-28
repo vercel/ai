@@ -1,5 +1,16 @@
 # @ai-sdk/provider-utils
 
+## 5.0.0-beta.27
+
+### Patch Changes
+
+- 785fe16: feat: distinguish provider-defined and provider-executed tools
+- 67df0a0: feat: add sensitiveContext property to Tool
+- befb78c: refactoring: remove real-time delays in unit tests
+- 0458559: fix: deprecate needsApproval on Tool
+- 5852c0a: refactoring(provider-utils): add controller as property to StreamingToolCallTracker
+- fc92055: feat(ai): automatic tool approval
+
 ## 5.0.0-beta.26
 
 ### Patch Changes
