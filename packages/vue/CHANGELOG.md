@@ -1,5 +1,14 @@
 # @ai-sdk/vue
 
+## 4.0.0-beta.113
+
+### Patch Changes
+
+- 9f0e36c: trigger release for all packages after provenance setup
+- Updated dependencies [9f0e36c]
+  - ai@7.0.0-beta.113
+  - @ai-sdk/provider-utils@5.0.0-beta.28
+
 ## 4.0.0-beta.112
 
 ### Patch Changes

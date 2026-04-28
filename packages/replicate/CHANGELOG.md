@@ -1,5 +1,14 @@
 # @ai-sdk/replicate
 
+## 3.0.0-beta.30
+
+### Patch Changes
+
+- 9f0e36c: trigger release for all packages after provenance setup
+- Updated dependencies [9f0e36c]
+  - @ai-sdk/provider@4.0.0-beta.13
+  - @ai-sdk/provider-utils@5.0.0-beta.28
+
 ## 3.0.0-beta.29
 
 ### Patch Changes

@@ -1,5 +1,13 @@
 # @ai-sdk/valibot
 
+## 3.0.0-beta.28
+
+### Patch Changes
+
+- 9f0e36c: trigger release for all packages after provenance setup
+- Updated dependencies [9f0e36c]
+  - @ai-sdk/provider-utils@5.0.0-beta.28
+
 ## 3.0.0-beta.27
 
 ### Patch Changes
