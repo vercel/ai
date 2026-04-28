@@ -813,6 +813,7 @@ At a high level:
 - Read or update it in `prepareStep`
 - Pass per-tool values through `toolsContext`
 - Declare each tool's expected tool context with `contextSchema`
+- Mark sensitive tool context properties with `sensitiveContext` when they should be excluded from telemetry
 - Access the tool's typed context in `execute` together with other execution metadata such as `toolCallId`, `messages`, and `abortSignal`
 
 ```ts
@@ -830,17 +831,22 @@ const result = streamText({
       }),
       contextSchema: z.object({
         weatherApiKey: z.string().describe('The API key for the weather API'),
+        defaultUnit: z.enum(['celsius', 'fahrenheit']),
       }),
+      sensitiveContext: {
+        weatherApiKey: true,
+      },
       execute: async (
         { location },
         { toolCallId, messages, abortSignal, context },
       ) => {
-        const { weatherApiKey } = context;
+        const { weatherApiKey, defaultUnit } = context;
 
         console.log('tool call:', toolCallId);
         console.log('messages available to tool:', messages.length);
         console.log('abortable:', abortSignal != null);
-        console.log('weather tool api key:', weatherApiKey);
+        console.log('authenticated:', weatherApiKey != null);
+        console.log('default unit:', defaultUnit);
 
         return {
           location,
@@ -855,6 +861,7 @@ const result = streamText({
   toolsContext: {
     weather: {
       weatherApiKey: 'weather-123',
+      defaultUnit: 'fahrenheit',
     },
   },
   prepareStep: async ({ runtimeContext, toolsContext }) => {
@@ -885,12 +892,61 @@ In this example, `prepareStep` receives the full runtime context object:
 {
   weather: {
     weatherApiKey: string;
+    defaultUnit: 'celsius' | 'fahrenheit';
   };
 }
 ```
 
 The `weather` tool then receives only its own typed `context` based on its `contextSchema`. In this case, `execute` can access `weatherApiKey`, while the shared step-level `runtimeContext` remains separate.
 
+### Sensitive Tool Context
+
+Tool context often contains server-side values such as API keys, access tokens, or internal identifiers.
+Use `sensitiveContext` on a tool definition to exclude top-level context properties from telemetry integrations:
+
+```ts highlight="10-12,25-29"
+const weatherTool = tool({
+  description: 'Get the weather in a location',
+  inputSchema: z.object({
+    location: z.string(),
+  }),
+  contextSchema: z.object({
+    weatherApiKey: z.string(),
+    defaultUnit: z.enum(['celsius', 'fahrenheit']),
+  }),
+  sensitiveContext: {
+    weatherApiKey: true,
+  },
+  execute: async ({ location }, { context }) => {
+    return fetchWeather({
+      location,
+      apiKey: context.weatherApiKey,
+      unit: context.defaultUnit,
+    });
+  },
+});
+
+const result = await generateText({
+  model: __MODEL__,
+  tools: { weather: weatherTool },
+  toolsContext: {
+    weather: {
+      weatherApiKey: process.env.WEATHER_API_KEY,
+      defaultUnit: 'fahrenheit',
+    },
+  },
+  prompt: 'What is the weather in San Francisco?',
+});
+```
+
+Telemetry integrations receive the `weather` tool context as `{ defaultUnit: 'fahrenheit' }`.
+Properties set to `false` or omitted are still sent.
+
+<Note>
+  `sensitiveContext` only filters telemetry integrations. Tool execution,
+  lifecycle callbacks, and returned results still receive the full typed tool
+  context.
+</Note>
 
 ## Tool Input Lifecycle Hooks
 

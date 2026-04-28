@@ -116,6 +116,49 @@ In this example, telemetry integrations receive `runtimeContext` as `{ requestId
   receive the full `runtimeContext`.
 </Note>
 
+### Sensitive tool context
+
+Tool-specific context can also contain values that are useful during execution but should not be sent to telemetry providers, such as API keys or access tokens.
+Use `sensitiveContext` on a tool definition to mark top-level properties from that tool's `context` as sensitive:
+
+```ts highlight="9-11,19-23"
+const weatherTool = tool({
+  inputSchema: z.object({
+    location: z.string(),
+  }),
+  contextSchema: z.object({
+    weatherApiKey: z.string(),
+    defaultUnit: z.enum(['celsius', 'fahrenheit']),
+  }),
+  sensitiveContext: {
+    weatherApiKey: true,
+  },
+  execute: async ({ location }, { context }) =>
+    fetchWeather(location, context.weatherApiKey, context.defaultUnit),
+});
+
+const result = await generateText({
+  model: __MODEL__,
+  tools: { weather: weatherTool },
+  toolsContext: {
+    weather: {
+      weatherApiKey: 'weather-123',
+      defaultUnit: 'fahrenheit',
+    },
+  },
+  prompt: 'What is the weather in San Francisco?',
+});
+```
+
+In this example, telemetry integrations receive `toolsContext.weather` and tool execution `toolContext` as `{ defaultUnit: 'fahrenheit' }`.
+Properties set to `false` or omitted are still sent. `sensitiveContext` is supported by `generateText`, `streamText`, and `ToolLoopAgent`.
+
+<Note>
+  `sensitiveContext` only filters telemetry integrations, including OpenTelemetry
+  integrations. Tool execution, lifecycle callbacks, and returned results still
+  receive the full tool context.
+</Note>
+
 ## Custom Tracer
 
 If you want your traces to use a `TracerProvider` other than the one provided by the `@opentelemetry/api` singleton, pass a custom `Tracer` to the `OpenTelemetry` constructor:
