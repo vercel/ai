@@ -20,6 +20,7 @@ import type {
 import type { ActiveTools } from '../generate-text/active-tools';
 import { Output } from '../generate-text/output';
 import { PrepareStepFunction } from '../generate-text/prepare-step';
+import { SensitiveContext } from '../generate-text/sensitive-context';
 import { StopCondition } from '../generate-text/stop-condition';
 import { ToolApprovalConfiguration } from '../generate-text/tool-approval-configuration';
 import { ToolCallRepairFunction } from '../generate-text/tool-call-repair-function';
@@ -105,6 +106,12 @@ export type ToolLoopAgentSettings<
      * If you need to mutate runtime context, update it in `prepareStep`.
      */
     runtimeContext?: RUNTIME_CONTEXT;
+
+    /**
+     * Top-level runtime context properties that contain sensitive data and
+     * should be excluded from telemetry.
+     */
+    sensitiveRuntimeContext?: SensitiveContext<NoInfer<RUNTIME_CONTEXT>>;
 
     /**
      * Optional tool approval configuration.
@@ -239,6 +246,7 @@ export type ToolLoopAgentSettings<
           | 'providerOptions'
           | 'experimental_download'
           | 'runtimeContext'
+          | 'sensitiveRuntimeContext'
           | '_internal'
         > & { toolsContext: InferToolSetContext<TOOLS> },
     ) => MaybePromiseLike<
@@ -269,6 +277,7 @@ export type ToolLoopAgentSettings<
         | 'providerOptions'
         | 'experimental_download'
         | 'runtimeContext'
+        | 'sensitiveRuntimeContext'
         | '_internal'
       > &
         Omit<Prompt, 'system'> & {
