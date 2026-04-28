@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod/v4';
 import { Tool, tool } from '@ai-sdk/provider-utils';
-import { filterActiveTools } from './filter-active-tool';
+import { filterActiveTools } from './filter-active-tools';
 
 const mockTools = {
   tool1: tool({

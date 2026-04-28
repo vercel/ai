@@ -59,7 +59,7 @@ import type { ActiveTools } from './active-tools';
 import { collectToolApprovals } from './collect-tool-approvals';
 import { ContentPart } from './content-part';
 import { executeToolCall } from './execute-tool-call';
-import { filterActiveTools } from './filter-active-tool';
+import { filterActiveTools } from './filter-active-tools';
 import type {
   GenerateTextOnFinishCallback,
   GenerateTextOnStartCallback,

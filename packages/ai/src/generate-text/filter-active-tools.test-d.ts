@@ -1,7 +1,7 @@
 import { describe, expectTypeOf, it } from 'vitest';
 import { z } from 'zod/v4';
 import { Tool, tool } from '@ai-sdk/provider-utils';
-import { filterActiveTools } from './filter-active-tool';
+import { filterActiveTools } from './filter-active-tools';
 
 const mockTools = {
   tool1: tool({
@@ -27,6 +27,10 @@ const mockToolsWithProviderDefined = {
   providerTool: mockProviderDefinedTool,
 };
 
+declare const maybeToolsWithProviderDefined:
+  | typeof mockToolsWithProviderDefined
+  | undefined;
+
 describe('filterActiveTools types', () => {
   it('should infer the active tool subset for literal activeTools', () => {
     const result = filterActiveTools({
@@ -35,8 +39,7 @@ describe('filterActiveTools types', () => {
     });
 
     expectTypeOf<typeof result>().toEqualTypeOf<
-      | Pick<typeof mockToolsWithProviderDefined, 'tool1' | 'providerTool'>
-      | undefined
+      Pick<typeof mockToolsWithProviderDefined, 'tool1' | 'providerTool'>
     >();
   });
 
@@ -47,7 +50,7 @@ describe('filterActiveTools types', () => {
     });
 
     expectTypeOf<typeof result>().toEqualTypeOf<
-      typeof mockToolsWithProviderDefined | undefined
+      typeof mockToolsWithProviderDefined
     >();
   });
 
@@ -62,7 +65,19 @@ describe('filterActiveTools types', () => {
     });
 
     expectTypeOf<typeof result>().toEqualTypeOf<
-      typeof mockToolsWithProviderDefined | undefined
+      typeof mockToolsWithProviderDefined
+    >();
+  });
+
+  it('should infer undefined from possibly undefined tools', () => {
+    const result = filterActiveTools({
+      tools: maybeToolsWithProviderDefined,
+      activeTools: ['tool1', 'providerTool'] as const,
+    });
+
+    expectTypeOf<typeof result>().toEqualTypeOf<
+      | Pick<typeof mockToolsWithProviderDefined, 'tool1' | 'providerTool'>
+      | undefined
     >();
   });
 });
