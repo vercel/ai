@@ -6,8 +6,8 @@ on:
       - main
       - release-v*
     paths:
-      - ".changeset/**"
-      - ".github/workflows/release.yml"
+      - '.changeset/**'
+      - '.github/workflows/release.yml'
   workflow_dispatch:
     inputs:
       snapshot:
@@ -16,7 +16,7 @@ on:
         default: false
 
 concurrency:
-  group: "release"
+  group: 'release'
   cancel-in-progress: false
 
 permissions:
