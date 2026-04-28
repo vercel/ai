@@ -12,6 +12,10 @@ It does not have any runtime behavior, but it helps TypeScript infer the types f
 Without this helper function, TypeScript is unable to connect the `inputSchema` and `contextSchema` properties to the tool callbacks,
 and the callback argument types cannot be inferred.
 
+For the full model of `runtimeContext`, `toolsContext`, tool `context`, and
+sensitive context filtering, see [Runtime and Tool
+Context](/docs/ai-sdk-core/runtime-and-tool-context).
+
 ```ts highlight={"1,4,9,10"}
 import { tool } from 'ai';
 import { z } from 'zod';

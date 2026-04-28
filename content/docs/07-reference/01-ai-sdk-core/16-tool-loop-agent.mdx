@@ -29,6 +29,11 @@ const result = await agent.generate({
 console.log(result.text);
 ```
 
+For agents, `runtimeContext` is the shared runtime state that flows through the
+loop. For guidance on `runtimeContext`, `toolsContext`, tool `context`, and
+sensitive context filtering, see [Runtime and Tool
+Context](/docs/ai-sdk-core/runtime-and-tool-context).
+
 To see `ToolLoopAgent` in action, check out [these examples](#examples).
 
 ## Import

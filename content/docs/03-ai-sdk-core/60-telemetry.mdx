@@ -75,6 +75,8 @@ To disable telemetry globally, do not register any telemetry integrations via th
 
 You can provide a `functionId` to identify the function that the telemetry data is for,
 and `runtimeContext` to include additional information in the telemetry data.
+For the broader context model, see
+[Runtime and Tool Context](/docs/ai-sdk-core/runtime-and-tool-context).
 
 ```ts highlight="4-10"
 const result = await generateText({
@@ -150,13 +152,15 @@ const result = await generateText({
 });
 ```
 
-In this example, telemetry integrations receive `toolsContext.weather` and tool execution `toolContext` as `{ defaultUnit: 'fahrenheit' }`.
+In this example, telemetry integrations receive `toolsContext.weather` and tool execution telemetry event `toolContext` as `{ defaultUnit: 'fahrenheit' }`.
 Properties set to `false` or omitted are still sent. `sensitiveContext` is supported by `generateText`, `streamText`, and `ToolLoopAgent`.
 
 <Note>
   `sensitiveContext` only filters telemetry integrations, including OpenTelemetry
   integrations. Tool execution, lifecycle callbacks, and returned results still
-  receive the full tool context.
+  receive the full tool context. See [Runtime and Tool
+  Context](/docs/ai-sdk-core/runtime-and-tool-context) for the difference between
+  tool execution context and telemetry event context.
 </Note>
 
 ## Custom Tracer

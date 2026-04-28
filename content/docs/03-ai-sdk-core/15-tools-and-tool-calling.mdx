@@ -807,97 +807,9 @@ This is useful for values like tenant information, feature flags, session data, 
 
 Tool execution context is now separate. If a tool needs server-side values such as API keys, pass them via `toolsContext`, keyed by tool name. Each tool then receives only its own typed `context` value based on its `contextSchema`.
 
-At a high level:
-
-- Pass shared step-level state through `runtimeContext`
-- Read or update it in `prepareStep`
-- Pass per-tool values through `toolsContext`
-- Declare each tool's expected tool context with `contextSchema`
-- Mark sensitive tool context properties with `sensitiveContext` when they should be excluded from telemetry
-- Access the tool's typed context in `execute` together with other execution metadata such as `toolCallId`, `messages`, and `abortSignal`
-
-```ts
-import { openai } from '@ai-sdk/openai';
-import { streamText, tool } from 'ai';
-import { z } from 'zod';
-
-const result = streamText({
-  model: openai('gpt-5-mini'),
-  tools: {
-    weather: tool({
-      description: 'Get the weather in a location',
-      inputSchema: z.object({
-        location: z.string().describe('The location to get the weather for'),
-      }),
-      contextSchema: z.object({
-        weatherApiKey: z.string().describe('The API key for the weather API'),
-        defaultUnit: z.enum(['celsius', 'fahrenheit']),
-      }),
-      sensitiveContext: {
-        weatherApiKey: true,
-      },
-      execute: async (
-        { location },
-        { toolCallId, messages, abortSignal, context },
-      ) => {
-        const { weatherApiKey, defaultUnit } = context;
-
-        console.log('tool call:', toolCallId);
-        console.log('messages available to tool:', messages.length);
-        console.log('abortable:', abortSignal != null);
-        console.log('authenticated:', weatherApiKey != null);
-        console.log('default unit:', defaultUnit);
-
-        return {
-          location,
-          temperature: 72 + Math.floor(Math.random() * 21) - 10,
-        };
-      },
-    }),
-  },
-  runtimeContext: {
-    somethingElse: 'other-context',
-  },
-  toolsContext: {
-    weather: {
-      weatherApiKey: 'weather-123',
-      defaultUnit: 'fahrenheit',
-    },
-  },
-  prepareStep: async ({ runtimeContext, toolsContext }) => {
-    console.log('prepareStep runtimeContext:', runtimeContext);
-    console.log('prepareStep toolsContext:', toolsContext);
-
-    return {
-      // You can keep the runtimeContext unchanged or return a new one
-      // to affect the current and subsequent steps.
-      runtimeContext,
-    };
-  },
-  prompt: 'What is the weather in San Francisco?',
-});
-```
-
-In this example, `prepareStep` receives the full runtime context object:
-
-```ts
-{
-  somethingElse: string;
-}
-```
-
-`prepareStep` also receives the per-tool `toolsContext` map:
-
-```ts
-{
-  weather: {
-    weatherApiKey: string;
-    defaultUnit: 'celsius' | 'fahrenheit';
-  };
-}
-```
-
-The `weather` tool then receives only its own typed `context` based on its `contextSchema`. In this case, `execute` can access `weatherApiKey`, while the shared step-level `runtimeContext` remains separate.
+For the full mental model, examples, lifecycle details, and guidance on choosing
+between prompt context, runtime context, and tool context, see
+[Runtime and Tool Context](/docs/ai-sdk-core/runtime-and-tool-context).
 
 ### Sensitive Tool Context
 
@@ -945,7 +857,9 @@ Properties set to `false` or omitted are still sent.
 <Note>
   `sensitiveContext` only filters telemetry integrations. Tool execution,
   lifecycle callbacks, and returned results still receive the full typed tool
-  context.
+  context. See [Runtime and Tool
+  Context](/docs/ai-sdk-core/runtime-and-tool-context) for how tool context flows
+  through execution and telemetry.
 </Note>
 
 ## Tool Input Lifecycle Hooks
