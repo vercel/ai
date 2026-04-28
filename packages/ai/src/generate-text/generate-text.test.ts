@@ -7280,7 +7280,7 @@ describe('generateText', () => {
     it('should pass sensitive runtimeContext properties to callbacks', async () => {
       const callbackContexts: unknown[] = [];
 
-      const result = await generateText({
+      await generateText({
         model: new MockLanguageModelV4({
           doGenerate: async () => ({
             ...dummyResponseValues,
@@ -7316,10 +7316,55 @@ describe('generateText', () => {
         { userId: 'user-123', requestId: 'request-123' },
         { userId: 'user-123', requestId: 'request-123' },
       ]);
-      expect(result.steps[0].runtimeContext).toEqual({
-        userId: 'user-123',
-        requestId: 'request-123',
+    });
+
+    it('should exclude sensitive runtimeContext properties from telemetry', async () => {
+      const telemetryContexts: unknown[] = [];
+
+      await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            content: [{ type: 'text', text: 'Hello, world!' }],
+            finishReason: { unified: 'stop', raw: 'stop' },
+          }),
+        }),
+        runtimeContext: {
+          userId: 'user-123',
+          requestId: 'request-123',
+        },
+        sensitiveRuntimeContext: {
+          userId: true,
+        },
+        prompt: 'test-input',
+        telemetry: {
+          integrations: {
+            onStart: event => {
+              telemetryContexts.push(
+                (event as { runtimeContext: unknown }).runtimeContext,
+              );
+            },
+            onStepStart: ({ runtimeContext }) => {
+              telemetryContexts.push(runtimeContext);
+            },
+            onStepFinish: ({ runtimeContext }) => {
+              telemetryContexts.push(runtimeContext);
+            },
+            onFinish: event => {
+              telemetryContexts.push(
+                (event as { runtimeContext: unknown }).runtimeContext,
+              );
+            },
+          },
+        },
       });
+
+      expect(telemetryContexts).toEqual([
+        { requestId: 'request-123' },
+        { requestId: 'request-123' },
+        { requestId: 'request-123' },
+        { requestId: 'request-123' },
+      ]);
     });
   });
 

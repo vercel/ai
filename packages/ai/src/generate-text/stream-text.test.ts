@@ -5678,13 +5678,51 @@ describe('streamText', () => {
         { userId: 'user-123', requestId: 'request-123' },
         { userId: 'user-123', requestId: 'request-123' },
       ]);
-      await expect(result.steps).resolves.toMatchObject([
-        {
-          runtimeContext: {
-            userId: 'user-123',
-            requestId: 'request-123',
+    });
+
+    it('should exclude sensitive runtimeContext properties from telemetry', async () => {
+      const telemetryContexts: unknown[] = [];
+
+      const result = streamText({
+        model: createTestModel(),
+        prompt: 'test-input',
+        runtimeContext: {
+          userId: 'user-123',
+          requestId: 'request-123',
+        },
+        sensitiveRuntimeContext: {
+          userId: true,
+        },
+        telemetry: {
+          integrations: {
+            onStart: async event => {
+              telemetryContexts.push(
+                (event as { runtimeContext: unknown }).runtimeContext,
+              );
+            },
+            onStepStart: async ({ runtimeContext }) => {
+              telemetryContexts.push(runtimeContext);
+            },
+            onStepFinish: async ({ runtimeContext }) => {
+              telemetryContexts.push(runtimeContext);
+            },
+            onFinish: async event => {
+              telemetryContexts.push(
+                (event as { runtimeContext: unknown }).runtimeContext,
+              );
+            },
           },
         },
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      expect(telemetryContexts).toEqual([
+        { requestId: 'request-123' },
+        { requestId: 'request-123' },
+        { requestId: 'request-123' },
+        { requestId: 'request-123' },
       ]);
     });
 
