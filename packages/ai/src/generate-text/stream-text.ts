@@ -1761,7 +1761,25 @@ class DefaultStreamTextResult<
                     case 'model-call-end': {
                       // Note: tool executions might not be finished yet when the finish event is emitted.
                       // store usage and finish reason for promises and onFinish callback:
-                      stepUsage = chunk.usage;
+                      const usageMeta =
+                        (chunk as any).usageMetadata ||
+                        chunk.providerMetadata?.usageMetadata;
+
+                      stepUsage = {
+                        ...chunk.usage,
+                        ...(usageMeta?.promptTokensDetails
+                          ? {
+                              promptTokensDetails:
+                                usageMeta.promptTokensDetails,
+                            }
+                          : {}),
+                        ...(usageMeta?.candidatesTokensDetails
+                          ? {
+                              candidatesTokensDetails:
+                                usageMeta.candidatesTokensDetails,
+                            }
+                          : {}),
+                      };
                       stepFinishReason = chunk.finishReason;
                       stepRawFinishReason = chunk.rawFinishReason;
                       stepProviderMetadata = chunk.providerMetadata;
@@ -1825,6 +1843,20 @@ class DefaultStreamTextResult<
                   });
 
                   const combinedUsage = addLanguageModelUsage(usage, stepUsage);
+
+                  const usageMeta =
+                    (stepUsage as any).promptTokensDetails ||
+                    (stepUsage as any).candidatesTokensDetails;
+
+                  if (usageMeta) {
+                    (combinedUsage as any).promptTokensDetails = (
+                      stepUsage as any
+                    ).promptTokensDetails;
+
+                    (combinedUsage as any).candidatesTokensDetails = (
+                      stepUsage as any
+                    ).candidatesTokensDetails;
+                  }
 
                   // wait for the step to be fully processed by the event processor
                   // to ensure that the recorded steps are complete:
