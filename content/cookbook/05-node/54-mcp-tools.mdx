@@ -13,7 +13,7 @@ If you prefer to use the official transports (optional), install the official Mo
 <Snippet text="pnpm install @modelcontextprotocol/sdk" />
 
 ```ts
-import { createMCPClient } from '@ai-sdk/mcp';
+import { createMCPClient, type MCPClient } from '@ai-sdk/mcp';
 import { generateText, isStepCount } from 'ai';
 import { Experimental_StdioMCPTransport } from '@ai-sdk/mcp/mcp-stdio';
 import { openai } from '@ai-sdk/openai';
@@ -22,9 +22,9 @@ import { openai } from '@ai-sdk/openai';
 // import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse';
 // import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp';
 
-let clientOne;
-let clientTwo;
-let clientThree;
+let clientOne: MCPClient | undefined;
+let clientTwo: MCPClient | undefined;
+let clientThree: MCPClient | undefined;
 
 try {
   // Initialize an MCP client to connect to a `stdio` MCP server (local only):
@@ -33,12 +33,12 @@ try {
     args: ['src/stdio/dist/server.js'],
   });
 
-  const clientOne = await createMCPClient({
+  clientOne = await createMCPClient({
     transport,
   });
 
   // Connect to an HTTP MCP server directly via the client transport config
-  const clientTwo = await createMCPClient({
+  clientTwo = await createMCPClient({
     transport: {
       type: 'http',
       url: 'http://localhost:3000/mcp',
@@ -52,7 +52,7 @@ try {
   });
 
   // Connect to a Server-Sent Events (SSE) MCP server directly via the client transport config
-  const clientThree = await createMCPClient({
+  clientThree = await createMCPClient({
     transport: {
       type: 'sse',
       url: 'http://localhost:3000/sse',
@@ -96,10 +96,12 @@ try {
 } catch (error) {
   console.error(error);
 } finally {
+  // Use optional chaining so partially-initialized clients are skipped
+  // and we don't crash if a `createMCPClient` call threw before assignment.
   await Promise.all([
-    clientOne.close(),
-    clientTwo.close(),
-    clientThree.close(),
+    clientOne?.close(),
+    clientTwo?.close(),
+    clientThree?.close(),
   ]);
 }
 ```
