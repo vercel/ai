@@ -27,7 +27,6 @@ const DESCRIPTION_CONSTRAINT_KEYS = [
   'uniqueItems',
   'minProperties',
   'maxProperties',
-  'format',
   'not',
 ] satisfies Array<keyof JSONSchema7>;
 

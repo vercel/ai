@@ -13,8 +13,8 @@ run(async () => {
           name: z.string(),
           ingredients: z
             .array(z.object({ name: z.string(), amount: z.string() }))
-            .min(1)
-            .max(2),
+            .min(10)
+            .max(12),
           steps: z.array(z.string()),
         }),
       }),

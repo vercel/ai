@@ -11,9 +11,11 @@ import {
   convertReadableStreamToArray,
   mockId,
 } from '@ai-sdk/provider-utils/test';
+import { asSchema } from '@ai-sdk/provider-utils';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import fs from 'node:fs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { z } from 'zod';
 import { AnthropicLanguageModelOptions } from './anthropic-options';
 import { getModelCapabilities } from './anthropic-language-model';
 import { anthropic, createAnthropic } from './anthropic-provider';
@@ -1020,6 +1022,91 @@ describe('AnthropicLanguageModel', () => {
             "tags",
           ],
           "type": "object",
+        }
+      `);
+    });
+
+    it('should pass sanitized zod output schema as output_config.format', async () => {
+      prepareJsonFixtureResponse('anthropic-json-output-format.1');
+
+      const schema = asSchema(
+        z.object({
+          recipe: z.object({
+            name: z.string(),
+            ingredients: z
+              .array(z.object({ name: z.string(), amount: z.string() }))
+              .min(10)
+              .max(12),
+            steps: z.array(z.string()),
+          }),
+        }),
+      );
+
+      await provider('claude-sonnet-4-5').doGenerate({
+        prompt: TEST_PROMPT,
+        responseFormat: {
+          type: 'json',
+          schema: await schema.jsonSchema,
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+
+      expect(requestBody.output_config).toMatchInlineSnapshot(`
+        {
+          "format": {
+            "schema": {
+              "$schema": "http://json-schema.org/draft-07/schema#",
+              "additionalProperties": false,
+              "properties": {
+                "recipe": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "ingredients": {
+                      "description": "Additional constraints: min items: 10; max items: 12.",
+                      "items": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "amount": {
+                            "type": "string",
+                          },
+                          "name": {
+                            "type": "string",
+                          },
+                        },
+                        "required": [
+                          "name",
+                          "amount",
+                        ],
+                        "type": "object",
+                      },
+                      "type": "array",
+                    },
+                    "name": {
+                      "type": "string",
+                    },
+                    "steps": {
+                      "items": {
+                        "type": "string",
+                      },
+                      "type": "array",
+                    },
+                  },
+                  "required": [
+                    "name",
+                    "ingredients",
+                    "steps",
+                  ],
+                  "type": "object",
+                },
+              },
+              "required": [
+                "recipe",
+              ],
+              "type": "object",
+            },
+            "type": "json_schema",
+          },
         }
       `);
     });
