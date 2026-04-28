@@ -50,7 +50,9 @@ const agent = new ToolLoopAgent({
 });
 
 run(async () => {
-  await agent.generate({
+  const result = await agent.stream({
     prompt: 'What is the weather in San Francisco?',
   });
+
+  await result.consumeStream();
 });
