@@ -8,6 +8,47 @@ import { createToolModelOutput } from '../prompt/create-tool-model-output';
 import { ContentPart } from './content-part';
 import type { ToolSet } from '@ai-sdk/provider-utils';
 
+type AssistantContentArray = Exclude<AssistantContent, string>;
+
+function addProviderExecutedToolResult({
+  content,
+  part,
+}: {
+  content: AssistantContentArray;
+  part: Extract<AssistantContentArray[number], { type: 'tool-result' }>;
+}) {
+  const toolCallIndex = content.findIndex(
+    contentPart =>
+      contentPart.type === 'tool-call' &&
+      contentPart.providerExecuted &&
+      contentPart.toolCallId === part.toolCallId,
+  );
+
+  if (toolCallIndex === -1) {
+    content.push(part);
+    return;
+  }
+
+  let insertIndex = toolCallIndex + 1;
+
+  while (insertIndex < content.length) {
+    const contentPart = content[insertIndex];
+
+    if (
+      (contentPart.type === 'tool-result' ||
+        contentPart.type === 'tool-approval-request') &&
+      contentPart.toolCallId === part.toolCallId
+    ) {
+      insertIndex++;
+      continue;
+    }
+
+    break;
+  }
+
+  content.splice(insertIndex, 0, part);
+}
+
 /**
  * Converts the result of a `generateText` or `streamText` call to a list of response messages.
  */
@@ -97,12 +138,15 @@ export async function toResponseMessages<TOOLS extends ToolSet>({
           output: part.output,
           errorMode: 'none',
         });
-        content.push({
-          type: 'tool-result',
-          toolCallId: part.toolCallId,
-          toolName: part.toolName,
-          output,
-          providerOptions: part.providerMetadata,
+        addProviderExecutedToolResult({
+          content,
+          part: {
+            type: 'tool-result',
+            toolCallId: part.toolCallId,
+            toolName: part.toolName,
+            output,
+            providerOptions: part.providerMetadata,
+          },
         });
         break;
       }
@@ -114,12 +158,15 @@ export async function toResponseMessages<TOOLS extends ToolSet>({
           output: part.error,
           errorMode: 'json',
         });
-        content.push({
-          type: 'tool-result',
-          toolCallId: part.toolCallId,
-          toolName: part.toolName,
-          output,
-          providerOptions: part.providerMetadata,
+        addProviderExecutedToolResult({
+          content,
+          part: {
+            type: 'tool-result',
+            toolCallId: part.toolCallId,
+            toolName: part.toolName,
+            output,
+            providerOptions: part.providerMetadata,
+          },
         });
         break;
       }

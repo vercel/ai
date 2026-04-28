@@ -1348,6 +1348,83 @@ describe('toResponseMessages', () => {
         ]
       `);
     });
+
+    it('should keep provider-executed tool results adjacent to their tool calls', async () => {
+      const result = await toResponseMessages({
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'call-shell-1',
+            toolName: 'shell',
+            input: { action: { commands: ['echo first'] } },
+            providerExecuted: true,
+            dynamic: true,
+            providerMetadata: { openai: { itemId: 'sh_prev' } },
+          },
+          {
+            type: 'reasoning',
+            text: '',
+            providerMetadata: { openai: { itemId: 'rs_next' } },
+          },
+          {
+            type: 'tool-result',
+            toolCallId: 'call-shell-1',
+            toolName: 'shell',
+            input: { action: { commands: ['echo first'] } },
+            output: { output: 'first' },
+            providerExecuted: true,
+            dynamic: true,
+            providerMetadata: { openai: { itemId: 'sho_prev' } },
+          },
+          {
+            type: 'tool-call',
+            toolCallId: 'call-shell-2',
+            toolName: 'shell',
+            input: { action: { commands: ['echo second'] } },
+            providerExecuted: true,
+            dynamic: true,
+            providerMetadata: { openai: { itemId: 'sh_next' } },
+          },
+        ],
+        tools: {},
+      });
+
+      expect(result).toEqual([
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'call-shell-1',
+              toolName: 'shell',
+              input: { action: { commands: ['echo first'] } },
+              providerExecuted: true,
+              providerOptions: { openai: { itemId: 'sh_prev' } },
+            },
+            {
+              type: 'tool-result',
+              toolCallId: 'call-shell-1',
+              toolName: 'shell',
+              output: { type: 'json', value: { output: 'first' } },
+              providerOptions: { openai: { itemId: 'sho_prev' } },
+            },
+            {
+              type: 'reasoning',
+              text: '',
+              providerOptions: { openai: { itemId: 'rs_next' } },
+            },
+            {
+              type: 'tool-call',
+              toolCallId: 'call-shell-2',
+              toolName: 'shell',
+              input: { action: { commands: ['echo second'] } },
+              providerExecuted: true,
+              providerOptions: { openai: { itemId: 'sh_next' } },
+            },
+          ],
+        },
+      ]);
+    });
   });
 
   it('should sanitize invalid tool call with non-object input to empty object', async () => {
