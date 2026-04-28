@@ -6,17 +6,17 @@ on:
       - main
       - release-v*
     paths:
-      - ".changeset/**"
-      - ".github/workflows/release.yml"
+      - '.changeset/**'
+      - '.github/workflows/release.yml'
   workflow_dispatch:
     inputs:
       snapshot:
-        description: "Publish a snapshot release instead of a normal release"
+        description: 'Publish a snapshot release instead of a normal release'
         type: boolean
         default: false
 
 concurrency:
-  group: "release"
+  group: 'release'
   cancel-in-progress: false
 
 permissions:
