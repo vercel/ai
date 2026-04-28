@@ -33,10 +33,10 @@ export type RestrictedTelemetryDispatcher<
   | 'onToolExecutionStart'
   | 'onToolExecutionEnd'
 > & {
-  onStart?: GenerateTextOnStartCallback<TOOLS, RUNTIME_CONTEXT, OUTPUT>;
-  onStepStart?: GenerateTextOnStepStartCallback<TOOLS, RUNTIME_CONTEXT, OUTPUT>;
-  onStepFinish?: GenerateTextOnStepFinishCallback<TOOLS, RUNTIME_CONTEXT>;
-  onFinish?: GenerateTextOnFinishCallback<TOOLS, RUNTIME_CONTEXT>;
+  onStart: GenerateTextOnStartCallback<TOOLS, RUNTIME_CONTEXT, OUTPUT>;
+  onStepStart: GenerateTextOnStepStartCallback<TOOLS, RUNTIME_CONTEXT, OUTPUT>;
+  onStepFinish: GenerateTextOnStepFinishCallback<TOOLS, RUNTIME_CONTEXT>;
+  onFinish: GenerateTextOnFinishCallback<TOOLS, RUNTIME_CONTEXT>;
   onToolExecutionStart?: OnToolExecutionStartCallback<TOOLS>;
   onToolExecutionEnd?: OnToolExecutionEndCallback<TOOLS>;
 };
@@ -122,7 +122,7 @@ export function createRestrictedTelemetryDispatcher<
           context: event.runtimeContext,
           sensitiveContext: sensitiveRuntimeContext,
         }),
-      } as Parameters<NonNullable<TelemetryDispatcher['onStart']>>[0]),
+      }),
     onStepStart: event =>
       telemetryDispatcher.onStepStart?.({
         ...event,
@@ -133,13 +133,13 @@ export function createRestrictedTelemetryDispatcher<
         steps: event.steps.map(step =>
           restrictStepResult({ step, sensitiveRuntimeContext }),
         ),
-      } as Parameters<NonNullable<TelemetryDispatcher['onStepStart']>>[0]),
+      }),
     onStepFinish: event =>
       telemetryDispatcher.onStepFinish?.(
         restrictStepResult({
           step: event,
           sensitiveRuntimeContext,
-        }) as Parameters<NonNullable<TelemetryDispatcher['onStepFinish']>>[0],
+        }),
       ),
     onFinish: event =>
       telemetryDispatcher.onFinish?.({
@@ -151,6 +151,6 @@ export function createRestrictedTelemetryDispatcher<
         steps: event.steps.map(step =>
           restrictStepResult({ step, sensitiveRuntimeContext }),
         ),
-      } as Parameters<NonNullable<TelemetryDispatcher['onFinish']>>[0]),
+      }),
   };
 }

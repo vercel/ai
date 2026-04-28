@@ -1,4 +1,5 @@
 export type { ContentPart } from './content-part';
+export type { ActiveTools } from './active-tools';
 export { filterActiveTools as experimental_filterActiveTools } from './filter-active-tool';
 export { generateText } from './generate-text';
 export type {

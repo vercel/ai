@@ -18,6 +18,7 @@ import {
   type StopCondition,
   type GenerateTextOnStepFinishCallback,
   type SystemModelMessage,
+  type ActiveTools,
   type ToolCallRepairFunction,
   type ToolChoice,
   type ToolSet,
@@ -445,7 +446,7 @@ export interface WorkflowAgentOptions<
    *
    * Per-stream `activeTools` values passed to `stream()` override this default.
    */
-  activeTools?: Array<keyof NoInfer<TTools>>;
+  activeTools?: ActiveTools<NoInfer<TTools>>;
 
   /**
    * Default output specification for structured outputs.
@@ -735,7 +736,7 @@ export type WorkflowAgentStreamOptions<
      * Limits the tools that are available for the model to call without
      * changing the tool call and result types in the result.
      */
-    activeTools?: Array<keyof NoInfer<TTools>>;
+    activeTools?: ActiveTools<NoInfer<TTools>>;
 
     /**
      * Optional telemetry configuration.
@@ -1021,7 +1022,7 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
   private stopWhen?:
     | StopCondition<ToolSet, any>
     | Array<StopCondition<ToolSet, any>>;
-  private activeTools?: Array<keyof TBaseTools>;
+  private activeTools?: ActiveTools<TBaseTools>;
   private output?: OutputSpecification<any, any>;
   private experimentalRepairToolCall?: ToolCallRepairFunction<TBaseTools>;
   private experimentalDownload?: DownloadFunction;
@@ -1376,7 +1377,7 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
       effectiveActiveTools && effectiveActiveTools.length > 0
         ? (filterActiveTools({
             tools: this.tools,
-            activeTools: effectiveActiveTools as string[],
+            activeTools: effectiveActiveTools,
           }) ?? this.tools)
         : this.tools;
 

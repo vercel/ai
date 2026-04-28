@@ -1,9 +1,10 @@
 import type { ToolSet } from '@ai-sdk/provider-utils';
+import type { ActiveTools } from './active-tools';
 
-type ActiveTools<
+type ActiveToolSubset<
   TOOLS extends ToolSet,
-  ACTIVE_TOOL_NAMES extends readonly (keyof TOOLS)[] | undefined,
-> = [ACTIVE_TOOL_NAMES] extends [readonly (keyof TOOLS)[]]
+  ACTIVE_TOOL_NAMES extends ActiveTools<TOOLS> | undefined,
+> = [ACTIVE_TOOL_NAMES] extends [ActiveTools<TOOLS>]
   ? Pick<TOOLS, ACTIVE_TOOL_NAMES[number]>
   : TOOLS;
 
@@ -17,14 +18,14 @@ type ActiveTools<
  */
 export function filterActiveTools<
   TOOLS extends ToolSet,
-  ACTIVE_TOOL_NAMES extends readonly (keyof TOOLS)[] | undefined,
+  ACTIVE_TOOL_NAMES extends ActiveTools<TOOLS> | undefined,
 >({
   tools,
   activeTools,
 }: {
   tools: TOOLS | undefined;
   activeTools: ACTIVE_TOOL_NAMES;
-}): ActiveTools<TOOLS, ACTIVE_TOOL_NAMES> | undefined {
+}): ActiveToolSubset<TOOLS, ACTIVE_TOOL_NAMES> | undefined {
   if (tools == null) {
     return undefined;
   }
@@ -35,7 +36,7 @@ export function filterActiveTools<
 
   return Object.fromEntries(
     Object.entries(tools).filter(([name]) =>
-      activeTools.includes(name as keyof TOOLS),
+      activeTools.includes(name as keyof TOOLS & string),
     ),
-  ) as ActiveTools<TOOLS, ACTIVE_TOOL_NAMES>;
+  ) as ActiveToolSubset<TOOLS, ACTIVE_TOOL_NAMES>;
 }
