@@ -8,6 +8,7 @@ import type {
   Arrayable,
   Context,
   InferToolSetContext,
+  SensitiveContext,
   ToolApprovalResponse,
   ToolSet,
 } from '@ai-sdk/provider-utils';
@@ -40,7 +41,6 @@ import {
 } from '../prompt/request-options';
 import { standardizePrompt } from '../prompt/standardize-prompt';
 import { wrapGatewayError } from '../prompt/wrap-gateway-error';
-import { createTelemetryDispatcher } from '../telemetry/create-telemetry-dispatcher';
 import { TelemetryOptions } from '../telemetry/telemetry-options';
 import { createTextStreamResponse } from '../text-stream/create-text-stream-response';
 import { pipeTextStreamToResponse } from '../text-stream/pipe-text-stream-to-response';
@@ -99,6 +99,7 @@ import {
 } from './output-utils';
 import { PrepareStepFunction } from './prepare-step';
 import { convertToReasoningOutputs } from './reasoning-output';
+import { createRestrictedTelemetryDispatcher } from './restricted-telemetry-dispatcher';
 import { ResponseMessage } from './response-message';
 import { DefaultStepResult, StepResult } from './step-result';
 import {
@@ -241,6 +242,7 @@ export type StreamTextOnAbortCallback<
  * @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
  *
  * @param runtimeContext - User-defined runtime context that flows through the entire generation lifecycle.
+ * @param sensitiveRuntimeContext - Top-level runtime context properties that contain sensitive data.
  *
  * @param onChunk - Callback that is called for each chunk of the stream. The stream processing will pause until the callback promise is resolved.
  * @param onError - Callback that is called when an error occurs during streaming. You can use it to log errors.
@@ -254,6 +256,9 @@ export function streamText<
   TOOLS extends ToolSet,
   RUNTIME_CONTEXT extends Context = Context,
   OUTPUT extends Output = Output<string, string, never>,
+  const SENSITIVE_RUNTIME_CONTEXT extends SensitiveContext<
+    NoInfer<RUNTIME_CONTEXT>
+  > = undefined,
 >({
   model,
   tools,
@@ -291,6 +296,7 @@ export function streamText<
   experimental_onToolExecutionStart: onToolExecutionStart,
   experimental_onToolExecutionEnd: onToolExecutionEnd,
   runtimeContext = {} as RUNTIME_CONTEXT,
+  sensitiveRuntimeContext = undefined as SENSITIVE_RUNTIME_CONTEXT,
   toolsContext = {} as InferToolSetContext<TOOLS>,
   experimental_include: include,
   _internal: {
@@ -345,6 +351,11 @@ export function streamText<
      * If you need to mutate runtime context, update it in `prepareStep`.
      */
     runtimeContext?: RUNTIME_CONTEXT;
+
+    /**
+     * Top-level runtime context properties that contain sensitive data.
+     */
+    sensitiveRuntimeContext?: SENSITIVE_RUNTIME_CONTEXT;
 
     /**
      * Limits the tools that are available for the model to call without
@@ -520,7 +531,12 @@ export function streamText<
     stepTimeoutMs != null ? new AbortController() : undefined;
   const chunkAbortController =
     chunkTimeoutMs != null ? new AbortController() : undefined;
-  return new DefaultStreamTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>({
+  return new DefaultStreamTextResult<
+    TOOLS,
+    RUNTIME_CONTEXT,
+    OUTPUT,
+    SENSITIVE_RUNTIME_CONTEXT
+  >({
     model: resolveLanguageModel(model),
     telemetry,
     headers,
@@ -542,6 +558,8 @@ export function streamText<
     tools,
     toolsContext,
     runtimeContext,
+    sensitiveRuntimeContext:
+      sensitiveRuntimeContext as SENSITIVE_RUNTIME_CONTEXT,
     toolChoice,
     transforms: asArray(transform),
     activeTools,
@@ -682,6 +700,7 @@ class DefaultStreamTextResult<
   TOOLS extends ToolSet,
   RUNTIME_CONTEXT extends Context,
   OUTPUT extends Output,
+  SENSITIVE_RUNTIME_CONTEXT extends SensitiveContext<RUNTIME_CONTEXT>,
 > implements StreamTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT> {
   private readonly _totalUsage = new DelayedPromise<
     Awaited<StreamTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>['usage']>
@@ -753,6 +772,7 @@ class DefaultStreamTextResult<
     onToolExecutionStart,
     onToolExecutionEnd,
     runtimeContext,
+    sensitiveRuntimeContext,
     toolsContext,
     download,
     include,
@@ -769,6 +789,7 @@ class DefaultStreamTextResult<
     chunkAbortController: AbortController | undefined;
     toolsContext: InferToolSetContext<TOOLS>;
     runtimeContext: RUNTIME_CONTEXT;
+    sensitiveRuntimeContext: SENSITIVE_RUNTIME_CONTEXT;
     system: Prompt['system'];
     prompt: Prompt['prompt'];
     messages: Prompt['messages'];
@@ -834,8 +855,14 @@ class DefaultStreamTextResult<
     this.includeRawChunks = includeRawChunks;
     this.tools = tools;
 
-    const telemetryDispatcher = createTelemetryDispatcher({
+    const telemetryDispatcher = createRestrictedTelemetryDispatcher<
+      TOOLS,
+      RUNTIME_CONTEXT,
+      SENSITIVE_RUNTIME_CONTEXT,
+      OUTPUT
+    >({
       telemetry,
+      sensitiveRuntimeContext,
     });
 
     // promise to ensure that the step has been fully processed by the event processor
@@ -1152,15 +1179,7 @@ class DefaultStreamTextResult<
               providerMetadata: finalStep.providerMetadata,
               steps: recordedSteps,
             },
-            callbacks: [
-              onFinish,
-              telemetryDispatcher.onFinish as
-                | undefined
-                | GenerateTextOnFinishCallback<
-                    NoInfer<TOOLS>,
-                    NoInfer<RUNTIME_CONTEXT>
-                  >,
-            ],
+            callbacks: [onFinish, telemetryDispatcher.onFinish],
           });
         } catch (error) {
           controller.error(error);
@@ -1302,12 +1321,7 @@ class DefaultStreamTextResult<
           runtimeContext,
           toolsContext,
         },
-        callbacks: [
-          onStart,
-          telemetryDispatcher.onStart as
-            | undefined
-            | GenerateTextOnStartCallback<TOOLS, RUNTIME_CONTEXT, OUTPUT>,
-        ],
+        callbacks: [onStart, telemetryDispatcher.onStart],
       });
 
       const initialMessages = initialPrompt.messages;
@@ -1583,16 +1597,7 @@ class DefaultStreamTextResult<
                     stepTools,
                     stepToolChoice,
                   },
-                  callbacks: [
-                    onStepStart,
-                    telemetryDispatcher.onStepStart as
-                      | undefined
-                      | GenerateTextOnStepStartCallback<
-                          TOOLS,
-                          RUNTIME_CONTEXT,
-                          OUTPUT
-                        >,
-                  ],
+                  callbacks: [onStepStart, telemetryDispatcher.onStepStart],
                 });
               },
               ...callSettings,

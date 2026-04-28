@@ -5642,6 +5642,52 @@ describe('streamText', () => {
       });
     });
 
+    it('should pass sensitive runtimeContext properties to callbacks', async () => {
+      const callbackContexts: unknown[] = [];
+
+      const result = streamText({
+        model: createTestModel(),
+        prompt: 'test-input',
+        runtimeContext: {
+          userId: 'user-123',
+          requestId: 'request-123',
+        },
+        sensitiveRuntimeContext: {
+          userId: true,
+        },
+        experimental_onStart: async ({ runtimeContext }) => {
+          callbackContexts.push(runtimeContext);
+        },
+        experimental_onStepStart: async ({ runtimeContext }) => {
+          callbackContexts.push(runtimeContext);
+        },
+        onStepFinish: async ({ runtimeContext }) => {
+          callbackContexts.push(runtimeContext);
+        },
+        onFinish: async ({ runtimeContext }) => {
+          callbackContexts.push(runtimeContext);
+        },
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      expect(callbackContexts).toEqual([
+        { userId: 'user-123', requestId: 'request-123' },
+        { userId: 'user-123', requestId: 'request-123' },
+        { userId: 'user-123', requestId: 'request-123' },
+        { userId: 'user-123', requestId: 'request-123' },
+      ]);
+      await expect(result.steps).resolves.toMatchObject([
+        {
+          runtimeContext: {
+            userId: 'user-123',
+            requestId: 'request-123',
+          },
+        },
+      ]);
+    });
+
     it('should send correct information with system and messages', async () => {
       let startEvent!: Parameters<GenerateTextOnStartCallback>[0];
 

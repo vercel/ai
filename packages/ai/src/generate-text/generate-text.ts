@@ -7,6 +7,7 @@ import type {
   Arrayable,
   Context,
   InferToolSetContext,
+  SensitiveContext,
   ToolSet,
 } from '@ai-sdk/provider-utils';
 import {
@@ -37,7 +38,6 @@ import {
 } from '../prompt/request-options';
 import { standardizePrompt } from '../prompt/standardize-prompt';
 import { wrapGatewayError } from '../prompt/wrap-gateway-error';
-import { createTelemetryDispatcher } from '../telemetry/create-telemetry-dispatcher';
 import type { Telemetry } from '../telemetry/telemetry';
 import { TelemetryOptions } from '../telemetry/telemetry-options';
 import {
@@ -77,6 +77,7 @@ import { InferCompleteOutput } from './output-utils';
 import { parseToolCall } from './parse-tool-call';
 import { PrepareStepFunction } from './prepare-step';
 import { convertToReasoningOutputs } from './reasoning-output';
+import { createRestrictedTelemetryDispatcher } from './restricted-telemetry-dispatcher';
 import { resolveToolApproval } from './resolve-tool-approval';
 import { ResponseMessage } from './response-message';
 import { DefaultStepResult, StepResult } from './step-result';
@@ -150,6 +151,7 @@ const originalGenerateCallId = createIdGenerator({
  * @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
  *
  * @param runtimeContext - User-defined runtime context that flows through the entire generation lifecycle.
+ * @param sensitiveRuntimeContext - Top-level runtime context properties that contain sensitive data.
  *
  * @param experimental_onStart - Callback invoked when generation begins, before any LLM calls.
  * @param experimental_onStepStart - Callback invoked when each step begins, before the provider is called.
@@ -168,6 +170,8 @@ export async function generateText<
   TOOLS extends ToolSet,
   RUNTIME_CONTEXT extends Context = Context,
   OUTPUT extends Output = Output<string, string>,
+  SENSITIVE_RUNTIME_CONTEXT extends SensitiveContext<NoInfer<RUNTIME_CONTEXT>> =
+    undefined,
 >({
   model: modelArg,
   tools,
@@ -190,6 +194,7 @@ export async function generateText<
   experimental_repairToolCall: repairToolCall,
   experimental_download: download,
   runtimeContext = {} as RUNTIME_CONTEXT,
+  sensitiveRuntimeContext = undefined as SENSITIVE_RUNTIME_CONTEXT,
   toolsContext = {} as InferToolSetContext<TOOLS>,
   experimental_include: include,
   _internal: {
@@ -251,6 +256,11 @@ export async function generateText<
      * If you need to mutate runtime context, update it in `prepareStep`.
      */
     runtimeContext?: RUNTIME_CONTEXT;
+
+    /**
+     * Top-level runtime context properties that contain sensitive data.
+     */
+    sensitiveRuntimeContext?: SENSITIVE_RUNTIME_CONTEXT;
 
     /**
      * Limits the tools that are available for the model to call without
@@ -413,8 +423,15 @@ export async function generateText<
 
   const callId = generateCallId();
 
-  const telemetryDispatcher = createTelemetryDispatcher({
+  const telemetryDispatcher = createRestrictedTelemetryDispatcher<
+    TOOLS,
+    RUNTIME_CONTEXT,
+    SENSITIVE_RUNTIME_CONTEXT,
+    OUTPUT
+  >({
     telemetry,
+    sensitiveRuntimeContext:
+      sensitiveRuntimeContext as SENSITIVE_RUNTIME_CONTEXT,
   });
 
   await notify({
@@ -445,12 +462,7 @@ export async function generateText<
       runtimeContext,
       toolsContext,
     },
-    callbacks: [
-      onStart,
-      telemetryDispatcher.onStart as
-        | undefined
-        | GenerateTextOnStartCallback<TOOLS, RUNTIME_CONTEXT, OUTPUT>,
-    ],
+    callbacks: [onStart, telemetryDispatcher.onStart],
   });
 
   try {
@@ -645,12 +657,7 @@ export async function generateText<
             stepToolChoice,
             toolsContext,
           },
-          callbacks: [
-            onStepStart,
-            telemetryDispatcher.onStepStart as
-              | undefined
-              | GenerateTextOnStepStartCallback<TOOLS, RUNTIME_CONTEXT, OUTPUT>,
-          ],
+          callbacks: [onStepStart, telemetryDispatcher.onStepStart],
         });
 
         await notify({
@@ -996,12 +1003,7 @@ export async function generateText<
 
         await notify({
           event: currentStepResult,
-          callbacks: [
-            onStepFinish,
-            telemetryDispatcher.onStepFinish as
-              | undefined
-              | GenerateTextOnStepFinishCallback<TOOLS, RUNTIME_CONTEXT>,
-          ],
+          callbacks: [onStepFinish, telemetryDispatcher.onStepFinish],
         });
       } finally {
         if (stepTimeoutId != null) {
@@ -1066,12 +1068,7 @@ export async function generateText<
 
     await notify({
       event: onFinishEvent,
-      callbacks: [
-        onFinish,
-        telemetryDispatcher.onFinish as
-          | undefined
-          | GenerateTextOnFinishCallback<TOOLS, RUNTIME_CONTEXT>,
-      ],
+      callbacks: [onFinish, telemetryDispatcher.onFinish],
     });
 
     // parse output only if the last step was finished with "stop":
