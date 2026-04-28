@@ -16,7 +16,11 @@ import type {
   OnToolExecutionStartCallback,
 } from './tool-execution-events';
 
-type RestrictedTelemetryDispatcher<
+/**
+ * Telemetry dispatcher for text generation with callbacks typed to the
+ * operation-specific tool set, runtime context, and output shape.
+ */
+export type RestrictedTelemetryDispatcher<
   TOOLS extends ToolSet,
   RUNTIME_CONTEXT extends Context,
   OUTPUT extends Output,
@@ -37,6 +41,10 @@ type RestrictedTelemetryDispatcher<
   onToolExecutionEnd?: OnToolExecutionEndCallback<TOOLS>;
 };
 
+/**
+ * Returns a shallow copy of the runtime context with top-level properties
+ * marked as sensitive removed.
+ */
 function filterContext<CONTEXT extends Context>({
   context,
   sensitiveContext,
@@ -53,6 +61,10 @@ function filterContext<CONTEXT extends Context>({
       );
 }
 
+/**
+ * Creates a copy of a step result whose runtime context has sensitive
+ * top-level properties removed before it is sent to telemetry integrations.
+ */
 function restrictStepResult<
   TOOLS extends ToolSet,
   RUNTIME_CONTEXT extends Context,
@@ -84,6 +96,10 @@ function restrictStepResult<
   });
 }
 
+/**
+ * Creates a telemetry dispatcher that redacts configured runtime context
+ * properties from text-generation lifecycle events before dispatching them.
+ */
 export function createRestrictedTelemetryDispatcher<
   TOOLS extends ToolSet,
   RUNTIME_CONTEXT extends Context,
