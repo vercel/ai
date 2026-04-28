@@ -161,6 +161,25 @@ export const openaiLanguageModelResponsesOptionsSchema = lazySchema(() =>
         .nullish(),
 
       /**
+       * Context management policies for the response.
+       *
+       * Currently, only the `compaction` policy is supported.
+       */
+      contextManagement: z
+        .array(
+          z.object({
+            type: z.literal('compaction'),
+
+            /**
+             * The token threshold to use before compacting the context.
+             * Must be at least 1000.
+             */
+            compactThreshold: z.number().int().min(1000).nullish(),
+          }),
+        )
+        .nullish(),
+
+      /**
        * Instructions for the model.
        * They can be used to change the system or developer message when continuing a conversation using the `previousResponseId` option.
        * Defaults to `undefined`.

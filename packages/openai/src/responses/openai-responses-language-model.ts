@@ -346,6 +346,12 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
 
       // provider options:
       conversation: openaiOptions?.conversation,
+      context_management: openaiOptions?.contextManagement?.map(
+        contextRule => ({
+          type: contextRule.type,
+          compact_threshold: contextRule.compactThreshold,
+        }),
+      ),
       max_tool_calls: openaiOptions?.maxToolCalls,
       metadata: openaiOptions?.metadata,
       parallel_tool_calls: openaiOptions?.parallelToolCalls,

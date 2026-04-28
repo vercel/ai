@@ -182,6 +182,9 @@ The following provider options are available:
 - **previousResponseId** _string_
   The ID of the previous response. You can use it to continue a conversation. Defaults to `undefined`.
 
+- **contextManagement** _Array&lt;{ type: 'compaction'; compactThreshold?: number }&gt;_
+  Controls how the Responses API manages conversation context over time. Currently, the SDK supports OpenAI's `compaction` policy. Use `compactThreshold` to set the token threshold before compaction begins.
+
 - **instructions** _string_
   Instructions for the model.
   They can be used to change the system or developer message when continuing a conversation using the `previousResponseId` option.
