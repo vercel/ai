@@ -126,6 +126,16 @@ export interface MCPClient {
    */
   readonly serverInfo: Configuration;
 
+  /**
+   * Optional instructions provided by the server during the initialize handshake.
+   *
+   * These describe how to use the server and its features, and can be used by clients
+   * to improve LLM interactions (e.g. by including them in the system prompt).
+   *
+   * @see https://modelcontextprotocol.io/specification/2025-11-25/schema#initializeresult
+   */
+  readonly instructions?: string;
+
   tools<TOOL_SCHEMAS extends ToolSchemas = 'automatic'>(options?: {
     schemas?: TOOL_SCHEMAS;
   }): Promise<McpToolSet<TOOL_SCHEMAS>>;
@@ -209,6 +219,7 @@ class DefaultMCPClient implements MCPClient {
   > = new Map();
   private serverCapabilities: ServerCapabilities = {};
   private _serverInfo: Configuration = { name: '', version: '' };
+  private _serverInstructions?: string;
   private isClosed = true;
   private elicitationRequestHandler?: (
     request: ElicitationRequest,
@@ -259,6 +270,10 @@ class DefaultMCPClient implements MCPClient {
     return this._serverInfo;
   }
 
+  get instructions(): string | undefined {
+    return this._serverInstructions;
+  }
+
   async init(): Promise<this> {
     try {
       await this.transport.start();
@@ -290,6 +305,7 @@ class DefaultMCPClient implements MCPClient {
 
       this.serverCapabilities = result.capabilities;
       this._serverInfo = result.serverInfo;
+      this._serverInstructions = result.instructions;
 
       // Complete initialization handshake:
       await this.notification({

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod/v4';
 import { Tool, tool } from '@ai-sdk/provider-utils';
-import { filterActiveTools } from './filter-active-tool';
+import { filterActiveTools } from './filter-active-tools';
 
 const mockTools = {
   tool1: tool({
@@ -28,6 +28,15 @@ const mockToolsWithProviderDefined = {
 };
 
 describe('filterActiveTools', () => {
+  it('should return undefined when tools are not provided', () => {
+    const result = filterActiveTools({
+      tools: undefined,
+      activeTools: ['tool1'],
+    });
+
+    expect(result).toBeUndefined();
+  });
+
   it('should return all tools when activeTools is not provided', () => {
     const result = filterActiveTools({
       tools: mockToolsWithProviderDefined,
@@ -35,6 +44,15 @@ describe('filterActiveTools', () => {
     });
 
     expect(result).toBe(mockToolsWithProviderDefined);
+  });
+
+  it('should return no tools when activeTools is empty', () => {
+    const result = filterActiveTools({
+      tools: mockToolsWithProviderDefined,
+      activeTools: [],
+    });
+
+    expect(result).toEqual({});
   });
 
   it('should filter tools based on activeTools', () => {

@@ -10,6 +10,7 @@ import type { StandardizedPrompt } from '../prompt/standardize-prompt';
 import type { ToolChoice } from '../types/language-model';
 import type { LanguageModelUsage } from '../types/usage';
 import { Callback } from '../util/callback';
+import type { ActiveTools } from './active-tools';
 import type { Output } from './output';
 import type { StepResult } from './step-result';
 import { TextStreamPart } from './stream-text-result';
@@ -44,7 +45,7 @@ export type GenerateTextStartEvent<
   readonly toolChoice: ToolChoice<NoInfer<TOOLS>> | undefined;
 
   /** Limits which tools are available for the model to call. */
-  readonly activeTools: Array<keyof TOOLS> | undefined;
+  readonly activeTools: ActiveTools<TOOLS>;
 
   /** Maximum number of retries for failed requests. */
   readonly maxRetries: number;
@@ -106,7 +107,7 @@ export type GenerateTextStepStartEvent<
   readonly toolChoice: ToolChoice<NoInfer<TOOLS>> | undefined;
 
   /** Limits which tools are available for this step. */
-  readonly activeTools: Array<keyof TOOLS> | undefined;
+  readonly activeTools: ActiveTools<TOOLS>;
 
   /** Array of results from previous steps (empty for first step). */
   readonly steps: ReadonlyArray<StepResult<TOOLS, RUNTIME_CONTEXT>>;

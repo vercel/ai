@@ -1,0 +1,215 @@
+---
+title: Runtime and Tool Context
+description: Learn how runtime context, tool context, and sensitive context work together.
+---
+
+# Runtime and Tool Context
+
+Context lets you pass server-side state through a generation or agent loop
+without putting that state into the prompt. The AI SDK separates shared runtime
+state from per-tool execution state so agents can keep track of their work while
+tools only receive the values they need.
+
+Use context for values such as tenant information, feature flags, session data,
+request IDs, API credentials, access tokens, or other application state that
+should affect execution.
+
+## Context Types
+
+| Concept | Where you define it | Where you read it | Use it for |
+| --- | --- | --- | --- |
+| `runtimeContext` | `generateText`, `streamText`, or `ToolLoopAgent` calls | `prepareStep`, lifecycle callbacks, step results, and telemetry | Shared generation or agent state |
+| `toolsContext` | `generateText`, `streamText`, or `ToolLoopAgent` calls | `prepareStep`, approval callbacks, and tool context resolution | A map of per-tool context values keyed by tool name |
+| tool `context` | Each tool's `toolsContext` entry, validated by its `contextSchema` | Tool `execute`, `needsApproval`, and tool input lifecycle callbacks | Values needed by one tool |
+| `toolContext` | Derived from one tool's context | Tool approval callbacks and tool execution events | The event/callback name for one tool's context |
+| `sensitiveRuntimeContext` | The generation or agent call | Telemetry filtering | Top-level `runtimeContext` properties to omit from telemetry |
+| `sensitiveContext` | The tool definition | Telemetry filtering | Top-level tool context properties to omit from telemetry |
+
+In agents, `runtimeContext` is the agent's shared runtime state. It flows
+through the loop and can be read or updated in `prepareStep` between model
+calls. Tool-specific data stays in `toolsContext`, where each tool receives only
+its own validated `context`.
+
+```txt
+generateText / streamText / ToolLoopAgent
+  -> runtimeContext
+       -> prepareStep, lifecycle callbacks, step results
+       -> telemetry, filtered by sensitiveRuntimeContext
+  -> toolsContext
+       -> prepareStep
+       -> one tool's context / toolContext
+            -> execute, approval callbacks, tool events
+            -> telemetry, filtered by sensitiveContext
+```
+
+## Runtime Context
+
+Pass `runtimeContext` when you need shared state for the whole generation or
+agent loop. It is not added to the model prompt automatically. Use it to
+configure step preparation, track server-side state, or correlate lifecycle
+events.
+
+```ts
+const result = await generateText({
+  model: __MODEL__,
+  prompt: 'Help the user plan their trip.',
+  runtimeContext: {
+    tenantId: 'tenant_123',
+    plan: 'enterprise',
+    requestId: 'req_abc',
+  },
+  prepareStep: async ({ runtimeContext }) => {
+    if (runtimeContext.plan === 'enterprise') {
+      return { temperature: 0.2 };
+    }
+
+    return {};
+  },
+});
+```
+
+`prepareStep` can return a new `runtimeContext`. The new value affects the
+current step and all subsequent steps, which makes it the right place to update
+agent state between turns of the loop.
+
+## Tool Context
+
+Use `toolsContext` for values that belong to a specific tool. Each tool declares
+the context it expects with `contextSchema`; the matching `toolsContext` entry is
+validated and passed to the tool as `context`.
+
+```ts highlight="11-15,26-31"
+import { generateText, tool } from 'ai';
+import { z } from 'zod';
+
+const weatherTool = tool({
+  description: 'Get the weather in a location',
+  inputSchema: z.object({
+    location: z.string(),
+  }),
+  contextSchema: z.object({
+    weatherApiKey: z.string(),
+    defaultUnit: z.enum(['celsius', 'fahrenheit']),
+  }),
+  execute: async ({ location }, { context }) => {
+    return fetchWeather({
+      location,
+      apiKey: context.weatherApiKey,
+      unit: context.defaultUnit,
+    });
+  },
+});
+
+const result = await generateText({
+  model: __MODEL__,
+  tools: { weather: weatherTool },
+  toolsContext: {
+    weather: {
+      weatherApiKey: process.env.WEATHER_API_KEY!,
+      defaultUnit: 'fahrenheit',
+    },
+  },
+  prompt: 'What is the weather in San Francisco?',
+});
+```
+
+When at least one tool declares `contextSchema`, `toolsContext` is required for
+the tools that need context. A tool receives only its own context, not the full
+`toolsContext` map.
+
+Treat tool context as immutable inside tools. If you need to change tool context
+between steps, inspect the previous step in `prepareStep` and return an updated
+`toolsContext`.
+
+## Sensitive Context
+
+Context often contains values that are useful inside your application but should
+not be sent to telemetry providers. Mark top-level properties with
+`sensitiveRuntimeContext` or `sensitiveContext` to omit them from telemetry.
+
+```ts highlight="12-14,24-26,39-41,48-50"
+import { ToolLoopAgent, tool } from 'ai';
+import { z } from 'zod';
+
+const customerLookup = tool({
+  description: 'Look up customer account details',
+  inputSchema: z.object({
+    customerId: z.string(),
+  }),
+  contextSchema: z.object({
+    apiKey: z.string(),
+    region: z.string(),
+  }),
+  sensitiveContext: {
+    apiKey: true,
+  },
+  execute: async ({ customerId }, { context }) => {
+    return lookupCustomer({
+      customerId,
+      apiKey: context.apiKey,
+      region: context.region,
+    });
+  },
+});
+
+const agent = new ToolLoopAgent({
+  model: __MODEL__,
+  tools: { customerLookup },
+});
+
+const result = await agent.generate({
+  prompt: 'Check whether customer cust_123 is eligible for priority support.',
+  runtimeContext: {
+    requestId: 'req_abc',
+    tenantId: 'tenant_123',
+    userId: 'user_123',
+  },
+  sensitiveRuntimeContext: {
+    userId: true,
+  },
+  toolsContext: {
+    customerLookup: {
+      apiKey: process.env.CUSTOMER_API_KEY!,
+      region: 'us',
+    },
+  },
+});
+```
+
+In this example, telemetry receives `runtimeContext` without `userId` and the
+`customerLookup` context without `apiKey`.
+
+<Note>
+  Sensitive context only filters telemetry integrations, including OpenTelemetry
+  integrations. Tool execution, lifecycle callbacks, and returned results still
+  receive the full context values.
+</Note>
+
+Sensitive context filtering is shallow. Only top-level properties marked as
+`true` are omitted. Properties set to `false` or omitted are still sent.
+
+## Where Context Is Available
+
+| Location | `runtimeContext` | `toolsContext` | Tool `context` / `toolContext` |
+| --- | --- | --- | --- |
+| `prepareStep` | Read and update | Read and update | Not directly |
+| Tool `execute` | Not passed directly | Not passed directly | Read one tool's validated `context` |
+| Tool approval | Read in generic and per-tool callbacks | Read in generic callbacks | Read as `toolContext` in per-tool callbacks |
+| Tool execution events | Not included | Not included | Read as `toolContext` |
+| Step results and finish callbacks | Read final or per-step state | Read final or per-step state | Available through the per-tool entries in `toolsContext` |
+| Telemetry | Filtered by `sensitiveRuntimeContext` | Filtered per tool | Filtered by each tool's `sensitiveContext` |
+
+## Choosing the Right Context
+
+- Use `runtimeContext` for state shared by the whole generation or agent loop,
+  such as request metadata, tenant settings, feature flags, or agent progress.
+- Use `toolsContext` and `contextSchema` for values needed by a specific tool,
+  such as API keys, scoped clients, user permissions, or default tool settings.
+- Use prompt messages for information the model should reason about or mention
+  in its answer.
+- Use `sensitiveRuntimeContext` and `sensitiveContext` to reduce telemetry
+  exposure, not as a general security boundary.
+
+Learn more about [tools and tool calling](/docs/ai-sdk-core/tools-and-tool-calling),
+[event listeners](/docs/ai-sdk-core/event-listeners), and
+[telemetry](/docs/ai-sdk-core/telemetry).

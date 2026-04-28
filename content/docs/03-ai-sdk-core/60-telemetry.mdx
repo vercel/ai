@@ -75,20 +75,93 @@ To disable telemetry globally, do not register any telemetry integrations via th
 
 You can provide a `functionId` to identify the function that the telemetry data is for,
 and `runtimeContext` to include additional information in the telemetry data.
+For the broader context model, see
+[Runtime and Tool Context](/docs/ai-sdk-core/runtime-and-tool-context).
 
 ```ts highlight="4-10"
 const result = await generateText({
   model: __MODEL__,
   prompt: 'Write a short story about a cat.',
   runtimeContext: {
-    something: 'custom',
-    someOtherThing: 'other-value',
+    userId: 'user_123',
+    requestId: 'req_abc',
   },
   telemetry: {
     functionId: 'my-awesome-function',
   },
 });
 ```
+
+### Sensitive runtime context
+
+`runtimeContext` can contain values that are useful inside your application but should not be sent to telemetry providers, such as user identifiers, tenant IDs, or credentials. Use `sensitiveRuntimeContext` to mark top-level `runtimeContext` properties that should be excluded from telemetry:
+
+```ts highlight="8-10"
+const result = await generateText({
+  model: __MODEL__,
+  prompt: 'Write a short story about a cat.',
+  runtimeContext: {
+    userId: 'user_123',
+    requestId: 'req_abc',
+  },
+  sensitiveRuntimeContext: {
+    userId: true,
+  },
+});
+```
+
+In this example, telemetry integrations receive `runtimeContext` as `{ requestId: 'req_abc' }`. Properties set to `false` or omitted are still sent. `sensitiveRuntimeContext` is supported by `generateText`, `streamText`, and `ToolLoopAgent`.
+
+<Note>
+  `sensitiveRuntimeContext` only filters telemetry integrations, including
+  OpenTelemetry integrations. Lifecycle callbacks and returned results still
+  receive the full `runtimeContext`.
+</Note>
+
+### Sensitive tool context
+
+Tool-specific context can also contain values that are useful during execution but should not be sent to telemetry providers, such as API keys or access tokens.
+Use `sensitiveContext` on a tool definition to mark top-level properties from that tool's `context` as sensitive:
+
+```ts highlight="9-11,19-23"
+const weatherTool = tool({
+  inputSchema: z.object({
+    location: z.string(),
+  }),
+  contextSchema: z.object({
+    weatherApiKey: z.string(),
+    defaultUnit: z.enum(['celsius', 'fahrenheit']),
+  }),
+  sensitiveContext: {
+    weatherApiKey: true,
+  },
+  execute: async ({ location }, { context }) =>
+    fetchWeather(location, context.weatherApiKey, context.defaultUnit),
+});
+
+const result = await generateText({
+  model: __MODEL__,
+  tools: { weather: weatherTool },
+  toolsContext: {
+    weather: {
+      weatherApiKey: 'weather-123',
+      defaultUnit: 'fahrenheit',
+    },
+  },
+  prompt: 'What is the weather in San Francisco?',
+});
+```
+
+In this example, telemetry integrations receive `toolsContext.weather` and tool execution telemetry event `toolContext` as `{ defaultUnit: 'fahrenheit' }`.
+Properties set to `false` or omitted are still sent. `sensitiveContext` is supported by `generateText`, `streamText`, and `ToolLoopAgent`.
+
+<Note>
+  `sensitiveContext` only filters telemetry integrations, including OpenTelemetry
+  integrations. Tool execution, lifecycle callbacks, and returned results still
+  receive the full tool context. See [Runtime and Tool
+  Context](/docs/ai-sdk-core/runtime-and-tool-context) for the difference between
+  tool execution context and telemetry event context.
+</Note>
 
 ## Custom Tracer
 
@@ -557,7 +630,7 @@ Many spans that use LLMs (`ai.generateText`, `ai.generateText.doGenerate`, `ai.s
 - `ai.response.providerMetadata`: provider specific metadata returned with the generation response
 - `ai.settings.maxRetries`: the maximum number of retries that were set
 - `ai.telemetry.functionId`: the functionId that was set through `telemetry.functionId`
-- `ai.settings.runtimeContext.*`: the runtime context that was passed in through the `runtimeContext` option
+- `ai.settings.runtimeContext.*`: the runtime context that was passed in through the `runtimeContext` option, excluding top-level properties marked with `sensitiveRuntimeContext`
 - `ai.usage.completionTokens`: the number of completion tokens that were used
 - `ai.usage.promptTokens`: the number of prompt tokens that were used
 
