@@ -703,10 +703,6 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       }
     }
 
-    if (anthropicOptions?.effort) {
-      betas.add('effort-2025-11-24');
-    }
-
     if (anthropicOptions?.taskBudget) {
       betas.add('task-budgets-2026-03-13');
     }
