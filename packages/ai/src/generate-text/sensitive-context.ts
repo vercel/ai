@@ -1,4 +1,4 @@
-import type { Context } from './context';
+import type { Context } from '@ai-sdk/provider-utils';
 
 /**
  * Top-level context properties that contain sensitive data.

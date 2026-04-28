@@ -1,8 +1,4 @@
-import type {
-  Context,
-  SensitiveContext,
-  ToolSet,
-} from '@ai-sdk/provider-utils';
+import type { Context, ToolSet } from '@ai-sdk/provider-utils';
 import { createTelemetryDispatcher } from '../telemetry/create-telemetry-dispatcher';
 import type { TelemetryDispatcher } from '../telemetry/telemetry';
 import type { TelemetryOptions } from '../telemetry/telemetry-options';
@@ -13,6 +9,7 @@ import type {
   GenerateTextOnStepStartCallback,
 } from './generate-text-events';
 import type { Output } from './output';
+import { SensitiveContext } from './sensitive-context';
 import { DefaultStepResult, StepResult } from './step-result';
 import type {
   OnToolExecutionEndCallback,

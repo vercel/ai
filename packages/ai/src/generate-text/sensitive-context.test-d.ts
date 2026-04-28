@@ -1,5 +1,5 @@
 import { describe, expectTypeOf, it } from 'vitest';
-import type { SensitiveContext } from './filter-context';
+import type { SensitiveContext } from './sensitive-context';
 
 type TestContext = {
   userId: string;

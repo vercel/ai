@@ -8,7 +8,6 @@ import type {
   Arrayable,
   Context,
   InferToolSetContext,
-  SensitiveContext,
   ToolApprovalResponse,
   ToolSet,
 } from '@ai-sdk/provider-utils';
@@ -101,6 +100,7 @@ import { PrepareStepFunction } from './prepare-step';
 import { convertToReasoningOutputs } from './reasoning-output';
 import { createRestrictedTelemetryDispatcher } from './restricted-telemetry-dispatcher';
 import { ResponseMessage } from './response-message';
+import { SensitiveContext } from './sensitive-context';
 import { DefaultStepResult, StepResult } from './step-result';
 import {
   isStepCount,
