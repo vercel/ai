@@ -16,18 +16,6 @@ function getOpenAIMetadata(message: {
   return message?.providerOptions?.openaiCompatible ?? {};
 }
 
-function getAudioFormat(mediaType: string): 'wav' | 'mp3' | null {
-  switch (mediaType) {
-    case 'audio/wav':
-      return 'wav';
-    case 'audio/mp3':
-    case 'audio/mpeg':
-      return 'mp3';
-    default:
-      return null;
-  }
-}
-
 export function convertToOpenAICompatibleChatMessages(
   prompt: LanguageModelV4Prompt,
 ): OpenAICompatibleChatPrompt {
@@ -84,24 +72,36 @@ export function convertToOpenAICompatibleChatMessages(
                 }
 
                 if (part.mediaType.startsWith('audio/')) {
-                  if (part.data instanceof URL) {
-                    throw new UnsupportedFunctionalityError({
-                      functionality: 'audio file parts with URLs',
-                    });
-                  }
-
-                  const format = getAudioFormat(part.mediaType);
-                  if (format === null) {
-                    throw new UnsupportedFunctionalityError({
-                      functionality: `audio media type ${part.mediaType}`,
-                    });
-                  }
-
+                  // Pass all audio as input_audio regardless of format — aligns
+                  // with how images are handled (no hard-coded format allowlist),
+                  // and avoids maintenance as providers add new supported formats.
+                  const fileData =
+                    part.data instanceof URL
+                      ? part.data.toString()
+                      : `data:${part.mediaType};base64,${convertToBase64(part.data)}`;
                   return {
                     type: 'input_audio',
                     input_audio: {
-                      data: convertToBase64(part.data),
-                      format,
+                      data: fileData,
+                      format: part.mediaType.split('/')[1] ?? 'wav',
+                    },
+                    ...partMetadata,
+                  };
+                }
+
+                if (part.mediaType.startsWith('video/')) {
+                  const fileData =
+                    part.data instanceof URL
+                      ? part.data.toString()
+                      : `data:${part.mediaType};base64,${convertToBase64(part.data)}`;
+
+                  return {
+                    type: 'file',
+                    file: {
+                      filename:
+                        part.filename ??
+                        `video.${part.mediaType.split('/')[1] ?? 'bin'}`,
+                      file_data: fileData,
                     },
                     ...partMetadata,
                   };
