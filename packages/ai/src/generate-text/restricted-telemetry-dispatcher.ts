@@ -1,5 +1,6 @@
 import type {
   Context,
+  InferToolContext,
   InferToolSetContext,
   SensitiveContext,
   ToolSet,
@@ -65,10 +66,6 @@ function filterContext<CONTEXT extends Context>({
       );
 }
 
-function isContext(value: unknown): value is Context {
-  return value != null && typeof value === 'object' && !Array.isArray(value);
-}
-
 /**
  * Creates a copy of a step result whose runtime context has sensitive
  * top-level properties removed before it is sent to telemetry integrations.
@@ -124,25 +121,16 @@ function filterToolsContext<TOOLS extends ToolSet>({
     return toolsContext;
   }
 
-  let filteredToolsContext: Record<string, unknown> | undefined;
-
-  for (const [toolName, toolContext] of Object.entries(toolsContext)) {
-    const sensitiveContext = tools[toolName]?.sensitiveContext as
-      | SensitiveContext<Context>
-      | undefined;
-
-    if (sensitiveContext == null || !isContext(toolContext)) {
-      continue;
-    }
-
-    filteredToolsContext ??= { ...toolsContext };
-    filteredToolsContext[toolName] = filterContext({
-      context: toolContext,
-      sensitiveContext,
-    });
-  }
-
-  return (filteredToolsContext ?? toolsContext) as InferToolSetContext<TOOLS>;
+  return Object.fromEntries(
+    Object.entries(toolsContext).map(([toolName, toolContext]) => [
+      toolName,
+      filterToolContext({
+        tools,
+        toolName,
+        toolContext,
+      }),
+    ]),
+  ) as InferToolSetContext<TOOLS>;
 }
 
 function filterToolContext<TOOLS extends ToolSet>({
@@ -154,15 +142,15 @@ function filterToolContext<TOOLS extends ToolSet>({
   toolName: string;
   toolContext: unknown;
 }) {
-  const sensitiveContext = tools?.[toolName]?.sensitiveContext as
-    | SensitiveContext<Context>
+  const sensitiveToolContext = tools?.[toolName]?.sensitiveContext as
+    | SensitiveContext<InferToolContext<TOOLS[typeof toolName]>>
     | undefined;
 
-  return sensitiveContext == null || !isContext(toolContext)
+  return sensitiveToolContext == null
     ? toolContext
     : filterContext({
-        context: toolContext,
-        sensitiveContext,
+        context: toolContext as InferToolContext<TOOLS[typeof toolName]>,
+        sensitiveContext: sensitiveToolContext,
       });
 }
 
