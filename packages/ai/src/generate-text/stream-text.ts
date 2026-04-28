@@ -1371,15 +1371,11 @@ class DefaultStreamTextResult<
                 toolsContext,
                 onToolExecutionStart: filterNullable(
                   onToolExecutionStart,
-                  telemetryDispatcher.onToolExecutionStart as
-                    | OnToolExecutionStartCallback<TOOLS>
-                    | undefined,
+                  telemetryDispatcher.onToolExecutionStart,
                 ),
                 onToolExecutionEnd: filterNullable(
                   onToolExecutionEnd,
-                  telemetryDispatcher.onToolExecutionEnd as
-                    | OnToolExecutionEndCallback<TOOLS>
-                    | undefined,
+                  telemetryDispatcher.onToolExecutionEnd,
                 ),
                 executeToolInTelemetryContext: telemetryDispatcher.executeTool,
                 onPreliminaryToolResult: result => {
@@ -1614,15 +1610,11 @@ class DefaultStreamTextResult<
               generateId,
               onToolExecutionStart: filterNullable(
                 onToolExecutionStart,
-                telemetryDispatcher.onToolExecutionStart as
-                  | OnToolExecutionStartCallback<TOOLS>
-                  | undefined,
+                telemetryDispatcher.onToolExecutionStart,
               ),
               onToolExecutionEnd: filterNullable(
                 onToolExecutionEnd,
-                telemetryDispatcher.onToolExecutionEnd as
-                  | OnToolExecutionEndCallback<TOOLS>
-                  | undefined,
+                telemetryDispatcher.onToolExecutionEnd,
               ),
               executeToolInTelemetryContext: telemetryDispatcher.executeTool,
             }),

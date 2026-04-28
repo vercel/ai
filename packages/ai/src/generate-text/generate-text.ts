@@ -491,9 +491,7 @@ export async function generateText<
             event,
             callbacks: [
               onToolExecutionStart,
-              telemetryDispatcher.onToolExecutionStart as
-                | undefined
-                | OnToolExecutionStartCallback<TOOLS>,
+              telemetryDispatcher.onToolExecutionStart,
             ],
           }),
         onToolExecutionEnd: event =>
@@ -501,9 +499,7 @@ export async function generateText<
             event,
             callbacks: [
               onToolExecutionEnd,
-              telemetryDispatcher.onToolExecutionEnd as
-                | undefined
-                | OnToolExecutionEndCallback<TOOLS>,
+              telemetryDispatcher.onToolExecutionEnd,
             ],
           }),
         executeToolInTelemetryContext: telemetryDispatcher.executeTool,
@@ -885,9 +881,7 @@ export async function generateText<
                   event,
                   callbacks: [
                     onToolExecutionStart,
-                    telemetryDispatcher.onToolExecutionStart as
-                      | undefined
-                      | OnToolExecutionStartCallback<TOOLS>,
+                    telemetryDispatcher.onToolExecutionStart,
                   ],
                 }),
               onToolExecutionEnd: event =>
@@ -895,9 +889,7 @@ export async function generateText<
                   event,
                   callbacks: [
                     onToolExecutionEnd,
-                    telemetryDispatcher.onToolExecutionEnd as
-                      | undefined
-                      | OnToolExecutionEndCallback<TOOLS>,
+                    telemetryDispatcher.onToolExecutionEnd,
                   ],
                 }),
               executeToolInTelemetryContext: telemetryDispatcher.executeTool,

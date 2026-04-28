@@ -15,6 +15,10 @@ import type {
 } from './generate-text-events';
 import type { Output } from './output';
 import { DefaultStepResult, StepResult } from './step-result';
+import type {
+  OnToolExecutionEndCallback,
+  OnToolExecutionStartCallback,
+} from './tool-execution-events';
 
 type RestrictedTelemetryDispatcher<
   TOOLS extends ToolSet,
@@ -22,12 +26,19 @@ type RestrictedTelemetryDispatcher<
   OUTPUT extends Output,
 > = Omit<
   TelemetryDispatcher,
-  'onStart' | 'onStepStart' | 'onStepFinish' | 'onFinish'
+  | 'onStart'
+  | 'onStepStart'
+  | 'onStepFinish'
+  | 'onFinish'
+  | 'onToolExecutionStart'
+  | 'onToolExecutionEnd'
 > & {
   onStart?: GenerateTextOnStartCallback<TOOLS, RUNTIME_CONTEXT, OUTPUT>;
   onStepStart?: GenerateTextOnStepStartCallback<TOOLS, RUNTIME_CONTEXT, OUTPUT>;
   onStepFinish?: GenerateTextOnStepFinishCallback<TOOLS, RUNTIME_CONTEXT>;
   onFinish?: GenerateTextOnFinishCallback<TOOLS, RUNTIME_CONTEXT>;
+  onToolExecutionStart?: OnToolExecutionStartCallback<TOOLS>;
+  onToolExecutionEnd?: OnToolExecutionEndCallback<TOOLS>;
 };
 
 function restrictStepResult<
