@@ -7,7 +7,7 @@ import {
   Tracer,
 } from '@opentelemetry/api';
 import type { Telemetry } from 'ai';
-import { OpenTelemetry } from './gen-ai-open-telemetry';
+import { OpenTelemetry } from './open-telemetry';
 
 type MockSpan = Span & {
   name: string;
