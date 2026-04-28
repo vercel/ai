@@ -1,9 +1,5 @@
 import { describe, expectTypeOf, it } from 'vitest';
-import {
-  filterContext,
-  type RestrictedContext,
-  type SensitiveContext,
-} from './filter-context';
+import type { SensitiveContext } from './filter-context';
 
 type TestContext = {
   userId: string;
@@ -55,69 +51,6 @@ describe('SensitiveContext', () => {
       metadata: {
         secret: boolean;
       };
-    }>();
-  });
-});
-
-describe('RestrictedContext', () => {
-  it('filters out context properties marked as sensitive', () => {
-    expectTypeOf<
-      RestrictedContext<TestContext, { userId: true; requestId: false }>
-    >().toEqualTypeOf<{
-      requestId: string;
-      metadata: {
-        secret: string;
-      };
-    }>();
-  });
-
-  it('does not filter context when sensitive context is undefined', () => {
-    expectTypeOf<
-      RestrictedContext<TestContext, undefined>
-    >().toEqualTypeOf<TestContext>();
-  });
-});
-
-describe('filterContext', () => {
-  it('returns restricted context when sensitive context is provided', () => {
-    const context = {
-      userId: 'user-123',
-      requestId: 'request-123',
-      metadata: {
-        secret: 'secret',
-      },
-    };
-
-    const restrictedContext = filterContext({
-      context,
-      sensitiveContext: {
-        userId: true,
-        requestId: false,
-      },
-    });
-
-    expectTypeOf(restrictedContext).toEqualTypeOf<{
-      requestId: string;
-      metadata: {
-        secret: string;
-      };
-    }>();
-  });
-
-  it('returns full context when sensitive context is undefined', () => {
-    const context = {
-      userId: 'user-123',
-      requestId: 'request-123',
-    };
-
-    const restrictedContext = filterContext({
-      context,
-      sensitiveContext: undefined,
-    });
-
-    expectTypeOf(restrictedContext).toEqualTypeOf<{
-      userId: string;
-      requestId: string;
     }>();
   });
 });

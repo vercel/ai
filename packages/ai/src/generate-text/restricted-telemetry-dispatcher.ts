@@ -3,7 +3,6 @@ import type {
   SensitiveContext,
   ToolSet,
 } from '@ai-sdk/provider-utils';
-import { filterContext } from '@ai-sdk/provider-utils';
 import { createTelemetryDispatcher } from '../telemetry/create-telemetry-dispatcher';
 import type { TelemetryDispatcher } from '../telemetry/telemetry';
 import type { TelemetryOptions } from '../telemetry/telemetry-options';
@@ -40,6 +39,47 @@ type RestrictedTelemetryDispatcher<
   onToolExecutionStart?: OnToolExecutionStartCallback<TOOLS>;
   onToolExecutionEnd?: OnToolExecutionEndCallback<TOOLS>;
 };
+
+type SensitiveContextKeys<
+  CONTEXT extends Context,
+  SENSITIVE_CONTEXT extends SensitiveContext<CONTEXT>,
+> = SENSITIVE_CONTEXT extends undefined
+  ? never
+  : {
+      [KEY in keyof CONTEXT]: NonNullable<SENSITIVE_CONTEXT> extends {
+        [K in KEY]?: infer VALUE;
+      }
+        ? VALUE extends true
+          ? KEY
+          : never
+        : never;
+    }[keyof CONTEXT];
+
+type RestrictedContext<
+  CONTEXT extends Context,
+  SENSITIVE_CONTEXT extends SensitiveContext<CONTEXT>,
+> = Omit<CONTEXT, SensitiveContextKeys<CONTEXT, SENSITIVE_CONTEXT>>;
+
+function filterContext<
+  CONTEXT extends Context,
+  SENSITIVE_CONTEXT extends SensitiveContext<CONTEXT>,
+>({
+  context,
+  sensitiveContext,
+}: {
+  context: CONTEXT;
+  sensitiveContext: SENSITIVE_CONTEXT;
+}): RestrictedContext<CONTEXT, SENSITIVE_CONTEXT> {
+  if (sensitiveContext == null) {
+    return context as RestrictedContext<CONTEXT, SENSITIVE_CONTEXT>;
+  }
+
+  return Object.fromEntries(
+    Object.entries(context).filter(
+      ([key]) => sensitiveContext[key as keyof CONTEXT] !== true,
+    ),
+  ) as RestrictedContext<CONTEXT, SENSITIVE_CONTEXT>;
+}
 
 function restrictStepResult<
   TOOLS extends ToolSet,
