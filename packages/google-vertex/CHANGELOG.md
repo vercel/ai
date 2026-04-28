@@ -1,5 +1,17 @@
 # @ai-sdk/google-vertex
 
+## 3.0.133
+
+### Patch Changes
+
+- 0a00b9b: trigger release for all packages after provenance setup
+- Updated dependencies [0a00b9b]
+  - @ai-sdk/anthropic@2.0.78
+  - @ai-sdk/google@2.0.71
+  - @ai-sdk/openai-compatible@1.0.37
+  - @ai-sdk/provider@2.0.2
+  - @ai-sdk/provider-utils@3.0.24
+
 ## 3.0.132
 
 ### Patch Changes

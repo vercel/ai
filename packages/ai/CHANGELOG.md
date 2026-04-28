@@ -1,5 +1,17 @@
 # ai
 
+## 5.0.180
+
+### Patch Changes
+
+- 0a00b9b: trigger release for all packages after provenance setup
+- Updated dependencies [0a00b9b]
+- Updated dependencies [c30c710]
+- Updated dependencies [11c7bdd]
+  - @ai-sdk/gateway@2.0.83
+  - @ai-sdk/provider@2.0.2
+  - @ai-sdk/provider-utils@3.0.24
+
 ## 5.0.179
 
 ### Patch Changes

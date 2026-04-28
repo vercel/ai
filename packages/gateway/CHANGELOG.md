@@ -1,5 +1,16 @@
 # @ai-sdk/gateway
 
+## 2.0.83
+
+### Patch Changes
+
+- 0a00b9b: trigger release for all packages after provenance setup
+- c30c710: Backport: chore(provider/gateway): update gateway model settings files
+- 11c7bdd: feat(provider/openai): add gpt-image-2 model support
+- Updated dependencies [0a00b9b]
+  - @ai-sdk/provider@2.0.2
+  - @ai-sdk/provider-utils@3.0.24
+
 ## 2.0.82
 
 ### Patch Changes

@@ -1,5 +1,14 @@
 # @ai-sdk/gladia
 
+## 1.0.26
+
+### Patch Changes
+
+- 0a00b9b: trigger release for all packages after provenance setup
+- Updated dependencies [0a00b9b]
+  - @ai-sdk/provider@2.0.2
+  - @ai-sdk/provider-utils@3.0.24
+
 ## 1.0.25
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @ai-sdk/codemod
 
+## 2.0.15
+
+### Patch Changes
+
+- 0a00b9b: trigger release for all packages after provenance setup
+
 ## 2.0.14
 
 ### Patch Changes

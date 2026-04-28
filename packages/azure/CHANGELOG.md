@@ -1,5 +1,16 @@
 # @ai-sdk/azure
 
+## 2.0.106
+
+### Patch Changes
+
+- 0a00b9b: trigger release for all packages after provenance setup
+- Updated dependencies [0a00b9b]
+- Updated dependencies [11c7bdd]
+  - @ai-sdk/openai@2.0.104
+  - @ai-sdk/provider@2.0.2
+  - @ai-sdk/provider-utils@3.0.24
+
 ## 2.0.105
 
 ### Patch Changes

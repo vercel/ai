@@ -1,5 +1,15 @@
 # @ai-sdk/rsc
 
+## 1.0.182
+
+### Patch Changes
+
+- 0a00b9b: trigger release for all packages after provenance setup
+- Updated dependencies [0a00b9b]
+  - ai@5.0.180
+  - @ai-sdk/provider@2.0.2
+  - @ai-sdk/provider-utils@3.0.24
+
 ## 1.0.181
 
 ### Patch Changes

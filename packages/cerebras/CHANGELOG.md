@@ -1,5 +1,15 @@
 # @ai-sdk/cerebras
 
+## 1.0.42
+
+### Patch Changes
+
+- 0a00b9b: trigger release for all packages after provenance setup
+- Updated dependencies [0a00b9b]
+  - @ai-sdk/openai-compatible@1.0.37
+  - @ai-sdk/provider@2.0.2
+  - @ai-sdk/provider-utils@3.0.24
+
 ## 1.0.41
 
 ### Patch Changes

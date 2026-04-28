@@ -1,5 +1,15 @@
 # @ai-sdk/openai
 
+## 2.0.104
+
+### Patch Changes
+
+- 0a00b9b: trigger release for all packages after provenance setup
+- 11c7bdd: feat(provider/openai): add gpt-image-2 model support
+- Updated dependencies [0a00b9b]
+  - @ai-sdk/provider@2.0.2
+  - @ai-sdk/provider-utils@3.0.24
+
 ## 2.0.103
 
 ### Patch Changes

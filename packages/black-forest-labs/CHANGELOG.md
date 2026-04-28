@@ -1,5 +1,14 @@
 # @ai-sdk/black-forest-labs
 
+## 0.0.13
+
+### Patch Changes
+
+- 0a00b9b: trigger release for all packages after provenance setup
+- Updated dependencies [0a00b9b]
+  - @ai-sdk/provider@2.0.2
+  - @ai-sdk/provider-utils@3.0.24
+
 ## 0.0.12
 
 ### Patch Changes
