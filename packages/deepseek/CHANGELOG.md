@@ -1,5 +1,15 @@
 # @ai-sdk/deepseek
 
+## 2.0.30
+
+### Patch Changes
+
+- 082db44: fix(provider/deepseek): preserve reasoning_content for deepseek-v4 in multi-turn requests
+- a7f3c72: trigger release for all packages after provenance setup
+- Updated dependencies [a7f3c72]
+  - @ai-sdk/provider@3.0.9
+  - @ai-sdk/provider-utils@4.0.24
+
 ## 2.0.29
 
 ### Patch Changes

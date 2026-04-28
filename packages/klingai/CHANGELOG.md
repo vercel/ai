@@ -1,5 +1,14 @@
 # @ai-sdk/klingai
 
+## 3.0.15
+
+### Patch Changes
+
+- a7f3c72: trigger release for all packages after provenance setup
+- Updated dependencies [a7f3c72]
+  - @ai-sdk/provider@3.0.9
+  - @ai-sdk/provider-utils@4.0.24
+
 ## 3.0.14
 
 ### Patch Changes

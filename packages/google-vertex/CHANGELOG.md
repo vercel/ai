@@ -1,5 +1,18 @@
 # @ai-sdk/google-vertex
 
+## 4.0.113
+
+### Patch Changes
+
+- a7f3c72: trigger release for all packages after provenance setup
+- Updated dependencies [a7f3c72]
+- Updated dependencies [408a2ad]
+  - @ai-sdk/anthropic@3.0.72
+  - @ai-sdk/google@3.0.65
+  - @ai-sdk/openai-compatible@2.0.42
+  - @ai-sdk/provider@3.0.9
+  - @ai-sdk/provider-utils@4.0.24
+
 ## 4.0.112
 
 ### Patch Changes

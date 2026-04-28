@@ -1,5 +1,16 @@
 # @ai-sdk/openai
 
+## 3.0.54
+
+### Patch Changes
+
+- a7f3c72: trigger release for all packages after provenance setup
+- 408a2ad: patch - send content: null instead of empty string for tool-only assistant messages
+- c71ad14: feat(provider/openai): add gpt-image-2 model support
+- Updated dependencies [a7f3c72]
+  - @ai-sdk/provider@3.0.9
+  - @ai-sdk/provider-utils@4.0.24
+
 ## 3.0.53
 
 ### Patch Changes

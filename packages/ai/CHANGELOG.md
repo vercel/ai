@@ -1,5 +1,18 @@
 # ai
 
+## 6.0.169
+
+### Patch Changes
+
+- 2662bb5: skip validation for tool parts in terminal states when tool schema is no longer registered
+- a7f3c72: trigger release for all packages after provenance setup
+- Updated dependencies [a7f3c72]
+- Updated dependencies [4368079]
+- Updated dependencies [c71ad14]
+  - @ai-sdk/gateway@3.0.105
+  - @ai-sdk/provider@3.0.9
+  - @ai-sdk/provider-utils@4.0.24
+
 ## 6.0.168
 
 ### Patch Changes

@@ -1,5 +1,15 @@
 # @ai-sdk/openai-compatible
 
+## 2.0.42
+
+### Patch Changes
+
+- a7f3c72: trigger release for all packages after provenance setup
+- 408a2ad: patch - send content: null instead of empty string for tool-only assistant messages
+- Updated dependencies [a7f3c72]
+  - @ai-sdk/provider@3.0.9
+  - @ai-sdk/provider-utils@4.0.24
+
 ## 2.0.41
 
 ### Patch Changes

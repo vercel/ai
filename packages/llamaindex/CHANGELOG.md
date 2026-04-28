@@ -1,5 +1,14 @@
 # @ai-sdk/llamaindex
 
+## 2.0.169
+
+### Patch Changes
+
+- a7f3c72: trigger release for all packages after provenance setup
+- Updated dependencies [2662bb5]
+- Updated dependencies [a7f3c72]
+  - ai@6.0.169
+
 ## 2.0.168
 
 ### Patch Changes

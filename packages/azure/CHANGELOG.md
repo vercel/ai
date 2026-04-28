@@ -1,5 +1,17 @@
 # @ai-sdk/azure
 
+## 3.0.55
+
+### Patch Changes
+
+- a7f3c72: trigger release for all packages after provenance setup
+- Updated dependencies [a7f3c72]
+- Updated dependencies [408a2ad]
+- Updated dependencies [c71ad14]
+  - @ai-sdk/openai@3.0.54
+  - @ai-sdk/provider@3.0.9
+  - @ai-sdk/provider-utils@4.0.24
+
 ## 3.0.54
 
 ### Patch Changes

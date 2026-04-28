@@ -1,5 +1,11 @@
 # @ai-sdk/test-server
 
+## 1.0.4
+
+### Patch Changes
+
+- a7f3c72: trigger release for all packages after provenance setup
+
 ## 1.0.3
 
 ### Patch Changes
