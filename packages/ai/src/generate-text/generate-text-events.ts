@@ -45,7 +45,7 @@ export type GenerateTextStartEvent<
   readonly toolChoice: ToolChoice<NoInfer<TOOLS>> | undefined;
 
   /** Limits which tools are available for the model to call. */
-  readonly activeTools: ActiveTools<TOOLS> | undefined;
+  readonly activeTools: ActiveTools<TOOLS>;
 
   /** Maximum number of retries for failed requests. */
   readonly maxRetries: number;
@@ -107,7 +107,7 @@ export type GenerateTextStepStartEvent<
   readonly toolChoice: ToolChoice<NoInfer<TOOLS>> | undefined;
 
   /** Limits which tools are available for this step. */
-  readonly activeTools: ActiveTools<TOOLS> | undefined;
+  readonly activeTools: ActiveTools<TOOLS>;
 
   /** Array of results from previous steps (empty for first step). */
   readonly steps: ReadonlyArray<StepResult<TOOLS, RUNTIME_CONTEXT>>;

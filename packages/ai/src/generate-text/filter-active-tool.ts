@@ -3,8 +3,8 @@ import type { ActiveTools } from './active-tools';
 
 type ActiveToolSubset<
   TOOLS extends ToolSet,
-  ACTIVE_TOOL_NAMES extends ActiveTools<TOOLS> | undefined,
-> = [ACTIVE_TOOL_NAMES] extends [ActiveTools<TOOLS>]
+  ACTIVE_TOOL_NAMES extends ActiveTools<TOOLS>,
+> = [ACTIVE_TOOL_NAMES] extends [NonNullable<ActiveTools<TOOLS>>]
   ? Pick<TOOLS, ACTIVE_TOOL_NAMES[number]>
   : TOOLS;
 
@@ -18,7 +18,7 @@ type ActiveToolSubset<
  */
 export function filterActiveTools<
   TOOLS extends ToolSet,
-  ACTIVE_TOOL_NAMES extends ActiveTools<TOOLS> | undefined,
+  ACTIVE_TOOL_NAMES extends ActiveTools<TOOLS>,
 >({
   tools,
   activeTools,
