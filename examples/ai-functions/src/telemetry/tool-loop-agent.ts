@@ -16,7 +16,7 @@ sdk.start();
 registerTelemetry(new OpenTelemetry());
 
 const agent = new ToolLoopAgent({
-  model: openai('gpt-4o-mini'),
+  model: openai('gpt-5-mini'),
   instructions: 'You are a helpful assistant. Use the weather tool.',
   tools: {
     weather: tool({

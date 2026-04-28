@@ -16,8 +16,7 @@ registerTelemetry(new OpenTelemetry());
 
 run(async () => {
   await generateText({
-    model: openai('gpt-4o'),
-    maxOutputTokens: 50,
+    model: openai('gpt-5-mini'),
     prompt: 'Invent a new holiday and describe its traditions.',
     telemetry: {
       functionId: 'my-awesome-function',

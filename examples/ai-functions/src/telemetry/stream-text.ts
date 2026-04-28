@@ -1,4 +1,4 @@
-import { anthropic } from '@ai-sdk/anthropic';
+import { openai } from '@ai-sdk/openai';
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { ConsoleSpanExporter } from '@opentelemetry/sdk-trace-node';
@@ -16,8 +16,7 @@ registerTelemetry(new OpenTelemetry());
 
 run(async () => {
   const result = streamText({
-    model: anthropic('claude-3-5-sonnet-20240620'),
-    maxOutputTokens: 50,
+    model: openai('gpt-5-mini'),
     prompt: 'Invent a new holiday and describe its traditions.',
     runtimeContext: {
       something: 'custom',
