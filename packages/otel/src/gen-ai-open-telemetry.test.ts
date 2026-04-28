@@ -7,7 +7,7 @@ import {
   Tracer,
 } from '@opentelemetry/api';
 import type { Telemetry } from 'ai';
-import { GenAIOpenTelemetry } from './gen-ai-open-telemetry';
+import { OpenTelemetry } from './gen-ai-open-telemetry';
 
 type MockSpan = Span & {
   name: string;
@@ -378,14 +378,14 @@ function makeToolCallFinishEvent(
   } as Parameters<NonNullable<Telemetry['onToolExecutionEnd']>>[0];
 }
 
-describe('GenAIOpenTelemetry', () => {
+describe('OpenTelemetry', () => {
   let tracer: MockTracer;
   let integration: Telemetry;
 
   beforeEach(() => {
     tracer = createMockTracer();
     callId = `test-call-${++callIdCounter}`;
-    integration = new GenAIOpenTelemetry({ tracer });
+    integration = new OpenTelemetry({ tracer });
   });
 
   describe('onStart (generateText)', () => {

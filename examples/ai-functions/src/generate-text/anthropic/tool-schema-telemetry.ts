@@ -1,7 +1,7 @@
 import { anthropic } from '@ai-sdk/anthropic';
 import { registerTelemetry, streamText } from 'ai';
 import { z } from 'zod';
-import { LegacyOpenTelemetry, GenAIOpenTelemetry } from '@ai-sdk/otel';
+import { LegacyOpenTelemetry, OpenTelemetry } from '@ai-sdk/otel';
 import { DevToolsTelemetry } from '@ai-sdk/devtools';
 import { LangfuseSpanProcessor } from '@langfuse/otel';
 import { NodeSDK } from '@opentelemetry/sdk-node';
