@@ -79,5 +79,8 @@
   "keywords": [
     "ai",
     "svelte"
-  ]
+  ],
+  "engines": {
+    "node": ">=18"
+  }
 }
