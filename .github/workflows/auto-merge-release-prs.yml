@@ -13,9 +13,9 @@ jobs:
     name: Enable Auto-merge for Release PRs
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    # Only run if PR is created by vercel-ai-sdk[bot] and branch starts with changeset-release/
+    # Only run if PR is created by an app branch starts with changeset-release/
     if: |
-      github.event.pull_request.user.login == 'vercel-ai-sdk[bot]' &&
+      github.event.pull_request.user.type == 'Bot' &&
       startsWith(github.event.pull_request.head.ref, 'changeset-release/')
 
     steps:
