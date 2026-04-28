@@ -21,6 +21,7 @@ import {
   InferUIMessageMetadata,
   InferUIMessageToolCall,
   InferUIMessageTools,
+  isDynamicToolUIPart,
   isStaticToolUIPart,
   isToolUIPart,
   ReasoningUIPart,
@@ -47,6 +48,54 @@ export type StreamingUIMessageState<UI_MESSAGE extends UIMessage> = {
   finishReason?: FinishReason;
 };
 
+function partialToolCallsFromAssistantMessage<UI_MESSAGE extends UIMessage>(
+  lastMessage: UI_MESSAGE,
+): StreamingUIMessageState<UI_MESSAGE>['partialToolCalls'] {
+  const partialToolCalls: StreamingUIMessageState<UI_MESSAGE>['partialToolCalls'] =
+    {};
+
+  for (let partIndex = 0; partIndex < lastMessage.parts.length; partIndex++) {
+    const part = lastMessage.parts[partIndex];
+
+    if (!isToolUIPart(part) || part.state !== 'input-streaming') {
+      continue;
+    }
+
+    let staticToolCountBefore = 0;
+    for (let j = 0; j < partIndex; j++) {
+      if (isStaticToolUIPart(lastMessage.parts[j])) {
+        staticToolCountBefore++;
+      }
+    }
+
+    const anyPart = part as { rawInput?: unknown; input?: unknown };
+    let text = '';
+    if (typeof anyPart.rawInput === 'string') {
+      text = anyPart.rawInput;
+    } else if (anyPart.input !== undefined) {
+      try {
+        text = JSON.stringify(anyPart.input);
+      } catch {
+        text = '';
+      }
+    }
+
+    const toolName = isDynamicToolUIPart(part)
+      ? String(part.toolName ?? '')
+      : getStaticToolName(part);
+
+    partialToolCalls[part.toolCallId] = {
+      text,
+      toolName,
+      index: staticToolCountBefore,
+      dynamic: isDynamicToolUIPart(part) ? true : undefined,
+      title: part.title,
+    };
+  }
+
+  return partialToolCalls;
+}
+
 export function createStreamingUIMessageState<UI_MESSAGE extends UIMessage>({
   lastMessage,
   messageId,
@@ -54,22 +103,27 @@ export function createStreamingUIMessageState<UI_MESSAGE extends UIMessage>({
   lastMessage: UI_MESSAGE | undefined;
   messageId: string;
 }): StreamingUIMessageState<UI_MESSAGE> {
+  const message =
+    lastMessage?.role === 'assistant'
+      ? lastMessage
+      : ({
+          id: messageId,
+          metadata: undefined,
+          role: 'assistant',
+          parts: [] as UIMessagePart<
+            InferUIMessageData<UI_MESSAGE>,
+            InferUIMessageTools<UI_MESSAGE>
+          >[],
+        } as UI_MESSAGE);
+
   return {
-    message:
-      lastMessage?.role === 'assistant'
-        ? lastMessage
-        : ({
-            id: messageId,
-            metadata: undefined,
-            role: 'assistant',
-            parts: [] as UIMessagePart<
-              InferUIMessageData<UI_MESSAGE>,
-              InferUIMessageTools<UI_MESSAGE>
-            >[],
-          } as UI_MESSAGE),
+    message,
     activeTextParts: {},
     activeReasoningParts: {},
-    partialToolCalls: {},
+    partialToolCalls:
+      lastMessage?.role === 'assistant'
+        ? partialToolCallsFromAssistantMessage(lastMessage)
+        : {},
   };
 }
 

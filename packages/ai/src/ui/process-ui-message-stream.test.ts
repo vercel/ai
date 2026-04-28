@@ -8996,4 +8996,62 @@ describe('processUIMessageStream', () => {
       ]);
     });
   });
+
+  describe('createStreamingUIMessageState resume', () => {
+    it('should rebuild partialToolCalls for static tool parts in input-streaming state', () => {
+      const lastMessage: UIMessage = {
+        id: 'msg-resume',
+        role: 'assistant',
+        parts: [
+          {
+            type: 'tool-create_document',
+            toolCallId: 'tc-1',
+            state: 'input-streaming',
+            input: { title: 'partial' },
+          },
+        ],
+      };
+
+      const state = createStreamingUIMessageState({
+        lastMessage,
+        messageId: 'msg-resume',
+      });
+
+      expect(state.partialToolCalls['tc-1']).toEqual({
+        text: JSON.stringify({ title: 'partial' }),
+        toolName: 'create_document',
+        index: 0,
+        title: undefined,
+        dynamic: undefined,
+      });
+    });
+
+    it('should rebuild partialToolCalls for dynamic tool parts in input-streaming state', () => {
+      const lastMessage: UIMessage = {
+        id: 'msg-resume',
+        role: 'assistant',
+        parts: [
+          {
+            type: 'dynamic-tool',
+            toolName: 'my_tool',
+            toolCallId: 'tc-d',
+            state: 'input-streaming',
+            input: { x: 1 },
+          },
+        ],
+      };
+
+      const state = createStreamingUIMessageState({
+        lastMessage,
+        messageId: 'msg-resume',
+      });
+
+      expect(state.partialToolCalls['tc-d']).toMatchObject({
+        text: JSON.stringify({ x: 1 }),
+        toolName: 'my_tool',
+        index: 0,
+        dynamic: true,
+      });
+    });
+  });
 });
