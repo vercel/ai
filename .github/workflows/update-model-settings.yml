@@ -26,29 +26,15 @@ jobs:
             branch-prefix: update-gateway-models-v5
 
     steps:
-      - name: Create access token for GitHub App
-        uses: actions/create-github-app-token@v3
-        id: app-token
-        with:
-          app-id: ${{ vars.VERCEL_AI_SDK_GITHUB_APP_CLIENT_ID }}
-          private-key: ${{ secrets.VERCEL_AI_SDK_GITHUB_APP_PRIVATE_KEY_PKCS8 }}
-
-      - name: Get GitHub App User ID
-        id: app-user-id
-        run: echo "user-id=$(gh api "/users/${{ steps.app-token.outputs.app-slug }}[bot]" --jq .id)" >> "$GITHUB_OUTPUT"
-        env:
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
-
-      - name: Configure git user for GitHub App
+      - name: Configure Git
         run: |
-          git config --global user.name '${{ steps.app-token.outputs.app-slug }}[bot]'
-          git config --global user.email '${{ steps.app-user-id.outputs.user-id }}+${{ steps.app-token.outputs.app-slug }}[bot]@users.noreply.github.com'
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
 
       - name: Checkout Repository
         uses: actions/checkout@v6
         with:
           ref: ${{ matrix.target-branch }}
-          token: ${{ steps.app-token.outputs.token }}
           fetch-depth: 0
 
       - name: Setup pnpm
@@ -145,7 +131,7 @@ jobs:
           echo "pr-title=$PR_TITLE" >> "$GITHUB_OUTPUT"
           echo "Changes updated, PR: $PR_URL"
         env:
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: No changes
         if: steps.check-changes.outputs.has-changes == 'false'
