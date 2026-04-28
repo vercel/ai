@@ -37,6 +37,43 @@ function createStepResult(context = runtimeContext) {
 }
 
 describe('createRestrictedTelemetryDispatcher', () => {
+  it('passes through runtimeContext unchanged when no sensitive context is configured', async () => {
+    const onStart = vi.fn();
+    const telemetryDispatcher = createRestrictedTelemetryDispatcher({
+      telemetry: { integrations: { onStart } },
+      sensitiveRuntimeContext: undefined,
+    });
+
+    await telemetryDispatcher.onStart?.({ runtimeContext } as any);
+
+    const telemetryEvent = onStart.mock.calls[0][0];
+
+    expect(telemetryEvent.runtimeContext).toBe(runtimeContext);
+    expect(telemetryEvent.runtimeContext).toEqual({
+      userId: 'user-123',
+      requestId: 'request-123',
+    });
+  });
+
+  it('only filters runtimeContext properties marked as true', async () => {
+    const onStart = vi.fn();
+    const telemetryDispatcher = createRestrictedTelemetryDispatcher({
+      telemetry: { integrations: { onStart } },
+      sensitiveRuntimeContext: {
+        userId: true,
+        requestId: false,
+      },
+    });
+
+    await telemetryDispatcher.onStart?.({ runtimeContext } as any);
+
+    expect(onStart).toHaveBeenCalledWith(
+      expect.objectContaining({
+        runtimeContext: { requestId: 'request-123' },
+      }),
+    );
+  });
+
   it('filters runtimeContext for start events without mutating the source event', async () => {
     const onStart = vi.fn();
     const telemetryDispatcher = createRestrictedTelemetryDispatcher({
@@ -64,10 +101,11 @@ describe('createRestrictedTelemetryDispatcher', () => {
       telemetry: { integrations: { onStepStart } },
       sensitiveRuntimeContext,
     });
+    const previousStep = createStepResult();
 
     await telemetryDispatcher.onStepStart?.({
       runtimeContext,
-      steps: [createStepResult()],
+      steps: [previousStep],
     } as any);
 
     const telemetryEvent = onStepStart.mock.calls[0][0];
@@ -79,16 +117,18 @@ describe('createRestrictedTelemetryDispatcher', () => {
       requestId: 'request-123',
     });
     expect(telemetryEvent.steps[0].text).toBe('Hello');
+    expect(previousStep.runtimeContext).toEqual(runtimeContext);
   });
 
-  it('filters runtimeContext for step finish events', async () => {
+  it('filters runtimeContext for step finish events without mutating the source step', async () => {
     const onStepFinish = vi.fn();
     const telemetryDispatcher = createRestrictedTelemetryDispatcher({
       telemetry: { integrations: { onStepFinish } },
       sensitiveRuntimeContext,
     });
+    const step = createStepResult();
 
-    await telemetryDispatcher.onStepFinish?.(createStepResult() as any);
+    await telemetryDispatcher.onStepFinish?.(step as any);
 
     const telemetryEvent = onStepFinish.mock.calls[0][0];
 
@@ -96,20 +136,22 @@ describe('createRestrictedTelemetryDispatcher', () => {
       requestId: 'request-123',
     });
     expect(telemetryEvent.text).toBe('Hello');
+    expect(step.runtimeContext).toEqual(runtimeContext);
   });
 
-  it('filters runtimeContext for finish events and all steps', async () => {
+  it('filters runtimeContext for finish events and all steps without mutating source steps', async () => {
     const onFinish = vi.fn();
     const telemetryDispatcher = createRestrictedTelemetryDispatcher({
       telemetry: { integrations: { onFinish } },
       sensitiveRuntimeContext,
     });
+    const step = createStepResult();
 
     await telemetryDispatcher.onFinish?.({
       ...createStepResult(),
       text: 'Hello',
       runtimeContext,
-      steps: [createStepResult()],
+      steps: [step],
       totalUsage: createNullLanguageModelUsage(),
     } as any);
 
@@ -122,6 +164,64 @@ describe('createRestrictedTelemetryDispatcher', () => {
       requestId: 'request-123',
     });
     expect(telemetryEvent.text).toBe('Hello');
+    expect(step.runtimeContext).toEqual(runtimeContext);
+  });
+
+  it('passes through tool execution start events without filtering', async () => {
+    const onToolExecutionStart = vi.fn();
+    const telemetryDispatcher = createRestrictedTelemetryDispatcher({
+      telemetry: { integrations: { onToolExecutionStart } },
+      sensitiveRuntimeContext,
+    });
+    const event = {
+      callId: 'call-1',
+      messages: [],
+      toolCall: {
+        type: 'tool-call',
+        toolCallId: 'tool-call-1',
+        toolName: 'testTool',
+        input: { value: 'input' },
+      },
+      toolContext: { userId: 'user-123' },
+    };
+
+    await telemetryDispatcher.onToolExecutionStart?.(event as any);
+
+    expect(onToolExecutionStart).toHaveBeenCalledWith(
+      expect.objectContaining(event),
+    );
+  });
+
+  it('passes through tool execution end events without filtering', async () => {
+    const onToolExecutionEnd = vi.fn();
+    const telemetryDispatcher = createRestrictedTelemetryDispatcher({
+      telemetry: { integrations: { onToolExecutionEnd } },
+      sensitiveRuntimeContext,
+    });
+    const event = {
+      callId: 'call-1',
+      durationMs: 10,
+      messages: [],
+      toolCall: {
+        type: 'tool-call',
+        toolCallId: 'tool-call-1',
+        toolName: 'testTool',
+        input: { value: 'input' },
+      },
+      toolContext: { userId: 'user-123' },
+      toolOutput: {
+        type: 'tool-result',
+        toolCallId: 'tool-call-1',
+        toolName: 'testTool',
+        output: { value: 'output' },
+      },
+    };
+
+    await telemetryDispatcher.onToolExecutionEnd?.(event as any);
+
+    expect(onToolExecutionEnd).toHaveBeenCalledWith(
+      expect.objectContaining(event),
+    );
   });
 
   it('passes through executeTool without filtering', async () => {

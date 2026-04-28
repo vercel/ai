@@ -1,5 +1,6 @@
-import type { ToolSet } from '@ai-sdk/provider-utils';
+import { tool, type ToolSet } from '@ai-sdk/provider-utils';
 import { describe, expectTypeOf, it } from 'vitest';
+import { z } from 'zod';
 import type { Callback } from '../util/callback';
 import type {
   GenerateTextEndEvent,
@@ -9,12 +10,28 @@ import type {
 } from './generate-text-events';
 import type { Output } from './output';
 import { createRestrictedTelemetryDispatcher } from './restricted-telemetry-dispatcher';
+import type {
+  ToolExecutionEndEvent,
+  ToolExecutionStartEvent,
+} from './tool-execution-events';
 
 describe('createRestrictedTelemetryDispatcher types', () => {
   type RuntimeContext = {
     userId: string;
     requestId: string;
   };
+
+  const tools = {
+    weather: tool({
+      inputSchema: z.object({ location: z.string() }),
+      contextSchema: z.object({ weatherApiKey: z.string() }),
+    }),
+    calculator: tool({
+      inputSchema: z.object({ expression: z.string() }),
+    }),
+  };
+
+  type Tools = typeof tools;
 
   const telemetryDispatcher = createRestrictedTelemetryDispatcher<
     ToolSet,
@@ -38,6 +55,23 @@ describe('createRestrictedTelemetryDispatcher types', () => {
     >();
     expectTypeOf(telemetryDispatcher.onFinish).toMatchTypeOf<
       Callback<GenerateTextEndEvent<ToolSet, RuntimeContext>> | undefined
+    >();
+  });
+
+  it('exposes tool execution callbacks with the original tool set type', () => {
+    const telemetryDispatcher = createRestrictedTelemetryDispatcher<
+      Tools,
+      RuntimeContext,
+      Output
+    >({
+      sensitiveRuntimeContext: { userId: true },
+    });
+
+    expectTypeOf(telemetryDispatcher.onToolExecutionStart).toMatchTypeOf<
+      Callback<ToolExecutionStartEvent<Tools>> | undefined
+    >();
+    expectTypeOf(telemetryDispatcher.onToolExecutionEnd).toMatchTypeOf<
+      Callback<ToolExecutionEndEvent<Tools>> | undefined
     >();
   });
 });
