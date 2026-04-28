@@ -43,7 +43,7 @@
     "typescript": "5.8.3",
     "ultracite": "7.3.2",
     "update-ts-references": "^3.6.0",
-    "vitest": "4.1.0"
+    "vitest": "4.1.5"
   },
   "engines": {
     "node": "^18.0.0 || ^20.0.0 || ^22.0.0 || ^24.0.0"

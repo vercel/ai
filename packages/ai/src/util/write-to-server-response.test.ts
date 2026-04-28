@@ -1,6 +1,6 @@
 import { EventEmitter } from 'node:events';
 import { ServerResponse } from 'node:http';
-import { describe, it, expect } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { writeToServerResponse } from './write-to-server-response';
 import { createMockServerResponse } from '../test/mock-server-response';
 
@@ -32,70 +32,82 @@ describe('writeToServerResponse', () => {
     expect(mockResponse.ended).toBe(true);
   });
 
-  it('should respect backpressure and wait for drain event', async () => {
-    const mockResponse = createBackpressureMockResponse();
-    let drainEventCount = 0;
-    let readyToEnqueue: ((value: unknown) => void) | null = null;
-
-    // Track drain events
-    mockResponse.on('drain', () => {
-      drainEventCount++;
+  describe('backpressure handling', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
     });
 
-    // Create stream that provides chunks on-demand (async)
-    const stream = new ReadableStream({
-      start(controller) {
-        // First chunk available immediately
-        controller.enqueue(new TextEncoder().encode('chunk1'));
-        // Set up callback for additional chunks
-        readyToEnqueue = value => {
-          if (value === null) {
-            controller.close();
-          } else {
-            controller.enqueue(value as Uint8Array);
-          }
-        };
-      },
+    afterEach(() => {
+      vi.useRealTimers();
     });
 
-    writeToServerResponse({
-      response: mockResponse,
-      status: 200,
-      stream,
+    it('should respect backpressure and wait for drain event', async () => {
+      const mockResponse = createBackpressureMockResponse();
+      let drainEventCount = 0;
+      let readyToEnqueue: ((value: unknown) => void) | null = null;
+
+      // Track drain events
+      mockResponse.on('drain', () => {
+        drainEventCount++;
+      });
+
+      // Create stream that provides chunks on-demand (async)
+      const stream = new ReadableStream({
+        start(controller) {
+          // First chunk available immediately
+          controller.enqueue(new TextEncoder().encode('chunk1'));
+          // Set up callback for additional chunks
+          readyToEnqueue = value => {
+            if (value === null) {
+              controller.close();
+            } else {
+              controller.enqueue(value as Uint8Array);
+            }
+          };
+        },
+      });
+
+      writeToServerResponse({
+        response: mockResponse,
+        status: 200,
+        stream,
+      });
+
+      // Wait for first chunk to be written
+      await vi.advanceTimersByTimeAsync(10);
+      expect(mockResponse.writeCallCount).toBe(1);
+
+      // Enqueue second chunk - it should trigger write which returns false (backpressure)
+      readyToEnqueue!(new TextEncoder().encode('chunk2'));
+      await vi.advanceTimersByTimeAsync(5);
+
+      // Second chunk write should have been called but returned false
+      expect(mockResponse.writeCallCount).toBe(2);
+      expect(mockResponse.writtenChunks.length).toBe(2);
+
+      // Enqueue third chunk - it should NOT trigger write yet (still waiting for drain from chunk 2)
+      readyToEnqueue!(new TextEncoder().encode('chunk3'));
+      await vi.advanceTimersByTimeAsync(5);
+
+      // Third chunk shouldn't be written yet (waiting for drain)
+      expect(mockResponse.writeCallCount).toBe(2);
+
+      // Simulate drain to allow third write
+      mockResponse.simulateDrain();
+      await vi.advanceTimersByTimeAsync(10);
+      expect(mockResponse.writeCallCount).toBe(3);
+
+      // Close the stream
+      readyToEnqueue!(null);
+      await vi.runAllTimersAsync();
+
+      expect(mockResponse.ended).toBe(true);
+
+      // Verify that drain was called (indicating backpressure was respected)
+      expect(drainEventCount).toBeGreaterThanOrEqual(1);
+      // Verify all chunks were eventually written
+      expect(mockResponse.writtenChunks).toHaveLength(3);
     });
-
-    // Wait for first chunk to be written
-    await new Promise(resolve => setTimeout(resolve, 10));
-    expect(mockResponse.writeCallCount).toBe(1);
-
-    // Enqueue second chunk - it should trigger write which returns false (backpressure)
-    readyToEnqueue!(new TextEncoder().encode('chunk2'));
-    await new Promise(resolve => setTimeout(resolve, 5));
-
-    // Second chunk write should have been called but returned false
-    expect(mockResponse.writeCallCount).toBe(2);
-    expect(mockResponse.writtenChunks.length).toBe(2);
-
-    // Enqueue third chunk - it should NOT trigger write yet (still waiting for drain from chunk 2)
-    readyToEnqueue!(new TextEncoder().encode('chunk3'));
-    await new Promise(resolve => setTimeout(resolve, 5));
-
-    // Third chunk shouldn't be written yet (waiting for drain)
-    expect(mockResponse.writeCallCount).toBe(2);
-
-    // Simulate drain to allow third write
-    mockResponse.simulateDrain();
-    await new Promise(resolve => setTimeout(resolve, 10));
-    expect(mockResponse.writeCallCount).toBe(3);
-
-    // Close the stream
-    readyToEnqueue!(null);
-    await mockResponse.waitForEnd();
-
-    // Verify that drain was called (indicating backpressure was respected)
-    expect(drainEventCount).toBeGreaterThanOrEqual(1);
-    // Verify all chunks were eventually written
-    expect(mockResponse.writtenChunks).toHaveLength(3);
   });
 
   it('should set headers correctly when statusText is undefined', async () => {

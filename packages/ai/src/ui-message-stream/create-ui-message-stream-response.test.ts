@@ -2,10 +2,18 @@ import {
   convertArrayToReadableStream,
   convertReadableStreamToArray,
 } from '@ai-sdk/provider-utils/test';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createUIMessageStreamResponse } from './create-ui-message-stream-response';
-import { describe, it, expect, vi } from 'vitest';
 
 describe('createUIMessageStreamResponse', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('should create a Response with correct headers and encoded stream', async () => {
     const response = createUIMessageStreamResponse({
       status: 200,
@@ -120,7 +128,7 @@ describe('createUIMessageStreamResponse', () => {
     `);
 
     // Wait for consumeSseStream to complete
-    await new Promise(resolve => setTimeout(resolve, 0));
+    await vi.advanceTimersByTimeAsync(0);
 
     // Verify consumeSseStream received the same data
     expect(consumedData).toMatchInlineSnapshot(`

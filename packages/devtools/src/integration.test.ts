@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Telemetry } from 'ai';
 import { DevToolsTelemetry } from './integration.js';
 
@@ -82,6 +82,10 @@ describe('DevToolsTelemetry', () => {
         randomUUID: () => '00000000-0000-0000-0000-000000000000',
       }),
     );
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   function createIntegration(): TestIntegration {
