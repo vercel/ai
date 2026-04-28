@@ -966,6 +966,64 @@ describe('AnthropicLanguageModel', () => {
       });
     });
 
+    it('should sanitize unsupported JSON schema keywords for output format', async () => {
+      prepareJsonFixtureResponse('anthropic-json-output-format.1');
+
+      await provider('claude-sonnet-4-5').doGenerate({
+        prompt: TEST_PROMPT,
+        responseFormat: {
+          type: 'json',
+          schema: {
+            type: 'object',
+            properties: {
+              recurringIntervalMinutes: {
+                type: 'number',
+                exclusiveMinimum: 0,
+              },
+              tags: {
+                type: 'array',
+                minItems: 2,
+                maxItems: 4,
+                items: {
+                  type: 'string',
+                  minLength: 1,
+                },
+              },
+            },
+            required: ['recurringIntervalMinutes', 'tags'],
+            additionalProperties: false,
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+
+      expect(requestBody.output_config.format.schema).toMatchInlineSnapshot(`
+        {
+          "additionalProperties": false,
+          "properties": {
+            "recurringIntervalMinutes": {
+              "description": "Additional constraints: exclusive minimum: 0.",
+              "type": "number",
+            },
+            "tags": {
+              "description": "Additional constraints: min items: 2; max items: 4.",
+              "items": {
+                "description": "Additional constraints: min length: 1.",
+                "type": "string",
+              },
+              "type": "array",
+            },
+          },
+          "required": [
+            "recurringIntervalMinutes",
+            "tags",
+          ],
+          "type": "object",
+        }
+      `);
+    });
+
     describe('json schema response format with output format (unknown model, forced)', () => {
       let result: Awaited<ReturnType<typeof model.doGenerate>>;
 
