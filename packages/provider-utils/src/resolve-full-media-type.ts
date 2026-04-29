@@ -1,6 +1,6 @@
 import {
-  LanguageModelV4FilePart,
   UnsupportedFunctionalityError,
+  type LanguageModelV4FilePart,
 } from '@ai-sdk/provider';
 import {
   detectMediaType,

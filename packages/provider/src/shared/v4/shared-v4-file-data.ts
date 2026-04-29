@@ -1,4 +1,4 @@
-import { SharedV4ProviderReference } from './shared-v4-provider-reference';
+import type { SharedV4ProviderReference } from './shared-v4-provider-reference';
 
 /**
  * File data variant containing raw bytes (`Uint8Array`) or a base64-encoded

@@ -1,9 +1,9 @@
-import {
+import type {
   SharedV4FileDataReference,
   SharedV4FileDataText,
   SharedV4FileDataUrl,
 } from '@ai-sdk/provider';
-import { DataContent } from './data-content';
+import type { DataContent } from './data-content';
 
 /**
  * File data variant containing raw bytes (`Uint8Array`, `ArrayBuffer`, or

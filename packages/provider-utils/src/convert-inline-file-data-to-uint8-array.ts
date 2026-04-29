@@ -1,4 +1,4 @@
-import { FilePart } from './types/content-part';
+import type { FilePart } from './types/content-part';
 import { convertBase64ToUint8Array } from './uint8-utils';
 
 type InlineFileData = Extract<

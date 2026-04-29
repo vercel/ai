@@ -1,7 +1,7 @@
 import { describe, expectTypeOf, it } from 'vitest';
-import { DataContent } from './data-content';
-import { FilePart, ReasoningFilePart } from './content-part';
-import { ProviderReference } from './provider-reference';
+import type { DataContent } from './data-content';
+import type { FilePart, ReasoningFilePart } from './content-part';
+import type { ProviderReference } from './provider-reference';
 
 type TaggedFileData = Extract<FilePart['data'], { type: string }>;
 type TaggedReasoningFileData = Extract<
