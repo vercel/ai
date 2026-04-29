@@ -8,6 +8,8 @@ dist
 dist-ssr
 dist-bundle-check
 examples/*/build
+examples/ai-e2e-next
+examples/ai-functions
 node_modules
 public/dist
 server/dist
