@@ -1,4 +1,5 @@
 import {
+  InvalidPromptError,
   LanguageModelV3,
   LanguageModelV3CallOptions,
   LanguageModelV3FunctionTool,
@@ -773,7 +774,7 @@ describe('generateText', () => {
     it('should reject system messages in messages by default', async () => {
       await expect(async () => {
         await generateText({
-          model: new MockLanguageModelV4({
+          model: new MockLanguageModelV3({
             doGenerate: async () => ({
               content: [{ type: 'text', text: 'Hello!' }],
               ...dummyResponseValues,
@@ -785,7 +786,7 @@ describe('generateText', () => {
     });
 
     it('should allow system messages in messages when allowSystemInMessages is true', async () => {
-      const model = new MockLanguageModelV4({
+      const model = new MockLanguageModelV3({
         doGenerate: async () => ({
           content: [{ type: 'text', text: 'Hello!' }],
           ...dummyResponseValues,
