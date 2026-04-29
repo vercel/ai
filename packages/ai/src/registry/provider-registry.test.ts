@@ -13,6 +13,8 @@ import { MockSpeechModelV4 } from '../test/mock-speech-model-v4';
 import { MockSpeechModelV3 } from '../test/mock-speech-model-v3';
 import { MockRerankingModelV4 } from '../test/mock-reranking-model-v4';
 import { MockRerankingModelV3 } from '../test/mock-reranking-model-v3';
+import { MockVideoModelV4 } from '../test/mock-video-model-v4';
+import { MockVideoModelV3 } from '../test/mock-video-model-v3';
 import { MockProviderV4 } from '../test/mock-provider-v4';
 import { MockProviderV3 } from '../test/mock-provider-v3';
 import { describe, it, expect, vi } from 'vitest';
@@ -593,47 +595,146 @@ describe('rerankingModel', () => {
   });
 });
 
+describe('videoModel', () => {
+  it('should return video model from provider', () => {
+    const model = new MockVideoModelV4();
+
+    const modelRegistry = createProviderRegistry({
+      provider: {
+        specificationVersion: 'v4',
+        languageModel: () => null as any,
+        embeddingModel: () => null as any,
+        imageModel: () => null as any,
+        videoModel: (id: string) => {
+          expect(id).toEqual('model');
+          return model;
+        },
+      },
+    });
+
+    expect(modelRegistry.videoModel('provider:model')).toEqual(model);
+  });
+
+  it('should convert v3 video models to v4 on demand', () => {
+    const modelRegistry = createProviderRegistry({
+      provider: {
+        specificationVersion: 'v4',
+        languageModel: () => null as any,
+        embeddingModel: () => null as any,
+        imageModel: () => null as any,
+        videoModel: () => new MockVideoModelV3(),
+      },
+    });
+
+    expect(
+      modelRegistry.videoModel('provider:model').specificationVersion,
+    ).toBe('v4');
+  });
+
+  it('should throw NoSuchProviderError if provider does not exist', () => {
+    const registry = createProviderRegistry({});
+
+    // @ts-expect-error - should not accept arbitrary strings
+    expect(() => registry.videoModel('provider:model')).toThrowError(
+      NoSuchProviderError,
+    );
+  });
+
+  it('should throw NoSuchModelError if provider does not return a model', () => {
+    const registry = createProviderRegistry({
+      provider: {
+        specificationVersion: 'v4',
+        languageModel: () => null as any,
+        embeddingModel: () => null as any,
+        imageModel: () => null as any,
+      },
+    });
+
+    expect(() => registry.videoModel('provider:model')).toThrowError(
+      NoSuchModelError,
+    );
+  });
+
+  it("should throw NoSuchModelError if model id doesn't contain a colon", () => {
+    const registry = createProviderRegistry({});
+
+    // @ts-expect-error - should not accept arbitrary strings
+    expect(() => registry.videoModel('model')).toThrowError(NoSuchModelError);
+  });
+
+  it('should support custom separator', () => {
+    const model = new MockVideoModelV4();
+
+    const modelRegistry = createProviderRegistry(
+      {
+        provider: {
+          specificationVersion: 'v4',
+          languageModel: () => null as any,
+          embeddingModel: () => null as any,
+          imageModel: () => null as any,
+          videoModel: (id: string) => {
+            expect(id).toEqual('model');
+            return model;
+          },
+        },
+      },
+      { separator: '|' },
+    );
+
+    expect(modelRegistry.videoModel('provider|model')).toEqual(model);
+  });
+});
+
 describe('ProviderV3 compatibility', () => {
   it('should adapt ProviderV3 models to ProviderV4 models', () => {
+    const provider = new MockProviderV3({
+      languageModels: {
+        language: new MockLanguageModelV3({
+          provider: 'provider',
+          modelId: 'language',
+        }),
+      },
+      embeddingModels: {
+        embedding: new MockEmbeddingModelV3({
+          provider: 'provider',
+          modelId: 'embedding',
+        }),
+      },
+      imageModels: {
+        image: new MockImageModelV3({
+          provider: 'provider',
+          modelId: 'image',
+        }),
+      },
+      transcriptionModels: {
+        transcription: new MockTranscriptionModelV3({
+          provider: 'provider',
+          modelId: 'transcription',
+        }),
+      },
+      speechModels: {
+        speech: new MockSpeechModelV3({
+          provider: 'provider',
+          modelId: 'speech',
+        }),
+      },
+      rerankingModels: {
+        reranking: new MockRerankingModelV3({
+          provider: 'provider',
+          modelId: 'reranking',
+        }),
+      },
+    }) as MockProviderV3 & {
+      videoModel(modelId: string): MockVideoModelV3;
+    };
+    provider.videoModel = () =>
+      new MockVideoModelV3({
+        provider: 'provider',
+        modelId: 'video',
+      });
+
     const registry = createProviderRegistry({
-      provider: new MockProviderV3({
-        languageModels: {
-          language: new MockLanguageModelV3({
-            provider: 'provider',
-            modelId: 'language',
-          }),
-        },
-        embeddingModels: {
-          embedding: new MockEmbeddingModelV3({
-            provider: 'provider',
-            modelId: 'embedding',
-          }),
-        },
-        imageModels: {
-          image: new MockImageModelV3({
-            provider: 'provider',
-            modelId: 'image',
-          }),
-        },
-        transcriptionModels: {
-          transcription: new MockTranscriptionModelV3({
-            provider: 'provider',
-            modelId: 'transcription',
-          }),
-        },
-        speechModels: {
-          speech: new MockSpeechModelV3({
-            provider: 'provider',
-            modelId: 'speech',
-          }),
-        },
-        rerankingModels: {
-          reranking: new MockRerankingModelV3({
-            provider: 'provider',
-            modelId: 'reranking',
-          }),
-        },
-      }),
+      provider,
     });
 
     expect(
@@ -655,6 +756,9 @@ describe('ProviderV3 compatibility', () => {
     expect(
       registry.rerankingModel('provider:reranking').specificationVersion,
     ).toBe('v4');
+    expect(registry.videoModel('provider:video').specificationVersion).toBe(
+      'v4',
+    );
   });
 });
 

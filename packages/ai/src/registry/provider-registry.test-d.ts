@@ -1,5 +1,6 @@
 import type {
   EmbeddingModelV4,
+  Experimental_VideoModelV4,
   ImageModelV4,
   LanguageModelV4,
   ProviderV3,
@@ -29,6 +30,8 @@ import { MockSpeechModelV3 } from '../test/mock-speech-model-v3';
 import { MockSpeechModelV4 } from '../test/mock-speech-model-v4';
 import { MockTranscriptionModelV3 } from '../test/mock-transcription-model-v3';
 import { MockTranscriptionModelV4 } from '../test/mock-transcription-model-v4';
+import { MockVideoModelV3 } from '../test/mock-video-model-v3';
+import { MockVideoModelV4 } from '../test/mock-video-model-v4';
 
 type RegistryProvider = ProviderV4 | ProviderV3;
 
@@ -111,6 +114,19 @@ type RegistryRerankingModelIdentifier<
     : never;
 }[keyof registeredProviders];
 
+type RegistryVideoModelIdentifier<
+  registeredProviders extends Record<string, RegistryProvider>,
+  separator extends string = ':',
+> = {
+  [providerKey in keyof registeredProviders]: providerKey extends string
+    ? registeredProviders[providerKey] extends {
+        videoModel: (...args: infer args) => unknown;
+      }
+      ? `${providerKey & string}${separator}${ExtractLiteralUnion<args[0]>}`
+      : never
+    : never;
+}[keyof registeredProviders];
+
 describe('createProviderRegistry autocomplete / literal identifiers', () => {
   const languageModel = new MockLanguageModelV4();
   const embeddingModel = new MockEmbeddingModelV4();
@@ -118,6 +134,7 @@ describe('createProviderRegistry autocomplete / literal identifiers', () => {
   const transcriptionModel = new MockTranscriptionModelV4();
   const speechModel = new MockSpeechModelV4();
   const rerankingModel = new MockRerankingModelV4();
+  const videoModel = new MockVideoModelV4();
 
   const anthropicCustomProvider = customProvider({
     languageModels: {
@@ -141,6 +158,9 @@ describe('createProviderRegistry autocomplete / literal identifiers', () => {
     rerankingModels: {
       rerank: rerankingModel,
     },
+    videoModels: {
+      video: videoModel,
+    },
   });
 
   const openaiCustomProvider = customProvider({
@@ -153,6 +173,9 @@ describe('createProviderRegistry autocomplete / literal identifiers', () => {
     },
     imageModels: {
       dalle: imageModel,
+    },
+    videoModels: {
+      sora: videoModel,
     },
   });
 
@@ -211,6 +234,8 @@ describe('createProviderRegistry autocomplete / literal identifiers', () => {
 
     type ExpectedRerankingModelIdentifiers = 'anthropic:rerank';
 
+    type ExpectedVideoModelIdentifiers = 'openai:sora' | 'anthropic:video';
+
     expectTypeOf<
       RegistryEmbeddingModelIdentifier<typeof registeredProviders>
     >().toEqualTypeOf<ExpectedEmbeddingModelIdentifiers>();
@@ -226,6 +251,9 @@ describe('createProviderRegistry autocomplete / literal identifiers', () => {
     expectTypeOf<
       RegistryRerankingModelIdentifier<typeof registeredProviders>
     >().toEqualTypeOf<ExpectedRerankingModelIdentifiers>();
+    expectTypeOf<
+      RegistryVideoModelIdentifier<typeof registeredProviders>
+    >().toEqualTypeOf<ExpectedVideoModelIdentifiers>();
 
     expectTypeOf(
       registry.embeddingModel('anthropic:small'),
@@ -242,6 +270,9 @@ describe('createProviderRegistry autocomplete / literal identifiers', () => {
     expectTypeOf(
       registry.rerankingModel('anthropic:rerank'),
     ).toEqualTypeOf<RerankingModelV4>();
+    expectTypeOf(
+      registry.videoModel('openai:sora'),
+    ).toEqualTypeOf<Experimental_VideoModelV4>();
   });
 
   it('uses the custom separator in template-literal identifiers', () => {
@@ -306,6 +337,7 @@ describe('createProviderRegistry ProviderV3 typing', () => {
   const transcriptionModel = new MockTranscriptionModelV3();
   const speechModel = new MockSpeechModelV3();
   const rerankingModel = new MockRerankingModelV3();
+  const videoModel = new MockVideoModelV3();
 
   const v3Provider = new MockProviderV3({
     languageModels: { language: languageModel },
@@ -314,7 +346,10 @@ describe('createProviderRegistry ProviderV3 typing', () => {
     transcriptionModels: { transcription: transcriptionModel },
     speechModels: { speech: speechModel },
     rerankingModels: { reranking: rerankingModel },
-  });
+  }) as MockProviderV3 & {
+    videoModel(modelId: 'video'): MockVideoModelV3;
+  };
+  v3Provider.videoModel = () => videoModel;
 
   const registry = createProviderRegistry({
     v3: v3Provider,
@@ -341,6 +376,9 @@ describe('createProviderRegistry ProviderV3 typing', () => {
     expectTypeOf(
       registry.rerankingModel('v3:reranking'),
     ).toEqualTypeOf<RerankingModelV4>();
+    expectTypeOf(
+      registry.videoModel('v3:video'),
+    ).toEqualTypeOf<Experimental_VideoModelV4>();
   });
 
   it('keeps ProviderV3 registry identifiers scoped to registered provider keys', () => {

@@ -1,5 +1,7 @@
 import {
   EmbeddingModelV4,
+  Experimental_VideoModelV3,
+  Experimental_VideoModelV4,
   ImageModelV4,
   LanguageModelV4,
   NoSuchModelError,
@@ -9,12 +11,34 @@ import {
   SpeechModelV4,
   TranscriptionModelV4,
 } from '@ai-sdk/provider';
-import { asProviderV4 } from '../model/as-provider-v4';
 import { wrapImageModel } from '../middleware/wrap-image-model';
 import { wrapLanguageModel } from '../middleware/wrap-language-model';
+import { asProviderV4 } from '../model/as-provider-v4';
+import { asVideoModelV4 } from '../model/as-video-model-v4';
 import { ImageModelMiddleware, LanguageModelMiddleware } from '../types';
 import type { ExtractLiteralUnion } from '../util/extract-literal-union';
 import { NoSuchProviderError } from './no-such-provider-error';
+
+type ProviderWithOptionalVideoModel = {
+  videoModel?: (
+    modelId: string,
+  ) => Experimental_VideoModelV3 | Experimental_VideoModelV4;
+};
+
+type RegistryModelType =
+  | 'languageModel'
+  | 'embeddingModel'
+  | 'imageModel'
+  | 'transcriptionModel'
+  | 'speechModel'
+  | 'rerankingModel'
+  | 'videoModel';
+
+type ProviderVideoModelIdentifier<PROVIDER> = PROVIDER extends {
+  videoModel: (...args: infer ARGS) => unknown;
+}
+  ? ExtractLiteralUnion<ARGS[0]>
+  : never;
 
 export interface ProviderRegistryProvider<
   PROVIDERS extends Record<string, ProviderV4 | ProviderV3> = Record<
@@ -76,6 +100,15 @@ export interface ProviderRegistryProvider<
   rerankingModel<KEY extends keyof PROVIDERS>(
     id: KEY extends string ? `${KEY & string}${SEPARATOR}${string}` : never,
   ): RerankingModelV4;
+
+  videoModel<KEY extends keyof PROVIDERS>(
+    id: KEY extends string
+      ? `${KEY & string}${SEPARATOR}${ProviderVideoModelIdentifier<PROVIDERS[KEY]>}`
+      : never,
+  ): Experimental_VideoModelV4;
+  videoModel<KEY extends keyof PROVIDERS>(
+    id: KEY extends string ? `${KEY & string}${SEPARATOR}${string}` : never,
+  ): Experimental_VideoModelV4;
 }
 
 /**
@@ -133,7 +166,9 @@ class DefaultProviderRegistry<
   PROVIDERS extends Record<string, ProviderV4 | ProviderV3>,
   SEPARATOR extends string,
 > implements ProviderRegistryProvider<PROVIDERS, SEPARATOR> {
-  private providers: Partial<Record<keyof PROVIDERS, ProviderV4>> = {};
+  private providers: Partial<
+    Record<keyof PROVIDERS, ProviderV4 & ProviderWithOptionalVideoModel>
+  > = {};
   private separator: SEPARATOR;
   private languageModelMiddleware?:
     | LanguageModelMiddleware
@@ -163,19 +198,25 @@ class DefaultProviderRegistry<
     id: K;
     provider: PROVIDERS[K];
   }): void {
-    this.providers[id] = asProviderV4(provider);
+    const providerV4 = asProviderV4(provider);
+    const videoModel = (
+      provider as ProviderWithOptionalVideoModel
+    ).videoModel?.bind(provider);
+
+    this.providers[id] =
+      videoModel == null
+        ? providerV4
+        : Object.assign(Object.create(Object.getPrototypeOf(providerV4)), {
+            ...providerV4,
+            videoModel: (modelId: string) =>
+              asVideoModelV4(videoModel(modelId)),
+          });
   }
 
   private getProvider(
     id: string,
-    modelType:
-      | 'languageModel'
-      | 'embeddingModel'
-      | 'imageModel'
-      | 'transcriptionModel'
-      | 'speechModel'
-      | 'rerankingModel',
-  ): ProviderV4 {
+    modelType: RegistryModelType,
+  ): ProviderV4 & ProviderWithOptionalVideoModel {
     const provider = this.providers[id as keyof PROVIDERS];
 
     if (provider == null) {
@@ -190,16 +231,7 @@ class DefaultProviderRegistry<
     return provider;
   }
 
-  private splitId(
-    id: string,
-    modelType:
-      | 'languageModel'
-      | 'embeddingModel'
-      | 'imageModel'
-      | 'transcriptionModel'
-      | 'speechModel'
-      | 'rerankingModel',
-  ): [string, string] {
+  private splitId(id: string, modelType: RegistryModelType): [string, string] {
     const index = id.indexOf(this.separator);
 
     if (index === -1) {
@@ -323,5 +355,20 @@ class DefaultProviderRegistry<
     }
 
     return model;
+  }
+
+  videoModel<KEY extends keyof PROVIDERS>(
+    id: `${KEY & string}${SEPARATOR}${string}`,
+  ): Experimental_VideoModelV4 {
+    const [providerId, modelId] = this.splitId(id, 'videoModel');
+    const provider = this.getProvider(providerId, 'videoModel');
+
+    const model = provider.videoModel?.(modelId);
+
+    if (model == null) {
+      throw new NoSuchModelError({ modelId: id, modelType: 'videoModel' });
+    }
+
+    return asVideoModelV4(model);
   }
 }
