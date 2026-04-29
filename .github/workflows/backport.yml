@@ -167,16 +167,72 @@ jobs:
           # In case of failure, commit the conflicts to allow inspection
           git add .
           git commit -m "Backport conflicts for PR #${{ github.event.pull_request.number }} to ${{ needs.find-branch.outputs.release-branch }}"
-      - name: Push backport branch
+      - name: Push backport branch as signed commit
         if: '!steps.check-existing.outputs.existing-pr'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          BASE_BRANCH: ${{ needs.find-branch.outputs.release-branch }}
+          BACKPORT_BRANCH: backport-pr-${{ github.event.pull_request.number }}-to-${{ needs.find-branch.outputs.release-branch }}
         run: |
-          BACKPORT_BRANCH="backport-pr-${{ github.event.pull_request.number }}-to-${{ needs.find-branch.outputs.release-branch }}"
-          if git ls-remote --exit-code origin "refs/heads/${BACKPORT_BRANCH}" > /dev/null 2>&1; then
-            echo "Branch ${BACKPORT_BRANCH} already exists on remote (orphaned from a previous run). Force-pushing."
-            git push --force-with-lease origin "${BACKPORT_BRANCH}"
+          # Commits made via the GitHub API with GITHUB_TOKEN are signed by
+          # GitHub automatically. We build the file additions/deletions from
+          # the local cherry-pick result (vs. the base branch tip) and post
+          # them as a single signed commit via the GraphQL
+          # createCommitOnBranch mutation.
+          set -euo pipefail
+
+          PARENT_OID=$(git rev-parse "origin/${BASE_BRANCH}")
+          HEADLINE=$(git log -1 --format=%s HEAD)
+          BODY=$(git log -1 --format=%b HEAD)
+
+          # Collect added/modified files (rename-aware diff is decomposed
+          # into delete+add via --no-renames so each path is independent).
+          ADDITIONS='[]'
+          while IFS= read -r -d '' path; do
+            [ -z "$path" ] && continue
+            CONTENT=$(base64 < "$path" | tr -d '\n')
+            ADDITIONS=$(jq -c --arg p "$path" --arg c "$CONTENT" '. + [{path: $p, contents: $c}]' <<<"$ADDITIONS")
+          done < <(git diff --no-renames --name-only --diff-filter=AM -z "${PARENT_OID}" HEAD)
+
+          DELETIONS='[]'
+          while IFS= read -r -d '' path; do
+            [ -z "$path" ] && continue
+            DELETIONS=$(jq -c --arg p "$path" '. + [{path: $p}]' <<<"$DELETIONS")
+          done < <(git diff --no-renames --name-only --diff-filter=D -z "${PARENT_OID}" HEAD)
+
+          # Reset the remote branch to the base branch tip (or create it
+          # fresh). This is the "branch already exists, force-push" path
+          # from before, expressed via the refs API.
+          if gh api "repos/${REPO}/git/refs/heads/${BACKPORT_BRANCH}" >/dev/null 2>&1; then
+            echo "Branch ${BACKPORT_BRANCH} already exists on remote (orphaned from a previous run). Force-updating to ${PARENT_OID}."
+            gh api --method PATCH "repos/${REPO}/git/refs/heads/${BACKPORT_BRANCH}" \
+              -f "sha=${PARENT_OID}" -F force=true >/dev/null
           else
-            git push origin "${BACKPORT_BRANCH}"
+            gh api --method POST "repos/${REPO}/git/refs" \
+              -f "ref=refs/heads/${BACKPORT_BRANCH}" \
+              -f "sha=${PARENT_OID}" >/dev/null
           fi
+
+          INPUT=$(jq -nc \
+            --arg repo "${REPO}" \
+            --arg branch "${BACKPORT_BRANCH}" \
+            --arg expected "${PARENT_OID}" \
+            --arg headline "${HEADLINE}" \
+            --arg body "${BODY}" \
+            --argjson additions "${ADDITIONS}" \
+            --argjson deletions "${DELETIONS}" \
+            '{
+              branch: {repositoryNameWithOwner: $repo, branchName: $branch},
+              expectedHeadOid: $expected,
+              message: {headline: $headline, body: $body},
+              fileChanges: {additions: $additions, deletions: $deletions}
+            }')
+
+          jq -n --arg query 'mutation($input: CreateCommitOnBranchInput!) { createCommitOnBranch(input: $input) { commit { oid url } } }' \
+            --argjson variables "{\"input\": ${INPUT}}" \
+            '{query: $query, variables: $variables}' \
+            | gh api graphql --input -
 
       - name: Determine PR assignee
         if: '!steps.check-existing.outputs.existing-pr'
