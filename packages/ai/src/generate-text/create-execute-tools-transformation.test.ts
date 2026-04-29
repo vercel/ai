@@ -4,13 +4,14 @@ import {
   convertReadableStreamToArray,
   mockId,
 } from '@ai-sdk/provider-utils/test';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
 import { TypeValidationError } from '../error';
 import { asLanguageModelUsage } from '../types/usage';
+import { now } from '../util/now';
 import { createExecuteToolsTransformation } from './create-execute-tools-transformation';
-import { LanguageModelStreamPart } from './stream-language-model-call';
-import {
+import type { LanguageModelStreamPart } from './stream-language-model-call';
+import type {
   ToolExecutionEndEvent,
   ToolExecutionStartEvent,
 } from './tool-execution-events';
@@ -19,7 +20,7 @@ import {
 vi.mock('../util/now', () => ({
   now: vi.fn(),
 }));
-import { now } from '../util/now';
+
 const mockNow = vi.mocked(now);
 
 const finishChunk = {
@@ -43,8 +44,13 @@ const finishChunk = {
 
 describe('createExecuteToolsTransformation', () => {
   beforeEach(() => {
+    vi.useFakeTimers();
     vi.clearAllMocks();
     mockNow.mockReturnValue(0);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it('should handle async tool execution', async () => {
@@ -1075,7 +1081,7 @@ describe('createExecuteToolsTransformation', () => {
         failingTool: tool({
           inputSchema: z.object({ value: z.string() }),
           execute: async ({ value }) => {
-            await delay(10); // TODO find elegant way to test setTimeout
+            await delay(10);
             if (value === 'test') {
               throw toolError;
             }
@@ -1110,7 +1116,9 @@ describe('createExecuteToolsTransformation', () => {
         }),
       );
 
-      const result = await convertReadableStreamToArray(transformedStream);
+      const resultPromise = convertReadableStreamToArray(transformedStream);
+      await vi.advanceTimersByTimeAsync(10);
+      const result = await resultPromise;
 
       expect(result).toMatchInlineSnapshot(`
         [

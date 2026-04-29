@@ -1,5 +1,5 @@
 import { anthropicTools } from '@ai-sdk/anthropic/internal';
-import {
+import type {
   EmbeddingModelV4,
   ImageModelV4,
   LanguageModelV4,
@@ -7,26 +7,26 @@ import {
   RerankingModelV4,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
   generateId,
   loadOptionalSetting,
   loadSetting,
   withoutTrailingSlash,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { BedrockChatLanguageModel } from './bedrock-chat-language-model';
-import { BedrockChatModelId } from './bedrock-chat-options';
+import type { BedrockChatModelId } from './bedrock-chat-options';
 import { BedrockEmbeddingModel } from './bedrock-embedding-model';
-import { BedrockEmbeddingModelId } from './bedrock-embedding-options';
+import type { BedrockEmbeddingModelId } from './bedrock-embedding-options';
 import { BedrockImageModel } from './bedrock-image-model';
-import { BedrockImageModelId } from './bedrock-image-settings';
+import type { BedrockImageModelId } from './bedrock-image-settings';
 import {
-  BedrockCredentials,
   createApiKeyFetchFunction,
   createSigV4FetchFunction,
+  type BedrockCredentials,
 } from './bedrock-sigv4-fetch';
 import { BedrockRerankingModel } from './reranking/bedrock-reranking-model';
-import { BedrockRerankingModelId } from './reranking/bedrock-reranking-options';
+import type { BedrockRerankingModelId } from './reranking/bedrock-reranking-options';
 import { VERSION } from './version';
 
 export interface AmazonBedrockProviderSettings {
@@ -74,8 +74,10 @@ export interface AmazonBedrockProviderSettings {
   secretAccessKey?: string;
 
   /**
-   * The AWS session token to use for the Bedrock provider. Defaults to the value of the
-   * `AWS_SESSION_TOKEN` environment variable.
+   * The AWS session token to use for the Bedrock provider. When `accessKeyId` and
+   * `secretAccessKey` are both passed explicitly as options, only this field is used
+   * If either access key field is omitted and resolved from the environment, the
+   * session token also falls back to `AWS_SESSION_TOKEN` when not set here.
    */
   sessionToken?: string;
 
@@ -221,10 +223,13 @@ export function createAmazonBedrock(
               environmentVariableName: 'AWS_SECRET_ACCESS_KEY',
               description: 'AWS secret access key',
             }),
-            sessionToken: loadOptionalSetting({
-              settingValue: options.sessionToken,
-              environmentVariableName: 'AWS_SESSION_TOKEN',
-            }),
+            sessionToken:
+              options.accessKeyId != null && options.secretAccessKey != null
+                ? options.sessionToken
+                : loadOptionalSetting({
+                    settingValue: options.sessionToken,
+                    environmentVariableName: 'AWS_SESSION_TOKEN',
+                  }),
           };
         } catch (error) {
           // Provide helpful error message for missing AWS credentials

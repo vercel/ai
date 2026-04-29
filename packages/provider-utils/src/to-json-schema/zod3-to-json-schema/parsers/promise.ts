@@ -1,7 +1,7 @@
-import { ZodPromiseDef } from 'zod/v3';
+import type { ZodPromiseDef } from 'zod/v3';
 import { parseDef } from '../parse-def';
-import { JsonSchema7Type } from '../parse-types';
-import { Refs } from '../refs';
+import type { JsonSchema7Type } from '../parse-types';
+import type { Refs } from '../refs';
 
 export function parsePromiseDef(
   def: ZodPromiseDef,

@@ -1,11 +1,11 @@
-import { SpeechModelV4, ProviderV4 } from '@ai-sdk/provider';
+import type { SpeechModelV4, ProviderV4 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
   loadApiKey,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { LMNTSpeechModel } from './lmnt-speech-model';
-import { LMNTSpeechModelId } from './lmnt-speech-options';
+import type { LMNTSpeechModelId } from './lmnt-speech-options';
 import { VERSION } from './version';
 
 export interface LMNTProvider extends Pick<ProviderV4, 'speechModel'> {

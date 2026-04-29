@@ -1,7 +1,7 @@
 import {
   convertBase64ToUint8Array,
-  FetchFunction,
   safeParseJSON,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { createBedrockEventStreamDecoder } from '../bedrock-event-stream-decoder';

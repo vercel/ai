@@ -4,6 +4,7 @@ import type {
   LanguageModelV4ToolResultPart,
 } from '@ai-sdk/provider';
 import {
+  experimental_filterActiveTools as filterActiveTools,
   type Experimental_LanguageModelStreamPart as ModelCallStreamPart,
   type LanguageModel,
   type ModelMessage,
@@ -11,7 +12,6 @@ import {
   type ToolCallRepairFunction,
   type ToolChoice,
   type ToolSet,
-  experimental_filterActiveTools as filterActiveTools,
 } from 'ai';
 import {
   doStreamStep,

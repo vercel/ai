@@ -1,6 +1,6 @@
 import {
-  type GoogleVertexVideoProviderOptions,
   vertex,
+  type GoogleVertexVideoProviderOptions,
 } from '@ai-sdk/google-vertex';
 import { experimental_generateVideo } from 'ai';
 import fs from 'node:fs';

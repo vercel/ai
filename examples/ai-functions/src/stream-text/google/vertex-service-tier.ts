@@ -1,4 +1,4 @@
-import { type GoogleLanguageModelOptions } from '@ai-sdk/google';
+import type { GoogleLanguageModelOptions } from '@ai-sdk/google';
 import { vertex } from '@ai-sdk/google-vertex';
 import { streamText } from 'ai';
 import { run } from '../../lib/run';

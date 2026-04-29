@@ -12,6 +12,10 @@ It does not have any runtime behavior, but it helps TypeScript infer the types f
 Without this helper function, TypeScript is unable to connect the `inputSchema` and `contextSchema` properties to the tool callbacks,
 and the callback argument types cannot be inferred.
 
+For the full model of `runtimeContext`, `toolsContext`, tool `context`, and
+sensitive context filtering, see [Runtime and Tool
+Context](/docs/ai-sdk-core/runtime-and-tool-context).
+
 ```ts highlight={"1,4,9,10"}
 import { tool } from 'ai';
 import { z } from 'zod';
@@ -86,6 +90,13 @@ export const weatherTool = tool({
               type: 'Zod Schema | JSON Schema',
               description:
                 'An optional schema that describes the tool-specific context expected by the tool. When provided, the `context` type in `execute`, `needsApproval`, and the input lifecycle callbacks is inferred from this schema. The value is supplied via the tool\'s entry in `toolsContext`.',
+            },
+            {
+              name: 'sensitiveContext',
+              isOptional: true,
+              type: 'SensitiveContext<CONTEXT>',
+              description:
+                'Top-level context properties that contain sensitive data and should be excluded from telemetry. Properties marked as `true` are omitted from telemetry integrations. Tool execution, lifecycle callbacks, and returned results still receive the full tool context.',
             },
             {
               name: 'strict',

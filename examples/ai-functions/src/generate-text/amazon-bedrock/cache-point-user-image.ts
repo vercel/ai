@@ -10,7 +10,11 @@ run(async () => {
       {
         role: 'user',
         content: [
-          { type: 'image', image: fs.readFileSync('./data/comic-cat.png') },
+          {
+            type: 'file',
+            mediaType: 'image',
+            data: fs.readFileSync('./data/comic-cat.png'),
+          },
           {
             type: 'text',
             text: 'What is in this image?',

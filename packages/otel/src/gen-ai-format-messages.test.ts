@@ -288,7 +288,7 @@ describe('formatInputMessages', () => {
         content: [
           {
             type: 'file',
-            data: 'base64data',
+            data: { type: 'data' as const, data: 'base64data' },
             mediaType: 'image/png',
           },
         ],
@@ -318,7 +318,10 @@ describe('formatInputMessages', () => {
         content: [
           {
             type: 'file',
-            data: 'https://example.com/image.png',
+            data: {
+              type: 'url' as const,
+              url: new URL('https://example.com/image.png'),
+            },
             mediaType: 'image/png',
           },
         ],

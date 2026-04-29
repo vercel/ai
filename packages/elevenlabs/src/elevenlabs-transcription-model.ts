@@ -1,4 +1,4 @@
-import { TranscriptionModelV4, SharedV4Warning } from '@ai-sdk/provider';
+import type { TranscriptionModelV4, SharedV4Warning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   convertBase64ToUint8Array,
@@ -11,10 +11,10 @@ import {
   WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import { ElevenLabsConfig } from './elevenlabs-config';
+import type { ElevenLabsConfig } from './elevenlabs-config';
 import { elevenlabsFailedResponseHandler } from './elevenlabs-error';
-import { ElevenLabsTranscriptionModelId } from './elevenlabs-transcription-options';
-import { ElevenLabsTranscriptionAPITypes } from './elevenlabs-api-types';
+import type { ElevenLabsTranscriptionModelId } from './elevenlabs-transcription-options';
+import type { ElevenLabsTranscriptionAPITypes } from './elevenlabs-api-types';
 
 // https://elevenlabs.io/docs/api-reference/speech-to-text/convert
 const elevenLabsTranscriptionModelOptionsSchema = z.object({

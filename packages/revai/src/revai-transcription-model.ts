@@ -1,7 +1,7 @@
 import {
   AISDKError,
-  TranscriptionModelV4,
-  SharedV4Warning,
+  type TranscriptionModelV4,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -17,10 +17,10 @@ import {
   WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import { RevaiConfig } from './revai-config';
+import type { RevaiConfig } from './revai-config';
 import { revaiFailedResponseHandler } from './revai-error';
-import { RevaiTranscriptionModelId } from './revai-transcription-options';
-import { RevaiTranscriptionAPITypes } from './revai-api-types';
+import type { RevaiTranscriptionModelId } from './revai-transcription-options';
+import type { RevaiTranscriptionAPITypes } from './revai-api-types';
 
 // https://docs.rev.ai/api/asynchronous/reference/#operation/SubmitTranscriptionJob
 const revaiTranscriptionModelOptionsSchema = z.object({

@@ -1,5 +1,5 @@
-import { JSONValue } from '@ai-sdk/provider';
-import { Context, tool } from '@ai-sdk/provider-utils';
+import type { JSONValue } from '@ai-sdk/provider';
+import { tool, type Context } from '@ai-sdk/provider-utils';
 import { describe, expectTypeOf, it } from 'vitest';
 import { z } from 'zod';
 import { generateText, Output } from '../generate-text';
@@ -126,6 +126,63 @@ describe('generateText types', () => {
         model: new MockLanguageModelV4(),
         prompt: 'Hello',
         runtimeContext: { telemetryId: '123' },
+      });
+    });
+
+    it('should accept sensitiveRuntimeContext for runtimeContext keys', async () => {
+      generateText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+        runtimeContext: { userId: 'user-123', requestId: 'request-123' },
+        sensitiveRuntimeContext: {
+          userId: true,
+          requestId: false,
+        },
+      });
+    });
+
+    it('should expose original runtimeContext in callbacks', async () => {
+      generateText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+        runtimeContext: { userId: 'user-123', requestId: 'request-123' },
+        sensitiveRuntimeContext: { userId: true },
+        experimental_onStart: ({ runtimeContext }) => {
+          expectTypeOf(runtimeContext).toEqualTypeOf<{
+            userId: string;
+            requestId: string;
+          }>();
+        },
+        experimental_onStepStart: ({ runtimeContext }) => {
+          expectTypeOf(runtimeContext).toEqualTypeOf<{
+            userId: string;
+            requestId: string;
+          }>();
+        },
+        onStepFinish: ({ runtimeContext }) => {
+          expectTypeOf(runtimeContext).toEqualTypeOf<{
+            userId: string;
+            requestId: string;
+          }>();
+        },
+        onFinish: ({ runtimeContext }) => {
+          expectTypeOf(runtimeContext).toEqualTypeOf<{
+            userId: string;
+            requestId: string;
+          }>();
+        },
+      });
+    });
+
+    it('should reject unknown sensitiveRuntimeContext keys', async () => {
+      generateText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+        runtimeContext: { userId: 'user-123' },
+        sensitiveRuntimeContext: {
+          // @ts-expect-error sensitiveRuntimeContext only supports runtimeContext properties
+          unknown: true,
+        },
       });
     });
 

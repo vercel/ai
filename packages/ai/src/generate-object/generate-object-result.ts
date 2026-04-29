@@ -1,11 +1,11 @@
-import {
+import type {
   CallWarning,
   FinishReason,
   LanguageModelRequestMetadata,
   LanguageModelResponseMetadata,
   ProviderMetadata,
 } from '../types';
-import { LanguageModelUsage } from '../types/usage';
+import type { LanguageModelUsage } from '../types/usage';
 
 /**
  * The result of a `generateObject` call.

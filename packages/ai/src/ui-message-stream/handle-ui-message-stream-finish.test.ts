@@ -2,9 +2,9 @@ import {
   convertArrayToReadableStream,
   convertReadableStreamToArray,
 } from '@ai-sdk/provider-utils/test';
-import { UIMessage } from '../ui/ui-messages';
+import type { UIMessage } from '../ui/ui-messages';
 import { handleUIMessageStreamFinish } from './handle-ui-message-stream-finish';
-import { UIMessageChunk } from './ui-message-chunks';
+import type { UIMessageChunk } from './ui-message-chunks';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 function createUIMessageStream(parts: UIMessageChunk[]) {

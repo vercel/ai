@@ -1,7 +1,7 @@
 import {
-  type InferSchema,
   lazySchema,
   zodSchema,
+  type InferSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 

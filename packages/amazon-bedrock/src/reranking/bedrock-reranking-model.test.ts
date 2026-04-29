@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { injectFetchHeaders } from '../inject-fetch-headers';
 import { BedrockRerankingModel } from './bedrock-reranking-model';
-import { AmazonBedrockRerankingModelOptions } from './bedrock-reranking-options';
+import type { AmazonBedrockRerankingModelOptions } from './bedrock-reranking-options';
 
 const fakeFetchWithAuth = injectFetchHeaders({ 'x-amz-auth': 'test-auth' });
 

@@ -1,11 +1,11 @@
-import {
+import type {
   AssistantContent,
   AssistantModelMessage,
   ToolContent,
   ToolModelMessage,
 } from '../prompt';
 import { createToolModelOutput } from '../prompt/create-tool-model-output';
-import { ContentPart } from './content-part';
+import type { ContentPart } from './content-part';
 import type { ToolSet } from '@ai-sdk/provider-utils';
 
 /**

@@ -1,4 +1,4 @@
-import { StreamTextResult } from 'ai';
+import type { StreamTextResult } from 'ai';
 
 export async function printFullStream({
   result,

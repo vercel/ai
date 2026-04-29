@@ -6,7 +6,7 @@ import {
   lastAssistantMessageIsCompleteWithApprovalResponses,
 } from 'ai';
 import ChatInput from '@/components/chat-input';
-import { OpenAIWeatherToolApprovalAgentUIMessage } from '@/agent/openai/weather-tool-approval-agent';
+import type { OpenAIWeatherToolApprovalAgentUIMessage } from '@/agent/openai/weather-tool-approval-agent';
 import WeatherWithApprovalView from '@/components/tool/weather-with-approval-view';
 
 export default function TestToolApproval() {

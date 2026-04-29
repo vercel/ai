@@ -2,7 +2,6 @@ export * from './language-model-v4';
 export * from './language-model-v4-call-options';
 export * from './language-model-v4-content';
 export * from './language-model-v4-custom-content';
-export * from './language-model-v4-data-content';
 export * from './language-model-v4-file';
 export * from './language-model-v4-finish-reason';
 export * from './language-model-v4-function-tool';

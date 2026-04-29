@@ -1,15 +1,18 @@
-import { JSONObject, RerankingModelV4CallOptions } from '@ai-sdk/provider';
-import { createIdGenerator, ProviderOptions } from '@ai-sdk/provider-utils';
+import type { JSONObject, RerankingModelV4CallOptions } from '@ai-sdk/provider';
+import {
+  createIdGenerator,
+  type ProviderOptions,
+} from '@ai-sdk/provider-utils';
 import { prepareRetries } from '../../src/util/prepare-retries';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveRerankingModel } from '../model/resolve-model';
 import { createTelemetryDispatcher } from '../telemetry/create-telemetry-dispatcher';
-import { TelemetryOptions } from '../telemetry/telemetry-options';
-import { RerankingModel } from '../types';
+import type { TelemetryOptions } from '../telemetry/telemetry-options';
+import type { RerankingModel } from '../types';
 import type { Callback } from '../util/callback';
 import { notify } from '../util/notify';
 import type { RerankEndEvent, RerankStartEvent } from './rerank-events';
-import { RerankResult } from './rerank-result';
+import type { RerankResult } from './rerank-result';
 
 const originalGenerateCallId = createIdGenerator({
   prefix: 'call',

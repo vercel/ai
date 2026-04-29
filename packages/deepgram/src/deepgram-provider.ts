@@ -1,18 +1,18 @@
 import {
-  TranscriptionModelV4,
-  SpeechModelV4,
-  ProviderV4,
   NoSuchModelError,
+  type TranscriptionModelV4,
+  type SpeechModelV4,
+  type ProviderV4,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
   loadApiKey,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { DeepgramTranscriptionModel } from './deepgram-transcription-model';
-import { DeepgramTranscriptionModelId } from './deepgram-transcription-options';
+import type { DeepgramTranscriptionModelId } from './deepgram-transcription-options';
 import { DeepgramSpeechModel } from './deepgram-speech-model';
-import { DeepgramSpeechModelId } from './deepgram-speech-options';
+import type { DeepgramSpeechModelId } from './deepgram-speech-options';
 import { VERSION } from './version';
 
 export interface DeepgramProvider extends ProviderV4 {

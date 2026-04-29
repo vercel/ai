@@ -1,6 +1,6 @@
 import type { SharedV4Warning } from '@ai-sdk/provider';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { Warning } from '../types/warning';
+import type { Warning } from '../types/warning';
 import {
   FIRST_WARNING_INFO_MESSAGE,
   logWarnings,

@@ -95,11 +95,11 @@ Next, you need to create a file named `instrumentation.ts` (or `.js`) in the **r
 
 ```typescript
 import { registerTelemetry } from 'ai';
-import { OpenTelemetry } from '@ai-sdk/otel';
+import { LegacyOpenTelemetry } from '@ai-sdk/otel';
 import { registerOTel } from '@vercel/otel';
 import { LangWatchExporter } from 'langwatch';
 
-registerTelemetry(new OpenTelemetry());
+registerTelemetry(new LegacyOpenTelemetry());
 
 export function register() {
   registerOTel({

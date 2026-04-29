@@ -211,12 +211,18 @@ export class GatewayLanguageModel implements LanguageModelV4 {
           // If the file part is a URL it will get cleanly converted to a string.
           // If it's a binary file attachment we convert it to a data url.
           // In either case, server-side we should only ever see URLs as strings.
-          if (filePart.data instanceof Uint8Array) {
-            const buffer = Uint8Array.from(filePart.data);
+          if (
+            filePart.data.type === 'data' &&
+            filePart.data.data instanceof Uint8Array
+          ) {
+            const buffer = Uint8Array.from(filePart.data.data);
             const base64Data = Buffer.from(buffer).toString('base64');
-            filePart.data = new URL(
-              `data:${filePart.mediaType || 'application/octet-stream'};base64,${base64Data}`,
-            );
+            filePart.data = {
+              type: 'url',
+              url: new URL(
+                `data:${filePart.mediaType || 'application/octet-stream'};base64,${base64Data}`,
+              ),
+            };
           }
         }
       }

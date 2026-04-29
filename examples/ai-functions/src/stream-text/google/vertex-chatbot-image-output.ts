@@ -1,6 +1,6 @@
-import { type GoogleLanguageModelOptions } from '@ai-sdk/google';
+import type { GoogleLanguageModelOptions } from '@ai-sdk/google';
 import { vertex } from '@ai-sdk/google-vertex';
-import { ModelMessage, streamText } from 'ai';
+import { streamText, type ModelMessage } from 'ai';
 import * as readline from 'node:readline/promises';
 import { presentImages } from '../../lib/present-image';
 import { run } from '../../lib/run';

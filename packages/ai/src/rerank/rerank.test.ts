@@ -1,9 +1,9 @@
-import { RerankingModelV4CallOptions } from '@ai-sdk/provider';
+import type { RerankingModelV4CallOptions } from '@ai-sdk/provider';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MockRerankingModelV4 } from '../test/mock-reranking-model-v4';
 import { rerank } from './rerank';
 import type { RerankStartEvent, RerankEndEvent } from './rerank-events';
-import { RerankResult } from './rerank-result';
+import type { RerankResult } from './rerank-result';
 describe('rerank', () => {
   describe('rerank with string documents', () => {
     let result: RerankResult<string>;

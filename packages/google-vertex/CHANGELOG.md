@@ -1,5 +1,44 @@
 # @ai-sdk/google-vertex
 
+## 5.0.0-beta.61
+
+### Patch Changes
+
+- Updated dependencies [c012d57]
+  - @ai-sdk/anthropic@4.0.0-beta.40
+
+## 5.0.0-beta.60
+
+### Patch Changes
+
+- 9f0e36c: trigger release for all packages after provenance setup
+- Updated dependencies [9f0e36c]
+  - @ai-sdk/anthropic@4.0.0-beta.39
+  - @ai-sdk/google@4.0.0-beta.47
+  - @ai-sdk/openai-compatible@3.0.0-beta.33
+  - @ai-sdk/provider@4.0.0-beta.13
+  - @ai-sdk/provider-utils@5.0.0-beta.28
+
+## 5.0.0-beta.59
+
+### Patch Changes
+
+- 87d1723: chore(anthropic): remove unnecessary messages affix from Anthropic symbols and files
+- Updated dependencies [ab81968]
+- Updated dependencies [785fe16]
+- Updated dependencies [67df0a0]
+- Updated dependencies [87d1723]
+- Updated dependencies [befb78c]
+- Updated dependencies [0458559]
+- Updated dependencies [58a2ad7]
+- Updated dependencies [5852c0a]
+- Updated dependencies [84f36e0]
+- Updated dependencies [fc92055]
+  - @ai-sdk/openai-compatible@3.0.0-beta.32
+  - @ai-sdk/provider-utils@5.0.0-beta.27
+  - @ai-sdk/anthropic@4.0.0-beta.38
+  - @ai-sdk/google@4.0.0-beta.46
+
 ## 5.0.0-beta.58
 
 ### Patch Changes

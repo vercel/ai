@@ -1,5 +1,5 @@
-import { ImageModelV4CallOptions } from './image-model-v4-call-options';
-import { ImageModelV4Result } from './image-model-v4-result';
+import type { ImageModelV4CallOptions } from './image-model-v4-call-options';
+import type { ImageModelV4Result } from './image-model-v4-result';
 
 type GetMaxImagesPerCallFunction = (options: {
   modelId: string;

@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/provider-utils",
-  "version": "5.0.0-beta.26",
+  "version": "5.0.0-beta.28",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -63,12 +63,14 @@
     "node": ">=18"
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "provenance": true
   },
   "homepage": "https://ai-sdk.dev/docs",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/vercel/ai.git"
+    "url": "https://github.com/vercel/ai",
+    "directory": "packages/provider-utils"
   },
   "bugs": {
     "url": "https://github.com/vercel/ai/issues"

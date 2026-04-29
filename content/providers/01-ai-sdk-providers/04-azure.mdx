@@ -168,8 +168,9 @@ const messages = [
         text: 'What is the capital of the moon?',
       },
       {
-        type: 'image',
-        image: 'https://example.com/image.png',
+        type: 'file',
+        mediaType: 'image',
+        data: 'https://example.com/image.png',
         providerOptions: {
           openai: { imageDetail: 'low' },
         },

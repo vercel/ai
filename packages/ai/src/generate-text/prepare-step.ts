@@ -1,15 +1,14 @@
 import type {
   Context,
   InferToolSetContext,
-  ToolSet,
-} from '@ai-sdk/provider-utils';
-import {
   ModelMessage,
   ProviderOptions,
   SystemModelMessage,
+  ToolSet,
 } from '@ai-sdk/provider-utils';
-import { LanguageModel, ToolChoice } from '../types/language-model';
-import { StepResult } from './step-result';
+import type { LanguageModel, ToolChoice } from '../types/language-model';
+import type { ActiveTools } from './active-tools';
+import type { StepResult } from './step-result';
 
 /**
  * Function that you can use to provide different settings for a step.
@@ -84,7 +83,7 @@ export type PrepareStepResult<
       /**
        * If provided, only these tools are enabled/available for this step.
        */
-      activeTools?: Array<keyof NoInfer<TOOLS>>;
+      activeTools?: ActiveTools<NoInfer<TOOLS>>;
 
       /**
        * Optionally override the system message(s) sent to the model for this step.

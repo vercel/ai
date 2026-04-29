@@ -1,11 +1,11 @@
-import { ModelMessage, tool } from '@ai-sdk/provider-utils';
+import { tool, type ModelMessage } from '@ai-sdk/provider-utils';
 import {
   convertArrayToReadableStream,
   convertReadableStreamToArray,
 } from '@ai-sdk/provider-utils/test';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod/v4';
-import { LanguageModelStreamPart } from './stream-language-model-call';
+import type { LanguageModelStreamPart } from './stream-language-model-call';
 import { invokeToolCallbacksFromStream } from './invoke-tool-callbacks-from-stream';
 
 describe('invokeToolCallbacksFromStream', () => {

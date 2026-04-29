@@ -1,5 +1,4 @@
 import type { ImageModelV4, SharedV4Warning } from '@ai-sdk/provider';
-import type { InferSchema } from '@ai-sdk/provider-utils';
 import {
   combineHeaders,
   lazySchema,
@@ -11,16 +10,17 @@ import {
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
   zodSchema,
+  type InferSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import type { ProdiaModelConfig } from './prodia-api';
 import {
   buildProdiaProviderMetadata,
   parseMultipart,
   prodiaFailedResponseHandler,
   prodiaJobResultSchema,
+  type ProdiaJobResult,
+  type ProdiaModelConfig,
 } from './prodia-api';
-import type { ProdiaJobResult } from './prodia-api';
 import type { ProdiaImageModelId } from './prodia-image-settings';
 
 export class ProdiaImageModel implements ImageModelV4 {

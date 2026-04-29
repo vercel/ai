@@ -1,7 +1,7 @@
 import {
   AISDKError,
-  TranscriptionModelV4,
-  SharedV4Warning,
+  type TranscriptionModelV4,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -17,10 +17,10 @@ import {
   WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import { FalConfig } from './fal-config';
+import type { FalConfig } from './fal-config';
 import { falErrorDataSchema, falFailedResponseHandler } from './fal-error';
-import { FalTranscriptionModelId } from './fal-transcription-options';
-import { FalTranscriptionAPITypes } from './fal-api-types';
+import type { FalTranscriptionModelId } from './fal-transcription-options';
+import type { FalTranscriptionAPITypes } from './fal-api-types';
 
 // https://fal.ai/models/fal-ai/whisper/api?platform=http
 const falTranscriptionModelOptionsSchema = z.object({

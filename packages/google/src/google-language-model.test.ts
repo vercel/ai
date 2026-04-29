@@ -1,6 +1,6 @@
 import {
-  LanguageModelV4Prompt,
   LanguageModelV4ProviderTool,
+  type LanguageModelV4Prompt,
 } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
@@ -10,7 +10,7 @@ import {
   getUrlContextMetadataSchema,
 } from './google-language-model';
 
-import {
+import type {
   GoogleGroundingMetadata,
   GoogleUrlContextMetadata,
 } from './google-prompt';
@@ -2566,7 +2566,10 @@ describe('doGenerate', () => {
           "type": "text",
         },
         {
-          "data": "base64encodedimagedata",
+          "data": {
+            "data": "base64encodedimagedata",
+            "type": "data",
+          },
           "mediaType": "image/jpeg",
           "providerMetadata": undefined,
           "type": "file",
@@ -2577,7 +2580,10 @@ describe('doGenerate', () => {
           "type": "text",
         },
         {
-          "data": "anotherbase64encodedimagedata",
+          "data": {
+            "data": "anotherbase64encodedimagedata",
+            "type": "data",
+          },
           "mediaType": "image/png",
           "providerMetadata": undefined,
           "type": "file",
@@ -2630,13 +2636,19 @@ describe('doGenerate', () => {
     expect(content).toMatchInlineSnapshot(`
       [
         {
-          "data": "imagedata1",
+          "data": {
+            "data": "imagedata1",
+            "type": "data",
+          },
           "mediaType": "image/jpeg",
           "providerMetadata": undefined,
           "type": "file",
         },
         {
-          "data": "imagedata2",
+          "data": {
+            "data": "imagedata2",
+            "type": "data",
+          },
           "mediaType": "image/png",
           "providerMetadata": undefined,
           "type": "file",
@@ -2690,7 +2702,10 @@ describe('doGenerate', () => {
     expect(content).toMatchInlineSnapshot(`
       [
         {
-          "data": "thoughtimagedata",
+          "data": {
+            "data": "thoughtimagedata",
+            "type": "data",
+          },
           "mediaType": "image/png",
           "providerMetadata": {
             "google": {
@@ -2700,7 +2715,10 @@ describe('doGenerate', () => {
           "type": "reasoning-file",
         },
         {
-          "data": "regularimagedata",
+          "data": {
+            "data": "regularimagedata",
+            "type": "data",
+          },
           "mediaType": "image/jpeg",
           "providerMetadata": undefined,
           "type": "file",
@@ -2905,13 +2923,19 @@ describe('doGenerate', () => {
           "type": "text",
         },
         {
-          "data": "validimagedata",
+          "data": {
+            "data": "validimagedata",
+            "type": "data",
+          },
           "mediaType": "image/jpeg",
           "providerMetadata": undefined,
           "type": "file",
         },
         {
-          "data": "pdfdata",
+          "data": {
+            "data": "pdfdata",
+            "type": "data",
+          },
           "mediaType": "application/pdf",
           "providerMetadata": undefined,
           "type": "file",
@@ -5241,7 +5265,10 @@ describe('doStream', () => {
           "warnings": [],
         },
         {
-          "data": "test",
+          "data": {
+            "data": "test",
+            "type": "data",
+          },
           "mediaType": "text/plain",
           "providerMetadata": undefined,
           "type": "file",
@@ -5353,7 +5380,10 @@ describe('doStream', () => {
     expect(fileEvents).toMatchInlineSnapshot(`
       [
         {
-          "data": "thoughtimg",
+          "data": {
+            "data": "thoughtimg",
+            "type": "data",
+          },
           "mediaType": "image/png",
           "providerMetadata": {
             "google": {
@@ -5363,7 +5393,10 @@ describe('doStream', () => {
           "type": "reasoning-file",
         },
         {
-          "data": "regularimg",
+          "data": {
+            "data": "regularimg",
+            "type": "data",
+          },
           "mediaType": "image/jpeg",
           "providerMetadata": undefined,
           "type": "file",
@@ -5438,7 +5471,10 @@ describe('doStream', () => {
           "type": "text-end",
         },
         {
-          "data": "image1",
+          "data": {
+            "data": "image1",
+            "type": "data",
+          },
           "mediaType": "image/png",
           "providerMetadata": undefined,
           "type": "file",
@@ -5459,7 +5495,10 @@ describe('doStream', () => {
           "type": "text-end",
         },
         {
-          "data": "image2",
+          "data": {
+            "data": "image2",
+            "type": "data",
+          },
           "mediaType": "image/jpeg",
           "providerMetadata": undefined,
           "type": "file",
@@ -5551,6 +5590,105 @@ describe('doStream', () => {
       {
         "raw": "STOP",
         "unified": "tool-calls",
+      }
+    `);
+  });
+
+  it('should omit server-side tool invocation flag for Vertex Gemini 3', async () => {
+    server.urls[TEST_URL_GEMINI_3_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: { parts: [{ text: 'Hello' }], role: 'model' },
+              finishReason: 'STOP',
+              safetyRatings: SAFETY_RATINGS,
+            },
+          ],
+          usageMetadata: {
+            promptTokenCount: 1,
+            candidatesTokenCount: 1,
+            totalTokenCount: 2,
+          },
+        })}\n\n`,
+      ],
+    };
+
+    const vertexModel = new GoogleLanguageModel('gemini-3-pro-preview', {
+      provider: 'google.vertex.chat',
+      baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+      headers: { 'x-goog-api-key': 'test-api-key' },
+      generateId: () => 'test-id',
+    });
+
+    const { stream } = await vertexModel.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+      tools: [
+        {
+          type: 'function',
+          name: 'test-tool',
+          inputSchema: {
+            type: 'object',
+            properties: { value: { type: 'string' } },
+            required: ['value'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+        },
+        {
+          type: 'provider',
+          id: 'google.google_search',
+          name: 'google_search',
+          args: {},
+        },
+      ],
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect({
+      toolConfig: requestBody.toolConfig,
+      tools: requestBody.tools,
+    }).toMatchInlineSnapshot(`
+      {
+        "toolConfig": {
+          "functionCallingConfig": {
+            "mode": "VALIDATED",
+          },
+        },
+        "tools": [
+          {
+            "googleSearch": {},
+          },
+          {
+            "functionDeclarations": [
+              {
+                "description": "",
+                "name": "test-tool",
+                "parameters": {
+                  "properties": {
+                    "value": {
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "value",
+                  ],
+                  "type": "object",
+                },
+              },
+            ],
+          },
+        ],
+      }
+    `);
+
+    const events = await convertReadableStreamToArray(stream);
+    expect(events[0]).toMatchInlineSnapshot(`
+      {
+        "type": "stream-start",
+        "warnings": [],
       }
     `);
   });

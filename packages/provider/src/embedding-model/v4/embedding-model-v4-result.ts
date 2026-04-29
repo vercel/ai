@@ -1,9 +1,9 @@
-import {
+import type {
   SharedV4Headers,
   SharedV4ProviderMetadata,
   SharedV4Warning,
 } from '../../shared';
-import { EmbeddingModelV4Embedding } from './embedding-model-v4-embedding';
+import type { EmbeddingModelV4Embedding } from './embedding-model-v4-embedding';
 
 /**
  * The result of a embedding model doEmbed call.

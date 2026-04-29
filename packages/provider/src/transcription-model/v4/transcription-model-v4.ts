@@ -1,5 +1,5 @@
-import { TranscriptionModelV4CallOptions } from './transcription-model-v4-call-options';
-import { TranscriptionModelV4Result } from './transcription-model-v4-result';
+import type { TranscriptionModelV4CallOptions } from './transcription-model-v4-call-options';
+import type { TranscriptionModelV4Result } from './transcription-model-v4-result';
 
 /**
  * Transcription model specification version 3.

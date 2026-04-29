@@ -1,10 +1,8 @@
 import {
-  EmbeddingModelV4,
   TooManyEmbeddingValuesForCallError,
+  type EmbeddingModelV4,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
-  Resolvable,
   combineHeaders,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
@@ -14,10 +12,12 @@ import {
   serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
+  type FetchFunction,
+  type Resolvable,
 } from '@ai-sdk/provider-utils';
 import {
-  BedrockEmbeddingModelId,
   amazonBedrockEmbeddingModelOptionsSchema,
+  type BedrockEmbeddingModelId,
 } from './bedrock-embedding-options';
 import { BedrockErrorSchema } from './bedrock-error';
 import { z } from 'zod/v4';

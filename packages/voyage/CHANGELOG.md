@@ -1,5 +1,26 @@
 # @ai-sdk/voyage
 
+## 1.0.0-beta.2
+
+### Patch Changes
+
+- 9f0e36c: trigger release for all packages after provenance setup
+- Updated dependencies [9f0e36c]
+  - @ai-sdk/provider@4.0.0-beta.13
+  - @ai-sdk/provider-utils@5.0.0-beta.28
+
+## 1.0.0-beta.1
+
+### Patch Changes
+
+- Updated dependencies [785fe16]
+- Updated dependencies [67df0a0]
+- Updated dependencies [befb78c]
+- Updated dependencies [0458559]
+- Updated dependencies [5852c0a]
+- Updated dependencies [fc92055]
+  - @ai-sdk/provider-utils@5.0.0-beta.27
+
 ## 1.0.0-beta.0
 
 ### Major Changes

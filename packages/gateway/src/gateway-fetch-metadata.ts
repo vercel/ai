@@ -14,7 +14,6 @@ import {
   type GatewayLanguageModelEntry,
   type KnownModelType,
 } from './gateway-model-entry';
-
 type GatewayFetchMetadataConfig = GatewayConfig;
 
 export interface GatewayFetchMetadataResponse {

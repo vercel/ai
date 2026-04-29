@@ -5,14 +5,13 @@ import {
 } from '@ai-sdk/azure';
 import {
   convertToModelMessages,
-  InferUITools,
   streamText,
-  ToolSet,
-  UIDataTypes,
-  UIMessage,
   validateUIMessages,
+  type InferUITools,
+  type ToolSet,
+  type UIDataTypes,
+  type UIMessage,
 } from 'ai';
-
 const tools = {
   code_interpreter: azure.tools.codeInterpreter(),
 } satisfies ToolSet;

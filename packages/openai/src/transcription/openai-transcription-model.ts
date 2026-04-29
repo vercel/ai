@@ -1,4 +1,4 @@
-import {
+import type {
   TranscriptionModelV4,
   TranscriptionModelV4CallOptions,
   SharedV4Warning,
@@ -14,15 +14,14 @@ import {
   WORKFLOW_DESERIALIZE,
   WORKFLOW_SERIALIZE,
 } from '@ai-sdk/provider-utils';
-import { OpenAIConfig } from '../openai-config';
+import type { OpenAIConfig } from '../openai-config';
 import { openaiFailedResponseHandler } from '../openai-error';
 import { openaiTranscriptionResponseSchema } from './openai-transcription-api';
 import {
-  OpenAITranscriptionModelId,
   openAITranscriptionModelOptions,
-  OpenAITranscriptionModelOptions,
+  type OpenAITranscriptionModelId,
+  type OpenAITranscriptionModelOptions,
 } from './openai-transcription-options';
-
 export type OpenAITranscriptionCallOptions = Omit<
   TranscriptionModelV4CallOptions,
   'providerOptions'

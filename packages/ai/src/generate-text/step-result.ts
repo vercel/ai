@@ -1,29 +1,34 @@
 import type {
   Context,
   InferToolSetContext,
+  ReasoningFilePart,
+  ReasoningPart,
   ToolSet,
 } from '@ai-sdk/provider-utils';
-import { ReasoningFilePart, ReasoningPart } from '@ai-sdk/provider-utils';
-import {
+import type {
   CallWarning,
   FinishReason,
   LanguageModelRequestMetadata,
   LanguageModelResponseMetadata,
   ProviderMetadata,
 } from '../types';
-import { Source } from '../types/language-model';
-import { LanguageModelUsage } from '../types/usage';
-import { ContentPart } from './content-part';
-import { GeneratedFile } from './generated-file';
+import type { Source } from '../types/language-model';
+import type { LanguageModelUsage } from '../types/usage';
+import type { ContentPart } from './content-part';
+import type { GeneratedFile } from './generated-file';
 import { asReasoningText } from './reasoning';
 import {
-  ReasoningFileOutput,
-  ReasoningOutput,
   convertFromReasoningOutputs,
+  type ReasoningFileOutput,
+  type ReasoningOutput,
 } from './reasoning-output';
-import { ResponseMessage } from './response-message';
-import { DynamicToolCall, StaticToolCall, TypedToolCall } from './tool-call';
-import {
+import type { ResponseMessage } from './response-message';
+import type {
+  DynamicToolCall,
+  StaticToolCall,
+  TypedToolCall,
+} from './tool-call';
+import type {
   DynamicToolResult,
   StaticToolResult,
   TypedToolResult,

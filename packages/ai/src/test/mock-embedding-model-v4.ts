@@ -1,4 +1,4 @@
-import { EmbeddingModelV4 } from '@ai-sdk/provider';
+import type { EmbeddingModelV4 } from '@ai-sdk/provider';
 import { notImplemented } from './not-implemented';
 
 export class MockEmbeddingModelV4 implements EmbeddingModelV4 {

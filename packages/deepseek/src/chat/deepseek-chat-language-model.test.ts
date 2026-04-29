@@ -1,10 +1,10 @@
-import { LanguageModelV4Prompt } from '@ai-sdk/provider';
+import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import fs from 'node:fs';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { createDeepSeek } from '../deepseek-provider';
-import { DeepSeekLanguageModelOptions } from './deepseek-chat-options';
+import type { DeepSeekLanguageModelOptions } from './deepseek-chat-options';
 
 const TEST_PROMPT: LanguageModelV4Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },

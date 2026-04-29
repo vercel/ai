@@ -28,9 +28,9 @@ pnpm install @ai-sdk/otel
 
 ```ts
 import { registerTelemetry } from 'ai';
-import { OpenTelemetry } from '@ai-sdk/otel';
+import { LegacyOpenTelemetry } from '@ai-sdk/otel';
 
-registerTelemetry(new OpenTelemetry());
+registerTelemetry(new LegacyOpenTelemetry());
 ```
 
 For Next.js applications, place this in your `instrumentation.ts` file alongside your OpenTelemetry provider setup. See the [Next.js OpenTelemetry guide](https://nextjs.org/docs/app/building-your-application/optimizing/open-telemetry) for more details on setting up the provider.
@@ -75,14 +75,16 @@ To disable telemetry globally, do not register any telemetry integrations via th
 
 You can provide a `functionId` to identify the function that the telemetry data is for,
 and `runtimeContext` to include additional information in the telemetry data.
+For the broader context model, see
+[Runtime and Tool Context](/docs/ai-sdk-core/runtime-and-tool-context).
 
 ```ts highlight="4-10"
 const result = await generateText({
   model: __MODEL__,
   prompt: 'Write a short story about a cat.',
   runtimeContext: {
-    something: 'custom',
-    someOtherThing: 'other-value',
+    userId: 'user_123',
+    requestId: 'req_abc',
   },
   telemetry: {
     functionId: 'my-awesome-function',
@@ -90,29 +92,100 @@ const result = await generateText({
 });
 ```
 
+### Sensitive runtime context
+
+`runtimeContext` can contain values that are useful inside your application but should not be sent to telemetry providers, such as user identifiers, tenant IDs, or credentials. Use `sensitiveRuntimeContext` to mark top-level `runtimeContext` properties that should be excluded from telemetry:
+
+```ts highlight="8-10"
+const result = await generateText({
+  model: __MODEL__,
+  prompt: 'Write a short story about a cat.',
+  runtimeContext: {
+    userId: 'user_123',
+    requestId: 'req_abc',
+  },
+  sensitiveRuntimeContext: {
+    userId: true,
+  },
+});
+```
+
+In this example, telemetry integrations receive `runtimeContext` as `{ requestId: 'req_abc' }`. Properties set to `false` or omitted are still sent. `sensitiveRuntimeContext` is supported by `generateText`, `streamText`, and `ToolLoopAgent`.
+
+<Note>
+  `sensitiveRuntimeContext` only filters telemetry integrations, including
+  OpenTelemetry integrations. Lifecycle callbacks and returned results still
+  receive the full `runtimeContext`.
+</Note>
+
+### Sensitive tool context
+
+Tool-specific context can also contain values that are useful during execution but should not be sent to telemetry providers, such as API keys or access tokens.
+Use `sensitiveContext` on a tool definition to mark top-level properties from that tool's `context` as sensitive:
+
+```ts highlight="9-11,19-23"
+const weatherTool = tool({
+  inputSchema: z.object({
+    location: z.string(),
+  }),
+  contextSchema: z.object({
+    weatherApiKey: z.string(),
+    defaultUnit: z.enum(['celsius', 'fahrenheit']),
+  }),
+  sensitiveContext: {
+    weatherApiKey: true,
+  },
+  execute: async ({ location }, { context }) =>
+    fetchWeather(location, context.weatherApiKey, context.defaultUnit),
+});
+
+const result = await generateText({
+  model: __MODEL__,
+  tools: { weather: weatherTool },
+  toolsContext: {
+    weather: {
+      weatherApiKey: 'weather-123',
+      defaultUnit: 'fahrenheit',
+    },
+  },
+  prompt: 'What is the weather in San Francisco?',
+});
+```
+
+In this example, telemetry integrations receive `toolsContext.weather` and tool execution telemetry event `toolContext` as `{ defaultUnit: 'fahrenheit' }`.
+Properties set to `false` or omitted are still sent. `sensitiveContext` is supported by `generateText`, `streamText`, and `ToolLoopAgent`.
+
+<Note>
+  `sensitiveContext` only filters telemetry integrations, including OpenTelemetry
+  integrations. Tool execution, lifecycle callbacks, and returned results still
+  receive the full tool context. See [Runtime and Tool
+  Context](/docs/ai-sdk-core/runtime-and-tool-context) for the difference between
+  tool execution context and telemetry event context.
+</Note>
+
 ## Custom Tracer
 
-If you want your traces to use a `TracerProvider` other than the one provided by the `@opentelemetry/api` singleton, pass a custom `Tracer` to the `OpenTelemetry` constructor:
+If you want your traces to use a `TracerProvider` other than the one provided by the `@opentelemetry/api` singleton, pass a custom `Tracer` to the `LegacyOpenTelemetry` constructor:
 
 ```ts highlight="6-8"
 import { registerTelemetry } from 'ai';
-import { OpenTelemetry } from '@ai-sdk/otel';
+import { LegacyOpenTelemetry } from '@ai-sdk/otel';
 
 const tracerProvider = new NodeTracerProvider();
 registerTelemetry(
-  new OpenTelemetry({
+  new LegacyOpenTelemetry({
     tracer: tracerProvider.getTracer('ai'),
   }),
 );
 ```
 
-The `GenAIOpenTelemetry` also accepts a custom `Tracer` in the same way.
+The `OpenTelemetry` also accepts a custom `Tracer` in the same way.
 
 ## Telemetry Integrations
 
 Telemetry integrations let you hook into the generation lifecycle to build custom observability — logging, analytics, DevTools, or any other monitoring system. Instead of wiring up individual callbacks on every call, you implement a `Telemetry` once and register it globally or pass it via `telemetry.integrations`.
 
-The `GenAIOpenTelemetry` and `OpenTelemetry` from `@ai-sdk/otel` are the built-in integrations for collecting OpenTelemetry spans (see [Enabling telemetry](#enabling-telemetry) above).
+The `OpenTelemetry` and `LegacyOpenTelemetry` from `@ai-sdk/otel` are the built-in integrations for collecting OpenTelemetry spans (see [Enabling telemetry](#enabling-telemetry) above).
 
 ### Registering integrations globally
 
@@ -120,20 +193,20 @@ Use `registerTelemetry` to register an integration once for all AI SDK calls:
 
 ```ts
 import { registerTelemetry } from 'ai';
-import { OpenTelemetry } from '@ai-sdk/otel';
+import { LegacyOpenTelemetry } from '@ai-sdk/otel';
 
-registerTelemetry(new OpenTelemetry());
+registerTelemetry(new LegacyOpenTelemetry());
 ```
 
 You can also register multiple integrations in a single call by passing them as additional arguments. They all receive the same lifecycle events:
 
 ```ts
 import { registerTelemetryIntegration } from 'ai';
-import { OpenTelemetryIntegration } from '@ai-sdk/otel';
+import { LegacyOpenTelemetry } from '@ai-sdk/otel';
 import { DevToolsTelemetry } from '@ai-sdk/devtools';
 
 registerTelemetryIntegration(
-  new OpenTelemetryIntegration(),
+  new LegacyOpenTelemetry(),
   DevToolsTelemetry(),
 );
 ```
@@ -265,12 +338,12 @@ The event types for each method are the same as the corresponding [event callbac
 ## Collected Data
 
 The `@ai-sdk/otel` package provides two integrations that emit different span formats.
-The `GenAIOpenTelemetry` follows the [OpenTelemetry GenAI Semantic Conventions](https://opentelemetry.io/docs/specs/semconv/gen-ai/) and is the recommended integration.
-The `OpenTelemetry` integration emits legacy AI SDK-specific spans.
+The `OpenTelemetry` follows the [OpenTelemetry GenAI Semantic Conventions](https://opentelemetry.io/docs/specs/semconv/gen-ai/) and is the recommended integration.
+The `LegacyOpenTelemetry` integration emits legacy AI SDK-specific spans.
 
 ### GenAI Semantic Conventions
 
-The `GenAIOpenTelemetry` emits spans that follow the [OpenTelemetry Semantic Conventions for GenAI](https://opentelemetry.io/docs/specs/semconv/gen-ai/).
+The `OpenTelemetry` emits spans that follow the [OpenTelemetry Semantic Conventions for GenAI](https://opentelemetry.io/docs/specs/semconv/gen-ai/).
 All attributes use the `gen_ai.*` prefix. Provider names are mapped to well-known values (e.g. `openai`, `anthropic`, `gcp.vertex_ai`).
 
 #### generateText / streamText
@@ -409,10 +482,10 @@ Tool call spans (`execute_tool {toolName}`) are nested under the step span and c
 - `gen_ai.tool.call.arguments`: the input arguments (stringified JSON, when `recordInputs` is enabled)
 - `gen_ai.tool.call.result`: the output result (stringified JSON, when `recordOutputs` is enabled). Only set when the tool call succeeds.
 
-### Legacy AI SDK Spans (`OpenTelemetry`)
+### Legacy AI SDK Spans (`LegacyOpenTelemetry`)
 
-The `OpenTelemetry` integration emits spans using AI SDK-specific `ai.*` prefixed attributes.
-This is the legacy format. Consider migrating to the `GenAIOpenTelemetry` for better compatibility with observability platforms.
+The `LegacyOpenTelemetry` integration emits spans using AI SDK-specific `ai.*` prefixed attributes.
+This is the legacy format. Consider migrating to the `OpenTelemetry` for better compatibility with observability platforms.
 
 #### generateText function
 
@@ -557,7 +630,7 @@ Many spans that use LLMs (`ai.generateText`, `ai.generateText.doGenerate`, `ai.s
 - `ai.response.providerMetadata`: provider specific metadata returned with the generation response
 - `ai.settings.maxRetries`: the maximum number of retries that were set
 - `ai.telemetry.functionId`: the functionId that was set through `telemetry.functionId`
-- `ai.settings.runtimeContext.*`: the runtime context that was passed in through the `runtimeContext` option
+- `ai.settings.runtimeContext.*`: the runtime context that was passed in through the `runtimeContext` option, excluding top-level properties marked with `sensitiveRuntimeContext`
 - `ai.usage.completionTokens`: the number of completion tokens that were used
 - `ai.usage.promptTokens`: the number of prompt tokens that were used
 

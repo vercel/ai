@@ -1,5 +1,28 @@
 # @ai-sdk/openai
 
+## 4.0.0-beta.40
+
+### Patch Changes
+
+- 9f0e36c: trigger release for all packages after provenance setup
+- Updated dependencies [9f0e36c]
+  - @ai-sdk/provider@4.0.0-beta.13
+  - @ai-sdk/provider-utils@5.0.0-beta.28
+
+## 4.0.0-beta.39
+
+### Patch Changes
+
+- 58a2ad7: fix: more precise default message for tool execution denial
+- f9acbc0: feat(provider/openai): add gpt-image-2 model support
+- Updated dependencies [785fe16]
+- Updated dependencies [67df0a0]
+- Updated dependencies [befb78c]
+- Updated dependencies [0458559]
+- Updated dependencies [5852c0a]
+- Updated dependencies [fc92055]
+  - @ai-sdk/provider-utils@5.0.0-beta.27
+
 ## 4.0.0-beta.38
 
 ### Patch Changes

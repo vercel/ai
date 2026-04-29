@@ -1,8 +1,8 @@
-import {
+import type {
   GroundingMetadataSchema,
   PromptFeedbackSchema,
+  SafetyRatingSchema,
   UrlContextMetadataSchema,
-  type SafetyRatingSchema,
   UsageMetadataSchema,
 } from './google-language-model';
 

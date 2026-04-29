@@ -1,4 +1,4 @@
-import {
+import type {
   ImageModelV4,
   ImageModelV4File,
   SharedV4Warning,
@@ -10,14 +10,14 @@ import {
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
   downloadBlob,
-  FetchFunction,
   postFormDataToApi,
   postJsonToApi,
   serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
-import { DeepInfraImageModelId } from './deepinfra-image-settings';
+import type { DeepInfraImageModelId } from './deepinfra-image-settings';
 import { z } from 'zod/v4';
 
 interface DeepInfraImageModelConfig {

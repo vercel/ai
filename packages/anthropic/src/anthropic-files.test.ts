@@ -42,7 +42,7 @@ describe('AnthropicFiles', () => {
 
       const files = createFiles();
       await files.uploadFile({
-        data: new Uint8Array([1, 2, 3]),
+        data: { type: 'data', data: new Uint8Array([1, 2, 3]) },
         mediaType: 'application/octet-stream',
         providerOptions: {},
       });
@@ -63,7 +63,7 @@ describe('AnthropicFiles', () => {
 
       const files = createFiles();
       await files.uploadFile({
-        data: new Uint8Array([1, 2, 3]),
+        data: { type: 'data', data: new Uint8Array([1, 2, 3]) },
         mediaType: 'application/octet-stream',
         providerOptions: {},
       });
@@ -77,7 +77,7 @@ describe('AnthropicFiles', () => {
 
       const files = createFiles();
       await files.uploadFile({
-        data: new Uint8Array([1, 2, 3]),
+        data: { type: 'data', data: new Uint8Array([1, 2, 3]) },
         mediaType: 'application/octet-stream',
         providerOptions: {},
       });
@@ -93,7 +93,7 @@ describe('AnthropicFiles', () => {
 
       const files = createFiles();
       await files.uploadFile({
-        data: new Uint8Array([1, 2, 3]),
+        data: { type: 'data', data: new Uint8Array([1, 2, 3]) },
         mediaType: 'application/octet-stream',
         providerOptions: {},
       });
@@ -109,7 +109,7 @@ describe('AnthropicFiles', () => {
 
       const files = createFiles();
       await files.uploadFile({
-        data: new Uint8Array([1, 2, 3]),
+        data: { type: 'data', data: new Uint8Array([1, 2, 3]) },
         mediaType: 'application/octet-stream',
         filename: 'custom-name.pdf',
         providerOptions: {},
@@ -126,7 +126,7 @@ describe('AnthropicFiles', () => {
 
       const files = createFiles();
       await files.uploadFile({
-        data: new Uint8Array([1, 2, 3]),
+        data: { type: 'data', data: new Uint8Array([1, 2, 3]) },
         mediaType: 'application/pdf',
       });
 
@@ -141,7 +141,7 @@ describe('AnthropicFiles', () => {
 
       const files = createFiles();
       const result = await files.uploadFile({
-        data: new Uint8Array([1, 2, 3]),
+        data: { type: 'data', data: new Uint8Array([1, 2, 3]) },
         mediaType: 'application/octet-stream',
         providerOptions: {},
       });
@@ -155,7 +155,7 @@ describe('AnthropicFiles', () => {
 
       const files = createFiles();
       const result = await files.uploadFile({
-        data: new Uint8Array([1, 2, 3]),
+        data: { type: 'data', data: new Uint8Array([1, 2, 3]) },
         mediaType: 'application/octet-stream',
         providerOptions: {},
       });
@@ -187,7 +187,7 @@ describe('AnthropicFiles', () => {
 
       const files = createFiles();
       const result = await files.uploadFile({
-        data: new Uint8Array([1, 2, 3]),
+        data: { type: 'data', data: new Uint8Array([1, 2, 3]) },
         mediaType: 'application/octet-stream',
         providerOptions: {},
       });
@@ -203,7 +203,7 @@ describe('AnthropicFiles', () => {
 
       const files = createFiles();
       const result = await files.uploadFile({
-        data: 'AQID',
+        data: { type: 'data', data: 'AQID' },
         mediaType: 'application/octet-stream',
         providerOptions: {},
       });

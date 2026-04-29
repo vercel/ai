@@ -5,11 +5,10 @@ import { useChat } from '@ai-sdk/react';
 import {
   DefaultChatTransport,
   getToolName,
+  isToolUIPart,
   type DynamicToolUIPart,
   type ToolUIPart,
-  isToolUIPart,
 } from 'ai';
-
 export default function Chat() {
   const { error, status, sendMessage, messages, regenerate, stop } = useChat({
     transport: new DefaultChatTransport({ api: '/chat/mcp/chat' }),

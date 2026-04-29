@@ -1,4 +1,4 @@
-import {
+import type {
   LanguageModelV4,
   LanguageModelV4CallOptions,
   LanguageModelV4Content,
@@ -15,40 +15,43 @@ import {
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
-  FetchFunction,
   generateId,
-  InferSchema,
   isCustomReasoning,
   lazySchema,
   mapReasoningToProviderBudget,
   mapReasoningToProviderEffort,
   parseProviderOptions,
-  ParseResult,
   postJsonToApi,
-  Resolvable,
   resolve,
   serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
   zodSchema,
+  type FetchFunction,
+  type InferSchema,
+  type ParseResult,
+  type Resolvable,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import {
   convertGoogleUsage,
-  GoogleUsageMetadata,
+  type GoogleUsageMetadata,
 } from './convert-google-usage';
 import { convertJSONSchemaToOpenAPISchema } from './convert-json-schema-to-openapi-schema';
 import { convertToGoogleMessages } from './convert-to-google-messages';
 import { getModelPath } from './get-model-path';
 import { googleFailedResponseHandler } from './google-error';
 import {
-  GoogleModelId,
   googleLanguageModelOptions,
   VertexServiceTierMap,
+  type GoogleModelId,
 } from './google-options';
-import { GoogleProviderMetadata } from './google-prompt';
+import type { GoogleProviderMetadata } from './google-prompt';
 import { prepareTools } from './google-prepare-tools';
-import { GoogleJSONAccumulator, PartialArg } from './google-json-accumulator';
+import {
+  GoogleJSONAccumulator,
+  type PartialArg,
+} from './google-json-accumulator';
 import { mapGoogleFinishReason } from './map-google-finish-reason';
 
 type GoogleConfig = {
@@ -190,6 +193,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       tools,
       toolChoice,
       modelId: this.modelId,
+      isVertexProvider,
     });
 
     const resolvedThinking = resolveThinkingConfig({
@@ -387,7 +391,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
         const hasThoughtSignature = !!part.thoughtSignature;
         content.push({
           type: hasThought ? 'reasoning-file' : 'file',
-          data: part.inlineData.data,
+          data: { type: 'data', data: part.inlineData.data },
           mediaType: part.inlineData.mimeType,
           providerMetadata: hasThoughtSignature
             ? {
@@ -753,7 +757,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
                   controller.enqueue({
                     type: hasThought ? 'reasoning-file' : 'file',
                     mediaType: part.inlineData.mimeType,
-                    data: part.inlineData.data,
+                    data: { type: 'data', data: part.inlineData.data },
                     providerMetadata: fileMeta,
                   });
                 } else if ('toolCall' in part && part.toolCall) {

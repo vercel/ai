@@ -7,9 +7,8 @@ import {
   convertToModelMessages,
   createProviderRegistry,
   streamText,
-  UIMessage,
+  type UIMessage,
 } from 'ai';
-
 export const maxDuration = 60;
 
 const registry = createProviderRegistry({ anthropic, google, openai, xai });
