@@ -6,12 +6,12 @@ on:
       - main
       - release-v*
     paths:
-      - ".changeset/**"
-      - ".github/workflows/release.yml"
+      - '.changeset/**'
+      - '.github/workflows/release.yml'
   workflow_dispatch:
 
 concurrency:
-  group: "release"
+  group: 'release'
   cancel-in-progress: false
 
 permissions:
@@ -62,7 +62,7 @@ jobs:
           publish: pnpm ci:release
           setupGitUser: false
           # When using "github-api", all commits and tags are GPG-signed and attributed to the user or app who owns the GITHUB_TOKEN
-          commitMode: "github-api"
+          commitMode: 'github-api'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN_ELEVATED }}
