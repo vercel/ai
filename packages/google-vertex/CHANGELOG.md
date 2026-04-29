@@ -1,5 +1,17 @@
 # @ai-sdk/google-vertex
 
+## 5.0.0-beta.60
+
+### Patch Changes
+
+- 9f0e36c: trigger release for all packages after provenance setup
+- Updated dependencies [9f0e36c]
+  - @ai-sdk/anthropic@4.0.0-beta.39
+  - @ai-sdk/google@4.0.0-beta.47
+  - @ai-sdk/openai-compatible@3.0.0-beta.33
+  - @ai-sdk/provider@4.0.0-beta.13
+  - @ai-sdk/provider-utils@5.0.0-beta.28
+
 ## 5.0.0-beta.59
 
 ### Patch Changes

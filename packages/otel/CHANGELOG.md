@@ -1,5 +1,14 @@
 # @ai-sdk/otel
 
+## 1.0.0-beta.59
+
+### Patch Changes
+
+- 9f0e36c: trigger release for all packages after provenance setup
+- Updated dependencies [9f0e36c]
+  - ai@7.0.0-beta.113
+  - @ai-sdk/provider@4.0.0-beta.13
+
 ## 1.0.0-beta.58
 
 ### Major Changes

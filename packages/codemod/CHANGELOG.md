@@ -1,5 +1,11 @@
 # @ai-sdk/codemod
 
+## 4.0.0-beta.3
+
+### Patch Changes
+
+- 9f0e36c: trigger release for all packages after provenance setup
+
 ## 4.0.0-beta.2
 
 ### Patch Changes
