@@ -1005,13 +1005,13 @@ describe('AnthropicLanguageModel', () => {
           "additionalProperties": false,
           "properties": {
             "recurringIntervalMinutes": {
-              "description": "Additional constraints: exclusive minimum: 0.",
+              "description": "exclusive minimum: 0.",
               "type": "number",
             },
             "tags": {
-              "description": "Additional constraints: min items: 2; max items: 4.",
+              "description": "min items: 2; max items: 4.",
               "items": {
-                "description": "Additional constraints: min length: 1.",
+                "description": "min length: 1.",
                 "type": "string",
               },
               "type": "array",
@@ -1063,7 +1063,7 @@ describe('AnthropicLanguageModel', () => {
                   "additionalProperties": false,
                   "properties": {
                     "ingredients": {
-                      "description": "Additional constraints: min items: 10; max items: 12.",
+                      "description": "min items: 10; max items: 12.",
                       "items": {
                         "additionalProperties": false,
                         "properties": {

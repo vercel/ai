@@ -24,7 +24,7 @@ describe('sanitizeJsonSchema', () => {
         "additionalProperties": false,
         "properties": {
           "recurringIntervalMinutes": {
-            "description": "Additional constraints: minimum: 1; maximum: 60; exclusive minimum: 0; exclusive maximum: 120.",
+            "description": "minimum: 1; maximum: 60; exclusive minimum: 0; exclusive maximum: 120.",
             "type": "number",
           },
         },
@@ -57,7 +57,7 @@ describe('sanitizeJsonSchema', () => {
         "properties": {
           "slug": {
             "description": "A URL slug
-      Additional constraints: min length: 1; max length: 20; pattern: ^[a-z0-9-]+$; format: regex.",
+      min length: 1; max length: 20; pattern: ^[a-z0-9-]+$; format: regex.",
             "type": "string",
           },
         },
@@ -98,7 +98,7 @@ describe('sanitizeJsonSchema', () => {
       {
         "$defs": {
           "PositiveInteger": {
-            "description": "Additional constraints: minimum: 1.",
+            "description": "minimum: 1.",
             "type": "integer",
           },
         },
@@ -108,15 +108,15 @@ describe('sanitizeJsonSchema', () => {
             "$ref": "#/$defs/PositiveInteger",
           },
           "tags": {
-            "description": "Additional constraints: min items: 2; max items: 4; unique items: true.",
+            "description": "min items: 2; max items: 4; unique items: true.",
             "items": {
               "anyOf": [
                 {
-                  "description": "Additional constraints: min length: 1.",
+                  "description": "min length: 1.",
                   "type": "string",
                 },
                 {
-                  "description": "Additional constraints: maximum: 10.",
+                  "description": "maximum: 10.",
                   "type": "number",
                 },
               ],
@@ -141,11 +141,11 @@ describe('sanitizeJsonSchema', () => {
       {
         "anyOf": [
           {
-            "description": "Additional constraints: min length: 1.",
+            "description": "min length: 1.",
             "type": "string",
           },
           {
-            "description": "Additional constraints: minimum: 0.",
+            "description": "minimum: 0.",
             "type": "number",
           },
         ],
