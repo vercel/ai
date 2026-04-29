@@ -48,10 +48,11 @@ System prompts work with both the `prompt` and the `messages` properties.
 System messages in `prompt` or `messages` are allowed by default with a warning; use the `system` property for system instructions, set `allowSystemInMessages: true` when you need to send existing message histories that contain system messages, or set `allowSystemInMessages: false` to reject them.
 
 <Note type="warning">
-  Opting in with `allowSystemInMessages` can create a prompt injection risk
-  where users can override or set the system prompt by injecting system
-  messages. In most cases, only trusted server-side code should set system
-  instructions via the `system` or `instructions` property.
+  System messages in `prompt` or `messages` can create a prompt injection
+  attack risk, where users can override or set the system prompt by injecting
+  system messages. Ideally, provide system instructions through the `system`
+  option instead. Set `allowSystemInMessages: true` to suppress the warning, or
+  `allowSystemInMessages: false` to throw an error.
 </Note>
 
 ```ts highlight="3-6"
