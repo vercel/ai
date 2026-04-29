@@ -480,50 +480,54 @@ Tool call spans (`execute_tool {toolName}`) are nested under the step span and c
 - `gen_ai.tool.call.arguments`: the input arguments (stringified JSON, when `recordInputs` is enabled)
 - `gen_ai.tool.call.result`: the output result (stringified JSON, when `recordOutputs` is enabled). Only set when the tool call succeeds.
 
-### Legacy AI SDK attributes on OpenTelemetry spans
+### Supplemental AI SDK attributes on OpenTelemetry spans
 
-Some observability platforms or existing dashboards may rely on the legacy AI SDK `ai.*` attributes. You can opt into those attributes while keeping the GenAI span structure by passing `legacyAttributes` to `OpenTelemetry`:
+The GenAI semantic conventions cover the core model, prompt, response, tool call, and usage data. You can opt into additional AI SDK-specific attributes for data that is not represented by GenAI semantics:
 
 ```ts
 import { registerTelemetry } from 'ai';
 import { OpenTelemetry } from '@ai-sdk/otel';
 
-registerTelemetry(new OpenTelemetry({ legacyAttributes: true }));
-```
-
-This does not create additional legacy spans such as `ai.generateText`, `ai.generateText.doGenerate`, or `ai.toolCall`. Instead, it adds the selected legacy attributes to the spans emitted by `OpenTelemetry`, such as `invoke_agent {modelId}`, `step {n}`, `chat {modelId}`, and `execute_tool {toolName}`.
-
-You can also enable only specific legacy attribute groups. When an object is provided, all omitted groups default to `false`:
-
-```ts
 registerTelemetry(
   new OpenTelemetry({
-    legacyAttributes: {
-      runtimeContext: true,
-      usage: true,
-      responses: true,
-      toolCalls: true,
-    },
+    usage: true,
+    providerMetadata: true,
+    runtimeContext: true,
   }),
 );
 ```
 
-The available groups are:
+This does not create additional AI SDK-specific spans such as `ai.generateText`, `ai.generateText.doGenerate`, or `ai.toolCall`. Instead, it adds only the selected supplemental attributes to the spans emitted by `OpenTelemetry`, such as `invoke_agent {modelId}`, `step {n}`, `chat {modelId}`, and `execute_tool {toolName}`.
 
-- `operation`: legacy operation/resource attributes such as `operation.name`, `resource.name`, `ai.operationId`, `ai.model.*`, and legacy GenAI request attributes.
-- `settings`: `ai.settings.*` and legacy request setting attributes.
+All supplemental attributes are disabled by default. Enable only the data you want to collect:
+
+```ts
+registerTelemetry(
+  new OpenTelemetry({
+    usage: true,
+    providerMetadata: true,
+    embedding: true,
+    reranking: true,
+    runtimeContext: true,
+    headers: true,
+    toolChoice: true,
+    schema: true,
+  }),
+);
+```
+
+The available options are:
+
+- `usage`: detailed usage attributes that are not covered by GenAI usage attributes, such as uncached input tokens and output text/reasoning token details.
+- `providerMetadata`: `ai.response.providerMetadata`.
+- `embedding`: embedding inputs and outputs.
+- `reranking`: rerank input documents and ranking output.
 - `runtimeContext`: `ai.settings.context.*`.
-- `requestHeaders`: `ai.request.headers.*`.
-- `prompts`: prompt, message, tool definition, tool choice, document, and value input attributes.
-- `schemas`: object generation schema attributes.
-- `responses`: response text, object, files, tool calls, finish reason, response id/model/timestamp, and provider metadata.
-- `usage`: `ai.usage.*`.
-- `toolCalls`: `ai.toolCall.*`.
-- `streaming`: `ai.stream.*`.
-- `embeddings`: embedding input/output attributes.
-- `reranking`: ranking input/output attributes.
+- `headers`: `ai.request.headers.*`.
+- `toolChoice`: `ai.prompt.toolChoice`.
+- `schema`: object generation schema and output mode attributes.
 
-The `recordInputs` and `recordOutputs` telemetry options are still respected for legacy attributes.
+The `recordInputs` and `recordOutputs` telemetry options are still respected for supplemental input and output attributes.
 
 ### Legacy AI SDK Spans (`LegacyOpenTelemetry`)
 

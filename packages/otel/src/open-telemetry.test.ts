@@ -975,50 +975,93 @@ describe('OpenTelemetry', () => {
     });
   });
 
-  describe('legacyAttributes', () => {
-    it('emits legacy attributes on existing spans when enabled', () => {
-      integration = new OpenTelemetry({ tracer, legacyAttributes: true });
+  describe('supplemental attributes', () => {
+    it('emits supplemental AI SDK attributes on existing spans when enabled', () => {
+      integration = new OpenTelemetry({
+        tracer,
+        usage: true,
+        providerMetadata: true,
+        embedding: true,
+        reranking: true,
+        runtimeContext: true,
+        headers: true,
+        toolChoice: true,
+        schema: true,
+      });
 
-      integration.onStart!(makeOnStartEvent());
-      integration.onStepStart!(makeStepStartEvent());
+      const detailedUsage = {
+        inputTokens: 10,
+        outputTokens: 20,
+        totalTokens: 30,
+        reasoningTokens: 5,
+        cachedInputTokens: 2,
+        inputTokenDetails: {
+          noCacheTokens: 7,
+          cacheReadTokens: 2,
+          cacheWriteTokens: 1,
+        },
+        outputTokenDetails: {
+          textTokens: 15,
+          reasoningTokens: 5,
+        },
+      };
+
+      integration.onStart!(
+        makeOnStartEvent({
+          headers: { 'x-request-id': 'request-123' },
+          runtimeContext: { userId: 'user-123' },
+        }),
+      );
+      integration.onStepStart!(
+        makeStepStartEvent({
+          stepToolChoice: { type: 'auto' },
+        }),
+      );
       integration.onLanguageModelCallStart!(makeLanguageModelCallStartEvent());
-      integration.onLanguageModelCallEnd!(makeLanguageModelCallEndEvent());
+      integration.onLanguageModelCallEnd!(
+        makeLanguageModelCallEndEvent({ usage: detailedUsage }),
+      );
       integration.onToolExecutionStart!(makeToolCallStartEvent());
       integration.onToolExecutionEnd!(makeToolCallFinishEvent(true));
-      integration.onStepFinish!(makeStepFinishEvent());
-      integration.onFinish!(makeFinishEvent());
+      integration.onStepFinish!(
+        makeStepFinishEvent({
+          usage: detailedUsage,
+          providerMetadata: { openai: { response: 'metadata' } },
+        }),
+      );
+      integration.onFinish!(
+        makeFinishEvent({
+          totalUsage: detailedUsage,
+          providerMetadata: { openai: { response: 'metadata' } },
+        }),
+      );
 
       expect(serializeTrace(tracer)).toMatchInlineSnapshot(`
         [
           {
             "ended": true,
             "initAttributes": {
-              "ai.model.id": "gpt-4",
-              "ai.model.provider": "openai.chat",
-              "ai.operationId": "ai.generateText",
-              "ai.prompt": "{"messages":[{"role":"user","content":"Hello"}]}",
-              "ai.settings.maxOutputTokens": 100,
-              "ai.settings.maxRetries": 2,
-              "ai.settings.temperature": 0.7,
+              "ai.request.headers.x-request-id": "request-123",
+              "ai.settings.context.userId": "user-123",
               "gen_ai.input.messages": "[{"role":"user","parts":[{"type":"text","content":"Hello"}]}]",
               "gen_ai.operation.name": "invoke_agent",
               "gen_ai.provider.name": "openai",
               "gen_ai.request.max_tokens": 100,
               "gen_ai.request.model": "gpt-4",
               "gen_ai.request.temperature": 0.7,
-              "operation.name": "ai.generateText",
             },
             "name": "invoke_agent gpt-4",
             "runtimeAttributes": {
-              "ai.response.finishReason": "stop",
-              "ai.response.text": "Hello world",
-              "ai.usage.inputTokens": 10,
-              "ai.usage.outputTokens": 20,
-              "ai.usage.totalTokens": 30,
+              "ai.response.providerMetadata": "{"openai":{"response":"metadata"}}",
+              "ai.usage.inputTokenDetails.noCacheTokens": 7,
+              "ai.usage.outputTokenDetails.reasoningTokens": 5,
+              "ai.usage.outputTokenDetails.textTokens": 15,
               "gen_ai.output.messages": "[{"role":"assistant","parts":[{"type":"text","content":"Hello world"}],"finish_reason":"stop"}]",
               "gen_ai.response.finish_reasons": [
                 "stop",
               ],
+              "gen_ai.usage.cache_creation.input_tokens": 1,
+              "gen_ai.usage.cache_read.input_tokens": 2,
               "gen_ai.usage.input_tokens": 10,
               "gen_ai.usage.output_tokens": 20,
             },
@@ -1026,35 +1069,22 @@ describe('OpenTelemetry', () => {
           {
             "ended": true,
             "initAttributes": {
-              "ai.model.id": "gpt-4",
-              "ai.model.provider": "openai.chat",
-              "ai.operationId": "ai.generateText.doGenerate",
-              "ai.settings.maxOutputTokens": 100,
-              "ai.settings.maxRetries": 2,
-              "ai.settings.temperature": 0.7,
+              "ai.prompt.toolChoice": "{"type":"auto"}",
+              "ai.request.headers.x-request-id": "request-123",
+              "ai.settings.context.userId": "user-123",
               "gen_ai.operation.name": "agent_step",
-              "gen_ai.request.max_tokens": 100,
-              "gen_ai.request.model": "gpt-4",
-              "gen_ai.request.temperature": 0.7,
-              "gen_ai.system": "openai.chat",
-              "operation.name": "ai.generateText.doGenerate",
             },
             "name": "step 1",
             "runtimeAttributes": {
-              "ai.response.finishReason": "stop",
-              "ai.response.id": "resp-1",
-              "ai.response.model": "gpt-4-0613",
-              "ai.response.text": "Hello world",
-              "ai.response.timestamp": "2025-01-01T00:00:00.000Z",
-              "ai.usage.inputTokens": 10,
-              "ai.usage.outputTokens": 20,
-              "ai.usage.totalTokens": 30,
+              "ai.response.providerMetadata": "{"openai":{"response":"metadata"}}",
+              "ai.usage.inputTokenDetails.noCacheTokens": 7,
+              "ai.usage.outputTokenDetails.reasoningTokens": 5,
+              "ai.usage.outputTokenDetails.textTokens": 15,
             },
           },
           {
             "ended": true,
             "initAttributes": {
-              "ai.prompt.messages": "[]",
               "gen_ai.operation.name": "chat",
               "gen_ai.provider.name": "openai",
               "gen_ai.request.max_tokens": 100,
@@ -1063,17 +1093,16 @@ describe('OpenTelemetry', () => {
             },
             "name": "chat gpt-4",
             "runtimeAttributes": {
-              "ai.response.finishReason": "stop",
-              "ai.response.id": "test-response-id",
-              "ai.response.text": "Hello world",
-              "ai.usage.inputTokens": 10,
-              "ai.usage.outputTokens": 20,
-              "ai.usage.totalTokens": 30,
+              "ai.usage.inputTokenDetails.noCacheTokens": 7,
+              "ai.usage.outputTokenDetails.reasoningTokens": 5,
+              "ai.usage.outputTokenDetails.textTokens": 15,
               "gen_ai.output.messages": "[{"role":"assistant","parts":[{"type":"text","content":"Hello world"}],"finish_reason":"stop"}]",
               "gen_ai.response.finish_reasons": [
                 "stop",
               ],
               "gen_ai.response.id": "test-response-id",
+              "gen_ai.usage.cache_creation.input_tokens": 1,
+              "gen_ai.usage.cache_read.input_tokens": 2,
               "gen_ai.usage.input_tokens": 10,
               "gen_ai.usage.output_tokens": 20,
             },
@@ -1081,20 +1110,14 @@ describe('OpenTelemetry', () => {
           {
             "ended": true,
             "initAttributes": {
-              "ai.operationId": "ai.toolCall",
-              "ai.toolCall.args": "{"query":"test"}",
-              "ai.toolCall.id": "tool-call-1",
-              "ai.toolCall.name": "myTool",
               "gen_ai.operation.name": "execute_tool",
               "gen_ai.tool.call.arguments": "{"query":"test"}",
               "gen_ai.tool.call.id": "tool-call-1",
               "gen_ai.tool.name": "myTool",
               "gen_ai.tool.type": "function",
-              "operation.name": "ai.toolCall",
             },
             "name": "execute_tool myTool",
             "runtimeAttributes": {
-              "ai.toolCall.result": "{"result":"ok"}",
               "gen_ai.tool.call.result": "{"result":"ok"}",
             },
           },
@@ -1102,15 +1125,12 @@ describe('OpenTelemetry', () => {
       `);
     });
 
-    it('only emits explicitly enabled legacy attribute groups', () => {
+    it('only emits explicitly enabled supplemental attributes', () => {
       integration = new OpenTelemetry({
         tracer,
-        legacyAttributes: {
-          runtimeContext: true,
-          responses: true,
-          usage: true,
-          toolCalls: true,
-        },
+        runtimeContext: true,
+        providerMetadata: true,
+        usage: true,
       });
 
       integration.onStart!(
@@ -1148,11 +1168,6 @@ describe('OpenTelemetry', () => {
             },
             "name": "invoke_agent gpt-4",
             "runtimeAttributes": {
-              "ai.response.finishReason": "stop",
-              "ai.response.text": "Hello world",
-              "ai.usage.inputTokens": 10,
-              "ai.usage.outputTokens": 20,
-              "ai.usage.totalTokens": 30,
               "gen_ai.output.messages": "[{"role":"assistant","parts":[{"type":"text","content":"Hello world"}],"finish_reason":"stop"}]",
               "gen_ai.response.finish_reasons": [
                 "stop",
@@ -1168,16 +1183,7 @@ describe('OpenTelemetry', () => {
               "gen_ai.operation.name": "agent_step",
             },
             "name": "step 1",
-            "runtimeAttributes": {
-              "ai.response.finishReason": "stop",
-              "ai.response.id": "resp-1",
-              "ai.response.model": "gpt-4-0613",
-              "ai.response.text": "Hello world",
-              "ai.response.timestamp": "2025-01-01T00:00:00.000Z",
-              "ai.usage.inputTokens": 10,
-              "ai.usage.outputTokens": 20,
-              "ai.usage.totalTokens": 30,
-            },
+            "runtimeAttributes": {},
           },
           {
             "ended": true,
@@ -1190,12 +1196,6 @@ describe('OpenTelemetry', () => {
             },
             "name": "chat gpt-4",
             "runtimeAttributes": {
-              "ai.response.finishReason": "stop",
-              "ai.response.id": "test-response-id",
-              "ai.response.text": "Hello world",
-              "ai.usage.inputTokens": 10,
-              "ai.usage.outputTokens": 20,
-              "ai.usage.totalTokens": 30,
               "gen_ai.output.messages": "[{"role":"assistant","parts":[{"type":"text","content":"Hello world"}],"finish_reason":"stop"}]",
               "gen_ai.response.finish_reasons": [
                 "stop",
@@ -1208,9 +1208,6 @@ describe('OpenTelemetry', () => {
           {
             "ended": true,
             "initAttributes": {
-              "ai.toolCall.args": "{"query":"test"}",
-              "ai.toolCall.id": "tool-call-1",
-              "ai.toolCall.name": "myTool",
               "gen_ai.operation.name": "execute_tool",
               "gen_ai.tool.call.arguments": "{"query":"test"}",
               "gen_ai.tool.call.id": "tool-call-1",
@@ -1219,7 +1216,6 @@ describe('OpenTelemetry', () => {
             },
             "name": "execute_tool myTool",
             "runtimeAttributes": {
-              "ai.toolCall.result": "{"result":"ok"}",
               "gen_ai.tool.call.result": "{"result":"ok"}",
             },
           },
@@ -1227,12 +1223,10 @@ describe('OpenTelemetry', () => {
       `);
     });
 
-    it('does not emit disabled legacy tool attributes', () => {
+    it('does not emit disabled supplemental attributes', () => {
       integration = new OpenTelemetry({
         tracer,
-        legacyAttributes: {
-          usage: true,
-        },
+        usage: true,
       });
 
       integration.onStart!(makeOnStartEvent());
@@ -1256,9 +1250,6 @@ describe('OpenTelemetry', () => {
             },
             "name": "invoke_agent gpt-4",
             "runtimeAttributes": {
-              "ai.usage.inputTokens": 10,
-              "ai.usage.outputTokens": 20,
-              "ai.usage.totalTokens": 30,
               "gen_ai.output.messages": "[{"role":"assistant","parts":[{"type":"text","content":"Hello world"}],"finish_reason":"stop"}]",
               "gen_ai.response.finish_reasons": [
                 "stop",
@@ -1273,11 +1264,7 @@ describe('OpenTelemetry', () => {
               "gen_ai.operation.name": "agent_step",
             },
             "name": "step 1",
-            "runtimeAttributes": {
-              "ai.usage.inputTokens": 10,
-              "ai.usage.outputTokens": 20,
-              "ai.usage.totalTokens": 30,
-            },
+            "runtimeAttributes": {},
           },
           {
             "ended": true,
