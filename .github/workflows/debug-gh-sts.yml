@@ -39,10 +39,10 @@ jobs:
             -d '{
               "token": "${{ steps.oidc.outputs.token }}",
               "permissions": {
-                "contents": "read",
-                "pull_requests": "write"
+                "meta": "read",
+                "pull_requests": "read"
               },
-              "repositories": ["vercel/my-service"]
+              "repositories": ["vercel/ai"]
             }')
           echo "token=$(echo "$RESPONSE" | jq -r '.token')" >> "$GITHUB_OUTPUT"
 
@@ -51,4 +51,4 @@ jobs:
         env:
           GH_TOKEN: ${{ steps.gh-token.outputs.token }}
         run: |
-          gh pr list --repo vercel/my-service
+          gh pr list --repo vercel/ai
