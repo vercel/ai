@@ -13,7 +13,6 @@ export * from './delay';
 export { DelayedPromise } from './delayed-promise';
 export {
   detectMediaType,
-  detectMediaTypeForTopLevelType,
   getTopLevelMediaType,
   isFullMediaType,
 } from './detect-media-type';

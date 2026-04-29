@@ -11,7 +11,7 @@ import {
   combineHeaders,
   isCustomReasoning,
   convertBase64ToUint8Array,
-  detectMediaTypeForTopLevelType,
+  detectMediaType,
   generateId,
   getTopLevelMediaType,
   isFullMediaType,
@@ -180,7 +180,7 @@ export class ProdiaLanguageModel implements LanguageModelV4 {
             if (isFullMediaType(part.mediaType)) {
               imageMediaType = part.mediaType;
             } else if (imageBytes !== undefined) {
-              const detected = detectMediaTypeForTopLevelType({
+              const detected = detectMediaType({
                 data: imageBytes,
                 topLevelType: getTopLevelMediaType(part.mediaType),
               });

@@ -3,7 +3,7 @@ import {
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
-  detectMediaTypeForTopLevelType,
+  detectMediaType,
   getTopLevelMediaType,
   isFullMediaType,
 } from './detect-media-type';
@@ -30,7 +30,7 @@ export function resolveFullMediaType({
   }
 
   if (part.data.type === 'data') {
-    const detected = detectMediaTypeForTopLevelType({
+    const detected = detectMediaType({
       data: part.data.data,
       topLevelType: getTopLevelMediaType(part.mediaType),
     });

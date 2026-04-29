@@ -237,18 +237,34 @@ const topLevelSignatureTables = {
 type TopLevelMediaType = keyof typeof topLevelSignatureTables;
 
 /**
- * Detect the IANA media type of a file using the signature table that
- * corresponds to the given top-level media type segment.
+ * Detect the IANA media type of a file from its raw bytes or base64 string.
  *
- * For unsupported top-level segments (e.g. `"text"`), returns `undefined`.
+ * - When `topLevelType` is omitted, every known signature is considered
+ *   (image, audio, video, and application). Returns `undefined` when the
+ *   bytes do not match any known signature.
+ * - When `topLevelType` is provided, only signatures for that top-level
+ *   segment are considered. Returns `undefined` for unsupported segments
+ *   (e.g. `"text"`) or when no signature matches.
  */
-export function detectMediaTypeForTopLevelType({
+export function detectMediaType({
   data,
   topLevelType,
 }: {
   data: Uint8Array | string;
-  topLevelType: string;
+  topLevelType?: string;
 }): string | undefined {
+  if (topLevelType === undefined) {
+    return detectMediaTypeBySignatures({
+      data,
+      signatures: [
+        ...imageMediaTypeSignatures,
+        ...documentMediaTypeSignatures,
+        ...audioMediaTypeSignatures,
+        ...videoMediaTypeSignatures,
+      ],
+    });
+  }
+
   const signatures = topLevelSignatureTables[topLevelType as TopLevelMediaType];
 
   if (signatures === undefined) {
@@ -256,27 +272,6 @@ export function detectMediaTypeForTopLevelType({
   }
 
   return detectMediaTypeBySignatures({ data, signatures });
-}
-
-/**
- * Detect the IANA media type of a file across every known top-level segment
- * (image, audio, video, and application). Returns `undefined` when the bytes
- * do not match any known signature.
- */
-export function detectMediaType({
-  data,
-}: {
-  data: Uint8Array | string;
-}): string | undefined {
-  return detectMediaTypeBySignatures({
-    data,
-    signatures: [
-      ...imageMediaTypeSignatures,
-      ...documentMediaTypeSignatures,
-      ...audioMediaTypeSignatures,
-      ...videoMediaTypeSignatures,
-    ],
-  });
 }
 
 /**

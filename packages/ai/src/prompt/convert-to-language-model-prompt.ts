@@ -8,7 +8,7 @@ import {
 import {
   asArray,
   CustomPart,
-  detectMediaTypeForTopLevelType,
+  detectMediaType,
   FilePart,
   ImagePart,
   isFullMediaType,
@@ -529,7 +529,7 @@ function convertPartToLanguageModelPart(
     data.type === 'data' &&
     (data.data instanceof Uint8Array || typeof data.data === 'string')
   ) {
-    const imageMediaType = detectMediaTypeForTopLevelType({
+    const imageMediaType = detectMediaType({
       data: data.data,
       topLevelType: 'image',
     });

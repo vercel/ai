@@ -7,7 +7,7 @@ import type {
 import {
   convertBase64ToUint8Array,
   type DataContent,
-  detectMediaTypeForTopLevelType,
+  detectMediaType,
   type ProviderOptions,
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
@@ -218,7 +218,7 @@ export async function experimental_generateVideo({
           const mediaType =
             (isUsableMediaType(videoData.mediaType) && videoData.mediaType) ||
             (isUsableMediaType(downloadedMediaType) && downloadedMediaType) ||
-            detectMediaTypeForTopLevelType({
+            detectMediaType({
               data,
               topLevelType: 'video',
             }) ||
@@ -246,7 +246,7 @@ export async function experimental_generateVideo({
         case 'binary': {
           const mediaType =
             videoData.mediaType ||
-            detectMediaTypeForTopLevelType({
+            detectMediaType({
               data: videoData.data,
               topLevelType: 'video',
             }) ||
@@ -358,7 +358,7 @@ function normalizePrompt(promptArg: GenerateVideoPrompt): {
       } else {
         const bytes = convertBase64ToUint8Array(dataContent);
         const mediaType =
-          detectMediaTypeForTopLevelType({
+          detectMediaType({
             data: bytes,
             topLevelType: 'image',
           }) ?? 'image/png';
@@ -371,7 +371,7 @@ function normalizePrompt(promptArg: GenerateVideoPrompt): {
       }
     } else if (dataContent instanceof Uint8Array) {
       const mediaType =
-        detectMediaTypeForTopLevelType({
+        detectMediaType({
           data: dataContent,
           topLevelType: 'image',
         }) ?? 'image/png';

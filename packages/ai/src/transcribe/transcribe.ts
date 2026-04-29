@@ -1,6 +1,6 @@
 import { JSONObject } from '@ai-sdk/provider';
 import {
-  detectMediaTypeForTopLevelType,
+  detectMediaType,
   ProviderOptions,
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
@@ -122,7 +122,7 @@ export async function transcribe({
       headers: headersWithUserAgent,
       providerOptions,
       mediaType:
-        detectMediaTypeForTopLevelType({
+        detectMediaType({
           data: audioData,
           topLevelType: 'audio',
         }) ?? 'audio/wav',

@@ -7,7 +7,7 @@ import {
 import {
   convertBase64ToUint8Array,
   DataContent,
-  detectMediaTypeForTopLevelType,
+  detectMediaType,
   ProviderOptions,
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
@@ -203,7 +203,7 @@ export async function generateImage({
           new DefaultGeneratedFile({
             data: image,
             mediaType:
-              detectMediaTypeForTopLevelType({
+              detectMediaType({
                 data: image,
                 topLevelType: 'image',
               }) ?? 'image/png',
@@ -337,7 +337,7 @@ function toImageModelV4File(dataContent: DataContent): ImageModelV4File {
         data: uint8Data,
         mediaType:
           dataUrlMediaType ||
-          detectMediaTypeForTopLevelType({
+          detectMediaType({
             data: uint8Data,
             topLevelType: 'image',
           }) ||
@@ -351,7 +351,7 @@ function toImageModelV4File(dataContent: DataContent): ImageModelV4File {
     type: 'file',
     data: uint8Data,
     mediaType:
-      detectMediaTypeForTopLevelType({
+      detectMediaType({
         data: uint8Data,
         topLevelType: 'image',
       }) || 'image/png',

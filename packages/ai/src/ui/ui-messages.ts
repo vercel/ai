@@ -186,8 +186,8 @@ export type FileUIPart = {
    * `*`-subtype wildcards (e.g. `image/*`) are normalized as equivalent to the
    * top-level segment alone (e.g. `image`). Providers can use the helpers in
    * `@ai-sdk/provider-utils` (`isFullMediaType`, `getTopLevelMediaType`,
-   * `detectMediaTypeForTopLevelType`) to resolve the field according to their
-   * API requirements.
+   * `detectMediaType`) to resolve the field according to their API
+   * requirements.
    *
    * @see https://www.iana.org/assignments/media-types/media-types.xhtml
    */
