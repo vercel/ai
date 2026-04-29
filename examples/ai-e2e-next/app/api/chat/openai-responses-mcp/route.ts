@@ -1,7 +1,10 @@
 import { openai } from '@ai-sdk/openai';
-import type { UIMessage, InferUITools } from 'ai';
-import { convertToModelMessages, streamText } from 'ai';
-
+import {
+  convertToModelMessages,
+  streamText,
+  type UIMessage,
+  type InferUITools,
+} from 'ai';
 export const maxDuration = 30;
 
 const tools = {

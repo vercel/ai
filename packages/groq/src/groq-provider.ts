@@ -1,14 +1,14 @@
-import type {
-  LanguageModelV4,
-  ProviderV4,
-  TranscriptionModelV4,
+import {
+  NoSuchModelError,
+  type LanguageModelV4,
+  type ProviderV4,
+  type TranscriptionModelV4,
 } from '@ai-sdk/provider';
-import { NoSuchModelError } from '@ai-sdk/provider';
-import type { FetchFunction } from '@ai-sdk/provider-utils';
 import {
   loadApiKey,
   withoutTrailingSlash,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { GroqChatLanguageModel } from './groq-chat-language-model';
 import type { GroqChatModelId } from './groq-chat-options';

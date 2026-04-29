@@ -1,26 +1,20 @@
-import type {
-  JSONObject,
-  LanguageModelV4,
-  LanguageModelV4CallOptions,
-  LanguageModelV4Content,
-  LanguageModelV4FinishReason,
-  LanguageModelV4FunctionTool,
-  LanguageModelV4GenerateResult,
-  LanguageModelV4Prompt,
-  LanguageModelV4Source,
-  LanguageModelV4StreamPart,
-  LanguageModelV4StreamResult,
-  LanguageModelV4ToolCall,
-  SharedV4ProviderMetadata,
-  SharedV4Warning,
+import {
+  APICallError,
+  type JSONObject,
+  type LanguageModelV4,
+  type LanguageModelV4CallOptions,
+  type LanguageModelV4Content,
+  type LanguageModelV4FinishReason,
+  type LanguageModelV4FunctionTool,
+  type LanguageModelV4GenerateResult,
+  type LanguageModelV4Prompt,
+  type LanguageModelV4Source,
+  type LanguageModelV4StreamPart,
+  type LanguageModelV4StreamResult,
+  type LanguageModelV4ToolCall,
+  type SharedV4ProviderMetadata,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
-import { APICallError } from '@ai-sdk/provider';
-import type {
-  FetchFunction,
-  InferSchema,
-  ParseResult,
-  Resolvable,
-} from '@ai-sdk/provider-utils';
 import {
   combineHeaders,
   createEventSourceResponseHandler,
@@ -37,25 +31,32 @@ import {
   serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
+  type FetchFunction,
+  type InferSchema,
+  type ParseResult,
+  type Resolvable,
 } from '@ai-sdk/provider-utils';
 import { anthropicFailedResponseHandler } from './anthropic-error';
 import type { AnthropicMessageMetadata } from './anthropic-message-metadata';
-import type {
-  AnthropicContainer,
-  AnthropicReasoningMetadata,
-  AnthropicResponseContextManagement,
-  AnthropicTool,
-  Citation,
+import {
+  anthropicChunkSchema,
+  anthropicResponseSchema,
+  type AnthropicContainer,
+  type AnthropicReasoningMetadata,
+  type AnthropicResponseContextManagement,
+  type AnthropicTool,
+  type Citation,
 } from './anthropic-api';
-import { anthropicChunkSchema, anthropicResponseSchema } from './anthropic-api';
-import type {
-  AnthropicModelId,
-  AnthropicLanguageModelOptions,
+import {
+  anthropicLanguageModelOptions,
+  type AnthropicModelId,
+  type AnthropicLanguageModelOptions,
 } from './anthropic-options';
-import { anthropicLanguageModelOptions } from './anthropic-options';
 import { prepareTools } from './anthropic-prepare-tools';
-import type { AnthropicUsage } from './convert-anthropic-usage';
-import { convertAnthropicUsage } from './convert-anthropic-usage';
+import {
+  convertAnthropicUsage,
+  type AnthropicUsage,
+} from './convert-anthropic-usage';
 import { convertToAnthropicPrompt } from './convert-to-anthropic-prompt';
 import { CacheControlValidator } from './get-cache-control';
 import { mapAnthropicStopReason } from './map-anthropic-stop-reason';

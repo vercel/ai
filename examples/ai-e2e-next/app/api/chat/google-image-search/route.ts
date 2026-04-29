@@ -1,8 +1,5 @@
-import { google } from '@ai-sdk/google';
-import type { GoogleLanguageModelOptions } from '@ai-sdk/google';
-import type { UIMessage } from 'ai';
-import { convertToModelMessages, streamText } from 'ai';
-
+import { google, type GoogleLanguageModelOptions } from '@ai-sdk/google';
+import { convertToModelMessages, streamText, type UIMessage } from 'ai';
 export const maxDuration = 30;
 
 export async function POST(req: Request) {

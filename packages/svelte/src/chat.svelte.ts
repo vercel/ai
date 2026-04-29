@@ -1,12 +1,11 @@
-import { AbstractChat } from 'ai';
-import type {
-  ChatInit,
-  ChatState,
-  ChatStatus,
-  CreateUIMessage,
-  UIMessage,
+import {
+  AbstractChat,
+  type ChatInit,
+  type ChatState,
+  type ChatStatus,
+  type CreateUIMessage,
+  type UIMessage,
 } from 'ai';
-
 export type { CreateUIMessage, UIMessage };
 
 export class Chat<

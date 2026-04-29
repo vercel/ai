@@ -8,7 +8,6 @@ import {
   toCamelCase,
   warnIfDeprecatedProviderOptionsKey,
 } from '../utils/to-camel-case';
-import type { FetchFunction } from '@ai-sdk/provider-utils';
 import {
   combineHeaders,
   convertBase64ToUint8Array,
@@ -21,10 +20,13 @@ import {
   serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import type { ProviderErrorStructure } from '../openai-compatible-error';
-import { defaultOpenAICompatibleErrorStructure } from '../openai-compatible-error';
+import {
+  defaultOpenAICompatibleErrorStructure,
+  type ProviderErrorStructure,
+} from '../openai-compatible-error';
 import type { OpenAICompatibleImageModelId } from './openai-compatible-image-settings';
 
 export type OpenAICompatibleImageModelConfig = {

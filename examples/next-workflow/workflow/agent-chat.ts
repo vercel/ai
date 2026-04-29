@@ -1,8 +1,10 @@
 import { anthropic } from '@ai-sdk/anthropic';
-import { WorkflowAgent } from '@ai-sdk/workflow';
-import type { ModelCallStreamPart } from '@ai-sdk/workflow';
-import { convertToModelMessages } from 'ai';
-import type { UIMessage, ToolCallRepairFunction } from 'ai';
+import { WorkflowAgent, type ModelCallStreamPart } from '@ai-sdk/workflow';
+import {
+  convertToModelMessages,
+  type UIMessage,
+  type ToolCallRepairFunction,
+} from 'ai';
 import { getWritable } from 'workflow';
 import { z } from 'zod';
 

@@ -1,7 +1,7 @@
-import { AISDKError } from '@ai-sdk/provider';
-import type {
-  Experimental_VideoModelV4,
-  SharedV4Warning,
+import {
+  AISDKError,
+  type Experimental_VideoModelV4,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -14,8 +14,9 @@ import {
   postJsonToApi,
   resolve,
   zodSchema,
+  type FetchFunction,
+  type Resolvable,
 } from '@ai-sdk/provider-utils';
-import type { FetchFunction, Resolvable } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { googleFailedResponseHandler } from './google-error';
 import type { GoogleVideoModelId } from './google-video-settings';

@@ -1,8 +1,8 @@
-import type {
-  AzureResponsesReasoningProviderMetadata,
-  OpenAILanguageModelResponsesOptions,
+import {
+  azure,
+  type AzureResponsesReasoningProviderMetadata,
+  type OpenAILanguageModelResponsesOptions,
 } from '@ai-sdk/azure';
-import { azure } from '@ai-sdk/azure';
 import { generateText } from 'ai';
 import { run } from '../../lib/run';
 

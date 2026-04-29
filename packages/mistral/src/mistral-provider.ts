@@ -1,14 +1,14 @@
-import type {
-  EmbeddingModelV4,
-  LanguageModelV4,
-  ProviderV4,
+import {
+  NoSuchModelError,
+  type EmbeddingModelV4,
+  type LanguageModelV4,
+  type ProviderV4,
 } from '@ai-sdk/provider';
-import { NoSuchModelError } from '@ai-sdk/provider';
-import type { FetchFunction } from '@ai-sdk/provider-utils';
 import {
   loadApiKey,
   withoutTrailingSlash,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { MistralChatLanguageModel } from './mistral-chat-language-model';
 import type { MistralChatModelId } from './mistral-chat-options';

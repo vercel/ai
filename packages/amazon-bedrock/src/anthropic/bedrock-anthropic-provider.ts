@@ -1,21 +1,25 @@
-import type { LanguageModelV4, ProviderV4 } from '@ai-sdk/provider';
-import { NoSuchModelError } from '@ai-sdk/provider';
-import type { FetchFunction, Resolvable } from '@ai-sdk/provider-utils';
+import {
+  NoSuchModelError,
+  type LanguageModelV4,
+  type ProviderV4,
+} from '@ai-sdk/provider';
 import {
   loadOptionalSetting,
   loadSetting,
   resolve,
   withoutTrailingSlash,
   withUserAgentSuffix,
+  type FetchFunction,
+  type Resolvable,
 } from '@ai-sdk/provider-utils';
 import {
   anthropicTools,
   AnthropicLanguageModel,
 } from '@ai-sdk/anthropic/internal';
-import type { BedrockCredentials } from '../bedrock-sigv4-fetch';
 import {
   createApiKeyFetchFunction,
   createSigV4FetchFunction,
+  type BedrockCredentials,
 } from '../bedrock-sigv4-fetch';
 import { createBedrockAnthropicFetch } from './bedrock-anthropic-fetch';
 import type { BedrockAnthropicModelId } from './bedrock-anthropic-options';

@@ -1,8 +1,10 @@
 import { anthropicProgrammaticToolCallingAgent } from '@/agent/anthropic/programmatic-tool-calling-agent';
 import { AnthropicMessageMetadata } from '@ai-sdk/anthropic';
-import type { UIMessage } from 'ai';
-import { createAgentUIStreamResponse, validateUIMessages } from 'ai';
-
+import {
+  createAgentUIStreamResponse,
+  validateUIMessages,
+  type UIMessage,
+} from 'ai';
 export async function POST(request: Request) {
   const { messages } = await request.json();
 

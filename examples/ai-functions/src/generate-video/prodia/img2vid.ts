@@ -1,5 +1,4 @@
-import { prodia } from '@ai-sdk/prodia';
-import type { ProdiaVideoModelOptions } from '@ai-sdk/prodia';
+import { prodia, type ProdiaVideoModelOptions } from '@ai-sdk/prodia';
 import { experimental_generateVideo } from 'ai';
 import fs from 'node:fs';
 import { presentVideos } from '../../lib/present-video';

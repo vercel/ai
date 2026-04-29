@@ -1,5 +1,4 @@
-import type { ModelMessage } from '@ai-sdk/provider-utils';
-import { tool } from '@ai-sdk/provider-utils';
+import { tool, type ModelMessage } from '@ai-sdk/provider-utils';
 import {
   convertArrayToReadableStream,
   convertReadableStreamToArray,

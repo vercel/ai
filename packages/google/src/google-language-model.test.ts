@@ -1,5 +1,7 @@
-import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
-import { LanguageModelV4ProviderTool } from '@ai-sdk/provider';
+import {
+  LanguageModelV4ProviderTool,
+  type LanguageModelV4Prompt,
+} from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import {

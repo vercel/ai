@@ -1,6 +1,7 @@
-import type { GeneratedFile } from '../generate-text/generated-file';
-import { DefaultGeneratedFile } from '../generate-text/generated-file';
-
+import {
+  DefaultGeneratedFile,
+  type GeneratedFile,
+} from '../generate-text/generated-file';
 /**
  * A generated audio file.
  */

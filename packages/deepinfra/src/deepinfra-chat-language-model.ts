@@ -4,13 +4,12 @@ import type {
   LanguageModelV4StreamResult,
 } from '@ai-sdk/provider';
 import { OpenAICompatibleChatLanguageModel } from '@ai-sdk/openai-compatible';
-import type { FetchFunction } from '@ai-sdk/provider-utils';
 import {
   serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
-
 type DeepInfraChatConfig = {
   provider: string;
   url: (options: { path: string; modelId?: string }) => string;

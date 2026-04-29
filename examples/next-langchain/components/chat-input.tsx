@@ -1,7 +1,6 @@
 'use client';
 
-import type { FormEvent, KeyboardEvent } from 'react';
-import { useState } from 'react';
+import { useState, type FormEvent, type KeyboardEvent } from 'react';
 import { Send } from 'lucide-react';
 
 interface ChatInputProps {

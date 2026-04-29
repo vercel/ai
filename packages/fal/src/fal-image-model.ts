@@ -1,5 +1,4 @@
 import type { ImageModelV4, SharedV4Warning } from '@ai-sdk/provider';
-import type { Resolvable, FetchFunction } from '@ai-sdk/provider-utils';
 import {
   combineHeaders,
   convertImageModelFileToDataUri,
@@ -14,6 +13,8 @@ import {
   serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
+  type Resolvable,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import type { FalImageModelId, FalImageSize } from './fal-image-settings';

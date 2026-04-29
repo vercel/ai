@@ -1,5 +1,4 @@
-import { cohere } from '@ai-sdk/cohere';
-import type { CohereRerankingModelOptions } from '@ai-sdk/cohere';
+import { cohere, type CohereRerankingModelOptions } from '@ai-sdk/cohere';
 import { rerank } from 'ai';
 import { run } from '../lib/run';
 import { print } from '../lib/print';

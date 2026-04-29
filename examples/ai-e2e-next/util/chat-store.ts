@@ -1,5 +1,4 @@
-import type { UIMessage } from 'ai';
-import { generateId } from 'ai';
+import { generateId, type UIMessage } from 'ai';
 import { existsSync, mkdirSync } from 'fs';
 import { readFile, writeFile } from 'fs/promises';
 import path from 'path';

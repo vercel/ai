@@ -1,5 +1,7 @@
-import type { BlackForestLabsImageModelOptions } from '@ai-sdk/black-forest-labs';
-import { blackForestLabs } from '@ai-sdk/black-forest-labs';
+import {
+  blackForestLabs,
+  type BlackForestLabsImageModelOptions,
+} from '@ai-sdk/black-forest-labs';
 import { generateImage } from 'ai';
 import { presentImages } from '../../lib/present-image';
 import { run } from '../../lib/run';

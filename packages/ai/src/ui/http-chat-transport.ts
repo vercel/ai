@@ -1,5 +1,9 @@
-import type { FetchFunction, Resolvable } from '@ai-sdk/provider-utils';
-import { normalizeHeaders, resolve } from '@ai-sdk/provider-utils';
+import {
+  normalizeHeaders,
+  resolve,
+  type FetchFunction,
+  type Resolvable,
+} from '@ai-sdk/provider-utils';
 import type { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
 import type { ChatTransport } from './chat-transport';
 import type { UIMessage } from './ui-messages';

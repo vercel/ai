@@ -101,11 +101,11 @@
     "sort-keys": "off",
     "yoda": "off",
 
-    "import/consistent-type-specifier-style": "error",
+    "import/consistent-type-specifier-style": "off",
     "import/first": "error",
     "import/namespace": "error",
     "import/no-cycle": "error",
-    "import/no-duplicates": "error",
+    "import/no-duplicates": ["error", { "preferInline": true }],
     "import/no-mutable-exports": "error",
     "import/no-named-as-default": "error",
 

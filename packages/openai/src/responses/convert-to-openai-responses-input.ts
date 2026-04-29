@@ -1,10 +1,9 @@
-import type {
-  LanguageModelV4Prompt,
-  LanguageModelV4ToolApprovalResponsePart,
-  SharedV4Warning,
+import {
+  UnsupportedFunctionalityError,
+  type LanguageModelV4Prompt,
+  type LanguageModelV4ToolApprovalResponsePart,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
-import { UnsupportedFunctionalityError } from '@ai-sdk/provider';
-import type { ToolNameMapping } from '@ai-sdk/provider-utils';
 import {
   convertToBase64,
   isNonNullable,
@@ -13,6 +12,7 @@ import {
   parseProviderOptions,
   resolveProviderReference,
   validateTypes,
+  type ToolNameMapping,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import {

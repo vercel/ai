@@ -2,27 +2,27 @@ import {
   loadOptionalSetting,
   withoutTrailingSlash,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
-import type { FetchFunction } from '@ai-sdk/provider-utils';
 import { asGatewayError, GatewayAuthenticationError } from './errors';
 import {
   GATEWAY_AUTH_METHOD_HEADER,
   parseAuthMethod,
 } from './errors/parse-auth-method';
-import { GatewayFetchMetadata } from './gateway-fetch-metadata';
-import type {
-  GatewayFetchMetadataResponse,
-  GatewayCreditsResponse,
+import {
+  GatewayFetchMetadata,
+  type GatewayFetchMetadataResponse,
+  type GatewayCreditsResponse,
 } from './gateway-fetch-metadata';
-import { GatewaySpendReport } from './gateway-spend-report';
-import type {
-  GatewaySpendReportParams,
-  GatewaySpendReportResponse,
+import {
+  GatewaySpendReport,
+  type GatewaySpendReportParams,
+  type GatewaySpendReportResponse,
 } from './gateway-spend-report';
-import { GatewayGenerationInfoFetcher } from './gateway-generation-info';
-import type {
-  GatewayGenerationInfoParams,
-  GatewayGenerationInfo,
+import {
+  GatewayGenerationInfoFetcher,
+  type GatewayGenerationInfoParams,
+  type GatewayGenerationInfo,
 } from './gateway-generation-info';
 import { GatewayLanguageModel } from './gateway-language-model';
 import { GatewayEmbeddingModel } from './gateway-embedding-model';

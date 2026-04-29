@@ -12,8 +12,7 @@
  */
 import type { JSONSchema7 } from '@ai-sdk/provider';
 import { asSchema, jsonSchema } from '@ai-sdk/provider-utils';
-import { tool } from 'ai';
-import type { ToolSet } from 'ai';
+import { tool, type ToolSet } from 'ai';
 import Ajv from 'ajv';
 
 /**

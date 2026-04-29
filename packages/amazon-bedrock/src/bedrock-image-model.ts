@@ -3,7 +3,6 @@ import type {
   ImageModelV4File,
   SharedV4Warning,
 } from '@ai-sdk/provider';
-import type { FetchFunction, Resolvable } from '@ai-sdk/provider-utils';
 import {
   combineHeaders,
   convertUint8ArrayToBase64,
@@ -14,9 +13,13 @@ import {
   serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
+  type FetchFunction,
+  type Resolvable,
 } from '@ai-sdk/provider-utils';
-import type { BedrockImageModelId } from './bedrock-image-settings';
-import { modelMaxImagesPerCall } from './bedrock-image-settings';
+import {
+  modelMaxImagesPerCall,
+  type BedrockImageModelId,
+} from './bedrock-image-settings';
 import { BedrockErrorSchema } from './bedrock-error';
 import { z } from 'zod/v4';
 

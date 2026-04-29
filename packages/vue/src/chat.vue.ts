@@ -1,13 +1,11 @@
-import type {
-  ChatInit as BaseChatInit,
-  ChatState,
-  ChatStatus,
-  UIMessage,
+import {
+  AbstractChat,
+  type ChatInit as BaseChatInit,
+  type ChatState,
+  type ChatStatus,
+  type UIMessage,
 } from 'ai';
-import { AbstractChat } from 'ai';
-import type { Ref } from 'vue';
-import { ref } from 'vue';
-
+import { ref, type Ref } from 'vue';
 class VueChatState<
   UI_MESSAGE extends UIMessage,
 > implements ChatState<UI_MESSAGE> {

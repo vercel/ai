@@ -1,6 +1,5 @@
 import type { ZodTypeDef } from 'zod/v3';
-import type { Options } from './options';
-import { getDefaultOptions } from './options';
+import { getDefaultOptions, type Options } from './options';
 import type { JsonSchema7Type } from './parse-types';
 
 export type Refs = {

@@ -8,17 +8,15 @@ import {
   vertexAnthropic as vertexAnthropicEdge,
 } from '@ai-sdk/google-vertex/anthropic/edge';
 import type { LanguageModelV3, LanguageModelV4 } from '@ai-sdk/provider';
-import type { APICallError } from 'ai';
-import { generateText, isStepCount } from 'ai';
+import { generateText, isStepCount, type APICallError } from 'ai';
 import 'dotenv/config';
 import fs from 'fs';
 import { describe, expect, it } from 'vitest';
-import type { ModelWithCapabilities } from './feature-test-suite';
 import {
   createFeatureTestSuite,
   createLanguageModelWithCapabilities,
+  type ModelWithCapabilities,
 } from './feature-test-suite';
-
 const RUNTIME_VARIANTS = {
   edge: {
     name: 'Edge Runtime',

@@ -1,10 +1,11 @@
 import type { JSONValue } from '@ai-sdk/provider';
-import type {
-  FlexibleSchema,
-  InferSchema,
-  ProviderOptions,
+import {
+  createIdGenerator,
+  withUserAgentSuffix,
+  type FlexibleSchema,
+  type InferSchema,
+  type ProviderOptions,
 } from '@ai-sdk/provider-utils';
-import { createIdGenerator, withUserAgentSuffix } from '@ai-sdk/provider-utils';
 import { NoObjectGeneratedError } from '../error/no-object-generated-error';
 import { extractReasoningContent } from '../generate-text/extract-reasoning-content';
 import { extractTextContent } from '../generate-text/extract-text-content';

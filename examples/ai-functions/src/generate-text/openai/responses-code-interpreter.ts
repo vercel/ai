@@ -1,7 +1,7 @@
-import { openai } from '@ai-sdk/openai';
-import type {
-  OpenaiResponsesSourceDocumentProviderMetadata,
-  OpenaiResponsesTextProviderMetadata,
+import {
+  openai,
+  type OpenaiResponsesSourceDocumentProviderMetadata,
+  type OpenaiResponsesTextProviderMetadata,
 } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 import { run } from '../../lib/run';

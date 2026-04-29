@@ -17,8 +17,11 @@ import type { LanguageModelUsage } from '../types/usage';
 import type { ContentPart } from './content-part';
 import type { GeneratedFile } from './generated-file';
 import { asReasoningText } from './reasoning';
-import type { ReasoningFileOutput, ReasoningOutput } from './reasoning-output';
-import { convertFromReasoningOutputs } from './reasoning-output';
+import {
+  convertFromReasoningOutputs,
+  type ReasoningFileOutput,
+  type ReasoningOutput,
+} from './reasoning-output';
 import type { ResponseMessage } from './response-message';
 import type {
   DynamicToolCall,

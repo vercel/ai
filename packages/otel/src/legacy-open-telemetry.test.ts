@@ -11,8 +11,13 @@ import {
 } from '@ai-sdk/provider-utils/test';
 import * as assert from 'node:assert';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type { Attributes, Span, SpanOptions, Tracer } from '@opentelemetry/api';
-import { SpanStatusCode } from '@opentelemetry/api';
+import {
+  SpanStatusCode,
+  type Attributes,
+  type Span,
+  type SpanOptions,
+  type Tracer,
+} from '@opentelemetry/api';
 import { z } from 'zod/v4';
 import {
   embed,
@@ -23,8 +28,10 @@ import {
   streamObject,
   streamText,
   rerank,
+  type Embedding,
+  type EmbeddingModelUsage,
+  type Telemetry,
 } from 'ai';
-import type { Embedding, EmbeddingModelUsage, Telemetry } from 'ai';
 import {
   MockEmbeddingModelV4,
   MockLanguageModelV4,

@@ -7,11 +7,14 @@ import type {
 import {
   convertBase64ToUint8Array,
   withUserAgentSuffix,
+  type DataContent,
+  type ProviderOptions,
 } from '@ai-sdk/provider-utils';
-import type { DataContent, ProviderOptions } from '@ai-sdk/provider-utils';
 import { NoVideoGeneratedError } from '../error/no-video-generated-error';
-import { DefaultGeneratedFile } from '../generate-text/generated-file';
-import type { GeneratedFile } from '../generate-text/generated-file';
+import {
+  DefaultGeneratedFile,
+  type GeneratedFile,
+} from '../generate-text/generated-file';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveVideoModel } from '../model/resolve-model';
 import type { VideoModel } from '../types/video-model';

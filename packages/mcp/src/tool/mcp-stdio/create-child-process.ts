@@ -1,5 +1,4 @@
-import type { ChildProcess } from 'node:child_process';
-import { spawn } from 'node:child_process';
+import { spawn, type ChildProcess } from 'node:child_process';
 import { getEnvironment } from './get-environment';
 import type { StdioConfig } from './mcp-stdio-transport';
 

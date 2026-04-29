@@ -1,6 +1,11 @@
 import { openai } from '@ai-sdk/openai';
-import type { ModelMessage, ToolApprovalResponse } from 'ai';
-import { generateText, isStepCount, tool } from 'ai';
+import {
+  generateText,
+  isStepCount,
+  tool,
+  type ModelMessage,
+  type ToolApprovalResponse,
+} from 'ai';
 import * as readline from 'node:readline/promises';
 import { z } from 'zod/v4';
 import { run } from '../../lib/run';

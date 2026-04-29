@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import type { AmazonBedrockLanguageModelOptions } from './bedrock-chat-options';
-import { amazonBedrockLanguageModelOptions } from './bedrock-chat-options';
-
+import {
+  amazonBedrockLanguageModelOptions,
+  type AmazonBedrockLanguageModelOptions,
+} from './bedrock-chat-options';
 describe('amazonBedrockLanguageModelOptions', () => {
   describe('serviceTier', () => {
     it('accepts valid service tier values', () => {

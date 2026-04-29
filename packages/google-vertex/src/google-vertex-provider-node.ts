@@ -1,12 +1,11 @@
 import { loadOptionalSetting, resolve } from '@ai-sdk/provider-utils';
 import type { GoogleAuthOptions } from 'google-auth-library';
 import { generateAuthToken } from './google-vertex-auth-google-auth-library';
-import type {
-  GoogleVertexProvider,
-  GoogleVertexProviderSettings as GoogleVertexProviderSettingsOriginal,
+import {
+  createVertex as createVertexOriginal,
+  type GoogleVertexProvider,
+  type GoogleVertexProviderSettings as GoogleVertexProviderSettingsOriginal,
 } from './google-vertex-provider';
-import { createVertex as createVertexOriginal } from './google-vertex-provider';
-
 export interface GoogleVertexProviderSettings extends GoogleVertexProviderSettingsOriginal {
   /**
    * Optional. The Authentication options provided by google-auth-library.

@@ -1,20 +1,21 @@
 import type { RerankingModelV4 } from '@ai-sdk/provider';
-import type { FetchFunction } from '@ai-sdk/provider-utils';
 import {
   combineHeaders,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
   parseProviderOptions,
   postJsonToApi,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
-import type { TogetherAIRerankingInput } from './togetherai-reranking-api';
 import {
   togetheraiErrorSchema,
   togetheraiRerankingResponseSchema,
+  type TogetherAIRerankingInput,
 } from './togetherai-reranking-api';
-import type { TogetherAIRerankingModelId } from './togetherai-reranking-options';
-import { togetheraiRerankingModelOptionsSchema } from './togetherai-reranking-options';
-
+import {
+  togetheraiRerankingModelOptionsSchema,
+  type TogetherAIRerankingModelId,
+} from './togetherai-reranking-options';
 type TogetherAIRerankingConfig = {
   provider: string;
   baseURL: string;

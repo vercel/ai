@@ -1,7 +1,13 @@
-import type { TranscriptionModelV4, ProviderV4 } from '@ai-sdk/provider';
-import { NoSuchModelError } from '@ai-sdk/provider';
-import type { FetchFunction } from '@ai-sdk/provider-utils';
-import { loadApiKey, withUserAgentSuffix } from '@ai-sdk/provider-utils';
+import {
+  NoSuchModelError,
+  type TranscriptionModelV4,
+  type ProviderV4,
+} from '@ai-sdk/provider';
+import {
+  loadApiKey,
+  withUserAgentSuffix,
+  type FetchFunction,
+} from '@ai-sdk/provider-utils';
 import { AssemblyAITranscriptionModel } from './assemblyai-transcription-model';
 import type { AssemblyAITranscriptionModelId } from './assemblyai-transcription-settings';
 import { VERSION } from './version';

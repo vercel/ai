@@ -1,9 +1,9 @@
-import { AISDKError } from '@ai-sdk/provider';
-import type {
-  FilesV4,
-  FilesV4UploadFileCallOptions,
-  FilesV4UploadFileResult,
-  SharedV4Warning,
+import {
+  AISDKError,
+  type FilesV4,
+  type FilesV4UploadFileCallOptions,
+  type FilesV4UploadFileResult,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -13,8 +13,8 @@ import {
   parseProviderOptions,
   zodSchema,
   getFromApi,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
-import type { FetchFunction } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { googleFailedResponseHandler } from './google-error';
 

@@ -6,13 +6,13 @@ import type {
   ProviderV4,
   RerankingModelV4,
 } from '@ai-sdk/provider';
-import type { FetchFunction } from '@ai-sdk/provider-utils';
 import {
   generateId,
   loadOptionalSetting,
   loadSetting,
   withoutTrailingSlash,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { BedrockChatLanguageModel } from './bedrock-chat-language-model';
 import type { BedrockChatModelId } from './bedrock-chat-options';
@@ -20,10 +20,10 @@ import { BedrockEmbeddingModel } from './bedrock-embedding-model';
 import type { BedrockEmbeddingModelId } from './bedrock-embedding-options';
 import { BedrockImageModel } from './bedrock-image-model';
 import type { BedrockImageModelId } from './bedrock-image-settings';
-import type { BedrockCredentials } from './bedrock-sigv4-fetch';
 import {
   createApiKeyFetchFunction,
   createSigV4FetchFunction,
+  type BedrockCredentials,
 } from './bedrock-sigv4-fetch';
 import { BedrockRerankingModel } from './reranking/bedrock-reranking-model';
 import type { BedrockRerankingModelId } from './reranking/bedrock-reranking-options';

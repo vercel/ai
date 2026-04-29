@@ -7,11 +7,13 @@ import {
 import { mockId } from '@ai-sdk/provider-utils/test';
 import { fireEvent, screen, waitFor, render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import type { FinishReason, UIMessage, UIMessageChunk } from 'ai';
 import {
   DefaultChatTransport,
   isStaticToolUIPart,
   TextStreamChatTransport,
+  type FinishReason,
+  type UIMessage,
+  type UIMessageChunk,
 } from 'ai';
 import React, { act, useRef, useState } from 'react';
 import { Chat } from './chat.react';

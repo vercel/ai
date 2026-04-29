@@ -1,7 +1,7 @@
-import type { StreamingUIMessageState } from '../ui/process-ui-message-stream';
 import {
   createStreamingUIMessageState,
   processUIMessageStream,
+  type StreamingUIMessageState,
 } from '../ui/process-ui-message-stream';
 import type { UIMessage } from '../ui/ui-messages';
 import type { ErrorHandler } from '../util/error-handler';

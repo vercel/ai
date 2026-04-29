@@ -1,17 +1,17 @@
-import { NoSuchModelError } from '@ai-sdk/provider';
-import type {
-  Experimental_VideoModelV4,
-  FilesV4,
-  ImageModelV4,
-  LanguageModelV4,
-  ProviderV4,
+import {
+  NoSuchModelError,
+  type Experimental_VideoModelV4,
+  type FilesV4,
+  type ImageModelV4,
+  type LanguageModelV4,
+  type ProviderV4,
 } from '@ai-sdk/provider';
-import type { FetchFunction } from '@ai-sdk/provider-utils';
 import {
   generateId,
   loadApiKey,
   withoutTrailingSlash,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { XaiChatLanguageModel } from './xai-chat-language-model';
 import type { XaiChatModelId } from './xai-chat-options';

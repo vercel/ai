@@ -8,11 +8,11 @@ import {
   OpenAICompatibleCompletionLanguageModel,
   OpenAICompatibleEmbeddingModel,
 } from '@ai-sdk/openai-compatible';
-import type { FetchFunction } from '@ai-sdk/provider-utils';
 import {
   loadApiKey,
   withoutTrailingSlash,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import type { DeepInfraChatModelId } from './deepinfra-chat-options';
 import type { DeepInfraEmbeddingModelId } from './deepinfra-embedding-options';

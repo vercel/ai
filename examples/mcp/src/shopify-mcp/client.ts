@@ -2,9 +2,7 @@ import { openai } from '@ai-sdk/openai';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import { streamText } from 'ai';
 import 'dotenv/config';
-import type { MCPClient } from '@ai-sdk/mcp';
-import { createMCPClient } from '@ai-sdk/mcp';
-
+import { createMCPClient, type MCPClient } from '@ai-sdk/mcp';
 async function main() {
   const transport = new StreamableHTTPClientTransport(
     new URL('https://cowboy.com/api/mcp'),

@@ -1,5 +1,4 @@
-import type { Arrayable } from '@ai-sdk/provider-utils';
-import { asArray } from '@ai-sdk/provider-utils';
+import { asArray, type Arrayable } from '@ai-sdk/provider-utils';
 import type { Callback } from './callback';
 
 /**

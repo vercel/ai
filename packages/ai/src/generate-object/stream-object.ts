@@ -6,11 +6,12 @@ import type {
   SharedV4ProviderMetadata,
   SharedV4Warning,
 } from '@ai-sdk/provider';
-import { createIdGenerator, DelayedPromise } from '@ai-sdk/provider-utils';
-import type {
-  InferSchema,
-  FlexibleSchema,
-  ProviderOptions,
+import {
+  createIdGenerator,
+  DelayedPromise,
+  type InferSchema,
+  type FlexibleSchema,
+  type ProviderOptions,
 } from '@ai-sdk/provider-utils';
 import type { ServerResponse } from 'http';
 import { logWarnings } from '../logger/log-warnings';
@@ -34,15 +35,16 @@ import type {
 import type { LanguageModelRequestMetadata } from '../types/language-model-request-metadata';
 import type { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
 import type { ProviderMetadata } from '../types/provider-metadata';
-import type { LanguageModelUsage } from '../types/usage';
 import {
   asLanguageModelUsage,
   createNullLanguageModelUsage,
+  type LanguageModelUsage,
 } from '../types/usage';
-import type { DeepPartial } from '../util';
-import { isDeepEqualData, parsePartialJson } from '../util';
-import type { AsyncIterableStream } from '../util/async-iterable-stream';
-import { createAsyncIterableStream } from '../util/async-iterable-stream';
+import { isDeepEqualData, parsePartialJson, type DeepPartial } from '../util';
+import {
+  createAsyncIterableStream,
+  type AsyncIterableStream,
+} from '../util/async-iterable-stream';
 import type { Callback } from '../util/callback';
 import { createStitchableStream } from '../util/create-stitchable-stream';
 import type { DownloadFunction } from '../util/download/download-function';
@@ -55,8 +57,7 @@ import type {
   GenerateObjectStepEndEvent,
   GenerateObjectStepStartEvent,
 } from './structured-output-events';
-import type { OutputStrategy } from './output-strategy';
-import { getOutputStrategy } from './output-strategy';
+import { getOutputStrategy, type OutputStrategy } from './output-strategy';
 import { parseAndValidateObjectResultWithRepair } from './parse-and-validate-object-result';
 import type { RepairTextFunction } from './repair-text';
 import type {

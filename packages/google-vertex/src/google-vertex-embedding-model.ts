@@ -1,5 +1,7 @@
-import type { EmbeddingModelV4 } from '@ai-sdk/provider';
-import { TooManyEmbeddingValuesForCallError } from '@ai-sdk/provider';
+import {
+  TooManyEmbeddingValuesForCallError,
+  type EmbeddingModelV4,
+} from '@ai-sdk/provider';
 import {
   combineHeaders,
   createJsonResponseHandler,
@@ -12,8 +14,10 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { googleVertexFailedResponseHandler } from './google-vertex-error';
-import type { GoogleVertexEmbeddingModelId } from './google-vertex-embedding-options';
-import { googleVertexEmbeddingModelOptions } from './google-vertex-embedding-options';
+import {
+  googleVertexEmbeddingModelOptions,
+  type GoogleVertexEmbeddingModelId,
+} from './google-vertex-embedding-options';
 import type { GoogleVertexConfig } from './google-vertex-config';
 
 export class GoogleVertexEmbeddingModel implements EmbeddingModelV4 {

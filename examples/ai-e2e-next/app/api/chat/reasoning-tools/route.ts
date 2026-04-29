@@ -1,8 +1,14 @@
-import type { OpenAILanguageModelResponsesOptions } from '@ai-sdk/openai';
-import { openai } from '@ai-sdk/openai';
-import type { InferUITools, UIDataTypes, UIMessage } from 'ai';
-import { convertToModelMessages, streamText } from 'ai';
-
+import {
+  openai,
+  type OpenAILanguageModelResponsesOptions,
+} from '@ai-sdk/openai';
+import {
+  convertToModelMessages,
+  streamText,
+  type InferUITools,
+  type UIDataTypes,
+  type UIMessage,
+} from 'ai';
 const tools = {
   web_search: openai.tools.webSearch({
     searchContextSize: 'high',

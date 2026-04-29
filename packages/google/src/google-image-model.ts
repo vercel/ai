@@ -16,11 +16,9 @@ import {
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
   zodSchema,
-} from '@ai-sdk/provider-utils';
-import type {
-  InferSchema,
-  FetchFunction,
-  Resolvable,
+  type InferSchema,
+  type FetchFunction,
+  type Resolvable,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { googleFailedResponseHandler } from './google-error';

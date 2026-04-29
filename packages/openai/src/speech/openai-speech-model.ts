@@ -11,9 +11,10 @@ import {
 import type { OpenAIConfig } from '../openai-config';
 import { openaiFailedResponseHandler } from '../openai-error';
 import type { OpenAISpeechAPITypes } from './openai-speech-api';
-import type { OpenAISpeechModelId } from './openai-speech-options';
-import { openaiSpeechModelOptionsSchema } from './openai-speech-options';
-
+import {
+  openaiSpeechModelOptionsSchema,
+  type OpenAISpeechModelId,
+} from './openai-speech-options';
 interface OpenAISpeechModelConfig extends OpenAIConfig {
   _internal?: {
     currentDate?: () => Date;

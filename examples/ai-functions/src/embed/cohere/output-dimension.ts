@@ -1,5 +1,4 @@
-import { cohere } from '@ai-sdk/cohere';
-import type { CohereEmbeddingModelOptions } from '@ai-sdk/cohere';
+import { cohere, type CohereEmbeddingModelOptions } from '@ai-sdk/cohere';
 import { embed } from 'ai';
 import { run } from '../../lib/run';
 

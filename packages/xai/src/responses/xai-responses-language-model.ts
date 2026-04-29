@@ -9,7 +9,6 @@ import type {
   LanguageModelV4Usage,
   SharedV4Warning,
 } from '@ai-sdk/provider';
-import type { FetchFunction, ParseResult } from '@ai-sdk/provider-utils';
 import {
   combineHeaders,
   createEventSourceResponseHandler,
@@ -21,6 +20,8 @@ import {
   serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
+  type FetchFunction,
+  type ParseResult,
 } from '@ai-sdk/provider-utils';
 import type { z } from 'zod/v4';
 import { getResponseMetadata } from '../get-response-metadata';
@@ -28,13 +29,15 @@ import { xaiFailedResponseHandler } from '../xai-error';
 import { convertToXaiResponsesInput } from './convert-to-xai-responses-input';
 import { convertXaiResponsesUsage } from './convert-xai-responses-usage';
 import { mapXaiResponsesFinishReason } from './map-xai-responses-finish-reason';
-import type { XaiResponsesIncludeOptions } from './xai-responses-api';
 import {
   xaiResponsesChunkSchema,
   xaiResponsesResponseSchema,
+  type XaiResponsesIncludeOptions,
 } from './xai-responses-api';
-import type { XaiResponsesModelId } from './xai-responses-options';
-import { xaiLanguageModelResponsesOptions } from './xai-responses-options';
+import {
+  xaiLanguageModelResponsesOptions,
+  type XaiResponsesModelId,
+} from './xai-responses-options';
 import { prepareResponsesTools } from './xai-responses-prepare-tools';
 
 type XaiResponsesConfig = {

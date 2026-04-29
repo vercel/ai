@@ -1,5 +1,4 @@
-import type { Tracer } from '@opentelemetry/api';
-import { trace } from '@opentelemetry/api';
+import { trace, type Tracer } from '@opentelemetry/api';
 import { noopTracer } from './noop-tracer';
 
 export function getTracer({

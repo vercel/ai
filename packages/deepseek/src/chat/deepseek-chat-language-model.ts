@@ -8,12 +8,6 @@ import type {
   LanguageModelV4StreamPart,
   LanguageModelV4StreamResult,
 } from '@ai-sdk/provider';
-import type {
-  FetchFunction,
-  InferSchema,
-  ParseResult,
-  ResponseHandler,
-} from '@ai-sdk/provider-utils';
 import {
   combineHeaders,
   createEventSourceResponseHandler,
@@ -27,17 +21,23 @@ import {
   StreamingToolCallTracker,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
+  type FetchFunction,
+  type InferSchema,
+  type ParseResult,
+  type ResponseHandler,
 } from '@ai-sdk/provider-utils';
 import { convertToDeepSeekChatMessages } from './convert-to-deepseek-chat-messages';
 import { convertDeepSeekUsage } from './convert-to-deepseek-usage';
-import type { DeepSeekChatTokenUsage } from './deepseek-chat-api-types';
 import {
   deepseekChatChunkSchema,
   deepseekChatResponseSchema,
   deepSeekErrorSchema,
+  type DeepSeekChatTokenUsage,
 } from './deepseek-chat-api-types';
-import type { DeepSeekChatModelId } from './deepseek-chat-options';
-import { deepseekLanguageModelOptions } from './deepseek-chat-options';
+import {
+  deepseekLanguageModelOptions,
+  type DeepSeekChatModelId,
+} from './deepseek-chat-options';
 import { prepareTools } from './deepseek-prepare-tools';
 import { getResponseMetadata } from './get-response-metadata';
 import { mapDeepSeekFinishReason } from './map-deepseek-finish-reason';

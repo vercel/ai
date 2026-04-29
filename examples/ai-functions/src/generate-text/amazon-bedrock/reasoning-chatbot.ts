@@ -1,6 +1,5 @@
 import { bedrock } from '@ai-sdk/amazon-bedrock';
-import type { ModelMessage } from 'ai';
-import { generateText, isStepCount } from 'ai';
+import { generateText, isStepCount, type ModelMessage } from 'ai';
 import * as readline from 'node:readline/promises';
 import { weatherTool } from '../../tools/weather-tool';
 import { run } from '../../lib/run';

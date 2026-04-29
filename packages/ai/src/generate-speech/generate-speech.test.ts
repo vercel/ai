@@ -12,9 +12,10 @@ import * as logWarningsModule from '../logger/log-warnings';
 import { MockSpeechModelV4 } from '../test/mock-speech-model-v4';
 import type { Warning } from '../types/warning';
 import { generateSpeech } from './generate-speech';
-import type { GeneratedAudioFile } from './generated-audio-file';
-import { DefaultGeneratedAudioFile } from './generated-audio-file';
-
+import {
+  DefaultGeneratedAudioFile,
+  type GeneratedAudioFile,
+} from './generated-audio-file';
 const audio = new Uint8Array([1, 2, 3, 4]); // Sample audio data
 const testDate = new Date(2024, 0, 1);
 const mockFile = new DefaultGeneratedAudioFile({

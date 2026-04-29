@@ -2,7 +2,7 @@ import type {
   LanguageModelV4StreamPart,
   LanguageModelV4Usage,
 } from '@ai-sdk/provider';
-import { tool } from '@ai-sdk/provider-utils';
+import { tool, type ToolSet } from '@ai-sdk/provider-utils';
 import {
   convertArrayToReadableStream,
   convertReadableStreamToArray,
@@ -17,7 +17,6 @@ import type {
 } from './language-model-events';
 import { streamLanguageModelCall } from './stream-language-model-call';
 import type { ToolCallRepairFunction } from './tool-call-repair-function';
-import type { ToolSet } from '@ai-sdk/provider-utils';
 
 const testUsage: LanguageModelV4Usage = {
   inputTokens: {

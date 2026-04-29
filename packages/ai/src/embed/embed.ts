@@ -1,5 +1,8 @@
-import type { ProviderOptions } from '@ai-sdk/provider-utils';
-import { createIdGenerator, withUserAgentSuffix } from '@ai-sdk/provider-utils';
+import {
+  createIdGenerator,
+  withUserAgentSuffix,
+  type ProviderOptions,
+} from '@ai-sdk/provider-utils';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveEmbeddingModel } from '../model/resolve-model';
 import { createTelemetryDispatcher } from '../telemetry/create-telemetry-dispatcher';

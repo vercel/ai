@@ -1,6 +1,5 @@
 import { google } from '@ai-sdk/google';
-import type { ModelMessage } from 'ai';
-import { isStepCount, streamText, tool } from 'ai';
+import { isStepCount, streamText, tool, type ModelMessage } from 'ai';
 import * as readline from 'node:readline/promises';
 import { z } from 'zod';
 import { run } from '../../lib/run';

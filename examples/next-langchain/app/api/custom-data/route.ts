@@ -1,10 +1,8 @@
-import type { UIMessage } from 'ai';
-import { createUIMessageStreamResponse } from 'ai';
+import { createUIMessageStreamResponse, type UIMessage } from 'ai';
 import { NextResponse } from 'next/server';
 
 import { z } from 'zod';
-import { tool } from 'langchain';
-import type { ToolRuntime } from 'langchain';
+import { tool, type ToolRuntime } from 'langchain';
 import { ChatOpenAI } from '@langchain/openai';
 import { toBaseMessages, toUIMessageStream } from '@ai-sdk/langchain';
 import {

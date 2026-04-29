@@ -1,5 +1,4 @@
-import { luma } from '@ai-sdk/luma';
-import type { LumaImageModelOptions } from '@ai-sdk/luma';
+import { luma, type LumaImageModelOptions } from '@ai-sdk/luma';
 import { generateImage } from 'ai';
 import { presentImages } from '../../lib/present-image';
 import { run } from '../../lib/run';

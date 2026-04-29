@@ -6,7 +6,6 @@ import type {
   LanguageModelV4Prompt,
   SharedV4Warning,
 } from '@ai-sdk/provider';
-import type { Resolvable } from '@ai-sdk/provider-utils';
 import {
   combineHeaders,
   convertToBase64,
@@ -19,6 +18,7 @@ import {
   serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
+  type Resolvable,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { googleVertexFailedResponseHandler } from './google-vertex-error';

@@ -1,6 +1,10 @@
 import { signal } from '@angular/core';
-import { callCompletionApi, generateId } from 'ai';
-import type { CompletionRequestOptions, UseCompletionOptions } from 'ai';
+import {
+  callCompletionApi,
+  generateId,
+  type CompletionRequestOptions,
+  type UseCompletionOptions,
+} from 'ai';
 import { normalizeHeaders } from '@ai-sdk/provider-utils';
 
 export type CompletionOptions = Readonly<UseCompletionOptions>;

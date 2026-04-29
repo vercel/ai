@@ -3,19 +3,20 @@ import type {
   FilesV4UploadFileCallOptions,
   FilesV4UploadFileResult,
 } from '@ai-sdk/provider';
-import type { FetchFunction } from '@ai-sdk/provider-utils';
 import {
   combineHeaders,
   convertBase64ToUint8Array,
   createJsonResponseHandler,
   parseProviderOptions,
   postFormDataToApi,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { openaiFailedResponseHandler } from '../openai-error';
 import { openaiFilesResponseSchema } from './openai-files-api';
-import type { OpenAIFilesOptions } from './openai-files-options';
-import { openaiFilesOptionsSchema } from './openai-files-options';
-
+import {
+  openaiFilesOptionsSchema,
+  type OpenAIFilesOptions,
+} from './openai-files-options';
 interface OpenAIFilesConfig {
   provider: string;
   baseURL: string;

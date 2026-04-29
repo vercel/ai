@@ -8,7 +8,6 @@ import type {
   LanguageModelV4StreamResult,
   SharedV4Warning,
 } from '@ai-sdk/provider';
-import type { FetchFunction, ParseResult } from '@ai-sdk/provider-utils';
 import {
   combineHeaders,
   createEventSourceResponseHandler,
@@ -22,15 +21,21 @@ import {
   serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
+  type FetchFunction,
+  type ParseResult,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import type { MistralUsage } from './convert-mistral-usage';
-import { convertMistralUsage } from './convert-mistral-usage';
+import {
+  convertMistralUsage,
+  type MistralUsage,
+} from './convert-mistral-usage';
 import { convertToMistralChatMessages } from './convert-to-mistral-chat-messages';
 import { getResponseMetadata } from './get-response-metadata';
 import { mapMistralFinishReason } from './map-mistral-finish-reason';
-import type { MistralChatModelId } from './mistral-chat-options';
-import { mistralLanguageModelOptions } from './mistral-chat-options';
+import {
+  mistralLanguageModelOptions,
+  type MistralChatModelId,
+} from './mistral-chat-options';
 import { mistralFailedResponseHandler } from './mistral-error';
 import { prepareTools } from './mistral-prepare-tools';
 

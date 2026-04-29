@@ -5,8 +5,10 @@ import type {
   ChatTransport,
   ChatRequestOptions,
 } from 'ai';
-import { RemoteGraph } from '@langchain/langgraph/remote';
-import type { RemoteGraphParams } from '@langchain/langgraph/remote';
+import {
+  RemoteGraph,
+  type RemoteGraphParams,
+} from '@langchain/langgraph/remote';
 import { toBaseMessages, toUIMessageStream } from './adapter';
 
 /**

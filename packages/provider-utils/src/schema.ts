@@ -1,5 +1,4 @@
-import type { JSONSchema7 } from '@ai-sdk/provider';
-import { TypeValidationError } from '@ai-sdk/provider';
+import { TypeValidationError, type JSONSchema7 } from '@ai-sdk/provider';
 import type {
   StandardSchemaV1,
   StandardJSONSchemaV1,

@@ -5,30 +5,30 @@ import type {
   LanguageModelV4TextPart,
   LanguageModelV4ToolResultOutput,
 } from '@ai-sdk/provider';
-import type {
-  CustomPart,
-  DataContent,
-  FilePart,
-  ImagePart,
-  ModelMessage,
-  ReasoningFilePart,
-  ReasoningPart,
-  TextPart,
-  ToolCallPart,
-  ToolResultOutput,
-  ToolResultPart,
-} from '@ai-sdk/provider-utils';
 import {
   asArray,
   isProviderReference,
   isUrlSupported,
+  type CustomPart,
+  type DataContent,
+  type FilePart,
+  type ImagePart,
+  type ModelMessage,
+  type ReasoningFilePart,
+  type ReasoningPart,
+  type TextPart,
+  type ToolCallPart,
+  type ToolResultOutput,
+  type ToolResultPart,
 } from '@ai-sdk/provider-utils';
 import {
   detectMediaType,
   imageMediaTypeSignatures,
 } from '../util/detect-media-type';
-import type { DownloadFunction } from '../util/download/download-function';
-import { createDefaultDownloadFunction } from '../util/download/download-function';
+import {
+  createDefaultDownloadFunction,
+  type DownloadFunction,
+} from '../util/download/download-function';
 import { convertToLanguageModelV4DataContent } from './data-content';
 import { logWarnings } from '../logger/log-warnings';
 import type { Warning } from '../types/warning';

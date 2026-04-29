@@ -1,6 +1,9 @@
 import { openai } from '@ai-sdk/openai';
-import type { ModelMessage, ToolApprovalResponse } from 'ai';
-import { ToolLoopAgent } from 'ai';
+import {
+  ToolLoopAgent,
+  type ModelMessage,
+  type ToolApprovalResponse,
+} from 'ai';
 import * as readline from 'node:readline/promises';
 import { run } from '../../lib/run';
 import { weatherTool } from '../../tools/weather-tool';

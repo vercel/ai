@@ -1,5 +1,8 @@
-import type { JSONValue } from '@ai-sdk/provider';
-import { JSONParseError, TypeValidationError } from '@ai-sdk/provider';
+import {
+  JSONParseError,
+  TypeValidationError,
+  type JSONValue,
+} from '@ai-sdk/provider';
 import { secureJsonParse } from './secure-json-parse';
 import { safeValidateTypes, validateTypes } from './validate-types';
 import type { FlexibleSchema } from './schema';

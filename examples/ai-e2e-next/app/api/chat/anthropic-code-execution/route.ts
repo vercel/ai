@@ -1,8 +1,10 @@
 import { anthropicCodeExecutionAgent } from '@/agent/anthropic/code-execution-agent';
 import type { AnthropicMessageMetadata } from '@ai-sdk/anthropic';
-import type { UIMessage } from 'ai';
-import { createAgentUIStreamResponse, validateUIMessages } from 'ai';
-
+import {
+  createAgentUIStreamResponse,
+  validateUIMessages,
+  type UIMessage,
+} from 'ai';
 export async function POST(request: Request) {
   const { messages } = await request.json();
 

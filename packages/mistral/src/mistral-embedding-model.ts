@@ -1,6 +1,7 @@
-import type { EmbeddingModelV4 } from '@ai-sdk/provider';
-import { TooManyEmbeddingValuesForCallError } from '@ai-sdk/provider';
-import type { FetchFunction } from '@ai-sdk/provider-utils';
+import {
+  TooManyEmbeddingValuesForCallError,
+  type EmbeddingModelV4,
+} from '@ai-sdk/provider';
 import {
   combineHeaders,
   createJsonResponseHandler,
@@ -8,6 +9,7 @@ import {
   serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import type { MistralEmbeddingModelId } from './mistral-embedding-options';

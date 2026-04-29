@@ -1,7 +1,7 @@
-import { AISDKError } from '@ai-sdk/provider';
-import type {
-  Experimental_VideoModelV4,
-  SharedV4Warning,
+import {
+  AISDKError,
+  type Experimental_VideoModelV4,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,

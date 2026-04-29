@@ -1,29 +1,16 @@
-import { isNonNullable } from '@ai-sdk/provider-utils';
-import type {
-  ToolSet,
-  AssistantContent,
-  CustomPart,
-  FilePart,
-  ModelMessage,
-  TextPart,
-  ToolApprovalResponse,
-  ToolResultPart,
+import {
+  isNonNullable,
+  type ToolSet,
+  type AssistantContent,
+  type CustomPart,
+  type FilePart,
+  type ModelMessage,
+  type TextPart,
+  type ToolApprovalResponse,
+  type ToolResultPart,
 } from '@ai-sdk/provider-utils';
 import { createToolModelOutput } from '../prompt/create-tool-model-output';
 import { MessageConversionError } from '../prompt/message-conversion-error';
-import type {
-  CustomContentUIPart,
-  DataUIPart,
-  DynamicToolUIPart,
-  FileUIPart,
-  InferUIMessageData,
-  InferUIMessageTools,
-  ReasoningFileUIPart,
-  ReasoningUIPart,
-  TextUIPart,
-  ToolUIPart,
-  UIMessage,
-} from './ui-messages';
 import {
   getToolName,
   isCustomContentUIPart,
@@ -33,8 +20,18 @@ import {
   isReasoningUIPart,
   isTextUIPart,
   isToolUIPart,
+  type CustomContentUIPart,
+  type DataUIPart,
+  type DynamicToolUIPart,
+  type FileUIPart,
+  type InferUIMessageData,
+  type InferUIMessageTools,
+  type ReasoningFileUIPart,
+  type ReasoningUIPart,
+  type TextUIPart,
+  type ToolUIPart,
+  type UIMessage,
 } from './ui-messages';
-
 /**
  * Converts an array of UI messages from useChat into an array of ModelMessages that can be used
  * with the AI functions (e.g. `streamText`, `generateText`).

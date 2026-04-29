@@ -1,6 +1,7 @@
-import type { EmbeddingModelV4 } from '@ai-sdk/provider';
-import { TooManyEmbeddingValuesForCallError } from '@ai-sdk/provider';
-import type { FetchFunction } from '@ai-sdk/provider-utils';
+import {
+  TooManyEmbeddingValuesForCallError,
+  type EmbeddingModelV4,
+} from '@ai-sdk/provider';
 import {
   combineHeaders,
   createJsonResponseHandler,
@@ -12,12 +13,14 @@ import {
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
   zodSchema,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { googleFailedResponseHandler } from './google-error';
-import type { GoogleEmbeddingModelId } from './google-embedding-options';
-import { googleEmbeddingModelOptions } from './google-embedding-options';
-
+import {
+  googleEmbeddingModelOptions,
+  type GoogleEmbeddingModelId,
+} from './google-embedding-options';
 type GoogleEmbeddingConfig = {
   provider: string;
   baseURL: string;

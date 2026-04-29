@@ -1,11 +1,10 @@
 import { generateText } from 'ai';
 import { run } from '../../lib/run';
-import type {
-  OpenAILanguageModelResponsesOptions,
-  OpenaiResponsesReasoningProviderMetadata,
+import {
+  openai,
+  type OpenAILanguageModelResponsesOptions,
+  type OpenaiResponsesReasoningProviderMetadata,
 } from '@ai-sdk/openai';
-import { openai } from '@ai-sdk/openai';
-
 run(async () => {
   const result = await generateText({
     model: openai('gpt-5'),

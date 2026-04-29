@@ -1,6 +1,5 @@
 import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
-import type { UIToolInvocation } from 'ai';
-import { tool } from 'ai';
+import { tool, type UIToolInvocation } from 'ai';
 import { z } from 'zod';
 
 export const fetchPdfTool = tool({

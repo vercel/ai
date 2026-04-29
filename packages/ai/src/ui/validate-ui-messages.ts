@@ -1,6 +1,11 @@
 import { TypeValidationError } from '@ai-sdk/provider';
-import type { FlexibleSchema, Tool } from '@ai-sdk/provider-utils';
-import { lazySchema, validateTypes, zodSchema } from '@ai-sdk/provider-utils';
+import {
+  lazySchema,
+  validateTypes,
+  zodSchema,
+  type FlexibleSchema,
+  type Tool,
+} from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { InvalidArgumentError } from '../error';
 import { providerMetadataSchema } from '../types/provider-metadata';

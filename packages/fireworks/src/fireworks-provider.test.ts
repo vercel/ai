@@ -1,5 +1,4 @@
-import type { Mock } from 'vitest';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { createFireworks } from './fireworks-provider';
 import { loadApiKey } from '@ai-sdk/provider-utils';
 import {

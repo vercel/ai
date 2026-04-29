@@ -1,7 +1,6 @@
 import { APICallError, EmptyResponseBodyError } from '@ai-sdk/provider';
 import { extractResponseHeaders } from './extract-response-headers';
-import type { ParseResult } from './parse-json';
-import { parseJSON, safeParseJSON } from './parse-json';
+import { parseJSON, safeParseJSON, type ParseResult } from './parse-json';
 import { parseJsonEventStream } from './parse-json-event-stream';
 import type { FlexibleSchema } from './schema';
 

@@ -3,7 +3,6 @@ import type {
   ImageModelV4File,
   SharedV4Warning,
 } from '@ai-sdk/provider';
-import type { FetchFunction } from '@ai-sdk/provider-utils';
 import {
   combineHeaders,
   convertBase64ToUint8Array,
@@ -16,6 +15,7 @@ import {
   serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import type { DeepInfraImageModelId } from './deepinfra-image-settings';
 import { z } from 'zod/v4';

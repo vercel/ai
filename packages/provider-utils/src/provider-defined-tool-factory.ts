@@ -1,5 +1,4 @@
-import type { Tool, ToolExecuteFunction } from './types/tool';
-import { tool } from './types/tool';
+import { tool, type Tool, type ToolExecuteFunction } from './types/tool';
 import type { FlexibleSchema } from './schema';
 import type { Context } from './types/context';
 /**

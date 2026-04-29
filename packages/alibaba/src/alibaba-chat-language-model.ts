@@ -26,11 +26,14 @@ import {
   StreamingToolCallTracker,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
+  type InferSchema,
+  type ParseResult,
 } from '@ai-sdk/provider-utils';
-import type { InferSchema, ParseResult } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import { alibabaLanguageModelOptions } from './alibaba-chat-options';
-import type { AlibabaChatModelId } from './alibaba-chat-options';
+import {
+  alibabaLanguageModelOptions,
+  type AlibabaChatModelId,
+} from './alibaba-chat-options';
 import type { AlibabaConfig } from './alibaba-config';
 import { alibabaFailedResponseHandler } from './alibaba-error';
 import { convertAlibabaUsage } from './convert-alibaba-usage';

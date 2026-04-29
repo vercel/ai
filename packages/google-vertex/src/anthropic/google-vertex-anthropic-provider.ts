@@ -1,9 +1,13 @@
-import type { LanguageModelV4, ProviderV4 } from '@ai-sdk/provider';
-import { NoSuchModelError } from '@ai-sdk/provider';
-import type { FetchFunction, Resolvable } from '@ai-sdk/provider-utils';
+import {
+  NoSuchModelError,
+  type LanguageModelV4,
+  type ProviderV4,
+} from '@ai-sdk/provider';
 import {
   loadOptionalSetting,
   withoutTrailingSlash,
+  type FetchFunction,
+  type Resolvable,
 } from '@ai-sdk/provider-utils';
 import {
   anthropicTools,

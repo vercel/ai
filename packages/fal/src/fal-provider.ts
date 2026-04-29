@@ -1,15 +1,15 @@
-import type {
-  Experimental_VideoModelV4,
-  ImageModelV4,
-  ProviderV4,
-  SpeechModelV4,
-  TranscriptionModelV4,
+import {
+  NoSuchModelError,
+  type Experimental_VideoModelV4,
+  type ImageModelV4,
+  type ProviderV4,
+  type SpeechModelV4,
+  type TranscriptionModelV4,
 } from '@ai-sdk/provider';
-import { NoSuchModelError } from '@ai-sdk/provider';
-import type { FetchFunction } from '@ai-sdk/provider-utils';
 import {
   withoutTrailingSlash,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { FalImageModel } from './fal-image-model';
 import type { FalImageModelId } from './fal-image-settings';

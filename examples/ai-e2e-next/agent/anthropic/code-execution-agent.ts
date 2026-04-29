@@ -1,7 +1,8 @@
-import { anthropic } from '@ai-sdk/anthropic';
-import type { AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
-import type { InferAgentUIMessage } from 'ai';
-import { ToolLoopAgent } from 'ai';
+import {
+  anthropic,
+  type AnthropicLanguageModelOptions,
+} from '@ai-sdk/anthropic';
+import { ToolLoopAgent, type InferAgentUIMessage } from 'ai';
 import { z } from 'zod';
 
 export const anthropicCodeExecutionAgent = new ToolLoopAgent({

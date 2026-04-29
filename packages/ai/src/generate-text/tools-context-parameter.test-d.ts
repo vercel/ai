@@ -1,5 +1,4 @@
-import { tool } from '@ai-sdk/provider-utils';
-import type { InferToolContext, Tool } from '@ai-sdk/provider-utils';
+import { tool, type InferToolContext, type Tool } from '@ai-sdk/provider-utils';
 import { describe, expectTypeOf, it } from 'vitest';
 import { z } from 'zod';
 import type { ToolsContextParameter } from './tools-context-parameter';

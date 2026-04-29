@@ -1,11 +1,14 @@
-import type { LanguageModelV4, ProviderV4 } from '@ai-sdk/provider';
-import { NoSuchModelError } from '@ai-sdk/provider';
+import {
+  NoSuchModelError,
+  type LanguageModelV4,
+  type ProviderV4,
+} from '@ai-sdk/provider';
 import { OpenAICompatibleChatLanguageModel } from '@ai-sdk/openai-compatible';
-import type { FetchFunction } from '@ai-sdk/provider-utils';
 import {
   loadApiKey,
   withoutTrailingSlash,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import type { VercelChatModelId } from './vercel-chat-options';
 import { VERSION } from './version';

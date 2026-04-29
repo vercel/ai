@@ -1,7 +1,11 @@
 import { signal } from '@angular/core';
-import { AbstractChat } from 'ai';
-import type { ChatState, ChatStatus, UIMessage, ChatInit } from 'ai';
-
+import {
+  AbstractChat,
+  type ChatState,
+  type ChatStatus,
+  type UIMessage,
+  type ChatInit,
+} from 'ai';
 export class Chat<
   UI_MESSAGE extends UIMessage = UIMessage,
 > extends AbstractChat<UI_MESSAGE> {

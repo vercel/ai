@@ -1,8 +1,7 @@
 import type { OpenAILanguageModelResponsesOptions } from '@ai-sdk/openai';
 import { convertToModelMessages, Output, isStepCount, streamText } from 'ai';
 import 'dotenv/config';
-import type { Request, Response } from 'express';
-import express from 'express';
+import express, { type Request, type Response } from 'express';
 import { z } from 'zod';
 
 const app = express();

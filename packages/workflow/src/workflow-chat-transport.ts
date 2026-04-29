@@ -1,11 +1,12 @@
-import { parseJsonEventStream, uiMessageChunkSchema } from 'ai';
-import type {
-  ChatRequestOptions,
-  ChatTransport,
-  PrepareReconnectToStreamRequest,
-  PrepareSendMessagesRequest,
-  UIMessage,
-  UIMessageChunk,
+import {
+  parseJsonEventStream,
+  uiMessageChunkSchema,
+  type ChatRequestOptions,
+  type ChatTransport,
+  type PrepareReconnectToStreamRequest,
+  type PrepareSendMessagesRequest,
+  type UIMessage,
+  type UIMessageChunk,
 } from 'ai';
 import {
   convertAsyncIteratorToReadableStream,

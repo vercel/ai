@@ -13,8 +13,10 @@ import {
 import { z } from 'zod/v4';
 import type { GroqConfig } from './groq-config';
 import { groqFailedResponseHandler } from './groq-error';
-import type { GroqTranscriptionModelId } from './groq-transcription-options';
-import { groqTranscriptionModelOptions } from './groq-transcription-options';
+import {
+  groqTranscriptionModelOptions,
+  type GroqTranscriptionModelId,
+} from './groq-transcription-options';
 import type { GroqTranscriptionAPITypes } from './groq-api-types';
 
 interface GroqTranscriptionModelConfig extends GroqConfig {

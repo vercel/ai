@@ -1,6 +1,10 @@
 import { vertex } from '@ai-sdk/google-vertex';
-import type { ModelMessage, ToolCallPart, ToolResultPart } from 'ai';
-import { streamText } from 'ai';
+import {
+  streamText,
+  type ModelMessage,
+  type ToolCallPart,
+  type ToolResultPart,
+} from 'ai';
 import * as process from 'process';
 import { run } from '../../lib/run';
 

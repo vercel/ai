@@ -1,5 +1,4 @@
-import type { ToolSet } from 'ai';
-import { tool } from 'ai';
+import { tool, type ToolSet } from 'ai';
 import { z } from 'zod';
 
 const getWeatherInformation = tool({

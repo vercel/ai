@@ -2,14 +2,13 @@ import { anthropic } from '@ai-sdk/anthropic';
 import { google } from '@ai-sdk/google';
 import { openai } from '@ai-sdk/openai';
 import { xai } from '@ai-sdk/xai';
-import type { UIMessage } from 'ai';
 import {
   consumeStream,
   convertToModelMessages,
   createProviderRegistry,
   streamText,
+  type UIMessage,
 } from 'ai';
-
 export const maxDuration = 60;
 
 const registry = createProviderRegistry({ anthropic, google, openai, xai });

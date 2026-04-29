@@ -1,10 +1,8 @@
 'use client';
 
-import type { UIMessage } from '@ai-sdk/react';
-import { useChat } from '@ai-sdk/react';
+import { useChat, type UIMessage } from '@ai-sdk/react';
 import ChatInput from '@/components/chat-input';
-import type { ChatTransport } from 'ai';
-import { convertToModelMessages, streamText } from 'ai';
+import { convertToModelMessages, streamText, type ChatTransport } from 'ai';
 import { createOpenAI } from '@ai-sdk/openai';
 
 // Note: this needs a client-side OpenAI API key to work.

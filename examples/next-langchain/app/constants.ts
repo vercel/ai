@@ -1,4 +1,3 @@
-import type { LucideIcon } from 'lucide-react';
 import {
   MessageCircle,
   Cpu,
@@ -9,8 +8,8 @@ import {
   Activity,
   Image,
   Wand2,
+  type LucideIcon,
 } from 'lucide-react';
-
 export interface NavItem {
   href: string;
   label: string;

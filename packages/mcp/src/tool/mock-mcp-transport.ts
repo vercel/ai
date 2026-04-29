@@ -1,9 +1,13 @@
 import { delay } from '@ai-sdk/provider-utils';
 import type { JSONRPCMessage } from './json-rpc-message';
 import type { MCPTransport } from './mcp-transport';
-import type { MCPTool, MCPResource, MCPPrompt, CallToolResult } from './types';
-import { LATEST_PROTOCOL_VERSION } from './types';
-
+import {
+  LATEST_PROTOCOL_VERSION,
+  type MCPTool,
+  type MCPResource,
+  type MCPPrompt,
+  type CallToolResult,
+} from './types';
 const DEFAULT_TOOLS: MCPTool[] = [
   {
     name: 'mock-tool',

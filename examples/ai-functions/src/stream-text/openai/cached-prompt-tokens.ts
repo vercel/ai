@@ -1,5 +1,4 @@
-import { openai } from '@ai-sdk/openai';
-import type { OpenAILanguageModelChatOptions } from '@ai-sdk/openai';
+import { openai, type OpenAILanguageModelChatOptions } from '@ai-sdk/openai';
 import { streamText } from 'ai';
 import { setTimeout } from 'node:timers/promises';
 import { performance } from 'node:perf_hooks';

@@ -10,11 +10,11 @@ import type {
   ProviderV4,
   RerankingModelV4,
 } from '@ai-sdk/provider';
-import type { FetchFunction } from '@ai-sdk/provider-utils';
 import {
   loadApiKey,
   withoutTrailingSlash,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { TogetherAIRerankingModel } from './reranking/togetherai-reranking-model';
 import type { TogetherAIRerankingModelId } from './reranking/togetherai-reranking-options';

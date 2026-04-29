@@ -1,6 +1,9 @@
 import type { FilesV4, ProviderV4 } from '@ai-sdk/provider';
-import type { DataContent, ProviderOptions } from '@ai-sdk/provider-utils';
-import { convertBase64ToUint8Array } from '@ai-sdk/provider-utils';
+import {
+  convertBase64ToUint8Array,
+  type DataContent,
+  type ProviderOptions,
+} from '@ai-sdk/provider-utils';
 import { convertToLanguageModelV4DataContent } from '../prompt/data-content';
 import type { ProviderMetadata } from '../types/provider-metadata';
 import type { ProviderReference } from '../types/provider-reference';

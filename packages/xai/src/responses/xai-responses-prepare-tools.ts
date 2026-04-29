@@ -1,8 +1,8 @@
-import type {
-  LanguageModelV4CallOptions,
-  SharedV4Warning,
+import {
+  UnsupportedFunctionalityError,
+  type LanguageModelV4CallOptions,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
-import { UnsupportedFunctionalityError } from '@ai-sdk/provider';
 import { validateTypes } from '@ai-sdk/provider-utils';
 import { fileSearchArgsSchema } from '../tool/file-search';
 import { mcpServerArgsSchema } from '../tool/mcp-server';

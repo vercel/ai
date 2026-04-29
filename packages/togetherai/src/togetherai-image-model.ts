@@ -1,5 +1,4 @@
 import type { ImageModelV4, SharedV4Warning } from '@ai-sdk/provider';
-import type { FetchFunction, InferSchema } from '@ai-sdk/provider-utils';
 import {
   combineHeaders,
   convertImageModelFileToDataUri,
@@ -12,6 +11,8 @@ import {
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
   zodSchema,
+  type FetchFunction,
+  type InferSchema,
 } from '@ai-sdk/provider-utils';
 import type { TogetherAIImageModelId } from './togetherai-image-settings';
 import { z } from 'zod/v4';

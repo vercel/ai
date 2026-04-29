@@ -1,6 +1,8 @@
 import type { JSONObject } from '@ai-sdk/provider';
-import type { ProviderOptions } from '@ai-sdk/provider-utils';
-import { withUserAgentSuffix } from '@ai-sdk/provider-utils';
+import {
+  withUserAgentSuffix,
+  type ProviderOptions,
+} from '@ai-sdk/provider-utils';
 import { NoSpeechGeneratedError } from '../error/no-speech-generated-error';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveSpeechModel } from '../model/resolve-model';
@@ -14,9 +16,10 @@ import {
 import { prepareRetries } from '../util/prepare-retries';
 import { VERSION } from '../version';
 import type { SpeechResult } from './generate-speech-result';
-import type { GeneratedAudioFile } from './generated-audio-file';
-import { DefaultGeneratedAudioFile } from './generated-audio-file';
-
+import {
+  DefaultGeneratedAudioFile,
+  type GeneratedAudioFile,
+} from './generated-audio-file';
 /**
  * Generates speech audio using a speech model.
  *

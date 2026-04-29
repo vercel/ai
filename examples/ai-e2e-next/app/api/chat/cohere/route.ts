@@ -1,7 +1,5 @@
 import { cohere } from '@ai-sdk/cohere';
-import type { UIMessage } from 'ai';
-import { convertToModelMessages, streamText } from 'ai';
-
+import { convertToModelMessages, streamText, type UIMessage } from 'ai';
 export const maxDuration = 30;
 
 export async function POST(req: Request) {

@@ -1,26 +1,23 @@
 import { vertex as vertexNode } from '@ai-sdk/google-vertex';
 import { vertex as vertexEdge } from '@ai-sdk/google-vertex/edge';
 import type { ImageModelV3, ImageModelV4 } from '@ai-sdk/provider';
-import type { APICallError } from 'ai';
 import {
   defaultSettingsMiddleware,
   generateImage,
   wrapLanguageModel,
+  type APICallError,
 } from 'ai';
 import 'dotenv/config';
 import { describe, expect, it, vi } from 'vitest';
-import type {
-  ModelCapabilities,
-  ModelWithCapabilities,
-} from './feature-test-suite';
 import {
   createEmbeddingModelWithCapabilities,
   createFeatureTestSuite,
   createImageModelWithCapabilities,
   createLanguageModelWithCapabilities,
   defaultChatModelCapabilities,
+  type ModelCapabilities,
+  type ModelWithCapabilities,
 } from './feature-test-suite';
-
 const RUNTIME_VARIANTS = {
   edge: {
     name: 'Edge Runtime',

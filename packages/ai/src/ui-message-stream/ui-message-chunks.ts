@@ -1,6 +1,8 @@
 import { z } from 'zod/v4';
-import type { ProviderMetadata } from '../types/provider-metadata';
-import { providerMetadataSchema } from '../types/provider-metadata';
+import {
+  providerMetadataSchema,
+  type ProviderMetadata,
+} from '../types/provider-metadata';
 import type { FinishReason } from '../types/language-model';
 import type {
   InferUIMessageData,

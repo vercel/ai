@@ -1,9 +1,9 @@
-import { auth } from '@ai-sdk/mcp';
-import type {
-  OAuthClientInformation,
-  OAuthClientMetadata,
-  OAuthClientProvider,
-  OAuthTokens,
+import {
+  auth,
+  type OAuthClientInformation,
+  type OAuthClientMetadata,
+  type OAuthClientProvider,
+  type OAuthTokens,
 } from '@ai-sdk/mcp';
 import { createServer } from 'node:http';
 

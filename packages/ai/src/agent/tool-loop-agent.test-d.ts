@@ -1,12 +1,11 @@
-import type { Context } from '@ai-sdk/provider-utils';
-import { tool } from '@ai-sdk/provider-utils';
+import { tool, type Context } from '@ai-sdk/provider-utils';
 import { describe, expectTypeOf, it } from 'vitest';
 import { z } from 'zod';
-import type {
-  GenerateTextOnFinishCallback,
-  ToolApprovalConfiguration,
+import {
+  Output,
+  type GenerateTextOnFinishCallback,
+  type ToolApprovalConfiguration,
 } from '../generate-text';
-import { Output } from '../generate-text';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import type { AsyncIterableStream } from '../util/async-iterable-stream';
 import type { DeepPartial } from '../util/deep-partial';

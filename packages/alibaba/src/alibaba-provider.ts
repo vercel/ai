@@ -1,15 +1,15 @@
-import { NoSuchModelError } from '@ai-sdk/provider';
-import type {
-  Experimental_VideoModelV4,
-  LanguageModelV4,
-  ProviderV4,
+import {
+  NoSuchModelError,
+  type Experimental_VideoModelV4,
+  type LanguageModelV4,
+  type ProviderV4,
 } from '@ai-sdk/provider';
 import {
   loadApiKey,
   withoutTrailingSlash,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
-import type { FetchFunction } from '@ai-sdk/provider-utils';
 import { AlibabaLanguageModel } from './alibaba-chat-language-model';
 import type { AlibabaChatModelId } from './alibaba-chat-options';
 import { AlibabaVideoModel } from './alibaba-video-model';

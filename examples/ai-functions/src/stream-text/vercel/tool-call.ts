@@ -1,6 +1,10 @@
 import { vercel } from '@ai-sdk/vercel';
-import type { ToolCallPart, ToolResultPart, ModelMessage } from 'ai';
-import { streamText } from 'ai';
+import {
+  streamText,
+  type ToolCallPart,
+  type ToolResultPart,
+  type ModelMessage,
+} from 'ai';
 import { weatherTool } from '../../tools/weather-tool';
 import { run } from '../../lib/run';
 

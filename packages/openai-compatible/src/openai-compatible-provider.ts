@@ -4,13 +4,15 @@ import type {
   LanguageModelV4,
   ProviderV4,
 } from '@ai-sdk/provider';
-import type { FetchFunction } from '@ai-sdk/provider-utils';
 import {
   withoutTrailingSlash,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
-import type { OpenAICompatibleChatConfig } from './chat/openai-compatible-chat-language-model';
-import { OpenAICompatibleChatLanguageModel } from './chat/openai-compatible-chat-language-model';
+import {
+  OpenAICompatibleChatLanguageModel,
+  type OpenAICompatibleChatConfig,
+} from './chat/openai-compatible-chat-language-model';
 import type { MetadataExtractor } from './chat/openai-compatible-metadata-extractor';
 import { OpenAICompatibleCompletionLanguageModel } from './completion/openai-compatible-completion-language-model';
 import { OpenAICompatibleEmbeddingModel } from './embedding/openai-compatible-embedding-model';

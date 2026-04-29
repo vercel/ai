@@ -19,19 +19,21 @@ import {
   serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
-} from '@ai-sdk/provider-utils';
-import type {
-  InferSchema,
-  FetchFunction,
-  ParseResult,
+  type InferSchema,
+  type FetchFunction,
+  type ParseResult,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import type { CohereChatModelId } from './cohere-chat-options';
-import { cohereLanguageModelOptions } from './cohere-chat-options';
+import {
+  cohereLanguageModelOptions,
+  type CohereChatModelId,
+} from './cohere-chat-options';
 import { cohereFailedResponseHandler } from './cohere-error';
 import { prepareTools } from './cohere-prepare-tools';
-import type { CohereUsageTokens } from './convert-cohere-usage';
-import { convertCohereUsage } from './convert-cohere-usage';
+import {
+  convertCohereUsage,
+  type CohereUsageTokens,
+} from './convert-cohere-usage';
 import { convertToCohereChatPrompt } from './convert-to-cohere-chat-prompt';
 import { mapCohereFinishReason } from './map-cohere-finish-reason';
 

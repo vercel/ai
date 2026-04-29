@@ -23,12 +23,10 @@ import {
   StreamingToolCallTracker,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
-} from '@ai-sdk/provider-utils';
-import type {
-  StreamingToolCallDelta,
-  FetchFunction,
-  ParseResult,
-  ResponseHandler,
+  type StreamingToolCallDelta,
+  type FetchFunction,
+  type ParseResult,
+  type ResponseHandler,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import {
@@ -36,14 +34,18 @@ import {
   toCamelCase,
   warnIfDeprecatedProviderOptionsKey,
 } from '../utils/to-camel-case';
-import type { ProviderErrorStructure } from '../openai-compatible-error';
-import { defaultOpenAICompatibleErrorStructure } from '../openai-compatible-error';
+import {
+  defaultOpenAICompatibleErrorStructure,
+  type ProviderErrorStructure,
+} from '../openai-compatible-error';
 import { convertOpenAICompatibleChatUsage } from './convert-openai-compatible-chat-usage';
 import { convertToOpenAICompatibleChatMessages } from './convert-to-openai-compatible-chat-messages';
 import { getResponseMetadata } from './get-response-metadata';
 import { mapOpenAICompatibleFinishReason } from './map-openai-compatible-finish-reason';
-import type { OpenAICompatibleChatModelId } from './openai-compatible-chat-options';
-import { openaiCompatibleLanguageModelChatOptions } from './openai-compatible-chat-options';
+import {
+  openaiCompatibleLanguageModelChatOptions,
+  type OpenAICompatibleChatModelId,
+} from './openai-compatible-chat-options';
 import type { MetadataExtractor } from './openai-compatible-metadata-extractor';
 import { prepareTools } from './openai-compatible-prepare-tools';
 

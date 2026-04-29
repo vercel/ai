@@ -1,17 +1,20 @@
 import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import type { FormGroup } from '@angular/forms';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import {
+  FormBuilder,
+  ReactiveFormsModule,
+  Validators,
+  type FormGroup,
+} from '@angular/forms';
 import { Chat } from '@ai-sdk/angular';
-import { isToolUIPart } from 'ai';
-import type {
-  DataUIPart,
-  ToolUIPart,
-  UIDataTypes,
-  UIMessagePart,
-  UITools,
+import {
+  isToolUIPart,
+  type DataUIPart,
+  type ToolUIPart,
+  type UIDataTypes,
+  type UIMessagePart,
+  type UITools,
 } from 'ai';
-
 @Component({
   selector: 'app-chat',
   standalone: true,

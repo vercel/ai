@@ -1,6 +1,8 @@
 import type { JSONObject, RerankingModelV4CallOptions } from '@ai-sdk/provider';
-import type { ProviderOptions } from '@ai-sdk/provider-utils';
-import { createIdGenerator } from '@ai-sdk/provider-utils';
+import {
+  createIdGenerator,
+  type ProviderOptions,
+} from '@ai-sdk/provider-utils';
 import { prepareRetries } from '../../src/util/prepare-retries';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveRerankingModel } from '../model/resolve-model';

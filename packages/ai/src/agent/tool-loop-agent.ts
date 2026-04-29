@@ -1,5 +1,9 @@
-import type { Context, ModelMessage, ToolSet } from '@ai-sdk/provider-utils';
-import { validateTypes } from '@ai-sdk/provider-utils';
+import {
+  validateTypes,
+  type Context,
+  type ModelMessage,
+  type ToolSet,
+} from '@ai-sdk/provider-utils';
 import { generateText } from '../generate-text/generate-text';
 import type {
   GenerateTextOnStartCallback,

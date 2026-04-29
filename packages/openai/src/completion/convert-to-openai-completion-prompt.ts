@@ -1,9 +1,8 @@
-import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
 import {
   InvalidPromptError,
   UnsupportedFunctionalityError,
+  type LanguageModelV4Prompt,
 } from '@ai-sdk/provider';
-
 export function convertToOpenAICompletionPrompt({
   prompt,
   user = 'user',

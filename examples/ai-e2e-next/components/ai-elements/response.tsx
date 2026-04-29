@@ -1,8 +1,7 @@
 'use client';
 
 import { cn } from '@/lib/utils';
-import { memo } from 'react';
-import type { ComponentProps } from 'react';
+import { memo, type ComponentProps } from 'react';
 import { Streamdown } from 'streamdown';
 
 type ResponseProps = ComponentProps<typeof Streamdown>;

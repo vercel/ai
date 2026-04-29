@@ -1,7 +1,8 @@
-import type { EventSourceMessage } from 'eventsource-parser/stream';
-import { EventSourceParserStream } from 'eventsource-parser/stream';
-import type { ParseResult } from './parse-json';
-import { safeParseJSON } from './parse-json';
+import {
+  EventSourceParserStream,
+  type EventSourceMessage,
+} from 'eventsource-parser/stream';
+import { safeParseJSON, type ParseResult } from './parse-json';
 import type { FlexibleSchema } from './schema';
 
 /**

@@ -1,13 +1,16 @@
-import type {
-  Arrayable,
-  InferToolInput,
-  InferToolSetContext,
-  ToolSet,
-  ModelMessage,
+import {
+  executeTool,
+  isExecutableTool,
+  type Arrayable,
+  type InferToolInput,
+  type InferToolSetContext,
+  type ToolSet,
+  type ModelMessage,
 } from '@ai-sdk/provider-utils';
-import { executeTool, isExecutableTool } from '@ai-sdk/provider-utils';
-import type { TimeoutConfiguration } from '../prompt/request-options';
-import { getToolTimeoutMs } from '../prompt/request-options';
+import {
+  getToolTimeoutMs,
+  type TimeoutConfiguration,
+} from '../prompt/request-options';
 import { mergeAbortSignals } from '../util/merge-abort-signals';
 import { notify } from '../util/notify';
 import { now } from '../util/now';

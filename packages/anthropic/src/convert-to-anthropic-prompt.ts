@@ -1,12 +1,11 @@
-import type {
-  SharedV4Warning,
-  LanguageModelV4DataContent,
-  LanguageModelV4Message,
-  LanguageModelV4Prompt,
-  SharedV4ProviderMetadata,
+import {
+  UnsupportedFunctionalityError,
+  type SharedV4Warning,
+  type LanguageModelV4DataContent,
+  type LanguageModelV4Message,
+  type LanguageModelV4Prompt,
+  type SharedV4ProviderMetadata,
 } from '@ai-sdk/provider';
-import { UnsupportedFunctionalityError } from '@ai-sdk/provider';
-import type { ToolNameMapping } from '@ai-sdk/provider-utils';
 import {
   convertBase64ToUint8Array,
   convertToBase64,
@@ -15,15 +14,16 @@ import {
   resolveProviderReference,
   validateTypes,
   isNonNullable,
+  type ToolNameMapping,
 } from '@ai-sdk/provider-utils';
-import type {
-  AnthropicAssistantMessage,
-  AnthropicPrompt,
-  AnthropicToolResultContent,
-  AnthropicUserMessage,
-  AnthropicWebFetchToolResultContent,
+import {
+  anthropicReasoningMetadataSchema,
+  type AnthropicAssistantMessage,
+  type AnthropicPrompt,
+  type AnthropicToolResultContent,
+  type AnthropicUserMessage,
+  type AnthropicWebFetchToolResultContent,
 } from './anthropic-api';
-import { anthropicReasoningMetadataSchema } from './anthropic-api';
 import { anthropicFilePartProviderOptions } from './anthropic-options';
 import { CacheControlValidator } from './get-cache-control';
 import { codeExecution_20250522OutputSchema } from './tool/code-execution_20250522';

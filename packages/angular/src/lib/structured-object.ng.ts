@@ -3,16 +3,17 @@ import {
   isAbortError,
   normalizeHeaders,
   safeValidateTypes,
-} from '@ai-sdk/provider-utils';
-import type {
-  FetchFunction,
-  FlexibleSchema,
-  InferSchema,
+  type FetchFunction,
+  type FlexibleSchema,
+  type InferSchema,
 } from '@ai-sdk/provider-utils';
 import { signal } from '@angular/core';
-import { asSchema, isDeepEqualData, parsePartialJson } from 'ai';
-import type { DeepPartial } from 'ai';
-
+import {
+  asSchema,
+  isDeepEqualData,
+  parsePartialJson,
+  type DeepPartial,
+} from 'ai';
 export type StructuredObjectOptions<
   SCHEMA extends FlexibleSchema,
   RESULT = InferSchema<SCHEMA>,

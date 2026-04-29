@@ -14,12 +14,11 @@ import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import fs from 'node:fs';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { OpenAIResponsesLanguageModel } from './openai-responses-language-model';
-import type { OpenAILanguageModelResponsesOptions } from './openai-responses-options';
 import {
   openaiResponsesModelIds,
   openaiResponsesReasoningModelIds,
+  type OpenAILanguageModelResponsesOptions,
 } from './openai-responses-options';
-
 const TEST_PROMPT: LanguageModelV4Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];

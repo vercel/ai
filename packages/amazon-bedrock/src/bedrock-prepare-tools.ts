@@ -1,9 +1,9 @@
-import type {
-  JSONObject,
-  LanguageModelV4CallOptions,
-  SharedV4Warning,
+import {
+  UnsupportedFunctionalityError,
+  type JSONObject,
+  type LanguageModelV4CallOptions,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
-import { UnsupportedFunctionalityError } from '@ai-sdk/provider';
 import { asSchema } from '@ai-sdk/provider-utils';
 import {
   anthropicTools,

@@ -1,6 +1,5 @@
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
-import type { ModelMessage } from 'ai';
-import { generateText, tool, isStepCount } from 'ai';
+import { generateText, tool, isStepCount, type ModelMessage } from 'ai';
 import { z } from 'zod';
 import { run } from '../../lib/run';
 

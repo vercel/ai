@@ -5,7 +5,6 @@ import type {
   LanguageModelV4,
   ProviderV4,
 } from '@ai-sdk/provider';
-import type { FetchFunction, Resolvable } from '@ai-sdk/provider-utils';
 import {
   generateId,
   loadOptionalSetting,
@@ -14,6 +13,8 @@ import {
   resolve,
   withoutTrailingSlash,
   withUserAgentSuffix,
+  type FetchFunction,
+  type Resolvable,
 } from '@ai-sdk/provider-utils';
 import { VERSION } from './version';
 import type { GoogleVertexConfig } from './google-vertex-config';

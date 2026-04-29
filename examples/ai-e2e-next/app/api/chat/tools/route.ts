@@ -1,12 +1,16 @@
-import type { OpenAILanguageModelResponsesOptions } from '@ai-sdk/openai';
-import { openai } from '@ai-sdk/openai';
-import type { InferUITools, UIDataTypes, UIMessage } from 'ai';
+import {
+  openai,
+  type OpenAILanguageModelResponsesOptions,
+} from '@ai-sdk/openai';
 import {
   convertToModelMessages,
   isStepCount,
   streamText,
   tool,
   validateUIMessages,
+  type InferUITools,
+  type UIDataTypes,
+  type UIMessage,
 } from 'ai';
 import { z } from 'zod';
 

@@ -1,10 +1,4 @@
 import type { JSONSchema7, JSONValue } from '@ai-sdk/provider';
-import type {
-  FlexibleSchema,
-  Tool,
-  ToolExecutionOptions,
-  ToolResultOutput,
-} from '@ai-sdk/provider-utils';
 import {
   asSchema,
   dynamicTool,
@@ -12,6 +6,10 @@ import {
   safeParseJSON,
   safeValidateTypes,
   tool,
+  type FlexibleSchema,
+  type Tool,
+  type ToolExecutionOptions,
+  type ToolResultOutput,
 } from '@ai-sdk/provider-utils';
 import type { z } from 'zod/v4';
 import { MCPClientError } from '../error/mcp-client-error';
@@ -21,30 +19,12 @@ import type {
   JSONRPCRequest,
   JSONRPCResponse,
 } from './json-rpc-message';
-import type { MCPTransport, MCPTransportConfig } from './mcp-transport';
-import { createMcpTransport, isCustomMcpTransport } from './mcp-transport';
-import type {
-  CallToolResult,
-  ClientCapabilities,
-  Configuration,
-  Configuration as ClientConfiguration,
-  ElicitationRequest,
-  ElicitResult,
-  ListResourceTemplatesResult,
-  ListResourcesResult,
-  ListPromptsResult,
-  ListToolsResult,
-  McpToolSet,
-  Notification,
-  PaginatedRequest,
-  ReadResourceResult,
-  GetPromptResult,
-  Request,
-  RequestOptions,
-  ServerCapabilities,
-  ToolSchemas,
-  ToolMeta,
-} from './types';
+import {
+  createMcpTransport,
+  isCustomMcpTransport,
+  type MCPTransport,
+  type MCPTransportConfig,
+} from './mcp-transport';
 import {
   CallToolResultSchema,
   ElicitationRequestSchema,
@@ -58,8 +38,27 @@ import {
   ReadResourceResultSchema,
   GetPromptResultSchema,
   SUPPORTED_PROTOCOL_VERSIONS,
+  type CallToolResult,
+  type ClientCapabilities,
+  type Configuration,
+  type Configuration as ClientConfiguration,
+  type ElicitationRequest,
+  type ElicitResult,
+  type ListResourceTemplatesResult,
+  type ListResourcesResult,
+  type ListPromptsResult,
+  type ListToolsResult,
+  type McpToolSet,
+  type Notification,
+  type PaginatedRequest,
+  type ReadResourceResult,
+  type GetPromptResult,
+  type Request,
+  type RequestOptions,
+  type ServerCapabilities,
+  type ToolSchemas,
+  type ToolMeta,
 } from './types';
-
 const CLIENT_VERSION = '1.0.0';
 
 function mcpToModelOutput({

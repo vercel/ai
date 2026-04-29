@@ -1,5 +1,4 @@
-import { google } from '@ai-sdk/google';
-import type { GoogleLanguageModelOptions } from '@ai-sdk/google';
+import { google, type GoogleLanguageModelOptions } from '@ai-sdk/google';
 import { generateText } from 'ai';
 import { run } from '../../lib/run';
 

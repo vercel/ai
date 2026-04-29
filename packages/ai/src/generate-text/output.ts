@@ -1,11 +1,14 @@
-import type { JSONValue, LanguageModelV4CallOptions } from '@ai-sdk/provider';
-import { TypeValidationError } from '@ai-sdk/provider';
-import type { FlexibleSchema } from '@ai-sdk/provider-utils';
+import {
+  TypeValidationError,
+  type JSONValue,
+  type LanguageModelV4CallOptions,
+} from '@ai-sdk/provider';
 import {
   asSchema,
   resolve,
   safeParseJSON,
   safeValidateTypes,
+  type FlexibleSchema,
 } from '@ai-sdk/provider-utils';
 import { NoObjectGeneratedError } from '../error/no-object-generated-error';
 import type { FinishReason } from '../types/language-model';

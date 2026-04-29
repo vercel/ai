@@ -1,5 +1,4 @@
-import type { UIToolInvocation } from 'ai';
-import { tool } from 'ai';
+import { tool, type UIToolInvocation } from 'ai';
 import { z } from 'zod';
 
 function randomWeather() {

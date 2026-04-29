@@ -1,5 +1,7 @@
-import type { OpenAILanguageModelResponsesOptions } from '@ai-sdk/openai';
-import { openai } from '@ai-sdk/openai';
+import {
+  openai,
+  type OpenAILanguageModelResponsesOptions,
+} from '@ai-sdk/openai';
 import { generateText, Output, isStepCount } from 'ai';
 import { z } from 'zod';
 import { print } from '../../lib/print';

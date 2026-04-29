@@ -1,12 +1,4 @@
 import pkceChallenge from 'pkce-challenge';
-import type {
-  OAuthTokens,
-  OAuthProtectedResourceMetadata,
-  AuthorizationServerMetadata,
-  OAuthClientInformation,
-  OAuthClientMetadata,
-  OAuthClientInformationFull,
-} from './oauth-types';
 import {
   OAuthProtectedResourceMetadataSchema,
   OAuthMetadataSchema,
@@ -14,6 +6,12 @@ import {
   OAuthTokensSchema,
   OAuthErrorResponseSchema,
   OAuthClientInformationFullSchema,
+  type OAuthTokens,
+  type OAuthProtectedResourceMetadata,
+  type AuthorizationServerMetadata,
+  type OAuthClientInformation,
+  type OAuthClientMetadata,
+  type OAuthClientInformationFull,
 } from './oauth-types';
 import {
   MCPClientOAuthError,
@@ -29,9 +27,7 @@ import {
   resourceUrlStripSlash,
 } from '../util/oauth-util';
 import { LATEST_PROTOCOL_VERSION } from './types';
-import type { FetchFunction } from '@ai-sdk/provider-utils';
-import { parseJSON } from '@ai-sdk/provider-utils';
-
+import { parseJSON, type FetchFunction } from '@ai-sdk/provider-utils';
 export type AuthResult = 'AUTHORIZED' | 'REDIRECT';
 
 export interface OAuthClientProvider {

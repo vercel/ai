@@ -1,6 +1,5 @@
 import { openai } from '@ai-sdk/openai';
-import type { InferAgentUIMessage } from 'ai';
-import { ToolLoopAgent } from 'ai';
+import { ToolLoopAgent, type InferAgentUIMessage } from 'ai';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 

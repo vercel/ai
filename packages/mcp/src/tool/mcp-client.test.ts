@@ -3,16 +3,17 @@ import { z } from 'zod/v4';
 import { MCPClientError } from '../error/mcp-client-error';
 import { createMCPClient } from './mcp-client';
 import { MockMCPTransport } from './mock-mcp-transport';
-import type {
-  CallToolResult,
-  ListResourceTemplatesResult,
-  ListResourcesResult,
-  ReadResourceResult,
-  ListPromptsResult,
-  GetPromptResult,
-  Configuration,
+import {
+  ListToolsResult,
+  ElicitationRequestSchema,
+  type CallToolResult,
+  type ListResourceTemplatesResult,
+  type ListResourcesResult,
+  type ReadResourceResult,
+  type ListPromptsResult,
+  type GetPromptResult,
+  type Configuration,
 } from './types';
-import { ListToolsResult, ElicitationRequestSchema } from './types';
 import type { JSONRPCRequest } from './json-rpc-message';
 import {
   beforeEach,

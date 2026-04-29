@@ -1,5 +1,4 @@
-import type { AzureResponsesProviderMetadata } from '@ai-sdk/azure';
-import { azure } from '@ai-sdk/azure';
+import { azure, type AzureResponsesProviderMetadata } from '@ai-sdk/azure';
 import type { OpenAILanguageModelChatOptions } from '@ai-sdk/openai';
 import { streamText } from 'ai';
 import { run } from '../../lib/run';

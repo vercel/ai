@@ -1,8 +1,6 @@
 import type { ReasoningFilePart, ReasoningPart } from '@ai-sdk/provider-utils';
 import type { ProviderMetadata } from '../types/provider-metadata';
-import type { GeneratedFile } from './generated-file';
-import { DefaultGeneratedFile } from './generated-file';
-
+import { DefaultGeneratedFile, type GeneratedFile } from './generated-file';
 /**
  * Reasoning output of a text generation. It contains a reasoning.
  */

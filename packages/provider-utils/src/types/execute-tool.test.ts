@@ -2,9 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { z } from 'zod/v4';
 import { executeTool } from './execute-tool';
 import type { ExecutableTool } from './executable-tool';
-import type { ToolExecutionOptions } from './tool';
-import { tool } from './tool';
-
+import { tool, type ToolExecutionOptions } from './tool';
 describe('executeTool', () => {
   it('yields a single final output for non-streaming tools', async () => {
     const weatherTool = tool({

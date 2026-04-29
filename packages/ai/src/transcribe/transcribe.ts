@@ -1,6 +1,8 @@
 import type { JSONObject } from '@ai-sdk/provider';
-import type { ProviderOptions } from '@ai-sdk/provider-utils';
-import { withUserAgentSuffix } from '@ai-sdk/provider-utils';
+import {
+  withUserAgentSuffix,
+  type ProviderOptions,
+} from '@ai-sdk/provider-utils';
 import { NoTranscriptGeneratedError } from '../error/no-transcript-generated-error';
 import { logWarnings } from '../logger/log-warnings';
 import type { DataContent } from '../prompt';

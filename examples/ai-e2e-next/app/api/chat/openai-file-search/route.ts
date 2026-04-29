@@ -1,8 +1,16 @@
-import type { OpenAILanguageModelResponsesOptions } from '@ai-sdk/openai';
-import { openai } from '@ai-sdk/openai';
-import type { InferUITools, ToolSet, UIDataTypes, UIMessage } from 'ai';
-import { convertToModelMessages, streamText, validateUIMessages } from 'ai';
-
+import {
+  openai,
+  type OpenAILanguageModelResponsesOptions,
+} from '@ai-sdk/openai';
+import {
+  convertToModelMessages,
+  streamText,
+  validateUIMessages,
+  type InferUITools,
+  type ToolSet,
+  type UIDataTypes,
+  type UIMessage,
+} from 'ai';
 export const maxDuration = 30;
 
 const tools = {

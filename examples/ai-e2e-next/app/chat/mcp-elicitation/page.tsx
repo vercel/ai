@@ -3,12 +3,11 @@
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport, isDataUIPart } from 'ai';
 import { useState, useEffect, useRef } from 'react';
-import type {
-  MCPElicitationUIMessage,
-  ElicitationAction,
+import {
+  ElicitationDataTypes,
+  type MCPElicitationUIMessage,
+  type ElicitationAction,
 } from '@/app/api/chat/mcp-elicitation/types';
-import { ElicitationDataTypes } from '@/app/api/chat/mcp-elicitation/types';
-
 export default function MCPElicitationChat() {
   const [input, setInput] = useState('');
   const [showModal, setShowModal] = useState(false);

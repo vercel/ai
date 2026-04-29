@@ -1,8 +1,8 @@
-import type {
-  GoogleLanguageModelOptions,
-  GoogleProviderMetadata,
+import {
+  google,
+  type GoogleLanguageModelOptions,
+  type GoogleProviderMetadata,
 } from '@ai-sdk/google';
-import { google } from '@ai-sdk/google';
 import { streamText } from 'ai';
 import { presentImages } from '../../lib/present-image';
 import { run } from '../../lib/run';

@@ -9,13 +9,12 @@ import {
 } from './gateway-model-not-found-error';
 import { GatewayInternalServerError } from './gateway-internal-server-error';
 import { GatewayResponseError } from './gateway-response-error';
-import type { InferSchema } from '@ai-sdk/provider-utils';
 import {
   lazySchema,
   safeValidateTypes,
   zodSchema,
+  type InferSchema,
 } from '@ai-sdk/provider-utils';
-
 export async function createGatewayErrorFromResponse({
   response,
   statusCode,

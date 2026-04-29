@@ -2,9 +2,7 @@ import { EmptyResponseBodyError } from '@ai-sdk/provider';
 import { createBedrockEventStreamResponseHandler } from './bedrock-event-stream-response-handler';
 import { EventStreamCodec } from '@smithy/eventstream-codec';
 import { z } from 'zod/v4';
-import type { MockInstance } from 'vitest';
-import { describe, it, expect, vi } from 'vitest';
-
+import { describe, it, expect, vi, type MockInstance } from 'vitest';
 // Helper that constructs a properly framed message.
 // The first 4 bytes will contain the frame total length (big-endian).
 const createFrame = (payload: Uint8Array): Uint8Array => {

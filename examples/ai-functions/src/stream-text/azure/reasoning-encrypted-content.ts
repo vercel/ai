@@ -1,11 +1,10 @@
 import { streamText } from 'ai';
 import { run } from '../../lib/run';
-import type {
-  AzureResponsesReasoningProviderMetadata,
-  OpenAILanguageModelResponsesOptions,
+import {
+  azure,
+  type AzureResponsesReasoningProviderMetadata,
+  type OpenAILanguageModelResponsesOptions,
 } from '@ai-sdk/azure';
-import { azure } from '@ai-sdk/azure';
-
 run(async () => {
   const result = streamText({
     model: azure('gpt-5'),

@@ -1,5 +1,4 @@
-import type { JSONValue } from '@ai-sdk/provider';
-import { getErrorMessage } from '@ai-sdk/provider';
+import { getErrorMessage, type JSONValue } from '@ai-sdk/provider';
 import type { Tool, ToolResultOutput } from '@ai-sdk/provider-utils';
 
 export async function createToolModelOutput({

@@ -1,5 +1,7 @@
-import type { GoogleCredentials } from './google-vertex-auth-edge';
-import { generateAuthToken } from './google-vertex-auth-edge';
+import {
+  generateAuthToken,
+  type GoogleCredentials,
+} from './google-vertex-auth-edge';
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 
 // Mock provider-utils to control runtime environment detection

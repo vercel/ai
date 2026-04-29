@@ -17,12 +17,11 @@ import {
 import type { OpenAIConfig } from '../openai-config';
 import { openaiFailedResponseHandler } from '../openai-error';
 import { openaiTranscriptionResponseSchema } from './openai-transcription-api';
-import type {
-  OpenAITranscriptionModelId,
-  OpenAITranscriptionModelOptions,
+import {
+  openAITranscriptionModelOptions,
+  type OpenAITranscriptionModelId,
+  type OpenAITranscriptionModelOptions,
 } from './openai-transcription-options';
-import { openAITranscriptionModelOptions } from './openai-transcription-options';
-
 export type OpenAITranscriptionCallOptions = Omit<
   TranscriptionModelV4CallOptions,
   'providerOptions'

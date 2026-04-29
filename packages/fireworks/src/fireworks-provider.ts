@@ -1,8 +1,8 @@
-import type { ProviderErrorStructure } from '@ai-sdk/openai-compatible';
 import {
   OpenAICompatibleChatLanguageModel,
   OpenAICompatibleCompletionLanguageModel,
   OpenAICompatibleEmbeddingModel,
+  type ProviderErrorStructure,
 } from '@ai-sdk/openai-compatible';
 import type {
   EmbeddingModelV4,
@@ -10,11 +10,11 @@ import type {
   LanguageModelV4,
   ProviderV4,
 } from '@ai-sdk/provider';
-import type { FetchFunction } from '@ai-sdk/provider-utils';
 import {
   loadApiKey,
   withoutTrailingSlash,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import type { FireworksChatModelId } from './fireworks-chat-options';

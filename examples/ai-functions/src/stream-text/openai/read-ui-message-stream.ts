@@ -1,6 +1,11 @@
 import { openai } from '@ai-sdk/openai';
-import type { Tool } from 'ai';
-import { readUIMessageStream, isStepCount, streamText, tool } from 'ai';
+import {
+  readUIMessageStream,
+  isStepCount,
+  streamText,
+  tool,
+  type Tool,
+} from 'ai';
 import { z } from 'zod';
 import { run } from '../../lib/run';
 

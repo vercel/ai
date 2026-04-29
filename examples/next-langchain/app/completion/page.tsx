@@ -1,8 +1,7 @@
 'use client';
 
 import { useCompletion } from '@ai-sdk/react';
-import type { FormEvent, KeyboardEvent } from 'react';
-import { useState } from 'react';
+import { useState, type FormEvent, type KeyboardEvent } from 'react';
 import { Send, Sparkles, AlertCircle, Square } from 'lucide-react';
 
 export default function CompletionPage() {

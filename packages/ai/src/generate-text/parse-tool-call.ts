@@ -3,17 +3,15 @@ import {
   asSchema,
   safeParseJSON,
   safeValidateTypes,
+  type ToolSet,
+  type ModelMessage,
+  type SystemModelMessage,
 } from '@ai-sdk/provider-utils';
 import { InvalidToolInputError } from '../error/invalid-tool-input-error';
 import { NoSuchToolError } from '../error/no-such-tool-error';
 import { ToolCallRepairError } from '../error/tool-call-repair-error';
 import type { DynamicToolCall, TypedToolCall } from './tool-call';
 import type { ToolCallRepairFunction } from './tool-call-repair-function';
-import type {
-  ToolSet,
-  ModelMessage,
-  SystemModelMessage,
-} from '@ai-sdk/provider-utils';
 
 export async function parseToolCall<TOOLS extends ToolSet>({
   toolCall,

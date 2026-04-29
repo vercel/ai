@@ -2,8 +2,8 @@ import {
   createJsonErrorResponseHandler,
   lazySchema,
   zodSchema,
+  type InferSchema,
 } from '@ai-sdk/provider-utils';
-import type { InferSchema } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
 const googleErrorDataSchema = lazySchema(() =>

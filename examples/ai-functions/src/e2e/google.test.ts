@@ -1,5 +1,4 @@
-import type { GoogleErrorData } from '@ai-sdk/google';
-import { google as provider } from '@ai-sdk/google';
+import { google as provider, type GoogleErrorData } from '@ai-sdk/google';
 import type {
   APICallError,
   LanguageModelV3,
@@ -7,13 +6,13 @@ import type {
 } from '@ai-sdk/provider';
 import 'dotenv/config';
 import { expect } from 'vitest';
-import type { ModelWithCapabilities } from './feature-test-suite';
 import {
   createEmbeddingModelWithCapabilities,
   createFeatureTestSuite,
   createLanguageModelWithCapabilities,
   createImageModelWithCapabilities,
   defaultChatModelCapabilities,
+  type ModelWithCapabilities,
 } from './feature-test-suite';
 import { defaultSettingsMiddleware, wrapLanguageModel } from 'ai';
 

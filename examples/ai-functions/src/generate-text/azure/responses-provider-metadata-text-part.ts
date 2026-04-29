@@ -1,5 +1,4 @@
-import { azure } from '@ai-sdk/azure';
-import type { AzureResponsesTextProviderMetadata } from '@ai-sdk/azure';
+import { azure, type AzureResponsesTextProviderMetadata } from '@ai-sdk/azure';
 import { generateText } from 'ai';
 import { run } from '../../lib/run';
 

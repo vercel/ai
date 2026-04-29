@@ -1,15 +1,14 @@
-import type {
-  EmbeddingModelV4,
-  RerankingModelV4,
-  ProviderV4,
+import {
+  NoSuchModelError,
+  type EmbeddingModelV4,
+  type RerankingModelV4,
+  type ProviderV4,
 } from '@ai-sdk/provider';
-import { NoSuchModelError } from '@ai-sdk/provider';
-
-import type { FetchFunction } from '@ai-sdk/provider-utils';
 import {
   loadApiKey,
   withoutTrailingSlash,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { VoyageEmbeddingModel } from './voyage-embedding-model';
 import type { VoyageEmbeddingModelId } from './voyage-embedding-options';

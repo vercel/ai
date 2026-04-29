@@ -7,8 +7,8 @@ import {
   DefaultChatTransport,
   isStaticToolUIPart,
   TextStreamChatTransport,
+  type UIMessageChunk,
 } from 'ai';
-import type { UIMessageChunk } from 'ai';
 import { flushSync } from 'svelte';
 import { Chat } from './chat.svelte.js';
 import { promiseWithResolvers } from './utils.svelte.js';

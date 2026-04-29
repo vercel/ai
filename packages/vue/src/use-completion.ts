@@ -1,10 +1,11 @@
-import type { CompletionRequestOptions, UseCompletionOptions } from 'ai';
-import { callCompletionApi } from 'ai';
+import {
+  callCompletionApi,
+  type CompletionRequestOptions,
+  type UseCompletionOptions,
+} from 'ai';
 import type * as SwrvModule from 'swrv';
 import swrv from 'swrv';
-import type { Ref } from 'vue';
-import { ref, unref } from 'vue';
-
+import { ref, unref, type Ref } from 'vue';
 export type { UseCompletionOptions };
 
 export type UseCompletionHelpers = {

@@ -1,8 +1,8 @@
-import type {
-  LanguageModelV4StreamPart,
-  SharedV4ProviderMetadata,
+import {
+  InvalidResponseDataError,
+  type LanguageModelV4StreamPart,
+  type SharedV4ProviderMetadata,
 } from '@ai-sdk/provider';
-import { InvalidResponseDataError } from '@ai-sdk/provider';
 import { generateId as defaultGenerateId } from './generate-id';
 import { isParsableJson } from './parse-json';
 

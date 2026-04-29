@@ -1,17 +1,16 @@
-import type {
-  EmbeddingModelV4,
-  LanguageModelV4,
-  RerankingModelV4,
-  ProviderV4,
+import {
+  NoSuchModelError,
+  type EmbeddingModelV4,
+  type LanguageModelV4,
+  type RerankingModelV4,
+  type ProviderV4,
 } from '@ai-sdk/provider';
-import { NoSuchModelError } from '@ai-sdk/provider';
-
-import type { FetchFunction } from '@ai-sdk/provider-utils';
 import {
   generateId,
   loadApiKey,
   withoutTrailingSlash,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { CohereChatLanguageModel } from './cohere-chat-language-model';
 import type { CohereChatModelId } from './cohere-chat-options';

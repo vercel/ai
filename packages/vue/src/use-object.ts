@@ -1,12 +1,19 @@
-import { isAbortError, safeValidateTypes } from '@ai-sdk/provider-utils';
-import type { FetchFunction } from '@ai-sdk/provider-utils';
-import { asSchema, isDeepEqualData, parsePartialJson } from 'ai';
-import type { DeepPartial, FlexibleSchema, InferSchema } from 'ai';
+import {
+  isAbortError,
+  safeValidateTypes,
+  type FetchFunction,
+} from '@ai-sdk/provider-utils';
+import {
+  asSchema,
+  isDeepEqualData,
+  parsePartialJson,
+  type DeepPartial,
+  type FlexibleSchema,
+  type InferSchema,
+} from 'ai';
 import type * as SwrvModule from 'swrv';
 import swrv from 'swrv';
-import { ref } from 'vue';
-import type { Ref } from 'vue';
-
+import { ref, type Ref } from 'vue';
 // use function to allow for mocking in tests
 const getOriginalFetch = () => fetch;
 

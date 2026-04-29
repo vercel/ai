@@ -3,9 +3,7 @@ import { parseDef } from '../parse-def';
 import type { JsonSchema7Type } from '../parse-types';
 import type { Refs } from '../refs';
 import { parseAnyDef } from './any';
-import type { JsonSchema7RecordType } from './record';
-import { parseRecordDef } from './record';
-
+import { parseRecordDef, type JsonSchema7RecordType } from './record';
 export type JsonSchema7MapType = {
   type: 'array';
   maxItems: 125;

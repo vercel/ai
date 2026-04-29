@@ -3,13 +3,12 @@ import type { LanguageModelV3, LanguageModelV4 } from '@ai-sdk/provider';
 import type { APICallError } from 'ai';
 import 'dotenv/config';
 import { expect } from 'vitest';
-import type { ModelWithCapabilities } from './feature-test-suite';
 import {
   createEmbeddingModelWithCapabilities,
   createFeatureTestSuite,
   createLanguageModelWithCapabilities,
+  type ModelWithCapabilities,
 } from './feature-test-suite';
-
 const createChatModel = (
   modelId: string,
 ): ModelWithCapabilities<LanguageModelV3 | LanguageModelV4> =>

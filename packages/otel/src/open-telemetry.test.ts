@@ -1,6 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type { Attributes, Span, SpanOptions, Tracer } from '@opentelemetry/api';
-import { SpanStatusCode } from '@opentelemetry/api';
+import {
+  SpanStatusCode,
+  type Attributes,
+  type Span,
+  type SpanOptions,
+  type Tracer,
+} from '@opentelemetry/api';
 import type { Telemetry } from 'ai';
 import { OpenTelemetry } from './open-telemetry';
 

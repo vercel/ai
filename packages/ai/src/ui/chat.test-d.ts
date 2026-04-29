@@ -1,7 +1,6 @@
 import { z } from 'zod/v4';
-import { tool } from '@ai-sdk/provider-utils';
+import { tool, type ToolSet } from '@ai-sdk/provider-utils';
 import type { ChatInit } from './chat';
-import type { ToolSet } from '@ai-sdk/provider-utils';
 import type {
   InferUITools,
   UIDataTypes,

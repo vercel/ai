@@ -4,20 +4,22 @@ import type {
   ImageModelV4File,
   ImageModelV4ProviderMetadata,
 } from '@ai-sdk/provider';
-import type { DataContent, ProviderOptions } from '@ai-sdk/provider-utils';
 import {
   convertBase64ToUint8Array,
   withUserAgentSuffix,
+  type DataContent,
+  type ProviderOptions,
 } from '@ai-sdk/provider-utils';
 import { NoImageGeneratedError } from '../error/no-image-generated-error';
-import type { GeneratedFile } from '../generate-text/generated-file';
-import { DefaultGeneratedFile } from '../generate-text/generated-file';
+import {
+  DefaultGeneratedFile,
+  type GeneratedFile,
+} from '../generate-text/generated-file';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveImageModel } from '../model/resolve-model';
 import type { ImageModel } from '../types/image-model';
 import type { ImageModelResponseMetadata } from '../types/image-model-response-metadata';
-import type { ImageModelUsage } from '../types/usage';
-import { addImageModelUsage } from '../types/usage';
+import { addImageModelUsage, type ImageModelUsage } from '../types/usage';
 import type { Warning } from '../types/warning';
 import {
   detectMediaType,

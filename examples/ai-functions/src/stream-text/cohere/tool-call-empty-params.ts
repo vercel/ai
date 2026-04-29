@@ -1,6 +1,11 @@
 import { cohere } from '@ai-sdk/cohere';
-import type { ModelMessage, ToolCallPart, ToolResultPart } from 'ai';
-import { streamText, tool } from 'ai';
+import {
+  streamText,
+  tool,
+  type ModelMessage,
+  type ToolCallPart,
+  type ToolResultPart,
+} from 'ai';
 import { z } from 'zod';
 import { run } from '../../lib/run';
 

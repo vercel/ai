@@ -1,13 +1,11 @@
-import type {
-  Tool,
-  ToolExecutionOptions,
-  ToolSet,
-  UIMessageStreamWriter,
-} from 'ai';
 import {
   convertToModelMessages,
   getStaticToolName,
   isStaticToolUIPart,
+  type Tool,
+  type ToolExecutionOptions,
+  type ToolSet,
+  type UIMessageStreamWriter,
 } from 'ai';
 import type { HumanInTheLoopUIMessage } from './types';
 

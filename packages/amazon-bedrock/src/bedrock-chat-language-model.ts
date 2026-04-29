@@ -12,11 +12,6 @@ import type {
   SharedV4ProviderMetadata,
   SharedV4Warning,
 } from '@ai-sdk/provider';
-import type {
-  FetchFunction,
-  ParseResult,
-  Resolvable,
-} from '@ai-sdk/provider-utils';
 import {
   combineHeaders,
   createJsonErrorResponseHandler,
@@ -30,24 +25,29 @@ import {
   serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
+  type FetchFunction,
+  type ParseResult,
+  type Resolvable,
 } from '@ai-sdk/provider-utils';
 import { getModelCapabilities } from '@ai-sdk/anthropic/internal';
 import { z } from 'zod/v4';
-import type {
-  BedrockConverseInput,
-  BedrockStopReason,
+import {
+  BEDROCK_STOP_REASONS,
+  type BedrockConverseInput,
+  type BedrockStopReason,
 } from './bedrock-api-types';
-import { BEDROCK_STOP_REASONS } from './bedrock-api-types';
-import type {
-  AmazonBedrockLanguageModelOptions,
-  BedrockChatModelId,
+import {
+  amazonBedrockLanguageModelOptions,
+  type AmazonBedrockLanguageModelOptions,
+  type BedrockChatModelId,
 } from './bedrock-chat-options';
-import { amazonBedrockLanguageModelOptions } from './bedrock-chat-options';
 import { BedrockErrorSchema } from './bedrock-error';
 import { createBedrockEventStreamResponseHandler } from './bedrock-event-stream-response-handler';
 import { prepareTools } from './bedrock-prepare-tools';
-import type { BedrockUsage } from './convert-bedrock-usage';
-import { convertBedrockUsage } from './convert-bedrock-usage';
+import {
+  convertBedrockUsage,
+  type BedrockUsage,
+} from './convert-bedrock-usage';
 import { convertToBedrockChatMessages } from './convert-to-bedrock-chat-messages';
 import { mapBedrockFinishReason } from './map-bedrock-finish-reason';
 import { isMistralModel, normalizeToolCallId } from './normalize-tool-call-id';

@@ -1,5 +1,7 @@
-import type { OpenAILanguageModelResponsesOptions } from '@ai-sdk/openai';
-import { openai } from '@ai-sdk/openai';
+import {
+  openai,
+  type OpenAILanguageModelResponsesOptions,
+} from '@ai-sdk/openai';
 import { weatherTool } from '../../tools/weather-tool';
 import { isStepCount, streamText, tool } from 'ai';
 import { z } from 'zod';

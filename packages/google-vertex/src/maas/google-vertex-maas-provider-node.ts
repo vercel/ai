@@ -1,13 +1,11 @@
-import type { FetchFunction } from '@ai-sdk/provider-utils';
-import { resolve } from '@ai-sdk/provider-utils';
+import { resolve, type FetchFunction } from '@ai-sdk/provider-utils';
 import type { GoogleAuthOptions } from 'google-auth-library';
 import { generateAuthToken } from '../google-vertex-auth-google-auth-library';
-import type {
-  GoogleVertexMaasProvider,
-  GoogleVertexMaasProviderSettings as GoogleVertexMaasProviderSettingsOriginal,
+import {
+  createVertexMaas as createVertexMaasOriginal,
+  type GoogleVertexMaasProvider,
+  type GoogleVertexMaasProviderSettings as GoogleVertexMaasProviderSettingsOriginal,
 } from './google-vertex-maas-provider';
-import { createVertexMaas as createVertexMaasOriginal } from './google-vertex-maas-provider';
-
 export type { GoogleVertexMaasProvider };
 
 export interface GoogleVertexMaasProviderSettings extends GoogleVertexMaasProviderSettingsOriginal {

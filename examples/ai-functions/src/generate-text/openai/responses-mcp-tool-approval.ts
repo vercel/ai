@@ -1,6 +1,10 @@
 import { createOpenAI } from '@ai-sdk/openai';
-import type { ModelMessage, ToolApprovalResponse } from 'ai';
-import { generateText, isStepCount } from 'ai';
+import {
+  generateText,
+  isStepCount,
+  type ModelMessage,
+  type ToolApprovalResponse,
+} from 'ai';
 import * as readline from 'node:readline/promises';
 import { run } from '../../lib/run';
 

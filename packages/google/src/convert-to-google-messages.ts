@@ -1,5 +1,7 @@
-import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
-import { UnsupportedFunctionalityError } from '@ai-sdk/provider';
+import {
+  UnsupportedFunctionalityError,
+  type LanguageModelV4Prompt,
+} from '@ai-sdk/provider';
 import {
   convertToBase64,
   isProviderReference,

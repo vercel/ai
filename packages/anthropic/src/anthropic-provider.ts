@@ -1,17 +1,18 @@
-import type {
-  FilesV4,
-  LanguageModelV4,
-  ProviderV4,
-  SkillsV4,
+import {
+  InvalidArgumentError,
+  NoSuchModelError,
+  type FilesV4,
+  type LanguageModelV4,
+  type ProviderV4,
+  type SkillsV4,
 } from '@ai-sdk/provider';
-import { InvalidArgumentError, NoSuchModelError } from '@ai-sdk/provider';
-import type { FetchFunction } from '@ai-sdk/provider-utils';
 import {
   generateId,
   loadApiKey,
   loadOptionalSetting,
   withoutTrailingSlash,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { AnthropicFiles } from './anthropic-files';
 import { AnthropicLanguageModel } from './anthropic-language-model';

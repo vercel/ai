@@ -1,5 +1,4 @@
-import { google } from '@ai-sdk/google';
-import type { GoogleVideoModelOptions } from '@ai-sdk/google';
+import { google, type GoogleVideoModelOptions } from '@ai-sdk/google';
 import { experimental_generateVideo } from 'ai';
 import { presentVideos } from '../../lib/present-video';
 import { run } from '../../lib/run';
