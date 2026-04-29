@@ -793,7 +793,11 @@ describe('generateText', () => {
           { role: 'system', content: 'INSTRUCTIONS' },
         ]);
         expect(consoleWarnSpy).toHaveBeenCalledWith(
-          'AI SDK Warning: System messages in the prompt or messages fields are allowed by default but should be provided through the system option instead. Set allowSystemInMessages to true to suppress this warning.',
+          'AI SDK Warning: System messages in the prompt or messages fields ' +
+            'can be a security risk because they may enable prompt injection ' +
+            'attacks. Use the system option instead when possible. Set ' +
+            'allowSystemInMessages to true to suppress this warning, or ' +
+            'false to throw an error.',
         );
       } finally {
         consoleWarnSpy.mockRestore();
