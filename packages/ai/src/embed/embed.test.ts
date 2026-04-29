@@ -1,9 +1,9 @@
-import { EmbeddingModelV4 } from '@ai-sdk/provider';
+import type { EmbeddingModelV4 } from '@ai-sdk/provider';
 import assert from 'node:assert';
 import { beforeEach, describe, expect, it, vi, vitest } from 'vitest';
 import * as logWarningsModule from '../logger/log-warnings';
 import { MockEmbeddingModelV4 } from '../test/mock-embedding-model-v4';
-import { Embedding, EmbeddingModelUsage, Warning } from '../types';
+import type { Embedding, EmbeddingModelUsage, Warning } from '../types';
 import { embed } from './embed';
 import type { EmbedStartEvent, EmbedEndEvent } from './embed-events';
 

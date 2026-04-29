@@ -1,4 +1,4 @@
-import { ModelMessage, SystemModelMessage } from '@ai-sdk/provider-utils';
+import type { ModelMessage, SystemModelMessage } from '@ai-sdk/provider-utils';
 
 /**
  * Prompt part of the AI function options.

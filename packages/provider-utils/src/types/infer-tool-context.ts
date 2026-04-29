@@ -1,4 +1,4 @@
-import { HasRequiredKey } from '../has-required-key';
+import type { HasRequiredKey } from '../has-required-key';
 import type { Tool } from './tool';
 
 /**

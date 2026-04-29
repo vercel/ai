@@ -1,9 +1,9 @@
 import {
-  FetchFunction,
   combineHeaders,
   normalizeHeaders,
   withUserAgentSuffix,
   getRuntimeEnvironmentUserAgent,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { AwsV4Signer } from 'aws4fetch';
 import { VERSION } from './version';

@@ -1,4 +1,8 @@
-import { InferSchema, lazySchema, zodSchema } from '@ai-sdk/provider-utils';
+import {
+  lazySchema,
+  zodSchema,
+  type InferSchema,
+} from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
 // https://platform.openai.com/docs/models

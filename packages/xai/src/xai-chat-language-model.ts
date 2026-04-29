@@ -15,16 +15,16 @@ import {
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   extractResponseHeaders,
-  FetchFunction,
   isCustomReasoning,
   mapReasoningToProviderEffort,
   parseProviderOptions,
-  ParseResult,
   postJsonToApi,
   safeParseJSON,
   serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
+  type FetchFunction,
+  type ParseResult,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { convertToXaiChatMessages } from './convert-to-xai-chat-messages';
@@ -32,8 +32,8 @@ import { convertXaiChatUsage } from './convert-xai-chat-usage';
 import { getResponseMetadata } from './get-response-metadata';
 import { mapXaiFinishReason } from './map-xai-finish-reason';
 import {
-  XaiChatModelId,
   xaiLanguageModelChatOptions,
+  type XaiChatModelId,
 } from './xai-chat-options';
 import { xaiFailedResponseHandler } from './xai-error';
 import { prepareTools } from './xai-prepare-tools';

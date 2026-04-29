@@ -1,12 +1,11 @@
 import { anthropic } from '@ai-sdk/anthropic';
 import {
   convertToModelMessages,
-  InferUITool,
   streamText,
-  UIDataTypes,
-  UIMessage,
+  type InferUITool,
+  type UIDataTypes,
+  type UIMessage,
 } from 'ai';
-
 export type SourcesChatMessage = UIMessage<
   never,
   UIDataTypes,

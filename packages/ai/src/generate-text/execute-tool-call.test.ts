@@ -2,10 +2,11 @@ import { tool } from '@ai-sdk/provider-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as z from 'zod/v4';
 import { TypeValidationError } from '../error';
+import { now } from '../util/now';
 import { executeToolCall } from './execute-tool-call';
-import { TypedToolCall } from './tool-call';
-import { TypedToolResult } from './tool-result';
-import {
+import type { TypedToolCall } from './tool-call';
+import type { TypedToolResult } from './tool-result';
+import type {
   ToolExecutionEndEvent,
   ToolExecutionStartEvent,
 } from './tool-execution-events';
@@ -14,7 +15,7 @@ import {
 vi.mock('../util/now', () => ({
   now: vi.fn(),
 }));
-import { now } from '../util/now';
+
 const mockNow = vi.mocked(now);
 
 describe('executeToolCall', () => {

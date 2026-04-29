@@ -15,22 +15,22 @@ import {
   createJsonResponseHandler,
   generateId,
   parseProviderOptions,
-  ParseResult,
   postJsonToApi,
   serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
+  type ParseResult,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import { HuggingFaceConfig } from '../huggingface-config';
+import type { HuggingFaceConfig } from '../huggingface-config';
 import { huggingfaceFailedResponseHandler } from '../huggingface-error';
 import {
   convertHuggingFaceResponsesUsage,
-  HuggingFaceResponsesUsage,
+  type HuggingFaceResponsesUsage,
 } from './convert-huggingface-responses-usage';
 import { convertToHuggingFaceResponsesMessages } from './convert-to-huggingface-responses-messages';
 import { prepareResponsesTools } from './huggingface-responses-prepare-tools';
-import { HuggingFaceResponsesModelId } from './huggingface-responses-settings';
+import type { HuggingFaceResponsesModelId } from './huggingface-responses-settings';
 import { mapHuggingFaceResponsesFinishReason } from './map-huggingface-responses-finish-reason';
 
 export class HuggingFaceResponsesLanguageModel implements LanguageModelV4 {

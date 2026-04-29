@@ -1,12 +1,12 @@
 import {
-  type LanguageModelV4,
   NoSuchModelError,
+  type LanguageModelV4,
   type ProviderV4,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
   generateId,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { OpenResponsesLanguageModel } from './responses/open-responses-language-model';
 import { VERSION } from './version';

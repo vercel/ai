@@ -1,4 +1,4 @@
-import { Attributes, AttributeValue } from '@opentelemetry/api';
+import type { Attributes, AttributeValue } from '@opentelemetry/api';
 import type { LanguageModelCallOptions } from 'ai';
 
 export function getBaseTelemetryAttributes({

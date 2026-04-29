@@ -8,14 +8,13 @@ import {
   WORKFLOW_DESERIALIZE,
   WORKFLOW_SERIALIZE,
 } from '@ai-sdk/provider-utils';
-import { OpenAIConfig } from '../openai-config';
+import type { OpenAIConfig } from '../openai-config';
 import { openaiFailedResponseHandler } from '../openai-error';
-import { OpenAISpeechAPITypes } from './openai-speech-api';
+import type { OpenAISpeechAPITypes } from './openai-speech-api';
 import {
   openaiSpeechModelOptionsSchema,
-  OpenAISpeechModelId,
+  type OpenAISpeechModelId,
 } from './openai-speech-options';
-
 interface OpenAISpeechModelConfig extends OpenAIConfig {
   _internal?: {
     currentDate?: () => Date;

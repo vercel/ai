@@ -154,9 +154,9 @@ const messages: ModelMessage[] = [
         },
       },
       {
-        type: 'image',
-        image:
-          'https://github.com/vercel/ai/blob/main/examples/ai-functions/data/comic-cat.png?raw=true',
+        type: 'file',
+        mediaType: 'image',
+        data: 'https://github.com/vercel/ai/blob/main/examples/ai-functions/data/comic-cat.png?raw=true',
         // Sets image detail configuration for image part:
         providerOptions: {
           openai: { imageDetail: 'low' },
@@ -229,8 +229,9 @@ const result = await generateText({
       content: [
         { type: 'text', text: 'Describe the image in detail.' },
         {
-          type: 'image',
-          image: fs.readFileSync('./data/comic-cat.png'),
+          type: 'file',
+          mediaType: 'image',
+          data: fs.readFileSync('./data/comic-cat.png'),
         },
       ],
     },
@@ -249,8 +250,9 @@ const result = await generateText({
       content: [
         { type: 'text', text: 'Describe the image in detail.' },
         {
-          type: 'image',
-          image: fs.readFileSync('./data/comic-cat.png').toString('base64'),
+          type: 'file',
+          mediaType: 'image',
+          data: fs.readFileSync('./data/comic-cat.png').toString('base64'),
         },
       ],
     },
@@ -269,9 +271,9 @@ const result = await generateText({
       content: [
         { type: 'text', text: 'Describe the image in detail.' },
         {
-          type: 'image',
-          image:
-            'https://github.com/vercel/ai/blob/main/examples/ai-functions/data/comic-cat.png?raw=true',
+          type: 'file',
+          mediaType: 'image',
+          data: 'https://github.com/vercel/ai/blob/main/examples/ai-functions/data/comic-cat.png?raw=true',
         },
       ],
     },
@@ -502,7 +504,7 @@ const result = await generateText({
           type: 'text',
           text: 'How many calories are in this block of cheese?',
         },
-        { type: 'image', image: fs.readFileSync('./data/roquefort.jpg') },
+        { type: 'file', mediaType: 'image', data: fs.readFileSync('./data/roquefort.jpg') },
       ],
     },
     {

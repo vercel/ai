@@ -2,8 +2,6 @@ import type {
   Experimental_VideoModelV4,
   SharedV4Warning,
 } from '@ai-sdk/provider';
-import type { InferSchema } from '@ai-sdk/provider-utils';
-import type { FetchFunction } from '@ai-sdk/provider-utils';
 import {
   combineHeaders,
   convertBase64ToUint8Array,
@@ -14,16 +12,18 @@ import {
   postToApi,
   resolve,
   zodSchema,
+  type FetchFunction,
+  type InferSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import type { ProdiaModelConfig } from './prodia-api';
 import {
   buildProdiaProviderMetadata,
   parseMultipart,
   prodiaFailedResponseHandler,
   prodiaJobResultSchema,
+  type ProdiaJobResult,
+  type ProdiaModelConfig,
 } from './prodia-api';
-import type { ProdiaJobResult } from './prodia-api';
 import type { ProdiaVideoModelId } from './prodia-video-model-settings';
 
 export class ProdiaVideoModel implements Experimental_VideoModelV4 {

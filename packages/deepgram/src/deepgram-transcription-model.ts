@@ -9,10 +9,10 @@ import {
   WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import { DeepgramTranscriptionAPITypes } from './deepgram-api-types';
-import { DeepgramConfig } from './deepgram-config';
+import type { DeepgramTranscriptionAPITypes } from './deepgram-api-types';
+import type { DeepgramConfig } from './deepgram-config';
 import { deepgramFailedResponseHandler } from './deepgram-error';
-import { DeepgramTranscriptionModelId } from './deepgram-transcription-options';
+import type { DeepgramTranscriptionModelId } from './deepgram-transcription-options';
 
 // https://developers.deepgram.com/docs/pre-recorded-audio#results
 const deepgramTranscriptionModelOptionsSchema = z.object({

@@ -1,5 +1,5 @@
 import { asArray } from '@ai-sdk/provider-utils';
-import { Callback } from '../util/callback';
+import type { Callback } from '../util/callback';
 import { mergeCallbacks } from '../util/merge-callbacks';
 import type {
   InferTelemetryEvent,

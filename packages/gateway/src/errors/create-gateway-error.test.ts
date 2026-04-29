@@ -9,7 +9,6 @@ import {
   GatewayResponseError,
   type GatewayErrorResponse,
 } from './index';
-
 describe('Valid error responses', () => {
   it('should create GatewayAuthenticationError for authentication_error type', async () => {
     const response: GatewayErrorResponse = {

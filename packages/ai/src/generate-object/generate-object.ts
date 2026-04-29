@@ -1,39 +1,39 @@
-import { JSONValue } from '@ai-sdk/provider';
+import type { JSONValue } from '@ai-sdk/provider';
 import {
   createIdGenerator,
-  FlexibleSchema,
-  InferSchema,
-  ProviderOptions,
   withUserAgentSuffix,
+  type FlexibleSchema,
+  type InferSchema,
+  type ProviderOptions,
 } from '@ai-sdk/provider-utils';
 import { NoObjectGeneratedError } from '../error/no-object-generated-error';
 import { extractReasoningContent } from '../generate-text/extract-reasoning-content';
 import { extractTextContent } from '../generate-text/extract-text-content';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
-import { LanguageModelCallOptions } from '../prompt/language-model-call-options';
+import type { LanguageModelCallOptions } from '../prompt/language-model-call-options';
 import { prepareLanguageModelCallOptions } from '../prompt/prepare-language-model-call-options';
-import { RequestOptions } from '../prompt/request-options';
+import type { RequestOptions } from '../prompt/request-options';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
-import { Prompt } from '../prompt/prompt';
+import type { Prompt } from '../prompt/prompt';
 import { standardizePrompt } from '../prompt/standardize-prompt';
 import { wrapGatewayError } from '../prompt/wrap-gateway-error';
 import { createTelemetryDispatcher } from '../telemetry/create-telemetry-dispatcher';
-import { TelemetryOptions } from '../telemetry/telemetry-options';
-import { LanguageModel } from '../types/language-model';
-import { LanguageModelRequestMetadata } from '../types/language-model-request-metadata';
-import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
+import type { TelemetryOptions } from '../telemetry/telemetry-options';
+import type { LanguageModel } from '../types/language-model';
+import type { LanguageModelRequestMetadata } from '../types/language-model-request-metadata';
+import type { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
 import { asLanguageModelUsage } from '../types/usage';
 import type { Callback } from '../util/callback';
-import { DownloadFunction } from '../util/download/download-function';
+import type { DownloadFunction } from '../util/download/download-function';
 import { notify } from '../util/notify';
 import { prepareHeaders } from '../util/prepare-headers';
 import { prepareRetries } from '../util/prepare-retries';
 import { VERSION } from '../version';
-import { GenerateObjectResult } from './generate-object-result';
+import type { GenerateObjectResult } from './generate-object-result';
 import { getOutputStrategy } from './output-strategy';
 import { parseAndValidateObjectResultWithRepair } from './parse-and-validate-object-result';
-import { RepairTextFunction } from './repair-text';
+import type { RepairTextFunction } from './repair-text';
 import type {
   GenerateObjectEndEvent,
   GenerateObjectStartEvent,

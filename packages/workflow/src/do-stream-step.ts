@@ -3,8 +3,9 @@ import type {
   LanguageModelV4Prompt,
 } from '@ai-sdk/provider';
 import {
-  type Experimental_LanguageModelStreamPart as ModelCallStreamPart,
   experimental_streamLanguageModelCall as streamModelCall,
+  gateway,
+  type Experimental_LanguageModelStreamPart as ModelCallStreamPart,
   type FinishReason,
   type LanguageModel,
   type LanguageModelUsage,
@@ -15,13 +16,11 @@ import {
   type ToolChoice,
   type ToolSet,
 } from 'ai';
-import { gateway } from 'ai';
 import type { ProviderOptions, TelemetryOptions } from './workflow-agent.js';
 import {
   resolveSerializableTools,
   type SerializableToolDef,
 } from './serializable-schema.js';
-
 export type { Experimental_LanguageModelStreamPart as ModelCallStreamPart } from 'ai';
 
 export type ModelStopCondition = StopCondition<NoInfer<ToolSet>, any>;

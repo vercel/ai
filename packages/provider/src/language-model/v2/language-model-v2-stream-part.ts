@@ -1,12 +1,12 @@
-import { SharedV2ProviderMetadata } from '../../shared/v2/shared-v2-provider-metadata';
-import { LanguageModelV2CallWarning } from './language-model-v2-call-warning';
-import { LanguageModelV2File } from './language-model-v2-file';
-import { LanguageModelV2FinishReason } from './language-model-v2-finish-reason';
-import { LanguageModelV2ResponseMetadata } from './language-model-v2-response-metadata';
-import { LanguageModelV2Source } from './language-model-v2-source';
-import { LanguageModelV2ToolCall } from './language-model-v2-tool-call';
-import { LanguageModelV2ToolResult } from './language-model-v2-tool-result';
-import { LanguageModelV2Usage } from './language-model-v2-usage';
+import type { SharedV2ProviderMetadata } from '../../shared/v2/shared-v2-provider-metadata';
+import type { LanguageModelV2CallWarning } from './language-model-v2-call-warning';
+import type { LanguageModelV2File } from './language-model-v2-file';
+import type { LanguageModelV2FinishReason } from './language-model-v2-finish-reason';
+import type { LanguageModelV2ResponseMetadata } from './language-model-v2-response-metadata';
+import type { LanguageModelV2Source } from './language-model-v2-source';
+import type { LanguageModelV2ToolCall } from './language-model-v2-tool-call';
+import type { LanguageModelV2ToolResult } from './language-model-v2-tool-result';
+import type { LanguageModelV2Usage } from './language-model-v2-usage';
 
 export type LanguageModelV2StreamPart =
   // Text blocks:

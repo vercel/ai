@@ -1,7 +1,6 @@
-import { FlexibleSchema } from './schema';
-import { Context } from './types/context';
-import { tool, Tool } from './types/tool';
-
+import type { FlexibleSchema } from './schema';
+import type { Context } from './types/context';
+import { tool, type Tool } from './types/tool';
 /**
  * A provider-executed tool is a tool for which the provider executes the tool.
  */

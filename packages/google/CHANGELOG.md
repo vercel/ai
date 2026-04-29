@@ -1,5 +1,14 @@
 # @ai-sdk/google
 
+## 4.0.0-beta.47
+
+### Patch Changes
+
+- 9f0e36c: trigger release for all packages after provenance setup
+- Updated dependencies [9f0e36c]
+  - @ai-sdk/provider@4.0.0-beta.13
+  - @ai-sdk/provider-utils@5.0.0-beta.28
+
 ## 4.0.0-beta.46
 
 ### Patch Changes

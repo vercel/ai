@@ -1,4 +1,4 @@
-import { LanguageModelV4CallOptions } from '@ai-sdk/provider';
+import type { LanguageModelV4CallOptions } from '@ai-sdk/provider';
 import { tool } from '@ai-sdk/provider-utils';
 import {
   convertArrayToReadableStream,
@@ -6,23 +6,24 @@ import {
 } from '@ai-sdk/provider-utils/test';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
-import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
-import { ToolLoopAgent } from './tool-loop-agent';
-import {
+import type {
+  GenerateTextOnFinishCallback,
+  GenerateTextOnStartCallback,
+  GenerateTextOnStepStartCallback,
+} from '../generate-text/generate-text-events';
+import type {
   ToolExecutionEndEvent,
   ToolExecutionStartEvent,
 } from '../generate-text/tool-execution-events';
+import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
+import { now } from '../util/now';
+import { ToolLoopAgent } from './tool-loop-agent';
 
 // mock now function
 vi.mock('../util/now', () => ({
   now: vi.fn(),
 }));
-import { now } from '../util/now';
-import {
-  GenerateTextOnFinishCallback,
-  GenerateTextOnStartCallback,
-  GenerateTextOnStepStartCallback,
-} from '../generate-text/generate-text-events';
+
 const mockNow = vi.mocked(now);
 
 const testSettings = {

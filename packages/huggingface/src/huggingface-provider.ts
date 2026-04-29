@@ -1,16 +1,16 @@
 import {
+  NoSuchModelError,
   type LanguageModelV4,
   type ProviderV4,
-  NoSuchModelError,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
   generateId,
   loadApiKey,
   withoutTrailingSlash,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { HuggingFaceResponsesLanguageModel } from './responses/huggingface-responses-language-model';
-import { HuggingFaceResponsesModelId } from './responses/huggingface-responses-settings';
+import type { HuggingFaceResponsesModelId } from './responses/huggingface-responses-settings';
 
 export interface HuggingFaceProviderSettings {
   /**

@@ -15,7 +15,7 @@ import type {
   GenerateTextOnStepStartCallback,
 } from './generate-text-events';
 import type { Output } from './output';
-import { DefaultStepResult, StepResult } from './step-result';
+import { DefaultStepResult, type StepResult } from './step-result';
 import type {
   OnToolExecutionEndCallback,
   OnToolExecutionStartCallback,

@@ -1,6 +1,5 @@
 import { mistral } from '@ai-sdk/mistral';
-import { convertToModelMessages, streamText, UIMessage } from 'ai';
-
+import { convertToModelMessages, streamText, type UIMessage } from 'ai';
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
 

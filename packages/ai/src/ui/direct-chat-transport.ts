@@ -1,11 +1,11 @@
-import { Agent } from '../agent/agent';
-import { Output } from '../generate-text/output';
-import { UIMessageStreamOptions } from '../generate-text/stream-text-result';
+import type { Agent } from '../agent/agent';
+import type { Output } from '../generate-text/output';
+import type { UIMessageStreamOptions } from '../generate-text/stream-text-result';
 import type { Context, ToolSet } from '@ai-sdk/provider-utils';
-import { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
-import { ChatTransport } from './chat-transport';
+import type { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
+import type { ChatTransport } from './chat-transport';
 import { convertToModelMessages } from './convert-to-model-messages';
-import { InferUITools, UIMessage } from './ui-messages';
+import type { InferUITools, UIMessage } from './ui-messages';
 import { validateUIMessages } from './validate-ui-messages';
 
 /**

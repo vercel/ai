@@ -1,6 +1,6 @@
-import { JSONObject } from '@ai-sdk/provider';
+import type { JSONObject } from '@ai-sdk/provider';
 import { isJSONSerializable } from './is-json-serializable';
-import { Resolvable } from './resolve';
+import type { Resolvable } from './resolve';
 
 /**
  * Serializes a model instance for workflow step boundaries.

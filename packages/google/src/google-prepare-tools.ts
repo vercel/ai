@@ -1,10 +1,10 @@
 import {
-  LanguageModelV4CallOptions,
-  SharedV4Warning,
   UnsupportedFunctionalityError,
+  type LanguageModelV4CallOptions,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
 import { convertJSONSchemaToOpenAPISchema } from './convert-json-schema-to-openapi-schema';
-import { GoogleModelId } from './google-options';
+import type { GoogleModelId } from './google-options';
 
 export function prepareTools({
   tools,

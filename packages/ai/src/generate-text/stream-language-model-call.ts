@@ -1,37 +1,39 @@
 import {
   getErrorMessage,
-  LanguageModelV4Prompt,
-  LanguageModelV4StreamPart,
-  SharedV4Headers,
+  type LanguageModelV4Prompt,
+  type LanguageModelV4StreamPart,
+  type SharedV4Headers,
 } from '@ai-sdk/provider';
-import type { Arrayable, IdGenerator, ToolSet } from '@ai-sdk/provider-utils';
 import {
   createIdGenerator,
-  ModelMessage,
-  ProviderOptions,
-  SystemModelMessage,
+  type Arrayable,
+  type IdGenerator,
+  type ToolSet,
+  type ModelMessage,
+  type ProviderOptions,
+  type SystemModelMessage,
 } from '@ai-sdk/provider-utils';
 import { ToolCallNotFoundForApprovalError } from '../error/tool-call-not-found-for-approval-error';
 import { resolveLanguageModel } from '../model/resolve-model';
-import { LanguageModelCallOptions } from '../prompt/language-model-call-options';
-import { Prompt } from '../prompt';
+import type { LanguageModelCallOptions } from '../prompt/language-model-call-options';
+import type { Prompt } from '../prompt';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { prepareToolChoice } from '../prompt/prepare-tool-choice';
 import { prepareTools } from '../prompt/prepare-tools';
 import { standardizePrompt } from '../prompt/standardize-prompt';
-import {
+import type {
   CallWarning,
   FinishReason,
   LanguageModel,
   ToolChoice,
 } from '../types/language-model';
-import { ProviderMetadata } from '../types/provider-metadata';
-import { asLanguageModelUsage, LanguageModelUsage } from '../types/usage';
+import type { ProviderMetadata } from '../types/provider-metadata';
+import { asLanguageModelUsage, type LanguageModelUsage } from '../types/usage';
 import {
-  AsyncIterableStream,
   createAsyncIterableStream,
+  type AsyncIterableStream,
 } from '../util/async-iterable-stream';
-import { DownloadFunction } from '../util/download/download-function';
+import type { DownloadFunction } from '../util/download/download-function';
 import { notify } from '../util/notify';
 import type { ContentPart } from './content-part';
 import { DefaultGeneratedFileWithType } from './generated-file';
@@ -39,9 +41,9 @@ import type {
   OnLanguageModelCallEndCallback,
   OnLanguageModelCallStartCallback,
 } from './language-model-events';
-import { Output } from './output';
+import type { Output } from './output';
 import { parseToolCall } from './parse-tool-call';
-import {
+import type {
   TextStreamFilePart,
   TextStreamPart,
   TextStreamReasoningDeltaPart,
@@ -53,10 +55,10 @@ import {
   TextStreamToolErrorPart,
   TextStreamToolResultPart,
 } from './stream-text-result';
-import { TypedToolCall } from './tool-call';
-import { ToolCallRepairFunction } from './tool-call-repair-function';
-import { TypedToolError } from './tool-error';
-import { TypedToolResult } from './tool-result';
+import type { TypedToolCall } from './tool-call';
+import type { ToolCallRepairFunction } from './tool-call-repair-function';
+import type { TypedToolError } from './tool-error';
+import type { TypedToolResult } from './tool-result';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -446,7 +448,10 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
         case 'file':
         case 'reasoning-file': {
           const file = new DefaultGeneratedFileWithType({
-            data: chunk.data,
+            data:
+              chunk.data.type === 'data'
+                ? chunk.data.data
+                : chunk.data.url.toString(),
             mediaType: chunk.mediaType,
           });
 

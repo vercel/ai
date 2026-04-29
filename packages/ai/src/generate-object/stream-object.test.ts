@@ -1,9 +1,9 @@
 import {
   JSONParseError,
-  SharedV4Warning,
-  LanguageModelV4StreamPart,
   TypeValidationError,
-  LanguageModelV4Usage,
+  type SharedV4Warning,
+  type LanguageModelV4StreamPart,
+  type LanguageModelV4Usage,
 } from '@ai-sdk/provider';
 import { jsonSchema } from '@ai-sdk/provider-utils';
 import {
@@ -19,9 +19,9 @@ import { verifyNoObjectGeneratedError } from '../error/verify-no-object-generate
 import * as logWarningsModule from '../logger/log-warnings';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import { createMockServerResponse } from '../test/mock-server-response';
-import { AsyncIterableStream } from '../util/async-iterable-stream';
+import type { AsyncIterableStream } from '../util/async-iterable-stream';
 import { streamObject } from './stream-object';
-import { StreamObjectResult } from './stream-object-result';
+import type { StreamObjectResult } from './stream-object-result';
 import { asLanguageModelUsage } from '../types/usage';
 
 const testUsage: LanguageModelV4Usage = {

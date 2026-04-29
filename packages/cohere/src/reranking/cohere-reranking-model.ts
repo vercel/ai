@@ -2,20 +2,19 @@ import type { RerankingModelV4, SharedV4Warning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createJsonResponseHandler,
-  FetchFunction,
   parseProviderOptions,
   postJsonToApi,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { cohereFailedResponseHandler } from '../cohere-error';
 import {
-  CohereRerankingInput,
   cohereRerankingResponseSchema,
+  type CohereRerankingInput,
 } from './cohere-reranking-api';
 import {
-  CohereRerankingModelId,
   cohereRerankingModelOptionsSchema,
+  type CohereRerankingModelId,
 } from './cohere-reranking-options';
-
 type CohereRerankingConfig = {
   provider: string;
   baseURL: string;

@@ -11,7 +11,10 @@ describe('convert to cohere chat prompt', () => {
             { type: 'text', text: 'Analyze this file: ' },
             {
               type: 'file',
-              data: Buffer.from('This is file content'),
+              data: {
+                type: 'data' as const,
+                data: Buffer.from('This is file content'),
+              },
               mediaType: 'text/plain',
               filename: 'test.txt',
             },
@@ -38,22 +41,72 @@ describe('convert to cohere chat prompt', () => {
       });
     });
 
-    it('should throw error for unsupported media types', () => {
-      expect(() => {
-        convertToCohereChatPrompt([
+    it('should accept top-level-only mediaType without error (category D: mediaType not consumed)', () => {
+      const result = convertToCohereChatPrompt([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: {
+                type: 'data' as const,
+                data: Buffer.from('This is file content'),
+              },
+              mediaType: 'text',
+              filename: 'test.txt',
+            },
+          ],
+        },
+      ]);
+
+      expect(result).toEqual({
+        messages: [
           {
             role: 'user',
-            content: [
-              {
-                type: 'file',
-                data: Buffer.from('PDF content'),
-                mediaType: 'application/pdf',
-                filename: 'test.pdf',
-              },
-            ],
+            content: '',
           },
-        ]);
-      }).toThrow("Media type 'application/pdf' is not supported");
+        ],
+        documents: [
+          {
+            data: {
+              text: 'This is file content',
+              title: 'test.txt',
+            },
+          },
+        ],
+        warnings: [],
+      });
+    });
+
+    it('should not read mediaType (document payload carries only text + title)', () => {
+      const result = convertToCohereChatPrompt([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: {
+                type: 'data' as const,
+                data: Buffer.from('PDF-like content'),
+              },
+              mediaType: 'application/pdf',
+              filename: 'test.pdf',
+            },
+          ],
+        },
+      ]);
+
+      expect(result.documents).toEqual([
+        {
+          data: {
+            text: 'PDF-like content',
+            title: 'test.pdf',
+          },
+        },
+      ]);
+      const payload = JSON.stringify(result);
+      expect(payload).not.toContain('application/pdf');
+      expect(payload).not.toContain('mediaType');
     });
   });
 
@@ -170,6 +223,30 @@ describe('convert to cohere chat prompt', () => {
         documents: [],
         warnings: [],
       });
+    });
+  });
+
+  describe('provider reference', () => {
+    it('should throw for file parts with provider references', () => {
+      expect(() =>
+        convertToCohereChatPrompt([
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                data: {
+                  type: 'reference' as const,
+                  reference: { cohere: 'doc-ref-123' },
+                },
+                mediaType: 'text/plain',
+              },
+            ],
+          },
+        ]),
+      ).toThrow(
+        "'file parts with provider references' functionality not supported",
+      );
     });
   });
 });

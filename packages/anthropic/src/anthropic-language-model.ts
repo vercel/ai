@@ -20,46 +20,47 @@ import {
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   createToolNameMapping,
-  FetchFunction,
   generateId,
-  InferSchema,
   isCustomReasoning,
   mapReasoningToProviderBudget,
   mapReasoningToProviderEffort,
   parseProviderOptions,
-  ParseResult,
   postJsonToApi,
-  Resolvable,
   resolve,
   resolveProviderReference,
   serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
+  type FetchFunction,
+  type InferSchema,
+  type ParseResult,
+  type Resolvable,
 } from '@ai-sdk/provider-utils';
 import { anthropicFailedResponseHandler } from './anthropic-error';
-import { AnthropicMessageMetadata } from './anthropic-message-metadata';
+import type { AnthropicMessageMetadata } from './anthropic-message-metadata';
 import {
-  AnthropicContainer,
   anthropicChunkSchema,
   anthropicResponseSchema,
-  AnthropicReasoningMetadata,
-  AnthropicResponseContextManagement,
-  AnthropicTool,
-  Citation,
+  type AnthropicContainer,
+  type AnthropicReasoningMetadata,
+  type AnthropicResponseContextManagement,
+  type AnthropicTool,
+  type Citation,
 } from './anthropic-api';
 import {
-  AnthropicModelId,
-  AnthropicLanguageModelOptions,
   anthropicLanguageModelOptions,
+  type AnthropicModelId,
+  type AnthropicLanguageModelOptions,
 } from './anthropic-options';
 import { prepareTools } from './anthropic-prepare-tools';
 import {
-  AnthropicUsage,
   convertAnthropicUsage,
+  type AnthropicUsage,
 } from './convert-anthropic-usage';
 import { convertToAnthropicPrompt } from './convert-to-anthropic-prompt';
 import { CacheControlValidator } from './get-cache-control';
 import { mapAnthropicStopReason } from './map-anthropic-stop-reason';
+import { sanitizeJsonSchema } from './sanitize-json-schema';
 
 function createCitationSource(
   citation: Citation,
@@ -468,7 +469,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
             responseFormat.schema != null && {
               format: {
                 type: 'json_schema',
-                schema: responseFormat.schema,
+                schema: sanitizeJsonSchema(responseFormat.schema),
               },
             }),
         },

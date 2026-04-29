@@ -1,3 +1,4 @@
+import type * as ProviderUtilsModule from '@ai-sdk/provider-utils';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { createGoogle } from './google-provider';
 import { GoogleLanguageModel } from './google-language-model';
@@ -7,7 +8,7 @@ import { GoogleVideoModel } from './google-video-model';
 
 // Mock the imported modules using a partial mock to preserve original exports
 vi.mock('@ai-sdk/provider-utils', async importOriginal => {
-  const mod = await importOriginal<typeof import('@ai-sdk/provider-utils')>();
+  const mod = await importOriginal<typeof ProviderUtilsModule>();
   return {
     ...mod,
     loadApiKey: vi.fn().mockImplementation(({ apiKey }) => apiKey),

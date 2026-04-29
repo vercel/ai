@@ -1,15 +1,15 @@
 import {
+  NoSuchModelError,
   type LanguageModelV4,
   type ProviderV4,
-  NoSuchModelError,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
   loadApiKey,
   withoutTrailingSlash,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
-import { DeepSeekChatModelId } from './chat/deepseek-chat-options';
+import type { DeepSeekChatModelId } from './chat/deepseek-chat-options';
 import { DeepSeekChatLanguageModel } from './chat/deepseek-chat-language-model';
 import { VERSION } from './version';
 

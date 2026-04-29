@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/langchain",
-  "version": "3.0.0-beta.112",
+  "version": "3.0.0-beta.113",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -66,7 +66,8 @@
   "homepage": "https://ai-sdk.dev/docs",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/vercel/ai.git"
+    "url": "https://github.com/vercel/ai",
+    "directory": "packages/langchain"
   },
   "bugs": {
     "url": "https://github.com/vercel/ai/issues"

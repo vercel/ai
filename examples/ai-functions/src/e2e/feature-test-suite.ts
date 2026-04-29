@@ -776,9 +776,9 @@ export function createFeatureTestSuite({
                           text: 'Describe the image in detail.',
                         },
                         {
-                          type: 'image',
-                          image:
-                            'https://github.com/vercel/ai/blob/main/examples/ai-functions/data/comic-cat.png?raw=true',
+                          type: 'file',
+                          mediaType: 'image',
+                          data: 'https://github.com/vercel/ai/blob/main/examples/ai-functions/data/comic-cat.png?raw=true',
                         },
                       ],
                     },
@@ -804,9 +804,10 @@ export function createFeatureTestSuite({
                           text: 'Describe the image in detail.',
                         },
                         {
-                          type: 'image',
+                          type: 'file',
+                          mediaType: 'image',
                           // TODO(shaper): Some tests omit the .toString() below.
-                          image: fs
+                          data: fs
                             .readFileSync('./data/comic-cat.png')
                             .toString('base64'),
                         },
@@ -833,9 +834,9 @@ export function createFeatureTestSuite({
                           text: 'Describe the image in detail.',
                         },
                         {
-                          type: 'image',
-                          image:
-                            'https://github.com/vercel/ai/blob/main/examples/ai-functions/data/comic-cat.png?raw=true',
+                          type: 'file',
+                          mediaType: 'image',
+                          data: 'https://github.com/vercel/ai/blob/main/examples/ai-functions/data/comic-cat.png?raw=true',
                         },
                       ],
                     },
@@ -865,8 +866,9 @@ export function createFeatureTestSuite({
                           text: 'Describe the image in detail.',
                         },
                         {
-                          type: 'image',
-                          image: fs.readFileSync('./data/comic-cat.png'),
+                          type: 'file',
+                          mediaType: 'image',
+                          data: fs.readFileSync('./data/comic-cat.png'),
                         },
                       ],
                     },

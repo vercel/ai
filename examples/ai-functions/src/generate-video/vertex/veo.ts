@@ -1,6 +1,6 @@
 import {
-  type GoogleVertexVideoModelOptions,
   vertex,
+  type GoogleVertexVideoModelOptions,
 } from '@ai-sdk/google-vertex';
 import { experimental_generateVideo } from 'ai';
 import { presentVideos } from '../../lib/present-video';

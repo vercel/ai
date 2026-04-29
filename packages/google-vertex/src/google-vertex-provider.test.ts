@@ -1,3 +1,4 @@
+import type * as ProviderUtilsModule from '@ai-sdk/provider-utils';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { createVertex } from './google-vertex-provider';
 import { GoogleLanguageModel } from '@ai-sdk/google/internal';
@@ -7,8 +8,7 @@ import { GoogleVertexVideoModel } from './google-vertex-video-model';
 
 // Mock the imported modules
 vi.mock('@ai-sdk/provider-utils', async importOriginal => {
-  const actual =
-    await importOriginal<typeof import('@ai-sdk/provider-utils')>();
+  const actual = await importOriginal<typeof ProviderUtilsModule>();
   return {
     ...actual,
     loadSetting: vi.fn().mockImplementation(({ settingValue }) => settingValue),

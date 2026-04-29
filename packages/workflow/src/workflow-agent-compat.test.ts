@@ -10,11 +10,11 @@
  *   instead of ToolLoopAgent's `prompt` string
  * - WorkflowAgent returns WorkflowAgentStreamResult (not StreamTextResult with consumeStream())
  */
-import { tool } from 'ai';
-import type {
-  Experimental_LanguageModelStreamPart,
-  ToolSet,
-  UIMessageChunk,
+import {
+  tool,
+  type Experimental_LanguageModelStreamPart,
+  type ToolSet,
+  type UIMessageChunk,
 } from 'ai';
 import { MockLanguageModelV4, convertArrayToReadableStream } from 'ai/test';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';

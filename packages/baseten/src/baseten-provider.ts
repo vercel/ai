@@ -1,23 +1,23 @@
 import {
   OpenAICompatibleChatLanguageModel,
   OpenAICompatibleEmbeddingModel,
-  ProviderErrorStructure,
+  type ProviderErrorStructure,
 } from '@ai-sdk/openai-compatible';
 import {
+  NoSuchModelError,
   type EmbeddingModelV4,
   type LanguageModelV4,
   type ProviderV4,
-  NoSuchModelError,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
   loadApiKey,
   withoutTrailingSlash,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import { BasetenChatModelId } from './baseten-chat-options';
-import { BasetenEmbeddingModelId } from './baseten-embedding-options';
+import type { BasetenChatModelId } from './baseten-chat-options';
+import type { BasetenEmbeddingModelId } from './baseten-embedding-options';
 import { PerformanceClient } from '@basetenlabs/performance-client';
 import { VERSION } from './version';
 

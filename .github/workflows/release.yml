@@ -48,10 +48,10 @@ jobs:
         with:
           version: 10.11.0
 
-      - name: Setup Node.js 22
+      - name: Setup Node.js 24
         uses: actions/setup-node@v6
         with:
-          node-version: 22
+          node-version: 24
 
       - name: Install Dependencies
         run: pnpm i

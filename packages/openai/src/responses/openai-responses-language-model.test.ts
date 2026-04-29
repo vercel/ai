@@ -1,4 +1,4 @@
-import {
+import type {
   LanguageModelV4Content,
   LanguageModelV4FunctionTool,
   LanguageModelV4GenerateResult,
@@ -16,10 +16,9 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { OpenAIResponsesLanguageModel } from './openai-responses-language-model';
 import {
   openaiResponsesModelIds,
-  OpenAILanguageModelResponsesOptions,
   openaiResponsesReasoningModelIds,
+  type OpenAILanguageModelResponsesOptions,
 } from './openai-responses-options';
-
 const TEST_PROMPT: LanguageModelV4Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];

@@ -1,4 +1,4 @@
-import {
+import type {
   ImageModelV4,
   ImageModelV4CallOptions,
   ImageModelV4File,
@@ -6,28 +6,25 @@ import {
 } from '@ai-sdk/provider';
 import {
   convertBase64ToUint8Array,
-  DataContent,
-  ProviderOptions,
+  detectMediaType,
   withUserAgentSuffix,
+  type DataContent,
+  type ProviderOptions,
 } from '@ai-sdk/provider-utils';
 import { NoImageGeneratedError } from '../error/no-image-generated-error';
 import {
   DefaultGeneratedFile,
-  GeneratedFile,
+  type GeneratedFile,
 } from '../generate-text/generated-file';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveImageModel } from '../model/resolve-model';
 import type { ImageModel } from '../types/image-model';
-import { ImageModelResponseMetadata } from '../types/image-model-response-metadata';
-import { addImageModelUsage, ImageModelUsage } from '../types/usage';
-import { Warning } from '../types/warning';
-import {
-  detectMediaType,
-  imageMediaTypeSignatures,
-} from '../util/detect-media-type';
+import type { ImageModelResponseMetadata } from '../types/image-model-response-metadata';
+import { addImageModelUsage, type ImageModelUsage } from '../types/usage';
+import type { Warning } from '../types/warning';
 import { prepareRetries } from '../util/prepare-retries';
 import { VERSION } from '../version';
-import { GenerateImageResult } from './generate-image-result';
+import type { GenerateImageResult } from './generate-image-result';
 import { convertDataContentToUint8Array } from '../prompt/data-content';
 import { splitDataUrl } from '../prompt/split-data-url';
 
@@ -208,7 +205,7 @@ export async function generateImage({
             mediaType:
               detectMediaType({
                 data: image,
-                signatures: imageMediaTypeSignatures,
+                topLevelType: 'image',
               }) ?? 'image/png',
           }),
       ),
@@ -342,7 +339,7 @@ function toImageModelV4File(dataContent: DataContent): ImageModelV4File {
           dataUrlMediaType ||
           detectMediaType({
             data: uint8Data,
-            signatures: imageMediaTypeSignatures,
+            topLevelType: 'image',
           }) ||
           'image/png',
       };
@@ -356,7 +353,7 @@ function toImageModelV4File(dataContent: DataContent): ImageModelV4File {
     mediaType:
       detectMediaType({
         data: uint8Data,
-        signatures: imageMediaTypeSignatures,
+        topLevelType: 'image',
       }) || 'image/png',
   };
 }

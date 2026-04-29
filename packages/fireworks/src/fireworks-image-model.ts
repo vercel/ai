@@ -6,18 +6,18 @@ import {
   createJsonResponseHandler,
   createStatusCodeErrorResponseHandler,
   delay,
-  FetchFunction,
   getFromApi,
   postJsonToApi,
   serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import {
   asyncPollResponseSchema,
   asyncSubmitResponseSchema,
 } from './fireworks-image-api';
-import { FireworksImageModelId } from './fireworks-image-options';
+import type { FireworksImageModelId } from './fireworks-image-options';
 
 const DEFAULT_POLL_INTERVAL_MILLIS = 500;
 const DEFAULT_POLL_TIMEOUT_MILLIS = 120000; // 2 minutes for image generation

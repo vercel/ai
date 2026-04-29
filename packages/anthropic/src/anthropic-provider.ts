@@ -1,22 +1,22 @@
 import {
-  type LanguageModelV4,
-  type ProviderV4,
-  type FilesV4,
-  type SkillsV4,
   InvalidArgumentError,
   NoSuchModelError,
+  type FilesV4,
+  type LanguageModelV4,
+  type ProviderV4,
+  type SkillsV4,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
   generateId,
   loadApiKey,
   loadOptionalSetting,
   withoutTrailingSlash,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { AnthropicFiles } from './anthropic-files';
 import { AnthropicLanguageModel } from './anthropic-language-model';
-import { AnthropicModelId } from './anthropic-options';
+import type { AnthropicModelId } from './anthropic-options';
 import { anthropicTools } from './anthropic-tools';
 import { AnthropicSkills } from './skills/anthropic-skills';
 import { VERSION } from './version';

@@ -1,27 +1,27 @@
-import {
+import type {
   APICallError,
-  type LanguageModelV4,
-  type LanguageModelV4CallOptions,
-  type LanguageModelV4Content,
-  type LanguageModelV4FinishReason,
-  type LanguageModelV4GenerateResult,
-  type LanguageModelV4StreamPart,
-  type LanguageModelV4StreamResult,
-  type SharedV4Warning,
+  LanguageModelV4,
+  LanguageModelV4CallOptions,
+  LanguageModelV4Content,
+  LanguageModelV4FinishReason,
+  LanguageModelV4GenerateResult,
+  LanguageModelV4StreamPart,
+  LanguageModelV4StreamResult,
+  SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
-  FetchFunction,
   parseProviderOptions,
-  ParseResult,
   postJsonToApi,
-  ResponseHandler,
   serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
+  type FetchFunction,
+  type ParseResult,
+  type ResponseHandler,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import {
@@ -30,17 +30,16 @@ import {
 } from '../utils/to-camel-case';
 import {
   defaultOpenAICompatibleErrorStructure,
-  ProviderErrorStructure,
+  type ProviderErrorStructure,
 } from '../openai-compatible-error';
 import { convertOpenAICompatibleCompletionUsage } from './convert-openai-compatible-completion-usage';
 import { convertToOpenAICompatibleCompletionPrompt } from './convert-to-openai-compatible-completion-prompt';
 import { getResponseMetadata } from './get-response-metadata';
 import { mapOpenAICompatibleFinishReason } from './map-openai-compatible-finish-reason';
 import {
-  OpenAICompatibleCompletionModelId,
   openaiCompatibleLanguageModelCompletionOptions,
+  type OpenAICompatibleCompletionModelId,
 } from './openai-compatible-completion-options';
-
 type OpenAICompatibleCompletionConfig = {
   provider: string;
   includeUsage?: boolean;

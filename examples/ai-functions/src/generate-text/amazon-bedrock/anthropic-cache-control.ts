@@ -1,5 +1,5 @@
 import { bedrockAnthropic } from '@ai-sdk/amazon-bedrock/anthropic';
-import { type AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
+import type { AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 import 'dotenv/config';
 import { run } from '../../lib/run';
