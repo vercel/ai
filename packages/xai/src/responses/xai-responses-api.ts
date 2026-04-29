@@ -26,7 +26,13 @@ export type XaiResponsesSystemMessage = {
 
 export type XaiResponsesUserMessageContentPart =
   | { type: 'input_text'; text: string }
+<<<<<<< HEAD
   | { type: 'input_image'; image_url: string };
+=======
+  | { type: 'input_image'; image_url: string }
+  | { type: 'input_file'; file_id: string }
+  | { type: 'input_file'; file_url: string };
+>>>>>>> 78b6433cc (feat(provider/xai): support non-image files in Responses API via input_file + file_url (#14805))
 
 export type XaiResponsesUserMessage = {
   role: 'user';
