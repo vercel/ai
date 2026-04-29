@@ -66,10 +66,10 @@ importers:
   examples/ai-e2e-next:
     dependencies:
       '@ai-sdk/amazon-bedrock':
-        specifier: 5.0.0-beta.43
+        specifier: 5.0.0-beta.44
         version: link:../../packages/amazon-bedrock
       '@ai-sdk/anthropic':
-        specifier: 4.0.0-beta.39
+        specifier: 4.0.0-beta.40
         version: link:../../packages/anthropic
       '@ai-sdk/azure':
         specifier: 4.0.0-beta.40
@@ -87,7 +87,7 @@ importers:
         specifier: 4.0.0-beta.47
         version: link:../../packages/google
       '@ai-sdk/google-vertex':
-        specifier: 5.0.0-beta.60
+        specifier: 5.0.0-beta.61
         version: link:../../packages/google-vertex
       '@ai-sdk/groq':
         specifier: 4.0.0-beta.32
@@ -120,7 +120,7 @@ importers:
         specifier: 3.0.0-beta.28
         version: link:../../packages/valibot
       '@ai-sdk/xai':
-        specifier: 4.0.0-beta.45
+        specifier: 4.0.0-beta.46
         version: link:../../packages/xai
       '@langfuse/otel':
         specifier: ^4.6.1
@@ -836,7 +836,7 @@ importers:
   examples/next-google-vertex:
     dependencies:
       '@ai-sdk/google-vertex':
-        specifier: 5.0.0-beta.60
+        specifier: 5.0.0-beta.61
         version: link:../../packages/google-vertex
       ai:
         specifier: 7.0.0-beta.113
@@ -28325,7 +28325,7 @@ snapshots:
       '@sentry/bundler-plugin-core': 5.1.1(encoding@0.1.13)
       '@sentry/core': 10.40.0
       '@sentry/node': 10.40.0
-      '@sentry/opentelemetry': 10.40.0(@opentelemetry/api@1.9.0)(@opentelemetry/context-async-hooks@2.5.1(@opentelemetry/api@1.9.0))(@opentelemetry/core@2.5.1(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.5.1(@opentelemetry/api@1.9.0))(@opentelemetry/semantic-conventions@1.37.0)
+      '@sentry/opentelemetry': 10.40.0(@opentelemetry/api@1.9.0)(@opentelemetry/context-async-hooks@2.5.1(@opentelemetry/api@1.9.1))(@opentelemetry/core@2.5.1(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.5.1(@opentelemetry/api@1.9.1))(@opentelemetry/semantic-conventions@1.37.0)
       '@sentry/react': 10.40.0(react@18.3.1)
       '@sentry/vercel-edge': 10.40.0
       '@sentry/webpack-plugin': 5.1.1(encoding@0.1.13)(webpack@5.105.0(@swc/core@1.15.3))
@@ -28395,7 +28395,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@sentry/opentelemetry@10.40.0(@opentelemetry/api@1.9.0)(@opentelemetry/context-async-hooks@2.5.1(@opentelemetry/api@1.9.0))(@opentelemetry/core@2.5.1(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.5.1(@opentelemetry/api@1.9.0))(@opentelemetry/semantic-conventions@1.37.0)':
+  '@sentry/opentelemetry@10.40.0(@opentelemetry/api@1.9.0)(@opentelemetry/context-async-hooks@2.5.1(@opentelemetry/api@1.9.1))(@opentelemetry/core@2.5.1(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.5.1(@opentelemetry/api@1.9.1))(@opentelemetry/semantic-conventions@1.37.0)':
     dependencies:
       '@opentelemetry/api': 1.9.0
       '@opentelemetry/context-async-hooks': 2.5.1(@opentelemetry/api@1.9.1)
