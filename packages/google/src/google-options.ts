@@ -32,6 +32,8 @@ export type GoogleModelId =
   | 'gemini-flash-latest'
   | 'gemini-flash-lite-latest'
   | 'deep-research-pro-preview-12-2025'
+  | 'deep-research-max-preview-04-2026'
+  | 'deep-research-preview-04-2026'
   | 'nano-banana-pro-preview'
   | 'aqa'
   // Experimental models
