@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 4.0.0-beta.40
+
+### Patch Changes
+
+- c012d57: feat(anthropic): sanitize the unsupported JSON schema validation properties
+
 ## 4.0.0-beta.39
 
 ### Patch Changes

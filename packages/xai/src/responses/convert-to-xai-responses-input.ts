@@ -66,9 +66,19 @@ export async function convertToXaiResponsesInput({
                     : `data:${mediaType};base64,${convertToBase64(block.data)}`;
 
                 contentParts.push({ type: 'input_image', image_url: imageUrl });
+              } else if (block.data instanceof URL) {
+                // xAI's Responses API accepts non-image documents (PDF, text, CSV, etc.)
+                // via `{ type: 'input_file', file_url }`. See
+                // https://docs.x.ai/docs/guides/chat-with-files. Inline bytes for
+                // non-image files are not supported by xAI; callers must upload via
+                // the Files API and pass a provider reference (file_id) instead.
+                contentParts.push({
+                  type: 'input_file',
+                  file_url: block.data.toString(),
+                });
               } else {
                 throw new UnsupportedFunctionalityError({
-                  functionality: `file part media type ${block.mediaType}`,
+                  functionality: `file part media type ${block.mediaType} as inline data (xAI Responses requires a URL or a Files API reference for non-image files)`,
                 });
               }
               break;
