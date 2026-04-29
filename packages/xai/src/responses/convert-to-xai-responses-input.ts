@@ -75,7 +75,7 @@ export async function convertToXaiResponsesInput({
                       type: 'input_image',
                       image_url: imageUrl,
                     });
-                  } else if (block.data instanceof URL) {
+                  } else if (block.data.type === 'url') {
                     // xAI's Responses API accepts non-image documents (PDF, text, CSV, etc.)
                     // via `{ type: 'input_file', file_url }`. See
                     // https://docs.x.ai/docs/guides/chat-with-files. Inline bytes for
@@ -83,7 +83,7 @@ export async function convertToXaiResponsesInput({
                     // the Files API and pass a provider reference (file_id) instead.
                     contentParts.push({
                       type: 'input_file',
-                      file_url: block.data.toString(),
+                      file_url: block.data.url.toString(),
                     });
                   } else {
                     throw new UnsupportedFunctionalityError({

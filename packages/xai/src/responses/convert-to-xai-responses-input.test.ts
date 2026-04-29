@@ -162,7 +162,10 @@ describe('convertToXaiResponsesInput', () => {
               {
                 type: 'file',
                 mediaType: 'application/pdf',
-                data: new URL('https://example.com/document.pdf'),
+                data: {
+                  type: 'url' as const,
+                  url: new URL('https://example.com/document.pdf'),
+                },
               },
             ],
           },
@@ -199,7 +202,10 @@ describe('convertToXaiResponsesInput', () => {
               {
                 type: 'file',
                 mediaType: 'text/csv',
-                data: new URL('https://example.com/data.csv'),
+                data: {
+                  type: 'url' as const,
+                  url: new URL('https://example.com/data.csv'),
+                },
               },
             ],
           },
