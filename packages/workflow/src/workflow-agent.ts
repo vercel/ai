@@ -368,6 +368,15 @@ export type PrepareCallCallback<TTools extends ToolSet = ToolSet> = (
 ) => PrepareCallResult<TTools> | Promise<PrepareCallResult<TTools>>;
 
 /**
+ * Tools can be provided as a static ToolSet or as a factory function.
+ * Factory functions are resolved inside the workflow step, allowing
+ * closures and Node.js imports that would otherwise fail serialization.
+ */
+export type ToolsInput<TTools extends ToolSet = ToolSet> =
+  | TTools
+  | (() => TTools | Promise<TTools>);
+
+/**
  * Configuration options for creating a {@link WorkflowAgent} instance.
  */
 export interface WorkflowAgentOptions<
@@ -387,11 +396,24 @@ export interface WorkflowAgentOptions<
   model: LanguageModel;
 
   /**
-   * A set of tools available to the agent.
+   * A set of tools available to the agent, or a factory function that returns tools.
+   *
+   * Factory functions are resolved inside the workflow step, allowing closures
+   * and Node.js imports that would otherwise fail the serialization boundary.
+   *
    * Tools can be implemented as workflow steps for automatic retries and persistence,
    * or as regular workflow-level logic using core library features like sleep() and Hooks.
+   *
+   * @example
+   * ```typescript
+   * // Static tools
+   * tools: { myTool: tool({ ... }) }
+   *
+   * // Factory function (resolved inside step - closures work)
+   * tools: () => buildTools(db)
+   * ```
    */
-  tools?: TTools;
+  tools?: ToolsInput<TTools>;
 
   /**
    * Agent instructions. Can be a string, a SystemModelMessage, or an array of SystemModelMessages.
@@ -1008,10 +1030,16 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
   public readonly id: string | undefined;
 
   private model: LanguageModel;
+  private toolsInput: ToolsInput<TBaseTools>;
   /**
-   * The tool set configured for this agent.
+   * @deprecated Access tools via the factory pattern for workflow compatibility.
    */
-  public readonly tools: TBaseTools;
+  public get tools(): TBaseTools {
+    if (typeof this.toolsInput === 'function') {
+      return {} as TBaseTools;
+    }
+    return this.toolsInput;
+  }
   private instructions?:
     | string
     | SystemModelMessage
@@ -1039,7 +1067,7 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
   constructor(options: WorkflowAgentOptions<TBaseTools>) {
     this.id = options.id;
     this.model = options.model;
-    this.tools = (options.tools ?? {}) as TBaseTools;
+    this.toolsInput = (options.tools ?? {}) as ToolsInput<TBaseTools>;
     // `instructions` takes precedence over deprecated `system`
     this.instructions = options.instructions ?? options.system;
     this.toolChoice = options.toolChoice;
@@ -1373,15 +1401,20 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
     // Merge telemetry settings
     const effectiveTelemetry = effectiveTelemetryFromPrepare;
 
+    // Determine if using new toolsResolver pattern (factory function) or legacy static tools
+    const useToolsResolver = typeof this.toolsInput === 'function';
+
     // Filter tools if activeTools is specified (stream-level overrides constructor default)
     const effectiveActiveTools = options.activeTools ?? this.activeTools;
-    const effectiveTools =
-      effectiveActiveTools && effectiveActiveTools.length > 0
+
+    const effectiveTools = !useToolsResolver
+      ? effectiveActiveTools && effectiveActiveTools.length > 0
         ? (filterActiveTools({
             tools: this.tools,
             activeTools: effectiveActiveTools,
           }) ?? this.tools)
-        : this.tools;
+        : this.tools
+      : ({} as TBaseTools); // Empty for new pattern - tools resolved in step
 
     // Initialize context
     let experimentalContext = effectiveExperimentalContext;
@@ -1400,7 +1433,6 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
       });
     }
 
-    // Helper to wrap executeTool with onToolExecutionStart/onToolExecutionEnd callbacks
     const executeToolWithCallbacks = async (
       toolCall: { toolCallId: string; toolName: string; input: unknown },
       tools: ToolSet,
@@ -1487,13 +1519,16 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
 
     const iterator = streamTextIterator({
       model: effectiveModel,
-      tools: effectiveTools as ToolSet,
+      ...(useToolsResolver
+        ? { toolsResolver: this.toolsInput as ToolsInput<ToolSet> }
+        : { tools: effectiveTools as ToolSet }),
       writable: options.writable,
       prompt: modelPrompt,
       stopConditions: options.stopWhen ?? this.stopWhen,
-
       onStepFinish: mergedOnStepFinish,
       onStepStart: mergedOnStepStart,
+      onToolExecutionStart: mergedOnToolExecutionStart,
+      onToolExecutionEnd: mergedOnToolExecutionEnd,
       onError: options.onError,
       prepareStep:
         options.prepareStep ??
@@ -1508,6 +1543,7 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
         | ToolCallRepairFunction<ToolSet>
         | undefined,
       responseFormat: await (options.output ?? this.output)?.responseFormat,
+      activeTools: effectiveActiveTools as string[] | undefined,
     });
 
     // Track the final conversation messages from the iterator

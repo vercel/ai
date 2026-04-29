@@ -26,6 +26,10 @@ import {
   agentToolApprovalE2e,
   agentToolCallE2e,
   agentToolInputSchemaE2e,
+  agentToolsResolverE2e,
+  agentToolsResolverPrepareStepE2e,
+  agentToolsResolverOnStepFinishE2e,
+  agentToolsResolverToolExecutionCallbacksE2e,
 } from './test/agent-e2e-workflows.js';
 
 describe('WorkflowAgent integration', { timeout: 120_000 }, () => {
@@ -222,6 +226,46 @@ describe('WorkflowAgent integration', { timeout: 120_000 }, () => {
       // with toolCallsCount=1 and toolResultsCount=0 (awaiting approval).
       // Currently needsApproval is ignored, so the tool executes immediately.
       expect(rv.stepCount).toBe(2);
+    });
+  });
+
+  // ==========================================================================
+  // toolsResolver pattern tests
+  // ==========================================================================
+
+  describe('toolsResolver pattern', () => {
+    it('resolves tools from factory function', async () => {
+      const run = await start(agentToolsResolverE2e, [3, 7]);
+      const rv = await run.returnValue;
+      expect(rv).toMatchObject({ stepCount: 2 });
+      expect(rv.lastStepText).toBe('The sum is 10');
+    });
+
+    it('prepareStep callback works with toolsResolver', async () => {
+      const run = await start(agentToolsResolverPrepareStepE2e, []);
+      const rv = await run.returnValue;
+      expect(rv.stepCount).toBe(2);
+      expect(rv.prepareStepCalls).toEqual([0, 1]);
+      expect(rv.lastStepText).toBe('Done');
+    });
+
+    it('onStepFinish callback works with toolsResolver', async () => {
+      const run = await start(agentToolsResolverOnStepFinishE2e, []);
+      const rv = await run.returnValue;
+      expect(rv.stepCount).toBe(2);
+      expect(rv.stepFinishCalls).toEqual([0, 1]);
+      expect(rv.lastStepText).toBe('Done');
+    });
+
+    it('tool execution callbacks fire with toolsResolver', async () => {
+      const run = await start(agentToolsResolverToolExecutionCallbacksE2e, []);
+      const rv = await run.returnValue;
+      expect(rv.stepCount).toBe(2);
+      expect(rv.toolExecutionStarts).toEqual(['addNumbers']);
+      expect(rv.toolExecutionEnds).toEqual([
+        { name: 'addNumbers', success: true },
+      ]);
+      expect(rv.lastStepText).toBe('Done');
     });
   });
 });

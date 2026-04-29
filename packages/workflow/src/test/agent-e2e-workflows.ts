@@ -505,3 +505,153 @@ export async function agentToolInputSchemaE2e(a: number, b: number) {
     lastStepText: result.steps[result.steps.length - 1]?.text,
   };
 }
+
+// ============================================================================
+// toolsResolver pattern tests
+// ============================================================================
+
+function buildTools() {
+  return {
+    addNumbers: tool({
+      description: 'Add two numbers',
+      inputSchema: z.object({ a: z.number(), b: z.number() }),
+      execute: async (input: { a: number; b: number }) => input.a + input.b,
+    }),
+  };
+}
+
+export async function agentToolsResolverE2e(a: number, b: number) {
+  'use workflow';
+  const agent = new WorkflowAgent({
+    model: mockSequenceModel([
+      {
+        type: 'tool-call',
+        toolName: 'addNumbers',
+        input: JSON.stringify({ a, b }),
+      },
+      { type: 'text', text: `The sum is ${a + b}` },
+    ]),
+    tools: () => buildTools(),
+    instructions: 'You are a calculator assistant.',
+  });
+  const result = await agent.stream({
+    messages: [{ role: 'user', content: `Add ${a} and ${b}` }],
+    writable: getWritable(),
+  });
+  return {
+    stepCount: result.steps.length,
+    toolResults: result.toolResults,
+    lastStepText: result.steps[result.steps.length - 1]?.text,
+  };
+}
+
+export async function agentToolsResolverPrepareStepE2e() {
+  'use workflow';
+  const prepareStepCalls: number[] = [];
+
+  const agent = new WorkflowAgent({
+    model: mockSequenceModel([
+      {
+        type: 'tool-call',
+        toolName: 'echoStep',
+        input: JSON.stringify({ step: 1 }),
+      },
+      { type: 'text', text: 'Done' },
+    ]),
+    tools: () => ({
+      echoStep: tool({
+        description: 'Echo the step',
+        inputSchema: z.object({ step: z.number() }),
+        execute: async (input: { step: number }) => `step-${input.step}`,
+      }),
+    }),
+    prepareStep: ({ stepNumber }) => {
+      prepareStepCalls.push(stepNumber);
+      return {};
+    },
+  });
+  const result = await agent.stream({
+    messages: [{ role: 'user', content: 'Run a step' }],
+    writable: getWritable(),
+  });
+  return {
+    stepCount: result.steps.length,
+    prepareStepCalls,
+    lastStepText: result.steps[result.steps.length - 1]?.text,
+  };
+}
+
+export async function agentToolsResolverOnStepFinishE2e() {
+  'use workflow';
+  const stepFinishCalls: number[] = [];
+
+  const agent = new WorkflowAgent({
+    model: mockSequenceModel([
+      {
+        type: 'tool-call',
+        toolName: 'echoStep',
+        input: JSON.stringify({ step: 1 }),
+      },
+      { type: 'text', text: 'Done' },
+    ]),
+    tools: () => ({
+      echoStep: tool({
+        description: 'Echo the step',
+        inputSchema: z.object({ step: z.number() }),
+        execute: async (input: { step: number }) => `step-${input.step}`,
+      }),
+    }),
+    onStepFinish: step => {
+      stepFinishCalls.push(step.stepNumber);
+    },
+  });
+  const result = await agent.stream({
+    messages: [{ role: 'user', content: 'Run a step' }],
+    writable: getWritable(),
+  });
+  return {
+    stepCount: result.steps.length,
+    stepFinishCalls,
+    lastStepText: result.steps[result.steps.length - 1]?.text,
+  };
+}
+
+export async function agentToolsResolverToolExecutionCallbacksE2e() {
+  'use workflow';
+  const toolExecutionStarts: string[] = [];
+  const toolExecutionEnds: Array<{ name: string; success: boolean }> = [];
+
+  const agent = new WorkflowAgent({
+    model: mockSequenceModel([
+      {
+        type: 'tool-call',
+        toolName: 'addNumbers',
+        input: JSON.stringify({ a: 3, b: 4 }),
+      },
+      { type: 'text', text: 'Done' },
+    ]),
+    tools: () => ({
+      addNumbers: tool({
+        description: 'Add two numbers',
+        inputSchema: z.object({ a: z.number(), b: z.number() }),
+        execute: async (input: { a: number; b: number }) => input.a + input.b,
+      }),
+    }),
+    experimental_onToolExecutionStart: ({ toolCall }) => {
+      toolExecutionStarts.push(toolCall.toolName);
+    },
+    experimental_onToolExecutionEnd: ({ toolCall, success }) => {
+      toolExecutionEnds.push({ name: toolCall.toolName, success });
+    },
+  });
+  const result = await agent.stream({
+    messages: [{ role: 'user', content: 'Add 3 and 4' }],
+    writable: getWritable(),
+  });
+  return {
+    stepCount: result.steps.length,
+    toolExecutionStarts,
+    toolExecutionEnds,
+    lastStepText: result.steps[result.steps.length - 1]?.text,
+  };
+}

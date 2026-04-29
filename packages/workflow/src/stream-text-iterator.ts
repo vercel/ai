@@ -13,6 +13,8 @@ import {
   type ToolChoice,
   type ToolSet,
 } from 'ai';
+import type {
+  DoStreamStepResult} from './do-stream-step.js';
 import {
   doStreamStep,
   type ModelStopCondition,
@@ -20,13 +22,17 @@ import {
   type ProviderExecutedToolResult,
 } from './do-stream-step.js';
 import { serializeToolSet } from './serializable-schema.js';
+import { applyPrepareStepResult } from './prepare-step-utils.js';
 import type {
   GenerationSettings,
   PrepareStepCallback,
   WorkflowAgentOnErrorCallback,
   WorkflowAgentOnStepFinishCallback,
+  WorkflowAgentOnToolExecutionStartCallback,
+  WorkflowAgentOnToolExecutionEndCallback,
   TelemetryOptions,
   WorkflowAgentOnStepStartCallback,
+  ToolsInput,
 } from './workflow-agent.js';
 
 // Re-export for consumers
@@ -53,11 +59,14 @@ export interface StreamTextIteratorYieldValue {
 export async function* streamTextIterator({
   prompt,
   tools = {},
+  toolsResolver,
   writable,
   model,
   stopConditions,
   onStepFinish,
   onStepStart,
+  onToolExecutionStart,
+  onToolExecutionEnd,
   onError,
   prepareStep,
   generationSettings,
@@ -67,14 +76,20 @@ export async function* streamTextIterator({
   includeRawChunks = false,
   repairToolCall,
   responseFormat,
+  activeTools,
 }: {
   prompt: LanguageModelV4Prompt;
-  tools: ToolSet;
+  /** @deprecated Use toolsResolver instead for factory pattern */
+  tools?: ToolSet;
+  /** Tools resolver - static ToolSet or factory function (resolved inside step) */
+  toolsResolver?: ToolsInput<ToolSet>;
   writable?: WritableStream<ModelCallStreamPart<ToolSet>>;
   model: LanguageModel;
   stopConditions?: ModelStopCondition[] | ModelStopCondition;
   onStepFinish?: WorkflowAgentOnStepFinishCallback<any>;
   onStepStart?: WorkflowAgentOnStepStartCallback;
+  onToolExecutionStart?: WorkflowAgentOnToolExecutionStartCallback;
+  onToolExecutionEnd?: WorkflowAgentOnToolExecutionEndCallback;
   onError?: WorkflowAgentOnErrorCallback;
   prepareStep?: PrepareStepCallback<any>;
   generationSettings?: GenerationSettings;
@@ -84,6 +99,7 @@ export async function* streamTextIterator({
   includeRawChunks?: boolean;
   repairToolCall?: ToolCallRepairFunction<ToolSet>;
   responseFormat?: LanguageModelV4CallOptions['responseFormat'];
+  activeTools?: string[];
 }): AsyncGenerator<
   StreamTextIteratorYieldValue,
   LanguageModelV4Prompt,
@@ -94,7 +110,9 @@ export async function* streamTextIterator({
   let currentGenerationSettings = generationSettings ?? {};
   let currentToolChoice = toolChoice;
   let currentContext = experimental_context;
-  let currentActiveTools: string[] | undefined;
+  let currentActiveTools: string[] | undefined = activeTools;
+
+  const useToolsResolver = toolsResolver !== undefined;
 
   const steps: StepResult<any, any>[] = [];
   let done = false;
@@ -109,124 +127,6 @@ export async function* streamTextIterator({
       break;
     }
 
-    // Call prepareStep callback before each step if provided
-    if (prepareStep) {
-      const prepareResult = await prepareStep({
-        model: currentModel,
-        stepNumber,
-        steps,
-        messages: conversationPrompt,
-        experimental_context: currentContext,
-      });
-
-      // Apply any overrides from prepareStep
-      if (prepareResult.model !== undefined) {
-        currentModel = prepareResult.model;
-      }
-      // Apply messages override BEFORE system so the system message
-      // isn't lost when messages replaces the prompt.
-      if (prepareResult.messages !== undefined) {
-        conversationPrompt = [...prepareResult.messages];
-      }
-      if (prepareResult.system !== undefined) {
-        // Update or prepend system message in the conversation prompt.
-        // Applied AFTER messages override so the system message isn't
-        // lost when messages replaces the prompt.
-        if (
-          conversationPrompt.length > 0 &&
-          conversationPrompt[0].role === 'system'
-        ) {
-          // Replace existing system message
-          conversationPrompt[0] = {
-            role: 'system',
-            content: prepareResult.system,
-          };
-        } else {
-          // Prepend new system message
-          conversationPrompt.unshift({
-            role: 'system',
-            content: prepareResult.system,
-          });
-        }
-      }
-      if (prepareResult.experimental_context !== undefined) {
-        currentContext = prepareResult.experimental_context;
-      }
-      if (prepareResult.activeTools !== undefined) {
-        currentActiveTools = prepareResult.activeTools;
-      }
-      // Apply generation settings overrides
-      if (prepareResult.maxOutputTokens !== undefined) {
-        currentGenerationSettings = {
-          ...currentGenerationSettings,
-          maxOutputTokens: prepareResult.maxOutputTokens,
-        };
-      }
-      if (prepareResult.temperature !== undefined) {
-        currentGenerationSettings = {
-          ...currentGenerationSettings,
-          temperature: prepareResult.temperature,
-        };
-      }
-      if (prepareResult.topP !== undefined) {
-        currentGenerationSettings = {
-          ...currentGenerationSettings,
-          topP: prepareResult.topP,
-        };
-      }
-      if (prepareResult.topK !== undefined) {
-        currentGenerationSettings = {
-          ...currentGenerationSettings,
-          topK: prepareResult.topK,
-        };
-      }
-      if (prepareResult.presencePenalty !== undefined) {
-        currentGenerationSettings = {
-          ...currentGenerationSettings,
-          presencePenalty: prepareResult.presencePenalty,
-        };
-      }
-      if (prepareResult.frequencyPenalty !== undefined) {
-        currentGenerationSettings = {
-          ...currentGenerationSettings,
-          frequencyPenalty: prepareResult.frequencyPenalty,
-        };
-      }
-      if (prepareResult.stopSequences !== undefined) {
-        currentGenerationSettings = {
-          ...currentGenerationSettings,
-          stopSequences: prepareResult.stopSequences,
-        };
-      }
-      if (prepareResult.seed !== undefined) {
-        currentGenerationSettings = {
-          ...currentGenerationSettings,
-          seed: prepareResult.seed,
-        };
-      }
-      if (prepareResult.maxRetries !== undefined) {
-        currentGenerationSettings = {
-          ...currentGenerationSettings,
-          maxRetries: prepareResult.maxRetries,
-        };
-      }
-      if (prepareResult.headers !== undefined) {
-        currentGenerationSettings = {
-          ...currentGenerationSettings,
-          headers: prepareResult.headers,
-        };
-      }
-      if (prepareResult.providerOptions !== undefined) {
-        currentGenerationSettings = {
-          ...currentGenerationSettings,
-          providerOptions: prepareResult.providerOptions,
-        };
-      }
-      if (prepareResult.toolChoice !== undefined) {
-        currentToolChoice = prepareResult.toolChoice;
-      }
-    }
-
     if (onStepStart) {
       await onStepStart({
         stepNumber,
@@ -237,22 +137,84 @@ export async function* streamTextIterator({
     }
 
     try {
-      // Filter tools if activeTools is specified
-      const effectiveTools =
-        currentActiveTools && currentActiveTools.length > 0
-          ? (filterActiveTools({
-              tools,
-              activeTools: currentActiveTools,
-            }) ?? tools)
-          : tools;
+      let stepResult: DoStreamStepResult;
 
-      // Serialize tools before crossing the step boundary — zod schemas
-      // contain functions that can't be serialized by the workflow runtime.
-      // Tools are reconstructed with Ajv validation inside doStreamStep.
-      const serializedTools = serializeToolSet(effectiveTools);
+      if (useToolsResolver) {
+        stepResult = await doStreamStep(
+          conversationPrompt,
+          currentModel,
+          writable,
+          undefined, // No serialized tools - using resolver
+          {
+            ...currentGenerationSettings,
+            toolChoice: currentToolChoice,
+            includeRawChunks,
+            telemetry,
+            repairToolCall,
+            responseFormat,
+            // Pass tools resolver and callbacks to run inside the step
+            toolsResolver,
+            prepareStep,
+            onStepFinish,
+            onToolExecutionStart,
+            onToolExecutionEnd,
+            stepNumber,
+            steps: [...steps],
+            experimentalContext: currentContext,
+            activeTools: currentActiveTools,
+          },
+        );
 
-      const { toolCalls, finish, step, providerExecutedToolResults } =
-        await doStreamStep(
+        if (stepResult.updatedContext !== undefined) {
+          currentContext = stepResult.updatedContext;
+        }
+        if (stepResult.updatedModel !== undefined) {
+          currentModel = stepResult.updatedModel;
+        }
+        if (stepResult.updatedActiveTools !== undefined) {
+          currentActiveTools = stepResult.updatedActiveTools;
+        }
+      } else {
+        if (prepareStep) {
+          const prepareResult = await prepareStep({
+            model: currentModel,
+            stepNumber,
+            steps,
+            messages: conversationPrompt,
+            experimental_context: currentContext,
+          });
+
+          const applied = applyPrepareStepResult(
+            prepareResult,
+            conversationPrompt,
+          );
+
+          if (applied.model) currentModel = applied.model;
+          if (applied.messages) conversationPrompt = applied.messages;
+          if (applied.context !== undefined) currentContext = applied.context;
+          if (applied.activeTools) currentActiveTools = applied.activeTools;
+          if (applied.toolChoice) currentToolChoice = applied.toolChoice;
+          if (Object.keys(applied.generationSettings).length > 0) {
+            currentGenerationSettings = {
+              ...currentGenerationSettings,
+              ...applied.generationSettings,
+            };
+          }
+        }
+
+        const effectiveTools =
+          currentActiveTools && currentActiveTools.length > 0
+            ? (filterActiveTools({
+                tools: tools ?? {},
+                activeTools: currentActiveTools,
+              }) ??
+              tools ??
+              {})
+            : (tools ?? {});
+
+        const serializedTools = serializeToolSet(effectiveTools);
+
+        stepResult = await doStreamStep(
           conversationPrompt,
           currentModel,
           writable,
@@ -264,8 +226,20 @@ export async function* streamTextIterator({
             telemetry,
             repairToolCall,
             responseFormat,
+            stepNumber,
+            steps: [...steps],
+            experimentalContext: currentContext,
           },
         );
+      }
+
+      const {
+        toolCalls,
+        finish,
+        step,
+        providerExecutedToolResults,
+        toolResults,
+      } = stepResult;
 
       _isFirstIteration = false;
       stepNumber++;
@@ -278,11 +252,6 @@ export async function* streamTextIterator({
       if (finishReason === 'tool-calls') {
         lastStepWasToolCalls = true;
 
-        // Add assistant message with tool calls to the conversation
-        // Note: providerMetadata from the tool call is mapped to providerOptions
-        // in the prompt format, following the AI SDK convention. This is critical
-        // for providers like Gemini that require thoughtSignature to be preserved
-        // across multi-turn tool calls. Some fields are sanitized before mapping.
         conversationPrompt.push({
           role: 'assistant',
           content: toolCalls.map(toolCall => {
@@ -301,21 +270,25 @@ export async function* streamTextIterator({
           }) as typeof toolCalls,
         });
 
-        // Yield the tool calls along with the current conversation messages
-        // This allows executeTool to pass the conversation context to tool execute functions
-        // Also include provider-executed tool results so they can be used instead of local execution
-        const toolResults = yield {
-          toolCalls,
-          messages: conversationPrompt,
-          step,
-          context: currentContext,
-          providerExecutedToolResults,
-        };
+        if (useToolsResolver && toolResults && toolResults.length > 0) {
+          conversationPrompt.push({
+            role: 'tool',
+            content: toolResults,
+          });
+        } else {
+          const externalToolResults = yield {
+            toolCalls,
+            messages: conversationPrompt,
+            step,
+            context: currentContext,
+            providerExecutedToolResults,
+          };
 
-        conversationPrompt.push({
-          role: 'tool',
-          content: toolResults,
-        });
+          conversationPrompt.push({
+            role: 'tool',
+            content: externalToolResults,
+          });
+        }
 
         if (stopConditions) {
           const stopConditionList = Array.isArray(stopConditions)
@@ -326,9 +299,8 @@ export async function* streamTextIterator({
           }
         }
       } else if (finishReason === 'stop') {
-        // Add assistant message with text content to the conversation
         const textContent = step.content.filter(
-          item => item.type === 'text',
+          (item: { type: string }) => item.type === 'text',
         ) as Array<{ type: 'text'; text: string }>;
 
         if (textContent.length > 0) {
@@ -340,22 +312,16 @@ export async function* streamTextIterator({
 
         done = true;
       } else if (finishReason === 'length') {
-        // Model hit max tokens - stop but don't throw
         done = true;
       } else if (finishReason === 'content-filter') {
-        // Content filter triggered - stop but don't throw
         done = true;
       } else if (finishReason === 'error') {
-        // Model error - stop but don't throw
         done = true;
       } else if (finishReason === 'other') {
-        // Other reason - stop but don't throw
         done = true;
       } else if (finishReason === 'unknown') {
-        // Unknown reason - stop but don't throw
         done = true;
       } else if (!finishReason) {
-        // No finish reason - this might happen on incomplete streams
         done = true;
       } else {
         throw new Error(
@@ -363,7 +329,7 @@ export async function* streamTextIterator({
         );
       }
 
-      if (onStepFinish) {
+      if (!useToolsResolver && onStepFinish) {
         await onStepFinish(step);
       }
     } catch (error) {
@@ -374,7 +340,6 @@ export async function* streamTextIterator({
     }
   }
 
-  // Yield the final step if it wasn't already yielded (tool-calls steps are yielded inside the loop)
   if (lastStep && !lastStepWasToolCalls) {
     yield {
       toolCalls: [],
