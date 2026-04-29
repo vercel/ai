@@ -352,16 +352,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
         metadata: { user_id: anthropicOptions.metadata.userId },
       }),
 
-      // structured output:
-      ...(useStructuredOutput &&
-        responseFormat?.type === 'json' &&
-        responseFormat.schema != null && {
-          output_format: {
-            type: 'json_schema',
-            schema: sanitizeJsonSchema(responseFormat.schema),
-          },
-        }),
-
       // container with agent skills:
       ...(anthropicOptions?.container && {
         container: {

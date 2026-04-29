@@ -610,22 +610,6 @@ describe('AnthropicMessagesLanguageModel', () => {
                 "type": "json_schema",
               },
             },
-            "output_format": {
-              "schema": {
-                "$schema": "http://json-schema.org/draft-07/schema#",
-                "additionalProperties": false,
-                "properties": {
-                  "name": {
-                    "type": "string",
-                  },
-                },
-                "required": [
-                  "name",
-                ],
-                "type": "object",
-              },
-              "type": "json_schema",
-            },
           }
         `);
       });
@@ -708,30 +692,7 @@ describe('AnthropicMessagesLanguageModel', () => {
         }
       `);
 
-      expect(requestBody.output_format.schema).toMatchInlineSnapshot(`
-        {
-          "additionalProperties": false,
-          "properties": {
-            "recurringIntervalMinutes": {
-              "description": "exclusive minimum: 0.",
-              "type": "number",
-            },
-            "tags": {
-              "description": "min items: 2; max items: 4.",
-              "items": {
-                "description": "min length: 1.",
-                "type": "string",
-              },
-              "type": "array",
-            },
-          },
-          "required": [
-            "recurringIntervalMinutes",
-            "tags",
-          ],
-          "type": "object",
-        }
-      `);
+      expect(requestBody.output_format).toBeUndefined();
     });
 
     it('should pass sanitized zod output schema as output_config.format', async () => {
@@ -885,22 +846,6 @@ describe('AnthropicMessagesLanguageModel', () => {
                 },
                 "type": "json_schema",
               },
-            },
-            "output_format": {
-              "schema": {
-                "$schema": "http://json-schema.org/draft-07/schema#",
-                "additionalProperties": false,
-                "properties": {
-                  "name": {
-                    "type": "string",
-                  },
-                },
-                "required": [
-                  "name",
-                ],
-                "type": "object",
-              },
-              "type": "json_schema",
             },
           }
         `);
@@ -4240,42 +4185,6 @@ describe('AnthropicMessagesLanguageModel', () => {
                 },
                 "type": "json_schema",
               },
-            },
-            "output_format": {
-              "schema": {
-                "$schema": "http://json-schema.org/draft-07/schema#",
-                "additionalProperties": false,
-                "properties": {
-                  "characters": {
-                    "items": {
-                      "additionalProperties": false,
-                      "properties": {
-                        "class": {
-                          "type": "string",
-                        },
-                        "description": {
-                          "type": "string",
-                        },
-                        "name": {
-                          "type": "string",
-                        },
-                      },
-                      "required": [
-                        "name",
-                        "class",
-                        "description",
-                      ],
-                      "type": "object",
-                    },
-                    "type": "array",
-                  },
-                },
-                "required": [
-                  "characters",
-                ],
-                "type": "object",
-              },
-              "type": "json_schema",
             },
             "stream": true,
           }
