@@ -1,7 +1,6 @@
 import type { Attributes, Tracer } from '@opentelemetry/api';
 import type { TelemetryOptions } from 'ai';
-import { selectAttributes } from './select-attributes';
-import type { AttributeSpecMap } from './select-attributes';
+import { selectAttributes, type AttributeSpecMap } from './select-attributes';
 
 type SupplementalAttributeOption =
   | 'usage'
