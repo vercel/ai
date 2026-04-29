@@ -13,9 +13,10 @@ export type Prompt = {
   /**
    * Whether system messages are allowed in the `prompt` or `messages` fields.
    *
-   * When disabled, system messages must be provided through the `system` option.
+   * When disabled, system messages must be provided through the `system`
+   * option. When unset, system messages are allowed with a warning.
    *
-   * @default false
+   * @default undefined
    */
   allowSystemInMessages?: boolean;
 } & (

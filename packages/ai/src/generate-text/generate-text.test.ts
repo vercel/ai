@@ -771,7 +771,36 @@ describe('generateText', () => {
       expect(startEvent.maxRetries).toBe(2);
     });
 
-    it('should reject system messages in messages by default', async () => {
+    it('should warn for system messages in messages by default', async () => {
+      const consoleWarnSpy = vi
+        .spyOn(console, 'warn')
+        .mockImplementation(() => {});
+
+      try {
+        const model = new MockLanguageModelV3({
+          doGenerate: async () => ({
+            content: [{ type: 'text', text: 'Hello!' }],
+            ...dummyResponseValues,
+          }),
+        });
+
+        await generateText({
+          model,
+          messages: [{ role: 'system', content: 'INSTRUCTIONS' }],
+        });
+
+        expect(model.doGenerateCalls[0].prompt).toEqual([
+          { role: 'system', content: 'INSTRUCTIONS' },
+        ]);
+        expect(consoleWarnSpy).toHaveBeenCalledWith(
+          'AI SDK Warning: System messages in the prompt or messages fields are allowed by default but should be provided through the system option instead. Set allowSystemInMessages to true to suppress this warning.',
+        );
+      } finally {
+        consoleWarnSpy.mockRestore();
+      }
+    });
+
+    it('should reject system messages in messages when allowSystemInMessages is false', async () => {
       await expect(async () => {
         await generateText({
           model: new MockLanguageModelV3({
@@ -780,6 +809,7 @@ describe('generateText', () => {
               ...dummyResponseValues,
             }),
           }),
+          allowSystemInMessages: false,
           messages: [{ role: 'system', content: 'INSTRUCTIONS' }],
         });
       }).rejects.toThrow(InvalidPromptError);

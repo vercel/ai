@@ -201,7 +201,7 @@ export type GenerateTextOnFinishCallback<TOOLS extends ToolSet> = (
  * @param system - A system message that will be part of the prompt.
  * @param prompt - A simple text prompt. You can either use `prompt` or `messages` but not both.
  * @param messages - A list of messages. You can either use `prompt` or `messages` but not both.
- * @param allowSystemInMessages - Whether system messages are allowed in the `prompt` or `messages` fields. Default: false.
+ * @param allowSystemInMessages - Whether system messages are allowed in the `prompt` or `messages` fields. When unset, system messages are allowed with a warning.
  *
  * @param maxOutputTokens - Maximum number of tokens to generate.
  * @param temperature - Temperature setting.

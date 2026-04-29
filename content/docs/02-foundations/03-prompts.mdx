@@ -45,7 +45,7 @@ const result = await generateText({
 System prompts are the initial set of instructions given to models that help guide and constrain the models' behaviors and responses.
 You can set system prompts using the `system` property.
 System prompts work with both the `prompt` and the `messages` properties.
-System messages in `prompt` or `messages` are rejected by default; use the `system` property for system instructions, or set `allowSystemInMessages: true` when you need to send existing message histories that contain system messages.
+System messages in `prompt` or `messages` are allowed by default with a warning; use the `system` property for system instructions, set `allowSystemInMessages: true` when you need to send existing message histories that contain system messages, or set `allowSystemInMessages: false` to reject them.
 
 <Note type="warning">
   Opting in with `allowSystemInMessages` can create a prompt injection risk

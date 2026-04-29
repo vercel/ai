@@ -1,11 +1,74 @@
 import { InvalidPromptError } from '@ai-sdk/provider';
 import { standardizePrompt } from './standardize-prompt';
-import { describe, it, expect } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('standardizePrompt', () => {
-  it('should throw InvalidPromptError when messages contain a system message by default', async () => {
+  let consoleWarnSpy: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    consoleWarnSpy.mockRestore();
+  });
+
+  it('should warn when messages contain a system message by default', async () => {
+    const result = await standardizePrompt({
+      messages: [
+        {
+          role: 'system',
+          content: 'INSTRUCTIONS',
+        },
+      ],
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": "INSTRUCTIONS",
+            "role": "system",
+          },
+        ],
+        "system": undefined,
+      }
+    `);
+    expect(consoleWarnSpy).toHaveBeenCalledWith(
+      'AI SDK Warning: System messages in the prompt or messages fields are allowed by default but should be provided through the system option instead. Set allowSystemInMessages to true to suppress this warning.',
+    );
+  });
+
+  it('should warn when prompt messages contain a system message by default', async () => {
+    const result = await standardizePrompt({
+      prompt: [
+        {
+          role: 'system',
+          content: 'INSTRUCTIONS',
+        },
+      ],
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": "INSTRUCTIONS",
+            "role": "system",
+          },
+        ],
+        "system": undefined,
+      }
+    `);
+    expect(consoleWarnSpy).toHaveBeenCalledWith(
+      'AI SDK Warning: System messages in the prompt or messages fields are allowed by default but should be provided through the system option instead. Set allowSystemInMessages to true to suppress this warning.',
+    );
+  });
+
+  it('should throw InvalidPromptError when messages contain a system message and allowSystemInMessages is false', async () => {
     await expect(async () => {
       await standardizePrompt({
+        allowSystemInMessages: false,
         messages: [
           {
             role: 'system',
@@ -16,9 +79,10 @@ describe('standardizePrompt', () => {
     }).rejects.toThrow(InvalidPromptError);
   });
 
-  it('should throw InvalidPromptError when prompt messages contain a system message by default', async () => {
+  it('should throw InvalidPromptError when prompt messages contain a system message and allowSystemInMessages is false', async () => {
     await expect(async () => {
       await standardizePrompt({
+        allowSystemInMessages: false,
         prompt: [
           {
             role: 'system',
@@ -59,6 +123,7 @@ describe('standardizePrompt', () => {
         "system": undefined,
       }
     `);
+    expect(consoleWarnSpy).not.toHaveBeenCalled();
   });
 
   it('should allow system messages in prompt messages when allowSystemInMessages is true', async () => {
@@ -91,6 +156,7 @@ describe('standardizePrompt', () => {
         "system": undefined,
       }
     `);
+    expect(consoleWarnSpy).not.toHaveBeenCalled();
   });
 
   it('should throw InvalidPromptError when an allowed system message has parts', async () => {
