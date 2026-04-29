@@ -1,5 +1,7 @@
 # Releases
 
+# Releases - for maintainers only
+
 We use [changesets](https://github.com/changesets/action) for automated releases.
 
 ## Changesets
