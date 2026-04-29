@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.170
+
+### Patch Changes
+
+- 19d587a: fix(ai): add allowSystemInMessages option and warn by default when system messages are found in prompt or messages
+
 ## 6.0.169
 
 ### Patch Changes
