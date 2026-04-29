@@ -1,5 +1,5 @@
 ---
-"ai": major
+"ai": patch
 ---
 
-fix(ai): reject system messages in messages or prompt by default (opt-in)
+fix(ai): add allowSystemInMessages option and warn by default when system messages are found in prompt or messages
