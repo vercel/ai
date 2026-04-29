@@ -1,5 +1,5 @@
 {
-  "$schema": "node_modules/konsistent/konsistent.schema.json",
+  "$schema": "../node_modules/konsistent/konsistent.schema.json",
   "version": "v1",
   "conventions": [
     {
