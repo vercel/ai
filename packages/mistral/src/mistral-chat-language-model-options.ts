@@ -13,6 +13,7 @@ export type MistralChatModelId =
   | 'mistral-small-2506'
   | 'pixtral-large-latest'
   // reasoning config support models
+  | 'mistral-medium-3.5'
   | 'mistral-small-latest'
   | 'mistral-small-2603'
   // reasoning models

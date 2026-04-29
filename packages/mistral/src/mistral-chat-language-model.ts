@@ -126,7 +126,8 @@ export class MistralChatLanguageModel implements LanguageModelV4 {
 
     const supportsReasoningEffort =
       this.modelId === 'mistral-small-latest' ||
-      this.modelId === 'mistral-small-2603';
+      this.modelId === 'mistral-small-2603' ||
+      this.modelId === 'mistral-medium-3.5';
 
     let resolvedReasoningEffort: string | undefined;
     if (supportsReasoningEffort) {
