@@ -7,7 +7,7 @@ import {
   OpenAISpeechModel,
   OpenAITranscriptionModel,
 } from '@ai-sdk/openai/internal';
-import {
+import type {
   EmbeddingModelV3,
   LanguageModelV3,
   ProviderV3,
@@ -16,10 +16,10 @@ import {
   TranscriptionModelV3,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
   loadApiKey,
   loadSetting,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { azureOpenaiTools } from './azure-openai-tools';
 import { VERSION } from './version';

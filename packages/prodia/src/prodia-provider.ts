@@ -5,11 +5,11 @@ import {
   NoSuchModelError,
   type ProviderV3,
 } from '@ai-sdk/provider';
-import type { FetchFunction } from '@ai-sdk/provider-utils';
 import {
   loadApiKey,
   withoutTrailingSlash,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { ProdiaImageModel } from './prodia-image-model';
 import type { ProdiaImageModelId } from './prodia-image-settings';

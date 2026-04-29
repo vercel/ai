@@ -1,4 +1,4 @@
-import {
+import type {
   LanguageModelV3,
   LanguageModelV3CallOptions,
   LanguageModelV3FinishReason,
@@ -12,27 +12,27 @@ import {
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
-  FetchFunction,
   parseProviderOptions,
-  ParseResult,
   postJsonToApi,
+  type FetchFunction,
+  type ParseResult,
 } from '@ai-sdk/provider-utils';
 import { openaiFailedResponseHandler } from '../openai-error';
 import {
   convertOpenAICompletionUsage,
-  OpenAICompletionUsage,
+  type OpenAICompletionUsage,
 } from './convert-openai-completion-usage';
 import { convertToOpenAICompletionPrompt } from './convert-to-openai-completion-prompt';
 import { getResponseMetadata } from './get-response-metadata';
 import { mapOpenAIFinishReason } from './map-openai-finish-reason';
 import {
-  OpenAICompletionChunk,
   openaiCompletionChunkSchema,
   openaiCompletionResponseSchema,
+  type OpenAICompletionChunk,
 } from './openai-completion-api';
 import {
-  OpenAICompletionModelId,
   openaiLanguageModelCompletionOptions,
+  type OpenAICompletionModelId,
 } from './openai-completion-options';
 
 type OpenAICompletionConfig = {

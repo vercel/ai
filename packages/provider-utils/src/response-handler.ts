@@ -1,8 +1,8 @@
 import { APICallError, EmptyResponseBodyError } from '@ai-sdk/provider';
 import { extractResponseHeaders } from './extract-response-headers';
-import { parseJSON, ParseResult, safeParseJSON } from './parse-json';
+import { parseJSON, safeParseJSON, type ParseResult } from './parse-json';
 import { parseJsonEventStream } from './parse-json-event-stream';
-import { FlexibleSchema } from './schema';
+import type { FlexibleSchema } from './schema';
 
 export type ResponseHandler<RETURN_TYPE> = (options: {
   url: string;

@@ -1,30 +1,40 @@
-import { LanguageModelV3StreamPart, SharedV3Warning } from '@ai-sdk/provider';
+import type {
+  LanguageModelV3StreamPart,
+  SharedV3Warning,
+} from '@ai-sdk/provider';
 import {
   getErrorMessage,
-  IdGenerator,
-  ModelMessage,
-  SystemModelMessage,
+  type IdGenerator,
+  type ModelMessage,
+  type SystemModelMessage,
 } from '@ai-sdk/provider-utils';
-import { Tracer } from '@opentelemetry/api';
+import type { Tracer } from '@opentelemetry/api';
 import { ToolCallNotFoundForApprovalError } from '../error/tool-call-not-found-for-approval-error';
-import { TelemetrySettings } from '../telemetry/telemetry-settings';
-import { FinishReason, LanguageModelUsage, ProviderMetadata } from '../types';
-import { Source } from '../types/language-model';
+import type { TelemetrySettings } from '../telemetry/telemetry-settings';
+import type {
+  FinishReason,
+  LanguageModelUsage,
+  ProviderMetadata,
+} from '../types';
+import type { Source } from '../types/language-model';
 import { asLanguageModelUsage } from '../types/usage';
 import { executeToolCall } from './execute-tool-call';
-import {
+import type {
   StreamTextOnToolCallFinishCallback,
   StreamTextOnToolCallStartCallback,
 } from './stream-text';
-import { DefaultGeneratedFileWithType, GeneratedFile } from './generated-file';
+import {
+  DefaultGeneratedFileWithType,
+  type GeneratedFile,
+} from './generated-file';
 import { isApprovalNeeded } from './is-approval-needed';
 import { parseToolCall } from './parse-tool-call';
-import { ToolApprovalRequestOutput } from './tool-approval-request-output';
-import { TypedToolCall } from './tool-call';
-import { ToolCallRepairFunction } from './tool-call-repair-function';
-import { TypedToolError } from './tool-error';
-import { TypedToolResult } from './tool-result';
-import { ToolSet } from './tool-set';
+import type { ToolApprovalRequestOutput } from './tool-approval-request-output';
+import type { TypedToolCall } from './tool-call';
+import type { ToolCallRepairFunction } from './tool-call-repair-function';
+import type { TypedToolError } from './tool-error';
+import type { TypedToolResult } from './tool-result';
+import type { ToolSet } from './tool-set';
 
 export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
   // Text blocks:

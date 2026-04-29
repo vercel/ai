@@ -1,4 +1,4 @@
-import { ImageModelV3File } from '@ai-sdk/provider';
+import type { ImageModelV3File } from '@ai-sdk/provider';
 import { convertUint8ArrayToBase64 } from './uint8-utils';
 
 /**

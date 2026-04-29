@@ -1,4 +1,4 @@
-import {
+import type {
   LanguageModelV3,
   LanguageModelV3Content,
   LanguageModelV3ToolCall,
@@ -6,27 +6,27 @@ import {
 import {
   createIdGenerator,
   getErrorMessage,
-  IdGenerator,
-  ProviderOptions,
   withUserAgentSuffix,
+  type IdGenerator,
+  type ProviderOptions,
 } from '@ai-sdk/provider-utils';
-import { Tracer } from '@opentelemetry/api';
+import type { Tracer } from '@opentelemetry/api';
 import { NoOutputGeneratedError } from '../error';
 import { notify } from '../util/notify';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
-import { ModelMessage } from '../prompt';
+import type { ModelMessage } from '../prompt';
 import {
-  CallSettings,
   getStepTimeoutMs,
   getTotalTimeoutMs,
   TimeoutConfiguration,
+  type CallSettings,
 } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { createToolModelOutput } from '../prompt/create-tool-model-output';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { prepareToolsAndToolChoice } from '../prompt/prepare-tools-and-tool-choice';
-import { Prompt } from '../prompt/prompt';
+import type { Prompt } from '../prompt/prompt';
 import { standardizePrompt } from '../prompt/standardize-prompt';
 import { wrapGatewayError } from '../prompt/wrap-gateway-error';
 import { ToolCallNotFoundForApprovalError } from '../error/tool-call-not-found-for-approval-error';
@@ -37,8 +37,8 @@ import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { stringifyForTelemetry } from '../telemetry/stringify-for-telemetry';
 import { getGlobalTelemetryIntegration } from '../telemetry/get-global-telemetry-integration';
-import { TelemetrySettings } from '../telemetry/telemetry-settings';
-import {
+import type { TelemetrySettings } from '../telemetry/telemetry-settings';
+import type {
   LanguageModel,
   LanguageModelRequestMetadata,
   ToolChoice,
@@ -46,10 +46,10 @@ import {
 import {
   addLanguageModelUsage,
   asLanguageModelUsage,
-  LanguageModelUsage,
+  type LanguageModelUsage,
 } from '../types/usage';
 import { asArray } from '../util/as-array';
-import { DownloadFunction } from '../util/download/download-function';
+import type { DownloadFunction } from '../util/download/download-function';
 import { mergeObjects } from '../util/merge-objects';
 import { prepareRetries } from '../util/prepare-retries';
 import { VERSION } from '../version';
@@ -62,32 +62,32 @@ import type {
   OnToolCallStartEvent,
 } from './callback-events';
 import { collectToolApprovals } from './collect-tool-approvals';
-import { ContentPart } from './content-part';
+import type { ContentPart } from './content-part';
 import { executeToolCall } from './execute-tool-call';
 import { extractReasoningContent } from './extract-reasoning-content';
 import { extractTextContent } from './extract-text-content';
-import { GenerateTextResult } from './generate-text-result';
+import type { GenerateTextResult } from './generate-text-result';
 import { DefaultGeneratedFile } from './generated-file';
 import { isApprovalNeeded } from './is-approval-needed';
-import { Output, text } from './output';
-import { InferCompleteOutput } from './output-utils';
+import { text, type Output } from './output';
+import type { InferCompleteOutput } from './output-utils';
 import { parseToolCall } from './parse-tool-call';
-import { PrepareStepFunction } from './prepare-step';
-import { ResponseMessage } from './response-message';
-import { DefaultStepResult, StepResult } from './step-result';
+import type { PrepareStepFunction } from './prepare-step';
+import type { ResponseMessage } from './response-message';
+import { DefaultStepResult, type StepResult } from './step-result';
 import {
   isStopConditionMet,
   stepCountIs,
-  StopCondition,
+  type StopCondition,
 } from './stop-condition';
 import { toResponseMessages } from './to-response-messages';
-import { ToolApprovalRequestOutput } from './tool-approval-request-output';
-import { TypedToolCall } from './tool-call';
-import { ToolCallRepairFunction } from './tool-call-repair-function';
-import { TypedToolError } from './tool-error';
-import { ToolOutput } from './tool-output';
-import { TypedToolResult } from './tool-result';
-import { ToolSet } from './tool-set';
+import type { ToolApprovalRequestOutput } from './tool-approval-request-output';
+import type { TypedToolCall } from './tool-call';
+import type { ToolCallRepairFunction } from './tool-call-repair-function';
+import type { TypedToolError } from './tool-error';
+import type { ToolOutput } from './tool-output';
+import type { TypedToolResult } from './tool-result';
+import type { ToolSet } from './tool-set';
 import { mergeAbortSignals } from '../util/merge-abort-signals';
 
 const originalGenerateId = createIdGenerator({

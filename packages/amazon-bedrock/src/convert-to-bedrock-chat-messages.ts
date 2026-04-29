@@ -1,9 +1,9 @@
 import {
-  JSONObject,
-  LanguageModelV3Message,
-  LanguageModelV3Prompt,
-  SharedV3ProviderMetadata,
   UnsupportedFunctionalityError,
+  type JSONObject,
+  type LanguageModelV3Message,
+  type LanguageModelV3Prompt,
+  type SharedV3ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
   convertToBase64,
@@ -13,17 +13,17 @@ import {
 import {
   BEDROCK_DOCUMENT_MIME_TYPES,
   BEDROCK_IMAGE_MIME_TYPES,
-  BedrockAssistantMessage,
-  BedrockCachePoint,
-  BedrockDocumentFormat,
-  BedrockDocumentMimeType,
-  BedrockImageFormat,
-  BedrockImageMimeType,
-  BedrockMessages,
-  BedrockSystemMessages,
-  BedrockUserMessage,
+  type BedrockAssistantMessage,
+  type BedrockCachePoint,
+  type BedrockDocumentFormat,
+  type BedrockDocumentMimeType,
+  type BedrockImageFormat,
+  type BedrockImageMimeType,
+  type BedrockMessages,
+  type BedrockSystemMessages,
+  type BedrockUserMessage,
 } from './bedrock-api-types';
-import { bedrockReasoningMetadataSchema } from './bedrock-chat-language-model';
+import { bedrockReasoningMetadataSchema } from './bedrock-reasoning-metadata';
 import { bedrockFilePartProviderOptions } from './bedrock-chat-options';
 import { normalizeToolCallId } from './normalize-tool-call-id';
 

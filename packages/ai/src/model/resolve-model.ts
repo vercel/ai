@@ -1,5 +1,5 @@
 import { gateway } from '@ai-sdk/gateway';
-import {
+import type {
   EmbeddingModelV3,
   Experimental_VideoModelV3,
   ImageModelV3,
@@ -10,18 +10,18 @@ import {
   TranscriptionModelV3,
 } from '@ai-sdk/provider';
 import { UnsupportedModelVersionError } from '../error';
-import { EmbeddingModel } from '../types/embedding-model';
-import { LanguageModel } from '../types/language-model';
-import { SpeechModel } from '../types/speech-model';
-import { TranscriptionModel } from '../types/transcription-model';
+import type { EmbeddingModel } from '../types/embedding-model';
+import type { LanguageModel } from '../types/language-model';
+import type { SpeechModel } from '../types/speech-model';
+import type { TranscriptionModel } from '../types/transcription-model';
 import { asEmbeddingModelV3 } from './as-embedding-model-v3';
 import { asImageModelV3 } from './as-image-model-v3';
 import { asLanguageModelV3 } from './as-language-model-v3';
 import { asSpeechModelV3 } from './as-speech-model-v3';
 import { asTranscriptionModelV3 } from './as-transcription-model-v3';
-import { ImageModel } from '../types/image-model';
-import { RerankingModel } from '../types/reranking-model';
-import { VideoModel } from '../types/video-model';
+import type { ImageModel } from '../types/image-model';
+import type { RerankingModel } from '../types/reranking-model';
+import type { VideoModel } from '../types/video-model';
 
 export function resolveLanguageModel(model: LanguageModel): LanguageModelV3 {
   if (typeof model !== 'string') {

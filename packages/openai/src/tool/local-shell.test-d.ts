@@ -1,9 +1,9 @@
-import { InferSchema, Tool } from '@ai-sdk/provider-utils';
+import type { InferSchema, Tool } from '@ai-sdk/provider-utils';
 import { describe, expectTypeOf, it } from 'vitest';
 import {
   localShell,
-  localShellInputSchema,
-  localShellOutputSchema,
+  type localShellInputSchema,
+  type localShellOutputSchema,
 } from './local-shell';
 
 describe('local-shell tool type', () => {

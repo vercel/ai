@@ -1,4 +1,4 @@
-import { SharedV3ProviderOptions } from '@ai-sdk/provider';
+import type { SharedV3ProviderOptions } from '@ai-sdk/provider';
 
 /**
  * Additional provider-specific options.

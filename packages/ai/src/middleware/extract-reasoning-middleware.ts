@@ -2,7 +2,7 @@ import type {
   LanguageModelV3Content,
   LanguageModelV3StreamPart,
 } from '@ai-sdk/provider';
-import { LanguageModelMiddleware } from '../types/language-model-middleware';
+import type { LanguageModelMiddleware } from '../types/language-model-middleware';
 import { getPotentialStartIndex } from '../util/get-potential-start-index';
 
 /**

@@ -1,6 +1,6 @@
 import {
-  AbstractChat,
-  ChatInit,
+  type AbstractChat,
+  type ChatInit,
   type CreateUIMessage,
   type UIMessage,
 } from 'ai';

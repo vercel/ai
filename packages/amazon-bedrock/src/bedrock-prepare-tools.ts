@@ -1,15 +1,18 @@
 import {
-  JSONObject,
-  LanguageModelV3CallOptions,
-  SharedV3Warning,
   UnsupportedFunctionalityError,
+  type JSONObject,
+  type LanguageModelV3CallOptions,
+  type SharedV3Warning,
 } from '@ai-sdk/provider';
 import { asSchema } from '@ai-sdk/provider-utils';
 import {
   anthropicTools,
   prepareTools as prepareAnthropicTools,
 } from '@ai-sdk/anthropic/internal';
-import { BedrockTool, BedrockToolConfiguration } from './bedrock-api-types';
+import type {
+  BedrockTool,
+  BedrockToolConfiguration,
+} from './bedrock-api-types';
 
 export async function prepareTools({
   tools,

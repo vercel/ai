@@ -1,9 +1,9 @@
 import {
-  SharedV3Warning,
-  LanguageModelV3Prompt,
   UnsupportedFunctionalityError,
+  type SharedV3Warning,
+  type LanguageModelV3Prompt,
 } from '@ai-sdk/provider';
-import { OpenAIChatPrompt } from './openai-chat-prompt';
+import type { OpenAIChatPrompt } from './openai-chat-prompt';
 import { convertToBase64 } from '@ai-sdk/provider-utils';
 
 function serializeToolCallArguments(input: unknown): string {

@@ -1,4 +1,4 @@
-import { LanguageModelV3Prompt } from '@ai-sdk/provider';
+import type { LanguageModelV3Prompt } from '@ai-sdk/provider';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';

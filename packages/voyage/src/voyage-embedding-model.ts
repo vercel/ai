@@ -1,18 +1,18 @@
 import {
-  EmbeddingModelV3,
   TooManyEmbeddingValuesForCallError,
+  type EmbeddingModelV3,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createJsonResponseHandler,
-  FetchFunction,
   parseProviderOptions,
   postJsonToApi,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import {
-  VoyageEmbeddingModelId,
   voyageEmbeddingModelOptions,
+  type VoyageEmbeddingModelId,
 } from './voyage-embedding-options';
 import { voyageFailedResponseHandler } from './voyage-error';
 

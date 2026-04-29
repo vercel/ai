@@ -1,7 +1,7 @@
 import {
-  SharedV3Warning,
-  LanguageModelV3Prompt,
   UnsupportedFunctionalityError,
+  type SharedV3Warning,
+  type LanguageModelV3Prompt,
 } from '@ai-sdk/provider';
 
 export async function convertToHuggingFaceResponsesMessages({

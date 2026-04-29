@@ -1,4 +1,4 @@
-import {
+import type {
   LanguageModelV3GenerateResult,
   LanguageModelV3Prompt,
 } from '@ai-sdk/provider';

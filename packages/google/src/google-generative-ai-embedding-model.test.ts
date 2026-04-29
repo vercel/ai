@@ -1,4 +1,4 @@
-import { EmbeddingModelV3Embedding } from '@ai-sdk/provider';
+import type { EmbeddingModelV3Embedding } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { GoogleGenerativeAIEmbeddingModel } from './google-generative-ai-embedding-model';
 import { createGoogleGenerativeAI } from './google-provider';

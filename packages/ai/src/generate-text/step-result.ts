@@ -1,23 +1,27 @@
-import { ReasoningPart } from '@ai-sdk/provider-utils';
-import {
+import type { ReasoningPart } from '@ai-sdk/provider-utils';
+import type {
   CallWarning,
   FinishReason,
   LanguageModelRequestMetadata,
   LanguageModelResponseMetadata,
   ProviderMetadata,
 } from '../types';
-import { Source } from '../types/language-model';
-import { LanguageModelUsage } from '../types/usage';
-import { ContentPart } from './content-part';
-import { GeneratedFile } from './generated-file';
-import { ResponseMessage } from './response-message';
-import { DynamicToolCall, StaticToolCall, TypedToolCall } from './tool-call';
-import {
+import type { Source } from '../types/language-model';
+import type { LanguageModelUsage } from '../types/usage';
+import type { ContentPart } from './content-part';
+import type { GeneratedFile } from './generated-file';
+import type { ResponseMessage } from './response-message';
+import type {
+  DynamicToolCall,
+  StaticToolCall,
+  TypedToolCall,
+} from './tool-call';
+import type {
   DynamicToolResult,
   StaticToolResult,
   TypedToolResult,
 } from './tool-result';
-import { ToolSet } from './tool-set';
+import type { ToolSet } from './tool-set';
 
 /**
  * The result of a single step in the generation process.

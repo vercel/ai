@@ -1,4 +1,4 @@
-import {
+import type {
   LanguageModelV3StreamPart,
   LanguageModelV3Usage,
 } from '@ai-sdk/provider';

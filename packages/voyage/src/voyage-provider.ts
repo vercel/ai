@@ -1,19 +1,19 @@
 import {
-  EmbeddingModelV3,
   NoSuchModelError,
-  RerankingModelV3,
-  ProviderV3,
+  type EmbeddingModelV3,
+  type RerankingModelV3,
+  type ProviderV3,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
   loadApiKey,
   withoutTrailingSlash,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { VoyageEmbeddingModel } from './voyage-embedding-model';
-import { VoyageEmbeddingModelId } from './voyage-embedding-options';
+import type { VoyageEmbeddingModelId } from './voyage-embedding-options';
 import { VoyageRerankingModel } from './reranking/voyage-reranking-model';
-import { VoyageRerankingModelId } from './reranking/voyage-reranking-options';
+import type { VoyageRerankingModelId } from './reranking/voyage-reranking-options';
 import { VERSION } from './version';
 
 export interface VoyageProvider extends ProviderV3 {

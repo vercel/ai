@@ -1,6 +1,6 @@
-import { ModelMessage } from '@ai-sdk/provider-utils';
-import { TypedToolCall } from './tool-call';
-import { ToolSet } from './tool-set';
+import type { ModelMessage } from '@ai-sdk/provider-utils';
+import type { TypedToolCall } from './tool-call';
+import type { ToolSet } from './tool-set';
 
 export async function isApprovalNeeded<TOOLS extends ToolSet>({
   tool,

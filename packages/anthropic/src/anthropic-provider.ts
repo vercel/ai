@@ -1,20 +1,20 @@
 import {
   InvalidArgumentError,
-  LanguageModelV3,
   NoSuchModelError,
-  ProviderV3,
+  type LanguageModelV3,
+  type ProviderV3,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
   generateId,
   loadApiKey,
   loadOptionalSetting,
   withoutTrailingSlash,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { VERSION } from './version';
 import { AnthropicMessagesLanguageModel } from './anthropic-messages-language-model';
-import { AnthropicMessagesModelId } from './anthropic-messages-options';
+import type { AnthropicMessagesModelId } from './anthropic-messages-options';
 import { anthropicTools } from './anthropic-tools';
 
 export interface AnthropicProvider extends ProviderV3 {

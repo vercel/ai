@@ -1,9 +1,9 @@
 import {
-  GroundingMetadataSchema,
-  PromptFeedbackSchema,
-  UrlContextMetadataSchema,
+  type GroundingMetadataSchema,
+  type PromptFeedbackSchema,
+  type UrlContextMetadataSchema,
+  type UsageMetadataSchema,
   type SafetyRatingSchema,
-  UsageMetadataSchema,
 } from './google-generative-ai-language-model';
 
 export type GoogleGenerativeAIPrompt = {

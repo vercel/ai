@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   amazonBedrockLanguageModelOptions,
-  AmazonBedrockLanguageModelOptions,
+  type AmazonBedrockLanguageModelOptions,
 } from './bedrock-chat-options';
 
 describe('amazonBedrockLanguageModelOptions', () => {

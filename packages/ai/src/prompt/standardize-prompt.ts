@@ -1,12 +1,12 @@
 import { InvalidPromptError } from '@ai-sdk/provider';
 import {
-  ModelMessage,
   safeValidateTypes,
-  SystemModelMessage,
+  type ModelMessage,
+  type SystemModelMessage,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { modelMessageSchema } from './message';
-import { Prompt } from './prompt';
+import type { Prompt } from './prompt';
 import { asArray } from '../util/as-array';
 
 export type StandardizedPrompt = {

@@ -1,5 +1,5 @@
 import { describe, expectTypeOf, it } from 'vitest';
-import {
+import type {
   DataUIPart,
   DynamicToolUIPart,
   FileUIPart,
@@ -11,7 +11,7 @@ import {
   UIMessage,
 } from '../ui/ui-messages';
 import { ToolLoopAgent } from './tool-loop-agent';
-import { InferAgentUIMessage } from './infer-agent-ui-message';
+import type { InferAgentUIMessage } from './infer-agent-ui-message';
 
 describe('InferAgentUIMessage', () => {
   it('should not contain arbitrary static tools when no tools are provided', () => {

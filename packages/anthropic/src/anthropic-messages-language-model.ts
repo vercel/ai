@@ -1,53 +1,53 @@
 import {
   APICallError,
-  JSONObject,
-  LanguageModelV3,
-  LanguageModelV3CallOptions,
-  LanguageModelV3Content,
-  LanguageModelV3FinishReason,
-  LanguageModelV3FunctionTool,
-  LanguageModelV3GenerateResult,
-  LanguageModelV3Prompt,
-  LanguageModelV3Source,
-  LanguageModelV3StreamPart,
-  LanguageModelV3StreamResult,
-  LanguageModelV3ToolCall,
-  SharedV3ProviderMetadata,
-  SharedV3Warning,
+  type JSONObject,
+  type LanguageModelV3,
+  type LanguageModelV3CallOptions,
+  type LanguageModelV3Content,
+  type LanguageModelV3FinishReason,
+  type LanguageModelV3FunctionTool,
+  type LanguageModelV3GenerateResult,
+  type LanguageModelV3Prompt,
+  type LanguageModelV3Source,
+  type LanguageModelV3StreamPart,
+  type LanguageModelV3StreamResult,
+  type LanguageModelV3ToolCall,
+  type SharedV3ProviderMetadata,
+  type SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   createToolNameMapping,
-  FetchFunction,
   generateId,
-  InferSchema,
   parseProviderOptions,
-  ParseResult,
   postJsonToApi,
-  Resolvable,
   resolve,
+  type FetchFunction,
+  type InferSchema,
+  type ParseResult,
+  type Resolvable,
 } from '@ai-sdk/provider-utils';
 import { anthropicFailedResponseHandler } from './anthropic-error';
-import { AnthropicMessageMetadata } from './anthropic-message-metadata';
+import type { AnthropicMessageMetadata } from './anthropic-message-metadata';
 import {
-  AnthropicContainer,
   anthropicMessagesChunkSchema,
   anthropicMessagesResponseSchema,
-  AnthropicReasoningMetadata,
-  AnthropicResponseContextManagement,
-  AnthropicTool,
-  Citation,
+  type AnthropicContainer,
+  type AnthropicReasoningMetadata,
+  type AnthropicResponseContextManagement,
+  type AnthropicTool,
+  type Citation,
 } from './anthropic-messages-api';
 import {
-  AnthropicMessagesModelId,
   anthropicLanguageModelOptions,
+  type AnthropicMessagesModelId,
 } from './anthropic-messages-options';
 import { prepareTools } from './anthropic-prepare-tools';
 import {
-  AnthropicMessagesUsage,
   convertAnthropicMessagesUsage,
+  type AnthropicMessagesUsage,
 } from './convert-anthropic-messages-usage';
 import { convertToAnthropicMessagesPrompt } from './convert-to-anthropic-messages-prompt';
 import { CacheControlValidator } from './get-cache-control';

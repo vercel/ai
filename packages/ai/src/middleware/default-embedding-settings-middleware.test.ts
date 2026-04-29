@@ -1,4 +1,4 @@
-import { EmbeddingModelV3CallOptions } from '@ai-sdk/provider';
+import type { EmbeddingModelV3CallOptions } from '@ai-sdk/provider';
 import { defaultEmbeddingSettingsMiddleware } from './default-embedding-settings-middleware';
 import { MockEmbeddingModelV3 } from '../test/mock-embedding-model-v3';
 import { describe, it, expect } from 'vitest';

@@ -1,16 +1,16 @@
 import {
-  EmbeddingModelV3,
-  ImageModelV3,
-  LanguageModelV3,
   NoSuchModelError,
-  ProviderV3,
-  RerankingModelV3,
-  SpeechModelV3,
-  TranscriptionModelV3,
+  type EmbeddingModelV3,
+  type ImageModelV3,
+  type LanguageModelV3,
+  type ProviderV3,
+  type RerankingModelV3,
+  type SpeechModelV3,
+  type TranscriptionModelV3,
 } from '@ai-sdk/provider';
 import { wrapImageModel } from '../middleware/wrap-image-model';
 import { wrapLanguageModel } from '../middleware/wrap-language-model';
-import { ImageModelMiddleware, LanguageModelMiddleware } from '../types';
+import type { ImageModelMiddleware, LanguageModelMiddleware } from '../types';
 import { NoSuchProviderError } from './no-such-provider-error';
 
 type ExtractLiteralUnion<T> = T extends string

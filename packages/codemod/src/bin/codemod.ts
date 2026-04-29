@@ -4,7 +4,7 @@ import debug from 'debug';
 import { Command } from 'commander';
 import { transform } from '../lib/transform';
 import { upgrade, upgradeV4, upgradeV5, upgradeV6 } from '../lib/upgrade';
-import { TransformOptions } from '../lib/transform-options';
+import type { TransformOptions } from '../lib/transform-options';
 
 const log = debug('codemod');
 const error = debug('codemod:error');

@@ -1,6 +1,6 @@
 import {
-  LanguageModelV3Prompt,
   LanguageModelV3ProviderTool,
+  type LanguageModelV3Prompt,
 } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
@@ -10,7 +10,7 @@ import {
   getUrlContextMetadataSchema,
 } from './google-generative-ai-language-model';
 
-import {
+import type {
   GoogleGenerativeAIGroundingMetadata,
   GoogleGenerativeAIUrlContextMetadata,
 } from './google-generative-ai-prompt';

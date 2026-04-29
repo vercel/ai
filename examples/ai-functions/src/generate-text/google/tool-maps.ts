@@ -1,6 +1,6 @@
 import {
   google,
-  GoogleGenerativeAIProviderMetadata,
+  type GoogleGenerativeAIProviderMetadata,
   type GoogleLanguageModelOptions,
 } from '@ai-sdk/google';
 import { generateText } from 'ai';

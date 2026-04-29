@@ -1,24 +1,24 @@
 import {
-  Experimental_VideoModelV3,
-  ImageModelV3,
   NoSuchModelError,
-  ProviderV3,
-  SpeechModelV3,
-  TranscriptionModelV3,
+  type Experimental_VideoModelV3,
+  type ImageModelV3,
+  type ProviderV3,
+  type SpeechModelV3,
+  type TranscriptionModelV3,
 } from '@ai-sdk/provider';
-import type { FetchFunction } from '@ai-sdk/provider-utils';
 import {
   withoutTrailingSlash,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { FalImageModel } from './fal-image-model';
-import { FalImageModelId } from './fal-image-settings';
-import { FalTranscriptionModelId } from './fal-transcription-options';
+import type { FalImageModelId } from './fal-image-settings';
+import type { FalTranscriptionModelId } from './fal-transcription-options';
 import { FalTranscriptionModel } from './fal-transcription-model';
-import { FalSpeechModelId } from './fal-speech-settings';
+import type { FalSpeechModelId } from './fal-speech-settings';
 import { FalSpeechModel } from './fal-speech-model';
 import { FalVideoModel } from './fal-video-model';
-import { FalVideoModelId } from './fal-video-settings';
+import type { FalVideoModelId } from './fal-video-settings';
 import { VERSION } from './version';
 
 export interface FalProviderSettings {

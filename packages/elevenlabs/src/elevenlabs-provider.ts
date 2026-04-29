@@ -1,18 +1,18 @@
 import {
-  TranscriptionModelV3,
-  SpeechModelV3,
-  ProviderV3,
   NoSuchModelError,
+  type TranscriptionModelV3,
+  type SpeechModelV3,
+  type ProviderV3,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
   loadApiKey,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { ElevenLabsTranscriptionModel } from './elevenlabs-transcription-model';
-import { ElevenLabsTranscriptionModelId } from './elevenlabs-transcription-options';
+import type { ElevenLabsTranscriptionModelId } from './elevenlabs-transcription-options';
 import { ElevenLabsSpeechModel } from './elevenlabs-speech-model';
-import { ElevenLabsSpeechModelId } from './elevenlabs-speech-options';
+import type { ElevenLabsSpeechModelId } from './elevenlabs-speech-options';
 import { VERSION } from './version';
 
 export interface ElevenLabsProvider extends ProviderV3 {

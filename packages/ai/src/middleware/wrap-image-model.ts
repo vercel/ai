@@ -1,5 +1,5 @@
-import { ImageModelV3, ImageModelV3CallOptions } from '@ai-sdk/provider';
-import { ImageModelMiddleware } from '../types';
+import type { ImageModelV3, ImageModelV3CallOptions } from '@ai-sdk/provider';
+import type { ImageModelMiddleware } from '../types';
 import { asArray } from '../util/as-array';
 
 /**

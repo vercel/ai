@@ -1,4 +1,4 @@
-import {
+import type {
   ImageModelV3,
   ImageModelV3CallOptions,
   ImageModelV3File,
@@ -6,28 +6,28 @@ import {
 } from '@ai-sdk/provider';
 import {
   convertBase64ToUint8Array,
-  DataContent,
-  ProviderOptions,
   withUserAgentSuffix,
+  type DataContent,
+  type ProviderOptions,
 } from '@ai-sdk/provider-utils';
 import { NoImageGeneratedError } from '../error/no-image-generated-error';
 import {
   DefaultGeneratedFile,
-  GeneratedFile,
+  type GeneratedFile,
 } from '../generate-text/generated-file';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveImageModel } from '../model/resolve-model';
 import type { ImageModel } from '../types/image-model';
-import { ImageModelResponseMetadata } from '../types/image-model-response-metadata';
-import { addImageModelUsage, ImageModelUsage } from '../types/usage';
-import { Warning } from '../types/warning';
+import type { ImageModelResponseMetadata } from '../types/image-model-response-metadata';
+import { addImageModelUsage, type ImageModelUsage } from '../types/usage';
+import type { Warning } from '../types/warning';
 import {
   detectMediaType,
   imageMediaTypeSignatures,
 } from '../util/detect-media-type';
 import { prepareRetries } from '../util/prepare-retries';
 import { VERSION } from '../version';
-import { GenerateImageResult } from './generate-image-result';
+import type { GenerateImageResult } from './generate-image-result';
 import { convertDataContentToUint8Array } from '../prompt/data-content';
 import { splitDataUrl } from '../prompt/split-data-url';
 

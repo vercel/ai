@@ -1,4 +1,4 @@
-import { TranscriptionModelV3, SharedV3Warning } from '@ai-sdk/provider';
+import type { TranscriptionModelV3, SharedV3Warning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createJsonResponseHandler,
@@ -8,10 +8,10 @@ import {
   postToApi,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import { AssemblyAIConfig } from './assemblyai-config';
+import type { AssemblyAIConfig } from './assemblyai-config';
 import { assemblyaiFailedResponseHandler } from './assemblyai-error';
-import { AssemblyAITranscriptionModelId } from './assemblyai-transcription-settings';
-import { AssemblyAITranscriptionAPITypes } from './assemblyai-api-types';
+import type { AssemblyAITranscriptionModelId } from './assemblyai-transcription-settings';
+import type { AssemblyAITranscriptionAPITypes } from './assemblyai-api-types';
 
 // https://www.assemblyai.com/docs/api-reference/transcripts/submit
 const assemblyaiTranscriptionModelOptionsSchema = z.object({

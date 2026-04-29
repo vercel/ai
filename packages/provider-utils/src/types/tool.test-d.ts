@@ -1,10 +1,10 @@
 import { LanguageModelV3ToolResultPart } from '@ai-sdk/provider';
 import { describe, expectTypeOf, it } from 'vitest';
 import { z } from 'zod/v4';
-import { FlexibleSchema } from '../schema';
-import { ModelMessage } from './model-message';
-import { Tool, tool, ToolExecuteFunction } from './tool';
-import { ToolResultOutput } from './content-part';
+import type { FlexibleSchema } from '../schema';
+import type { ModelMessage } from './model-message';
+import { tool, type Tool, type ToolExecuteFunction } from './tool';
+import type { ToolResultOutput } from './content-part';
 
 describe('tool type', () => {
   describe('input type', () => {

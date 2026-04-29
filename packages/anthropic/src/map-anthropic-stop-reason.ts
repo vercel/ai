@@ -1,4 +1,4 @@
-import { LanguageModelV3FinishReason } from '@ai-sdk/provider';
+import type { LanguageModelV3FinishReason } from '@ai-sdk/provider';
 
 /**
  * @see https://docs.anthropic.com/en/api/messages#response-stop-reason

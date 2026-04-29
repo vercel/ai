@@ -1,4 +1,4 @@
-import {
+import type {
   LanguageModelV3,
   LanguageModelV3CallOptions,
   LanguageModelV3Content,
@@ -8,22 +8,25 @@ import {
   LanguageModelV3StreamResult,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
-  ParseResult,
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   parseProviderOptions,
   postJsonToApi,
+  type FetchFunction,
+  type ParseResult,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import {
-  CohereChatModelId,
   cohereLanguageModelOptions,
+  type CohereChatModelId,
 } from './cohere-chat-options';
 import { cohereFailedResponseHandler } from './cohere-error';
 import { prepareTools } from './cohere-prepare-tools';
-import { CohereUsageTokens, convertCohereUsage } from './convert-cohere-usage';
+import {
+  convertCohereUsage,
+  type CohereUsageTokens,
+} from './convert-cohere-usage';
 import { convertToCohereChatPrompt } from './convert-to-cohere-chat-prompt';
 import { mapCohereFinishReason } from './map-cohere-finish-reason';
 

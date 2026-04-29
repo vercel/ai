@@ -1,9 +1,9 @@
+import type * as AnthropicInternal from '@ai-sdk/anthropic/internal';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { prepareTools } from './bedrock-prepare-tools';
 
 vi.mock('@ai-sdk/anthropic/internal', async importOriginal => {
-  const original =
-    await importOriginal<typeof import('@ai-sdk/anthropic/internal')>();
+  const original = await importOriginal<typeof AnthropicInternal>();
   return {
     ...original,
     prepareTools: vi.fn().mockResolvedValue({

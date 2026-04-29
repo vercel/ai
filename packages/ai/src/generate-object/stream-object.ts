@@ -1,4 +1,4 @@
-import {
+import type {
   JSONValue,
   LanguageModelV3FinishReason,
   LanguageModelV3StreamPart,
@@ -9,17 +9,17 @@ import {
 import {
   createIdGenerator,
   DelayedPromise,
-  FlexibleSchema,
-  ProviderOptions,
+  type FlexibleSchema,
+  type ProviderOptions,
   type InferSchema,
 } from '@ai-sdk/provider-utils';
-import { ServerResponse } from 'http';
+import type { ServerResponse } from 'http';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
-import { CallSettings } from '../prompt/call-settings';
+import type { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
-import { Prompt } from '../prompt/prompt';
+import type { Prompt } from '../prompt/prompt';
 import { standardizePrompt } from '../prompt/standardize-prompt';
 import { wrapGatewayError } from '../prompt/wrap-gateway-error';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
@@ -28,35 +28,38 @@ import { getTracer } from '../telemetry/get-tracer';
 import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { stringifyForTelemetry } from '../telemetry/stringify-for-telemetry';
-import { TelemetrySettings } from '../telemetry/telemetry-settings';
+import type { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { createTextStreamResponse } from '../text-stream/create-text-stream-response';
 import { pipeTextStreamToResponse } from '../text-stream/pipe-text-stream-to-response';
-import {
+import type {
   CallWarning,
   FinishReason,
   LanguageModel,
 } from '../types/language-model';
-import { LanguageModelRequestMetadata } from '../types/language-model-request-metadata';
-import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
-import { ProviderMetadata } from '../types/provider-metadata';
+import type { LanguageModelRequestMetadata } from '../types/language-model-request-metadata';
+import type { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
+import type { ProviderMetadata } from '../types/provider-metadata';
 import {
   asLanguageModelUsage,
   createNullLanguageModelUsage,
-  LanguageModelUsage,
+  type LanguageModelUsage,
 } from '../types/usage';
-import { DeepPartial, isDeepEqualData, parsePartialJson } from '../util';
+import { isDeepEqualData, parsePartialJson, type DeepPartial } from '../util';
 import {
-  AsyncIterableStream,
   createAsyncIterableStream,
+  type AsyncIterableStream,
 } from '../util/async-iterable-stream';
 import { createStitchableStream } from '../util/create-stitchable-stream';
-import { DownloadFunction } from '../util/download/download-function';
+import type { DownloadFunction } from '../util/download/download-function';
 import { now as originalNow } from '../util/now';
 import { prepareRetries } from '../util/prepare-retries';
-import { getOutputStrategy, OutputStrategy } from './output-strategy';
+import { getOutputStrategy, type OutputStrategy } from './output-strategy';
 import { parseAndValidateObjectResultWithRepair } from './parse-and-validate-object-result';
-import { RepairTextFunction } from './repair-text';
-import { ObjectStreamPart, StreamObjectResult } from './stream-object-result';
+import type { RepairTextFunction } from './repair-text';
+import type {
+  ObjectStreamPart,
+  StreamObjectResult,
+} from './stream-object-result';
 import { validateObjectGenerationInput } from './validate-object-generation-input';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aiobj', size: 24 });

@@ -1,10 +1,10 @@
 import {
-  SharedV3Warning,
-  LanguageModelV3DataContent,
-  LanguageModelV3Message,
-  LanguageModelV3Prompt,
-  SharedV3ProviderMetadata,
   UnsupportedFunctionalityError,
+  type SharedV3Warning,
+  type LanguageModelV3DataContent,
+  type LanguageModelV3Message,
+  type LanguageModelV3Prompt,
+  type SharedV3ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
   convertBase64ToUint8Array,
@@ -12,15 +12,15 @@ import {
   parseProviderOptions,
   validateTypes,
   isNonNullable,
-  ToolNameMapping,
+  type ToolNameMapping,
 } from '@ai-sdk/provider-utils';
 import {
-  AnthropicAssistantMessage,
-  AnthropicMessagesPrompt,
   anthropicReasoningMetadataSchema,
-  AnthropicToolResultContent,
-  AnthropicUserMessage,
-  AnthropicWebFetchToolResultContent,
+  type AnthropicAssistantMessage,
+  type AnthropicMessagesPrompt,
+  type AnthropicToolResultContent,
+  type AnthropicUserMessage,
+  type AnthropicWebFetchToolResultContent,
 } from './anthropic-messages-api';
 import { anthropicFilePartProviderOptions } from './anthropic-messages-options';
 import { CacheControlValidator } from './get-cache-control';

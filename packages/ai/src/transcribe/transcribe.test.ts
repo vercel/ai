@@ -1,4 +1,4 @@
-import { JSONObject, TranscriptionModelV3 } from '@ai-sdk/provider';
+import type { JSONObject, TranscriptionModelV3 } from '@ai-sdk/provider';
 import {
   afterEach,
   beforeEach,
@@ -11,7 +11,7 @@ import {
 import * as logWarningsModule from '../logger/log-warnings';
 import { MockTranscriptionModelV3 } from '../test/mock-transcription-model-v3';
 import { transcribe } from './transcribe';
-import { Warning } from '../types/warning';
+import type { Warning } from '../types/warning';
 
 vi.mock('../version', () => {
   return {

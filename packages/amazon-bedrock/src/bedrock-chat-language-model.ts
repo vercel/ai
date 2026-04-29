@@ -1,4 +1,4 @@
-import {
+import type {
   JSONObject,
   LanguageModelV3,
   LanguageModelV3CallOptions,
@@ -13,30 +13,33 @@ import {
   SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
-  ParseResult,
-  Resolvable,
   combineHeaders,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
   parseProviderOptions,
   postJsonToApi,
   resolve,
+  type FetchFunction,
+  type ParseResult,
+  type Resolvable,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import {
   BEDROCK_STOP_REASONS,
-  BedrockConverseInput,
-  BedrockStopReason,
+  type BedrockConverseInput,
+  type BedrockStopReason,
 } from './bedrock-api-types';
 import {
-  BedrockChatModelId,
   amazonBedrockLanguageModelOptions,
+  type BedrockChatModelId,
 } from './bedrock-chat-options';
 import { BedrockErrorSchema } from './bedrock-error';
 import { createBedrockEventStreamResponseHandler } from './bedrock-event-stream-response-handler';
 import { prepareTools } from './bedrock-prepare-tools';
-import { BedrockUsage, convertBedrockUsage } from './convert-bedrock-usage';
+import {
+  convertBedrockUsage,
+  type BedrockUsage,
+} from './convert-bedrock-usage';
 import { convertToBedrockChatMessages } from './convert-to-bedrock-chat-messages';
 import { mapBedrockFinishReason } from './map-bedrock-finish-reason';
 import { isMistralModel, normalizeToolCallId } from './normalize-tool-call-id';
@@ -1139,11 +1142,7 @@ const BedrockStreamSchema = z.object({
   validationException: z.record(z.string(), z.unknown()).nullish(),
 });
 
-export const bedrockReasoningMetadataSchema = z.object({
-  signature: z.string().optional(),
-  redactedData: z.string().optional(),
-});
-
-export type BedrockReasoningMetadata = z.infer<
-  typeof bedrockReasoningMetadataSchema
->;
+export {
+  bedrockReasoningMetadataSchema,
+  type BedrockReasoningMetadata,
+} from './bedrock-reasoning-metadata';

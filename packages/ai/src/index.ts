@@ -1,3 +1,6 @@
+// import globals
+import './global';
+
 // re-exports:
 export { createGateway, gateway, type GatewayModelId } from '@ai-sdk/gateway';
 export {
@@ -44,6 +47,3 @@ export * from './ui';
 export * from './ui-message-stream';
 export * from './util';
 export * from './telemetry';
-
-// import globals
-import './global';

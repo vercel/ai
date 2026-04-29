@@ -1,4 +1,4 @@
-import {
+import type {
   FlexibleSchema,
   MaybePromiseLike,
   ProviderOptions,
@@ -8,17 +8,17 @@ import type {
   OnFinishEvent,
   OnStepFinishEvent,
 } from '../generate-text/callback-events';
-import { Output } from '../generate-text/output';
-import { PrepareStepFunction } from '../generate-text/prepare-step';
-import { StopCondition } from '../generate-text/stop-condition';
-import { ToolCallRepairFunction } from '../generate-text/tool-call-repair-function';
-import { ToolSet } from '../generate-text/tool-set';
-import { CallSettings } from '../prompt/call-settings';
-import { Prompt } from '../prompt/prompt';
-import { TelemetrySettings } from '../telemetry/telemetry-settings';
-import { LanguageModel, ToolChoice } from '../types/language-model';
-import { DownloadFunction } from '../util/download/download-function';
-import { AgentCallParameters } from './agent';
+import type { Output } from '../generate-text/output';
+import type { PrepareStepFunction } from '../generate-text/prepare-step';
+import type { StopCondition } from '../generate-text/stop-condition';
+import type { ToolCallRepairFunction } from '../generate-text/tool-call-repair-function';
+import type { ToolSet } from '../generate-text/tool-set';
+import type { CallSettings } from '../prompt/call-settings';
+import type { Prompt } from '../prompt/prompt';
+import type { TelemetrySettings } from '../telemetry/telemetry-settings';
+import type { LanguageModel, ToolChoice } from '../types/language-model';
+import type { DownloadFunction } from '../util/download/download-function';
+import type { AgentCallParameters } from './agent';
 
 export type ToolLoopAgentOnStepFinishCallback<TOOLS extends ToolSet = {}> = (
   stepResult: OnStepFinishEvent<TOOLS>,

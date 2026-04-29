@@ -1,5 +1,5 @@
-import { tool, Tool, ToolExecuteFunction } from './types/tool';
-import { FlexibleSchema } from './schema';
+import { tool, type Tool, type ToolExecuteFunction } from './types/tool';
+import type { FlexibleSchema } from './schema';
 
 export type ProviderToolFactory<INPUT, ARGS extends object> = <OUTPUT>(
   options: ARGS & {

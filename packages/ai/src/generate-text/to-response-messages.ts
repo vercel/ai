@@ -1,12 +1,12 @@
-import {
+import type {
   AssistantContent,
   AssistantModelMessage,
   ToolContent,
   ToolModelMessage,
 } from '../prompt';
 import { createToolModelOutput } from '../prompt/create-tool-model-output';
-import { ContentPart } from './content-part';
-import { ToolSet } from './tool-set';
+import type { ContentPart } from './content-part';
+import type { ToolSet } from './tool-set';
 
 /**
  * Converts the result of a `generateText` or `streamText` call to a list of response messages.

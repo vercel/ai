@@ -1,9 +1,12 @@
 import {
-  SharedV3Warning,
-  LanguageModelV3Prompt,
   UnsupportedFunctionalityError,
+  type SharedV3Warning,
+  type LanguageModelV3Prompt,
 } from '@ai-sdk/provider';
-import { CohereAssistantMessage, CohereChatPrompt } from './cohere-chat-prompt';
+import type {
+  CohereAssistantMessage,
+  CohereChatPrompt,
+} from './cohere-chat-prompt';
 
 export function convertToCohereChatPrompt(prompt: LanguageModelV3Prompt): {
   messages: CohereChatPrompt;

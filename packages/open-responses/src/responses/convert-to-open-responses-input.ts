@@ -1,6 +1,6 @@
-import { LanguageModelV3Prompt, SharedV3Warning } from '@ai-sdk/provider';
+import type { LanguageModelV3Prompt, SharedV3Warning } from '@ai-sdk/provider';
 import { convertToBase64 } from '@ai-sdk/provider-utils';
-import {
+import type {
   FunctionCallItemParam,
   FunctionCallOutputItemParam,
   InputFileContentParam,

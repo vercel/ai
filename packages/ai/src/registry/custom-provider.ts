@@ -1,14 +1,14 @@
 import {
-  EmbeddingModelV3,
-  Experimental_VideoModelV3,
-  ImageModelV3,
-  LanguageModelV3,
   NoSuchModelError,
-  ProviderV2,
-  ProviderV3,
-  RerankingModelV3,
-  SpeechModelV3,
-  TranscriptionModelV3,
+  type EmbeddingModelV3,
+  type Experimental_VideoModelV3,
+  type ImageModelV3,
+  type LanguageModelV3,
+  type ProviderV2,
+  type ProviderV3,
+  type RerankingModelV3,
+  type SpeechModelV3,
+  type TranscriptionModelV3,
 } from '@ai-sdk/provider';
 import { asProviderV3 } from '../model/as-provider-v3';
 

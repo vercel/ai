@@ -1,11 +1,11 @@
-import {
+import type {
   ModelMessage,
   ProviderOptions,
   SystemModelMessage,
   Tool,
 } from '@ai-sdk/provider-utils';
-import { LanguageModel, ToolChoice } from '../types/language-model';
-import { StepResult } from './step-result';
+import type { LanguageModel, ToolChoice } from '../types/language-model';
+import type { StepResult } from './step-result';
 
 /**
  * Function that you can use to provide different settings for a step.

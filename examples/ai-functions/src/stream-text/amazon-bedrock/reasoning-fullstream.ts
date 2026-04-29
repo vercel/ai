@@ -2,7 +2,12 @@ import {
   bedrock,
   type AmazonBedrockLanguageModelOptions,
 } from '@ai-sdk/amazon-bedrock';
-import { stepCountIs, streamText, ToolCallPart, ToolResultPart } from 'ai';
+import {
+  stepCountIs,
+  streamText,
+  type ToolCallPart,
+  type ToolResultPart,
+} from 'ai';
 import { weatherTool } from '../../tools/weather-tool';
 import { run } from '../../lib/run';
 

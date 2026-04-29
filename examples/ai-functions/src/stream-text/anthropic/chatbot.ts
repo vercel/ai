@@ -1,5 +1,5 @@
 import { anthropic } from '@ai-sdk/anthropic';
-import { stepCountIs, ModelMessage, streamText, tool } from 'ai';
+import { stepCountIs, streamText, tool, type ModelMessage } from 'ai';
 import * as readline from 'node:readline/promises';
 import { z } from 'zod';
 import { run } from '../../lib/run';

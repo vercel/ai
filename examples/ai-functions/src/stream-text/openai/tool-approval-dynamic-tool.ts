@@ -1,11 +1,11 @@
 import { openai } from '@ai-sdk/openai';
 import {
-  ModelMessage,
   stepCountIs,
   streamText,
   dynamicTool,
-  ToolApprovalResponse,
-  ToolSet,
+  type ModelMessage,
+  type ToolApprovalResponse,
+  type ToolSet,
 } from 'ai';
 import * as readline from 'node:readline/promises';
 import { z } from 'zod';

@@ -1,10 +1,10 @@
 import {
-  SharedV3Warning,
-  LanguageModelV3Prompt,
   UnsupportedFunctionalityError,
+  type SharedV3Warning,
+  type LanguageModelV3Prompt,
 } from '@ai-sdk/provider';
 import { convertToBase64 } from '@ai-sdk/provider-utils';
-import { XaiChatPrompt } from './xai-chat-prompt';
+import type { XaiChatPrompt } from './xai-chat-prompt';
 
 export function convertToXaiChatMessages(prompt: LanguageModelV3Prompt): {
   messages: XaiChatPrompt;

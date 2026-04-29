@@ -1,4 +1,4 @@
-import {
+import type {
   EmbeddingModelV3CallOptions,
   EmbeddingModelV3Middleware,
 } from '@ai-sdk/provider';

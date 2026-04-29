@@ -1,4 +1,4 @@
-import { MaybePromiseLike } from './maybe-promise-like';
+import type { MaybePromiseLike } from './maybe-promise-like';
 
 export type Resolvable<T> = MaybePromiseLike<T> | (() => MaybePromiseLike<T>);
 

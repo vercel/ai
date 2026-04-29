@@ -1,8 +1,8 @@
-import {
+import type {
   EmbeddingModelV3,
   EmbeddingModelV3CallOptions,
 } from '@ai-sdk/provider';
-import { EmbeddingModelMiddleware } from '../types';
+import type { EmbeddingModelMiddleware } from '../types';
 import { asArray } from '../util/as-array';
 
 /**

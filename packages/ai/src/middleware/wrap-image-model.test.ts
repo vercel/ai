@@ -1,4 +1,4 @@
-import {
+import type {
   ImageModelV3CallOptions,
   ImageModelV3Middleware,
 } from '@ai-sdk/provider';

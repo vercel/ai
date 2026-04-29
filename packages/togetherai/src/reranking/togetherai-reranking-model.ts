@@ -1,20 +1,20 @@
-import { RerankingModelV3 } from '@ai-sdk/provider';
+import type { RerankingModelV3 } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
-  FetchFunction,
   parseProviderOptions,
   postJsonToApi,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import {
   togetheraiErrorSchema,
-  TogetherAIRerankingInput,
   togetheraiRerankingResponseSchema,
+  type TogetherAIRerankingInput,
 } from './togetherai-reranking-api';
 import {
-  TogetherAIRerankingModelId,
   togetheraiRerankingModelOptionsSchema,
+  type TogetherAIRerankingModelId,
 } from './togetherai-reranking-options';
 
 type TogetherAIRerankingConfig = {

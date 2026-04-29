@@ -1,11 +1,10 @@
 import {
-  ImageModelV3,
-  ImageModelV3File,
-  SharedV3Warning,
   InvalidResponseDataError,
+  type ImageModelV3,
+  type ImageModelV3File,
+  type SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
   combineHeaders,
   createBinaryResponseHandler,
   createJsonResponseHandler,
@@ -14,12 +13,16 @@ import {
   delay,
   getFromApi,
   postJsonToApi,
-  InferSchema,
   lazySchema,
   parseProviderOptions,
   zodSchema,
+  type FetchFunction,
+  type InferSchema,
 } from '@ai-sdk/provider-utils';
-import { LumaImageSettings, LumaReferenceType } from './luma-image-settings';
+import {
+  LumaImageSettings,
+  type LumaReferenceType,
+} from './luma-image-settings';
 import { z } from 'zod/v4';
 
 const DEFAULT_POLL_INTERVAL_MILLIS = 500;

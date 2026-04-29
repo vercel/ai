@@ -1,18 +1,18 @@
 import {
   APICallError,
-  JSONValue,
-  LanguageModelV3,
-  LanguageModelV3Prompt,
-  LanguageModelV3CallOptions,
-  LanguageModelV3Content,
-  LanguageModelV3FinishReason,
-  LanguageModelV3GenerateResult,
-  LanguageModelV3ProviderTool,
-  LanguageModelV3StreamPart,
-  LanguageModelV3StreamResult,
-  LanguageModelV3ToolApprovalRequest,
-  SharedV3ProviderMetadata,
-  SharedV3Warning,
+  type JSONValue,
+  type LanguageModelV3,
+  type LanguageModelV3Prompt,
+  type LanguageModelV3CallOptions,
+  type LanguageModelV3Content,
+  type LanguageModelV3FinishReason,
+  type LanguageModelV3GenerateResult,
+  type LanguageModelV3ProviderTool,
+  type LanguageModelV3StreamPart,
+  type LanguageModelV3StreamResult,
+  type LanguageModelV3ToolApprovalRequest,
+  type SharedV3ProviderMetadata,
+  type SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -20,53 +20,53 @@ import {
   createJsonResponseHandler,
   createToolNameMapping,
   generateId,
-  InferSchema,
   parseProviderOptions,
-  ParseResult,
   postJsonToApi,
+  type InferSchema,
+  type ParseResult,
 } from '@ai-sdk/provider-utils';
-import { OpenAIConfig } from '../openai-config';
+import type { OpenAIConfig } from '../openai-config';
 import { openaiFailedResponseHandler } from '../openai-error';
 import { getOpenAILanguageModelCapabilities } from '../openai-language-model-capabilities';
-import { applyPatchInputSchema } from '../tool/apply-patch';
-import {
+import type { applyPatchInputSchema } from '../tool/apply-patch';
+import type {
   codeInterpreterInputSchema,
   codeInterpreterOutputSchema,
 } from '../tool/code-interpreter';
-import { fileSearchOutputSchema } from '../tool/file-search';
-import { imageGenerationOutputSchema } from '../tool/image-generation';
-import { localShellInputSchema } from '../tool/local-shell';
-import { mcpOutputSchema } from '../tool/mcp';
-import { shellInputSchema, shellOutputSchema } from '../tool/shell';
-import {
+import type { fileSearchOutputSchema } from '../tool/file-search';
+import type { imageGenerationOutputSchema } from '../tool/image-generation';
+import type { localShellInputSchema } from '../tool/local-shell';
+import type { mcpOutputSchema } from '../tool/mcp';
+import type { shellInputSchema, shellOutputSchema } from '../tool/shell';
+import type {
   toolSearchInputSchema,
   toolSearchOutputSchema,
 } from '../tool/tool-search';
-import { webSearchOutputSchema } from '../tool/web-search';
+import type { webSearchOutputSchema } from '../tool/web-search';
 import {
   convertOpenAIResponsesUsage,
-  OpenAIResponsesUsage,
+  type OpenAIResponsesUsage,
 } from './convert-openai-responses-usage';
 import { convertToOpenAIResponsesInput } from './convert-to-openai-responses-input';
 import { mapOpenAIResponseFinishReason } from './map-openai-responses-finish-reason';
 import {
-  OpenAIResponsesChunk,
   openaiResponsesChunkSchema,
-  OpenAIResponsesIncludeOptions,
-  OpenAIResponsesIncludeValue,
-  OpenAIResponsesLogprobs,
   openaiResponsesResponseSchema,
-  OpenAIResponsesWebSearchAction,
-  OpenAIResponsesApplyPatchOperationDiffDeltaChunk,
-  OpenAIResponsesApplyPatchOperationDiffDoneChunk,
+  type OpenAIResponsesChunk,
+  type OpenAIResponsesIncludeOptions,
+  type OpenAIResponsesIncludeValue,
+  type OpenAIResponsesLogprobs,
+  type OpenAIResponsesWebSearchAction,
+  type OpenAIResponsesApplyPatchOperationDiffDeltaChunk,
+  type OpenAIResponsesApplyPatchOperationDiffDoneChunk,
 } from './openai-responses-api';
 import {
-  OpenAIResponsesModelId,
   openaiLanguageModelResponsesOptionsSchema,
   TOP_LOGPROBS_MAX,
+  type OpenAIResponsesModelId,
 } from './openai-responses-options';
 import { prepareResponsesTools } from './openai-responses-prepare-tools';
-import {
+import type {
   ResponsesProviderMetadata,
   ResponsesReasoningProviderMetadata,
   ResponsesSourceDocumentProviderMetadata,

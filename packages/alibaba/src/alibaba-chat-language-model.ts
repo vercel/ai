@@ -30,7 +30,7 @@ import {
   type AlibabaChatModelId,
 } from './alibaba-chat-options';
 import type { AlibabaConfig } from './alibaba-config';
-import { alibabaFailedResponseHandler } from './alibaba-provider';
+import { alibabaFailedResponseHandler } from './alibaba-error';
 import { convertAlibabaUsage } from './convert-alibaba-usage';
 import { convertToAlibabaChatMessages } from './convert-to-alibaba-chat-messages';
 import { CacheControlValidator } from './get-cache-control';

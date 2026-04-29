@@ -1,4 +1,4 @@
-import {
+import type {
   LanguageModelV3,
   LanguageModelV3CallOptions,
   LanguageModelV3Content,
@@ -15,37 +15,40 @@ import {
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
-  FetchFunction,
   generateId,
-  InferSchema,
   lazySchema,
   parseProviderOptions,
-  ParseResult,
   postJsonToApi,
-  Resolvable,
   resolve,
   zodSchema,
+  type FetchFunction,
+  type InferSchema,
+  type ParseResult,
+  type Resolvable,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import {
   convertGoogleGenerativeAIUsage,
-  GoogleGenerativeAIUsageMetadata,
+  type GoogleGenerativeAIUsageMetadata,
 } from './convert-google-generative-ai-usage';
 import { convertJSONSchemaToOpenAPISchema } from './convert-json-schema-to-openapi-schema';
 import { convertToGoogleGenerativeAIMessages } from './convert-to-google-generative-ai-messages';
 import { getModelPath } from './get-model-path';
 import { googleFailedResponseHandler } from './google-error';
 import {
-  GoogleGenerativeAIModelId,
   googleLanguageModelOptions,
   VertexServiceTierMap,
+  type GoogleGenerativeAIModelId,
 } from './google-generative-ai-options';
-import {
+import type {
   GoogleGenerativeAIContentPart,
   GoogleGenerativeAIProviderMetadata,
 } from './google-generative-ai-prompt';
 import { prepareTools } from './google-prepare-tools';
-import { GoogleJSONAccumulator, PartialArg } from './google-json-accumulator';
+import {
+  GoogleJSONAccumulator,
+  type PartialArg,
+} from './google-json-accumulator';
 import { mapGoogleGenerativeAIFinishReason } from './map-google-generative-ai-finish-reason';
 
 type GoogleGenerativeAIConfig = {

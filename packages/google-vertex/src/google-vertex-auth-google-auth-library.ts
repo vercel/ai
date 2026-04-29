@@ -1,4 +1,4 @@
-import { GoogleAuth, GoogleAuthOptions } from 'google-auth-library';
+import { GoogleAuth, type GoogleAuthOptions } from 'google-auth-library';
 
 let authInstance: GoogleAuth | null = null;
 let authOptions: GoogleAuthOptions | null = null;

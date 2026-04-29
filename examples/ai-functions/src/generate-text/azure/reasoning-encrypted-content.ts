@@ -2,8 +2,8 @@ import { generateText } from 'ai';
 import { run } from '../../lib/run';
 import {
   azure,
-  AzureResponsesReasoningProviderMetadata,
-  OpenAILanguageModelResponsesOptions,
+  type AzureResponsesReasoningProviderMetadata,
+  type OpenAILanguageModelResponsesOptions,
 } from '@ai-sdk/azure';
 
 run(async () => {

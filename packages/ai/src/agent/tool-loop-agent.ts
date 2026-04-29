@@ -1,14 +1,19 @@
+import type { ModelMessage } from '@ai-sdk/provider-utils';
 import { generateText } from '../generate-text/generate-text';
-import { GenerateTextResult } from '../generate-text/generate-text-result';
-import { Output } from '../generate-text/output';
-import { StepResult } from '../generate-text/step-result';
+import type { GenerateTextResult } from '../generate-text/generate-text-result';
+import type { Output } from '../generate-text/output';
+import type { StepResult } from '../generate-text/step-result';
 import { stepCountIs } from '../generate-text/stop-condition';
 import { streamText } from '../generate-text/stream-text';
-import { StreamTextResult } from '../generate-text/stream-text-result';
-import { ToolSet } from '../generate-text/tool-set';
-import { Prompt } from '../prompt';
-import { Agent, AgentCallParameters, AgentStreamParameters } from './agent';
-import {
+import type { StreamTextResult } from '../generate-text/stream-text-result';
+import type { ToolSet } from '../generate-text/tool-set';
+import type { Prompt } from '../prompt';
+import type {
+  Agent,
+  AgentCallParameters,
+  AgentStreamParameters,
+} from './agent';
+import type {
   ToolLoopAgentOnStepFinishCallback,
   ToolLoopAgentSettings,
 } from './tool-loop-agent-settings';
@@ -52,8 +57,8 @@ export class ToolLoopAgent<
   }
 
   private async prepareCall(options: {
-    prompt?: string | Array<import('@ai-sdk/provider-utils').ModelMessage>;
-    messages?: Array<import('@ai-sdk/provider-utils').ModelMessage>;
+    prompt?: string | Array<ModelMessage>;
+    messages?: Array<ModelMessage>;
     options?: CALL_OPTIONS;
   }): Promise<
     Omit<

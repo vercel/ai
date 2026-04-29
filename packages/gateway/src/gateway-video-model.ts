@@ -1,12 +1,12 @@
-import type {
-  Experimental_VideoModelV3,
-  Experimental_VideoModelV3CallOptions,
-  Experimental_VideoModelV3File,
-  Experimental_VideoModelV3VideoData,
-  SharedV3ProviderMetadata,
-  SharedV3Warning,
+import {
+  APICallError,
+  type Experimental_VideoModelV3,
+  type Experimental_VideoModelV3CallOptions,
+  type Experimental_VideoModelV3File,
+  type Experimental_VideoModelV3VideoData,
+  type SharedV3ProviderMetadata,
+  type SharedV3Warning,
 } from '@ai-sdk/provider';
-import { APICallError } from '@ai-sdk/provider';
 import {
   combineHeaders,
   convertUint8ArrayToBase64,

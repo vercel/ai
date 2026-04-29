@@ -1,6 +1,6 @@
 import { anthropic } from '@ai-sdk/anthropic';
 import { Output, stepCountIs, streamText } from 'ai';
-import z from 'zod';
+import { z } from 'zod';
 import { run } from '../../lib/run';
 import { weatherTool } from '../../tools/weather-tool';
 

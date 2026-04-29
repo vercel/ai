@@ -1,6 +1,7 @@
 import {
   loadOptionalSetting,
   withoutTrailingSlash,
+  withUserAgentSuffix,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { asGatewayError, GatewayAuthenticationError } from './errors';
@@ -43,7 +44,6 @@ import type {
   Experimental_VideoModelV3,
   ProviderV3,
 } from '@ai-sdk/provider';
-import { withUserAgentSuffix } from '@ai-sdk/provider-utils';
 import { VERSION } from './version';
 
 export interface GatewayProvider extends ProviderV3 {

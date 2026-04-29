@@ -6,9 +6,9 @@ import {
   extractReasoningMiddleware,
   stepCountIs,
   streamText,
-  ToolCallPart,
-  ToolResultPart,
   wrapLanguageModel,
+  type ToolCallPart,
+  type ToolResultPart,
 } from 'ai';
 import { weatherTool } from '../../tools/weather-tool';
 import { run } from '../../lib/run';
