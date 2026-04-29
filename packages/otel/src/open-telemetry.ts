@@ -1,11 +1,9 @@
 import {
   Attributes,
-  AttributeValue,
   context,
   Context as OpenTelemetryContext,
   Span,
   SpanKind,
-  SpanStatusCode,
   trace,
   Tracer,
 } from '@opentelemetry/api';
@@ -45,225 +43,21 @@ import {
   mapOperationName,
   mapProviderName,
 } from './gen-ai-format-messages';
+import { recordErrorOnSpan } from './record-span';
+import { selectAttributes } from './select-attributes';
+import {
+  getDetailedUsageAttributes,
+  getHeaderAttributes,
+  getRuntimeContextAttributes,
+  normalizeSupplementalAttributes,
+  selectSupplementalAttributes,
+} from './supplemental-attributes';
+import type {
+  OpenTelemetryOptions,
+  SupplementalAttributeOptions,
+} from './supplemental-attributes';
 
-type AttributeSpec =
-  | AttributeValue
-  | { input: () => AttributeValue | undefined }
-  | { output: () => AttributeValue | undefined }
-  | undefined;
-
-type AttributeSpecMap = Record<string, AttributeSpec>;
-
-type SupplementalAttributeOption =
-  | 'usage'
-  | 'providerMetadata'
-  | 'embedding'
-  | 'reranking'
-  | 'runtimeContext'
-  | 'headers'
-  | 'toolChoice'
-  | 'schema';
-
-type SupplementalAttributeOptions = Record<
-  SupplementalAttributeOption,
-  boolean
->;
-
-export type OpenTelemetryOptions = {
-  /**
-   * The tracer to use for the telemetry data.
-   */
-  tracer?: Tracer;
-
-  /**
-   * Emit AI SDK usage details that are not represented by GenAI SemConv.
-   */
-  usage?: boolean;
-
-  /**
-   * Emit provider metadata on response spans.
-   */
-  providerMetadata?: boolean;
-
-  /**
-   * Emit embedding input and output values.
-   */
-  embedding?: boolean;
-
-  /**
-   * Emit reranking input documents and output ranking.
-   */
-  reranking?: boolean;
-
-  /**
-   * Emit runtime context values.
-   */
-  runtimeContext?: boolean;
-
-  /**
-   * Emit request headers.
-   */
-  headers?: boolean;
-
-  /**
-   * Emit selected tool choice information.
-   */
-  toolChoice?: boolean;
-
-  /**
-   * Emit object generation schema information.
-   */
-  schema?: boolean;
-};
-
-const disabledSupplementalAttributes: SupplementalAttributeOptions = {
-  usage: false,
-  providerMetadata: false,
-  embedding: false,
-  reranking: false,
-  runtimeContext: false,
-  headers: false,
-  toolChoice: false,
-  schema: false,
-};
-
-function normalizeSupplementalAttributes(
-  options: OpenTelemetryOptions,
-): SupplementalAttributeOptions {
-  return {
-    ...disabledSupplementalAttributes,
-    usage: options.usage ?? false,
-    providerMetadata: options.providerMetadata ?? false,
-    embedding: options.embedding ?? false,
-    reranking: options.reranking ?? false,
-    runtimeContext: options.runtimeContext ?? false,
-    headers: options.headers ?? false,
-    toolChoice: options.toolChoice ?? false,
-    schema: options.schema ?? false,
-  };
-}
-
-function getRuntimeContextAttributes(
-  context: Record<string, unknown> | undefined,
-): AttributeSpecMap {
-  return Object.fromEntries(
-    Object.entries(context ?? {})
-      .filter(([, value]) => value != null)
-      .map(([key, value]) => [`ai.settings.context.${key}`, value]),
-  ) as AttributeSpecMap;
-}
-
-function getHeaderAttributes(
-  headers: Record<string, string | undefined> | undefined,
-): AttributeSpecMap {
-  return Object.fromEntries(
-    Object.entries(headers ?? {})
-      .filter(([, value]) => value != null)
-      .map(([key, value]) => [`ai.request.headers.${key}`, value]),
-  ) as AttributeSpecMap;
-}
-
-function getDetailedUsageAttributes(usage: {
-  inputTokenDetails?: {
-    noCacheTokens?: number | undefined;
-  };
-  outputTokenDetails?: {
-    textTokens?: number | undefined;
-    reasoningTokens?: number | undefined;
-  };
-}): AttributeSpecMap {
-  return {
-    'ai.usage.inputTokenDetails.noCacheTokens':
-      usage.inputTokenDetails?.noCacheTokens,
-    'ai.usage.outputTokenDetails.textTokens':
-      usage.outputTokenDetails?.textTokens,
-    'ai.usage.outputTokenDetails.reasoningTokens':
-      usage.outputTokenDetails?.reasoningTokens,
-  };
-}
-
-function selectSupplementalAttributes(
-  telemetry: TelemetryOptions | undefined,
-  enabledAttributes: SupplementalAttributeOptions,
-  attributes: Partial<Record<SupplementalAttributeOption, AttributeSpecMap>>,
-): Attributes {
-  const result: Attributes = {};
-
-  for (const [key, value] of Object.entries(attributes) as Array<
-    [SupplementalAttributeOption, AttributeSpecMap | undefined]
-  >) {
-    if (!enabledAttributes[key] || value == null) {
-      continue;
-    }
-
-    Object.assign(result, selectAttributes(telemetry, value));
-  }
-
-  return result;
-}
-
-function recordSpanError(span: Span, error: unknown): void {
-  if (error instanceof Error) {
-    span.recordException({
-      name: error.name,
-      message: error.message,
-      stack: error.stack,
-    });
-    span.setStatus({
-      code: SpanStatusCode.ERROR,
-      message: error.message,
-    });
-  } else {
-    span.setStatus({ code: SpanStatusCode.ERROR });
-  }
-}
-
-function shouldRecord(
-  telemetry: TelemetryOptions | undefined,
-): telemetry is TelemetryOptions {
-  return telemetry?.isEnabled !== false;
-}
-
-function selectAttributes(
-  telemetry: TelemetryOptions | undefined,
-  attributes: AttributeSpecMap,
-): Attributes {
-  if (!shouldRecord(telemetry)) {
-    return {};
-  }
-
-  const result: Attributes = {};
-
-  for (const [key, value] of Object.entries(attributes)) {
-    if (value == null) continue;
-
-    if (
-      typeof value === 'object' &&
-      'input' in value &&
-      typeof value.input === 'function'
-    ) {
-      if (telemetry?.recordInputs === false) continue;
-      const resolved = value.input();
-      if (resolved != null) result[key] = resolved;
-      continue;
-    }
-
-    if (
-      typeof value === 'object' &&
-      'output' in value &&
-      typeof value.output === 'function'
-    ) {
-      if (telemetry?.recordOutputs === false) continue;
-      const resolved = value.output();
-      if (resolved != null) result[key] = resolved;
-      continue;
-    }
-
-    result[key] = value as AttributeValue;
-  }
-
-  return result;
-}
+export type { OpenTelemetryOptions } from './supplemental-attributes';
 
 interface OtelStepStartEvent extends GenerateTextStepStartEvent<ToolSet> {
   readonly stepToolChoice?: unknown;
@@ -903,7 +697,7 @@ export class OpenTelemetry implements Telemetry {
         // JSON.stringify might fail for non-serializable results
       }
     } else {
-      recordSpanError(span, toolOutput.error);
+      recordErrorOnSpan(span, toolOutput.error);
     }
 
     span.end();
@@ -1295,38 +1089,38 @@ export class OpenTelemetry implements Telemetry {
     const actualError = event.error ?? error;
 
     for (const { span: toolSpan } of state.toolSpans.values()) {
-      recordSpanError(toolSpan, actualError);
+      recordErrorOnSpan(toolSpan, actualError);
       toolSpan.end();
     }
     state.toolSpans.clear();
 
     if (state.inferenceSpan) {
-      recordSpanError(state.inferenceSpan, actualError);
+      recordErrorOnSpan(state.inferenceSpan, actualError);
       state.inferenceSpan.end();
       state.inferenceSpan = undefined;
       state.inferenceContext = undefined;
     }
 
     if (state.stepSpan) {
-      recordSpanError(state.stepSpan, actualError);
+      recordErrorOnSpan(state.stepSpan, actualError);
       state.stepSpan.end();
       state.stepSpan = undefined;
       state.stepContext = undefined;
     }
 
     for (const { span: embedSpan } of state.embedSpans.values()) {
-      recordSpanError(embedSpan, actualError);
+      recordErrorOnSpan(embedSpan, actualError);
       embedSpan.end();
     }
     state.embedSpans.clear();
 
     if (state.rerankSpan) {
-      recordSpanError(state.rerankSpan.span, actualError);
+      recordErrorOnSpan(state.rerankSpan.span, actualError);
       state.rerankSpan.span.end();
       state.rerankSpan = undefined;
     }
 
-    recordSpanError(state.rootSpan, actualError);
+    recordErrorOnSpan(state.rootSpan, actualError);
 
     state.rootSpan.end();
     this.cleanupCallState(event.callId);
