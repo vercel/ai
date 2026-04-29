@@ -183,9 +183,7 @@ function getConstraintDescription(schema: JSONSchema7): string | undefined {
     descriptions.push(`format: ${schema.format}`);
   }
 
-  return descriptions.length === 0
-    ? undefined
-    : `Additional constraints: ${descriptions.join('; ')}.`;
+  return descriptions.length === 0 ? undefined : `${descriptions.join('; ')}.`;
 }
 
 function formatConstraintName(key: string): string {
