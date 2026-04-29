@@ -1,21 +1,21 @@
-import { JSONObject } from '@ai-sdk/provider';
-import { ProviderOptions, withUserAgentSuffix } from '@ai-sdk/provider-utils';
+import type { JSONObject } from '@ai-sdk/provider';
+import {
+  detectMediaType,
+  withUserAgentSuffix,
+  type ProviderOptions,
+} from '@ai-sdk/provider-utils';
 import { NoTranscriptGeneratedError } from '../error/no-transcript-generated-error';
 import { logWarnings } from '../logger/log-warnings';
-import { DataContent } from '../prompt';
+import type { DataContent } from '../prompt';
 import { convertDataContentToUint8Array } from '../prompt/data-content';
-import { TranscriptionModel } from '../types/transcription-model';
-import { TranscriptionModelResponseMetadata } from '../types/transcription-model-response-metadata';
-import {
-  audioMediaTypeSignatures,
-  detectMediaType,
-} from '../util/detect-media-type';
+import type { TranscriptionModel } from '../types/transcription-model';
+import type { TranscriptionModelResponseMetadata } from '../types/transcription-model-response-metadata';
 import { createDownload } from '../util/download/create-download';
 import { prepareRetries } from '../util/prepare-retries';
-import { TranscriptionResult } from './transcribe-result';
+import type { TranscriptionResult } from './transcribe-result';
 import { VERSION } from '../version';
 import { resolveTranscriptionModel } from '../model/resolve-model';
-import { Warning } from '../types';
+import type { Warning } from '../types';
 /**
  * Generates transcripts using a transcription model.
  *
@@ -124,7 +124,7 @@ export async function transcribe({
       mediaType:
         detectMediaType({
           data: audioData,
-          signatures: audioMediaTypeSignatures,
+          topLevelType: 'audio',
         }) ?? 'audio/wav',
     }),
   );

@@ -1,12 +1,12 @@
 import { EmptyResponseBodyError } from '@ai-sdk/provider';
 import {
-  ParseResult,
   safeParseJSON,
   extractResponseHeaders,
-  ResponseHandler,
   safeValidateTypes,
+  type ParseResult,
+  type ResponseHandler,
 } from '@ai-sdk/provider-utils';
-import { ZodType } from 'zod/v4';
+import type { ZodType } from 'zod/v4';
 import { createBedrockEventStreamDecoder } from './bedrock-event-stream-decoder';
 
 export const createBedrockEventStreamResponseHandler =

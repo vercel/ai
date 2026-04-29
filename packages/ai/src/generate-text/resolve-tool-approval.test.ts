@@ -1,4 +1,4 @@
-import { ModelMessage, tool } from '@ai-sdk/provider-utils';
+import { tool, type ModelMessage } from '@ai-sdk/provider-utils';
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
 import { TypeValidationError } from '../error';

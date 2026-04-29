@@ -1,14 +1,13 @@
 import { resolve } from '@ai-sdk/provider-utils';
 import {
   generateAuthToken,
-  GoogleCredentials,
+  type GoogleCredentials,
 } from '../../edge/google-vertex-auth-edge';
 import {
   createVertexAnthropic as createVertexAnthropicOriginal,
-  GoogleVertexAnthropicProvider,
-  GoogleVertexAnthropicProviderSettings as GoogleVertexAnthropicProviderSettingsOriginal,
+  type GoogleVertexAnthropicProvider,
+  type GoogleVertexAnthropicProviderSettings as GoogleVertexAnthropicProviderSettingsOriginal,
 } from '../google-vertex-anthropic-provider';
-
 export type { GoogleVertexAnthropicProvider };
 
 export interface GoogleVertexAnthropicProviderSettings extends GoogleVertexAnthropicProviderSettingsOriginal {

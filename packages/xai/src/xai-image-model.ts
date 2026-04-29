@@ -1,22 +1,22 @@
-import { ImageModelV4, SharedV4Warning } from '@ai-sdk/provider';
+import type { ImageModelV4, SharedV4Warning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   convertImageModelFileToDataUri,
   createBinaryResponseHandler,
   createJsonResponseHandler,
   createStatusCodeErrorResponseHandler,
-  FetchFunction,
   getFromApi,
   parseProviderOptions,
   postJsonToApi,
   serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { xaiFailedResponseHandler } from './xai-error';
 import { xaiImageModelOptions } from './xai-image-options';
-import { XaiImageModelId } from './xai-image-settings';
+import type { XaiImageModelId } from './xai-image-settings';
 
 interface XaiImageModelConfig {
   provider: string;

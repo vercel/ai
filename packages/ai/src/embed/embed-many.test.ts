@@ -1,4 +1,4 @@
-import { EmbeddingModelV4 } from '@ai-sdk/provider';
+import type { EmbeddingModelV4 } from '@ai-sdk/provider';
 import assert from 'node:assert';
 import {
   afterEach,
@@ -11,7 +11,7 @@ import {
 } from 'vitest';
 import * as logWarningsModule from '../logger/log-warnings';
 import { MockEmbeddingModelV4 } from '../test/mock-embedding-model-v4';
-import { Embedding, EmbeddingModelUsage, Warning } from '../types';
+import type { Embedding, EmbeddingModelUsage, Warning } from '../types';
 import { createResolvablePromise } from '../util/create-resolvable-promise';
 import { embedMany } from './embed-many';
 import type { EmbedStartEvent, EmbedEndEvent } from './embed-events';

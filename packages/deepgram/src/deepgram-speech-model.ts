@@ -1,4 +1,4 @@
-import { SpeechModelV4, SharedV4Warning } from '@ai-sdk/provider';
+import type { SpeechModelV4, SharedV4Warning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createBinaryResponseHandler,
@@ -9,9 +9,9 @@ import {
   WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import { DeepgramConfig } from './deepgram-config';
+import type { DeepgramConfig } from './deepgram-config';
 import { deepgramFailedResponseHandler } from './deepgram-error';
-import { DeepgramSpeechModelId } from './deepgram-speech-options';
+import type { DeepgramSpeechModelId } from './deepgram-speech-options';
 
 // https://developers.deepgram.com/reference/text-to-speech/speak-request
 const deepgramSpeechModelOptionsSchema = z.object({

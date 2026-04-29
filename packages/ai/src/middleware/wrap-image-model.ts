@@ -1,4 +1,4 @@
-import {
+import type {
   ImageModelV2,
   ImageModelV3,
   ImageModelV4,
@@ -7,7 +7,7 @@ import {
 } from '@ai-sdk/provider';
 import { asArray } from '@ai-sdk/provider-utils';
 import { asImageModelV4 } from '../model/as-image-model-v4';
-import { ImageModelMiddleware } from '../types';
+import type { ImageModelMiddleware } from '../types';
 
 /**
  * Wraps an ImageModelV4 instance with middleware functionality.

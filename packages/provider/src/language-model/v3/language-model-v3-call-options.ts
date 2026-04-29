@@ -1,9 +1,9 @@
-import { JSONSchema7 } from 'json-schema';
-import { SharedV3ProviderOptions } from '../../shared/v3/shared-v3-provider-options';
-import { LanguageModelV3FunctionTool } from './language-model-v3-function-tool';
-import { LanguageModelV3Prompt } from './language-model-v3-prompt';
-import { LanguageModelV3ProviderTool } from './language-model-v3-provider-tool';
-import { LanguageModelV3ToolChoice } from './language-model-v3-tool-choice';
+import type { JSONSchema7 } from 'json-schema';
+import type { SharedV3ProviderOptions } from '../../shared/v3/shared-v3-provider-options';
+import type { LanguageModelV3FunctionTool } from './language-model-v3-function-tool';
+import type { LanguageModelV3Prompt } from './language-model-v3-prompt';
+import type { LanguageModelV3ProviderTool } from './language-model-v3-provider-tool';
+import type { LanguageModelV3ToolChoice } from './language-model-v3-tool-choice';
 
 export type LanguageModelV3CallOptions = {
   /**

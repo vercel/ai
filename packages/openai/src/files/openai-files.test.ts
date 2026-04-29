@@ -41,7 +41,7 @@ describe('OpenAI Files - uploadFile', () => {
     const files = provider.files();
 
     await files.uploadFile({
-      data: new Uint8Array([1, 2, 3]),
+      data: { type: 'data', data: new Uint8Array([1, 2, 3]) },
       mediaType: 'application/octet-stream',
       providerOptions: {
         openai: { purpose: 'assistants' },
@@ -62,7 +62,7 @@ describe('OpenAI Files - uploadFile', () => {
     const files = provider.files();
 
     const result = await files.uploadFile({
-      data: new Uint8Array([1, 2, 3]),
+      data: { type: 'data', data: new Uint8Array([1, 2, 3]) },
       mediaType: 'application/octet-stream',
       providerOptions: {
         openai: { purpose: 'assistants' },
@@ -79,7 +79,7 @@ describe('OpenAI Files - uploadFile', () => {
     const files = provider.files();
 
     const result = await files.uploadFile({
-      data: new Uint8Array([1, 2, 3]),
+      data: { type: 'data', data: new Uint8Array([1, 2, 3]) },
       mediaType: 'application/octet-stream',
       providerOptions: {
         openai: { purpose: 'assistants' },
@@ -104,7 +104,7 @@ describe('OpenAI Files - uploadFile', () => {
     const files = provider.files();
 
     await files.uploadFile({
-      data: new Uint8Array([1, 2, 3]),
+      data: { type: 'data', data: new Uint8Array([1, 2, 3]) },
       mediaType: 'application/octet-stream',
     });
 
@@ -121,7 +121,7 @@ describe('OpenAI Files - uploadFile', () => {
     const files = provider.files();
 
     await files.uploadFile({
-      data: new Uint8Array([1, 2, 3]),
+      data: { type: 'data', data: new Uint8Array([1, 2, 3]) },
       mediaType: 'application/octet-stream',
       providerOptions: {
         openai: { purpose: 'assistants', expiresAfter: 3600 },
@@ -146,7 +146,7 @@ describe('OpenAI Files - uploadFile', () => {
     const files = provider.files();
 
     await files.uploadFile({
-      data: new Uint8Array([1, 2, 3]),
+      data: { type: 'data', data: new Uint8Array([1, 2, 3]) },
       mediaType: 'application/octet-stream',
       providerOptions: {
         openai: { purpose: 'assistants' },
@@ -168,7 +168,7 @@ describe('OpenAI Files - uploadFile', () => {
     const files = provider.files();
 
     const result = await files.uploadFile({
-      data: btoa('hello world'),
+      data: { type: 'data', data: btoa('hello world') },
       mediaType: 'application/octet-stream',
       providerOptions: {
         openai: { purpose: 'assistants' },

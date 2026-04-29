@@ -1,22 +1,22 @@
 import {
-  JSONValue,
-  LanguageModelV4CallOptions,
   TypeValidationError,
+  type JSONValue,
+  type LanguageModelV4CallOptions,
 } from '@ai-sdk/provider';
 import {
   asSchema,
-  FlexibleSchema,
   resolve,
   safeParseJSON,
   safeValidateTypes,
+  type FlexibleSchema,
 } from '@ai-sdk/provider-utils';
 import { NoObjectGeneratedError } from '../error/no-object-generated-error';
-import { FinishReason } from '../types/language-model';
-import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
-import { LanguageModelUsage } from '../types/usage';
-import { DeepPartial } from '../util/deep-partial';
+import type { FinishReason } from '../types/language-model';
+import type { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
+import type { LanguageModelUsage } from '../types/usage';
+import type { DeepPartial } from '../util/deep-partial';
 import { parsePartialJson } from '../util/parse-partial-json';
-import { EnrichedStreamPart } from './stream-text';
+import type { EnrichedStreamPart } from './stream-text';
 
 export interface Output<OUTPUT = any, PARTIAL = any, ELEMENT = any> {
   /**

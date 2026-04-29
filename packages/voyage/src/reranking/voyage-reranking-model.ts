@@ -1,20 +1,19 @@
-import { RerankingModelV4, SharedV4Warning } from '@ai-sdk/provider';
+import type { RerankingModelV4, SharedV4Warning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createJsonResponseHandler,
-  FetchFunction,
   lazySchema,
   parseProviderOptions,
   postJsonToApi,
   zodSchema,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { voyageFailedResponseHandler } from '../voyage-error';
 import {
-  VoyageRerankingModelId,
   voyageRerankingModelOptionsSchema,
+  type VoyageRerankingModelId,
 } from './voyage-reranking-options';
-
 type VoyageRerankingConfig = {
   provider: string;
   baseURL: string;

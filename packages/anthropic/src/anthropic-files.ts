@@ -1,16 +1,16 @@
-import {
+import type {
   FilesV4,
   FilesV4UploadFileCallOptions,
   FilesV4UploadFileResult,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
-  convertBase64ToUint8Array,
+  convertInlineFileDataToUint8Array,
   createJsonResponseHandler,
-  FetchFunction,
   lazySchema,
   postFormDataToApi,
   zodSchema,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { anthropicFailedResponseHandler } from './anthropic-error';
@@ -50,8 +50,7 @@ export class AnthropicFiles implements FilesV4 {
     mediaType,
     filename,
   }: FilesV4UploadFileCallOptions): Promise<FilesV4UploadFileResult> {
-    const fileBytes =
-      data instanceof Uint8Array ? data : convertBase64ToUint8Array(data);
+    const fileBytes = convertInlineFileDataToUint8Array(data);
 
     const blob = new Blob([fileBytes], { type: mediaType });
 

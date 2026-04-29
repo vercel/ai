@@ -1,4 +1,4 @@
-import {
+import type {
   EmbeddingModelV4,
   FilesV4,
   ImageModelV4,
@@ -9,28 +9,28 @@ import {
   TranscriptionModelV4,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
   loadApiKey,
   loadOptionalSetting,
   withoutTrailingSlash,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { OpenAIChatLanguageModel } from './chat/openai-chat-language-model';
-import { OpenAIChatModelId } from './chat/openai-chat-options';
+import type { OpenAIChatModelId } from './chat/openai-chat-options';
 import { OpenAICompletionLanguageModel } from './completion/openai-completion-language-model';
-import { OpenAICompletionModelId } from './completion/openai-completion-options';
+import type { OpenAICompletionModelId } from './completion/openai-completion-options';
 import { OpenAIEmbeddingModel } from './embedding/openai-embedding-model';
 import { OpenAIFiles } from './files/openai-files';
-import { OpenAIEmbeddingModelId } from './embedding/openai-embedding-options';
+import type { OpenAIEmbeddingModelId } from './embedding/openai-embedding-options';
 import { OpenAIImageModel } from './image/openai-image-model';
-import { OpenAIImageModelId } from './image/openai-image-options';
+import type { OpenAIImageModelId } from './image/openai-image-options';
 import { openaiTools } from './openai-tools';
 import { OpenAIResponsesLanguageModel } from './responses/openai-responses-language-model';
-import { OpenAIResponsesModelId } from './responses/openai-responses-options';
+import type { OpenAIResponsesModelId } from './responses/openai-responses-options';
 import { OpenAISpeechModel } from './speech/openai-speech-model';
-import { OpenAISpeechModelId } from './speech/openai-speech-options';
+import type { OpenAISpeechModelId } from './speech/openai-speech-options';
 import { OpenAITranscriptionModel } from './transcription/openai-transcription-model';
-import { OpenAITranscriptionModelId } from './transcription/openai-transcription-options';
+import type { OpenAITranscriptionModelId } from './transcription/openai-transcription-options';
 import { OpenAISkills } from './skills/openai-skills';
 import { VERSION } from './version';
 

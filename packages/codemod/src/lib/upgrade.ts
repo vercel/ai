@@ -1,6 +1,6 @@
 import debug from 'debug';
-import { transform, TransformErrors } from './transform';
-import { TransformOptions } from './transform-options';
+import { transform, type TransformErrors } from './transform';
+import type { TransformOptions } from './transform-options';
 import { SingleBar, Presets } from 'cli-progress';
 
 const bundle = [

@@ -1,11 +1,11 @@
-import { JSONValue } from '@ai-sdk/provider';
-import { Context, tool } from '@ai-sdk/provider-utils';
+import type { JSONValue } from '@ai-sdk/provider';
+import { tool, type Context } from '@ai-sdk/provider-utils';
 import { describe, expectTypeOf, it } from 'vitest';
 import { z } from 'zod';
 import { Output, streamText } from '../generate-text';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
-import { AsyncIterableStream } from '../util';
-import { DeepPartial } from '../util/deep-partial';
+import type { AsyncIterableStream } from '../util';
+import type { DeepPartial } from '../util/deep-partial';
 
 describe('streamText types', () => {
   describe('output', () => {

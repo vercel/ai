@@ -8,13 +8,13 @@ import {
   convertUint8ArrayToBase64,
   createJsonResponseHandler,
   delay,
-  type FetchFunction,
   lazySchema,
   parseProviderOptions,
   postJsonToApi,
-  type Resolvable,
   resolve,
   zodSchema,
+  type FetchFunction,
+  type Resolvable,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { googleVertexFailedResponseHandler } from './google-vertex-error';

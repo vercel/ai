@@ -46,7 +46,12 @@ describe('OpenAISkills', () => {
 
       const skills = provider.skills();
       await skills.uploadSkill({
-        files: [{ path: 'index.ts', content: testFileContentBase64 }],
+        files: [
+          {
+            path: 'index.ts',
+            data: { type: 'data', data: testFileContentBase64 },
+          },
+        ],
       });
 
       const body = await server.calls[0].requestBodyMultipart;
@@ -62,7 +67,12 @@ describe('OpenAISkills', () => {
 
       const skills = provider.skills();
       await skills.uploadSkill({
-        files: [{ path: 'index.ts', content: testFileContentBase64 }],
+        files: [
+          {
+            path: 'index.ts',
+            data: { type: 'data', data: testFileContentBase64 },
+          },
+        ],
       });
 
       expect(server.calls[0].requestHeaders).toMatchObject({
@@ -78,7 +88,12 @@ describe('OpenAISkills', () => {
 
       const skills = provider.skills();
       const result = await skills.uploadSkill({
-        files: [{ path: 'index.ts', content: testFileContentBase64 }],
+        files: [
+          {
+            path: 'index.ts',
+            data: { type: 'data', data: testFileContentBase64 },
+          },
+        ],
       });
 
       expect(result.providerReference).toEqual({
@@ -103,7 +118,12 @@ describe('OpenAISkills', () => {
 
       const skills = provider.skills();
       const result = await skills.uploadSkill({
-        files: [{ path: 'index.ts', content: testFileContentBase64 }],
+        files: [
+          {
+            path: 'index.ts',
+            data: { type: 'data', data: testFileContentBase64 },
+          },
+        ],
         displayTitle: 'My Skill',
       });
 
@@ -125,7 +145,12 @@ describe('OpenAISkills', () => {
 
       const skills = provider.skills();
       const result = await skills.uploadSkill({
-        files: [{ path: 'index.ts', content: testFileContentBase64 }],
+        files: [
+          {
+            path: 'index.ts',
+            data: { type: 'data', data: testFileContentBase64 },
+          },
+        ],
       });
 
       expect(result.warnings).toMatchInlineSnapshot(`[]`);
@@ -142,7 +167,10 @@ describe('OpenAISkills', () => {
         files: [
           {
             path: 'data.bin',
-            content: new Uint8Array([0x48, 0x65, 0x6c, 0x6c, 0x6f]),
+            data: {
+              type: 'data',
+              data: new Uint8Array([0x48, 0x65, 0x6c, 0x6c, 0x6f]),
+            },
           },
         ],
       });

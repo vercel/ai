@@ -1,10 +1,10 @@
-import { JSONValue } from '@ai-sdk/provider';
-import { FlexibleSchema } from '../schema';
-import { ToolResultOutput } from './content-part';
-import { Context } from './context';
-import { ModelMessage } from './model-message';
-import { ProviderOptions } from './provider-options';
-import { SensitiveContext } from './sensitive-context';
+import type { JSONValue } from '@ai-sdk/provider';
+import type { FlexibleSchema } from '../schema';
+import type { ToolResultOutput } from './content-part';
+import type { Context } from './context';
+import type { ModelMessage } from './model-message';
+import type { ProviderOptions } from './provider-options';
+import type { SensitiveContext } from './sensitive-context';
 
 /**
  * Additional options that are sent into each tool execution.

@@ -1,29 +1,29 @@
 import {
-  type Experimental_VideoModelV4,
-  FilesV4,
-  ImageModelV4,
-  LanguageModelV4,
   NoSuchModelError,
-  ProviderV4,
+  type Experimental_VideoModelV4,
+  type FilesV4,
+  type ImageModelV4,
+  type LanguageModelV4,
+  type ProviderV4,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
   generateId,
   loadApiKey,
   withoutTrailingSlash,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { XaiChatLanguageModel } from './xai-chat-language-model';
-import { XaiChatModelId } from './xai-chat-options';
+import type { XaiChatModelId } from './xai-chat-options';
 import { XaiImageModel } from './xai-image-model';
-import { XaiImageModelId } from './xai-image-settings';
+import type { XaiImageModelId } from './xai-image-settings';
 import { XaiResponsesLanguageModel } from './responses/xai-responses-language-model';
-import { XaiResponsesModelId } from './responses/xai-responses-options';
+import type { XaiResponsesModelId } from './responses/xai-responses-options';
 import { xaiTools } from './tool';
 import { VERSION } from './version';
 import { XaiFiles } from './files/xai-files';
 import { XaiVideoModel } from './xai-video-model';
-import { XaiVideoModelId } from './xai-video-settings';
+import type { XaiVideoModelId } from './xai-video-settings';
 
 export interface XaiProvider extends ProviderV4 {
   (modelId: XaiResponsesModelId): LanguageModelV4;

@@ -1,13 +1,13 @@
 import { openai } from '@ai-sdk/openai';
 import {
   convertToModelMessages,
-  InferUITools,
   isStepCount,
   streamText,
   tool,
-  UIDataTypes,
-  UIMessage,
   validateUIMessages,
+  type InferUITools,
+  type UIDataTypes,
+  type UIMessage,
 } from 'ai';
 import { z } from 'zod';
 

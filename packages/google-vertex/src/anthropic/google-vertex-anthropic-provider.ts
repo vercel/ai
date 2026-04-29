@@ -1,19 +1,19 @@
 import {
-  LanguageModelV4,
   NoSuchModelError,
-  ProviderV4,
+  type LanguageModelV4,
+  type ProviderV4,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
-  Resolvable,
   loadOptionalSetting,
   withoutTrailingSlash,
+  type FetchFunction,
+  type Resolvable,
 } from '@ai-sdk/provider-utils';
 import {
   anthropicTools,
   AnthropicLanguageModel,
 } from '@ai-sdk/anthropic/internal';
-import { GoogleVertexAnthropicModelId } from './google-vertex-anthropic-options';
+import type { GoogleVertexAnthropicModelId } from './google-vertex-anthropic-options';
 
 /**
  * Tools supported by Google Vertex Anthropic.

@@ -1,18 +1,18 @@
 import {
-  EmbeddingModelV4,
   TooManyEmbeddingValuesForCallError,
+  type EmbeddingModelV4,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createJsonResponseHandler,
-  FetchFunction,
   postJsonToApi,
   serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import { MistralEmbeddingModelId } from './mistral-embedding-options';
+import type { MistralEmbeddingModelId } from './mistral-embedding-options';
 import { mistralFailedResponseHandler } from './mistral-error';
 
 type MistralEmbeddingConfig = {

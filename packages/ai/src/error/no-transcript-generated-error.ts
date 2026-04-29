@@ -1,5 +1,5 @@
 import { AISDKError } from '@ai-sdk/provider';
-import { TranscriptionModelResponseMetadata } from '../types/transcription-model-response-metadata';
+import type { TranscriptionModelResponseMetadata } from '../types/transcription-model-response-metadata';
 
 const name = 'AI_NoTranscriptGeneratedError';
 const marker = `vercel.ai.error.${name}`;

@@ -1,11 +1,10 @@
 import { describe, expectTypeOf, it } from 'vitest';
 import { z } from 'zod/v4';
-import { FlexibleSchema } from '../schema';
-import { ToolResultOutput } from './content-part';
-import { Context } from './context';
-import { ModelMessage } from './model-message';
-import { Tool, tool, ToolExecuteFunction } from './tool';
-
+import type { FlexibleSchema } from '../schema';
+import type { ToolResultOutput } from './content-part';
+import type { Context } from './context';
+import type { ModelMessage } from './model-message';
+import { tool, type Tool, type ToolExecuteFunction } from './tool';
 describe('tool type', () => {
   describe('input type', () => {
     it('should work with fixed inputSchema', () => {

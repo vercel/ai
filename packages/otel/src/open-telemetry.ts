@@ -1,11 +1,11 @@
 import {
-  Attributes,
   context,
-  Context as OpenTelemetryContext,
-  Span,
   SpanKind,
   trace,
-  Tracer,
+  type Attributes,
+  type Context as OpenTelemetryContext,
+  type Span,
+  type Tracer,
 } from '@opentelemetry/api';
 import type {
   EmbeddingModelCallEndEvent,
@@ -51,10 +51,8 @@ import {
   getRuntimeContextAttributes,
   normalizeSupplementalAttributes,
   selectSupplementalAttributes,
-} from './supplemental-attributes';
-import type {
-  OpenTelemetryOptions,
-  SupplementalAttributeOptions,
+  type OpenTelemetryOptions,
+  type SupplementalAttributeOptions,
 } from './supplemental-attributes';
 
 export type { OpenTelemetryOptions } from './supplemental-attributes';

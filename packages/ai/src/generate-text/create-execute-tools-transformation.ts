@@ -1,17 +1,19 @@
-import type { Arrayable, Context, ToolSet } from '@ai-sdk/provider-utils';
-import {
+import type {
+  Arrayable,
+  Context,
   IdGenerator,
   InferToolSetContext,
   ModelMessage,
+  ToolSet,
 } from '@ai-sdk/provider-utils';
-import { TimeoutConfiguration } from '../prompt/request-options';
+import type { TimeoutConfiguration } from '../prompt/request-options';
 import type { Telemetry } from '../telemetry/telemetry';
 import { executeToolCall } from './execute-tool-call';
 import { resolveToolApproval } from './resolve-tool-approval';
-import { LanguageModelStreamPart } from './stream-language-model-call';
-import { ToolApprovalConfiguration } from './tool-approval-configuration';
-import { TypedToolCall } from './tool-call';
-import {
+import type { LanguageModelStreamPart } from './stream-language-model-call';
+import type { ToolApprovalConfiguration } from './tool-approval-configuration';
+import type { TypedToolCall } from './tool-call';
+import type {
   OnToolExecutionEndCallback,
   OnToolExecutionStartCallback,
 } from './tool-execution-events';

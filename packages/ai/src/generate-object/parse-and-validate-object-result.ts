@@ -7,7 +7,7 @@ import type {
   LanguageModelUsage,
 } from '../types';
 import type { OutputStrategy } from './output-strategy';
-import { RepairTextFunction } from './repair-text';
+import type { RepairTextFunction } from './repair-text';
 
 /**
  * Parses and validates a result string by parsing it as JSON and validating against the output strategy.

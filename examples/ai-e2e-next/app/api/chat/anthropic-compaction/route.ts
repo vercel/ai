@@ -5,9 +5,9 @@ import {
 import {
   consumeStream,
   convertToModelMessages,
-  ModelMessage,
   streamText,
-  UIMessage,
+  type ModelMessage,
+  type UIMessage,
 } from 'ai';
 import { readFileSync } from 'fs';
 import { join } from 'path';

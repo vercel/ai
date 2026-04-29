@@ -1,17 +1,17 @@
 import {
   InvalidPromptError,
-  LanguageModelV4CallOptions,
-  LanguageModelV4FunctionTool,
-  LanguageModelV4Prompt,
-  LanguageModelV4ProviderTool,
-  LanguageModelV4Usage,
+  type LanguageModelV4CallOptions,
+  type LanguageModelV4FunctionTool,
+  type LanguageModelV4Prompt,
+  type LanguageModelV4ProviderTool,
+  type LanguageModelV4Usage,
 } from '@ai-sdk/provider';
 import {
   dynamicTool,
   jsonSchema,
-  ModelMessage,
   tool,
-  ToolExecuteFunction,
+  type ModelMessage,
+  type ToolExecuteFunction,
 } from '@ai-sdk/provider-utils';
 import { mockId } from '@ai-sdk/provider-utils/test';
 import {
@@ -29,21 +29,21 @@ import { z } from 'zod/v4';
 import * as logWarningsModule from '../logger/log-warnings';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import { generateText } from './generate-text';
-import {
+import type {
   GenerateTextOnFinishCallback,
   GenerateTextOnStartCallback,
   GenerateTextOnStepFinishCallback,
   GenerateTextOnStepStartCallback,
 } from './generate-text-events';
-import { GenerateTextResult } from './generate-text-result';
+import type { GenerateTextResult } from './generate-text-result';
 import * as Output from './output';
-import { StepResult } from './step-result';
+import type { StepResult } from './step-result';
 import { isLoopFinished, isStepCount } from './stop-condition';
-import {
+import type {
   ToolExecutionEndEvent,
   ToolExecutionStartEvent,
 } from './tool-execution-events';
-import {
+import type {
   LanguageModelCallEndEvent,
   LanguageModelCallStartEvent,
 } from './language-model-events';
@@ -106,12 +106,12 @@ const modelWithFiles = new MockLanguageModelV4({
       { type: 'text', text: 'Hello, world!' },
       {
         type: 'file',
-        data: new Uint8Array([1, 2, 3]),
+        data: { type: 'data', data: new Uint8Array([1, 2, 3]) },
         mediaType: 'image/png',
       },
       {
         type: 'file',
-        data: 'QkFVRw==',
+        data: { type: 'data', data: 'QkFVRw==' },
         mediaType: 'image/jpeg',
       },
     ],
@@ -190,7 +190,7 @@ describe('generateText', () => {
               },
               {
                 type: 'file',
-                data: new Uint8Array([1, 2, 3]),
+                data: { type: 'data', data: new Uint8Array([1, 2, 3]) },
                 mediaType: 'image/png',
               },
               {
@@ -331,7 +331,7 @@ describe('generateText', () => {
               { type: 'text', text: 'Here is a thought image:' },
               {
                 type: 'reasoning-file',
-                data: new Uint8Array([10, 20, 30]),
+                data: { type: 'data', data: new Uint8Array([10, 20, 30]) },
                 mediaType: 'image/png',
                 providerMetadata: {
                   google: { thoughtSignature: 'sig123' },
@@ -339,7 +339,7 @@ describe('generateText', () => {
               },
               {
                 type: 'file',
-                data: new Uint8Array([40, 50, 60]),
+                data: { type: 'data', data: new Uint8Array([40, 50, 60]) },
                 mediaType: 'image/jpeg',
               },
             ],
@@ -9877,12 +9877,15 @@ describe('generateText', () => {
                     "type": "text",
                   },
                   {
-                    "data": Uint8Array [
-                      1,
-                      2,
-                      3,
-                      4,
-                    ],
+                    "data": {
+                      "data": Uint8Array [
+                        1,
+                        2,
+                        3,
+                        4,
+                      ],
+                      "type": "data",
+                    },
                     "filename": undefined,
                     "mediaType": "image/png",
                     "providerOptions": undefined,

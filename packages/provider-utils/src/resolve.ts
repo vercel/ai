@@ -1,4 +1,4 @@
-import { MaybePromiseLike } from './maybe-promise-like';
+import type { MaybePromiseLike } from './maybe-promise-like';
 
 /**
  * A value or a lazy provider of a value, each of which may be synchronous or asynchronous.
