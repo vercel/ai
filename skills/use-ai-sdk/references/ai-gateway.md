@@ -63,4 +63,4 @@ curl -s https://ai-gateway.vercel.sh/v1/models | jq -r '[.data[] | select(.id | 
 curl -s https://ai-gateway.vercel.sh/v1/models | jq -r '[.data[] | select(.id | startswith("google/")) | .id] | reverse | .[]'
 ```
 
-When multiple versions of a model exist, use the one with the highest version number (e.g., prefer `claude-sonnet-4-5` over `claude-sonnet-4` over `claude-3-5-sonnet`).
+When multiple versions of a model exist, use the one with the highest version number (e.g., prefer `anthropic/claude-sonnet-4.6` over `anthropic/claude-sonnet-4.5` over `claude-sonnet-4`).
