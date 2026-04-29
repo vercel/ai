@@ -953,6 +953,90 @@ describe('convertToLanguageModelPrompt', () => {
     });
   });
 
+  describe('assistant message', () => {
+    it('should download file URLs for assistant file parts when the model does not support the URL', async () => {
+      const result = await convertToLanguageModelPrompt({
+        prompt: {
+          messages: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'file',
+                  data: 'https://example.com/document.pdf',
+                  mediaType: 'application/pdf',
+                  filename: 'document.pdf',
+                },
+              ],
+            },
+          ],
+        },
+        supportedUrls: {},
+        download: createDefaultDownloadFunction(async ({ url }) => {
+          expect(url).toEqual(new URL('https://example.com/document.pdf'));
+          return {
+            data: new Uint8Array([0, 1, 2, 3]),
+            mediaType: 'application/pdf',
+          };
+        }),
+      });
+
+      expect(result).toEqual([
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'file',
+              mediaType: 'application/pdf',
+              filename: 'document.pdf',
+              data: new Uint8Array([0, 1, 2, 3]),
+            },
+          ],
+        },
+      ]);
+    });
+
+    it('should download file URLs for assistant reasoning-file parts when the model does not support the URL', async () => {
+      const result = await convertToLanguageModelPrompt({
+        prompt: {
+          messages: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'reasoning-file',
+                  data: new URL('https://example.com/reasoning.pdf'),
+                  mediaType: 'application/pdf',
+                },
+              ],
+            },
+          ],
+        },
+        supportedUrls: {},
+        download: createDefaultDownloadFunction(async ({ url }) => {
+          expect(url).toEqual(new URL('https://example.com/reasoning.pdf'));
+          return {
+            data: new Uint8Array([4, 5, 6, 7]),
+            mediaType: 'application/pdf',
+          };
+        }),
+      });
+
+      expect(result).toEqual([
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'reasoning-file',
+              mediaType: 'application/pdf',
+              data: new Uint8Array([4, 5, 6, 7]),
+            },
+          ],
+        },
+      ]);
+    });
+  });
+
   describe('tool message', () => {
     it('should combine 2 consecutive tool messages into a single tool message', async () => {
       const result = await convertToLanguageModelPrompt({
