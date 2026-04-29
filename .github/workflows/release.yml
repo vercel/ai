@@ -6,12 +6,12 @@ on:
       - main
       - release-v*
     paths:
-      - '.changeset/**'
-      - '.github/workflows/release.yml'
+      - ".changeset/**"
+      - ".github/workflows/release.yml"
   workflow_dispatch:
 
 concurrency:
-  group: 'release'
+  group: "release"
   cancel-in-progress: false
 
 permissions:
@@ -43,10 +43,13 @@ jobs:
         with:
           version: 10.11.0
 
-      - name: Setup Node.js 24
+      - name: Setup Node.js 22
         uses: actions/setup-node@v6
         with:
-          node-version: 24
+          node-version: 22
+
+      - name: Update npm to v11
+        run: npm install --global npm@11
 
       - name: Install Dependencies
         run: pnpm i
@@ -59,7 +62,7 @@ jobs:
           publish: pnpm ci:release
           setupGitUser: false
           # When using "github-api", all commits and tags are GPG-signed and attributed to the user or app who owns the GITHUB_TOKEN
-          commitMode: 'github-api'
+          commitMode: "github-api"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN_ELEVATED }}
