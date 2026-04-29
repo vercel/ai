@@ -1,0 +1,54 @@
+# Example: requesting a GitHub token from gh-sts in a GitHub Actions workflow.
+#
+# Prerequisites:
+# - A policy in go/policies/config.json matching this repo + workflow
+# - permissions.id-token: write (required for OIDC token)
+
+name: Debug
+
+on:
+  push:
+    branches: [test-gh-sts]
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # 1. Get an OIDC token from GitHub Actions.
+      #    The audience must match what's configured in gh-sts providers.
+      - name: Get OIDC token
+        id: oidc
+        run: |
+          OIDC_TOKEN=$(curl -s -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=gh-sts" | jq -r '.value')
+          echo "token=$OIDC_TOKEN" >> "$GITHUB_OUTPUT"
+
+      # 2. Exchange the OIDC token for a scoped GitHub token.
+      #    Only the permissions and repos allowed by the policy will be granted.
+      - name: Get GitHub token from gh-sts
+        id: gh-token
+        run: |
+          RESPONSE=$(curl -sf https://gh-sts.vercel-infra.com/prod/token \
+            -H "Content-Type: application/json" \
+            -d '{
+              "token": "${{ steps.oidc.outputs.token }}",
+              "permissions": {
+                "contents": "read",
+                "pull_requests": "write"
+              },
+              "repositories": ["vercel/my-service"]
+            }')
+          echo "token=$(echo "$RESPONSE" | jq -r '.token')" >> "$GITHUB_OUTPUT"
+
+      # 3. Use the token.
+      - name: Use GitHub token
+        env:
+          GH_TOKEN: ${{ steps.gh-token.outputs.token }}
+        run: |
+          gh pr list --repo vercel/my-service
