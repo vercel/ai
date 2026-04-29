@@ -1,10 +1,12 @@
 import type {
   EmbeddingModelV4,
   Experimental_VideoModelV4,
+  FilesV4,
   ImageModelV4,
   LanguageModelV4,
   ProviderV4,
   RerankingModelV4,
+  SkillsV4,
   SpeechModelV4,
   TranscriptionModelV4,
 } from '@ai-sdk/provider';
@@ -287,6 +289,45 @@ describe('customProvider with string model ids', () => {
     expectTypeOf(
       provider.videoModel('video'),
     ).toEqualTypeOf<Experimental_VideoModelV4>();
+  });
+});
+
+describe('customProvider with files and skills', () => {
+  const files: FilesV4 = {
+    specificationVersion: 'v4',
+    provider: 'mock-provider',
+    uploadFile: async () => ({
+      providerReference: { 'mock-provider': 'file-123' },
+      warnings: [],
+    }),
+  };
+  const skills: SkillsV4 = {
+    specificationVersion: 'v4',
+    provider: 'mock-provider',
+    uploadSkill: async () => ({
+      providerReference: { 'mock-provider': 'skill-123' },
+      warnings: [],
+    }),
+  };
+
+  it('exposes required files and skills methods when configured', () => {
+    const provider = customProvider({
+      files,
+      skills,
+    });
+
+    expectTypeOf(provider.files).toEqualTypeOf<() => FilesV4>();
+    expectTypeOf(provider.skills).toEqualTypeOf<() => SkillsV4>();
+    expectTypeOf(provider.files()).toEqualTypeOf<FilesV4>();
+    expectTypeOf(provider.skills()).toEqualTypeOf<SkillsV4>();
+    expectTypeOf(provider).toMatchTypeOf<ProviderV4>();
+  });
+
+  it('keeps files and skills methods optional when not configured', () => {
+    const provider = customProvider({});
+
+    expectTypeOf(provider.files).toMatchTypeOf<ProviderV4['files']>();
+    expectTypeOf(provider.skills).toMatchTypeOf<ProviderV4['skills']>();
   });
 });
 

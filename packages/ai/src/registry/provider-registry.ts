@@ -2,12 +2,14 @@ import {
   EmbeddingModelV4,
   Experimental_VideoModelV3,
   Experimental_VideoModelV4,
+  FilesV4,
   ImageModelV4,
   LanguageModelV4,
   NoSuchModelError,
   ProviderV3,
   ProviderV4,
   RerankingModelV4,
+  SkillsV4,
   SpeechModelV4,
   TranscriptionModelV4,
 } from '@ai-sdk/provider';
@@ -109,6 +111,14 @@ export interface ProviderRegistryProvider<
   videoModel<KEY extends keyof PROVIDERS>(
     id: KEY extends string ? `${KEY & string}${SEPARATOR}${string}` : never,
   ): Experimental_VideoModelV4;
+
+  files<KEY extends keyof PROVIDERS>(
+    id: KEY extends string ? KEY & string : never,
+  ): FilesV4;
+
+  skills<KEY extends keyof PROVIDERS>(
+    id: KEY extends string ? KEY & string : never,
+  ): SkillsV4;
 }
 
 /**
@@ -370,5 +380,31 @@ class DefaultProviderRegistry<
     }
 
     return asVideoModelV4(model);
+  }
+
+  files<KEY extends keyof PROVIDERS>(id: KEY & string): FilesV4 {
+    const provider = this.getProvider(id, 'languageModel');
+    const files = provider.files?.();
+
+    if (files == null) {
+      throw new Error(
+        `The provider "${id}" does not support file uploads. Make sure it exposes a files() method.`,
+      );
+    }
+
+    return files;
+  }
+
+  skills<KEY extends keyof PROVIDERS>(id: KEY & string): SkillsV4 {
+    const provider = this.getProvider(id, 'languageModel');
+    const skills = provider.skills?.();
+
+    if (skills == null) {
+      throw new Error(
+        `The provider "${id}" does not support skills. Make sure it exposes a skills() method.`,
+      );
+    }
+
+    return skills;
   }
 }

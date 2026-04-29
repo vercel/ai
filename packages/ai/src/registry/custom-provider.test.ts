@@ -1,4 +1,4 @@
-import { NoSuchModelError } from '@ai-sdk/provider';
+import { FilesV4, NoSuchModelError, SkillsV4 } from '@ai-sdk/provider';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MockEmbeddingModelV2 } from '../test/mock-embedding-model-v2';
 import { MockEmbeddingModelV3 } from '../test/mock-embedding-model-v3';
@@ -26,6 +26,16 @@ import { customProvider } from './custom-provider';
 const mockLanguageModel = new MockLanguageModelV4();
 const mockEmbeddingModel = new MockEmbeddingModelV4();
 const mockRerankingModel = new MockRerankingModelV4();
+const mockFiles: FilesV4 = {
+  specificationVersion: 'v4',
+  provider: 'mock-provider',
+  uploadFile: vi.fn(),
+};
+const mockSkills: SkillsV4 = {
+  specificationVersion: 'v4',
+  provider: 'mock-provider',
+  uploadSkill: vi.fn(),
+};
 const mockFallbackProvider = {
   specificationVersion: 'v4' as const,
   languageModel: vi.fn(),
@@ -402,5 +412,65 @@ describe('videoModel', () => {
     const provider = customProvider({});
 
     expect(() => provider.videoModel('test-model')).toThrow(NoSuchModelError);
+  });
+});
+
+describe('files', () => {
+  it('should return the files interface if it exists', () => {
+    const provider = customProvider({
+      files: mockFiles,
+    });
+
+    expect(provider.files()).toBe(mockFiles);
+  });
+
+  it('should use fallback provider files if files is not configured and fallback exists', () => {
+    const fallbackProvider = {
+      ...mockFallbackProvider,
+      files: vi.fn().mockReturnValue(mockFiles),
+    };
+
+    const provider = customProvider({
+      fallbackProvider,
+    });
+
+    expect(provider.files()).toBe(mockFiles);
+    expect(fallbackProvider.files).toHaveBeenCalled();
+  });
+
+  it('should not expose files if files is not configured and fallback does not support files', () => {
+    const provider = customProvider({});
+
+    expect(provider.files).toBeUndefined();
+  });
+});
+
+describe('skills', () => {
+  it('should return the skills interface if it exists', () => {
+    const provider = customProvider({
+      skills: mockSkills,
+    });
+
+    expect(provider.skills()).toBe(mockSkills);
+  });
+
+  it('should use fallback provider skills if skills is not configured and fallback exists', () => {
+    const fallbackProvider = {
+      ...mockFallbackProvider,
+      skills: vi.fn().mockReturnValue(mockSkills),
+    };
+
+    const provider = customProvider({
+      fallbackProvider,
+    });
+
+    expect(provider.skills()).toBe(mockSkills);
+    expect(fallbackProvider.skills).toHaveBeenCalled();
+  });
+
+  it('should not expose skills if skills is not configured and fallback does not support skills', () => {
+    const provider = customProvider({});
+
+    expect(provider.skills).toBeUndefined();
   });
 });

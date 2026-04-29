@@ -1,11 +1,13 @@
 import type {
   EmbeddingModelV4,
   Experimental_VideoModelV4,
+  FilesV4,
   ImageModelV4,
   LanguageModelV4,
   ProviderV3,
   ProviderV4,
   RerankingModelV4,
+  SkillsV4,
   SpeechModelV4,
   TranscriptionModelV4,
 } from '@ai-sdk/provider';
@@ -327,6 +329,42 @@ describe('createProviderRegistry autocomplete / literal identifiers', () => {
       (typeof registryWithPlainProvider)['languageModel']
     >[0];
     expectTypeOf<looseLanguageModelArgument>().toMatchTypeOf<`plain:${string}`>();
+  });
+});
+
+describe('createProviderRegistry files and skills typing', () => {
+  const files: FilesV4 = {
+    specificationVersion: 'v4',
+    provider: 'mock-provider',
+    uploadFile: async () => ({
+      providerReference: { 'mock-provider': 'file-123' },
+      warnings: [],
+    }),
+  };
+  const skills: SkillsV4 = {
+    specificationVersion: 'v4',
+    provider: 'mock-provider',
+    uploadSkill: async () => ({
+      providerReference: { 'mock-provider': 'skill-123' },
+      warnings: [],
+    }),
+  };
+
+  const registry = createProviderRegistry({
+    openai: customProvider({ files }),
+    anthropic: customProvider({ skills }),
+  });
+
+  it('returns files and skills interfaces by provider key', () => {
+    expectTypeOf(registry.files('openai')).toEqualTypeOf<FilesV4>();
+    expectTypeOf(registry.skills('anthropic')).toEqualTypeOf<SkillsV4>();
+  });
+
+  it('rejects provider keys that are not registered', () => {
+    // @ts-expect-error provider key must exist in the registry
+    registry.files('mistral');
+    // @ts-expect-error provider key must exist in the registry
+    registry.skills('mistral');
   });
 });
 

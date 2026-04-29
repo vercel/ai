@@ -1,4 +1,4 @@
-import { NoSuchModelError } from '@ai-sdk/provider';
+import { FilesV4, NoSuchModelError, SkillsV4 } from '@ai-sdk/provider';
 import { MockEmbeddingModelV4 } from '../test/mock-embedding-model-v4';
 import { MockEmbeddingModelV3 } from '../test/mock-embedding-model-v3';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
@@ -758,6 +758,71 @@ describe('ProviderV3 compatibility', () => {
     ).toBe('v4');
     expect(registry.videoModel('provider:video').specificationVersion).toBe(
       'v4',
+    );
+  });
+});
+
+describe('files and skills', () => {
+  const files: FilesV4 = {
+    specificationVersion: 'v4',
+    provider: 'provider',
+    uploadFile: vi.fn(),
+  };
+  const skills: SkillsV4 = {
+    specificationVersion: 'v4',
+    provider: 'provider',
+    uploadSkill: vi.fn(),
+  };
+
+  it('should return files interface from provider', () => {
+    const filesSpy = vi.fn().mockReturnValue(files);
+    const registry = createProviderRegistry({
+      provider: {
+        specificationVersion: 'v4',
+        languageModel: vi.fn(),
+        embeddingModel: vi.fn(),
+        imageModel: vi.fn(),
+        files: filesSpy,
+      },
+    });
+
+    expect(registry.files('provider')).toBe(files);
+    expect(filesSpy).toHaveBeenCalled();
+  });
+
+  it('should return skills interface from provider', () => {
+    const skillsSpy = vi.fn().mockReturnValue(skills);
+    const registry = createProviderRegistry({
+      provider: {
+        specificationVersion: 'v4',
+        languageModel: vi.fn(),
+        embeddingModel: vi.fn(),
+        imageModel: vi.fn(),
+        skills: skillsSpy,
+      },
+    });
+
+    expect(registry.skills('provider')).toBe(skills);
+    expect(skillsSpy).toHaveBeenCalled();
+  });
+
+  it('should throw when provider does not expose files', () => {
+    const registry = createProviderRegistry({
+      provider: new MockProviderV4(),
+    });
+
+    expect(() => registry.files('provider')).toThrow(
+      'The provider "provider" does not support file uploads. Make sure it exposes a files() method.',
+    );
+  });
+
+  it('should throw when provider does not expose skills', () => {
+    const registry = createProviderRegistry({
+      provider: new MockProviderV4(),
+    });
+
+    expect(() => registry.skills('provider')).toThrow(
+      'The provider "provider" does not support skills. Make sure it exposes a skills() method.',
     );
   });
 });

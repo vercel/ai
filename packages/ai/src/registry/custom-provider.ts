@@ -1,6 +1,7 @@
 import {
   EmbeddingModelV4,
   Experimental_VideoModelV4,
+  FilesV4,
   ImageModelV4,
   LanguageModelV4,
   NoSuchModelError,
@@ -8,6 +9,7 @@ import {
   ProviderV3,
   ProviderV4,
   RerankingModelV4,
+  SkillsV4,
   SpeechModelV4,
   TranscriptionModelV4,
 } from '@ai-sdk/provider';
@@ -30,7 +32,7 @@ import type { TranscriptionModel } from '../types/transcription-model';
 import type { VideoModel } from '../types/video-model';
 
 /**
- * Creates a custom provider with specified language models, text embedding models, image models, transcription models, speech models, and an optional fallback provider.
+ * Creates a custom provider with specified language models, text embedding models, image models, transcription models, speech models, file APIs, skill APIs, and an optional fallback provider.
  *
  * @param {Object} options - The options for creating the custom provider.
  * @param {Record<string, LanguageModel>} [options.languageModels] - A record of language models, where keys are model IDs and values are language model instances.
@@ -40,6 +42,8 @@ import type { VideoModel } from '../types/video-model';
  * @param {Record<string, SpeechModel>} [options.speechModels] - A record of speech models, where keys are model IDs and values are speech model instances.
  * @param {Record<string, RerankingModel>} [options.rerankingModels] - A record of reranking models, where keys are model IDs and values are reranking model instances.
  * @param {Record<string, VideoModel>} [options.videoModels] - A record of video models, where keys are model IDs and values are video model instances.
+ * @param {FilesV4} [options.files] - A files interface for uploading files.
+ * @param {SkillsV4} [options.skills] - A skills interface for uploading skills.
  * @param {ProviderV2 | ProviderV3 | ProviderV4} [options.fallbackProvider] - An optional fallback provider to use when a requested model is not found in the custom provider.
  * @returns {ProviderV4} A ProviderV4 object with languageModel, embeddingModel, imageModel, transcriptionModel, speechModel, rerankingModel, and videoModel methods.
  *
@@ -53,6 +57,8 @@ export function customProvider<
   SPEECH_MODELS extends Record<string, SpeechModel>,
   RERANKING_MODELS extends Record<string, RerankingModel>,
   VIDEO_MODELS extends Record<string, VideoModel>,
+  FILES extends FilesV4 | undefined = undefined,
+  SKILLS extends SkillsV4 | undefined = undefined,
 >({
   languageModels,
   embeddingModels,
@@ -61,6 +67,8 @@ export function customProvider<
   speechModels,
   rerankingModels,
   videoModels,
+  files,
+  skills,
   fallbackProvider: fallbackProviderArg,
 }: {
   languageModels?: LANGUAGE_MODELS;
@@ -70,6 +78,8 @@ export function customProvider<
   speechModels?: SPEECH_MODELS;
   rerankingModels?: RERANKING_MODELS;
   videoModels?: VIDEO_MODELS;
+  files?: FILES;
+  skills?: SKILLS;
   fallbackProvider?: ProviderV2 | ProviderV3 | ProviderV4;
 }): ProviderV4 & {
   languageModel(modelId: ExtractModelId<LANGUAGE_MODELS>): LanguageModelV4;
@@ -81,11 +91,28 @@ export function customProvider<
   rerankingModel(modelId: ExtractModelId<RERANKING_MODELS>): RerankingModelV4;
   speechModel(modelId: ExtractModelId<SPEECH_MODELS>): SpeechModelV4;
   videoModel(modelId: ExtractModelId<VIDEO_MODELS>): Experimental_VideoModelV4;
-} {
+} & (NonNullable<FILES> extends FilesV4
+    ? { files(): FilesV4 }
+    : { files?(): FilesV4 }) &
+  (NonNullable<SKILLS> extends SkillsV4
+    ? { skills(): SkillsV4 }
+    : { skills?(): SkillsV4 }) {
   const fallbackProvider =
     fallbackProviderArg == null ? undefined : asProviderV4(fallbackProviderArg);
 
-  return {
+  const baseProvider: ProviderV4 & {
+    languageModel(modelId: ExtractModelId<LANGUAGE_MODELS>): LanguageModelV4;
+    embeddingModel(modelId: ExtractModelId<EMBEDDING_MODELS>): EmbeddingModelV4;
+    imageModel(modelId: ExtractModelId<IMAGE_MODELS>): ImageModelV4;
+    transcriptionModel(
+      modelId: ExtractModelId<TRANSCRIPTION_MODELS>,
+    ): TranscriptionModelV4;
+    rerankingModel(modelId: ExtractModelId<RERANKING_MODELS>): RerankingModelV4;
+    speechModel(modelId: ExtractModelId<SPEECH_MODELS>): SpeechModelV4;
+    videoModel(
+      modelId: ExtractModelId<VIDEO_MODELS>,
+    ): Experimental_VideoModelV4;
+  } = {
     specificationVersion: 'v4',
     languageModel(modelId: ExtractModelId<LANGUAGE_MODELS>): LanguageModelV4 {
       if (languageModels != null && modelId in languageModels) {
@@ -93,7 +120,7 @@ export function customProvider<
       }
 
       if (fallbackProvider) {
-        return (fallbackProvider as ProviderV4).languageModel(modelId);
+        return fallbackProvider.languageModel(modelId);
       }
 
       throw new NoSuchModelError({ modelId, modelType: 'languageModel' });
@@ -107,7 +134,7 @@ export function customProvider<
       }
 
       if (fallbackProvider) {
-        return (fallbackProvider as ProviderV4).embeddingModel(modelId);
+        return fallbackProvider.embeddingModel(modelId);
       }
 
       throw new NoSuchModelError({ modelId, modelType: 'embeddingModel' });
@@ -119,7 +146,7 @@ export function customProvider<
       }
 
       if (fallbackProvider?.imageModel) {
-        return (fallbackProvider as ProviderV4).imageModel(modelId);
+        return fallbackProvider.imageModel(modelId);
       }
 
       throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
@@ -137,7 +164,7 @@ export function customProvider<
       }
 
       if (fallbackProvider?.transcriptionModel) {
-        return (fallbackProvider as ProviderV4).transcriptionModel!(modelId);
+        return fallbackProvider.transcriptionModel(modelId);
       }
 
       throw new NoSuchModelError({ modelId, modelType: 'transcriptionModel' });
@@ -153,7 +180,7 @@ export function customProvider<
       }
 
       if (fallbackProvider?.speechModel) {
-        return (fallbackProvider as ProviderV4).speechModel!(modelId);
+        return fallbackProvider.speechModel(modelId);
       }
 
       throw new NoSuchModelError({ modelId, modelType: 'speechModel' });
@@ -188,6 +215,31 @@ export function customProvider<
       throw new NoSuchModelError({ modelId, modelType: 'videoModel' });
     },
   };
+
+  const filesAndSkills = {
+    ...(files != null || fallbackProvider?.files != null
+      ? {
+          files(): FilesV4 {
+            return files ?? fallbackProvider!.files!();
+          },
+        }
+      : {}),
+
+    ...(skills != null || fallbackProvider?.skills != null
+      ? {
+          skills(): SkillsV4 {
+            return skills ?? fallbackProvider!.skills!();
+          },
+        }
+      : {}),
+  } as (NonNullable<FILES> extends FilesV4
+    ? { files(): FilesV4 }
+    : { files?(): FilesV4 }) &
+    (NonNullable<SKILLS> extends SkillsV4
+      ? { skills(): SkillsV4 }
+      : { skills?(): SkillsV4 });
+
+  return Object.assign(baseProvider, filesAndSkills);
 }
 
 /**
