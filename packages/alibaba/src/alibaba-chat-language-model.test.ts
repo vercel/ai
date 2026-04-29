@@ -133,6 +133,46 @@ describe('doGenerate', () => {
     });
   });
 
+  describe('reasoning with embedded tool call', () => {
+    beforeEach(() => {
+      prepareJsonFixtureResponse('alibaba-reasoning-tool-call');
+    });
+
+    it('should recover tool calls from reasoning content', async () => {
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.content).toContainEqual({
+        type: 'tool-call',
+        toolCallId: 'call_1',
+        toolName: 'get_weather',
+        input: '{"city":"Lisbon"}',
+      });
+      expect(result.finishReason.unified).toBe('tool-calls');
+    });
+  });
+
+  describe('reasoning with qwen3_coder embedded tool call', () => {
+    beforeEach(() => {
+      prepareJsonFixtureResponse('alibaba-reasoning-tool-call-qwen3-coder');
+    });
+
+    it('should recover xml-style tool calls from reasoning content', async () => {
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.content).toContainEqual({
+        type: 'tool-call',
+        toolName: 'get_weather',
+        input: '{"city":"Lisbon"}',
+        toolCallId: 'test-reasoning-id',
+      });
+      expect(result.finishReason.unified).toBe('tool-calls');
+    });
+  });
+
   describe('top-level reasoning', () => {
     beforeEach(() => {
       prepareJsonFixtureResponse('alibaba-text');
@@ -331,6 +371,54 @@ describe('doStream', () => {
       expect(
         await convertReadableStreamToArray(result.stream),
       ).toMatchSnapshot();
+    });
+  });
+
+  describe('reasoning with embedded tool call', () => {
+    beforeEach(() => {
+      prepareChunksFixtureResponse('alibaba-reasoning-tool-call');
+    });
+
+    it('should recover streamed tool calls from reasoning content', async () => {
+      const result = await model.doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const chunks = await convertReadableStreamToArray(result.stream);
+      expect(chunks).toContainEqual({
+        type: 'tool-call',
+        toolCallId: 'call_1',
+        toolName: 'get_weather',
+        input: '{"city":"Lisbon"}',
+      });
+      expect(chunks.at(-1)).toMatchObject({
+        type: 'finish',
+        finishReason: { unified: 'tool-calls' },
+      });
+    });
+  });
+
+  describe('reasoning with qwen3_coder embedded tool call', () => {
+    beforeEach(() => {
+      prepareChunksFixtureResponse('alibaba-reasoning-tool-call-qwen3-coder');
+    });
+
+    it('should recover streamed xml-style tool calls from reasoning content', async () => {
+      const result = await model.doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const chunks = await convertReadableStreamToArray(result.stream);
+      expect(chunks).toContainEqual({
+        type: 'tool-call',
+        toolName: 'get_weather',
+        input: '{"city":"Lisbon"}',
+        toolCallId: 'test-reasoning-id',
+      });
+      expect(chunks.at(-1)).toMatchObject({
+        type: 'finish',
+        finishReason: { unified: 'tool-calls' },
+      });
     });
   });
 });

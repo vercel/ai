@@ -24,6 +24,7 @@ import {
   parseProviderOptions,
   postJsonToApi,
   type ParseResult,
+  safeParseJSON,
   serializeModelOptions,
   StreamingToolCallTracker,
   WORKFLOW_SERIALIZE,
@@ -228,12 +229,44 @@ export class AlibabaLanguageModel implements LanguageModelV4 {
       }
     }
 
+    /**
+     * Some Qwen variants occasionally emit tool calls inside reasoning text.
+     *
+     * @link https://github.com/QwenLM/Qwen3.6/issues/125
+     */
+    const recoveredToolCalls =
+      choice.message.tool_calls == null && reasoning != null
+        ? await extractToolCallsFromReasoning(reasoning)
+        : [];
+
+    if (recoveredToolCalls.length > 0) {
+      for (const toolCall of recoveredToolCalls) {
+        content.push({
+          type: 'tool-call',
+          toolCallId: toolCall.id ?? generateId(),
+          toolName: toolCall.name,
+          input: toolCall.arguments,
+        });
+      }
+    }
+
+    const unifiedFinishReason = mapOpenAICompatibleFinishReason(
+      choice.finish_reason,
+    );
+    const finishReason =
+      recoveredToolCalls.length > 0 && unifiedFinishReason !== 'tool-calls'
+        ? {
+            unified: 'tool-calls' as const,
+            raw: choice.finish_reason ?? 'stop',
+          }
+        : {
+            unified: unifiedFinishReason,
+            raw: choice.finish_reason ?? undefined,
+          };
+
     return {
       content,
-      finishReason: {
-        unified: mapOpenAICompatibleFinishReason(choice.finish_reason),
-        raw: choice.finish_reason ?? undefined,
-      },
+      finishReason,
       usage: convertAlibabaUsage(response.usage),
       request: { body: JSON.stringify(args) },
       response: {
@@ -279,6 +312,8 @@ export class AlibabaLanguageModel implements LanguageModelV4 {
     let isFirstChunk = true;
     let activeText = false;
     let activeReasoningId: string | null = null;
+    let reasoningBuffer = '';
+    let sawNativeToolCalls = false;
 
     let toolCallTracker: StreamingToolCallTracker;
 
@@ -336,6 +371,8 @@ export class AlibabaLanguageModel implements LanguageModelV4 {
               delta.reasoning_content != null &&
               delta.reasoning_content.length > 0
             ) {
+              reasoningBuffer += delta.reasoning_content;
+
               if (activeReasoningId == null) {
                 // End any active text before starting reasoning
                 if (activeText) {
@@ -382,6 +419,8 @@ export class AlibabaLanguageModel implements LanguageModelV4 {
 
             // Handle tool call streaming
             if (delta.tool_calls != null) {
+              sawNativeToolCalls = true;
+
               // End any active reasoning or text before tool calls
               if (activeReasoningId != null) {
                 controller.enqueue({
@@ -409,7 +448,7 @@ export class AlibabaLanguageModel implements LanguageModelV4 {
             }
           },
 
-          flush(controller) {
+          async flush(controller) {
             if (activeReasoningId != null) {
               controller.enqueue({
                 type: 'reasoning-end',
@@ -422,6 +461,45 @@ export class AlibabaLanguageModel implements LanguageModelV4 {
             }
 
             toolCallTracker.flush();
+
+            if (!sawNativeToolCalls) {
+              const recoveredToolCalls =
+                await extractToolCallsFromReasoning(reasoningBuffer);
+
+              if (recoveredToolCalls.length > 0) {
+                for (const toolCall of recoveredToolCalls) {
+                  const toolCallId = toolCall.id ?? generateId();
+
+                  controller.enqueue({
+                    type: 'tool-input-start',
+                    id: toolCallId,
+                    toolName: toolCall.name,
+                  });
+                  controller.enqueue({
+                    type: 'tool-input-delta',
+                    id: toolCallId,
+                    delta: toolCall.arguments,
+                  });
+                  controller.enqueue({
+                    type: 'tool-input-end',
+                    id: toolCallId,
+                  });
+                  controller.enqueue({
+                    type: 'tool-call',
+                    toolCallId,
+                    toolName: toolCall.name,
+                    input: toolCall.arguments,
+                  });
+                }
+
+                if (finishReason.unified !== 'tool-calls') {
+                  finishReason = {
+                    unified: 'tool-calls',
+                    raw: finishReason.raw ?? 'stop',
+                  };
+                }
+              }
+            }
 
             controller.enqueue({
               type: 'finish',
@@ -479,6 +557,190 @@ function resolveAlibabaThinking({
     enable_thinking: true,
     ...(thinkingBudget != null ? { thinking_budget: thinkingBudget } : {}),
   };
+}
+
+type RecoveredToolCall = {
+  id?: string;
+  name: string;
+  arguments: string;
+};
+
+async function extractToolCallsFromReasoning(
+  reasoning: string,
+): Promise<RecoveredToolCall[]> {
+  const recovered: RecoveredToolCall[] = [];
+  const seen: Record<string, boolean> = {};
+
+  const xmlToolCalls = extractQwenXmlToolCalls(reasoning);
+  for (const toolCall of xmlToolCalls) {
+    const dedupeKey = `${toolCall.name}\u0000${toolCall.arguments}`;
+    if (seen[dedupeKey]) {
+      continue;
+    }
+    seen[dedupeKey] = true;
+    recovered.push(toolCall);
+  }
+
+  const candidates = getReasoningJsonCandidates(reasoning);
+  for (const candidate of candidates) {
+    const parseResult = await safeParseJSON({ text: candidate });
+    if (!parseResult.success) {
+      continue;
+    }
+
+    for (const toolCall of normalizeToolCallPayload(parseResult.value)) {
+      const dedupeKey = `${toolCall.name}\u0000${toolCall.arguments}`;
+      if (seen[dedupeKey]) {
+        continue;
+      }
+      seen[dedupeKey] = true;
+      recovered.push(toolCall);
+    }
+  }
+
+  return recovered;
+}
+
+function extractQwenXmlToolCalls(reasoning: string): RecoveredToolCall[] {
+  const recovered: RecoveredToolCall[] = [];
+  const toolCallRegex = /<tool_call>([\s\S]*?)<\/tool_call>/g;
+  let match = toolCallRegex.exec(reasoning);
+
+  while (match != null) {
+    const toolCallContent = match[1]?.trim();
+    if (toolCallContent != null && toolCallContent.length > 0) {
+      const functionMatch =
+        /^<function=([A-Za-z0-9_.:-]+)>([\s\S]*?)<\/function>$/.exec(
+          toolCallContent,
+        );
+
+      if (functionMatch != null) {
+        const toolName = functionMatch[1]?.trim();
+        const rawArguments = functionMatch[2]?.trim() ?? '';
+        if (toolName != null && toolName.length > 0) {
+          recovered.push({
+            name: toolName,
+            arguments: rawArguments.length > 0 ? rawArguments : '{}',
+          });
+        }
+      }
+    }
+
+    match = toolCallRegex.exec(reasoning);
+  }
+
+  return recovered;
+}
+
+function getReasoningJsonCandidates(reasoning: string): string[] {
+  const candidates: string[] = [];
+  const pushCandidate = (candidate: string) => {
+    if (!candidates.includes(candidate)) {
+      candidates.push(candidate);
+    }
+  };
+  const trimmed = reasoning.trim();
+
+  if (trimmed.includes('tool') && trimmed.length > 0) {
+    pushCandidate(trimmed);
+  }
+
+  const codeBlockRegex = /```(?:json)?\s*([\s\S]*?)```/g;
+  let match = codeBlockRegex.exec(reasoning);
+  while (match != null) {
+    const candidate = match[1]?.trim();
+    if (candidate != null && candidate.includes('tool')) {
+      pushCandidate(candidate);
+    }
+    match = codeBlockRegex.exec(reasoning);
+  }
+
+  const toolCallTagRegex = /<tool_calls?>\s*([\s\S]*?)\s*<\/tool_calls?>/g;
+  match = toolCallTagRegex.exec(reasoning);
+  while (match != null) {
+    const candidate = match[1]?.trim();
+    if (candidate != null && candidate.length > 0) {
+      pushCandidate(candidate);
+    }
+    match = toolCallTagRegex.exec(reasoning);
+  }
+
+  return candidates;
+}
+
+function normalizeToolCallPayload(payload: unknown): RecoveredToolCall[] {
+  const parseSingle = (value: unknown): RecoveredToolCall | undefined => {
+    if (value == null || typeof value !== 'object') {
+      return undefined;
+    }
+
+    const maybeToolCall = value as {
+      id?: unknown;
+      name?: unknown;
+      arguments?: unknown;
+      function?: {
+        name?: unknown;
+        arguments?: unknown;
+      };
+    };
+
+    const name =
+      typeof maybeToolCall.function?.name === 'string'
+        ? maybeToolCall.function.name
+        : typeof maybeToolCall.name === 'string'
+          ? maybeToolCall.name
+          : undefined;
+
+    if (name == null || name.length === 0) {
+      return undefined;
+    }
+
+    const rawArguments =
+      maybeToolCall.function?.arguments ?? maybeToolCall.arguments ?? {};
+    const argumentsText =
+      typeof rawArguments === 'string'
+        ? rawArguments
+        : JSON.stringify(rawArguments);
+
+    if (argumentsText == null) {
+      return undefined;
+    }
+
+    return {
+      id: typeof maybeToolCall.id === 'string' ? maybeToolCall.id : undefined,
+      name,
+      arguments: argumentsText,
+    };
+  };
+
+  if (Array.isArray(payload)) {
+    return payload
+      .map(parseSingle)
+      .filter((toolCall): toolCall is RecoveredToolCall => toolCall != null);
+  }
+
+  if (payload == null || typeof payload !== 'object') {
+    return [];
+  }
+
+  const record = payload as {
+    tool_calls?: unknown;
+    tool_call?: unknown;
+  };
+
+  if (Array.isArray(record.tool_calls)) {
+    return record.tool_calls
+      .map(parseSingle)
+      .filter((toolCall): toolCall is RecoveredToolCall => toolCall != null);
+  }
+
+  if (record.tool_call != null) {
+    const toolCall = parseSingle(record.tool_call);
+    return toolCall != null ? [toolCall] : [];
+  }
+
+  const directToolCall = parseSingle(payload);
+  return directToolCall != null ? [directToolCall] : [];
 }
 
 /**

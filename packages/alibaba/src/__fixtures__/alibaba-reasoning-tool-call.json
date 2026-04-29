@@ -1,0 +1,27 @@
+{
+  "id": "chatcmpl-qwen-reasoning-tool-call",
+  "created": 1770764902,
+  "model": "qwen3.5-plus",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": null,
+        "reasoning_content": "I should call a weather tool.\n```json\n{\"tool_calls\":[{\"id\":\"call_1\",\"type\":\"function\",\"function\":{\"name\":\"get_weather\",\"arguments\":\"{\\\"city\\\":\\\"Lisbon\\\"}\"}}]}\n```"
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 10,
+    "completion_tokens": 20,
+    "total_tokens": 30,
+    "completion_tokens_details": {
+      "reasoning_tokens": 12
+    },
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    }
+  }
+}

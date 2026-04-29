@@ -1,0 +1,27 @@
+{
+  "id": "chatcmpl-qwen3-coder-reasoning-tool-call",
+  "created": 1770764902,
+  "model": "qwen3-coder-plus",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": null,
+        "reasoning_content": "Need weather for planning.\n<tool_call><function=get_weather>{\"city\":\"Lisbon\"}</function></tool_call>"
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 10,
+    "completion_tokens": 20,
+    "total_tokens": 30,
+    "completion_tokens_details": {
+      "reasoning_tokens": 12
+    },
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    }
+  }
+}
