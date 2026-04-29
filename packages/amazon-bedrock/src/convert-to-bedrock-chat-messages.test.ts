@@ -88,7 +88,10 @@ describe('user messages', () => {
           { type: 'text', text: 'Hello' },
           {
             type: 'file',
-            data: Buffer.from(imageData).toString('base64'),
+            data: {
+              type: 'data' as const,
+              data: Buffer.from(imageData).toString('base64'),
+            },
             mediaType: 'image/png',
           },
         ],
@@ -121,7 +124,10 @@ describe('user messages', () => {
           { type: 'text', text: 'Hello' },
           {
             type: 'file',
-            data: Buffer.from(fileData).toString('base64'),
+            data: {
+              type: 'data' as const,
+              data: Buffer.from(fileData).toString('base64'),
+            },
             mediaType: 'application/pdf',
           },
         ],
@@ -161,7 +167,10 @@ describe('user messages', () => {
           { type: 'text', text: 'Hello' },
           {
             type: 'file',
-            data: Buffer.from(fileData).toString('base64'),
+            data: {
+              type: 'data' as const,
+              data: Buffer.from(fileData).toString('base64'),
+            },
             mediaType: 'application/pdf',
             filename: 'custom-filename.pdf',
           },
@@ -201,7 +210,10 @@ describe('user messages', () => {
         content: [
           {
             type: 'file',
-            data: Buffer.from(fileData).toString('base64'),
+            data: {
+              type: 'data' as const,
+              data: Buffer.from(fileData).toString('base64'),
+            },
             mediaType: 'application/pdf',
             filename: 'custom-filename',
           },
@@ -239,12 +251,18 @@ describe('user messages', () => {
         content: [
           {
             type: 'file',
-            data: Buffer.from(fileData1).toString('base64'),
+            data: {
+              type: 'data' as const,
+              data: Buffer.from(fileData1).toString('base64'),
+            },
             mediaType: 'application/pdf',
           },
           {
             type: 'file',
-            data: Buffer.from(fileData2).toString('base64'),
+            data: {
+              type: 'data' as const,
+              data: Buffer.from(fileData2).toString('base64'),
+            },
             mediaType: 'application/pdf',
           },
         ],
@@ -258,7 +276,10 @@ describe('user messages', () => {
         content: [
           {
             type: 'file',
-            data: Buffer.from(fileData1).toString('base64'),
+            data: {
+              type: 'data' as const,
+              data: Buffer.from(fileData1).toString('base64'),
+            },
             mediaType: 'application/pdf',
           },
         ],
@@ -395,6 +416,28 @@ describe('user messages', () => {
       ],
       system: [],
     });
+  });
+
+  it('should throw for file parts with provider references', async () => {
+    await expect(
+      convertToBedrockChatMessages([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: {
+                type: 'reference' as const,
+                reference: { bedrock: 'file-ref-123' },
+              },
+              mediaType: 'image/png',
+            },
+          ],
+        },
+      ]),
+    ).rejects.toThrow(
+      "'file parts with provider references' functionality not supported",
+    );
   });
 });
 
@@ -1276,7 +1319,10 @@ describe('citations', () => {
         content: [
           {
             type: 'file',
-            data: Buffer.from(pdfData).toString('base64'),
+            data: {
+              type: 'data' as const,
+              data: Buffer.from(pdfData).toString('base64'),
+            },
             mediaType: 'application/pdf',
             providerOptions: {
               bedrock: {
@@ -1313,7 +1359,10 @@ describe('citations', () => {
         content: [
           {
             type: 'file',
-            data: Buffer.from(pdfData).toString('base64'),
+            data: {
+              type: 'data' as const,
+              data: Buffer.from(pdfData).toString('base64'),
+            },
             mediaType: 'application/pdf',
             providerOptions: {
               bedrock: {
@@ -1347,7 +1396,10 @@ describe('citations', () => {
         content: [
           {
             type: 'file',
-            data: Buffer.from(pdfData).toString('base64'),
+            data: {
+              type: 'data' as const,
+              data: Buffer.from(pdfData).toString('base64'),
+            },
             mediaType: 'application/pdf',
           },
         ],
@@ -1375,7 +1427,10 @@ describe('citations', () => {
         content: [
           {
             type: 'file',
-            data: Buffer.from(pdfData1).toString('base64'),
+            data: {
+              type: 'data' as const,
+              data: Buffer.from(pdfData1).toString('base64'),
+            },
             mediaType: 'application/pdf',
             providerOptions: {
               bedrock: {
@@ -1387,7 +1442,10 @@ describe('citations', () => {
           },
           {
             type: 'file',
-            data: Buffer.from(pdfData2).toString('base64'),
+            data: {
+              type: 'data' as const,
+              data: Buffer.from(pdfData2).toString('base64'),
+            },
             mediaType: 'application/pdf',
             providerOptions: {
               bedrock: {
@@ -1436,7 +1494,7 @@ describe('additional file format tests', () => {
           content: [
             {
               type: 'file',
-              data: 'base64data',
+              data: { type: 'data' as const, data: 'base64data' },
               mediaType: 'application/rtf',
             },
           ],
@@ -1454,7 +1512,7 @@ describe('additional file format tests', () => {
         content: [
           {
             type: 'file',
-            data: 'base64data',
+            data: { type: 'data' as const, data: 'base64data' },
             mediaType:
               'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
           },
@@ -1492,7 +1550,7 @@ describe('additional file format tests', () => {
         content: [
           {
             type: 'file',
-            data: 'base64data',
+            data: { type: 'data' as const, data: 'base64data' },
             mediaType:
               'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
           },
@@ -1647,5 +1705,198 @@ describe('Mistral tool call ID normalization', () => {
         },
       ],
     });
+  });
+});
+
+describe('top-level-only mediaType resolution', () => {
+  const PNG_BYTES = new Uint8Array([
+    0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
+  ]);
+  const PDF_BYTES = new Uint8Array([
+    0x25, 0x50, 0x44, 0x46, 0x2d, 0x31, 0x2e, 0x34,
+  ]);
+
+  it('should pass through a full image mediaType unchanged', async () => {
+    const { messages } = await convertToBedrockChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: {
+              type: 'data' as const,
+              data: Buffer.from(PNG_BYTES).toString('base64'),
+            },
+            mediaType: 'image/png',
+          },
+        ],
+      },
+    ]);
+
+    expect(messages).toEqual([
+      {
+        role: 'user',
+        content: [
+          {
+            image: {
+              format: 'png',
+              source: { bytes: 'iVBORw0KGgo=' },
+            },
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should detect subtype from inline bytes when mediaType is top-level-only (image)', async () => {
+    const { messages } = await convertToBedrockChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: {
+              type: 'data' as const,
+              data: Buffer.from(PNG_BYTES).toString('base64'),
+            },
+            mediaType: 'image',
+          },
+        ],
+      },
+    ]);
+
+    expect(messages[0]).toEqual({
+      role: 'user',
+      content: [
+        {
+          image: {
+            format: 'png',
+            source: { bytes: 'iVBORw0KGgo=' },
+          },
+        },
+      ],
+    });
+  });
+
+  it('should detect subtype from inline bytes when mediaType is top-level-only (application/pdf)', async () => {
+    const { messages } = await convertToBedrockChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: {
+              type: 'data' as const,
+              data: Buffer.from(PDF_BYTES).toString('base64'),
+            },
+            mediaType: 'application',
+          },
+        ],
+      },
+    ]);
+
+    expect(messages[0]).toEqual({
+      role: 'user',
+      content: [
+        {
+          document: {
+            format: 'pdf',
+            name: 'document-1',
+            source: { bytes: 'JVBERi0xLjQ=' },
+          },
+        },
+      ],
+    });
+  });
+
+  it('should route to document slot for non-image top-level type via getTopLevelMediaType', async () => {
+    const { messages } = await convertToBedrockChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: { type: 'data' as const, data: 'base64data' },
+            mediaType: 'text/plain',
+          },
+        ],
+      },
+    ]);
+
+    expect(messages[0]).toEqual({
+      role: 'user',
+      content: [
+        {
+          document: {
+            format: 'txt',
+            name: 'document-1',
+            source: { bytes: 'base64data' },
+          },
+        },
+      ],
+    });
+  });
+
+  it('should throw UnsupportedFunctionalityError for URL data (File URL)', async () => {
+    await expect(
+      convertToBedrockChatMessages([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: {
+                type: 'url' as const,
+                url: new URL('https://example.com/image.png'),
+              },
+              mediaType: 'image',
+            },
+          ],
+        },
+      ]),
+    ).rejects.toThrowErrorMatchingInlineSnapshot(
+      `[AI_UnsupportedFunctionalityError: 'File URL data' functionality not supported.]`,
+    );
+  });
+
+  it('should throw UnsupportedFunctionalityError for unsupported full image mediaType', async () => {
+    await expect(
+      convertToBedrockChatMessages([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: { type: 'data' as const, data: 'base64data' },
+              mediaType: 'image/avif',
+            },
+          ],
+        },
+      ]),
+    ).rejects.toThrowErrorMatchingInlineSnapshot(
+      `[AI_UnsupportedFunctionalityError: Unsupported image mime type: image/avif, expected one of: image/jpeg, image/png, image/gif, image/webp]`,
+    );
+  });
+
+  it('should throw UnsupportedFunctionalityError when top-level-only bytes cannot be detected', async () => {
+    await expect(
+      convertToBedrockChatMessages([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: {
+                type: 'data' as const,
+                data: Buffer.from(new Uint8Array([0x00, 0x01, 0x02])).toString(
+                  'base64',
+                ),
+              },
+              mediaType: 'image',
+            },
+          ],
+        },
+      ]),
+    ).rejects.toThrowError(/media type "image".*could not be auto-detected/);
   });
 });

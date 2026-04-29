@@ -106,12 +106,12 @@ const modelWithFiles = new MockLanguageModelV4({
       { type: 'text', text: 'Hello, world!' },
       {
         type: 'file',
-        data: new Uint8Array([1, 2, 3]),
+        data: { type: 'data', data: new Uint8Array([1, 2, 3]) },
         mediaType: 'image/png',
       },
       {
         type: 'file',
-        data: 'QkFVRw==',
+        data: { type: 'data', data: 'QkFVRw==' },
         mediaType: 'image/jpeg',
       },
     ],
@@ -190,7 +190,7 @@ describe('generateText', () => {
               },
               {
                 type: 'file',
-                data: new Uint8Array([1, 2, 3]),
+                data: { type: 'data', data: new Uint8Array([1, 2, 3]) },
                 mediaType: 'image/png',
               },
               {
@@ -331,7 +331,7 @@ describe('generateText', () => {
               { type: 'text', text: 'Here is a thought image:' },
               {
                 type: 'reasoning-file',
-                data: new Uint8Array([10, 20, 30]),
+                data: { type: 'data', data: new Uint8Array([10, 20, 30]) },
                 mediaType: 'image/png',
                 providerMetadata: {
                   google: { thoughtSignature: 'sig123' },
@@ -339,7 +339,7 @@ describe('generateText', () => {
               },
               {
                 type: 'file',
-                data: new Uint8Array([40, 50, 60]),
+                data: { type: 'data', data: new Uint8Array([40, 50, 60]) },
                 mediaType: 'image/jpeg',
               },
             ],
@@ -9877,12 +9877,15 @@ describe('generateText', () => {
                     "type": "text",
                   },
                   {
-                    "data": Uint8Array [
-                      1,
-                      2,
-                      3,
-                      4,
-                    ],
+                    "data": {
+                      "data": Uint8Array [
+                        1,
+                        2,
+                        3,
+                        4,
+                      ],
+                      "type": "data",
+                    },
                     "filename": undefined,
                     "mediaType": "image/png",
                     "providerOptions": undefined,

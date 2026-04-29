@@ -150,7 +150,7 @@ describe('convertToLanguageModelPrompt', () => {
               {
                 type: 'file',
                 mediaType: 'image/png',
-                data: new Uint8Array([0, 1, 2, 3]),
+                data: { type: 'data', data: new Uint8Array([0, 1, 2, 3]) },
               },
             ],
           },
@@ -189,7 +189,7 @@ describe('convertToLanguageModelPrompt', () => {
               {
                 type: 'file',
                 mediaType: 'image/png',
-                data: new Uint8Array([0, 1, 2, 3]),
+                data: { type: 'data', data: new Uint8Array([0, 1, 2, 3]) },
               },
             ],
           },
@@ -225,7 +225,7 @@ describe('convertToLanguageModelPrompt', () => {
                 type: 'file',
                 mediaType: 'image/png',
                 filename: undefined,
-                data: providerRef,
+                data: { type: 'reference', reference: providerRef },
               },
             ],
           },
@@ -262,7 +262,10 @@ describe('convertToLanguageModelPrompt', () => {
             content: [
               {
                 type: 'file',
-                data: new URL('https://example.com/document.pdf'),
+                data: {
+                  type: 'url',
+                  url: new URL('https://example.com/document.pdf'),
+                },
                 mediaType: 'application/pdf',
               },
             ],
@@ -306,7 +309,7 @@ describe('convertToLanguageModelPrompt', () => {
               {
                 type: 'file',
                 mediaType: 'application/pdf',
-                data: new Uint8Array([0, 1, 2, 3]),
+                data: { type: 'data', data: new Uint8Array([0, 1, 2, 3]) },
               },
             ],
           },
@@ -342,7 +345,7 @@ describe('convertToLanguageModelPrompt', () => {
             content: [
               {
                 type: 'file',
-                data: base64Data,
+                data: { type: 'data', data: base64Data },
                 mediaType: 'text/plain',
               },
             ],
@@ -379,7 +382,10 @@ describe('convertToLanguageModelPrompt', () => {
             content: [
               {
                 type: 'file',
-                data: new Uint8Array([72, 101, 108, 108, 111]),
+                data: {
+                  type: 'data',
+                  data: new Uint8Array([72, 101, 108, 108, 111]),
+                },
                 mediaType: 'text/plain',
               },
             ],
@@ -420,7 +426,7 @@ describe('convertToLanguageModelPrompt', () => {
               {
                 type: 'file',
                 mediaType: 'application/pdf',
-                data: new Uint8Array([0, 1, 2, 3]),
+                data: { type: 'data', data: new Uint8Array([0, 1, 2, 3]) },
               },
             ],
           },
@@ -460,7 +466,7 @@ describe('convertToLanguageModelPrompt', () => {
               {
                 type: 'file',
                 mediaType: 'application/pdf',
-                data: new Uint8Array([0, 1, 2, 3]),
+                data: { type: 'data', data: new Uint8Array([0, 1, 2, 3]) },
               },
             ],
           },
@@ -505,7 +511,7 @@ describe('convertToLanguageModelPrompt', () => {
               {
                 type: 'file',
                 mediaType: 'application/pdf',
-                data: new Uint8Array([0, 1, 2, 3]),
+                data: { type: 'data', data: new Uint8Array([0, 1, 2, 3]) },
               },
             ],
           },
@@ -544,7 +550,10 @@ describe('convertToLanguageModelPrompt', () => {
               {
                 type: 'file',
                 mediaType: 'application/pdf',
-                data: new URL('https://example.com/document.pdf'),
+                data: {
+                  type: 'url',
+                  url: new URL('https://example.com/document.pdf'),
+                },
               },
             ],
           },
@@ -584,7 +593,7 @@ describe('convertToLanguageModelPrompt', () => {
               {
                 type: 'file',
                 mediaType: 'application/pdf',
-                data: new Uint8Array([0, 1, 2, 3]),
+                data: { type: 'data', data: new Uint8Array([0, 1, 2, 3]) },
               },
             ],
           },
@@ -620,7 +629,7 @@ describe('convertToLanguageModelPrompt', () => {
             content: [
               {
                 type: 'file',
-                data: 'SGVsbG8sIFdvcmxkIQ==',
+                data: { type: 'data', data: 'SGVsbG8sIFdvcmxkIQ==' },
                 mediaType: 'text/plain',
                 filename: 'hello.txt',
               },
@@ -663,7 +672,7 @@ describe('convertToLanguageModelPrompt', () => {
               {
                 type: 'file',
                 mediaType: 'application/pdf',
-                data: new Uint8Array([0, 1, 2, 3]),
+                data: { type: 'data', data: new Uint8Array([0, 1, 2, 3]) },
                 filename: 'important-document.pdf',
               },
             ],
@@ -702,12 +711,15 @@ describe('convertToLanguageModelPrompt', () => {
             {
               "content": [
                 {
-                  "data": Uint8Array [
-                    0,
-                    1,
-                    2,
-                    3,
-                  ],
+                  "data": {
+                    "data": Uint8Array [
+                      0,
+                      1,
+                      2,
+                      3,
+                    ],
+                    "type": "data",
+                  },
                   "filename": undefined,
                   "mediaType": "image/jpeg",
                   "providerOptions": undefined,
@@ -752,13 +764,16 @@ describe('convertToLanguageModelPrompt', () => {
             {
               "content": [
                 {
-                  "data": Uint8Array [
-                    72,
-                    101,
-                    108,
-                    108,
-                    111,
-                  ],
+                  "data": {
+                    "data": Uint8Array [
+                      72,
+                      101,
+                      108,
+                      108,
+                      111,
+                    ],
+                    "type": "data",
+                  },
                   "filename": undefined,
                   "mediaType": "application/octet-stream",
                   "providerOptions": undefined,
@@ -802,7 +817,7 @@ describe('convertToLanguageModelPrompt', () => {
                 type: 'file',
                 mediaType: 'application/pdf',
                 filename: 'doc.pdf',
-                data: providerRef,
+                data: { type: 'reference', reference: providerRef },
               },
             ],
           },
@@ -904,41 +919,50 @@ describe('convertToLanguageModelPrompt', () => {
           {
             "content": [
               {
-                "data": Uint8Array [
-                  137,
-                  80,
-                  78,
-                  71,
-                  13,
-                  10,
-                  26,
-                  10,
-                  0,
-                ],
+                "data": {
+                  "data": Uint8Array [
+                    137,
+                    80,
+                    78,
+                    71,
+                    13,
+                    10,
+                    26,
+                    10,
+                    0,
+                  ],
+                  "type": "data",
+                },
                 "filename": undefined,
                 "mediaType": "image/png",
                 "providerOptions": undefined,
                 "type": "file",
               },
               {
-                "data": "http://127.0.0.1:3000/file",
+                "data": {
+                  "type": "url",
+                  "url": "http://127.0.0.1:3000/file",
+                },
                 "filename": undefined,
                 "mediaType": "application/octet-stream",
                 "providerOptions": undefined,
                 "type": "file",
               },
               {
-                "data": Uint8Array [
-                  137,
-                  80,
-                  78,
-                  71,
-                  13,
-                  10,
-                  26,
-                  10,
-                  1,
-                ],
+                "data": {
+                  "data": Uint8Array [
+                    137,
+                    80,
+                    78,
+                    71,
+                    13,
+                    10,
+                    26,
+                    10,
+                    1,
+                  ],
+                  "type": "data",
+                },
                 "filename": undefined,
                 "mediaType": "image/png",
                 "providerOptions": undefined,
@@ -1084,7 +1108,10 @@ describe('convertToLanguageModelPrompt', () => {
             {
               type: 'file',
               mediaType: 'text/plain',
-              data: new Uint8Array([72, 101, 108, 108, 111]),
+              data: {
+                type: 'data',
+                data: new Uint8Array([72, 101, 108, 108, 111]),
+              },
             },
           ],
         },
@@ -1144,8 +1171,11 @@ describe('convertToLanguageModelMessage', () => {
           content: [
             {
               type: 'file',
-              data: new URL('https://example.com/image.jpg'),
-              mediaType: 'image/*', // wildcard since we don't know the exact type
+              data: {
+                type: 'url',
+                url: new URL('https://example.com/image.jpg'),
+              },
+              mediaType: 'image',
             },
           ],
         });
@@ -1170,7 +1200,7 @@ describe('convertToLanguageModelMessage', () => {
           content: [
             {
               type: 'file',
-              data: '/9j/3Q==',
+              data: { type: 'data', data: '/9j/3Q==' },
               mediaType: 'image/jpeg',
             },
           ],
@@ -1197,7 +1227,7 @@ describe('convertToLanguageModelMessage', () => {
           content: [
             {
               type: 'file',
-              data: '/9j/3Q==',
+              data: { type: 'data', data: '/9j/3Q==' },
               mediaType: 'image/jpeg',
             },
           ],
@@ -1226,7 +1256,10 @@ describe('convertToLanguageModelMessage', () => {
           content: [
             {
               type: 'file',
-              data: new URL('https://example.com/image.jpg'),
+              data: {
+                type: 'url',
+                url: new URL('https://example.com/image.jpg'),
+              },
               mediaType: 'image/jpg',
             },
           ],
@@ -1253,7 +1286,7 @@ describe('convertToLanguageModelMessage', () => {
           content: [
             {
               type: 'file',
-              data: 'dGVzdA==',
+              data: { type: 'data', data: 'dGVzdA==' },
               mediaType: 'image/jpg',
             },
           ],
@@ -1503,7 +1536,7 @@ describe('convertToLanguageModelMessage', () => {
           content: [
             {
               type: 'file',
-              data: providerRef,
+              data: { type: 'reference', reference: providerRef },
               mediaType: 'application/pdf',
               filename: 'doc.pdf',
             },
@@ -1537,7 +1570,10 @@ describe('convertToLanguageModelMessage', () => {
           {
             "content": [
               {
-                "data": "iVBORw0KGgo=",
+                "data": {
+                  "data": "iVBORw0KGgo=",
+                  "type": "data",
+                },
                 "mediaType": "image/png",
                 "providerOptions": {
                   "test-provider": {
@@ -1573,16 +1609,19 @@ describe('convertToLanguageModelMessage', () => {
           {
             "content": [
               {
-                "data": Uint8Array [
-                  137,
-                  80,
-                  78,
-                  71,
-                  13,
-                  10,
-                  26,
-                  10,
-                ],
+                "data": {
+                  "data": Uint8Array [
+                    137,
+                    80,
+                    78,
+                    71,
+                    13,
+                    10,
+                    26,
+                    10,
+                  ],
+                  "type": "data",
+                },
                 "mediaType": "image/png",
                 "providerOptions": undefined,
                 "type": "reasoning-file",
@@ -1822,7 +1861,7 @@ describe('convertToLanguageModelMessage', () => {
           content: [
             {
               type: 'file',
-              data: 'dGVzdA==',
+              data: { type: 'data', data: 'dGVzdA==' },
               mediaType: 'application/pdf',
             },
           ],
@@ -1850,7 +1889,7 @@ describe('convertToLanguageModelMessage', () => {
           content: [
             {
               type: 'file',
-              data: 'dGVzdA==',
+              data: { type: 'data', data: 'dGVzdA==' },
               mediaType: 'application/pdf',
               filename: 'test-document.pdf',
             },
@@ -1884,7 +1923,7 @@ describe('convertToLanguageModelMessage', () => {
           content: [
             {
               type: 'file',
-              data: 'dGVzdA==',
+              data: { type: 'data', data: 'dGVzdA==' },
               mediaType: 'application/pdf',
               providerOptions: {
                 'test-provider': {

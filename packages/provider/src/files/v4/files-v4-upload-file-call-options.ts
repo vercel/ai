@@ -1,3 +1,7 @@
+import type {
+  SharedV4FileDataData,
+  SharedV4FileDataText,
+} from '../../shared/v4/shared-v4-file-data';
 import type { SharedV4ProviderOptions } from '../../shared/v4/shared-v4-provider-options';
 
 /**
@@ -5,9 +9,12 @@ import type { SharedV4ProviderOptions } from '../../shared/v4/shared-v4-provider
  */
 export type FilesV4UploadFileCallOptions = {
   /**
-   * The file data as raw bytes or a base64-encoded string.
+   * The file data.
+   *
+   * - `{ type: 'data', data }`: raw bytes (`Uint8Array`) or a base64-encoded string.
+   * - `{ type: 'text', text }`: inline text (UTF-8).
    */
-  data: Uint8Array | string;
+  data: SharedV4FileDataData | SharedV4FileDataText;
 
   /**
    * The IANA media type of the file (e.g. `'application/pdf'`).

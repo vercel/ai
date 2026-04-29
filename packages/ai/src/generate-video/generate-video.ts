@@ -8,6 +8,7 @@ import {
   convertBase64ToUint8Array,
   withUserAgentSuffix,
   type DataContent,
+  detectMediaType,
   type ProviderOptions,
 } from '@ai-sdk/provider-utils';
 import { NoVideoGeneratedError } from '../error/no-video-generated-error';
@@ -20,11 +21,6 @@ import { resolveVideoModel } from '../model/resolve-model';
 import type { VideoModel } from '../types/video-model';
 import type { VideoModelResponseMetadata } from '../types/video-model-response-metadata';
 import type { Warning } from '../types/warning';
-import {
-  detectMediaType,
-  imageMediaTypeSignatures,
-  videoMediaTypeSignatures,
-} from '../util/detect-media-type';
 import { createDownload } from '../util/download/create-download';
 import { prepareRetries } from '../util/prepare-retries';
 import { VERSION } from '../version';
@@ -224,7 +220,7 @@ export async function experimental_generateVideo({
             (isUsableMediaType(downloadedMediaType) && downloadedMediaType) ||
             detectMediaType({
               data,
-              signatures: videoMediaTypeSignatures,
+              topLevelType: 'video',
             }) ||
             'video/mp4';
 
@@ -252,7 +248,7 @@ export async function experimental_generateVideo({
             videoData.mediaType ||
             detectMediaType({
               data: videoData.data,
-              signatures: videoMediaTypeSignatures,
+              topLevelType: 'video',
             }) ||
             'video/mp4';
 
@@ -364,7 +360,7 @@ function normalizePrompt(promptArg: GenerateVideoPrompt): {
         const mediaType =
           detectMediaType({
             data: bytes,
-            signatures: imageMediaTypeSignatures,
+            topLevelType: 'image',
           }) ?? 'image/png';
 
         image = {
@@ -377,7 +373,7 @@ function normalizePrompt(promptArg: GenerateVideoPrompt): {
       const mediaType =
         detectMediaType({
           data: dataContent,
-          signatures: imageMediaTypeSignatures,
+          topLevelType: 'image',
         }) ?? 'image/png';
 
       image = {

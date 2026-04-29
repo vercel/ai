@@ -26,7 +26,10 @@ describe('stringifyForTelemetry', () => {
         content: [
           {
             type: 'file',
-            data: new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0xff, 0xff]),
+            data: {
+              type: 'data' as const,
+              data: new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0xff, 0xff]),
+            },
             mediaType: 'image/png',
           },
         ],
@@ -46,7 +49,10 @@ describe('stringifyForTelemetry', () => {
           {
             type: 'file',
             filename: 'image.png',
-            data: new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0xff, 0xff]),
+            data: {
+              type: 'data' as const,
+              data: new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0xff, 0xff]),
+            },
             mediaType: 'image/png',
             providerOptions: {
               anthropic: {
@@ -71,7 +77,10 @@ describe('stringifyForTelemetry', () => {
           { type: 'text', text: 'Check this image:' },
           {
             type: 'file',
-            data: new URL('https://example.com/image.jpg'),
+            data: {
+              type: 'url' as const,
+              url: new URL('https://example.com/image.jpg'),
+            },
             mediaType: 'image/jpeg',
           },
         ],
@@ -91,12 +100,18 @@ describe('stringifyForTelemetry', () => {
         content: [
           {
             type: 'file',
-            data: new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0xff, 0xff]),
+            data: {
+              type: 'data' as const,
+              data: new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0xff, 0xff]),
+            },
             mediaType: 'image/png',
           },
           {
             type: 'file',
-            data: new URL('https://example.com/image.jpg'),
+            data: {
+              type: 'url' as const,
+              url: new URL('https://example.com/image.jpg'),
+            },
             mediaType: 'image/jpeg',
           },
         ],

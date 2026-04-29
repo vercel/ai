@@ -5,7 +5,7 @@ import type {
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
-  convertBase64ToUint8Array,
+  convertInlineFileDataToUint8Array,
   createJsonResponseHandler,
   lazySchema,
   postFormDataToApi,
@@ -50,8 +50,7 @@ export class AnthropicFiles implements FilesV4 {
     mediaType,
     filename,
   }: FilesV4UploadFileCallOptions): Promise<FilesV4UploadFileResult> {
-    const fileBytes =
-      data instanceof Uint8Array ? data : convertBase64ToUint8Array(data);
+    const fileBytes = convertInlineFileDataToUint8Array(data);
 
     const blob = new Blob([fileBytes], { type: mediaType });
 

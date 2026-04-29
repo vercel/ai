@@ -451,7 +451,7 @@ describe('user messages', () => {
         content: [
           {
             type: 'file',
-            data: 'AAECAw==',
+            data: { type: 'data' as const, data: 'AAECAw==' },
             mediaType: 'image/png',
           },
         ],
@@ -480,7 +480,13 @@ describe('user messages', () => {
     const result = convertToGoogleMessages([
       {
         role: 'user',
-        content: [{ type: 'file', data: 'AAECAw==', mediaType: 'image/png' }],
+        content: [
+          {
+            type: 'file',
+            data: { type: 'data' as const, data: 'AAECAw==' },
+            mediaType: 'image/png',
+          },
+        ],
       },
     ]);
 
@@ -510,9 +516,12 @@ describe('user messages', () => {
           {
             type: 'file',
             data: {
-              google:
-                'https://generativelanguage.googleapis.com/v1beta/files/abc123',
-              openai: 'file-xyz789',
+              type: 'reference' as const,
+              reference: {
+                google:
+                  'https://generativelanguage.googleapis.com/v1beta/files/abc123',
+                openai: 'file-xyz789',
+              },
             },
             mediaType: 'image/png',
           },
@@ -547,8 +556,11 @@ describe('user messages', () => {
           {
             type: 'file',
             data: {
-              google:
-                'https://generativelanguage.googleapis.com/v1beta/files/img456',
+              type: 'reference' as const,
+              reference: {
+                google:
+                  'https://generativelanguage.googleapis.com/v1beta/files/img456',
+              },
             },
             mediaType: 'image/jpeg',
           },
@@ -583,7 +595,10 @@ describe('user messages', () => {
           content: [
             {
               type: 'file',
-              data: { openai: 'file-xyz789' },
+              data: {
+                type: 'reference' as const,
+                reference: { openai: 'file-xyz789' },
+              },
               mediaType: 'image/png',
             },
           ],
@@ -958,7 +973,13 @@ describe('assistant messages', () => {
     const result = convertToGoogleMessages([
       {
         role: 'assistant',
-        content: [{ type: 'file', data: 'AAECAw==', mediaType: 'image/png' }],
+        content: [
+          {
+            type: 'file',
+            data: { type: 'data' as const, data: 'AAECAw==' },
+            mediaType: 'image/png',
+          },
+        ],
       },
     ]);
 
@@ -987,7 +1008,7 @@ describe('assistant messages', () => {
         content: [
           {
             type: 'file',
-            data: 'AAECAw==',
+            data: { type: 'data' as const, data: 'AAECAw==' },
             mediaType: 'image/png',
             providerOptions: {
               google: { thought: true, thoughtSignature: 'sig1' },
@@ -995,7 +1016,7 @@ describe('assistant messages', () => {
           },
           {
             type: 'file',
-            data: 'BAUG',
+            data: { type: 'data' as const, data: 'BAUG' },
             mediaType: 'image/jpeg',
           },
         ],
@@ -1036,7 +1057,7 @@ describe('assistant messages', () => {
         content: [
           {
             type: 'reasoning-file',
-            data: 'AAECAw==',
+            data: { type: 'data' as const, data: 'AAECAw==' },
             mediaType: 'image/png',
             providerOptions: {
               google: { thoughtSignature: 'sig_reasoning_file' },
@@ -1075,7 +1096,7 @@ describe('assistant messages', () => {
         content: [
           {
             type: 'reasoning-file',
-            data: 'BAUG',
+            data: { type: 'data' as const, data: 'BAUG' },
             mediaType: 'image/jpeg',
           },
         ],
@@ -1112,7 +1133,10 @@ describe('assistant messages', () => {
           content: [
             {
               type: 'reasoning-file',
-              data: new URL('https://example.com/image.png'),
+              data: {
+                type: 'url' as const,
+                url: new URL('https://example.com/image.png'),
+              },
               mediaType: 'image/png',
             },
           ],
@@ -1133,7 +1157,7 @@ describe('assistant messages', () => {
           },
           {
             type: 'reasoning-file',
-            data: 'AAECAw==',
+            data: { type: 'data' as const, data: 'AAECAw==' },
             mediaType: 'image/png',
             providerOptions: { google: { thoughtSignature: 'sig2' } },
           },
@@ -1185,7 +1209,10 @@ describe('assistant messages', () => {
           content: [
             {
               type: 'file',
-              data: new URL('https://example.com/image.png'),
+              data: {
+                type: 'url' as const,
+                url: new URL('https://example.com/image.png'),
+              },
               mediaType: 'image/png',
             },
           ],
@@ -1202,8 +1229,11 @@ describe('assistant messages', () => {
           {
             type: 'file',
             data: {
-              google:
-                'https://generativelanguage.googleapis.com/v1beta/files/abc123',
+              type: 'reference' as const,
+              reference: {
+                google:
+                  'https://generativelanguage.googleapis.com/v1beta/files/abc123',
+              },
             },
             mediaType: 'image/png',
           },
@@ -1239,8 +1269,11 @@ describe('assistant messages', () => {
           {
             type: 'file',
             data: {
-              google:
-                'https://generativelanguage.googleapis.com/v1beta/files/abc123',
+              type: 'reference' as const,
+              reference: {
+                google:
+                  'https://generativelanguage.googleapis.com/v1beta/files/abc123',
+              },
             },
             mediaType: 'image/png',
             providerOptions: {
@@ -1280,7 +1313,10 @@ describe('assistant messages', () => {
           content: [
             {
               type: 'file',
-              data: { openai: 'file-xyz789' },
+              data: {
+                type: 'reference' as const,
+                reference: { openai: 'file-xyz789' },
+              },
               mediaType: 'image/png',
             },
           ],
@@ -1564,6 +1600,87 @@ describe('server tool combination round-trip', () => {
         id: 'sid-1',
       },
       thoughtSignature: undefined,
+    });
+  });
+});
+
+describe('top-level-only media type resolution', () => {
+  const pngBase64 = 'iVBORw0KGgo=';
+
+  it('passes full image/png through unchanged for inline data', () => {
+    const result = convertToGoogleMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            mediaType: 'image/png',
+            data: { type: 'data', data: pngBase64 },
+          },
+        ],
+      },
+    ]);
+
+    expect(result.contents[0].parts[0]).toEqual({
+      inlineData: { mimeType: 'image/png', data: pngBase64 },
+    });
+  });
+
+  it('detects image subtype from inline bytes for top-level "image"', () => {
+    const result = convertToGoogleMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            mediaType: 'image',
+            data: { type: 'data', data: pngBase64 },
+          },
+        ],
+      },
+    ]);
+
+    expect(result.contents[0].parts[0]).toEqual({
+      inlineData: { mimeType: 'image/png', data: pngBase64 },
+    });
+  });
+
+  it('throws for top-level-only image with URL source (no bytes to detect)', () => {
+    expect(() =>
+      convertToGoogleMessages([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              mediaType: 'image',
+              data: {
+                type: 'url',
+                url: new URL('https://example.com/x.png'),
+              },
+            },
+          ],
+        },
+      ]),
+    ).toThrow(/media type "image".*not passed as inline bytes/);
+  });
+
+  it('normalizes image/* wildcard via detection', () => {
+    const result = convertToGoogleMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            mediaType: 'image/*',
+            data: { type: 'data', data: pngBase64 },
+          },
+        ],
+      },
+    ]);
+
+    expect(result.contents[0].parts[0]).toEqual({
+      inlineData: { mimeType: 'image/png', data: pngBase64 },
     });
   });
 });

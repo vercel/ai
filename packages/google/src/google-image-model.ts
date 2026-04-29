@@ -240,33 +240,39 @@ export class GoogleImageModel implements ImageModelV4 {
       });
     }
 
-    // Build user message content for language model
     const userContent: Array<
       | { type: 'text'; text: string }
-      | { type: 'file'; data: string | Uint8Array | URL; mediaType: string }
+      | {
+          type: 'file';
+          data:
+            | { type: 'data'; data: string | Uint8Array }
+            | { type: 'url'; url: URL };
+          mediaType: string;
+        }
     > = [];
 
-    // Add text prompt
     if (prompt != null) {
       userContent.push({ type: 'text', text: prompt });
     }
 
-    // Add input images for editing
     if (files != null && files.length > 0) {
       for (const file of files) {
         if (file.type === 'url') {
           userContent.push({
             type: 'file',
-            data: new URL(file.url),
+            data: { type: 'url', url: new URL(file.url) },
             mediaType: 'image/*',
           });
         } else {
           userContent.push({
             type: 'file',
-            data:
-              typeof file.data === 'string'
-                ? file.data
-                : new Uint8Array(file.data),
+            data: {
+              type: 'data',
+              data:
+                typeof file.data === 'string'
+                  ? file.data
+                  : new Uint8Array(file.data),
+            },
             mediaType: file.mediaType,
           });
         }
@@ -312,11 +318,14 @@ export class GoogleImageModel implements ImageModelV4 {
 
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
 
-    // Extract images from language model response
     const images: string[] = [];
     for (const part of result.content) {
-      if (part.type === 'file' && part.mediaType.startsWith('image/')) {
-        images.push(convertToBase64(part.data));
+      if (
+        part.type === 'file' &&
+        part.mediaType.startsWith('image/') &&
+        part.data.type === 'data'
+      ) {
+        images.push(convertToBase64(part.data.data));
       }
     }
 

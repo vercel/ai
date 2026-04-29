@@ -2566,7 +2566,10 @@ describe('doGenerate', () => {
           "type": "text",
         },
         {
-          "data": "base64encodedimagedata",
+          "data": {
+            "data": "base64encodedimagedata",
+            "type": "data",
+          },
           "mediaType": "image/jpeg",
           "providerMetadata": undefined,
           "type": "file",
@@ -2577,7 +2580,10 @@ describe('doGenerate', () => {
           "type": "text",
         },
         {
-          "data": "anotherbase64encodedimagedata",
+          "data": {
+            "data": "anotherbase64encodedimagedata",
+            "type": "data",
+          },
           "mediaType": "image/png",
           "providerMetadata": undefined,
           "type": "file",
@@ -2630,13 +2636,19 @@ describe('doGenerate', () => {
     expect(content).toMatchInlineSnapshot(`
       [
         {
-          "data": "imagedata1",
+          "data": {
+            "data": "imagedata1",
+            "type": "data",
+          },
           "mediaType": "image/jpeg",
           "providerMetadata": undefined,
           "type": "file",
         },
         {
-          "data": "imagedata2",
+          "data": {
+            "data": "imagedata2",
+            "type": "data",
+          },
           "mediaType": "image/png",
           "providerMetadata": undefined,
           "type": "file",
@@ -2690,7 +2702,10 @@ describe('doGenerate', () => {
     expect(content).toMatchInlineSnapshot(`
       [
         {
-          "data": "thoughtimagedata",
+          "data": {
+            "data": "thoughtimagedata",
+            "type": "data",
+          },
           "mediaType": "image/png",
           "providerMetadata": {
             "google": {
@@ -2700,7 +2715,10 @@ describe('doGenerate', () => {
           "type": "reasoning-file",
         },
         {
-          "data": "regularimagedata",
+          "data": {
+            "data": "regularimagedata",
+            "type": "data",
+          },
           "mediaType": "image/jpeg",
           "providerMetadata": undefined,
           "type": "file",
@@ -2905,13 +2923,19 @@ describe('doGenerate', () => {
           "type": "text",
         },
         {
-          "data": "validimagedata",
+          "data": {
+            "data": "validimagedata",
+            "type": "data",
+          },
           "mediaType": "image/jpeg",
           "providerMetadata": undefined,
           "type": "file",
         },
         {
-          "data": "pdfdata",
+          "data": {
+            "data": "pdfdata",
+            "type": "data",
+          },
           "mediaType": "application/pdf",
           "providerMetadata": undefined,
           "type": "file",
@@ -5241,7 +5265,10 @@ describe('doStream', () => {
           "warnings": [],
         },
         {
-          "data": "test",
+          "data": {
+            "data": "test",
+            "type": "data",
+          },
           "mediaType": "text/plain",
           "providerMetadata": undefined,
           "type": "file",
@@ -5353,7 +5380,10 @@ describe('doStream', () => {
     expect(fileEvents).toMatchInlineSnapshot(`
       [
         {
-          "data": "thoughtimg",
+          "data": {
+            "data": "thoughtimg",
+            "type": "data",
+          },
           "mediaType": "image/png",
           "providerMetadata": {
             "google": {
@@ -5363,7 +5393,10 @@ describe('doStream', () => {
           "type": "reasoning-file",
         },
         {
-          "data": "regularimg",
+          "data": {
+            "data": "regularimg",
+            "type": "data",
+          },
           "mediaType": "image/jpeg",
           "providerMetadata": undefined,
           "type": "file",
@@ -5438,7 +5471,10 @@ describe('doStream', () => {
           "type": "text-end",
         },
         {
-          "data": "image1",
+          "data": {
+            "data": "image1",
+            "type": "data",
+          },
           "mediaType": "image/png",
           "providerMetadata": undefined,
           "type": "file",
@@ -5459,7 +5495,10 @@ describe('doStream', () => {
           "type": "text-end",
         },
         {
-          "data": "image2",
+          "data": {
+            "data": "image2",
+            "type": "data",
+          },
           "mediaType": "image/jpeg",
           "providerMetadata": undefined,
           "type": "file",

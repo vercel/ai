@@ -1,5 +1,6 @@
 import type { JSONObject } from '@ai-sdk/provider';
 import {
+  detectMediaType,
   withUserAgentSuffix,
   type ProviderOptions,
 } from '@ai-sdk/provider-utils';
@@ -9,10 +10,6 @@ import { resolveSpeechModel } from '../model/resolve-model';
 import type { SpeechModel } from '../types/speech-model';
 import type { SpeechModelResponseMetadata } from '../types/speech-model-response-metadata';
 import type { Warning } from '../types/warning';
-import {
-  audioMediaTypeSignatures,
-  detectMediaType,
-} from '../util/detect-media-type';
 import { prepareRetries } from '../util/prepare-retries';
 import { VERSION } from '../version';
 import type { SpeechResult } from './generate-speech-result';
@@ -164,7 +161,7 @@ export async function generateSpeech({
       mediaType:
         detectMediaType({
           data: result.audio,
-          signatures: audioMediaTypeSignatures,
+          topLevelType: 'audio',
         }) ?? 'audio/mp3',
     }),
     warnings: result.warnings,

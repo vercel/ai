@@ -1279,7 +1279,13 @@ function asContent<TOOLS extends ToolSet>({
       case 'reasoning-file': {
         contentParts.push({
           type: part.type as 'file' | 'reasoning-file',
-          file: new DefaultGeneratedFile(part),
+          file: new DefaultGeneratedFile({
+            data:
+              part.data.type === 'data'
+                ? part.data.data
+                : part.data.url.toString(),
+            mediaType: part.mediaType,
+          }),
           ...(part.providerMetadata != null
             ? { providerMetadata: part.providerMetadata }
             : {}),
