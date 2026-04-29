@@ -43,6 +43,7 @@ import {
 import { convertToBedrockChatMessages } from './convert-to-bedrock-chat-messages';
 import { mapBedrockFinishReason } from './map-bedrock-finish-reason';
 import { isMistralModel, normalizeToolCallId } from './normalize-tool-call-id';
+import type { BedrockReasoningMetadata } from './bedrock-reasoning-metadata';
 
 type BedrockChatConfig = {
   baseUrl: () => string;
