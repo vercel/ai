@@ -5,7 +5,11 @@ import {
   getRuntimeEnvironmentUserAgent,
 } from '@ai-sdk/provider-utils';
 import { MCPClientError } from '../error/mcp-client-error';
-import { JSONRPCMessage, JSONRPCMessageSchema } from './json-rpc-message';
+import {
+  JSONRPCMessage,
+  JSONRPCMessageSchema,
+  parseJSONRPCMessage,
+} from './json-rpc-message';
 import { MCPTransport } from './mcp-transport';
 import { VERSION } from '../version';
 import {
@@ -238,7 +242,7 @@ export class HttpMCPTransport implements MCPTransport {
                 const { event, data } = value;
                 if (event === 'message') {
                   try {
-                    const msg = JSONRPCMessageSchema.parse(JSON.parse(data));
+                    const msg = await parseJSONRPCMessage(data);
                     this.onmessage?.(msg);
                   } catch (error) {
                     const e = new MCPClientError({
@@ -386,7 +390,7 @@ export class HttpMCPTransport implements MCPTransport {
 
             if (event === 'message') {
               try {
-                const msg = JSONRPCMessageSchema.parse(JSON.parse(data));
+                const msg = await parseJSONRPCMessage(data);
                 this.onmessage?.(msg);
               } catch (error) {
                 const e = new MCPClientError({
