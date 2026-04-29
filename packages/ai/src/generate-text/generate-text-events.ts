@@ -9,11 +9,11 @@ import type { TimeoutConfiguration } from '../prompt/request-options';
 import type { StandardizedPrompt } from '../prompt/standardize-prompt';
 import type { ToolChoice } from '../types/language-model';
 import type { LanguageModelUsage } from '../types/usage';
-import { Callback } from '../util/callback';
+import type { Callback } from '../util/callback';
 import type { ActiveTools } from './active-tools';
 import type { Output } from './output';
 import type { StepResult } from './step-result';
-import { TextStreamPart } from './stream-text-result';
+import type { TextStreamPart } from './stream-text-result';
 
 /**
  * Event passed to the `onStart` callback.

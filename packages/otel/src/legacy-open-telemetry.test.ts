@@ -1,4 +1,4 @@
-import {
+import type {
   EmbeddingModelV4,
   LanguageModelV4StreamPart,
   LanguageModelV4Usage,
@@ -12,11 +12,11 @@ import {
 import * as assert from 'node:assert';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
-  Attributes,
-  Span,
-  SpanOptions,
   SpanStatusCode,
-  Tracer,
+  type Attributes,
+  type Span,
+  type SpanOptions,
+  type Tracer,
 } from '@opentelemetry/api';
 import { z } from 'zod/v4';
 import {
@@ -28,8 +28,10 @@ import {
   streamObject,
   streamText,
   rerank,
+  type Embedding,
+  type EmbeddingModelUsage,
+  type Telemetry,
 } from 'ai';
-import type { Embedding, EmbeddingModelUsage, Telemetry } from 'ai';
 import {
   MockEmbeddingModelV4,
   MockLanguageModelV4,

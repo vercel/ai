@@ -8,9 +8,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
 import { TypeValidationError } from '../error';
 import { asLanguageModelUsage } from '../types/usage';
+import { now } from '../util/now';
 import { createExecuteToolsTransformation } from './create-execute-tools-transformation';
-import { LanguageModelStreamPart } from './stream-language-model-call';
-import {
+import type { LanguageModelStreamPart } from './stream-language-model-call';
+import type {
   ToolExecutionEndEvent,
   ToolExecutionStartEvent,
 } from './tool-execution-events';
@@ -19,7 +20,7 @@ import {
 vi.mock('../util/now', () => ({
   now: vi.fn(),
 }));
-import { now } from '../util/now';
+
 const mockNow = vi.mocked(now);
 
 const finishChunk = {

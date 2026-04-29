@@ -1,5 +1,4 @@
 import { isToolUIPart, type UIMessage } from './ui-messages';
-
 /**
  * Check if the last message is an assistant message with completed tool call approvals.
  * The last step of the message must have at least one tool approval response and

@@ -1,15 +1,15 @@
 import type { Arrayable, Context, ToolSet } from '@ai-sdk/provider-utils';
-import { GenerateTextOnStepFinishCallback } from '../generate-text/generate-text-events';
-import { Output } from '../generate-text/output';
-import { StreamTextTransform } from '../generate-text/stream-text';
-import { UIMessageStreamOptions } from '../generate-text/stream-text-result';
-import { TimeoutConfiguration } from '../prompt/request-options';
-import { InferUIMessageChunk } from '../ui-message-stream';
+import type { GenerateTextOnStepFinishCallback } from '../generate-text/generate-text-events';
+import type { Output } from '../generate-text/output';
+import type { StreamTextTransform } from '../generate-text/stream-text';
+import type { UIMessageStreamOptions } from '../generate-text/stream-text-result';
+import type { TimeoutConfiguration } from '../prompt/request-options';
+import type { InferUIMessageChunk } from '../ui-message-stream';
 import { convertToModelMessages } from '../ui/convert-to-model-messages';
-import { InferUITools, UIMessage } from '../ui/ui-messages';
+import type { InferUITools, UIMessage } from '../ui/ui-messages';
 import { validateUIMessages } from '../ui/validate-ui-messages';
-import { AsyncIterableStream } from '../util/async-iterable-stream';
-import { Agent } from './agent';
+import type { AsyncIterableStream } from '../util/async-iterable-stream';
+import type { Agent } from './agent';
 
 /**
  * Runs the agent and stream the output as a UI message stream.

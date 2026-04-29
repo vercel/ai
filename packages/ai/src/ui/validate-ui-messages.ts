@@ -1,15 +1,15 @@
 import { TypeValidationError } from '@ai-sdk/provider';
 import {
-  FlexibleSchema,
   lazySchema,
-  Tool,
   validateTypes,
   zodSchema,
+  type FlexibleSchema,
+  type Tool,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { InvalidArgumentError } from '../error';
 import { providerMetadataSchema } from '../types/provider-metadata';
-import {
+import type {
   DataUIPart,
   InferUIMessageData,
   InferUIMessageTools,

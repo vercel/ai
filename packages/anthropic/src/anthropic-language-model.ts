@@ -1,61 +1,61 @@
 import {
   APICallError,
-  JSONObject,
-  LanguageModelV4,
-  LanguageModelV4CallOptions,
-  LanguageModelV4Content,
-  LanguageModelV4FinishReason,
-  LanguageModelV4FunctionTool,
-  LanguageModelV4GenerateResult,
-  LanguageModelV4Prompt,
-  LanguageModelV4Source,
-  LanguageModelV4StreamPart,
-  LanguageModelV4StreamResult,
-  LanguageModelV4ToolCall,
-  SharedV4ProviderMetadata,
-  SharedV4Warning,
+  type JSONObject,
+  type LanguageModelV4,
+  type LanguageModelV4CallOptions,
+  type LanguageModelV4Content,
+  type LanguageModelV4FinishReason,
+  type LanguageModelV4FunctionTool,
+  type LanguageModelV4GenerateResult,
+  type LanguageModelV4Prompt,
+  type LanguageModelV4Source,
+  type LanguageModelV4StreamPart,
+  type LanguageModelV4StreamResult,
+  type LanguageModelV4ToolCall,
+  type SharedV4ProviderMetadata,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   createToolNameMapping,
-  FetchFunction,
   generateId,
-  InferSchema,
   isCustomReasoning,
   mapReasoningToProviderBudget,
   mapReasoningToProviderEffort,
   parseProviderOptions,
-  ParseResult,
   postJsonToApi,
-  Resolvable,
   resolve,
   resolveProviderReference,
   serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
+  type FetchFunction,
+  type InferSchema,
+  type ParseResult,
+  type Resolvable,
 } from '@ai-sdk/provider-utils';
 import { anthropicFailedResponseHandler } from './anthropic-error';
-import { AnthropicMessageMetadata } from './anthropic-message-metadata';
+import type { AnthropicMessageMetadata } from './anthropic-message-metadata';
 import {
-  AnthropicContainer,
   anthropicChunkSchema,
   anthropicResponseSchema,
-  AnthropicReasoningMetadata,
-  AnthropicResponseContextManagement,
-  AnthropicTool,
-  Citation,
+  type AnthropicContainer,
+  type AnthropicReasoningMetadata,
+  type AnthropicResponseContextManagement,
+  type AnthropicTool,
+  type Citation,
 } from './anthropic-api';
 import {
-  AnthropicModelId,
-  AnthropicLanguageModelOptions,
   anthropicLanguageModelOptions,
+  type AnthropicModelId,
+  type AnthropicLanguageModelOptions,
 } from './anthropic-options';
 import { prepareTools } from './anthropic-prepare-tools';
 import {
-  AnthropicUsage,
   convertAnthropicUsage,
+  type AnthropicUsage,
 } from './convert-anthropic-usage';
 import { convertToAnthropicPrompt } from './convert-to-anthropic-prompt';
 import { CacheControlValidator } from './get-cache-control';

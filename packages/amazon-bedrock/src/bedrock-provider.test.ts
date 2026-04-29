@@ -1,9 +1,16 @@
-import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
-import { createAmazonBedrock } from './bedrock-provider';
+import type * as AnthropicModule from '@ai-sdk/anthropic';
+import { anthropicTools } from '@ai-sdk/anthropic/internal';
+import { loadOptionalSetting } from '@ai-sdk/provider-utils';
+import type * as ProviderUtilsModule from '@ai-sdk/provider-utils';
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { BedrockChatLanguageModel } from './bedrock-chat-language-model';
 import { BedrockEmbeddingModel } from './bedrock-embedding-model';
 import { BedrockImageModel } from './bedrock-image-model';
-import { anthropicTools } from '@ai-sdk/anthropic/internal';
+import { createAmazonBedrock } from './bedrock-provider';
+import {
+  createApiKeyFetchFunction,
+  createSigV4FetchFunction,
+} from './bedrock-sigv4-fetch';
 
 // Add type assertions for the mocked classes
 const BedrockChatLanguageModelMock =
@@ -29,7 +36,7 @@ vi.mock('./bedrock-sigv4-fetch', () => ({
 }));
 
 vi.mock('@ai-sdk/anthropic', async importOriginal => {
-  const original = await importOriginal<typeof import('@ai-sdk/anthropic')>();
+  const original = await importOriginal<typeof AnthropicModule>();
   return {
     ...original,
     anthropicTools: { mock: 'tools' },
@@ -38,8 +45,7 @@ vi.mock('@ai-sdk/anthropic', async importOriginal => {
 });
 
 vi.mock('@ai-sdk/provider-utils', async importOriginal => {
-  const original =
-    await importOriginal<typeof import('@ai-sdk/provider-utils')>();
+  const original = await importOriginal<typeof ProviderUtilsModule>();
   return {
     ...original,
     loadSetting: vi
@@ -63,13 +69,6 @@ vi.mock('@ai-sdk/provider-utils', async importOriginal => {
 vi.mock('./version', () => ({
   VERSION: '0.0.0-test',
 }));
-
-// Import mocked modules to get references
-import {
-  createSigV4FetchFunction,
-  createApiKeyFetchFunction,
-} from './bedrock-sigv4-fetch';
-import { loadOptionalSetting } from '@ai-sdk/provider-utils';
 
 const mockCreateSigV4FetchFunction = vi.mocked(createSigV4FetchFunction);
 const mockCreateApiKeyFetchFunction = vi.mocked(createApiKeyFetchFunction);

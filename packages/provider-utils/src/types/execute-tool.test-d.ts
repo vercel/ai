@@ -1,7 +1,7 @@
 import { describe, expectTypeOf, it } from 'vitest';
 import { z } from 'zod/v4';
 import { executeTool } from './execute-tool';
-import { ExecutableTool } from './executable-tool';
+import type { ExecutableTool } from './executable-tool';
 import { tool } from './tool';
 
 describe('executeTool', () => {

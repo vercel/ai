@@ -1,8 +1,8 @@
-import {
+import type {
   LanguageModelV4FunctionTool,
   LanguageModelV4ProviderTool,
 } from '@ai-sdk/provider';
-import { asSchema, ToolSet } from '@ai-sdk/provider-utils';
+import { asSchema, type ToolSet } from '@ai-sdk/provider-utils';
 import { isNonEmptyObject } from '../util/is-non-empty-object';
 
 export async function prepareTools<TOOLS extends ToolSet>({

@@ -1,13 +1,10 @@
 import type { ImageModelV4, SharedV4Warning } from '@ai-sdk/provider';
-import type { Resolvable } from '@ai-sdk/provider-utils';
 import {
   combineHeaders,
   convertImageModelFileToDataUri,
   createBinaryResponseHandler,
   createJsonResponseHandler,
-  FetchFunction,
   getFromApi,
-  InferSchema,
   lazySchema,
   parseProviderOptions,
   postJsonToApi,
@@ -16,10 +13,13 @@ import {
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
   zodSchema,
+  type Resolvable,
+  type FetchFunction,
+  type InferSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { replicateFailedResponseHandler } from './replicate-error';
-import { ReplicateImageModelId } from './replicate-image-settings';
+import type { ReplicateImageModelId } from './replicate-image-settings';
 
 interface ReplicateImageModelConfig {
   provider: string;

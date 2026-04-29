@@ -3,9 +3,9 @@ import type {
   ModelMessage,
   ToolSet,
 } from '@ai-sdk/provider-utils';
-import { Callback } from '../util/callback';
+import type { Callback } from '../util/callback';
 import type { DynamicToolCall, StaticToolCall } from './tool-call';
-import { ToolOutput } from './tool-output';
+import type { ToolOutput } from './tool-output';
 import type { ValueOf } from '../util/value-of';
 
 /**

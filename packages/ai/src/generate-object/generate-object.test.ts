@@ -1,7 +1,7 @@
 import {
   JSONParseError,
-  SharedV4Warning,
   TypeValidationError,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
 import { jsonSchema } from '@ai-sdk/provider-utils';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';

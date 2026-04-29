@@ -1,20 +1,24 @@
-import type { Arrayable, Context, ToolSet } from '@ai-sdk/provider-utils';
-import { ModelMessage } from '@ai-sdk/provider-utils';
-import {
+import type {
+  Arrayable,
+  Context,
+  ModelMessage,
+  ToolSet,
+} from '@ai-sdk/provider-utils';
+import type {
   GenerateTextOnFinishCallback,
   GenerateTextOnStartCallback,
   GenerateTextOnStepFinishCallback,
   GenerateTextOnStepStartCallback,
 } from '../generate-text/generate-text-events';
-import { GenerateTextResult } from '../generate-text/generate-text-result';
-import { Output } from '../generate-text/output';
-import { StreamTextTransform } from '../generate-text/stream-text';
-import { StreamTextResult } from '../generate-text/stream-text-result';
-import {
+import type { GenerateTextResult } from '../generate-text/generate-text-result';
+import type { Output } from '../generate-text/output';
+import type { StreamTextTransform } from '../generate-text/stream-text';
+import type { StreamTextResult } from '../generate-text/stream-text-result';
+import type {
   OnToolExecutionEndCallback,
   OnToolExecutionStartCallback,
 } from '../generate-text/tool-execution-events';
-import { TimeoutConfiguration } from '../prompt/request-options';
+import type { TimeoutConfiguration } from '../prompt/request-options';
 
 /**
  * Parameters for calling an agent.

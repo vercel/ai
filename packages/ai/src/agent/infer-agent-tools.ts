@@ -1,4 +1,4 @@
-import { Agent } from './agent';
+import type { Agent } from './agent';
 
 /**
  * Infer the type of the tools of an agent.

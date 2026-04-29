@@ -1,7 +1,6 @@
-import { JSONSchema7 } from '@ai-sdk/provider';
-import { lazySchema } from '@ai-sdk/provider-utils';
+import type { JSONSchema7 } from '@ai-sdk/provider';
+import { lazySchema, zodSchema } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import { zodSchema } from '@ai-sdk/provider-utils';
 
 export const openResponsesErrorSchema = lazySchema(() =>
   zodSchema(

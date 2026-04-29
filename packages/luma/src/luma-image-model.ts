@@ -1,11 +1,10 @@
 import {
-  ImageModelV4,
-  ImageModelV4File,
-  SharedV4Warning,
   InvalidResponseDataError,
+  type ImageModelV4,
+  type ImageModelV4File,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
   combineHeaders,
   createBinaryResponseHandler,
   createJsonResponseHandler,
@@ -14,15 +13,16 @@ import {
   delay,
   getFromApi,
   postJsonToApi,
-  InferSchema,
   lazySchema,
   parseProviderOptions,
   zodSchema,
   serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
+  type FetchFunction,
+  type InferSchema,
 } from '@ai-sdk/provider-utils';
-import { LumaReferenceType } from './luma-image-settings';
+import type { LumaReferenceType } from './luma-image-settings';
 import { z } from 'zod/v4';
 
 const DEFAULT_POLL_INTERVAL_MILLIS = 500;

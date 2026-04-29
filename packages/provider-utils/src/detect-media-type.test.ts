@@ -1,19 +1,19 @@
 import { describe, expect, it } from 'vitest';
 import {
-  audioMediaTypeSignatures,
   detectMediaType,
-  imageMediaTypeSignatures,
+  getTopLevelMediaType,
+  isFullMediaType,
 } from './detect-media-type';
-import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
+import { convertUint8ArrayToBase64 } from './uint8-utils';
 
-describe('detectMediaType', () => {
+describe('detectMediaType signature matching', () => {
   describe('GIF', () => {
     it('should detect GIF from bytes', () => {
       const gifBytes = new Uint8Array([0x47, 0x49, 0x46, 0xff, 0xff]);
       expect(
         detectMediaType({
           data: gifBytes,
-          signatures: imageMediaTypeSignatures,
+          topLevelType: 'image',
         }),
       ).toBe('image/gif');
     });
@@ -23,7 +23,7 @@ describe('detectMediaType', () => {
       expect(
         detectMediaType({
           data: gifBase64,
-          signatures: imageMediaTypeSignatures,
+          topLevelType: 'image',
         }),
       ).toBe('image/gif');
     });
@@ -35,7 +35,7 @@ describe('detectMediaType', () => {
       expect(
         detectMediaType({
           data: pngBytes,
-          signatures: imageMediaTypeSignatures,
+          topLevelType: 'image',
         }),
       ).toBe('image/png');
     });
@@ -45,7 +45,7 @@ describe('detectMediaType', () => {
       expect(
         detectMediaType({
           data: pngBase64,
-          signatures: imageMediaTypeSignatures,
+          topLevelType: 'image',
         }),
       ).toBe('image/png');
     });
@@ -57,7 +57,7 @@ describe('detectMediaType', () => {
       expect(
         detectMediaType({
           data: jpegBytes,
-          signatures: imageMediaTypeSignatures,
+          topLevelType: 'image',
         }),
       ).toBe('image/jpeg');
     });
@@ -67,7 +67,7 @@ describe('detectMediaType', () => {
       expect(
         detectMediaType({
           data: jpegBase64,
-          signatures: imageMediaTypeSignatures,
+          topLevelType: 'image',
         }),
       ).toBe('image/jpeg');
     });
@@ -97,7 +97,7 @@ describe('detectMediaType', () => {
       expect(
         detectMediaType({
           data: webpBytes,
-          signatures: imageMediaTypeSignatures,
+          topLevelType: 'image',
         }),
       ).toBe('image/webp');
     });
@@ -126,7 +126,7 @@ describe('detectMediaType', () => {
       expect(
         detectMediaType({
           data: webpBase64,
-          signatures: imageMediaTypeSignatures,
+          topLevelType: 'image',
         }),
       ).toBe('image/webp');
     });
@@ -154,7 +154,7 @@ describe('detectMediaType', () => {
       expect(
         detectMediaType({
           data: wavBytes,
-          signatures: imageMediaTypeSignatures,
+          topLevelType: 'image',
         }),
       ).toBeUndefined(); // Should not detect as WebP
     });
@@ -183,7 +183,7 @@ describe('detectMediaType', () => {
       expect(
         detectMediaType({
           data: wavBase64,
-          signatures: imageMediaTypeSignatures,
+          topLevelType: 'image',
         }),
       ).toBeUndefined(); // Should not detect as WebP
     });
@@ -195,7 +195,7 @@ describe('detectMediaType', () => {
       expect(
         detectMediaType({
           data: bmpBytes,
-          signatures: imageMediaTypeSignatures,
+          topLevelType: 'image',
         }),
       ).toBe('image/bmp');
     });
@@ -205,7 +205,7 @@ describe('detectMediaType', () => {
       expect(
         detectMediaType({
           data: convertUint8ArrayToBase64(bmpBytes),
-          signatures: imageMediaTypeSignatures,
+          topLevelType: 'image',
         }),
       ).toBe('image/bmp');
     });
@@ -217,7 +217,7 @@ describe('detectMediaType', () => {
       expect(
         detectMediaType({
           data: tiffLEBytes,
-          signatures: imageMediaTypeSignatures,
+          topLevelType: 'image',
         }),
       ).toBe('image/tiff');
     });
@@ -227,7 +227,7 @@ describe('detectMediaType', () => {
       expect(
         detectMediaType({
           data: tiffLEBase64,
-          signatures: imageMediaTypeSignatures,
+          topLevelType: 'image',
         }),
       ).toBe('image/tiff');
     });
@@ -237,7 +237,7 @@ describe('detectMediaType', () => {
       expect(
         detectMediaType({
           data: tiffBEBytes,
-          signatures: imageMediaTypeSignatures,
+          topLevelType: 'image',
         }),
       ).toBe('image/tiff');
     });
@@ -247,7 +247,7 @@ describe('detectMediaType', () => {
       expect(
         detectMediaType({
           data: tiffBEBase64,
-          signatures: imageMediaTypeSignatures,
+          topLevelType: 'image',
         }),
       ).toBe('image/tiff');
     });
@@ -262,7 +262,7 @@ describe('detectMediaType', () => {
       expect(
         detectMediaType({
           data: avifBytes,
-          signatures: imageMediaTypeSignatures,
+          topLevelType: 'image',
         }),
       ).toBe('image/avif');
     });
@@ -272,7 +272,7 @@ describe('detectMediaType', () => {
       expect(
         detectMediaType({
           data: avifBase64,
-          signatures: imageMediaTypeSignatures,
+          topLevelType: 'image',
         }),
       ).toBe('image/avif');
     });
@@ -287,7 +287,7 @@ describe('detectMediaType', () => {
       expect(
         detectMediaType({
           data: heicBytes,
-          signatures: imageMediaTypeSignatures,
+          topLevelType: 'image',
         }),
       ).toBe('image/heic');
     });
@@ -297,7 +297,7 @@ describe('detectMediaType', () => {
       expect(
         detectMediaType({
           data: heicBase64,
-          signatures: imageMediaTypeSignatures,
+          topLevelType: 'image',
         }),
       ).toBe('image/heic');
     });
@@ -309,7 +309,7 @@ describe('detectMediaType', () => {
       expect(
         detectMediaType({
           data: mp3Bytes,
-          signatures: audioMediaTypeSignatures,
+          topLevelType: 'audio',
         }),
       ).toBe('audio/mpeg');
     });
@@ -319,7 +319,7 @@ describe('detectMediaType', () => {
       expect(
         detectMediaType({
           data: mp3Base64,
-          signatures: audioMediaTypeSignatures,
+          topLevelType: 'audio',
         }),
       ).toBe('audio/mpeg');
     });
@@ -356,7 +356,7 @@ describe('detectMediaType', () => {
       expect(
         detectMediaType({
           data: mp3WithID3Bytes,
-          signatures: audioMediaTypeSignatures,
+          topLevelType: 'audio',
         }),
       ).toBe('audio/mpeg');
     });
@@ -393,7 +393,7 @@ describe('detectMediaType', () => {
       expect(
         detectMediaType({
           data: mp3WithID3Base64,
-          signatures: audioMediaTypeSignatures,
+          topLevelType: 'audio',
         }),
       ).toBe('audio/mpeg');
     });
@@ -443,7 +443,7 @@ describe('detectMediaType', () => {
       expect(
         detectMediaType({
           data: wavBytes,
-          signatures: audioMediaTypeSignatures,
+          topLevelType: 'audio',
         }),
       ).toBe('audio/wav');
     });
@@ -452,7 +452,7 @@ describe('detectMediaType', () => {
       expect(
         detectMediaType({
           data: convertUint8ArrayToBase64(wavBytes),
-          signatures: audioMediaTypeSignatures,
+          topLevelType: 'audio',
         }),
       ).toBe('audio/wav');
     });
@@ -461,7 +461,7 @@ describe('detectMediaType', () => {
       expect(
         detectMediaType({
           data: webpBytes,
-          signatures: audioMediaTypeSignatures,
+          topLevelType: 'audio',
         }),
       ).toBeUndefined(); // Should not detect as WAV
     });
@@ -470,7 +470,7 @@ describe('detectMediaType', () => {
       expect(
         detectMediaType({
           data: convertUint8ArrayToBase64(webpBytes),
-          signatures: audioMediaTypeSignatures,
+          topLevelType: 'audio',
         }),
       ).toBeUndefined(); // Should not detect as WAV
     });
@@ -482,7 +482,7 @@ describe('detectMediaType', () => {
       expect(
         detectMediaType({
           data: oggBytes,
-          signatures: audioMediaTypeSignatures,
+          topLevelType: 'audio',
         }),
       ).toBe('audio/ogg');
     });
@@ -492,7 +492,7 @@ describe('detectMediaType', () => {
       expect(
         detectMediaType({
           data: oggBase64,
-          signatures: audioMediaTypeSignatures,
+          topLevelType: 'audio',
         }),
       ).toBe('audio/ogg');
     });
@@ -504,7 +504,7 @@ describe('detectMediaType', () => {
       expect(
         detectMediaType({
           data: flacBytes,
-          signatures: audioMediaTypeSignatures,
+          topLevelType: 'audio',
         }),
       ).toBe('audio/flac');
     });
@@ -514,7 +514,7 @@ describe('detectMediaType', () => {
       expect(
         detectMediaType({
           data: flacBase64,
-          signatures: audioMediaTypeSignatures,
+          topLevelType: 'audio',
         }),
       ).toBe('audio/flac');
     });
@@ -526,7 +526,7 @@ describe('detectMediaType', () => {
       expect(
         detectMediaType({
           data: aacBytes,
-          signatures: audioMediaTypeSignatures,
+          topLevelType: 'audio',
         }),
       ).toBe('audio/aac');
     });
@@ -536,7 +536,7 @@ describe('detectMediaType', () => {
       expect(
         detectMediaType({
           data: convertUint8ArrayToBase64(aacBytes),
-          signatures: audioMediaTypeSignatures,
+          topLevelType: 'audio',
         }),
       ).toBe('audio/aac');
     });
@@ -548,7 +548,7 @@ describe('detectMediaType', () => {
       expect(
         detectMediaType({
           data: mp4Bytes,
-          signatures: audioMediaTypeSignatures,
+          topLevelType: 'audio',
         }),
       ).toBe('audio/mp4');
     });
@@ -558,7 +558,7 @@ describe('detectMediaType', () => {
       expect(
         detectMediaType({
           data: mp4Base64,
-          signatures: audioMediaTypeSignatures,
+          topLevelType: 'audio',
         }),
       ).toBe('audio/mp4');
     });
@@ -570,7 +570,7 @@ describe('detectMediaType', () => {
       expect(
         detectMediaType({
           data: webmBytes,
-          signatures: audioMediaTypeSignatures,
+          topLevelType: 'audio',
         }),
       ).toBe('audio/webm');
     });
@@ -580,7 +580,7 @@ describe('detectMediaType', () => {
       expect(
         detectMediaType({
           data: webmBase64,
-          signatures: audioMediaTypeSignatures,
+          topLevelType: 'audio',
         }),
       ).toBe('audio/webm');
     });
@@ -592,7 +592,7 @@ describe('detectMediaType', () => {
       expect(
         detectMediaType({
           data: unknownBytes,
-          signatures: imageMediaTypeSignatures,
+          topLevelType: 'image',
         }),
       ).toBeUndefined();
     });
@@ -602,7 +602,7 @@ describe('detectMediaType', () => {
       expect(
         detectMediaType({
           data: unknownBytes,
-          signatures: audioMediaTypeSignatures,
+          topLevelType: 'audio',
         }),
       ).toBeUndefined();
     });
@@ -612,7 +612,7 @@ describe('detectMediaType', () => {
       expect(
         detectMediaType({
           data: emptyBytes,
-          signatures: imageMediaTypeSignatures,
+          topLevelType: 'image',
         }),
       ).toBeUndefined();
     });
@@ -622,7 +622,7 @@ describe('detectMediaType', () => {
       expect(
         detectMediaType({
           data: emptyBytes,
-          signatures: audioMediaTypeSignatures,
+          topLevelType: 'audio',
         }),
       ).toBeUndefined();
     });
@@ -632,7 +632,7 @@ describe('detectMediaType', () => {
       expect(
         detectMediaType({
           data: shortBytes,
-          signatures: imageMediaTypeSignatures,
+          topLevelType: 'image',
         }),
       ).toBeUndefined();
     });
@@ -642,7 +642,7 @@ describe('detectMediaType', () => {
       expect(
         detectMediaType({
           data: shortBytes,
-          signatures: audioMediaTypeSignatures,
+          topLevelType: 'audio',
         }),
       ).toBeUndefined();
     });
@@ -652,7 +652,7 @@ describe('detectMediaType', () => {
       expect(
         detectMediaType({
           data: invalidBase64,
-          signatures: imageMediaTypeSignatures,
+          topLevelType: 'image',
         }),
       ).toBeUndefined();
     });
@@ -662,9 +662,174 @@ describe('detectMediaType', () => {
       expect(
         detectMediaType({
           data: invalidBase64,
-          signatures: audioMediaTypeSignatures,
+          topLevelType: 'audio',
         }),
       ).toBeUndefined();
+    });
+  });
+});
+
+describe('getTopLevelMediaType', () => {
+  it('returns the top-level segment for a full media type', () => {
+    expect(getTopLevelMediaType('image/png')).toBe('image');
+    expect(getTopLevelMediaType('audio/mpeg')).toBe('audio');
+    expect(getTopLevelMediaType('video/mp4')).toBe('video');
+    expect(getTopLevelMediaType('application/pdf')).toBe('application');
+    expect(getTopLevelMediaType('text/plain')).toBe('text');
+  });
+
+  it('returns the input when it is already just a top-level segment', () => {
+    expect(getTopLevelMediaType('image')).toBe('image');
+    expect(getTopLevelMediaType('audio')).toBe('audio');
+    expect(getTopLevelMediaType('video')).toBe('video');
+    expect(getTopLevelMediaType('application')).toBe('application');
+    expect(getTopLevelMediaType('text')).toBe('text');
+  });
+
+  it('normalizes *-subtype wildcards to the top-level segment', () => {
+    expect(getTopLevelMediaType('image/*')).toBe('image');
+    expect(getTopLevelMediaType('audio/*')).toBe('audio');
+    expect(getTopLevelMediaType('video/*')).toBe('video');
+    expect(getTopLevelMediaType('application/*')).toBe('application');
+    expect(getTopLevelMediaType('text/*')).toBe('text');
+  });
+
+  it('handles edge cases', () => {
+    expect(getTopLevelMediaType('')).toBe('');
+    expect(getTopLevelMediaType('/')).toBe('');
+    expect(getTopLevelMediaType('image/')).toBe('image');
+  });
+});
+
+describe('isFullMediaType', () => {
+  it('returns true for media types with a concrete subtype', () => {
+    expect(isFullMediaType('image/png')).toBe(true);
+    expect(isFullMediaType('audio/mpeg')).toBe(true);
+    expect(isFullMediaType('video/mp4')).toBe(true);
+    expect(isFullMediaType('application/pdf')).toBe(true);
+    expect(isFullMediaType('text/plain')).toBe(true);
+  });
+
+  it('returns false for top-level-only media types', () => {
+    expect(isFullMediaType('image')).toBe(false);
+    expect(isFullMediaType('audio')).toBe(false);
+    expect(isFullMediaType('video')).toBe(false);
+    expect(isFullMediaType('application')).toBe(false);
+    expect(isFullMediaType('text')).toBe(false);
+  });
+
+  it('returns false for *-subtype wildcards', () => {
+    expect(isFullMediaType('image/*')).toBe(false);
+    expect(isFullMediaType('audio/*')).toBe(false);
+    expect(isFullMediaType('video/*')).toBe(false);
+    expect(isFullMediaType('application/*')).toBe(false);
+    expect(isFullMediaType('text/*')).toBe(false);
+  });
+
+  it('returns false for edge cases', () => {
+    expect(isFullMediaType('')).toBe(false);
+    expect(isFullMediaType('/')).toBe(false);
+    expect(isFullMediaType('image/')).toBe(false);
+  });
+});
+
+describe('detectMediaType', () => {
+  it('detects image types when topLevelType is "image"', () => {
+    const pngBytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0xff, 0xff]);
+    expect(
+      detectMediaType({
+        data: pngBytes,
+        topLevelType: 'image',
+      }),
+    ).toBe('image/png');
+  });
+
+  it('detects audio types when topLevelType is "audio"', () => {
+    const mp3Bytes = new Uint8Array([0xff, 0xfb]);
+    expect(
+      detectMediaType({
+        data: mp3Bytes,
+        topLevelType: 'audio',
+      }),
+    ).toBe('audio/mpeg');
+  });
+
+  it('detects video types when topLevelType is "video"', () => {
+    const webmBytes = new Uint8Array([0x1a, 0x45, 0xdf, 0xa3]);
+    expect(
+      detectMediaType({
+        data: webmBytes,
+        topLevelType: 'video',
+      }),
+    ).toBe('video/webm');
+  });
+
+  it('detects document types when topLevelType is "application"', () => {
+    const pdfBytes = new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x00]);
+    expect(
+      detectMediaType({
+        data: pdfBytes,
+        topLevelType: 'application',
+      }),
+    ).toBe('application/pdf');
+  });
+
+  it('returns undefined for the "text" top-level segment', () => {
+    const data = new Uint8Array([0x48, 0x65, 0x6c, 0x6c, 0x6f]); // "Hello"
+    expect(
+      detectMediaType({
+        data,
+        topLevelType: 'text',
+      }),
+    ).toBeUndefined();
+  });
+
+  it('returns undefined for unknown top-level segments', () => {
+    const pngBytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0xff, 0xff]);
+    expect(
+      detectMediaType({
+        data: pngBytes,
+        topLevelType: 'not-a-real-segment',
+      }),
+    ).toBeUndefined();
+  });
+
+  it('returns undefined when data does not match any signature in the segment table', () => {
+    const garbage = new Uint8Array([0x00, 0x01, 0x02, 0x03]);
+    expect(
+      detectMediaType({
+        data: garbage,
+        topLevelType: 'image',
+      }),
+    ).toBeUndefined();
+  });
+
+  describe('without topLevelType', () => {
+    it('detects image types', () => {
+      const pngBytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0xff, 0xff]);
+      expect(detectMediaType({ data: pngBytes })).toBe('image/png');
+    });
+
+    it('detects audio types', () => {
+      const mp3Bytes = new Uint8Array([0xff, 0xfb]);
+      expect(detectMediaType({ data: mp3Bytes })).toBe('audio/mpeg');
+    });
+
+    it('detects video types', () => {
+      const mp4Bytes = new Uint8Array([
+        0x00, 0x00, 0x00, 0x18, 0x66, 0x74, 0x79, 0x70,
+      ]);
+      expect(detectMediaType({ data: mp4Bytes })).toBe('video/mp4');
+    });
+
+    it('detects document types', () => {
+      const pdfBytes = new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x00]);
+      expect(detectMediaType({ data: pdfBytes })).toBe('application/pdf');
+    });
+
+    it('returns undefined when data does not match any signature', () => {
+      const garbage = new Uint8Array([0x00, 0x01, 0x02, 0x03]);
+      expect(detectMediaType({ data: garbage })).toBeUndefined();
     });
   });
 });

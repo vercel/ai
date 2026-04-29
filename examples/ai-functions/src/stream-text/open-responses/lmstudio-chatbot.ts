@@ -1,5 +1,5 @@
 import { createOpenResponses } from '@ai-sdk/open-responses';
-import { isStepCount, ModelMessage, streamText, APICallError } from 'ai';
+import { isStepCount, streamText, APICallError, type ModelMessage } from 'ai';
 import * as readline from 'node:readline/promises';
 import { run } from '../../lib/run';
 import { weatherTool } from '../../tools/weather-tool';

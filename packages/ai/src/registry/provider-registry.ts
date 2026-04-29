@@ -1,23 +1,23 @@
 import {
-  EmbeddingModelV4,
-  Experimental_VideoModelV3,
-  Experimental_VideoModelV4,
-  FilesV4,
-  ImageModelV4,
-  LanguageModelV4,
+  type EmbeddingModelV4,
+  type Experimental_VideoModelV3,
+  type Experimental_VideoModelV4,
+  type FilesV4,
+  type ImageModelV4,
+  type LanguageModelV4,
   NoSuchModelError,
-  ProviderV3,
-  ProviderV4,
-  RerankingModelV4,
-  SkillsV4,
-  SpeechModelV4,
-  TranscriptionModelV4,
+  type ProviderV3,
+  type ProviderV4,
+  type RerankingModelV4,
+  type SkillsV4,
+  type SpeechModelV4,
+  type TranscriptionModelV4,
 } from '@ai-sdk/provider';
 import { wrapImageModel } from '../middleware/wrap-image-model';
 import { wrapLanguageModel } from '../middleware/wrap-language-model';
 import { asProviderV4 } from '../model/as-provider-v4';
 import { asVideoModelV4 } from '../model/as-video-model-v4';
-import { ImageModelMiddleware, LanguageModelMiddleware } from '../types';
+import type { ImageModelMiddleware, LanguageModelMiddleware } from '../types';
 import type { ExtractLiteralUnion } from '../util/extract-literal-union';
 import { NoSuchProviderError } from './no-such-provider-error';
 

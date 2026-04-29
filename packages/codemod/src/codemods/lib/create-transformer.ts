@@ -1,4 +1,4 @@
-import { FileInfo, API, JSCodeshift, Collection } from 'jscodeshift';
+import type { FileInfo, API, JSCodeshift, Collection } from 'jscodeshift';
 
 type TransformerFunction = (
   fileInfo: FileInfo,

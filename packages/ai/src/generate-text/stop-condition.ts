@@ -1,5 +1,5 @@
 import type { Context, ToolSet } from '@ai-sdk/provider-utils';
-import { StepResult } from './step-result';
+import type { StepResult } from './step-result';
 
 /**
  * A predicate that decides whether a tool-calling loop should stop after the

@@ -1,6 +1,6 @@
-import { convertBase64ToUint8Array } from '@ai-sdk/provider-utils';
+import { convertBase64ToUint8Array } from './uint8-utils';
 
-export const imageMediaTypeSignatures = [
+const imageMediaTypeSignatures = [
   {
     mediaType: 'image/gif' as const,
     bytesPrefix: [0x47, 0x49, 0x46], // GIF
@@ -56,14 +56,14 @@ export const imageMediaTypeSignatures = [
   },
 ] as const;
 
-export const documentMediaTypeSignatures = [
+const documentMediaTypeSignatures = [
   {
     mediaType: 'application/pdf' as const,
     bytesPrefix: [0x25, 0x50, 0x44, 0x46], // %PDF
   },
 ] as const;
 
-export const audioMediaTypeSignatures = [
+const audioMediaTypeSignatures = [
   {
     mediaType: 'audio/mpeg' as const,
     bytesPrefix: [0xff, 0xfb],
@@ -127,7 +127,7 @@ export const audioMediaTypeSignatures = [
   },
 ] as const;
 
-export const videoMediaTypeSignatures = [
+const videoMediaTypeSignatures = [
   {
     mediaType: 'video/mp4' as const,
     bytesPrefix: [
@@ -191,19 +191,12 @@ function stripID3TagsIfPresent(data: Uint8Array | string): Uint8Array | string {
   return hasId3 ? stripID3(data) : data;
 }
 
-/**
- * Detect the media IANA media type of a file using a list of signatures.
- *
- * @param data - The file data.
- * @param signatures - The signatures to use for detection.
- * @returns The media type of the file.
- */
 type MediaTypeSignatures = ReadonlyArray<{
   readonly mediaType: string;
   readonly bytesPrefix: ReadonlyArray<number | null>;
 }>;
 
-export function detectMediaType<T extends MediaTypeSignatures>({
+function detectMediaTypeBySignatures<T extends MediaTypeSignatures>({
   data,
   signatures,
 }: {
@@ -232,4 +225,88 @@ export function detectMediaType<T extends MediaTypeSignatures>({
   }
 
   return undefined;
+}
+
+const topLevelSignatureTables = {
+  image: imageMediaTypeSignatures,
+  audio: audioMediaTypeSignatures,
+  video: videoMediaTypeSignatures,
+  application: documentMediaTypeSignatures,
+} as const;
+
+type TopLevelMediaType = keyof typeof topLevelSignatureTables;
+
+/**
+ * Detect the IANA media type of a file from its raw bytes or base64 string.
+ *
+ * - When `topLevelType` is omitted, every known signature is considered
+ *   (image, audio, video, and application). Returns `undefined` when the
+ *   bytes do not match any known signature.
+ * - When `topLevelType` is provided, only signatures for that top-level
+ *   segment are considered. Returns `undefined` for unsupported segments
+ *   (e.g. `"text"`) or when no signature matches.
+ */
+export function detectMediaType({
+  data,
+  topLevelType,
+}: {
+  data: Uint8Array | string;
+  topLevelType?: string;
+}): string | undefined {
+  if (topLevelType === undefined) {
+    return detectMediaTypeBySignatures({
+      data,
+      signatures: [
+        ...imageMediaTypeSignatures,
+        ...documentMediaTypeSignatures,
+        ...audioMediaTypeSignatures,
+        ...videoMediaTypeSignatures,
+      ],
+    });
+  }
+
+  const signatures = topLevelSignatureTables[topLevelType as TopLevelMediaType];
+
+  if (signatures === undefined) {
+    return undefined;
+  }
+
+  return detectMediaTypeBySignatures({ data, signatures });
+}
+
+/**
+ * Returns the top-level segment of a media type (the portion before `/`).
+ *
+ * Examples:
+ *   - `"image/png"` -> `"image"`
+ *   - `"image/*"` -> `"image"`
+ *   - `"image"` -> `"image"`
+ *   - `"image/"` -> `"image"`
+ *   - `""` -> `""`
+ *   - `"/"` -> `""`
+ */
+export function getTopLevelMediaType(mediaType: string): string {
+  const slashIndex = mediaType.indexOf('/');
+  return slashIndex === -1 ? mediaType : mediaType.substring(0, slashIndex);
+}
+
+/**
+ * Returns `true` only when the given media type has a non-empty, non-wildcard
+ * subtype (i.e. matches the form `type/subtype`, and `subtype` is not `*`).
+ *
+ * Examples:
+ *   - `"image/png"` -> `true`
+ *   - `"image/*"` -> `false`
+ *   - `"image"` -> `false`
+ *   - `"image/"` -> `false`
+ *   - `""` -> `false`
+ *   - `"/"` -> `false`
+ */
+export function isFullMediaType(mediaType: string): boolean {
+  const slashIndex = mediaType.indexOf('/');
+  if (slashIndex === -1) {
+    return false;
+  }
+  const subtype = mediaType.substring(slashIndex + 1);
+  return subtype.length > 0 && subtype !== '*';
 }

@@ -15,6 +15,12 @@ import type { StepResult, ToolSet } from 'ai';
 import { describe, expect, it, vi } from 'vitest';
 import { FatalError } from 'workflow';
 import { z } from 'zod';
+import type { ParsedToolCall } from './do-stream-step.js';
+import type { StreamTextIteratorYieldValue } from './stream-text-iterator.js';
+import type {
+  PrepareStepCallback,
+  ToolCallRepairFunction,
+} from './workflow-agent.js';
 
 // Mock the streamTextIterator
 vi.mock('./stream-text-iterator.js', () => ({
@@ -23,13 +29,6 @@ vi.mock('./stream-text-iterator.js', () => ({
 
 // Import after mocking
 const { WorkflowAgent } = await import('./workflow-agent.js');
-
-import type { ParsedToolCall } from './do-stream-step.js';
-import type {
-  PrepareStepCallback,
-  ToolCallRepairFunction,
-} from './workflow-agent.js';
-import type { StreamTextIteratorYieldValue } from './stream-text-iterator.js';
 
 /**
  * Creates a mock LanguageModelV4 for testing

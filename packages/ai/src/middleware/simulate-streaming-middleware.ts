@@ -1,5 +1,5 @@
 import type { LanguageModelV4StreamPart } from '@ai-sdk/provider';
-import { LanguageModelMiddleware } from '../types';
+import type { LanguageModelMiddleware } from '../types';
 
 /**
  * Simulates streaming chunks with the response from a generate call.

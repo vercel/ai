@@ -1,5 +1,5 @@
 import { EventEmitter } from 'node:events';
-import { type ServerResponse } from 'node:http';
+import type { ServerResponse } from 'node:http';
 
 type WriteheadArgs = {
   statusCode: number;

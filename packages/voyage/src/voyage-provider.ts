@@ -1,19 +1,18 @@
 import {
-  EmbeddingModelV4,
   NoSuchModelError,
-  RerankingModelV4,
-  ProviderV4,
+  type EmbeddingModelV4,
+  type RerankingModelV4,
+  type ProviderV4,
 } from '@ai-sdk/provider';
-
 import {
-  FetchFunction,
   loadApiKey,
   withoutTrailingSlash,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { VoyageEmbeddingModel } from './voyage-embedding-model';
-import { VoyageEmbeddingModelId } from './voyage-embedding-options';
-import { VoyageRerankingModelId } from './reranking/voyage-reranking-options';
+import type { VoyageEmbeddingModelId } from './voyage-embedding-options';
+import type { VoyageRerankingModelId } from './reranking/voyage-reranking-options';
 import { VoyageRerankingModel } from './reranking/voyage-reranking-model';
 import { VERSION } from './version';
 

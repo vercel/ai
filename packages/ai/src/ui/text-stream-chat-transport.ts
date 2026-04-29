@@ -1,10 +1,10 @@
-import { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
+import type { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
 import {
   HttpChatTransport,
-  HttpChatTransportInitOptions,
+  type HttpChatTransportInitOptions,
 } from './http-chat-transport';
 import { transformTextToUiMessageStream } from './transform-text-to-ui-message-stream';
-import { UIMessage } from './ui-messages';
+import type { UIMessage } from './ui-messages';
 
 export class TextStreamChatTransport<
   UI_MESSAGE extends UIMessage,

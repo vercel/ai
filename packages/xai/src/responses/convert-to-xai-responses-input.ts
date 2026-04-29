@@ -1,14 +1,15 @@
 import {
-  SharedV4Warning,
-  LanguageModelV4Message,
   UnsupportedFunctionalityError,
+  type SharedV4Warning,
+  type LanguageModelV4Message,
 } from '@ai-sdk/provider';
 import {
   convertToBase64,
-  isProviderReference,
+  getTopLevelMediaType,
+  resolveFullMediaType,
   resolveProviderReference,
 } from '@ai-sdk/provider-utils';
-import {
+import type {
   XaiResponsesInput,
   XaiResponsesUserMessageContentPart,
 } from './xai-responses-api';
@@ -46,40 +47,51 @@ export async function convertToXaiResponsesInput({
             }
 
             case 'file': {
-              if (isProviderReference(block.data)) {
-                contentParts.push({
-                  type: 'input_file',
-                  file_id: resolveProviderReference({
-                    reference: block.data,
-                    provider: 'xai',
-                  }),
-                });
-              } else if (block.mediaType.startsWith('image/')) {
-                const mediaType =
-                  block.mediaType === 'image/*'
-                    ? 'image/jpeg'
-                    : block.mediaType;
+              switch (block.data.type) {
+                case 'reference': {
+                  contentParts.push({
+                    type: 'input_file',
+                    file_id: resolveProviderReference({
+                      reference: block.data.reference,
+                      provider: 'xai',
+                    }),
+                  });
+                  break;
+                }
+                case 'text': {
+                  throw new UnsupportedFunctionalityError({
+                    functionality: 'text file parts',
+                  });
+                }
+                case 'url':
+                case 'data': {
+                  if (getTopLevelMediaType(block.mediaType) === 'image') {
+                    const imageUrl =
+                      block.data.type === 'url'
+                        ? block.data.url.toString()
+                        : `data:${resolveFullMediaType({ part: block })};base64,${convertToBase64(block.data.data)}`;
 
-                const imageUrl =
-                  block.data instanceof URL
-                    ? block.data.toString()
-                    : `data:${mediaType};base64,${convertToBase64(block.data)}`;
-
-                contentParts.push({ type: 'input_image', image_url: imageUrl });
-              } else if (block.data instanceof URL) {
-                // xAI's Responses API accepts non-image documents (PDF, text, CSV, etc.)
-                // via `{ type: 'input_file', file_url }`. See
-                // https://docs.x.ai/docs/guides/chat-with-files. Inline bytes for
-                // non-image files are not supported by xAI; callers must upload via
-                // the Files API and pass a provider reference (file_id) instead.
-                contentParts.push({
-                  type: 'input_file',
-                  file_url: block.data.toString(),
-                });
-              } else {
-                throw new UnsupportedFunctionalityError({
-                  functionality: `file part media type ${block.mediaType} as inline data (xAI Responses requires a URL or a Files API reference for non-image files)`,
-                });
+                    contentParts.push({
+                      type: 'input_image',
+                      image_url: imageUrl,
+                    });
+                  } else if (block.data.type === 'url') {
+                    // xAI's Responses API accepts non-image documents (PDF, text, CSV, etc.)
+                    // via `{ type: 'input_file', file_url }`. See
+                    // https://docs.x.ai/docs/guides/chat-with-files. Inline bytes for
+                    // non-image files are not supported by xAI; callers must upload via
+                    // the Files API and pass a provider reference (file_id) instead.
+                    contentParts.push({
+                      type: 'input_file',
+                      file_url: block.data.url.toString(),
+                    });
+                  } else {
+                    throw new UnsupportedFunctionalityError({
+                      functionality: `file part media type ${block.mediaType} as inline data (xAI Responses requires a URL or a Files API reference for non-image files)`,
+                    });
+                  }
+                  break;
+                }
               }
               break;
             }

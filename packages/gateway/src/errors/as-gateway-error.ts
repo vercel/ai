@@ -1,6 +1,7 @@
 import { APICallError } from '@ai-sdk/provider';
-import { extractApiCallResponse, GatewayError } from '.';
 import { createGatewayErrorFromResponse } from './create-gateway-error';
+import { extractApiCallResponse } from './extract-api-call-response';
+import { GatewayError } from './gateway-error';
 import { GatewayTimeoutError } from './gateway-timeout-error';
 
 /**
