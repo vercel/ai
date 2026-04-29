@@ -18,6 +18,7 @@ https://github.com/vercel/ai/pull/8136/files
 4. Add workflow serialization support to all model classes (see [providers.md#workflow-serialization](providers.md#workflow-serialization))
 5. Add examples to `examples/ai-functions/src/*/<provider>.ts` depending on what model types the provider supports
 6. Add documentation in `content/providers/01-ai-sdk-providers/<last number + 10>-<provider>.mdx`
+7. Bootstrap the npm package and Trusted Publisher (Vercel IT team) — see [Bootstrapping a new `@ai-sdk/*` package](./releases.md#bootstrapping-a-new-ai-sdk-package). This is required before the first automated release can publish the package with provenance.
 
 See also [providers.md](providers.md)
 
