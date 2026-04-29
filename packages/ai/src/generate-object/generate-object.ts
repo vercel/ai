@@ -196,6 +196,7 @@ via tool or schema description.
     system,
     prompt,
     messages,
+    allowSystemInMessages,
     maxRetries: maxRetriesArg,
     abortSignal,
     headers,
@@ -293,6 +294,7 @@ via tool or schema description.
           system,
           prompt,
           messages,
+          allowSystemInMessages,
         } as Prompt);
 
         const promptMessages = await convertToLanguageModelPrompt({

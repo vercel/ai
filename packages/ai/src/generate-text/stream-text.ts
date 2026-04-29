@@ -234,6 +234,7 @@ export function streamText<
   system,
   prompt,
   messages,
+  allowSystemInMessages,
   maxRetries,
   abortSignal,
   headers,
@@ -415,6 +416,7 @@ Internal. For test use only. May change without notice.
     system,
     prompt,
     messages,
+    allowSystemInMessages,
     tools,
     toolChoice,
     transforms: asArray(transform),
@@ -586,6 +588,7 @@ class DefaultStreamTextResult<
     system,
     prompt,
     messages,
+    allowSystemInMessages,
     tools,
     toolChoice,
     transforms,
@@ -616,6 +619,7 @@ class DefaultStreamTextResult<
     system: Prompt['system'];
     prompt: Prompt['prompt'];
     messages: Prompt['messages'];
+    allowSystemInMessages: Prompt['allowSystemInMessages'];
     tools: TOOLS | undefined;
     toolChoice: ToolChoice<TOOLS> | undefined;
     transforms: Array<StreamTextTransform<TOOLS>>;
@@ -1074,6 +1078,7 @@ class DefaultStreamTextResult<
             system,
             prompt,
             messages,
+            allowSystemInMessages,
           } as Prompt);
 
           const stepInputMessages = [
