@@ -59,6 +59,7 @@ export function customProvider<
   VIDEO_MODELS extends Record<string, VideoModel>,
   FILES extends FilesV4 | undefined = undefined,
   SKILLS extends SkillsV4 | undefined = undefined,
+  FALLBACK extends ProviderV2 | ProviderV3 | ProviderV4 | undefined = undefined,
 >({
   languageModels,
   embeddingModels,
@@ -80,7 +81,7 @@ export function customProvider<
   videoModels?: VIDEO_MODELS;
   files?: FILES;
   skills?: SKILLS;
-  fallbackProvider?: ProviderV2 | ProviderV3 | ProviderV4;
+  fallbackProvider?: FALLBACK;
 }): ProviderV4 & {
   languageModel(modelId: ExtractModelId<LANGUAGE_MODELS>): LanguageModelV4;
   embeddingModel(modelId: ExtractModelId<EMBEDDING_MODELS>): EmbeddingModelV4;
@@ -91,12 +92,16 @@ export function customProvider<
   rerankingModel(modelId: ExtractModelId<RERANKING_MODELS>): RerankingModelV4;
   speechModel(modelId: ExtractModelId<SPEECH_MODELS>): SpeechModelV4;
   videoModel(modelId: ExtractModelId<VIDEO_MODELS>): Experimental_VideoModelV4;
-} & (NonNullable<FILES> extends FilesV4
+} & (FILES extends FilesV4
     ? { files(): FilesV4 }
-    : { files?(): FilesV4 }) &
-  (NonNullable<SKILLS> extends SkillsV4
+    : [FALLBACK] extends [{ files: () => FilesV4 }]
+      ? { files(): FilesV4 }
+      : { files?(): FilesV4 }) &
+  (SKILLS extends SkillsV4
     ? { skills(): SkillsV4 }
-    : { skills?(): SkillsV4 }) {
+    : [FALLBACK] extends [{ skills: () => SkillsV4 }]
+      ? { skills(): SkillsV4 }
+      : { skills?(): SkillsV4 }) {
   const fallbackProvider =
     fallbackProviderArg == null ? undefined : asProviderV4(fallbackProviderArg);
 
@@ -232,12 +237,16 @@ export function customProvider<
           },
         }
       : {}),
-  } as (NonNullable<FILES> extends FilesV4
+  } as (FILES extends FilesV4
     ? { files(): FilesV4 }
-    : { files?(): FilesV4 }) &
-    (NonNullable<SKILLS> extends SkillsV4
+    : [FALLBACK] extends [{ files: () => FilesV4 }]
+      ? { files(): FilesV4 }
+      : { files?(): FilesV4 }) &
+    (SKILLS extends SkillsV4
       ? { skills(): SkillsV4 }
-      : { skills?(): SkillsV4 });
+      : [FALLBACK] extends [{ skills: () => SkillsV4 }]
+        ? { skills(): SkillsV4 }
+        : { skills?(): SkillsV4 });
 
   return Object.assign(baseProvider, filesAndSkills);
 }

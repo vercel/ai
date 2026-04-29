@@ -329,6 +329,85 @@ describe('customProvider with files and skills', () => {
     expectTypeOf(provider.files).toMatchTypeOf<ProviderV4['files']>();
     expectTypeOf(provider.skills).toMatchTypeOf<ProviderV4['skills']>();
   });
+
+  it('exposes required files and skills when fallback provider declares them as required', () => {
+    const fallbackWithFilesAndSkills = {
+      ...new MockProviderV4(),
+      files: (): FilesV4 => files,
+      skills: (): SkillsV4 => skills,
+    };
+
+    const provider = customProvider({
+      fallbackProvider: fallbackWithFilesAndSkills,
+    });
+
+    expectTypeOf(provider.files).toEqualTypeOf<() => FilesV4>();
+    expectTypeOf(provider.skills).toEqualTypeOf<() => SkillsV4>();
+    expectTypeOf(provider.files()).toEqualTypeOf<FilesV4>();
+    expectTypeOf(provider.skills()).toEqualTypeOf<SkillsV4>();
+  });
+
+  it('exposes required files when only fallback declares files', () => {
+    const fallbackWithFiles = {
+      ...new MockProviderV4(),
+      files: (): FilesV4 => files,
+    };
+
+    const provider = customProvider({
+      fallbackProvider: fallbackWithFiles,
+    });
+
+    expectTypeOf(provider.files).toEqualTypeOf<() => FilesV4>();
+    expectTypeOf(provider.skills).toMatchTypeOf<ProviderV4['skills']>();
+  });
+
+  it('exposes required skills when only fallback declares skills', () => {
+    const fallbackWithSkills = {
+      ...new MockProviderV4(),
+      skills: (): SkillsV4 => skills,
+    };
+
+    const provider = customProvider({
+      fallbackProvider: fallbackWithSkills,
+    });
+
+    expectTypeOf(provider.files).toMatchTypeOf<ProviderV4['files']>();
+    expectTypeOf(provider.skills).toEqualTypeOf<() => SkillsV4>();
+  });
+
+  it('keeps files and skills optional when fallback is a plain ProviderV4 (optional methods)', () => {
+    const provider = customProvider({
+      fallbackProvider: new MockProviderV4(),
+    });
+
+    expectTypeOf(provider.files).toMatchTypeOf<ProviderV4['files']>();
+    expectTypeOf(provider.skills).toMatchTypeOf<ProviderV4['skills']>();
+  });
+
+  it('keeps files and skills optional when fallback is a v2 or v3 provider', () => {
+    const v2Provider = customProvider({
+      fallbackProvider: new MockProviderV2({}),
+    });
+    const v3Provider = customProvider({
+      fallbackProvider: new MockProviderV3({}),
+    });
+
+    expectTypeOf(v2Provider.files).toMatchTypeOf<ProviderV4['files']>();
+    expectTypeOf(v2Provider.skills).toMatchTypeOf<ProviderV4['skills']>();
+    expectTypeOf(v3Provider.files).toMatchTypeOf<ProviderV4['files']>();
+    expectTypeOf(v3Provider.skills).toMatchTypeOf<ProviderV4['skills']>();
+  });
+
+  it('keeps configured files/skills required even when combined with a fallback that lacks them', () => {
+    const provider = customProvider({
+      files,
+      skills,
+      fallbackProvider: new MockProviderV4(),
+    });
+
+    expectTypeOf(provider.files).toEqualTypeOf<() => FilesV4>();
+    expectTypeOf(provider.skills).toEqualTypeOf<() => SkillsV4>();
+  });
 });
 
 describe('customProvider negative typing', () => {
