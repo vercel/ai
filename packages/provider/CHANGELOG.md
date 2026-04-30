@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 2.0.3
+
+### Patch Changes
+
+- 783fa6c: chore: ensure consistent import handling and avoid import duplicates or cycles
+
 ## 2.0.2
 
 ### Patch Changes

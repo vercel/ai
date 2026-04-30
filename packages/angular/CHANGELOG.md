@@ -1,5 +1,15 @@
 # @ai-sdk/angular
 
+## 1.0.181
+
+### Patch Changes
+
+- 783fa6c: chore: ensure consistent import handling and avoid import duplicates or cycles
+- Updated dependencies [783fa6c]
+- Updated dependencies [c327fb9]
+  - @ai-sdk/provider-utils@3.0.25
+  - ai@5.0.181
+
 ## 1.0.180
 
 ### Patch Changes

@@ -1,5 +1,18 @@
 # @ai-sdk/google-vertex
 
+## 3.0.134
+
+### Patch Changes
+
+- 783fa6c: chore: ensure consistent import handling and avoid import duplicates or cycles
+- Updated dependencies [783fa6c]
+- Updated dependencies [8ddc817]
+  - @ai-sdk/openai-compatible@1.0.38
+  - @ai-sdk/provider-utils@3.0.25
+  - @ai-sdk/anthropic@2.0.79
+  - @ai-sdk/provider@2.0.3
+  - @ai-sdk/google@2.0.72
+
 ## 3.0.133
 
 ### Patch Changes

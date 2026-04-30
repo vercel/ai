@@ -1,5 +1,16 @@
 # @ai-sdk/rsc
 
+## 1.0.183
+
+### Patch Changes
+
+- 783fa6c: chore: ensure consistent import handling and avoid import duplicates or cycles
+- Updated dependencies [783fa6c]
+- Updated dependencies [c327fb9]
+  - @ai-sdk/provider-utils@3.0.25
+  - @ai-sdk/provider@2.0.3
+  - ai@5.0.181
+
 ## 1.0.182
 
 ### Patch Changes

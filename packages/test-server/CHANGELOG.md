@@ -1,5 +1,11 @@
 # @ai-sdk/test-server
 
+## 0.0.4
+
+### Patch Changes
+
+- 783fa6c: chore: ensure consistent import handling and avoid import duplicates or cycles
+
 ## 0.0.3
 
 ### Patch Changes
