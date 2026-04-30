@@ -1,4 +1,4 @@
-import type { ProviderDefinedTool, Tool } from './types/tool';
+import { tool, type ProviderDefinedTool, type Tool } from './types/tool';
 import type { FlexibleSchema } from './schema';
 import type { Context } from './types/context';
 import type { ToolExecuteFunction } from './types/tool-execute-function';
@@ -50,7 +50,7 @@ export function createProviderDefinedToolFactory<
     onInputDelta?: Tool<INPUT, OUTPUT, CONTEXT>['onInputDelta'];
     onInputAvailable?: Tool<INPUT, OUTPUT, CONTEXT>['onInputAvailable'];
   }): ProviderDefinedTool<INPUT, OUTPUT, CONTEXT> =>
-    ({
+    tool({
       type: 'provider',
       isProviderExecuted: false,
       id,
@@ -112,7 +112,7 @@ export function createProviderDefinedToolFactoryWithOutputSchema<
     onInputDelta?: Tool<INPUT, OUTPUT, CONTEXT>['onInputDelta'];
     onInputAvailable?: Tool<INPUT, OUTPUT, CONTEXT>['onInputAvailable'];
   }): ProviderDefinedTool<INPUT, OUTPUT, CONTEXT> =>
-    ({
+    tool({
       type: 'provider',
       isProviderExecuted: false,
       id,
@@ -125,5 +125,5 @@ export function createProviderDefinedToolFactoryWithOutputSchema<
       onInputStart,
       onInputDelta,
       onInputAvailable,
-    }) as unknown as ProviderDefinedTool<INPUT, OUTPUT, CONTEXT>;
+    }) as ProviderDefinedTool<INPUT, OUTPUT, CONTEXT>;
 }

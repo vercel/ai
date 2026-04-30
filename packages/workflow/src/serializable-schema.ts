@@ -12,7 +12,7 @@
  */
 import type { JSONSchema7 } from '@ai-sdk/provider';
 import { asSchema, jsonSchema } from '@ai-sdk/provider-utils';
-import { tool, type Tool, type ToolSet } from 'ai';
+import { tool, type ToolSet } from 'ai';
 import Ajv from 'ajv';
 
 /**
@@ -80,13 +80,13 @@ export function resolveSerializableTools(
       if (t.type === 'provider') {
         return [
           name,
-          {
+          tool({
             type: 'provider' as const,
             id: t.id!,
             args: t.args ?? {},
             isProviderExecuted: t.isProviderExecuted ?? false,
             inputSchema: jsonSchema(t.inputSchema),
-          } as Tool,
+          }),
         ];
       }
 

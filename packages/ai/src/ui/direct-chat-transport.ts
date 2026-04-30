@@ -1,7 +1,7 @@
 import type { Agent } from '../agent/agent';
 import type { Output } from '../generate-text/output';
 import type { UIMessageStreamOptions } from '../generate-text/stream-text-result';
-import type { Context, Tool, ToolSet } from '@ai-sdk/provider-utils';
+import type { Context, ToolSet } from '@ai-sdk/provider-utils';
 import type { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
 import type { ChatTransport } from './chat-transport';
 import { convertToModelMessages } from './convert-to-model-messages';
@@ -90,12 +90,7 @@ export class DirectChatTransport<
     // Validate the incoming UI messages
     const validatedMessages = await validateUIMessages<UI_MESSAGE>({
       messages,
-      tools: this.agent.tools as {
-        [NAME in keyof InferUITools<TOOLS> & string]?: Tool<
-          InferUITools<TOOLS>[NAME]['input'],
-          InferUITools<TOOLS>[NAME]['output']
-        >;
-      },
+      tools: this.agent.tools,
     });
 
     // Convert UI messages to model messages

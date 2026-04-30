@@ -891,15 +891,14 @@ describe('streamLanguageModelCall', () => {
 
     it('should forward provider-emitted tool-approval-request with the correct tool call', async () => {
       const tools = {
-        mcp_tool: {
+        mcp_tool: tool({
           type: 'provider',
           isProviderExecuted: true,
           id: 'mcp.mcp_tool',
           inputSchema: z.object({ query: z.string() }),
-          outputSchema: z.unknown(),
           args: {},
-        },
-      } satisfies ToolSet;
+        }),
+      };
 
       const result = await streamLanguageModelCallResult({
         streamParts: [
@@ -982,23 +981,21 @@ describe('streamLanguageModelCall', () => {
 
     it('should handle multiple provider-executed tool calls with approval requests', async () => {
       const tools = {
-        mcp_search: {
+        mcp_search: tool({
           type: 'provider',
           isProviderExecuted: true,
           id: 'mcp.mcp_search',
           inputSchema: z.object({ query: z.string() }),
-          outputSchema: z.unknown(),
           args: {},
-        },
-        mcp_execute: {
+        }),
+        mcp_execute: tool({
           type: 'provider',
           isProviderExecuted: true,
           id: 'mcp.mcp_execute',
           inputSchema: z.object({ command: z.string() }),
-          outputSchema: z.unknown(),
           args: {},
-        },
-      } satisfies ToolSet;
+        }),
+      };
 
       const result = await streamLanguageModelCallResult({
         streamParts: [

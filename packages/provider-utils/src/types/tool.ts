@@ -158,7 +158,7 @@ type BaseTool<
         ? any
         : NoInfer<OUTPUT>;
   }) => ToolResultOutput | PromiseLike<ToolResultOutput>;
-};
+} & ToolOutputProperties<INPUT, OUTPUT, NoInfer<CONTEXT>>;
 
 /**
  * Common properties shared by function-style tools.
@@ -167,35 +167,34 @@ type BaseFunctionTool<
   INPUT extends JSONValue | unknown | never = any,
   OUTPUT extends JSONValue | unknown | never = any,
   CONTEXT extends Context | unknown | never = any,
-> = BaseTool<INPUT, OUTPUT, CONTEXT> &
-  ToolOutputProperties<INPUT, OUTPUT, NoInfer<CONTEXT>> & {
-    /**
-     * An optional description of what the tool does.
-     * Will be used by the language model to decide whether to use the tool.
-     */
-    description?: string;
+> = BaseTool<INPUT, OUTPUT, CONTEXT> & {
+  /**
+   * An optional description of what the tool does.
+   * Will be used by the language model to decide whether to use the tool.
+   */
+  description?: string;
 
-    /**
-     * Strict mode setting for the tool.
-     *
-     * Providers that support strict mode will use this setting to determine
-     * how the input should be generated. Strict mode will always produce
-     * valid inputs, but it might limit what input schemas are supported.
-     */
-    strict?: boolean;
+  /**
+   * Strict mode setting for the tool.
+   *
+   * Providers that support strict mode will use this setting to determine
+   * how the input should be generated. Strict mode will always produce
+   * valid inputs, but it might limit what input schemas are supported.
+   */
+  strict?: boolean;
 
-    /**
-     * An optional list of input examples that show the language
-     * model what the input should look like.
-     */
-    inputExamples?: Array<{ input: NoInfer<INPUT> }>;
+  /**
+   * An optional list of input examples that show the language
+   * model what the input should look like.
+   */
+  inputExamples?: Array<{ input: NoInfer<INPUT> }>;
 
-    // make all properties available to improve usage dx
-    id?: never;
-    isProviderExecuted?: never;
-    args?: never;
-    supportsDeferredResults?: never;
-  };
+  // make all properties available to improve usage dx
+  id?: never;
+  isProviderExecuted?: never;
+  args?: never;
+  supportsDeferredResults?: never;
+};
 
 /**
  * Tool with user-defined input and output schemas.
@@ -216,10 +215,9 @@ export type DynamicTool<
   INPUT extends JSONValue | unknown | never = any,
   OUTPUT extends JSONValue | unknown | never = any,
   CONTEXT extends Context | unknown | never = any,
-> = BaseFunctionTool<INPUT, OUTPUT, CONTEXT> &
-  ToolOutputProperties<INPUT, OUTPUT, NoInfer<CONTEXT>> & {
-    type: 'dynamic';
-  };
+> = BaseFunctionTool<INPUT, OUTPUT, CONTEXT> & {
+  type: 'dynamic';
+};
 
 /**
  * Common properties shared by provider tools.
@@ -255,16 +253,15 @@ export type ProviderDefinedTool<
   INPUT extends JSONValue | unknown | never = any,
   OUTPUT extends JSONValue | unknown | never = any,
   CONTEXT extends Context | unknown | never = any,
-> = BaseProviderTool<INPUT, OUTPUT, CONTEXT> &
-  ToolOutputProperties<INPUT, OUTPUT, NoInfer<CONTEXT>> & {
-    /**
-     * Flag that indicates whether the tool is executed by the provider.
-     */
-    isProviderExecuted: false;
+> = BaseProviderTool<INPUT, OUTPUT, CONTEXT> & {
+  /**
+   * Flag that indicates whether the tool is executed by the provider.
+   */
+  isProviderExecuted: false;
 
-    // make all properties available to improve usage dx
-    supportsDeferredResults?: never;
-  };
+  // make all properties available to improve usage dx
+  supportsDeferredResults?: never;
+};
 
 /**
  * Tool with provider-defined input and output schemas that is executed by the
@@ -294,17 +291,6 @@ export type ProviderExecutedTool<
    * @default false
    */
   supportsDeferredResults?: boolean;
-
-  /**
-   * The schema of the output that the tool produces.
-   *
-   * Optional, dynamic provider-executed tools such as
-   * MCP tools do not have an output schema.
-   */
-  outputSchema?: FlexibleSchema<OUTPUT>;
-
-  // provider-executed tools never have an execute function
-  execute?: never;
 };
 
 /**
@@ -331,17 +317,17 @@ export type Tool<
  */
 // Note: overload order is important for auto-completion
 export function tool<INPUT, OUTPUT, CONTEXT extends Context>(
-  tool: FunctionTool<INPUT, OUTPUT, CONTEXT>,
-): FunctionTool<INPUT, OUTPUT, CONTEXT>;
+  tool: Tool<INPUT, OUTPUT, CONTEXT>,
+): Tool<INPUT, OUTPUT, CONTEXT>;
 export function tool<INPUT, CONTEXT extends Context>(
-  tool: FunctionTool<INPUT, never, CONTEXT>,
-): FunctionTool<INPUT, never, CONTEXT>;
+  tool: Tool<INPUT, never, CONTEXT>,
+): Tool<INPUT, never, CONTEXT>;
 export function tool<OUTPUT, CONTEXT extends Context>(
-  tool: FunctionTool<never, OUTPUT, CONTEXT>,
-): FunctionTool<never, OUTPUT, CONTEXT>;
+  tool: Tool<never, OUTPUT, CONTEXT>,
+): Tool<never, OUTPUT, CONTEXT>;
 export function tool<CONTEXT extends Context>(
-  tool: FunctionTool<never, never, CONTEXT>,
-): FunctionTool<never, never, CONTEXT>;
+  tool: Tool<never, never, CONTEXT>,
+): Tool<never, never, CONTEXT>;
 export function tool(tool: any): any {
   return tool;
 }

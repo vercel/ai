@@ -788,7 +788,7 @@ describe('toResponseMessages', () => {
           },
         ],
         tools: {
-          web_search: {
+          web_search: tool({
             type: 'provider',
             id: 'test.web_search',
             isProviderExecuted: true,
@@ -801,7 +801,7 @@ describe('toResponseMessages', () => {
               }),
             ),
             args: {},
-          },
+          }),
         },
       });
 

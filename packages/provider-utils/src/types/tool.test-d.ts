@@ -151,28 +151,6 @@ describe('Tool', () => {
 });
 
 describe('tool helper', () => {
-  it('should only accept function tools', () => {
-    const aDynamicTool: DynamicTool<unknown, never, Context> = {
-      type: 'dynamic',
-      inputSchema: z.unknown(),
-    };
-
-    // @ts-expect-error dynamic tools must use the dynamicTool helper.
-    tool(aDynamicTool);
-
-    const aProviderTool: ProviderDefinedTool<unknown, unknown, Context> = {
-      type: 'provider',
-      inputSchema: z.unknown(),
-      outputSchema: z.unknown(),
-      id: 'provider.tool',
-      args: {},
-      isProviderExecuted: false,
-    };
-
-    // @ts-expect-error provider-defined tools are not function tools.
-    tool(aProviderTool);
-  });
-
   describe('input type', () => {
     it('should infer input type from a Zod inputSchema', () => {
       const aTool = tool({
@@ -180,9 +158,11 @@ describe('tool helper', () => {
       });
 
       expectTypeOf(aTool).toEqualTypeOf<
-        FunctionTool<{ number: number }, never, Context>
+        Tool<{ number: number }, never, Context>
       >();
-      expectTypeOf(aTool.type).toEqualTypeOf<undefined | 'function'>();
+      expectTypeOf(aTool.type).toEqualTypeOf<
+        undefined | 'function' | 'dynamic' | 'provider'
+      >();
       expectTypeOf(aTool.execute).toEqualTypeOf<undefined>();
       expectTypeOf(aTool.execute).not.toEqualTypeOf<Function>();
       expectTypeOf(aTool.inputSchema).toEqualTypeOf<
@@ -195,7 +175,7 @@ describe('tool helper', () => {
         inputSchema: null as unknown as FlexibleSchema<T>,
       });
 
-      expectTypeOf(aTool).toEqualTypeOf<FunctionTool<T, never, Context>>();
+      expectTypeOf(aTool).toEqualTypeOf<Tool<T, never, Context>>();
       expectTypeOf(aTool.execute).toEqualTypeOf<undefined>();
       expectTypeOf(aTool.execute).not.toEqualTypeOf<Function>();
       expectTypeOf(aTool.inputSchema).toEqualTypeOf<FlexibleSchema<T>>();
@@ -257,7 +237,7 @@ describe('tool helper', () => {
       });
 
       expectTypeOf(aTool).toEqualTypeOf<
-        FunctionTool<{ number: number }, 'test', z.infer<typeof contextSchema>>
+        Tool<{ number: number }, 'test', z.infer<typeof contextSchema>>
       >();
     });
 
@@ -301,7 +281,7 @@ describe('tool helper', () => {
       });
 
       expectTypeOf(aTool).toEqualTypeOf<
-        FunctionTool<{ number: number }, 'test', Context>
+        Tool<{ number: number }, 'test', Context>
       >();
       expectTypeOf(aTool.execute).toExtend<
         ToolExecuteFunction<{ number: number }, 'test', Context> | undefined
@@ -321,7 +301,7 @@ describe('tool helper', () => {
       });
 
       expectTypeOf(aTool).toEqualTypeOf<
-        FunctionTool<{ number: number }, 'test', Context>
+        Tool<{ number: number }, 'test', Context>
       >();
       expectTypeOf(aTool.execute).toEqualTypeOf<
         ToolExecuteFunction<{ number: number }, 'test', Context> | undefined
