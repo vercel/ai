@@ -1,0 +1,110 @@
+---
+title: Asqav
+description: Asqav adds cryptographic audit trails and policy enforcement to AI SDK calls.
+---
+
+# Asqav Observability
+
+[Asqav](https://asqav.com) ([GitHub](https://github.com/jagmarques/asqav-sdk)) is an AI agent governance layer that produces signed, tamper-evident audit records for every model call. Each action is signed server-side with ML-DSA (FIPS 204) and chained, so a downstream auditor can verify what an agent did, when, and against which model. Asqav is designed for EU AI Act, DORA, and ISO 42001 reporting workflows where a regulator may ask for evidence months after the fact.
+
+Asqav is a wrapper around AI SDK calls, not an OpenTelemetry exporter. You call `agent.sign(...)` next to your `generateText` / `streamText` invocation. The SDK is GDPR-aware: against `*.asqav.com`, it sends only a SHA-256 (or HMAC-SHA-256 with an org salt) of the action payload by default; against self-hosted deployments, it sends the full payload.
+
+## Setup
+
+Install the SDK:
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add @asqav/sdk" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @asqav/sdk" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @asqav/sdk" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="bun add @asqav/sdk" dark />
+  </Tab>
+</Tabs>
+
+Get an API key from the [Asqav dashboard](https://asqav.com) and set it in your environment:
+
+```bash filename=".env"
+ASQAV_API_KEY=sk_...
+```
+
+Initialize the SDK once at startup:
+
+```ts
+import { init, Agent } from '@asqav/sdk';
+
+init({ apiKey: process.env.ASQAV_API_KEY });
+
+export const agent = await Agent.create({ name: 'support-bot' });
+```
+
+Against the Asqav cloud, `init()` defaults to hash-only mode. To force full-payload (e.g. for a self-hosted deployment), pass `mode: 'full-payload'`.
+
+## Example
+
+Wrap an AI SDK call so each generation produces a signed record:
+
+```ts
+import { generateText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { agent } from './asqav';
+
+const prompt = 'Summarize the attached policy in three bullets.';
+
+const result = await generateText({
+  model: openai('gpt-4o-mini'),
+  prompt,
+});
+
+const signature = await agent.sign({
+  actionType: 'llm:generate',
+  context: {
+    _model_name: 'gpt-4o-mini',
+    prompt,
+    output: result.text,
+  },
+});
+
+console.log(signature.verificationUrl);
+```
+
+The returned `signature` includes a `signatureId`, an `actionId`, the ML-DSA `signature`, and a `verificationUrl` you can hand to an auditor. In hash-only mode, only `_model_name` and `_tool_name` from `context` are forwarded as metadata; everything else is captured as a hash.
+
+For streaming calls, sign once after the stream finishes:
+
+```ts
+import { streamText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { agent } from './asqav';
+
+const result = await streamText({
+  model: openai('gpt-4o-mini'),
+  prompt: 'Write a short product update.',
+});
+
+let output = '';
+for await (const chunk of result.textStream) {
+  output += chunk;
+  process.stdout.write(chunk);
+}
+
+await agent.sign({
+  actionType: 'llm:stream',
+  context: { _model_name: 'gpt-4o-mini', output },
+});
+```
+
+## Resources
+
+- [Asqav Documentation](https://docs.asqav.com)
+- [@asqav/sdk on npm](https://www.npmjs.com/package/@asqav/sdk)
+- [GitHub Repository](https://github.com/jagmarques/asqav-sdk)
+- [Verification UI](https://asqav.com/verify)
+
+<!-- Draft: 2026-04-28; verified against asqav 0.3.1 / @asqav/sdk 0.2.1; not yet submitted. -->
