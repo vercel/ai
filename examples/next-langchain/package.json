@@ -10,13 +10,13 @@
     "start": "next start"
   },
   "dependencies": {
-    "@ai-sdk/react": "3.0.173",
-    "@ai-sdk/langchain": "2.0.177",
+    "@ai-sdk/react": "3.0.174",
+    "@ai-sdk/langchain": "2.0.178",
     "@langchain/openai": "^1.2.0",
     "@langchain/core": "^1.1.5",
     "@langchain/langgraph": "^1.0.5",
     "@langchain/langgraph-cli": "^1.1.2",
-    "ai": "6.0.171",
+    "ai": "6.0.172",
     "langchain": "^1.2.0",
     "next": "^15.5.9",
     "lucide-react": "^0.561.0",
