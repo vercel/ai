@@ -155,35 +155,35 @@ export type BaseTool<
       input: [INPUT] extends [never] ? unknown : INPUT;
     } & ToolExecutionOptions<NoInfer<CONTEXT>>,
   ) => void | PromiseLike<void>;
-} & ToolOutputProperties<INPUT, OUTPUT, NoInfer<CONTEXT>> & {
+
+  /**
+   * Optional conversion function that maps the tool result to an output that can be used by the language model.
+   *
+   * If not provided, the tool result will be sent as a JSON object.
+   *
+   * This function is invoked on the server by `convertToModelMessages`, so ensure that you pass the same "tools" (ToolSet) to both "convertToModelMessages" and "streamText" (or other generation APIs).
+   */
+  toModelOutput?: (options: {
     /**
-     * Optional conversion function that maps the tool result to an output that can be used by the language model.
-     *
-     * If not provided, the tool result will be sent as a JSON object.
-     *
-     * This function is invoked on the server by `convertToModelMessages`, so ensure that you pass the same "tools" (ToolSet) to both "convertToModelMessages" and "streamText" (or other generation APIs).
+     * The ID of the tool call. You can use it e.g. when sending tool-call related information with stream data.
      */
-    toModelOutput?: (options: {
-      /**
-       * The ID of the tool call. You can use it e.g. when sending tool-call related information with stream data.
-       */
-      toolCallId: string;
+    toolCallId: string;
 
-      /**
-       * The input of the tool call.
-       */
-      input: [INPUT] extends [never] ? unknown : INPUT;
+    /**
+     * The input of the tool call.
+     */
+    input: [INPUT] extends [never] ? unknown : INPUT;
 
-      /**
-       * The output of the tool call.
-       */
-      output: 0 extends 1 & OUTPUT
+    /**
+     * The output of the tool call.
+     */
+    output: 0 extends 1 & OUTPUT
+      ? any
+      : [OUTPUT] extends [never]
         ? any
-        : [OUTPUT] extends [never]
-          ? any
-          : NoInfer<OUTPUT>;
-    }) => ToolResultOutput | PromiseLike<ToolResultOutput>;
-  };
+        : NoInfer<OUTPUT>;
+  }) => ToolResultOutput | PromiseLike<ToolResultOutput>;
+} & ToolOutputProperties<INPUT, OUTPUT, NoInfer<CONTEXT>>;
 
 /**
  * Tool with user-defined input and output schemas.
