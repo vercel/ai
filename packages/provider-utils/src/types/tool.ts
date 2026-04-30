@@ -1,4 +1,4 @@
-import type { JSONValue } from '@ai-sdk/provider';
+import type { JSONValue, SharedV4ProviderMetadata } from '@ai-sdk/provider';
 import type { FlexibleSchema } from '../schema';
 import type { ToolResultOutput } from './content-part';
 import type { Context } from './context';
@@ -68,6 +68,17 @@ type BaseTool<
    * functionality that can be fully encapsulated in the provider.
    */
   providerOptions?: ProviderOptions;
+
+  /**
+   * Optional metadata about the tool itself (e.g. its source).
+   *
+   * Unlike `providerOptions`, this metadata is not sent to the language
+   * model. Instead, it is propagated onto the resulting tool call's
+   * `providerMetadata` so consumers can read it from tool call / result
+   * parts and UI message parts. This is useful for sources of dynamic
+   * tools (e.g. an MCP server) to identify themselves.
+   */
+  providerMetadata?: SharedV4ProviderMetadata;
 
   /**
    * The schema of the input that the tool expects.
