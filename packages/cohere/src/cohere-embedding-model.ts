@@ -16,7 +16,7 @@ import { z } from 'zod/v4';
 import {
   cohereEmbeddingModelOptions,
   type CohereEmbeddingModelId,
-} from './cohere-embedding-options';
+} from './cohere-embedding-model-options';
 import { cohereFailedResponseHandler } from './cohere-error';
 
 type CohereEmbeddingConfig = {

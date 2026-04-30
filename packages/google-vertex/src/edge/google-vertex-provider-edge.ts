@@ -1,9 +1,9 @@
 import { loadOptionalSetting, resolve } from '@ai-sdk/provider-utils';
 import {
-  createVertex as createVertexOriginal,
+  createGoogleVertex as createGoogleVertexOriginal,
   type GoogleVertexProvider,
   type GoogleVertexProviderSettings as GoogleVertexProviderSettingsOriginal,
-} from '../google-vertex-provider';
+} from '../google-vertex-provider-base';
 import {
   generateAuthToken,
   type GoogleCredentials,
@@ -19,7 +19,7 @@ export interface GoogleVertexProviderSettings extends GoogleVertexProviderSettin
   googleCredentials?: GoogleCredentials;
 }
 
-export function createVertex(
+export function createGoogleVertex(
   options: GoogleVertexProviderSettings = {},
 ): GoogleVertexProvider {
   const apiKey = loadOptionalSetting({
@@ -28,10 +28,10 @@ export function createVertex(
   });
 
   if (apiKey) {
-    return createVertexOriginal(options);
+    return createGoogleVertexOriginal(options);
   }
 
-  return createVertexOriginal({
+  return createGoogleVertexOriginal({
     ...options,
     headers: async () => ({
       Authorization: `Bearer ${await generateAuthToken(
@@ -45,4 +45,4 @@ export function createVertex(
 /**
  * Default Google Vertex AI provider instance.
  */
-export const vertex = createVertex();
+export const googleVertex = createGoogleVertex();

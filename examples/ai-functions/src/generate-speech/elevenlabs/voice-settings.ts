@@ -1,5 +1,5 @@
 import {
-  elevenlabs,
+  elevenLabs,
   type ElevenLabsSpeechModelOptions,
 } from '@ai-sdk/elevenlabs';
 import { experimental_generateSpeech as generateSpeech } from 'ai';
@@ -8,7 +8,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateSpeech({
-    model: elevenlabs.speech('eleven_multilingual_v2'),
+    model: elevenLabs.speech('eleven_multilingual_v2'),
     text: 'This speech has custom voice settings for more expressive output.',
     speed: 1.2,
     providerOptions: {

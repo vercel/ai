@@ -1,4 +1,4 @@
-import { vertex } from '@ai-sdk/google-vertex';
+import { googleVertex } from '@ai-sdk/google-vertex';
 import { streamText } from 'ai';
 import { z } from 'zod';
 import { run } from '../../lib/run';
@@ -6,7 +6,7 @@ import { saveRawChunks } from '../../lib/save-raw-chunks';
 
 run(async () => {
   const result = streamText({
-    model: vertex('gemini-3.1-pro-preview'),
+    model: googleVertex('gemini-3.1-pro-preview'),
     prompt: 'Cook me a lasagna.',
     tools: {
       cookRecipe: {

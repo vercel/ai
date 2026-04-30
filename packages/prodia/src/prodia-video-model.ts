@@ -5,7 +5,6 @@ import type {
 import {
   combineHeaders,
   convertBase64ToUint8Array,
-  lazySchema,
   parseJSON,
   parseProviderOptions,
   postFormDataToApi,
@@ -13,9 +12,7 @@ import {
   resolve,
   zodSchema,
   type FetchFunction,
-  type InferSchema,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
 import {
   buildProdiaProviderMetadata,
   parseMultipart,
@@ -24,6 +21,7 @@ import {
   type ProdiaJobResult,
   type ProdiaModelConfig,
 } from './prodia-api';
+import { prodiaVideoModelOptionsSchema } from './prodia-video-model-options';
 import type { ProdiaVideoModelId } from './prodia-video-model-settings';
 
 export class ProdiaVideoModel implements Experimental_VideoModelV4 {
@@ -160,21 +158,6 @@ export class ProdiaVideoModel implements Experimental_VideoModelV4 {
     };
   }
 }
-
-export const prodiaVideoModelOptionsSchema = lazySchema(() =>
-  zodSchema(
-    z.object({
-      /**
-       * Video resolution (e.g. "480p", "720p").
-       */
-      resolution: z.string().optional(),
-    }),
-  ),
-);
-
-export type ProdiaVideoModelOptions = InferSchema<
-  typeof prodiaVideoModelOptionsSchema
->;
 
 interface VideoMultipartResult {
   jobResult: ProdiaJobResult;

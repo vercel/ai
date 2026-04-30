@@ -18,7 +18,7 @@ import { z } from 'zod/v4';
 import {
   openaiCompatibleEmbeddingModelOptions,
   type OpenAICompatibleEmbeddingModelId,
-} from './openai-compatible-embedding-options';
+} from './openai-compatible-embedding-model-options';
 import {
   defaultOpenAICompatibleErrorStructure,
   type ProviderErrorStructure,

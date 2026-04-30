@@ -34,7 +34,7 @@ import { mapXaiFinishReason } from './map-xai-finish-reason';
 import {
   xaiLanguageModelChatOptions,
   type XaiChatModelId,
-} from './xai-chat-options';
+} from './xai-chat-language-model-options';
 import { xaiFailedResponseHandler } from './xai-error';
 import { prepareTools } from './xai-prepare-tools';
 

@@ -16,7 +16,7 @@ import { z } from 'zod/v4';
 import {
   voyageEmbeddingModelOptions,
   type VoyageEmbeddingModelId,
-} from './voyage-embedding-options';
+} from './voyage-embedding-model-options';
 import { voyageFailedResponseHandler } from './voyage-error';
 
 type VoyageEmbeddingConfig = {

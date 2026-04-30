@@ -1,10 +1,10 @@
 import { resolve } from '@ai-sdk/provider-utils';
 import {
-  generateAuthToken,
+  generateAuthToken as defaultGenerateAuthToken,
   type GoogleCredentials,
 } from '../../edge/google-vertex-auth-edge';
 import {
-  createVertexAnthropic as createVertexAnthropicOriginal,
+  createGoogleVertexAnthropic as createVertexAnthropicOriginal,
   type GoogleVertexAnthropicProvider,
   type GoogleVertexAnthropicProviderSettings as GoogleVertexAnthropicProviderSettingsOriginal,
 } from '../google-vertex-anthropic-provider';
@@ -17,17 +17,23 @@ export interface GoogleVertexAnthropicProviderSettings extends GoogleVertexAnthr
    * load the credentials.
    */
   googleCredentials?: GoogleCredentials;
+  /**
+   * Optional. Override the Bearer token generator. Defaults to OAuth exchange
+   * with `googleCredentials`.
+   */
+  generateAuthToken?: () => Promise<string>;
 }
 
-export function createVertexAnthropic(
+export function createGoogleVertexAnthropic(
   options: GoogleVertexAnthropicProviderSettings = {},
 ): GoogleVertexAnthropicProvider {
+  const generateAuthToken =
+    options.generateAuthToken ??
+    (() => defaultGenerateAuthToken(options.googleCredentials));
   return createVertexAnthropicOriginal({
     ...options,
     headers: async () => ({
-      Authorization: `Bearer ${await generateAuthToken(
-        options.googleCredentials,
-      )}`,
+      Authorization: `Bearer ${await generateAuthToken()}`,
       ...(await resolve(options.headers)),
     }),
   });
@@ -36,4 +42,4 @@ export function createVertexAnthropic(
 /**
  * Default Google Vertex AI Anthropic provider instance.
  */
-export const vertexAnthropic = createVertexAnthropic();
+export const googleVertexAnthropic = createGoogleVertexAnthropic();

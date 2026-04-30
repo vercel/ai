@@ -11,7 +11,7 @@ import {
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { PerplexityLanguageModel } from './perplexity-language-model';
-import type { PerplexityLanguageModelId } from './perplexity-language-model-options';
+import type { PerplexityLanguageModelId } from './perplexity-options';
 import { VERSION } from './version';
 
 export interface PerplexityProvider extends ProviderV4 {

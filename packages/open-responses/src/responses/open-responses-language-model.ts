@@ -36,7 +36,7 @@ import {
 } from './open-responses-api';
 import { mapOpenResponsesFinishReason } from './map-open-responses-finish-reason';
 import type { OpenResponsesConfig } from './open-responses-config';
-import { openResponsesOptionsSchema } from './open-responses-options';
+import { openResponsesLanguageModelOptions } from './open-responses-language-model-options';
 
 export class OpenResponsesLanguageModel implements LanguageModelV4 {
   readonly specificationVersion = 'v4';
@@ -152,7 +152,7 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
     const openResponsesOptions = await parseProviderOptions({
       provider: this.config.providerOptionsName,
       providerOptions,
-      schema: openResponsesOptionsSchema,
+      schema: openResponsesLanguageModelOptions,
     });
 
     const resolvedReasoningEffort = isCustomReasoning(reasoning)

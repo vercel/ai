@@ -25,9 +25,9 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import {
-  cohereLanguageModelOptions,
+  cohereLanguageModelChatOptions,
   type CohereChatModelId,
-} from './cohere-chat-options';
+} from './cohere-chat-language-model-options';
 import { cohereFailedResponseHandler } from './cohere-error';
 import { prepareTools } from './cohere-prepare-tools';
 import {
@@ -101,7 +101,7 @@ export class CohereChatLanguageModel implements LanguageModelV4 {
       (await parseProviderOptions({
         provider: 'cohere',
         providerOptions,
-        schema: cohereLanguageModelOptions,
+        schema: cohereLanguageModelChatOptions,
       })) ?? {};
 
     const {
@@ -466,7 +466,7 @@ function resolveCohereThinking({
   warnings,
 }: {
   reasoning: LanguageModelV4CallOptions['reasoning'];
-  cohereOptions: InferSchema<typeof cohereLanguageModelOptions>;
+  cohereOptions: InferSchema<typeof cohereLanguageModelChatOptions>;
   warnings: SharedV4Warning[];
 }): { thinking?: { type: string; token_budget?: number } } {
   if (cohereOptions.thinking) {

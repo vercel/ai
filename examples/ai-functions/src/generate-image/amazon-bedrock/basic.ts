@@ -1,11 +1,11 @@
-import { bedrock } from '@ai-sdk/amazon-bedrock';
+import { amazonBedrock } from '@ai-sdk/amazon-bedrock';
 import { generateImage } from 'ai';
 import { presentImages } from '../../lib/present-image';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateImage({
-    model: bedrock.imageModel('amazon.nova-canvas-v1:0'),
+    model: amazonBedrock.imageModel('amazon.nova-canvas-v1:0'),
     prompt:
       'A salamander at dusk in a forest pond with fireflies in the background, in the style of anime',
     size: '512x512',

@@ -19,7 +19,7 @@ import type { GoogleVertexAnthropicModelId } from './google-vertex-anthropic-opt
  * Tools supported by Google Vertex Anthropic.
  * This is a subset of the full Anthropic tools - only these are recognized by the Vertex API.
  */
-export const vertexAnthropicTools = {
+export const googleVertexAnthropicTools = {
   /**
    * The bash tool enables Claude to execute shell commands in a persistent bash session,
    * allowing system operations, script execution, and command-line automation.
@@ -120,7 +120,7 @@ export interface GoogleVertexAnthropicProvider extends ProviderV4 {
    * computer_20241022, webSearch_20250305, toolSearchRegex_20251119,
    * toolSearchBm25_20251119
    */
-  tools: typeof vertexAnthropicTools;
+  tools: typeof googleVertexAnthropicTools;
 
   /**
    * @deprecated Use `embeddingModel` instead.
@@ -160,7 +160,7 @@ export interface GoogleVertexAnthropicProviderSettings {
 /**
  * Create a Google Vertex Anthropic provider instance.
  */
-export function createVertexAnthropic(
+export function createGoogleVertexAnthropic(
   options: GoogleVertexAnthropicProviderSettings = {},
 ): GoogleVertexAnthropicProvider {
   const getBaseURL = () => {
@@ -181,7 +181,7 @@ export function createVertexAnthropic(
 
   const createChatModel = (modelId: GoogleVertexAnthropicModelId) =>
     new AnthropicLanguageModel(modelId, {
-      provider: 'vertex.anthropic.messages',
+      provider: 'googleVertex.anthropic.messages',
       baseURL: getBaseURL(),
       headers: options.headers ?? {},
       fetch: options.fetch,
@@ -229,7 +229,7 @@ export function createVertexAnthropic(
     throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
   };
 
-  provider.tools = vertexAnthropicTools;
+  provider.tools = googleVertexAnthropicTools;
 
   return provider;
 }

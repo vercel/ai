@@ -158,4 +158,4 @@ export function createDeepInfra(
   return provider;
 }
 
-export const deepinfra = createDeepInfra();
+export const deepInfra = createDeepInfra();

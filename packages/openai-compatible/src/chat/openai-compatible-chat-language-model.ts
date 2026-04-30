@@ -45,7 +45,7 @@ import { mapOpenAICompatibleFinishReason } from './map-openai-compatible-finish-
 import {
   openaiCompatibleLanguageModelChatOptions,
   type OpenAICompatibleChatModelId,
-} from './openai-compatible-chat-options';
+} from './openai-compatible-chat-language-model-options';
 import type { MetadataExtractor } from './openai-compatible-metadata-extractor';
 import { prepareTools } from './openai-compatible-prepare-tools';
 
