@@ -41,6 +41,34 @@ If your `package.json` does not already include `"type": "module"`, add it or re
 
 ## AI SDK Core
 
+### Provider Management: Remove Deprecated `experimental_customProvider`
+
+The deprecated `experimental_customProvider` export has been removed in AI SDK
+7. Replace it with `customProvider`.
+
+```tsx filename="AI SDK 6"
+import { experimental_customProvider } from 'ai';
+
+export const myProvider = experimental_customProvider({
+  languageModels: {
+    // ...
+  },
+});
+```
+
+```tsx filename="AI SDK 7"
+import { customProvider } from 'ai';
+
+export const myProvider = customProvider({
+  languageModels: {
+    // ...
+  },
+});
+```
+
+This is only an import and symbol rename. The `customProvider` options and
+behavior are unchanged.
+
 ### Prompt Messages: System Messages in `prompt` or `messages` Are Rejected by Default
 
 AI SDK 7 rejects system messages in the `prompt` or `messages` fields by default. System instructions should usually be passed with the top-level `system` option.

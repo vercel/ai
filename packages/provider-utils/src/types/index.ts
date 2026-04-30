@@ -36,11 +36,17 @@ export type { SystemModelMessage } from './system-model-message';
 export {
   dynamicTool,
   tool,
+  type DynamicTool,
+  type FunctionTool,
+  type ProviderDefinedTool,
+  type ProviderExecutedTool,
   type Tool,
-  type ToolExecuteFunction,
-  type ToolExecutionOptions,
-  type ToolNeedsApprovalFunction,
 } from './tool';
+export type {
+  ToolExecuteFunction,
+  ToolExecutionOptions,
+} from './tool-execute-function';
+export type { ToolNeedsApprovalFunction } from './tool-needs-approval-function';
 export type { ToolSet } from './tool-set';
 export type { ToolApprovalRequest } from './tool-approval-request';
 export type { ToolApprovalResponse } from './tool-approval-response';

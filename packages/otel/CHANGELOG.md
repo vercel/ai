@@ -1,5 +1,21 @@
 # @ai-sdk/otel
 
+## 1.0.0-beta.60
+
+### Patch Changes
+
+- 18651f6: feat(otel): add opt-in options for supplemental AI SDK attributes on OpenTelemetry spans
+- 9bd6512: feat(provider): change file part data property to be tagged with a type and remove the image part type
+- 258c093: chore: ensure consistent import handling and avoid import duplicates or cycles
+- Updated dependencies [43a6750]
+- Updated dependencies [81caa5d]
+- Updated dependencies [1f7db50]
+- Updated dependencies [9bd6512]
+- Updated dependencies [258c093]
+- Updated dependencies [6147cdf]
+  - ai@7.0.0-beta.114
+  - @ai-sdk/provider@4.0.0-beta.14
+
 ## 1.0.0-beta.59
 
 ### Patch Changes
