@@ -70,4 +70,22 @@ describe('google-vertex-anthropic-provider-node', () => {
       keyFile: 'path/to/key.json',
     });
   });
+
+  it('uses custom generateAuthToken when provided and skips the default', async () => {
+    const customGenerate = vi.fn().mockResolvedValue('custom-token');
+
+    createVertexAnthropicNode({
+      project: 'test-project',
+      generateAuthToken: customGenerate,
+    });
+
+    const passedOptions = vi.mocked(createVertexAnthropicOriginal).mock
+      .calls[0][0];
+
+    expect(await resolve(passedOptions?.headers)).toEqual({
+      Authorization: 'Bearer custom-token',
+    });
+    expect(customGenerate).toHaveBeenCalledTimes(1);
+    expect(generateAuthToken).not.toHaveBeenCalled();
+  });
 });

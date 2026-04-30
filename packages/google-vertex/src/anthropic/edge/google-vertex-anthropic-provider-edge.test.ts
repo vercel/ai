@@ -84,4 +84,22 @@ describe('google-vertex-anthropic-provider-edge', () => {
       privateKey: 'test-key',
     });
   });
+
+  it('uses custom generateAuthToken when provided and skips the default', async () => {
+    const customGenerate = vi.fn().mockResolvedValue('custom-token');
+
+    createVertexAnthropicEdge({
+      project: 'test-project',
+      generateAuthToken: customGenerate,
+    });
+
+    const mockCreateVertex = vi.mocked(createVertexAnthropicOriginal);
+    const passedOptions = mockCreateVertex.mock.calls[0][0];
+
+    expect(await resolve(passedOptions?.headers)).toEqual({
+      Authorization: 'Bearer custom-token',
+    });
+    expect(customGenerate).toHaveBeenCalledTimes(1);
+    expect(edgeAuth.generateAuthToken).not.toHaveBeenCalled();
+  });
 });
