@@ -1,5 +1,5 @@
 import {
-  EmbeddingModelV2,
+  type EmbeddingModelV2,
   TooManyEmbeddingValuesForCallError,
 } from '@ai-sdk/provider';
 import {
@@ -12,10 +12,10 @@ import {
 import { z } from 'zod/v4';
 import { googleVertexFailedResponseHandler } from './google-vertex-error';
 import {
-  GoogleVertexEmbeddingModelId,
+  type GoogleVertexEmbeddingModelId,
   googleVertexEmbeddingProviderOptions,
 } from './google-vertex-embedding-options';
-import { GoogleVertexConfig } from './google-vertex-config';
+import type { GoogleVertexConfig } from './google-vertex-config';
 
 export class GoogleVertexEmbeddingModel implements EmbeddingModelV2<string> {
   readonly specificationVersion = 'v2';

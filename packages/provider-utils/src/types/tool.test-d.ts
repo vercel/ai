@@ -1,5 +1,5 @@
-import { LanguageModelV2ToolResultPart } from '@ai-sdk/provider';
-import {
+import type { LanguageModelV2ToolResultPart } from '@ai-sdk/provider';
+import type {
   FlexibleSchema,
   Tool,
   ToolExecuteFunction,

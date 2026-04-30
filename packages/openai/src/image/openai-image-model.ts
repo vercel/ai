@@ -1,14 +1,14 @@
-import { ImageModelV2, ImageModelV2CallWarning } from '@ai-sdk/provider';
+import type { ImageModelV2, ImageModelV2CallWarning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createJsonResponseHandler,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
-import { OpenAIConfig } from '../openai-config';
+import type { OpenAIConfig } from '../openai-config';
 import { openaiFailedResponseHandler } from '../openai-error';
 import { openaiImageResponseSchema } from './openai-image-api';
 import {
-  OpenAIImageModelId,
+  type OpenAIImageModelId,
   hasDefaultResponseFormat,
   modelMaxImagesPerCall,
 } from './openai-image-options';

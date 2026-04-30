@@ -1,4 +1,4 @@
-import {
+import type {
   LanguageModelV2,
   LanguageModelV2CallWarning,
   LanguageModelV2Content,
@@ -7,8 +7,8 @@ import {
   LanguageModelV2Usage,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
-  ParseResult,
+  type FetchFunction,
+  type ParseResult,
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonErrorResponseHandler,
@@ -18,7 +18,7 @@ import {
 import { z } from 'zod/v4';
 import { convertToPerplexityMessages } from './convert-to-perplexity-messages';
 import { mapPerplexityFinishReason } from './map-perplexity-finish-reason';
-import { PerplexityLanguageModelId } from './perplexity-language-model-options';
+import type { PerplexityLanguageModelId } from './perplexity-language-model-options';
 
 type PerplexityChatConfig = {
   baseURL: string;

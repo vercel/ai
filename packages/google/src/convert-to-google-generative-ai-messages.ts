@@ -1,8 +1,8 @@
 import {
-  LanguageModelV2Prompt,
+  type LanguageModelV2Prompt,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import {
+import type {
   GoogleGenerativeAIContent,
   GoogleGenerativeAIContentPart,
   GoogleGenerativeAIFunctionResponsePart,

@@ -1,5 +1,5 @@
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
-import {
+import type {
   EmbeddingModelV2Embedding,
   LanguageModelV2,
   LanguageModelV2FunctionTool,

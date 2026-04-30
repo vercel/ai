@@ -5,14 +5,14 @@ import {
 } from '@ai-sdk/provider-utils';
 import { MCPClientError } from '../error/mcp-client-error';
 import {
-  JSONRPCMessage,
+  type JSONRPCMessage,
   JSONRPCMessageSchema,
   parseJSONRPCMessage,
 } from './json-rpc-message';
-import { MCPTransport } from './mcp-transport';
+import type { MCPTransport } from './mcp-transport';
 import { VERSION } from '../version';
 import {
-  OAuthClientProvider,
+  type OAuthClientProvider,
   extractResourceMetadataUrl,
   UnauthorizedError,
   auth,

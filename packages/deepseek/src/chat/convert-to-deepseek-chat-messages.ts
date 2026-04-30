@@ -1,9 +1,9 @@
-import {
+import type {
   LanguageModelV2CallOptions,
   LanguageModelV2CallWarning,
   LanguageModelV2Prompt,
 } from '@ai-sdk/provider';
-import { DeepSeekChatPrompt } from './deepseek-chat-api-types';
+import type { DeepSeekChatPrompt } from './deepseek-chat-api-types';
 
 export function convertToDeepSeekChatMessages({
   prompt,

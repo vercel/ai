@@ -1,4 +1,4 @@
-import { LanguageModelV2Usage } from '@ai-sdk/provider';
+import type { LanguageModelV2Usage } from '@ai-sdk/provider';
 
 /**
 Represents the number of tokens used in a prompt and completion.

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { pruneMessages } from './prune-messages';
-import { ModelMessage } from '@ai-sdk/provider-utils';
+import type { ModelMessage } from '@ai-sdk/provider-utils';
 
 const messagesFixture1: ModelMessage[] = [
   {

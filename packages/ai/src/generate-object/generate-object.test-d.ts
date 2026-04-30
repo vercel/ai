@@ -1,8 +1,7 @@
-import { expectTypeOf } from 'vitest';
+import { expectTypeOf, describe, it } from 'vitest';
 import { generateObject } from './generate-object';
 import { z } from 'zod/v4';
-import { JSONValue } from '@ai-sdk/provider';
-import { describe, it } from 'vitest';
+import type { JSONValue } from '@ai-sdk/provider';
 
 describe('generateObject', () => {
   it('should support enum types', async () => {

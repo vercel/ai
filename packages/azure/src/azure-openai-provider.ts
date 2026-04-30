@@ -7,7 +7,7 @@ import {
   OpenAISpeechModel,
   OpenAITranscriptionModel,
 } from '@ai-sdk/openai/internal';
-import {
+import type {
   EmbeddingModelV2,
   LanguageModelV2,
   ProviderV2,
@@ -16,7 +16,7 @@ import {
   TranscriptionModelV2,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
+  type FetchFunction,
   loadApiKey,
   loadSetting,
   withUserAgentSuffix,

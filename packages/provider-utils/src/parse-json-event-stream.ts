@@ -1,9 +1,9 @@
 import {
-  EventSourceMessage,
+  type EventSourceMessage,
   EventSourceParserStream,
 } from 'eventsource-parser/stream';
-import { ParseResult, safeParseJSON } from './parse-json';
-import { FlexibleValidator } from './validator';
+import { type ParseResult, safeParseJSON } from './parse-json';
+import type { FlexibleValidator } from './validator';
 
 /**
  * Parses a JSON event stream into a stream of parsed JSON objects.

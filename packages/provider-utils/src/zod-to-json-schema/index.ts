@@ -1,3 +1,5 @@
+import { zodToJsonSchema } from './zod-to-json-schema';
+
 export * from './get-relative-path';
 export * from './options';
 export * from './parse-def';
@@ -35,5 +37,4 @@ export * from './parsers/unknown';
 export * from './refs';
 export * from './select-parser';
 export * from './zod-to-json-schema';
-import { zodToJsonSchema } from './zod-to-json-schema';
 export default zodToJsonSchema;

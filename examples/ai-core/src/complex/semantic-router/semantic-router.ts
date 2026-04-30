@@ -1,6 +1,6 @@
 import {
-  Embedding,
-  EmbeddingModel,
+  type Embedding,
+  type EmbeddingModel,
   embed,
   embedMany,
   cosineSimilarity,

@@ -1,12 +1,12 @@
 import {
-  LanguageModelV2CallOptions,
-  LanguageModelV2CallWarning,
+  type LanguageModelV2CallOptions,
+  type LanguageModelV2CallWarning,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { validateTypes } from '@ai-sdk/provider-utils';
 import { webSearchArgsSchema } from '../tool/web-search';
 import { xSearchArgsSchema } from '../tool/x-search';
-import { XaiResponsesTool } from './xai-responses-api';
+import type { XaiResponsesTool } from './xai-responses-api';
 
 type XaiResponsesToolChoice =
   | 'auto'

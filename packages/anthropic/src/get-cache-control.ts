@@ -1,8 +1,8 @@
-import {
+import type {
   LanguageModelV2CallWarning,
   SharedV2ProviderMetadata,
 } from '@ai-sdk/provider';
-import { AnthropicCacheControl } from './anthropic-messages-api';
+import type { AnthropicCacheControl } from './anthropic-messages-api';
 
 // Anthropic allows a maximum of 4 cache breakpoints per request
 const MAX_CACHE_BREAKPOINTS = 4;

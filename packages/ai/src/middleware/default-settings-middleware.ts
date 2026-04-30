@@ -1,5 +1,5 @@
-import { LanguageModelV2CallOptions } from '@ai-sdk/provider';
-import { LanguageModelMiddleware } from '../types';
+import type { LanguageModelV2CallOptions } from '@ai-sdk/provider';
+import type { LanguageModelMiddleware } from '../types';
 import { mergeObjects } from '../util/merge-objects';
 
 /**

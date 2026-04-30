@@ -3,8 +3,8 @@ import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/
 import { generateText, stepCountIs } from 'ai';
 import 'dotenv/config';
 import {
+  type experimental_MCPClient as MCPClient,
   experimental_createMCPClient as createMCPClient,
-  experimental_MCPClient as MCPClient,
 } from '@ai-sdk/mcp';
 
 async function main() {

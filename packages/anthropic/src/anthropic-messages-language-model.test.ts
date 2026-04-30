@@ -1,9 +1,9 @@
 import {
+  type JSONValue,
+  type LanguageModelV2,
+  type LanguageModelV2Prompt,
+  type LanguageModelV2StreamPart,
   APICallError,
-  JSONValue,
-  LanguageModelV2,
-  LanguageModelV2Prompt,
-  LanguageModelV2StreamPart,
 } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { asSchema } from '@ai-sdk/provider-utils';
@@ -14,9 +14,9 @@ import {
 import fs from 'node:fs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
-import { AnthropicProviderOptions } from './anthropic-messages-options';
+import type { AnthropicProviderOptions } from './anthropic-messages-options';
 import { createAnthropic } from './anthropic-provider';
-import { Citation } from './anthropic-messages-api';
+import type { Citation } from './anthropic-messages-api';
 
 vi.mock('./version', () => ({
   VERSION: '0.0.0-test',

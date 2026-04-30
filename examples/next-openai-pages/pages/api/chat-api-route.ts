@@ -1,6 +1,6 @@
 import { openai } from '@ai-sdk/openai';
 import { streamText } from 'ai';
-import { NextApiRequest, NextApiResponse } from 'next';
+import type { NextApiRequest, NextApiResponse } from 'next';
 
 export default async function handler(
   request: NextApiRequest,

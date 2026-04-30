@@ -1,5 +1,8 @@
-import { LanguageModelV2, LanguageModelV2CallOptions } from '@ai-sdk/provider';
-import { LanguageModelMiddleware } from '../types';
+import type {
+  LanguageModelV2,
+  LanguageModelV2CallOptions,
+} from '@ai-sdk/provider';
+import type { LanguageModelMiddleware } from '../types';
 import { asArray } from '../util/as-array';
 
 /**

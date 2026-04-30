@@ -1,15 +1,15 @@
 import {
-  TranscriptionModelV2,
-  ProviderV2,
+  type TranscriptionModelV2,
+  type ProviderV2,
   NoSuchModelError,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
+  type FetchFunction,
   loadApiKey,
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
 import { AssemblyAITranscriptionModel } from './assemblyai-transcription-model';
-import { AssemblyAITranscriptionModelId } from './assemblyai-transcription-settings';
+import type { AssemblyAITranscriptionModelId } from './assemblyai-transcription-settings';
 import { VERSION } from './version';
 
 export interface AssemblyAIProvider extends ProviderV2 {

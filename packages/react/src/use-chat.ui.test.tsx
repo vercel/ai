@@ -8,12 +8,12 @@ import {
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {
+  type FinishReason,
+  type UIMessage,
+  type UIMessageChunk,
   DefaultChatTransport,
-  FinishReason,
   isToolUIPart,
   TextStreamChatTransport,
-  UIMessage,
-  UIMessageChunk,
 } from 'ai';
 import React, { act, useRef, useState } from 'react';
 import { Chat } from './chat.react';

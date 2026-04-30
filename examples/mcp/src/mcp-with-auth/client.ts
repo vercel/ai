@@ -16,14 +16,12 @@ import type {
 import {
   experimental_createMCPClient as createMCPClient,
   auth,
+  type OAuthClientProvider,
+  type OAuthClientInformation,
+  type OAuthClientMetadata,
+  type OAuthTokens,
 } from '@ai-sdk/mcp';
 import 'dotenv/config';
-import type {
-  OAuthClientProvider,
-  OAuthClientInformation,
-  OAuthClientMetadata,
-  OAuthTokens,
-} from '@ai-sdk/mcp';
 import { createServer } from 'node:http';
 import { exec } from 'node:child_process';
 

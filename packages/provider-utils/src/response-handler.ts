@@ -1,9 +1,9 @@
 import { APICallError, EmptyResponseBodyError } from '@ai-sdk/provider';
-import { ZodType } from 'zod/v4';
+import type { ZodType } from 'zod/v4';
 import { extractResponseHeaders } from './extract-response-headers';
-import { parseJSON, ParseResult, safeParseJSON } from './parse-json';
+import { type ParseResult, parseJSON, safeParseJSON } from './parse-json';
 import { parseJsonEventStream } from './parse-json-event-stream';
-import { FlexibleValidator } from './validator';
+import type { FlexibleValidator } from './validator';
 
 export type ResponseHandler<RETURN_TYPE> = (options: {
   url: string;

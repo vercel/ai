@@ -8,7 +8,7 @@ import {
   getToolsRequiringConfirmation,
 } from '../api/use-chat-human-in-the-loop/utils';
 import { useState } from 'react';
-import {
+import type {
   HumanInTheLoopUIMessage,
   MyTools,
 } from '../api/use-chat-human-in-the-loop/types';

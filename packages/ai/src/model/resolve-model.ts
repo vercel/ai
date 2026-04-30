@@ -1,14 +1,14 @@
 import { gateway } from '@ai-sdk/gateway';
-import {
+import type {
   EmbeddingModelV2,
   ImageModelV2,
   LanguageModelV2,
   ProviderV2,
 } from '@ai-sdk/provider';
 import { UnsupportedModelVersionError } from '../error';
-import { EmbeddingModel } from '../types/embedding-model';
-import { LanguageModel } from '../types/language-model';
-import { ImageModel } from '../types/image-model';
+import type { EmbeddingModel } from '../types/embedding-model';
+import type { LanguageModel } from '../types/language-model';
+import type { ImageModel } from '../types/image-model';
 
 export function resolveLanguageModel(model: LanguageModel): LanguageModelV2 {
   if (typeof model !== 'string') {

@@ -1,34 +1,34 @@
 import {
-  APICallError,
+  type APICallError,
+  type LanguageModelV2,
+  type LanguageModelV2Content,
+  type LanguageModelV2FinishReason,
+  type LanguageModelV2StreamPart,
   InvalidResponseDataError,
-  LanguageModelV2,
-  LanguageModelV2Content,
-  LanguageModelV2FinishReason,
-  LanguageModelV2StreamPart,
 } from '@ai-sdk/provider';
 import {
+  type FetchFunction,
+  type InferSchema,
+  type ParseResult,
+  type ResponseHandler,
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
-  FetchFunction,
   generateId,
-  InferSchema,
   isParsableJson,
   parseProviderOptions,
-  ParseResult,
   postJsonToApi,
-  ResponseHandler,
 } from '@ai-sdk/provider-utils';
 import { convertToDeepSeekChatMessages } from './convert-to-deepseek-chat-messages';
 import {
+  type DeepSeekChatTokenUsage,
   deepseekChatChunkSchema,
   deepseekChatResponseSchema,
-  DeepSeekChatTokenUsage,
   deepSeekErrorSchema,
 } from './deepseek-chat-api-types';
 import {
-  DeepSeekChatModelId,
+  type DeepSeekChatModelId,
   deepseekChatOptions,
 } from './deepseek-chat-options';
 import { prepareTools } from './deepseek-prepare-tools';

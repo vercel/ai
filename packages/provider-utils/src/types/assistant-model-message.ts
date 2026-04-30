@@ -1,11 +1,11 @@
-import {
+import type {
   FilePart,
   ReasoningPart,
   TextPart,
   ToolCallPart,
   ToolResultPart,
 } from './content-part';
-import { ProviderOptions } from './provider-options';
+import type { ProviderOptions } from './provider-options';
 
 /**
 An assistant message. It can contain text, tool calls, or a combination of text and tool calls.

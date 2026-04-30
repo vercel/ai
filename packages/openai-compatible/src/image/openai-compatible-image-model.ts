@@ -1,17 +1,17 @@
-import { ImageModelV2, ImageModelV2CallWarning } from '@ai-sdk/provider';
+import type { ImageModelV2, ImageModelV2CallWarning } from '@ai-sdk/provider';
 import {
+  type FetchFunction,
   combineHeaders,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
-  FetchFunction,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import {
+  type ProviderErrorStructure,
   defaultOpenAICompatibleErrorStructure,
-  ProviderErrorStructure,
 } from '../openai-compatible-error';
-import { OpenAICompatibleImageModelId } from './openai-compatible-image-settings';
+import type { OpenAICompatibleImageModelId } from './openai-compatible-image-settings';
 
 export type OpenAICompatibleImageModelConfig = {
   provider: string;

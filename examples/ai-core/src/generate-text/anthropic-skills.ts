@@ -1,7 +1,7 @@
 import {
+  type AnthropicMessageMetadata,
+  type AnthropicProviderOptions,
   anthropic,
-  AnthropicMessageMetadata,
-  AnthropicProviderOptions,
 } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 import { print } from '../lib/print';

@@ -1,6 +1,6 @@
 import { expect } from 'vitest';
-import { luma as provider, LumaErrorData } from '@ai-sdk/luma';
-import { APICallError } from '@ai-sdk/provider';
+import { type LumaErrorData, luma as provider } from '@ai-sdk/luma';
+import type { APICallError } from '@ai-sdk/provider';
 import {
   createFeatureTestSuite,
   createImageModelWithCapabilities,

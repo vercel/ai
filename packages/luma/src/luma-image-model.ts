@@ -1,10 +1,10 @@
 import {
-  ImageModelV2,
-  ImageModelV2CallWarning,
+  type ImageModelV2,
+  type ImageModelV2CallWarning,
   InvalidResponseDataError,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
+  type FetchFunction,
   combineHeaders,
   createBinaryResponseHandler,
   createJsonResponseHandler,
@@ -14,7 +14,7 @@ import {
   getFromApi,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
-import { LumaImageSettings } from './luma-image-settings';
+import type { LumaImageSettings } from './luma-image-settings';
 import { z } from 'zod/v4';
 
 const DEFAULT_POLL_INTERVAL_MILLIS = 500;

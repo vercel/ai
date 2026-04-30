@@ -1,5 +1,10 @@
 import { groq } from '@ai-sdk/groq';
-import { streamText, ModelMessage, ToolCallPart, ToolResultPart } from 'ai';
+import {
+  type ModelMessage,
+  type ToolCallPart,
+  type ToolResultPart,
+  streamText,
+} from 'ai';
 import 'dotenv/config';
 import { weatherTool } from '../tools/weather-tool';
 

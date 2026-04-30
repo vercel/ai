@@ -1,11 +1,11 @@
-import { ProviderMetadata } from '../types';
-import { Source } from '../types/language-model';
-import { GeneratedFile } from './generated-file';
-import { ReasoningOutput } from './reasoning-output';
-import { TypedToolCall } from './tool-call';
-import { TypedToolError } from './tool-error';
-import { TypedToolResult } from './tool-result';
-import { ToolSet } from './tool-set';
+import type { ProviderMetadata } from '../types';
+import type { Source } from '../types/language-model';
+import type { GeneratedFile } from './generated-file';
+import type { ReasoningOutput } from './reasoning-output';
+import type { TypedToolCall } from './tool-call';
+import type { TypedToolError } from './tool-error';
+import type { TypedToolResult } from './tool-result';
+import type { ToolSet } from './tool-set';
 
 export type ContentPart<TOOLS extends ToolSet> =
   | { type: 'text'; text: string; providerMetadata?: ProviderMetadata }

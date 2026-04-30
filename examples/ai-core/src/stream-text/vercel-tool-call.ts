@@ -1,5 +1,10 @@
 import { vercel } from '@ai-sdk/vercel';
-import { streamText, ToolCallPart, ToolResultPart, ModelMessage } from 'ai';
+import {
+  type ToolCallPart,
+  type ToolResultPart,
+  type ModelMessage,
+  streamText,
+} from 'ai';
 import 'dotenv/config';
 import { weatherTool } from '../tools/weather-tool';
 

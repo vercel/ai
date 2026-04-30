@@ -1,21 +1,25 @@
 import { GoogleGenerativeAILanguageModel } from '@ai-sdk/google/internal';
-import { ImageModelV2, LanguageModelV2, ProviderV2 } from '@ai-sdk/provider';
+import type {
+  ImageModelV2,
+  LanguageModelV2,
+  ProviderV2,
+} from '@ai-sdk/provider';
 import {
-  FetchFunction,
+  type FetchFunction,
+  type Resolvable,
   generateId,
   loadSetting,
   resolve,
-  Resolvable,
   withoutTrailingSlash,
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
 import { VERSION } from './version';
-import { GoogleVertexConfig } from './google-vertex-config';
+import type { GoogleVertexConfig } from './google-vertex-config';
 import { GoogleVertexEmbeddingModel } from './google-vertex-embedding-model';
-import { GoogleVertexEmbeddingModelId } from './google-vertex-embedding-options';
+import type { GoogleVertexEmbeddingModelId } from './google-vertex-embedding-options';
 import { GoogleVertexImageModel } from './google-vertex-image-model';
-import { GoogleVertexImageModelId } from './google-vertex-image-settings';
-import { GoogleVertexModelId } from './google-vertex-options';
+import type { GoogleVertexImageModelId } from './google-vertex-image-settings';
+import type { GoogleVertexModelId } from './google-vertex-options';
 import { googleVertexTools } from './google-vertex-tools';
 
 export interface GoogleVertexProvider extends ProviderV2 {

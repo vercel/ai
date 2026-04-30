@@ -1,40 +1,40 @@
 import {
-  APICallError,
+  type APICallError,
+  type LanguageModelV2,
+  type LanguageModelV2CallWarning,
+  type LanguageModelV2Content,
+  type LanguageModelV2FinishReason,
+  type LanguageModelV2StreamPart,
+  type SharedV2ProviderMetadata,
   InvalidResponseDataError,
-  LanguageModelV2,
-  LanguageModelV2CallWarning,
-  LanguageModelV2Content,
-  LanguageModelV2FinishReason,
-  LanguageModelV2StreamPart,
-  SharedV2ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
+  type FetchFunction,
+  type ParseResult,
+  type ResponseHandler,
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
-  FetchFunction,
   generateId,
   isParsableJson,
   parseProviderOptions,
-  ParseResult,
   postJsonToApi,
-  ResponseHandler,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { convertToOpenAICompatibleChatMessages } from './convert-to-openai-compatible-chat-messages';
 import { getResponseMetadata } from './get-response-metadata';
 import { mapOpenAICompatibleFinishReason } from './map-openai-compatible-finish-reason';
 import {
-  OpenAICompatibleChatModelId,
+  type OpenAICompatibleChatModelId,
   openaiCompatibleProviderOptions,
   OpenAICompatibleProviderOptions,
 } from './openai-compatible-chat-options';
 import {
+  type ProviderErrorStructure,
   defaultOpenAICompatibleErrorStructure,
-  ProviderErrorStructure,
 } from '../openai-compatible-error';
-import { MetadataExtractor } from './openai-compatible-metadata-extractor';
+import type { MetadataExtractor } from './openai-compatible-metadata-extractor';
 import { prepareTools } from './openai-compatible-prepare-tools';
 
 export type OpenAICompatibleChatConfig = {

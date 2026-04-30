@@ -1,17 +1,17 @@
-import {
+import type {
   EmbeddingModelV2,
   ImageModelV2,
   LanguageModelV2,
   ProviderV2,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
+  type FetchFunction,
   withoutTrailingSlash,
   withUserAgentSuffix,
   getRuntimeEnvironmentUserAgent,
 } from '@ai-sdk/provider-utils';
 import {
-  OpenAICompatibleChatConfig,
+  type OpenAICompatibleChatConfig,
   OpenAICompatibleChatLanguageModel,
 } from './chat/openai-compatible-chat-language-model';
 import { OpenAICompatibleCompletionLanguageModel } from './completion/openai-compatible-completion-language-model';
