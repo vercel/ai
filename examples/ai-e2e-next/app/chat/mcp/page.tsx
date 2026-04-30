@@ -47,6 +47,11 @@ export default function Chat() {
 
                 // Display tool title if available, fallback to tool name
                 const displayName = toolPart.title || toolName;
+                const mcpServerName =
+                  toolPart.type === 'dynamic-tool' &&
+                  typeof toolPart.callProviderMetadata?.mcp?.name === 'string'
+                    ? toolPart.callProviderMetadata.mcp.name
+                    : undefined;
 
                 return (
                   <div
@@ -62,6 +67,11 @@ export default function Chat() {
                         {toolPart.title && (
                           <div className="text-xs text-gray-500">
                             Tool ID: {toolName}
+                          </div>
+                        )}
+                        {mcpServerName != null && (
+                          <div className="text-xs text-gray-500">
+                            MCP server: {mcpServerName}
                           </div>
                         )}
                       </div>
