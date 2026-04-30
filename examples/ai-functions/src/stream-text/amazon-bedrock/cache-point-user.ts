@@ -1,4 +1,4 @@
-import { bedrock } from '@ai-sdk/amazon-bedrock';
+import { amazonBedrock } from '@ai-sdk/amazon-bedrock';
 import { streamText } from 'ai';
 import fs from 'node:fs';
 import { run } from '../../lib/run';
@@ -7,7 +7,7 @@ const errorMessage = fs.readFileSync('data/error-message.txt', 'utf8');
 
 run(async () => {
   const result = streamText({
-    model: bedrock('anthropic.claude-3-5-sonnet-20241022-v2:0'),
+    model: amazonBedrock('anthropic.claude-3-5-sonnet-20241022-v2:0'),
     messages: [
       {
         role: 'user',

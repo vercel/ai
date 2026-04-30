@@ -21,7 +21,7 @@ import {
   openAITranscriptionModelOptions,
   type OpenAITranscriptionModelId,
   type OpenAITranscriptionModelOptions,
-} from './openai-transcription-options';
+} from './openai-transcription-model-options';
 export type OpenAITranscriptionCallOptions = Omit<
   TranscriptionModelV4CallOptions,
   'providerOptions'

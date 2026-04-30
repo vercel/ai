@@ -15,7 +15,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { xaiFailedResponseHandler } from './xai-error';
-import { xaiImageModelOptions } from './xai-image-options';
+import { xaiImageModelOptions } from './xai-image-model-options';
 import type { XaiImageModelId } from './xai-image-settings';
 
 interface XaiImageModelConfig {

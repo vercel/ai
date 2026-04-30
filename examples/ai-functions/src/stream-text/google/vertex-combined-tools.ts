@@ -1,4 +1,4 @@
-import { vertex } from '@ai-sdk/google-vertex';
+import { googleVertex } from '@ai-sdk/google-vertex';
 import { isStepCount, streamText, tool } from 'ai';
 import { z } from 'zod';
 import { print } from '../../lib/print';
@@ -6,12 +6,12 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: vertex('gemini-3.1-pro-preview'),
+    model: googleVertex('gemini-3.1-pro-preview'),
     stopWhen: isStepCount(5),
     prompt:
       'Search for current San Francisco news, then call ping with "done".',
     tools: {
-      google_search: vertex.tools.googleSearch({}),
+      google_search: googleVertex.tools.googleSearch({}),
       ping: tool({
         description: 'No-op ping tool.',
         inputSchema: z.object({

@@ -131,7 +131,7 @@ and support structured data generation with [`Output`](/docs/reference/ai-sdk-co
 Cohere has introduced reasoning with the `command-a-reasoning-08-2025` model. You can learn more at https://docs.cohere.com/docs/reasoning.
 
 ```ts
-import { cohere, type CohereLanguageModelOptions } from '@ai-sdk/cohere';
+import { cohere, type CohereLanguageModelChatOptions } from '@ai-sdk/cohere';
 import { generateText } from 'ai';
 
 async function main() {
@@ -146,7 +146,7 @@ async function main() {
           type: 'enabled',
           tokenBudget: 100,
         },
-      } satisfies CohereLanguageModelOptions,
+      } satisfies CohereLanguageModelChatOptions,
     },
   });
 

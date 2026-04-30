@@ -1,10 +1,10 @@
-import { huggingface } from '@ai-sdk/huggingface';
+import { huggingFace } from '@ai-sdk/huggingface';
 import { streamText } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: huggingface('deepseek-ai/DeepSeek-R1'),
+    model: huggingFace('deepseek-ai/DeepSeek-R1'),
     messages: [
       {
         role: 'user',

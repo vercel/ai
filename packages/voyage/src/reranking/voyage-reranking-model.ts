@@ -13,7 +13,7 @@ import { voyageFailedResponseHandler } from '../voyage-error';
 import {
   voyageRerankingModelOptionsSchema,
   type VoyageRerankingModelId,
-} from './voyage-reranking-options';
+} from './voyage-reranking-model-options';
 type VoyageRerankingConfig = {
   provider: string;
   baseURL: string;

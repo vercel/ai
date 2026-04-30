@@ -31,9 +31,9 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import {
-  alibabaLanguageModelOptions,
+  alibabaLanguageModelChatOptions,
   type AlibabaChatModelId,
-} from './alibaba-chat-options';
+} from './alibaba-chat-language-model-options';
 import type { AlibabaConfig } from './alibaba-config';
 import { alibabaFailedResponseHandler } from './alibaba-error';
 import { convertAlibabaUsage } from './convert-alibaba-usage';
@@ -49,13 +49,13 @@ import { CacheControlValidator } from './get-cache-control';
  * - Thinking budget control (thinking_budget)
  * - Prompt caching (cached_tokens tracking)
  */
-export class AlibabaLanguageModel implements LanguageModelV4 {
+export class AlibabaChatLanguageModel implements LanguageModelV4 {
   readonly specificationVersion = 'v4';
   readonly modelId: AlibabaChatModelId;
 
   private readonly config: AlibabaConfig;
 
-  static [WORKFLOW_SERIALIZE](model: AlibabaLanguageModel) {
+  static [WORKFLOW_SERIALIZE](model: AlibabaChatLanguageModel) {
     return serializeModelOptions({
       modelId: model.modelId,
       config: model.config,
@@ -66,7 +66,7 @@ export class AlibabaLanguageModel implements LanguageModelV4 {
     modelId: AlibabaChatModelId;
     config: AlibabaConfig;
   }) {
-    return new AlibabaLanguageModel(options.modelId, options.config);
+    return new AlibabaChatLanguageModel(options.modelId, options.config);
   }
 
   constructor(modelId: AlibabaChatModelId, config: AlibabaConfig) {
@@ -109,7 +109,7 @@ export class AlibabaLanguageModel implements LanguageModelV4 {
     const alibabaOptions = await parseProviderOptions({
       provider: 'alibaba',
       providerOptions,
-      schema: alibabaLanguageModelOptions,
+      schema: alibabaLanguageModelChatOptions,
     });
 
     // Warn about unsupported features
@@ -443,7 +443,9 @@ function resolveAlibabaThinking({
   warnings,
 }: {
   reasoning: LanguageModelV4CallOptions['reasoning'];
-  alibabaOptions: InferSchema<typeof alibabaLanguageModelOptions> | undefined;
+  alibabaOptions:
+    | InferSchema<typeof alibabaLanguageModelChatOptions>
+    | undefined;
   warnings: SharedV4Warning[];
 }): { enable_thinking?: boolean; thinking_budget?: number } {
   if (

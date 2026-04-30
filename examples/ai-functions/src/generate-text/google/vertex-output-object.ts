@@ -1,11 +1,11 @@
-import { vertex } from '@ai-sdk/google-vertex';
+import { googleVertex } from '@ai-sdk/google-vertex';
 import { generateText, Output } from 'ai';
 import { z } from 'zod';
 import { run } from '../../lib/run';
 
 run(async () => {
   const { output } = await generateText({
-    model: vertex('gemini-2.5-flash'),
+    model: googleVertex('gemini-2.5-flash'),
     output: Output.object({
       schema: z.object({
         name: z.string(),

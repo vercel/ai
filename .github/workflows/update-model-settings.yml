@@ -98,16 +98,76 @@ jobs:
           echo "Created changeset: $CHANGESET_FILE"
           cat "$CHANGESET_FILE"
 
-      - name: Create branch and commit changes
+      - name: Create branch and push as signed commit
         if: steps.check-changes.outputs.has-changes == 'true'
         id: create-branch
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          BASE_BRANCH: ${{ matrix.target-branch }}
+          BRANCH_PREFIX: ${{ matrix.branch-prefix }}
         run: |
-          BRANCH_NAME="${{ matrix.branch-prefix }}-$(date +%Y%m%d-%H%M)"
-          git checkout -b "$BRANCH_NAME"
+          set -euo pipefail
+
+          BRANCH_NAME="${BRANCH_PREFIX}-$(date +%Y%m%d-%H%M)"
+          echo "branch-name=$BRANCH_NAME" >> "$GITHUB_OUTPUT"
+
+          # Stage and commit locally so we have a HEAD to diff against the
+          # base branch tip. The local commit is never pushed; we extract
+          # its file changes and submit them via the GraphQL
+          # createCommitOnBranch mutation, which produces a signed commit
+          # attributed to the GITHUB_TOKEN owner.
           git add .
           git commit -m "chore(provider/gateway): update gateway model settings files"
-          git push origin "$BRANCH_NAME"
-          echo "branch-name=$BRANCH_NAME" >> "$GITHUB_OUTPUT"
+
+          PARENT_OID=$(git rev-parse "origin/${BASE_BRANCH}")
+          HEADLINE=$(git log -1 --format=%s HEAD)
+          BODY=$(git log -1 --format=%b HEAD)
+
+          ADDITIONS='[]'
+          while IFS= read -r -d '' path; do
+            [ -z "$path" ] && continue
+            CONTENT=$(base64 < "$path" | tr -d '\n')
+            ADDITIONS=$(jq -c --arg p "$path" --arg c "$CONTENT" '. + [{path: $p, contents: $c}]' <<<"$ADDITIONS")
+          done < <(git diff --no-renames --name-only --diff-filter=AM -z "${PARENT_OID}" HEAD)
+
+          DELETIONS='[]'
+          while IFS= read -r -d '' path; do
+            [ -z "$path" ] && continue
+            DELETIONS=$(jq -c --arg p "$path" '. + [{path: $p}]' <<<"$DELETIONS")
+          done < <(git diff --no-renames --name-only --diff-filter=D -z "${PARENT_OID}" HEAD)
+
+          # Create the remote branch at the base tip (or reset an orphaned
+          # branch from a prior run).
+          if gh api "repos/${REPO}/git/refs/heads/${BRANCH_NAME}" >/dev/null 2>&1; then
+            echo "Branch ${BRANCH_NAME} already exists on remote. Force-updating to ${PARENT_OID}."
+            gh api --method PATCH "repos/${REPO}/git/refs/heads/${BRANCH_NAME}" \
+              -f "sha=${PARENT_OID}" -F force=true >/dev/null
+          else
+            gh api --method POST "repos/${REPO}/git/refs" \
+              -f "ref=refs/heads/${BRANCH_NAME}" \
+              -f "sha=${PARENT_OID}" >/dev/null
+          fi
+
+          INPUT=$(jq -nc \
+            --arg repo "${REPO}" \
+            --arg branch "${BRANCH_NAME}" \
+            --arg expected "${PARENT_OID}" \
+            --arg headline "${HEADLINE}" \
+            --arg body "${BODY}" \
+            --argjson additions "${ADDITIONS}" \
+            --argjson deletions "${DELETIONS}" \
+            '{
+              branch: {repositoryNameWithOwner: $repo, branchName: $branch},
+              expectedHeadOid: $expected,
+              message: {headline: $headline, body: $body},
+              fileChanges: {additions: $additions, deletions: $deletions}
+            }')
+
+          jq -n --arg query 'mutation($input: CreateCommitOnBranchInput!) { createCommitOnBranch(input: $input) { commit { oid url } } }' \
+            --argjson variables "{\"input\": ${INPUT}}" \
+            '{query: $query, variables: $variables}' \
+            | gh api graphql --input -
 
       - name: Create Pull Request
         if: steps.check-changes.outputs.has-changes == 'true'

@@ -1,13 +1,13 @@
 import {
-  bedrock,
-  type AmazonBedrockLanguageModelOptions,
+  amazonBedrock,
+  type AmazonBedrockLanguageModelChatOptions,
 } from '@ai-sdk/amazon-bedrock';
 import { streamText } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: bedrock('us.anthropic.claude-opus-4-7'),
+    model: amazonBedrock('us.anthropic.claude-opus-4-7'),
     prompt: 'How many "r"s are in the word "strawberry"?',
     providerOptions: {
       bedrock: {
@@ -16,7 +16,7 @@ run(async () => {
           display: 'summarized',
           maxReasoningEffort: 'high',
         },
-      } satisfies AmazonBedrockLanguageModelOptions,
+      } satisfies AmazonBedrockLanguageModelChatOptions,
     },
   });
 

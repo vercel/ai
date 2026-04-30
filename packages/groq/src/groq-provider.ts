@@ -11,8 +11,8 @@ import {
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { GroqChatLanguageModel } from './groq-chat-language-model';
-import type { GroqChatModelId } from './groq-chat-options';
-import type { GroqTranscriptionModelId } from './groq-transcription-options';
+import type { GroqChatModelId } from './groq-chat-language-model-options';
+import type { GroqTranscriptionModelId } from './groq-transcription-model-options';
 import { GroqTranscriptionModel } from './groq-transcription-model';
 
 import { groqTools } from './groq-tools';

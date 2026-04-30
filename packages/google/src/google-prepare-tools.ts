@@ -4,7 +4,7 @@ import {
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import { convertJSONSchemaToOpenAPISchema } from './convert-json-schema-to-openapi-schema';
-import type { GoogleModelId } from './google-options';
+import type { GoogleModelId } from './google-language-model-options';
 
 export function prepareTools({
   tools,

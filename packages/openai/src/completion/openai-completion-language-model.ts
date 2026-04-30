@@ -36,7 +36,7 @@ import {
 import {
   openaiLanguageModelCompletionOptions,
   type OpenAICompletionModelId,
-} from './openai-completion-options';
+} from './openai-completion-language-model-options';
 type OpenAICompletionConfig = {
   provider: string;
   headers?: () => Record<string, string | undefined>;

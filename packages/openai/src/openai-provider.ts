@@ -16,21 +16,21 @@ import {
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { OpenAIChatLanguageModel } from './chat/openai-chat-language-model';
-import type { OpenAIChatModelId } from './chat/openai-chat-options';
+import type { OpenAIChatModelId } from './chat/openai-chat-language-model-options';
 import { OpenAICompletionLanguageModel } from './completion/openai-completion-language-model';
-import type { OpenAICompletionModelId } from './completion/openai-completion-options';
+import type { OpenAICompletionModelId } from './completion/openai-completion-language-model-options';
 import { OpenAIEmbeddingModel } from './embedding/openai-embedding-model';
 import { OpenAIFiles } from './files/openai-files';
-import type { OpenAIEmbeddingModelId } from './embedding/openai-embedding-options';
+import type { OpenAIEmbeddingModelId } from './embedding/openai-embedding-model-options';
 import { OpenAIImageModel } from './image/openai-image-model';
 import type { OpenAIImageModelId } from './image/openai-image-options';
 import { openaiTools } from './openai-tools';
 import { OpenAIResponsesLanguageModel } from './responses/openai-responses-language-model';
-import type { OpenAIResponsesModelId } from './responses/openai-responses-options';
+import type { OpenAIResponsesModelId } from './responses/openai-responses-language-model-options';
 import { OpenAISpeechModel } from './speech/openai-speech-model';
-import type { OpenAISpeechModelId } from './speech/openai-speech-options';
+import type { OpenAISpeechModelId } from './speech/openai-speech-model-options';
 import { OpenAITranscriptionModel } from './transcription/openai-transcription-model';
-import type { OpenAITranscriptionModelId } from './transcription/openai-transcription-options';
+import type { OpenAITranscriptionModelId } from './transcription/openai-transcription-model-options';
 import { OpenAISkills } from './skills/openai-skills';
 import { VERSION } from './version';
 

@@ -1,6 +1,6 @@
 import { resolve } from '@ai-sdk/provider-utils';
-import { createVertexAnthropic as createVertexAnthropicOriginal } from './google-vertex-anthropic-provider';
-import { createVertexAnthropic as createVertexAnthropicNode } from './google-vertex-anthropic-provider-node';
+import { createGoogleVertexAnthropic as createVertexAnthropicOriginal } from './google-vertex-anthropic-provider';
+import { createGoogleVertexAnthropic as createVertexAnthropicNode } from './google-vertex-anthropic-provider-node';
 import { generateAuthToken } from '../google-vertex-auth-google-auth-library';
 import { describe, beforeEach, expect, it, vi } from 'vitest';
 
@@ -10,7 +10,7 @@ vi.mock('../google-vertex-auth-google-auth-library', () => ({
 }));
 
 vi.mock('./google-vertex-anthropic-provider', () => ({
-  createVertexAnthropic: vi.fn().mockImplementation(options => ({
+  createGoogleVertexAnthropic: vi.fn().mockImplementation(options => ({
     ...options,
   })),
 }));
@@ -68,6 +68,117 @@ describe('google-vertex-anthropic-provider-node', () => {
     expect(generateAuthToken).toHaveBeenCalledWith({
       scopes: ['https://www.googleapis.com/auth/cloud-platform'],
       keyFile: 'path/to/key.json',
+    });
+  });
+
+  it('uses custom generateAuthToken when provided and skips the default', async () => {
+    const customGenerate = vi.fn().mockResolvedValue('custom-token');
+
+    createVertexAnthropicNode({
+      project: 'test-project',
+      generateAuthToken: customGenerate,
+    });
+
+    const passedOptions = vi.mocked(createVertexAnthropicOriginal).mock
+      .calls[0][0];
+
+    expect(await resolve(passedOptions?.headers)).toEqual({
+      Authorization: 'Bearer custom-token',
+    });
+    expect(customGenerate).toHaveBeenCalledTimes(1);
+    expect(generateAuthToken).not.toHaveBeenCalled();
+  });
+
+  it('merges custom generateAuthToken with user-provided headers', async () => {
+    const customGenerate = vi.fn().mockResolvedValue('custom-token');
+
+    createVertexAnthropicNode({
+      project: 'test-project',
+      generateAuthToken: customGenerate,
+      headers: async () => ({ 'Custom-Header': 'custom-value' }),
+    });
+
+    const passedOptions = vi.mocked(createVertexAnthropicOriginal).mock
+      .calls[0][0];
+
+    expect(await resolve(passedOptions?.headers)).toEqual({
+      Authorization: 'Bearer custom-token',
+      'Custom-Header': 'custom-value',
+    });
+  });
+
+  it('invokes custom generateAuthToken on each headers resolution', async () => {
+    let callCount = 0;
+    const customGenerate = vi.fn().mockImplementation(async () => {
+      callCount += 1;
+      return `token-${callCount}`;
+    });
+
+    createVertexAnthropicNode({
+      project: 'test-project',
+      generateAuthToken: customGenerate,
+    });
+
+    const passedOptions = vi.mocked(createVertexAnthropicOriginal).mock
+      .calls[0][0];
+
+    expect(await resolve(passedOptions?.headers)).toEqual({
+      Authorization: 'Bearer token-1',
+    });
+    expect(await resolve(passedOptions?.headers)).toEqual({
+      Authorization: 'Bearer token-2',
+    });
+    expect(customGenerate).toHaveBeenCalledTimes(2);
+  });
+
+  it('propagates errors thrown from custom generateAuthToken', async () => {
+    const customGenerate = vi
+      .fn()
+      .mockRejectedValue(new Error('token mint failed'));
+
+    createVertexAnthropicNode({
+      project: 'test-project',
+      generateAuthToken: customGenerate,
+    });
+
+    const passedOptions = vi.mocked(createVertexAnthropicOriginal).mock
+      .calls[0][0];
+
+    await expect(resolve(passedOptions?.headers)).rejects.toThrow(
+      'token mint failed',
+    );
+  });
+
+  it('user-provided Authorization in headers overrides the generated token', async () => {
+    const customGenerate = vi.fn().mockResolvedValue('custom-token');
+
+    createVertexAnthropicNode({
+      project: 'test-project',
+      generateAuthToken: customGenerate,
+      headers: async () => ({ Authorization: 'Bearer user-override' }),
+    });
+
+    const passedOptions = vi.mocked(createVertexAnthropicOriginal).mock
+      .calls[0][0];
+
+    expect(await resolve(passedOptions?.headers)).toEqual({
+      Authorization: 'Bearer user-override',
+    });
+  });
+
+  it('accepts a generateAuthToken that returns null (matches default signature)', async () => {
+    const customGenerate = vi.fn().mockResolvedValue(null);
+
+    createVertexAnthropicNode({
+      project: 'test-project',
+      generateAuthToken: customGenerate,
+    });
+
+    const passedOptions = vi.mocked(createVertexAnthropicOriginal).mock
+      .calls[0][0];
+
+    expect(await resolve(passedOptions?.headers)).toEqual({
+      Authorization: 'Bearer null',
     });
   });
 });

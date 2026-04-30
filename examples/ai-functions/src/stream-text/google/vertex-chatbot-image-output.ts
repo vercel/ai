@@ -1,5 +1,5 @@
 import type { GoogleLanguageModelOptions } from '@ai-sdk/google';
-import { vertex } from '@ai-sdk/google-vertex';
+import { googleVertex } from '@ai-sdk/google-vertex';
 import { streamText, type ModelMessage } from 'ai';
 import * as readline from 'node:readline/promises';
 import { presentImages } from '../../lib/present-image';
@@ -17,7 +17,7 @@ run(async () => {
     messages.push({ role: 'user', content: await terminal.question('You: ') });
 
     const result = streamText({
-      model: vertex('gemini-3-pro-image-preview'),
+      model: googleVertex('gemini-3-pro-image-preview'),
       providerOptions: {
         google: {
           responseModalities: ['TEXT', 'IMAGE'],
