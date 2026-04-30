@@ -1,5 +1,11 @@
 # @ai-sdk/google-vertex
 
+## 3.0.135
+
+### Patch Changes
+
+- a8ff5b9: feat(provider/google-vertex): allow overriding Vertex Anthropic auth token generation
+
 ## 3.0.134
 
 ### Patch Changes
