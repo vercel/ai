@@ -10,12 +10,6 @@ import type {
 } from './tool-execute-function';
 import type { ToolNeedsApprovalFunction } from './tool-needs-approval-function';
 
-export type {
-  ToolExecuteFunction,
-  ToolExecutionOptions,
-} from './tool-execute-function';
-export type { ToolNeedsApprovalFunction } from './tool-needs-approval-function';
-
 // 0 extends 1 & N checks for any
 // [N] extends [never] checks for never
 type NeverOptional<N, T> = 0 extends 1 & N
