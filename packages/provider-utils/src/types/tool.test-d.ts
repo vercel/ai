@@ -22,6 +22,56 @@ describe('DynamicTool', () => {
     >();
   });
 
+  it('should allow function-style properties', () => {
+    const aTool: DynamicTool<{ location: string }, string, Context> = {
+      type: 'dynamic',
+      description: 'Get the weather for a location',
+      strict: true,
+      inputExamples: [{ input: { location: 'San Francisco' } }],
+      inputSchema: z.object({ location: z.string() }),
+      outputSchema: z.string(),
+    };
+
+    expectTypeOf(aTool.description).toEqualTypeOf<string | undefined>();
+    expectTypeOf(aTool.strict).toEqualTypeOf<boolean | undefined>();
+    expectTypeOf(aTool.inputExamples).toEqualTypeOf<
+      Array<{ input: { location: string } }> | undefined
+    >();
+  });
+
+  it('should reject provider-only properties', () => {
+    const _toolWithProviderId: DynamicTool<{ location: string }, never> = {
+      type: 'dynamic',
+      inputSchema: z.object({ location: z.string() }),
+      // @ts-expect-error dynamic tools cannot have provider ids
+      id: 'test.tool',
+    };
+
+    const _toolWithProviderExecutionFlag: DynamicTool<
+      { location: string },
+      never
+    > = {
+      type: 'dynamic',
+      inputSchema: z.object({ location: z.string() }),
+      // @ts-expect-error dynamic tools cannot be provider executed
+      isProviderExecuted: true,
+    };
+
+    const _toolWithProviderArgs: DynamicTool<{ location: string }, never> = {
+      type: 'dynamic',
+      inputSchema: z.object({ location: z.string() }),
+      // @ts-expect-error dynamic tools cannot have provider args
+      args: {},
+    };
+
+    const _toolWithDeferredResults: DynamicTool<{ location: string }, never> = {
+      type: 'dynamic',
+      inputSchema: z.object({ location: z.string() }),
+      // @ts-expect-error dynamic tools cannot support deferred provider results
+      supportsDeferredResults: true,
+    };
+  });
+
   it('should create dynamic tools with the dynamic discriminator', () => {
     const aTool = dynamicTool({
       inputSchema: z.unknown(),
@@ -35,9 +85,6 @@ describe('DynamicTool', () => {
 
 describe('ProviderDefinedTool', () => {
   it('should include provider-defined tools in the Tool union', () => {
-    expectTypeOf<
-      ProviderDefinedTool<{ number: number }, string, Context>
-    >().toExtend<Tool<{ number: number }, string, Context>>();
     expectTypeOf<
       ProviderDefinedTool<{ number: number }, string, Context>
     >().toExtend<Tool<{ number: number }, string, Context>>();
@@ -57,13 +104,127 @@ describe('ProviderDefinedTool', () => {
       .toHaveProperty('args')
       .toEqualTypeOf<Record<string, unknown>>();
   });
+
+  it('should allow user execution or an output schema', () => {
+    const toolWithExecute: ProviderDefinedTool<
+      { location: string },
+      string,
+      Context
+    > = {
+      type: 'provider',
+      id: 'test.tool',
+      isProviderExecuted: false,
+      args: {},
+      inputSchema: z.object({ location: z.string() }),
+      execute: async () => 'sunny',
+    };
+
+    const toolWithOutputSchema: ProviderDefinedTool<
+      { location: string },
+      string,
+      Context
+    > = {
+      type: 'provider',
+      id: 'test.tool',
+      isProviderExecuted: false,
+      args: {},
+      inputSchema: z.object({ location: z.string() }),
+      outputSchema: z.string(),
+    };
+
+    expectTypeOf(toolWithExecute.execute).not.toEqualTypeOf<undefined>();
+    expectTypeOf(toolWithOutputSchema.outputSchema).toEqualTypeOf<
+      FlexibleSchema<string>
+    >();
+  });
+
+  it('should reject function-only properties and invalid provider metadata', () => {
+    const _toolWithDescription: ProviderDefinedTool<
+      { location: string },
+      never
+    > = {
+      type: 'provider',
+      id: 'test.tool',
+      isProviderExecuted: false,
+      args: {},
+      inputSchema: z.object({ location: z.string() }),
+      // @ts-expect-error provider tools cannot have function descriptions
+      description: 'Get weather',
+    };
+
+    const _toolWithStrict: ProviderDefinedTool<{ location: string }, never> = {
+      type: 'provider',
+      id: 'test.tool',
+      isProviderExecuted: false,
+      args: {},
+      inputSchema: z.object({ location: z.string() }),
+      // @ts-expect-error provider tools cannot have strict mode
+      strict: true,
+    };
+
+    const _toolWithInputExamples: ProviderDefinedTool<
+      { location: string },
+      never
+    > = {
+      type: 'provider',
+      id: 'test.tool',
+      isProviderExecuted: false,
+      args: {},
+      inputSchema: z.object({ location: z.string() }),
+      // @ts-expect-error provider tools cannot have input examples
+      inputExamples: [{ input: { location: 'San Francisco' } }],
+    };
+
+    const _toolWithInvalidId: ProviderDefinedTool<{ location: string }, never> =
+      {
+        type: 'provider',
+        // @ts-expect-error provider tool ids must follow provider.tool format
+        id: 'tool',
+        isProviderExecuted: false,
+        args: {},
+        inputSchema: z.object({ location: z.string() }),
+      };
+
+    const _toolWithProviderExecutedFlag: ProviderDefinedTool<
+      { location: string },
+      never
+    > = {
+      type: 'provider',
+      id: 'test.tool',
+      // @ts-expect-error provider-defined tools are not provider executed
+      isProviderExecuted: true,
+      args: {},
+      inputSchema: z.object({ location: z.string() }),
+    };
+
+    const _toolWithDeferredResults: ProviderDefinedTool<
+      { location: string },
+      never
+    > = {
+      type: 'provider',
+      id: 'test.tool',
+      isProviderExecuted: false,
+      args: {},
+      inputSchema: z.object({ location: z.string() }),
+      // @ts-expect-error only provider-executed tools can support deferred results
+      supportsDeferredResults: true,
+    };
+  });
+
+  it('should require an output schema when there is no execute function', () => {
+    // @ts-expect-error tools with a concrete output need outputSchema or execute
+    const _tool: ProviderDefinedTool<{ location: string }, string, Context> = {
+      type: 'provider',
+      id: 'test.tool',
+      isProviderExecuted: false,
+      args: {},
+      inputSchema: z.object({ location: z.string() }),
+    };
+  });
 });
 
 describe('ProviderExecutedTool', () => {
   it('should include provider-executed tools in the Tool union', () => {
-    expectTypeOf<
-      ProviderExecutedTool<{ number: number }, string, Context>
-    >().toExtend<Tool<{ number: number }, string, Context>>();
     expectTypeOf<
       ProviderExecutedTool<{ number: number }, string, Context>
     >().toExtend<Tool<{ number: number }, string, Context>>();
@@ -83,6 +244,95 @@ describe('ProviderExecutedTool', () => {
       .toHaveProperty('args')
       .toEqualTypeOf<Record<string, unknown>>();
   });
+
+  it('should allow deferred result support', () => {
+    const aTool: ProviderExecutedTool<{ location: string }, string, Context> = {
+      type: 'provider',
+      id: 'test.tool',
+      isProviderExecuted: true,
+      args: {},
+      inputSchema: z.object({ location: z.string() }),
+      outputSchema: z.string(),
+      supportsDeferredResults: true,
+    };
+
+    expectTypeOf(aTool.supportsDeferredResults).toEqualTypeOf<
+      boolean | undefined
+    >();
+  });
+
+  it('should reject function-only properties and invalid provider metadata', () => {
+    const _toolWithDescription: ProviderExecutedTool<
+      { location: string },
+      never
+    > = {
+      type: 'provider',
+      id: 'test.tool',
+      isProviderExecuted: true,
+      args: {},
+      inputSchema: z.object({ location: z.string() }),
+      // @ts-expect-error provider tools cannot have function descriptions
+      description: 'Get weather',
+    };
+
+    const _toolWithStrict: ProviderExecutedTool<{ location: string }, never> = {
+      type: 'provider',
+      id: 'test.tool',
+      isProviderExecuted: true,
+      args: {},
+      inputSchema: z.object({ location: z.string() }),
+      // @ts-expect-error provider tools cannot have strict mode
+      strict: true,
+    };
+
+    const _toolWithInputExamples: ProviderExecutedTool<
+      { location: string },
+      never
+    > = {
+      type: 'provider',
+      id: 'test.tool',
+      isProviderExecuted: true,
+      args: {},
+      inputSchema: z.object({ location: z.string() }),
+      // @ts-expect-error provider tools cannot have input examples
+      inputExamples: [{ input: { location: 'San Francisco' } }],
+    };
+
+    const _toolWithInvalidId: ProviderExecutedTool<
+      { location: string },
+      never
+    > = {
+      type: 'provider',
+      // @ts-expect-error provider tool ids must follow provider.tool format
+      id: 'tool',
+      isProviderExecuted: true,
+      args: {},
+      inputSchema: z.object({ location: z.string() }),
+    };
+
+    const _toolWithoutProviderExecutedFlag: ProviderExecutedTool<
+      { location: string },
+      never
+    > = {
+      type: 'provider',
+      id: 'test.tool',
+      // @ts-expect-error provider-executed tools must be provider executed
+      isProviderExecuted: false,
+      args: {},
+      inputSchema: z.object({ location: z.string() }),
+    };
+  });
+
+  it('should require an output schema when there is no execute function', () => {
+    // @ts-expect-error tools with a concrete output need outputSchema or execute
+    const _tool: ProviderExecutedTool<{ location: string }, string, Context> = {
+      type: 'provider',
+      id: 'test.tool',
+      isProviderExecuted: true,
+      args: {},
+      inputSchema: z.object({ location: z.string() }),
+    };
+  });
 });
 
 describe('FunctionTool', () => {
@@ -98,6 +348,64 @@ describe('FunctionTool', () => {
         FunctionTool<{ number: number }, string, Context>
       >().toExtend<Tool<{ number: number }, string, Context>>();
     });
+  });
+
+  it('should allow omitted and explicit function discriminators', () => {
+    const toolWithOmittedType: FunctionTool<{ location: string }, never> = {
+      inputSchema: z.object({ location: z.string() }),
+    };
+
+    const toolWithFunctionType: FunctionTool<{ location: string }, never> = {
+      type: 'function',
+      inputSchema: z.object({ location: z.string() }),
+    };
+
+    expectTypeOf(toolWithOmittedType.type).toEqualTypeOf<
+      undefined | 'function'
+    >();
+    expectTypeOf(toolWithFunctionType.type).toEqualTypeOf<
+      undefined | 'function'
+    >();
+  });
+
+  it('should reject dynamic and provider-only properties', () => {
+    const _toolWithDynamicType: FunctionTool<{ location: string }, never> = {
+      // @ts-expect-error function tools cannot use the dynamic discriminator
+      type: 'dynamic',
+      inputSchema: z.object({ location: z.string() }),
+    };
+
+    const _toolWithProviderType: FunctionTool<{ location: string }, never> = {
+      // @ts-expect-error function tools cannot use the provider discriminator
+      type: 'provider',
+      inputSchema: z.object({ location: z.string() }),
+    };
+
+    const _toolWithProviderId: FunctionTool<{ location: string }, never> = {
+      inputSchema: z.object({ location: z.string() }),
+      // @ts-expect-error function tools cannot have provider ids
+      id: 'test.tool',
+    };
+
+    const _toolWithProviderArgs: FunctionTool<{ location: string }, never> = {
+      inputSchema: z.object({ location: z.string() }),
+      // @ts-expect-error function tools cannot have provider args
+      args: {},
+    };
+
+    const _toolWithDeferredResults: FunctionTool<{ location: string }, never> =
+      {
+        inputSchema: z.object({ location: z.string() }),
+        // @ts-expect-error function tools cannot support deferred provider results
+        supportsDeferredResults: true,
+      };
+  });
+
+  it('should require an output schema when there is no execute function', () => {
+    // @ts-expect-error tools with a concrete output need outputSchema or execute
+    const _tool: FunctionTool<{ location: string }, string, Context> = {
+      inputSchema: z.object({ location: z.string() }),
+    };
   });
 });
 
