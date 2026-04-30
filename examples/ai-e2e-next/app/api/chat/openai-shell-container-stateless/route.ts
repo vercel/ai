@@ -36,11 +36,51 @@ export type StatelessContainerUIMessage = UIMessage<
   Tools
 >;
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+// OpenAI includes the shell container id in the raw `response.created` chunk.
+function extractContainerIdFromRawChunk(rawValue: unknown): string | undefined {
+  if (
+    !isRecord(rawValue) ||
+    rawValue.type !== 'response.created' ||
+    !isRecord(rawValue.response)
+  ) {
+    return undefined;
+  }
+
+  const { tools } = rawValue.response;
+  if (!Array.isArray(tools)) {
+    return undefined;
+  }
+
+  for (const tool of tools) {
+    if (
+      !isRecord(tool) ||
+      tool.type !== 'shell' ||
+      !isRecord(tool.environment)
+    ) {
+      continue;
+    }
+
+    const containerId = tool.environment.container_id;
+    if (typeof containerId === 'string') {
+      return containerId;
+    }
+  }
+
+  return undefined;
+}
+
 export async function POST(req: Request) {
   const { messages: prevMessages, containerId }: StatelessContainerBody =
     await req.json();
 
   const messages = prevMessages.map(message => {
+    // Drop previous shell tool parts because their call ids are not available in
+    // a stateless follow-up request. Keeping them can cause:
+    // "No tool call found for shell call output with call_id call_xxxx."
     const parts = message.parts.filter(part => part.type != 'tool-shell');
     const fixedMessage: StatelessContainerUIMessage = {
       ...message,
@@ -49,7 +89,6 @@ export async function POST(req: Request) {
     return fixedMessage;
   });
 
-  console.log('containerId:', containerId ?? 'undefined');
   const tools = {
     shell: openai.tools.shell({
       environment: containerId
@@ -79,52 +118,17 @@ export async function POST(req: Request) {
 
       for await (const part of result.fullStream) {
         if (part.type === 'raw') {
-          const { rawValue } = part;
-          if (
-            typeof rawValue === 'object' &&
-            !!rawValue &&
-            'type' in rawValue &&
-            rawValue.type === 'response.created' &&
-            'response' in rawValue
-          ) {
-            const { type, response } = rawValue;
-            // console.log('rawValueResponse:', JSON.stringify(response));
-            if (
-              typeof response === 'object' &&
-              response &&
-              'tools' in response &&
-              Array.isArray(response.tools)
-            ) {
-              const { tools } = response;
-              // console.log("tools",tools)
-              const shellTool = tools.find(
-                (
-                  tool,
-                ): tool is {
-                  type: 'shell';
-                  environment: { container_id: string };
-                } =>
-                  'type' in tool &&
-                  tool.type === 'shell' &&
-                  'environment' in tool &&
-                  typeof tool.environment === 'object' &&
-                  'container_id' in tool.environment &&
-                  typeof tool.environment.container_id === 'string',
-              );
-              if (shellTool) {
-                const {
-                  environment: { container_id },
-                } = shellTool;
-
-                writer.write({
-                  type: 'data-container',
-                  data: {
-                    containerId: container_id,
-                  },
-                });
-                break;
-              }
-            }
+          const containerId = extractContainerIdFromRawChunk(part.rawValue);
+          if (containerId) {
+            // Send the container id to the client so it can be reused on the
+            // next request with `containerReference`.
+            writer.write({
+              type: 'data-container',
+              data: {
+                containerId,
+              },
+            });
+            break;
           }
         }
       }

@@ -18,6 +18,7 @@ export default function ChatOpenAIShellContainer() {
         prepareSendMessagesRequest: ({ messages }) => {
           const body = {
             messages,
+            // Reuse the OpenAI-hosted shell container across stateless requests.
             containerId: containerIdRef.current,
           } satisfies StatelessContainerBody;
           return { body };
@@ -27,6 +28,8 @@ export default function ChatOpenAIShellContainer() {
         switch (type) {
           case 'data-container': {
             if (!data) return;
+            // The server streams this id after reading it from the raw OpenAI
+            // response chunk.
             containerIdRef.current = data.containerId;
             break;
           }
