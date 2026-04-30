@@ -236,6 +236,33 @@ telemetry: {
 
 Errors inside integrations are caught and do not break the generation flow.
 
+### Diagnostic channel
+
+In Node.js, AI SDK telemetry lifecycle events are also published to the
+`ai.telemetry` [diagnostics channel](https://nodejs.org/api/diagnostics_channel.html).
+This lets observability providers subscribe to AI SDK telemetry events without
+requiring users to register a separate telemetry integration.
+
+```ts
+import { channel } from 'node:diagnostics_channel';
+import {
+  AI_SDK_TELEMETRY_DIAGNOSTIC_CHANNEL,
+  type TelemetryDiagnosticChannelMessage,
+} from 'ai';
+
+channel(AI_SDK_TELEMETRY_DIAGNOSTIC_CHANNEL).subscribe(message => {
+  const telemetryMessage = message as TelemetryDiagnosticChannelMessage;
+
+  if (telemetryMessage.type === 'onStart') {
+    // Inspect telemetryMessage.event and forward it to your provider.
+  }
+});
+```
+
+Diagnostic-channel events follow the same per-call telemetry settings as other
+telemetry integrations. Setting `telemetry: { isEnabled: false }` disables both
+registered integrations and diagnostic-channel publication for that call.
+
 ### Building a custom integration
 
 Implement the `Telemetry` interface from the `ai` package. All methods are optional — implement only the lifecycle events you care about:

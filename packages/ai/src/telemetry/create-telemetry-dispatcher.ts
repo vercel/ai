@@ -6,6 +6,8 @@ import type {
   Telemetry,
   TelemetryDispatcher,
 } from './telemetry';
+import { type TelemetryDiagnosticEventType } from './diagnostic-channel';
+import { publishTelemetryDiagnosticChannelMessage } from './diagnostic-channel-publisher';
 import { getGlobalTelemetryIntegrations } from './telemetry-registry';
 import type { TelemetryOptions } from './telemetry-options';
 
@@ -83,7 +85,15 @@ export function createTelemetryDispatcher({
   const mergeTelemetryCallback = <KEY extends TelemetryCallbackKey>(
     key: KEY,
   ): Callback<TelemetryEvent<KEY>> => {
+    // event data is now automatically published to the diagnostic channel
+    const publishDiagnosticChannelMessage = ((event: TelemetryEvent<KEY>) =>
+      publishTelemetryDiagnosticChannelMessage({
+        type: key as TelemetryDiagnosticEventType,
+        event: augmentEvent(event, telemetryMetadata),
+      })) as Callback<TelemetryEvent<KEY>>;
+
     return mergeCallbacks(
+      publishDiagnosticChannelMessage,
       ...(
         integrations
           .map(integration => integration[key]?.bind(integration))
