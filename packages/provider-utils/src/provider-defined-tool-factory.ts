@@ -1,6 +1,7 @@
-import { tool, type Tool, type ToolExecuteFunction } from './types/tool';
+import { tool, type Tool } from './types/tool';
 import type { FlexibleSchema } from './schema';
 import type { Context } from './types/context';
+import type { ToolExecuteFunction } from './types/tool-execute-function';
 /**
  * A provider-defined tool is a tool for which the provider defines the input
  * and output schemas, but does not execute the tool.

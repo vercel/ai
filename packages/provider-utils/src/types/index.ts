@@ -37,10 +37,12 @@ export {
   dynamicTool,
   tool,
   type Tool,
-  type ToolExecuteFunction,
-  type ToolExecutionOptions,
   type ToolNeedsApprovalFunction,
 } from './tool';
+export type {
+  ToolExecuteFunction,
+  ToolExecutionOptions,
+} from './tool-execute-function';
 export type { ToolSet } from './tool-set';
 export type { ToolApprovalRequest } from './tool-approval-request';
 export type { ToolApprovalResponse } from './tool-approval-response';
