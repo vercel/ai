@@ -5,11 +5,12 @@ import {
   type localShellInputSchema,
   type localShellOutputSchema,
 } from './local-shell';
+
 describe('local-shell tool type', () => {
   it('should have Tool type', () => {
     const localShellTool = localShell({});
 
-    expectTypeOf(localShellTool).toEqualTypeOf<
+    expectTypeOf(localShellTool).toExtend<
       Tool<
         InferSchema<typeof localShellInputSchema>,
         InferSchema<typeof localShellOutputSchema>,

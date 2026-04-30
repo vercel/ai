@@ -88,6 +88,13 @@ function getStartSpanAttributes(
   );
 }
 
+function getSpanStartAttributes(
+  tracer: MockTracer,
+  span: MockSpan,
+): Attributes {
+  return getStartSpanAttributes(tracer, tracer.spans.indexOf(span));
+}
+
 function serializeSpan(span: MockSpan, tracer: MockTracer) {
   const spanIndex = tracer.spans.indexOf(span);
   const initAttributes =
@@ -965,6 +972,316 @@ describe('OpenTelemetry', () => {
 
       const chatSpan = tracer.spans[2];
       expect(chatSpan.events).toMatchInlineSnapshot(`[]`);
+    });
+  });
+
+  describe('supplemental attributes', () => {
+    it('emits supplemental AI SDK attributes on existing spans when enabled', () => {
+      integration = new OpenTelemetry({
+        tracer,
+        usage: true,
+        providerMetadata: true,
+        embedding: true,
+        reranking: true,
+        runtimeContext: true,
+        headers: true,
+        toolChoice: true,
+        schema: true,
+      });
+
+      const detailedUsage = {
+        inputTokens: 10,
+        outputTokens: 20,
+        totalTokens: 30,
+        reasoningTokens: 5,
+        cachedInputTokens: 2,
+        inputTokenDetails: {
+          noCacheTokens: 7,
+          cacheReadTokens: 2,
+          cacheWriteTokens: 1,
+        },
+        outputTokenDetails: {
+          textTokens: 15,
+          reasoningTokens: 5,
+        },
+      };
+
+      integration.onStart!(
+        makeOnStartEvent({
+          headers: { 'x-request-id': 'request-123' },
+          runtimeContext: { userId: 'user-123' },
+        }),
+      );
+      integration.onStepStart!(
+        makeStepStartEvent({
+          stepToolChoice: { type: 'auto' },
+        }),
+      );
+      integration.onLanguageModelCallStart!(makeLanguageModelCallStartEvent());
+      integration.onLanguageModelCallEnd!(
+        makeLanguageModelCallEndEvent({ usage: detailedUsage }),
+      );
+      integration.onToolExecutionStart!(makeToolCallStartEvent());
+      integration.onToolExecutionEnd!(makeToolCallFinishEvent(true));
+      integration.onStepFinish!(
+        makeStepFinishEvent({
+          usage: detailedUsage,
+          providerMetadata: { openai: { response: 'metadata' } },
+        }),
+      );
+      integration.onFinish!(
+        makeFinishEvent({
+          totalUsage: detailedUsage,
+          providerMetadata: { openai: { response: 'metadata' } },
+        }),
+      );
+
+      expect(serializeTrace(tracer)).toMatchInlineSnapshot(`
+        [
+          {
+            "ended": true,
+            "initAttributes": {
+              "ai.request.headers.x-request-id": "request-123",
+              "ai.settings.context.userId": "user-123",
+              "gen_ai.input.messages": "[{"role":"user","parts":[{"type":"text","content":"Hello"}]}]",
+              "gen_ai.operation.name": "invoke_agent",
+              "gen_ai.provider.name": "openai",
+              "gen_ai.request.max_tokens": 100,
+              "gen_ai.request.model": "gpt-4",
+              "gen_ai.request.temperature": 0.7,
+            },
+            "name": "invoke_agent gpt-4",
+            "runtimeAttributes": {
+              "ai.response.providerMetadata": "{"openai":{"response":"metadata"}}",
+              "ai.usage.inputTokenDetails.noCacheTokens": 7,
+              "ai.usage.outputTokenDetails.reasoningTokens": 5,
+              "ai.usage.outputTokenDetails.textTokens": 15,
+              "gen_ai.output.messages": "[{"role":"assistant","parts":[{"type":"text","content":"Hello world"}],"finish_reason":"stop"}]",
+              "gen_ai.response.finish_reasons": [
+                "stop",
+              ],
+              "gen_ai.usage.cache_creation.input_tokens": 1,
+              "gen_ai.usage.cache_read.input_tokens": 2,
+              "gen_ai.usage.input_tokens": 10,
+              "gen_ai.usage.output_tokens": 20,
+            },
+          },
+          {
+            "ended": true,
+            "initAttributes": {
+              "ai.prompt.toolChoice": "{"type":"auto"}",
+              "ai.request.headers.x-request-id": "request-123",
+              "ai.settings.context.userId": "user-123",
+              "gen_ai.operation.name": "agent_step",
+            },
+            "name": "step 1",
+            "runtimeAttributes": {
+              "ai.response.providerMetadata": "{"openai":{"response":"metadata"}}",
+              "ai.usage.inputTokenDetails.noCacheTokens": 7,
+              "ai.usage.outputTokenDetails.reasoningTokens": 5,
+              "ai.usage.outputTokenDetails.textTokens": 15,
+            },
+          },
+          {
+            "ended": true,
+            "initAttributes": {
+              "gen_ai.operation.name": "chat",
+              "gen_ai.provider.name": "openai",
+              "gen_ai.request.max_tokens": 100,
+              "gen_ai.request.model": "gpt-4",
+              "gen_ai.request.temperature": 0.7,
+            },
+            "name": "chat gpt-4",
+            "runtimeAttributes": {
+              "ai.usage.inputTokenDetails.noCacheTokens": 7,
+              "ai.usage.outputTokenDetails.reasoningTokens": 5,
+              "ai.usage.outputTokenDetails.textTokens": 15,
+              "gen_ai.output.messages": "[{"role":"assistant","parts":[{"type":"text","content":"Hello world"}],"finish_reason":"stop"}]",
+              "gen_ai.response.finish_reasons": [
+                "stop",
+              ],
+              "gen_ai.response.id": "test-response-id",
+              "gen_ai.usage.cache_creation.input_tokens": 1,
+              "gen_ai.usage.cache_read.input_tokens": 2,
+              "gen_ai.usage.input_tokens": 10,
+              "gen_ai.usage.output_tokens": 20,
+            },
+          },
+          {
+            "ended": true,
+            "initAttributes": {
+              "gen_ai.operation.name": "execute_tool",
+              "gen_ai.tool.call.arguments": "{"query":"test"}",
+              "gen_ai.tool.call.id": "tool-call-1",
+              "gen_ai.tool.name": "myTool",
+              "gen_ai.tool.type": "function",
+            },
+            "name": "execute_tool myTool",
+            "runtimeAttributes": {
+              "gen_ai.tool.call.result": "{"result":"ok"}",
+            },
+          },
+        ]
+      `);
+    });
+
+    it('only emits explicitly enabled supplemental attributes', () => {
+      integration = new OpenTelemetry({
+        tracer,
+        runtimeContext: true,
+        providerMetadata: true,
+        usage: true,
+      });
+
+      integration.onStart!(
+        makeOnStartEvent({
+          headers: { authorization: 'secret' },
+          runtimeContext: { userId: 'user-123' },
+        }),
+      );
+      integration.onStepStart!(
+        makeStepStartEvent({
+          promptMessages: [
+            { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
+          ],
+        }),
+      );
+      integration.onLanguageModelCallStart!(makeLanguageModelCallStartEvent());
+      integration.onLanguageModelCallEnd!(makeLanguageModelCallEndEvent());
+      integration.onToolExecutionStart!(makeToolCallStartEvent());
+      integration.onToolExecutionEnd!(makeToolCallFinishEvent(true));
+      integration.onStepFinish!(makeStepFinishEvent());
+      integration.onFinish!(makeFinishEvent());
+
+      expect(serializeTrace(tracer)).toMatchInlineSnapshot(`
+        [
+          {
+            "ended": true,
+            "initAttributes": {
+              "ai.settings.context.userId": "user-123",
+              "gen_ai.input.messages": "[{"role":"user","parts":[{"type":"text","content":"Hello"}]}]",
+              "gen_ai.operation.name": "invoke_agent",
+              "gen_ai.provider.name": "openai",
+              "gen_ai.request.max_tokens": 100,
+              "gen_ai.request.model": "gpt-4",
+              "gen_ai.request.temperature": 0.7,
+            },
+            "name": "invoke_agent gpt-4",
+            "runtimeAttributes": {
+              "gen_ai.output.messages": "[{"role":"assistant","parts":[{"type":"text","content":"Hello world"}],"finish_reason":"stop"}]",
+              "gen_ai.response.finish_reasons": [
+                "stop",
+              ],
+              "gen_ai.usage.input_tokens": 10,
+              "gen_ai.usage.output_tokens": 20,
+            },
+          },
+          {
+            "ended": true,
+            "initAttributes": {
+              "ai.settings.context.userId": "user-123",
+              "gen_ai.operation.name": "agent_step",
+            },
+            "name": "step 1",
+            "runtimeAttributes": {},
+          },
+          {
+            "ended": true,
+            "initAttributes": {
+              "gen_ai.operation.name": "chat",
+              "gen_ai.provider.name": "openai",
+              "gen_ai.request.max_tokens": 100,
+              "gen_ai.request.model": "gpt-4",
+              "gen_ai.request.temperature": 0.7,
+            },
+            "name": "chat gpt-4",
+            "runtimeAttributes": {
+              "gen_ai.output.messages": "[{"role":"assistant","parts":[{"type":"text","content":"Hello world"}],"finish_reason":"stop"}]",
+              "gen_ai.response.finish_reasons": [
+                "stop",
+              ],
+              "gen_ai.response.id": "test-response-id",
+              "gen_ai.usage.input_tokens": 10,
+              "gen_ai.usage.output_tokens": 20,
+            },
+          },
+          {
+            "ended": true,
+            "initAttributes": {
+              "gen_ai.operation.name": "execute_tool",
+              "gen_ai.tool.call.arguments": "{"query":"test"}",
+              "gen_ai.tool.call.id": "tool-call-1",
+              "gen_ai.tool.name": "myTool",
+              "gen_ai.tool.type": "function",
+            },
+            "name": "execute_tool myTool",
+            "runtimeAttributes": {
+              "gen_ai.tool.call.result": "{"result":"ok"}",
+            },
+          },
+        ]
+      `);
+    });
+
+    it('does not emit disabled supplemental attributes', () => {
+      integration = new OpenTelemetry({
+        tracer,
+        usage: true,
+      });
+
+      integration.onStart!(makeOnStartEvent());
+      integration.onStepStart!(makeStepStartEvent());
+      integration.onToolExecutionStart!(makeToolCallStartEvent());
+      integration.onToolExecutionEnd!(makeToolCallFinishEvent(true));
+      integration.onStepFinish!(makeStepFinishEvent());
+      integration.onFinish!(makeFinishEvent());
+
+      expect(serializeTrace(tracer)).toMatchInlineSnapshot(`
+        [
+          {
+            "ended": true,
+            "initAttributes": {
+              "gen_ai.input.messages": "[{"role":"user","parts":[{"type":"text","content":"Hello"}]}]",
+              "gen_ai.operation.name": "invoke_agent",
+              "gen_ai.provider.name": "openai",
+              "gen_ai.request.max_tokens": 100,
+              "gen_ai.request.model": "gpt-4",
+              "gen_ai.request.temperature": 0.7,
+            },
+            "name": "invoke_agent gpt-4",
+            "runtimeAttributes": {
+              "gen_ai.output.messages": "[{"role":"assistant","parts":[{"type":"text","content":"Hello world"}],"finish_reason":"stop"}]",
+              "gen_ai.response.finish_reasons": [
+                "stop",
+              ],
+              "gen_ai.usage.input_tokens": 10,
+              "gen_ai.usage.output_tokens": 20,
+            },
+          },
+          {
+            "ended": true,
+            "initAttributes": {
+              "gen_ai.operation.name": "agent_step",
+            },
+            "name": "step 1",
+            "runtimeAttributes": {},
+          },
+          {
+            "ended": true,
+            "initAttributes": {
+              "gen_ai.operation.name": "execute_tool",
+              "gen_ai.tool.call.arguments": "{"query":"test"}",
+              "gen_ai.tool.call.id": "tool-call-1",
+              "gen_ai.tool.name": "myTool",
+              "gen_ai.tool.type": "function",
+            },
+            "name": "execute_tool myTool",
+            "runtimeAttributes": {
+              "gen_ai.tool.call.result": "{"result":"ok"}",
+            },
+          },
+        ]
+      `);
     });
   });
 
