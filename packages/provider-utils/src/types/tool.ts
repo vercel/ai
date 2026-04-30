@@ -52,7 +52,7 @@ type ToolOutputProperties<
 /**
  * Common properties shared by all tool kinds.
  */
-export type BaseTool<
+type BaseTool<
   INPUT extends JSONValue | unknown | never = any,
   OUTPUT extends JSONValue | unknown | never = any,
   CONTEXT extends Context | unknown | never = any,
@@ -223,9 +223,9 @@ export type DynamicTool<
 };
 
 /**
- * Tool with provider-defined input and output schemas.
+ * Common properties shared by provider tools.
  */
-export type ProviderTool<
+type BaseProviderTool<
   INPUT extends JSONValue | unknown | never = any,
   OUTPUT extends JSONValue | unknown | never = any,
   CONTEXT extends Context | unknown | never = any,
@@ -236,11 +236,6 @@ export type ProviderTool<
    * The ID of the tool. Must follow the format `<provider-name>.<unique-tool-name>`.
    */
   id: `${string}.${string}`;
-
-  /**
-   * Flag that indicates whether the tool is executed by the provider.
-   */
-  isProviderExecuted: boolean;
 
   /**
    * The arguments for configuring the tool. Must match the expected arguments defined by the provider for this tool.
@@ -267,6 +262,36 @@ export type ProviderTool<
 };
 
 /**
+ * Tool with provider-defined input and output schemas that is executed by the
+ * user.
+ */
+export type ProviderDefinedTool<
+  INPUT extends JSONValue | unknown | never = any,
+  OUTPUT extends JSONValue | unknown | never = any,
+  CONTEXT extends Context | unknown | never = any,
+> = BaseProviderTool<INPUT, OUTPUT, CONTEXT> & {
+  /**
+   * Flag that indicates whether the tool is executed by the provider.
+   */
+  isProviderExecuted: false;
+};
+
+/**
+ * Tool with provider-defined input and output schemas that is executed by the
+ * provider.
+ */
+export type ProviderExecutedTool<
+  INPUT extends JSONValue | unknown | never = any,
+  OUTPUT extends JSONValue | unknown | never = any,
+  CONTEXT extends Context | unknown | never = any,
+> = BaseProviderTool<INPUT, OUTPUT, CONTEXT> & {
+  /**
+   * Flag that indicates whether the tool is executed by the provider.
+   */
+  isProviderExecuted: true;
+};
+
+/**
  * A tool contains the description and the schema of the input that the tool expects.
  * This enables the language model to generate the input.
  *
@@ -279,7 +304,8 @@ export type Tool<
 > =
   | FunctionTool<INPUT, OUTPUT, CONTEXT>
   | DynamicTool<INPUT, OUTPUT, CONTEXT>
-  | ProviderTool<INPUT, OUTPUT, CONTEXT>;
+  | ProviderDefinedTool<INPUT, OUTPUT, CONTEXT>
+  | ProviderExecutedTool<INPUT, OUTPUT, CONTEXT>;
 
 /**
  * Helper function for inferring the execute args of a tool.

@@ -36,10 +36,10 @@ export type { SystemModelMessage } from './system-model-message';
 export {
   dynamicTool,
   tool,
-  type BaseTool,
   type DynamicTool,
   type FunctionTool,
-  type ProviderTool,
+  type ProviderDefinedTool,
+  type ProviderExecutedTool,
   type Tool,
 } from './tool';
 export type {

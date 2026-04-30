@@ -7,10 +7,10 @@ import type { ModelMessage } from './model-message';
 import {
   dynamicTool,
   tool,
-  type BaseTool,
   type DynamicTool,
   type FunctionTool,
-  type ProviderTool,
+  type ProviderDefinedTool,
+  type ProviderExecutedTool,
   type Tool,
 } from './tool';
 import type { ToolExecuteFunction } from './tool-execute-function';
@@ -19,7 +19,7 @@ describe('DynamicTool', () => {
   it('should expose dynamic tools as base tools', () => {
     expectTypeOf<
       DynamicTool<{ number: number }, string, Context>
-    >().toMatchTypeOf<BaseTool<{ number: number }, string, Context>>();
+    >().toMatchTypeOf<Tool<{ number: number }, string, Context>>();
   });
 
   it('should create dynamic tools with the dynamic discriminator', () => {
@@ -33,24 +33,53 @@ describe('DynamicTool', () => {
   });
 });
 
-describe('ProviderTool', () => {
-  it('should expose provider tools as base tools', () => {
+describe('ProviderDefinedTool', () => {
+  it('should expose provider-defined tools as base tools', () => {
     expectTypeOf<
-      ProviderTool<{ number: number }, string, Context>
-    >().toMatchTypeOf<BaseTool<{ number: number }, string, Context>>();
+      ProviderDefinedTool<{ number: number }, string, Context>
+    >().toMatchTypeOf<Tool<{ number: number }, string, Context>>();
+    expectTypeOf<
+      ProviderDefinedTool<{ number: number }, string, Context>
+    >().toMatchTypeOf<Tool<{ number: number }, string, Context>>();
   });
 
   it('should require provider-specific properties', () => {
-    expectTypeOf<ProviderTool>()
+    expectTypeOf<ProviderDefinedTool>()
       .toHaveProperty('type')
       .toEqualTypeOf<'provider'>();
-    expectTypeOf<ProviderTool>()
+    expectTypeOf<ProviderDefinedTool>()
       .toHaveProperty('id')
       .toEqualTypeOf<`${string}.${string}`>();
-    expectTypeOf<ProviderTool>()
+    expectTypeOf<ProviderDefinedTool>()
       .toHaveProperty('isProviderExecuted')
-      .toEqualTypeOf<boolean>();
-    expectTypeOf<ProviderTool>()
+      .toEqualTypeOf<false>();
+    expectTypeOf<ProviderDefinedTool>()
+      .toHaveProperty('args')
+      .toEqualTypeOf<Record<string, unknown>>();
+  });
+});
+
+describe('ProviderExecutedTool', () => {
+  it('should expose provider-executed tools as base tools', () => {
+    expectTypeOf<
+      ProviderExecutedTool<{ number: number }, string, Context>
+    >().toMatchTypeOf<Tool<{ number: number }, string, Context>>();
+    expectTypeOf<
+      ProviderExecutedTool<{ number: number }, string, Context>
+    >().toMatchTypeOf<Tool<{ number: number }, string, Context>>();
+  });
+
+  it('should require provider-specific properties', () => {
+    expectTypeOf<ProviderExecutedTool>()
+      .toHaveProperty('type')
+      .toEqualTypeOf<'provider'>();
+    expectTypeOf<ProviderExecutedTool>()
+      .toHaveProperty('id')
+      .toEqualTypeOf<`${string}.${string}`>();
+    expectTypeOf<ProviderExecutedTool>()
+      .toHaveProperty('isProviderExecuted')
+      .toEqualTypeOf<true>();
+    expectTypeOf<ProviderExecutedTool>()
       .toHaveProperty('args')
       .toEqualTypeOf<Record<string, unknown>>();
   });
@@ -67,7 +96,7 @@ describe('FunctionTool', () => {
     it('should expose function tools as base tools', () => {
       expectTypeOf<
         FunctionTool<{ number: number }, string, Context>
-      >().toMatchTypeOf<BaseTool<{ number: number }, string, Context>>();
+      >().toMatchTypeOf<Tool<{ number: number }, string, Context>>();
     });
   });
 });
@@ -76,7 +105,7 @@ describe('Tool', () => {
   describe('discriminated union', () => {
     it('should expose the tool variants as a type-discriminated union', () => {
       expectTypeOf<Tool>().toEqualTypeOf<
-        FunctionTool | DynamicTool | ProviderTool
+        FunctionTool | DynamicTool | ProviderDefinedTool | ProviderExecutedTool
       >();
 
       type ToolType = Tool['type'];
@@ -95,8 +124,19 @@ describe('Tool', () => {
 
       if (aTool.type === 'provider') {
         expectTypeOf(aTool).toEqualTypeOf<
-          ProviderTool<{ number: number }, string, Context>
+          | ProviderDefinedTool<{ number: number }, string, Context>
+          | ProviderExecutedTool<{ number: number }, string, Context>
         >();
+
+        if (aTool.isProviderExecuted) {
+          expectTypeOf(aTool).toEqualTypeOf<
+            ProviderExecutedTool<{ number: number }, string, Context>
+          >();
+        } else {
+          expectTypeOf(aTool).toEqualTypeOf<
+            ProviderDefinedTool<{ number: number }, string, Context>
+          >();
+        }
       } else if (aTool.type === 'dynamic') {
         expectTypeOf(aTool).toEqualTypeOf<
           DynamicTool<{ number: number }, string, Context>
