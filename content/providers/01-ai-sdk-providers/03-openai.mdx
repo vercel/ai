@@ -2442,6 +2442,9 @@ const { images } = await generateImage({
 Remove the background from an image by setting `background` to `transparent`:
 
 ```ts
+import { openai, type OpenAIImageModelEditOptions } from '@ai-sdk/openai';
+import { generateImage } from 'ai';
+
 const imageBuffer = readFileSync('./input-image.png');
 
 const { images } = await generateImage({
@@ -2453,8 +2456,8 @@ const { images } = await generateImage({
   providerOptions: {
     openai: {
       background: 'transparent',
-      output_format: 'png',
-    },
+      outputFormat: 'png',
+    } satisfies OpenAIImageModelEditOptions,
   },
 });
 ```
@@ -2497,11 +2500,17 @@ const { images } = await generateImage({
 You can pass optional `providerOptions` to the image model. These are prone to change by OpenAI and are model dependent. For example, the `gpt-image-1` model supports the `quality` option:
 
 ```ts
+import {
+  openai,
+  type OpenAIImageModelGenerationOptions,
+} from '@ai-sdk/openai';
+import { generateImage } from 'ai';
+
 const { image, providerMetadata } = await generateImage({
   model: openai.image('gpt-image-1.5'),
   prompt: 'A salamander at sunrise in a forest pond in the Seychelles.',
   providerOptions: {
-    openai: { quality: 'high' },
+    openai: { quality: 'high' } satisfies OpenAIImageModelGenerationOptions,
   },
 });
 ```
