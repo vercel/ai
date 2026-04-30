@@ -33,16 +33,12 @@ export type { ProviderOptions } from './provider-options';
 export type { ProviderReference } from './provider-reference';
 export type { SensitiveContext } from './sensitive-context';
 export type { SystemModelMessage } from './system-model-message';
-export {
-  dynamicTool,
-  tool,
-  type Tool,
-  type ToolNeedsApprovalFunction,
-} from './tool';
+export { dynamicTool, tool, type Tool } from './tool';
 export type {
   ToolExecuteFunction,
   ToolExecutionOptions,
 } from './tool-execute-function';
+export type { ToolNeedsApprovalFunction } from './tool-needs-approval-function';
 export type { ToolSet } from './tool-set';
 export type { ToolApprovalRequest } from './tool-approval-request';
 export type { ToolApprovalResponse } from './tool-approval-response';
