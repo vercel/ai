@@ -28,9 +28,9 @@ pnpm install @ai-sdk/otel
 
 ```ts
 import { registerTelemetry } from 'ai';
-import { LegacyOpenTelemetry } from '@ai-sdk/otel';
+import { OpenTelemetry } from '@ai-sdk/otel';
 
-registerTelemetry(new LegacyOpenTelemetry());
+registerTelemetry(new OpenTelemetry());
 ```
 
 For Next.js applications, place this in your `instrumentation.ts` file alongside your OpenTelemetry provider setup. See the [Next.js OpenTelemetry guide](https://nextjs.org/docs/app/building-your-application/optimizing/open-telemetry) for more details on setting up the provider.
@@ -165,21 +165,19 @@ Properties set to `false` or omitted are still sent. `sensitiveContext` is suppo
 
 ## Custom Tracer
 
-If you want your traces to use a `TracerProvider` other than the one provided by the `@opentelemetry/api` singleton, pass a custom `Tracer` to the `LegacyOpenTelemetry` constructor:
+If you want your traces to use a `TracerProvider` other than the one provided by the `@opentelemetry/api` singleton, pass a custom `Tracer` to the `OpenTelemetry` constructor:
 
 ```ts highlight="6-8"
 import { registerTelemetry } from 'ai';
-import { LegacyOpenTelemetry } from '@ai-sdk/otel';
+import { OpenTelemetry } from '@ai-sdk/otel';
 
 const tracerProvider = new NodeTracerProvider();
 registerTelemetry(
-  new LegacyOpenTelemetry({
-    tracer: tracerProvider.getTracer('ai'),
+  new OpenTelemetry({
+    tracer: tracerProvider.getTracer('gen_ai'),
   }),
 );
 ```
-
-The `OpenTelemetry` also accepts a custom `Tracer` in the same way.
 
 ## Telemetry Integrations
 
@@ -193,20 +191,20 @@ Use `registerTelemetry` to register an integration once for all AI SDK calls:
 
 ```ts
 import { registerTelemetry } from 'ai';
-import { LegacyOpenTelemetry } from '@ai-sdk/otel';
+import { OpenTelemetry } from '@ai-sdk/otel';
 
-registerTelemetry(new LegacyOpenTelemetry());
+registerTelemetry(new OpenTelemetry());
 ```
 
 You can also register multiple integrations in a single call by passing them as additional arguments. They all receive the same lifecycle events:
 
 ```ts
 import { registerTelemetryIntegration } from 'ai';
-import { LegacyOpenTelemetry } from '@ai-sdk/otel';
+import { OpenTelemetry } from '@ai-sdk/otel';
 import { DevToolsTelemetry } from '@ai-sdk/devtools';
 
 registerTelemetryIntegration(
-  new LegacyOpenTelemetry(),
+  new OpenTelemetry(),
   DevToolsTelemetry(),
 );
 ```
@@ -237,6 +235,33 @@ telemetry: {
 ```
 
 Errors inside integrations are caught and do not break the generation flow.
+
+### Diagnostic channel
+
+In Node.js, AI SDK telemetry lifecycle events are also published to the
+`ai.telemetry` [diagnostics channel](https://nodejs.org/api/diagnostics_channel.html).
+This lets observability providers subscribe to AI SDK telemetry events without
+requiring users to register a separate telemetry integration.
+
+```ts
+import { channel } from 'node:diagnostics_channel';
+import {
+  AI_SDK_TELEMETRY_DIAGNOSTIC_CHANNEL,
+  type TelemetryDiagnosticChannelMessage,
+} from 'ai';
+
+channel(AI_SDK_TELEMETRY_DIAGNOSTIC_CHANNEL).subscribe(message => {
+  const telemetryMessage = message as TelemetryDiagnosticChannelMessage;
+
+  if (telemetryMessage.type === 'onStart') {
+    // Inspect telemetryMessage.event and forward it to your provider.
+  }
+});
+```
+
+Diagnostic-channel events follow the same per-call telemetry settings as other
+telemetry integrations. Setting `telemetry: { isEnabled: false }` disables both
+registered integrations and diagnostic-channel publication for that call.
 
 ### Building a custom integration
 
@@ -344,7 +369,7 @@ The `LegacyOpenTelemetry` integration emits legacy AI SDK-specific spans.
 ### GenAI Semantic Conventions
 
 The `OpenTelemetry` emits spans that follow the [OpenTelemetry Semantic Conventions for GenAI](https://opentelemetry.io/docs/specs/semconv/gen-ai/).
-All attributes use the `gen_ai.*` prefix. Provider names are mapped to well-known values (e.g. `openai`, `anthropic`, `gcp.vertex_ai`).
+By default, attributes use the `gen_ai.*` prefix. Provider names are mapped to well-known values (e.g. `openai`, `anthropic`, `gcp.vertex_ai`).
 
 #### generateText / streamText
 
@@ -481,6 +506,55 @@ Tool call spans (`execute_tool {toolName}`) are nested under the step span and c
 - `gen_ai.tool.type`: `"function"`
 - `gen_ai.tool.call.arguments`: the input arguments (stringified JSON, when `recordInputs` is enabled)
 - `gen_ai.tool.call.result`: the output result (stringified JSON, when `recordOutputs` is enabled). Only set when the tool call succeeds.
+
+### Supplemental AI SDK attributes on OpenTelemetry spans
+
+The GenAI semantic conventions cover the core model, prompt, response, tool call, and usage data. You can opt into additional AI SDK-specific attributes for data that is not represented by GenAI semantics:
+
+```ts
+import { registerTelemetry } from 'ai';
+import { OpenTelemetry } from '@ai-sdk/otel';
+
+registerTelemetry(
+  new OpenTelemetry({
+    usage: true,
+    providerMetadata: true,
+    runtimeContext: true,
+  }),
+);
+```
+
+This does not create additional AI SDK-specific spans such as `ai.generateText`, `ai.generateText.doGenerate`, or `ai.toolCall`. Instead, it adds only the selected supplemental attributes to the spans emitted by `OpenTelemetry`, such as `invoke_agent {modelId}`, `step {n}`, `chat {modelId}`, and `execute_tool {toolName}`.
+
+All supplemental attributes are disabled by default. Enable only the data you want to collect:
+
+```ts
+registerTelemetry(
+  new OpenTelemetry({
+    usage: true,
+    providerMetadata: true,
+    embedding: true,
+    reranking: true,
+    runtimeContext: true,
+    headers: true,
+    toolChoice: true,
+    schema: true,
+  }),
+);
+```
+
+The available options are:
+
+- `usage`: detailed usage attributes that are not covered by GenAI usage attributes, such as uncached input tokens and output text/reasoning token details.
+- `providerMetadata`: `ai.response.providerMetadata`.
+- `embedding`: embedding inputs and outputs.
+- `reranking`: rerank input documents and ranking output.
+- `runtimeContext`: `ai.settings.context.*`.
+- `headers`: `ai.request.headers.*`.
+- `toolChoice`: `ai.prompt.toolChoice`.
+- `schema`: object generation schema and output mode attributes.
+
+The `recordInputs` and `recordOutputs` telemetry options are still respected for supplemental input and output attributes.
 
 ### Legacy AI SDK Spans (`LegacyOpenTelemetry`)
 

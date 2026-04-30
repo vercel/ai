@@ -1,24 +1,23 @@
-import { RerankingModelV4 } from '@ai-sdk/provider';
+import type { RerankingModelV4 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
-  Resolvable,
   combineHeaders,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
   parseProviderOptions,
   postJsonToApi,
   resolve,
+  type FetchFunction,
+  type Resolvable,
 } from '@ai-sdk/provider-utils';
 import { BedrockErrorSchema } from '../bedrock-error';
 import {
-  BedrockRerankingInput,
   bedrockRerankingResponseSchema,
+  type BedrockRerankingInput,
 } from './bedrock-reranking-api';
 import {
-  BedrockRerankingModelId,
   amazonBedrockRerankingModelOptionsSchema,
+  type BedrockRerankingModelId,
 } from './bedrock-reranking-options';
-
 type BedrockRerankingConfig = {
   baseUrl: () => string;
   region: string;

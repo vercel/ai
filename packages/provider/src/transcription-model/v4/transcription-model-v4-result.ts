@@ -1,6 +1,6 @@
-import { JSONObject } from '../../json-value';
-import { SharedV4Headers } from '../../shared';
-import { SharedV4Warning } from '../../shared/v4/shared-v4-warning';
+import type { JSONObject } from '../../json-value';
+import type { SharedV4Headers } from '../../shared';
+import type { SharedV4Warning } from '../../shared/v4/shared-v4-warning';
 
 /**
  * The result of a transcription model doGenerate call.

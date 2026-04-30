@@ -1,11 +1,11 @@
 import { DelayedPromise } from '@ai-sdk/provider-utils';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { UIMessage } from '../ui/ui-messages';
+import type { UIMessage } from '../ui/ui-messages';
 import { consumeStream } from '../util/consume-stream';
 import { createUIMessageStream } from './create-ui-message-stream';
-import { UIMessageChunk } from './ui-message-chunks';
-import { UIMessageStreamWriter } from './ui-message-stream-writer';
+import type { UIMessageChunk } from './ui-message-chunks';
+import type { UIMessageStreamWriter } from './ui-message-stream-writer';
 
 describe('createUIMessageStream', () => {
   beforeEach(() => {

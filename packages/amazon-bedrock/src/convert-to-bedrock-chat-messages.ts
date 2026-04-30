@@ -1,31 +1,33 @@
 import {
-  JSONObject,
-  LanguageModelV4Message,
-  LanguageModelV4Prompt,
-  SharedV4ProviderMetadata,
   UnsupportedFunctionalityError,
+  type JSONObject,
+  type LanguageModelV4Message,
+  type LanguageModelV4Prompt,
+  type SharedV4ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
   convertToBase64,
-  isProviderReference,
+  getTopLevelMediaType,
+  isFullMediaType,
   parseProviderOptions,
+  resolveFullMediaType,
   stripFileExtension,
 } from '@ai-sdk/provider-utils';
 import {
   BEDROCK_DOCUMENT_MIME_TYPES,
   BEDROCK_IMAGE_MIME_TYPES,
-  BedrockAssistantMessage,
-  BedrockCachePoint,
-  BedrockDocumentFormat,
-  BedrockDocumentMimeType,
-  BedrockImageFormat,
-  BedrockImageMimeType,
-  BedrockMessages,
-  BedrockSystemMessages,
-  BedrockUserMessage,
+  type BedrockAssistantMessage,
+  type BedrockCachePoint,
+  type BedrockDocumentFormat,
+  type BedrockDocumentMimeType,
+  type BedrockImageFormat,
+  type BedrockImageMimeType,
+  type BedrockMessages,
+  type BedrockSystemMessages,
+  type BedrockUserMessage,
 } from './bedrock-api-types';
-import { bedrockReasoningMetadataSchema } from './bedrock-chat-language-model';
 import { bedrockFilePartProviderOptions } from './bedrock-chat-options';
+import { bedrockReasoningMetadataSchema } from './bedrock-reasoning-metadata';
 import { normalizeToolCallId } from './normalize-tool-call-id';
 
 function getCachePoint(
@@ -113,51 +115,77 @@ export async function convertToBedrockChatMessages(
                   }
 
                   case 'file': {
-                    if (isProviderReference(part.data)) {
-                      throw new UnsupportedFunctionalityError({
-                        functionality: 'file parts with provider references',
-                      });
-                    }
-
-                    if (part.data instanceof URL) {
-                      // The AI SDK automatically downloads files for user file parts with URLs
-                      throw new UnsupportedFunctionalityError({
-                        functionality: 'File URL data',
-                      });
-                    }
-
-                    if (part.mediaType.startsWith('image/')) {
-                      bedrockContent.push({
-                        image: {
-                          format: getBedrockImageFormat(part.mediaType),
-                          source: { bytes: convertToBase64(part.data) },
-                        },
-                      });
-                    } else {
-                      if (!part.mediaType) {
+                    switch (part.data.type) {
+                      case 'reference': {
                         throw new UnsupportedFunctionalityError({
-                          functionality: 'file without mime type',
-                          message:
-                            'File mime type is required in user message part content',
+                          functionality: 'file parts with provider references',
                         });
                       }
+                      case 'url': {
+                        throw new UnsupportedFunctionalityError({
+                          functionality: 'File URL data',
+                        });
+                      }
+                      case 'text': {
+                        const textMediaType = isFullMediaType(part.mediaType)
+                          ? part.mediaType
+                          : 'text/plain';
+                        const enableCitations = await shouldEnableCitations(
+                          part.providerOptions,
+                        );
 
-                      const enableCitations = await shouldEnableCitations(
-                        part.providerOptions,
-                      );
+                        bedrockContent.push({
+                          document: {
+                            format: getBedrockDocumentFormat(textMediaType),
+                            name: part.filename
+                              ? stripFileExtension(part.filename)
+                              : generateDocumentName(),
+                            source: {
+                              bytes: convertToBase64(
+                                new TextEncoder().encode(part.data.text),
+                              ),
+                            },
+                            ...(enableCitations && {
+                              citations: { enabled: true },
+                            }),
+                          },
+                        });
+                        break;
+                      }
+                      case 'data': {
+                        const fullMediaType = resolveFullMediaType({ part });
 
-                      bedrockContent.push({
-                        document: {
-                          format: getBedrockDocumentFormat(part.mediaType),
-                          name: part.filename
-                            ? stripFileExtension(part.filename)
-                            : generateDocumentName(),
-                          source: { bytes: convertToBase64(part.data) },
-                          ...(enableCitations && {
-                            citations: { enabled: true },
-                          }),
-                        },
-                      });
+                        if (getTopLevelMediaType(fullMediaType) === 'image') {
+                          bedrockContent.push({
+                            image: {
+                              format: getBedrockImageFormat(fullMediaType),
+                              source: {
+                                bytes: convertToBase64(part.data.data),
+                              },
+                            },
+                          });
+                        } else {
+                          const enableCitations = await shouldEnableCitations(
+                            part.providerOptions,
+                          );
+
+                          bedrockContent.push({
+                            document: {
+                              format: getBedrockDocumentFormat(fullMediaType),
+                              name: part.filename
+                                ? stripFileExtension(part.filename)
+                                : generateDocumentName(),
+                              source: {
+                                bytes: convertToBase64(part.data.data),
+                              },
+                              ...(enableCitations && {
+                                citations: { enabled: true },
+                              }),
+                            },
+                          });
+                        }
+                        break;
+                      }
                     }
 
                     break;
@@ -370,14 +398,7 @@ export async function convertToBedrockChatMessages(
   return { system, messages };
 }
 
-function getBedrockImageFormat(mimeType?: string): BedrockImageFormat {
-  if (!mimeType) {
-    throw new UnsupportedFunctionalityError({
-      functionality: 'image without mime type',
-      message: 'Image mime type is required in user message part content',
-    });
-  }
-
+function getBedrockImageFormat(mimeType: string): BedrockImageFormat {
   const format = BEDROCK_IMAGE_MIME_TYPES[mimeType as BedrockImageMimeType];
   if (!format) {
     throw new UnsupportedFunctionalityError({

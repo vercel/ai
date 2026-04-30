@@ -1,4 +1,4 @@
-import { LanguageModelV4StreamPart } from '@ai-sdk/provider';
+import type { LanguageModelV4StreamPart } from '@ai-sdk/provider';
 import { describe, expect, it, vi } from 'vitest';
 import { StreamingToolCallTracker } from './streaming-tool-call-tracker';
 

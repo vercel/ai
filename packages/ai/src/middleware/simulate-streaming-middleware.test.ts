@@ -1,4 +1,4 @@
-import { LanguageModelV4Usage } from '@ai-sdk/provider';
+import type { LanguageModelV4Usage } from '@ai-sdk/provider';
 import { jsonSchema, tool } from '@ai-sdk/provider-utils';
 import {
   convertAsyncIterableToArray,

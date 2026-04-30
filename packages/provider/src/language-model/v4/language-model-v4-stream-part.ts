@@ -1,15 +1,15 @@
-import { SharedV4ProviderMetadata } from '../../shared/v4/shared-v4-provider-metadata';
-import { SharedV4Warning } from '../../shared/v4/shared-v4-warning';
-import { LanguageModelV4CustomContent } from './language-model-v4-custom-content';
-import { LanguageModelV4File } from './language-model-v4-file';
-import { LanguageModelV4FinishReason } from './language-model-v4-finish-reason';
-import { LanguageModelV4ReasoningFile } from './language-model-v4-reasoning-file';
-import { LanguageModelV4ResponseMetadata } from './language-model-v4-response-metadata';
-import { LanguageModelV4Source } from './language-model-v4-source';
-import { LanguageModelV4ToolApprovalRequest } from './language-model-v4-tool-approval-request';
-import { LanguageModelV4ToolCall } from './language-model-v4-tool-call';
-import { LanguageModelV4ToolResult } from './language-model-v4-tool-result';
-import { LanguageModelV4Usage } from './language-model-v4-usage';
+import type { SharedV4ProviderMetadata } from '../../shared/v4/shared-v4-provider-metadata';
+import type { SharedV4Warning } from '../../shared/v4/shared-v4-warning';
+import type { LanguageModelV4CustomContent } from './language-model-v4-custom-content';
+import type { LanguageModelV4File } from './language-model-v4-file';
+import type { LanguageModelV4FinishReason } from './language-model-v4-finish-reason';
+import type { LanguageModelV4ReasoningFile } from './language-model-v4-reasoning-file';
+import type { LanguageModelV4ResponseMetadata } from './language-model-v4-response-metadata';
+import type { LanguageModelV4Source } from './language-model-v4-source';
+import type { LanguageModelV4ToolApprovalRequest } from './language-model-v4-tool-approval-request';
+import type { LanguageModelV4ToolCall } from './language-model-v4-tool-call';
+import type { LanguageModelV4ToolResult } from './language-model-v4-tool-result';
+import type { LanguageModelV4Usage } from './language-model-v4-usage';
 
 export type LanguageModelV4StreamPart =
   // Text blocks:

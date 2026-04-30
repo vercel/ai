@@ -1,5 +1,30 @@
 # @ai-sdk/xai
 
+## 4.0.0-beta.47
+
+### Patch Changes
+
+- 9bd6512: feat(provider): change file part data property to be tagged with a type and remove the image part type
+- 258c093: chore: ensure consistent import handling and avoid import duplicates or cycles
+- Updated dependencies [9bd6512]
+- Updated dependencies [258c093]
+- Updated dependencies [b6783da]
+  - @ai-sdk/openai-compatible@3.0.0-beta.34
+  - @ai-sdk/provider-utils@5.0.0-beta.29
+  - @ai-sdk/provider@4.0.0-beta.14
+
+## 4.0.0-beta.46
+
+### Patch Changes
+
+- 78b6433: feat(provider/xai): support non-image file parts (PDF, text, CSV) in the Responses API via `input_file` + `file_url`
+
+  The xAI Responses API accepts `{ type: 'input_file', file_url }` for non-image documents (see https://docs.x.ai/docs/guides/chat-with-files), but the AI SDK xAI Responses provider previously threw `UnsupportedFunctionalityError` for any file part whose `mediaType` did not start with `image/`.
+
+  When a file part is passed with `data: URL` and a non-image media type, the provider now emits `{ type: 'input_file', file_url }`. `application/pdf` and `text/*` are also added to `supportedUrls` so the SDK does not download them to bytes before reaching the converter.
+
+  Inline-byte (base64) inputs for non-image media types continue to throw, since xAI's Responses API requires either a public URL or a pre-uploaded `file_id` for non-image documents.
+
 ## 4.0.0-beta.45
 
 ### Patch Changes

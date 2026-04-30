@@ -1,11 +1,10 @@
 import {
-  EmbeddingModelV4,
   TooManyEmbeddingValuesForCallError,
+  type EmbeddingModelV4,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createJsonResponseHandler,
-  FetchFunction,
   lazySchema,
   parseProviderOptions,
   postJsonToApi,
@@ -14,14 +13,14 @@ import {
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
   zodSchema,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { googleFailedResponseHandler } from './google-error';
 import {
-  GoogleEmbeddingModelId,
   googleEmbeddingModelOptions,
+  type GoogleEmbeddingModelId,
 } from './google-embedding-options';
-
 type GoogleEmbeddingConfig = {
   provider: string;
   baseURL: string;

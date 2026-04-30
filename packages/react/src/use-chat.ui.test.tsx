@@ -9,11 +9,11 @@ import { fireEvent, screen, waitFor, render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {
   DefaultChatTransport,
-  FinishReason,
   isStaticToolUIPart,
   TextStreamChatTransport,
-  UIMessage,
-  UIMessageChunk,
+  type FinishReason,
+  type UIMessage,
+  type UIMessageChunk,
 } from 'ai';
 import React, { act, useRef, useState } from 'react';
 import { Chat } from './chat.react';

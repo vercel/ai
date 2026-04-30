@@ -1,7 +1,7 @@
-import { ServerOptions } from '@modelcontextprotocol/sdk/server/index.js';
+import type { ServerOptions } from '@modelcontextprotocol/sdk/server/index.js';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { WebStandardStreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js';
-import { NextRequest } from 'next/server';
+import type { NextRequest } from 'next/server';
 import { z } from 'zod';
 
 export const mcpApiHandler = initializeMcpApiHandler({

@@ -1,4 +1,4 @@
-import { Warning } from '../types';
+import type { Warning } from '../types';
 
 /**
  * A function for logging warnings.

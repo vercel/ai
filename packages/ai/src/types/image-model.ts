@@ -1,4 +1,4 @@
-import {
+import type {
   ImageModelV2,
   ImageModelV3,
   ImageModelV4,

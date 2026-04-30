@@ -1,5 +1,5 @@
 import { InvalidArgumentError } from '../error/invalid-argument-error';
-import { LanguageModelCallOptions } from './language-model-call-options';
+import type { LanguageModelCallOptions } from './language-model-call-options';
 
 /**
  * Validates model call options and returns a new object with normalized values.

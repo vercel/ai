@@ -1,5 +1,18 @@
 # @ai-sdk/llamaindex
 
+## 3.0.0-beta.114
+
+### Patch Changes
+
+- 258c093: chore: ensure consistent import handling and avoid import duplicates or cycles
+- Updated dependencies [43a6750]
+- Updated dependencies [81caa5d]
+- Updated dependencies [1f7db50]
+- Updated dependencies [9bd6512]
+- Updated dependencies [258c093]
+- Updated dependencies [6147cdf]
+  - ai@7.0.0-beta.114
+
 ## 3.0.0-beta.113
 
 ### Patch Changes

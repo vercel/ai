@@ -1,9 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   convertAnthropicUsage,
-  AnthropicUsage,
+  type AnthropicUsage,
 } from './convert-anthropic-usage';
-
 describe('convertAnthropicUsage', () => {
   it('should use usage as raw when rawUsage is not provided', () => {
     const usage = {

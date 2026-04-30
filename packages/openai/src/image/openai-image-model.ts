@@ -1,4 +1,4 @@
-import {
+import type {
   ImageModelV4,
   ImageModelV4File,
   SharedV4Warning,
@@ -15,15 +15,14 @@ import {
   WORKFLOW_DESERIALIZE,
   WORKFLOW_SERIALIZE,
 } from '@ai-sdk/provider-utils';
-import { OpenAIConfig } from '../openai-config';
+import type { OpenAIConfig } from '../openai-config';
 import { openaiFailedResponseHandler } from '../openai-error';
 import { openaiImageResponseSchema } from './openai-image-api';
 import {
-  OpenAIImageModelId,
   hasDefaultResponseFormat,
   modelMaxImagesPerCall,
+  type OpenAIImageModelId,
 } from './openai-image-options';
-
 interface OpenAIImageModelConfig extends OpenAIConfig {
   _internal?: {
     currentDate?: () => Date;

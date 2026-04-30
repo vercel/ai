@@ -1,31 +1,31 @@
 import { GoogleLanguageModel } from '@ai-sdk/google/internal';
-import {
+import type {
   Experimental_VideoModelV4,
   ImageModelV4,
   LanguageModelV4,
   ProviderV4,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
   generateId,
   loadOptionalSetting,
   loadSetting,
   normalizeHeaders,
   resolve,
-  Resolvable,
   withoutTrailingSlash,
   withUserAgentSuffix,
+  type FetchFunction,
+  type Resolvable,
 } from '@ai-sdk/provider-utils';
 import { VERSION } from './version';
-import { GoogleVertexConfig } from './google-vertex-config';
+import type { GoogleVertexConfig } from './google-vertex-config';
 import { GoogleVertexEmbeddingModel } from './google-vertex-embedding-model';
-import { GoogleVertexEmbeddingModelId } from './google-vertex-embedding-options';
+import type { GoogleVertexEmbeddingModelId } from './google-vertex-embedding-options';
 import { GoogleVertexImageModel } from './google-vertex-image-model';
-import { GoogleVertexImageModelId } from './google-vertex-image-settings';
-import { GoogleVertexModelId } from './google-vertex-options';
+import type { GoogleVertexImageModelId } from './google-vertex-image-settings';
+import type { GoogleVertexModelId } from './google-vertex-options';
 import { googleVertexTools } from './google-vertex-tools';
 import { GoogleVertexVideoModel } from './google-vertex-video-model';
-import { GoogleVertexVideoModelId } from './google-vertex-video-settings';
+import type { GoogleVertexVideoModelId } from './google-vertex-video-settings';
 
 const EXPRESS_MODE_BASE_URL =
   'https://aiplatform.googleapis.com/v1/publishers/google';

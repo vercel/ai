@@ -1,13 +1,12 @@
 import type { GoogleLanguageModelOptions } from '@ai-sdk/google';
 import { GoogleLanguageModel } from '@ai-sdk/google/internal';
-import {
+import type {
   ImageModelV4,
   ImageModelV4File,
   LanguageModelV4Prompt,
   SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
-  Resolvable,
   combineHeaders,
   convertToBase64,
   convertUint8ArrayToBase64,
@@ -19,10 +18,11 @@ import {
   serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
+  type Resolvable,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { googleVertexFailedResponseHandler } from './google-vertex-error';
-import { GoogleVertexImageModelId } from './google-vertex-image-settings';
+import type { GoogleVertexImageModelId } from './google-vertex-image-settings';
 
 interface GoogleVertexImageModelConfig {
   provider: string;
@@ -260,7 +260,13 @@ export class GoogleVertexImageModel implements ImageModelV4 {
 
     const userContent: Array<
       | { type: 'text'; text: string }
-      | { type: 'file'; data: string | Uint8Array | URL; mediaType: string }
+      | {
+          type: 'file';
+          data:
+            | { type: 'data'; data: string | Uint8Array }
+            | { type: 'url'; url: URL };
+          mediaType: string;
+        }
     > = [];
 
     if (prompt != null) {
@@ -272,16 +278,19 @@ export class GoogleVertexImageModel implements ImageModelV4 {
         if (file.type === 'url') {
           userContent.push({
             type: 'file',
-            data: new URL(file.url),
+            data: { type: 'url', url: new URL(file.url) },
             mediaType: 'image/*',
           });
         } else {
           userContent.push({
             type: 'file',
-            data:
-              typeof file.data === 'string'
-                ? file.data
-                : new Uint8Array(file.data),
+            data: {
+              type: 'data',
+              data:
+                typeof file.data === 'string'
+                  ? file.data
+                  : new Uint8Array(file.data),
+            },
             mediaType: file.mediaType,
           });
         }
@@ -330,8 +339,12 @@ export class GoogleVertexImageModel implements ImageModelV4 {
 
     const images: string[] = [];
     for (const part of result.content) {
-      if (part.type === 'file' && part.mediaType.startsWith('image/')) {
-        images.push(convertToBase64(part.data));
+      if (
+        part.type === 'file' &&
+        part.mediaType.startsWith('image/') &&
+        part.data.type === 'data'
+      ) {
+        images.push(convertToBase64(part.data.data));
       }
     }
 

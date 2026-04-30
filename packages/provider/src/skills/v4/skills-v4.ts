@@ -1,5 +1,5 @@
-import { SkillsV4UploadSkillCallOptions } from './skills-v4-upload-skill-call-options';
-import { SkillsV4UploadSkillResult } from './skills-v4-upload-skill-result';
+import type { SkillsV4UploadSkillCallOptions } from './skills-v4-upload-skill-call-options';
+import type { SkillsV4UploadSkillResult } from './skills-v4-upload-skill-result';
 
 /**
  * Skills specification version 4.

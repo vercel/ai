@@ -1,4 +1,5 @@
-import { LanguageModelV4Prompt } from '@ai-sdk/provider';
+import type * as AnthropicInternal from '@ai-sdk/anthropic/internal';
+import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { BedrockChatLanguageModel } from './bedrock-chat-language-model';
@@ -11,8 +12,7 @@ import fs from 'node:fs';
 const mockPrepareAnthropicTools = vi.mocked(prepareTools);
 
 vi.mock('@ai-sdk/anthropic/internal', async importOriginal => {
-  const original =
-    await importOriginal<typeof import('@ai-sdk/anthropic/internal')>();
+  const original = await importOriginal<typeof AnthropicInternal>();
   return {
     ...original,
     prepareTools: vi.fn(),

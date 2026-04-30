@@ -1,4 +1,4 @@
-import {
+import type {
   LanguageModelV4,
   LanguageModelV4CallOptions,
   LanguageModelV4Content,
@@ -10,8 +10,6 @@ import {
   SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
-  ParseResult,
   StreamingToolCallTracker,
   combineHeaders,
   createEventSourceResponseHandler,
@@ -23,24 +21,26 @@ import {
   serializeModelOptions,
   WORKFLOW_DESERIALIZE,
   WORKFLOW_SERIALIZE,
+  type FetchFunction,
+  type ParseResult,
 } from '@ai-sdk/provider-utils';
 import { openaiFailedResponseHandler } from '../openai-error';
 import { getOpenAILanguageModelCapabilities } from '../openai-language-model-capabilities';
 import {
-  OpenAIChatUsage,
   convertOpenAIChatUsage,
+  type OpenAIChatUsage,
 } from './convert-openai-chat-usage';
 import { convertToOpenAIChatMessages } from './convert-to-openai-chat-messages';
 import { getResponseMetadata } from './get-response-metadata';
 import { mapOpenAIFinishReason } from './map-openai-finish-reason';
 import {
-  OpenAIChatChunk,
   openaiChatChunkSchema,
   openaiChatResponseSchema,
+  type OpenAIChatChunk,
 } from './openai-chat-api';
 import {
-  OpenAIChatModelId,
   openaiLanguageModelChatOptions,
+  type OpenAIChatModelId,
 } from './openai-chat-options';
 import { prepareChatTools } from './openai-chat-prepare-tools';
 

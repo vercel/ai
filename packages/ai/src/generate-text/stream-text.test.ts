@@ -1,25 +1,25 @@
 import {
   APICallError,
-  LanguageModelV4,
-  LanguageModelV4CallOptions,
-  LanguageModelV4FunctionTool,
-  LanguageModelV4Prompt,
-  LanguageModelV4ProviderTool,
-  LanguageModelV4StreamPart,
-  LanguageModelV4Usage,
-  SharedV4ProviderMetadata,
-  SharedV4Warning,
+  type LanguageModelV4,
+  type LanguageModelV4CallOptions,
+  type LanguageModelV4FunctionTool,
+  type LanguageModelV4Prompt,
+  type LanguageModelV4ProviderTool,
+  type LanguageModelV4StreamPart,
+  type LanguageModelV4Usage,
+  type SharedV4ProviderMetadata,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
-import type { ToolSet } from '@ai-sdk/provider-utils';
 import {
   delay,
   DelayedPromise,
   dynamicTool,
   jsonSchema,
-  ModelMessage,
   tool,
-  Tool,
-  ToolExecuteFunction,
+  type ToolSet,
+  type ModelMessage,
+  type Tool,
+  type ToolExecuteFunction,
 } from '@ai-sdk/provider-utils';
 import {
   convertArrayToReadableStream,
@@ -49,15 +49,15 @@ import {
   asLanguageModelUsage,
   createNullLanguageModelUsage,
 } from '../types/usage';
-import { StepResult } from './step-result';
+import type { StepResult } from './step-result';
 import { isLoopFinished, isStepCount } from './stop-condition';
 import { streamText } from './stream-text';
-import { StreamTextResult, TextStreamPart } from './stream-text-result';
-import {
+import type { StreamTextResult, TextStreamPart } from './stream-text-result';
+import type {
   OnToolExecutionEndCallback,
   OnToolExecutionStartCallback,
 } from './tool-execution-events';
-import {
+import type {
   GenerateTextOnFinishCallback,
   GenerateTextOnStartCallback,
   GenerateTextOnStepStartCallback,
@@ -232,7 +232,7 @@ const modelWithFiles = new MockLanguageModelV4({
     stream: convertArrayToReadableStream([
       {
         type: 'file',
-        data: 'Hello World',
+        data: { type: 'data', data: 'Hello World' },
         mediaType: 'text/plain',
       },
       { type: 'text-start', id: '1' },
@@ -240,7 +240,7 @@ const modelWithFiles = new MockLanguageModelV4({
       { type: 'text-end', id: '1' },
       {
         type: 'file',
-        data: 'QkFVRw==',
+        data: { type: 'data', data: 'QkFVRw==' },
         mediaType: 'image/jpeg',
       },
       {
@@ -257,7 +257,7 @@ const modelWithFilesAndProviderMetadata = new MockLanguageModelV4({
     stream: convertArrayToReadableStream([
       {
         type: 'file',
-        data: 'Hello World',
+        data: { type: 'data', data: 'Hello World' },
         mediaType: 'text/plain',
         providerMetadata: {
           testProvider: { signature: 'sig-1' },
@@ -268,7 +268,7 @@ const modelWithFilesAndProviderMetadata = new MockLanguageModelV4({
       { type: 'text-end', id: '1' },
       {
         type: 'file',
-        data: 'QkFVRw==',
+        data: { type: 'data', data: 'QkFVRw==' },
         mediaType: 'image/jpeg',
       },
       {
@@ -418,7 +418,7 @@ const modelWithReasoningFiles = new MockLanguageModelV4({
       },
       {
         type: 'reasoning-file',
-        data: 'reasoning-file-data-1',
+        data: { type: 'data', data: 'reasoning-file-data-1' },
         mediaType: 'image/png',
       },
       { type: 'reasoning-start', id: '1' },
@@ -430,7 +430,7 @@ const modelWithReasoningFiles = new MockLanguageModelV4({
       { type: 'reasoning-end', id: '1' },
       {
         type: 'reasoning-file',
-        data: 'reasoning-file-data-2',
+        data: { type: 'data', data: 'reasoning-file-data-2' },
         mediaType: 'image/jpeg',
         providerMetadata: {
           testProvider: { signature: 'rf-sig-1' },
@@ -2211,6 +2211,69 @@ describe('streamText', () => {
   });
 
   describe('retries', () => {
+    it('should preserve allowSystemInMessages when retrying after a 500 error', async () => {
+      const doStream = vi
+        .fn<LanguageModelV4['doStream']>()
+        .mockImplementationOnce(async () => {
+          throw new APICallError({
+            message: 'Internal Server Error',
+            url: 'https://api.example.com/v1/chat',
+            requestBodyValues: { prompt: 'test-input' },
+            statusCode: 500,
+            responseHeaders: {
+              'retry-after-ms': '1',
+            },
+          });
+        })
+        .mockImplementationOnce(async () => ({
+          stream: convertArrayToReadableStream([
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'hello' },
+            { type: 'text-delta', id: '1', delta: ' ' },
+            { type: 'text-delta', id: '1', delta: 'world' },
+            { type: 'text-end', id: '1' },
+            {
+              type: 'finish',
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: testUsage,
+            },
+          ]),
+        }));
+
+      const model = new MockLanguageModelV4({ doStream });
+
+      const result = streamText({
+        model,
+        allowSystemInMessages: true,
+        messages: [
+          { role: 'system', content: 'INSTRUCTIONS' },
+          { role: 'user', content: 'test-input' },
+        ],
+      });
+
+      const textStreamPromise = convertAsyncIterableToArray(result.textStream);
+
+      await vi.advanceTimersByTimeAsync(1);
+
+      expect(await textStreamPromise).toStrictEqual(['hello', ' ', 'world']);
+      expect(doStream).toHaveBeenCalledTimes(2);
+      expect(model.doStreamCalls[0].prompt).toEqual([
+        {
+          role: 'system',
+          content: 'INSTRUCTIONS',
+          providerOptions: undefined,
+        },
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'test-input' }],
+          providerOptions: undefined,
+        },
+      ]);
+      expect(model.doStreamCalls[1].prompt).toEqual(
+        model.doStreamCalls[0].prompt,
+      );
+    });
+
     it('should retry after a 500 error and stream the successful response', async () => {
       const doStream = vi
         .fn<LanguageModelV4['doStream']>()
@@ -24023,12 +24086,15 @@ describe('streamText', () => {
                     "type": "text",
                   },
                   {
-                    "data": Uint8Array [
-                      1,
-                      2,
-                      3,
-                      4,
-                    ],
+                    "data": {
+                      "data": Uint8Array [
+                        1,
+                        2,
+                        3,
+                        4,
+                      ],
+                      "type": "data",
+                    },
                     "filename": undefined,
                     "mediaType": "image/png",
                     "providerOptions": undefined,

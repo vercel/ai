@@ -1,5 +1,5 @@
-import { FilesV4UploadFileCallOptions } from './files-v4-upload-file-call-options';
-import { FilesV4UploadFileResult } from './files-v4-upload-file-result';
+import type { FilesV4UploadFileCallOptions } from './files-v4-upload-file-call-options';
+import type { FilesV4UploadFileResult } from './files-v4-upload-file-result';
 
 /**
  * Specification for a file management interface that implements the files interface version 4.

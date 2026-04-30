@@ -1,6 +1,5 @@
 import { createOpenAI } from '@ai-sdk/openai';
 import { convertToModelMessages, streamText, type UIMessage } from 'ai';
-
 export default defineLazyEventHandler(async () => {
   const apiKey = useRuntimeConfig().openaiApiKey;
   if (!apiKey) throw new Error('Missing OpenAI API key');
@@ -28,7 +27,7 @@ export default defineLazyEventHandler(async () => {
                 .map(part => (part.type === 'text' ? part.text : ''))
                 .join(''),
             },
-            { type: 'image', image: new URL(data.imageUrl) },
+            { type: 'file', data: new URL(data.imageUrl), mediaType: 'image' },
           ],
         },
       ],

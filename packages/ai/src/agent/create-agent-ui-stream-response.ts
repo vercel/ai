@@ -1,13 +1,13 @@
 import type { Arrayable, Context, ToolSet } from '@ai-sdk/provider-utils';
-import { GenerateTextOnStepFinishCallback } from '../generate-text/generate-text-events';
-import { Output } from '../generate-text/output';
-import { StreamTextTransform } from '../generate-text/stream-text';
-import { UIMessageStreamOptions } from '../generate-text/stream-text-result';
-import { TimeoutConfiguration } from '../prompt/request-options';
+import type { GenerateTextOnStepFinishCallback } from '../generate-text/generate-text-events';
+import type { Output } from '../generate-text/output';
+import type { StreamTextTransform } from '../generate-text/stream-text';
+import type { UIMessageStreamOptions } from '../generate-text/stream-text-result';
+import type { TimeoutConfiguration } from '../prompt/request-options';
 import { createUIMessageStreamResponse } from '../ui-message-stream';
-import { UIMessageStreamResponseInit } from '../ui-message-stream/ui-message-stream-response-init';
-import { InferUITools, UIMessage } from '../ui/ui-messages';
-import { Agent } from './agent';
+import type { UIMessageStreamResponseInit } from '../ui-message-stream/ui-message-stream-response-init';
+import type { InferUITools, UIMessage } from '../ui/ui-messages';
+import type { Agent } from './agent';
 import { createAgentUIStream } from './create-agent-ui-stream';
 
 /**

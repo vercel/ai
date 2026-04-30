@@ -1,5 +1,5 @@
 import { AISDKError } from '@ai-sdk/provider';
-import { LanguageModelStreamPart } from '../generate-text/stream-language-model-call';
+import type { LanguageModelStreamPart } from '../generate-text/stream-language-model-call';
 
 const name = 'AI_InvalidStreamPartError';
 const marker = `vercel.ai.error.${name}`;

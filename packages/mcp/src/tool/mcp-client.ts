@@ -1,19 +1,19 @@
-import { JSONSchema7, JSONValue } from '@ai-sdk/provider';
+import type { JSONSchema7, JSONValue } from '@ai-sdk/provider';
 import {
   asSchema,
   dynamicTool,
-  FlexibleSchema,
   jsonSchema,
   safeParseJSON,
   safeValidateTypes,
-  Tool,
   tool,
-  ToolExecutionOptions,
-  ToolResultOutput,
+  type FlexibleSchema,
+  type Tool,
+  type ToolExecutionOptions,
+  type ToolResultOutput,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
+import type { z } from 'zod/v4';
 import { MCPClientError } from '../error/mcp-client-error';
-import {
+import type {
   JSONRPCError,
   JSONRPCNotification,
   JSONRPCRequest,
@@ -22,44 +22,43 @@ import {
 import {
   createMcpTransport,
   isCustomMcpTransport,
-  MCPTransport,
-  MCPTransportConfig,
+  type MCPTransport,
+  type MCPTransportConfig,
 } from './mcp-transport';
 import {
-  CallToolResult,
   CallToolResultSchema,
-  ClientCapabilities,
-  Configuration,
-  Configuration as ClientConfiguration,
-  ElicitationRequest,
   ElicitationRequestSchema,
-  ElicitResult,
   ElicitResultSchema,
   InitializeResultSchema,
   LATEST_PROTOCOL_VERSION,
-  ListResourceTemplatesResult,
   ListResourceTemplatesResultSchema,
-  ListResourcesResult,
   ListResourcesResultSchema,
-  ListPromptsResult,
   ListPromptsResultSchema,
-  ListToolsResult,
   ListToolsResultSchema,
-  McpToolSet,
-  Notification,
-  PaginatedRequest,
-  ReadResourceResult,
   ReadResourceResultSchema,
-  GetPromptResult,
   GetPromptResultSchema,
-  Request,
-  RequestOptions,
-  ServerCapabilities,
   SUPPORTED_PROTOCOL_VERSIONS,
-  ToolSchemas,
-  ToolMeta,
+  type CallToolResult,
+  type ClientCapabilities,
+  type Configuration,
+  type Configuration as ClientConfiguration,
+  type ElicitationRequest,
+  type ElicitResult,
+  type ListResourceTemplatesResult,
+  type ListResourcesResult,
+  type ListPromptsResult,
+  type ListToolsResult,
+  type McpToolSet,
+  type Notification,
+  type PaginatedRequest,
+  type ReadResourceResult,
+  type GetPromptResult,
+  type Request,
+  type RequestOptions,
+  type ServerCapabilities,
+  type ToolSchemas,
+  type ToolMeta,
 } from './types';
-
 const CLIENT_VERSION = '1.0.0';
 
 function mcpToModelOutput({

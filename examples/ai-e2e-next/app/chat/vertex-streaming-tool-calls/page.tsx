@@ -6,7 +6,7 @@ import {
   DefaultChatTransport,
   lastAssistantMessageIsCompleteWithToolCalls,
 } from 'ai';
-import { VertexStreamingToolCallsMessage } from '@/app/api/chat/vertex-streaming-tool-calls/route';
+import type { VertexStreamingToolCallsMessage } from '@/app/api/chat/vertex-streaming-tool-calls/route';
 
 export default function Chat() {
   const { messages, status, sendMessage, addToolOutput } =

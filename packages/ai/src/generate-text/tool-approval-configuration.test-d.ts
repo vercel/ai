@@ -1,8 +1,8 @@
 import {
-  Context,
-  InferToolSetContext,
-  ModelMessage,
   tool,
+  type Context,
+  type InferToolSetContext,
+  type ModelMessage,
 } from '@ai-sdk/provider-utils';
 import { describe, expectTypeOf, it } from 'vitest';
 import { z } from 'zod';

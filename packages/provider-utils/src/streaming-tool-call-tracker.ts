@@ -1,7 +1,7 @@
 import {
   InvalidResponseDataError,
-  LanguageModelV4StreamPart,
-  SharedV4ProviderMetadata,
+  type LanguageModelV4StreamPart,
+  type SharedV4ProviderMetadata,
 } from '@ai-sdk/provider';
 import { generateId as defaultGenerateId } from './generate-id';
 import { isParsableJson } from './parse-json';

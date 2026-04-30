@@ -1,6 +1,5 @@
 import { bedrock } from '@ai-sdk/amazon-bedrock';
-import { convertToModelMessages, streamText, UIMessage } from 'ai';
-
+import { convertToModelMessages, streamText, type UIMessage } from 'ai';
 export async function POST(req: Request) {
   try {
     const { messages }: { messages: UIMessage[] } = await req.json();

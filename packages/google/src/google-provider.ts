@@ -1,4 +1,4 @@
-import {
+import type {
   EmbeddingModelV4,
   Experimental_VideoModelV4,
   FilesV4,
@@ -7,27 +7,27 @@ import {
   ProviderV4,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
   generateId,
   loadApiKey,
   withoutTrailingSlash,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { VERSION } from './version';
 import { GoogleEmbeddingModel } from './google-embedding-model';
-import { GoogleEmbeddingModelId } from './google-embedding-options';
+import type { GoogleEmbeddingModelId } from './google-embedding-options';
 import { GoogleLanguageModel } from './google-language-model';
-import { GoogleModelId } from './google-options';
+import type { GoogleModelId } from './google-options';
 import { googleTools } from './google-tools';
 
-import {
+import type {
   GoogleImageSettings,
   GoogleImageModelId,
 } from './google-image-settings';
 import { GoogleImageModel } from './google-image-model';
 import { GoogleFiles } from './google-files';
 import { GoogleVideoModel } from './google-video-model';
-import { GoogleVideoModelId } from './google-video-settings';
+import type { GoogleVideoModelId } from './google-video-settings';
 
 export interface GoogleProvider extends ProviderV4 {
   (modelId: GoogleModelId): LanguageModelV4;

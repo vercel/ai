@@ -1,14 +1,17 @@
 import {
-  Experimental_VideoModelV4,
   NoSuchModelError,
-  ProviderV4,
+  type Experimental_VideoModelV4,
+  type ProviderV4,
 } from '@ai-sdk/provider';
-import type { FetchFunction } from '@ai-sdk/provider-utils';
-import { loadApiKey, withUserAgentSuffix } from '@ai-sdk/provider-utils';
+import {
+  loadApiKey,
+  withUserAgentSuffix,
+  type FetchFunction,
+} from '@ai-sdk/provider-utils';
 import { ReplicateImageModel } from './replicate-image-model';
-import { ReplicateImageModelId } from './replicate-image-settings';
+import type { ReplicateImageModelId } from './replicate-image-settings';
 import { ReplicateVideoModel } from './replicate-video-model';
-import { ReplicateVideoModelId } from './replicate-video-settings';
+import type { ReplicateVideoModelId } from './replicate-video-settings';
 import { VERSION } from './version';
 
 export interface ReplicateProviderSettings {

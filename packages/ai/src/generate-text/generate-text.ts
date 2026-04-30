@@ -1,46 +1,44 @@
-import {
+import type {
   LanguageModelV4Content,
   LanguageModelV4GenerateResult,
   LanguageModelV4ToolCall,
 } from '@ai-sdk/provider';
-import type {
-  Arrayable,
-  Context,
-  InferToolSetContext,
-  SensitiveContext,
-  ToolSet,
-} from '@ai-sdk/provider-utils';
 import {
   asArray,
   createIdGenerator,
   getErrorMessage,
-  IdGenerator,
-  ProviderOptions,
   withUserAgentSuffix,
+  type Arrayable,
+  type Context,
+  type InferToolSetContext,
+  type SensitiveContext,
+  type ToolSet,
+  type IdGenerator,
+  type ProviderOptions,
 } from '@ai-sdk/provider-utils';
 import { NoOutputGeneratedError } from '../error';
 import { ToolCallNotFoundForApprovalError } from '../error/tool-call-not-found-for-approval-error';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
-import { ModelMessage } from '../prompt';
+import type { ModelMessage } from '../prompt';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { createToolModelOutput } from '../prompt/create-tool-model-output';
-import { LanguageModelCallOptions } from '../prompt/language-model-call-options';
+import type { LanguageModelCallOptions } from '../prompt/language-model-call-options';
 import { prepareLanguageModelCallOptions } from '../prompt/prepare-language-model-call-options';
 import { prepareToolChoice } from '../prompt/prepare-tool-choice';
 import { prepareTools } from '../prompt/prepare-tools';
-import { Prompt } from '../prompt/prompt';
+import type { Prompt } from '../prompt/prompt';
 import {
   getStepTimeoutMs,
   getTotalTimeoutMs,
-  RequestOptions,
-  TimeoutConfiguration,
+  type RequestOptions,
+  type TimeoutConfiguration,
 } from '../prompt/request-options';
 import { standardizePrompt } from '../prompt/standardize-prompt';
 import { wrapGatewayError } from '../prompt/wrap-gateway-error';
 import type { Telemetry } from '../telemetry/telemetry';
-import { TelemetryOptions } from '../telemetry/telemetry-options';
-import {
+import type { TelemetryOptions } from '../telemetry/telemetry-options';
+import type {
   LanguageModel,
   LanguageModelRequestMetadata,
   ToolChoice,
@@ -48,9 +46,9 @@ import {
 import {
   addLanguageModelUsage,
   asLanguageModelUsage,
-  LanguageModelUsage,
+  type LanguageModelUsage,
 } from '../types/usage';
-import { DownloadFunction } from '../util/download/download-function';
+import type { DownloadFunction } from '../util/download/download-function';
 import { mergeAbortSignals } from '../util/merge-abort-signals';
 import { mergeObjects } from '../util/merge-objects';
 import { notify } from '../util/notify';
@@ -58,7 +56,7 @@ import { prepareRetries } from '../util/prepare-retries';
 import { VERSION } from '../version';
 import type { ActiveTools } from './active-tools';
 import { collectToolApprovals } from './collect-tool-approvals';
-import { ContentPart } from './content-part';
+import type { ContentPart } from './content-part';
 import { executeToolCall } from './execute-tool-call';
 import { filterActiveTools } from './filter-active-tools';
 import type {
@@ -67,40 +65,40 @@ import type {
   GenerateTextOnStepFinishCallback,
   GenerateTextOnStepStartCallback,
 } from './generate-text-events';
-import { GenerateTextResult } from './generate-text-result';
+import type { GenerateTextResult } from './generate-text-result';
 import { DefaultGeneratedFile } from './generated-file';
 import type {
   OnLanguageModelCallEndCallback,
   OnLanguageModelCallStartCallback,
 } from './language-model-events';
-import { Output, text } from './output';
-import { InferCompleteOutput } from './output-utils';
+import { text, type Output } from './output';
+import type { InferCompleteOutput } from './output-utils';
 import { parseToolCall } from './parse-tool-call';
-import { PrepareStepFunction } from './prepare-step';
+import type { PrepareStepFunction } from './prepare-step';
 import { convertToReasoningOutputs } from './reasoning-output';
 import { createRestrictedTelemetryDispatcher } from './restricted-telemetry-dispatcher';
 import { resolveToolApproval } from './resolve-tool-approval';
-import { ResponseMessage } from './response-message';
-import { DefaultStepResult, StepResult } from './step-result';
+import type { ResponseMessage } from './response-message';
+import { DefaultStepResult, type StepResult } from './step-result';
 import {
   isStepCount,
   isStopConditionMet,
-  StopCondition,
+  type StopCondition,
 } from './stop-condition';
 import { toResponseMessages } from './to-response-messages';
-import { ToolApprovalConfiguration } from './tool-approval-configuration';
-import { ToolApprovalRequestOutput } from './tool-approval-request-output';
-import { ToolApprovalResponseOutput } from './tool-approval-response-output';
-import { TypedToolCall } from './tool-call';
-import { ToolCallRepairFunction } from './tool-call-repair-function';
-import { TypedToolError } from './tool-error';
-import {
+import type { ToolApprovalConfiguration } from './tool-approval-configuration';
+import type { ToolApprovalRequestOutput } from './tool-approval-request-output';
+import type { ToolApprovalResponseOutput } from './tool-approval-response-output';
+import type { TypedToolCall } from './tool-call';
+import type { ToolCallRepairFunction } from './tool-call-repair-function';
+import type { TypedToolError } from './tool-error';
+import type {
   OnToolExecutionEndCallback,
   OnToolExecutionStartCallback,
 } from './tool-execution-events';
-import { ToolOutput } from './tool-output';
-import { TypedToolResult } from './tool-result';
-import { ToolsContextParameter } from './tools-context-parameter';
+import type { ToolOutput } from './tool-output';
+import type { TypedToolResult } from './tool-result';
+import type { ToolsContextParameter } from './tools-context-parameter';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -1281,7 +1279,13 @@ function asContent<TOOLS extends ToolSet>({
       case 'reasoning-file': {
         contentParts.push({
           type: part.type as 'file' | 'reasoning-file',
-          file: new DefaultGeneratedFile(part),
+          file: new DefaultGeneratedFile({
+            data:
+              part.data.type === 'data'
+                ? part.data.data
+                : part.data.url.toString(),
+            mediaType: part.mediaType,
+          }),
           ...(part.providerMetadata != null
             ? { providerMetadata: part.providerMetadata }
             : {}),

@@ -1,5 +1,5 @@
 import { createAnthropic } from '@ai-sdk/anthropic';
-import { ModelMessage, generateText, isStepCount } from 'ai';
+import { generateText, isStepCount, type ModelMessage } from 'ai';
 import * as readline from 'node:readline/promises';
 import { run } from '../../lib/run';
 

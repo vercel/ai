@@ -113,9 +113,8 @@ describe('GoogleFiles', () => {
         },
       });
 
-      const data = new Uint8Array([1, 2, 3]);
       await files.uploadFile({
-        data,
+        data: { type: 'data', data: new Uint8Array([1, 2, 3]) },
         mediaType: 'application/pdf',
       });
 
@@ -141,7 +140,7 @@ describe('GoogleFiles', () => {
       });
 
       await files.uploadFile({
-        data: new Uint8Array([1]),
+        data: { type: 'data', data: new Uint8Array([1]) },
         mediaType: 'text/plain',
         providerOptions: {
           google: {
@@ -166,7 +165,7 @@ describe('GoogleFiles', () => {
       });
 
       await files.uploadFile({
-        data: new Uint8Array([1]),
+        data: { type: 'data', data: new Uint8Array([1]) },
         mediaType: 'application/octet-stream',
         providerOptions: {},
       });
@@ -186,9 +185,9 @@ describe('GoogleFiles', () => {
         },
       });
 
-      const data = new Uint8Array([10, 20, 30]);
+      const bytes = new Uint8Array([10, 20, 30]);
       await files.uploadFile({
-        data,
+        data: { type: 'data', data: bytes },
         mediaType: 'application/octet-stream',
         providerOptions: {},
       });
@@ -198,14 +197,14 @@ describe('GoogleFiles', () => {
       expect(headers['Content-Length']).toBe('3');
       expect(headers['X-Goog-Upload-Offset']).toBe('0');
       expect(headers['X-Goog-Upload-Command']).toBe('upload, finalize');
-      expect(capturedUploadInit?.body).toEqual(data);
+      expect(capturedUploadInit?.body).toEqual(bytes);
     });
 
     it('should return providerReference with google key set to file URI', async () => {
       const { files } = createMockFiles();
 
       const result = await files.uploadFile({
-        data: new Uint8Array([1]),
+        data: { type: 'data', data: new Uint8Array([1]) },
         mediaType: 'application/octet-stream',
         providerOptions: {},
       });
@@ -219,7 +218,7 @@ describe('GoogleFiles', () => {
       const { files } = createMockFiles();
 
       const result = await files.uploadFile({
-        data: new Uint8Array([1]),
+        data: { type: 'data', data: new Uint8Array([1]) },
         mediaType: 'application/octet-stream',
         providerOptions: {},
       });
@@ -231,7 +230,7 @@ describe('GoogleFiles', () => {
       const { files } = createMockFiles();
 
       const result = await files.uploadFile({
-        data: new Uint8Array([1]),
+        data: { type: 'data', data: new Uint8Array([1]) },
         mediaType: 'application/octet-stream',
         filename: 'test.pdf',
         providerOptions: {},
@@ -246,7 +245,7 @@ describe('GoogleFiles', () => {
       const { files } = createMockFiles();
 
       const result = await files.uploadFile({
-        data: new Uint8Array([1]),
+        data: { type: 'data', data: new Uint8Array([1]) },
         mediaType: 'application/octet-stream',
         providerOptions: {},
       });
@@ -281,7 +280,7 @@ describe('GoogleFiles', () => {
 
       const base64Data = btoa('hello');
       await files.uploadFile({
-        data: base64Data,
+        data: { type: 'data', data: base64Data },
         mediaType: 'application/octet-stream',
         providerOptions: {},
       });
@@ -305,7 +304,7 @@ describe('GoogleFiles', () => {
         });
 
         const result = await files.uploadFile({
-          data: new Uint8Array([1]),
+          data: { type: 'data', data: new Uint8Array([1]) },
           mediaType: 'application/octet-stream',
           providerOptions: {
             google: { pollIntervalMs: 10 },
@@ -324,7 +323,7 @@ describe('GoogleFiles', () => {
         const { files, fetchFn } = createMockFiles();
 
         await files.uploadFile({
-          data: new Uint8Array([1]),
+          data: { type: 'data', data: new Uint8Array([1]) },
           mediaType: 'application/octet-stream',
           providerOptions: {},
         });
@@ -345,7 +344,7 @@ describe('GoogleFiles', () => {
 
         await expect(
           files.uploadFile({
-            data: new Uint8Array([1]),
+            data: { type: 'data', data: new Uint8Array([1]) },
             mediaType: 'application/octet-stream',
             providerOptions: {},
           }),
@@ -397,7 +396,7 @@ describe('GoogleFiles', () => {
 
         await expect(
           files.uploadFile({
-            data: new Uint8Array([1]),
+            data: { type: 'data', data: new Uint8Array([1]) },
             mediaType: 'application/octet-stream',
             providerOptions: {
               google: {
@@ -416,7 +415,7 @@ describe('GoogleFiles', () => {
 
         await expect(
           files.uploadFile({
-            data: new Uint8Array([1]),
+            data: { type: 'data', data: new Uint8Array([1]) },
             mediaType: 'application/octet-stream',
             providerOptions: {},
           }),
@@ -439,7 +438,7 @@ describe('GoogleFiles', () => {
 
         await expect(
           files.uploadFile({
-            data: new Uint8Array([1]),
+            data: { type: 'data', data: new Uint8Array([1]) },
             mediaType: 'application/octet-stream',
             providerOptions: {},
           }),
@@ -451,7 +450,7 @@ describe('GoogleFiles', () => {
 
         await expect(
           files.uploadFile({
-            data: new Uint8Array([1]),
+            data: { type: 'data', data: new Uint8Array([1]) },
             mediaType: 'application/octet-stream',
             providerOptions: {},
           }),
@@ -464,7 +463,7 @@ describe('GoogleFiles', () => {
         const { files } = createMockFiles();
 
         const result = await files.uploadFile({
-          data: new Uint8Array([1]),
+          data: { type: 'data', data: new Uint8Array([1]) },
           mediaType: 'text/plain',
           providerOptions: {
             google: {
@@ -482,7 +481,7 @@ describe('GoogleFiles', () => {
         const { files } = createMockFiles();
 
         const result = await files.uploadFile({
-          data: new Uint8Array([1]),
+          data: { type: 'data', data: new Uint8Array([1]) },
           mediaType: 'application/octet-stream',
           providerOptions: {},
         });
@@ -494,7 +493,7 @@ describe('GoogleFiles', () => {
         const { files } = createMockFiles();
 
         const result = await files.uploadFile({
-          data: new Uint8Array([1]),
+          data: { type: 'data', data: new Uint8Array([1]) },
           mediaType: 'text/plain',
           providerOptions: {
             google: {
@@ -546,7 +545,7 @@ describe('GoogleFiles', () => {
         });
 
         const result = await files.uploadFile({
-          data: new Uint8Array([1]),
+          data: { type: 'data', data: new Uint8Array([1]) },
           mediaType: 'application/octet-stream',
           providerOptions: {},
         });

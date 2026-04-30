@@ -1,16 +1,14 @@
 import type {
   Context,
   InferToolSetContext,
-  ToolSet,
-} from '@ai-sdk/provider-utils';
-import {
   ModelMessage,
   ProviderOptions,
   SystemModelMessage,
+  ToolSet,
 } from '@ai-sdk/provider-utils';
-import { LanguageModel, ToolChoice } from '../types/language-model';
+import type { LanguageModel, ToolChoice } from '../types/language-model';
 import type { ActiveTools } from './active-tools';
-import { StepResult } from './step-result';
+import type { StepResult } from './step-result';
 
 /**
  * Function that you can use to provide different settings for a step.
