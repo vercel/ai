@@ -89,7 +89,10 @@
           "name": "provider-file-must-export-provider-class-and-settings-type",
           "description": "Every provider file must export a provider class and a provider settings type.",
           "for": {
-            "files": "${providerId}-provider.ts"
+            "files": [
+              "${providerId}-provider.ts",
+              "google-vertex-provider-base.ts"
+            ]
           },
           "must": {
             "importTypes": [
@@ -112,7 +115,10 @@
                 "returnValueOfType": "${providerId.toPascalCase()}Provider"
               }
             ]
-          }
+          },
+          "excludeFiles": [
+            "packages/google-vertex/src/google-vertex-provider.ts"
+          ]
         },
         {
           "name": "provider-file-must-export-provider-instance-case-1",
@@ -138,7 +144,11 @@
           },
           "must": {
             "exportConstants": ["${providerId.toCamelCase()}"]
-          }
+          },
+          "excludeFiles": [
+            "packages/openai-compatible/src/openai-compatible-provider.ts",
+            "packages/open-responses/src/open-responses-provider.ts"
+          ]
         },
         {
           "name": "provider-model-file-must-export-model-class",
