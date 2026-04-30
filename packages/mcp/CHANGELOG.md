@@ -1,5 +1,13 @@
 # @ai-sdk/mcp
 
+## 1.0.39
+
+### Patch Changes
+
+- 7beadf0: feat(mcp): propagate the server name through dynamic tool parts
+- Updated dependencies [7beadf0]
+  - @ai-sdk/provider-utils@4.0.26
+
 ## 1.0.38
 
 ### Patch Changes

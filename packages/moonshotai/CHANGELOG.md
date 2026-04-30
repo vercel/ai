@@ -1,5 +1,13 @@
 # @ai-sdk/moonshotai
 
+## 2.0.19
+
+### Patch Changes
+
+- Updated dependencies [7beadf0]
+  - @ai-sdk/provider-utils@4.0.26
+  - @ai-sdk/openai-compatible@2.0.44
+
 ## 2.0.18
 
 ### Patch Changes
