@@ -625,10 +625,10 @@ the model has access to a compliance-focused web index designed for highly-regul
 </Note>
 
 ```ts
-import { createVertex } from '@ai-sdk/google-vertex';
+import { createGoogleVertex } from '@ai-sdk/google-vertex';
 import { generateText } from 'ai';
 
-const vertex = createVertex({
+const vertex = createGoogleVertex({
   project: 'my-project',
   location: 'us-central1',
 });
@@ -848,11 +848,11 @@ This enables the model to provide answers based on your specific data sources an
 </Note>
 
 ```ts highlight="8,17-20"
-import { createVertex } from '@ai-sdk/google-vertex';
+import { createGoogleVertex } from '@ai-sdk/google-vertex';
 import { GoogleProviderMetadata } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
-const vertex = createVertex({
+const vertex = createGoogleVertex({
   project: 'my-project',
   location: 'us-central1',
 });
