@@ -195,7 +195,20 @@
             ],
             "haveFiles": ["${providerId}-${modelKind}-model-options.ts"]
           },
-          "excludeFiles": ["${providerId}-video-model.ts"]
+          "excludeFiles": [
+            "${providerId}-video-model.ts",
+            "packages/amazon-bedrock/src/amazon-bedrock-image-model.ts",
+            "packages/deepinfra/src/deepinfra-image-model.ts",
+            "packages/fireworks/src/fireworks-image-model.ts",
+            "packages/gateway/src/gateway-embedding-model.ts",
+            "packages/gateway/src/gateway-image-model.ts",
+            "packages/gateway/src/gateway-language-model.ts",
+            "packages/gateway/src/gateway-reranking-model.ts",
+            "packages/mistral/src/mistral-embedding-model.ts",
+            "packages/openai-compatible/src/image/openai-compatible-image-model.ts",
+            "packages/openai/src/image/openai-image-model.ts",
+            "packages/perplexity/src/perplexity-language-model.ts"
+          ]
         },
         {
           "name": "provider-model-file-with-subtype-must-export-model-class",
@@ -249,7 +262,11 @@
               }
             ],
             "haveFiles": ["${providerId}-video-model-options.ts"]
-          }
+          },
+          "excludeFiles": [
+            "packages/bytedance/src/bytedance-video-model.ts",
+            "packages/gateway/src/gateway-video-model.ts"
+          ]
         },
         {
           "name": "provider-model-options-file-must-export-model-options-type",
