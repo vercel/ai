@@ -194,6 +194,12 @@ export type FunctionTool<
   CONTEXT extends Context | unknown | never = any,
 > = BaseTool<INPUT, OUTPUT, CONTEXT> & {
   type?: undefined | 'function';
+
+  // make all properties available to improve usage dx
+  id?: never;
+  isProviderExecuted?: never;
+  args?: never;
+  supportsDeferredResults?: never;
 };
 
 /**
@@ -206,6 +212,12 @@ export type DynamicTool<
   CONTEXT extends Context | unknown | never = any,
 > = BaseTool<INPUT, OUTPUT, CONTEXT> & {
   type: 'dynamic';
+
+  // make all properties available to improve usage dx
+  id?: never;
+  isProviderExecuted?: never;
+  args?: never;
+  supportsDeferredResults?: never;
 };
 
 /**
