@@ -15,7 +15,102 @@ import {
 } from './tool';
 import type { ToolExecuteFunction } from './tool-execute-function';
 
-describe('tool type', () => {
+describe('DynamicTool', () => {
+  it('should expose dynamic tools as base tools', () => {
+    expectTypeOf<
+      DynamicTool<{ number: number }, string, Context>
+    >().toMatchTypeOf<BaseTool<{ number: number }, string, Context>>();
+  });
+
+  it('should create dynamic tools with the dynamic discriminator', () => {
+    const aTool = dynamicTool({
+      inputSchema: z.unknown(),
+      execute: async input => input,
+    });
+
+    expectTypeOf(aTool).toEqualTypeOf<DynamicTool<unknown, unknown, Context>>();
+    expectTypeOf(aTool.type).toEqualTypeOf<'dynamic'>();
+  });
+});
+
+describe('ProviderTool', () => {
+  it('should expose provider tools as base tools', () => {
+    expectTypeOf<
+      ProviderTool<{ number: number }, string, Context>
+    >().toMatchTypeOf<BaseTool<{ number: number }, string, Context>>();
+  });
+
+  it('should require provider-specific properties', () => {
+    expectTypeOf<ProviderTool>()
+      .toHaveProperty('type')
+      .toEqualTypeOf<'provider'>();
+    expectTypeOf<ProviderTool>()
+      .toHaveProperty('id')
+      .toEqualTypeOf<`${string}.${string}`>();
+    expectTypeOf<ProviderTool>()
+      .toHaveProperty('isProviderExecuted')
+      .toEqualTypeOf<boolean>();
+    expectTypeOf<ProviderTool>()
+      .toHaveProperty('args')
+      .toEqualTypeOf<Record<string, unknown>>();
+  });
+});
+
+describe('FunctionTool', () => {
+  it('should expose the function tool discriminator', () => {
+    expectTypeOf<FunctionTool>()
+      .toHaveProperty('type')
+      .toEqualTypeOf<undefined | 'function'>();
+  });
+
+  describe('common properties', () => {
+    it('should expose function tools as base tools', () => {
+      expectTypeOf<
+        FunctionTool<{ number: number }, string, Context>
+      >().toMatchTypeOf<BaseTool<{ number: number }, string, Context>>();
+    });
+  });
+});
+
+describe('Tool', () => {
+  describe('discriminated union', () => {
+    it('should expose the tool variants as a type-discriminated union', () => {
+      expectTypeOf<Tool>().toEqualTypeOf<
+        FunctionTool | DynamicTool | ProviderTool
+      >();
+
+      type ToolType = Tool['type'];
+
+      expectTypeOf<ToolType>().toEqualTypeOf<
+        undefined | 'function' | 'dynamic' | 'provider'
+      >();
+    });
+
+    it('should narrow tools by type', () => {
+      const aTool = null as unknown as Tool<
+        { number: number },
+        string,
+        Context
+      >;
+
+      if (aTool.type === 'provider') {
+        expectTypeOf(aTool).toEqualTypeOf<
+          ProviderTool<{ number: number }, string, Context>
+        >();
+      } else if (aTool.type === 'dynamic') {
+        expectTypeOf(aTool).toEqualTypeOf<
+          DynamicTool<{ number: number }, string, Context>
+        >();
+      } else {
+        expectTypeOf(aTool).toEqualTypeOf<
+          FunctionTool<{ number: number }, string, Context>
+        >();
+      }
+    });
+  });
+});
+
+describe('tool helper', () => {
   describe('input type', () => {
     it('should work with fixed inputSchema', () => {
       const aTool = tool({
@@ -328,66 +423,6 @@ describe('tool type', () => {
           ) => boolean | PromiseLike<boolean>)
         | undefined
       >();
-    });
-  });
-
-  describe('discriminated union', () => {
-    it('should expose the tool variants as a type-discriminated union', () => {
-      expectTypeOf<Tool>().toEqualTypeOf<
-        FunctionTool | DynamicTool | ProviderTool
-      >();
-
-      type ToolType = Tool['type'];
-
-      expectTypeOf<ToolType>().toEqualTypeOf<
-        undefined | 'function' | 'dynamic' | 'provider'
-      >();
-    });
-
-    it('should extract common properties into BaseTool', () => {
-      expectTypeOf<
-        FunctionTool<{ number: number }, string, Context>
-      >().toMatchTypeOf<BaseTool<{ number: number }, string, Context>>();
-      expectTypeOf<
-        DynamicTool<{ number: number }, string, Context>
-      >().toMatchTypeOf<BaseTool<{ number: number }, string, Context>>();
-      expectTypeOf<
-        ProviderTool<{ number: number }, string, Context>
-      >().toMatchTypeOf<BaseTool<{ number: number }, string, Context>>();
-    });
-
-    it('should narrow tools by type', () => {
-      const aTool = null as unknown as Tool<
-        { number: number },
-        string,
-        Context
-      >;
-
-      if (aTool.type === 'provider') {
-        expectTypeOf(aTool).toEqualTypeOf<
-          ProviderTool<{ number: number }, string, Context>
-        >();
-      } else if (aTool.type === 'dynamic') {
-        expectTypeOf(aTool).toEqualTypeOf<
-          DynamicTool<{ number: number }, string, Context>
-        >();
-      } else {
-        expectTypeOf(aTool).toEqualTypeOf<
-          FunctionTool<{ number: number }, string, Context>
-        >();
-      }
-    });
-
-    it('should create dynamic tools with the dynamic discriminator', () => {
-      const aTool = dynamicTool({
-        inputSchema: z.unknown(),
-        execute: async input => input,
-      });
-
-      expectTypeOf(aTool).toEqualTypeOf<
-        DynamicTool<unknown, unknown, Context>
-      >();
-      expectTypeOf(aTool.type).toEqualTypeOf<'dynamic'>();
     });
   });
 });
