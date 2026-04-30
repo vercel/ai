@@ -3,16 +3,13 @@ import {
   AI_SDK_TELEMETRY_DIAGNOSTIC_CHANNEL,
   type TelemetryDiagnosticChannelMessage,
 } from './diagnostic-channel';
+import { isNodeRuntime } from '../util/is-node-runtime';
 
 type DiagnosticsChannel = typeof diagnosticsChannelModule;
 
 let diagnosticsChannelPromise:
   | Promise<DiagnosticsChannel | undefined>
   | undefined;
-
-function isNodeRuntime(): boolean {
-  return typeof process !== 'undefined' && process.release?.name === 'node';
-}
 
 async function loadDiagnosticsChannel(): Promise<
   DiagnosticsChannel | undefined

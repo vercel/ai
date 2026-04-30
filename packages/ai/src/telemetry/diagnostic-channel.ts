@@ -1,4 +1,4 @@
-export const AI_SDK_TELEMETRY_DIAGNOSTIC_CHANNEL = 'ai.telemetry';
+export const AI_SDK_TELEMETRY_DIAGNOSTIC_CHANNEL = 'aisdk:telemetry';
 
 export type TelemetryDiagnosticEventType =
   | 'onStart'

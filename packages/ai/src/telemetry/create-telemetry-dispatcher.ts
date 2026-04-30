@@ -85,6 +85,7 @@ export function createTelemetryDispatcher({
   const mergeTelemetryCallback = <KEY extends TelemetryCallbackKey>(
     key: KEY,
   ): Callback<TelemetryEvent<KEY>> => {
+    // event data is now automatically published to the diagnostic channel
     const publishDiagnosticChannelMessage = ((event: TelemetryEvent<KEY>) =>
       publishTelemetryDiagnosticChannelMessage({
         type: key as TelemetryDiagnosticEventType,

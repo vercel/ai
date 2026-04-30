@@ -5,9 +5,7 @@ import {
   AI_SDK_TELEMETRY_DIAGNOSTIC_CHANNEL,
   type TelemetryDiagnosticChannelMessage,
 } from './diagnostic-channel';
-
-const isNodeRuntime =
-  typeof process !== 'undefined' && process.release?.name === 'node';
+import { isNodeRuntime } from '../util/is-node-runtime';
 
 async function collectDiagnosticChannelMessages(
   run: () => Promise<void>,
@@ -31,21 +29,23 @@ async function collectDiagnosticChannelMessages(
   return messages;
 }
 
-describe.runIf(isNodeRuntime)('diagnostic channel telemetry publisher', () => {
-  beforeEach(() => {
-    globalThis.AI_SDK_TELEMETRY_INTEGRATIONS = undefined;
-  });
-
-  it('publishes lifecycle events even when no integrations are configured', async () => {
-    const event = { callId: 'diagnostic-channel-without-integrations' };
-
-    const messages = await collectDiagnosticChannelMessages(async () => {
-      const telemetry = createTelemetryDispatcher({});
-
-      await telemetry.onStart!(event as any);
+describe.runIf(isNodeRuntime())(
+  'diagnostic channel telemetry publisher',
+  () => {
+    beforeEach(() => {
+      globalThis.AI_SDK_TELEMETRY_INTEGRATIONS = undefined;
     });
 
-    expect(messages).toMatchInlineSnapshot(`
+    it('publishes lifecycle events even when no integrations are configured', async () => {
+      const event = { callId: 'diagnostic-channel-without-integrations' };
+
+      const messages = await collectDiagnosticChannelMessages(async () => {
+        const telemetry = createTelemetryDispatcher({});
+
+        await telemetry.onStart!(event as any);
+      });
+
+      expect(messages).toMatchInlineSnapshot(`
       [
         {
           "event": {
@@ -58,50 +58,50 @@ describe.runIf(isNodeRuntime)('diagnostic channel telemetry publisher', () => {
         },
       ]
     `);
-  });
-
-  it('does not publish lifecycle events when telemetry is disabled', async () => {
-    const event = { callId: 'diagnostic-channel-disabled' };
-
-    const messages = await collectDiagnosticChannelMessages(async () => {
-      const telemetry = createTelemetryDispatcher({
-        telemetry: { isEnabled: false },
-      });
-
-      await telemetry.onStart?.(event as any);
     });
 
-    expect(
-      messages.filter(message => {
-        return (message.event as { callId?: string }).callId === event.callId;
-      }),
-    ).toEqual([]);
-  });
+    it('does not publish lifecycle events when telemetry is disabled', async () => {
+      const event = { callId: 'diagnostic-channel-disabled' };
 
-  it('applies telemetry settings per call', async () => {
-    const enabledEvent = { callId: 'diagnostic-channel-enabled-call' };
-    const disabledEvent = { callId: 'diagnostic-channel-disabled-call' };
+      const messages = await collectDiagnosticChannelMessages(async () => {
+        const telemetry = createTelemetryDispatcher({
+          telemetry: { isEnabled: false },
+        });
 
-    const messages = await collectDiagnosticChannelMessages(async () => {
-      const enabledTelemetry = createTelemetryDispatcher({
-        telemetry: { functionId: 'enabled-function' },
-      });
-      const disabledTelemetry = createTelemetryDispatcher({
-        telemetry: { isEnabled: false, functionId: 'disabled-function' },
+        await telemetry.onStart?.(event as any);
       });
 
-      await disabledTelemetry.onStart?.(disabledEvent as any);
-      await enabledTelemetry.onStart!(enabledEvent as any);
+      expect(
+        messages.filter(message => {
+          return (message.event as { callId?: string }).callId === event.callId;
+        }),
+      ).toEqual([]);
     });
 
-    expect(
-      messages.filter(message => {
-        const callId = (message.event as { callId?: string }).callId;
-        return (
-          callId === enabledEvent.callId || callId === disabledEvent.callId
-        );
-      }),
-    ).toMatchInlineSnapshot(`
+    it('applies telemetry settings per call', async () => {
+      const enabledEvent = { callId: 'diagnostic-channel-enabled-call' };
+      const disabledEvent = { callId: 'diagnostic-channel-disabled-call' };
+
+      const messages = await collectDiagnosticChannelMessages(async () => {
+        const enabledTelemetry = createTelemetryDispatcher({
+          telemetry: { functionId: 'enabled-function' },
+        });
+        const disabledTelemetry = createTelemetryDispatcher({
+          telemetry: { isEnabled: false, functionId: 'disabled-function' },
+        });
+
+        await disabledTelemetry.onStart?.(disabledEvent as any);
+        await enabledTelemetry.onStart!(enabledEvent as any);
+      });
+
+      expect(
+        messages.filter(message => {
+          const callId = (message.event as { callId?: string }).callId;
+          return (
+            callId === enabledEvent.callId || callId === disabledEvent.callId
+          );
+        }),
+      ).toMatchInlineSnapshot(`
       [
         {
           "event": {
@@ -114,5 +114,6 @@ describe.runIf(isNodeRuntime)('diagnostic channel telemetry publisher', () => {
         },
       ]
     `);
-  });
-});
+    });
+  },
+);
