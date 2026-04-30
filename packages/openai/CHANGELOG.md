@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 4.0.0-beta.43
+
+### Patch Changes
+
+- 9ea40e0: chore(provider/openai): add type for image model options for type-safe processing
+
 ## 4.0.0-beta.42
 
 ### Major Changes
