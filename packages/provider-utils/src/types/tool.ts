@@ -110,15 +110,6 @@ type BaseTool<
       >;
 
   /**
-   * Strict mode setting for the tool.
-   *
-   * Providers that support strict mode will use this setting to determine
-   * how the input should be generated. Strict mode will always produce
-   * valid inputs, but it might limit what input schemas are supported.
-   */
-  strict?: boolean;
-
-  /**
    * Optional function that is called when the argument streaming starts.
    * Only called when the tool is used in a streaming context.
    */
@@ -191,6 +182,15 @@ export type FunctionTool<
    */
   description?: string;
 
+  /**
+   * Strict mode setting for the tool.
+   *
+   * Providers that support strict mode will use this setting to determine
+   * how the input should be generated. Strict mode will always produce
+   * valid inputs, but it might limit what input schemas are supported.
+   */
+  strict?: boolean;
+
   // make all properties available to improve usage dx
   id?: never;
   isProviderExecuted?: never;
@@ -214,6 +214,15 @@ export type DynamicTool<
    * Will be used by the language model to decide whether to use the tool.
    */
   description?: string;
+
+  /**
+   * Strict mode setting for the tool.
+   *
+   * Providers that support strict mode will use this setting to determine
+   * how the input should be generated. Strict mode will always produce
+   * valid inputs, but it might limit what input schemas are supported.
+   */
+  strict?: boolean;
 
   // make all properties available to improve usage dx
   id?: never;
@@ -242,23 +251,9 @@ type BaseProviderTool<
    */
   args: Record<string, unknown>;
 
-  /**
-   * Whether this provider-executed tool supports deferred results.
-   *
-   * When true, the tool result may not be returned in the same turn as the
-   * tool call (e.g., when using programmatic tool calling where a server tool
-   * triggers a client-executed tool, and the server tool's result is deferred
-   * until the client tool is resolved).
-   *
-   * This flag allows the AI SDK to handle tool results that arrive without
-   * a matching tool call in the current response.
-   *
-   * @default false
-   */
-  supportsDeferredResults?: boolean;
-
   // make all properties available to improve usage dx
   description?: never;
+  strict?: never;
 };
 
 /**
@@ -274,6 +269,9 @@ export type ProviderDefinedTool<
    * Flag that indicates whether the tool is executed by the provider.
    */
   isProviderExecuted: false;
+
+  // make all properties available to improve usage dx
+  supportsDeferredResults?: never;
 };
 
 /**
@@ -289,6 +287,21 @@ export type ProviderExecutedTool<
    * Flag that indicates whether the tool is executed by the provider.
    */
   isProviderExecuted: true;
+
+  /**
+   * Whether this provider-executed tool supports deferred results.
+   *
+   * When true, the tool result may not be returned in the same turn as the
+   * tool call (e.g., when using programmatic tool calling where a server tool
+   * triggers a client-executed tool, and the server tool's result is deferred
+   * until the client tool is resolved).
+   *
+   * This flag allows the AI SDK to handle tool results that arrive without
+   * a matching tool call in the current response.
+   *
+   * @default false
+   */
+  supportsDeferredResults?: boolean;
 };
 
 /**
