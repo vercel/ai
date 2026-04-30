@@ -829,6 +829,11 @@ export class GoogleLanguageModel implements LanguageModelV4 {
                   part.functionCall.name != null &&
                   part.functionCall.args != null &&
                   part.functionCall.partialArgs == null;
+                const isNoArgsCompleteCall =
+                  part.functionCall.name != null &&
+                  part.functionCall.args == null &&
+                  part.functionCall.partialArgs == null &&
+                  part.functionCall.willContinue !== true;
 
                 if (isStreamingChunk) {
                   if (
@@ -949,6 +954,32 @@ export class GoogleLanguageModel implements LanguageModelV4 {
                     toolCallId,
                     toolName,
                     input: args,
+                    providerMetadata: providerMeta,
+                  });
+
+                  hasToolCalls = true;
+                } else if (isNoArgsCompleteCall) {
+                  const toolCallId = generateId();
+                  const toolName = part.functionCall.name!;
+
+                  controller.enqueue({
+                    type: 'tool-input-start',
+                    id: toolCallId,
+                    toolName,
+                    providerMetadata: providerMeta,
+                  });
+
+                  controller.enqueue({
+                    type: 'tool-input-end',
+                    id: toolCallId,
+                    providerMetadata: providerMeta,
+                  });
+
+                  controller.enqueue({
+                    type: 'tool-call',
+                    toolCallId,
+                    toolName,
+                    input: '{}',
                     providerMetadata: providerMeta,
                   });
 

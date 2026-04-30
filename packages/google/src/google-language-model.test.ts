@@ -4067,6 +4067,107 @@ describe('doStream', () => {
 
       expect(await convertReadableStreamToArray(stream)).toMatchSnapshot();
     });
+
+    it('should emit no-args function calls with thoughtSignature', async () => {
+      server.urls[TEST_URL_GEMINI_PRO].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: ${JSON.stringify({
+            candidates: [
+              {
+                content: {
+                  parts: [
+                    {
+                      functionCall: { name: 'read_theme' },
+                      thoughtSignature: 'sig-no-args',
+                    },
+                  ],
+                  role: 'model',
+                },
+                finishReason: 'STOP',
+                safetyRatings: SAFETY_RATINGS,
+              },
+            ],
+            usageMetadata: {
+              promptTokenCount: 1,
+              candidatesTokenCount: 1,
+              totalTokenCount: 2,
+            },
+          })}\n\n`,
+        ],
+      };
+
+      const vertexModel = new GoogleLanguageModel('gemini-pro', {
+        provider: 'google.vertex.chat',
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+        headers: { 'x-goog-api-key': 'test-api-key' },
+        generateId: () => 'test-id',
+      });
+
+      const { stream } = await vertexModel.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+        tools: [
+          {
+            type: 'function',
+            name: 'read_theme',
+            inputSchema: {
+              type: 'object',
+              properties: {},
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        ],
+        providerOptions: {
+          vertex: {
+            streamFunctionCallArguments: true,
+          },
+        },
+      });
+
+      const events = await convertReadableStreamToArray(stream);
+      const toolEvents = events.filter(event => event.type.startsWith('tool-'));
+
+      expect(toolEvents).toEqual([
+        {
+          type: 'tool-input-start',
+          id: 'test-id',
+          toolName: 'read_theme',
+          providerMetadata: {
+            googleVertex: { thoughtSignature: 'sig-no-args' },
+            vertex: { thoughtSignature: 'sig-no-args' },
+          },
+        },
+        {
+          type: 'tool-input-end',
+          id: 'test-id',
+          providerMetadata: {
+            googleVertex: { thoughtSignature: 'sig-no-args' },
+            vertex: { thoughtSignature: 'sig-no-args' },
+          },
+        },
+        {
+          type: 'tool-call',
+          toolCallId: 'test-id',
+          toolName: 'read_theme',
+          input: '{}',
+          providerMetadata: {
+            googleVertex: { thoughtSignature: 'sig-no-args' },
+            vertex: { thoughtSignature: 'sig-no-args' },
+          },
+        },
+      ]);
+      expect(events.some(event => event.type === 'tool-input-delta')).toBe(
+        false,
+      );
+
+      const finishEvent = events.find(event => event.type === 'finish');
+      expect(finishEvent?.finishReason).toEqual({
+        unified: 'tool-calls',
+        raw: 'STOP',
+      });
+    });
   });
 
   describe('streaming-tool-call-arguments-nested', () => {
