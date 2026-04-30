@@ -17,7 +17,7 @@ import {
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { TogetherAIRerankingModel } from './reranking/togetherai-reranking-model';
-import type { TogetherAIRerankingModelId } from './reranking/togetherai-reranking-options';
+import type { TogetherAIRerankingModelId } from './reranking/togetherai-reranking-model-options';
 import type { TogetherAIChatModelId } from './togetherai-chat-options';
 import type { TogetherAICompletionModelId } from './togetherai-completion-options';
 import type { TogetherAIEmbeddingModelId } from './togetherai-embedding-options';

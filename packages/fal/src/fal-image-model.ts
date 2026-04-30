@@ -18,7 +18,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import type { FalImageModelId, FalImageSize } from './fal-image-settings';
-import { falImageModelOptionsSchema } from './fal-image-options';
+import { falImageModelOptionsSchema } from './fal-image-model-options';
 
 interface FalImageModelConfig {
   provider: string;

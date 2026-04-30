@@ -11,8 +11,8 @@ import {
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { VoyageEmbeddingModel } from './voyage-embedding-model';
-import type { VoyageEmbeddingModelId } from './voyage-embedding-options';
-import type { VoyageRerankingModelId } from './reranking/voyage-reranking-options';
+import type { VoyageEmbeddingModelId } from './voyage-embedding-model-options';
+import type { VoyageRerankingModelId } from './reranking/voyage-reranking-model-options';
 import { VoyageRerankingModel } from './reranking/voyage-reranking-model';
 import { VERSION } from './version';
 

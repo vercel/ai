@@ -14,7 +14,7 @@ import {
 import {
   cohereRerankingModelOptionsSchema,
   type CohereRerankingModelId,
-} from './cohere-reranking-options';
+} from './cohere-reranking-model-options';
 type CohereRerankingConfig = {
   provider: string;
   baseURL: string;

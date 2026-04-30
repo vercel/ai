@@ -4,16 +4,14 @@ import {
   convertImageModelFileToDataUri,
   createJsonResponseHandler,
   createJsonErrorResponseHandler,
-  lazySchema,
   parseProviderOptions,
   postJsonToApi,
   serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
-  zodSchema,
   type FetchFunction,
-  type InferSchema,
 } from '@ai-sdk/provider-utils';
+import { togetheraiImageModelOptionsSchema } from './togetherai-image-model-options';
 import type { TogetherAIImageModelId } from './togetherai-image-settings';
 import { z } from 'zod/v4';
 
@@ -166,40 +164,3 @@ const togetheraiErrorSchema = z.object({
     message: z.string(),
   }),
 });
-
-/**
- * Provider options schema for Together AI image generation.
- */
-export const togetheraiImageModelOptionsSchema = lazySchema(() =>
-  zodSchema(
-    z
-      .object({
-        /**
-         * Number of generation steps. Higher values can improve quality.
-         */
-        steps: z.number().nullish(),
-
-        /**
-         * Guidance scale for image generation.
-         */
-        guidance: z.number().nullish(),
-
-        /**
-         * Negative prompt to guide what to avoid.
-         */
-        negative_prompt: z.string().nullish(),
-
-        /**
-         * Disable the safety checker for image generation.
-         * When true, the API will not reject images flagged as potentially NSFW.
-         * Not available for Flux Schnell Free and Flux Pro models.
-         */
-        disable_safety_checker: z.boolean().nullish(),
-      })
-      .passthrough(),
-  ),
-);
-
-export type TogetherAIImageModelOptions = InferSchema<
-  typeof togetheraiImageModelOptionsSchema
->;

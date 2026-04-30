@@ -1,5 +1,5 @@
 import {
-  vertex,
+  googleVertex,
   type GoogleVertexVideoModelOptions,
 } from '@ai-sdk/google-vertex';
 import { experimental_generateVideo } from 'ai';
@@ -12,7 +12,7 @@ import { withSpinner } from '../../lib/spinner';
 run(async () => {
   const { video } = await withSpinner('Generating video...', () =>
     experimental_generateVideo({
-      model: vertex.video('veo-3.1-fast-generate-001'),
+      model: googleVertex.video('veo-3.1-fast-generate-001'),
       prompt: 'A salamander in a forest pond at dusk with luminescent algae.',
       aspectRatio: '16:9',
       resolution: '1920x1080',

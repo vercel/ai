@@ -3,7 +3,7 @@ export type {
   GoogleLanguageModelOptions,
   /** @deprecated Use `GoogleLanguageModelOptions` instead. */
   GoogleLanguageModelOptions as GoogleGenerativeAIProviderOptions,
-} from './google-options';
+} from './google-language-model-options';
 export type {
   GoogleProviderMetadata,
   /** @deprecated Use `GoogleProviderMetadata` instead. */
@@ -13,17 +13,17 @@ export type {
   GoogleImageModelOptions,
   /** @deprecated Use `GoogleImageModelOptions` instead. */
   GoogleImageModelOptions as GoogleGenerativeAIImageProviderOptions,
-} from './google-image-model';
+} from './google-image-model-options';
 export type {
   GoogleEmbeddingModelOptions,
   /** @deprecated Use `GoogleEmbeddingModelOptions` instead. */
   GoogleEmbeddingModelOptions as GoogleGenerativeAIEmbeddingProviderOptions,
-} from './google-embedding-options';
+} from './google-embedding-model-options';
 export type {
   GoogleVideoModelOptions,
   /** @deprecated Use `GoogleVideoModelOptions` instead. */
   GoogleVideoModelOptions as GoogleGenerativeAIVideoProviderOptions,
-} from './google-video-model';
+} from './google-video-model-options';
 export type {
   GoogleVideoModelId,
   /** @deprecated Use `GoogleVideoModelId` instead. */

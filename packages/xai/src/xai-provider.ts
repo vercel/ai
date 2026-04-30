@@ -14,11 +14,11 @@ import {
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { XaiChatLanguageModel } from './xai-chat-language-model';
-import type { XaiChatModelId } from './xai-chat-options';
+import type { XaiChatModelId } from './xai-chat-language-model-options';
 import { XaiImageModel } from './xai-image-model';
 import type { XaiImageModelId } from './xai-image-settings';
 import { XaiResponsesLanguageModel } from './responses/xai-responses-language-model';
-import type { XaiResponsesModelId } from './responses/xai-responses-options';
+import type { XaiResponsesModelId } from './responses/xai-responses-language-model-options';
 import { xaiTools } from './tool';
 import { VERSION } from './version';
 import { XaiFiles } from './files/xai-files';

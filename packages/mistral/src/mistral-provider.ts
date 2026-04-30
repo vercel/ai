@@ -11,7 +11,7 @@ import {
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { MistralChatLanguageModel } from './mistral-chat-language-model';
-import type { MistralChatModelId } from './mistral-chat-options';
+import type { MistralChatModelId } from './mistral-chat-language-model-options';
 import { MistralEmbeddingModel } from './mistral-embedding-model';
 import type { MistralEmbeddingModelId } from './mistral-embedding-options';
 import { VERSION } from './version';

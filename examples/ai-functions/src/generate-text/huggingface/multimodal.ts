@@ -1,10 +1,10 @@
-import { huggingface } from '@ai-sdk/huggingface';
+import { huggingFace } from '@ai-sdk/huggingface';
 import { generateText } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: huggingface('Qwen/Qwen2.5-VL-7B-Instruct'),
+    model: huggingFace('Qwen/Qwen2.5-VL-7B-Instruct'),
     messages: [
       {
         role: 'user',

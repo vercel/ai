@@ -35,6 +35,30 @@ jobs:
       - name: Run ultracite check
         run: pnpm run check
 
+  konsistent:
+    name: 'Code Consistency'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v5
+        with:
+          version: 10.11.0
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run konsistent
+        run: pnpm konsistent
+
   build-examples:
     name: 'Build Examples'
     runs-on: ubuntu-latest
