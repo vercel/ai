@@ -61,13 +61,6 @@ export type BaseTool<
   CONTEXT extends Context | unknown | never = any,
 > = {
   /**
-   * An optional description of what the tool does.
-   * Will be used by the language model to decide whether to use the tool.
-   * Not used for provider-defined tools.
-   */
-  description?: string;
-
-  /**
    * An optional title of the tool.
    */
   title?: string;
@@ -195,6 +188,12 @@ export type FunctionTool<
 > = BaseTool<INPUT, OUTPUT, CONTEXT> & {
   type?: undefined | 'function';
 
+  /**
+   * An optional description of what the tool does.
+   * Will be used by the language model to decide whether to use the tool.
+   */
+  description?: string;
+
   // make all properties available to improve usage dx
   id?: never;
   isProviderExecuted?: never;
@@ -212,6 +211,12 @@ export type DynamicTool<
   CONTEXT extends Context | unknown | never = any,
 > = BaseTool<INPUT, OUTPUT, CONTEXT> & {
   type: 'dynamic';
+
+  /**
+   * An optional description of what the tool does.
+   * Will be used by the language model to decide whether to use the tool.
+   */
+  description?: string;
 
   // make all properties available to improve usage dx
   id?: never;
@@ -259,6 +264,9 @@ export type ProviderTool<
    * @default false
    */
   supportsDeferredResults?: boolean;
+
+  // make all properties available to improve usage dx
+  description?: never;
 };
 
 /**
