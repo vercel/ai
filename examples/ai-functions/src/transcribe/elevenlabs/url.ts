@@ -1,10 +1,10 @@
-import { elevenlabs } from '@ai-sdk/elevenlabs';
+import { elevenLabs } from '@ai-sdk/elevenlabs';
 import { experimental_transcribe as transcribe } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = await transcribe({
-    model: elevenlabs.transcription('scribe_v1'),
+    model: elevenLabs.transcription('scribe_v1'),
     audio: new URL(
       'https://github.com/vercel/ai/raw/refs/heads/main/examples/ai-functions/data/galileo.mp3',
     ),

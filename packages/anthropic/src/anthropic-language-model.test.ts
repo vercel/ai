@@ -16,7 +16,7 @@ import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import fs from 'node:fs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
-import type { AnthropicLanguageModelOptions } from './anthropic-options';
+import type { AnthropicLanguageModelOptions } from './anthropic-language-model-options';
 import { getModelCapabilities } from './anthropic-language-model';
 import { anthropic, createAnthropic } from './anthropic-provider';
 

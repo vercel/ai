@@ -7,7 +7,7 @@ import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { beforeEach, describe, expect, it } from 'vitest';
 import fs from 'node:fs';
 import { XaiResponsesLanguageModel } from './xai-responses-language-model';
-import type { XaiLanguageModelResponsesOptions } from './xai-responses-options';
+import type { XaiLanguageModelResponsesOptions } from './xai-responses-language-model-options';
 
 const TEST_PROMPT: LanguageModelV4Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'hello' }] },

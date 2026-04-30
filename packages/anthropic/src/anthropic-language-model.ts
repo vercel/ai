@@ -51,7 +51,7 @@ import {
   anthropicLanguageModelOptions,
   type AnthropicModelId,
   type AnthropicLanguageModelOptions,
-} from './anthropic-options';
+} from './anthropic-language-model-options';
 import { prepareTools } from './anthropic-prepare-tools';
 import {
   convertAnthropicUsage,

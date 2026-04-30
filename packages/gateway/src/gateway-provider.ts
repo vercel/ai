@@ -176,7 +176,7 @@ const AI_GATEWAY_PROTOCOL_VERSION = '0.0.1';
 /**
  * Create a remote provider instance.
  */
-export function createGatewayProvider(
+export function createGateway(
   options: GatewayProviderSettings = {},
 ): GatewayProvider {
   let pendingMetadata: Promise<GatewayFetchMetadataResponse> | null = null;
@@ -386,7 +386,7 @@ export function createGatewayProvider(
   return provider;
 }
 
-export const gateway = createGatewayProvider();
+export const gateway = createGateway();
 
 export async function getGatewayAuthToken(
   options: GatewayProviderSettings,

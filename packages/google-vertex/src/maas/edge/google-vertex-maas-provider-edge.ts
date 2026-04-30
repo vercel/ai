@@ -4,7 +4,7 @@ import {
   type GoogleCredentials,
 } from '../../edge/google-vertex-auth-edge';
 import {
-  createVertexMaas as createVertexMaasOriginal,
+  createGoogleVertexMaas as createVertexMaasOriginal,
   type GoogleVertexMaasProvider,
   type GoogleVertexMaasProviderSettings as GoogleVertexMaasProviderSettingsOriginal,
 } from '../google-vertex-maas-provider';
@@ -26,7 +26,7 @@ export interface GoogleVertexMaasProviderSettings extends GoogleVertexMaasProvid
  *
  * @see https://cloud.google.com/vertex-ai/generative-ai/docs/maas/use-open-models
  */
-export function createVertexMaas(
+export function createGoogleVertexMaas(
   options: GoogleVertexMaasProviderSettings = {},
 ): GoogleVertexMaasProvider {
   // Create a custom fetch wrapper that adds auth headers
@@ -61,4 +61,4 @@ export function createVertexMaas(
 /**
  * Default Google Vertex AI MaaS provider instance for Edge runtimes.
  */
-export const vertexMaas = createVertexMaas();
+export const googleVertexMaas = createGoogleVertexMaas();

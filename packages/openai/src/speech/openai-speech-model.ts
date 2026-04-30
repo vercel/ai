@@ -14,7 +14,7 @@ import type { OpenAISpeechAPITypes } from './openai-speech-api';
 import {
   openaiSpeechModelOptionsSchema,
   type OpenAISpeechModelId,
-} from './openai-speech-options';
+} from './openai-speech-model-options';
 interface OpenAISpeechModelConfig extends OpenAIConfig {
   _internal?: {
     currentDate?: () => Date;

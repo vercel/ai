@@ -1,4 +1,4 @@
-import { bedrock } from '@ai-sdk/amazon-bedrock';
+import { amazonBedrock } from '@ai-sdk/amazon-bedrock';
 import { Output, isStepCount, streamText } from 'ai';
 import { z } from 'zod';
 import { run } from '../../lib/run';
@@ -6,7 +6,7 @@ import { weatherTool } from '../../tools/weather-tool';
 
 run(async () => {
   const { partialOutputStream } = streamText({
-    model: bedrock('us.anthropic.claude-3-5-sonnet-20241022-v2:0'),
+    model: amazonBedrock('us.anthropic.claude-3-5-sonnet-20241022-v2:0'),
     stopWhen: isStepCount(20),
     output: Output.array({
       element: z.object({

@@ -10,8 +10,8 @@ import {
   withUserAgentSuffix,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
-import { AlibabaLanguageModel } from './alibaba-chat-language-model';
-import type { AlibabaChatModelId } from './alibaba-chat-options';
+import { AlibabaChatLanguageModel } from './alibaba-chat-language-model';
+import type { AlibabaChatModelId } from './alibaba-chat-language-model-options';
 import { AlibabaVideoModel } from './alibaba-video-model';
 import type { AlibabaVideoModelId } from './alibaba-video-settings';
 import { VERSION } from './version';
@@ -111,7 +111,7 @@ export function createAlibaba(
     );
 
   const createLanguageModel = (modelId: AlibabaChatModelId) =>
-    new AlibabaLanguageModel(modelId, {
+    new AlibabaChatLanguageModel(modelId, {
       provider: 'alibaba.chat',
       baseURL,
       headers: getHeaders,

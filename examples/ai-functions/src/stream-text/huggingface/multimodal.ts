@@ -1,10 +1,10 @@
-import { huggingface } from '@ai-sdk/huggingface';
+import { huggingFace } from '@ai-sdk/huggingface';
 import { streamText } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: huggingface('Qwen/Qwen2.5-VL-32B-Instruct'),
+    model: huggingFace('Qwen/Qwen2.5-VL-32B-Instruct'),
     messages: [
       {
         role: 'user',

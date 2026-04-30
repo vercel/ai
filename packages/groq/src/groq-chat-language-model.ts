@@ -30,9 +30,9 @@ import { convertGroqUsage } from './convert-groq-usage';
 import { convertToGroqChatMessages } from './convert-to-groq-chat-messages';
 import { getResponseMetadata } from './get-response-metadata';
 import {
-  groqLanguageModelOptions,
+  groqLanguageModelChatOptions,
   type GroqChatModelId,
-} from './groq-chat-options';
+} from './groq-chat-language-model-options';
 import { groqErrorDataSchema, groqFailedResponseHandler } from './groq-error';
 import { prepareTools } from './groq-prepare-tools';
 import { mapGroqFinishReason } from './map-groq-finish-reason';
@@ -99,7 +99,7 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
     const groqOptions = await parseProviderOptions({
       provider: 'groq',
       providerOptions,
-      schema: groqLanguageModelOptions,
+      schema: groqLanguageModelChatOptions,
     });
 
     const structuredOutputs = groqOptions?.structuredOutputs ?? true;

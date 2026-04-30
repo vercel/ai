@@ -16,7 +16,7 @@ import { openaiFailedResponseHandler } from '../openai-error';
 import {
   openaiEmbeddingModelOptions,
   type OpenAIEmbeddingModelId,
-} from './openai-embedding-options';
+} from './openai-embedding-model-options';
 import { openaiTextEmbeddingResponseSchema } from './openai-embedding-api';
 
 export class OpenAIEmbeddingModel implements EmbeddingModelV4 {

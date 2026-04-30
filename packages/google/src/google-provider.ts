@@ -15,9 +15,9 @@ import {
 } from '@ai-sdk/provider-utils';
 import { VERSION } from './version';
 import { GoogleEmbeddingModel } from './google-embedding-model';
-import type { GoogleEmbeddingModelId } from './google-embedding-options';
+import type { GoogleEmbeddingModelId } from './google-embedding-model-options';
 import { GoogleLanguageModel } from './google-language-model';
-import type { GoogleModelId } from './google-options';
+import type { GoogleModelId } from './google-language-model-options';
 import { googleTools } from './google-tools';
 
 import type {
