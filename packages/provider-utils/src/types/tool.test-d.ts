@@ -16,7 +16,7 @@ import {
 import type { ToolExecuteFunction } from './tool-execute-function';
 
 describe('DynamicTool', () => {
-  it('should expose dynamic tools as base tools', () => {
+  it('should include dynamic tools in the Tool union', () => {
     expectTypeOf<DynamicTool<{ number: number }, string, Context>>().toExtend<
       Tool<{ number: number }, string, Context>
     >();
@@ -34,7 +34,7 @@ describe('DynamicTool', () => {
 });
 
 describe('ProviderDefinedTool', () => {
-  it('should expose provider-defined tools as base tools', () => {
+  it('should include provider-defined tools in the Tool union', () => {
     expectTypeOf<
       ProviderDefinedTool<{ number: number }, string, Context>
     >().toExtend<Tool<{ number: number }, string, Context>>();
@@ -60,7 +60,7 @@ describe('ProviderDefinedTool', () => {
 });
 
 describe('ProviderExecutedTool', () => {
-  it('should expose provider-executed tools as base tools', () => {
+  it('should include provider-executed tools in the Tool union', () => {
     expectTypeOf<
       ProviderExecutedTool<{ number: number }, string, Context>
     >().toExtend<Tool<{ number: number }, string, Context>>();
@@ -93,7 +93,7 @@ describe('FunctionTool', () => {
   });
 
   describe('common properties', () => {
-    it('should expose function tools as tools', () => {
+    it('should include function tools in the Tool union', () => {
       expectTypeOf<
         FunctionTool<{ number: number }, string, Context>
       >().toExtend<Tool<{ number: number }, string, Context>>();
@@ -103,7 +103,7 @@ describe('FunctionTool', () => {
 
 describe('Tool', () => {
   describe('discriminated union', () => {
-    it('should expose the tool variants as a type-discriminated union', () => {
+    it('should expose all tool variants and type discriminators', () => {
       expectTypeOf<Tool>().toEqualTypeOf<
         FunctionTool | DynamicTool | ProviderDefinedTool | ProviderExecutedTool
       >();
@@ -152,7 +152,7 @@ describe('Tool', () => {
 
 describe('tool helper', () => {
   describe('input type', () => {
-    it('should work with fixed inputSchema', () => {
+    it('should infer input type from a Zod inputSchema', () => {
       const aTool = tool({
         inputSchema: z.object({ number: z.number() }),
       });
@@ -170,7 +170,7 @@ describe('tool helper', () => {
       >();
     });
 
-    it('should work with flexible inputSchema', <T>() => {
+    it('should preserve input type from a FlexibleSchema', <T>() => {
       const aTool = tool({
         inputSchema: null as unknown as FlexibleSchema<T>,
       });
@@ -181,7 +181,7 @@ describe('tool helper', () => {
       expectTypeOf(aTool.inputSchema).toEqualTypeOf<FlexibleSchema<T>>();
     });
 
-    it('should infer input type correctly when inputExamples are present with optional/default zod schema', () => {
+    it('should infer input type when inputExamples are present with an optional/default Zod schema', () => {
       const inputSchema = z.object({
         location: z.string(),
         unit: z.enum(['celsius', 'fahrenheit']).optional().default('celsius'),
@@ -200,7 +200,7 @@ describe('tool helper', () => {
       });
     });
 
-    it('should infer input type correctly when inputExamples are present with refine zod schema', () => {
+    it('should infer input type when inputExamples are present with a refined Zod schema', () => {
       const inputSchema = z.object({
         code: z.string().refine(val => val.length === 3),
       });
@@ -271,7 +271,7 @@ describe('tool helper', () => {
   });
 
   describe('output type', () => {
-    it('should derive output type from execute function', () => {
+    it('should infer output type from an execute function', () => {
       const aTool = tool({
         inputSchema: z.object({ number: z.number() }),
         execute: async input => {
@@ -292,7 +292,7 @@ describe('tool helper', () => {
       >();
     });
 
-    it('should derive const schema from async generator execute function', () => {
+    it('should infer output type from an async generator execute function', () => {
       const aTool = tool({
         inputSchema: z.object({ number: z.number() }),
         execute: async function* () {
@@ -313,7 +313,7 @@ describe('tool helper', () => {
   });
 
   describe('toModelOutput', () => {
-    it('should infer toModelOutput argument when there is only an input schema', () => {
+    it('should infer toModelOutput options when there is only an input schema', () => {
       const aTool = tool({
         inputSchema: z.object({ number: z.number() }),
         toModelOutput: ({ output }) => {
@@ -332,7 +332,7 @@ describe('tool helper', () => {
       >();
     });
 
-    it('should infer toModelOutput argument when there is an execute function', () => {
+    it('should infer toModelOutput options when there is an execute function', () => {
       const aTool = tool({
         inputSchema: z.object({ number: z.number() }),
         execute: async () => 'test' as const,
@@ -352,7 +352,7 @@ describe('tool helper', () => {
       >();
     });
 
-    it('should infer toModelOutput argument when there is an output schema', () => {
+    it('should infer toModelOutput options when there is an output schema', () => {
       const aTool = tool({
         inputSchema: z.object({ number: z.number() }),
         outputSchema: z.literal('test'),
@@ -374,7 +374,7 @@ describe('tool helper', () => {
   });
 
   describe('needsApproval (function)', () => {
-    it('should infer needsApproval argument when there is only an input schema', () => {
+    it('should infer needsApproval arguments when there is only an input schema', () => {
       const aTool = tool({
         inputSchema: z.object({ number: z.number() }),
         needsApproval: (input, options) => {
@@ -402,7 +402,7 @@ describe('tool helper', () => {
       >();
     });
 
-    it('should infer needsApproval argument when there is an execute function', () => {
+    it('should infer needsApproval arguments when there is an execute function', () => {
       const aTool = tool({
         inputSchema: z.object({ number: z.number() }),
         execute: async () => 'test' as const,
