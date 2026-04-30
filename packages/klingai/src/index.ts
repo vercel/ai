@@ -9,3 +9,4 @@ export type {
   /** @deprecated Use `KlingAIVideoModelOptions` instead. */
   KlingAIVideoModelOptions as KlingAIVideoProviderOptions,
 } from './klingai-video-model';
+export { VERSION } from './version';

@@ -40,3 +40,4 @@ export {
   GatewayResponseError,
 } from './errors';
 export type { GatewayErrorResponse } from './errors';
+export { VERSION } from './version';
