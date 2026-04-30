@@ -14,7 +14,6 @@ import { lmntSpeechModelOptionsSchema } from './lmnt-speech-model-options';
 import type { LMNTSpeechModelId } from './lmnt-speech-options';
 import type { LMNTSpeechAPITypes } from './lmnt-api-types';
 
-
 interface LMNTSpeechModelConfig extends LMNTConfig {
   _internal?: {
     currentDate?: () => Date;

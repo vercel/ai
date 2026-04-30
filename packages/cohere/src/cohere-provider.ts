@@ -13,7 +13,7 @@ import {
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { CohereChatLanguageModel } from './cohere-chat-language-model';
-import type { CohereChatModelId } from './cohere-chat-options';
+import type { CohereChatModelId } from './cohere-chat-language-model-options';
 import { CohereEmbeddingModel } from './cohere-embedding-model';
 import type { CohereRerankingModelId } from './reranking/cohere-reranking-model-options';
 import { CohereRerankingModel } from './reranking/cohere-reranking-model';

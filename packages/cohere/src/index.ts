@@ -1,8 +1,10 @@
 export type {
-  CohereLanguageModelOptions,
-  /** @deprecated Use `CohereLanguageModelOptions` instead. */
-  CohereLanguageModelOptions as CohereChatModelOptions,
-} from './cohere-chat-options';
+  CohereLanguageModelChatOptions,
+  /** @deprecated Use `CohereLanguageModelChatOptions` instead. */
+  CohereLanguageModelChatOptions as CohereLanguageModelOptions,
+  /** @deprecated Use `CohereLanguageModelChatOptions` instead. */
+  CohereLanguageModelChatOptions as CohereChatModelOptions,
+} from './cohere-chat-language-model-options';
 export { cohere, createCohere } from './cohere-provider';
 export type { CohereProvider, CohereProviderSettings } from './cohere-provider';
 export type { CohereEmbeddingModelOptions } from './cohere-embedding-model-options';

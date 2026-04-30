@@ -26,7 +26,7 @@ export type GroqChatModelId =
   | 'deepseek-r1-distill-qwen-32b'
   | (string & {});
 
-export const groqLanguageModelOptions = z.object({
+export const groqLanguageModelChatOptions = z.object({
   reasoningFormat: z.enum(['parsed', 'raw', 'hidden']).optional(),
 
   /**
@@ -76,4 +76,6 @@ export const groqLanguageModelOptions = z.object({
   serviceTier: z.enum(['on_demand', 'performance', 'flex', 'auto']).optional(),
 });
 
-export type GroqLanguageModelOptions = z.infer<typeof groqLanguageModelOptions>;
+export type GroqLanguageModelChatOptions = z.infer<
+  typeof groqLanguageModelChatOptions
+>;

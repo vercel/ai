@@ -26,7 +26,7 @@ import {
   type AmazonBedrockSystemMessages,
   type AmazonBedrockUserMessage,
 } from './amazon-bedrock-api-types';
-import { amazonBedrockFilePartProviderOptions } from './amazon-bedrock-chat-options';
+import { amazonBedrockFilePartProviderOptions } from './amazon-bedrock-chat-language-model-options';
 import { amazonBedrockReasoningMetadataSchema } from './amazon-bedrock-reasoning-metadata';
 import { normalizeToolCallId } from './normalize-tool-call-id';
 

@@ -35,9 +35,9 @@ import {
   type DeepSeekChatTokenUsage,
 } from './deepseek-chat-api-types';
 import {
-  deepseekLanguageModelOptions,
+  deepseekLanguageModelChatOptions,
   type DeepSeekChatModelId,
-} from './deepseek-chat-options';
+} from './deepseek-chat-language-model-options';
 import { prepareTools } from './deepseek-prepare-tools';
 import { getResponseMetadata } from './get-response-metadata';
 import { mapDeepSeekFinishReason } from './map-deepseek-finish-reason';
@@ -111,7 +111,7 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
       (await parseProviderOptions({
         provider: this.providerOptionsName,
         providerOptions,
-        schema: deepseekLanguageModelOptions,
+        schema: deepseekLanguageModelChatOptions,
       })) ?? {};
 
     const { messages, warnings } = convertToDeepSeekChatMessages({

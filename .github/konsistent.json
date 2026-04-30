@@ -192,7 +192,8 @@
                 "name": "${providerId.toPascalCase()}${modelKind.toPascalCase()}Model",
                 "implement": ["${modelKind.toPascalCase()}ModelV4"]
               }
-            ]
+            ],
+            "haveFiles": ["${providerId}-${modelKind}-model-options.ts"]
           },
           "excludeFiles": ["${providerId}-video-model.ts"]
         },
@@ -217,7 +218,8 @@
                 "name": "${providerId.toPascalCase()}${modelKind.toNthSegmentPascalCase(0)}${modelKind.toNthSegmentPascalCase(1)}Model",
                 "implement": ["${modelKind.toNthSegmentPascalCase(1)}ModelV4"]
               }
-            ]
+            ],
+            "haveFiles": ["${providerId}-${modelKind}-model-options.ts"]
           },
           "excludeFiles": [
             "packages/deepinfra/src/deepinfra-chat-language-model.ts",
@@ -245,7 +247,8 @@
                 "name": "${providerId.toPascalCase()}VideoModel",
                 "implement": ["Experimental_VideoModelV4"]
               }
-            ]
+            ],
+            "haveFiles": ["${providerId}-video-model-options.ts"]
           }
         },
         {

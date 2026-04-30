@@ -221,4 +221,3 @@ export class ReplicateImageModel implements ImageModelV4 {
 const replicateImageResponseSchema = z.object({
   output: z.union([z.array(z.string()), z.string()]),
 });
-

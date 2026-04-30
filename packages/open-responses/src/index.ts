@@ -4,4 +4,8 @@ export type {
   OpenResponsesProvider,
   OpenResponsesProviderSettings,
 } from './open-responses-provider';
-export type { OpenResponsesOptions } from './responses/open-responses-options';
+export type {
+  OpenResponsesLanguageModelOptions,
+  /** @deprecated Use `OpenResponsesLanguageModelOptions` instead. */
+  OpenResponsesLanguageModelOptions as OpenResponsesOptions,
+} from './responses/open-responses-language-model-options';

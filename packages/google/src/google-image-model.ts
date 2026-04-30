@@ -369,4 +369,3 @@ const googleImageResponseSchema = lazySchema(() =>
     }),
   ),
 );
-

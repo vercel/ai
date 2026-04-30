@@ -5,7 +5,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
-export const openResponsesOptionsSchema = lazySchema(() =>
+export const openResponsesLanguageModelOptions = lazySchema(() =>
   zodSchema(
     z.object({
       /**
@@ -17,6 +17,6 @@ export const openResponsesOptionsSchema = lazySchema(() =>
   ),
 );
 
-export type OpenResponsesOptions = InferSchema<
-  typeof openResponsesOptionsSchema
+export type OpenResponsesLanguageModelOptions = InferSchema<
+  typeof openResponsesLanguageModelOptions
 >;

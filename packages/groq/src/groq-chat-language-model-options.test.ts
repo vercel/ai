@@ -1,15 +1,15 @@
 import { describe, it, expect } from 'vitest';
 import {
-  groqLanguageModelOptions,
-  type GroqLanguageModelOptions,
-} from './groq-chat-options';
-describe('groqLanguageModelOptions', () => {
+  groqLanguageModelChatOptions,
+  type GroqLanguageModelChatOptions,
+} from './groq-chat-language-model-options';
+describe('groqLanguageModelChatOptions', () => {
   describe('reasoningEffort', () => {
     it('accepts valid reasoningEffort values', () => {
       const validValues = ['none', 'default', 'low', 'medium', 'high'] as const;
 
       validValues.forEach(value => {
-        const result = groqLanguageModelOptions.safeParse({
+        const result = groqLanguageModelChatOptions.safeParse({
           reasoningEffort: value,
         });
         expect(result.success).toBe(true);
@@ -27,7 +27,7 @@ describe('groqLanguageModelOptions', () => {
       ];
 
       invalidValues.forEach(value => {
-        const result = groqLanguageModelOptions.safeParse({
+        const result = groqLanguageModelChatOptions.safeParse({
           reasoningEffort: value,
         });
         expect(result.success).toBe(false);
@@ -35,13 +35,13 @@ describe('groqLanguageModelOptions', () => {
     });
 
     it('allows reasoningEffort to be undefined', () => {
-      const result = groqLanguageModelOptions.safeParse({});
+      const result = groqLanguageModelChatOptions.safeParse({});
       expect(result.success).toBe(true);
       expect(result.data?.reasoningEffort).toBeUndefined();
     });
 
     it('allows reasoningEffort to be omitted explicitly', () => {
-      const result = groqLanguageModelOptions.safeParse({
+      const result = groqLanguageModelChatOptions.safeParse({
         reasoningEffort: undefined,
       });
       expect(result.success).toBe(true);
@@ -51,7 +51,7 @@ describe('groqLanguageModelOptions', () => {
 
   describe('combined options with reasoningEffort', () => {
     it('accepts reasoningEffort with other valid options', () => {
-      const result = groqLanguageModelOptions.safeParse({
+      const result = groqLanguageModelChatOptions.safeParse({
         reasoningEffort: 'high',
         parallelToolCalls: true,
         user: 'test-user',
@@ -66,7 +66,7 @@ describe('groqLanguageModelOptions', () => {
     });
 
     it('rejects when reasoningEffort is invalid among valid options', () => {
-      const result = groqLanguageModelOptions.safeParse({
+      const result = groqLanguageModelChatOptions.safeParse({
         reasoningEffort: 'ultra-high',
         parallelToolCalls: true,
         user: 'test-user',
@@ -81,7 +81,7 @@ describe('groqLanguageModelOptions', () => {
       const validValues = ['on_demand', 'performance', 'flex', 'auto'] as const;
 
       validValues.forEach(value => {
-        const result = groqLanguageModelOptions.safeParse({
+        const result = groqLanguageModelChatOptions.safeParse({
           serviceTier: value,
         });
         expect(result.success).toBe(true);
@@ -93,7 +93,7 @@ describe('groqLanguageModelOptions', () => {
       const invalidValues = ['priority', 'default', 'turbo', ''];
 
       invalidValues.forEach(value => {
-        const result = groqLanguageModelOptions.safeParse({
+        const result = groqLanguageModelChatOptions.safeParse({
           serviceTier: value,
         });
         expect(result.success).toBe(false);
@@ -112,7 +112,7 @@ describe('groqLanguageModelOptions', () => {
       ];
 
       variants.forEach(variant => {
-        const result = groqLanguageModelOptions.safeParse({
+        const result = groqLanguageModelChatOptions.safeParse({
           reasoningEffort: variant,
         });
         expect(result.success).toBe(true);
@@ -124,8 +124,8 @@ describe('groqLanguageModelOptions', () => {
   });
 
   describe('type inference', () => {
-    it('infers GroqLanguageModelOptions type correctly', () => {
-      const options: GroqLanguageModelOptions = {
+    it('infers GroqLanguageModelChatOptions type correctly', () => {
+      const options: GroqLanguageModelChatOptions = {
         reasoningEffort: 'medium',
         parallelToolCalls: false,
       };

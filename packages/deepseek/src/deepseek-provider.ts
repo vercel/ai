@@ -9,7 +9,7 @@ import {
   withUserAgentSuffix,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
-import type { DeepSeekChatModelId } from './chat/deepseek-chat-options';
+import type { DeepSeekChatModelId } from './chat/deepseek-chat-language-model-options';
 import { DeepSeekChatLanguageModel } from './chat/deepseek-chat-language-model';
 import { VERSION } from './version';
 

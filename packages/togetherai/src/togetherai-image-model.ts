@@ -9,7 +9,6 @@ import {
   serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
-  zodSchema,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { togetheraiImageModelOptionsSchema } from './togetherai-image-model-options';
@@ -165,4 +164,3 @@ const togetheraiErrorSchema = z.object({
     message: z.string(),
   }),
 });
-

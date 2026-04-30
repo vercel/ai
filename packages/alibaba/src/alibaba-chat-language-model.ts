@@ -443,7 +443,9 @@ function resolveAlibabaThinking({
   warnings,
 }: {
   reasoning: LanguageModelV4CallOptions['reasoning'];
-  alibabaOptions: InferSchema<typeof alibabaLanguageModelChatOptions> | undefined;
+  alibabaOptions:
+    | InferSchema<typeof alibabaLanguageModelChatOptions>
+    | undefined;
   warnings: SharedV4Warning[];
 }): { enable_thinking?: boolean; thinking_budget?: number } {
   if (

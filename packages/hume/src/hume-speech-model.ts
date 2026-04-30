@@ -13,7 +13,6 @@ import { humeFailedResponseHandler } from './hume-error';
 import { humeSpeechModelOptionsSchema } from './hume-speech-model-options';
 import type { HumeSpeechAPITypes } from './hume-api-types';
 
-
 interface HumeSpeechModelConfig extends HumeConfig {
   _internal?: {
     currentDate?: () => Date;

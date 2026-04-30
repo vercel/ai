@@ -2,10 +2,12 @@ export type { AnthropicProviderOptions } from '@ai-sdk/anthropic';
 
 export type { AmazonBedrockEmbeddingModelOptions } from './amazon-bedrock-embedding-model-options';
 export type {
-  AmazonBedrockLanguageModelOptions,
-  /** @deprecated Use `AmazonBedrockLanguageModelOptions` instead. */
-  AmazonBedrockLanguageModelOptions as BedrockProviderOptions,
-} from './amazon-bedrock-chat-options';
+  AmazonBedrockLanguageModelChatOptions,
+  /** @deprecated Use `AmazonBedrockLanguageModelChatOptions` instead. */
+  AmazonBedrockLanguageModelChatOptions as AmazonBedrockLanguageModelOptions,
+  /** @deprecated Use `AmazonBedrockLanguageModelChatOptions` instead. */
+  AmazonBedrockLanguageModelChatOptions as BedrockProviderOptions,
+} from './amazon-bedrock-chat-language-model-options';
 export {
   amazonBedrock,
   /** @deprecated Use `amazonBedrock` instead. */

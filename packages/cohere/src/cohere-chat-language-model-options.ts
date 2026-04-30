@@ -16,7 +16,7 @@ export type CohereChatModelId =
   | 'command-light-nightly'
   | (string & {});
 
-export const cohereLanguageModelOptions = z.object({
+export const cohereLanguageModelChatOptions = z.object({
   /**
    * Configuration for reasoning features (optional)
    *
@@ -33,6 +33,6 @@ export const cohereLanguageModelOptions = z.object({
     .optional(),
 });
 
-export type CohereLanguageModelOptions = z.infer<
-  typeof cohereLanguageModelOptions
+export type CohereLanguageModelChatOptions = z.infer<
+  typeof cohereLanguageModelChatOptions
 >;

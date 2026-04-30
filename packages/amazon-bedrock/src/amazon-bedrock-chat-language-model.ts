@@ -37,10 +37,10 @@ import {
   type AmazonBedrockStopReason,
 } from './amazon-bedrock-api-types';
 import {
-  amazonBedrockLanguageModelOptions,
-  type AmazonBedrockLanguageModelOptions,
+  amazonBedrockLanguageModelChatOptions,
+  type AmazonBedrockLanguageModelChatOptions,
   type AmazonBedrockChatModelId,
-} from './amazon-bedrock-chat-options';
+} from './amazon-bedrock-chat-language-model-options';
 import { AmazonBedrockErrorSchema } from './amazon-bedrock-error';
 import { createAmazonBedrockEventStreamResponseHandler } from './amazon-bedrock-event-stream-response-handler';
 import { prepareTools } from './amazon-bedrock-prepare-tools';
@@ -110,12 +110,12 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
       (await parseProviderOptions({
         provider: 'amazonBedrock',
         providerOptions,
-        schema: amazonBedrockLanguageModelOptions,
+        schema: amazonBedrockLanguageModelChatOptions,
       })) ??
       (await parseProviderOptions({
         provider: 'bedrock',
         providerOptions,
-        schema: amazonBedrockLanguageModelOptions,
+        schema: amazonBedrockLanguageModelChatOptions,
       })) ??
       {};
 
@@ -1225,11 +1225,11 @@ function resolveAmazonBedrockReasoningConfig({
   modelId,
 }: {
   reasoning: LanguageModelV4CallOptions['reasoning'];
-  amazonBedrockOptions: AmazonBedrockLanguageModelOptions;
+  amazonBedrockOptions: AmazonBedrockLanguageModelChatOptions;
   warnings: SharedV4Warning[];
   isAnthropicModel: boolean;
   modelId: string;
-}): AmazonBedrockLanguageModelOptions {
+}): AmazonBedrockLanguageModelChatOptions {
   if (!isCustomReasoning(reasoning)) {
     return amazonBedrockOptions;
   }

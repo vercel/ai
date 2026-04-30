@@ -15,7 +15,7 @@ import {
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { AmazonBedrockChatLanguageModel } from './amazon-bedrock-chat-language-model';
-import type { AmazonBedrockChatModelId } from './amazon-bedrock-chat-options';
+import type { AmazonBedrockChatModelId } from './amazon-bedrock-chat-language-model-options';
 import { AmazonBedrockEmbeddingModel } from './amazon-bedrock-embedding-model';
 import type { AmazonBedrockEmbeddingModelId } from './amazon-bedrock-embedding-model-options';
 import { AmazonBedrockImageModel } from './amazon-bedrock-image-model';

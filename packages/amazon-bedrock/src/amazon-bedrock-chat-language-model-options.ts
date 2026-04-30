@@ -100,7 +100,7 @@ export type AmazonBedrockFilePartProviderOptions = z.infer<
   typeof amazonBedrockFilePartProviderOptions
 >;
 
-export const amazonBedrockLanguageModelOptions = z.object({
+export const amazonBedrockLanguageModelChatOptions = z.object({
   /**
    * Additional inference parameters that the model supports,
    * beyond the base set of inference parameters that Converse
@@ -139,6 +139,6 @@ export const amazonBedrockLanguageModelOptions = z.object({
   serviceTier: z.enum(['reserved', 'priority', 'default', 'flex']).optional(),
 });
 
-export type AmazonBedrockLanguageModelOptions = z.infer<
-  typeof amazonBedrockLanguageModelOptions
+export type AmazonBedrockLanguageModelChatOptions = z.infer<
+  typeof amazonBedrockLanguageModelChatOptions
 >;

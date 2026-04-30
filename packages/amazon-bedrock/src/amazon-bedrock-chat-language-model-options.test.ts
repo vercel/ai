@@ -1,15 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import {
-  amazonBedrockLanguageModelOptions,
-  type AmazonBedrockLanguageModelOptions,
-} from './amazon-bedrock-chat-options';
-describe('amazonBedrockLanguageModelOptions', () => {
+  amazonBedrockLanguageModelChatOptions,
+  type AmazonBedrockLanguageModelChatOptions,
+} from './amazon-bedrock-chat-language-model-options';
+describe('amazonBedrockLanguageModelChatOptions', () => {
   describe('serviceTier', () => {
     it('accepts valid service tier values', () => {
       const validValues = ['reserved', 'priority', 'default', 'flex'] as const;
 
       validValues.forEach(value => {
-        const result = amazonBedrockLanguageModelOptions.safeParse({
+        const result = amazonBedrockLanguageModelChatOptions.safeParse({
           serviceTier: value,
         });
 
@@ -22,7 +22,7 @@ describe('amazonBedrockLanguageModelOptions', () => {
       const invalidValues = ['on-demand', 'auto', 'standard', '', 'PRIORITY'];
 
       invalidValues.forEach(value => {
-        const result = amazonBedrockLanguageModelOptions.safeParse({
+        const result = amazonBedrockLanguageModelChatOptions.safeParse({
           serviceTier: value,
         });
 
@@ -32,8 +32,8 @@ describe('amazonBedrockLanguageModelOptions', () => {
   });
 
   describe('type inference', () => {
-    it('infers AmazonBedrockLanguageModelOptions type correctly', () => {
-      const options: AmazonBedrockLanguageModelOptions = {
+    it('infers AmazonBedrockLanguageModelChatOptions type correctly', () => {
+      const options: AmazonBedrockLanguageModelChatOptions = {
         serviceTier: 'priority',
       };
 

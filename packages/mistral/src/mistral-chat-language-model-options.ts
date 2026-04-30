@@ -22,7 +22,7 @@ export type MistralChatModelId =
   | 'magistral-small-2509'
   | (string & {});
 
-export const mistralLanguageModelOptions = z.object({
+export const mistralLanguageModelChatOptions = z.object({
   /**
    * Whether to inject a safety prompt before all conversations.
    *
@@ -64,6 +64,6 @@ export const mistralLanguageModelOptions = z.object({
   reasoningEffort: z.enum(['high', 'none']).optional(),
 });
 
-export type MistralLanguageModelOptions = z.infer<
-  typeof mistralLanguageModelOptions
+export type MistralLanguageModelChatOptions = z.infer<
+  typeof mistralLanguageModelChatOptions
 >;

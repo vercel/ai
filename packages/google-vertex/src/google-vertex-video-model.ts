@@ -337,4 +337,3 @@ const googleVertexOperationSchema = z.object({
     })
     .nullish(),
 });
-

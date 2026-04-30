@@ -61,7 +61,6 @@ function getApiModelName(modelId: string, mode: KlingAIVideoMode): string {
   return baseName.replace(/\.0$/, '').replace(/\./g, '-');
 }
 
-
 /**
  * Known provider option keys that are handled explicitly and should not be
  * passed through to the API body.
