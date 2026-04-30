@@ -1,5 +1,15 @@
 # @ai-sdk/provider
 
+## 4.0.0-beta.14
+
+### Major Changes
+
+- 9bd6512: feat(provider): change file part data property to be tagged with a type and remove the image part type
+
+### Patch Changes
+
+- 258c093: chore: ensure consistent import handling and avoid import duplicates or cycles
+
 ## 4.0.0-beta.13
 
 ### Patch Changes
