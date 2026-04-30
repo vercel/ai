@@ -222,6 +222,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
         'openai.mcp': 'mcp',
         'openai.apply_patch': 'apply_patch',
         'openai.tool_search': 'tool_search',
+        'openai.namespace': 'namespace',
       },
     });
 

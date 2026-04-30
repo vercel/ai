@@ -5,6 +5,7 @@ import { fileSearch } from './tool/file-search';
 import { imageGeneration } from './tool/image-generation';
 import { localShell } from './tool/local-shell';
 import { shell } from './tool/shell';
+import { namespace } from './tool/namespace';
 import { toolSearch } from './tool/tool-search';
 import { webSearch } from './tool/web-search';
 import { webSearchPreview } from './tool/web-search-preview';
@@ -134,4 +135,16 @@ export const openaiTools = {
    * when it determines they are needed.
    */
   toolSearch,
+
+  /**
+   * Namespaces group related tools together under a logical container.
+   * Tools within a namespace can have `defer_loading: true` to be lazily
+   * loaded via tool_search. This is useful for organizing tools from
+   * different MCP servers or tool providers.
+   *
+   * @param name - The namespace identifier (e.g., 'mcp_github').
+   * @param description - Description of the namespace and its tools.
+   * @param tools - Array of function tool definitions within this namespace.
+   */
+  namespace,
 };
