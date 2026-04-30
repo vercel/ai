@@ -1,6 +1,10 @@
 import { vertex } from '@ai-sdk/google-vertex';
-import type { ModelMessage, ToolCallPart, ToolResultPart } from 'ai';
-import { streamText } from 'ai';
+import {
+  type ModelMessage,
+  type ToolCallPart,
+  type ToolResultPart,
+  streamText,
+} from 'ai';
 import 'dotenv/config';
 import * as process from 'process';
 

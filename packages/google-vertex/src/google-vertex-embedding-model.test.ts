@@ -1,6 +1,5 @@
-import type {
-  EmbeddingModelV2Embedding} from '@ai-sdk/provider';
 import {
+  type EmbeddingModelV2Embedding,
   TooManyEmbeddingValuesForCallError,
 } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';

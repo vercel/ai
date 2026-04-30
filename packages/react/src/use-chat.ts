@@ -1,10 +1,4 @@
-import type {
-  AbstractChat,
-  ChatInit} from 'ai';
-import {
-  type CreateUIMessage,
-  type UIMessage,
-} from 'ai';
+import type { AbstractChat, ChatInit, CreateUIMessage, UIMessage } from 'ai';
 import { useCallback, useEffect, useRef, useSyncExternalStore } from 'react';
 import { Chat } from './chat.react';
 

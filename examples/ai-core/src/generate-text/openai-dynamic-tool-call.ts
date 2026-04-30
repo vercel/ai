@@ -1,6 +1,5 @@
 import { openai } from '@ai-sdk/openai';
-import type { ToolSet } from 'ai';
-import { dynamicTool, generateText, stepCountIs } from 'ai';
+import { type ToolSet, dynamicTool, generateText, stepCountIs } from 'ai';
 import 'dotenv/config';
 import { z } from 'zod';
 import { weatherTool } from '../tools/weather-tool';

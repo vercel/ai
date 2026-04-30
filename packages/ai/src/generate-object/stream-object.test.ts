@@ -1,7 +1,6 @@
-import type {
-  LanguageModelV2CallWarning,
-  LanguageModelV2StreamPart} from '@ai-sdk/provider';
 import {
+  type LanguageModelV2CallWarning,
+  type LanguageModelV2StreamPart,
   JSONParseError,
   TypeValidationError,
 } from '@ai-sdk/provider';

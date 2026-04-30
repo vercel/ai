@@ -1,6 +1,5 @@
-import type {
-  FetchFunction} from '@ai-sdk/provider-utils';
 import {
+  type FetchFunction,
   convertBase64ToUint8Array,
   safeParseJSON,
 } from '@ai-sdk/provider-utils';

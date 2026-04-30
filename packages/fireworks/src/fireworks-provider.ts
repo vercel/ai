@@ -1,9 +1,8 @@
-import type {
-  ProviderErrorStructure} from '@ai-sdk/openai-compatible';
 import {
+  type ProviderErrorStructure,
   OpenAICompatibleChatLanguageModel,
   OpenAICompatibleCompletionLanguageModel,
-  OpenAICompatibleEmbeddingModel
+  OpenAICompatibleEmbeddingModel,
 } from '@ai-sdk/openai-compatible';
 import type {
   EmbeddingModelV2,
@@ -11,9 +10,8 @@ import type {
   LanguageModelV2,
   ProviderV2,
 } from '@ai-sdk/provider';
-import type {
-  FetchFunction} from '@ai-sdk/provider-utils';
 import {
+  type FetchFunction,
   loadApiKey,
   withoutTrailingSlash,
   withUserAgentSuffix,

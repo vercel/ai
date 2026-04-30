@@ -7,8 +7,7 @@ import {
 } from '@ai-sdk/openai-compatible';
 import type { LanguageModelV2, EmbeddingModelV2 } from '@ai-sdk/provider';
 import { loadApiKey } from '@ai-sdk/provider-utils';
-import type { Mock } from 'vitest';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { type Mock, describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Add type assertion for the mocked class
 const DeepInfraChatLanguageModelMock =

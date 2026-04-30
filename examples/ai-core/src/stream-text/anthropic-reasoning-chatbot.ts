@@ -1,7 +1,8 @@
-import type { AnthropicProviderOptions} from '@ai-sdk/anthropic';
-import { createAnthropic } from '@ai-sdk/anthropic';
-import type { ModelMessage} from 'ai';
-import { stepCountIs, streamText, tool } from 'ai';
+import {
+  type AnthropicProviderOptions,
+  createAnthropic,
+} from '@ai-sdk/anthropic';
+import { type ModelMessage, stepCountIs, streamText, tool } from 'ai';
 import 'dotenv/config';
 import * as readline from 'node:readline/promises';
 import { z } from 'zod';

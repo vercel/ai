@@ -1,8 +1,7 @@
 import { anthropic } from '@ai-sdk/anthropic';
-import type {
-  Experimental_InferAgentUIMessage as InferAgentUIMessage} from 'ai';
 import {
-  Experimental_Agent as BasicAgent
+  type Experimental_InferAgentUIMessage as InferAgentUIMessage,
+  Experimental_Agent as BasicAgent,
 } from 'ai';
 
 export const anthropicCodeExecutionAgent = new BasicAgent({

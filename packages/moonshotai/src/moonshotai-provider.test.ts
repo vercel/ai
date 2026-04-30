@@ -1,5 +1,4 @@
-import type { Mock } from 'vitest';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { type Mock, describe, it, expect, vi, beforeEach } from 'vitest';
 import { createMoonshotAI } from './moonshotai-provider';
 import { loadApiKey } from '@ai-sdk/provider-utils';
 import { MoonshotAIChatLanguageModel } from './moonshotai-chat-language-model';

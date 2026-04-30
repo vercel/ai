@@ -1,8 +1,7 @@
 import { EmptyResponseBodyError } from '@ai-sdk/provider';
-import type {
-  ParseResult,
-  ResponseHandler} from '@ai-sdk/provider-utils';
 import {
+  type ParseResult,
+  type ResponseHandler,
   safeParseJSON,
   extractResponseHeaders,
   safeValidateTypes,

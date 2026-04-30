@@ -1,5 +1,7 @@
-import type { ProviderOptions} from '@ai-sdk/provider-utils';
-import { withUserAgentSuffix } from '@ai-sdk/provider-utils';
+import {
+  type ProviderOptions,
+  withUserAgentSuffix,
+} from '@ai-sdk/provider-utils';
 import { resolveEmbeddingModel } from '../model/resolve-model';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';

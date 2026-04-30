@@ -1,7 +1,6 @@
-import type {
-  LanguageModelV2CallWarning,
-  LanguageModelV2Prompt} from '@ai-sdk/provider';
 import {
+  type LanguageModelV2CallWarning,
+  type LanguageModelV2Prompt,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { convertToBase64 } from '@ai-sdk/provider-utils';

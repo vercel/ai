@@ -1,6 +1,9 @@
 import { OpenAICompatibleChatLanguageModel } from '@ai-sdk/openai-compatible';
 import type { OpenAICompatibleChatConfig } from '@ai-sdk/openai-compatible/internal';
-import type { LanguageModelV2, LanguageModelV2StreamPart } from '@ai-sdk/provider';
+import type {
+  LanguageModelV2,
+  LanguageModelV2StreamPart,
+} from '@ai-sdk/provider';
 import { convertMoonshotAIChatUsage } from './convert-moonshotai-chat-usage';
 import type { MoonshotAIChatModelId } from './moonshotai-chat-options';
 

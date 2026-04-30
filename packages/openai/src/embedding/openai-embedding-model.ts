@@ -1,6 +1,5 @@
-import type {
-  EmbeddingModelV2} from '@ai-sdk/provider';
 import {
+  type EmbeddingModelV2,
   TooManyEmbeddingValuesForCallError,
 } from '@ai-sdk/provider';
 import {
@@ -11,9 +10,8 @@ import {
 } from '@ai-sdk/provider-utils';
 import type { OpenAIConfig } from '../openai-config';
 import { openaiFailedResponseHandler } from '../openai-error';
-import type {
-  OpenAIEmbeddingModelId} from './openai-embedding-options';
 import {
+  type OpenAIEmbeddingModelId,
   openaiEmbeddingProviderOptions,
 } from './openai-embedding-options';
 import { openaiTextEmbeddingResponseSchema } from './openai-embedding-api';

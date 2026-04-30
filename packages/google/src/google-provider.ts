@@ -4,9 +4,8 @@ import type {
   ProviderV2,
   ImageModelV2,
 } from '@ai-sdk/provider';
-import type {
-  FetchFunction} from '@ai-sdk/provider-utils';
 import {
+  type FetchFunction,
   generateId,
   loadApiKey,
   withoutTrailingSlash,

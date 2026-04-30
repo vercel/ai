@@ -15,9 +15,8 @@ import type {
   SpeechModelV2,
   TranscriptionModelV2,
 } from '@ai-sdk/provider';
-import type {
-  FetchFunction} from '@ai-sdk/provider-utils';
 import {
+  type FetchFunction,
   loadApiKey,
   loadSetting,
   withUserAgentSuffix,

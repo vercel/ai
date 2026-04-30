@@ -1,7 +1,6 @@
-import type {
-  GoogleCredentials} from './google-vertex-auth-edge';
 import {
-  generateAuthToken
+  type GoogleCredentials,
+  generateAuthToken,
 } from './google-vertex-auth-edge';
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 

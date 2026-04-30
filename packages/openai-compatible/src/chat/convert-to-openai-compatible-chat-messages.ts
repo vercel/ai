@@ -1,7 +1,6 @@
-import type {
-  LanguageModelV2Prompt,
-  SharedV2ProviderMetadata} from '@ai-sdk/provider';
 import {
+  type LanguageModelV2Prompt,
+  type SharedV2ProviderMetadata,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import type { OpenAICompatibleChatPrompt } from './openai-compatible-api-types';

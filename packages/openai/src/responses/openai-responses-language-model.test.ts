@@ -13,9 +13,8 @@ import {
 import fs from 'node:fs';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { OpenAIResponsesLanguageModel } from './openai-responses-language-model';
-import type {
-  OpenAIResponsesProviderOptions} from './openai-responses-options';
 import {
+  type OpenAIResponsesProviderOptions,
   openaiResponsesModelIds,
   openaiResponsesReasoningModelIds,
 } from './openai-responses-options';

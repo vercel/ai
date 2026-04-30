@@ -1,8 +1,7 @@
-import type {
-  JSONValue,
-  LanguageModelV2ToolResultOutput} from '@ai-sdk/provider';
 import {
-  getErrorMessage
+  type JSONValue,
+  type LanguageModelV2ToolResultOutput,
+  getErrorMessage,
 } from '@ai-sdk/provider';
 import type { Tool } from '@ai-sdk/provider-utils';
 

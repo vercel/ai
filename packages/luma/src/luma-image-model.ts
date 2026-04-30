@@ -1,12 +1,10 @@
-import type {
-  ImageModelV2,
-  ImageModelV2CallWarning} from '@ai-sdk/provider';
 import {
+  type ImageModelV2,
+  type ImageModelV2CallWarning,
   InvalidResponseDataError,
 } from '@ai-sdk/provider';
-import type {
-  FetchFunction} from '@ai-sdk/provider-utils';
 import {
+  type FetchFunction,
   combineHeaders,
   createBinaryResponseHandler,
   createJsonResponseHandler,

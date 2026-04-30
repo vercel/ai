@@ -1,9 +1,8 @@
 import 'dotenv/config';
 import { expect } from 'vitest';
-import type {
-  TogetherAIErrorData} from '@ai-sdk/togetherai';
 import {
-  togetherai as provider
+  type TogetherAIErrorData,
+  togetherai as provider,
 } from '@ai-sdk/togetherai';
 import type { APICallError } from 'ai';
 import {

@@ -4,9 +4,8 @@ import type {
   LanguageModelV2FunctionTool,
   LanguageModelV2ProviderDefinedTool,
 } from '@ai-sdk/provider';
-import type {
-  ModelMessage} from '@ai-sdk/provider-utils';
 import {
+  type ModelMessage,
   dynamicTool,
   jsonSchema,
   tool,

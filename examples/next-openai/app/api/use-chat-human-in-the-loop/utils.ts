@@ -1,9 +1,8 @@
-import type {
-  Tool,
-  ToolCallOptions,
-  ToolSet,
-  UIMessageStreamWriter} from 'ai';
 import {
+  type Tool,
+  type ToolCallOptions,
+  type ToolSet,
+  type UIMessageStreamWriter,
   convertToModelMessages,
   getToolName,
   isToolUIPart,

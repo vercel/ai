@@ -11,6 +11,12 @@
       "rules": {
         "no-redeclare": "off"
       }
+    },
+    {
+      "files": ["packages/provider-utils/src/zod-to-json-schema/**"],
+      "rules": {
+        "import/no-cycle": "off"
+      }
     }
   ],
   "rules": {

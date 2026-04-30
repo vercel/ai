@@ -1,18 +1,16 @@
-import type {
-  APICallError,
-  LanguageModelV2,
-  LanguageModelV2Content,
-  LanguageModelV2FinishReason,
-  LanguageModelV2StreamPart} from '@ai-sdk/provider';
 import {
-  InvalidResponseDataError
+  type APICallError,
+  type LanguageModelV2,
+  type LanguageModelV2Content,
+  type LanguageModelV2FinishReason,
+  type LanguageModelV2StreamPart,
+  InvalidResponseDataError,
 } from '@ai-sdk/provider';
-import type {
-  FetchFunction,
-  InferSchema,
-  ParseResult,
-  ResponseHandler} from '@ai-sdk/provider-utils';
 import {
+  type FetchFunction,
+  type InferSchema,
+  type ParseResult,
+  type ResponseHandler,
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonErrorResponseHandler,
@@ -20,19 +18,17 @@ import {
   generateId,
   isParsableJson,
   parseProviderOptions,
-  postJsonToApi
+  postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { convertToDeepSeekChatMessages } from './convert-to-deepseek-chat-messages';
-import type {
-  DeepSeekChatTokenUsage} from './deepseek-chat-api-types';
 import {
+  type DeepSeekChatTokenUsage,
   deepseekChatChunkSchema,
   deepseekChatResponseSchema,
   deepSeekErrorSchema,
 } from './deepseek-chat-api-types';
-import type {
-  DeepSeekChatModelId} from './deepseek-chat-options';
 import {
+  type DeepSeekChatModelId,
   deepseekChatOptions,
 } from './deepseek-chat-options';
 import { prepareTools } from './deepseek-prepare-tools';

@@ -1,9 +1,8 @@
 import { cohere } from '@ai-sdk/cohere';
-import type {
-  ModelMessage,
-  ToolCallPart,
-  ToolResultPart} from 'ai';
 import {
+  type ModelMessage,
+  type ToolCallPart,
+  type ToolResultPart,
   streamText,
   tool,
 } from 'ai';

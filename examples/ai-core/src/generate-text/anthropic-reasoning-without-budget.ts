@@ -1,5 +1,4 @@
-import type { AnthropicProviderOptions } from '@ai-sdk/anthropic';
-import { anthropic } from '@ai-sdk/anthropic';
+import { type AnthropicProviderOptions, anthropic } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 import { run } from '../lib/run';
 

@@ -1,8 +1,7 @@
-import type {
-  GoogleGenerativeAIProviderOptions,
-  GoogleGenerativeAIProviderMetadata} from '@ai-sdk/google';
 import {
-  google
+  type GoogleGenerativeAIProviderOptions,
+  type GoogleGenerativeAIProviderMetadata,
+  google,
 } from '@ai-sdk/google';
 import { generateText } from 'ai';
 import { presentImages } from '../lib/present-image';

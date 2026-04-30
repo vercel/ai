@@ -1,5 +1,4 @@
-import type { ModelMessage} from 'ai';
-import { generateText } from 'ai';
+import { type ModelMessage, generateText } from 'ai';
 import 'dotenv/config';
 import * as readline from 'node:readline/promises';
 import { weatherTool } from '../tools/weather-tool';

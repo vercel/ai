@@ -1,8 +1,7 @@
 import type { IdGenerator, ProviderOptions } from '@ai-sdk/provider-utils';
-import type {
-  GenerateTextOnStepFinishCallback} from '../generate-text/generate-text';
 import {
-  generateText
+  type GenerateTextOnStepFinishCallback,
+  generateText,
 } from '../generate-text/generate-text';
 import type { GenerateTextResult } from '../generate-text/generate-text-result';
 import type { Output } from '../generate-text/output';

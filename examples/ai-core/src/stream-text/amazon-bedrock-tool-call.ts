@@ -1,6 +1,10 @@
 import { bedrock } from '@ai-sdk/amazon-bedrock';
-import type { ModelMessage, ToolCallPart, ToolResultPart } from 'ai';
-import { streamText } from 'ai';
+import {
+  type ModelMessage,
+  type ToolCallPart,
+  type ToolResultPart,
+  streamText,
+} from 'ai';
 import 'dotenv/config';
 import { weatherTool } from '../tools/weather-tool';
 

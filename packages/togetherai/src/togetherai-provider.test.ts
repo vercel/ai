@@ -5,8 +5,15 @@ import {
 } from '@ai-sdk/openai-compatible';
 import type { LanguageModelV2, EmbeddingModelV2 } from '@ai-sdk/provider';
 import { loadApiKey, withUserAgentSuffix } from '@ai-sdk/provider-utils';
-import type { Mock} from 'vitest';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  type Mock,
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 import { TogetherAIImageModel } from './togetherai-image-model';
 import { createTogetherAI } from './togetherai-provider';
 

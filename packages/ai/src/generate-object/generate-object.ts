@@ -1,9 +1,8 @@
 import type { JSONValue } from '@ai-sdk/provider';
-import type {
-  FlexibleSchema,
-  InferSchema,
-  ProviderOptions} from '@ai-sdk/provider-utils';
 import {
+  type FlexibleSchema,
+  type InferSchema,
+  type ProviderOptions,
   createIdGenerator,
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';

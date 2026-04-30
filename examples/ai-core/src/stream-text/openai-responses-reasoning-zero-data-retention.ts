@@ -1,7 +1,5 @@
-import type { OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
-import { openai } from '@ai-sdk/openai';
-import type { UserModelMessage } from 'ai';
-import { APICallError, streamText } from 'ai';
+import { type OpenAIResponsesProviderOptions, openai } from '@ai-sdk/openai';
+import { type UserModelMessage, APICallError, streamText } from 'ai';
 import 'dotenv/config';
 
 async function main() {

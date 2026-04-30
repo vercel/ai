@@ -5,8 +5,7 @@ import {
   streamText,
 } from 'ai';
 import 'dotenv/config';
-import type { Request, Response } from 'express';
-import express from 'express';
+import express, { type Request, type Response } from 'express';
 
 const app = express();
 

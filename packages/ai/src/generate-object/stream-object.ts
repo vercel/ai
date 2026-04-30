@@ -6,10 +6,9 @@ import type {
   LanguageModelV2Usage,
   SharedV2ProviderMetadata,
 } from '@ai-sdk/provider';
-import type {
-  FlexibleSchema,
-  ProviderOptions} from '@ai-sdk/provider-utils';
 import {
+  type FlexibleSchema,
+  type ProviderOptions,
   createIdGenerator,
   DelayedPromise,
   type InferSchema,
@@ -41,22 +40,22 @@ import type { LanguageModelRequestMetadata } from '../types/language-model-reque
 import type { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
 import type { ProviderMetadata } from '../types/provider-metadata';
 import type { LanguageModelUsage } from '../types/usage';
-import type { DeepPartial} from '../util';
-import { isDeepEqualData, parsePartialJson } from '../util';
-import type {
-  AsyncIterableStream} from '../util/async-iterable-stream';
+import { type DeepPartial, isDeepEqualData, parsePartialJson } from '../util';
 import {
+  type AsyncIterableStream,
   createAsyncIterableStream,
 } from '../util/async-iterable-stream';
 import { createStitchableStream } from '../util/create-stitchable-stream';
 import type { DownloadFunction } from '../util/download/download-function';
 import { now as originalNow } from '../util/now';
 import { prepareRetries } from '../util/prepare-retries';
-import type { OutputStrategy } from './output-strategy';
-import { getOutputStrategy } from './output-strategy';
+import { type OutputStrategy, getOutputStrategy } from './output-strategy';
 import { parseAndValidateObjectResultWithRepair } from './parse-and-validate-object-result';
 import type { RepairTextFunction } from './repair-text';
-import type { ObjectStreamPart, StreamObjectResult } from './stream-object-result';
+import type {
+  ObjectStreamPart,
+  StreamObjectResult,
+} from './stream-object-result';
 import { validateObjectGenerationInput } from './validate-object-generation-input';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aiobj', size: 24 });

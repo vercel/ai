@@ -1,7 +1,6 @@
 import { z } from 'zod/v4';
-import type {
-  ProviderMetadata} from '../types/provider-metadata';
 import {
+  type ProviderMetadata,
   providerMetadataSchema,
 } from '../types/provider-metadata';
 import type { FinishReason } from '../types/language-model';

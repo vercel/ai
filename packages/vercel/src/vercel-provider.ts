@@ -1,13 +1,11 @@
-import type {
-  LanguageModelV2,
-  ProviderV2} from '@ai-sdk/provider';
 import {
-  NoSuchModelError
+  type LanguageModelV2,
+  type ProviderV2,
+  NoSuchModelError,
 } from '@ai-sdk/provider';
 import { OpenAICompatibleChatLanguageModel } from '@ai-sdk/openai-compatible';
-import type {
-  FetchFunction} from '@ai-sdk/provider-utils';
 import {
+  type FetchFunction,
   loadApiKey,
   withoutTrailingSlash,
   withUserAgentSuffix,

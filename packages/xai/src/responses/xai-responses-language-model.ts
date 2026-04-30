@@ -6,10 +6,9 @@ import type {
   LanguageModelV2StreamPart,
   LanguageModelV2Usage,
 } from '@ai-sdk/provider';
-import type {
-  FetchFunction,
-  ParseResult} from '@ai-sdk/provider-utils';
 import {
+  type FetchFunction,
+  type ParseResult,
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
@@ -24,9 +23,8 @@ import {
   xaiResponsesResponseSchema,
 } from './xai-responses-api';
 import { mapXaiResponsesFinishReason } from './map-xai-responses-finish-reason';
-import type {
-  XaiResponsesModelId} from './xai-responses-options';
 import {
+  type XaiResponsesModelId,
   xaiResponsesProviderOptions,
 } from './xai-responses-options';
 import { xaiFailedResponseHandler } from '../xai-error';

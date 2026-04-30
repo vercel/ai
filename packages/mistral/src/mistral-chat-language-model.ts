@@ -6,10 +6,9 @@ import type {
   LanguageModelV2StreamPart,
   LanguageModelV2Usage,
 } from '@ai-sdk/provider';
-import type {
-  FetchFunction,
-  ParseResult} from '@ai-sdk/provider-utils';
 import {
+  type FetchFunction,
+  type ParseResult,
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
@@ -22,9 +21,8 @@ import { z } from 'zod/v4';
 import { convertToMistralChatMessages } from './convert-to-mistral-chat-messages';
 import { getResponseMetadata } from './get-response-metadata';
 import { mapMistralFinishReason } from './map-mistral-finish-reason';
-import type {
-  MistralChatModelId} from './mistral-chat-options';
 import {
+  type MistralChatModelId,
   mistralLanguageModelOptions,
 } from './mistral-chat-options';
 import { mistralFailedResponseHandler } from './mistral-error';

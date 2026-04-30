@@ -1,18 +1,15 @@
-import type {
-  ProviderErrorStructure} from '@ai-sdk/openai-compatible';
 import {
-  OpenAICompatibleImageModel
+  type ProviderErrorStructure,
+  OpenAICompatibleImageModel,
 } from '@ai-sdk/openai-compatible';
-import type {
-  ImageModelV2,
-  LanguageModelV2,
-  ProviderV2} from '@ai-sdk/provider';
 import {
-  NoSuchModelError
+  type ImageModelV2,
+  type LanguageModelV2,
+  type ProviderV2,
+  NoSuchModelError,
 } from '@ai-sdk/provider';
-import type {
-  FetchFunction} from '@ai-sdk/provider-utils';
 import {
+  type FetchFunction,
   generateId,
   loadApiKey,
   withoutTrailingSlash,
@@ -20,8 +17,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { XaiChatLanguageModel } from './xai-chat-language-model';
 import type { XaiChatModelId } from './xai-chat-options';
-import type { XaiErrorData} from './xai-error';
-import { xaiErrorDataSchema } from './xai-error';
+import { type XaiErrorData, xaiErrorDataSchema } from './xai-error';
 import type { XaiImageModelId } from './xai-image-settings';
 import { XaiResponsesLanguageModel } from './responses/xai-responses-language-model';
 import type { XaiResponsesModelId } from './responses/xai-responses-options';

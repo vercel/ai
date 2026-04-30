@@ -7,30 +7,27 @@ import type {
   LanguageModelV2StreamPart,
   LanguageModelV2Usage,
 } from '@ai-sdk/provider';
-import type {
-  FetchFunction,
-  ParseResult,
-  ResponseHandler} from '@ai-sdk/provider-utils';
 import {
+  type FetchFunction,
+  type ParseResult,
+  type ResponseHandler,
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
   parseProviderOptions,
-  postJsonToApi
+  postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import type {
-  ProviderErrorStructure} from '../openai-compatible-error';
 import {
-  defaultOpenAICompatibleErrorStructure
+  type ProviderErrorStructure,
+  defaultOpenAICompatibleErrorStructure,
 } from '../openai-compatible-error';
 import { convertToOpenAICompatibleCompletionPrompt } from './convert-to-openai-compatible-completion-prompt';
 import { getResponseMetadata } from './get-response-metadata';
 import { mapOpenAICompatibleFinishReason } from './map-openai-compatible-finish-reason';
-import type {
-  OpenAICompatibleCompletionModelId} from './openai-compatible-completion-options';
 import {
+  type OpenAICompatibleCompletionModelId,
   openaiCompatibleCompletionProviderOptions,
 } from './openai-compatible-completion-options';
 

@@ -3,10 +3,9 @@ import type {
   LanguageModelV2Content,
   LanguageModelV2ToolCall,
 } from '@ai-sdk/provider';
-import type {
-  IdGenerator,
-  ProviderOptions} from '@ai-sdk/provider-utils';
 import {
+  type IdGenerator,
+  type ProviderOptions,
   createIdGenerator,
   executeTool,
   getErrorMessage,
@@ -32,8 +31,7 @@ import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attribu
 import { stringifyForTelemetry } from '../telemetry/stringify-for-telemetry';
 import type { TelemetrySettings } from '../telemetry/telemetry-settings';
 import type { LanguageModel, ToolChoice } from '../types';
-import type { LanguageModelUsage } from '../types/usage';
-import { addLanguageModelUsage } from '../types/usage';
+import { type LanguageModelUsage, addLanguageModelUsage } from '../types/usage';
 import { asArray } from '../util/as-array';
 import type { DownloadFunction } from '../util/download/download-function';
 import { prepareRetries } from '../util/prepare-retries';
@@ -45,13 +43,11 @@ import type { Output } from './output';
 import { parseToolCall } from './parse-tool-call';
 import type { PrepareStepFunction } from './prepare-step';
 import type { ResponseMessage } from './response-message';
-import type { StepResult } from './step-result';
-import { DefaultStepResult } from './step-result';
-import type {
-  StopCondition} from './stop-condition';
+import { type StepResult, DefaultStepResult } from './step-result';
 import {
+  type StopCondition,
   isStopConditionMet,
-  stepCountIs
+  stepCountIs,
 } from './stop-condition';
 import { toResponseMessages } from './to-response-messages';
 import type { TypedToolCall } from './tool-call';

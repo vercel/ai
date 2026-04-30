@@ -1,7 +1,6 @@
-import type {
-  FetchFunction,
-  Resolvable} from '@ai-sdk/provider-utils';
 import {
+  type FetchFunction,
+  type Resolvable,
   normalizeHeaders,
   resolve,
 } from '@ai-sdk/provider-utils';

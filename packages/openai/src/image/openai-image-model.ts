@@ -7,9 +7,8 @@ import {
 import type { OpenAIConfig } from '../openai-config';
 import { openaiFailedResponseHandler } from '../openai-error';
 import { openaiImageResponseSchema } from './openai-image-api';
-import type {
-  OpenAIImageModelId} from './openai-image-options';
 import {
+  type OpenAIImageModelId,
   hasDefaultResponseFormat,
   modelMaxImagesPerCall,
 } from './openai-image-options';

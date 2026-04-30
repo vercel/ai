@@ -1,7 +1,6 @@
 import 'dotenv/config';
 import { expect } from 'vitest';
-import type { XaiErrorData } from '@ai-sdk/xai';
-import { xai as provider } from '@ai-sdk/xai';
+import { type XaiErrorData, xai as provider } from '@ai-sdk/xai';
 import {
   createFeatureTestSuite,
   createLanguageModelWithCapabilities,

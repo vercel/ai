@@ -1,7 +1,7 @@
 import type { ImageModelV2, ImageModelV2CallWarning } from '@ai-sdk/provider';
-import type { Resolvable ,
-  FetchFunction} from '@ai-sdk/provider-utils';
 import {
+  type Resolvable,
+  type FetchFunction,
   combineHeaders,
   createBinaryResponseHandler,
   createJsonResponseHandler,

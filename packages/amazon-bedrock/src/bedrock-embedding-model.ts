@@ -1,12 +1,10 @@
-import type {
-  EmbeddingModelV2} from '@ai-sdk/provider';
 import {
+  type EmbeddingModelV2,
   TooManyEmbeddingValuesForCallError,
 } from '@ai-sdk/provider';
-import type {
-  FetchFunction,
-  Resolvable} from '@ai-sdk/provider-utils';
 import {
+  type FetchFunction,
+  type Resolvable,
   combineHeaders,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
@@ -14,9 +12,8 @@ import {
   postJsonToApi,
   resolve,
 } from '@ai-sdk/provider-utils';
-import type {
-  BedrockEmbeddingModelId} from './bedrock-embedding-options';
 import {
+  type BedrockEmbeddingModelId,
   bedrockEmbeddingProviderOptions,
 } from './bedrock-embedding-options';
 import { BedrockErrorSchema } from './bedrock-error';

@@ -1,5 +1,4 @@
-import type { ModelMessage } from '@ai-sdk/provider-utils';
-import { executeTool } from '@ai-sdk/provider-utils';
+import { type ModelMessage, executeTool } from '@ai-sdk/provider-utils';
 import type { Tracer } from '@opentelemetry/api';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { recordErrorOnSpan, recordSpan } from '../telemetry/record-span';

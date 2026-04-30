@@ -7,14 +7,13 @@ import type {
   LanguageModelV2StreamPart,
   SharedV2ProviderMetadata,
 } from '@ai-sdk/provider';
-import type {
-  ModelMessage,
-  Tool} from '@ai-sdk/provider-utils';
 import {
+  type ModelMessage,
+  type Tool,
   delay,
   dynamicTool,
   jsonSchema,
-  tool
+  tool,
 } from '@ai-sdk/provider-utils';
 import {
   convertArrayToReadableStream,

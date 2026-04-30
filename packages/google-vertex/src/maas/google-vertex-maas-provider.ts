@@ -1,9 +1,10 @@
-import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
-import type { OpenAICompatibleProvider } from '@ai-sdk/openai-compatible';
-import type {
-  FetchFunction,
-  Resolvable} from '@ai-sdk/provider-utils';
 import {
+  createOpenAICompatible,
+  type OpenAICompatibleProvider,
+} from '@ai-sdk/openai-compatible';
+import {
+  type FetchFunction,
+  type Resolvable,
   loadOptionalSetting,
   loadSetting,
   withoutTrailingSlash,

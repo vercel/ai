@@ -1,6 +1,5 @@
 import { openai } from '@ai-sdk/openai';
-import type { UIMessage } from 'ai';
-import { convertToModelMessages, streamText } from 'ai';
+import { type UIMessage, convertToModelMessages, streamText } from 'ai';
 import type { ExampleMetadata } from './example-metadata-schema';
 
 export async function POST(req: Request) {

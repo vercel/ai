@@ -1,7 +1,11 @@
 import 'dotenv/config';
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
-import type { ModelMessage, ToolCallPart, ToolResultPart } from 'ai';
-import { streamText } from 'ai';
+import {
+  type ModelMessage,
+  type ToolCallPart,
+  type ToolResultPart,
+  streamText,
+} from 'ai';
 import { weatherTool } from '../tools/weather-tool';
 
 const messages: ModelMessage[] = [];

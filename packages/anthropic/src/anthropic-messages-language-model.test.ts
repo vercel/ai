@@ -1,10 +1,9 @@
-import type {
-  JSONValue,
-  LanguageModelV2,
-  LanguageModelV2Prompt,
-  LanguageModelV2StreamPart} from '@ai-sdk/provider';
 import {
-  APICallError
+  type JSONValue,
+  type LanguageModelV2,
+  type LanguageModelV2Prompt,
+  type LanguageModelV2StreamPart,
+  APICallError,
 } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import {

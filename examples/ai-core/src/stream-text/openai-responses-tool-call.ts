@@ -1,5 +1,4 @@
-import type { OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
-import { openai } from '@ai-sdk/openai';
+import { type OpenAIResponsesProviderOptions, openai } from '@ai-sdk/openai';
 import 'dotenv/config';
 import { weatherTool } from '../tools/weather-tool';
 import { stepCountIs, streamText, tool } from 'ai';

@@ -1,16 +1,14 @@
-import type {
-  LanguageModelV2,
-  LanguageModelV2CallWarning} from '@ai-sdk/provider';
 import {
-  getErrorMessage
+  type LanguageModelV2,
+  type LanguageModelV2CallWarning,
+  getErrorMessage,
 } from '@ai-sdk/provider';
-import type {
-  IdGenerator,
-  ProviderOptions} from '@ai-sdk/provider-utils';
 import {
+  type IdGenerator,
+  type ProviderOptions,
   createIdGenerator,
   DelayedPromise,
-  isAbortError
+  isAbortError,
 } from '@ai-sdk/provider-utils';
 import type { Span } from '@opentelemetry/api';
 import type { ServerResponse } from 'node:http';
@@ -42,8 +40,7 @@ import type {
   ToolChoice,
 } from '../types/language-model';
 import type { ProviderMetadata } from '../types/provider-metadata';
-import type { LanguageModelUsage } from '../types/usage';
-import { addLanguageModelUsage } from '../types/usage';
+import { type LanguageModelUsage, addLanguageModelUsage } from '../types/usage';
 import type { UIMessage } from '../ui';
 import { createUIMessageStreamResponse } from '../ui-message-stream/create-ui-message-stream-response';
 import { getResponseUIMessageId } from '../ui-message-stream/get-response-ui-message-id';
@@ -54,11 +51,13 @@ import type {
   UIMessageChunk,
 } from '../ui-message-stream/ui-message-chunks';
 import type { UIMessageStreamResponseInit } from '../ui-message-stream/ui-message-stream-response-init';
-import type { InferUIMessageData, InferUIMessageMetadata } from '../ui/ui-messages';
-import { asArray } from '../util/as-array';
 import type {
-  AsyncIterableStream} from '../util/async-iterable-stream';
+  InferUIMessageData,
+  InferUIMessageMetadata,
+} from '../ui/ui-messages';
+import { asArray } from '../util/as-array';
 import {
+  type AsyncIterableStream,
   createAsyncIterableStream,
 } from '../util/async-iterable-stream';
 import { consumeStream } from '../util/consume-stream';
@@ -70,18 +69,15 @@ import type { ContentPart } from './content-part';
 import type { Output } from './output';
 import type { PrepareStepFunction } from './prepare-step';
 import type { ResponseMessage } from './response-message';
-import type {
-  SingleRequestTextStreamPart} from './run-tools-transformation';
 import {
-  runToolsTransformation
+  type SingleRequestTextStreamPart,
+  runToolsTransformation,
 } from './run-tools-transformation';
-import type { StepResult } from './step-result';
-import { DefaultStepResult } from './step-result';
-import type {
-  StopCondition} from './stop-condition';
+import { type StepResult, DefaultStepResult } from './step-result';
 import {
+  type StopCondition,
   isStopConditionMet,
-  stepCountIs
+  stepCountIs,
 } from './stop-condition';
 import type {
   ConsumeStreamOptions,

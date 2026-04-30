@@ -1,7 +1,6 @@
 import type { LanguageModelV2CallOptions } from '@ai-sdk/provider';
-import type {
-  FlexibleSchema} from '@ai-sdk/provider-utils';
 import {
+  type FlexibleSchema,
   asSchema,
   safeParseJSON,
   safeValidateTypes,

@@ -1,5 +1,7 @@
-import type { ProviderOptions} from '@ai-sdk/provider-utils';
-import { withUserAgentSuffix } from '@ai-sdk/provider-utils';
+import {
+  type ProviderOptions,
+  withUserAgentSuffix,
+} from '@ai-sdk/provider-utils';
 import { prepareRetries } from '../util/prepare-retries';
 import { splitArray } from '../util/split-array';
 import { UnsupportedModelVersionError } from '../error/unsupported-model-version-error';

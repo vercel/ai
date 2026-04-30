@@ -1,4 +1,7 @@
-import type { JSONValue, LanguageModelV2ToolResultPart } from '@ai-sdk/provider';
+import type {
+  JSONValue,
+  LanguageModelV2ToolResultPart,
+} from '@ai-sdk/provider';
 import type { FlexibleSchema } from '../schema';
 import type { ModelMessage } from './model-message';
 import type { ProviderOptions } from './provider-options';

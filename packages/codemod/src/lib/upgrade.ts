@@ -1,6 +1,5 @@
 import debug from 'debug';
-import type { TransformErrors } from './transform';
-import { transform } from './transform';
+import { type TransformErrors, transform } from './transform';
 import type { TransformOptions } from './transform-options';
 import { SingleBar, Presets } from 'cli-progress';
 

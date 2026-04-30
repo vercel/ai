@@ -3,9 +3,8 @@ import type { LanguageModelV2 } from '@ai-sdk/provider';
 import type { APICallError } from 'ai';
 import 'dotenv/config';
 import { expect } from 'vitest';
-import type {
-  ModelWithCapabilities} from './feature-test-suite';
 import {
+  type ModelWithCapabilities,
   createEmbeddingModelWithCapabilities,
   createFeatureTestSuite,
   createLanguageModelWithCapabilities,

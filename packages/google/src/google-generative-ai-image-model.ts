@@ -8,6 +8,8 @@ import {
   postJsonToApi,
   resolve,
   zodSchema,
+  type FetchFunction,
+  type Resolvable,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { googleFailedResponseHandler } from './google-error';
@@ -15,7 +17,6 @@ import type {
   GoogleGenerativeAIImageModelId,
   GoogleGenerativeAIImageSettings,
 } from './google-generative-ai-image-settings';
-import type { FetchFunction, Resolvable } from '@ai-sdk/provider-utils';
 
 interface GoogleGenerativeAIImageModelConfig {
   provider: string;

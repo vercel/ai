@@ -2,15 +2,14 @@ import { z } from 'zod/v4';
 import { MCPClientError } from '../error/mcp-client-error';
 import { createMCPClient } from './mcp-client';
 import { MockMCPTransport } from './mock-mcp-transport';
-import type {
-  CallToolResult,
-  ListResourceTemplatesResult,
-  ListResourcesResult,
-  ReadResourceResult,
-  ListPromptsResult,
-  GetPromptResult,
-  Configuration} from './types';
 import {
+  type CallToolResult,
+  type ListResourceTemplatesResult,
+  type ListResourcesResult,
+  type ReadResourceResult,
+  type ListPromptsResult,
+  type GetPromptResult,
+  type Configuration,
   ElicitationRequestSchema,
 } from './types';
 import type { JSONRPCRequest } from './json-rpc-message';
@@ -27,7 +26,9 @@ import {
 const createMockTransport = vi.fn(config => new MockMCPTransport(config));
 
 vi.mock('./mcp-transport.ts', async importOriginal => {
-  const actual = await importOriginal<typeof import('./mcp-transport')>();
+  const actual =
+    // oxlint-disable-next-line typescript-eslint/consistent-type-imports
+    await importOriginal<typeof import('./mcp-transport')>();
   return {
     ...actual,
     createMcpTransport: vi.fn(config => {

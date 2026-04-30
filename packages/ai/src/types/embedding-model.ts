@@ -1,4 +1,7 @@
-import type { EmbeddingModelV2, EmbeddingModelV2Embedding } from '@ai-sdk/provider';
+import type {
+  EmbeddingModelV2,
+  EmbeddingModelV2Embedding,
+} from '@ai-sdk/provider';
 
 /**
 Embedding model that is used by the AI SDK Core functions.

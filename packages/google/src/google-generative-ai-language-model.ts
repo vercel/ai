@@ -8,12 +8,11 @@ import type {
   LanguageModelV2Usage,
   SharedV2ProviderMetadata,
 } from '@ai-sdk/provider';
-import type {
-  FetchFunction,
-  InferValidator,
-  ParseResult,
-  Resolvable} from '@ai-sdk/provider-utils';
 import {
+  type FetchFunction,
+  type InferValidator,
+  type ParseResult,
+  type Resolvable,
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
@@ -30,9 +29,8 @@ import { convertToGoogleGenerativeAIMessages } from './convert-to-google-generat
 import { getModelPath } from './get-model-path';
 import { googleFailedResponseHandler } from './google-error';
 import type { GoogleGenerativeAIContentPart } from './google-generative-ai-prompt';
-import type {
-  GoogleGenerativeAIModelId} from './google-generative-ai-options';
 import {
+  type GoogleGenerativeAIModelId,
   googleGenerativeAIProviderOptions,
   VertexServiceTierMap,
 } from './google-generative-ai-options';

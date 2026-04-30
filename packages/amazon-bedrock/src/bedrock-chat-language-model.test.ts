@@ -16,6 +16,7 @@ const mockPrepareAnthropicTools = vi.mocked(prepareTools);
 
 vi.mock('@ai-sdk/anthropic/internal', async importOriginal => {
   const original =
+    // oxlint-disable-next-line typescript-eslint/consistent-type-imports
     await importOriginal<typeof import('@ai-sdk/anthropic/internal')>();
   return {
     ...original,

@@ -6,10 +6,9 @@ import type {
   LanguageModelV2StreamPart,
   LanguageModelV2Usage,
 } from '@ai-sdk/provider';
-import type {
-  FetchFunction,
-  ParseResult} from '@ai-sdk/provider-utils';
 import {
+  type FetchFunction,
+  type ParseResult,
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonErrorResponseHandler,

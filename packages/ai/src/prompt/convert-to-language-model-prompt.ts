@@ -4,23 +4,21 @@ import type {
   LanguageModelV2Prompt,
   LanguageModelV2TextPart,
 } from '@ai-sdk/provider';
-import type {
-  DataContent,
-  FilePart,
-  ImagePart,
-  ModelMessage,
-  TextPart} from '@ai-sdk/provider-utils';
 import {
-  isUrlSupported
+  type DataContent,
+  type FilePart,
+  type ImagePart,
+  type ModelMessage,
+  type TextPart,
+  isUrlSupported,
 } from '@ai-sdk/provider-utils';
 import {
   detectMediaType,
   imageMediaTypeSignatures,
 } from '../util/detect-media-type';
-import type {
-  DownloadFunction} from '../util/download/download-function';
 import {
-  createDefaultDownloadFunction
+  type DownloadFunction,
+  createDefaultDownloadFunction,
 } from '../util/download/download-function';
 import { convertToLanguageModelV2DataContent } from './data-content';
 import { InvalidMessageRoleError } from './invalid-message-role-error';

@@ -4,9 +4,8 @@ import type {
   LanguageModelV2,
   ProviderV2,
 } from '@ai-sdk/provider';
-import type {
-  FetchFunction} from '@ai-sdk/provider-utils';
 import {
+  type FetchFunction,
   generateId,
   loadOptionalSetting,
   loadSetting,
@@ -21,9 +20,8 @@ import { BedrockEmbeddingModel } from './bedrock-embedding-model';
 import type { BedrockEmbeddingModelId } from './bedrock-embedding-options';
 import { BedrockImageModel } from './bedrock-image-model';
 import type { BedrockImageModelId } from './bedrock-image-settings';
-import type {
-  BedrockCredentials} from './bedrock-sigv4-fetch';
 import {
+  type BedrockCredentials,
   createSigV4FetchFunction,
   createApiKeyFetchFunction,
 } from './bedrock-sigv4-fetch';

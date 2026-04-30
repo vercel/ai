@@ -11,7 +11,11 @@ import type { LanguageModelUsage } from '../types/usage';
 import type { ContentPart } from './content-part';
 import type { GeneratedFile } from './generated-file';
 import type { ResponseMessage } from './response-message';
-import type { DynamicToolCall, StaticToolCall, TypedToolCall } from './tool-call';
+import type {
+  DynamicToolCall,
+  StaticToolCall,
+  TypedToolCall,
+} from './tool-call';
 import type {
   DynamicToolResult,
   StaticToolResult,

@@ -1,7 +1,10 @@
-import type { ImageModelV2, ProviderV2 } from '@ai-sdk/provider';
-import { NoSuchModelError } from '@ai-sdk/provider';
-import type { FetchFunction } from '@ai-sdk/provider-utils';
 import {
+  type ImageModelV2,
+  type ProviderV2,
+  NoSuchModelError,
+} from '@ai-sdk/provider';
+import {
+  type FetchFunction,
   loadApiKey,
   withoutTrailingSlash,
   withUserAgentSuffix,

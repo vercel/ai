@@ -14,11 +14,10 @@ import {
 import type { OpenAIConfig } from '../openai-config';
 import { openaiFailedResponseHandler } from '../openai-error';
 import { openaiTranscriptionResponseSchema } from './openai-transcription-api';
-import type {
-  OpenAITranscriptionModelId,
-  OpenAITranscriptionProviderOptions} from './openai-transcription-options';
 import {
-  openAITranscriptionProviderOptions
+  type OpenAITranscriptionModelId,
+  type OpenAITranscriptionProviderOptions,
+  openAITranscriptionProviderOptions,
 } from './openai-transcription-options';
 
 export type OpenAITranscriptionCallOptions = Omit<

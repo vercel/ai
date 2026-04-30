@@ -1,7 +1,6 @@
 import type { JSONSchema7 } from '@ai-sdk/provider';
-import type {
-  InferValidator} from '@ai-sdk/provider-utils';
 import {
+  type InferValidator,
   lazyValidator,
   zodSchema,
 } from '@ai-sdk/provider-utils';

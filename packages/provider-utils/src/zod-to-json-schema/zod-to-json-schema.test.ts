@@ -1,11 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import type { JSONSchema7 } from '@ai-sdk/provider';
 import { z } from 'zod/v3';
-import type {
-  PostProcessCallback} from './options';
 import {
+  type PostProcessCallback,
   ignoreOverride,
-  jsonDescription
+  jsonDescription,
 } from './options';
 import { zodToJsonSchema } from './zod-to-json-schema';
 

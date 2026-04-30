@@ -1,8 +1,7 @@
 import { anthropic } from '@ai-sdk/anthropic';
-import type {
-  ToolCallPart,
-  ToolResultPart} from 'ai';
 import {
+  type ToolCallPart,
+  type ToolResultPart,
   extractReasoningMiddleware,
   stepCountIs,
   streamText,

@@ -1,11 +1,10 @@
 import type { JSONSchema7 } from '@ai-sdk/provider';
-import type {
-  Tool,
-  ToolCallOptions} from '@ai-sdk/provider-utils';
 import {
+  type Tool,
+  type ToolCallOptions,
   dynamicTool,
   jsonSchema,
-  tool
+  tool,
 } from '@ai-sdk/provider-utils';
 import type { z } from 'zod/v4';
 import { MCPClientError } from '../error/mcp-client-error';
@@ -15,33 +14,31 @@ import type {
   JSONRPCRequest,
   JSONRPCResponse,
 } from './json-rpc-message';
-import type {
-  MCPTransport,
-  MCPTransportConfig} from './mcp-transport';
 import {
+  type MCPTransport,
+  type MCPTransportConfig,
   createMcpTransport,
-  isCustomMcpTransport
+  isCustomMcpTransport,
 } from './mcp-transport';
-import type {
-  CallToolResult,
-  ClientCapabilities,
-  Configuration as ClientConfiguration,
-  ElicitationRequest,
-  ElicitResult,
-  ListResourceTemplatesResult,
-  ListResourcesResult,
-  ListPromptsResult,
-  ListToolsResult,
-  McpToolSet,
-  Notification,
-  PaginatedRequest,
-  ReadResourceResult,
-  GetPromptResult,
-  Request,
-  RequestOptions,
-  ServerCapabilities,
-  ToolSchemas} from './types';
 import {
+  type CallToolResult,
+  type ClientCapabilities,
+  type Configuration as ClientConfiguration,
+  type ElicitationRequest,
+  type ElicitResult,
+  type ListResourceTemplatesResult,
+  type ListResourcesResult,
+  type ListPromptsResult,
+  type ListToolsResult,
+  type McpToolSet,
+  type Notification,
+  type PaginatedRequest,
+  type ReadResourceResult,
+  type GetPromptResult,
+  type Request,
+  type RequestOptions,
+  type ServerCapabilities,
+  type ToolSchemas,
   CallToolResultSchema,
   ElicitationRequestSchema,
   ElicitResultSchema,
@@ -53,7 +50,7 @@ import {
   ListToolsResultSchema,
   ReadResourceResultSchema,
   GetPromptResultSchema,
-  SUPPORTED_PROTOCOL_VERSIONS
+  SUPPORTED_PROTOCOL_VERSIONS,
 } from './types';
 
 const CLIENT_VERSION = '1.0.0';

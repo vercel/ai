@@ -1,19 +1,17 @@
-import type {
-  LanguageModelV2,
-  LanguageModelV2CallWarning,
-  LanguageModelV2Content,
-  LanguageModelV2FinishReason,
-  LanguageModelV2ProviderDefinedTool,
-  LanguageModelV2StreamPart,
-  LanguageModelV2Usage,
-  SharedV2ProviderMetadata} from '@ai-sdk/provider';
 import {
-  APICallError
+  type LanguageModelV2,
+  type LanguageModelV2CallWarning,
+  type LanguageModelV2Content,
+  type LanguageModelV2FinishReason,
+  type LanguageModelV2ProviderDefinedTool,
+  type LanguageModelV2StreamPart,
+  type LanguageModelV2Usage,
+  type SharedV2ProviderMetadata,
+  APICallError,
 } from '@ai-sdk/provider';
-import type {
-  InferValidator,
-  ParseResult} from '@ai-sdk/provider-utils';
 import {
+  type InferValidator,
+  type ParseResult,
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
@@ -33,19 +31,17 @@ import type { localShellInputSchema } from '../tool/local-shell';
 import type { webSearchOutputSchema } from '../tool/web-search';
 import { convertToOpenAIResponsesInput } from './convert-to-openai-responses-input';
 import { mapOpenAIResponseFinishReason } from './map-openai-responses-finish-reason';
-import type {
-  OpenAIResponsesChunk,
-  OpenAIResponsesIncludeOptions,
-  OpenAIResponsesIncludeValue,
-  OpenAIResponsesLogprobs,
-  OpenAIResponsesWebSearchAction} from './openai-responses-api';
 import {
+  type OpenAIResponsesChunk,
+  type OpenAIResponsesIncludeOptions,
+  type OpenAIResponsesIncludeValue,
+  type OpenAIResponsesLogprobs,
+  type OpenAIResponsesWebSearchAction,
   openaiResponsesChunkSchema,
-  openaiResponsesResponseSchema
+  openaiResponsesResponseSchema,
 } from './openai-responses-api';
-import type {
-  OpenAIResponsesModelId} from './openai-responses-options';
 import {
+  type OpenAIResponsesModelId,
   openaiResponsesProviderOptionsSchema,
   TOP_LOGPROBS_MAX,
 } from './openai-responses-options';

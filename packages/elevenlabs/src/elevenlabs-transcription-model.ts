@@ -1,8 +1,7 @@
-import type {
-  TranscriptionModelV2,
-  TranscriptionModelV2CallWarning} from '@ai-sdk/provider';
 import {
-  TranscriptionModelV2CallOptions
+  type TranscriptionModelV2,
+  type TranscriptionModelV2CallWarning,
+  TranscriptionModelV2CallOptions,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,

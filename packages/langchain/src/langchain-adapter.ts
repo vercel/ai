@@ -1,8 +1,7 @@
 import type { UIMessageChunk } from 'ai';
-import type {
-  StreamCallbacks} from './stream-callbacks';
 import {
-  createCallbacksTransformer
+  type StreamCallbacks,
+  createCallbacksTransformer,
 } from './stream-callbacks';
 
 type LangChainImageDetail = 'auto' | 'low' | 'high';

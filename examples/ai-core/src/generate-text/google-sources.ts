@@ -1,5 +1,7 @@
-import type { GoogleGenerativeAIProviderMetadata } from '@ai-sdk/google';
-import { google } from '@ai-sdk/google';
+import {
+  type GoogleGenerativeAIProviderMetadata,
+  google,
+} from '@ai-sdk/google';
 import { generateText } from 'ai';
 import 'dotenv/config';
 

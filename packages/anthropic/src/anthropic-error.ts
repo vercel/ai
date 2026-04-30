@@ -1,6 +1,5 @@
-import type {
-  InferValidator} from '@ai-sdk/provider-utils';
 import {
+  type InferValidator,
   createJsonErrorResponseHandler,
   lazySchema,
   zodSchema,

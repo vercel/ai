@@ -1,9 +1,8 @@
 import { openai } from '@ai-sdk/openai';
 import { convertToModelMessages, streamObject, streamText } from 'ai';
 import 'dotenv/config';
-import type { Request, Response } from 'express';
-import express from 'express';
-import z from 'zod';
+import express, { type Request, type Response } from 'express';
+import { z } from 'zod';
 
 const app = express();
 app.use(express.json({ strict: false })); // Allow primitives (for analyze endpoint)

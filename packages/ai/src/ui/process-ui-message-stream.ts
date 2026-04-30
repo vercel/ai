@@ -1,37 +1,34 @@
-import type {
-  StandardSchemaV1,
-  Validator} from '@ai-sdk/provider-utils';
 import {
-  validateTypes
+  type StandardSchemaV1,
+  type Validator,
+  validateTypes,
 } from '@ai-sdk/provider-utils';
 import type { ProviderMetadata } from '../types';
 import type { FinishReason } from '../types/language-model';
-import type {
-  DataUIMessageChunk,
-  InferUIMessageChunk,
-  UIMessageChunk} from '../ui-message-stream/ui-message-chunks';
 import {
-  isDataUIMessageChunk
+  type DataUIMessageChunk,
+  type InferUIMessageChunk,
+  type UIMessageChunk,
+  isDataUIMessageChunk,
 } from '../ui-message-stream/ui-message-chunks';
 import type { ErrorHandler } from '../util/error-handler';
 import { mergeObjects } from '../util/merge-objects';
 import { parsePartialJson } from '../util/parse-partial-json';
 import type { UIDataTypesToSchemas } from './chat';
-import type {
-  DataUIPart,
-  DynamicToolUIPart,
-  InferUIMessageData,
-  InferUIMessageMetadata,
-  InferUIMessageToolCall,
-  InferUIMessageTools,
-  ReasoningUIPart,
-  TextUIPart,
-  ToolUIPart,
-  UIMessage,
-  UIMessagePart} from './ui-messages';
 import {
+  type DataUIPart,
+  type DynamicToolUIPart,
+  type InferUIMessageData,
+  type InferUIMessageMetadata,
+  type InferUIMessageToolCall,
+  type InferUIMessageTools,
+  type ReasoningUIPart,
+  type TextUIPart,
+  type ToolUIPart,
+  type UIMessage,
+  type UIMessagePart,
   getToolName,
-  isToolUIPart
+  isToolUIPart,
 } from './ui-messages';
 
 export type StreamingUIMessageState<UI_MESSAGE extends UIMessage> = {

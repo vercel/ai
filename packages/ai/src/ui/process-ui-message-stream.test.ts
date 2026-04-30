@@ -1,11 +1,10 @@
 import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
 import type { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
 import { consumeStream } from '../util/consume-stream';
-import type {
-  StreamingUIMessageState} from './process-ui-message-stream';
 import {
+  type StreamingUIMessageState,
   createStreamingUIMessageState,
-  processUIMessageStream
+  processUIMessageStream,
 } from './process-ui-message-stream';
 import type { InferUIMessageData, UIMessage } from './ui-messages';
 import { beforeEach, describe, it, expect, vi } from 'vitest';

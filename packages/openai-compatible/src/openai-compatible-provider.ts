@@ -4,16 +4,14 @@ import type {
   LanguageModelV2,
   ProviderV2,
 } from '@ai-sdk/provider';
-import type {
-  FetchFunction} from '@ai-sdk/provider-utils';
 import {
+  type FetchFunction,
   withoutTrailingSlash,
   withUserAgentSuffix,
   getRuntimeEnvironmentUserAgent,
 } from '@ai-sdk/provider-utils';
-import type {
-  OpenAICompatibleChatConfig} from './chat/openai-compatible-chat-language-model';
 import {
+  type OpenAICompatibleChatConfig,
   OpenAICompatibleChatLanguageModel,
 } from './chat/openai-compatible-chat-language-model';
 import { OpenAICompatibleCompletionLanguageModel } from './completion/openai-compatible-completion-language-model';

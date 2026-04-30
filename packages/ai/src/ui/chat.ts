@@ -1,9 +1,8 @@
-import type {
-  IdGenerator,
-  StandardSchemaV1,
-  Validator} from '@ai-sdk/provider-utils';
 import {
-  generateId as generateIdFunc
+  type IdGenerator,
+  type StandardSchemaV1,
+  type Validator,
+  generateId as generateIdFunc,
 } from '@ai-sdk/provider-utils';
 import type { FinishReason } from '../types/language-model';
 import type { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
@@ -12,15 +11,13 @@ import { SerialJobExecutor } from '../util/serial-job-executor';
 import type { ChatTransport } from './chat-transport';
 import { convertFileListToFileUIParts } from './convert-file-list-to-file-ui-parts';
 import { DefaultChatTransport } from './default-chat-transport';
-import type {
-  StreamingUIMessageState} from './process-ui-message-stream';
 import {
+  type StreamingUIMessageState,
   createStreamingUIMessageState,
-  processUIMessageStream
+  processUIMessageStream,
 } from './process-ui-message-stream';
-import type {
-  InferUIMessageToolCall} from './ui-messages';
 import {
+  type InferUIMessageToolCall,
   isToolOrDynamicToolUIPart,
   ToolUIPart,
   UIMessagePart,

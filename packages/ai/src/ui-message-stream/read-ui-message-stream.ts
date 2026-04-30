@@ -1,14 +1,12 @@
 import type { UIMessage } from '../ui/ui-messages';
 import type { UIMessageChunk } from './ui-message-chunks';
-import type {
-  StreamingUIMessageState} from '../ui/process-ui-message-stream';
 import {
+  type StreamingUIMessageState,
   createStreamingUIMessageState,
-  processUIMessageStream
+  processUIMessageStream,
 } from '../ui/process-ui-message-stream';
-import type {
-  AsyncIterableStream} from '../util/async-iterable-stream';
 import {
+  type AsyncIterableStream,
   createAsyncIterableStream,
 } from '../util/async-iterable-stream';
 import { consumeStream } from '../util/consume-stream';

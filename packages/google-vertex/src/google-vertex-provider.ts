@@ -1,9 +1,12 @@
 import { GoogleGenerativeAILanguageModel } from '@ai-sdk/google/internal';
-import type { ImageModelV2, LanguageModelV2, ProviderV2 } from '@ai-sdk/provider';
 import type {
-  FetchFunction,
-  Resolvable} from '@ai-sdk/provider-utils';
+  ImageModelV2,
+  LanguageModelV2,
+  ProviderV2,
+} from '@ai-sdk/provider';
 import {
+  type FetchFunction,
+  type Resolvable,
   generateId,
   loadSetting,
   resolve,

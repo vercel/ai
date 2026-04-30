@@ -1,20 +1,18 @@
-import type {
-  JSONObject,
-  JSONSchema7,
-  JSONValue} from '@ai-sdk/provider';
 import {
+  type JSONObject,
+  type JSONSchema7,
+  type JSONValue,
   isJSONArray,
   isJSONObject,
   TypeValidationError,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import type {
-  FlexibleSchema,
-  Schema,
-  ValidationResult} from '@ai-sdk/provider-utils';
 import {
+  type FlexibleSchema,
+  type Schema,
+  type ValidationResult,
   asSchema,
-  safeValidateTypes
+  safeValidateTypes,
 } from '@ai-sdk/provider-utils';
 import { NoObjectGeneratedError } from '../error/no-object-generated-error';
 import type {
@@ -22,9 +20,8 @@ import type {
   LanguageModelResponseMetadata,
   LanguageModelUsage,
 } from '../types';
-import type {
-  AsyncIterableStream} from '../util/async-iterable-stream';
 import {
+  type AsyncIterableStream,
   createAsyncIterableStream,
 } from '../util/async-iterable-stream';
 import type { DeepPartial } from '../util/deep-partial';

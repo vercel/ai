@@ -20,7 +20,11 @@ import type { GeneratedFile } from './generated-file';
 import type { ReasoningOutput } from './reasoning-output';
 import type { ResponseMessage } from './response-message';
 import type { StepResult } from './step-result';
-import type { DynamicToolCall, StaticToolCall, TypedToolCall } from './tool-call';
+import type {
+  DynamicToolCall,
+  StaticToolCall,
+  TypedToolCall,
+} from './tool-call';
 import type { TypedToolError } from './tool-error';
 import type {
   DynamicToolResult,

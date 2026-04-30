@@ -8,9 +8,8 @@ import {
   mockId,
 } from '@ai-sdk/provider-utils/test';
 import type { z } from 'zod/v4';
-import type {
-  perplexityImageSchema} from './perplexity-language-model';
 import {
+  type perplexityImageSchema,
   PerplexityLanguageModel,
 } from './perplexity-language-model';
 

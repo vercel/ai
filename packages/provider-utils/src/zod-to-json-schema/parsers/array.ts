@@ -1,5 +1,4 @@
-import type { ZodArrayDef} from 'zod/v3';
-import { ZodFirstPartyTypeKind } from 'zod/v3';
+import { type ZodArrayDef, ZodFirstPartyTypeKind } from 'zod/v3';
 import { parseDef } from '../parse-def';
 import type { JsonSchema7Type } from '../parse-types';
 import type { Refs } from '../refs';

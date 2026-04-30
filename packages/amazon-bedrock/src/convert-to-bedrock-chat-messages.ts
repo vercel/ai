@@ -1,28 +1,26 @@
-import type {
-  JSONObject,
-  LanguageModelV2Message,
-  LanguageModelV2Prompt,
-  SharedV2ProviderMetadata} from '@ai-sdk/provider';
 import {
+  type JSONObject,
+  type LanguageModelV2Message,
+  type LanguageModelV2Prompt,
+  type SharedV2ProviderMetadata,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { convertToBase64, parseProviderOptions } from '@ai-sdk/provider-utils';
-import type {
-  BedrockAssistantMessage,
-  BedrockCachePoint,
-  BedrockDocumentFormat,
-  BedrockDocumentMimeType,
-  BedrockImageFormat,
-  BedrockImageMimeType,
-  BedrockMessages,
-  BedrockSystemMessages,
-  BedrockUserMessage} from './bedrock-api-types';
 import {
+  type BedrockAssistantMessage,
+  type BedrockCachePoint,
+  type BedrockDocumentFormat,
+  type BedrockDocumentMimeType,
+  type BedrockImageFormat,
+  type BedrockImageMimeType,
+  type BedrockMessages,
+  type BedrockSystemMessages,
+  type BedrockUserMessage,
   BEDROCK_CACHE_POINT,
   BEDROCK_DOCUMENT_MIME_TYPES,
-  BEDROCK_IMAGE_MIME_TYPES
+  BEDROCK_IMAGE_MIME_TYPES,
 } from './bedrock-api-types';
-import { bedrockReasoningMetadataSchema } from './bedrock-chat-language-model';
+import { bedrockReasoningMetadataSchema } from './bedrock-reasoning-metadata';
 import { bedrockFilePartProviderOptions } from './bedrock-chat-options';
 
 function getCachePoint(

@@ -1,18 +1,16 @@
-import type {
-  LanguageModelV2,
-  LanguageModelV2Content,
-  LanguageModelV2FinishReason,
-  LanguageModelV2StreamPart,
-  LanguageModelV2Usage} from '@ai-sdk/provider';
 import {
+  type LanguageModelV2,
+  type LanguageModelV2Content,
+  type LanguageModelV2FinishReason,
+  type LanguageModelV2StreamPart,
+  type LanguageModelV2Usage,
   LanguageModelV2CallWarning,
   LanguageModelV2Prompt,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import type {
-  FetchFunction,
-  ParseResult} from '@ai-sdk/provider-utils';
 import {
+  type FetchFunction,
+  type ParseResult,
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
@@ -21,9 +19,8 @@ import {
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import type {
-  CohereChatModelId} from './cohere-chat-options';
 import {
+  type CohereChatModelId,
   cohereChatModelOptions,
 } from './cohere-chat-options';
 import { cohereFailedResponseHandler } from './cohere-error';

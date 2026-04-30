@@ -1,9 +1,8 @@
 import { TypeValidationError } from '@ai-sdk/provider';
-import type {
-  StandardSchemaV1,
-  Tool,
-  Validator} from '@ai-sdk/provider-utils';
 import {
+  type StandardSchemaV1,
+  type Tool,
+  type Validator,
   lazyValidator,
   validateTypes,
   zodSchema,

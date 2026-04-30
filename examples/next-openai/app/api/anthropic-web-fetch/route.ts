@@ -1,10 +1,9 @@
 import { anthropic } from '@ai-sdk/anthropic';
-import type {
-  InferUITools,
-  ToolSet,
-  UIDataTypes,
-  UIMessage} from 'ai';
 import {
+  type InferUITools,
+  type ToolSet,
+  type UIDataTypes,
+  type UIMessage,
   convertToModelMessages,
   streamText,
   validateUIMessages,

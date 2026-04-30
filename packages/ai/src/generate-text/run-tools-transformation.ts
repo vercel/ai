@@ -2,22 +2,27 @@ import type {
   LanguageModelV2CallWarning,
   LanguageModelV2StreamPart,
 } from '@ai-sdk/provider';
-import type {
-  ModelMessage} from '@ai-sdk/provider-utils';
 import {
+  type ModelMessage,
   executeTool,
   generateId,
-  getErrorMessage
+  getErrorMessage,
 } from '@ai-sdk/provider-utils';
 import type { Tracer } from '@opentelemetry/api';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { recordErrorOnSpan, recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import type { TelemetrySettings } from '../telemetry/telemetry-settings';
-import type { FinishReason, LanguageModelUsage, ProviderMetadata } from '../types';
+import type {
+  FinishReason,
+  LanguageModelUsage,
+  ProviderMetadata,
+} from '../types';
 import type { Source } from '../types/language-model';
-import type { GeneratedFile } from './generated-file';
-import { DefaultGeneratedFileWithType } from './generated-file';
+import {
+  type GeneratedFile,
+  DefaultGeneratedFileWithType,
+} from './generated-file';
 import { parseToolCall } from './parse-tool-call';
 import type { TypedToolCall } from './tool-call';
 import type { ToolCallRepairFunction } from './tool-call-repair-function';

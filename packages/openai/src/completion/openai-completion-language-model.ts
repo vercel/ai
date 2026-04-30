@@ -6,10 +6,9 @@ import type {
   LanguageModelV2Usage,
   SharedV2ProviderMetadata,
 } from '@ai-sdk/provider';
-import type {
-  FetchFunction,
-  ParseResult} from '@ai-sdk/provider-utils';
 import {
+  type FetchFunction,
+  type ParseResult,
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
@@ -20,15 +19,13 @@ import { openaiFailedResponseHandler } from '../openai-error';
 import { convertToOpenAICompletionPrompt } from './convert-to-openai-completion-prompt';
 import { getResponseMetadata } from './get-response-metadata';
 import { mapOpenAIFinishReason } from './map-openai-finish-reason';
-import type {
-  OpenAICompletionChunk} from './openai-completion-api';
 import {
+  type OpenAICompletionChunk,
   openaiCompletionChunkSchema,
   openaiCompletionResponseSchema,
 } from './openai-completion-api';
-import type {
-  OpenAICompletionModelId} from './openai-completion-options';
 import {
+  type OpenAICompletionModelId,
   openaiCompletionProviderOptions,
 } from './openai-completion-options';
 

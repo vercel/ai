@@ -8,17 +8,16 @@ import type {
 import type { ToolSet } from '../generate-text/tool-set';
 import { createToolModelOutput } from '../prompt/create-tool-model-output';
 import { MessageConversionError } from '../prompt/message-conversion-error';
-import type {
-  DataUIPart,
-  DynamicToolUIPart,
-  FileUIPart,
-  InferUIMessageData,
-  InferUIMessageTools,
-  ReasoningUIPart,
-  TextUIPart,
-  ToolUIPart,
-  UIMessage} from './ui-messages';
 import {
+  type DataUIPart,
+  type DynamicToolUIPart,
+  type FileUIPart,
+  type InferUIMessageData,
+  type InferUIMessageTools,
+  type ReasoningUIPart,
+  type TextUIPart,
+  type ToolUIPart,
+  type UIMessage,
   getToolName,
   getToolOrDynamicToolName,
   isDataUIPart,
@@ -27,7 +26,7 @@ import {
   isReasoningUIPart,
   isTextUIPart,
   isToolOrDynamicToolUIPart,
-  isToolUIPart
+  isToolUIPart,
 } from './ui-messages';
 
 /**

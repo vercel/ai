@@ -1,7 +1,6 @@
-import type {
-  Embedding,
-  EmbeddingModel} from 'ai';
 import {
+  type Embedding,
+  type EmbeddingModel,
   embed,
   embedMany,
   cosineSimilarity,

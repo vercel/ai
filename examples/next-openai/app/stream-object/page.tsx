@@ -1,7 +1,6 @@
 'use client';
 
-import type { StreamableValue} from '@ai-sdk/rsc';
-import { useStreamableValue } from '@ai-sdk/rsc';
+import { type StreamableValue, useStreamableValue } from '@ai-sdk/rsc';
 import { useState } from 'react';
 import { generateNotifications } from './actions';
 import type { PartialNotification } from './schema';

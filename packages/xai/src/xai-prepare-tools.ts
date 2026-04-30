@@ -1,7 +1,6 @@
-import type {
-  LanguageModelV2CallOptions,
-  LanguageModelV2CallWarning} from '@ai-sdk/provider';
 import {
+  type LanguageModelV2CallOptions,
+  type LanguageModelV2CallWarning,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import type { XaiToolChoice } from './xai-chat-prompt';

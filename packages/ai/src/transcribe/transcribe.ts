@@ -1,6 +1,8 @@
 import type { JSONValue, TranscriptionModelV2 } from '@ai-sdk/provider';
-import type { ProviderOptions} from '@ai-sdk/provider-utils';
-import { withUserAgentSuffix } from '@ai-sdk/provider-utils';
+import {
+  type ProviderOptions,
+  withUserAgentSuffix,
+} from '@ai-sdk/provider-utils';
 import { NoTranscriptGeneratedError } from '../error/no-transcript-generated-error';
 import { UnsupportedModelVersionError } from '../error/unsupported-model-version-error';
 import { logWarnings } from '../logger/log-warnings';

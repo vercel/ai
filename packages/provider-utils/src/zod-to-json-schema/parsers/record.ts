@@ -1,17 +1,15 @@
-import type {
-  ZodMapDef,
-  ZodRecordDef,
-  ZodTypeAny} from 'zod/v3';
 import {
-  ZodFirstPartyTypeKind
+  type ZodMapDef,
+  type ZodRecordDef,
+  type ZodTypeAny,
+  ZodFirstPartyTypeKind,
 } from 'zod/v3';
 import { parseDef } from '../parse-def';
 import type { JsonSchema7Type } from '../parse-types';
 import type { Refs } from '../refs';
 import { parseBrandedDef } from './branded';
 import type { JsonSchema7EnumType } from './enum';
-import type { JsonSchema7StringType} from './string';
-import { parseStringDef } from './string';
+import { type JsonSchema7StringType, parseStringDef } from './string';
 
 type JsonSchema7RecordPropertyNamesType =
   | Omit<JsonSchema7StringType, 'type'>

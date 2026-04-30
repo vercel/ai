@@ -1,13 +1,11 @@
-import type {
-  TranscriptionModelV2,
-  SpeechModelV2,
-  ProviderV2} from '@ai-sdk/provider';
 import {
+  type TranscriptionModelV2,
+  type SpeechModelV2,
+  type ProviderV2,
   NoSuchModelError,
 } from '@ai-sdk/provider';
-import type {
-  FetchFunction} from '@ai-sdk/provider-utils';
 import {
+  type FetchFunction,
   loadApiKey,
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
