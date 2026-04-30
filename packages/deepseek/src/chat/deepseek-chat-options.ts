@@ -4,6 +4,8 @@ import { z } from 'zod/v4';
 export type DeepSeekChatModelId =
   | 'deepseek-chat'
   | 'deepseek-reasoner'
+  | 'deepseek-v4-flash'
+  | 'deepseek-v4-pro'
   | (string & {});
 
 export const deepseekLanguageModelOptions = z.object({
