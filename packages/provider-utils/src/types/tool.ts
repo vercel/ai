@@ -292,10 +292,11 @@ export type ProviderExecutedTool<
 };
 
 /**
- * A tool contains the description and the schema of the input that the tool expects.
- * This enables the language model to generate the input.
+ * A tool can either be user-defined or provider-defined.
  *
- * The tool can also contain an optional execute function for the actual execution function of the tool.
+ * It contains the schemas and metadata needed for the language model to call
+ * the tool and can include an execute function for tools that are executed by
+ * the AI SDK.
  */
 export type Tool<
   INPUT extends JSONValue | unknown | never = any,
@@ -308,7 +309,9 @@ export type Tool<
   | ProviderExecutedTool<INPUT, OUTPUT, CONTEXT>;
 
 /**
- * Helper function for inferring the execute args of a tool.
+ * Infer the tool type from a tool object.
+ *
+ * This is useful for type inference when working with tool objects.
  */
 // Note: overload order is important for auto-completion
 export function tool<INPUT, OUTPUT, CONTEXT extends Context>(
@@ -328,7 +331,7 @@ export function tool(tool: any): any {
 }
 
 /**
- * Defines a dynamic tool.
+ * Define a dynamic tool.
  */
 export function dynamicTool(
   tool: Omit<DynamicTool<unknown, unknown, Context>, 'type'>,
