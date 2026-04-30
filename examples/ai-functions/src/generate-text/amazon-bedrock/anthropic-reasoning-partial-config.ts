@@ -1,13 +1,13 @@
 import {
-  bedrock,
-  type AmazonBedrockLanguageModelOptions,
+  amazonBedrock,
+  type AmazonBedrockLanguageModelChatOptions,
 } from '@ai-sdk/amazon-bedrock';
 import { generateText } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: bedrock('us.anthropic.claude-opus-4-7'),
+    model: amazonBedrock('us.anthropic.claude-opus-4-7'),
     prompt:
       'Solve this step by step: if f(x) = x^3 - 6x^2 + 11x - 6, find all roots and prove they are correct.',
     reasoning: 'high',
@@ -19,7 +19,7 @@ run(async () => {
          * here and merged on top of the derived fields.
          */
         reasoningConfig: { display: 'summarized' },
-      } satisfies AmazonBedrockLanguageModelOptions,
+      } satisfies AmazonBedrockLanguageModelChatOptions,
     },
   });
 

@@ -1,12 +1,12 @@
-import { vertex } from '@ai-sdk/google-vertex';
+import { googleVertex } from '@ai-sdk/google-vertex';
 import { generateText } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: vertex('gemini-2.5-flash'),
+    model: googleVertex('gemini-2.5-flash'),
     tools: {
-      google_search: vertex.tools.googleSearch({}),
+      google_search: googleVertex.tools.googleSearch({}),
     },
     prompt:
       'List the top 5 San Francisco news from the past week.' +

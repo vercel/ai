@@ -1,10 +1,10 @@
-import { bedrock } from '@ai-sdk/amazon-bedrock';
+import { amazonBedrock } from '@ai-sdk/amazon-bedrock';
 import { embedMany } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
   const { embeddings, usage, warnings } = await embedMany({
-    model: bedrock.embedding('amazon.nova-2-multimodal-embeddings-v1:0'),
+    model: amazonBedrock.embedding('amazon.nova-2-multimodal-embeddings-v1:0'),
     values: [
       'sunny day at the beach',
       'rainy afternoon in the city',
