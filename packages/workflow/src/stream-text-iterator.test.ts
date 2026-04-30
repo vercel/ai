@@ -120,11 +120,13 @@ function createMockDoStreamStepResult({
   finishReason = 'stop' as 'stop' | 'tool-calls',
   finishRaw = 'stop',
   stepOverrides = {},
+  toolResults = [],
 }: {
   toolCalls?: ParsedToolCall[];
   finishReason?: 'stop' | 'tool-calls';
   finishRaw?: string;
   stepOverrides?: Partial<StepResult<ToolSet, any>>;
+  toolResults?: LanguageModelV4ToolResultPart[];
 } = {}) {
   return {
     toolCalls,
@@ -134,6 +136,7 @@ function createMockDoStreamStepResult({
       ...stepOverrides,
     }),
     providerExecutedToolResults: new Map(),
+    toolResults,
   };
 }
 

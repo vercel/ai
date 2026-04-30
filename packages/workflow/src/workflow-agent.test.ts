@@ -1752,7 +1752,7 @@ describe('WorkflowAgent', () => {
       // Verify only active tools are passed (get the most recent call)
       const calls = vi.mocked(streamTextIterator).mock.calls;
       const lastCall = calls[calls.length - 1][0];
-      expect(Object.keys(lastCall.tools).sort()).toEqual(['tool1', 'tool3']);
+      expect(Object.keys(lastCall.tools!).sort()).toEqual(['tool1', 'tool3']);
     });
   });
 
@@ -1870,7 +1870,7 @@ describe('WorkflowAgent', () => {
 
       const calls = vi.mocked(streamTextIterator).mock.calls;
       const lastCall = calls[calls.length - 1][0];
-      expect(Object.keys(lastCall.tools)).toEqual(['tool1']);
+      expect(Object.keys(lastCall.tools!)).toEqual(['tool1']);
     });
 
     it('should use constructor experimental_repairToolCall when not specified in stream()', async () => {
