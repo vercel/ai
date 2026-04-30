@@ -19,7 +19,7 @@ type NeverOptional<N, T> = 0 extends 1 & N
     : T;
 
 /**
- * Helper type to determine the output properties of a tool.
+ * Helper type to determine the outputSchema and execute function properties of a tool.
  */
 type ToolOutputProperties<
   INPUT,
@@ -29,6 +29,13 @@ type ToolOutputProperties<
   OUTPUT,
   | {
       /**
+       * The optional schema of the output that the tool produces.
+       *
+       * If not provided, the output shape will be inferred from the execute function.
+       */
+      outputSchema?: FlexibleSchema<OUTPUT>;
+
+      /**
        * An async function that is called with the arguments from the tool call and produces a result.
        * If not provided, the tool will not be executed automatically.
        *
@@ -36,15 +43,12 @@ type ToolOutputProperties<
        * @options.abortSignal is a signal that can be used to abort the tool call.
        */
       execute: ToolExecuteFunction<INPUT, OUTPUT, CONTEXT>;
-
-      /**
-       * The schema of the output that the tool produces.
-       */
-      outputSchema?: FlexibleSchema<OUTPUT>;
     }
   | {
       /**
        * The schema of the output that the tool produces.
+       *
+       * Required when no execute function is provided.
        */
       outputSchema: FlexibleSchema<OUTPUT>;
 
