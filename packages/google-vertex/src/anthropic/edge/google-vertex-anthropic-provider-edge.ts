@@ -18,10 +18,8 @@ export interface GoogleVertexAnthropicProviderSettings extends GoogleVertexAnthr
    */
   googleCredentials?: GoogleCredentials;
   /**
-   * Optional. Custom function to obtain the Bearer token attached to outbound
-   * requests. Defaults to performing the OAuth exchange with `googleCredentials`.
-   * Override for tests, custom auth providers, or proxies that supply their
-   * own auth.
+   * Optional. Override the Bearer token generator. Defaults to OAuth exchange
+   * with `googleCredentials`.
    */
   generateAuthToken?: () => Promise<string>;
 }

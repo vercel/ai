@@ -17,10 +17,8 @@ export interface GoogleVertexAnthropicProviderSettings extends GoogleVertexAnthr
    */
   googleAuthOptions?: GoogleAuthOptions;
   /**
-   * Optional. Custom function to obtain the Bearer token attached to outbound
-   * requests. Defaults to performing the OAuth exchange via `google-auth-library`
-   * with `googleAuthOptions`. Override for tests, custom auth providers, or
-   * proxies that supply their own auth.
+   * Optional. Override the Bearer token generator. Defaults to OAuth exchange
+   * via `google-auth-library` with `googleAuthOptions`.
    */
   generateAuthToken?: () => Promise<string | null>;
 }
