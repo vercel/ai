@@ -10,6 +10,11 @@ export type {
   /** @deprecated Use `OpenAILanguageModelChatOptions` instead. */
   OpenAILanguageModelChatOptions as OpenAIChatLanguageModelOptions,
 } from './chat/openai-chat-options';
+export type {
+  OpenAIImageModelOptions,
+  OpenAIImageModelGenerationOptions,
+  OpenAIImageModelEditOptions,
+} from './image/openai-image-model-options';
 export type { OpenAILanguageModelCompletionOptions } from './completion/openai-completion-options';
 export type { OpenAIEmbeddingModelOptions } from './embedding/openai-embedding-options';
 export type { OpenAISpeechModelOptions } from './speech/openai-speech-options';

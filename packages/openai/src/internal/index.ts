@@ -5,7 +5,7 @@ export * from '../completion/openai-completion-options';
 export * from '../embedding/openai-embedding-model';
 export * from '../embedding/openai-embedding-options';
 export * from '../image/openai-image-model';
-export * from '../image/openai-image-options';
+export * from '../image/openai-image-model-options';
 export * from '../transcription/openai-transcription-model';
 export * from '../transcription/openai-transcription-options';
 export * from '../speech/openai-speech-model';
