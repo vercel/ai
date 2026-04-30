@@ -20,7 +20,7 @@ import type { OpenAICompletionModelId } from './completion/openai-completion-opt
 import { OpenAIEmbeddingModel } from './embedding/openai-embedding-model';
 import type { OpenAIEmbeddingModelId } from './embedding/openai-embedding-options';
 import { OpenAIImageModel } from './image/openai-image-model';
-import type { OpenAIImageModelId } from './image/openai-image-options';
+import type { OpenAIImageModelId } from './image/openai-image-model-options';
 import { openaiTools } from './openai-tools';
 import { OpenAIResponsesLanguageModel } from './responses/openai-responses-language-model';
 import type { OpenAIResponsesModelId } from './responses/openai-responses-options';

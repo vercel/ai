@@ -7,31 +7,20 @@ import { run } from '../../lib/run';
 run(async () => {
   const imageBuffer = readFileSync('data/comic-cat.png');
 
-  console.log('INPUT IMAGE:');
-  await presentImages([
-    {
-      uint8Array: new Uint8Array(imageBuffer),
-      base64: '',
-      mediaType: 'image/png',
-    },
-  ]);
-
-  console.log('Removing background...');
-
   const { images } = await generateImage({
-    model: openai.image('gpt-image-1.5'),
+    model: openai.image('gpt-image-1'),
     prompt: {
-      text: 'do not change anything',
+      text: 'Add a tiny pirate hat on the cat, keep everything else identical',
       images: [imageBuffer],
     },
     providerOptions: {
       openai: {
-        background: 'transparent',
-        outputFormat: 'png',
+        inputFidelity: 'high',
+        outputFormat: 'webp',
+        outputCompression: 90,
       } satisfies OpenAIImageModelEditOptions,
     },
   });
 
-  console.log('OUTPUT IMAGE:');
   await presentImages(images);
 });
