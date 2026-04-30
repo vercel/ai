@@ -1978,28 +1978,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                 activeReasoningPart.summaryParts[value.summary_index] =
                   'active';
 
-                // since there is a new active summary part, we can conclude all can-conclude summary parts
-                for (const summaryIndex of Object.keys(
-                  activeReasoningPart.summaryParts,
-                )) {
-                  if (
-                    activeReasoningPart.summaryParts[summaryIndex] ===
-                    'can-conclude'
-                  ) {
-                    controller.enqueue({
-                      type: 'reasoning-end',
-                      id: `${value.item_id}:${summaryIndex}`,
-                      providerMetadata: {
-                        [providerOptionsName]: {
-                          itemId: value.item_id,
-                        } satisfies ResponsesReasoningProviderMetadata,
-                      },
-                    });
-                    activeReasoningPart.summaryParts[summaryIndex] =
-                      'concluded';
-                  }
-                }
-
+                // 'can-conclude' parts are flushed at output_item.done, not here, so every reasoning-end carries the canonical encrypted_content.
                 controller.enqueue({
                   type: 'reasoning-start',
                   id: `${value.item_id}:${value.summary_index}`,

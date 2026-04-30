@@ -7321,15 +7321,6 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "type": "reasoning-delta",
               },
               {
-                "id": "rs_6808709f6fcc8191ad2e2fdd784017b3:0",
-                "providerMetadata": {
-                  "openai": {
-                    "itemId": "rs_6808709f6fcc8191ad2e2fdd784017b3",
-                  },
-                },
-                "type": "reasoning-end",
-              },
-              {
                 "id": "rs_6808709f6fcc8191ad2e2fdd784017b3:1",
                 "providerMetadata": {
                   "openai": {
@@ -7360,6 +7351,16 @@ describe('OpenAIResponsesLanguageModel', () => {
                   },
                 },
                 "type": "reasoning-delta",
+              },
+              {
+                "id": "rs_6808709f6fcc8191ad2e2fdd784017b3:0",
+                "providerMetadata": {
+                  "openai": {
+                    "itemId": "rs_6808709f6fcc8191ad2e2fdd784017b3",
+                    "reasoningEncryptedContent": null,
+                  },
+                },
+                "type": "reasoning-end",
               },
               {
                 "id": "rs_6808709f6fcc8191ad2e2fdd784017b3:1",
@@ -7662,15 +7663,6 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "type": "reasoning-delta",
               },
               {
-                "id": "rs_6808709f6fcc8191ad2e2fdd784017b3:0",
-                "providerMetadata": {
-                  "openai": {
-                    "itemId": "rs_6808709f6fcc8191ad2e2fdd784017b3",
-                  },
-                },
-                "type": "reasoning-end",
-              },
-              {
                 "id": "rs_6808709f6fcc8191ad2e2fdd784017b3:1",
                 "providerMetadata": {
                   "openai": {
@@ -7701,6 +7693,16 @@ describe('OpenAIResponsesLanguageModel', () => {
                   },
                 },
                 "type": "reasoning-delta",
+              },
+              {
+                "id": "rs_6808709f6fcc8191ad2e2fdd784017b3:0",
+                "providerMetadata": {
+                  "openai": {
+                    "itemId": "rs_6808709f6fcc8191ad2e2fdd784017b3",
+                    "reasoningEncryptedContent": "encrypted_reasoning_data_final_def456",
+                  },
+                },
+                "type": "reasoning-end",
               },
               {
                 "id": "rs_6808709f6fcc8191ad2e2fdd784017b3:1",
@@ -8054,15 +8056,6 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "type": "reasoning-delta",
               },
               {
-                "id": "rs_first_6808709f6fcc8191ad2e2fdd784017b3:0",
-                "providerMetadata": {
-                  "openai": {
-                    "itemId": "rs_first_6808709f6fcc8191ad2e2fdd784017b3",
-                  },
-                },
-                "type": "reasoning-end",
-              },
-              {
                 "id": "rs_first_6808709f6fcc8191ad2e2fdd784017b3:1",
                 "providerMetadata": {
                   "openai": {
@@ -8093,6 +8086,16 @@ describe('OpenAIResponsesLanguageModel', () => {
                   },
                 },
                 "type": "reasoning-delta",
+              },
+              {
+                "id": "rs_first_6808709f6fcc8191ad2e2fdd784017b3:0",
+                "providerMetadata": {
+                  "openai": {
+                    "itemId": "rs_first_6808709f6fcc8191ad2e2fdd784017b3",
+                    "reasoningEncryptedContent": null,
+                  },
+                },
+                "type": "reasoning-end",
               },
               {
                 "id": "rs_first_6808709f6fcc8191ad2e2fdd784017b3:1",
@@ -8246,6 +8249,263 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
           stream: true,
         });
+      });
+
+      it('should propagate final encrypted_content to every summary part (store=false)', async () => {
+        // Stream sends `enc_initial` on output_item.added and `enc_final` on
+        // output_item.done. After this fix, BOTH summary parts' reasoning-end
+        // events must carry `enc_final` (not `enc_initial`, not null).
+        server.urls['https://api.openai.com/v1/responses'].response = {
+          type: 'stream-chunks',
+          chunks: [
+            `data:{"type":"response.created","response":{"id":"resp_test","object":"response","created_at":1741269019,"status":"in_progress","error":null,"incomplete_details":null,"input":[],"instructions":null,"max_output_tokens":null,"model":"gpt-5.1","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":"high","summary":"detailed"},"store":false,"temperature":null,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[],"top_p":null,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n`,
+            `data:{"type":"response.output_item.added","output_index":0,"item":{"id":"rs_test","type":"reasoning","encrypted_content":"enc_initial"}}\n\n`,
+            `data:{"type":"response.reasoning_summary_part.added","item_id":"rs_test","summary_index":0}\n\n`,
+            `data:{"type":"response.reasoning_summary_text.delta","item_id":"rs_test","summary_index":0,"delta":"step 1"}\n\n`,
+            `data:{"type":"response.reasoning_summary_part.done","item_id":"rs_test","summary_index":0}\n\n`,
+            `data:{"type":"response.reasoning_summary_part.added","item_id":"rs_test","summary_index":1}\n\n`,
+            `data:{"type":"response.reasoning_summary_text.delta","item_id":"rs_test","summary_index":1,"delta":"step 2"}\n\n`,
+            `data:{"type":"response.reasoning_summary_part.done","item_id":"rs_test","summary_index":1}\n\n`,
+            `data:{"type":"response.output_item.done","output_index":0,"item":{"id":"rs_test","type":"reasoning","encrypted_content":"enc_final"}}\n\n`,
+            `data:{"type":"response.completed","response":{"id":"resp_test","object":"response","created_at":1741269019,"status":"completed","error":null,"incomplete_details":null,"input":[],"instructions":null,"max_output_tokens":null,"model":"gpt-5.1","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":"high","summary":"detailed"},"store":false,"temperature":null,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[],"top_p":null,"truncation":"disabled","usage":{"input_tokens":1,"input_tokens_details":{"cached_tokens":0},"output_tokens":1,"output_tokens_details":{"reasoning_tokens":1},"total_tokens":2},"user":null,"metadata":{}}}\n\n`,
+          ],
+        };
+
+        const { stream } = await createModel('gpt-5.1').doStream({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              store: false,
+              include: ['reasoning.encrypted_content'],
+              reasoningEffort: 'high',
+              reasoningSummary: 'detailed',
+            },
+          },
+          includeRawChunks: false,
+        });
+
+        const events = await convertReadableStreamToArray(stream);
+        const reasoningEnds = events.filter(e => e.type === 'reasoning-end');
+
+        expect(reasoningEnds).toHaveLength(2);
+        for (const end of reasoningEnds) {
+          expect(end.providerMetadata?.openai).toMatchObject({
+            itemId: 'rs_test',
+            reasoningEncryptedContent: 'enc_final',
+          });
+        }
+      });
+
+      it('should not emit reasoning-end for earlier summary parts before output_item.done (store=false)', async () => {
+        // Pin the new ordering: no reasoning-end for `:0` may appear before
+        // `:1`'s reasoning-start. Both reasoning-end events must come after
+        // the last reasoning-delta of `:1`.
+        server.urls['https://api.openai.com/v1/responses'].response = {
+          type: 'stream-chunks',
+          chunks: [
+            `data:{"type":"response.created","response":{"id":"resp_test","object":"response","created_at":1741269019,"status":"in_progress","error":null,"incomplete_details":null,"input":[],"instructions":null,"max_output_tokens":null,"model":"gpt-5.1","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":"high","summary":"detailed"},"store":false,"temperature":null,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[],"top_p":null,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n`,
+            `data:{"type":"response.output_item.added","output_index":0,"item":{"id":"rs_test","type":"reasoning","encrypted_content":"enc_initial"}}\n\n`,
+            `data:{"type":"response.reasoning_summary_part.added","item_id":"rs_test","summary_index":0}\n\n`,
+            `data:{"type":"response.reasoning_summary_text.delta","item_id":"rs_test","summary_index":0,"delta":"a"}\n\n`,
+            `data:{"type":"response.reasoning_summary_part.done","item_id":"rs_test","summary_index":0}\n\n`,
+            `data:{"type":"response.reasoning_summary_part.added","item_id":"rs_test","summary_index":1}\n\n`,
+            `data:{"type":"response.reasoning_summary_text.delta","item_id":"rs_test","summary_index":1,"delta":"b"}\n\n`,
+            `data:{"type":"response.reasoning_summary_part.done","item_id":"rs_test","summary_index":1}\n\n`,
+            `data:{"type":"response.output_item.done","output_index":0,"item":{"id":"rs_test","type":"reasoning","encrypted_content":"enc_final"}}\n\n`,
+            `data:{"type":"response.completed","response":{"id":"resp_test","object":"response","created_at":1741269019,"status":"completed","error":null,"incomplete_details":null,"input":[],"instructions":null,"max_output_tokens":null,"model":"gpt-5.1","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":"high","summary":"detailed"},"store":false,"temperature":null,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[],"top_p":null,"truncation":"disabled","usage":{"input_tokens":1,"input_tokens_details":{"cached_tokens":0},"output_tokens":1,"output_tokens_details":{"reasoning_tokens":1},"total_tokens":2},"user":null,"metadata":{}}}\n\n`,
+          ],
+        };
+
+        const { stream } = await createModel('gpt-5.1').doStream({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              store: false,
+              include: ['reasoning.encrypted_content'],
+              reasoningEffort: 'high',
+              reasoningSummary: 'detailed',
+            },
+          },
+          includeRawChunks: false,
+        });
+
+        const events = await convertReadableStreamToArray(stream);
+        const reasoningEvents = events.filter(
+          e =>
+            e.type === 'reasoning-start' ||
+            e.type === 'reasoning-delta' ||
+            e.type === 'reasoning-end',
+        );
+
+        // Expected ordering after Fix B: start :0, delta :0, start :1, delta :1, end :0, end :1.
+        // Critical: NO reasoning-end appears before any :1 reasoning-start.
+        const types = reasoningEvents.map(e => `${e.type}@${e.id}`);
+        expect(types).toEqual([
+          'reasoning-start@rs_test:0',
+          'reasoning-delta@rs_test:0',
+          'reasoning-start@rs_test:1',
+          'reasoning-delta@rs_test:1',
+          'reasoning-end@rs_test:0',
+          'reasoning-end@rs_test:1',
+        ]);
+      });
+
+      it('should still emit reasoning-end immediately on summary_part.done when store=true', async () => {
+        // Regression guard for the store=true branch (which Fix B does NOT change).
+        // Each summary_part.done produces an immediate reasoning-end with
+        // providerMetadata.openai = { itemId } only (no reasoningEncryptedContent).
+        server.urls['https://api.openai.com/v1/responses'].response = {
+          type: 'stream-chunks',
+          chunks: [
+            `data:{"type":"response.created","response":{"id":"resp_test","object":"response","created_at":1741269019,"status":"in_progress","error":null,"incomplete_details":null,"input":[],"instructions":null,"max_output_tokens":null,"model":"o3-mini-2025-01-31","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":"low","summary":"auto"},"store":true,"temperature":null,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[],"top_p":null,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n`,
+            `data:{"type":"response.output_item.added","output_index":0,"item":{"id":"rs_test","type":"reasoning"}}\n\n`,
+            `data:{"type":"response.reasoning_summary_part.added","item_id":"rs_test","summary_index":0}\n\n`,
+            `data:{"type":"response.reasoning_summary_text.delta","item_id":"rs_test","summary_index":0,"delta":"a"}\n\n`,
+            `data:{"type":"response.reasoning_summary_part.done","item_id":"rs_test","summary_index":0}\n\n`,
+            `data:{"type":"response.reasoning_summary_part.added","item_id":"rs_test","summary_index":1}\n\n`,
+            `data:{"type":"response.reasoning_summary_text.delta","item_id":"rs_test","summary_index":1,"delta":"b"}\n\n`,
+            `data:{"type":"response.reasoning_summary_part.done","item_id":"rs_test","summary_index":1}\n\n`,
+            `data:{"type":"response.output_item.done","output_index":0,"item":{"id":"rs_test","type":"reasoning"}}\n\n`,
+            `data:{"type":"response.completed","response":{"id":"resp_test","object":"response","created_at":1741269019,"status":"completed","error":null,"incomplete_details":null,"input":[],"instructions":null,"max_output_tokens":null,"model":"o3-mini-2025-01-31","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":"low","summary":"auto"},"store":true,"temperature":null,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[],"top_p":null,"truncation":"disabled","usage":{"input_tokens":1,"input_tokens_details":{"cached_tokens":0},"output_tokens":1,"output_tokens_details":{"reasoning_tokens":1},"total_tokens":2},"user":null,"metadata":{}}}\n\n`,
+          ],
+        };
+
+        const { stream } = await createModel('o3-mini').doStream({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              store: true,
+              reasoningEffort: 'low',
+              reasoningSummary: 'auto',
+            },
+          },
+          includeRawChunks: false,
+        });
+
+        const events = await convertReadableStreamToArray(stream);
+        const reasoningEvents = events.filter(
+          e =>
+            e.type === 'reasoning-start' ||
+            e.type === 'reasoning-delta' ||
+            e.type === 'reasoning-end',
+        );
+
+        // Pre-Fix-B ordering must be preserved for store=true:
+        // start :0, delta :0, end :0, start :1, delta :1, end :1
+        expect(reasoningEvents.map(e => `${e.type}@${e.id}`)).toEqual([
+          'reasoning-start@rs_test:0',
+          'reasoning-delta@rs_test:0',
+          'reasoning-end@rs_test:0',
+          'reasoning-start@rs_test:1',
+          'reasoning-delta@rs_test:1',
+          'reasoning-end@rs_test:1',
+        ]);
+      });
+
+      it('should propagate canonical encrypted_content to all 6 summary parts (Azure-shaped fixture with include)', async () => {
+        // Synthesized fixture mirrors a real Azure store=false response with
+        // reasoning.summary='detailed', 6 summary parts. output_item.added carries
+        // an 824-char partial blob; output_item.done carries the canonical 13,688-char
+        // blob. After Fix B, every reasoning-end must carry the canonical value.
+        prepareChunksFixtureResponse(
+          'azure-gpt5-reasoning-multi-summary-with-encryption',
+        );
+
+        const { stream } = await createModel('gpt-5.4').doStream({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              store: false,
+              include: ['reasoning.encrypted_content'],
+              reasoningEffort: 'high',
+              reasoningSummary: 'detailed',
+            },
+          },
+          includeRawChunks: false,
+        });
+
+        const events = await convertReadableStreamToArray(stream);
+        const reasoningEnds = events.filter(e => e.type === 'reasoning-end');
+
+        expect(reasoningEnds).toHaveLength(6);
+        const ids = reasoningEnds.map(e => e.id);
+        expect(ids).toEqual([
+          'rs_anonymized_reasoning_synth_001:0',
+          'rs_anonymized_reasoning_synth_001:1',
+          'rs_anonymized_reasoning_synth_001:2',
+          'rs_anonymized_reasoning_synth_001:3',
+          'rs_anonymized_reasoning_synth_001:4',
+          'rs_anonymized_reasoning_synth_001:5',
+        ]);
+
+        const encryptedValues = reasoningEnds.map(
+          e =>
+            (
+              e.providerMetadata?.openai as {
+                reasoningEncryptedContent?: string;
+              }
+            )?.reasoningEncryptedContent,
+        );
+
+        // All six must carry the SAME canonical encrypted_content value
+        // (the canonical blob from output_item.done, not the partial blob from output_item.added).
+        const distinct = new Set(encryptedValues);
+        expect(distinct.size).toBe(1);
+        const canonical = encryptedValues[0]!;
+        expect(canonical.length).toBe(13688); // canonical blob size in the fixture
+        expect(canonical.startsWith('AZURE_FIXTURE_CANONICAL_')).toBe(true);
+        expect(canonical.startsWith('AZURE_FIXTURE_PARTIAL_')).toBe(false);
+      });
+
+      it('should handle multi-summary reasoning when encrypted_content is absent (Azure fixture without include)', async () => {
+        // Anonymized real Azure trace (store=false, reasoning.summary='detailed', 3 summary parts).
+        // The caller did not request `include: ['reasoning.encrypted_content']`, so
+        // encrypted_content is omitted from every event. Verify Fix B's deferred ordering
+        // still holds and that no reasoning-end carries an encrypted blob.
+        prepareChunksFixtureResponse(
+          'azure-gpt5-reasoning-multi-summary-no-encryption',
+        );
+
+        const { stream } = await createModel('gpt-5.4').doStream({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              store: false,
+              reasoningEffort: 'high',
+              reasoningSummary: 'detailed',
+            },
+          },
+          includeRawChunks: false,
+        });
+
+        const events = await convertReadableStreamToArray(stream);
+        const reasoningEnds = events.filter(e => e.type === 'reasoning-end');
+
+        expect(reasoningEnds).toHaveLength(3);
+
+        // All three must lack reasoningEncryptedContent (or have it as null).
+        for (const end of reasoningEnds) {
+          const meta = end.providerMetadata?.openai as
+            | { reasoningEncryptedContent?: string | null }
+            | undefined;
+          expect(meta?.reasoningEncryptedContent ?? null).toBeNull();
+        }
+
+        // No reasoning-end may appear before the last reasoning-start
+        // (the new deferred ordering must still apply even when encrypted_content is absent).
+        const reasoningEvents = events.filter(
+          e =>
+            e.type === 'reasoning-start' ||
+            e.type === 'reasoning-delta' ||
+            e.type === 'reasoning-end',
+        );
+        const firstEndIdx = reasoningEvents.findIndex(
+          e => e.type === 'reasoning-end',
+        );
+        const lastStartIdx = reasoningEvents
+          .map(e => e.type)
+          .lastIndexOf('reasoning-start');
+        expect(firstEndIdx).toBeGreaterThan(lastStartIdx);
       });
     });
 

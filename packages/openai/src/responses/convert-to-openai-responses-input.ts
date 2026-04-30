@@ -84,6 +84,7 @@ export async function convertToOpenAIResponsesInput({
   let input: OpenAIResponsesInput = [];
   const warnings: Array<SharedV4Warning> = [];
   const processedApprovalIds = new Set<string>();
+  const reasoningMessages: Record<string, OpenAIResponsesReasoning> = {};
 
   for (const { role, content } of prompt) {
     switch (role) {
@@ -206,8 +207,6 @@ export async function convertToOpenAIResponsesInput({
       }
 
       case 'assistant': {
-        const reasoningMessages: Record<string, OpenAIResponsesReasoning> = {};
-
         for (const part of content) {
           switch (part.type) {
             case 'text': {

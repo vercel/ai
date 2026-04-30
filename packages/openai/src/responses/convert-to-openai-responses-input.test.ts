@@ -1631,6 +1631,279 @@ describe('convertToOpenAIResponsesInput', () => {
           expect(result.warnings).toHaveLength(0);
         });
 
+        it('should deduplicate item_reference when same itemId appears across consecutive assistant messages (store=true)', async () => {
+          const result = await convertToOpenAIResponsesInput({
+            toolNameMapping: testToolNameMapping,
+            prompt: [
+              {
+                role: 'assistant',
+                content: [
+                  {
+                    type: 'reasoning',
+                    text: 'Step 1',
+                    providerOptions: { openai: { itemId: 'rs_xyz' } },
+                  },
+                ],
+              },
+              {
+                role: 'assistant',
+                content: [
+                  {
+                    type: 'reasoning',
+                    text: 'Step 2',
+                    providerOptions: { openai: { itemId: 'rs_xyz' } },
+                  },
+                ],
+              },
+            ],
+            systemMessageMode: 'system',
+            providerOptionsName: 'openai',
+            store: true,
+          });
+
+          expect(result.input).toMatchInlineSnapshot(`
+            [
+              {
+                "id": "rs_xyz",
+                "type": "item_reference",
+              },
+            ]
+          `);
+          expect(result.warnings).toHaveLength(0);
+        });
+
+        it('should merge summaries and update encryptedContent when same itemId appears across consecutive assistant messages (store=false)', async () => {
+          const result = await convertToOpenAIResponsesInput({
+            toolNameMapping: testToolNameMapping,
+            prompt: [
+              {
+                role: 'assistant',
+                content: [
+                  {
+                    type: 'reasoning',
+                    text: 'Step 1',
+                    providerOptions: {
+                      openai: {
+                        itemId: 'rs_xyz',
+                        reasoningEncryptedContent: 'enc_v1',
+                      },
+                    },
+                  },
+                ],
+              },
+              {
+                role: 'assistant',
+                content: [
+                  {
+                    type: 'reasoning',
+                    text: 'Step 2',
+                    providerOptions: {
+                      openai: {
+                        itemId: 'rs_xyz',
+                        reasoningEncryptedContent: 'enc_v2',
+                      },
+                    },
+                  },
+                ],
+              },
+            ],
+            systemMessageMode: 'system',
+            providerOptionsName: 'openai',
+            store: false,
+          });
+
+          expect(result.input).toMatchInlineSnapshot(`
+            [
+              {
+                "encrypted_content": "enc_v2",
+                "id": "rs_xyz",
+                "summary": [
+                  {
+                    "text": "Step 1",
+                    "type": "summary_text",
+                  },
+                  {
+                    "text": "Step 2",
+                    "type": "summary_text",
+                  },
+                ],
+                "type": "reasoning",
+              },
+            ]
+          `);
+          expect(result.warnings).toHaveLength(0);
+        });
+
+        it('should deduplicate reasoning across assistant messages separated by a user message (store=false)', async () => {
+          const result = await convertToOpenAIResponsesInput({
+            toolNameMapping: testToolNameMapping,
+            prompt: [
+              {
+                role: 'assistant',
+                content: [
+                  {
+                    type: 'reasoning',
+                    text: 'Step 1',
+                    providerOptions: {
+                      openai: {
+                        itemId: 'rs_xyz',
+                        reasoningEncryptedContent: 'enc_v1',
+                      },
+                    },
+                  },
+                ],
+              },
+              {
+                role: 'user',
+                content: [{ type: 'text', text: 'Follow-up question' }],
+              },
+              {
+                role: 'assistant',
+                content: [
+                  {
+                    type: 'reasoning',
+                    text: 'Step 2',
+                    providerOptions: {
+                      openai: {
+                        itemId: 'rs_xyz',
+                        reasoningEncryptedContent: 'enc_v2',
+                      },
+                    },
+                  },
+                ],
+              },
+            ],
+            systemMessageMode: 'system',
+            providerOptionsName: 'openai',
+            store: false,
+          });
+
+          // Reasoning is anchored at the FIRST occurrence; the intervening user
+          // message is preserved at its natural position; the second reasoning
+          // part is merged into the first reasoning item rather than producing
+          // a duplicate `{ type: 'reasoning', id: 'rs_xyz' }` entry.
+          expect(result.input).toMatchInlineSnapshot(`
+            [
+              {
+                "encrypted_content": "enc_v2",
+                "id": "rs_xyz",
+                "summary": [
+                  {
+                    "text": "Step 1",
+                    "type": "summary_text",
+                  },
+                  {
+                    "text": "Step 2",
+                    "type": "summary_text",
+                  },
+                ],
+                "type": "reasoning",
+              },
+              {
+                "content": [
+                  {
+                    "text": "Follow-up question",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ]
+          `);
+          expect(result.warnings).toHaveLength(0);
+        });
+
+        it('should preserve duplicate-itemId reasoning dedupe while keeping text/tool-call from second message at natural positions (store=false)', async () => {
+          const result = await convertToOpenAIResponsesInput({
+            toolNameMapping: testToolNameMapping,
+            prompt: [
+              {
+                role: 'assistant',
+                content: [
+                  {
+                    type: 'reasoning',
+                    text: 'Step 1',
+                    providerOptions: {
+                      openai: {
+                        itemId: 'rs_xyz',
+                        reasoningEncryptedContent: 'enc_v1',
+                      },
+                    },
+                  },
+                ],
+              },
+              {
+                role: 'assistant',
+                content: [
+                  {
+                    type: 'reasoning',
+                    text: 'Step 2',
+                    providerOptions: {
+                      openai: {
+                        itemId: 'rs_xyz',
+                        reasoningEncryptedContent: 'enc_v2',
+                      },
+                    },
+                  },
+                  {
+                    type: 'tool-call',
+                    toolCallId: 'call_1',
+                    toolName: 'calculator',
+                    input: { a: 1, b: 2, op: 'add' },
+                  },
+                  {
+                    type: 'text',
+                    text: 'second reply',
+                  },
+                ],
+              },
+            ],
+            systemMessageMode: 'system',
+            providerOptionsName: 'openai',
+            store: false,
+          });
+
+          // The reasoning item is deduplicated (single `{ type: 'reasoning' }` with merged summaries).
+          // The function-call and the assistant text from the second message still appear at their natural positions.
+          expect(result.input).toMatchInlineSnapshot(`
+            [
+              {
+                "encrypted_content": "enc_v2",
+                "id": "rs_xyz",
+                "summary": [
+                  {
+                    "text": "Step 1",
+                    "type": "summary_text",
+                  },
+                  {
+                    "text": "Step 2",
+                    "type": "summary_text",
+                  },
+                ],
+                "type": "reasoning",
+              },
+              {
+                "arguments": "{"a":1,"b":2,"op":"add"}",
+                "call_id": "call_1",
+                "id": undefined,
+                "name": "calculator",
+                "type": "function_call",
+              },
+              {
+                "content": [
+                  {
+                    "text": "second reply",
+                    "type": "output_text",
+                  },
+                ],
+                "id": undefined,
+                "role": "assistant",
+              },
+            ]
+          `);
+          expect(result.warnings).toHaveLength(0);
+        });
+
         it('should drop reasoning parts without encrypted content when store is false', async () => {
           const result = await convertToOpenAIResponsesInput({
             toolNameMapping: testToolNameMapping,

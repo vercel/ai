@@ -1412,6 +1412,7 @@ This metadata includes the following fields:
   The ID of the reasoning item in the Responses API.
 - `reasoningEncryptedContent` (optional)  
   Encrypted reasoning content (only returned when requested via `include: ['reasoning.encrypted_content']`).
+  When a reasoning item produces multiple summary parts (e.g. with `reasoningSummary: 'auto'` or `'detailed'`), every persisted reasoning UI part for that item carries the same `reasoningEncryptedContent`, so persisting and replaying reasoning is robust to downstream filtering, reordering, or partial save/restore.
 
 ```ts
 import {
