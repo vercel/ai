@@ -68,7 +68,7 @@ export default function Chat() {
                           typeof part.callProviderMetadata?.mcp?.name ===
                             'string' && (
                             <div className="text-xs text-gray-500">
-                              MCP server:
+                              MCP server: {part.callProviderMetadata.mcp.name}
                             </div>
                           )}
                       </div>
