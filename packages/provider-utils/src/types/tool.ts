@@ -79,12 +79,6 @@ type BaseTool<
   inputSchema: FlexibleSchema<INPUT>;
 
   /**
-   * An optional list of input examples that show the language
-   * model what the input should look like.
-   */
-  inputExamples?: Array<{ input: NoInfer<INPUT> }>;
-
-  /**
    * An optional schema describing the context that the tool expects.
    *
    * The context is passed to execute function as part of the execution options.
@@ -189,6 +183,12 @@ type BaseFunctionTool<
    */
   strict?: boolean;
 
+  /**
+   * An optional list of input examples that show the language
+   * model what the input should look like.
+   */
+  inputExamples?: Array<{ input: NoInfer<INPUT> }>;
+
   // make all properties available to improve usage dx
   id?: never;
   isProviderExecuted?: never;
@@ -242,6 +242,7 @@ type BaseProviderTool<
   // make all properties available to improve usage dx
   description?: never;
   strict?: never;
+  inputExamples?: never;
 };
 
 /**
