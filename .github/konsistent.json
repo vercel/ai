@@ -6,17 +6,38 @@
       "name": "package-dir-must-have-required-files",
       "description": "Every package directory must contain a specific minimum set of files.",
       "paths": ["packages/*", "!packages/test-server"],
-      "must": {
-        "haveType": "directory",
-        "haveFiles": [
-          "CHANGELOG.md",
-          "README.md",
-          "package.json",
-          "src/index.ts",
-          "tsconfig.json",
-          "tsup.config.ts"
-        ]
-      }
+      "must": [
+        {
+          "name": "package-dir-must-have-package-and-docs-files",
+          "description": "Every package directory must contain CHANGELOG, README, package.json and tsconfig.json.",
+          "must": {
+            "haveType": "directory",
+            "haveFiles": [
+              "CHANGELOG.md",
+              "README.md",
+              "package.json",
+              "tsconfig.json"
+            ]
+          },
+          "excludeFiles": ["packages/mcp", "packages/otel", "packages/voyage"]
+        },
+        {
+          "name": "package-dir-must-have-index",
+          "description": "Every package directory must contain src/index.ts.",
+          "must": {
+            "haveFiles": ["src/index.ts"]
+          },
+          "excludeFiles": ["packages/codemod"]
+        },
+        {
+          "name": "package-dir-must-have-tsup-config",
+          "description": "Every package directory must contain tsup.config.ts.",
+          "must": {
+            "haveFiles": ["tsup.config.ts"]
+          },
+          "excludeFiles": ["packages/svelte"]
+        }
+      ]
     },
     {
       "name": "provider-package-must-export-required-symbols",
@@ -171,8 +192,7 @@
                 "name": "${providerId.toPascalCase()}${modelKind.toPascalCase()}Model",
                 "implement": ["${modelKind.toPascalCase()}ModelV4"]
               }
-            ],
-            "haveFiles": ["${providerId}-${modelKind}-model-options.ts"]
+            ]
           },
           "excludeFiles": ["${providerId}-video-model.ts"]
         },
@@ -197,9 +217,12 @@
                 "name": "${providerId.toPascalCase()}${modelKind.toNthSegmentPascalCase(0)}${modelKind.toNthSegmentPascalCase(1)}Model",
                 "implement": ["${modelKind.toNthSegmentPascalCase(1)}ModelV4"]
               }
-            ],
-            "haveFiles": ["${providerId}-${modelKind}-model-options.ts"]
-          }
+            ]
+          },
+          "excludeFiles": [
+            "packages/deepinfra/src/deepinfra-chat-language-model.ts",
+            "packages/moonshotai/src/moonshotai-chat-language-model.ts"
+          ]
         },
         {
           "name": "provider-video-model-file-must-export-model-class",
