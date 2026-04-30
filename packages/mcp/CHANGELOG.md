@@ -1,5 +1,13 @@
 # @ai-sdk/mcp
 
+## 2.0.0-beta.37
+
+### Patch Changes
+
+- 08d2129: feat(mcp): propagate the server name through dynamic tool parts
+- Updated dependencies [08d2129]
+  - @ai-sdk/provider-utils@5.0.0-beta.30
+
 ## 2.0.0-beta.36
 
 ### Patch Changes

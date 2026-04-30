@@ -1,5 +1,23 @@
 # @ai-sdk/google-vertex
 
+## 5.0.0-beta.63
+
+### Major Changes
+
+- 04e9009: chore: make provider implementations code patterns more consistent, including renaming certain exported symbols
+
+  For all externally exported symbols that were renamed, the old names continue to work via deprecated aliases.
+
+### Patch Changes
+
+- 780e563: feat(provider/google-vertex): allow overriding Vertex Anthropic auth token generation
+- Updated dependencies [08d2129]
+- Updated dependencies [04e9009]
+  - @ai-sdk/provider-utils@5.0.0-beta.30
+  - @ai-sdk/openai-compatible@3.0.0-beta.35
+  - @ai-sdk/anthropic@4.0.0-beta.42
+  - @ai-sdk/google@4.0.0-beta.49
+
 ## 5.0.0-beta.62
 
 ### Patch Changes

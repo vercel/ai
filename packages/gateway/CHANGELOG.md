@@ -1,5 +1,19 @@
 # @ai-sdk/gateway
 
+## 4.0.0-beta.66
+
+### Major Changes
+
+- 04e9009: chore: make provider implementations code patterns more consistent, including renaming certain exported symbols
+
+  For all externally exported symbols that were renamed, the old names continue to work via deprecated aliases.
+
+### Patch Changes
+
+- be09425: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [08d2129]
+  - @ai-sdk/provider-utils@5.0.0-beta.30
+
 ## 4.0.0-beta.65
 
 ### Patch Changes

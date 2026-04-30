@@ -1,5 +1,17 @@
 # ai
 
+## 7.0.0-beta.115
+
+### Patch Changes
+
+- 08d2129: feat(mcp): propagate the server name through dynamic tool parts
+- 202f107: feat(ai): create a diagnostics channel to push event data
+- Updated dependencies [08d2129]
+- Updated dependencies [04e9009]
+- Updated dependencies [be09425]
+  - @ai-sdk/provider-utils@5.0.0-beta.30
+  - @ai-sdk/gateway@4.0.0-beta.66
+
 ## 7.0.0-beta.114
 
 ### Major Changes

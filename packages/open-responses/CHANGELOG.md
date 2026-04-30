@@ -1,5 +1,18 @@
 # @ai-sdk/open-responses
 
+## 2.0.0-beta.33
+
+### Major Changes
+
+- 04e9009: chore: make provider implementations code patterns more consistent, including renaming certain exported symbols
+
+  For all externally exported symbols that were renamed, the old names continue to work via deprecated aliases.
+
+### Patch Changes
+
+- Updated dependencies [08d2129]
+  - @ai-sdk/provider-utils@5.0.0-beta.30
+
 ## 2.0.0-beta.32
 
 ### Patch Changes

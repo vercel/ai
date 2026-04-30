@@ -1,5 +1,20 @@
 # @ai-sdk/alibaba
 
+## 2.0.0-beta.37
+
+### Major Changes
+
+- 04e9009: chore: make provider implementations code patterns more consistent, including renaming certain exported symbols
+
+  For all externally exported symbols that were renamed, the old names continue to work via deprecated aliases.
+
+### Patch Changes
+
+- Updated dependencies [08d2129]
+- Updated dependencies [04e9009]
+  - @ai-sdk/provider-utils@5.0.0-beta.30
+  - @ai-sdk/openai-compatible@3.0.0-beta.35
+
 ## 2.0.0-beta.36
 
 ### Patch Changes

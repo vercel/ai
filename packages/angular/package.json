@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/angular",
-  "version": "3.0.0-beta.114",
+  "version": "3.0.0-beta.115",
   "type": "module",
   "description": "Angular implementation of ai-sdk.",
   "license": "Apache-2.0",
