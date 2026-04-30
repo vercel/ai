@@ -53,12 +53,9 @@ type ToolOutputProperties<
 >;
 
 /**
- * A tool contains the description and the schema of the input that the tool expects.
- * This enables the language model to generate the input.
- *
- * The tool can also contain an optional execute function for the actual execution function of the tool.
+ * Common properties shared by all tool kinds.
  */
-export type Tool<
+export type BaseTool<
   INPUT extends JSONValue | unknown | never = any,
   OUTPUT extends JSONValue | unknown | never = any,
   CONTEXT extends Context | unknown | never = any,
@@ -186,57 +183,86 @@ export type Tool<
           ? any
           : NoInfer<OUTPUT>;
     }) => ToolResultOutput | PromiseLike<ToolResultOutput>;
-  } & (
-    | {
-        /**
-         * Tool with user-defined input and output schemas.
-         */
-        type?: undefined | 'function';
-      }
-    | {
-        /**
-         * Tool that is defined at runtime (e.g. an MCP tool).
-         * The types of input and output are not known at development time.
-         */
-        type: 'dynamic';
-      }
-    | {
-        /**
-         * Tool with provider-defined input and output schemas.
-         */
-        type: 'provider';
+  };
 
-        /**
-         * The ID of the tool. Must follow the format `<provider-name>.<unique-tool-name>`.
-         */
-        id: `${string}.${string}`;
+/**
+ * Tool with user-defined input and output schemas.
+ */
+export type FunctionTool<
+  INPUT extends JSONValue | unknown | never = any,
+  OUTPUT extends JSONValue | unknown | never = any,
+  CONTEXT extends Context | unknown | never = any,
+> = BaseTool<INPUT, OUTPUT, CONTEXT> & {
+  type?: undefined | 'function';
+};
 
-        /**
-         * Flag that indicates whether the tool is executed by the provider.
-         */
-        isProviderExecuted: boolean;
+/**
+ * Tool that is defined at runtime (e.g. an MCP tool).
+ * The types of input and output are not known at development time.
+ */
+export type DynamicTool<
+  INPUT extends JSONValue | unknown | never = any,
+  OUTPUT extends JSONValue | unknown | never = any,
+  CONTEXT extends Context | unknown | never = any,
+> = BaseTool<INPUT, OUTPUT, CONTEXT> & {
+  type: 'dynamic';
+};
 
-        /**
-         * The arguments for configuring the tool. Must match the expected arguments defined by the provider for this tool.
-         */
-        args: Record<string, unknown>;
+/**
+ * Tool with provider-defined input and output schemas.
+ */
+export type ProviderTool<
+  INPUT extends JSONValue | unknown | never = any,
+  OUTPUT extends JSONValue | unknown | never = any,
+  CONTEXT extends Context | unknown | never = any,
+> = BaseTool<INPUT, OUTPUT, CONTEXT> & {
+  type: 'provider';
 
-        /**
-         * Whether this provider-executed tool supports deferred results.
-         *
-         * When true, the tool result may not be returned in the same turn as the
-         * tool call (e.g., when using programmatic tool calling where a server tool
-         * triggers a client-executed tool, and the server tool's result is deferred
-         * until the client tool is resolved).
-         *
-         * This flag allows the AI SDK to handle tool results that arrive without
-         * a matching tool call in the current response.
-         *
-         * @default false
-         */
-        supportsDeferredResults?: boolean;
-      }
-  );
+  /**
+   * The ID of the tool. Must follow the format `<provider-name>.<unique-tool-name>`.
+   */
+  id: `${string}.${string}`;
+
+  /**
+   * Flag that indicates whether the tool is executed by the provider.
+   */
+  isProviderExecuted: boolean;
+
+  /**
+   * The arguments for configuring the tool. Must match the expected arguments defined by the provider for this tool.
+   */
+  args: Record<string, unknown>;
+
+  /**
+   * Whether this provider-executed tool supports deferred results.
+   *
+   * When true, the tool result may not be returned in the same turn as the
+   * tool call (e.g., when using programmatic tool calling where a server tool
+   * triggers a client-executed tool, and the server tool's result is deferred
+   * until the client tool is resolved).
+   *
+   * This flag allows the AI SDK to handle tool results that arrive without
+   * a matching tool call in the current response.
+   *
+   * @default false
+   */
+  supportsDeferredResults?: boolean;
+};
+
+/**
+ * A tool contains the description and the schema of the input that the tool expects.
+ * This enables the language model to generate the input.
+ *
+ * The tool can also contain an optional execute function for the actual execution function of the tool.
+ */
+export type Tool<
+  INPUT extends JSONValue | unknown | never = any,
+  OUTPUT extends JSONValue | unknown | never = any,
+  CONTEXT extends Context | unknown | never = any,
+> =
+  | FunctionTool<INPUT, OUTPUT, CONTEXT>
+  | DynamicTool<INPUT, OUTPUT, CONTEXT>
+  | ProviderTool<INPUT, OUTPUT, CONTEXT>;
 
 /**
  * Helper function for inferring the execute args of a tool.
@@ -261,72 +287,8 @@ export function tool(tool: any): any {
 /**
  * Defines a dynamic tool.
  */
-export function dynamicTool(tool: {
-  /**
-   * An optional description of what the tool does.
-   * Will be used by the language model to decide whether to use the tool.
-   * Not used for provider-defined tools.
-   */
-  description?: string;
-
-  /**
-   * An optional title of the tool.
-   */
-  title?: string;
-
-  /**
-   * Additional provider-specific metadata. They are passed through
-   * to the provider from the AI SDK and enable provider-specific
-   * functionality that can be fully encapsulated in the provider.
-   */
-  providerOptions?: ProviderOptions;
-
-  /**
-   * The schema of the input that the tool expects.
-   * The language model will use this to generate the input.
-   * It is also used to validate the output of the language model.
-   *
-   * You can use descriptions on the schema properties to make the input understandable for the language model.
-   */
-  inputSchema: FlexibleSchema<unknown>;
-
-  /**
-   * An async function that is called with the arguments from the tool call and produces a result.
-   * If not provided, the tool will not be executed automatically.
-   *
-   * @args is the input of the tool call.
-   * @options.abortSignal is a signal that can be used to abort the tool call.
-   */
-  execute: ToolExecuteFunction<unknown, unknown, Context>;
-
-  /**
-   * Optional conversion function that maps the tool result to an output that can be used by the language model.
-   *
-   * If not provided, the tool result will be sent as a JSON object.
-   */
-  toModelOutput?: (options: {
-    /**
-     * The ID of the tool call. You can use it e.g. when sending tool-call related information with stream data.
-     */
-    toolCallId: string;
-
-    /**
-     * The input of the tool call.
-     */
-    input: unknown;
-
-    /**
-     * The output of the tool call.
-     */
-    output: unknown;
-  }) => ToolResultOutput | PromiseLike<ToolResultOutput>;
-
-  /**
-   * Whether the tool needs approval before it can be executed.
-   */
-  needsApproval?: boolean | ToolNeedsApprovalFunction<unknown, Context>;
-}): Tool<unknown, unknown, Context> & {
-  type: 'dynamic';
-} {
-  return { ...tool, type: 'dynamic' };
+export function dynamicTool(
+  tool: Omit<DynamicTool<unknown, unknown, Context>, 'type'>,
+): DynamicTool<unknown, unknown, Context> {
+  return { ...tool, type: 'dynamic' } as DynamicTool<unknown, unknown, Context>;
 }

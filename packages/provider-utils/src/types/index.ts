@@ -33,7 +33,15 @@ export type { ProviderOptions } from './provider-options';
 export type { ProviderReference } from './provider-reference';
 export type { SensitiveContext } from './sensitive-context';
 export type { SystemModelMessage } from './system-model-message';
-export { dynamicTool, tool, type Tool } from './tool';
+export {
+  dynamicTool,
+  tool,
+  type BaseTool,
+  type DynamicTool,
+  type FunctionTool,
+  type ProviderTool,
+  type Tool,
+} from './tool';
 export type {
   ToolExecuteFunction,
   ToolExecutionOptions,
