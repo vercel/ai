@@ -1,5 +1,11 @@
 # @ai-sdk/codemod
 
+## 4.0.0-beta.4
+
+### Patch Changes
+
+- 258c093: chore: ensure consistent import handling and avoid import duplicates or cycles
+
 ## 4.0.0-beta.3
 
 ### Patch Changes

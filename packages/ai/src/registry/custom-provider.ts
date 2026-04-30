@@ -251,11 +251,6 @@ export function customProvider<
   return Object.assign(baseProvider, filesAndSkills);
 }
 
-/**
- * @deprecated Use `customProvider` instead.
- */
-export const experimental_customProvider = customProvider;
-
 type ExtractModelId<MODELS extends Record<string, unknown>> = Extract<
   keyof MODELS,
   string

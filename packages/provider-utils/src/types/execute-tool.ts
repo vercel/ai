@@ -3,7 +3,8 @@ import type { ExecutableTool } from './executable-tool';
 import type { InferToolContext } from './infer-tool-context';
 import type { InferToolInput } from './infer-tool-input';
 import type { InferToolOutput } from './infer-tool-output';
-import type { Tool, ToolExecutionOptions } from './tool';
+import type { Tool } from './tool';
+import type { ToolExecutionOptions } from './tool-execute-function';
 
 /**
  * Executes a tool function and normalizes its results into a stream of outputs.

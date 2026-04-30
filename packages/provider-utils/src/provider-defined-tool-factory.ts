@@ -1,6 +1,7 @@
-import { tool, type Tool, type ToolExecuteFunction } from './types/tool';
+import { tool, type ProviderDefinedTool, type Tool } from './types/tool';
 import type { FlexibleSchema } from './schema';
 import type { Context } from './types/context';
+import type { ToolExecuteFunction } from './types/tool-execute-function';
 /**
  * A provider-defined tool is a tool for which the provider defines the input
  * and output schemas, but does not execute the tool.
@@ -18,7 +19,7 @@ export type ProviderDefinedToolFactory<
     onInputDelta?: Tool<INPUT, OUTPUT, CONTEXT>['onInputDelta'];
     onInputAvailable?: Tool<INPUT, OUTPUT, CONTEXT>['onInputAvailable'];
   },
-) => Tool<INPUT, OUTPUT, CONTEXT>;
+) => ProviderDefinedTool<INPUT, OUTPUT, CONTEXT>;
 
 export function createProviderDefinedToolFactory<
   INPUT,
@@ -48,7 +49,7 @@ export function createProviderDefinedToolFactory<
     onInputStart?: Tool<INPUT, OUTPUT, CONTEXT>['onInputStart'];
     onInputDelta?: Tool<INPUT, OUTPUT, CONTEXT>['onInputDelta'];
     onInputAvailable?: Tool<INPUT, OUTPUT, CONTEXT>['onInputAvailable'];
-  }): Tool<INPUT, OUTPUT, CONTEXT> =>
+  }): ProviderDefinedTool<INPUT, OUTPUT, CONTEXT> =>
     tool({
       type: 'provider',
       isProviderExecuted: false,
@@ -62,7 +63,7 @@ export function createProviderDefinedToolFactory<
       onInputStart,
       onInputDelta,
       onInputAvailable,
-    });
+    }) as ProviderDefinedTool<INPUT, OUTPUT, CONTEXT>;
 }
 
 export type ProviderDefinedToolFactoryWithOutputSchema<
@@ -79,7 +80,7 @@ export type ProviderDefinedToolFactoryWithOutputSchema<
     onInputDelta?: Tool<INPUT, OUTPUT, CONTEXT>['onInputDelta'];
     onInputAvailable?: Tool<INPUT, OUTPUT, CONTEXT>['onInputAvailable'];
   },
-) => Tool<INPUT, OUTPUT, CONTEXT>;
+) => ProviderDefinedTool<INPUT, OUTPUT, CONTEXT>;
 
 export function createProviderDefinedToolFactoryWithOutputSchema<
   INPUT,
@@ -110,7 +111,7 @@ export function createProviderDefinedToolFactoryWithOutputSchema<
     onInputStart?: Tool<INPUT, OUTPUT, CONTEXT>['onInputStart'];
     onInputDelta?: Tool<INPUT, OUTPUT, CONTEXT>['onInputDelta'];
     onInputAvailable?: Tool<INPUT, OUTPUT, CONTEXT>['onInputAvailable'];
-  }): Tool<INPUT, OUTPUT, CONTEXT> =>
+  }): ProviderDefinedTool<INPUT, OUTPUT, CONTEXT> =>
     tool({
       type: 'provider',
       isProviderExecuted: false,
@@ -124,5 +125,5 @@ export function createProviderDefinedToolFactoryWithOutputSchema<
       onInputStart,
       onInputDelta,
       onInputAvailable,
-    });
+    }) as ProviderDefinedTool<INPUT, OUTPUT, CONTEXT>;
 }

@@ -1,5 +1,15 @@
 # @ai-sdk/valibot
 
+## 3.0.0-beta.29
+
+### Patch Changes
+
+- 258c093: chore: ensure consistent import handling and avoid import duplicates or cycles
+- Updated dependencies [9bd6512]
+- Updated dependencies [258c093]
+- Updated dependencies [b6783da]
+  - @ai-sdk/provider-utils@5.0.0-beta.29
+
 ## 3.0.0-beta.28
 
 ### Patch Changes
