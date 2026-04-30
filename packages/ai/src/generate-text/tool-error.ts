@@ -26,7 +26,6 @@ export type DynamicToolError = {
   providerMetadata?: ProviderMetadata;
   dynamic: true;
   title?: string;
-  name?: string;
 };
 
 export type TypedToolError<TOOLS extends ToolSet> =

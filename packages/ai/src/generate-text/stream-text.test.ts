@@ -2875,46 +2875,6 @@ describe('streamText', () => {
         `);
     });
 
-    it('should include dynamic tool name in ui message stream chunks', async () => {
-      const result = streamText({
-        model: createTestModel({
-          stream: convertArrayToReadableStream([
-            {
-              type: 'tool-call',
-              toolCallId: 'call-1',
-              toolName: 'test-tool',
-              input: `{ "value": "value" }`,
-            },
-            {
-              type: 'finish',
-              finishReason: { unified: 'tool-calls', raw: 'tool-calls' },
-              usage: testUsage,
-            },
-          ]),
-        }),
-        tools: {
-          'test-tool': dynamicTool({
-            name: 'MyMCPServer',
-            inputSchema: z.object({ value: z.string() }),
-            execute: async () => 'result',
-          }),
-        },
-        prompt: 'test-input',
-      });
-
-      const chunks = await convertReadableStreamToArray(
-        result.toUIMessageStream(),
-      );
-      const toolInputChunk = chunks.find(
-        chunk => chunk.type === 'tool-input-available',
-      );
-
-      expect(toolInputChunk).toMatchObject({
-        type: 'tool-input-available',
-        name: 'MyMCPServer',
-      });
-    });
-
     it('should create a ui message stream with provider metadata', async () => {
       const result = streamText({
         model: createTestModel({
@@ -12926,7 +12886,6 @@ describe('streamText', () => {
               "input": {
                 "value": "value",
               },
-              "name": undefined,
               "providerExecuted": undefined,
               "providerMetadata": undefined,
               "title": undefined,
@@ -12983,7 +12942,6 @@ describe('streamText', () => {
                 "input": {
                   "value": "value",
                 },
-                "name": undefined,
                 "providerExecuted": undefined,
                 "providerMetadata": undefined,
                 "title": undefined,
@@ -18386,7 +18344,6 @@ describe('streamText', () => {
                 "cities": "San Francisco",
               },
               "invalid": true,
-              "name": undefined,
               "providerExecuted": undefined,
               "providerMetadata": undefined,
               "title": undefined,
@@ -18464,7 +18421,6 @@ describe('streamText', () => {
                   "cities": "San Francisco",
                 },
                 "invalid": true,
-                "name": undefined,
                 "providerExecuted": undefined,
                 "providerMetadata": undefined,
                 "title": undefined,

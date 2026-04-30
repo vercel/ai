@@ -92,7 +92,6 @@ export async function parseToolCall<TOOLS extends ToolSet>({
       invalid: true,
       error,
       title: tools?.[toolCall.toolName]?.title,
-      name: tools?.[toolCall.toolName]?.name,
       providerExecuted: toolCall.providerExecuted,
       providerMetadata: toolCall.providerMetadata,
     };
@@ -176,7 +175,6 @@ async function doParseToolCall<TOOLS extends ToolSet>({
         providerMetadata: toolCall.providerMetadata,
         dynamic: true,
         title: tool.title,
-        name: tool.name,
       }
     : {
         type: 'tool-call',

@@ -1358,9 +1358,6 @@ function asContent<TOOLS extends ToolSet>({
             error: part.result,
             providerExecuted: true,
             dynamic: toolCall.dynamic,
-            ...(toolCall.dynamic && toolCall.name != null
-              ? { name: toolCall.name }
-              : {}),
             ...(part.providerMetadata != null
               ? { providerMetadata: part.providerMetadata }
               : {}),
@@ -1374,9 +1371,6 @@ function asContent<TOOLS extends ToolSet>({
             output: part.result,
             providerExecuted: true,
             dynamic: toolCall.dynamic,
-            ...(toolCall.dynamic && toolCall.name != null
-              ? { name: toolCall.name }
-              : {}),
             ...(part.providerMetadata != null
               ? { providerMetadata: part.providerMetadata }
               : {}),

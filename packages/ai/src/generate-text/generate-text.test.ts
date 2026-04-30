@@ -7199,7 +7199,6 @@ describe('generateText', () => {
             "input": {
               "value": "test",
             },
-            "name": undefined,
             "providerExecuted": undefined,
             "providerMetadata": undefined,
             "title": undefined,
@@ -7467,7 +7466,6 @@ describe('generateText', () => {
                 "cities": "San Francisco",
               },
               "invalid": true,
-              "name": undefined,
               "providerExecuted": undefined,
               "providerMetadata": undefined,
               "title": undefined,

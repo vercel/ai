@@ -7,7 +7,6 @@ type BaseToolCall = {
   toolCallId: string;
   providerExecuted?: boolean;
   providerMetadata?: ProviderMetadata;
-  name?: string;
 };
 
 /**

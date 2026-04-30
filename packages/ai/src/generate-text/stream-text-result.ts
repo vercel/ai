@@ -424,7 +424,6 @@ export type TextStreamToolInputStartPart = {
   providerExecuted?: boolean;
   dynamic?: boolean;
   title?: string;
-  name?: string;
 };
 
 export type TextStreamToolInputEndPart = {

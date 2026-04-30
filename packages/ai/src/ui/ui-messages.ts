@@ -281,7 +281,6 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
    */
   toolCallId: string;
   title?: string;
-  name?: string;
 
   /**
    * Whether the tool call was executed by the provider.
@@ -394,11 +393,6 @@ export type DynamicToolUIPart = {
    */
   toolCallId: string;
   title?: string;
-
-  /**
-   * Optional name of the tool provider or source, e.g. an MCP server name.
-   */
-  name?: string;
 
   /**
    * Whether the tool call was executed by the provider.

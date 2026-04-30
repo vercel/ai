@@ -597,9 +597,6 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
             ...chunk,
             dynamic: chunk.dynamic ?? tool?.type === 'dynamic',
             title: tool?.title,
-            ...(tool?.type === 'dynamic' && tool.name != null
-              ? { name: tool.name }
-              : {}),
           });
           break;
         }

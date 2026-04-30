@@ -5682,54 +5682,6 @@ describe('processUIMessageStream', () => {
         testProvider: { itemId: 'result-item' },
       });
     });
-
-    it('should preserve the name on dynamic tool parts', async () => {
-      const stream = createUIMessageStream([
-        { type: 'start', messageId: 'msg-123' },
-        { type: 'start-step' },
-        {
-          type: 'tool-input-available',
-          toolCallId: 'tool-call-1',
-          toolName: 'tool-name',
-          input: { query: 'test' },
-          dynamic: true,
-          name: 'MyMCPServer',
-        },
-        {
-          type: 'tool-output-available',
-          toolCallId: 'tool-call-1',
-          output: { result: 'provider-result' },
-          dynamic: true,
-        },
-        { type: 'finish-step' },
-        { type: 'finish' },
-      ]);
-
-      state = createStreamingUIMessageState({
-        messageId: 'msg-123',
-        lastMessage: undefined,
-      });
-
-      await consumeStream({
-        stream: processUIMessageStream({
-          stream,
-          runUpdateMessageJob,
-          onError: error => {
-            throw error;
-          },
-        }),
-      });
-
-      const toolPart = state!.message.parts.find(
-        (part: any) => part.toolCallId === 'tool-call-1',
-      ) as any;
-
-      expect(toolPart).toMatchObject({
-        type: 'dynamic-tool',
-        state: 'output-available',
-        name: 'MyMCPServer',
-      });
-    });
   });
 
   it('should call onToolCall for client-executed tools', async () => {
