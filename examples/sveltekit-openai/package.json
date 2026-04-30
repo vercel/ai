@@ -15,11 +15,11 @@
   "devDependencies": {
     "@ai-sdk/openai": "3.0.55",
     "@ai-sdk/provider-utils": "4.0.25",
-    "@ai-sdk/svelte": "4.0.171",
+    "@ai-sdk/svelte": "4.0.172",
     "@sveltejs/adapter-vercel": "^6.3.3",
     "@sveltejs/kit": "^2.55.0",
     "@sveltejs/vite-plugin-svelte": "^5.0.0",
-    "ai": "6.0.171",
+    "ai": "6.0.172",
     "autoprefixer": "^10.4.20",
     "bits-ui": "^1.3.9",
     "clsx": "^2.1.1",
