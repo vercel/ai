@@ -2,6 +2,7 @@ import type { JSONValue } from '@ai-sdk/provider';
 import type { FlexibleSchema } from '../schema';
 import type { ToolResultOutput } from './content-part';
 import type { Context } from './context';
+import type { NeverOptional } from './never-optional';
 import type { ProviderOptions } from './provider-options';
 import type { SensitiveContext } from './sensitive-context';
 import type {
@@ -9,14 +10,6 @@ import type {
   ToolExecutionOptions,
 } from './tool-execute-function';
 import type { ToolNeedsApprovalFunction } from './tool-needs-approval-function';
-
-// 0 extends 1 & N checks for any
-// [N] extends [never] checks for never
-type NeverOptional<N, T> = 0 extends 1 & N
-  ? Partial<T>
-  : [N] extends [never]
-    ? Partial<Record<keyof T, undefined>>
-    : T;
 
 /**
  * Helper type to determine the outputSchema and execute function properties of a tool.
