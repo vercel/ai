@@ -17,9 +17,9 @@ export {
   googleVertex,
   /** @deprecated Use `googleVertex` instead. */
   googleVertex as vertex,
-} from './google-vertex-provider-node';
+} from './google-vertex-provider';
 export type {
   GoogleVertexProvider,
   GoogleVertexProviderSettings,
-} from './google-vertex-provider-node';
+} from './google-vertex-provider';
 export { VERSION } from './version';

@@ -3,7 +3,7 @@ import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import * as fs from 'node:fs';
 import { GoogleVertexEmbeddingModel } from './google-vertex-embedding-model';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { createGoogleVertex } from './google-vertex-provider';
+import { createGoogleVertex } from './google-vertex-provider-base';
 
 vi.mock('./version', () => ({
   VERSION: '0.0.0-test',

@@ -1,4 +1,9 @@
-export { createHuggingFace, huggingface } from './huggingface-provider';
+export {
+  createHuggingFace,
+  huggingFace,
+  /** @deprecated Use `huggingFace` instead. */
+  huggingFace as huggingface,
+} from './huggingface-provider';
 export type {
   HuggingFaceProvider,
   HuggingFaceProviderSettings,

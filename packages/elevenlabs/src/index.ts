@@ -1,4 +1,9 @@
-export { createElevenLabs, elevenlabs } from './elevenlabs-provider';
+export {
+  createElevenLabs,
+  elevenLabs,
+  /** @deprecated Use `elevenLabs` instead. */
+  elevenLabs as elevenlabs,
+} from './elevenlabs-provider';
 export type {
   ElevenLabsProvider,
   ElevenLabsProviderSettings,

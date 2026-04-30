@@ -105,4 +105,4 @@ export function createDeepSeek(
   return provider;
 }
 
-export const deepseek = createDeepSeek();
+export const deepSeek = createDeepSeek();

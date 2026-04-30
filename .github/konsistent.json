@@ -58,7 +58,8 @@
               }
             ],
             "haveFiles": ["${providerId}-provider.ts"]
-          }
+          },
+          "excludeFiles": ["packages/azure/src/index.ts"]
         },
         {
           "name": "provider-package-must-export-instance-case-1",
@@ -78,7 +79,11 @@
           },
           "must": {
             "export": ["${providerId.toCamelCase()}"]
-          }
+          },
+          "excludeFiles": [
+            "packages/openai-compatible/src/index.ts",
+            "packages/open-responses/src/index.ts"
+          ]
         },
         {
           "name": "provider-file-must-export-provider-class-and-settings-type",

@@ -5,7 +5,7 @@ import {
   GoogleVertexImageModel,
   type GoogleVertexImageModelOptions,
 } from './google-vertex-image-model';
-import { createGoogleVertex } from './google-vertex-provider';
+import { createGoogleVertex } from './google-vertex-provider-base';
 
 vi.mock('./version', () => ({
   VERSION: '0.0.0-test',

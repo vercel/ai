@@ -1,4 +1,9 @@
-export { createDeepSeek, deepseek } from './deepseek-provider';
+export {
+  createDeepSeek,
+  deepSeek,
+  /** @deprecated Use `deepSeek` instead. */
+  deepSeek as deepseek,
+} from './deepseek-provider';
 export type {
   DeepSeekProvider,
   DeepSeekProviderSettings,

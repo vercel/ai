@@ -116,4 +116,4 @@ export function createHuggingFace(
 /**
  * Default Hugging Face provider instance.
  */
-export const huggingface = createHuggingFace();
+export const huggingFace = createHuggingFace();

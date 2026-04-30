@@ -17,8 +17,9 @@ export type {
 } from './gateway-generation-info';
 export type { GatewayLanguageModelEntry as GatewayModelEntry } from './gateway-model-entry';
 export {
-  createGatewayProvider,
-  createGatewayProvider as createGateway,
+  createGateway,
+  /** @deprecated Use `createGateway` instead. */
+  createGateway as createGatewayProvider,
   gateway,
 } from './gateway-provider';
 export type {
