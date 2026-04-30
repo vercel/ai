@@ -1,5 +1,13 @@
 # @ai-sdk/devtools
 
+## 0.0.17
+
+### Patch Changes
+
+- a727da4: chore: ensure consistent import handling and avoid import duplicates or cycles
+- Updated dependencies [a727da4]
+  - @ai-sdk/provider@3.0.10
+
 ## 0.0.16
 
 ### Patch Changes

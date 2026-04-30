@@ -1,5 +1,11 @@
 # @ai-sdk/test-server
 
+## 1.0.5
+
+### Patch Changes
+
+- a727da4: chore: ensure consistent import handling and avoid import duplicates or cycles
+
 ## 1.0.4
 
 ### Patch Changes

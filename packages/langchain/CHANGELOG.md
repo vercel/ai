@@ -1,5 +1,15 @@
 # @ai-sdk/langchain
 
+## 2.0.177
+
+### Patch Changes
+
+- a727da4: chore: ensure consistent import handling and avoid import duplicates or cycles
+- Updated dependencies [48f842a]
+- Updated dependencies [a727da4]
+- Updated dependencies [5fee301]
+  - ai@6.0.171
+
 ## 2.0.176
 
 ### Patch Changes

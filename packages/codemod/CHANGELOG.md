@@ -1,5 +1,11 @@
 # @ai-sdk/codemod
 
+## 3.0.6
+
+### Patch Changes
+
+- a727da4: chore: ensure consistent import handling and avoid import duplicates or cycles
+
 ## 3.0.5
 
 ### Patch Changes
