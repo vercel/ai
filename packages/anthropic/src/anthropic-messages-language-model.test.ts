@@ -6,12 +6,14 @@ import {
   LanguageModelV2StreamPart,
 } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
+import { asSchema } from '@ai-sdk/provider-utils';
 import {
   convertReadableStreamToArray,
   mockId,
 } from '@ai-sdk/provider-utils/test';
 import fs from 'node:fs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { z } from 'zod';
 import { AnthropicProviderOptions } from './anthropic-messages-options';
 import { createAnthropic } from './anthropic-provider';
 import { Citation } from './anthropic-messages-api';
@@ -608,22 +610,6 @@ describe('AnthropicMessagesLanguageModel', () => {
                 "type": "json_schema",
               },
             },
-            "output_format": {
-              "schema": {
-                "$schema": "http://json-schema.org/draft-07/schema#",
-                "additionalProperties": false,
-                "properties": {
-                  "name": {
-                    "type": "string",
-                  },
-                },
-                "required": [
-                  "name",
-                ],
-                "type": "object",
-              },
-              "type": "json_schema",
-            },
           }
         `);
       });
@@ -642,6 +628,161 @@ describe('AnthropicMessagesLanguageModel', () => {
       it('should send stop finish reason', async () => {
         expect(result.finishReason).toBe('stop');
       });
+    });
+
+    it('should sanitize unsupported JSON schema keywords for output format', async () => {
+      prepareJsonFixtureResponse('anthropic-json-output-format.1');
+
+      await provider('claude-sonnet-4-5').doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          anthropic: {
+            structuredOutputMode: 'outputFormat',
+          } satisfies AnthropicProviderOptions,
+        },
+        responseFormat: {
+          type: 'json',
+          schema: {
+            type: 'object',
+            properties: {
+              recurringIntervalMinutes: {
+                type: 'number',
+                exclusiveMinimum: 0,
+              },
+              tags: {
+                type: 'array',
+                minItems: 2,
+                maxItems: 4,
+                items: {
+                  type: 'string',
+                  minLength: 1,
+                },
+              },
+            },
+            required: ['recurringIntervalMinutes', 'tags'],
+            additionalProperties: false,
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+
+      expect(requestBody.output_config.format.schema).toMatchInlineSnapshot(`
+        {
+          "additionalProperties": false,
+          "properties": {
+            "recurringIntervalMinutes": {
+              "description": "exclusive minimum: 0.",
+              "type": "number",
+            },
+            "tags": {
+              "description": "min items: 2; max items: 4.",
+              "items": {
+                "description": "min length: 1.",
+                "type": "string",
+              },
+              "type": "array",
+            },
+          },
+          "required": [
+            "recurringIntervalMinutes",
+            "tags",
+          ],
+          "type": "object",
+        }
+      `);
+
+      expect(requestBody.output_format).toBeUndefined();
+    });
+
+    it('should pass sanitized zod output schema as output_config.format', async () => {
+      prepareJsonFixtureResponse('anthropic-json-output-format.1');
+
+      const schema = asSchema(
+        z.object({
+          recipe: z.object({
+            name: z.string(),
+            ingredients: z
+              .array(z.object({ name: z.string(), amount: z.string() }))
+              .min(10)
+              .max(12),
+            steps: z.array(z.string()),
+          }),
+        }),
+      );
+
+      await provider('claude-sonnet-4-5').doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          anthropic: {
+            structuredOutputMode: 'outputFormat',
+          } satisfies AnthropicProviderOptions,
+        },
+        responseFormat: {
+          type: 'json',
+          schema: await schema.jsonSchema,
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+
+      expect(requestBody.output_config).toMatchInlineSnapshot(`
+        {
+          "format": {
+            "schema": {
+              "$schema": "http://json-schema.org/draft-07/schema#",
+              "additionalProperties": false,
+              "properties": {
+                "recipe": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "ingredients": {
+                      "description": "min items: 10; max items: 12.",
+                      "items": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "amount": {
+                            "type": "string",
+                          },
+                          "name": {
+                            "type": "string",
+                          },
+                        },
+                        "required": [
+                          "name",
+                          "amount",
+                        ],
+                        "type": "object",
+                      },
+                      "type": "array",
+                    },
+                    "name": {
+                      "type": "string",
+                    },
+                    "steps": {
+                      "items": {
+                        "type": "string",
+                      },
+                      "type": "array",
+                    },
+                  },
+                  "required": [
+                    "name",
+                    "ingredients",
+                    "steps",
+                  ],
+                  "type": "object",
+                },
+              },
+              "required": [
+                "recipe",
+              ],
+              "type": "object",
+            },
+            "type": "json_schema",
+          },
+        }
+      `);
     });
 
     describe('json schema response format with output format (unknown model, forced)', () => {
@@ -705,22 +846,6 @@ describe('AnthropicMessagesLanguageModel', () => {
                 },
                 "type": "json_schema",
               },
-            },
-            "output_format": {
-              "schema": {
-                "$schema": "http://json-schema.org/draft-07/schema#",
-                "additionalProperties": false,
-                "properties": {
-                  "name": {
-                    "type": "string",
-                  },
-                },
-                "required": [
-                  "name",
-                ],
-                "type": "object",
-              },
-              "type": "json_schema",
             },
           }
         `);
@@ -4060,42 +4185,6 @@ describe('AnthropicMessagesLanguageModel', () => {
                 },
                 "type": "json_schema",
               },
-            },
-            "output_format": {
-              "schema": {
-                "$schema": "http://json-schema.org/draft-07/schema#",
-                "additionalProperties": false,
-                "properties": {
-                  "characters": {
-                    "items": {
-                      "additionalProperties": false,
-                      "properties": {
-                        "class": {
-                          "type": "string",
-                        },
-                        "description": {
-                          "type": "string",
-                        },
-                        "name": {
-                          "type": "string",
-                        },
-                      },
-                      "required": [
-                        "name",
-                        "class",
-                        "description",
-                      ],
-                      "type": "object",
-                    },
-                    "type": "array",
-                  },
-                },
-                "required": [
-                  "characters",
-                ],
-                "type": "object",
-              },
-              "type": "json_schema",
             },
             "stream": true,
           }

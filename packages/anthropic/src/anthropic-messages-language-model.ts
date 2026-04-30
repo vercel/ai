@@ -42,6 +42,7 @@ import { prepareTools } from './anthropic-prepare-tools';
 import { convertToAnthropicMessagesPrompt } from './convert-to-anthropic-messages-prompt';
 import { CacheControlValidator } from './get-cache-control';
 import { mapAnthropicStopReason } from './map-anthropic-stop-reason';
+import { sanitizeJsonSchema } from './sanitize-json-schema';
 
 function createCitationSource(
   citation: Citation,
@@ -333,7 +334,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
             responseFormat.schema != null && {
               format: {
                 type: 'json_schema',
-                schema: responseFormat.schema,
+                schema: sanitizeJsonSchema(responseFormat.schema),
               },
             }),
         },
@@ -350,16 +351,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       ...(anthropicOptions?.metadata?.userId != null && {
         metadata: { user_id: anthropicOptions.metadata.userId },
       }),
-
-      // structured output:
-      ...(useStructuredOutput &&
-        responseFormat?.type === 'json' &&
-        responseFormat.schema != null && {
-          output_format: {
-            type: 'json_schema',
-            schema: responseFormat.schema,
-          },
-        }),
 
       // container with agent skills:
       ...(anthropicOptions?.container && {
