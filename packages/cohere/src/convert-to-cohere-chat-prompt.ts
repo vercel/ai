@@ -10,7 +10,7 @@ import {
   parseProviderOptions,
   resolveFullMediaType,
 } from '@ai-sdk/provider-utils';
-import { cohereImagePartProviderOptions } from './cohere-chat-options';
+import { cohereImagePartProviderOptions } from './cohere-chat-language-model-options';
 import type {
   CohereAssistantMessage,
   CohereChatPrompt,
