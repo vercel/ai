@@ -670,7 +670,7 @@ describe('assistant messages', () => {
   });
 
   it('should omit assistant message reasoning parts signed by a foreign provider', async () => {
-    const result = await convertToAmazonBedrockChatMessages([
+    const result = await convertToBedrockChatMessages([
       {
         role: 'user',
         content: [{ type: 'text', text: 'Explain your reasoning' }],
@@ -705,8 +705,8 @@ describe('assistant messages', () => {
     });
   });
 
-  it('should preserve assistant message reasoning parts with amazonBedrock providerOptions', async () => {
-    const result = await convertToAmazonBedrockChatMessages([
+  it('should preserve assistant message reasoning parts with bedrock providerOptions', async () => {
+    const result = await convertToBedrockChatMessages([
       {
         role: 'user',
         content: [{ type: 'text', text: 'Explain your reasoning' }],
@@ -718,7 +718,7 @@ describe('assistant messages', () => {
             type: 'reasoning',
             text: 'Bedrock-signed reasoning round-tripped to Bedrock',
             providerOptions: {
-              amazonBedrock: { signature: 'bedrock-signature' },
+              bedrock: { signature: 'bedrock-signature' },
             },
           },
           { type: 'text', text: 'final answer' },
