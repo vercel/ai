@@ -17,7 +17,7 @@ import {
 import { AmazonBedrockChatLanguageModel } from './amazon-bedrock-chat-language-model';
 import type { AmazonBedrockChatModelId } from './amazon-bedrock-chat-options';
 import { AmazonBedrockEmbeddingModel } from './amazon-bedrock-embedding-model';
-import type { AmazonBedrockEmbeddingModelId } from './amazon-bedrock-embedding-options';
+import type { AmazonBedrockEmbeddingModelId } from './amazon-bedrock-embedding-model-options';
 import { AmazonBedrockImageModel } from './amazon-bedrock-image-model';
 import type { AmazonBedrockImageModelId } from './amazon-bedrock-image-settings';
 import {
@@ -26,7 +26,7 @@ import {
   type AmazonBedrockCredentials,
 } from './amazon-bedrock-sigv4-fetch';
 import { AmazonBedrockRerankingModel } from './reranking/amazon-bedrock-reranking-model';
-import type { AmazonBedrockRerankingModelId } from './reranking/amazon-bedrock-reranking-options';
+import type { AmazonBedrockRerankingModelId } from './reranking/amazon-bedrock-reranking-model-options';
 import { VERSION } from './version';
 
 export interface AmazonBedrockProviderSettings {

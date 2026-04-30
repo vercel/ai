@@ -18,7 +18,7 @@ import {
 import {
   amazonBedrockEmbeddingModelOptionsSchema,
   type AmazonBedrockEmbeddingModelId,
-} from './amazon-bedrock-embedding-options';
+} from './amazon-bedrock-embedding-model-options';
 import { AmazonBedrockErrorSchema } from './amazon-bedrock-error';
 import { z } from 'zod/v4';
 

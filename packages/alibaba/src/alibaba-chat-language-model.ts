@@ -31,9 +31,9 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import {
-  alibabaLanguageModelOptions,
+  alibabaLanguageModelChatOptions,
   type AlibabaChatModelId,
-} from './alibaba-chat-options';
+} from './alibaba-chat-language-model-options';
 import type { AlibabaConfig } from './alibaba-config';
 import { alibabaFailedResponseHandler } from './alibaba-error';
 import { convertAlibabaUsage } from './convert-alibaba-usage';
@@ -109,7 +109,7 @@ export class AlibabaChatLanguageModel implements LanguageModelV4 {
     const alibabaOptions = await parseProviderOptions({
       provider: 'alibaba',
       providerOptions,
-      schema: alibabaLanguageModelOptions,
+      schema: alibabaLanguageModelChatOptions,
     });
 
     // Warn about unsupported features
@@ -443,7 +443,7 @@ function resolveAlibabaThinking({
   warnings,
 }: {
   reasoning: LanguageModelV4CallOptions['reasoning'];
-  alibabaOptions: InferSchema<typeof alibabaLanguageModelOptions> | undefined;
+  alibabaOptions: InferSchema<typeof alibabaLanguageModelChatOptions> | undefined;
   warnings: SharedV4Warning[];
 }): { enable_thinking?: boolean; thinking_budget?: number } {
   if (

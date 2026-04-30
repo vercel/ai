@@ -12,6 +12,6 @@ export type {
   ElevenLabsSpeechModelId,
   ElevenLabsSpeechVoiceId,
 } from './elevenlabs-speech-options';
-export type { ElevenLabsSpeechModelOptions } from './elevenlabs-speech-model';
-export type { ElevenLabsTranscriptionModelOptions } from './elevenlabs-transcription-model';
+export type { ElevenLabsSpeechModelOptions } from './elevenlabs-speech-model-options';
+export type { ElevenLabsTranscriptionModelOptions } from './elevenlabs-transcription-model-options';
 export { VERSION } from './version';

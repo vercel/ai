@@ -19,7 +19,7 @@ import {
 import { VERSION } from './version';
 import type { GoogleVertexConfig } from './google-vertex-config';
 import { GoogleVertexEmbeddingModel } from './google-vertex-embedding-model';
-import type { GoogleVertexEmbeddingModelId } from './google-vertex-embedding-options';
+import type { GoogleVertexEmbeddingModelId } from './google-vertex-embedding-model-options';
 import { GoogleVertexImageModel } from './google-vertex-image-model';
 import type { GoogleVertexImageModelId } from './google-vertex-image-settings';
 import type { GoogleVertexModelId } from './google-vertex-options';

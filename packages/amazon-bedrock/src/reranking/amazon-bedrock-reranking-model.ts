@@ -17,7 +17,7 @@ import {
 import {
   amazonBedrockRerankingModelOptionsSchema,
   type AmazonBedrockRerankingModelId,
-} from './amazon-bedrock-reranking-options';
+} from './amazon-bedrock-reranking-model-options';
 type AmazonBedrockRerankingConfig = {
   baseUrl: () => string;
   region: string;

@@ -46,7 +46,7 @@ import {
   VertexServiceTierMap,
   type GoogleLanguageModelOptions,
   type GoogleModelId,
-} from './google-options';
+} from './google-language-model-options';
 import type { GoogleProviderMetadata } from './google-prompt';
 import { prepareTools } from './google-prepare-tools';
 import {

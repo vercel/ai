@@ -18,7 +18,7 @@ import {
   openaiResponsesModelIds,
   openaiResponsesReasoningModelIds,
   type OpenAILanguageModelResponsesOptions,
-} from './openai-responses-options';
+} from './openai-responses-language-model-options';
 const TEST_PROMPT: LanguageModelV4Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];

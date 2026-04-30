@@ -20,7 +20,7 @@ import { googleFailedResponseHandler } from './google-error';
 import {
   googleEmbeddingModelOptions,
   type GoogleEmbeddingModelId,
-} from './google-embedding-options';
+} from './google-embedding-model-options';
 type GoogleEmbeddingConfig = {
   provider: string;
   baseURL: string;

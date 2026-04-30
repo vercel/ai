@@ -1,10 +1,8 @@
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import * as fs from 'node:fs';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import {
-  GoogleVertexImageModel,
-  type GoogleVertexImageModelOptions,
-} from './google-vertex-image-model';
+import { GoogleVertexImageModel } from './google-vertex-image-model';
+import type { GoogleVertexImageModelOptions } from './google-vertex-image-model-options';
 import { createGoogleVertex } from './google-vertex-provider-base';
 
 vi.mock('./version', () => ({

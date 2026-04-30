@@ -17,7 +17,7 @@ import { googleVertexFailedResponseHandler } from './google-vertex-error';
 import {
   googleVertexEmbeddingModelOptions,
   type GoogleVertexEmbeddingModelId,
-} from './google-vertex-embedding-options';
+} from './google-vertex-embedding-model-options';
 import type { GoogleVertexConfig } from './google-vertex-config';
 
 export class GoogleVertexEmbeddingModel implements EmbeddingModelV4 {

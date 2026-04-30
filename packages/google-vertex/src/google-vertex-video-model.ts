@@ -8,39 +8,19 @@ import {
   convertUint8ArrayToBase64,
   createJsonResponseHandler,
   delay,
-  lazySchema,
   parseProviderOptions,
   postJsonToApi,
   resolve,
-  zodSchema,
   type FetchFunction,
   type Resolvable,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { googleVertexFailedResponseHandler } from './google-vertex-error';
+import {
+  googleVertexVideoModelOptionsSchema,
+  type GoogleVertexVideoModelOptions,
+} from './google-vertex-video-model-options';
 import type { GoogleVertexVideoModelId } from './google-vertex-video-settings';
-
-export type GoogleVertexVideoModelOptions = {
-  // Polling configuration
-  pollIntervalMs?: number | null;
-  pollTimeoutMs?: number | null;
-
-  // Video generation options
-  personGeneration?: 'dont_allow' | 'allow_adult' | 'allow_all' | null;
-  negativePrompt?: string | null;
-  generateAudio?: boolean | null;
-
-  // Output configuration
-  gcsOutputDirectory?: string | null;
-
-  // Reference images (for style/asset reference)
-  referenceImages?: Array<{
-    bytesBase64Encoded?: string;
-    gcsUri?: string;
-  }> | null;
-
-  [key: string]: unknown; // For passthrough
-};
 
 interface GoogleVertexVideoModelConfig {
   provider: string;
@@ -358,27 +338,3 @@ const googleVertexOperationSchema = z.object({
     .nullish(),
 });
 
-const googleVertexVideoModelOptionsSchema = lazySchema(() =>
-  zodSchema(
-    z
-      .object({
-        pollIntervalMs: z.number().positive().nullish(),
-        pollTimeoutMs: z.number().positive().nullish(),
-        personGeneration: z
-          .enum(['dont_allow', 'allow_adult', 'allow_all'])
-          .nullish(),
-        negativePrompt: z.string().nullish(),
-        generateAudio: z.boolean().nullish(),
-        gcsOutputDirectory: z.string().nullish(),
-        referenceImages: z
-          .array(
-            z.object({
-              bytesBase64Encoded: z.string().nullish(),
-              gcsUri: z.string().nullish(),
-            }),
-          )
-          .nullish(),
-      })
-      .passthrough(),
-  ),
-);

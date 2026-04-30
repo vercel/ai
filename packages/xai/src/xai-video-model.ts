@@ -18,7 +18,7 @@ import { xaiFailedResponseHandler } from './xai-error';
 import {
   xaiVideoModelOptionsSchema,
   type XaiParsedVideoModelOptions,
-} from './xai-video-options';
+} from './xai-video-model-options';
 import type { XaiVideoModelId } from './xai-video-settings';
 
 interface XaiVideoModelConfig {
