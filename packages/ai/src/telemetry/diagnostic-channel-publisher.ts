@@ -23,9 +23,10 @@ async function loadDiagnosticsChannel(): Promise<
 
   if (diagnosticsChannelPromise == null) {
     diagnosticsChannelPromise = (
-      Function(
-        'return import("node:diagnostics_channel")',
-      )() as Promise<DiagnosticsChannel>
+      import(
+        /* webpackIgnore: true */
+        'node:diagnostics_channel'
+      ) as Promise<DiagnosticsChannel>
     ).catch(() => undefined);
   }
 
