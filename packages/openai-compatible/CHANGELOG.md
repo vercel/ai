@@ -1,5 +1,14 @@
 # @ai-sdk/openai-compatible
 
+## 1.0.38
+
+### Patch Changes
+
+- 783fa6c: chore: ensure consistent import handling and avoid import duplicates or cycles
+- Updated dependencies [783fa6c]
+  - @ai-sdk/provider-utils@3.0.25
+  - @ai-sdk/provider@2.0.3
+
 ## 1.0.37
 
 ### Patch Changes
