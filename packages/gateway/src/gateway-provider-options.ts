@@ -50,6 +50,10 @@ const gatewayProviderOptions = lazySchema(() =>
        */
       models: z.array(z.string()).optional(),
       /**
+       * Enable automatic prompt caching for supported models.
+       */
+      caching: z.literal('auto').optional(),
+      /**
        * Request-scoped BYOK credentials to use instead of cached credentials.
        *
        * When provided, cached BYOK credentials are ignored entirely.
