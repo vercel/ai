@@ -1,5 +1,16 @@
 # @ai-sdk/react
 
+## 3.0.173
+
+### Patch Changes
+
+- a727da4: chore: ensure consistent import handling and avoid import duplicates or cycles
+- Updated dependencies [48f842a]
+- Updated dependencies [a727da4]
+- Updated dependencies [5fee301]
+  - ai@6.0.171
+  - @ai-sdk/provider-utils@4.0.25
+
 ## 3.0.172
 
 ### Patch Changes

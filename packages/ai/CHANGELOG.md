@@ -1,5 +1,22 @@
 # ai
 
+## 6.0.171
+
+### Patch Changes
+
+- 48f842a: fix(ai): enforce `callOptionsSchema` at runtime in `ToolLoopAgent`
+
+  `ToolLoopAgentSettings.callOptionsSchema` was declared and documented as a runtime schema for `options`, but `tool-loop-agent.ts` never invoked it. Any invariant a developer encoded in the schema was silently bypassed at runtime, and unchecked `options` flowed straight into `prepareCall` and any `instructions` template that interpolated them.
+
+  `ToolLoopAgent.prepareCall` now validates caller-supplied `options` against `callOptionsSchema` (when set) via `safeValidateTypes`, throwing `InvalidArgumentError` on failure before forwarding to `prepareCall` / `generateText` / `streamText`.
+
+- a727da4: chore: ensure consistent import handling and avoid import duplicates or cycles
+- 5fee301: fix(mcp): prevent prototype pollution by using secureJsonParse
+- Updated dependencies [a727da4]
+  - @ai-sdk/provider-utils@4.0.25
+  - @ai-sdk/provider@3.0.10
+  - @ai-sdk/gateway@3.0.106
+
 ## 6.0.170
 
 ### Patch Changes

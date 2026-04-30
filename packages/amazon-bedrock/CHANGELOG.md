@@ -1,5 +1,17 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.98
+
+### Patch Changes
+
+- 2b820f2: fix(amazon-bedrock): do not use env var AWS_SESSION_TOKEN when keys are explicitly defined
+- a727da4: chore: ensure consistent import handling and avoid import duplicates or cycles
+- Updated dependencies [f8c9ae4]
+- Updated dependencies [a727da4]
+  - @ai-sdk/anthropic@3.0.73
+  - @ai-sdk/provider-utils@4.0.25
+  - @ai-sdk/provider@3.0.10
+
 ## 4.0.97
 
 ### Patch Changes

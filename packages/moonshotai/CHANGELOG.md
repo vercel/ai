@@ -1,5 +1,15 @@
 # @ai-sdk/moonshotai
 
+## 2.0.18
+
+### Patch Changes
+
+- a727da4: chore: ensure consistent import handling and avoid import duplicates or cycles
+- Updated dependencies [a727da4]
+  - @ai-sdk/openai-compatible@2.0.43
+  - @ai-sdk/provider-utils@4.0.25
+  - @ai-sdk/provider@3.0.10
+
 ## 2.0.17
 
 ### Patch Changes

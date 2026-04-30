@@ -1,5 +1,15 @@
 # @ai-sdk/mcp
 
+## 1.0.38
+
+### Patch Changes
+
+- a727da4: chore: ensure consistent import handling and avoid import duplicates or cycles
+- 5fee301: fix(mcp): prevent prototype pollution by using secureJsonParse
+- Updated dependencies [a727da4]
+  - @ai-sdk/provider-utils@4.0.25
+  - @ai-sdk/provider@3.0.10
+
 ## 1.0.37
 
 ### Patch Changes

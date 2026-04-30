@@ -1,5 +1,16 @@
 # @ai-sdk/svelte
 
+## 4.0.171
+
+### Patch Changes
+
+- a727da4: chore: ensure consistent import handling and avoid import duplicates or cycles
+- Updated dependencies [48f842a]
+- Updated dependencies [a727da4]
+- Updated dependencies [5fee301]
+  - ai@6.0.171
+  - @ai-sdk/provider-utils@4.0.25
+
 ## 4.0.170
 
 ### Patch Changes

@@ -1,5 +1,13 @@
 # @ai-sdk/provider-utils
 
+## 4.0.25
+
+### Patch Changes
+
+- a727da4: chore: ensure consistent import handling and avoid import duplicates or cycles
+- Updated dependencies [a727da4]
+  - @ai-sdk/provider@3.0.10
+
 ## 4.0.24
 
 ### Patch Changes

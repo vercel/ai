@@ -1,5 +1,13 @@
 # @ai-sdk/valibot
 
+## 2.0.26
+
+### Patch Changes
+
+- a727da4: chore: ensure consistent import handling and avoid import duplicates or cycles
+- Updated dependencies [a727da4]
+  - @ai-sdk/provider-utils@4.0.25
+
 ## 2.0.25
 
 ### Patch Changes

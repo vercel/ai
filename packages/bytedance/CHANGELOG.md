@@ -1,5 +1,14 @@
 # @ai-sdk/bytedance
 
+## 1.0.12
+
+### Patch Changes
+
+- a727da4: chore: ensure consistent import handling and avoid import duplicates or cycles
+- Updated dependencies [a727da4]
+  - @ai-sdk/provider-utils@4.0.25
+  - @ai-sdk/provider@3.0.10
+
 ## 1.0.11
 
 ### Patch Changes
