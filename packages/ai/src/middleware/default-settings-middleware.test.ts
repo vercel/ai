@@ -1,4 +1,4 @@
-import { LanguageModelV3CallOptions } from '@ai-sdk/provider';
+import type { LanguageModelV3CallOptions } from '@ai-sdk/provider';
 import { defaultSettingsMiddleware } from './default-settings-middleware';
 import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
 import { describe, it, expect } from 'vitest';

@@ -1,4 +1,4 @@
-import { LanguageModelV3CallOptions } from '@ai-sdk/provider';
+import type { LanguageModelV3CallOptions } from '@ai-sdk/provider';
 import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MockLanguageModelV3 } from '../test/mock-language-model-v3';

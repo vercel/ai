@@ -2,8 +2,8 @@ import { openai } from '@ai-sdk/openai';
 import {
   convertToModelMessages,
   streamText,
-  UIMessage,
-  InferUITools,
+  type UIMessage,
+  type InferUITools,
 } from 'ai';
 
 export const maxDuration = 30;

@@ -1,4 +1,4 @@
-import { EmbeddingModelV3 } from '@ai-sdk/provider';
+import type { EmbeddingModelV3 } from '@ai-sdk/provider';
 import assert from 'node:assert';
 import {
   afterEach,
@@ -12,7 +12,7 @@ import {
 import * as logWarningsModule from '../logger/log-warnings';
 import { MockEmbeddingModelV3 } from '../test/mock-embedding-model-v3';
 import { MockTracer } from '../test/mock-tracer';
-import { Embedding, EmbeddingModelUsage, Warning } from '../types';
+import type { Embedding, EmbeddingModelUsage, Warning } from '../types';
 import { createResolvablePromise } from '../util/create-resolvable-promise';
 import { embedMany } from './embed-many';
 

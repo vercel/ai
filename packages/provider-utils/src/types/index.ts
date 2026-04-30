@@ -1,3 +1,5 @@
+import type { ToolExecutionOptions } from './tool';
+
 export type {
   AssistantContent,
   AssistantModelMessage,
@@ -32,7 +34,6 @@ export type { ToolCall } from './tool-call';
 export type { ToolContent, ToolModelMessage } from './tool-model-message';
 export type { ToolResult } from './tool-result';
 export type { UserContent, UserModelMessage } from './user-model-message';
-import type { ToolExecutionOptions } from './tool';
 
 /**
  * @deprecated Use ToolExecutionOptions instead.

@@ -1,4 +1,4 @@
-import { SpeechModelV3, SharedV3Warning } from '@ai-sdk/provider';
+import type { SpeechModelV3, SharedV3Warning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createBinaryResponseHandler,
@@ -6,10 +6,10 @@ import {
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import { ElevenLabsConfig } from './elevenlabs-config';
+import type { ElevenLabsConfig } from './elevenlabs-config';
 import { elevenlabsFailedResponseHandler } from './elevenlabs-error';
-import { ElevenLabsSpeechAPITypes } from './elevenlabs-speech-api-types';
-import {
+import type { ElevenLabsSpeechAPITypes } from './elevenlabs-speech-api-types';
+import type {
   ElevenLabsSpeechModelId,
   ElevenLabsSpeechVoiceId,
 } from './elevenlabs-speech-options';

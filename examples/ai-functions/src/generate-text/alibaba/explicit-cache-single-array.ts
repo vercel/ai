@@ -1,4 +1,4 @@
-import { alibaba, AlibabaUsage } from '@ai-sdk/alibaba';
+import { alibaba, type AlibabaUsage } from '@ai-sdk/alibaba';
 import { generateText } from 'ai';
 import { readFileSync } from 'fs';
 import { join, dirname } from 'path';

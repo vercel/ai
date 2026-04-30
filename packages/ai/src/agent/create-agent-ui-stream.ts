@@ -1,13 +1,16 @@
-import { StreamTextTransform, UIMessageStreamOptions } from '../generate-text';
-import { Output } from '../generate-text/output';
-import { ToolSet } from '../generate-text/tool-set';
-import { TimeoutConfiguration } from '../prompt/call-settings';
-import { InferUIMessageChunk } from '../ui-message-stream';
+import type {
+  StreamTextTransform,
+  UIMessageStreamOptions,
+} from '../generate-text';
+import type { Output } from '../generate-text/output';
+import type { ToolSet } from '../generate-text/tool-set';
+import type { TimeoutConfiguration } from '../prompt/call-settings';
+import type { InferUIMessageChunk } from '../ui-message-stream';
 import { convertToModelMessages } from '../ui/convert-to-model-messages';
-import { InferUITools, UIMessage } from '../ui/ui-messages';
+import type { InferUITools, UIMessage } from '../ui/ui-messages';
 import { validateUIMessages } from '../ui/validate-ui-messages';
-import { AsyncIterableStream } from '../util/async-iterable-stream';
-import { Agent } from './agent';
+import type { AsyncIterableStream } from '../util/async-iterable-stream';
+import type { Agent } from './agent';
 import type { ToolLoopAgentOnStepFinishCallback } from './tool-loop-agent-settings';
 
 /**

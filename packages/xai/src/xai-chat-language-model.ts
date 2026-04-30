@@ -1,25 +1,25 @@
 import {
   APICallError,
-  LanguageModelV3,
-  LanguageModelV3CallOptions,
-  LanguageModelV3Content,
-  LanguageModelV3FinishReason,
-  LanguageModelV3GenerateResult,
-  LanguageModelV3StreamPart,
-  LanguageModelV3StreamResult,
-  LanguageModelV3Usage,
-  SharedV3Warning,
+  type LanguageModelV3,
+  type LanguageModelV3CallOptions,
+  type LanguageModelV3Content,
+  type LanguageModelV3FinishReason,
+  type LanguageModelV3GenerateResult,
+  type LanguageModelV3StreamPart,
+  type LanguageModelV3StreamResult,
+  type LanguageModelV3Usage,
+  type SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   extractResponseHeaders,
-  FetchFunction,
   parseProviderOptions,
-  ParseResult,
   postJsonToApi,
   safeParseJSON,
+  type FetchFunction,
+  type ParseResult,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { convertToXaiChatMessages } from './convert-to-xai-chat-messages';
@@ -27,8 +27,8 @@ import { convertXaiChatUsage } from './convert-xai-chat-usage';
 import { getResponseMetadata } from './get-response-metadata';
 import { mapXaiFinishReason } from './map-xai-finish-reason';
 import {
-  XaiChatModelId,
   xaiLanguageModelChatOptions,
+  type XaiChatModelId,
 } from './xai-chat-options';
 import { xaiFailedResponseHandler } from './xai-error';
 import { prepareTools } from './xai-prepare-tools';

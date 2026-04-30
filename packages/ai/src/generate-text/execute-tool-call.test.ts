@@ -2,19 +2,18 @@ import { tool } from '@ai-sdk/provider-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as z from 'zod/v4';
 import { MockTracer } from '../test/mock-tracer';
+import { now } from '../util/now';
 import { executeToolCall } from './execute-tool-call';
-import {
+import type {
   GenerateTextOnToolCallFinishCallback,
   GenerateTextOnToolCallStartCallback,
 } from './generate-text';
-import { TypedToolCall } from './tool-call';
-import { TypedToolResult } from './tool-result';
+import type { TypedToolCall } from './tool-call';
+import type { TypedToolResult } from './tool-result';
 
 vi.mock('../util/now', () => ({
   now: vi.fn(),
 }));
-
-import { now } from '../util/now';
 
 const mockNow = vi.mocked(now);
 

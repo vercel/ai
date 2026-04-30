@@ -1,44 +1,44 @@
 import {
-  APICallError,
   InvalidResponseDataError,
-  LanguageModelV3,
-  LanguageModelV3CallOptions,
-  LanguageModelV3Content,
-  LanguageModelV3FinishReason,
-  LanguageModelV3GenerateResult,
-  LanguageModelV3StreamPart,
-  LanguageModelV3StreamResult,
-  SharedV3ProviderMetadata,
-  SharedV3Warning,
+  type APICallError,
+  type LanguageModelV3,
+  type LanguageModelV3CallOptions,
+  type LanguageModelV3Content,
+  type LanguageModelV3FinishReason,
+  type LanguageModelV3GenerateResult,
+  type LanguageModelV3StreamPart,
+  type LanguageModelV3StreamResult,
+  type SharedV3ProviderMetadata,
+  type SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
-  FetchFunction,
   generateId,
   isParsableJson,
   parseProviderOptions,
-  ParseResult,
   postJsonToApi,
-  ResponseHandler,
+  type FetchFunction,
+  type ParseResult,
+  type ResponseHandler,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { resolveProviderOptionsKey, toCamelCase } from '../utils/to-camel-case';
 import {
   defaultOpenAICompatibleErrorStructure,
-  ProviderErrorStructure,
+  type ProviderErrorStructure,
 } from '../openai-compatible-error';
 import { convertOpenAICompatibleChatUsage } from './convert-openai-compatible-chat-usage';
 import { convertToOpenAICompatibleChatMessages } from './convert-to-openai-compatible-chat-messages';
 import { getResponseMetadata } from './get-response-metadata';
 import { mapOpenAICompatibleFinishReason } from './map-openai-compatible-finish-reason';
 import {
-  OpenAICompatibleChatModelId,
   openaiCompatibleLanguageModelChatOptions,
+  type OpenAICompatibleChatModelId,
 } from './openai-compatible-chat-options';
-import { MetadataExtractor } from './openai-compatible-metadata-extractor';
+import type { MetadataExtractor } from './openai-compatible-metadata-extractor';
 import { prepareTools } from './openai-compatible-prepare-tools';
 
 export type OpenAICompatibleChatConfig = {

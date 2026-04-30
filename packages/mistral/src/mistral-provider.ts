@@ -1,19 +1,19 @@
 import {
-  EmbeddingModelV3,
-  LanguageModelV3,
   NoSuchModelError,
-  ProviderV3,
+  type EmbeddingModelV3,
+  type LanguageModelV3,
+  type ProviderV3,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
   loadApiKey,
   withoutTrailingSlash,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { MistralChatLanguageModel } from './mistral-chat-language-model';
-import { MistralChatModelId } from './mistral-chat-options';
+import type { MistralChatModelId } from './mistral-chat-options';
 import { MistralEmbeddingModel } from './mistral-embedding-model';
-import { MistralEmbeddingModelId } from './mistral-embedding-options';
+import type { MistralEmbeddingModelId } from './mistral-embedding-options';
 import { VERSION } from './version';
 
 export interface MistralProvider extends ProviderV3 {

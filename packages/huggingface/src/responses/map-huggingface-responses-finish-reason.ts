@@ -1,4 +1,4 @@
-import { LanguageModelV3FinishReason } from '@ai-sdk/provider';
+import type { LanguageModelV3FinishReason } from '@ai-sdk/provider';
 
 export function mapHuggingFaceResponsesFinishReason(
   finishReason: string | null | undefined,

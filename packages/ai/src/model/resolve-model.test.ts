@@ -1,5 +1,5 @@
 import { gateway } from '@ai-sdk/gateway';
-import { EmbeddingModelV2, LanguageModelV2 } from '@ai-sdk/provider';
+import type { EmbeddingModelV2, LanguageModelV2 } from '@ai-sdk/provider';
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 
 import { MockEmbeddingModelV3 } from '../test/mock-embedding-model-v3';

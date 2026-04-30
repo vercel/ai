@@ -1,9 +1,9 @@
 import {
-  LanguageModelV3Prompt,
   UnsupportedFunctionalityError,
+  type LanguageModelV3Prompt,
 } from '@ai-sdk/provider';
 import { convertToBase64 } from '@ai-sdk/provider-utils';
-import {
+import type {
   GoogleGenerativeAIContent,
   GoogleGenerativeAIContentPart,
   GoogleGenerativeAIFunctionResponsePart,

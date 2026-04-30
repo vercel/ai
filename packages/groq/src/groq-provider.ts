@@ -1,18 +1,18 @@
 import {
-  LanguageModelV3,
   NoSuchModelError,
-  ProviderV3,
-  TranscriptionModelV3,
+  type LanguageModelV3,
+  type ProviderV3,
+  type TranscriptionModelV3,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
   loadApiKey,
   withoutTrailingSlash,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { GroqChatLanguageModel } from './groq-chat-language-model';
-import { GroqChatModelId } from './groq-chat-options';
-import { GroqTranscriptionModelId } from './groq-transcription-options';
+import type { GroqChatModelId } from './groq-chat-options';
+import type { GroqTranscriptionModelId } from './groq-transcription-options';
 import { GroqTranscriptionModel } from './groq-transcription-model';
 
 import { groqTools } from './groq-tools';

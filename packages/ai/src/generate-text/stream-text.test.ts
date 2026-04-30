@@ -1,4 +1,4 @@
-import {
+import type {
   LanguageModelV3,
   LanguageModelV3CallOptions,
   LanguageModelV3FunctionTool,
@@ -14,10 +14,10 @@ import {
   DelayedPromise,
   dynamicTool,
   jsonSchema,
-  ModelMessage,
   tool,
-  Tool,
-  ToolExecuteFunction,
+  type ModelMessage,
+  type Tool,
+  type ToolExecuteFunction,
 } from '@ai-sdk/provider-utils';
 import {
   convertArrayToReadableStream,
@@ -47,18 +47,18 @@ import {
   asLanguageModelUsage,
   createNullLanguageModelUsage,
 } from '../types/usage';
-import { StepResult } from './step-result';
+import type { StepResult } from './step-result';
 import { isLoopFinished, stepCountIs } from './stop-condition';
 import {
   streamText,
-  StreamTextOnFinishCallback,
-  StreamTextOnStartCallback,
-  StreamTextOnStepStartCallback,
-  StreamTextOnToolCallFinishCallback,
-  StreamTextOnToolCallStartCallback,
+  type StreamTextOnFinishCallback,
+  type StreamTextOnStartCallback,
+  type StreamTextOnStepStartCallback,
+  type StreamTextOnToolCallFinishCallback,
+  type StreamTextOnToolCallStartCallback,
 } from './stream-text';
-import { StreamTextResult, TextStreamPart } from './stream-text-result';
-import { ToolSet } from './tool-set';
+import type { StreamTextResult, TextStreamPart } from './stream-text-result';
+import type { ToolSet } from './tool-set';
 
 const defaultSettings = () =>
   ({

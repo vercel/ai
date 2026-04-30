@@ -1,27 +1,27 @@
 import {
-  type Experimental_VideoModelV3,
-  ImageModelV3,
-  LanguageModelV3,
   NoSuchModelError,
-  ProviderV3,
+  type ImageModelV3,
+  type LanguageModelV3,
+  type ProviderV3,
+  type Experimental_VideoModelV3,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
   generateId,
   loadApiKey,
   withoutTrailingSlash,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { XaiChatLanguageModel } from './xai-chat-language-model';
-import { XaiChatModelId } from './xai-chat-options';
+import type { XaiChatModelId } from './xai-chat-options';
 import { XaiImageModel } from './xai-image-model';
-import { XaiImageModelId } from './xai-image-settings';
+import type { XaiImageModelId } from './xai-image-settings';
 import { XaiResponsesLanguageModel } from './responses/xai-responses-language-model';
-import { XaiResponsesModelId } from './responses/xai-responses-options';
+import type { XaiResponsesModelId } from './responses/xai-responses-options';
 import { xaiTools } from './tool';
 import { VERSION } from './version';
 import { XaiVideoModel } from './xai-video-model';
-import { XaiVideoModelId } from './xai-video-settings';
+import type { XaiVideoModelId } from './xai-video-settings';
 
 export interface XaiProvider extends ProviderV3 {
   /**

@@ -1,16 +1,16 @@
 import {
-  LanguageModelV3Prompt,
-  LanguageModelV3ToolApprovalResponsePart,
-  SharedV3Warning,
   UnsupportedFunctionalityError,
+  type LanguageModelV3Prompt,
+  type LanguageModelV3ToolApprovalResponsePart,
+  type SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
   convertToBase64,
   isNonNullable,
   parseJSON,
   parseProviderOptions,
-  ToolNameMapping,
   validateTypes,
+  type ToolNameMapping,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import {
@@ -26,7 +26,7 @@ import {
   toolSearchInputSchema,
   toolSearchOutputSchema,
 } from '../tool/tool-search';
-import {
+import type {
   OpenAIResponsesCustomToolCallOutput,
   OpenAIResponsesFunctionCallOutput,
   OpenAIResponsesInput,

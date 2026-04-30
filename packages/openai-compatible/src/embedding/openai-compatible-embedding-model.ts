@@ -1,24 +1,24 @@
 import {
-  EmbeddingModelV3,
-  SharedV3Warning,
   TooManyEmbeddingValuesForCallError,
+  type EmbeddingModelV3,
+  type SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
-  FetchFunction,
   parseProviderOptions,
   postJsonToApi,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import {
-  OpenAICompatibleEmbeddingModelId,
   openaiCompatibleEmbeddingModelOptions,
+  type OpenAICompatibleEmbeddingModelId,
 } from './openai-compatible-embedding-options';
 import {
   defaultOpenAICompatibleErrorStructure,
-  ProviderErrorStructure,
+  type ProviderErrorStructure,
 } from '../openai-compatible-error';
 
 type OpenAICompatibleEmbeddingConfig = {

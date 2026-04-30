@@ -1,9 +1,9 @@
 import {
-  Attributes,
-  Span,
-  Tracer,
   SpanStatusCode,
   context,
+  type Attributes,
+  type Span,
+  type Tracer,
 } from '@opentelemetry/api';
 
 export async function recordSpan<T>({

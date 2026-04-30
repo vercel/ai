@@ -1,4 +1,4 @@
-import {
+import type {
   LanguageModelV3FilePart,
   LanguageModelV3Message,
   LanguageModelV3Prompt,
@@ -6,16 +6,16 @@ import {
   LanguageModelV3ToolResultOutput,
 } from '@ai-sdk/provider';
 import {
-  DataContent,
-  FilePart,
-  ImagePart,
   isUrlSupported,
-  ModelMessage,
-  ReasoningPart,
-  TextPart,
-  ToolCallPart,
-  ToolResultOutput,
-  ToolResultPart,
+  type DataContent,
+  type FilePart,
+  type ImagePart,
+  type ModelMessage,
+  type ReasoningPart,
+  type TextPart,
+  type ToolCallPart,
+  type ToolResultOutput,
+  type ToolResultPart,
 } from '@ai-sdk/provider-utils';
 import {
   detectMediaType,
@@ -23,11 +23,11 @@ import {
 } from '../util/detect-media-type';
 import {
   createDefaultDownloadFunction,
-  DownloadFunction,
+  type DownloadFunction,
 } from '../util/download/download-function';
 import { convertToLanguageModelV3DataContent } from './data-content';
 import { InvalidMessageRoleError } from './invalid-message-role-error';
-import { StandardizedPrompt } from './standardize-prompt';
+import type { StandardizedPrompt } from './standardize-prompt';
 import { asArray } from '../util/as-array';
 import { MissingToolResultsError } from '../error/missing-tool-result-error';
 

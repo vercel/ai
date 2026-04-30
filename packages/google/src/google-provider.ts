@@ -1,4 +1,4 @@
-import {
+import type {
   EmbeddingModelV3,
   Experimental_VideoModelV3,
   ImageModelV3,
@@ -6,26 +6,26 @@ import {
   ProviderV3,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
   generateId,
   loadApiKey,
   withoutTrailingSlash,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { VERSION } from './version';
 import { GoogleGenerativeAIEmbeddingModel } from './google-generative-ai-embedding-model';
-import { GoogleGenerativeAIEmbeddingModelId } from './google-generative-ai-embedding-options';
+import type { GoogleGenerativeAIEmbeddingModelId } from './google-generative-ai-embedding-options';
 import { GoogleGenerativeAILanguageModel } from './google-generative-ai-language-model';
-import { GoogleGenerativeAIModelId } from './google-generative-ai-options';
+import type { GoogleGenerativeAIModelId } from './google-generative-ai-options';
 import { googleTools } from './google-tools';
 
-import {
+import type {
   GoogleGenerativeAIImageSettings,
   GoogleGenerativeAIImageModelId,
 } from './google-generative-ai-image-settings';
 import { GoogleGenerativeAIImageModel } from './google-generative-ai-image-model';
 import { GoogleGenerativeAIVideoModel } from './google-generative-ai-video-model';
-import { GoogleGenerativeAIVideoModelId } from './google-generative-ai-video-settings';
+import type { GoogleGenerativeAIVideoModelId } from './google-generative-ai-video-settings';
 
 export interface GoogleGenerativeAIProvider extends ProviderV3 {
   (modelId: GoogleGenerativeAIModelId): LanguageModelV3;

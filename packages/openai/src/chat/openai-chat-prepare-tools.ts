@@ -1,9 +1,9 @@
 import {
-  LanguageModelV3CallOptions,
-  SharedV3Warning,
   UnsupportedFunctionalityError,
+  type LanguageModelV3CallOptions,
+  type SharedV3Warning,
 } from '@ai-sdk/provider';
-import {
+import type {
   OpenAIChatToolChoice,
   OpenAIChatFunctionTool,
 } from './openai-chat-api';

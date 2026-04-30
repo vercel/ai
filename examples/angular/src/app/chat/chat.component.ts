@@ -2,9 +2,9 @@ import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   FormBuilder,
-  FormGroup,
   ReactiveFormsModule,
   Validators,
+  type FormGroup,
 } from '@angular/forms';
 import { Chat } from '@ai-sdk/angular';
 import {

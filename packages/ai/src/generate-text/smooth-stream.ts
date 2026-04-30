@@ -1,8 +1,10 @@
 import { delay as originalDelay } from '@ai-sdk/provider-utils';
-import { SharedV3ProviderMetadata } from '@ai-sdk/provider';
-import { TextStreamPart } from './stream-text-result';
-import { ToolSet } from './tool-set';
-import { InvalidArgumentError } from '@ai-sdk/provider';
+import {
+  InvalidArgumentError,
+  type SharedV3ProviderMetadata,
+} from '@ai-sdk/provider';
+import type { TextStreamPart } from './stream-text-result';
+import type { ToolSet } from './tool-set';
 
 const CHUNKING_REGEXPS = {
   word: /\S+\s+/m,

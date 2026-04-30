@@ -1,24 +1,24 @@
-import {
+import type {
   LanguageModelV3,
   LanguageModelV3StreamResult,
   LanguageModelV3Usage,
   SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
-  InferSchema,
-  ProviderOptions,
   safeParseJSON,
+  type InferSchema,
+  type ProviderOptions,
 } from '@ai-sdk/provider-utils';
 import {
-  CallSettings,
-  CallWarning,
-  FinishReason,
   InvalidToolInputError,
-  LanguageModelUsage,
   NoSuchToolError,
-  Prompt,
-  Schema,
-  ToolChoice,
+  type CallSettings,
+  type CallWarning,
+  type FinishReason,
+  type LanguageModelUsage,
+  type Prompt,
+  type Schema,
+  type ToolChoice,
 } from 'ai';
 import {
   asLanguageModelUsage,
@@ -28,9 +28,9 @@ import {
   prepareToolsAndToolChoice,
   standardizePrompt,
 } from 'ai/internal';
-import { ReactNode } from 'react';
-import * as z3 from 'zod/v3';
-import * as z4 from 'zod/v4';
+import type { ReactNode } from 'react';
+import type * as z3 from 'zod/v3';
+import type * as z4 from 'zod/v4';
 import { createStreamableUI } from '../streamable-ui/create-streamable-ui';
 import { createResolvablePromise } from '../util/create-resolvable-promise';
 import { isAsyncGenerator } from '../util/is-async-generator';

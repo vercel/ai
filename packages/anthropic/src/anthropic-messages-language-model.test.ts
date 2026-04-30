@@ -1,10 +1,10 @@
 import {
   APICallError,
   LanguageModelV3,
-  LanguageModelV3GenerateResult,
-  LanguageModelV3Prompt,
-  LanguageModelV3StreamPart,
-  LanguageModelV3StreamResult,
+  type LanguageModelV3GenerateResult,
+  type LanguageModelV3Prompt,
+  type LanguageModelV3StreamPart,
+  type LanguageModelV3StreamResult,
 } from '@ai-sdk/provider';
 import {
   convertReadableStreamToArray,
@@ -15,7 +15,7 @@ import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import fs from 'node:fs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
-import { AnthropicLanguageModelOptions } from './anthropic-messages-options';
+import type { AnthropicLanguageModelOptions } from './anthropic-messages-options';
 import { createAnthropic } from './anthropic-provider';
 
 vi.mock('./version', () => ({

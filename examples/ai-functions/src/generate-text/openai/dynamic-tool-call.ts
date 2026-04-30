@@ -1,5 +1,5 @@
 import { openai } from '@ai-sdk/openai';
-import { dynamicTool, generateText, stepCountIs, ToolSet } from 'ai';
+import { dynamicTool, generateText, stepCountIs, type ToolSet } from 'ai';
 import { z } from 'zod';
 import { weatherTool } from '../../tools/weather-tool';
 import { run } from '../../lib/run';

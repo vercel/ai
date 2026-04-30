@@ -1,7 +1,7 @@
 import {
   SystemMessage,
-  BaseMessage,
-  AIMessageChunk,
+  type BaseMessage,
+  type AIMessageChunk,
 } from '@langchain/core/messages';
 import {
   type UIMessage,

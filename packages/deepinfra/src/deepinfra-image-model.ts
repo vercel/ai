@@ -1,4 +1,4 @@
-import {
+import type {
   ImageModelV3,
   ImageModelV3File,
   SharedV3Warning,
@@ -10,11 +10,11 @@ import {
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
   downloadBlob,
-  FetchFunction,
   postFormDataToApi,
   postJsonToApi,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
-import { DeepInfraImageModelId } from './deepinfra-image-settings';
+import type { DeepInfraImageModelId } from './deepinfra-image-settings';
 import { z } from 'zod/v4';
 
 interface DeepInfraImageModelConfig {

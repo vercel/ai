@@ -1,18 +1,18 @@
 import {
   InvalidPromptError,
   LanguageModelV3,
-  LanguageModelV3CallOptions,
-  LanguageModelV3FunctionTool,
-  LanguageModelV3Prompt,
-  LanguageModelV3ProviderTool,
-  LanguageModelV3Usage,
+  type LanguageModelV3CallOptions,
+  type LanguageModelV3FunctionTool,
+  type LanguageModelV3Prompt,
+  type LanguageModelV3ProviderTool,
+  type LanguageModelV3Usage,
 } from '@ai-sdk/provider';
 import {
   dynamicTool,
   jsonSchema,
-  ModelMessage,
   tool,
-  ToolExecuteFunction,
+  type ModelMessage,
+  type ToolExecuteFunction,
 } from '@ai-sdk/provider-utils';
 import { mockId } from '@ai-sdk/provider-utils/test';
 import {
@@ -33,15 +33,15 @@ import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
 import { MockTracer } from '../test/mock-tracer';
 import {
   generateText,
-  GenerateTextOnFinishCallback,
-  GenerateTextOnStartCallback,
-  GenerateTextOnStepFinishCallback,
-  GenerateTextOnStepStartCallback,
-  GenerateTextOnToolCallStartCallback,
-  GenerateTextOnToolCallFinishCallback,
+  type GenerateTextOnFinishCallback,
+  type GenerateTextOnStartCallback,
+  type GenerateTextOnStepFinishCallback,
+  type GenerateTextOnStepStartCallback,
+  type GenerateTextOnToolCallStartCallback,
+  type GenerateTextOnToolCallFinishCallback,
 } from './generate-text';
-import { GenerateTextResult } from './generate-text-result';
-import { StepResult } from './step-result';
+import type { GenerateTextResult } from './generate-text-result';
+import type { StepResult } from './step-result';
 import { isLoopFinished, stepCountIs } from './stop-condition';
 
 vi.mock('../version', () => {

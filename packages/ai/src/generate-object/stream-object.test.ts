@@ -1,9 +1,9 @@
 import {
   JSONParseError,
-  SharedV3Warning,
-  LanguageModelV3StreamPart,
   TypeValidationError,
-  LanguageModelV3Usage,
+  type SharedV3Warning,
+  type LanguageModelV3StreamPart,
+  type LanguageModelV3Usage,
 } from '@ai-sdk/provider';
 import { jsonSchema } from '@ai-sdk/provider-utils';
 import {
@@ -20,9 +20,9 @@ import * as logWarningsModule from '../logger/log-warnings';
 import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
 import { createMockServerResponse } from '../test/mock-server-response';
 import { MockTracer } from '../test/mock-tracer';
-import { AsyncIterableStream } from '../util/async-iterable-stream';
+import type { AsyncIterableStream } from '../util/async-iterable-stream';
 import { streamObject } from './stream-object';
-import { StreamObjectResult } from './stream-object-result';
+import type { StreamObjectResult } from './stream-object-result';
 import { asLanguageModelUsage } from '../types/usage';
 
 const testUsage: LanguageModelV3Usage = {

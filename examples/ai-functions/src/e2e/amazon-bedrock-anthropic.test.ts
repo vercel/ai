@@ -2,15 +2,15 @@ import {
   bedrockAnthropic,
   createBedrockAnthropic,
 } from '@ai-sdk/amazon-bedrock/anthropic';
-import { LanguageModelV3 } from '@ai-sdk/provider';
-import { APICallError, generateText, stepCountIs } from 'ai';
+import type { LanguageModelV3 } from '@ai-sdk/provider';
+import { generateText, stepCountIs, type APICallError } from 'ai';
 import 'dotenv/config';
 import fs from 'fs';
 import { describe, expect, it } from 'vitest';
 import {
   createFeatureTestSuite,
   createLanguageModelWithCapabilities,
-  ModelWithCapabilities,
+  type ModelWithCapabilities,
 } from './feature-test-suite';
 
 const createModelObject = (

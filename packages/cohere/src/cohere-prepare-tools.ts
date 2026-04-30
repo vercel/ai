@@ -1,9 +1,9 @@
 import {
-  LanguageModelV3CallOptions,
-  SharedV3Warning,
   UnsupportedFunctionalityError,
+  type LanguageModelV3CallOptions,
+  type SharedV3Warning,
 } from '@ai-sdk/provider';
-import { CohereToolChoice } from './cohere-chat-prompt';
+import type { CohereToolChoice } from './cohere-chat-prompt';
 
 export function prepareTools({
   tools,

@@ -1,22 +1,22 @@
 import {
-  EmbeddingModelV3,
   TooManyEmbeddingValuesForCallError,
+  type EmbeddingModelV3,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createJsonResponseHandler,
-  FetchFunction,
   lazySchema,
   parseProviderOptions,
   postJsonToApi,
   resolve,
   zodSchema,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { googleFailedResponseHandler } from './google-error';
 import {
-  GoogleGenerativeAIEmbeddingModelId,
   googleEmbeddingModelOptions,
+  type GoogleGenerativeAIEmbeddingModelId,
 } from './google-generative-ai-embedding-options';
 
 type GoogleGenerativeAIEmbeddingConfig = {

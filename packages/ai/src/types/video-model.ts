@@ -1,4 +1,4 @@
-import {
+import type {
   Experimental_VideoModelV3,
   SharedV3ProviderMetadata,
 } from '@ai-sdk/provider';

@@ -1,8 +1,8 @@
-import { UIMessageChunk } from 'ai';
+import type { UIMessageChunk } from 'ai';
 import { convertAsyncIteratorToReadableStream } from 'ai/internal';
 import {
   createCallbacksTransformer,
-  StreamCallbacks,
+  type StreamCallbacks,
 } from './stream-callbacks';
 
 type EngineResponse = {

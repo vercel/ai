@@ -1,4 +1,4 @@
-import { JSONValue } from '@ai-sdk/provider';
+import type { JSONValue } from '@ai-sdk/provider';
 import { describe, expectTypeOf, it } from 'vitest';
 import { z } from 'zod';
 import { generateText, Output } from '../generate-text';

@@ -1,17 +1,17 @@
-import { ImageModelV3, SharedV3Warning } from '@ai-sdk/provider';
+import type { ImageModelV3, SharedV3Warning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   convertImageModelFileToDataUri,
   createJsonResponseHandler,
   createJsonErrorResponseHandler,
-  FetchFunction,
-  InferSchema,
   lazySchema,
   parseProviderOptions,
   postJsonToApi,
   zodSchema,
+  type FetchFunction,
+  type InferSchema,
 } from '@ai-sdk/provider-utils';
-import { TogetherAIImageModelId } from './togetherai-image-settings';
+import type { TogetherAIImageModelId } from './togetherai-image-settings';
 import { z } from 'zod/v4';
 
 interface TogetherAIImageModelConfig {

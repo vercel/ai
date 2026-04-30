@@ -1,4 +1,4 @@
-import {
+import type {
   ImageModelV3,
   LanguageModelV3Prompt,
   SharedV3Warning,
@@ -7,19 +7,19 @@ import {
   combineHeaders,
   convertToBase64,
   createJsonResponseHandler,
-  FetchFunction,
   generateId as defaultGenerateId,
-  type InferSchema,
   lazySchema,
   parseProviderOptions,
   postJsonToApi,
-  Resolvable,
   resolve,
   zodSchema,
+  type FetchFunction,
+  type Resolvable,
+  type InferSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { googleFailedResponseHandler } from './google-error';
-import {
+import type {
   GoogleGenerativeAIImageModelId,
   GoogleGenerativeAIImageSettings,
 } from './google-generative-ai-image-settings';

@@ -1,10 +1,10 @@
-import { JSONValue } from '@ai-sdk/provider';
+import type { JSONValue } from '@ai-sdk/provider';
 import { describe, expectTypeOf, it } from 'vitest';
 import { z } from 'zod';
 import { Output, streamText } from '../generate-text';
 import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
-import { AsyncIterableStream } from '../util';
-import { DeepPartial } from '../util/deep-partial';
+import type { AsyncIterableStream } from '../util';
+import type { DeepPartial } from '../util/deep-partial';
 
 describe('streamText types', () => {
   describe('output', () => {

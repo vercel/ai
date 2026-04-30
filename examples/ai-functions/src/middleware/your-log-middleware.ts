@@ -1,4 +1,4 @@
-import {
+import type {
   LanguageModelV3Middleware,
   LanguageModelV3StreamPart,
 } from '@ai-sdk/provider';

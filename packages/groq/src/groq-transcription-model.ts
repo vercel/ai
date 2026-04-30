@@ -1,4 +1,4 @@
-import { TranscriptionModelV3, SharedV3Warning } from '@ai-sdk/provider';
+import type { TranscriptionModelV3, SharedV3Warning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   convertBase64ToUint8Array,
@@ -8,13 +8,13 @@ import {
   postFormDataToApi,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import { GroqConfig } from './groq-config';
+import type { GroqConfig } from './groq-config';
 import { groqFailedResponseHandler } from './groq-error';
 import {
-  GroqTranscriptionModelId,
   groqTranscriptionModelOptions,
+  type GroqTranscriptionModelId,
 } from './groq-transcription-options';
-import { GroqTranscriptionAPITypes } from './groq-api-types';
+import type { GroqTranscriptionAPITypes } from './groq-api-types';
 
 interface GroqTranscriptionModelConfig extends GroqConfig {
   _internal?: {

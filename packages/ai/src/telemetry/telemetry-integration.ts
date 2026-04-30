@@ -8,7 +8,7 @@ import type {
 } from '../generate-text/callback-events';
 import type { Output } from '../generate-text/output';
 import type { ToolSet } from '../generate-text/tool-set';
-import { Listener } from '../util/notify';
+import type { Listener } from '../util/notify';
 
 /**
  * Implement this interface to create custom telemetry integrations.

@@ -1,5 +1,8 @@
-import { LanguageModelV3CallOptions, SharedV3Warning } from '@ai-sdk/provider';
-import {
+import type {
+  LanguageModelV3CallOptions,
+  SharedV3Warning,
+} from '@ai-sdk/provider';
+import type {
   DeepSeekFunctionTool,
   DeepSeekToolChoice,
 } from './deepseek-chat-api-types';

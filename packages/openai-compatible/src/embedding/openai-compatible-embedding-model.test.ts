@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { EmbeddingModelV3Embedding } from '@ai-sdk/provider';
+import type { EmbeddingModelV3Embedding } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { createOpenAICompatible } from '../openai-compatible-provider';
 

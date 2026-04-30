@@ -1,39 +1,39 @@
 import {
-  APICallError,
   InvalidResponseDataError,
-  LanguageModelV3,
-  LanguageModelV3CallOptions,
-  LanguageModelV3Content,
-  LanguageModelV3FinishReason,
-  LanguageModelV3GenerateResult,
-  LanguageModelV3StreamPart,
-  LanguageModelV3StreamResult,
+  type APICallError,
+  type LanguageModelV3,
+  type LanguageModelV3CallOptions,
+  type LanguageModelV3Content,
+  type LanguageModelV3FinishReason,
+  type LanguageModelV3GenerateResult,
+  type LanguageModelV3StreamPart,
+  type LanguageModelV3StreamResult,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
-  FetchFunction,
   generateId,
-  InferSchema,
   isParsableJson,
   parseProviderOptions,
-  ParseResult,
   postJsonToApi,
-  ResponseHandler,
+  type FetchFunction,
+  type InferSchema,
+  type ParseResult,
+  type ResponseHandler,
 } from '@ai-sdk/provider-utils';
 import { convertToDeepSeekChatMessages } from './convert-to-deepseek-chat-messages';
 import { convertDeepSeekUsage } from './convert-to-deepseek-usage';
 import {
   deepseekChatChunkSchema,
   deepseekChatResponseSchema,
-  DeepSeekChatTokenUsage,
   deepSeekErrorSchema,
+  type DeepSeekChatTokenUsage,
 } from './deepseek-chat-api-types';
 import {
-  DeepSeekChatModelId,
   deepseekLanguageModelOptions,
+  type DeepSeekChatModelId,
 } from './deepseek-chat-options';
 import { prepareTools } from './deepseek-prepare-tools';
 import { getResponseMetadata } from './get-response-metadata';

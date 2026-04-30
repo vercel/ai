@@ -1,10 +1,10 @@
-import {
+import type {
   LanguageModelV3,
   LanguageModelV3CallOptions,
   LanguageModelV3GenerateResult,
   LanguageModelV3StreamResult,
 } from '@ai-sdk/provider';
-import { LanguageModelMiddleware } from '../types';
+import type { LanguageModelMiddleware } from '../types';
 import { asArray } from '../util/as-array';
 
 /**

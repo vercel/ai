@@ -1,8 +1,8 @@
-import { RerankingModelV3CallOptions } from '@ai-sdk/provider';
+import type { RerankingModelV3CallOptions } from '@ai-sdk/provider';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MockRerankingModelV3 } from '../test/mock-reranking-model-v3';
 import { rerank } from './rerank';
-import { RerankResult } from './rerank-result';
+import type { RerankResult } from './rerank-result';
 import { MockTracer } from '../test/mock-tracer';
 
 describe('rerank', () => {

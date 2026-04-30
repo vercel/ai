@@ -1,5 +1,5 @@
 import { openai } from '@ai-sdk/openai';
-import { LanguageModelV3Middleware } from '@ai-sdk/provider';
+import type { LanguageModelV3Middleware } from '@ai-sdk/provider';
 import { generateText, wrapLanguageModel } from 'ai';
 import { run } from '../../lib/run';
 

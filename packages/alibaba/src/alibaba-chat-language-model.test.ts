@@ -1,4 +1,5 @@
 import type { LanguageModelV3Prompt } from '@ai-sdk/provider';
+import type * as ProviderUtilsModule from '@ai-sdk/provider-utils';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import fs from 'node:fs';
@@ -10,7 +11,7 @@ vi.mock('./version', () => ({
 }));
 
 vi.mock('@ai-sdk/provider-utils', async importOriginal => {
-  const mod = await importOriginal<typeof import('@ai-sdk/provider-utils')>();
+  const mod = await importOriginal<typeof ProviderUtilsModule>();
   return { ...mod, generateId: () => 'test-reasoning-id' };
 });
 

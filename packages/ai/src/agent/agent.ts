@@ -1,10 +1,10 @@
-import { ModelMessage } from '@ai-sdk/provider-utils';
-import { GenerateTextResult } from '../generate-text/generate-text-result';
-import { Output } from '../generate-text/output';
-import { StreamTextTransform } from '../generate-text/stream-text';
-import { StreamTextResult } from '../generate-text/stream-text-result';
-import { ToolSet } from '../generate-text/tool-set';
-import { TimeoutConfiguration } from '../prompt/call-settings';
+import type { ModelMessage } from '@ai-sdk/provider-utils';
+import type { GenerateTextResult } from '../generate-text/generate-text-result';
+import type { Output } from '../generate-text/output';
+import type { StreamTextTransform } from '../generate-text/stream-text';
+import type { StreamTextResult } from '../generate-text/stream-text-result';
+import type { ToolSet } from '../generate-text/tool-set';
+import type { TimeoutConfiguration } from '../prompt/call-settings';
 import type { ToolLoopAgentOnStepFinishCallback } from './tool-loop-agent-settings';
 
 /**

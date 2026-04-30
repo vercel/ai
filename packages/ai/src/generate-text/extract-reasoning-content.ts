@@ -1,4 +1,4 @@
-import {
+import type {
   LanguageModelV3Content,
   LanguageModelV3Reasoning,
 } from '@ai-sdk/provider';

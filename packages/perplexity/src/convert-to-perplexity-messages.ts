@@ -1,8 +1,8 @@
 import {
-  LanguageModelV3Prompt,
   UnsupportedFunctionalityError,
+  type LanguageModelV3Prompt,
 } from '@ai-sdk/provider';
-import {
+import type {
   PerplexityMessageContent,
   PerplexityPrompt,
 } from './perplexity-language-model-prompt';

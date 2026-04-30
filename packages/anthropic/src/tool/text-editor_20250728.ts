@@ -1,6 +1,9 @@
-import { createProviderToolFactory } from '@ai-sdk/provider-utils';
+import {
+  createProviderToolFactory,
+  lazySchema,
+  zodSchema,
+} from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import { lazySchema, zodSchema } from '@ai-sdk/provider-utils';
 
 export const textEditor_20250728ArgsSchema = lazySchema(() =>
   zodSchema(

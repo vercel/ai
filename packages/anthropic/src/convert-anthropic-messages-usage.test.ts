@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   convertAnthropicMessagesUsage,
-  AnthropicMessagesUsage,
+  type AnthropicMessagesUsage,
 } from './convert-anthropic-messages-usage';
 
 describe('convertAnthropicMessagesUsage', () => {

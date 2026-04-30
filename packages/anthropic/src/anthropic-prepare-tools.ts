@@ -1,9 +1,12 @@
 import {
-  LanguageModelV3CallOptions,
-  SharedV3Warning,
   UnsupportedFunctionalityError,
+  type LanguageModelV3CallOptions,
+  type SharedV3Warning,
 } from '@ai-sdk/provider';
-import { AnthropicTool, AnthropicToolChoice } from './anthropic-messages-api';
+import type {
+  AnthropicTool,
+  AnthropicToolChoice,
+} from './anthropic-messages-api';
 import { CacheControlValidator } from './get-cache-control';
 import { textEditor_20250728ArgsSchema } from './tool/text-editor_20250728';
 import { webSearch_20260209ArgsSchema } from './tool/web-search_20260209';

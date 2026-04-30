@@ -1,10 +1,10 @@
 import { describe, expectTypeOf, it } from 'vitest';
 import { z } from 'zod';
-import { Output, StreamTextOnFinishCallback } from '../generate-text';
+import { Output, type StreamTextOnFinishCallback } from '../generate-text';
 import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
-import { AsyncIterableStream } from '../util/async-iterable-stream';
-import { DeepPartial } from '../util/deep-partial';
-import { AgentCallParameters, AgentStreamParameters } from './agent';
+import type { AsyncIterableStream } from '../util/async-iterable-stream';
+import type { DeepPartial } from '../util/deep-partial';
+import type { AgentCallParameters, AgentStreamParameters } from './agent';
 import { ToolLoopAgent } from './tool-loop-agent';
 import type { ToolLoopAgentOnFinishCallback } from './tool-loop-agent-settings';
 

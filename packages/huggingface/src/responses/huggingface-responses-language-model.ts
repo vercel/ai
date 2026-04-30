@@ -1,13 +1,13 @@
 import {
   APICallError,
-  LanguageModelV3,
-  LanguageModelV3CallOptions,
-  LanguageModelV3Content,
-  LanguageModelV3FinishReason,
-  LanguageModelV3GenerateResult,
-  LanguageModelV3StreamPart,
-  LanguageModelV3StreamResult,
-  SharedV3Warning,
+  type LanguageModelV3,
+  type LanguageModelV3CallOptions,
+  type LanguageModelV3Content,
+  type LanguageModelV3FinishReason,
+  type LanguageModelV3GenerateResult,
+  type LanguageModelV3StreamPart,
+  type LanguageModelV3StreamResult,
+  type SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -15,19 +15,19 @@ import {
   createJsonResponseHandler,
   generateId,
   parseProviderOptions,
-  ParseResult,
   postJsonToApi,
+  type ParseResult,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import { HuggingFaceConfig } from '../huggingface-config';
+import type { HuggingFaceConfig } from '../huggingface-config';
 import { huggingfaceFailedResponseHandler } from '../huggingface-error';
 import {
   convertHuggingFaceResponsesUsage,
-  HuggingFaceResponsesUsage,
+  type HuggingFaceResponsesUsage,
 } from './convert-huggingface-responses-usage';
 import { convertToHuggingFaceResponsesMessages } from './convert-to-huggingface-responses-messages';
 import { prepareResponsesTools } from './huggingface-responses-prepare-tools';
-import { HuggingFaceResponsesModelId } from './huggingface-responses-settings';
+import type { HuggingFaceResponsesModelId } from './huggingface-responses-settings';
 import { mapHuggingFaceResponsesFinishReason } from './map-huggingface-responses-finish-reason';
 
 export class HuggingFaceResponsesLanguageModel implements LanguageModelV3 {

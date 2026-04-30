@@ -1,10 +1,10 @@
 import {
-  SharedV3Warning,
-  LanguageModelV3Message,
   UnsupportedFunctionalityError,
+  type SharedV3Warning,
+  type LanguageModelV3Message,
 } from '@ai-sdk/provider';
 import { convertToBase64 } from '@ai-sdk/provider-utils';
-import {
+import type {
   XaiResponsesInput,
   XaiResponsesUserMessageContentPart,
 } from './xai-responses-api';

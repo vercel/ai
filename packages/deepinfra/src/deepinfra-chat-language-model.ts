@@ -1,10 +1,10 @@
-import {
+import type {
   LanguageModelV3CallOptions,
   LanguageModelV3GenerateResult,
   LanguageModelV3StreamResult,
 } from '@ai-sdk/provider';
 import { OpenAICompatibleChatLanguageModel } from '@ai-sdk/openai-compatible';
-import { FetchFunction } from '@ai-sdk/provider-utils';
+import type { FetchFunction } from '@ai-sdk/provider-utils';
 
 type DeepInfraChatConfig = {
   provider: string;

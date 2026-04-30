@@ -1,4 +1,4 @@
-import { JSONObject, SpeechModelV3 } from '@ai-sdk/provider';
+import type { JSONObject, SpeechModelV3 } from '@ai-sdk/provider';
 import {
   afterEach,
   beforeEach,
@@ -10,11 +10,11 @@ import {
 } from 'vitest';
 import * as logWarningsModule from '../logger/log-warnings';
 import { MockSpeechModelV3 } from '../test/mock-speech-model-v3';
-import { Warning } from '../types/warning';
+import type { Warning } from '../types/warning';
 import { generateSpeech } from './generate-speech';
 import {
   DefaultGeneratedAudioFile,
-  GeneratedAudioFile,
+  type GeneratedAudioFile,
 } from './generated-audio-file';
 
 const audio = new Uint8Array([1, 2, 3, 4]); // Sample audio data

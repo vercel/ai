@@ -1,16 +1,16 @@
-import { RerankingModelV3, SharedV3Warning } from '@ai-sdk/provider';
+import type { RerankingModelV3, SharedV3Warning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createJsonResponseHandler,
-  FetchFunction,
   parseProviderOptions,
   postJsonToApi,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { voyageFailedResponseHandler } from '../voyage-error';
 import {
-  VoyageRerankingModelId,
   voyageRerankingModelOptionsSchema,
+  type VoyageRerankingModelId,
 } from './voyage-reranking-options';
 
 type VoyageRerankingConfig = {

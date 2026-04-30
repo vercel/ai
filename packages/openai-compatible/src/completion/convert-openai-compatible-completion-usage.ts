@@ -1,4 +1,4 @@
-import { LanguageModelV3Usage } from '@ai-sdk/provider';
+import type { LanguageModelV3Usage } from '@ai-sdk/provider';
 
 export function convertOpenAICompatibleCompletionUsage(
   usage:

@@ -1,4 +1,7 @@
-import { LanguageModelV3CallOptions, SharedV3Warning } from '@ai-sdk/provider';
+import type {
+  LanguageModelV3CallOptions,
+  SharedV3Warning,
+} from '@ai-sdk/provider';
 
 export type HuggingFaceResponsesTool = {
   type: 'function';

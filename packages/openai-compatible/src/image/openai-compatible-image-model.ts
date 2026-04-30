@@ -1,4 +1,4 @@
-import {
+import type {
   ImageModelV3,
   ImageModelV3File,
   SharedV3ProviderOptions,
@@ -12,16 +12,16 @@ import {
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
   downloadBlob,
-  FetchFunction,
   postFormDataToApi,
   postJsonToApi,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import {
   defaultOpenAICompatibleErrorStructure,
-  ProviderErrorStructure,
+  type ProviderErrorStructure,
 } from '../openai-compatible-error';
-import { OpenAICompatibleImageModelId } from './openai-compatible-image-settings';
+import type { OpenAICompatibleImageModelId } from './openai-compatible-image-settings';
 
 export type OpenAICompatibleImageModelConfig = {
   provider: string;

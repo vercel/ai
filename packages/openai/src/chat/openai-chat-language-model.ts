@@ -1,18 +1,16 @@
 import {
   InvalidResponseDataError,
-  LanguageModelV3,
-  LanguageModelV3CallOptions,
-  LanguageModelV3Content,
-  LanguageModelV3FinishReason,
-  LanguageModelV3GenerateResult,
-  LanguageModelV3StreamPart,
-  LanguageModelV3StreamResult,
-  SharedV3ProviderMetadata,
-  SharedV3Warning,
+  type LanguageModelV3,
+  type LanguageModelV3CallOptions,
+  type LanguageModelV3Content,
+  type LanguageModelV3FinishReason,
+  type LanguageModelV3GenerateResult,
+  type LanguageModelV3StreamPart,
+  type LanguageModelV3StreamResult,
+  type SharedV3ProviderMetadata,
+  type SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
-  ParseResult,
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
@@ -20,24 +18,26 @@ import {
   isParsableJson,
   parseProviderOptions,
   postJsonToApi,
+  type FetchFunction,
+  type ParseResult,
 } from '@ai-sdk/provider-utils';
 import { openaiFailedResponseHandler } from '../openai-error';
 import { getOpenAILanguageModelCapabilities } from '../openai-language-model-capabilities';
 import {
-  OpenAIChatUsage,
   convertOpenAIChatUsage,
+  type OpenAIChatUsage,
 } from './convert-openai-chat-usage';
 import { convertToOpenAIChatMessages } from './convert-to-openai-chat-messages';
 import { getResponseMetadata } from './get-response-metadata';
 import { mapOpenAIFinishReason } from './map-openai-finish-reason';
 import {
-  OpenAIChatChunk,
   openaiChatChunkSchema,
   openaiChatResponseSchema,
+  type OpenAIChatChunk,
 } from './openai-chat-api';
 import {
-  OpenAIChatModelId,
   openaiLanguageModelChatOptions,
+  type OpenAIChatModelId,
 } from './openai-chat-options';
 import { prepareChatTools } from './openai-chat-prepare-tools';
 

@@ -2,7 +2,7 @@ import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { createVoyage } from '../voyage-provider';
 import { describe, it, expect, beforeEach } from 'vitest';
 import fs from 'node:fs';
-import { VoyageRerankingModelOptions } from './voyage-reranking-options';
+import type { VoyageRerankingModelOptions } from './voyage-reranking-options';
 
 const provider = createVoyage({ apiKey: 'test-api-key' });
 const model = provider.rerankingModel('rerank-2.5');

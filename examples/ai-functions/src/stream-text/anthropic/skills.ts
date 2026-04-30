@@ -1,6 +1,6 @@
 import {
   anthropic,
-  AnthropicMessageMetadata,
+  type AnthropicMessageMetadata,
   type AnthropicLanguageModelOptions,
 } from '@ai-sdk/anthropic';
 import { streamText } from 'ai';

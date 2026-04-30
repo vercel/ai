@@ -1,4 +1,7 @@
-import { google, GoogleGenerativeAIProviderMetadata } from '@ai-sdk/google';
+import {
+  google,
+  type GoogleGenerativeAIProviderMetadata,
+} from '@ai-sdk/google';
 import { streamText } from 'ai';
 import { run } from '../../lib/run';
 

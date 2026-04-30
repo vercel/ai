@@ -1,12 +1,12 @@
-import { SharedV2Headers } from '../../shared';
-import { SharedV2ProviderMetadata } from '../../shared/v2/shared-v2-provider-metadata';
-import { LanguageModelV2CallOptions } from './language-model-v2-call-options';
-import { LanguageModelV2CallWarning } from './language-model-v2-call-warning';
-import { LanguageModelV2Content } from './language-model-v2-content';
-import { LanguageModelV2FinishReason } from './language-model-v2-finish-reason';
-import { LanguageModelV2ResponseMetadata } from './language-model-v2-response-metadata';
-import { LanguageModelV2StreamPart } from './language-model-v2-stream-part';
-import { LanguageModelV2Usage } from './language-model-v2-usage';
+import type { SharedV2Headers } from '../../shared';
+import type { SharedV2ProviderMetadata } from '../../shared/v2/shared-v2-provider-metadata';
+import type { LanguageModelV2CallOptions } from './language-model-v2-call-options';
+import type { LanguageModelV2CallWarning } from './language-model-v2-call-warning';
+import type { LanguageModelV2Content } from './language-model-v2-content';
+import type { LanguageModelV2FinishReason } from './language-model-v2-finish-reason';
+import type { LanguageModelV2ResponseMetadata } from './language-model-v2-response-metadata';
+import type { LanguageModelV2StreamPart } from './language-model-v2-stream-part';
+import type { LanguageModelV2Usage } from './language-model-v2-usage';
 
 /**
  * Specification for a language model that implements the language model interface version 2.

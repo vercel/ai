@@ -1,6 +1,6 @@
 import { IncomingMessage } from 'http';
 import { Socket } from 'net';
-import { NextRequest } from 'next/server';
+import type { NextRequest } from 'next/server';
 import { Readable } from 'stream';
 
 export async function convertNextRequestToIncomingMessage(

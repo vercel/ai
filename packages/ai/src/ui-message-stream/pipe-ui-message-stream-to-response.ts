@@ -1,10 +1,10 @@
-import { ServerResponse } from 'node:http';
+import type { ServerResponse } from 'node:http';
 import { prepareHeaders } from '../util/prepare-headers';
 import { writeToServerResponse } from '../util/write-to-server-response';
 import { JsonToSseTransformStream } from './json-to-sse-transform-stream';
 import { UI_MESSAGE_STREAM_HEADERS } from './ui-message-stream-headers';
-import { UIMessageChunk } from './ui-message-chunks';
-import { UIMessageStreamResponseInit } from './ui-message-stream-response-init';
+import type { UIMessageChunk } from './ui-message-chunks';
+import type { UIMessageStreamResponseInit } from './ui-message-stream-response-init';
 
 /**
  * Pipes a UI message stream to a Node.js ServerResponse object.

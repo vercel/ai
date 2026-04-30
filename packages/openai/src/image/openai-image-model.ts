@@ -1,4 +1,4 @@
-import {
+import type {
   ImageModelV3,
   ImageModelV3File,
   SharedV3Warning,
@@ -12,13 +12,13 @@ import {
   postFormDataToApi,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
-import { OpenAIConfig } from '../openai-config';
+import type { OpenAIConfig } from '../openai-config';
 import { openaiFailedResponseHandler } from '../openai-error';
 import { openaiImageResponseSchema } from './openai-image-api';
 import {
-  OpenAIImageModelId,
   hasDefaultResponseFormat,
   modelMaxImagesPerCall,
+  type OpenAIImageModelId,
 } from './openai-image-options';
 
 interface OpenAIImageModelConfig extends OpenAIConfig {

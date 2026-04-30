@@ -3,7 +3,7 @@ import {
   consumeStream,
   convertToModelMessages,
   streamText,
-  UIMessage,
+  type UIMessage,
 } from 'ai';
 
 export const maxDuration = 30;

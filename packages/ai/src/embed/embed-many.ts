@@ -1,4 +1,7 @@
-import { ProviderOptions, withUserAgentSuffix } from '@ai-sdk/provider-utils';
+import {
+  withUserAgentSuffix,
+  type ProviderOptions,
+} from '@ai-sdk/provider-utils';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveEmbeddingModel } from '../model/resolve-model';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
@@ -6,12 +9,12 @@ import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attr
 import { getTracer } from '../telemetry/get-tracer';
 import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
-import { TelemetrySettings } from '../telemetry/telemetry-settings';
-import { Embedding, EmbeddingModel, ProviderMetadata } from '../types';
-import { Warning } from '../types/warning';
+import type { TelemetrySettings } from '../telemetry/telemetry-settings';
+import type { Embedding, EmbeddingModel, ProviderMetadata } from '../types';
+import type { Warning } from '../types/warning';
 import { prepareRetries } from '../util/prepare-retries';
 import { splitArray } from '../util/split-array';
-import { EmbedManyResult } from './embed-many-result';
+import type { EmbedManyResult } from './embed-many-result';
 import { VERSION } from '../version';
 
 /**

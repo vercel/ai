@@ -3,7 +3,7 @@ import * as fs from 'node:fs';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import {
   GoogleVertexImageModel,
-  GoogleVertexImageModelOptions,
+  type GoogleVertexImageModelOptions,
 } from './google-vertex-image-model';
 import { createVertex } from './google-vertex-provider';
 

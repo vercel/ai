@@ -1,11 +1,11 @@
 import { azure } from '@ai-sdk/azure';
 import {
   convertToModelMessages,
-  InferUITools,
   streamText,
-  ToolSet,
-  UIDataTypes,
-  UIMessage,
+  type InferUITools,
+  type ToolSet,
+  type UIDataTypes,
+  type UIMessage,
 } from 'ai';
 
 const tools = {

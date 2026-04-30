@@ -1,5 +1,5 @@
 import { createTransformer } from '../lib/create-transformer';
-import {
+import type {
   ImportSpecifier,
   ImportDefaultSpecifier,
   ImportNamespaceSpecifier,

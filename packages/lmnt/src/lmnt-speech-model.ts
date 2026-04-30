@@ -1,4 +1,4 @@
-import { SpeechModelV3, SharedV3Warning } from '@ai-sdk/provider';
+import type { SpeechModelV3, SharedV3Warning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createBinaryResponseHandler,
@@ -6,10 +6,10 @@ import {
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import { LMNTConfig } from './lmnt-config';
+import type { LMNTConfig } from './lmnt-config';
 import { lmntFailedResponseHandler } from './lmnt-error';
-import { LMNTSpeechModelId } from './lmnt-speech-options';
-import { LMNTSpeechAPITypes } from './lmnt-api-types';
+import type { LMNTSpeechModelId } from './lmnt-speech-options';
+import type { LMNTSpeechAPITypes } from './lmnt-api-types';
 
 // https://docs.lmnt.com/api-reference/speech/synthesize-speech-bytes
 const lmntSpeechModelOptionsSchema = z.object({

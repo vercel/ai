@@ -2,10 +2,10 @@ import {
   AIMessage,
   HumanMessage,
   ToolMessage,
-  BaseMessage,
   AIMessageChunk,
-  BaseMessageChunk,
-  ToolCallChunk,
+  type BaseMessage,
+  type BaseMessageChunk,
+  type ToolCallChunk,
   type ContentBlock,
   type ToolCall,
 } from '@langchain/core/messages';

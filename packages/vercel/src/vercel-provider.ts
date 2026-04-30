@@ -1,16 +1,16 @@
 import {
-  LanguageModelV3,
   NoSuchModelError,
-  ProviderV3,
+  type LanguageModelV3,
+  type ProviderV3,
 } from '@ai-sdk/provider';
 import { OpenAICompatibleChatLanguageModel } from '@ai-sdk/openai-compatible';
 import {
-  FetchFunction,
   loadApiKey,
   withoutTrailingSlash,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
-import { VercelChatModelId } from './vercel-chat-options';
+import type { VercelChatModelId } from './vercel-chat-options';
 import { VERSION } from './version';
 
 export interface VercelProviderSettings {

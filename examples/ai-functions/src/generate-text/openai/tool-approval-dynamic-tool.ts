@@ -2,10 +2,10 @@ import { openai } from '@ai-sdk/openai';
 import {
   dynamicTool,
   generateText,
-  ModelMessage,
   stepCountIs,
-  ToolApprovalResponse,
-  ToolSet,
+  type ModelMessage,
+  type ToolApprovalResponse,
+  type ToolSet,
 } from 'ai';
 import * as readline from 'node:readline/promises';
 import { z } from 'zod/v4';

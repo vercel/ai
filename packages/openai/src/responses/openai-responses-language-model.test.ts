@@ -1,4 +1,4 @@
-import {
+import type {
   LanguageModelV3Content,
   LanguageModelV3FunctionTool,
   LanguageModelV3GenerateResult,
@@ -16,8 +16,8 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { OpenAIResponsesLanguageModel } from './openai-responses-language-model';
 import {
   openaiResponsesModelIds,
-  OpenAILanguageModelResponsesOptions,
   openaiResponsesReasoningModelIds,
+  type OpenAILanguageModelResponsesOptions,
 } from './openai-responses-options';
 
 const TEST_PROMPT: LanguageModelV3Prompt = [

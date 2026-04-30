@@ -1,9 +1,9 @@
 import {
-  LanguageModelV3CallOptions,
-  SharedV3Warning,
   UnsupportedFunctionalityError,
+  type LanguageModelV3CallOptions,
+  type SharedV3Warning,
 } from '@ai-sdk/provider';
-import { ToolNameMapping, validateTypes } from '@ai-sdk/provider-utils';
+import { validateTypes, type ToolNameMapping } from '@ai-sdk/provider-utils';
 import { codeInterpreterArgsSchema } from '../tool/code-interpreter';
 import { fileSearchArgsSchema } from '../tool/file-search';
 import { imageGenerationArgsSchema } from '../tool/image-generation';
@@ -13,7 +13,7 @@ import { shellArgsSchema } from '../tool/shell';
 import { toolSearchArgsSchema } from '../tool/tool-search';
 import { webSearchArgsSchema } from '../tool/web-search';
 import { webSearchPreviewArgsSchema } from '../tool/web-search-preview';
-import { OpenAIResponsesTool } from './openai-responses-api';
+import type { OpenAIResponsesTool } from './openai-responses-api';
 
 export async function prepareResponsesTools({
   tools,
