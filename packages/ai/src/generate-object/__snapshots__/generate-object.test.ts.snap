@@ -31,6 +31,8 @@ exports[`generateObject > telemetry > should not record telemetry inputs / outpu
       "ai.settings.maxRetries": 2,
       "ai.usage.completionTokens": 20,
       "ai.usage.promptTokens": 10,
+      "gen_ai.operation.name": "chat",
+      "gen_ai.provider.name": "mock-provider",
       "gen_ai.request.model": "mock-model-id",
       "gen_ai.response.finish_reasons": [
         "stop",
@@ -43,7 +45,7 @@ exports[`generateObject > telemetry > should not record telemetry inputs / outpu
       "operation.name": "ai.generateObject.doGenerate",
     },
     "events": [],
-    "name": "ai.generateObject.doGenerate",
+    "name": "chat mock-model-id",
   },
 ]
 `;
@@ -109,6 +111,10 @@ exports[`generateObject > telemetry > should record telemetry data when enabled 
       "ai.telemetry.metadata.test2": false,
       "ai.usage.completionTokens": 20,
       "ai.usage.promptTokens": 10,
+      "gen_ai.input.messages": "[{"role":"user","parts":[{"type":"text","content":"prompt"}]}]",
+      "gen_ai.operation.name": "chat",
+      "gen_ai.output.messages": "[{"role":"assistant","parts":[{"type":"text","content":"{ \\"content\\": \\"Hello, world!\\" }"}],"finish_reason":"stop"}]",
+      "gen_ai.provider.name": "mock-provider",
       "gen_ai.request.frequency_penalty": 0.3,
       "gen_ai.request.model": "mock-model-id",
       "gen_ai.request.presence_penalty": 0.4,
@@ -127,7 +133,7 @@ exports[`generateObject > telemetry > should record telemetry data when enabled 
       "resource.name": "test-function-id",
     },
     "events": [],
-    "name": "ai.generateObject.doGenerate",
+    "name": "chat mock-model-id",
   },
 ]
 `;
