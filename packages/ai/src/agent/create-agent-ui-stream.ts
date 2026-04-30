@@ -1,4 +1,4 @@
-import type { Arrayable, Context, ToolSet } from '@ai-sdk/provider-utils';
+import type { Arrayable, Context, Tool, ToolSet } from '@ai-sdk/provider-utils';
 import type { GenerateTextOnStepFinishCallback } from '../generate-text/generate-text-events';
 import type { Output } from '../generate-text/output';
 import type { StreamTextTransform } from '../generate-text/stream-text';
@@ -59,7 +59,12 @@ export async function createAgentUIStream<
     UIMessage<MESSAGE_METADATA, never, InferUITools<TOOLS>>
   >({
     messages: uiMessages,
-    tools: agent.tools,
+    tools: agent.tools as {
+      [NAME in keyof InferUITools<TOOLS> & string]?: Tool<
+        InferUITools<TOOLS>[NAME]['input'],
+        InferUITools<TOOLS>[NAME]['output']
+      >;
+    },
   });
 
   const modelMessages = await convertToModelMessages(validatedMessages, {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { tool } from 'ai';
+import { tool, type ToolSet } from 'ai';
 import { jsonSchema } from '@ai-sdk/provider-utils';
 import {
   serializeToolSet,
@@ -38,7 +38,7 @@ describe('serializeToolSet', () => {
     // an id, and args. These must survive serialization so the Gateway can
     // recognize them as provider-executed tools, not plain function tools.
     const tools = {
-      webSearch: tool({
+      webSearch: {
         type: 'provider' as const,
         id: 'anthropic.web_search_20250305' as const,
         isProviderExecuted: true,
@@ -51,7 +51,7 @@ describe('serializeToolSet', () => {
           properties: { query: { type: 'string' } },
           required: ['query'],
         }),
-      }),
+      } as ToolSet[string],
     };
 
     const serialized = serializeToolSet(tools);

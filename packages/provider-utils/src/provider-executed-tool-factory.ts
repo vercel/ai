@@ -1,6 +1,6 @@
 import type { FlexibleSchema } from './schema';
 import type { Context } from './types/context';
-import { tool, type ProviderExecutedTool, type Tool } from './types/tool';
+import type { ProviderExecutedTool, Tool } from './types/tool';
 /**
  * A provider-executed tool is a tool for which the provider executes the tool.
  */
@@ -54,7 +54,7 @@ export function createProviderExecutedToolFactory<
     onInputDelta?: Tool<INPUT, OUTPUT, CONTEXT>['onInputDelta'];
     onInputAvailable?: Tool<INPUT, OUTPUT, CONTEXT>['onInputAvailable'];
   }): ProviderExecutedTool<INPUT, OUTPUT, CONTEXT> =>
-    tool({
+    ({
       type: 'provider',
       isProviderExecuted: true,
       id,
