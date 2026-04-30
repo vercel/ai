@@ -1,4 +1,4 @@
-import {
+import type {
   LanguageModelV2,
   LanguageModelV2Content,
   LanguageModelV2FunctionTool,
@@ -13,9 +13,10 @@ import {
 import fs from 'node:fs';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { OpenAIResponsesLanguageModel } from './openai-responses-language-model';
+import type {
+  OpenAIResponsesProviderOptions} from './openai-responses-options';
 import {
   openaiResponsesModelIds,
-  OpenAIResponsesProviderOptions,
   openaiResponsesReasoningModelIds,
 } from './openai-responses-options';
 

@@ -1,9 +1,11 @@
-import { GoogleErrorData, google as provider } from '@ai-sdk/google';
-import { APICallError, ImageModelV2, LanguageModelV2 } from '@ai-sdk/provider';
+import type { GoogleErrorData} from '@ai-sdk/google';
+import { google as provider } from '@ai-sdk/google';
+import type { APICallError, ImageModelV2, LanguageModelV2 } from '@ai-sdk/provider';
 import 'dotenv/config';
 import { expect } from 'vitest';
+import type {
+  ModelWithCapabilities} from './feature-test-suite';
 import {
-  ModelWithCapabilities,
   createEmbeddingModelWithCapabilities,
   createFeatureTestSuite,
   createLanguageModelWithCapabilities,

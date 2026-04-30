@@ -1,9 +1,10 @@
-import {
+import type {
   LanguageModelV2CallWarning,
-  LanguageModelV2Prompt,
+  LanguageModelV2Prompt} from '@ai-sdk/provider';
+import {
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import { CohereAssistantMessage, CohereChatPrompt } from './cohere-chat-prompt';
+import type { CohereAssistantMessage, CohereChatPrompt } from './cohere-chat-prompt';
 
 export function convertToCohereChatPrompt(prompt: LanguageModelV2Prompt): {
   messages: CohereChatPrompt;

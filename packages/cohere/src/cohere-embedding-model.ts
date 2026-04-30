@@ -1,17 +1,20 @@
+import type {
+  EmbeddingModelV2} from '@ai-sdk/provider';
 import {
-  EmbeddingModelV2,
   TooManyEmbeddingValuesForCallError,
 } from '@ai-sdk/provider';
+import type {
+  FetchFunction} from '@ai-sdk/provider-utils';
 import {
   combineHeaders,
   createJsonResponseHandler,
-  FetchFunction,
   parseProviderOptions,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import type {
+  CohereEmbeddingModelId} from './cohere-embedding-options';
 import {
-  CohereEmbeddingModelId,
   cohereEmbeddingOptions,
 } from './cohere-embedding-options';
 import { cohereFailedResponseHandler } from './cohere-error';

@@ -1,10 +1,11 @@
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import type { OpenAICompatibleProvider } from '@ai-sdk/openai-compatible';
-import {
+import type {
   FetchFunction,
+  Resolvable} from '@ai-sdk/provider-utils';
+import {
   loadOptionalSetting,
   loadSetting,
-  Resolvable,
   withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
 import type { GoogleVertexMaasModelId } from './google-vertex-maas-options';

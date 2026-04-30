@@ -1,9 +1,10 @@
-import {
+import type {
   LanguageModelV2Prompt,
-  SharedV2ProviderMetadata,
+  SharedV2ProviderMetadata} from '@ai-sdk/provider';
+import {
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import { OpenAICompatibleChatPrompt } from './openai-compatible-api-types';
+import type { OpenAICompatibleChatPrompt } from './openai-compatible-api-types';
 import { convertToBase64 } from '@ai-sdk/provider-utils';
 
 function getOpenAIMetadata(message: {

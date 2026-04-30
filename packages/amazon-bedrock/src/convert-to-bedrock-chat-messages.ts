@@ -1,15 +1,13 @@
-import {
+import type {
   JSONObject,
   LanguageModelV2Message,
   LanguageModelV2Prompt,
-  SharedV2ProviderMetadata,
+  SharedV2ProviderMetadata} from '@ai-sdk/provider';
+import {
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { convertToBase64, parseProviderOptions } from '@ai-sdk/provider-utils';
-import {
-  BEDROCK_CACHE_POINT,
-  BEDROCK_DOCUMENT_MIME_TYPES,
-  BEDROCK_IMAGE_MIME_TYPES,
+import type {
   BedrockAssistantMessage,
   BedrockCachePoint,
   BedrockDocumentFormat,
@@ -18,7 +16,11 @@ import {
   BedrockImageMimeType,
   BedrockMessages,
   BedrockSystemMessages,
-  BedrockUserMessage,
+  BedrockUserMessage} from './bedrock-api-types';
+import {
+  BEDROCK_CACHE_POINT,
+  BEDROCK_DOCUMENT_MIME_TYPES,
+  BEDROCK_IMAGE_MIME_TYPES
 } from './bedrock-api-types';
 import { bedrockReasoningMetadataSchema } from './bedrock-chat-language-model';
 import { bedrockFilePartProviderOptions } from './bedrock-chat-options';

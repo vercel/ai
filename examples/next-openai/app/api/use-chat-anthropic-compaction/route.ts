@@ -1,10 +1,12 @@
-import { anthropic, AnthropicProviderOptions } from '@ai-sdk/anthropic';
+import type { AnthropicProviderOptions } from '@ai-sdk/anthropic';
+import { anthropic } from '@ai-sdk/anthropic';
+import type {
+  ModelMessage,
+  UIMessage} from 'ai';
 import {
   consumeStream,
   convertToModelMessages,
-  ModelMessage,
-  streamText,
-  UIMessage,
+  streamText
 } from 'ai';
 import { readFileSync } from 'fs';
 import { join } from 'path';

@@ -1,20 +1,22 @@
-import {
+import type {
   EmbeddingModelV2,
   LanguageModelV2,
-  NoSuchModelError,
-  ProviderV2,
-} from '@ai-sdk/provider';
+  ProviderV2} from '@ai-sdk/provider';
 import {
-  FetchFunction,
+  NoSuchModelError
+} from '@ai-sdk/provider';
+import type {
+  FetchFunction} from '@ai-sdk/provider-utils';
+import {
   generateId,
   loadApiKey,
   withoutTrailingSlash,
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
 import { CohereChatLanguageModel } from './cohere-chat-language-model';
-import { CohereChatModelId } from './cohere-chat-options';
+import type { CohereChatModelId } from './cohere-chat-options';
 import { CohereEmbeddingModel } from './cohere-embedding-model';
-import { CohereEmbeddingModelId } from './cohere-embedding-options';
+import type { CohereEmbeddingModelId } from './cohere-embedding-options';
 import { VERSION } from './version';
 
 export interface CohereProvider extends ProviderV2 {

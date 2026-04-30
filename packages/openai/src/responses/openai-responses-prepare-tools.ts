@@ -1,6 +1,7 @@
-import {
+import type {
   LanguageModelV2CallOptions,
-  LanguageModelV2CallWarning,
+  LanguageModelV2CallWarning} from '@ai-sdk/provider';
+import {
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { codeInterpreterArgsSchema } from '../tool/code-interpreter';
@@ -8,7 +9,7 @@ import { fileSearchArgsSchema } from '../tool/file-search';
 import { webSearchArgsSchema } from '../tool/web-search';
 import { webSearchPreviewArgsSchema } from '../tool/web-search-preview';
 import { imageGenerationArgsSchema } from '../tool/image-generation';
-import { OpenAIResponsesTool } from './openai-responses-api';
+import type { OpenAIResponsesTool } from './openai-responses-api';
 import { validateTypes } from '@ai-sdk/provider-utils';
 
 export async function prepareResponsesTools({

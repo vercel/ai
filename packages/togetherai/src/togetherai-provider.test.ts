@@ -3,9 +3,10 @@ import {
   OpenAICompatibleCompletionLanguageModel,
   OpenAICompatibleEmbeddingModel,
 } from '@ai-sdk/openai-compatible';
-import { LanguageModelV2, EmbeddingModelV2 } from '@ai-sdk/provider';
+import type { LanguageModelV2, EmbeddingModelV2 } from '@ai-sdk/provider';
 import { loadApiKey, withUserAgentSuffix } from '@ai-sdk/provider-utils';
-import { afterEach, beforeEach, describe, expect, it, Mock, vi } from 'vitest';
+import type { Mock} from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { TogetherAIImageModel } from './togetherai-image-model';
 import { createTogetherAI } from './togetherai-provider';
 

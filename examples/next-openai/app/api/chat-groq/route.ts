@@ -1,5 +1,6 @@
 import { groq } from '@ai-sdk/groq';
-import { convertToModelMessages, streamText, UIMessage } from 'ai';
+import type { UIMessage } from 'ai';
+import { convertToModelMessages, streamText } from 'ai';
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;

@@ -1,15 +1,17 @@
-import {
+import type {
   LanguageModelV2,
-  NoSuchModelError,
-  ProviderV2,
-} from '@ai-sdk/provider';
+  ProviderV2} from '@ai-sdk/provider';
 import {
-  FetchFunction,
+  NoSuchModelError
+} from '@ai-sdk/provider';
+import type {
+  FetchFunction} from '@ai-sdk/provider-utils';
+import {
   loadApiKey,
   withoutTrailingSlash,
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
-import { DeepSeekChatModelId } from './chat/deepseek-chat-options';
+import type { DeepSeekChatModelId } from './chat/deepseek-chat-options';
 import { DeepSeekChatLanguageModel } from './chat/deepseek-chat-language-model';
 import { VERSION } from './version';
 

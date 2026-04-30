@@ -1,5 +1,6 @@
 import { anthropic } from '@ai-sdk/anthropic';
-import { generateText, ModelMessage } from 'ai';
+import type { ModelMessage } from 'ai';
+import { generateText } from 'ai';
 import { run } from '../lib/run';
 
 const userPrompts = [

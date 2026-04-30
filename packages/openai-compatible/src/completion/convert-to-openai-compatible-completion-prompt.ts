@@ -1,6 +1,7 @@
+import type {
+  LanguageModelV2Prompt} from '@ai-sdk/provider';
 import {
   InvalidPromptError,
-  LanguageModelV2Prompt,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 

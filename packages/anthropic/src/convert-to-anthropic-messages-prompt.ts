@@ -1,9 +1,10 @@
-import {
+import type {
   LanguageModelV2CallWarning,
   LanguageModelV2DataContent,
   LanguageModelV2Message,
   LanguageModelV2Prompt,
-  SharedV2ProviderMetadata,
+  SharedV2ProviderMetadata} from '@ai-sdk/provider';
+import {
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
@@ -11,13 +12,14 @@ import {
   parseProviderOptions,
   validateTypes,
 } from '@ai-sdk/provider-utils';
-import {
+import type {
   AnthropicAssistantMessage,
   AnthropicMessagesPrompt,
-  anthropicReasoningMetadataSchema,
   AnthropicToolResultContent,
   AnthropicUserMessage,
-  AnthropicWebFetchToolResultContent,
+  AnthropicWebFetchToolResultContent} from './anthropic-messages-api';
+import {
+  anthropicReasoningMetadataSchema
 } from './anthropic-messages-api';
 import { anthropicFilePartProviderOptions } from './anthropic-messages-options';
 import { CacheControlValidator } from './get-cache-control';

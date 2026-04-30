@@ -1,4 +1,4 @@
-import {
+import type {
   TranscriptionModelV2,
   TranscriptionModelV2CallWarning,
 } from '@ai-sdk/provider';
@@ -10,10 +10,10 @@ import {
   postToApi,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import { DeepgramConfig } from './deepgram-config';
+import type { DeepgramConfig } from './deepgram-config';
 import { deepgramFailedResponseHandler } from './deepgram-error';
-import { DeepgramTranscriptionModelId } from './deepgram-transcription-options';
-import { DeepgramTranscriptionAPITypes } from './deepgram-api-types';
+import type { DeepgramTranscriptionModelId } from './deepgram-transcription-options';
+import type { DeepgramTranscriptionAPITypes } from './deepgram-api-types';
 
 // https://developers.deepgram.com/docs/pre-recorded-audio#results
 const deepgramProviderOptionsSchema = z.object({

@@ -1,4 +1,5 @@
-import { google, GoogleGenerativeAIImageProviderOptions } from '@ai-sdk/google';
+import type { GoogleGenerativeAIImageProviderOptions } from '@ai-sdk/google';
+import { google } from '@ai-sdk/google';
 import { experimental_generateImage as generateImage } from 'ai';
 import { presentImages } from '../lib/present-image';
 import 'dotenv/config';

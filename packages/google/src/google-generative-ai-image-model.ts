@@ -1,4 +1,4 @@
-import { ImageModelV2, ImageModelV2CallWarning } from '@ai-sdk/provider';
+import type { ImageModelV2, ImageModelV2CallWarning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createJsonResponseHandler,
@@ -11,11 +11,11 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { googleFailedResponseHandler } from './google-error';
-import {
+import type {
   GoogleGenerativeAIImageModelId,
   GoogleGenerativeAIImageSettings,
 } from './google-generative-ai-image-settings';
-import { FetchFunction, Resolvable } from '@ai-sdk/provider-utils';
+import type { FetchFunction, Resolvable } from '@ai-sdk/provider-utils';
 
 interface GoogleGenerativeAIImageModelConfig {
   provider: string;

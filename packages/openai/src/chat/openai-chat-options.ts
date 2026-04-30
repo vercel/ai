@@ -1,5 +1,6 @@
+import type {
+  InferValidator} from '@ai-sdk/provider-utils';
 import {
-  InferValidator,
   lazyValidator,
   zodSchema,
 } from '@ai-sdk/provider-utils';

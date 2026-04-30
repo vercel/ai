@@ -1,8 +1,9 @@
+import type {
+  LanguageModelV2Prompt} from '@ai-sdk/provider';
 import {
-  LanguageModelV2Prompt,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import { MistralPrompt } from './mistral-chat-prompt';
+import type { MistralPrompt } from './mistral-chat-prompt';
 import { convertToBase64 } from '@ai-sdk/provider-utils';
 
 export function convertToMistralChatMessages(

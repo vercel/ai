@@ -1,5 +1,4 @@
-import {
-  InvalidResponseDataError,
+import type {
   LanguageModelV2,
   LanguageModelV2CallOptions,
   LanguageModelV2CallWarning,
@@ -7,11 +6,14 @@ import {
   LanguageModelV2FinishReason,
   LanguageModelV2StreamPart,
   LanguageModelV2Usage,
-  SharedV2ProviderMetadata,
-} from '@ai-sdk/provider';
+  SharedV2ProviderMetadata} from '@ai-sdk/provider';
 import {
+  InvalidResponseDataError
+} from '@ai-sdk/provider';
+import type {
   FetchFunction,
-  ParseResult,
+  ParseResult} from '@ai-sdk/provider-utils';
+import {
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
@@ -25,13 +27,15 @@ import { getOpenAILanguageModelCapabilities } from '../openai-language-model-cap
 import { convertToOpenAIChatMessages } from './convert-to-openai-chat-messages';
 import { getResponseMetadata } from './get-response-metadata';
 import { mapOpenAIFinishReason } from './map-openai-finish-reason';
+import type {
+  OpenAIChatChunk} from './openai-chat-api';
 import {
-  OpenAIChatChunk,
   openaiChatChunkSchema,
   openaiChatResponseSchema,
 } from './openai-chat-api';
+import type {
+  OpenAIChatModelId} from './openai-chat-options';
 import {
-  OpenAIChatModelId,
   openaiChatLanguageModelOptions,
 } from './openai-chat-options';
 import { prepareChatTools } from './openai-chat-prepare-tools';

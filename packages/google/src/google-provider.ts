@@ -1,11 +1,12 @@
-import {
+import type {
   EmbeddingModelV2,
   LanguageModelV2,
   ProviderV2,
   ImageModelV2,
 } from '@ai-sdk/provider';
+import type {
+  FetchFunction} from '@ai-sdk/provider-utils';
 import {
-  FetchFunction,
   generateId,
   loadApiKey,
   withoutTrailingSlash,
@@ -13,12 +14,12 @@ import {
 } from '@ai-sdk/provider-utils';
 import { VERSION } from './version';
 import { GoogleGenerativeAIEmbeddingModel } from './google-generative-ai-embedding-model';
-import { GoogleGenerativeAIEmbeddingModelId } from './google-generative-ai-embedding-options';
+import type { GoogleGenerativeAIEmbeddingModelId } from './google-generative-ai-embedding-options';
 import { GoogleGenerativeAILanguageModel } from './google-generative-ai-language-model';
-import { GoogleGenerativeAIModelId } from './google-generative-ai-options';
+import type { GoogleGenerativeAIModelId } from './google-generative-ai-options';
 import { googleTools } from './google-tools';
 
-import {
+import type {
   GoogleGenerativeAIImageSettings,
   GoogleGenerativeAIImageModelId,
 } from './google-generative-ai-image-settings';

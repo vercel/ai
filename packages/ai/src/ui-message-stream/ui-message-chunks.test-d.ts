@@ -1,5 +1,6 @@
 import { describe, expectTypeOf, it } from 'vitest';
-import { UIMessageChunk, uiMessageChunkSchema } from './ui-message-chunks';
+import type { UIMessageChunk} from './ui-message-chunks';
+import { uiMessageChunkSchema } from './ui-message-chunks';
 import { validateTypes } from '@ai-sdk/provider-utils';
 
 describe('UI message chunks type', () => {

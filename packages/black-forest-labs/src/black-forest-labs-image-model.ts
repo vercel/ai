@@ -1,7 +1,7 @@
 import type { ImageModelV2, ImageModelV2CallWarning } from '@ai-sdk/provider';
-import type { InferValidator, Resolvable } from '@ai-sdk/provider-utils';
+import type { InferValidator, Resolvable ,
+  FetchFunction} from '@ai-sdk/provider-utils';
 import {
-  FetchFunction,
   combineHeaders,
   createBinaryResponseHandler,
   createJsonErrorResponseHandler,
@@ -17,7 +17,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import type { BlackForestLabsAspectRatio } from './black-forest-labs-image-settings';
-import { BlackForestLabsImageModelId } from './black-forest-labs-image-settings';
+import type { BlackForestLabsImageModelId } from './black-forest-labs-image-settings';
 
 const DEFAULT_POLL_INTERVAL_MILLIS = 500;
 const DEFAULT_POLL_TIMEOUT_MILLIS = 60000;

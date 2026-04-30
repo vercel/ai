@@ -1,13 +1,14 @@
+import type {
+  IdGenerator} from '@ai-sdk/provider-utils';
 import {
   generateId as generateIdFunc,
-  getErrorMessage,
-  IdGenerator,
+  getErrorMessage
 } from '@ai-sdk/provider-utils';
-import { UIMessage } from '../ui/ui-messages';
+import type { UIMessage } from '../ui/ui-messages';
 import { handleUIMessageStreamFinish } from './handle-ui-message-stream-finish';
-import { InferUIMessageChunk } from './ui-message-chunks';
-import { UIMessageStreamOnFinishCallback } from './ui-message-stream-on-finish-callback';
-import { UIMessageStreamWriter } from './ui-message-stream-writer';
+import type { InferUIMessageChunk } from './ui-message-chunks';
+import type { UIMessageStreamOnFinishCallback } from './ui-message-stream-on-finish-callback';
+import type { UIMessageStreamWriter } from './ui-message-stream-writer';
 
 export function createUIMessageStream<UI_MESSAGE extends UIMessage>({
   execute,

@@ -1,6 +1,7 @@
-import {
+import type {
   AbstractChat,
-  ChatInit,
+  ChatInit} from 'ai';
+import {
   type CreateUIMessage,
   type UIMessage,
 } from 'ai';

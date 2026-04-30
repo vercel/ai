@@ -1,4 +1,4 @@
-import {
+import type {
   TranscriptionModelV2,
   TranscriptionModelV2CallWarning,
 } from '@ai-sdk/provider';
@@ -11,10 +11,10 @@ import {
   postFormDataToApi,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import { GroqConfig } from './groq-config';
+import type { GroqConfig } from './groq-config';
 import { groqFailedResponseHandler } from './groq-error';
-import { GroqTranscriptionModelId } from './groq-transcription-options';
-import { GroqTranscriptionAPITypes } from './groq-api-types';
+import type { GroqTranscriptionModelId } from './groq-transcription-options';
+import type { GroqTranscriptionAPITypes } from './groq-api-types';
 
 // https://console.groq.com/docs/speech-to-text
 const groqProviderOptionsSchema = z.object({

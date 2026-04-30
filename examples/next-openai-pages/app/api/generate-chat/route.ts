@@ -1,4 +1,5 @@
-import { ModelMessage, generateText } from 'ai';
+import type { ModelMessage} from 'ai';
+import { generateText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
 export async function POST(req: Request) {

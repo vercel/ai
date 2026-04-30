@@ -1,17 +1,19 @@
-import {
+import type {
   LanguageModelV2,
-  NoSuchModelError,
-  ProviderV2,
-} from '@ai-sdk/provider';
+  ProviderV2} from '@ai-sdk/provider';
 import {
-  FetchFunction,
+  NoSuchModelError
+} from '@ai-sdk/provider';
+import type {
+  FetchFunction} from '@ai-sdk/provider-utils';
+import {
   generateId,
   loadApiKey,
   withoutTrailingSlash,
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
 import { PerplexityLanguageModel } from './perplexity-language-model';
-import { PerplexityLanguageModelId } from './perplexity-language-model-options';
+import type { PerplexityLanguageModelId } from './perplexity-language-model-options';
 import { VERSION } from './version';
 
 export interface PerplexityProvider extends ProviderV2 {

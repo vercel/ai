@@ -1,6 +1,7 @@
-import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
+import type { Mock } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { createFireworks } from './fireworks-provider';
-import { LanguageModelV2, EmbeddingModelV2 } from '@ai-sdk/provider';
+import type { LanguageModelV2, EmbeddingModelV2 } from '@ai-sdk/provider';
 import { loadApiKey } from '@ai-sdk/provider-utils';
 import {
   OpenAICompatibleChatLanguageModel,

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { LanguageModelV2CallWarning } from '@ai-sdk/provider';
+import type { LanguageModelV2CallWarning } from '@ai-sdk/provider';
 import { convertToAnthropicMessagesPrompt } from './convert-to-anthropic-messages-prompt';
 import { CacheControlValidator } from './get-cache-control';
 

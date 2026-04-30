@@ -1,20 +1,22 @@
-import {
-  APICallError,
+import type {
   LanguageModelV2,
   LanguageModelV2CallWarning,
   LanguageModelV2Content,
   LanguageModelV2FinishReason,
   LanguageModelV2StreamPart,
-  LanguageModelV2Usage,
+  LanguageModelV2Usage} from '@ai-sdk/provider';
+import {
+  APICallError
 } from '@ai-sdk/provider';
+import type {
+  FetchFunction,
+  ParseResult} from '@ai-sdk/provider-utils';
 import {
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   extractResponseHeaders,
-  FetchFunction,
   parseProviderOptions,
-  ParseResult,
   postJsonToApi,
   safeParseJSON,
 } from '@ai-sdk/provider-utils';
@@ -23,7 +25,8 @@ import { convertXaiChatUsage } from './convert-xai-chat-usage';
 import { convertToXaiChatMessages } from './convert-to-xai-chat-messages';
 import { getResponseMetadata } from './get-response-metadata';
 import { mapXaiFinishReason } from './map-xai-finish-reason';
-import { XaiChatModelId, xaiProviderOptions } from './xai-chat-options';
+import type { XaiChatModelId} from './xai-chat-options';
+import { xaiProviderOptions } from './xai-chat-options';
 import { xaiFailedResponseHandler } from './xai-error';
 import { prepareTools } from './xai-prepare-tools';
 

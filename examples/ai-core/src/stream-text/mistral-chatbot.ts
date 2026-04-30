@@ -1,5 +1,6 @@
 import { mistral } from '@ai-sdk/mistral';
-import { stepCountIs, ModelMessage, streamText, tool } from 'ai';
+import type { ModelMessage} from 'ai';
+import { stepCountIs, streamText, tool } from 'ai';
 import 'dotenv/config';
 import * as readline from 'node:readline/promises';
 import { z } from 'zod';

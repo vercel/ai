@@ -1,11 +1,13 @@
-import {
+import type {
   LanguageModelV2,
-  NoSuchModelError,
-  ProviderV2,
-} from '@ai-sdk/provider';
+  ProviderV2} from '@ai-sdk/provider';
 import {
+  NoSuchModelError
+} from '@ai-sdk/provider';
+import type {
   FetchFunction,
-  Resolvable,
+  Resolvable} from '@ai-sdk/provider-utils';
+import {
   loadOptionalSetting,
   withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
@@ -13,7 +15,7 @@ import {
   anthropicTools,
   AnthropicMessagesLanguageModel,
 } from '@ai-sdk/anthropic/internal';
-import { GoogleVertexAnthropicMessagesModelId } from './google-vertex-anthropic-messages-options';
+import type { GoogleVertexAnthropicMessagesModelId } from './google-vertex-anthropic-messages-options';
 export interface GoogleVertexAnthropicProvider extends ProviderV2 {
   /**
 Creates a model for text generation.

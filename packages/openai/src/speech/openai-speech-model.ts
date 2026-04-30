@@ -1,16 +1,17 @@
-import { SpeechModelV2, SpeechModelV2CallWarning } from '@ai-sdk/provider';
+import type { SpeechModelV2, SpeechModelV2CallWarning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createBinaryResponseHandler,
   parseProviderOptions,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
-import { OpenAIConfig } from '../openai-config';
+import type { OpenAIConfig } from '../openai-config';
 import { openaiFailedResponseHandler } from '../openai-error';
-import { OpenAISpeechAPITypes } from './openai-speech-api';
+import type { OpenAISpeechAPITypes } from './openai-speech-api';
+import type {
+  OpenAISpeechModelId} from './openai-speech-options';
 import {
-  openaiSpeechProviderOptionsSchema,
-  OpenAISpeechModelId,
+  openaiSpeechProviderOptionsSchema
 } from './openai-speech-options';
 
 interface OpenAISpeechModelConfig extends OpenAIConfig {

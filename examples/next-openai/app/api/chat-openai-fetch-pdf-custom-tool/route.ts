@@ -1,12 +1,13 @@
 import { fetchPdfTool } from '@/tool/fetch-pdf-tool';
 import { openai } from '@ai-sdk/openai';
-import {
-  convertToModelMessages,
+import type {
   InferUITools,
-  streamText,
   ToolSet,
   UIDataTypes,
-  UIMessage,
+  UIMessage} from 'ai';
+import {
+  convertToModelMessages,
+  streamText,
   validateUIMessages,
 } from 'ai';
 

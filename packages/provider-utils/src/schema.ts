@@ -1,7 +1,8 @@
-import { JSONSchema7 } from '@ai-sdk/provider';
-import * as z3 from 'zod/v3';
-import * as z4 from 'zod/v4';
-import { Validator, validatorSymbol, type ValidationResult } from './validator';
+import type { JSONSchema7 } from '@ai-sdk/provider';
+import type * as z3 from 'zod/v3';
+import type * as z4 from 'zod/v4';
+import type { Validator} from './validator';
+import { validatorSymbol, type ValidationResult } from './validator';
 import { zodSchema } from './zod-schema';
 
 /**

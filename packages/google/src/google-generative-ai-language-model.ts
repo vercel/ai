@@ -1,4 +1,4 @@
-import {
+import type {
   LanguageModelV2,
   LanguageModelV2CallWarning,
   LanguageModelV2Content,
@@ -8,11 +8,12 @@ import {
   LanguageModelV2Usage,
   SharedV2ProviderMetadata,
 } from '@ai-sdk/provider';
-import {
+import type {
   FetchFunction,
   InferValidator,
   ParseResult,
-  Resolvable,
+  Resolvable} from '@ai-sdk/provider-utils';
+import {
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
@@ -28,9 +29,10 @@ import { convertJSONSchemaToOpenAPISchema } from './convert-json-schema-to-opena
 import { convertToGoogleGenerativeAIMessages } from './convert-to-google-generative-ai-messages';
 import { getModelPath } from './get-model-path';
 import { googleFailedResponseHandler } from './google-error';
-import { GoogleGenerativeAIContentPart } from './google-generative-ai-prompt';
+import type { GoogleGenerativeAIContentPart } from './google-generative-ai-prompt';
+import type {
+  GoogleGenerativeAIModelId} from './google-generative-ai-options';
 import {
-  GoogleGenerativeAIModelId,
   googleGenerativeAIProviderOptions,
   VertexServiceTierMap,
 } from './google-generative-ai-options';

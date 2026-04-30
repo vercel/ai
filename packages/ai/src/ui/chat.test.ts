@@ -3,9 +3,10 @@ import {
   TestResponseController,
 } from '@ai-sdk/test-server/with-vitest';
 import { createResolvablePromise } from '../util/create-resolvable-promise';
-import { AbstractChat, ChatInit, ChatState, ChatStatus } from './chat';
-import { UIMessage } from './ui-messages';
-import { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
+import type { ChatInit, ChatState, ChatStatus } from './chat';
+import { AbstractChat } from './chat';
+import type { UIMessage } from './ui-messages';
+import type { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
 import { DefaultChatTransport } from './default-chat-transport';
 import { lastAssistantMessageIsCompleteWithToolCalls } from './last-assistant-message-is-complete-with-tool-calls';
 import { describe, it, expect, beforeEach } from 'vitest';

@@ -1,10 +1,11 @@
-import {
+import type {
   LanguageModelV2CallOptions,
-  LanguageModelV2CallWarning,
+  LanguageModelV2CallWarning} from '@ai-sdk/provider';
+import {
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { convertJSONSchemaToOpenAPISchema } from './convert-json-schema-to-openapi-schema';
-import { GoogleGenerativeAIModelId } from './google-generative-ai-options';
+import type { GoogleGenerativeAIModelId } from './google-generative-ai-options';
 
 export function prepareTools({
   tools,

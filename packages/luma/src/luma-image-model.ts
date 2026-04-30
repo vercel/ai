@@ -1,10 +1,12 @@
-import {
+import type {
   ImageModelV2,
-  ImageModelV2CallWarning,
+  ImageModelV2CallWarning} from '@ai-sdk/provider';
+import {
   InvalidResponseDataError,
 } from '@ai-sdk/provider';
+import type {
+  FetchFunction} from '@ai-sdk/provider-utils';
 import {
-  FetchFunction,
   combineHeaders,
   createBinaryResponseHandler,
   createJsonResponseHandler,
@@ -14,7 +16,7 @@ import {
   getFromApi,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
-import { LumaImageSettings } from './luma-image-settings';
+import type { LumaImageSettings } from './luma-image-settings';
 import { z } from 'zod/v4';
 
 const DEFAULT_POLL_INTERVAL_MILLIS = 500;

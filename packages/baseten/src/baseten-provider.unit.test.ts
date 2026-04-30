@@ -1,4 +1,5 @@
-import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
+import type { Mock } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { createBaseten } from './baseten-provider';
 import { NoSuchModelError } from '@ai-sdk/provider';
 import { loadApiKey } from '@ai-sdk/provider-utils';

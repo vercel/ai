@@ -1,4 +1,4 @@
-import {
+import type {
   LanguageModelV2Message,
   LanguageModelV2Prompt,
 } from '@ai-sdk/provider';

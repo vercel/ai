@@ -1,4 +1,5 @@
-import { AbstractChat, ChatInit, ChatState, ChatStatus, UIMessage } from 'ai';
+import type { ChatInit, ChatState, ChatStatus, UIMessage } from 'ai';
+import { AbstractChat } from 'ai';
 import { throttle } from './throttle';
 
 class ReactChatState<

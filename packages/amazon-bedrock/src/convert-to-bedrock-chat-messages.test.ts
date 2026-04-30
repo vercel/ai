@@ -1,4 +1,4 @@
-import { BedrockReasoningMetadata } from './bedrock-chat-language-model';
+import type { BedrockReasoningMetadata } from './bedrock-chat-language-model';
 import { convertToBedrockChatMessages } from './convert-to-bedrock-chat-messages';
 import { describe, it, expect } from 'vitest';
 

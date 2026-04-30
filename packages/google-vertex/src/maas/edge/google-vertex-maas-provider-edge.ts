@@ -1,12 +1,15 @@
-import { FetchFunction, resolve } from '@ai-sdk/provider-utils';
+import type { FetchFunction} from '@ai-sdk/provider-utils';
+import { resolve } from '@ai-sdk/provider-utils';
+import type {
+  GoogleCredentials} from '../../edge/google-vertex-auth-edge';
 import {
-  generateAuthToken,
-  GoogleCredentials,
+  generateAuthToken
 } from '../../edge/google-vertex-auth-edge';
-import {
-  createVertexMaas as createVertexMaasOriginal,
+import type {
   GoogleVertexMaasProvider,
-  GoogleVertexMaasProviderSettings as GoogleVertexMaasProviderSettingsOriginal,
+  GoogleVertexMaasProviderSettings as GoogleVertexMaasProviderSettingsOriginal} from '../google-vertex-maas-provider';
+import {
+  createVertexMaas as createVertexMaasOriginal
 } from '../google-vertex-maas-provider';
 
 export type { GoogleVertexMaasProvider };

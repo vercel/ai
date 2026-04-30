@@ -1,7 +1,8 @@
-import {
+import type {
   TranscriptionModelV2,
-  TranscriptionModelV2CallOptions,
-  TranscriptionModelV2CallWarning,
+  TranscriptionModelV2CallWarning} from '@ai-sdk/provider';
+import {
+  TranscriptionModelV2CallOptions
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -12,10 +13,10 @@ import {
   postFormDataToApi,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import { ElevenLabsConfig } from './elevenlabs-config';
+import type { ElevenLabsConfig } from './elevenlabs-config';
 import { elevenlabsFailedResponseHandler } from './elevenlabs-error';
-import { ElevenLabsTranscriptionModelId } from './elevenlabs-transcription-options';
-import { ElevenLabsTranscriptionAPITypes } from './elevenlabs-api-types';
+import type { ElevenLabsTranscriptionModelId } from './elevenlabs-transcription-options';
+import type { ElevenLabsTranscriptionAPITypes } from './elevenlabs-api-types';
 
 // https://elevenlabs.io/docs/api-reference/speech-to-text/convert
 const elevenLabsProviderOptionsSchema = z.object({

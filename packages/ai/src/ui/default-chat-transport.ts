@@ -1,13 +1,16 @@
-import { parseJsonEventStream, ParseResult } from '@ai-sdk/provider-utils';
+import type { ParseResult } from '@ai-sdk/provider-utils';
+import { parseJsonEventStream } from '@ai-sdk/provider-utils';
+import type {
+  UIMessageChunk} from '../ui-message-stream/ui-message-chunks';
 import {
-  UIMessageChunk,
   uiMessageChunkSchema,
 } from '../ui-message-stream/ui-message-chunks';
+import type {
+  HttpChatTransportInitOptions} from './http-chat-transport';
 import {
-  HttpChatTransport,
-  HttpChatTransportInitOptions,
+  HttpChatTransport
 } from './http-chat-transport';
-import { UIMessage } from './ui-messages';
+import type { UIMessage } from './ui-messages';
 
 export class DefaultChatTransport<
   UI_MESSAGE extends UIMessage,

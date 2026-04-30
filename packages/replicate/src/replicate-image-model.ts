@@ -1,7 +1,7 @@
 import type { ImageModelV2, ImageModelV2CallWarning } from '@ai-sdk/provider';
-import type { Resolvable } from '@ai-sdk/provider-utils';
+import type { Resolvable ,
+  FetchFunction} from '@ai-sdk/provider-utils';
 import {
-  FetchFunction,
   combineHeaders,
   createBinaryResponseHandler,
   createJsonResponseHandler,
@@ -11,7 +11,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { replicateFailedResponseHandler } from './replicate-error';
-import { ReplicateImageModelId } from './replicate-image-settings';
+import type { ReplicateImageModelId } from './replicate-image-settings';
 
 interface ReplicateImageModelConfig {
   provider: string;

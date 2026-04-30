@@ -1,4 +1,4 @@
-import {
+import type {
   TranscriptionModelV2,
   TranscriptionModelV2CallWarning,
 } from '@ai-sdk/provider';
@@ -11,10 +11,10 @@ import {
   postToApi,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import { AssemblyAIConfig } from './assemblyai-config';
+import type { AssemblyAIConfig } from './assemblyai-config';
 import { assemblyaiFailedResponseHandler } from './assemblyai-error';
-import { AssemblyAITranscriptionModelId } from './assemblyai-transcription-settings';
-import { AssemblyAITranscriptionAPITypes } from './assemblyai-api-types';
+import type { AssemblyAITranscriptionModelId } from './assemblyai-transcription-settings';
+import type { AssemblyAITranscriptionAPITypes } from './assemblyai-api-types';
 
 // https://www.assemblyai.com/docs/api-reference/transcripts/submit
 const assemblyaiProviderOptionsSchema = z.object({

@@ -1,28 +1,30 @@
-import {
+import type {
   LanguageModelV2FilePart,
   LanguageModelV2Message,
   LanguageModelV2Prompt,
   LanguageModelV2TextPart,
 } from '@ai-sdk/provider';
-import {
+import type {
   DataContent,
   FilePart,
   ImagePart,
-  isUrlSupported,
   ModelMessage,
-  TextPart,
+  TextPart} from '@ai-sdk/provider-utils';
+import {
+  isUrlSupported
 } from '@ai-sdk/provider-utils';
 import {
   detectMediaType,
   imageMediaTypeSignatures,
 } from '../util/detect-media-type';
+import type {
+  DownloadFunction} from '../util/download/download-function';
 import {
-  createDefaultDownloadFunction,
-  DownloadFunction,
+  createDefaultDownloadFunction
 } from '../util/download/download-function';
 import { convertToLanguageModelV2DataContent } from './data-content';
 import { InvalidMessageRoleError } from './invalid-message-role-error';
-import { StandardizedPrompt } from './standardize-prompt';
+import type { StandardizedPrompt } from './standardize-prompt';
 
 export async function convertToLanguageModelPrompt({
   prompt,

@@ -1,4 +1,5 @@
-import { moonshotai, MoonshotAIProviderOptions } from '@ai-sdk/moonshotai';
+import type { MoonshotAIProviderOptions } from '@ai-sdk/moonshotai';
+import { moonshotai } from '@ai-sdk/moonshotai';
 import { generateText } from 'ai';
 import { run } from '../lib/run';
 

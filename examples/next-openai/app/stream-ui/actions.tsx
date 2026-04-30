@@ -1,7 +1,9 @@
 import { openai } from '@ai-sdk/openai';
-import { ModelMessage, generateId } from 'ai';
+import type { ModelMessage} from 'ai';
+import { generateId } from 'ai';
+import type {
+  createAI} from '@ai-sdk/rsc';
 import {
-  createAI,
   createStreamableValue,
   getMutableAIState as $getMutableAIState,
   streamUI,

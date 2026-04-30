@@ -1,5 +1,6 @@
 import { xai } from '@ai-sdk/xai';
-import { streamText, ModelMessage, ToolCallPart, ToolResultPart } from 'ai';
+import type { ModelMessage, ToolCallPart, ToolResultPart } from 'ai';
+import { streamText } from 'ai';
 import 'dotenv/config';
 import { weatherTool } from '../tools/weather-tool';
 

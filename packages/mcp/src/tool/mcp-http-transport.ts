@@ -4,15 +4,17 @@ import {
   getRuntimeEnvironmentUserAgent,
 } from '@ai-sdk/provider-utils';
 import { MCPClientError } from '../error/mcp-client-error';
+import type {
+  JSONRPCMessage} from './json-rpc-message';
 import {
-  JSONRPCMessage,
   JSONRPCMessageSchema,
   parseJSONRPCMessage,
 } from './json-rpc-message';
-import { MCPTransport } from './mcp-transport';
+import type { MCPTransport } from './mcp-transport';
 import { VERSION } from '../version';
+import type {
+  OAuthClientProvider} from './oauth';
 import {
-  OAuthClientProvider,
   extractResourceMetadataUrl,
   UnauthorizedError,
   auth,

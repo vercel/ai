@@ -1,4 +1,5 @@
-import { ProviderOptions, withUserAgentSuffix } from '@ai-sdk/provider-utils';
+import type { ProviderOptions} from '@ai-sdk/provider-utils';
+import { withUserAgentSuffix } from '@ai-sdk/provider-utils';
 import { prepareRetries } from '../util/prepare-retries';
 import { splitArray } from '../util/split-array';
 import { UnsupportedModelVersionError } from '../error/unsupported-model-version-error';
@@ -7,10 +8,10 @@ import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attr
 import { getTracer } from '../telemetry/get-tracer';
 import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
-import { TelemetrySettings } from '../telemetry/telemetry-settings';
-import { Embedding, EmbeddingModel, ProviderMetadata } from '../types';
+import type { TelemetrySettings } from '../telemetry/telemetry-settings';
+import type { Embedding, EmbeddingModel, ProviderMetadata } from '../types';
 import { resolveEmbeddingModel } from '../model/resolve-model';
-import { EmbedManyResult } from './embed-many-result';
+import type { EmbedManyResult } from './embed-many-result';
 import { VERSION } from '../version';
 
 /**

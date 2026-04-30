@@ -1,4 +1,4 @@
-import { API, FileInfo } from 'jscodeshift';
+import type { API, FileInfo } from 'jscodeshift';
 import jscodeshift from 'jscodeshift';
 import { join } from 'path';
 import { existsSync, readFileSync, writeFileSync } from 'fs';

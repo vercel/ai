@@ -3,9 +3,10 @@
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 import { useState, useEffect, useRef } from 'react';
-import {
+import type {
   MCPElicitationUIMessage,
-  ElicitationAction,
+  ElicitationAction} from '../api/mcp-elicitation/types';
+import {
   ElicitationDataTypes,
 } from '../api/mcp-elicitation/types';
 import { isDataUIPart } from 'ai';

@@ -1,19 +1,20 @@
-import { JSONValue, TranscriptionModelV2 } from '@ai-sdk/provider';
-import { ProviderOptions, withUserAgentSuffix } from '@ai-sdk/provider-utils';
+import type { JSONValue, TranscriptionModelV2 } from '@ai-sdk/provider';
+import type { ProviderOptions} from '@ai-sdk/provider-utils';
+import { withUserAgentSuffix } from '@ai-sdk/provider-utils';
 import { NoTranscriptGeneratedError } from '../error/no-transcript-generated-error';
 import { UnsupportedModelVersionError } from '../error/unsupported-model-version-error';
 import { logWarnings } from '../logger/log-warnings';
-import { DataContent } from '../prompt';
+import type { DataContent } from '../prompt';
 import { convertDataContentToUint8Array } from '../prompt/data-content';
-import { TranscriptionWarning } from '../types/transcription-model';
-import { TranscriptionModelResponseMetadata } from '../types/transcription-model-response-metadata';
+import type { TranscriptionWarning } from '../types/transcription-model';
+import type { TranscriptionModelResponseMetadata } from '../types/transcription-model-response-metadata';
 import {
   audioMediaTypeSignatures,
   detectMediaType,
 } from '../util/detect-media-type';
 import { createDownload } from '../util/download/create-download';
 import { prepareRetries } from '../util/prepare-retries';
-import { TranscriptionResult } from './transcribe-result';
+import type { TranscriptionResult } from './transcribe-result';
 import { VERSION } from '../version';
 /**
 Generates transcripts using a transcription model.

@@ -1,18 +1,20 @@
-import { ImageModelV2, ImageModelV2ProviderMetadata } from '@ai-sdk/provider';
-import { ProviderOptions, withUserAgentSuffix } from '@ai-sdk/provider-utils';
+import type { ImageModelV2, ImageModelV2ProviderMetadata } from '@ai-sdk/provider';
+import type { ProviderOptions} from '@ai-sdk/provider-utils';
+import { withUserAgentSuffix } from '@ai-sdk/provider-utils';
 import { NoImageGeneratedError } from '../error/no-image-generated-error';
 import {
   detectMediaType,
   imageMediaTypeSignatures,
 } from '../util/detect-media-type';
 import { prepareRetries } from '../util/prepare-retries';
+import type {
+  GeneratedFile} from '../generate-text/generated-file';
 import {
-  DefaultGeneratedFile,
-  GeneratedFile,
+  DefaultGeneratedFile
 } from '../generate-text/generated-file';
-import { ImageGenerationWarning } from '../types/image-model';
-import { ImageModelResponseMetadata } from '../types/image-model-response-metadata';
-import { GenerateImageResult } from './generate-image-result';
+import type { ImageGenerationWarning } from '../types/image-model';
+import type { ImageModelResponseMetadata } from '../types/image-model-response-metadata';
+import type { GenerateImageResult } from './generate-image-result';
 import { logWarnings } from '../logger/log-warnings';
 import { VERSION } from '../version';
 import { resolveImageModel } from '../model/resolve-model';

@@ -1,9 +1,10 @@
-import {
+import type {
   LanguageModelV2CallOptions,
-  LanguageModelV2CallWarning,
+  LanguageModelV2CallWarning} from '@ai-sdk/provider';
+import {
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import { XaiToolChoice } from './xai-chat-prompt';
+import type { XaiToolChoice } from './xai-chat-prompt';
 
 export function prepareTools({
   tools,

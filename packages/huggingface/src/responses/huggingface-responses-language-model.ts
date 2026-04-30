@@ -1,27 +1,29 @@
-import {
-  APICallError,
+import type {
   LanguageModelV2,
   LanguageModelV2CallWarning,
   LanguageModelV2Content,
   LanguageModelV2FinishReason,
   LanguageModelV2StreamPart,
-  LanguageModelV2Usage,
+  LanguageModelV2Usage} from '@ai-sdk/provider';
+import {
+  APICallError
 } from '@ai-sdk/provider';
+import type {
+  ParseResult} from '@ai-sdk/provider-utils';
 import {
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   generateId,
   parseProviderOptions,
-  ParseResult,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import { HuggingFaceConfig } from '../huggingface-config';
+import type { HuggingFaceConfig } from '../huggingface-config';
 import { huggingfaceFailedResponseHandler } from '../huggingface-error';
 import { convertToHuggingFaceResponsesMessages } from './convert-to-huggingface-responses-messages';
 import { mapHuggingFaceResponsesFinishReason } from './map-huggingface-responses-finish-reason';
-import { HuggingFaceResponsesModelId } from './huggingface-responses-settings';
+import type { HuggingFaceResponsesModelId } from './huggingface-responses-settings';
 import { prepareResponsesTools } from './huggingface-responses-prepare-tools';
 
 export class HuggingFaceResponsesLanguageModel implements LanguageModelV2 {

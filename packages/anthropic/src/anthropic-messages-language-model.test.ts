@@ -1,9 +1,10 @@
-import {
-  APICallError,
+import type {
   JSONValue,
   LanguageModelV2,
   LanguageModelV2Prompt,
-  LanguageModelV2StreamPart,
+  LanguageModelV2StreamPart} from '@ai-sdk/provider';
+import {
+  APICallError
 } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import {
@@ -12,9 +13,9 @@ import {
 } from '@ai-sdk/provider-utils/test';
 import fs from 'node:fs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { AnthropicProviderOptions } from './anthropic-messages-options';
+import type { AnthropicProviderOptions } from './anthropic-messages-options';
 import { createAnthropic } from './anthropic-provider';
-import { Citation } from './anthropic-messages-api';
+import type { Citation } from './anthropic-messages-api';
 
 vi.mock('./version', () => ({
   VERSION: '0.0.0-test',

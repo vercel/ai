@@ -1,12 +1,14 @@
-import { ImageModelV2, NoSuchModelError, ProviderV2 } from '@ai-sdk/provider';
+import type { ImageModelV2, ProviderV2 } from '@ai-sdk/provider';
+import { NoSuchModelError } from '@ai-sdk/provider';
+import type {
+  FetchFunction} from '@ai-sdk/provider-utils';
 import {
-  FetchFunction,
   loadApiKey,
   withoutTrailingSlash,
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
 import { LumaImageModel } from './luma-image-model';
-import { LumaImageModelId } from './luma-image-settings';
+import type { LumaImageModelId } from './luma-image-settings';
 import { VERSION } from './version';
 
 export interface LumaProviderSettings {

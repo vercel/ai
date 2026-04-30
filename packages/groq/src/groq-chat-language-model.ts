@@ -1,17 +1,19 @@
-import {
-  InvalidResponseDataError,
+import type {
   LanguageModelV2,
   LanguageModelV2CallWarning,
   LanguageModelV2Content,
   LanguageModelV2FinishReason,
-  LanguageModelV2Prompt,
   LanguageModelV2StreamPart,
   LanguageModelV2Usage,
-  SharedV2ProviderMetadata,
-} from '@ai-sdk/provider';
+  SharedV2ProviderMetadata} from '@ai-sdk/provider';
 import {
+  InvalidResponseDataError,
+  LanguageModelV2Prompt
+} from '@ai-sdk/provider';
+import type {
   FetchFunction,
-  ParseResult,
+  ParseResult} from '@ai-sdk/provider-utils';
+import {
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
@@ -23,7 +25,8 @@ import {
 import { z } from 'zod/v4';
 import { convertToGroqChatMessages } from './convert-to-groq-chat-messages';
 import { getResponseMetadata } from './get-response-metadata';
-import { GroqChatModelId, groqProviderOptions } from './groq-chat-options';
+import type { GroqChatModelId} from './groq-chat-options';
+import { groqProviderOptions } from './groq-chat-options';
 import { groqErrorDataSchema, groqFailedResponseHandler } from './groq-error';
 import { prepareTools } from './groq-prepare-tools';
 import { mapGroqFinishReason } from './map-groq-finish-reason';

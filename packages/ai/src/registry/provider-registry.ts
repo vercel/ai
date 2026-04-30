@@ -1,14 +1,15 @@
-import {
+import type {
   EmbeddingModelV2,
   ImageModelV2,
   LanguageModelV2,
-  NoSuchModelError,
   ProviderV2,
   SpeechModelV2,
-  TranscriptionModelV2,
+  TranscriptionModelV2} from '@ai-sdk/provider';
+import {
+  NoSuchModelError
 } from '@ai-sdk/provider';
 import { wrapLanguageModel } from '../middleware/wrap-language-model';
-import { LanguageModelMiddleware } from '../types';
+import type { LanguageModelMiddleware } from '../types';
 import { NoSuchProviderError } from './no-such-provider-error';
 
 type ExtractLiteralUnion<T> = T extends string

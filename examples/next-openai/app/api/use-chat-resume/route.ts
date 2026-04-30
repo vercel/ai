@@ -4,13 +4,14 @@ import {
   saveChat,
 } from '@/util/chat-store';
 import { openai } from '@ai-sdk/openai';
+import type {
+  UIMessage} from 'ai';
 import {
   convertToModelMessages,
   createUIMessageStream,
   generateId,
   JsonToSseTransformStream,
-  streamText,
-  UIMessage,
+  streamText
 } from 'ai';
 import { after } from 'next/server';
 import { createResumableStreamContext } from 'resumable-stream';

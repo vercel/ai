@@ -1,8 +1,9 @@
-import { NoSuchModelError, ProviderV2 } from '@ai-sdk/provider';
+import type { ProviderV2 } from '@ai-sdk/provider';
+import { NoSuchModelError } from '@ai-sdk/provider';
 import type { FetchFunction } from '@ai-sdk/provider-utils';
 import { loadApiKey, withUserAgentSuffix } from '@ai-sdk/provider-utils';
 import { ReplicateImageModel } from './replicate-image-model';
-import { ReplicateImageModelId } from './replicate-image-settings';
+import type { ReplicateImageModelId } from './replicate-image-settings';
 import { VERSION } from './version';
 
 export interface ReplicateProviderSettings {

@@ -1,4 +1,4 @@
-import {
+import type {
   LanguageModelV2,
   LanguageModelV2CallWarning,
   LanguageModelV2FinishReason,
@@ -6,9 +6,10 @@ import {
   LanguageModelV2Usage,
   SharedV2ProviderMetadata,
 } from '@ai-sdk/provider';
-import {
+import type {
   FetchFunction,
-  ParseResult,
+  ParseResult} from '@ai-sdk/provider-utils';
+import {
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
@@ -19,13 +20,15 @@ import { openaiFailedResponseHandler } from '../openai-error';
 import { convertToOpenAICompletionPrompt } from './convert-to-openai-completion-prompt';
 import { getResponseMetadata } from './get-response-metadata';
 import { mapOpenAIFinishReason } from './map-openai-finish-reason';
+import type {
+  OpenAICompletionChunk} from './openai-completion-api';
 import {
-  OpenAICompletionChunk,
   openaiCompletionChunkSchema,
   openaiCompletionResponseSchema,
 } from './openai-completion-api';
+import type {
+  OpenAICompletionModelId} from './openai-completion-options';
 import {
-  OpenAICompletionModelId,
   openaiCompletionProviderOptions,
 } from './openai-completion-options';
 

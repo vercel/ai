@@ -9,8 +9,9 @@ import {
 } from './gateway-model-not-found-error';
 import { GatewayInternalServerError } from './gateway-internal-server-error';
 import { GatewayResponseError } from './gateway-response-error';
+import type {
+  InferValidator} from '@ai-sdk/provider-utils';
 import {
-  InferValidator,
   lazyValidator,
   safeValidateTypes,
   validateTypes,

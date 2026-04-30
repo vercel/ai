@@ -1,5 +1,6 @@
+import type {
+  BlackForestLabsImageProviderOptions} from '@ai-sdk/black-forest-labs';
 import {
-  BlackForestLabsImageProviderOptions,
   blackForestLabs,
 } from '@ai-sdk/black-forest-labs';
 import { experimental_generateImage as generateImage } from 'ai';

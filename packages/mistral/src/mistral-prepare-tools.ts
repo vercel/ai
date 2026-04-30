@@ -1,9 +1,10 @@
-import {
+import type {
   LanguageModelV2CallOptions,
-  LanguageModelV2CallWarning,
+  LanguageModelV2CallWarning} from '@ai-sdk/provider';
+import {
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import { MistralToolChoice } from './mistral-chat-prompt';
+import type { MistralToolChoice } from './mistral-chat-prompt';
 
 export function prepareTools({
   tools,

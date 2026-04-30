@@ -1,16 +1,17 @@
 import { TypeValidationError } from '@ai-sdk/provider';
-import {
-  lazyValidator,
+import type {
   StandardSchemaV1,
   Tool,
+  Validator} from '@ai-sdk/provider-utils';
+import {
+  lazyValidator,
   validateTypes,
-  Validator,
   zodSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { InvalidArgumentError } from '../error';
 import { providerMetadataSchema } from '../types/provider-metadata';
-import {
+import type {
   DataUIPart,
   InferUIMessageData,
   InferUIMessageTools,

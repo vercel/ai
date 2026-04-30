@@ -6,7 +6,7 @@ import {
   DefaultChatTransport,
   lastAssistantMessageIsCompleteWithToolCalls,
 } from 'ai';
-import { UseChatToolsMessage } from '../api/use-chat-tools/route';
+import type { UseChatToolsMessage } from '../api/use-chat-tools/route';
 
 export default function Chat() {
   const { messages, sendMessage, addToolOutput, status } =

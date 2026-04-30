@@ -1,8 +1,10 @@
-import { AISDKError, LanguageModelV2DataContent } from '@ai-sdk/provider';
+import type { LanguageModelV2DataContent } from '@ai-sdk/provider';
+import { AISDKError } from '@ai-sdk/provider';
+import type {
+  DataContent} from '@ai-sdk/provider-utils';
 import {
   convertBase64ToUint8Array,
-  convertUint8ArrayToBase64,
-  DataContent,
+  convertUint8ArrayToBase64
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { InvalidDataContentError } from './invalid-data-content-error';

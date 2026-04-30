@@ -1,4 +1,4 @@
-import {
+import type {
   GroundingMetadataSchema,
   UrlContextMetadataSchema,
 } from './google-generative-ai-language-model';

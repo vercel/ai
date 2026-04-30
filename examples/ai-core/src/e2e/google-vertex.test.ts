@@ -1,16 +1,18 @@
 import { vertex as vertexNode } from '@ai-sdk/google-vertex';
 import { vertex as vertexEdge } from '@ai-sdk/google-vertex/edge';
-import { ImageModelV2, LanguageModelV2 } from '@ai-sdk/provider';
-import { APICallError, experimental_generateImage as generateImage } from 'ai';
+import type { ImageModelV2, LanguageModelV2 } from '@ai-sdk/provider';
+import type { APICallError} from 'ai';
+import { experimental_generateImage as generateImage } from 'ai';
 import 'dotenv/config';
 import { describe, expect, it, vi } from 'vitest';
+import type {
+  ModelWithCapabilities} from './feature-test-suite';
 import {
   createEmbeddingModelWithCapabilities,
   createFeatureTestSuite,
   createImageModelWithCapabilities,
   createLanguageModelWithCapabilities,
-  defaultChatModelCapabilities,
-  ModelWithCapabilities,
+  defaultChatModelCapabilities
 } from './feature-test-suite';
 import { wrapLanguageModel } from 'ai';
 import { defaultSettingsMiddleware } from 'ai';

@@ -1,13 +1,14 @@
-import {
+import type {
   LanguageModelV2,
   LanguageModelV2CallOptions,
   LanguageModelV2FunctionTool,
   LanguageModelV2ProviderDefinedTool,
 } from '@ai-sdk/provider';
+import type {
+  ModelMessage} from '@ai-sdk/provider-utils';
 import {
   dynamicTool,
   jsonSchema,
-  ModelMessage,
   tool,
 } from '@ai-sdk/provider-utils';
 import { mockId } from '@ai-sdk/provider-utils/test';
@@ -28,8 +29,8 @@ import * as logWarningsModule from '../logger/log-warnings';
 import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
 import { MockTracer } from '../test/mock-tracer';
 import { generateText } from './generate-text';
-import { GenerateTextResult } from './generate-text-result';
-import { StepResult } from './step-result';
+import type { GenerateTextResult } from './generate-text-result';
+import type { StepResult } from './step-result';
 import { stepCountIs } from './stop-condition';
 
 vi.mock('../version', () => {

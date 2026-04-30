@@ -1,4 +1,5 @@
-import { Attributes, Span, Tracer, SpanStatusCode } from '@opentelemetry/api';
+import type { Attributes, Span, Tracer} from '@opentelemetry/api';
+import { SpanStatusCode } from '@opentelemetry/api';
 
 export function recordSpan<T>({
   name,

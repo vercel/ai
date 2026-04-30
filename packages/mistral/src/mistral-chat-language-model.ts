@@ -1,4 +1,4 @@
-import {
+import type {
   LanguageModelV2,
   LanguageModelV2CallWarning,
   LanguageModelV2Content,
@@ -6,23 +6,25 @@ import {
   LanguageModelV2StreamPart,
   LanguageModelV2Usage,
 } from '@ai-sdk/provider';
+import type {
+  FetchFunction,
+  ParseResult} from '@ai-sdk/provider-utils';
 import {
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
-  FetchFunction,
   generateId,
   injectJsonInstructionIntoMessages,
   parseProviderOptions,
-  ParseResult,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { convertToMistralChatMessages } from './convert-to-mistral-chat-messages';
 import { getResponseMetadata } from './get-response-metadata';
 import { mapMistralFinishReason } from './map-mistral-finish-reason';
+import type {
+  MistralChatModelId} from './mistral-chat-options';
 import {
-  MistralChatModelId,
   mistralLanguageModelOptions,
 } from './mistral-chat-options';
 import { mistralFailedResponseHandler } from './mistral-error';

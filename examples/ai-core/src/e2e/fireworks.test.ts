@@ -1,7 +1,8 @@
 import 'dotenv/config';
 import { expect } from 'vitest';
-import { fireworks as provider, FireworksErrorData } from '@ai-sdk/fireworks';
-import { APICallError } from '@ai-sdk/provider';
+import type { FireworksErrorData } from '@ai-sdk/fireworks';
+import { fireworks as provider } from '@ai-sdk/fireworks';
+import type { APICallError } from '@ai-sdk/provider';
 import {
   createEmbeddingModelWithCapabilities,
   createFeatureTestSuite,

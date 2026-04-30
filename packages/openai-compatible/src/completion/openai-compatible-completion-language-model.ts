@@ -1,4 +1,4 @@
-import {
+import type {
   APICallError,
   LanguageModelV2,
   LanguageModelV2CallWarning,
@@ -7,27 +7,30 @@ import {
   LanguageModelV2StreamPart,
   LanguageModelV2Usage,
 } from '@ai-sdk/provider';
+import type {
+  FetchFunction,
+  ParseResult,
+  ResponseHandler} from '@ai-sdk/provider-utils';
 import {
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
-  FetchFunction,
   parseProviderOptions,
-  ParseResult,
-  postJsonToApi,
-  ResponseHandler,
+  postJsonToApi
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import type {
+  ProviderErrorStructure} from '../openai-compatible-error';
 import {
-  defaultOpenAICompatibleErrorStructure,
-  ProviderErrorStructure,
+  defaultOpenAICompatibleErrorStructure
 } from '../openai-compatible-error';
 import { convertToOpenAICompatibleCompletionPrompt } from './convert-to-openai-compatible-completion-prompt';
 import { getResponseMetadata } from './get-response-metadata';
 import { mapOpenAICompatibleFinishReason } from './map-openai-compatible-finish-reason';
+import type {
+  OpenAICompatibleCompletionModelId} from './openai-compatible-completion-options';
 import {
-  OpenAICompatibleCompletionModelId,
   openaiCompatibleCompletionProviderOptions,
 } from './openai-compatible-completion-options';
 

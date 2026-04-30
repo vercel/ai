@@ -1,9 +1,9 @@
-import { EmbeddingModelV2 } from '@ai-sdk/provider';
+import type { EmbeddingModelV2 } from '@ai-sdk/provider';
 import assert from 'node:assert';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { MockEmbeddingModelV2 } from '../test/mock-embedding-model-v2';
 import { MockTracer } from '../test/mock-tracer';
-import { Embedding, EmbeddingModelUsage } from '../types';
+import type { Embedding, EmbeddingModelUsage } from '../types';
 import { createResolvablePromise } from '../util/create-resolvable-promise';
 import { embedMany } from './embed-many';
 

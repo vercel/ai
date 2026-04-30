@@ -1,7 +1,7 @@
 import type { ImageModelV2, ImageModelV2CallWarning } from '@ai-sdk/provider';
-import type { Resolvable } from '@ai-sdk/provider-utils';
+import type { Resolvable ,
+  FetchFunction} from '@ai-sdk/provider-utils';
 import {
-  FetchFunction,
   combineHeaders,
   createBinaryResponseHandler,
   createJsonResponseHandler,
@@ -13,7 +13,7 @@ import {
   resolve,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import { FalImageModelId, FalImageSize } from './fal-image-settings';
+import type { FalImageModelId, FalImageSize } from './fal-image-settings';
 import { falImageProviderOptionsSchema } from './fal-image-options';
 
 interface FalImageModelConfig {

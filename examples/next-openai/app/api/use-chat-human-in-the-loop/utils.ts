@@ -1,13 +1,14 @@
-import {
-  convertToModelMessages,
+import type {
   Tool,
   ToolCallOptions,
   ToolSet,
-  UIMessageStreamWriter,
+  UIMessageStreamWriter} from 'ai';
+import {
+  convertToModelMessages,
   getToolName,
   isToolUIPart,
 } from 'ai';
-import { HumanInTheLoopUIMessage } from './types';
+import type { HumanInTheLoopUIMessage } from './types';
 
 // Approval string to be shared across frontend and backend
 export const APPROVAL = {

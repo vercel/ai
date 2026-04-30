@@ -2,17 +2,18 @@ import { z } from 'zod/v4';
 import { MCPClientError } from '../error/mcp-client-error';
 import { createMCPClient } from './mcp-client';
 import { MockMCPTransport } from './mock-mcp-transport';
-import {
+import type {
   CallToolResult,
   ListResourceTemplatesResult,
   ListResourcesResult,
   ReadResourceResult,
   ListPromptsResult,
   GetPromptResult,
-  Configuration,
+  Configuration} from './types';
+import {
   ElicitationRequestSchema,
 } from './types';
-import { JSONRPCRequest } from './json-rpc-message';
+import type { JSONRPCRequest } from './json-rpc-message';
 import {
   beforeEach,
   afterEach,

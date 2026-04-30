@@ -1,5 +1,4 @@
-import {
-  APICallError,
+import type {
   JSONObject,
   LanguageModelV2,
   LanguageModelV2CallWarning,
@@ -10,32 +9,37 @@ import {
   LanguageModelV2Source,
   LanguageModelV2StreamPart,
   LanguageModelV2Usage,
-  SharedV2ProviderMetadata,
+  SharedV2ProviderMetadata} from '@ai-sdk/provider';
+import {
+  APICallError
 } from '@ai-sdk/provider';
+import type {
+  FetchFunction,
+  InferValidator,
+  ParseResult,
+  Resolvable} from '@ai-sdk/provider-utils';
 import {
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
-  FetchFunction,
   generateId,
-  InferValidator,
   parseProviderOptions,
-  ParseResult,
   postJsonToApi,
-  Resolvable,
   resolve,
 } from '@ai-sdk/provider-utils';
 import { anthropicFailedResponseHandler } from './anthropic-error';
-import { AnthropicMessageMetadata } from './anthropic-message-metadata';
-import {
+import type { AnthropicMessageMetadata } from './anthropic-message-metadata';
+import type {
   AnthropicContainer,
-  anthropicMessagesChunkSchema,
-  anthropicMessagesResponseSchema,
   AnthropicReasoningMetadata,
-  Citation,
-} from './anthropic-messages-api';
+  Citation} from './anthropic-messages-api';
 import {
-  AnthropicMessagesModelId,
+  anthropicMessagesChunkSchema,
+  anthropicMessagesResponseSchema
+} from './anthropic-messages-api';
+import type {
+  AnthropicMessagesModelId} from './anthropic-messages-options';
+import {
   anthropicProviderOptions,
 } from './anthropic-messages-options';
 import { prepareTools } from './anthropic-prepare-tools';

@@ -7,15 +7,17 @@ import {
   createVertexAnthropic as createVertexAnthropicEdge,
   vertexAnthropic as vertexAnthropicEdge,
 } from '@ai-sdk/google-vertex/anthropic/edge';
-import { LanguageModelV2 } from '@ai-sdk/provider';
-import { APICallError, generateText, stepCountIs } from 'ai';
+import type { LanguageModelV2 } from '@ai-sdk/provider';
+import type { APICallError} from 'ai';
+import { generateText, stepCountIs } from 'ai';
 import 'dotenv/config';
 import fs from 'fs';
 import { describe, expect, it } from 'vitest';
+import type {
+  ModelWithCapabilities} from './feature-test-suite';
 import {
   createFeatureTestSuite,
-  createLanguageModelWithCapabilities,
-  ModelWithCapabilities,
+  createLanguageModelWithCapabilities
 } from './feature-test-suite';
 
 const RUNTIME_VARIANTS = {

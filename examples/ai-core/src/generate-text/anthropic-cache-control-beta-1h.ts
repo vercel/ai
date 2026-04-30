@@ -1,4 +1,5 @@
-import { anthropic, AnthropicProviderOptions } from '@ai-sdk/anthropic';
+import type { AnthropicProviderOptions } from '@ai-sdk/anthropic';
+import { anthropic } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 import 'dotenv/config';
 import fs from 'node:fs';

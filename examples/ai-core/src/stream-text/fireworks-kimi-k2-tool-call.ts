@@ -1,5 +1,6 @@
 import { fireworks } from '@ai-sdk/fireworks';
-import { streamText, ModelMessage, ToolCallPart, ToolResultPart } from 'ai';
+import type { ModelMessage, ToolCallPart, ToolResultPart } from 'ai';
+import { streamText } from 'ai';
 import 'dotenv/config';
 import { weatherTool } from '../tools/weather-tool';
 

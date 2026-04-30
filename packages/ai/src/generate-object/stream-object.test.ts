@@ -1,7 +1,8 @@
+import type {
+  LanguageModelV2CallWarning,
+  LanguageModelV2StreamPart} from '@ai-sdk/provider';
 import {
   JSONParseError,
-  LanguageModelV2CallWarning,
-  LanguageModelV2StreamPart,
   TypeValidationError,
 } from '@ai-sdk/provider';
 import { jsonSchema } from '@ai-sdk/provider-utils';
@@ -19,9 +20,9 @@ import * as logWarningsModule from '../logger/log-warnings';
 import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
 import { createMockServerResponse } from '../test/mock-server-response';
 import { MockTracer } from '../test/mock-tracer';
-import { AsyncIterableStream } from '../util/async-iterable-stream';
+import type { AsyncIterableStream } from '../util/async-iterable-stream';
 import { streamObject } from './stream-object';
-import { StreamObjectResult } from './stream-object-result';
+import type { StreamObjectResult } from './stream-object-result';
 
 const testUsage = {
   inputTokens: 3,

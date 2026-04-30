@@ -1,5 +1,5 @@
 import { EventEmitter } from 'node:events';
-import { ServerResponse } from 'node:http';
+import type { ServerResponse } from 'node:http';
 import { describe, it, expect } from 'vitest';
 import { writeToServerResponse } from './write-to-server-response';
 import { createMockServerResponse } from '../test/mock-server-response';

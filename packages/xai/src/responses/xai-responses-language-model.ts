@@ -1,4 +1,4 @@
-import {
+import type {
   LanguageModelV2,
   LanguageModelV2CallWarning,
   LanguageModelV2Content,
@@ -6,16 +6,17 @@ import {
   LanguageModelV2StreamPart,
   LanguageModelV2Usage,
 } from '@ai-sdk/provider';
+import type {
+  FetchFunction,
+  ParseResult} from '@ai-sdk/provider-utils';
 import {
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
-  FetchFunction,
   parseProviderOptions,
-  ParseResult,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
+import type { z } from 'zod/v4';
 import { convertXaiResponsesUsage } from './convert-xai-responses-usage';
 import { getResponseMetadata } from '../get-response-metadata';
 import {
@@ -23,8 +24,9 @@ import {
   xaiResponsesResponseSchema,
 } from './xai-responses-api';
 import { mapXaiResponsesFinishReason } from './map-xai-responses-finish-reason';
+import type {
+  XaiResponsesModelId} from './xai-responses-options';
 import {
-  XaiResponsesModelId,
   xaiResponsesProviderOptions,
 } from './xai-responses-options';
 import { xaiFailedResponseHandler } from '../xai-error';

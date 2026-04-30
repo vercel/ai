@@ -1,5 +1,4 @@
-import {
-  APICallError,
+import type {
   LanguageModelV2,
   LanguageModelV2CallWarning,
   LanguageModelV2Content,
@@ -7,41 +6,46 @@ import {
   LanguageModelV2ProviderDefinedTool,
   LanguageModelV2StreamPart,
   LanguageModelV2Usage,
-  SharedV2ProviderMetadata,
+  SharedV2ProviderMetadata} from '@ai-sdk/provider';
+import {
+  APICallError
 } from '@ai-sdk/provider';
+import type {
+  InferValidator,
+  ParseResult} from '@ai-sdk/provider-utils';
 import {
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   generateId,
-  InferValidator,
   parseProviderOptions,
-  ParseResult,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
-import { OpenAIConfig } from '../openai-config';
+import type { OpenAIConfig } from '../openai-config';
 import { openaiFailedResponseHandler } from '../openai-error';
-import {
+import type {
   codeInterpreterInputSchema,
   codeInterpreterOutputSchema,
 } from '../tool/code-interpreter';
-import { fileSearchOutputSchema } from '../tool/file-search';
-import { imageGenerationOutputSchema } from '../tool/image-generation';
-import { localShellInputSchema } from '../tool/local-shell';
-import { webSearchOutputSchema } from '../tool/web-search';
+import type { fileSearchOutputSchema } from '../tool/file-search';
+import type { imageGenerationOutputSchema } from '../tool/image-generation';
+import type { localShellInputSchema } from '../tool/local-shell';
+import type { webSearchOutputSchema } from '../tool/web-search';
 import { convertToOpenAIResponsesInput } from './convert-to-openai-responses-input';
 import { mapOpenAIResponseFinishReason } from './map-openai-responses-finish-reason';
-import {
+import type {
   OpenAIResponsesChunk,
-  openaiResponsesChunkSchema,
   OpenAIResponsesIncludeOptions,
   OpenAIResponsesIncludeValue,
   OpenAIResponsesLogprobs,
-  openaiResponsesResponseSchema,
-  OpenAIResponsesWebSearchAction,
-} from './openai-responses-api';
+  OpenAIResponsesWebSearchAction} from './openai-responses-api';
 import {
-  OpenAIResponsesModelId,
+  openaiResponsesChunkSchema,
+  openaiResponsesResponseSchema
+} from './openai-responses-api';
+import type {
+  OpenAIResponsesModelId} from './openai-responses-options';
+import {
   openaiResponsesProviderOptionsSchema,
   TOP_LOGPROBS_MAX,
 } from './openai-responses-options';

@@ -1,6 +1,7 @@
 import { openai } from '@ai-sdk/openai';
+import type {
+  UIToolInvocation} from 'ai';
 import {
-  UIToolInvocation,
   tool,
   experimental_generateImage as generateImage,
 } from 'ai';

@@ -1,5 +1,6 @@
 import { bedrock } from '@ai-sdk/amazon-bedrock';
-import { ModelMessage, generateText, stepCountIs } from 'ai';
+import type { ModelMessage} from 'ai';
+import { generateText, stepCountIs } from 'ai';
 import 'dotenv/config';
 import * as readline from 'node:readline/promises';
 import { weatherTool } from '../tools/weather-tool';

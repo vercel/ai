@@ -1,14 +1,15 @@
-import { executeTool, ModelMessage } from '@ai-sdk/provider-utils';
-import { Tracer } from '@opentelemetry/api';
+import type { ModelMessage } from '@ai-sdk/provider-utils';
+import { executeTool } from '@ai-sdk/provider-utils';
+import type { Tracer } from '@opentelemetry/api';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { recordErrorOnSpan, recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
-import { TelemetrySettings } from '../telemetry/telemetry-settings';
-import { TypedToolCall } from './tool-call';
-import { ToolOutput } from './tool-output';
-import { ToolSet } from './tool-set';
-import { TypedToolResult } from './tool-result';
-import { TypedToolError } from './tool-error';
+import type { TelemetrySettings } from '../telemetry/telemetry-settings';
+import type { TypedToolCall } from './tool-call';
+import type { ToolOutput } from './tool-output';
+import type { ToolSet } from './tool-set';
+import type { TypedToolResult } from './tool-result';
+import type { TypedToolError } from './tool-error';
 
 export async function executeToolCall<TOOLS extends ToolSet>({
   toolCall,

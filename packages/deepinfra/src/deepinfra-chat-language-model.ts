@@ -1,6 +1,6 @@
-import { LanguageModelV2, LanguageModelV2Usage } from '@ai-sdk/provider';
+import type { LanguageModelV2, LanguageModelV2Usage } from '@ai-sdk/provider';
 import { OpenAICompatibleChatLanguageModel } from '@ai-sdk/openai-compatible';
-import { FetchFunction } from '@ai-sdk/provider-utils';
+import type { FetchFunction } from '@ai-sdk/provider-utils';
 
 type DeepInfraChatConfig = {
   provider: string;

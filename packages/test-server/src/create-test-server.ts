@@ -1,4 +1,5 @@
-import { http, HttpResponse, JsonBodyType } from 'msw';
+import type { JsonBodyType } from 'msw';
+import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 import { convertArrayToReadableStream } from './convert-array-to-readable-stream';
 

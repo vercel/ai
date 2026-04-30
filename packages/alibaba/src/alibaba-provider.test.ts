@@ -1,4 +1,5 @@
-import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
+import type { Mock } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { createAlibaba } from './alibaba-provider';
 import { loadApiKey } from '@ai-sdk/provider-utils';
 import { AlibabaLanguageModel } from './alibaba-chat-language-model';

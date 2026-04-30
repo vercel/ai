@@ -1,4 +1,4 @@
-import {
+import type {
   JSONObject,
   LanguageModelV2,
   LanguageModelV2CallWarning,
@@ -10,10 +10,11 @@ import {
   SharedV2ProviderMetadata,
   LanguageModelV2FunctionTool,
 } from '@ai-sdk/provider';
-import {
+import type {
   FetchFunction,
   ParseResult,
-  Resolvable,
+  Resolvable} from '@ai-sdk/provider-utils';
+import {
   combineHeaders,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
@@ -22,13 +23,15 @@ import {
   resolve,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import {
-  BEDROCK_STOP_REASONS,
+import type {
   BedrockConverseInput,
-  BedrockStopReason,
-} from './bedrock-api-types';
+  BedrockStopReason} from './bedrock-api-types';
 import {
-  BedrockChatModelId,
+  BEDROCK_STOP_REASONS
+} from './bedrock-api-types';
+import type {
+  BedrockChatModelId} from './bedrock-chat-options';
+import {
   bedrockProviderOptions,
 } from './bedrock-chat-options';
 import { BedrockErrorSchema } from './bedrock-error';

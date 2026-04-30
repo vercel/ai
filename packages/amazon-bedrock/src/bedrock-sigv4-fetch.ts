@@ -1,5 +1,6 @@
+import type {
+  FetchFunction} from '@ai-sdk/provider-utils';
 import {
-  FetchFunction,
   combineHeaders,
   normalizeHeaders,
   withUserAgentSuffix,

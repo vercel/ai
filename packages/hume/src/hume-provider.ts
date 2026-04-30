@@ -1,6 +1,7 @@
-import { SpeechModelV2, ProviderV2 } from '@ai-sdk/provider';
+import type { SpeechModelV2, ProviderV2 } from '@ai-sdk/provider';
+import type {
+  FetchFunction} from '@ai-sdk/provider-utils';
 import {
-  FetchFunction,
   loadApiKey,
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';

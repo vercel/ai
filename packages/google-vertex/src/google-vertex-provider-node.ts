@@ -1,10 +1,11 @@
 import { resolve } from '@ai-sdk/provider-utils';
-import { GoogleAuthOptions } from 'google-auth-library';
+import type { GoogleAuthOptions } from 'google-auth-library';
 import { generateAuthToken } from './google-vertex-auth-google-auth-library';
-import {
-  createVertex as createVertexOriginal,
+import type {
   GoogleVertexProvider,
-  GoogleVertexProviderSettings as GoogleVertexProviderSettingsOriginal,
+  GoogleVertexProviderSettings as GoogleVertexProviderSettingsOriginal} from './google-vertex-provider';
+import {
+  createVertex as createVertexOriginal
 } from './google-vertex-provider';
 
 export interface GoogleVertexProviderSettings extends GoogleVertexProviderSettingsOriginal {

@@ -1,10 +1,11 @@
 import { resolve } from '@ai-sdk/provider-utils';
-import { GoogleAuthOptions } from 'google-auth-library';
+import type { GoogleAuthOptions } from 'google-auth-library';
 import { generateAuthToken } from '../google-vertex-auth-google-auth-library';
-import {
-  createVertexAnthropic as createVertexAnthropicOriginal,
+import type {
   GoogleVertexAnthropicProvider,
-  GoogleVertexAnthropicProviderSettings as GoogleVertexAnthropicProviderSettingsOriginal,
+  GoogleVertexAnthropicProviderSettings as GoogleVertexAnthropicProviderSettingsOriginal} from './google-vertex-anthropic-provider';
+import {
+  createVertexAnthropic as createVertexAnthropicOriginal
 } from './google-vertex-anthropic-provider';
 
 export type { GoogleVertexAnthropicProvider };
