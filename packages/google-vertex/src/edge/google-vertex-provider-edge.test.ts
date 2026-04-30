@@ -1,6 +1,6 @@
 import { resolve } from '@ai-sdk/provider-utils';
-import { createVertex as createVertexEdge } from './google-vertex-provider-edge';
-import { createVertex as createVertexOriginal } from '../google-vertex-provider';
+import { createGoogleVertex as createVertexEdge } from './google-vertex-provider-edge';
+import { createGoogleVertex as createVertexOriginal } from '../google-vertex-provider';
 import * as edgeAuth from './google-vertex-auth-edge';
 import { describe, beforeEach, afterEach, expect, it, vi } from 'vitest';
 
@@ -10,7 +10,7 @@ vi.mock('./google-vertex-auth-edge', () => ({
 }));
 
 vi.mock('../google-vertex-provider', () => ({
-  createVertex: vi.fn().mockImplementation(options => ({
+  createGoogleVertex: vi.fn().mockImplementation(options => ({
     ...options,
   })),
 }));

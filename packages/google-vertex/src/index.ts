@@ -10,7 +10,14 @@ export type {
   GoogleVertexVideoModelOptions as GoogleVertexVideoProviderOptions,
 } from './google-vertex-video-model';
 export type { GoogleVertexVideoModelId } from './google-vertex-video-settings';
-export { createVertex, vertex } from './google-vertex-provider-node';
+export {
+  createGoogleVertex,
+  /** @deprecated Use `createGoogleVertex` instead. */
+  createGoogleVertex as createVertex,
+  googleVertex,
+  /** @deprecated Use `googleVertex` instead. */
+  googleVertex as vertex,
+} from './google-vertex-provider-node';
 export type {
   GoogleVertexProvider,
   GoogleVertexProviderSettings,

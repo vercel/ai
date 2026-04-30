@@ -2,7 +2,7 @@ import { resolve } from '@ai-sdk/provider-utils';
 import type { GoogleAuthOptions } from 'google-auth-library';
 import { generateAuthToken } from '../google-vertex-auth-google-auth-library';
 import {
-  createVertexAnthropic as createVertexAnthropicOriginal,
+  createGoogleVertexAnthropic as createVertexAnthropicOriginal,
   type GoogleVertexAnthropicProvider,
   type GoogleVertexAnthropicProviderSettings as GoogleVertexAnthropicProviderSettingsOriginal,
 } from './google-vertex-anthropic-provider';
@@ -18,7 +18,7 @@ export interface GoogleVertexAnthropicProviderSettings extends GoogleVertexAnthr
   googleAuthOptions?: GoogleAuthOptions;
 }
 
-export function createVertexAnthropic(
+export function createGoogleVertexAnthropic(
   options: GoogleVertexAnthropicProviderSettings = {},
 ): GoogleVertexAnthropicProvider {
   return createVertexAnthropicOriginal({
@@ -35,4 +35,4 @@ export function createVertexAnthropic(
 /**
  * Default Google Vertex Anthropic provider instance.
  */
-export const vertexAnthropic = createVertexAnthropic();
+export const googleVertexAnthropic = createGoogleVertexAnthropic();

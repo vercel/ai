@@ -1,6 +1,6 @@
 import { resolve } from '@ai-sdk/provider-utils';
-import { createVertex as createVertexOriginal } from './google-vertex-provider';
-import { createVertex as createVertexNode } from './google-vertex-provider-node';
+import { createGoogleVertex as createVertexOriginal } from './google-vertex-provider';
+import { createGoogleVertex as createVertexNode } from './google-vertex-provider-node';
 import { generateAuthToken } from './google-vertex-auth-google-auth-library';
 import { describe, beforeEach, afterEach, expect, it, vi } from 'vitest';
 
@@ -10,7 +10,7 @@ vi.mock('./google-vertex-auth-google-auth-library', () => ({
 }));
 
 vi.mock('./google-vertex-provider', () => ({
-  createVertex: vi.fn().mockImplementation(options => ({
+  createGoogleVertex: vi.fn().mockImplementation(options => ({
     ...options,
   })),
 }));

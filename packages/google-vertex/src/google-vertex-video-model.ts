@@ -76,11 +76,16 @@ export class GoogleVertexVideoModel implements Experimental_VideoModelV4 {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const warnings: SharedV4Warning[] = [];
 
-    const vertexOptions = (await parseProviderOptions({
-      provider: 'vertex',
+    const googleVertexOptions = ((await parseProviderOptions({
+      provider: 'googleVertex',
       providerOptions: options.providerOptions,
       schema: googleVertexVideoModelOptionsSchema,
-    })) as GoogleVertexVideoModelOptions | undefined;
+    })) ??
+      (await parseProviderOptions({
+        provider: 'vertex',
+        providerOptions: options.providerOptions,
+        schema: googleVertexVideoModelOptionsSchema,
+      }))) as GoogleVertexVideoModelOptions | undefined;
 
     const instances: Array<Record<string, unknown>> = [{}];
     const instance = instances[0];
@@ -110,8 +115,8 @@ export class GoogleVertexVideoModel implements Experimental_VideoModelV4 {
       }
     }
 
-    if (vertexOptions?.referenceImages != null) {
-      instance.referenceImages = vertexOptions.referenceImages;
+    if (googleVertexOptions?.referenceImages != null) {
+      instance.referenceImages = googleVertexOptions.referenceImages;
     }
 
     const parameters: Record<string, unknown> = {
@@ -140,8 +145,8 @@ export class GoogleVertexVideoModel implements Experimental_VideoModelV4 {
       parameters.seed = options.seed;
     }
 
-    if (vertexOptions != null) {
-      const opts = vertexOptions;
+    if (googleVertexOptions != null) {
+      const opts = googleVertexOptions;
 
       if (
         opts.personGeneration !== undefined &&
@@ -190,7 +195,7 @@ export class GoogleVertexVideoModel implements Experimental_VideoModelV4 {
         parameters,
       },
       successfulResponseHandler: createJsonResponseHandler(
-        vertexOperationSchema,
+        googleVertexOperationSchema,
       ),
       failedResponseHandler: googleVertexFailedResponseHandler,
       abortSignal: options.abortSignal,
@@ -205,8 +210,8 @@ export class GoogleVertexVideoModel implements Experimental_VideoModelV4 {
       });
     }
 
-    const pollIntervalMs = vertexOptions?.pollIntervalMs ?? 10000; // 10 seconds
-    const pollTimeoutMs = vertexOptions?.pollTimeoutMs ?? 600000; // 10 minutes
+    const pollIntervalMs = googleVertexOptions?.pollIntervalMs ?? 10000; // 10 seconds
+    const pollTimeoutMs = googleVertexOptions?.pollTimeoutMs ?? 600000; // 10 minutes
 
     const startTime = Date.now();
     let finalOperation = operation;
@@ -240,7 +245,7 @@ export class GoogleVertexVideoModel implements Experimental_VideoModelV4 {
             operationName,
           },
           successfulResponseHandler: createJsonResponseHandler(
-            vertexOperationSchema,
+            googleVertexOperationSchema,
           ),
           failedResponseHandler: googleVertexFailedResponseHandler,
           abortSignal: options.abortSignal,
@@ -314,16 +319,20 @@ export class GoogleVertexVideoModel implements Experimental_VideoModelV4 {
         modelId: this.modelId,
         headers: responseHeaders,
       },
-      providerMetadata: {
-        'google-vertex': {
-          videos: videoMetadata,
-        },
-      },
+      providerMetadata: (() => {
+        const payload = { videos: videoMetadata };
+        return {
+          googleVertex: payload,
+          // Legacy keys preserved for backward compatibility.
+          'google-vertex': payload,
+          vertex: payload,
+        };
+      })(),
     };
   }
 }
 
-const vertexOperationSchema = z.object({
+const googleVertexOperationSchema = z.object({
   name: z.string().nullish(),
   done: z.boolean().nullish(),
   error: z

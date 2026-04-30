@@ -130,7 +130,7 @@ export interface GoogleVertexProviderSettings {
 /**
  * Create a Google Vertex AI provider instance.
  */
-export function createVertex(
+export function createGoogleVertex(
   options: GoogleVertexProviderSettings = {},
 ): GoogleVertexProvider {
   const apiKey = loadOptionalSetting({
@@ -138,7 +138,7 @@ export function createVertex(
     environmentVariableName: 'GOOGLE_VERTEX_API_KEY',
   });
 
-  const loadVertexProject = () =>
+  const loadGoogleVertexProject = () =>
     loadSetting({
       settingValue: options.project,
       settingName: 'project',
@@ -146,7 +146,7 @@ export function createVertex(
       description: 'Google Vertex project',
     });
 
-  const loadVertexLocation = () =>
+  const loadGoogleVertexLocation = () =>
     loadSetting({
       settingValue: options.location,
       settingName: 'location',
@@ -159,8 +159,8 @@ export function createVertex(
       return withoutTrailingSlash(options.baseURL) ?? EXPRESS_MODE_BASE_URL;
     }
 
-    const region = loadVertexLocation();
-    const project = loadVertexProject();
+    const region = loadGoogleVertexLocation();
+    const project = loadGoogleVertexProject();
 
     // For global region, use aiplatform.googleapis.com directly
     // For other regions, use region-aiplatform.googleapis.com

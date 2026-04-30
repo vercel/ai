@@ -112,7 +112,7 @@ describe('thought signatures with vertex providerOptionsName', () => {
           ],
         },
       ],
-      { providerOptionsName: 'vertex' },
+      { providerOptionsNames: ['googleVertex', 'vertex'] },
     );
 
     expect(result).toMatchInlineSnapshot(`
@@ -166,7 +166,7 @@ describe('thought signatures with vertex providerOptionsName', () => {
           ],
         },
       ],
-      { providerOptionsName: 'vertex' },
+      { providerOptionsNames: ['googleVertex', 'vertex'] },
     );
 
     expect(result.contents[0].parts[0]).toEqual({
@@ -196,7 +196,7 @@ describe('thought signatures with vertex providerOptionsName', () => {
           ],
         },
       ],
-      { providerOptionsName: 'vertex' },
+      { providerOptionsNames: ['googleVertex', 'vertex'] },
     );
 
     expect(result.contents[0].parts[0]).toEqual({
@@ -236,7 +236,7 @@ describe('thought signatures with google providerOptionsName (gateway failover)'
           ],
         },
       ],
-      { providerOptionsName: 'google' },
+      { providerOptionsNames: ['google'] },
     );
 
     expect(result).toMatchInlineSnapshot(`
@@ -290,7 +290,7 @@ describe('thought signatures with google providerOptionsName (gateway failover)'
           ],
         },
       ],
-      { providerOptionsName: 'google' },
+      { providerOptionsNames: ['google'] },
     );
 
     expect(result.contents[0].parts[0]).toEqual({

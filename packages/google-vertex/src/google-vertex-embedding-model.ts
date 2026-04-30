@@ -63,10 +63,18 @@ export class GoogleVertexEmbeddingModel implements EmbeddingModelV4 {
     Awaited<ReturnType<EmbeddingModelV4['doEmbed']>>
   > {
     let googleOptions = await parseProviderOptions({
-      provider: 'vertex',
+      provider: 'googleVertex',
       providerOptions,
       schema: googleVertexEmbeddingModelOptions,
     });
+
+    if (googleOptions == null) {
+      googleOptions = await parseProviderOptions({
+        provider: 'vertex',
+        providerOptions,
+        schema: googleVertexEmbeddingModelOptions,
+      });
+    }
 
     if (googleOptions == null) {
       googleOptions = await parseProviderOptions({

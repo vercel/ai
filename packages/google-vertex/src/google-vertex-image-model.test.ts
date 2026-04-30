@@ -5,7 +5,7 @@ import {
   GoogleVertexImageModel,
   type GoogleVertexImageModelOptions,
 } from './google-vertex-image-model';
-import { createVertex } from './google-vertex-provider';
+import { createGoogleVertex } from './google-vertex-provider';
 
 vi.mock('./version', () => ({
   VERSION: '0.0.0-test',
@@ -63,7 +63,7 @@ describe('GoogleVertexImageModel', () => {
     });
 
     it('should pass headers', async () => {
-      const provider = createVertex({
+      const provider = createGoogleVertex({
         project: 'test-project',
         location: 'us-central1',
         baseURL: 'https://api.example.com',
@@ -244,7 +244,7 @@ describe('GoogleVertexImageModel', () => {
         aspectRatio: '1:1',
         seed: 42,
         providerOptions: {
-          vertex: {
+          googleVertex: {
             addWatermark: false,
           } satisfies GoogleVertexImageModelOptions,
         },
@@ -265,6 +265,55 @@ describe('GoogleVertexImageModel', () => {
           },
         }
       `);
+    });
+
+    it('should accept the legacy `vertex` providerOptions key', async () => {
+      await model.doGenerate({
+        prompt,
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: '1:1',
+        seed: 42,
+        providerOptions: {
+          vertex: {
+            addWatermark: false,
+          } satisfies GoogleVertexImageModelOptions,
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        parameters: {
+          addWatermark: false,
+        },
+      });
+    });
+
+    it('should prefer `googleVertex` providerOptions over the legacy `vertex` key', async () => {
+      await model.doGenerate({
+        prompt,
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: '1:1',
+        seed: 42,
+        providerOptions: {
+          vertex: {
+            addWatermark: true,
+          } satisfies GoogleVertexImageModelOptions,
+          googleVertex: {
+            addWatermark: false,
+          } satisfies GoogleVertexImageModelOptions,
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        parameters: {
+          addWatermark: false,
+        },
+      });
     });
 
     it('should return warnings for unsupported settings', async () => {
@@ -300,7 +349,7 @@ describe('GoogleVertexImageModel', () => {
         aspectRatio: '16:9',
         seed: undefined,
         providerOptions: {
-          vertex: {
+          googleVertex: {
             addWatermark: false,
             negativePrompt: 'negative prompt',
             personGeneration: 'allow_all',
@@ -549,7 +598,7 @@ describe('GoogleVertexImageModel', () => {
         aspectRatio: undefined,
         seed: undefined,
         providerOptions: {
-          vertex: {
+          googleVertex: {
             edit: {
               mode: 'EDIT_MODE_INPAINT_REMOVAL',
               baseSteps: 50,
@@ -643,7 +692,7 @@ describe('GoogleVertexImageModel', () => {
         aspectRatio: undefined,
         seed: undefined,
         providerOptions: {
-          vertex: {
+          googleVertex: {
             edit: { mode: 'EDIT_MODE_CONTROLLED_EDITING' },
           } satisfies GoogleVertexImageModelOptions,
         },
@@ -699,7 +748,7 @@ describe('GoogleVertexImageModel', () => {
           aspectRatio: '16:9',
           seed: 42,
           providerOptions: {
-            vertex: {
+            googleVertex: {
               addWatermark: false,
             } satisfies GoogleVertexImageModelOptions,
           },
@@ -735,7 +784,7 @@ describe('GoogleVertexImageModel', () => {
           aspectRatio: '1:1',
           seed: 123,
           providerOptions: {
-            vertex: {
+            googleVertex: {
               personGeneration: 'allow_adult',
               safetySetting: 'block_medium_and_above',
             } satisfies GoogleVertexImageModelOptions,
@@ -832,7 +881,7 @@ describe('GoogleVertexImageModel', () => {
           aspectRatio: '4:3',
           seed: 999,
           providerOptions: {
-            vertex: {
+            googleVertex: {
               negativePrompt: 'blurry, low quality',
               addWatermark: true,
             } satisfies GoogleVertexImageModelOptions,
@@ -869,7 +918,7 @@ describe('GoogleVertexImageModel', () => {
           aspectRatio: undefined,
           seed: undefined,
           providerOptions: {
-            vertex: {
+            googleVertex: {
               negativePrompt: 'avoid this content',
               personGeneration: 'dont_allow',
               safetySetting: 'block_only_high',

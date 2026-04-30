@@ -103,14 +103,20 @@ export class GoogleVertexImageModel implements ImageModelV4 {
       });
     }
 
-    const vertexImageOptions = await parseProviderOptions({
-      provider: 'vertex',
-      providerOptions,
-      schema: googleVertexImageModelOptionsSchema,
-    });
+    const googleVertexImageOptions =
+      (await parseProviderOptions({
+        provider: 'googleVertex',
+        providerOptions,
+        schema: googleVertexImageModelOptionsSchema,
+      })) ??
+      (await parseProviderOptions({
+        provider: 'vertex',
+        providerOptions,
+        schema: googleVertexImageModelOptionsSchema,
+      }));
 
     // Extract edit-specific options from provider options
-    const { edit, ...otherOptions } = vertexImageOptions ?? {};
+    const { edit, ...otherOptions } = googleVertexImageOptions ?? {};
     const { mode: editMode, baseSteps, maskMode, maskDilation } = edit ?? {};
 
     // Build the request body based on whether we're editing or generating
@@ -188,7 +194,7 @@ export class GoogleVertexImageModel implements ImageModelV4 {
       body,
       failedResponseHandler: googleVertexFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
-        vertexImageResponseSchema,
+        googleVertexImageResponseSchema,
       ),
       abortSignal,
       fetch: this.config.fetch,
@@ -205,8 +211,8 @@ export class GoogleVertexImageModel implements ImageModelV4 {
         modelId: this.modelId,
         headers: responseHeaders,
       },
-      providerMetadata: {
-        vertex: {
+      providerMetadata: (() => {
+        const payload = {
           images:
             response.predictions?.map(prediction => {
               const {
@@ -216,8 +222,9 @@ export class GoogleVertexImageModel implements ImageModelV4 {
 
               return { ...(revisedPrompt != null && { revisedPrompt }) };
             }) ?? [],
-        },
-      },
+        };
+        return { googleVertex: payload, vertex: payload };
+      })(),
     };
   }
 
@@ -312,24 +319,27 @@ export class GoogleVertexImageModel implements ImageModelV4 {
       }),
     });
 
+    const userVertexOptions = (providerOptions?.googleVertex ??
+      providerOptions?.vertex) as
+      | Omit<GoogleLanguageModelOptions, 'responseModalities' | 'imageConfig'>
+      | undefined;
+    const innerVertexOptions: GoogleLanguageModelOptions = {
+      responseModalities: ['IMAGE'],
+      imageConfig: aspectRatio
+        ? {
+            aspectRatio: aspectRatio as NonNullable<
+              GoogleLanguageModelOptions['imageConfig']
+            >['aspectRatio'],
+          }
+        : undefined,
+      ...(userVertexOptions ?? {}),
+    };
     const result = await languageModel.doGenerate({
       prompt: languageModelPrompt,
       seed,
       providerOptions: {
-        vertex: {
-          responseModalities: ['IMAGE'],
-          imageConfig: aspectRatio
-            ? {
-                aspectRatio: aspectRatio as NonNullable<
-                  GoogleLanguageModelOptions['imageConfig']
-                >['aspectRatio'],
-              }
-            : undefined,
-          ...((providerOptions?.vertex as Omit<
-            GoogleLanguageModelOptions,
-            'responseModalities' | 'imageConfig'
-          >) ?? {}),
-        } satisfies GoogleLanguageModelOptions,
+        googleVertex: innerVertexOptions,
+        vertex: innerVertexOptions,
       },
       headers,
       abortSignal,
@@ -348,13 +358,15 @@ export class GoogleVertexImageModel implements ImageModelV4 {
       }
     }
 
+    const geminiPayload = {
+      images: images.map(() => ({})),
+    };
     return {
       images,
       warnings,
       providerMetadata: {
-        vertex: {
-          images: images.map(() => ({})),
-        },
+        googleVertex: geminiPayload,
+        vertex: geminiPayload,
       },
       response: {
         timestamp: currentDate,
@@ -380,7 +392,7 @@ function isGeminiModel(modelId: string): boolean {
 
 // minimal version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-const vertexImageResponseSchema = z.object({
+const googleVertexImageResponseSchema = z.object({
   predictions: z
     .array(
       z.object({

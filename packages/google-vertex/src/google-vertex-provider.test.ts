@@ -1,6 +1,6 @@
 import type * as ProviderUtilsModule from '@ai-sdk/provider-utils';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { createVertex } from './google-vertex-provider';
+import { createGoogleVertex } from './google-vertex-provider';
 import { GoogleLanguageModel } from '@ai-sdk/google/internal';
 import { GoogleVertexEmbeddingModel } from './google-vertex-embedding-model';
 import { GoogleVertexImageModel } from './google-vertex-image-model';
@@ -67,7 +67,7 @@ describe('google-vertex-provider', () => {
   });
 
   it('should create a language model with default settings', () => {
-    const provider = createVertex({
+    const provider = createGoogleVertex({
       project: 'test-project',
       location: 'test-location',
     });
@@ -86,7 +86,7 @@ describe('google-vertex-provider', () => {
   });
 
   it('should throw an error when using new keyword', () => {
-    const provider = createVertex({ project: 'test-project' });
+    const provider = createGoogleVertex({ project: 'test-project' });
 
     expect(() => new (provider as any)('test-model-id')).toThrow(
       'The Google Vertex AI model function cannot be called with the new keyword.',
@@ -94,7 +94,7 @@ describe('google-vertex-provider', () => {
   });
 
   it('should create an embedding model with correct settings', () => {
-    const provider = createVertex({
+    const provider = createGoogleVertex({
       project: 'test-project',
       location: 'test-location',
     });
@@ -113,7 +113,7 @@ describe('google-vertex-provider', () => {
 
   it('should pass custom headers to the model constructor', () => {
     const customHeaders = { 'Custom-Header': 'custom-value' };
-    const provider = createVertex({
+    const provider = createGoogleVertex({
       project: 'test-project',
       location: 'test-location',
       headers: customHeaders,
@@ -130,7 +130,7 @@ describe('google-vertex-provider', () => {
 
   it('should pass custom generateId function to the model constructor', () => {
     const customGenerateId = () => 'custom-id';
-    const provider = createVertex({
+    const provider = createGoogleVertex({
       project: 'test-project',
       location: 'test-location',
       generateId: customGenerateId,
@@ -146,7 +146,7 @@ describe('google-vertex-provider', () => {
   });
 
   it('should use languageModel method to create a model', () => {
-    const provider = createVertex({
+    const provider = createGoogleVertex({
       project: 'test-project',
       location: 'test-location',
     });
@@ -160,7 +160,7 @@ describe('google-vertex-provider', () => {
 
   it('should use custom baseURL when provided', () => {
     const customBaseURL = 'https://custom-endpoint.example.com';
-    const provider = createVertex({
+    const provider = createGoogleVertex({
       project: 'test-project',
       location: 'test-location',
       baseURL: customBaseURL,
@@ -176,7 +176,7 @@ describe('google-vertex-provider', () => {
   });
 
   it('should create an image model with default settings', () => {
-    const provider = createVertex({
+    const provider = createGoogleVertex({
       project: 'test-project',
       location: 'test-location',
     });
@@ -194,7 +194,7 @@ describe('google-vertex-provider', () => {
   });
 
   it('should use correct URL for global region', () => {
-    const provider = createVertex({
+    const provider = createGoogleVertex({
       project: 'test-project',
       location: 'global',
     });
@@ -213,7 +213,7 @@ describe('google-vertex-provider', () => {
   });
 
   it('should use correct URL for global region with embedding model', () => {
-    const provider = createVertex({
+    const provider = createGoogleVertex({
       project: 'test-project',
       location: 'global',
     });
@@ -231,7 +231,7 @@ describe('google-vertex-provider', () => {
   });
 
   it('should use correct URL for global region with image model', () => {
-    const provider = createVertex({
+    const provider = createGoogleVertex({
       project: 'test-project',
       location: 'global',
     });
@@ -249,7 +249,7 @@ describe('google-vertex-provider', () => {
   });
 
   it('should expose tools', () => {
-    const provider = createVertex({
+    const provider = createGoogleVertex({
       project: 'test-project',
       location: 'test-location',
     });
@@ -261,7 +261,7 @@ describe('google-vertex-provider', () => {
   });
 
   it('should use region-prefixed URL for non-global regions', () => {
-    const provider = createVertex({
+    const provider = createGoogleVertex({
       project: 'test-project',
       location: 'us-central1',
     });
@@ -280,7 +280,7 @@ describe('google-vertex-provider', () => {
   });
 
   it('should use express mode base URL when apiKey is provided', () => {
-    const provider = createVertex({
+    const provider = createGoogleVertex({
       apiKey: 'test-api-key',
     });
     provider('test-model-id');
@@ -294,7 +294,7 @@ describe('google-vertex-provider', () => {
   });
 
   it('should add API key as query parameter via custom fetch', async () => {
-    const provider = createVertex({
+    const provider = createGoogleVertex({
       apiKey: 'test-api-key',
     });
     provider('test-model-id');
@@ -326,7 +326,7 @@ describe('google-vertex-provider', () => {
   });
 
   it('should create a video model with default settings', () => {
-    const provider = createVertex({
+    const provider = createGoogleVertex({
       project: 'test-project',
       location: 'test-location',
     });
@@ -345,7 +345,7 @@ describe('google-vertex-provider', () => {
   });
 
   it('should use correct URL for global region with video model', () => {
-    const provider = createVertex({
+    const provider = createGoogleVertex({
       project: 'test-project',
       location: 'global',
     });
@@ -364,7 +364,7 @@ describe('google-vertex-provider', () => {
 
   it('should use custom baseURL for video model when provided', () => {
     const customBaseURL = 'https://custom-endpoint.example.com';
-    const provider = createVertex({
+    const provider = createGoogleVertex({
       project: 'test-project',
       location: 'test-location',
       baseURL: customBaseURL,
