@@ -13,10 +13,9 @@ import {
   type ToolChoice,
   type ToolSet,
 } from 'ai';
-import type {
-  DoStreamStepResult} from './do-stream-step.js';
 import {
   doStreamStep,
+  type DoStreamStepResult,
   type ModelStopCondition,
   type ParsedToolCall,
   type ProviderExecutedToolResult,
