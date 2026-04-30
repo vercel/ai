@@ -1,4 +1,4 @@
-import type { ModelMessage } from '@ai-sdk/provider-utils';
+import { validateTypes, type ModelMessage } from '@ai-sdk/provider-utils';
 import { generateText } from '../generate-text/generate-text';
 import type { GenerateTextResult } from '../generate-text/generate-text-result';
 import type { Output } from '../generate-text/output';
@@ -67,6 +67,18 @@ export class ToolLoopAgent<
     > &
       Prompt
   > {
+    if (
+      this.settings.callOptionsSchema != null &&
+      options.options !== undefined
+    ) {
+      const validatedOptions = await validateTypes({
+        value: options.options,
+        schema: this.settings.callOptionsSchema,
+        context: { field: 'options' },
+      });
+      options = { ...options, options: validatedOptions };
+    }
+
     const { onStepFinish: _settingsOnStepFinish, ...settingsWithoutCallback } =
       this.settings;
     const baseCallArgs = {
