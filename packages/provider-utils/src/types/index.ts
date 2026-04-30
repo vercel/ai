@@ -36,6 +36,7 @@ export type { SystemModelMessage } from './system-model-message';
 export {
   dynamicTool,
   tool,
+  type BaseFunctionTool,
   type DynamicTool,
   type FunctionTool,
   type ProviderDefinedTool,

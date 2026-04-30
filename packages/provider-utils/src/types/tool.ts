@@ -167,15 +167,13 @@ type BaseTool<
 } & ToolOutputProperties<INPUT, OUTPUT, NoInfer<CONTEXT>>;
 
 /**
- * Tool with user-defined input and output schemas.
+ * Common properties shared by function-style tools.
  */
-export type FunctionTool<
+type BaseFunctionTool<
   INPUT extends JSONValue | unknown | never = any,
   OUTPUT extends JSONValue | unknown | never = any,
   CONTEXT extends Context | unknown | never = any,
 > = BaseTool<INPUT, OUTPUT, CONTEXT> & {
-  type?: undefined | 'function';
-
   /**
    * An optional description of what the tool does.
    * Will be used by the language model to decide whether to use the tool.
@@ -199,6 +197,17 @@ export type FunctionTool<
 };
 
 /**
+ * Tool with user-defined input and output schemas.
+ */
+export type FunctionTool<
+  INPUT extends JSONValue | unknown | never = any,
+  OUTPUT extends JSONValue | unknown | never = any,
+  CONTEXT extends Context | unknown | never = any,
+> = BaseFunctionTool<INPUT, OUTPUT, CONTEXT> & {
+  type?: undefined | 'function';
+};
+
+/**
  * Tool that is defined at runtime (e.g. an MCP tool).
  * The types of input and output are not known at development time.
  */
@@ -206,29 +215,8 @@ export type DynamicTool<
   INPUT extends JSONValue | unknown | never = any,
   OUTPUT extends JSONValue | unknown | never = any,
   CONTEXT extends Context | unknown | never = any,
-> = BaseTool<INPUT, OUTPUT, CONTEXT> & {
+> = BaseFunctionTool<INPUT, OUTPUT, CONTEXT> & {
   type: 'dynamic';
-
-  /**
-   * An optional description of what the tool does.
-   * Will be used by the language model to decide whether to use the tool.
-   */
-  description?: string;
-
-  /**
-   * Strict mode setting for the tool.
-   *
-   * Providers that support strict mode will use this setting to determine
-   * how the input should be generated. Strict mode will always produce
-   * valid inputs, but it might limit what input schemas are supported.
-   */
-  strict?: boolean;
-
-  // make all properties available to improve usage dx
-  id?: never;
-  isProviderExecuted?: never;
-  args?: never;
-  supportsDeferredResults?: never;
 };
 
 /**

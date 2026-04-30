@@ -17,9 +17,9 @@ import type { ToolExecuteFunction } from './tool-execute-function';
 
 describe('DynamicTool', () => {
   it('should expose dynamic tools as base tools', () => {
-    expectTypeOf<
-      DynamicTool<{ number: number }, string, Context>
-    >().toMatchTypeOf<Tool<{ number: number }, string, Context>>();
+    expectTypeOf<DynamicTool<{ number: number }, string, Context>>().toExtend<
+      Tool<{ number: number }, string, Context>
+    >();
   });
 
   it('should create dynamic tools with the dynamic discriminator', () => {
@@ -37,10 +37,10 @@ describe('ProviderDefinedTool', () => {
   it('should expose provider-defined tools as base tools', () => {
     expectTypeOf<
       ProviderDefinedTool<{ number: number }, string, Context>
-    >().toMatchTypeOf<Tool<{ number: number }, string, Context>>();
+    >().toExtend<Tool<{ number: number }, string, Context>>();
     expectTypeOf<
       ProviderDefinedTool<{ number: number }, string, Context>
-    >().toMatchTypeOf<Tool<{ number: number }, string, Context>>();
+    >().toExtend<Tool<{ number: number }, string, Context>>();
   });
 
   it('should require provider-specific properties', () => {
@@ -63,10 +63,10 @@ describe('ProviderExecutedTool', () => {
   it('should expose provider-executed tools as base tools', () => {
     expectTypeOf<
       ProviderExecutedTool<{ number: number }, string, Context>
-    >().toMatchTypeOf<Tool<{ number: number }, string, Context>>();
+    >().toExtend<Tool<{ number: number }, string, Context>>();
     expectTypeOf<
       ProviderExecutedTool<{ number: number }, string, Context>
-    >().toMatchTypeOf<Tool<{ number: number }, string, Context>>();
+    >().toExtend<Tool<{ number: number }, string, Context>>();
   });
 
   it('should require provider-specific properties', () => {
@@ -93,10 +93,10 @@ describe('FunctionTool', () => {
   });
 
   describe('common properties', () => {
-    it('should expose function tools as base tools', () => {
+    it('should expose function tools as tools', () => {
       expectTypeOf<
         FunctionTool<{ number: number }, string, Context>
-      >().toMatchTypeOf<Tool<{ number: number }, string, Context>>();
+      >().toExtend<Tool<{ number: number }, string, Context>>();
     });
   });
 });
@@ -283,7 +283,7 @@ describe('tool helper', () => {
       expectTypeOf(aTool).toEqualTypeOf<
         Tool<{ number: number }, 'test', Context>
       >();
-      expectTypeOf(aTool.execute).toMatchTypeOf<
+      expectTypeOf(aTool.execute).toExtend<
         ToolExecuteFunction<{ number: number }, 'test', Context> | undefined
       >();
       expectTypeOf(aTool.execute).not.toEqualTypeOf<undefined>();
@@ -322,7 +322,7 @@ describe('tool helper', () => {
         },
       });
 
-      expectTypeOf(aTool.toModelOutput).toMatchTypeOf<
+      expectTypeOf(aTool.toModelOutput).toExtend<
         | ((options: {
             toolCallId: string;
             input: { number: number };
@@ -342,7 +342,7 @@ describe('tool helper', () => {
         },
       });
 
-      expectTypeOf(aTool.toModelOutput).toMatchTypeOf<
+      expectTypeOf(aTool.toModelOutput).toExtend<
         | ((options: {
             toolCallId: string;
             input: { number: number };
@@ -362,7 +362,7 @@ describe('tool helper', () => {
         },
       });
 
-      expectTypeOf(aTool.toModelOutput).toMatchTypeOf<
+      expectTypeOf(aTool.toModelOutput).toExtend<
         | ((options: {
             toolCallId: string;
             input: { number: number };
@@ -388,7 +388,7 @@ describe('tool helper', () => {
         },
       });
 
-      expectTypeOf(aTool.needsApproval).toMatchTypeOf<
+      expectTypeOf(aTool.needsApproval).toExtend<
         | boolean
         | ((
             input: { number: number },
@@ -417,7 +417,7 @@ describe('tool helper', () => {
         },
       });
 
-      expectTypeOf(aTool.needsApproval).toMatchTypeOf<
+      expectTypeOf(aTool.needsApproval).toExtend<
         | boolean
         | ((
             input: { number: number },
@@ -451,7 +451,7 @@ describe('tool helper', () => {
         },
       });
 
-      expectTypeOf(aTool.needsApproval).toMatchTypeOf<
+      expectTypeOf(aTool.needsApproval).toExtend<
         | boolean
         | ((
             input: { number: number },
