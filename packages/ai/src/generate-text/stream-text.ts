@@ -1551,6 +1551,7 @@ class DefaultStreamTextResult<
               toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
               system: stepSystem,
               messages: stepMessages,
+              allowSystemInMessages,
               repairToolCall,
               abortSignal,
               headers,

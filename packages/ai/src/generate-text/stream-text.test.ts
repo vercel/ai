@@ -2211,6 +2211,69 @@ describe('streamText', () => {
   });
 
   describe('retries', () => {
+    it('should preserve allowSystemInMessages when retrying after a 500 error', async () => {
+      const doStream = vi
+        .fn<LanguageModelV4['doStream']>()
+        .mockImplementationOnce(async () => {
+          throw new APICallError({
+            message: 'Internal Server Error',
+            url: 'https://api.example.com/v1/chat',
+            requestBodyValues: { prompt: 'test-input' },
+            statusCode: 500,
+            responseHeaders: {
+              'retry-after-ms': '1',
+            },
+          });
+        })
+        .mockImplementationOnce(async () => ({
+          stream: convertArrayToReadableStream([
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'hello' },
+            { type: 'text-delta', id: '1', delta: ' ' },
+            { type: 'text-delta', id: '1', delta: 'world' },
+            { type: 'text-end', id: '1' },
+            {
+              type: 'finish',
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: testUsage,
+            },
+          ]),
+        }));
+
+      const model = new MockLanguageModelV4({ doStream });
+
+      const result = streamText({
+        model,
+        allowSystemInMessages: true,
+        messages: [
+          { role: 'system', content: 'INSTRUCTIONS' },
+          { role: 'user', content: 'test-input' },
+        ],
+      });
+
+      const textStreamPromise = convertAsyncIterableToArray(result.textStream);
+
+      await vi.advanceTimersByTimeAsync(1);
+
+      expect(await textStreamPromise).toStrictEqual(['hello', ' ', 'world']);
+      expect(doStream).toHaveBeenCalledTimes(2);
+      expect(model.doStreamCalls[0].prompt).toEqual([
+        {
+          role: 'system',
+          content: 'INSTRUCTIONS',
+          providerOptions: undefined,
+        },
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'test-input' }],
+          providerOptions: undefined,
+        },
+      ]);
+      expect(model.doStreamCalls[1].prompt).toEqual(
+        model.doStreamCalls[0].prompt,
+      );
+    });
+
     it('should retry after a 500 error and stream the successful response', async () => {
       const doStream = vi
         .fn<LanguageModelV4['doStream']>()
