@@ -20,7 +20,9 @@
     "anthropic/edge.d.ts",
     "anthropic/index.d.ts",
     "maas/edge.d.ts",
-    "maas/index.d.ts"
+    "maas/index.d.ts",
+    "xai/edge.d.ts",
+    "xai/index.d.ts"
   ],
   "directories": {
     "doc": "./docs"
@@ -67,8 +69,23 @@
     },
     "./maas/edge": {
       "types": "./dist/maas/edge/index.d.ts",
+<<<<<<< HEAD
       "import": "./dist/maas/edge/index.mjs",
       "require": "./dist/maas/edge/index.js"
+=======
+      "import": "./dist/maas/edge/index.js",
+      "default": "./dist/maas/edge/index.js"
+    },
+    "./xai": {
+      "types": "./dist/xai/index.d.ts",
+      "import": "./dist/xai/index.js",
+      "default": "./dist/xai/index.js"
+    },
+    "./xai/edge": {
+      "types": "./dist/xai/edge/index.d.ts",
+      "import": "./dist/xai/edge/index.js",
+      "default": "./dist/xai/edge/index.js"
+>>>>>>> e59c95505 (feat(vertex): add grok models to vertex provider (#14883))
     }
   },
   "dependencies": {

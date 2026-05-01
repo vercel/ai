@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import {
   InvalidResponseDataError,
   type APICallError,
@@ -10,6 +11,20 @@ import {
   type LanguageModelV3StreamResult,
   type SharedV3ProviderMetadata,
   type SharedV3Warning,
+=======
+import type {
+  APICallError,
+  LanguageModelV4,
+  LanguageModelV4CallOptions,
+  LanguageModelV4Content,
+  LanguageModelV4FinishReason,
+  LanguageModelV4GenerateResult,
+  LanguageModelV4StreamPart,
+  LanguageModelV4StreamResult,
+  LanguageModelV4Usage,
+  SharedV4ProviderMetadata,
+  SharedV4Warning,
+>>>>>>> e59c95505 (feat(vertex): add grok models to vertex provider (#14883))
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -66,6 +81,14 @@ export type OpenAICompatibleChatConfig = {
    * than the official OpenAI API.
    */
   transformRequestBody?: (args: Record<string, any>) => Record<string, any>;
+
+  /**
+   * Optional usage converter for OpenAI-compatible providers with different
+   * token accounting semantics.
+   */
+  convertUsage?: (
+    usage: z.infer<typeof openaiCompatibleTokenUsageSchema>,
+  ) => LanguageModelV4Usage;
 };
 
 export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
@@ -110,6 +133,15 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
 
   private transformRequestBody(args: Record<string, any>): Record<string, any> {
     return this.config.transformRequestBody?.(args) ?? args;
+  }
+
+  private convertUsage(
+    usage: z.infer<typeof openaiCompatibleTokenUsageSchema>,
+  ): LanguageModelV4Usage {
+    return (
+      this.config.convertUsage?.(usage) ??
+      convertOpenAICompatibleChatUsage(usage)
+    );
   }
 
   private async getArgs({
@@ -345,7 +377,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
         unified: mapOpenAICompatibleFinishReason(choice.finish_reason),
         raw: choice.finish_reason ?? undefined,
       },
-      usage: convertOpenAICompatibleChatUsage(responseBody.usage),
+      usage: this.convertUsage(responseBody.usage),
       providerMetadata,
       request: { body },
       response: {
@@ -411,6 +443,9 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
     const providerOptionsName = metadataKey;
     let isActiveReasoning = false;
     let isActiveText = false;
+    const convertUsage = (
+      usage: z.infer<typeof openaiCompatibleTokenUsageSchema>,
+    ) => this.convertUsage(usage);
 
     return {
       stream: response.pipeThrough(
@@ -719,7 +754,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
             controller.enqueue({
               type: 'finish',
               finishReason,
-              usage: convertOpenAICompatibleChatUsage(usage),
+              usage: convertUsage(usage),
               providerMetadata,
             });
           },
