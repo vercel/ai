@@ -282,12 +282,8 @@ export async function convertToBedrockChatMessages(
                           data: reasoningMetadata.redactedData,
                         },
                       },
-<<<<<<< HEAD
                     });
                   }
-=======
-                    },
-                  });
                 } else if (
                   part.providerOptions == null ||
                   Object.keys(part.providerOptions).every(
@@ -315,7 +311,6 @@ export async function convertToBedrockChatMessages(
                       },
                     },
                   });
->>>>>>> 471670bfc (fix(amazon-bedrock): drop foreign-provider reasoning blocks instead of sending them unsigned (#14882))
                 }
 
                 break;

@@ -492,9 +492,6 @@ describe('assistant messages', () => {
     });
   });
 
-<<<<<<< HEAD
-  it('should trim trailing whitespace from reasoning content when it is the last part', async () => {
-=======
   it('should omit assistant message reasoning parts signed by a foreign provider', async () => {
     const result = await convertToBedrockChatMessages([
       {
@@ -577,8 +574,7 @@ describe('assistant messages', () => {
     });
   });
 
-  it('should not trim reasoning text when a signature is present', async () => {
->>>>>>> 471670bfc (fix(amazon-bedrock): drop foreign-provider reasoning blocks instead of sending them unsigned (#14882))
+  it('should trim trailing whitespace from reasoning content when it is the last part', async () => {
     const result = await convertToBedrockChatMessages([
       {
         role: 'user',
