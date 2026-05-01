@@ -1,5 +1,34 @@
 # @ai-sdk/azure
 
+## 4.0.0-beta.43
+
+### Patch Changes
+
+- Updated dependencies [9ea40e0]
+  - @ai-sdk/openai@4.0.0-beta.43
+
+## 4.0.0-beta.42
+
+### Patch Changes
+
+- Updated dependencies [08d2129]
+- Updated dependencies [04e9009]
+  - @ai-sdk/provider-utils@5.0.0-beta.30
+  - @ai-sdk/openai@4.0.0-beta.42
+
+## 4.0.0-beta.41
+
+### Patch Changes
+
+- 9bd6512: feat(provider): change file part data property to be tagged with a type and remove the image part type
+- 258c093: chore: ensure consistent import handling and avoid import duplicates or cycles
+- Updated dependencies [9bd6512]
+- Updated dependencies [258c093]
+- Updated dependencies [b6783da]
+  - @ai-sdk/provider-utils@5.0.0-beta.29
+  - @ai-sdk/provider@4.0.0-beta.14
+  - @ai-sdk/openai@4.0.0-beta.41
+
 ## 4.0.0-beta.40
 
 ### Patch Changes

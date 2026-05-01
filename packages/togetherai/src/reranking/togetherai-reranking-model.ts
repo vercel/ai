@@ -15,7 +15,7 @@ import {
 import {
   togetheraiRerankingModelOptionsSchema,
   type TogetherAIRerankingModelId,
-} from './togetherai-reranking-options';
+} from './togetherai-reranking-model-options';
 type TogetherAIRerankingConfig = {
   provider: string;
   baseURL: string;

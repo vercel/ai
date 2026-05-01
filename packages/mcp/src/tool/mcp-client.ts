@@ -628,6 +628,9 @@ class DefaultMCPClient implements MCPClient {
           ? dynamicTool({
               description,
               title: resolvedTitle,
+              providerMetadata: {
+                mcp: { name: this.clientInfo.name },
+              },
               inputSchema: jsonSchema({
                 ...inputSchema,
                 properties: inputSchema.properties ?? {},
@@ -639,6 +642,9 @@ class DefaultMCPClient implements MCPClient {
           : tool({
               description,
               title: resolvedTitle,
+              providerMetadata: {
+                mcp: { name: this.clientInfo.name },
+              },
               inputSchema: schemas[name].inputSchema,
               ...(outputSchema != null ? { outputSchema } : {}),
               execute,

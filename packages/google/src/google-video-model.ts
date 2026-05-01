@@ -9,35 +9,19 @@ import {
   createJsonResponseHandler,
   delay,
   getFromApi,
-  lazySchema,
   parseProviderOptions,
   postJsonToApi,
   resolve,
-  zodSchema,
   type FetchFunction,
   type Resolvable,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { googleFailedResponseHandler } from './google-error';
+import {
+  googleVideoModelOptionsSchema,
+  type GoogleVideoModelOptions,
+} from './google-video-model-options';
 import type { GoogleVideoModelId } from './google-video-settings';
-
-export type GoogleVideoModelOptions = {
-  // Polling configuration
-  pollIntervalMs?: number | null;
-  pollTimeoutMs?: number | null;
-
-  // Video generation options
-  personGeneration?: 'dont_allow' | 'allow_adult' | 'allow_all' | null;
-  negativePrompt?: string | null;
-
-  // Reference images (for style/asset reference)
-  referenceImages?: Array<{
-    bytesBase64Encoded?: string;
-    gcsUri?: string;
-  }> | null;
-
-  [key: string]: unknown; // For passthrough
-};
 
 interface GoogleVideoModelConfig {
   provider: string;
@@ -349,26 +333,3 @@ const googleOperationSchema = z.object({
     })
     .nullish(),
 });
-
-const googleVideoModelOptionsSchema = lazySchema(() =>
-  zodSchema(
-    z
-      .object({
-        pollIntervalMs: z.number().positive().nullish(),
-        pollTimeoutMs: z.number().positive().nullish(),
-        personGeneration: z
-          .enum(['dont_allow', 'allow_adult', 'allow_all'])
-          .nullish(),
-        negativePrompt: z.string().nullish(),
-        referenceImages: z
-          .array(
-            z.object({
-              bytesBase64Encoded: z.string().nullish(),
-              gcsUri: z.string().nullish(),
-            }),
-          )
-          .nullish(),
-      })
-      .passthrough(),
-  ),
-);

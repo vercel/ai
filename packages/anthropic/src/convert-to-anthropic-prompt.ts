@@ -24,7 +24,7 @@ import {
   type AnthropicUserMessage,
   type AnthropicWebFetchToolResultContent,
 } from './anthropic-api';
-import { anthropicFilePartProviderOptions } from './anthropic-options';
+import { anthropicFilePartProviderOptions } from './anthropic-language-model-options';
 import { CacheControlValidator } from './get-cache-control';
 import { codeExecution_20250522OutputSchema } from './tool/code-execution_20250522';
 import { codeExecution_20250825OutputSchema } from './tool/code-execution_20250825';

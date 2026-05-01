@@ -135,4 +135,4 @@ export function createElevenLabs(
 /**
  * Default ElevenLabs provider instance.
  */
-export const elevenlabs = createElevenLabs();
+export const elevenLabs = createElevenLabs();

@@ -29,6 +29,7 @@ import {
   type HuggingFaceResponsesUsage,
 } from './convert-huggingface-responses-usage';
 import { convertToHuggingFaceResponsesMessages } from './convert-to-huggingface-responses-messages';
+import { huggingfaceLanguageModelResponsesOptions } from './huggingface-responses-language-model-options';
 import { prepareResponsesTools } from './huggingface-responses-prepare-tools';
 import type { HuggingFaceResponsesModelId } from './huggingface-responses-settings';
 import { mapHuggingFaceResponsesFinishReason } from './map-huggingface-responses-finish-reason';
@@ -117,7 +118,7 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV4 {
     const huggingfaceOptions = await parseProviderOptions({
       provider: 'huggingface',
       providerOptions,
-      schema: huggingfaceResponsesProviderOptionsSchema,
+      schema: huggingfaceLanguageModelResponsesOptions,
     });
 
     const {
@@ -543,13 +544,6 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV4 {
     };
   }
 }
-
-const huggingfaceResponsesProviderOptionsSchema = z.object({
-  metadata: z.record(z.string(), z.string()).optional(),
-  instructions: z.string().optional(),
-  strictJsonSchema: z.boolean().optional(),
-  reasoningEffort: z.string().optional(),
-});
 
 const huggingfaceResponsesOutputSchema = z.discriminatedUnion('type', [
   z.object({

@@ -41,7 +41,7 @@ import {
 import {
   openaiLanguageModelChatOptions,
   type OpenAIChatModelId,
-} from './openai-chat-options';
+} from './openai-chat-language-model-options';
 import { prepareChatTools } from './openai-chat-prepare-tools';
 
 type OpenAIChatConfig = {

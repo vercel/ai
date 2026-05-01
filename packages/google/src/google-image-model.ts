@@ -16,18 +16,18 @@ import {
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
   zodSchema,
-  type InferSchema,
   type FetchFunction,
   type Resolvable,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { googleFailedResponseHandler } from './google-error';
+import { googleImageModelOptionsSchema } from './google-image-model-options';
 import type {
   GoogleImageModelId,
   GoogleImageSettings,
 } from './google-image-settings';
 import { GoogleLanguageModel } from './google-language-model';
-import type { GoogleLanguageModelOptions } from './google-options';
+import type { GoogleLanguageModelOptions } from './google-language-model-options';
 
 interface GoogleImageModelConfig {
   provider: string;
@@ -369,20 +369,3 @@ const googleImageResponseSchema = lazySchema(() =>
     }),
   ),
 );
-
-// Note: For the initial GA launch of Imagen 3, safety filters are not configurable.
-// https://ai.google.dev/gemini-api/docs/imagen#imagen-model
-const googleImageModelOptionsSchema = lazySchema(() =>
-  zodSchema(
-    z.object({
-      personGeneration: z
-        .enum(['dont_allow', 'allow_adult', 'allow_all'])
-        .nullish(),
-      aspectRatio: z.enum(['1:1', '3:4', '4:3', '9:16', '16:9']).nullish(),
-    }),
-  ),
-);
-
-export type GoogleImageModelOptions = InferSchema<
-  typeof googleImageModelOptionsSchema
->;

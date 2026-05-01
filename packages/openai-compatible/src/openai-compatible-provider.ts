@@ -24,7 +24,7 @@ export interface OpenAICompatibleProvider<
   COMPLETION_MODEL_IDS extends string = string,
   EMBEDDING_MODEL_IDS extends string = string,
   IMAGE_MODEL_IDS extends string = string,
-> extends Omit<ProviderV4, 'imageModel'> {
+> extends ProviderV4 {
   (modelId: CHAT_MODEL_IDS): LanguageModelV4;
 
   languageModel(

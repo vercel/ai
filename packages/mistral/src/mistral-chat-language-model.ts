@@ -33,9 +33,9 @@ import { convertToMistralChatMessages } from './convert-to-mistral-chat-messages
 import { getResponseMetadata } from './get-response-metadata';
 import { mapMistralFinishReason } from './map-mistral-finish-reason';
 import {
-  mistralLanguageModelOptions,
+  mistralLanguageModelChatOptions,
   type MistralChatModelId,
-} from './mistral-chat-options';
+} from './mistral-chat-language-model-options';
 import { mistralFailedResponseHandler } from './mistral-error';
 import { prepareTools } from './mistral-prepare-tools';
 
@@ -105,7 +105,7 @@ export class MistralChatLanguageModel implements LanguageModelV4 {
       (await parseProviderOptions({
         provider: 'mistral',
         providerOptions,
-        schema: mistralLanguageModelOptions,
+        schema: mistralLanguageModelChatOptions,
       })) ?? {};
 
     if (topK != null) {

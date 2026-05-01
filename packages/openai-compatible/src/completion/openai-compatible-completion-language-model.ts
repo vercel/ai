@@ -39,7 +39,7 @@ import { mapOpenAICompatibleFinishReason } from './map-openai-compatible-finish-
 import {
   openaiCompatibleLanguageModelCompletionOptions,
   type OpenAICompatibleCompletionModelId,
-} from './openai-compatible-completion-options';
+} from './openai-compatible-completion-language-model-options';
 type OpenAICompatibleCompletionConfig = {
   provider: string;
   includeUsage?: boolean;

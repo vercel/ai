@@ -1,5 +1,5 @@
 import {
-  vertex,
+  googleVertex,
   type GoogleVertexVideoProviderOptions,
 } from '@ai-sdk/google-vertex';
 import { experimental_generateVideo } from 'ai';
@@ -13,7 +13,7 @@ run(async () => {
     'Generating video from image (base64)...',
     () =>
       experimental_generateVideo({
-        model: vertex.video('veo-3.1-generate-001'),
+        model: googleVertex.video('veo-3.1-generate-001'),
         prompt: {
           image: fs.readFileSync('data/comic-cat.png'),
           text: 'Animate this image with gentle motion',

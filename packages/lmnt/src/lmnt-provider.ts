@@ -1,4 +1,8 @@
-import type { SpeechModelV4, ProviderV4 } from '@ai-sdk/provider';
+import {
+  NoSuchModelError,
+  type SpeechModelV4,
+  type ProviderV4,
+} from '@ai-sdk/provider';
 import {
   loadApiKey,
   withUserAgentSuffix,
@@ -8,7 +12,7 @@ import { LMNTSpeechModel } from './lmnt-speech-model';
 import type { LMNTSpeechModelId } from './lmnt-speech-options';
 import { VERSION } from './version';
 
-export interface LMNTProvider extends Pick<ProviderV4, 'speechModel'> {
+export interface LMNTProvider extends ProviderV4 {
   (
     modelId: 'aurora',
     settings?: {},
@@ -71,8 +75,33 @@ export function createLMNT(options: LMNTProviderSettings = {}): LMNTProvider {
     };
   };
 
+  provider.specificationVersion = 'v4' as const;
   provider.speech = createSpeechModel;
   provider.speechModel = createSpeechModel;
+
+  provider.languageModel = (modelId: string) => {
+    throw new NoSuchModelError({
+      modelId,
+      modelType: 'languageModel',
+      message: 'LMNT does not provide language models',
+    });
+  };
+
+  provider.embeddingModel = (modelId: string) => {
+    throw new NoSuchModelError({
+      modelId,
+      modelType: 'embeddingModel',
+      message: 'LMNT does not provide embedding models',
+    });
+  };
+
+  provider.imageModel = (modelId: string) => {
+    throw new NoSuchModelError({
+      modelId,
+      modelType: 'imageModel',
+      message: 'LMNT does not provide image models',
+    });
+  };
 
   return provider as LMNTProvider;
 }

@@ -80,10 +80,10 @@ const model = mistral('mistral-large-latest');
 ```
 
 Mistral chat models also support additional model settings that are not part of the [standard call settings](/docs/ai-sdk-core/settings).
-You can pass them as an options argument and utilize `MistralLanguageModelOptions` for typing:
+You can pass them as an options argument and utilize `MistralLanguageModelChatOptions` for typing:
 
 ```ts
-import { mistral, type MistralLanguageModelOptions } from '@ai-sdk/mistral';
+import { mistral, type MistralLanguageModelChatOptions } from '@ai-sdk/mistral';
 const model = mistral('mistral-large-latest');
 
 await generateText({
@@ -92,7 +92,7 @@ await generateText({
     mistral: {
       safePrompt: true, // optional safety prompt injection
       parallelToolCalls: false, // disable parallel tool calls (one tool per response)
-    } satisfies MistralLanguageModelOptions,
+    } satisfies MistralLanguageModelChatOptions,
   },
 });
 ```
@@ -137,7 +137,7 @@ Mistral chat models support document OCR for PDF files.
 You can optionally set image and page limits using the provider options.
 
 ```ts
-import { mistral, type MistralLanguageModelOptions } from '@ai-sdk/mistral';
+import { mistral, type MistralLanguageModelChatOptions } from '@ai-sdk/mistral';
 import { generateText } from 'ai';
 
 const result = await generateText({
@@ -165,7 +165,7 @@ const result = await generateText({
     mistral: {
       documentImageLimit: 8,
       documentPageLimit: 64,
-    } satisfies MistralLanguageModelOptions,
+    } satisfies MistralLanguageModelChatOptions,
   },
 });
 ```
@@ -266,7 +266,7 @@ console.log(JSON.stringify(result.output, null, 2));
 You can enable strict JSON Schema validation using a provider option:
 
 ```ts highlight="7-11"
-import { mistral, type MistralLanguageModelOptions } from '@ai-sdk/mistral';
+import { mistral, type MistralLanguageModelChatOptions } from '@ai-sdk/mistral';
 import { generateText, Output } from 'ai';
 import { z } from 'zod';
 
@@ -275,7 +275,7 @@ const result = await generateText({
   providerOptions: {
     mistral: {
       strictJsonSchema: true,
-    } satisfies MistralLanguageModelOptions,
+    } satisfies MistralLanguageModelChatOptions,
   },
   output: Output.object({
     schema: z.object({

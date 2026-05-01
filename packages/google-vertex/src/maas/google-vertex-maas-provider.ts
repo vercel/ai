@@ -57,7 +57,7 @@ export interface GoogleVertexMaasProviderSettings {
  *
  * @see https://cloud.google.com/vertex-ai/generative-ai/docs/maas/use-open-models
  */
-export function createVertexMaas(
+export function createGoogleVertexMaas(
   options: GoogleVertexMaasProviderSettings = {},
 ): GoogleVertexMaasProvider {
   // Lazy-load settings to support loading from environment variables at runtime

@@ -16,7 +16,7 @@ import { groqFailedResponseHandler } from './groq-error';
 import {
   groqTranscriptionModelOptions,
   type GroqTranscriptionModelId,
-} from './groq-transcription-options';
+} from './groq-transcription-model-options';
 import type { GroqTranscriptionAPITypes } from './groq-api-types';
 
 interface GroqTranscriptionModelConfig extends GroqConfig {

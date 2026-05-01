@@ -1,4 +1,4 @@
-import { bedrock } from '@ai-sdk/amazon-bedrock';
+import { amazonBedrock } from '@ai-sdk/amazon-bedrock';
 import {
   streamText,
   type ModelMessage,
@@ -14,7 +14,7 @@ run(async () => {
   let toolResponseAvailable = false;
 
   const result = streamText({
-    model: bedrock('anthropic.claude-3-haiku-20240307-v1:0'),
+    model: amazonBedrock('anthropic.claude-3-haiku-20240307-v1:0'),
     maxOutputTokens: 512,
     tools: {
       weather: weatherTool,

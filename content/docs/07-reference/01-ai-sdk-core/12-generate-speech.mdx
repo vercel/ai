@@ -41,10 +41,10 @@ const { audio } = await generateSpeech({
 
 ```ts
 import { experimental_generateSpeech as generateSpeech } from 'ai';
-import { elevenlabs } from '@ai-sdk/elevenlabs';
+import { elevenLabs } from '@ai-sdk/elevenlabs';
 
 const { audio } = await generateSpeech({
-  model: elevenlabs.speech('eleven_multilingual_v2'),
+  model: elevenLabs.speech('eleven_multilingual_v2'),
   text: 'Hello from the AI SDK!',
   voice: 'your-voice-id', // Required: get this from your ElevenLabs account
 });

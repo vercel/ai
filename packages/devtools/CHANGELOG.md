@@ -1,5 +1,14 @@
 # @ai-sdk/devtools
 
+## 1.0.0-beta.19
+
+### Patch Changes
+
+- 258c093: chore: ensure consistent import handling and avoid import duplicates or cycles
+- Updated dependencies [9bd6512]
+- Updated dependencies [258c093]
+  - @ai-sdk/provider@4.0.0-beta.14
+
 ## 1.0.0-beta.18
 
 ### Patch Changes

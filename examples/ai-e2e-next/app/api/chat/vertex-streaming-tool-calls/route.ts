@@ -1,4 +1,4 @@
-import { vertex } from '@ai-sdk/google-vertex';
+import { googleVertex } from '@ai-sdk/google-vertex';
 import type { GoogleLanguageModelOptions } from '@ai-sdk/google';
 import {
   convertToModelMessages,
@@ -30,7 +30,7 @@ export async function POST(req: Request) {
   const { messages } = await req.json();
 
   const result = streamText({
-    model: vertex('gemini-3.1-pro-preview'),
+    model: googleVertex('gemini-3.1-pro-preview'),
     messages: await convertToModelMessages(messages),
     system:
       'You are a helpful weather assistant. ' +

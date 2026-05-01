@@ -1,5 +1,34 @@
 # @ai-sdk/amazon-bedrock
 
+## 5.0.0-beta.46
+
+### Major Changes
+
+- 04e9009: chore: make provider implementations code patterns more consistent, including renaming certain exported symbols
+
+  For all externally exported symbols that were renamed, the old names continue to work via deprecated aliases.
+
+### Patch Changes
+
+- Updated dependencies [08d2129]
+- Updated dependencies [04e9009]
+  - @ai-sdk/provider-utils@5.0.0-beta.30
+  - @ai-sdk/anthropic@4.0.0-beta.42
+
+## 5.0.0-beta.45
+
+### Patch Changes
+
+- 6732c16: fix(amazon-bedrock): do not use env var AWS_SESSION_TOKEN when keys are explicitly defined
+- 9bd6512: feat(provider): change file part data property to be tagged with a type and remove the image part type
+- 258c093: chore: ensure consistent import handling and avoid import duplicates or cycles
+- Updated dependencies [9bd6512]
+- Updated dependencies [258c093]
+- Updated dependencies [b6783da]
+  - @ai-sdk/provider-utils@5.0.0-beta.29
+  - @ai-sdk/anthropic@4.0.0-beta.41
+  - @ai-sdk/provider@4.0.0-beta.14
+
 ## 5.0.0-beta.44
 
 ### Patch Changes

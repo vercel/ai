@@ -37,7 +37,7 @@ import {
 import {
   xaiLanguageModelResponsesOptions,
   type XaiResponsesModelId,
-} from './xai-responses-options';
+} from './xai-responses-language-model-options';
 import { prepareResponsesTools } from './xai-responses-prepare-tools';
 
 type XaiResponsesConfig = {

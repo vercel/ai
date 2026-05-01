@@ -16,7 +16,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { AnthropicFiles } from './anthropic-files';
 import { AnthropicLanguageModel } from './anthropic-language-model';
-import type { AnthropicModelId } from './anthropic-options';
+import type { AnthropicModelId } from './anthropic-language-model-options';
 import { anthropicTools } from './anthropic-tools';
 import { AnthropicSkills } from './skills/anthropic-skills';
 import { VERSION } from './version';

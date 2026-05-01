@@ -7,7 +7,7 @@ import {
   getSupportedModelsString,
   isBrowserSearchSupportedModel,
 } from './groq-browser-search-models';
-import type { GroqChatModelId } from './groq-chat-options';
+import type { GroqChatModelId } from './groq-chat-language-model-options';
 
 export function prepareTools({
   tools,

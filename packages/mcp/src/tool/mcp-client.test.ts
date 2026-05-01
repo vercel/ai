@@ -93,6 +93,19 @@ describe('MCPClient', () => {
     `);
   });
 
+  it('should expose the configured client name on dynamic tools via providerMetadata', async () => {
+    client = await createMCPClient({
+      transport: { type: 'sse', url: 'https://example.com/sse' },
+      name: 'MyMCPServer',
+    });
+
+    const tools = await client.tools();
+
+    expect(tools['mock-tool'].providerMetadata).toEqual({
+      mcp: { name: 'MyMCPServer' },
+    });
+  });
+
   it('should return serializable tool definitions via listTools()', async () => {
     client = await createMCPClient({
       transport: { type: 'sse', url: 'https://example.com/sse' },

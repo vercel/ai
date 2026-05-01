@@ -68,7 +68,7 @@ import {
   openaiLanguageModelResponsesOptionsSchema,
   TOP_LOGPROBS_MAX,
   type OpenAIResponsesModelId,
-} from './openai-responses-options';
+} from './openai-responses-language-model-options';
 import { prepareResponsesTools } from './openai-responses-prepare-tools';
 import type {
   ResponsesCompactionProviderMetadata,
