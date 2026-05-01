@@ -3,10 +3,14 @@ import {
   createGoogleVertexXai,
   googleVertexXai,
 } from './google-vertex-xai-provider-node';
-import { generateAuthToken } from '../google-vertex-auth-google-auth-library';
+import { createAuthTokenGenerator } from '../google-vertex-auth-google-auth-library';
+
+const { generateAuthToken } = vi.hoisted(() => ({
+  generateAuthToken: vi.fn(),
+}));
 
 vi.mock('../google-vertex-auth-google-auth-library', () => ({
-  generateAuthToken: vi.fn(),
+  createAuthTokenGenerator: vi.fn(() => generateAuthToken),
 }));
 
 vi.mock('./google-vertex-xai-provider', () => ({
@@ -40,6 +44,7 @@ describe('google-vertex-xai-provider-node', () => {
       await import('./google-vertex-xai-provider'),
     );
     expect(baseCreateGoogleVertexXai).toHaveBeenCalledTimes(1);
+    expect(createAuthTokenGenerator).toHaveBeenCalledWith(undefined);
     expect(baseCreateGoogleVertexXai.mock.calls[0][0]).toMatchInlineSnapshot(`
       {
         "fetch": [Function],
@@ -66,13 +71,8 @@ describe('google-vertex-xai-provider-node', () => {
       headers: { 'Content-Type': 'application/json' },
     });
 
-    expect(vi.mocked(generateAuthToken).mock.calls).toMatchInlineSnapshot(`
-      [
-        [
-          undefined,
-        ],
-      ]
-    `);
+    expect(createAuthTokenGenerator).toHaveBeenCalledWith(undefined);
+    expect(generateAuthToken).toHaveBeenCalledWith();
 
     expect(mockFetch.mock.calls).toMatchInlineSnapshot(`
       [
@@ -90,7 +90,7 @@ describe('google-vertex-xai-provider-node', () => {
     `);
   });
 
-  it('should pass googleAuthOptions to generateAuthToken', async () => {
+  it('should pass googleAuthOptions to createAuthTokenGenerator', async () => {
     vi.mocked(generateAuthToken).mockResolvedValue('mock-auth-token');
     const mockFetch = vi.fn().mockResolvedValue(new Response('{}'));
     global.fetch = mockFetch;
@@ -104,17 +104,8 @@ describe('google-vertex-xai-provider-node', () => {
     const customFetch = (provider as any).fetch;
     await customFetch('https://example.com/test', {});
 
-    expect(vi.mocked(generateAuthToken).mock.calls).toMatchInlineSnapshot(`
-      [
-        [
-          {
-            "scopes": [
-              "test-scope",
-            ],
-          },
-        ],
-      ]
-    `);
+    expect(createAuthTokenGenerator).toHaveBeenCalledWith(googleAuthOptions);
+    expect(generateAuthToken).toHaveBeenCalledWith();
   });
 
   it('should merge custom headers with auth header', async () => {
@@ -178,5 +169,24 @@ describe('google-vertex-xai-provider-node', () => {
   it('should export default googleVertexXai instance', () => {
     expect(googleVertexXai).toBeDefined();
     expect(typeof googleVertexXai).toBe('function');
+  });
+
+  it('creates the auth token generator once per provider instance', async () => {
+    vi.mocked(generateAuthToken).mockResolvedValue('mock-auth-token');
+    const mockFetch = vi.fn().mockResolvedValue(new Response('{}'));
+    global.fetch = mockFetch;
+
+    const provider = createGoogleVertexXai({
+      project: 'test-project',
+    });
+
+    expect(createAuthTokenGenerator).toHaveBeenCalledTimes(1);
+
+    const customFetch = (provider as any).fetch;
+    await customFetch('https://example.com/test-1', {});
+    await customFetch('https://example.com/test-2', {});
+
+    expect(createAuthTokenGenerator).toHaveBeenCalledTimes(1);
+    expect(generateAuthToken).toHaveBeenCalledTimes(2);
   });
 });
