@@ -23,15 +23,8 @@ export interface BedrockCredentials {
  * @returns A FetchFunction that signs requests before passing them to the underlying fetch.
  */
 export function createSigV4FetchFunction(
-<<<<<<< HEAD:packages/amazon-bedrock/src/bedrock-sigv4-fetch.ts
   getCredentials: () => BedrockCredentials | PromiseLike<BedrockCredentials>,
-  fetch: FetchFunction = globalThis.fetch,
-=======
-  getCredentials: () =>
-    | AmazonBedrockCredentials
-    | PromiseLike<AmazonBedrockCredentials>,
   fetch?: FetchFunction,
->>>>>>> d0dbd9677 (fix(amazon-bedrock): resolve globalThis.fetch lazily to support telemetry and fetch patching (#14365)):packages/amazon-bedrock/src/amazon-bedrock-sigv4-fetch.ts
 ): FetchFunction {
   return async (
     input: RequestInfo | URL,
