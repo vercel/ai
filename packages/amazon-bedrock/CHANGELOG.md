@@ -1,5 +1,11 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.100
+
+### Patch Changes
+
+- 181cc18: Fix `createAmazonBedrock()` capturing `globalThis.fetch` at initialization time, which caused telemetry instrumentation (e.g. OpenTelemetry, Datadog) and other `globalThis.fetch` patches applied after provider creation to be silently ignored.
+
 ## 4.0.99
 
 ### Patch Changes
