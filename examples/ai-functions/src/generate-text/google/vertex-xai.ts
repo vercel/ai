@@ -5,7 +5,7 @@ import { run } from '../../lib/run';
 run(async () => {
   const result = await generateText({
     model: googleVertexXai('xai/grok-4.1-fast-reasoning'),
-    prompt: 'WHO INVENTED YOU?',
+    prompt: 'What is the meaning of life?',
   });
 
   console.log(result.text);
