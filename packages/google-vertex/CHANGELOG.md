@@ -1,5 +1,13 @@
 # @ai-sdk/google-vertex
 
+## 3.0.136
+
+### Patch Changes
+
+- cb61408: feat(vertex): add grok models to vertex provider
+- Updated dependencies [cb61408]
+  - @ai-sdk/openai-compatible@1.0.39
+
 ## 3.0.135
 
 ### Patch Changes
