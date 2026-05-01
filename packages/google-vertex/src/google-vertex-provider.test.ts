@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import type * as ProviderUtilsModule from '@ai-sdk/provider-utils';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { createVertex } from './google-vertex-provider';
@@ -42,6 +43,19 @@ vi.mock('@ai-sdk/google/internal', () => ({
     fileSearch: vi.fn(),
     codeExecution: vi.fn(),
   },
+=======
+import { resolve } from '@ai-sdk/provider-utils';
+import { createAuthTokenGenerator } from './google-vertex-auth-google-auth-library';
+import { createGoogleVertex as createGoogleVertexOriginal } from './google-vertex-provider-base';
+import { createGoogleVertex as createVertexNode } from './google-vertex-provider';
+import { describe, beforeEach, afterEach, expect, it, vi } from 'vitest';
+
+// Mock the imported modules
+vi.mock('./google-vertex-auth-google-auth-library', () => ({
+  createAuthTokenGenerator: vi.fn(() =>
+    vi.fn().mockResolvedValue('mock-auth-token'),
+  ),
+>>>>>>> 96d056d69 (fix: reuse google auth per provider instance (#14102))
 }));
 
 vi.mock('./google-vertex-embedding-model', () => ({
@@ -85,12 +99,33 @@ describe('google-vertex-provider', () => {
     );
   });
 
+<<<<<<< HEAD
   it('should throw an error when using new keyword', () => {
     const provider = createVertex({ project: 'test-project' });
 
     expect(() => new (provider as any)('test-model-id')).toThrow(
       'The Google Vertex AI model function cannot be called with the new keyword.',
     );
+=======
+  it('passes googleAuthOptions to createAuthTokenGenerator', async () => {
+    createVertexNode({
+      googleAuthOptions: {
+        scopes: ['https://www.googleapis.com/auth/cloud-platform'],
+        keyFile: 'path/to/key.json',
+      },
+    });
+
+    expect(createGoogleVertexOriginal).toHaveBeenCalledTimes(1);
+    const passedOptions = vi.mocked(createGoogleVertexOriginal).mock
+      .calls[0][0];
+
+    await resolve(passedOptions?.headers); // call the headers function
+
+    expect(createAuthTokenGenerator).toHaveBeenCalledWith({
+      scopes: ['https://www.googleapis.com/auth/cloud-platform'],
+      keyFile: 'path/to/key.json',
+    });
+>>>>>>> 96d056d69 (fix: reuse google auth per provider instance (#14102))
   });
 
   it('should create an embedding model with correct settings', () => {
@@ -293,6 +328,7 @@ describe('google-vertex-provider', () => {
     );
   });
 
+<<<<<<< HEAD
   it('should add API key as query parameter via custom fetch', async () => {
     const provider = createVertex({
       apiKey: 'test-api-key',
@@ -378,5 +414,24 @@ describe('google-vertex-provider', () => {
         baseURL: customBaseURL,
       }),
     );
+=======
+    expect(passedOptions?.apiKey).toBe('test-api-key');
+    expect(passedOptions?.headers).toBeUndefined();
+    expect(createAuthTokenGenerator).not.toHaveBeenCalled();
+  });
+
+  it('creates the auth token generator once per provider instance', async () => {
+    createVertexNode({ project: 'test-project' });
+
+    expect(createAuthTokenGenerator).toHaveBeenCalledTimes(1);
+
+    const passedOptions = vi.mocked(createGoogleVertexOriginal).mock
+      .calls[0][0];
+
+    await resolve(passedOptions?.headers);
+    await resolve(passedOptions?.headers);
+
+    expect(createAuthTokenGenerator).toHaveBeenCalledTimes(1);
+>>>>>>> 96d056d69 (fix: reuse google auth per provider instance (#14102))
   });
 });
