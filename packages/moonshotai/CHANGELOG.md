@@ -1,5 +1,12 @@
 # @ai-sdk/moonshotai
 
+## 3.0.0-beta.36
+
+### Patch Changes
+
+- Updated dependencies [e59c955]
+  - @ai-sdk/openai-compatible@3.0.0-beta.36
+
 ## 3.0.0-beta.35
 
 ### Major Changes

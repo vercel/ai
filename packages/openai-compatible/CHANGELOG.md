@@ -1,5 +1,11 @@
 # @ai-sdk/openai-compatible
 
+## 3.0.0-beta.36
+
+### Patch Changes
+
+- e59c955: feat(vertex): add grok models to vertex provider
+
 ## 3.0.0-beta.35
 
 ### Major Changes
