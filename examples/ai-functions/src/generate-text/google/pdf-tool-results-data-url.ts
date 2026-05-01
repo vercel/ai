@@ -33,8 +33,9 @@ run(async () => {
             text: output.description,
           },
           {
-            type: 'file-url',
-            url: output.pdfUrl,
+            type: 'file',
+            mediaType: 'application/pdf',
+            data: { type: 'url', url: new URL(output.pdfUrl) },
           },
         ],
       };
