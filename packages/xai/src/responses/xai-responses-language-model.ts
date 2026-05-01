@@ -25,6 +25,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import type { z } from 'zod/v4';
 import { getResponseMetadata } from '../get-response-metadata';
+import { removeUnsupportedXaiSchemaProperties } from '../remove-unsupported-xai-schema-properties';
 import { xaiFailedResponseHandler } from '../xai-error';
 import { convertToXaiResponsesInput } from './convert-to-xai-responses-input';
 import { convertXaiResponsesUsage } from './convert-xai-responses-usage';
@@ -203,7 +204,9 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
                   strict: true,
                   name: responseFormat.name ?? 'response',
                   description: responseFormat.description,
-                  schema: responseFormat.schema,
+                  schema: removeUnsupportedXaiSchemaProperties(
+                    responseFormat.schema,
+                  ),
                 }
               : { type: 'json_object' },
         },

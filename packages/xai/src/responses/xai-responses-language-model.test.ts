@@ -881,7 +881,6 @@ describe('XaiResponsesLanguageModel', () => {
                   "description": "A recipe object",
                   "name": "recipe",
                   "schema": {
-                    "additionalProperties": false,
                     "properties": {
                       "ingredients": {
                         "items": {

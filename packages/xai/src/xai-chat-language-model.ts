@@ -31,6 +31,7 @@ import { convertToXaiChatMessages } from './convert-to-xai-chat-messages';
 import { convertXaiChatUsage } from './convert-xai-chat-usage';
 import { getResponseMetadata } from './get-response-metadata';
 import { mapXaiFinishReason } from './map-xai-finish-reason';
+import { removeUnsupportedXaiSchemaProperties } from './remove-unsupported-xai-schema-properties';
 import {
   xaiLanguageModelChatOptions,
   type XaiChatModelId,
@@ -182,7 +183,9 @@ export class XaiChatLanguageModel implements LanguageModelV4 {
                 type: 'json_schema',
                 json_schema: {
                   name: responseFormat.name ?? 'response',
-                  schema: responseFormat.schema,
+                  schema: removeUnsupportedXaiSchemaProperties(
+                    responseFormat.schema,
+                  ),
                   strict: true,
                 },
               }

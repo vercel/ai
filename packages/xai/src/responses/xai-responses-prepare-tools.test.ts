@@ -572,6 +572,51 @@ describe('prepareResponsesTools', () => {
         }
       `);
     });
+
+    it('should remove additionalProperties false from function tool parameters', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'weather',
+            inputSchema: {
+              type: 'object',
+              additionalProperties: false,
+              properties: {
+                location: {
+                  type: 'object',
+                  additionalProperties: false,
+                  properties: {
+                    city: { type: 'string' },
+                  },
+                },
+              },
+            },
+          },
+        ],
+      });
+
+      expect(result.tools?.[0]).toMatchInlineSnapshot(`
+        {
+          "description": undefined,
+          "name": "weather",
+          "parameters": {
+            "properties": {
+              "location": {
+                "properties": {
+                  "city": {
+                    "type": "string",
+                  },
+                },
+                "type": "object",
+              },
+            },
+            "type": "object",
+          },
+          "type": "function",
+        }
+      `);
+    });
   });
 
   describe('tool choice', () => {

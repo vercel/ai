@@ -4,6 +4,7 @@ import {
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import type { XaiToolChoice } from './xai-chat-prompt';
+import { removeUnsupportedXaiSchemaProperties } from './remove-unsupported-xai-schema-properties';
 
 export function prepareTools({
   tools,
@@ -58,7 +59,7 @@ export function prepareTools({
         function: {
           name: tool.name,
           description: tool.description,
-          parameters: tool.inputSchema,
+          parameters: removeUnsupportedXaiSchemaProperties(tool.inputSchema),
           ...(tool.strict != null ? { strict: tool.strict } : {}),
         },
       });

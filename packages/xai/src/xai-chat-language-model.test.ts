@@ -263,7 +263,6 @@ describe('XaiChatLanguageModel', () => {
                 "name": "test-tool",
                 "parameters": {
                   "$schema": "http://json-schema.org/draft-07/schema#",
-                  "additionalProperties": false,
                   "properties": {
                     "value": {
                       "type": "string",
@@ -832,11 +831,14 @@ describe('XaiChatLanguageModel', () => {
               name: { type: 'string' },
             },
             required: ['name'],
+            additionalProperties: false,
           },
         },
       });
 
-      expect(await server.calls[0].requestBodyJson).toMatchObject({
+      const requestBody = await server.calls[0].requestBodyJson;
+
+      expect(requestBody).toMatchObject({
         model: 'grok-3',
         response_format: {
           type: 'json_schema',
@@ -853,6 +855,9 @@ describe('XaiChatLanguageModel', () => {
           },
         },
       });
+      expect(requestBody.response_format.json_schema.schema).not.toHaveProperty(
+        'additionalProperties',
+      );
     });
 
     it('should handle missing usage in response', async () => {

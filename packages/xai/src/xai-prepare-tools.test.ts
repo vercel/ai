@@ -59,6 +59,46 @@ describe('prepareTools', () => {
     `);
   });
 
+  it('should remove additionalProperties false from function tool parameters', () => {
+    const result = prepareTools({
+      tools: [
+        {
+          type: 'function',
+          name: 'testFunction',
+          inputSchema: {
+            type: 'object',
+            additionalProperties: false,
+            properties: {
+              value: {
+                type: 'object',
+                additionalProperties: false,
+                properties: {
+                  label: { type: 'string' },
+                },
+              },
+            },
+          },
+        },
+      ],
+    });
+
+    expect(result.tools?.[0].function.parameters).toMatchInlineSnapshot(`
+      {
+        "properties": {
+          "value": {
+            "properties": {
+              "label": {
+                "type": "string",
+              },
+            },
+            "type": "object",
+          },
+        },
+        "type": "object",
+      }
+    `);
+  });
+
   it('should add warnings for provider-defined tools', () => {
     const result = prepareTools({
       tools: [

@@ -5,6 +5,7 @@ import {
 } from '@ai-sdk/provider';
 import { validateTypes } from '@ai-sdk/provider-utils';
 import { fileSearchArgsSchema } from '../tool/file-search';
+import { removeUnsupportedXaiSchemaProperties } from '../remove-unsupported-xai-schema-properties';
 import { mcpServerArgsSchema } from '../tool/mcp-server';
 import { webSearchArgsSchema } from '../tool/web-search';
 import { xSearchArgsSchema } from '../tool/x-search';
@@ -142,7 +143,7 @@ export async function prepareResponsesTools({
         type: 'function',
         name: tool.name,
         description: tool.description,
-        parameters: tool.inputSchema,
+        parameters: removeUnsupportedXaiSchemaProperties(tool.inputSchema),
         ...(tool.strict != null ? { strict: tool.strict } : {}),
       });
     }
