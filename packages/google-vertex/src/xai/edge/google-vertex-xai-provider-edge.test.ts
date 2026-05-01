@@ -39,13 +39,14 @@ describe('google-vertex-xai-provider-edge', () => {
     const { createGoogleVertexXai: baseCreateGoogleVertexXai } = vi.mocked(
       await import('../google-vertex-xai-provider'),
     );
-    expect(baseCreateGoogleVertexXai).toHaveBeenCalledWith(
-      expect.objectContaining({
-        project: 'test-project',
-        fetch: expect.any(Function),
-        headers: undefined,
-      }),
-    );
+    expect(baseCreateGoogleVertexXai).toHaveBeenCalledTimes(1);
+    expect(baseCreateGoogleVertexXai.mock.calls[0][0]).toMatchInlineSnapshot(`
+      {
+        "fetch": [Function],
+        "headers": undefined,
+        "project": "test-project",
+      }
+    `);
   });
 
   it('should generate auth token and add to request headers', async () => {
@@ -65,15 +66,28 @@ describe('google-vertex-xai-provider-edge', () => {
       headers: { 'Content-Type': 'application/json' },
     });
 
-    expect(generateAuthToken).toHaveBeenCalledWith(undefined);
+    expect(vi.mocked(generateAuthToken).mock.calls).toMatchInlineSnapshot(`
+      [
+        [
+          undefined,
+        ],
+      ]
+    `);
 
-    expect(mockFetch).toHaveBeenCalledWith('https://example.com/test', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: 'Bearer mock-auth-token',
-      },
-    });
+    expect(mockFetch.mock.calls).toMatchInlineSnapshot(`
+      [
+        [
+          "https://example.com/test",
+          {
+            "headers": {
+              "Authorization": "Bearer mock-auth-token",
+              "Content-Type": "application/json",
+            },
+            "method": "POST",
+          },
+        ],
+      ]
+    `);
   });
 
   it('should pass googleCredentials to generateAuthToken', async () => {
@@ -93,7 +107,16 @@ describe('google-vertex-xai-provider-edge', () => {
     const customFetch = (provider as any).fetch;
     await customFetch('https://example.com/test', {});
 
-    expect(generateAuthToken).toHaveBeenCalledWith(googleCredentials);
+    expect(vi.mocked(generateAuthToken).mock.calls).toMatchInlineSnapshot(`
+      [
+        [
+          {
+            "clientEmail": "test@example.com",
+            "privateKey": "test-key",
+          },
+        ],
+      ]
+    `);
   });
 
   it('should merge custom headers with auth header', async () => {
@@ -112,13 +135,20 @@ describe('google-vertex-xai-provider-edge', () => {
       headers: { 'Content-Type': 'application/json' },
     });
 
-    expect(mockFetch).toHaveBeenCalledWith('https://example.com/test', {
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Custom': 'header-value',
-        Authorization: 'Bearer mock-auth-token',
-      },
-    });
+    expect(mockFetch.mock.calls).toMatchInlineSnapshot(`
+      [
+        [
+          "https://example.com/test",
+          {
+            "headers": {
+              "Authorization": "Bearer mock-auth-token",
+              "Content-Type": "application/json",
+              "X-Custom": "header-value",
+            },
+          },
+        ],
+      ]
+    `);
   });
 
   it('should use custom fetch when provided', async () => {
@@ -133,14 +163,18 @@ describe('google-vertex-xai-provider-edge', () => {
     const authFetch = (provider as any).fetch;
     await authFetch('https://example.com/test', {});
 
-    expect(customFetch).toHaveBeenCalledWith(
-      'https://example.com/test',
-      expect.objectContaining({
-        headers: expect.objectContaining({
-          Authorization: 'Bearer mock-auth-token',
-        }),
-      }),
-    );
+    expect(customFetch.mock.calls).toMatchInlineSnapshot(`
+      [
+        [
+          "https://example.com/test",
+          {
+            "headers": {
+              "Authorization": "Bearer mock-auth-token",
+            },
+          },
+        ],
+      ]
+    `);
   });
 
   it('should export default googleVertexXai instance', () => {

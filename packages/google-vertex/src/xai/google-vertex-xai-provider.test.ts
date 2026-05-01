@@ -51,13 +51,19 @@ describe('google-vertex-xai-provider', () => {
 
     provider('xai/grok-4.1-fast-reasoning');
 
-    expect(createOpenAICompatible).toHaveBeenCalledWith(
-      expect.objectContaining({
-        name: 'googleVertex.xai',
-        baseURL:
-          'https://aiplatform.googleapis.com/v1/projects/test-project/locations/global/endpoints/openapi',
-      }),
-    );
+    expect(vi.mocked(createOpenAICompatible).mock.calls[0][0])
+      .toMatchInlineSnapshot(`
+        {
+          "baseURL": "https://aiplatform.googleapis.com/v1/projects/test-project/locations/global/endpoints/openapi",
+          "convertUsage": [Function],
+          "fetch": undefined,
+          "includeUsage": true,
+          "name": "googleVertex.xai",
+          "supportedUrls": [Function],
+          "supportsStructuredOutputs": true,
+          "transformRequestBody": [Function],
+        }
+      `);
   });
 
   it('should create a provider with correct base URL for regional location', () => {
@@ -68,13 +74,19 @@ describe('google-vertex-xai-provider', () => {
 
     provider('xai/grok-4.1-fast-reasoning');
 
-    expect(createOpenAICompatible).toHaveBeenCalledWith(
-      expect.objectContaining({
-        name: 'googleVertex.xai',
-        baseURL:
-          'https://aiplatform.googleapis.com/v1/projects/test-project/locations/us-central1/endpoints/openapi',
-      }),
-    );
+    expect(vi.mocked(createOpenAICompatible).mock.calls[0][0])
+      .toMatchInlineSnapshot(`
+        {
+          "baseURL": "https://aiplatform.googleapis.com/v1/projects/test-project/locations/us-central1/endpoints/openapi",
+          "convertUsage": [Function],
+          "fetch": undefined,
+          "includeUsage": true,
+          "name": "googleVertex.xai",
+          "supportedUrls": [Function],
+          "supportsStructuredOutputs": true,
+          "transformRequestBody": [Function],
+        }
+      `);
   });
 
   it('should configure OpenAI-compatible behavior for Vertex Grok', () => {
@@ -85,15 +97,19 @@ describe('google-vertex-xai-provider', () => {
 
     provider('xai/grok-4.1-fast-reasoning');
 
-    expect(createOpenAICompatible).toHaveBeenCalledWith(
-      expect.objectContaining({
-        includeUsage: true,
-        supportsStructuredOutputs: true,
-        supportedUrls: expect.any(Function),
-        transformRequestBody: expect.any(Function),
-        convertUsage: expect.any(Function),
-      }),
-    );
+    expect(vi.mocked(createOpenAICompatible).mock.calls[0][0])
+      .toMatchInlineSnapshot(`
+        {
+          "baseURL": "https://aiplatform.googleapis.com/v1/projects/test-project/locations/global/endpoints/openapi",
+          "convertUsage": [Function],
+          "fetch": undefined,
+          "includeUsage": true,
+          "name": "googleVertex.xai",
+          "supportedUrls": [Function],
+          "supportsStructuredOutputs": true,
+          "transformRequestBody": [Function],
+        }
+      `);
   });
 
   it('should strip reasoning_effort from request bodies', () => {
@@ -113,10 +129,12 @@ describe('google-vertex-xai-provider', () => {
         reasoning_effort: 'high',
         messages: [],
       }),
-    ).toEqual({
-      model: 'xai/grok-4.1-fast-reasoning',
-      messages: [],
-    });
+    ).toMatchInlineSnapshot(`
+      {
+        "messages": [],
+        "model": "xai/grok-4.1-fast-reasoning",
+      }
+    `);
   });
 
   it('should count Grok reasoning tokens separately from completion tokens', () => {
@@ -136,25 +154,31 @@ describe('google-vertex-xai-provider', () => {
         completion_tokens: 50,
         completion_tokens_details: { reasoning_tokens: 124 },
       }),
-    ).toEqual({
-      inputTokens: {
-        total: 663,
-        noCache: 9,
-        cacheRead: 654,
-        cacheWrite: undefined,
-      },
-      outputTokens: {
-        total: 174,
-        text: 50,
-        reasoning: 124,
-      },
-      raw: {
-        prompt_tokens: 663,
-        prompt_tokens_details: { cached_tokens: 654 },
-        completion_tokens: 50,
-        completion_tokens_details: { reasoning_tokens: 124 },
-      },
-    });
+    ).toMatchInlineSnapshot(`
+      {
+        "inputTokens": {
+          "cacheRead": 654,
+          "cacheWrite": undefined,
+          "noCache": 9,
+          "total": 663,
+        },
+        "outputTokens": {
+          "reasoning": 124,
+          "text": 50,
+          "total": 174,
+        },
+        "raw": {
+          "completion_tokens": 50,
+          "completion_tokens_details": {
+            "reasoning_tokens": 124,
+          },
+          "prompt_tokens": 663,
+          "prompt_tokens_details": {
+            "cached_tokens": 654,
+          },
+        },
+      }
+    `);
   });
 
   it('should support HTTP image URLs', () => {
@@ -167,9 +191,13 @@ describe('google-vertex-xai-provider', () => {
 
     const [{ supportedUrls }] = vi.mocked(createOpenAICompatible).mock.calls[0];
 
-    expect(supportedUrls?.()).toEqual({
-      'image/*': [/^https?:\/\/.*$/],
-    });
+    expect(supportedUrls?.()).toMatchInlineSnapshot(`
+      {
+        "image/*": [
+          /\\^https\\?:\\\\/\\\\/\\.\\*\\$/,
+        ],
+      }
+    `);
   });
 
   it('should throw an error when using new keyword', () => {
