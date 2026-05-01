@@ -1,6 +1,6 @@
 import { resolve, type FetchFunction } from '@ai-sdk/provider-utils';
 import type { GoogleAuthOptions } from 'google-auth-library';
-import { generateAuthToken } from '../google-vertex-auth-google-auth-library';
+import { createAuthTokenGenerator } from '../google-vertex-auth-google-auth-library';
 import {
   createGoogleVertexXai as createGoogleVertexXaiOriginal,
   type GoogleVertexXaiProvider,
@@ -28,8 +28,10 @@ export interface GoogleVertexXaiProviderSettings extends GoogleVertexXaiProvider
 export function createGoogleVertexXai(
   options: GoogleVertexXaiProviderSettings = {},
 ): GoogleVertexXaiProvider {
+  const generateAuthToken = createAuthTokenGenerator(options.googleAuthOptions);
+
   const customFetch: FetchFunction = async (url, init) => {
-    const token = await generateAuthToken(options.googleAuthOptions);
+    const token = await generateAuthToken();
     const resolvedHeaders = await resolve(options.headers);
     const authHeaders = {
       ...resolvedHeaders,
