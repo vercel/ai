@@ -180,25 +180,43 @@ jobs:
           # the local cherry-pick result (vs. the base branch tip) and post
           # them as a single signed commit via the GraphQL
           # createCommitOnBranch mutation.
+          #
+          # File contents and the assembled JSON payload are kept on disk
+          # and fed to jq via --rawfile / --slurpfile so they never land on
+          # argv — passing them as command-line arguments hits the kernel
+          # ARG_MAX limit on larger backports and fails with "Argument list
+          # too long".
           set -euo pipefail
 
           PARENT_OID=$(git rev-parse "origin/${BASE_BRANCH}")
           HEADLINE=$(git log -1 --format=%s HEAD)
-          BODY=$(git log -1 --format=%b HEAD)
+
+          WORK="$(mktemp -d)"
+          ADDITIONS="${WORK}/additions.json"
+          DELETIONS="${WORK}/deletions.json"
+          BODY_FILE="${WORK}/body.txt"
+          PAYLOAD="${WORK}/payload.json"
+
+          git log -1 --format=%b HEAD > "$BODY_FILE"
+          echo '[]' > "$ADDITIONS"
+          echo '[]' > "$DELETIONS"
 
           # Collect added/modified files (rename-aware diff is decomposed
           # into delete+add via --no-renames so each path is independent).
-          ADDITIONS='[]'
           while IFS= read -r -d '' path; do
             [ -z "$path" ] && continue
-            CONTENT=$(base64 < "$path" | tr -d '\n')
-            ADDITIONS=$(jq -c --arg p "$path" --arg c "$CONTENT" '. + [{path: $p, contents: $c}]' <<<"$ADDITIONS")
+            b64="${WORK}/b64"
+            base64 -w0 < "$path" | tr -d '\n' > "$b64"
+            jq -c --arg p "$path" --rawfile c "$b64" \
+              '. + [{path: $p, contents: $c}]' \
+              "$ADDITIONS" > "${ADDITIONS}.tmp"
+            mv "${ADDITIONS}.tmp" "$ADDITIONS"
           done < <(git diff --no-renames --name-only --diff-filter=AM -z "${PARENT_OID}" HEAD)
 
-          DELETIONS='[]'
           while IFS= read -r -d '' path; do
             [ -z "$path" ] && continue
-            DELETIONS=$(jq -c --arg p "$path" '. + [{path: $p}]' <<<"$DELETIONS")
+            jq -c --arg p "$path" '. + [{path: $p}]' "$DELETIONS" > "${DELETIONS}.tmp"
+            mv "${DELETIONS}.tmp" "$DELETIONS"
           done < <(git diff --no-renames --name-only --diff-filter=D -z "${PARENT_OID}" HEAD)
 
           # Reset the remote branch to the base branch tip (or create it
@@ -214,25 +232,28 @@ jobs:
               -f "sha=${PARENT_OID}" >/dev/null
           fi
 
-          INPUT=$(jq -nc \
+          jq -n \
+            --arg query 'mutation($input: CreateCommitOnBranchInput!) { createCommitOnBranch(input: $input) { commit { oid url } } }' \
             --arg repo "${REPO}" \
             --arg branch "${BACKPORT_BRANCH}" \
             --arg expected "${PARENT_OID}" \
             --arg headline "${HEADLINE}" \
-            --arg body "${BODY}" \
-            --argjson additions "${ADDITIONS}" \
-            --argjson deletions "${DELETIONS}" \
+            --rawfile body "$BODY_FILE" \
+            --slurpfile additions "$ADDITIONS" \
+            --slurpfile deletions "$DELETIONS" \
             '{
-              branch: {repositoryNameWithOwner: $repo, branchName: $branch},
-              expectedHeadOid: $expected,
-              message: {headline: $headline, body: $body},
-              fileChanges: {additions: $additions, deletions: $deletions}
-            }')
+              query: $query,
+              variables: {
+                input: {
+                  branch: {repositoryNameWithOwner: $repo, branchName: $branch},
+                  expectedHeadOid: $expected,
+                  message: {headline: $headline, body: ($body | rtrimstr("\n"))},
+                  fileChanges: {additions: $additions[0], deletions: $deletions[0]}
+                }
+              }
+            }' > "$PAYLOAD"
 
-          jq -n --arg query 'mutation($input: CreateCommitOnBranchInput!) { createCommitOnBranch(input: $input) { commit { oid url } } }' \
-            --argjson variables "{\"input\": ${INPUT}}" \
-            '{query: $query, variables: $variables}' \
-            | gh api graphql --input -
+          gh api graphql --input "$PAYLOAD"
 
       - name: Determine PR assignee
         if: '!steps.check-existing.outputs.existing-pr'
