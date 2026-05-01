@@ -2999,6 +2999,172 @@ describe('WorkflowAgent', () => {
       expect(mockIterator.next).toHaveBeenCalled();
     });
 
+    it('should preserve approved provider-executed tool approvals for the provider', async () => {
+      const mockModel = createMockModel();
+
+      const agent = new WorkflowAgent({
+        model: mockModel,
+        tools: {},
+      });
+
+      const mockWritable = new WritableStream({
+        write: vi.fn(),
+        close: vi.fn(),
+      });
+
+      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      vi.mocked(streamTextIterator).mockClear();
+      const mockIterator = {
+        next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
+      };
+      vi.mocked(streamTextIterator).mockReturnValue(
+        mockIterator as unknown as MockIterator,
+      );
+
+      await agent.stream({
+        messages: [
+          { role: 'user', content: 'Search for the current release notes' },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'web_search',
+                input: { query: 'AI SDK release notes' },
+                providerExecuted: true,
+              },
+              {
+                type: 'tool-approval-request',
+                approvalId: 'approval-call-1',
+                toolCallId: 'call-1',
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-approval-response',
+                approvalId: 'approval-call-1',
+                approved: true,
+              },
+            ],
+          },
+        ] as any,
+        writable: mockWritable,
+      });
+
+      const iteratorCall = vi.mocked(streamTextIterator).mock.calls.at(-1)?.[0];
+
+      expect(iteratorCall?.prompt).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            role: 'assistant',
+            content: expect.arrayContaining([
+              expect.objectContaining({
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                providerExecuted: true,
+              }),
+            ]),
+          }),
+          expect.objectContaining({
+            role: 'tool',
+            content: expect.arrayContaining([
+              expect.objectContaining({
+                type: 'tool-approval-response',
+                approvalId: 'approval-call-1',
+                approved: true,
+              }),
+            ]),
+          }),
+        ]),
+      );
+      expect(JSON.stringify(iteratorCall?.prompt)).not.toContain(
+        '"tool-result"',
+      );
+    });
+
+    it('should preserve denied provider-executed tool approvals for the provider', async () => {
+      const mockModel = createMockModel();
+
+      const agent = new WorkflowAgent({
+        model: mockModel,
+        tools: {},
+      });
+
+      const mockWritable = new WritableStream({
+        write: vi.fn(),
+        close: vi.fn(),
+      });
+
+      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      vi.mocked(streamTextIterator).mockClear();
+      const mockIterator = {
+        next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
+      };
+      vi.mocked(streamTextIterator).mockReturnValue(
+        mockIterator as unknown as MockIterator,
+      );
+
+      await agent.stream({
+        messages: [
+          { role: 'user', content: 'Search for private account data' },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'web_search',
+                input: { query: 'private account data' },
+                providerExecuted: true,
+              },
+              {
+                type: 'tool-approval-request',
+                approvalId: 'approval-call-1',
+                toolCallId: 'call-1',
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-approval-response',
+                approvalId: 'approval-call-1',
+                approved: false,
+                reason: 'Policy denied',
+              },
+            ],
+          },
+        ] as any,
+        writable: mockWritable,
+      });
+
+      const iteratorCall = vi.mocked(streamTextIterator).mock.calls.at(-1)?.[0];
+
+      expect(iteratorCall?.prompt).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            role: 'tool',
+            content: expect.arrayContaining([
+              expect.objectContaining({
+                type: 'tool-approval-response',
+                approvalId: 'approval-call-1',
+                approved: false,
+                reason: 'Policy denied',
+              }),
+            ]),
+          }),
+        ]),
+      );
+      expect(JSON.stringify(iteratorCall?.prompt)).not.toContain(
+        'execution-denied',
+      );
+    });
+
     it('should pass through messages without approval responses unchanged', async () => {
       const tools: ToolSet = {
         getWeather: {

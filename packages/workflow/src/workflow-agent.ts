@@ -1178,6 +1178,11 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
       collectToolApprovalsFromMessages(prompt.messages);
 
     if (approvedToolApprovals.length > 0 || deniedToolApprovals.length > 0) {
+      const providerExecutedApprovalIds = new Set(
+        [...approvedToolApprovals, ...deniedToolApprovals]
+          .filter(approval => approval.providerExecuted)
+          .map(approval => approval.approvalId),
+      );
       const _toolResultMessages: ModelMessage[] = [];
       const toolResultContent: Array<{
         type: 'tool-result';
@@ -1191,6 +1196,9 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
 
       // Execute approved tools
       for (const approval of approvedToolApprovals) {
+        if (approval.providerExecuted) {
+          continue;
+        }
         const tool = (this.tools as ToolSet)[approval.toolName];
         if (tool && typeof tool.execute === 'function') {
           try {
@@ -1225,6 +1233,9 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
 
       // Create denial results for denied tools
       for (const denial of deniedToolApprovals) {
+        if (denial.providerExecuted) {
+          continue;
+        }
         toolResultContent.push({
           type: 'tool-result' as const,
           toolCallId: denial.toolCallId,
@@ -1240,16 +1251,19 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
       const cleanedMessages: ModelMessage[] = [];
       for (const msg of prompt.messages) {
         if (msg.role === 'assistant' && Array.isArray(msg.content)) {
-          const filtered = (msg.content as any[]).filter(
-            (p: any) => p.type !== 'tool-approval-request',
-          );
+          const filtered = (msg.content as any[]).filter((p: any) => {
+            if (p.type !== 'tool-approval-request') return true;
+            return providerExecutedApprovalIds.has(p.approvalId);
+          });
           if (filtered.length > 0) {
             cleanedMessages.push({ ...msg, content: filtered });
           }
         } else if (msg.role === 'tool') {
-          const filtered = (msg.content as any[]).filter(
-            (p: any) => p.type !== 'tool-approval-response',
-          );
+          const filtered = (msg.content as any[]).flatMap((p: any) => {
+            if (p.type !== 'tool-approval-response') return [p];
+            if (!providerExecutedApprovalIds.has(p.approvalId)) return [];
+            return [{ ...p, providerExecuted: true }];
+          });
           if (filtered.length > 0) {
             cleanedMessages.push({ ...msg, content: filtered });
           }
@@ -2168,6 +2182,7 @@ interface CollectedApproval {
   toolName: string;
   input: unknown;
   approvalId: string;
+  providerExecuted?: boolean;
   reason?: string;
 }
 
@@ -2193,7 +2208,7 @@ function collectToolApprovalsFromMessages(messages: ModelMessage[]): {
   // Gather tool calls from assistant messages
   const toolCallsByToolCallId: Record<
     string,
-    { toolName: string; input: unknown }
+    { toolName: string; input: unknown; providerExecuted?: boolean }
   > = {};
   for (const message of messages) {
     if (message.role === 'assistant' && Array.isArray(message.content)) {
@@ -2202,6 +2217,7 @@ function collectToolApprovalsFromMessages(messages: ModelMessage[]): {
           toolCallsByToolCallId[part.toolCallId] = {
             toolName: part.toolName,
             input: part.input ?? part.args,
+            providerExecuted: part.providerExecuted,
           };
         }
       }
@@ -2257,6 +2273,7 @@ function collectToolApprovalsFromMessages(messages: ModelMessage[]): {
       toolName: toolCall.toolName,
       input: toolCall.input,
       approvalId: response.approvalId,
+      providerExecuted: toolCall.providerExecuted,
       reason: response.reason,
     };
 
