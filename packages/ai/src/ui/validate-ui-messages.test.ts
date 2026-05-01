@@ -1153,6 +1153,51 @@ describe('validateUIMessages', () => {
       `);
     });
 
+    it('should not revalidate tool input when state is output-error and there is invalid input', async () => {
+      const messages = await validateUIMessages({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              {
+                type: 'tool-foo',
+                toolCallId: '1',
+                state: 'output-error',
+                input: { foo: 123 },
+                errorText: 'Tool input validation failed',
+                providerExecuted: false,
+              },
+            ],
+          },
+        ],
+        tools: {
+          foo: testTool,
+        },
+      });
+
+      expect(messages).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "1",
+            "parts": [
+              {
+                "errorText": "Tool input validation failed",
+                "input": {
+                  "foo": 123,
+                },
+                "providerExecuted": false,
+                "state": "output-error",
+                "toolCallId": "1",
+                "type": "tool-foo",
+              },
+            ],
+            "role": "assistant",
+          },
+        ]
+      `);
+    });
+
     it('should preserve result provider metadata when state is output-error', async () => {
       const messages = await validateUIMessages<TestMessage>({
         messages: [
