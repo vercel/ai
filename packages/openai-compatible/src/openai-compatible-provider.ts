@@ -8,12 +8,12 @@ import {
   type FetchFunction,
   withoutTrailingSlash,
   withUserAgentSuffix,
-  getRuntimeEnvironmentUserAgent,
 } from '@ai-sdk/provider-utils';
 import {
   type OpenAICompatibleChatConfig,
   OpenAICompatibleChatLanguageModel,
 } from './chat/openai-compatible-chat-language-model';
+import type { MetadataExtractor } from './chat/openai-compatible-metadata-extractor';
 import { OpenAICompatibleCompletionLanguageModel } from './completion/openai-compatible-completion-language-model';
 import { OpenAICompatibleEmbeddingModel } from './embedding/openai-compatible-embedding-model';
 import { OpenAICompatibleImageModel } from './image/openai-compatible-image-model';
@@ -85,6 +85,31 @@ Include usage information in streaming responses.
    * Whether the provider supports structured outputs in chat models.
    */
   supportsStructuredOutputs?: boolean;
+
+  /**
+   * Optional function to transform the request body before sending it to the API.
+   * This is useful for proxy providers that may require a different request format
+   * than the official OpenAI API.
+   */
+  transformRequestBody?: (args: Record<string, any>) => Record<string, any>;
+
+  /**
+   * Optional metadata extractor to capture provider-specific metadata from API responses.
+   * This is useful for extracting non-standard fields, experimental features,
+   * or provider-specific metrics from both streaming and non-streaming responses.
+   */
+  metadataExtractor?: MetadataExtractor;
+
+  /**
+   * The supported URLs for chat models.
+   */
+  supportedUrls?: OpenAICompatibleChatConfig['supportedUrls'];
+
+  /**
+   * Optional usage converter for providers with token accounting semantics that
+   * differ from the default OpenAI-compatible shape.
+   */
+  convertUsage?: OpenAICompatibleChatConfig['convertUsage'];
 }
 
 /**
@@ -142,6 +167,10 @@ export function createOpenAICompatible<
       ...getCommonModelConfig('chat'),
       includeUsage: options.includeUsage,
       supportsStructuredOutputs: options.supportsStructuredOutputs,
+      supportedUrls: options.supportedUrls,
+      transformRequestBody: options.transformRequestBody,
+      metadataExtractor: options.metadataExtractor,
+      convertUsage: options.convertUsage,
     });
 
   const createCompletionModel = (modelId: COMPLETION_MODEL_IDS) =>
