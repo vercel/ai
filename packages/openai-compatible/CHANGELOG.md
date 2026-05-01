@@ -1,5 +1,11 @@
 # @ai-sdk/openai-compatible
 
+## 1.0.39
+
+### Patch Changes
+
+- cb61408: feat(vertex): add grok models to vertex provider
+
 ## 1.0.38
 
 ### Patch Changes

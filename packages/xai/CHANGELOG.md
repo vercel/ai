@@ -1,5 +1,12 @@
 # @ai-sdk/xai
 
+## 2.0.72
+
+### Patch Changes
+
+- Updated dependencies [cb61408]
+  - @ai-sdk/openai-compatible@1.0.39
+
 ## 2.0.71
 
 ### Patch Changes
