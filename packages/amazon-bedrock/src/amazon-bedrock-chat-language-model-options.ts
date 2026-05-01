@@ -100,6 +100,33 @@ export type AmazonBedrockFilePartProviderOptions = z.infer<
   typeof amazonBedrockFilePartProviderOptions
 >;
 
+/**
+ * Amazon Bedrock text part provider options for guardrail content.
+ * These options apply to individual text parts.
+ */
+export const amazonBedrockTextPartProviderOptions = z.object({
+  guardContent: z.boolean().optional(),
+  guardContentQualifiers: z
+    .array(z.enum(['grounding_source', 'query', 'guard_content']))
+    .optional(),
+});
+
+export type AmazonBedrockTextPartProviderOptions = z.infer<
+  typeof amazonBedrockTextPartProviderOptions
+>;
+
+/**
+ * Amazon Bedrock image part provider options for guardrail content.
+ * These options apply to individual image parts.
+ */
+export const amazonBedrockImagePartProviderOptions = z.object({
+  guardContent: z.boolean().optional(),
+});
+
+export type AmazonBedrockImagePartProviderOptions = z.infer<
+  typeof amazonBedrockImagePartProviderOptions
+>;
+
 export const amazonBedrockLanguageModelChatOptions = z.object({
   /**
    * Additional inference parameters that the model supports,

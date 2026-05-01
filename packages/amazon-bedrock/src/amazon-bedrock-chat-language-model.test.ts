@@ -1149,6 +1149,158 @@ describe('doStream', () => {
     });
   });
 
+  it('should send text parts as guardContent blocks in streaming requests', async () => {
+    setupMockEventStreamHandler();
+    server.urls[streamUrl].response = {
+      type: 'stream-chunks',
+      chunks: [],
+    };
+
+    await model.doStream({
+      prompt: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: 'What is the capital of Japan?',
+              providerOptions: {
+                bedrock: {
+                  guardContent: true,
+                  guardContentQualifiers: ['query'],
+                },
+              },
+            },
+          ],
+        },
+      ],
+      includeRawChunks: false,
+      providerOptions: {
+        bedrock: {
+          guardrailConfig: {
+            guardrailIdentifier: '-1',
+            guardrailVersion: '1',
+            trace: 'enabled',
+          },
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              guardContent: {
+                text: {
+                  text: 'What is the capital of Japan?',
+                  qualifiers: ['query'],
+                },
+              },
+            },
+          ],
+        },
+      ],
+      guardrailConfig: {
+        guardrailIdentifier: '-1',
+        guardrailVersion: '1',
+        trace: 'enabled',
+      },
+    });
+  });
+
+  it('should map guardrail_intervened messageStop to a content-filter finish reason in streaming', async () => {
+    setupMockEventStreamHandler();
+    server.urls[streamUrl].response = {
+      type: 'stream-chunks',
+      chunks: [
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 0,
+            delta: { text: 'Sorry, the model cannot answer this question.' },
+          },
+        }) + '\n',
+        JSON.stringify({
+          metadata: {
+            usage: { inputTokens: 18, outputTokens: 12, totalTokens: 30 },
+            metrics: { latencyMs: 412 },
+            trace: {
+              guardrail: {
+                inputAssessment: {
+                  '1abcd2ef34gh': {
+                    topicPolicy: {
+                      topics: [
+                        {
+                          action: 'BLOCKED' as const,
+                          name: 'Restricted topic',
+                          type: 'DENY' as const,
+                        },
+                      ],
+                    },
+                  },
+                },
+              },
+            },
+          },
+        }) + '\n',
+        JSON.stringify({
+          messageStop: { stopReason: 'guardrail_intervened' },
+        }) + '\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: 'Tell me something restricted.',
+              providerOptions: {
+                bedrock: {
+                  guardContent: true,
+                  guardContentQualifiers: ['query'],
+                },
+              },
+            },
+          ],
+        },
+      ],
+      includeRawChunks: false,
+    });
+
+    const chunks = await convertReadableStreamToArray(stream);
+    const finish = chunks.find(c => c.type === 'finish');
+
+    expect(finish?.finishReason).toMatchInlineSnapshot(`
+      {
+        "raw": "guardrail_intervened",
+        "unified": "content-filter",
+      }
+    `);
+    expect(finish?.providerMetadata?.bedrock.trace).toMatchInlineSnapshot(`
+      {
+        "guardrail": {
+          "inputAssessment": {
+            "1abcd2ef34gh": {
+              "topicPolicy": {
+                "topics": [
+                  {
+                    "action": "BLOCKED",
+                    "name": "Restricted topic",
+                    "type": "DENY",
+                  },
+                ],
+              },
+            },
+          },
+        },
+      }
+    `);
+  });
+
   it('should include trace information in providerMetadata', async () => {
     setupMockEventStreamHandler();
     server.urls[streamUrl].response = {
@@ -3434,6 +3586,193 @@ describe('doGenerate', () => {
         trace: 'enabled',
       },
     });
+  });
+
+  it('should send text parts as guardContent blocks when providerOptions.bedrock.guardContent is set', async () => {
+    prepareJsonFixtureResponse('amazon-bedrock-text');
+
+    await model.doGenerate({
+      prompt: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: 'London is the capital of UK. Tokyo is the capital of Japan.',
+              providerOptions: {
+                bedrock: {
+                  guardContent: true,
+                  guardContentQualifiers: ['grounding_source'],
+                },
+              },
+            },
+            { type: 'text', text: 'Some additional background information.' },
+            {
+              type: 'text',
+              text: 'What is the capital of Japan?',
+              providerOptions: {
+                bedrock: {
+                  guardContent: true,
+                  guardContentQualifiers: ['query'],
+                },
+              },
+            },
+          ],
+        },
+      ],
+      providerOptions: {
+        bedrock: {
+          guardrailConfig: {
+            guardrailIdentifier: '-1',
+            guardrailVersion: '1',
+            trace: 'enabled',
+          },
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              guardContent: {
+                text: {
+                  text: 'London is the capital of UK. Tokyo is the capital of Japan.',
+                  qualifiers: ['grounding_source'],
+                },
+              },
+            },
+            { text: 'Some additional background information.' },
+            {
+              guardContent: {
+                text: {
+                  text: 'What is the capital of Japan?',
+                  qualifiers: ['query'],
+                },
+              },
+            },
+          ],
+        },
+      ],
+      guardrailConfig: {
+        guardrailIdentifier: '-1',
+        guardrailVersion: '1',
+        trace: 'enabled',
+      },
+    });
+  });
+
+  it('should send image parts as guardContent blocks when providerOptions.bedrock.guardContent is set', async () => {
+    prepareJsonFixtureResponse('amazon-bedrock-text');
+
+    await model.doGenerate({
+      prompt: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: { type: 'data' as const, data: 'AAECAw==' },
+              mediaType: 'image/png',
+              providerOptions: {
+                bedrock: {
+                  guardContent: true,
+                },
+              },
+            },
+            { type: 'text', text: 'Describe this image.' },
+          ],
+        },
+      ],
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              guardContent: {
+                image: {
+                  format: 'png',
+                  source: { bytes: 'AAECAw==' },
+                },
+              },
+            },
+            { text: 'Describe this image.' },
+          ],
+        },
+      ],
+    });
+  });
+
+  it('should surface guardrail intervention as a content-filter finish reason with trace metadata', async () => {
+    prepareJsonFixtureResponse('amazon-bedrock-guard-content-intervened');
+
+    const result = await model.doGenerate({
+      prompt: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: 'Tell me something restricted.',
+              providerOptions: {
+                bedrock: {
+                  guardContent: true,
+                  guardContentQualifiers: ['query'],
+                },
+              },
+            },
+          ],
+        },
+      ],
+      providerOptions: {
+        bedrock: {
+          guardrailConfig: {
+            guardrailIdentifier: '1abcd2ef34gh',
+            guardrailVersion: '1',
+            trace: 'enabled',
+          },
+        },
+      },
+    });
+
+    expect(result.finishReason).toMatchInlineSnapshot(`
+      {
+        "raw": "guardrail_intervened",
+        "unified": "content-filter",
+      }
+    `);
+    expect(result.content).toMatchInlineSnapshot(`
+      [
+        {
+          "text": "Sorry, the model cannot answer this question.",
+          "type": "text",
+        },
+      ]
+    `);
+    expect(result.providerMetadata?.bedrock.trace).toMatchInlineSnapshot(`
+      {
+        "guardrail": {
+          "inputAssessment": {
+            "1abcd2ef34gh": {
+              "topicPolicy": {
+                "topics": [
+                  {
+                    "action": "BLOCKED",
+                    "name": "Restricted topic",
+                    "type": "DENY",
+                  },
+                ],
+              },
+            },
+          },
+        },
+      }
+    `);
   });
 
   it('should include trace information in providerMetadata', async () => {

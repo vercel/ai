@@ -26,7 +26,11 @@ import {
   type AmazonBedrockSystemMessages,
   type AmazonBedrockUserMessage,
 } from './amazon-bedrock-api-types';
-import { amazonBedrockFilePartProviderOptions } from './amazon-bedrock-chat-language-model-options';
+import {
+  amazonBedrockFilePartProviderOptions,
+  amazonBedrockImagePartProviderOptions,
+  amazonBedrockTextPartProviderOptions,
+} from './amazon-bedrock-chat-language-model-options';
 import { amazonBedrockReasoningMetadataSchema } from './amazon-bedrock-reasoning-metadata';
 import { normalizeToolCallId } from './normalize-tool-call-id';
 
@@ -61,6 +65,40 @@ async function shouldEnableCitations(
     }));
 
   return amazonBedrockOptions?.citations?.enabled ?? false;
+}
+
+async function getTextPartGuardContentOptions(
+  providerMetadata: SharedV4ProviderMetadata | undefined,
+) {
+  return (
+    (await parseProviderOptions({
+      provider: 'amazonBedrock',
+      providerOptions: providerMetadata,
+      schema: amazonBedrockTextPartProviderOptions,
+    })) ??
+    (await parseProviderOptions({
+      provider: 'bedrock',
+      providerOptions: providerMetadata,
+      schema: amazonBedrockTextPartProviderOptions,
+    }))
+  );
+}
+
+async function getImagePartGuardContentOptions(
+  providerMetadata: SharedV4ProviderMetadata | undefined,
+) {
+  return (
+    (await parseProviderOptions({
+      provider: 'amazonBedrock',
+      providerOptions: providerMetadata,
+      schema: amazonBedrockImagePartProviderOptions,
+    })) ??
+    (await parseProviderOptions({
+      provider: 'bedrock',
+      providerOptions: providerMetadata,
+      schema: amazonBedrockImagePartProviderOptions,
+    }))
+  );
 }
 
 export async function convertToAmazonBedrockChatMessages(
@@ -115,9 +153,24 @@ export async function convertToAmazonBedrockChatMessages(
 
                 switch (part.type) {
                   case 'text': {
-                    amazonBedrockContent.push({
-                      text: part.text,
-                    });
+                    const textOptions = await getTextPartGuardContentOptions(
+                      part.providerOptions,
+                    );
+
+                    if (textOptions?.guardContent) {
+                      amazonBedrockContent.push({
+                        guardContent: {
+                          text: {
+                            text: part.text,
+                            qualifiers: textOptions.guardContentQualifiers,
+                          },
+                        },
+                      });
+                    } else {
+                      amazonBedrockContent.push({
+                        text: part.text,
+                      });
+                    }
                     break;
                   }
 
@@ -164,7 +217,12 @@ export async function convertToAmazonBedrockChatMessages(
                         const fullMediaType = resolveFullMediaType({ part });
 
                         if (getTopLevelMediaType(fullMediaType) === 'image') {
-                          amazonBedrockContent.push({
+                          const imageOptions =
+                            await getImagePartGuardContentOptions(
+                              part.providerOptions,
+                            );
+
+                          const imageBlock = {
                             image: {
                               format:
                                 getAmazonBedrockImageFormat(fullMediaType),
@@ -172,7 +230,15 @@ export async function convertToAmazonBedrockChatMessages(
                                 bytes: convertToBase64(part.data.data),
                               },
                             },
-                          });
+                          };
+
+                          if (imageOptions?.guardContent) {
+                            amazonBedrockContent.push({
+                              guardContent: imageBlock,
+                            });
+                          } else {
+                            amazonBedrockContent.push(imageBlock);
+                          }
                         } else {
                           const enableCitations = await shouldEnableCitations(
                             part.providerOptions,
