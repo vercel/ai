@@ -1,13 +1,7 @@
 import { resolve } from '@ai-sdk/provider-utils';
-<<<<<<< HEAD
 import { createVertexAnthropic as createVertexAnthropicOriginal } from './google-vertex-anthropic-provider';
 import { createVertexAnthropic as createVertexAnthropicNode } from './google-vertex-anthropic-provider-node';
-import { generateAuthToken } from '../google-vertex-auth-google-auth-library';
-=======
 import { createAuthTokenGenerator } from '../google-vertex-auth-google-auth-library';
-import { createGoogleVertexAnthropic as createVertexAnthropicOriginal } from './google-vertex-anthropic-provider';
-import { createGoogleVertexAnthropic as createVertexAnthropicNode } from './google-vertex-anthropic-provider-node';
->>>>>>> 96d056d69 (fix: reuse google auth per provider instance (#14102))
 import { describe, beforeEach, expect, it, vi } from 'vitest';
 
 // Mock the imported modules

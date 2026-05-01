@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import { GoogleGenerativeAILanguageModel } from '@ai-sdk/google/internal';
 import type {
   Experimental_VideoModelV3,
@@ -6,11 +5,6 @@ import type {
   LanguageModelV3,
   ProviderV3,
 } from '@ai-sdk/provider';
-=======
-import { loadOptionalSetting, resolve } from '@ai-sdk/provider-utils';
-import type { GoogleAuthOptions } from 'google-auth-library';
-import { createAuthTokenGenerator } from './google-vertex-auth-google-auth-library';
->>>>>>> 96d056d69 (fix: reuse google auth per provider instance (#14102))
 import {
   generateId,
   loadOptionalSetting,
@@ -152,7 +146,6 @@ export function createVertex(
       description: 'Google Vertex project',
     });
 
-<<<<<<< HEAD
   const loadVertexLocation = () =>
     loadSetting({
       settingValue: options.location,
@@ -249,15 +242,4 @@ export function createVertex(
   provider.tools = googleVertexTools;
 
   return provider;
-=======
-  const generateAuthToken = createAuthTokenGenerator(options.googleAuthOptions);
-
-  return createGoogleVertexOriginal({
-    ...options,
-    headers: async () => ({
-      Authorization: `Bearer ${await generateAuthToken()}`,
-      ...(await resolve(options.headers)),
-    }),
-  });
->>>>>>> 96d056d69 (fix: reuse google auth per provider instance (#14102))
 }

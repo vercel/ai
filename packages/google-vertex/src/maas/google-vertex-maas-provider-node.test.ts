@@ -212,7 +212,7 @@ describe('google-vertex-maas-provider-node', () => {
     const mockFetch = vi.fn().mockResolvedValue(new Response('{}'));
     global.fetch = mockFetch;
 
-    const provider = createGoogleVertexMaas({
+    const provider = createVertexMaas({
       project: 'test-project',
     });
 
