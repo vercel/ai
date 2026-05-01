@@ -1,8 +1,8 @@
 import {
   NoSuchModelError,
-  type LanguageModelV4,
-  type LanguageModelV4Usage,
-  type ProviderV4,
+  type LanguageModelV3,
+  type LanguageModelV3Usage,
+  type ProviderV3,
 } from '@ai-sdk/provider';
 import {
   createOpenAICompatible,
@@ -17,21 +17,21 @@ import {
 } from '@ai-sdk/provider-utils';
 import type { GoogleVertexXaiModelId } from './google-vertex-xai-options';
 
-export interface GoogleVertexXaiProvider extends ProviderV4 {
+export interface GoogleVertexXaiProvider extends ProviderV3 {
   /**
    * Creates a model for text generation.
    */
-  (modelId: GoogleVertexXaiModelId): LanguageModelV4;
+  (modelId: GoogleVertexXaiModelId): LanguageModelV3;
 
   /**
    * Creates a model for text generation.
    */
-  languageModel(modelId: GoogleVertexXaiModelId): LanguageModelV4;
+  languageModel(modelId: GoogleVertexXaiModelId): LanguageModelV3;
 
   /**
    * Creates a chat model for text generation.
    */
-  chatModel(modelId: GoogleVertexXaiModelId): LanguageModelV4;
+  chatModel(modelId: GoogleVertexXaiModelId): LanguageModelV3;
 
   /**
    * @deprecated Use `embeddingModel` instead.
@@ -88,7 +88,7 @@ type GoogleVertexXaiUsage =
 
 function convertGoogleVertexXaiUsage(
   usage: GoogleVertexXaiUsage,
-): LanguageModelV4Usage {
+): LanguageModelV3Usage {
   if (usage == null) {
     return {
       inputTokens: {
@@ -196,7 +196,7 @@ export function createGoogleVertexXai(
     return createChatModel(modelId);
   };
 
-  provider.specificationVersion = 'v4' as const;
+  provider.specificationVersion = 'v3' as const;
   provider.languageModel = createChatModel;
   provider.chatModel = (modelId: GoogleVertexXaiModelId) =>
     getProvider().chatModel(modelId);
