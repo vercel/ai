@@ -1,5 +1,107 @@
 # @ai-sdk/devtools
 
+## 1.0.0-beta.19
+
+### Patch Changes
+
+- 258c093: chore: ensure consistent import handling and avoid import duplicates or cycles
+- Updated dependencies [9bd6512]
+- Updated dependencies [258c093]
+  - @ai-sdk/provider@4.0.0-beta.14
+
+## 1.0.0-beta.18
+
+### Patch Changes
+
+- Updated dependencies [9f0e36c]
+  - @ai-sdk/provider@4.0.0-beta.13
+
+## 1.0.0-beta.17
+
+### Major Changes
+
+- cf93359: feat(ai): remove/refactor event data sent via callbacks
+- 116c89f: feat(ai): remove telemetry data from the user-facing event data
+
+### Patch Changes
+
+- 29d8cf4: feat(ai): rename the core-event types
+
+## 1.0.0-beta.16
+
+### Major Changes
+
+- 1949571: feat(ai): make experimental_telemetry stable
+- 6542d93: feat(ai): change naming nomenclature for `*TelemetryIntegration` to `*Telemetry`
+
+## 1.0.0-beta.15
+
+### Patch Changes
+
+- 7bf7d7f: feat(ai): enable:true for telemetry by default
+
+## 1.0.0-beta.14
+
+### Patch Changes
+
+- Updated dependencies [ff5eba1]
+  - @ai-sdk/provider@4.0.0-beta.12
+
+## 1.0.0-beta.13
+
+### Patch Changes
+
+- Updated dependencies [ef992f8]
+  - @ai-sdk/provider@4.0.0-beta.11
+
+## 1.0.0-beta.12
+
+### Patch Changes
+
+- 90e2d8a: chore: fix unused vars not being flagged by our lint tooling
+
+## 1.0.0-beta.11
+
+### Patch Changes
+
+- e27ed76: feat(devtools): add new devtools integration for telemetry
+
+## 1.0.0-beta.10
+
+### Patch Changes
+
+- Updated dependencies [176466a]
+  - @ai-sdk/provider@4.0.0-beta.10
+
+## 1.0.0-beta.9
+
+### Patch Changes
+
+- Updated dependencies [e311194]
+  - @ai-sdk/provider@4.0.0-beta.9
+
+## 1.0.0-beta.8
+
+### Patch Changes
+
+- Updated dependencies [34bd95d]
+- Updated dependencies [008271d]
+  - @ai-sdk/provider@4.0.0-beta.8
+
+## 1.0.0-beta.7
+
+### Patch Changes
+
+- Updated dependencies [6fd51c0]
+  - @ai-sdk/provider@4.0.0-beta.7
+
+## 1.0.0-beta.6
+
+### Patch Changes
+
+- Updated dependencies [c29a26f]
+  - @ai-sdk/provider@4.0.0-beta.6
+
 ## 1.0.0-beta.5
 
 ### Patch Changes

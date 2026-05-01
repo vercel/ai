@@ -86,7 +86,7 @@ You can configure how the reasoning is exposed in the generated text by using th
 It supports the options `parsed`, `hidden`, and `raw`.
 
 ```ts
-import { groq, type GroqLanguageModelOptions } from '@ai-sdk/groq';
+import { groq, type GroqLanguageModelChatOptions } from '@ai-sdk/groq';
 import { generateText } from 'ai';
 
 const result = await generateText({
@@ -98,7 +98,7 @@ const result = await generateText({
       parallelToolCalls: true, // Enable parallel function calling (default: true)
       user: 'user-123', // Unique identifier for end-user (optional)
       serviceTier: 'flex', // Use flex tier for higher throughput (optional)
-    } satisfies GroqLanguageModelOptions,
+    } satisfies GroqLanguageModelChatOptions,
   },
   prompt: 'How many "r"s are in the word "strawberry"?',
 });
@@ -152,15 +152,16 @@ The following optional provider options are available for Groq language models:
 
   A unique identifier representing your end-user, which can help with monitoring and abuse detection.
 
-- **serviceTier** _'on_demand' | 'flex' | 'auto'_
+- **serviceTier** _'on_demand' | 'performance' | 'flex' | 'auto'_
 
   Service tier for the request. Defaults to `'on_demand'`.
 
   - `'on_demand'`: Default tier with consistent performance and fairness
+  - `'performance'`: Prioritized tier for latency-sensitive workloads
   - `'flex'`: Higher throughput tier (10x rate limits) optimized for workloads that can handle occasional request failures
   - `'auto'`: Uses on_demand rate limits first, then falls back to flex tier if exceeded
 
-  For more details about service tiers and their benefits, see [Groq's Flex Processing documentation](https://console.groq.com/docs/flex-processing).
+  For more details about service tiers and their benefits, see [Groq's service tiers documentation](https://console.groq.com/docs/service-tiers).
 
 <Note>Only Groq reasoning models support the `reasoningFormat` option.</Note>
 
@@ -194,7 +195,7 @@ console.log(JSON.stringify(result.output, null, 2));
 You can disable structured outputs for models that don't support them:
 
 ```ts highlight="9"
-import { groq, type GroqLanguageModelOptions } from '@ai-sdk/groq';
+import { groq, type GroqLanguageModelChatOptions } from '@ai-sdk/groq';
 import { generateText, Output } from 'ai';
 import { z } from 'zod';
 
@@ -203,7 +204,7 @@ const result = await generateText({
   providerOptions: {
     groq: {
       structuredOutputs: false,
-    } satisfies GroqLanguageModelOptions,
+    } satisfies GroqLanguageModelChatOptions,
   },
   output: Output.object({
     schema: z.object({
@@ -258,8 +259,9 @@ const { text } = await generateText({
       content: [
         { type: 'text', text: 'What do you see in this image?' },
         {
-          type: 'image',
-          image: 'https://example.com/image.jpg',
+          type: 'file',
+          mediaType: 'image',
+          data: 'https://example.com/image.jpg',
         },
       ],
     },
@@ -284,8 +286,9 @@ const { text } = await generateText({
       content: [
         { type: 'text', text: 'Describe this image in detail.' },
         {
-          type: 'image',
-          image: `data:image/jpeg;base64,${imageData}`,
+          type: 'file',
+          mediaType: 'image',
+          data: `data:image/jpeg;base64,${imageData}`,
         },
       ],
     },

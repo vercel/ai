@@ -1,13 +1,13 @@
 import { InvalidPromptError } from '@ai-sdk/provider';
 import {
-  ModelMessage,
+  asArray,
   safeValidateTypes,
-  SystemModelMessage,
+  type ModelMessage,
+  type SystemModelMessage,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { modelMessageSchema } from './message';
-import { Prompt } from './prompt';
-import { asArray } from '../util/as-array';
+import type { Prompt } from './prompt';
 
 export type StandardizedPrompt = {
   /**
@@ -21,17 +21,31 @@ export type StandardizedPrompt = {
   messages: ModelMessage[];
 };
 
-export async function standardizePrompt(
-  prompt: Prompt,
-): Promise<StandardizedPrompt> {
-  if (prompt.prompt == null && prompt.messages == null) {
+/**
+ * Converts a prompt input into a standardized prompt with validated model
+ * messages.
+ *
+ * @param prompt - The prompt definition to standardize.
+ * Set `allowSystemInMessages` to true to allow system messages in the
+ * `prompt` or `messages` fields. System messages in the `system` option are
+ * always allowed.
+ * @returns The standardized prompt.
+ * @throws {InvalidPromptError} When the prompt is invalid.
+ */
+export async function standardizePrompt({
+  allowSystemInMessages = false,
+  system,
+  prompt,
+  messages,
+}: Prompt): Promise<StandardizedPrompt> {
+  if (prompt == null && messages == null) {
     throw new InvalidPromptError({
       prompt,
       message: 'prompt or messages must be defined',
     });
   }
 
-  if (prompt.prompt != null && prompt.messages != null) {
+  if (prompt != null && messages != null) {
     throw new InvalidPromptError({
       prompt,
       message: 'prompt and messages cannot be defined at the same time',
@@ -40,15 +54,8 @@ export async function standardizePrompt(
 
   // validate that system is a string or a SystemModelMessage
   if (
-    prompt.system != null &&
-    typeof prompt.system !== 'string' &&
-    !asArray(prompt.system).every(
-      message =>
-        typeof message === 'object' &&
-        message !== null &&
-        'role' in message &&
-        message.role === 'system',
-    )
+    typeof system !== 'string' &&
+    !asArray(system).every(message => message.role === 'system')
   ) {
     throw new InvalidPromptError({
       prompt,
@@ -57,15 +64,11 @@ export async function standardizePrompt(
     });
   }
 
-  let messages: ModelMessage[];
-
-  if (prompt.prompt != null && typeof prompt.prompt === 'string') {
-    messages = [{ role: 'user', content: prompt.prompt }];
-  } else if (prompt.prompt != null && Array.isArray(prompt.prompt)) {
-    messages = prompt.prompt;
-  } else if (prompt.messages != null) {
-    messages = prompt.messages;
-  } else {
+  if (prompt != null && typeof prompt === 'string') {
+    messages = [{ role: 'user', content: prompt }];
+  } else if (prompt != null && Array.isArray(prompt)) {
+    messages = prompt;
+  } else if (messages == null) {
     throw new InvalidPromptError({
       prompt,
       message: 'prompt or messages must be defined',
@@ -76,6 +79,17 @@ export async function standardizePrompt(
     throw new InvalidPromptError({
       prompt,
       message: 'messages must not be empty',
+    });
+  }
+
+  if (
+    !allowSystemInMessages &&
+    messages.some(message => message.role === 'system')
+  ) {
+    throw new InvalidPromptError({
+      prompt,
+      message:
+        'System messages are not allowed in the prompt or messages fields. Use the system option instead.',
     });
   }
 
@@ -92,8 +106,5 @@ export async function standardizePrompt(
     });
   }
 
-  return {
-    messages,
-    system: prompt.system,
-  };
+  return { messages, system };
 }

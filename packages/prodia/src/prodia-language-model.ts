@@ -1,32 +1,37 @@
-import type {
-  LanguageModelV4,
-  LanguageModelV4CallOptions,
-  LanguageModelV4Content,
-  LanguageModelV4StreamPart,
-  SharedV4Warning,
+import {
+  UnsupportedFunctionalityError,
+  type LanguageModelV4,
+  type LanguageModelV4CallOptions,
+  type LanguageModelV4Content,
+  type LanguageModelV4StreamPart,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
-import type { InferSchema } from '@ai-sdk/provider-utils';
 import {
   combineHeaders,
   isCustomReasoning,
   convertBase64ToUint8Array,
+  detectMediaType,
   generateId,
-  lazySchema,
+  getTopLevelMediaType,
+  isFullMediaType,
   parseJSON,
   parseProviderOptions,
   postFormDataToApi,
   resolve,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
   zodSchema,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
-import type { ProdiaModelConfig } from './prodia-api';
 import {
   buildProdiaProviderMetadata,
   parseMultipart,
   prodiaFailedResponseHandler,
   prodiaJobResultSchema,
+  type ProdiaJobResult,
+  type ProdiaModelConfig,
 } from './prodia-api';
-import type { ProdiaJobResult } from './prodia-api';
+import { prodiaLanguageModelOptionsSchema } from './prodia-language-model-options';
 import type { ProdiaLanguageModelId } from './prodia-language-model-settings';
 
 export class ProdiaLanguageModel implements LanguageModelV4 {
@@ -35,6 +40,20 @@ export class ProdiaLanguageModel implements LanguageModelV4 {
 
   get provider(): string {
     return this.config.provider;
+  }
+
+  static [WORKFLOW_SERIALIZE](model: ProdiaLanguageModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: ProdiaLanguageModelId;
+    config: ProdiaModelConfig;
+  }) {
+    return new ProdiaLanguageModel(options.modelId, options.config);
   }
 
   constructor(
@@ -125,19 +144,48 @@ export class ProdiaLanguageModel implements LanguageModelV4 {
       const message = options.prompt[i];
       if (message.role === 'user') {
         for (const part of message.content) {
-          if (part.type === 'file' && part.mediaType.startsWith('image/')) {
-            if (part.data instanceof Uint8Array) {
-              imageBytes = part.data;
-            } else if (typeof part.data === 'string') {
-              // base64 encoded
-              imageBytes = convertBase64ToUint8Array(part.data);
-            } else if (part.data instanceof URL) {
-              const fetchFn = this.config.fetch ?? globalThis.fetch;
-              const response = await fetchFn(part.data.toString());
-              const arrayBuffer = await response.arrayBuffer();
-              imageBytes = new Uint8Array(arrayBuffer);
+          if (
+            part.type === 'file' &&
+            getTopLevelMediaType(part.mediaType) === 'image'
+          ) {
+            switch (part.data.type) {
+              case 'reference': {
+                throw new UnsupportedFunctionalityError({
+                  functionality: 'file parts with provider references',
+                });
+              }
+              case 'text': {
+                throw new UnsupportedFunctionalityError({
+                  functionality: 'text file parts',
+                });
+              }
+              case 'data': {
+                if (part.data.data instanceof Uint8Array) {
+                  imageBytes = part.data.data;
+                } else {
+                  imageBytes = convertBase64ToUint8Array(part.data.data);
+                }
+                break;
+              }
+              case 'url': {
+                const fetchFn = this.config.fetch ?? globalThis.fetch;
+                const response = await fetchFn(part.data.url.toString());
+                const arrayBuffer = await response.arrayBuffer();
+                imageBytes = new Uint8Array(arrayBuffer);
+                break;
+              }
             }
-            imageMediaType = part.mediaType;
+            if (isFullMediaType(part.mediaType)) {
+              imageMediaType = part.mediaType;
+            } else if (imageBytes !== undefined) {
+              const detected = detectMediaType({
+                data: imageBytes,
+                topLevelType: getTopLevelMediaType(part.mediaType),
+              });
+              if (detected !== undefined) {
+                imageMediaType = detected;
+              }
+            }
             break;
           }
         }
@@ -161,7 +209,7 @@ export class ProdiaLanguageModel implements LanguageModelV4 {
 
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const combinedHeaders = combineHeaders(
-      await resolve(this.config.headers),
+      this.config.headers ? await resolve(this.config.headers) : undefined,
       options.headers,
     );
 
@@ -213,7 +261,7 @@ export class ProdiaLanguageModel implements LanguageModelV4 {
       content.push({
         type: 'file',
         mediaType: file.mediaType,
-        data: file.data,
+        data: { type: 'data', data: file.data },
       });
     }
 
@@ -299,35 +347,6 @@ export class ProdiaLanguageModel implements LanguageModelV4 {
     };
   }
 }
-
-export const prodiaLanguageModelOptionsSchema = lazySchema(() =>
-  zodSchema(
-    z.object({
-      /**
-       * Aspect ratio for the output image.
-       */
-      aspectRatio: z
-        .enum([
-          '1:1',
-          '2:3',
-          '3:2',
-          '4:5',
-          '5:4',
-          '4:7',
-          '7:4',
-          '9:16',
-          '16:9',
-          '9:21',
-          '21:9',
-        ])
-        .optional(),
-    }),
-  ),
-);
-
-export type ProdiaLanguageModelOptions = InferSchema<
-  typeof prodiaLanguageModelOptionsSchema
->;
 
 interface LanguageMultipartResult {
   jobResult: ProdiaJobResult;

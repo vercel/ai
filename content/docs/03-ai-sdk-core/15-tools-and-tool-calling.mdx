@@ -22,7 +22,7 @@ The `tools` parameter of `generateText` and `streamText` is an object that has t
 
 ```ts highlight="6-17"
 import { z } from 'zod';
-import { generateText, tool, stepCountIs } from 'ai';
+import { generateText, tool, isStepCount } from 'ai';
 __PROVIDER_IMPORT__;
 
 const result = await generateText({
@@ -39,7 +39,7 @@ const result = await generateText({
       }),
     }),
   },
-  stopWhen: stepCountIs(5),
+  stopWhen: isStepCount(5),
   prompt: 'What is the weather in San Francisco?',
 });
 ```
@@ -107,38 +107,103 @@ tool({
 
 ## Tool Execution Approval
 
-By default, tools with an `execute` function run automatically as the model calls them. You can require approval before execution by setting `needsApproval`:
+By default, tools with an `execute` function run automatically as the model calls them. Configure approval with `toolApproval` on `generateText`, `streamText`, or `ToolLoopAgent`.
 
-```ts highlight="13"
-import { tool } from 'ai';
-import { z } from 'zod';
+`toolApproval` can be either:
 
-const runCommand = tool({
-  description: 'Run a shell command',
-  inputSchema: z.object({
-    command: z.string().describe('The shell command to execute'),
-  }),
-  needsApproval: true,
-  execute: async ({ command }) => {
-    // your command execution logic here
+- A `GenericToolApprovalFunction` for all tool calls
+- A per-tool map of statuses and/or `SingleToolApprovalFunction` callbacks (either function may return `undefined` for the same effect as `'not-applicable'`)
+
+The older `needsApproval` property on `tool()` definitions is deprecated. Existing code still works, but new code should move approval logic to `toolApproval`.
+
+### Configure `toolApproval`
+
+```ts highlight="8-10"
+const result = await generateText({
+  model: __MODEL__,
+  tools: { runCommand },
+  toolApproval: {
+    runCommand: 'user-approval',
   },
+  prompt: 'Remove the most recent file in the downloads folder',
 });
 ```
+
+In the per-tool object form, each key can be one of four statuses, either as a
+string or as an object with a `type` field:
+
+- `'not-applicable'`: the tool is executed without an approval flow. This is the default behavior.
+- `'approved'`: record an automatic approval by emitting approval request/response parts in the output, then execute the tool
+- `'denied'`: record an automatic denial by emitting approval request/response parts in the output, then surface a denied tool output
+- `'user-approval'`: emit an approval request and wait for an explicit response
+
+For automatic approvals and denials, you can also return an object to include a
+reason:
+
+```ts
+toolApproval: {
+  runCommand: {
+    type: 'denied',
+    reason: 'blocked by policy',
+  },
+}
+```
+
+#### Generic `toolApproval` function
+
+Pass a `GenericToolApprovalFunction` as `toolApproval` to handle every tool
+call in one place. The callback receives `toolCall`, `tools`, `toolsContext`,
+`messages`, and `runtimeContext` (the same `runtimeContext` you pass to
+`generateText` or `streamText`, typed as the second `ToolApprovalConfiguration`
+type parameter; it defaults to `Context`). It may return `undefined` for the same effect as `'not-applicable'`.
+
+```ts highlight="4-10"
+const result = await generateText({
+  model: __MODEL__,
+  tools: { runCommand },
+  toolApproval: ({ toolCall, tools, toolsContext, messages, runtimeContext }) => {
+    if (toolCall.toolName === 'runCommand' && !toolCall.dynamic) {
+      // Inspect toolCall.input, cross-tool state, messages, or runtimeContext for policy.
+      return 'user-approval';
+    }
+    return undefined; // or 'not-applicable'
+  },
+  prompt: 'Remove the most recent file in the downloads folder',
+});
+```
+
+The same pattern works for `streamText` and for `toolApproval` on
+[`ToolLoopAgent`](/docs/agents/building-agents#tools) when you need one policy
+across all tools.
+
+For a per-tool object instead, each key can be a `SingleToolApprovalFunction`
+that receives the tool input and options `toolCallId`, `messages`, `toolContext`
+(the same shape as tool execution `context`, without `abortSignal`), and
+`runtimeContext`. Return `undefined` for the same effect as `'not-applicable'`.
 
 This is useful for tools that perform sensitive operations like executing commands, processing payments, modifying data, and more potentially dangerous actions.
 
 ### How It Works
 
-When a tool requires approval, `generateText` and `streamText` don't pause execution. Instead, they complete and return `tool-approval-request` parts in the result content. This means the approval flow requires two calls to the model: the first returns the approval request, and the second (after receiving the approval response) either executes the tool or informs the model that approval was denied.
+When a tool requires manual approval, `generateText` and `streamText` don't pause execution. Instead, they complete and return `tool-approval-request` parts in the result content. This means the manual approval flow requires two calls to the model: the first returns the approval request, and the second (after receiving the approval response) either executes the tool or informs the model that approval was denied.
 
-Here's the complete flow:
+Manual approval comes from `toolApproval` returning `'user-approval'`. If the
+tool should just execute normally, use `'not-applicable'`, return `undefined`
+from a `GenericToolApprovalFunction` or `SingleToolApprovalFunction`, or omit
+the setting entirely. If `toolApproval` returns `'approved'` or `'denied'` or
+their object forms, the SDK records that decision automatically in the same
+generation by emitting approval request/response parts. When you provide a
+`reason` on an automatic approval or denial, that reason is included in the
+emitted approval response and can be rendered in the UI.
 
-1. Call `generateText` with a tool that has `needsApproval: true`
-2. Model generates a tool call
-3. `generateText` returns with `tool-approval-request` parts in `result.content`
-4. Your app requests an approval and collects the user's decision
+Here's the manual approval flow:
+
+1. Call `generateText` or `streamText` with `toolApproval`
+2. The model generates a tool call
+3. The call returns `tool-approval-request` parts in `result.content`
+4. Your app requests approval and collects the user's decision
 5. Add a `tool-approval-response` to the messages array
-6. Call `generateText` again with the updated messages
+6. Call `generateText` or `streamText` again with the updated messages
 7. If approved, the tool runs and returns a result. If denied, the model sees the denial and responds accordingly.
 
 ### Handling Approval Requests
@@ -160,7 +225,7 @@ const result = await generateText({
 messages.push(...result.response.messages);
 
 for (const part of result.content) {
-  if (part.type === 'tool-approval-request') {
+  if (part.type === 'tool-approval-request' && !part.isAutomatic) {
     console.log(part.approvalId); // Unique ID for this approval request
     console.log(part.toolCall); // Contains toolName, input, etc.
   }
@@ -175,7 +240,7 @@ import { type ToolApprovalResponse } from 'ai';
 const approvals: ToolApprovalResponse[] = [];
 
 for (const part of result.content) {
-  if (part.type === 'tool-approval-request') {
+  if (part.type === 'tool-approval-request' && !part.isAutomatic) {
     const response: ToolApprovalResponse = {
       type: 'tool-approval-response',
       approvalId: part.approvalId,
@@ -190,7 +255,14 @@ for (const part of result.content) {
 messages.push({ role: 'tool', content: approvals });
 ```
 
-Then call `generateText` again with the updated messages. If approved, the tool executes. If denied, the model receives the denial and can respond accordingly.
+Then call `generateText` or `streamText` again with the updated messages. If approved, the tool executes. If denied, the model receives the denial and can respond accordingly.
+
+When the tool should execute without any approval metadata in the output, use
+`'not-applicable'`, return `undefined` from an approval function, or omit `toolApproval`. Use `'approved'`, `'denied'`, or
+their object forms only when you want the result to include an automatic
+`tool-approval-request` with `isAutomatic: true` followed by a
+`tool-approval-response`, so you can inspect or render the decision without
+prompting the user again.
 
 <Note>
   When a tool execution is denied, consider adding a system instruction like
@@ -198,9 +270,16 @@ Then call `generateText` again with the updated messages. If approved, the tool 
   from attempting the same call again.
 </Note>
 
+<Note>
+  Provider-executed tools are executed provider-side without considering the tool
+  approval setting. `toolApproval` (and the deprecated `needsApproval`) only
+  control tools that the AI SDK executes locally.
+</Note>
+
 ### Dynamic Approval
 
-You can make approval decisions based on tool input by providing an async function:
+You can make approval decisions based on tool input by providing an async
+function in a per-tool `toolApproval` object:
 
 ```ts
 const paymentTool = tool({
@@ -209,14 +288,34 @@ const paymentTool = tool({
     amount: z.number(),
     recipient: z.string(),
   }),
-  needsApproval: async ({ amount }) => amount > 1000,
   execute: async ({ amount, recipient }) => {
     return await processPayment(amount, recipient);
   },
 });
+
+const result = await generateText({
+  model: __MODEL__,
+  tools: {
+    processPayment: paymentTool,
+  },
+  toolApproval: {
+    processPayment: async ({ amount }) =>
+      amount > 1000 ? 'user-approval' : undefined,
+  },
+  prompt: 'Send $1500 to the contractor',
+});
 ```
 
-In this example, only transactions over $1000 require approval. Smaller transactions execute automatically.
+In this example, only transactions over $1000 require approval. Smaller
+transactions execute automatically.
+
+You can use a `SingleToolApprovalFunction` in a per-tool `toolApproval` object when you want to return
+`'not-applicable'`, `undefined` (equivalent to `'not-applicable'`), `'approved'`, `'denied'`, or `'user-approval'` at call time
+instead of defining the default on the tool itself. For automatic approvals and
+denials, the callback can also return `{ type, reason }`, for example
+`{ type: 'denied', reason: 'blocked by policy' }`. For decisions that need the full `toolCall` or
+several tools at once, pass a `GenericToolApprovalFunction` as `toolApproval` instead
+of a per-tool map. The generic function can return `undefined` the same way.
 
 ### Tool Execution Approval with useChat
 
@@ -225,6 +324,14 @@ When using `useChat`, the approval flow is handled through UI state. See [Chatbo
 ## Multi-Step Calls (using stopWhen)
 
 With the `stopWhen` setting, you can enable multi-step calls in `generateText` and `streamText`. When `stopWhen` is set and the model generates a tool call, the AI SDK will trigger a new generation passing in the tool result until there are no further tool calls or the stopping condition is met.
+
+The AI SDK provides several built-in stopping conditions:
+
+- `isStepCount(count)` — stops after a specified number of steps (default: `isStepCount(20)`)
+- `hasToolCall(...toolNames)` — stops when any of the specified tools is called
+- `isLoopFinished()` — never triggers, letting the loop run until naturally finished
+
+You can also combine multiple conditions in an array or create custom conditions. See [Loop Control](/docs/agents/loop-control) for more details.
 
 <Note>
   The `stopWhen` conditions are only evaluated when the last step contains tool
@@ -251,7 +358,7 @@ In the following example, there are two steps:
 
 ```ts highlight="18-19"
 import { z } from 'zod';
-import { generateText, tool, stepCountIs } from 'ai';
+import { generateText, tool, isStepCount } from 'ai';
 __PROVIDER_IMPORT__;
 
 const { text, steps } = await generateText({
@@ -268,7 +375,7 @@ const { text, steps } = await generateText({
       }),
     }),
   },
-  stopWhen: stepCountIs(5), // stop after a maximum of 5 steps if tools were called
+  stopWhen: isStepCount(5), // stop after a maximum of 5 steps if tools were called
   prompt: 'What is the weather in San Francisco?',
 });
 ```
@@ -289,7 +396,7 @@ __PROVIDER_IMPORT__;
 
 const { steps } = await generateText({
   model: __MODEL__,
-  stopWhen: stepCountIs(10),
+  stopWhen: isStepCount(10),
   // ...
 });
 
@@ -327,7 +434,7 @@ const result = await generateText({
 
 ### Tool execution lifecycle callbacks
 
-You can use `experimental_onToolCallStart` and `experimental_onToolCallFinish` to observe tool execution.
+You can use `experimental_onToolExecutionStart` and `experimental_onToolExecutionEnd` to observe tool execution.
 These callbacks are called right before and after each tool's `execute` function, giving you
 visibility into tool execution timing, inputs, outputs, and errors:
 
@@ -336,20 +443,22 @@ import { generateText } from 'ai';
 
 const result = await generateText({
   // ... model, tools, prompt
-  experimental_onToolCallStart({ toolName, toolCallId, input }) {
-    console.log(`Calling tool: ${toolName}`, { toolCallId, input });
+  experimental_onToolExecutionStart({ toolCall }) {
+    console.log(`Calling tool: ${toolCall.toolName}`, {
+      toolCallId: toolCall.toolCallId,
+      input: toolCall.input,
+    });
   },
-  experimental_onToolCallFinish({
-    toolName,
-    toolCallId,
-    output,
-    error,
-    durationMs,
-  }) {
-    if (error) {
-      console.error(`Tool ${toolName} failed after ${durationMs}ms:`, error);
+  experimental_onToolExecutionEnd({ toolCall, durationMs, toolOutput }) {
+    if (toolOutput.type === 'tool-error') {
+      console.error(
+        `Tool ${toolCall.toolName} failed after ${durationMs}ms:`,
+        toolOutput.error,
+      );
     } else {
-      console.log(`Tool ${toolName} completed in ${durationMs}ms`, { output });
+      console.log(`Tool ${toolCall.toolName} completed in ${durationMs}ms`, {
+        output: toolOutput.output,
+      });
     }
   },
 });
@@ -368,7 +477,8 @@ It is called with the following parameters:
 - `stepNumber`: The number of the step that is being executed.
 - `steps`: The steps that have been executed so far.
 - `messages`: The messages that will be sent to the model for the current step.
-- `experimental_context`: The context passed via the `experimental_context` setting (experimental).
+- `runtimeContext`: The runtime context passed via the `runtimeContext` setting.
+- `toolsContext`: The per-tool context map passed via the `toolsContext` setting.
 
 You can use it to provide different settings for a step, including modifying the input messages.
 
@@ -686,26 +796,71 @@ const result = await generateText({
 });
 ```
 
-### Context (experimental)
+### Runtime Context
 
-You can pass in arbitrary context from `generateText` or `streamText` via the `experimental_context` setting.
-This context is available in the `experimental_context` tool execution option.
+You can pass in arbitrary runtime context from `generateText` or `streamText` via the `runtimeContext` setting.
+This runtime context is available in `prepareStep`.
 
-```ts
-const result = await generateText({
-  // ...
-  tools: {
-    someTool: tool({
-      // ...
-      execute: async (input, { experimental_context: context }) => {
-        const typedContext = context as { example: string }; // or use type validation library
-        // ...
-      },
-    }),
+To avoid confusion with prompt context or retrieved context, the docs refer to this feature as runtime context.
+
+This is useful for values like tenant information, feature flags, session data, or other server-side state that should influence step preparation without being embedded into the prompt.
+
+Tool execution context is now separate. If a tool needs server-side values such as API keys, pass them via `toolsContext`, keyed by tool name. Each tool then receives only its own typed `context` value based on its `contextSchema`.
+
+For the full mental model, examples, lifecycle details, and guidance on choosing
+between prompt context, runtime context, and tool context, see
+[Runtime and Tool Context](/docs/ai-sdk-core/runtime-and-tool-context).
+
+### Sensitive Tool Context
+
+Tool context often contains server-side values such as API keys, access tokens, or internal identifiers.
+Use `sensitiveContext` on a tool definition to exclude top-level context properties from telemetry integrations:
+
+```ts highlight="10-12,25-29"
+const weatherTool = tool({
+  description: 'Get the weather in a location',
+  inputSchema: z.object({
+    location: z.string(),
+  }),
+  contextSchema: z.object({
+    weatherApiKey: z.string(),
+    defaultUnit: z.enum(['celsius', 'fahrenheit']),
+  }),
+  sensitiveContext: {
+    weatherApiKey: true,
   },
-  experimental_context: { example: '123' },
+  execute: async ({ location }, { context }) => {
+    return fetchWeather({
+      location,
+      apiKey: context.weatherApiKey,
+      unit: context.defaultUnit,
+    });
+  },
+});
+
+const result = await generateText({
+  model: __MODEL__,
+  tools: { weather: weatherTool },
+  toolsContext: {
+    weather: {
+      weatherApiKey: process.env.WEATHER_API_KEY,
+      defaultUnit: 'fahrenheit',
+    },
+  },
+  prompt: 'What is the weather in San Francisco?',
 });
 ```
+
+Telemetry integrations receive the `weather` tool context as `{ defaultUnit: 'fahrenheit' }`.
+Properties set to `false` or omitted are still sent.
+
+<Note>
+  `sensitiveContext` only filters telemetry integrations. Tool execution,
+  lifecycle callbacks, and returned results still receive the full typed tool
+  context. See [Runtime and Tool
+  Context](/docs/ai-sdk-core/runtime-and-tool-context) for how tool context flows
+  through execution and telemetry.
+</Note>
 
 ## Tool Input Lifecycle Hooks
 
@@ -1031,7 +1186,7 @@ const { text } = await generateText({
   and Google (Gemini 3 models).
 </Note>
 
-For Google, use base64 media parts (`image-data` / `file-data`) or base64
+For Google, use base64 media parts (`file-data`) or base64
 `data:` URLs in URL-style parts. Remote HTTP(S) URLs in tool-result URL parts
 are not supported.
 
@@ -1053,7 +1208,8 @@ const result = await generateText({
         switch (action) {
           case 'screenshot': {
             return {
-              type: 'image',
+              type: 'file',
+              mediaType: 'image',
               data: fs
                 .readFileSync('./data/screenshot-editor.png')
                 .toString('base64'),

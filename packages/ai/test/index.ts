@@ -1,3 +1,5 @@
+import { simulateReadableStream as originalSimulateReadableStream } from '../src/util/simulate-readable-stream';
+
 export {
   convertArrayToAsyncIterable,
   convertArrayToReadableStream,
@@ -21,8 +23,6 @@ export { MockRerankingModelV4 } from '../src/test/mock-reranking-model-v4';
 export { MockVideoModelV3 } from '../src/test/mock-video-model-v3';
 export { MockVideoModelV4 } from '../src/test/mock-video-model-v4';
 export { mockValues } from '../src/test/mock-values';
-
-import { simulateReadableStream as originalSimulateReadableStream } from '../src/util/simulate-readable-stream';
 
 /**
  * @deprecated Use `simulateReadableStream` from `ai` instead.

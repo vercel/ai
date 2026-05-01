@@ -1,36 +1,38 @@
-import {
+import type {
   LanguageModelV4,
   LanguageModelV4StreamResult,
   LanguageModelV4Usage,
   SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
-  InferSchema,
-  ProviderOptions,
   safeParseJSON,
+  type InferSchema,
+  type ProviderOptions,
 } from '@ai-sdk/provider-utils';
 import {
-  CallSettings,
-  CallWarning,
-  FinishReason,
   InvalidToolInputError,
-  LanguageModelUsage,
   NoSuchToolError,
-  Prompt,
-  Schema,
-  ToolChoice,
+  type CallWarning,
+  type FinishReason,
+  type LanguageModelUsage,
+  type LanguageModelCallOptions,
+  type Prompt,
+  type RequestOptions,
+  type Schema,
+  type ToolChoice,
 } from 'ai';
 import {
   asLanguageModelUsage,
   convertToLanguageModelPrompt,
-  prepareCallSettings,
+  prepareLanguageModelCallOptions,
   prepareRetries,
-  prepareToolsAndToolChoice,
+  prepareToolChoice,
+  prepareTools,
   standardizePrompt,
 } from 'ai/internal';
-import { ReactNode } from 'react';
-import * as z3 from 'zod/v3';
-import * as z4 from 'zod/v4';
+import type { ReactNode } from 'react';
+import type * as z3 from 'zod/v3';
+import type * as z4 from 'zod/v4';
 import { createStreamableUI } from '../streamable-ui/create-streamable-ui';
 import { createResolvablePromise } from '../util/create-resolvable-promise';
 import { isAsyncGenerator } from '../util/is-async-generator';
@@ -102,6 +104,7 @@ export async function streamUI<
   system,
   prompt,
   messages,
+  allowSystemInMessages,
   maxRetries,
   abortSignal,
   headers,
@@ -110,7 +113,8 @@ export async function streamUI<
   providerOptions,
   onFinish,
   ...settings
-}: CallSettings &
+}: LanguageModelCallOptions &
+  Omit<RequestOptions, 'timeout'> &
   Prompt & {
     /**
      * The language model to use.
@@ -269,19 +273,25 @@ export async function streamUI<
     system,
     prompt,
     messages,
+    allowSystemInMessages,
   } as Prompt);
+  const languageModelTools = await prepareTools({
+    tools: tools,
+  });
+  const languageModelToolChoice = prepareToolChoice({
+    toolChoice,
+  });
+
   const result = await retry(async () =>
     model.doStream({
-      ...prepareCallSettings(settings),
-      ...prepareToolsAndToolChoice({
-        tools: tools as any,
-        toolChoice,
-        activeTools: undefined,
-      }),
+      ...prepareLanguageModelCallOptions(settings),
+      tools: languageModelTools,
+      toolChoice: languageModelToolChoice,
       prompt: await convertToLanguageModelPrompt({
         prompt: validatedPrompt,
         supportedUrls: await model.supportedUrls,
         download: undefined,
+        provider: model.provider.split('.')[0],
       }),
       providerOptions,
       abortSignal,

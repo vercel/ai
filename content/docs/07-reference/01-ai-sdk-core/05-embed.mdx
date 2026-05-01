@@ -68,20 +68,20 @@ const { embedding } = await embed({
         'Provider-specific options that are passed through to the provider.',
     },
     {
-      name: 'experimental_telemetry',
-      type: 'TelemetrySettings',
+      name: 'telemetry',
+      type: 'TelemetryOptions',
       isOptional: true,
-      description: 'Telemetry configuration. Experimental feature.',
+      description: 'Telemetry configuration.',
       properties: [
         {
-          type: 'TelemetrySettings',
+          type: 'TelemetryOptions',
           parameters: [
             {
               name: 'isEnabled',
               type: 'boolean',
               isOptional: true,
               description:
-                'Enable or disable telemetry. Disabled by default while experimental.',
+                'Enable or disable telemetry. Enabled by default. Set to `false` to opt out.',
             },
             {
               name: 'recordInputs',
@@ -105,17 +105,11 @@ const { embedding } = await embed({
                 'Identifier for this function. Used to group telemetry data by function.',
             },
             {
-              name: 'metadata',
+              name: 'integrations',
               isOptional: true,
-              type: 'Record<string, string | number | boolean | Array<null | undefined | string> | Array<null | undefined | number> | Array<null | undefined | boolean>>',
+              type: 'Telemetry | Telemetry[]',
               description:
-                'Additional information to include in the telemetry data.',
-            },
-            {
-              name: 'tracer',
-              type: 'Tracer',
-              isOptional: true,
-              description: 'A custom tracer to use for the telemetry data.',
+                'Per-call telemetry integrations that receive lifecycle events. When provided, these replace any globally registered integrations for this call.',
             },
           ],
         },
@@ -123,13 +117,13 @@ const { embedding } = await embed({
     },
     {
       name: 'experimental_onStart',
-      type: '(event: EmbedOnStartEvent) => PromiseLike<void> | void',
+      type: '(event: EmbedStartEvent) => PromiseLike<void> | void',
       isOptional: true,
       description:
         'Callback that is called when the embed operation begins, before the embedding model is called. Errors thrown in this callback are silently caught and do not break the embedding flow. Experimental (can break in patch releases).',
       properties: [
         {
-          type: 'EmbedOnStartEvent',
+          type: 'EmbedStartEvent',
           parameters: [
             {
               name: 'callId',
@@ -171,30 +165,19 @@ const { embedding } = await embed({
               type: 'ProviderOptions | undefined',
               description: 'Additional provider-specific options.',
             },
-            {
-              name: 'functionId',
-              type: 'string | undefined',
-              description:
-                'Identifier from telemetry settings for grouping related operations.',
-            },
-            {
-              name: 'metadata',
-              type: 'Record<string, JSONValue> | undefined',
-              description: 'Additional metadata from telemetry settings.',
-            },
           ],
         },
       ],
     },
     {
       name: 'experimental_onFinish',
-      type: '(event: EmbedOnFinishEvent) => PromiseLike<void> | void',
+      type: '(event: EmbedEndEvent) => PromiseLike<void> | void',
       isOptional: true,
       description:
         'Callback that is called when the embed operation completes, after the embedding model returns. Errors thrown in this callback are silently caught and do not break the embedding flow. Experimental (can break in patch releases).',
       properties: [
         {
-          type: 'EmbedOnFinishEvent',
+          type: 'EmbedEndEvent',
           parameters: [
             {
               name: 'callId',
@@ -240,17 +223,6 @@ const { embedding } = await embed({
               name: 'response',
               type: '{ headers?: Record<string, string>; body?: unknown } | undefined',
               description: 'Optional response data including headers and body.',
-            },
-            {
-              name: 'functionId',
-              type: 'string | undefined',
-              description:
-                'Identifier from telemetry settings for grouping related operations.',
-            },
-            {
-              name: 'metadata',
-              type: 'Record<string, JSONValue> | undefined',
-              description: 'Additional metadata from telemetry settings.',
             },
           ],
         },

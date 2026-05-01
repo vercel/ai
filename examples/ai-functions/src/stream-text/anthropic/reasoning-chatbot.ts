@@ -1,5 +1,5 @@
 import { createAnthropic } from '@ai-sdk/anthropic';
-import { stepCountIs, ModelMessage, streamText, tool } from 'ai';
+import { isStepCount, streamText, tool, type ModelMessage } from 'ai';
 import * as readline from 'node:readline/promises';
 import { z } from 'zod';
 import { run } from '../../lib/run';
@@ -46,7 +46,7 @@ run(async () => {
           }),
         }),
       },
-      stopWhen: stepCountIs(5),
+      stopWhen: isStepCount(5),
       maxRetries: 0,
       reasoning: 'medium',
       onError: error => {

@@ -1,7 +1,6 @@
-import { Tool } from '@ai-sdk/provider-utils';
-import { ProviderMetadata } from '../types';
-import { ValueOf } from '../util/value-of';
-import { ToolSet } from './tool-set';
+import type { InferToolInput, ToolSet } from '@ai-sdk/provider-utils';
+import type { ProviderMetadata } from '../types';
+import type { ValueOf } from '../util/value-of';
 
 type BaseToolCall = {
   type: 'tool-call';
@@ -10,10 +9,14 @@ type BaseToolCall = {
   providerMetadata?: ProviderMetadata;
 };
 
+/**
+ * A tool call whose `toolName` maps to a tool in the declared tool set,
+ * with an `input` type inferred from that tool's input schema.
+ */
 export type StaticToolCall<TOOLS extends ToolSet> = ValueOf<{
   [NAME in keyof TOOLS]: BaseToolCall & {
     toolName: NAME & string;
-    input: TOOLS[NAME] extends Tool<infer PARAMETERS> ? PARAMETERS : never;
+    input: InferToolInput<TOOLS[NAME]>;
     dynamic?: false | undefined;
     invalid?: false | undefined;
     error?: never;
@@ -21,6 +24,10 @@ export type StaticToolCall<TOOLS extends ToolSet> = ValueOf<{
   };
 }>;
 
+/**
+ * A tool call whose `toolName` is only known at runtime, such as an invalid
+ * or otherwise untyped call that cannot be matched to the declared tool set.
+ */
 export type DynamicToolCall = BaseToolCall & {
   toolName: string;
   input: unknown;
@@ -42,6 +49,10 @@ export type DynamicToolCall = BaseToolCall & {
   error?: unknown;
 };
 
+/**
+ * A tool call returned by text generation, either statically typed from the
+ * declared tool set or dynamically typed when the tool cannot be inferred.
+ */
 export type TypedToolCall<TOOLS extends ToolSet> =
   | StaticToolCall<TOOLS>
   | DynamicToolCall;

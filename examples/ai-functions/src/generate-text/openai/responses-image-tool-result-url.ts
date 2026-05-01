@@ -1,4 +1,4 @@
-import { generateText, stepCountIs, tool } from 'ai';
+import { generateText, isStepCount, tool } from 'ai';
 import { run } from '../../lib/run';
 import { z } from 'zod';
 import { openai } from '@ai-sdk/openai';
@@ -28,8 +28,9 @@ run(async () => {
             text: output.description,
           },
           {
-            type: 'image-url',
+            type: 'file-url',
             url: output.imageUrl,
+            mediaType: 'image/png',
           },
         ],
       };
@@ -45,7 +46,7 @@ run(async () => {
       readImage,
     },
 
-    stopWhen: stepCountIs(4),
+    stopWhen: isStepCount(4),
   });
 
   console.log(`Assistant response : ${JSON.stringify(result.text, null, 2)}`);

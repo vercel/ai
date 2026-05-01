@@ -282,7 +282,7 @@ describe('parseToolCall', () => {
     expect(result).toMatchInlineSnapshot(`
       {
         "dynamic": true,
-        "error": [AI_InvalidToolInputError: Invalid input for tool testTool: Type validation failed: Value: {"param1":"test"}.
+        "error": [AI_InvalidToolInputError: Invalid input for tool testTool: AI_TypeValidationError: Type validation failed: Value: {"param1":"test"}.
       Error message: [
         {
           "expected": "number",
@@ -393,8 +393,8 @@ describe('parseToolCall', () => {
       expect(result).toMatchInlineSnapshot(`
         {
           "dynamic": true,
-          "error": [AI_InvalidToolInputError: Invalid input for tool testTool: JSON parsing failed: Text: invalid json.
-        Error message: Unexpected token 'i', "invalid json" is not valid JSON],
+          "error": [AI_InvalidToolInputError: Invalid input for tool testTool: AI_JSONParseError: JSON parsing failed: Text: invalid json.
+        Error message: SyntaxError: Unexpected token 'i', "invalid json" is not valid JSON],
           "input": "invalid json",
           "invalid": true,
           "providerExecuted": undefined,
@@ -433,7 +433,7 @@ describe('parseToolCall', () => {
       expect(result).toMatchInlineSnapshot(`
         {
           "dynamic": true,
-          "error": [AI_ToolCallRepairError: Error repairing tool call: test error],
+          "error": [AI_ToolCallRepairError: Error repairing tool call: Error: test error],
           "input": "invalid json",
           "invalid": true,
           "providerExecuted": undefined,
@@ -565,6 +565,131 @@ describe('parseToolCall', () => {
 
       expect(result.invalid).toBe(true);
       expect(result.title).toBe('Invalid Tool');
+    });
+  });
+
+  describe('tool providerMetadata propagation', () => {
+    it('should propagate tool providerMetadata onto a parsed dynamic tool call', async () => {
+      const result = await parseToolCall({
+        toolCall: {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'weather',
+          input: '{"location":"Paris"}',
+        },
+        tools: {
+          weather: dynamicTool({
+            description: 'Get weather',
+            providerMetadata: { mcp: { name: 'MyMCPServer' } },
+            inputSchema: jsonSchema({
+              type: 'object',
+              properties: { location: { type: 'string' } },
+              additionalProperties: false,
+            }),
+            execute: async () => 'sunny',
+          }),
+        },
+        repairToolCall: undefined,
+        system: undefined,
+        messages: [],
+      });
+
+      expect(result.providerMetadata).toEqual({
+        mcp: { name: 'MyMCPServer' },
+      });
+    });
+
+    it('should propagate tool providerMetadata onto a parsed static tool call', async () => {
+      const result = await parseToolCall({
+        toolCall: {
+          type: 'tool-call',
+          toolCallId: 'call-2',
+          toolName: 'calculator',
+          input: '{"a":5,"b":3}',
+        },
+        tools: {
+          calculator: tool({
+            description: 'Calculate',
+            providerMetadata: { mcp: { name: 'MyMCPServer' } },
+            inputSchema: z.object({ a: z.number(), b: z.number() }),
+            execute: async ({ a, b }) => a + b,
+          }),
+        },
+        repairToolCall: undefined,
+        system: undefined,
+        messages: [],
+      });
+
+      expect(result.providerMetadata).toEqual({
+        mcp: { name: 'MyMCPServer' },
+      });
+    });
+
+    it('should merge tool providerMetadata with model-supplied providerMetadata (model wins on conflicts)', async () => {
+      const result = await parseToolCall({
+        toolCall: {
+          type: 'tool-call',
+          toolCallId: 'call-3',
+          toolName: 'weather',
+          input: '{"location":"Paris"}',
+          providerMetadata: {
+            mcp: { name: 'OverriddenByModel' },
+            anthropic: { cacheControl: { type: 'ephemeral' } },
+          },
+        },
+        tools: {
+          weather: dynamicTool({
+            description: 'Get weather',
+            providerMetadata: { mcp: { name: 'MyMCPServer' } },
+            inputSchema: jsonSchema({
+              type: 'object',
+              properties: { location: { type: 'string' } },
+              additionalProperties: false,
+            }),
+            execute: async () => 'sunny',
+          }),
+        },
+        repairToolCall: undefined,
+        system: undefined,
+        messages: [],
+      });
+
+      expect(result.providerMetadata).toEqual({
+        mcp: { name: 'OverriddenByModel' },
+        anthropic: { cacheControl: { type: 'ephemeral' } },
+      });
+    });
+
+    it('should propagate tool providerMetadata onto an invalid tool call', async () => {
+      const result = await parseToolCall({
+        toolCall: {
+          type: 'tool-call',
+          toolCallId: 'call-4',
+          toolName: 'weather',
+          input: 'invalid json',
+        },
+        tools: {
+          weather: dynamicTool({
+            description: 'Get weather',
+            providerMetadata: { mcp: { name: 'MyMCPServer' } },
+            inputSchema: jsonSchema({
+              type: 'object',
+              properties: { location: { type: 'string' } },
+              required: ['location'],
+              additionalProperties: false,
+            }),
+            execute: async () => 'sunny',
+          }),
+        },
+        repairToolCall: undefined,
+        system: undefined,
+        messages: [],
+      });
+
+      expect(result.invalid).toBe(true);
+      expect(result.providerMetadata).toEqual({
+        mcp: { name: 'MyMCPServer' },
+      });
     });
   });
 });

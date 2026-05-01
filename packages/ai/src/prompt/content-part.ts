@@ -1,20 +1,30 @@
 import {
-  CustomPart,
-  FilePart,
-  ImagePart,
-  ProviderOptions,
-  ReasoningFilePart,
-  ReasoningPart,
-  TextPart,
-  ToolApprovalRequest,
-  ToolApprovalResponse,
-  ToolResultOutput,
-  ToolResultPart,
+  isBuffer,
+  type CustomPart,
+  type DataContent,
+  type FilePart,
+  type ImagePart,
+  type ProviderOptions,
+  type ReasoningFilePart,
+  type ReasoningPart,
+  type TextPart,
+  type ToolApprovalRequest,
+  type ToolApprovalResponse,
+  type ToolResultOutput,
+  type ToolResultPart,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { jsonValueSchema } from '../types/json-value';
 import { providerMetadataSchema } from '../types/provider-metadata';
-import { dataContentSchema } from './data-content';
+
+const fileInlineDataSchema: z.ZodType<DataContent> = z.union([
+  z.string(),
+  z.instanceof(Uint8Array),
+  z.instanceof(ArrayBuffer),
+  z.custom<Buffer>(isBuffer, { message: 'Must be a Buffer' }),
+]);
+
+const providerReferenceSchema = z.record(z.string(), z.string());
 
 /**
  * @internal
@@ -27,20 +37,46 @@ export const textPartSchema: z.ZodType<TextPart> = z.object({
 
 /**
  * @internal
+ * @deprecated Use `filePartSchema` with `mediaType: 'image'` instead:
+ * `{ type: 'file', mediaType: 'image', data: { type: 'data', data } }`.
  */
 export const imagePartSchema: z.ZodType<ImagePart> = z.object({
   type: z.literal('image'),
-  image: z.union([dataContentSchema, z.instanceof(URL)]),
+  image: z.union([
+    fileInlineDataSchema,
+    z.instanceof(URL),
+    providerReferenceSchema,
+  ]),
   mediaType: z.string().optional(),
   providerOptions: providerMetadataSchema.optional(),
 });
+
+const taggedFileDataSchema = z.discriminatedUnion('type', [
+  z.object({ type: z.literal('data'), data: fileInlineDataSchema }),
+  z.object({ type: z.literal('url'), url: z.instanceof(URL) }),
+  z.object({
+    type: z.literal('reference'),
+    reference: providerReferenceSchema,
+  }),
+  z.object({ type: z.literal('text'), text: z.string() }),
+]);
+
+const taggedReasoningFileDataSchema = z.discriminatedUnion('type', [
+  z.object({ type: z.literal('data'), data: fileInlineDataSchema }),
+  z.object({ type: z.literal('url'), url: z.instanceof(URL) }),
+]);
 
 /**
  * @internal
  */
 export const filePartSchema: z.ZodType<FilePart> = z.object({
   type: z.literal('file'),
-  data: z.union([dataContentSchema, z.instanceof(URL)]),
+  data: z.union([
+    taggedFileDataSchema,
+    fileInlineDataSchema,
+    z.instanceof(URL),
+    providerReferenceSchema,
+  ]),
   filename: z.string().optional(),
   mediaType: z.string(),
   providerOptions: providerMetadataSchema.optional(),
@@ -69,7 +105,11 @@ export const customPartSchema: z.ZodType<CustomPart> = z.object({
  */
 export const reasoningFilePartSchema: z.ZodType<ReasoningFilePart> = z.object({
   type: z.literal('reasoning-file'),
-  data: z.union([dataContentSchema, z.instanceof(URL)]),
+  data: z.union([
+    taggedReasoningFileDataSchema,
+    fileInlineDataSchema,
+    z.instanceof(URL),
+  ]),
   mediaType: z.string(),
   providerOptions: providerMetadataSchema.optional(),
 });
@@ -156,11 +196,6 @@ export const outputSchema: z.ZodType<ToolResultOutput> = z.discriminatedUnion(
             providerOptions: providerMetadataSchema.optional(),
           }),
           z.object({
-            type: z.literal('media'),
-            data: z.string(),
-            mediaType: z.string(),
-          }),
-          z.object({
             type: z.literal('file-data'),
             data: z.string(),
             mediaType: z.string(),
@@ -170,11 +205,18 @@ export const outputSchema: z.ZodType<ToolResultOutput> = z.discriminatedUnion(
           z.object({
             type: z.literal('file-url'),
             url: z.string(),
+            // Temporarily optional. TODO: make required in v8, after migration period.
+            mediaType: z.string().optional(),
             providerOptions: providerMetadataSchema.optional(),
           }),
           z.object({
             type: z.literal('file-id'),
             fileId: z.union([z.string(), z.record(z.string(), z.string())]),
+            providerOptions: providerMetadataSchema.optional(),
+          }),
+          z.object({
+            type: z.literal('file-reference'),
+            providerReference: z.record(z.string(), z.string()),
             providerOptions: providerMetadataSchema.optional(),
           }),
           z.object({
@@ -191,6 +233,11 @@ export const outputSchema: z.ZodType<ToolResultOutput> = z.discriminatedUnion(
           z.object({
             type: z.literal('image-file-id'),
             fileId: z.union([z.string(), z.record(z.string(), z.string())]),
+            providerOptions: providerMetadataSchema.optional(),
+          }),
+          z.object({
+            type: z.literal('image-file-reference'),
+            providerReference: z.record(z.string(), z.string()),
             providerOptions: providerMetadataSchema.optional(),
           }),
           z.object({

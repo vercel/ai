@@ -2,13 +2,13 @@ import { openai } from '@ai-sdk/openai';
 import {
   convertToModelMessages,
   dynamicTool,
-  InferUITools,
-  stepCountIs,
+  isStepCount,
   streamText,
   tool,
-  ToolSet,
-  UIDataTypes,
-  UIMessage,
+  type InferUITools,
+  type ToolSet,
+  type UIDataTypes,
+  type UIMessage,
 } from 'ai';
 import { z } from 'zod';
 
@@ -68,7 +68,7 @@ export async function POST(req: Request) {
   const result = streamText({
     model: openai('gpt-4o'),
     messages: await convertToModelMessages(messages),
-    stopWhen: stepCountIs(5), // multi-steps for server-side tools
+    stopWhen: isStepCount(5), // multi-steps for server-side tools
     tools: {
       ...staticTools,
       ...dynamicTools(),

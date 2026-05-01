@@ -1,5 +1,5 @@
 import { google } from '@ai-sdk/google';
-import { generateText, stepCountIs, tool } from 'ai';
+import { generateText, isStepCount, tool } from 'ai';
 import { run } from '../../lib/run';
 import { z } from 'zod';
 
@@ -41,7 +41,7 @@ run(async () => {
     tools: {
       readPDFDocument,
     },
-    stopWhen: stepCountIs(4),
+    stopWhen: isStepCount(4),
   });
 
   console.log(`Assistant response : ${JSON.stringify(result.text, null, 2)}`);

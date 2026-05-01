@@ -1,10 +1,15 @@
 import {
-  SharedV4Warning,
-  LanguageModelV4Prompt,
   UnsupportedFunctionalityError,
+  type SharedV4Warning,
+  type LanguageModelV4Prompt,
 } from '@ai-sdk/provider';
-import { convertToBase64 } from '@ai-sdk/provider-utils';
-import { XaiChatPrompt } from './xai-chat-prompt';
+import {
+  convertToBase64,
+  getTopLevelMediaType,
+  resolveFullMediaType,
+  resolveProviderReference,
+} from '@ai-sdk/provider-utils';
+import type { XaiChatPrompt } from './xai-chat-prompt';
 
 export function convertToXaiChatMessages(prompt: LanguageModelV4Prompt): {
   messages: XaiChatPrompt;
@@ -34,25 +39,41 @@ export function convertToXaiChatMessages(prompt: LanguageModelV4Prompt): {
                 return { type: 'text', text: part.text };
               }
               case 'file': {
-                if (part.mediaType.startsWith('image/')) {
-                  const mediaType =
-                    part.mediaType === 'image/*'
-                      ? 'image/jpeg'
-                      : part.mediaType;
-
-                  return {
-                    type: 'image_url',
-                    image_url: {
-                      url:
-                        part.data instanceof URL
-                          ? part.data.toString()
-                          : `data:${mediaType};base64,${convertToBase64(part.data)}`,
-                    },
-                  };
-                } else {
-                  throw new UnsupportedFunctionalityError({
-                    functionality: `file part media type ${part.mediaType}`,
-                  });
+                switch (part.data.type) {
+                  case 'reference': {
+                    return {
+                      type: 'file',
+                      file: {
+                        file_id: resolveProviderReference({
+                          reference: part.data.reference,
+                          provider: 'xai',
+                        }),
+                      },
+                    };
+                  }
+                  case 'text': {
+                    throw new UnsupportedFunctionalityError({
+                      functionality: 'text file parts',
+                    });
+                  }
+                  case 'url':
+                  case 'data': {
+                    if (getTopLevelMediaType(part.mediaType) === 'image') {
+                      return {
+                        type: 'image_url',
+                        image_url: {
+                          url:
+                            part.data.type === 'url'
+                              ? part.data.url.toString()
+                              : `data:${resolveFullMediaType({ part })};base64,${convertToBase64(part.data.data)}`,
+                        },
+                      };
+                    } else {
+                      throw new UnsupportedFunctionalityError({
+                        functionality: `file part media type ${part.mediaType}`,
+                      });
+                    }
+                  }
                 }
               }
             }
@@ -113,7 +134,7 @@ export function convertToXaiChatMessages(prompt: LanguageModelV4Prompt): {
               contentValue = output.value;
               break;
             case 'execution-denied':
-              contentValue = output.reason ?? 'Tool execution denied.';
+              contentValue = output.reason ?? 'Tool call execution denied.';
               break;
             case 'content':
             case 'json':

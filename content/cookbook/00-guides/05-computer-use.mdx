@@ -117,7 +117,7 @@ const computerTool = anthropic.tools.computer_20250124({
   toModelOutput({ output }) {
     return typeof output === 'string'
       ? [{ type: 'text', text: output }]
-      : [{ type: 'image', data: output.data, mediaType: 'image/png' }];
+      : [{ type: 'file-data', data: output.data, mediaType: 'image/png' }];
   },
 });
 ```
@@ -167,13 +167,13 @@ for await (const chunk of result.textStream) {
 To allow the model to perform multiple steps without user intervention, use the `stopWhen` parameter. This will automatically send any tool results back to the model to trigger a subsequent generation:
 
 ```ts highlight="1,7"
-import { stepCountIs } from 'ai';
+import { isStepCount } from 'ai';
 
 const stream = streamText({
   model: 'anthropic/claude-sonnet-4-20250514',
   prompt: 'Open the browser and navigate to vercel.com',
   tools: { computer: computerTool },
-  stopWhen: stepCountIs(10), // experiment with this value based on your use case
+  stopWhen: isStepCount(10), // experiment with this value based on your use case
 });
 ```
 

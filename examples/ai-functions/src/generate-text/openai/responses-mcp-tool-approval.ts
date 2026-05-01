@@ -1,9 +1,9 @@
 import { createOpenAI } from '@ai-sdk/openai';
 import {
   generateText,
-  ModelMessage,
-  stepCountIs,
-  ToolApprovalResponse,
+  isStepCount,
+  type ModelMessage,
+  type ToolApprovalResponse,
 } from 'ai';
 import * as readline from 'node:readline/promises';
 import { run } from '../../lib/run';
@@ -56,7 +56,7 @@ run(async () => {
         }),
       },
       messages,
-      stopWhen: stepCountIs(10),
+      stopWhen: isStepCount(10),
     });
 
     // Log raw response for debugging

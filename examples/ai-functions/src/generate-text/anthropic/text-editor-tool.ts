@@ -1,5 +1,5 @@
 import { anthropic } from '@ai-sdk/anthropic';
-import { generateText, stepCountIs } from 'ai';
+import { generateText, isStepCount } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
@@ -39,7 +39,7 @@ This is a test file.
     },
     prompt:
       'Call insert to add "INTEGRATION TEST SUCCESS" after line 1 of editorContent',
-    stopWhen: stepCountIs(5),
+    stopWhen: isStepCount(5),
   });
 
   console.log('TEXT', result.text);

@@ -1,4 +1,4 @@
-import { ModelMessage, streamText } from 'ai';
+import { streamText, type ModelMessage } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
 export async function POST(req: Request) {

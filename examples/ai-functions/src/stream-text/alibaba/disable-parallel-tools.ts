@@ -1,5 +1,5 @@
-import { alibaba, type AlibabaLanguageModelOptions } from '@ai-sdk/alibaba';
-import { stepCountIs, streamText, tool } from 'ai';
+import { alibaba, type AlibabaLanguageModelChatOptions } from '@ai-sdk/alibaba';
+import { isStepCount, streamText, tool } from 'ai';
 import { z } from 'zod';
 import { run } from '../../lib/run';
 
@@ -7,11 +7,11 @@ run(async () => {
   const result = streamText({
     model: alibaba('qwen-plus'),
     prompt: 'What is the weather in Paris, Tokyo, and London?',
-    stopWhen: stepCountIs(5),
+    stopWhen: isStepCount(5),
     providerOptions: {
       alibaba: {
         parallelToolCalls: false,
-      } satisfies AlibabaLanguageModelOptions,
+      } satisfies AlibabaLanguageModelChatOptions,
     },
     tools: {
       getWeather: tool({

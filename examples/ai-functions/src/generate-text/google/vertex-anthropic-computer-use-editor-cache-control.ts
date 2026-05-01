@@ -1,7 +1,7 @@
-import { type AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
+import type { AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
 import { run } from '../../lib/run';
 import { vertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
-import { generateText, stepCountIs } from 'ai';
+import { generateText, isStepCount } from 'ai';
 
 run(async () => {
   let editorContent = `
@@ -46,7 +46,7 @@ This is a test file.
         },
       },
     ],
-    stopWhen: stepCountIs(5),
+    stopWhen: isStepCount(5),
   });
 
   console.log('TEXT', result.text);

@@ -1,4 +1,4 @@
-import {
+import type {
   LanguageModelV4GenerateResult,
   LanguageModelV4Prompt,
 } from '@ai-sdk/provider';
@@ -25,6 +25,7 @@ describe('OpenResponsesLanguageModel', () => {
   function createModel(modelId: string = 'gemma-7b-it') {
     return new OpenResponsesLanguageModel(modelId, {
       provider: 'lmstudio',
+      providerOptionsName: 'lmstudio',
       url: URL,
       headers: () => ({}),
       generateId: mockId(),
@@ -207,6 +208,131 @@ describe('OpenResponsesLanguageModel', () => {
         expect(
           (await server.calls[0].requestBodyJson).reasoning,
         ).toBeUndefined();
+      });
+    });
+
+    describe('providerOptions reasoning', () => {
+      beforeEach(() => {
+        prepareJsonFixtureResponse('lmstudio-basic.1');
+      });
+
+      it('should send reasoning.summary via providerOptions', async () => {
+        await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            lmstudio: { reasoningSummary: 'detailed' },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+                "type": "message",
+              },
+            ],
+            "model": "gemma-7b-it",
+            "reasoning": {
+              "summary": "detailed",
+            },
+          }
+        `);
+      });
+
+      it('should combine top-level reasoning effort with providerOptions summary', async () => {
+        await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'high',
+          providerOptions: {
+            lmstudio: { reasoningSummary: 'auto' },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+                "type": "message",
+              },
+            ],
+            "model": "gemma-7b-it",
+            "reasoning": {
+              "effort": "high",
+              "summary": "auto",
+            },
+          }
+        `);
+      });
+
+      it('should send reasoning.summary concise via providerOptions', async () => {
+        await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            lmstudio: { reasoningSummary: 'concise' },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+                "type": "message",
+              },
+            ],
+            "model": "gemma-7b-it",
+            "reasoning": {
+              "summary": "concise",
+            },
+          }
+        `);
+      });
+
+      it('should not set reasoning when providerOptions has no reasoning fields', async () => {
+        await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            lmstudio: {},
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+                "type": "message",
+              },
+            ],
+            "model": "gemma-7b-it",
+          }
+        `);
       });
     });
 

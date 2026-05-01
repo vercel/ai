@@ -36,7 +36,7 @@ export const tools: Tool[] = [
       yarn: 'yarn add ai-sdk-tool-code-execution',
       bun: 'bun add ai-sdk-tool-code-execution',
     },
-    codeExample: `import { generateText, stepCountIs } from 'ai';
+    codeExample: `import { generateText, isStepCount } from 'ai';
 import { executeCode } from 'ai-sdk-tool-code-execution';
 
 const { text } = await generateText({
@@ -45,7 +45,7 @@ const { text } = await generateText({
   tools: {
     executeCode: executeCode(),
   },
-  stopWhen: stepCountIs(5),
+  stopWhen: isStepCount(5),
 });
 
 console.log(text);`,
@@ -68,7 +68,7 @@ console.log(text);`,
       yarn: 'yarn add @exalabs/ai-sdk',
       bun: 'bun add @exalabs/ai-sdk',
     },
-    codeExample: `import { generateText, stepCountIs } from 'ai';
+    codeExample: `import { generateText, isStepCount } from 'ai';
 import { webSearch } from '@exalabs/ai-sdk';
 
 const { text } = await generateText({
@@ -77,7 +77,7 @@ const { text } = await generateText({
   tools: {
     webSearch: webSearch(),
   },
-  stopWhen: stepCountIs(3),
+  stopWhen: isStepCount(3),
 });
 
 console.log(text);`,
@@ -100,7 +100,7 @@ console.log(text);`,
       yarn: 'yarn add @parallel-web/ai-sdk-tools',
       bun: 'bun add @parallel-web/ai-sdk-tools',
     },
-    codeExample: `import { generateText, stepCountIs } from 'ai';
+    codeExample: `import { generateText, isStepCount } from 'ai';
 import { searchTool, extractTool } from '@parallel-web/ai-sdk-tools';
 
 const { text } = await generateText({
@@ -110,7 +110,7 @@ const { text } = await generateText({
     webSearch: searchTool,
     webExtract: extractTool,
   },
-  stopWhen: stepCountIs(3),
+  stopWhen: isStepCount(3),
 });
 
 console.log(text);`,
@@ -132,7 +132,7 @@ console.log(text);`,
       yarn: 'yarn add ctx-zip',
       bun: 'bun add ctx-zip',
     },
-    codeExample: `import { generateText, stepCountIs } from 'ai';
+    codeExample: `import { generateText, isStepCount } from 'ai';
 import { createVercelSandboxCodeMode, SANDBOX_SYSTEM_PROMPT } from 'ctx-zip';
 
 const { tools } = await createVercelSandboxCodeMode({
@@ -154,7 +154,7 @@ const { tools } = await createVercelSandboxCodeMode({
 const { text } = await generateText({
   model: 'openai/gpt-5.2',
   tools,
-  stopWhen: stepCountIs(20),
+  stopWhen: isStepCount(20),
   system: SANDBOX_SYSTEM_PROMPT,
   messages: [
     {
@@ -185,7 +185,7 @@ console.log(text);
       yarn: 'yarn add @perplexity-ai/ai-sdk',
       bun: 'bun add @perplexity-ai/ai-sdk',
     },
-    codeExample: `import { generateText, stepCountIs } from 'ai';
+    codeExample: `import { generateText, isStepCount } from 'ai';
 import { perplexitySearch } from '@perplexity-ai/ai-sdk';
 
 const { text } = await generateText({
@@ -194,7 +194,7 @@ const { text } = await generateText({
   tools: {
     search: perplexitySearch(),
   },
-  stopWhen: stepCountIs(3),
+  stopWhen: isStepCount(3),
 });
 
 console.log(text);`,
@@ -217,7 +217,7 @@ console.log(text);`,
       yarn: 'yarn add @tavily/ai-sdk',
       bun: 'bun add @tavily/ai-sdk',
     },
-    codeExample: `import { generateText, stepCountIs } from 'ai';
+    codeExample: `import { generateText, isStepCount } from 'ai';
 import { tavilySearch } from '@tavily/ai-sdk';
 
 const { text } = await generateText({
@@ -226,7 +226,7 @@ const { text } = await generateText({
   tools: {
     webSearch: tavilySearch,
   },
-  stopWhen: stepCountIs(3),
+  stopWhen: isStepCount(3),
 });
 
 console.log(text);`,
@@ -249,7 +249,7 @@ console.log(text);`,
       yarn: 'yarn add firecrawl-aisdk',
       bun: 'bun add firecrawl-aisdk',
     },
-    codeExample: `import { generateText, stepCountIs } from 'ai';
+    codeExample: `import { generateText, isStepCount } from 'ai';
 import { scrapeTool } from 'firecrawl-aisdk';
 
 const { text } = await generateText({
@@ -258,7 +258,7 @@ const { text } = await generateText({
   tools: {
     scrape: scrapeTool,
   },
-  stopWhen: stepCountIs(3),
+  stopWhen: isStepCount(3),
 });
 
 console.log(text);`,
@@ -281,7 +281,7 @@ console.log(text);`,
       yarn: 'yarn add bedrock-agentcore',
       bun: 'bun add bedrock-agentcore',
     },
-    codeExample: `import { generateText, stepCountIs } from 'ai';
+    codeExample: `import { generateText, isStepCount } from 'ai';
 import { bedrock } from '@ai-sdk/amazon-bedrock';
 import { awsCredentialsProvider } from '@vercel/oidc-aws-credentials-provider';
 import { CodeInterpreterTools } from 'bedrock-agentcore/code-interpreter/vercel-ai';
@@ -302,7 +302,7 @@ try {
       ...codeInterpreter.tools,
       ...browser.tools,
     },
-    stopWhen: stepCountIs(5),
+    stopWhen: isStepCount(5),
   });
 
   console.log(text);
@@ -330,7 +330,7 @@ try {
       yarn: 'yarn add @superagent-ai/ai-sdk',
       bun: 'bun add @superagent-ai/ai-sdk',
     },
-    codeExample: `import { generateText, stepCountIs } from 'ai';
+    codeExample: `import { generateText, isStepCount } from 'ai';
 import { guard, redact, verify } from '@superagent-ai/ai-sdk';
 import { openai } from '@ai-sdk/openai';
 
@@ -342,7 +342,7 @@ const { text } = await generateText({
     redact: redact(),
     verify: verify(),
   },
-  stopWhen: stepCountIs(3),
+  stopWhen: isStepCount(3),
 });
 
 console.log(text);`,
@@ -364,7 +364,7 @@ console.log(text);`,
       bun: 'bun add @takoviz/ai-sdk',
     },
     codeExample: `import { takoSearch } from '@takoviz/ai-sdk';
-import { generateText, stepCountIs } from 'ai';
+import { generateText, isStepCount } from 'ai';
 
 const { text } = await generateText({
   model: 'openai/gpt-5.2',
@@ -372,7 +372,7 @@ const { text } = await generateText({
   tools: {
     takoSearch: takoSearch(),
   },
-  stopWhen: stepCountIs(5),
+  stopWhen: isStepCount(5),
 });
 
 console.log(text);`,
@@ -397,7 +397,7 @@ console.log(text);`,
       yarn: 'yarn add @valyu/ai-sdk',
       bun: 'bun add @valyu/ai-sdk',
     },
-    codeExample: `import { generateText, stepCountIs } from 'ai';
+    codeExample: `import { generateText, isStepCount } from 'ai';
 import { webSearch } from '@valyu/ai-sdk';
 // Available specialised search tools: financeSearch, paperSearch,
 // bioSearch, patentSearch, secSearch, economicsSearch, companyResearch
@@ -408,7 +408,7 @@ const { text } = await generateText({
   tools: {
     webSearch: webSearch(),
   },
-  stopWhen: stepCountIs(3),
+  stopWhen: isStepCount(3),
 });
 
 console.log(text);`,
@@ -431,7 +431,7 @@ console.log(text);`,
       yarn: 'yarn add @airweave/vercel-ai-sdk',
       bun: 'bun add @airweave/vercel-ai-sdk',
     },
-    codeExample: `import { generateText, stepCountIs } from 'ai';
+    codeExample: `import { generateText, isStepCount } from 'ai';
 import { airweaveSearch } from '@airweave/vercel-ai-sdk';
 
 const { text } = await generateText({
@@ -442,7 +442,7 @@ const { text } = await generateText({
       defaultCollection: 'my-knowledge-base',
     }),
   },
-  stopWhen: stepCountIs(3),
+  stopWhen: isStepCount(3),
 });
 
 console.log(text);`,
@@ -464,7 +464,7 @@ console.log(text);`,
       yarn: 'yarn add bash-tool',
       bun: 'bun add bash-tool',
     },
-    codeExample: `import { generateText, stepCountIs } from 'ai';
+    codeExample: `import { generateText, isStepCount } from 'ai';
 import { createBashTool } from 'bash-tool';
 
 const { tools } = await createBashTool({
@@ -475,7 +475,7 @@ const { text } = await generateText({
   model: 'anthropic/claude-sonnet-4',
   prompt: 'List the files in src/ and show me the contents of index.ts',
   tools,
-  stopWhen: stepCountIs(5),
+  stopWhen: isStepCount(5),
 });
 
 console.log(text);`,
@@ -497,7 +497,7 @@ console.log(text);`,
       yarn: 'yarn add @browserbasehq/ai-sdk',
       bun: 'bun add @browserbasehq/ai-sdk',
     },
-    codeExample: `import { generateText, stepCountIs } from 'ai';
+    codeExample: `import { generateText, isStepCount } from 'ai';
 import { createBrowserbaseTools } from '@browserbasehq/ai-sdk';
 
 const browserbase = createBrowserbaseTools();
@@ -505,7 +505,7 @@ const browserbase = createBrowserbaseTools();
 const { text } = await generateText({
   model: 'google/gemini-3-pro-preview',
   tools: browserbase.tools,
-  stopWhen: stepCountIs(10),
+  stopWhen: isStepCount(10),
   prompt: 'Open https://news.ycombinator.com and summarize the top 3 stories.',
 });
 
@@ -515,5 +515,40 @@ await browserbase.closeSession();`,
     apiKeyUrl: 'https://www.browserbase.com/settings',
     websiteUrl: 'https://www.browserbase.com',
     npmUrl: 'https://www.npmjs.com/package/@browserbasehq/ai-sdk',
+  },
+  {
+    slug: 'you-search',
+    name: 'You.com',
+    description:
+      "Real-time web search, deep research with cited sources, and webpage content extraction powered by You.com. Search current information with advanced filtering (dates, sites, file types), research topics with configurable effort (lite to exhaustive), and extract full page content in markdown or HTML. Built on You.com's enterprise search API with zero server setup.",
+    packageName: '@youdotcom-oss/ai-sdk-plugin',
+    tags: ['search', 'web', 'extraction', 'research'],
+    apiKeyEnvName: 'YDC_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @youdotcom-oss/ai-sdk-plugin',
+      npm: 'npm install @youdotcom-oss/ai-sdk-plugin',
+      yarn: 'yarn add @youdotcom-oss/ai-sdk-plugin',
+      bun: 'bun add @youdotcom-oss/ai-sdk-plugin',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { youSearch, youResearch, youContents } from '@youdotcom-oss/ai-sdk-plugin';
+
+const { text } = await generateText({
+  model: 'anthropic/claude-sonnet-4-5-20250929',
+  prompt: 'Research the latest developments in quantum computing',
+  tools: {
+    search: youSearch(),
+    research: youResearch(),
+    extract: youContents(),
+  },
+  stopWhen: isStepCount(5),
+});
+
+console.log(text);`,
+    docsUrl:
+      'https://github.com/youdotcom-oss/dx-toolkit/tree/main/packages/ai-sdk-plugin#readme',
+    apiKeyUrl: 'https://you.com/platform/api-keys',
+    websiteUrl: 'https://you.com',
+    npmUrl: 'https://www.npmjs.com/package/@youdotcom-oss/ai-sdk-plugin',
   },
 ];

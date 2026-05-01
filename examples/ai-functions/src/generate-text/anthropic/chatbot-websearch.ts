@@ -1,5 +1,5 @@
 import { createAnthropic } from '@ai-sdk/anthropic';
-import { ModelMessage, generateText, stepCountIs } from 'ai';
+import { generateText, isStepCount, type ModelMessage } from 'ai';
 import * as readline from 'node:readline/promises';
 import { run } from '../../lib/run';
 
@@ -36,7 +36,7 @@ run(async () => {
       },
       system: `You are a helpful, respectful and honest assistant.`,
       messages,
-      stopWhen: stepCountIs(3),
+      stopWhen: isStepCount(3),
     });
 
     console.log('Assistant:');

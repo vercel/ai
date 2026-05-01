@@ -29,6 +29,11 @@ const result = await agent.generate({
 console.log(result.text);
 ```
 
+For agents, `runtimeContext` is the shared runtime state that flows through the
+loop. For guidance on `runtimeContext`, `toolsContext`, tool `context`, and
+sensitive context filtering, see [Runtime and Tool
+Context](/docs/ai-sdk-core/runtime-and-tool-context).
+
 To see `ToolLoopAgent` in action, check out [these examples](#examples).
 
 ## Import
@@ -74,14 +79,21 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
       type: 'StopCondition | StopCondition[]',
       isOptional: true,
       description:
-        'Condition(s) for ending the agent loop. Default: stepCountIs(20).',
+        'Condition(s) for ending the agent loop. Default: isStepCount(20). Use `isLoopFinished()` to let the agent run until all tool calls have completed, but beware of potential runaway loops. See https://ai-sdk.dev/v7/docs/reference/ai-sdk-core/loop-finished#isloopfinished.',
     },
     {
       name: 'activeTools',
-      type: 'Array<string>',
+      type: 'ActiveTools<TOOLS>',
       isOptional: true,
       description:
-        'Limits the subset of tools that are available in a specific call.',
+        'Limits the tools that are available for the model to call without changing the tool call and result types in the result. All tools are active by default. Tool names are restricted to the string keys of the tool set.',
+    },
+    {
+      name: 'toolApproval',
+      type: 'ToolApprovalConfiguration<TOOLS, RUNTIME_CONTEXT>',
+      isOptional: true,
+      description:
+        "Approval configuration for the agent. Pass a `GenericToolApprovalFunction` to handle all tool calls in one callback with `toolCall`, `tools`, `toolsContext`, `messages`, and `runtimeContext`, or pass a per-tool object where each key can be a status (`'not-applicable'`, `'approved'`, `'denied'`, or `'user-approval'`), an object form such as `{ type: 'denied', reason: 'blocked by policy' }`, or a `SingleToolApprovalFunction` that receives the tool input and options `toolCallId`, `messages`, `toolContext`, and `runtimeContext` (same shape as tool execution options without `abortSignal`, with `context` renamed to `toolContext`). The `RUNTIME_CONTEXT` type parameter matches the agent's `runtimeContext`. A `GenericToolApprovalFunction` or `SingleToolApprovalFunction` may return `undefined` for the same effect as `'not-applicable'`. `'not-applicable'` is the default execution path and runs the tool without approval metadata. Use `'approved'`, `'denied'`, or their object forms when you want explicit automatic approval request/response parts in the output. Automatic approvals and denials can include a `reason`, which is forwarded to the emitted approval response. This setting takes precedence over a tool's `needsApproval` default.",
     },
     {
       name: 'output',
@@ -106,18 +118,23 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
     },
     {
       name: 'experimental_onStart',
-      type: 'ToolLoopAgentOnStartCallback',
+      type: 'GenerateTextOnStartCallback',
       isOptional: true,
       description:
         'Callback that is called when the agent operation begins, before any LLM calls are made. Useful for logging, analytics, or initializing state. If also specified in `generate()` or `stream()`, both callbacks are called (constructor first). Experimental (can break in patch releases).',
       properties: [
         {
-          type: 'OnStartEvent',
+          type: 'GenerateTextStartEvent',
           parameters: [
             {
-              name: 'model',
-              type: '{ provider: string; modelId: string }',
-              description: 'The model being used for the generation.',
+              name: 'provider',
+              type: 'string',
+              description: 'The provider identifier (e.g., "openai", "anthropic").',
+            },
+            {
+              name: 'modelId',
+              type: 'string',
+              description: 'The specific model identifier (e.g., "gpt-4o").',
             },
             {
               name: 'system',
@@ -125,15 +142,9 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
               description: 'The system message(s) provided to the model.',
             },
             {
-              name: 'prompt',
-              type: 'string | Array<ModelMessage> | undefined',
-              description:
-                'The prompt string or array of messages if using the prompt option.',
-            },
-            {
               name: 'messages',
-              type: 'Array<ModelMessage> | undefined',
-              description: 'The messages array if using the messages option.',
+              type: 'Array<ModelMessage>',
+              description: 'The messages for this generation.',
             },
             {
               name: 'tools',
@@ -147,7 +158,7 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
             },
             {
               name: 'activeTools',
-              type: 'Array<keyof TOOLS> | undefined',
+              type: 'ActiveTools<TOOLS>',
               description:
                 'Limits which tools are available for the model to call.',
             },
@@ -212,11 +223,6 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
               description: 'Additional provider-specific options.',
             },
             {
-              name: 'stopWhen',
-              type: 'StopCondition<TOOLS> | Array<StopCondition<TOOLS>> | undefined',
-              description: 'Condition(s) for stopping the generation.',
-            },
-            {
               name: 'output',
               type: 'OUTPUT | undefined',
               description:
@@ -234,21 +240,16 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
                 'Settings for controlling what data is included in step results.',
             },
             {
-              name: 'functionId',
-              type: 'string | undefined',
+              name: 'runtimeContext',
+              type: 'CONTEXT',
               description:
-                'Identifier from telemetry settings for grouping related operations.',
+                'User-defined shared runtime context object that flows through the entire generation lifecycle.',
             },
             {
-              name: 'metadata',
-              type: 'Record<string, unknown> | undefined',
-              description: 'Additional metadata passed to the generation.',
-            },
-            {
-              name: 'experimental_context',
-              type: 'unknown',
+              name: 'toolsContext',
+              type: 'InferToolSetContext<TOOLS>',
               description:
-                'User-defined context object that flows through the entire generation lifecycle.',
+                'Per-tool context map passed via `toolsContext`, keyed by tool name.',
             },
           ],
         },
@@ -256,23 +257,23 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
     },
     {
       name: 'experimental_onStepStart',
-      type: 'ToolLoopAgentOnStepStartCallback',
+      type: 'GenerateTextOnStepStartCallback',
       isOptional: true,
       description:
         'Callback that is called when a step (LLM call) begins, before the provider is called. Each step represents a single LLM invocation. If also specified in `generate()` or `stream()`, both callbacks are called (constructor first). Experimental (can break in patch releases).',
       properties: [
         {
-          type: 'OnStepStartEvent',
+          type: 'GenerateTextStepStartEvent',
           parameters: [
             {
-              name: 'stepNumber',
-              type: 'number',
-              description: 'Zero-based index of the current step.',
+              name: 'provider',
+              type: 'string',
+              description: 'The provider identifier (e.g., "openai", "anthropic").',
             },
             {
-              name: 'model',
-              type: '{ provider: string; modelId: string }',
-              description: 'The model being used for this step.',
+              name: 'modelId',
+              type: 'string',
+              description: 'The specific model identifier (e.g., "gpt-4o").',
             },
             {
               name: 'system',
@@ -297,7 +298,7 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
             },
             {
               name: 'activeTools',
-              type: 'Array<keyof TOOLS> | undefined',
+              type: 'ActiveTools<TOOLS>',
               description: 'Limits which tools are available for this step.',
             },
             {
@@ -345,47 +346,35 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
                 'Settings for controlling what data is included in step results.',
             },
             {
-              name: 'functionId',
-              type: 'string | undefined',
+              name: 'runtimeContext',
+              type: 'CONTEXT',
               description:
-                'Identifier from telemetry settings for grouping related operations.',
+                'User-defined shared runtime context object. May be updated from prepareStep between steps.',
             },
             {
-              name: 'metadata',
-              type: 'Record<string, unknown> | undefined',
-              description: 'Additional metadata from telemetry settings.',
-            },
-            {
-              name: 'experimental_context',
-              type: 'unknown',
+              name: 'toolsContext',
+              type: 'InferToolSetContext<TOOLS>',
               description:
-                'User-defined context object. May be updated from prepareStep between steps.',
+                'Per-tool context map. May be updated from prepareStep between steps.',
             },
           ],
         },
       ],
     },
     {
-      name: 'experimental_onToolCallStart',
-      type: 'ToolLoopAgentOnToolCallStartCallback',
+      name: 'experimental_onToolExecutionStart',
+      type: 'OnToolExecutionStartCallback',
       isOptional: true,
       description:
         "Callback that is called right before a tool's execute function runs. If also specified in `generate()` or `stream()`, both callbacks are called (constructor first). Experimental (can break in patch releases).",
       properties: [
         {
-          type: 'OnToolCallStartEvent',
+          type: 'ToolExecutionStartEvent',
           parameters: [
             {
-              name: 'stepNumber',
-              type: 'number | undefined',
-              description:
-                'The zero-based index of the current step where this tool call occurs. May be undefined in streaming contexts.',
-            },
-            {
-              name: 'model',
-              type: '{ provider: string; modelId: string } | undefined',
-              description:
-                'Information about the model being used. May be undefined in streaming contexts.',
+              name: 'callId',
+              type: 'string',
+              description: 'Unique identifier for this generation call, used to correlate events.',
             },
             {
               name: 'toolCall',
@@ -397,72 +386,38 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
               name: 'messages',
               type: 'Array<ModelMessage>',
               description:
-                'The conversation messages available at tool execution time.',
+                'Messages that were sent to the language model to initiate the response that contained the tool call. Does not include the system prompt nor the assistant response that contained the tool call.',
             },
             {
-              name: 'abortSignal',
-              type: 'AbortSignal | undefined',
-              description: 'Signal for cancelling the operation.',
-            },
-            {
-              name: 'functionId',
-              type: 'string | undefined',
+              name: 'toolContext',
+              type: 'InferToolContext<TOOLS[toolName]>',
               description:
-                'Identifier from telemetry settings for grouping related operations.',
-            },
-            {
-              name: 'metadata',
-              type: 'Record<string, unknown> | undefined',
-              description: 'Additional metadata from telemetry settings.',
-            },
-            {
-              name: 'experimental_context',
-              type: 'unknown',
-              description:
-                'User-defined context object flowing through the generation.',
+                'Tool-specific context object for the tool call that is about to execute. Narrowed to the context type of the individual tool, not the entire tool set.',
             },
           ],
         },
       ],
     },
     {
-      name: 'experimental_onToolCallFinish',
-      type: 'ToolLoopAgentOnToolCallFinishCallback',
+      name: 'experimental_onToolExecutionEnd',
+      type: 'OnToolExecutionEndCallback',
       isOptional: true,
       description:
-        "Callback that is called right after a tool's execute function completes (or errors). Uses a discriminated union on the `success` field: when `success: true`, `output` contains the tool result; when `success: false`, `error` contains the error. If also specified in `generate()` or `stream()`, both callbacks are called (constructor first). Experimental (can break in patch releases).",
+        "Callback that is called right after a tool's execute function completes (or errors). The `toolOutput` field is a discriminated union: when `toolOutput.type` is `'tool-result'`, the `output` field contains the tool result; when `toolOutput.type` is `'tool-error'`, the `error` field contains the error. If also specified in `generate()` or `stream()`, both callbacks are called (constructor first). Experimental (can break in patch releases).",
       properties: [
         {
-          type: 'OnToolCallFinishEvent',
+          type: 'ToolExecutionEndEvent',
           parameters: [
             {
-              name: 'stepNumber',
-              type: 'number | undefined',
-              description:
-                'The zero-based index of the current step where this tool call occurred. May be undefined in streaming contexts.',
-            },
-            {
-              name: 'model',
-              type: '{ provider: string; modelId: string } | undefined',
-              description:
-                'Information about the model being used. May be undefined in streaming contexts.',
+              name: 'callId',
+              type: 'string',
+              description: 'Unique identifier for this generation call, used to correlate events.',
             },
             {
               name: 'toolCall',
               type: 'TypedToolCall<TOOLS>',
               description:
                 'The full tool call object containing toolName, toolCallId, input, and metadata.',
-            },
-            {
-              name: 'messages',
-              type: 'Array<ModelMessage>',
-              description:
-                'The conversation messages available at tool execution time.',
-            },
-            {
-              name: 'abortSignal',
-              type: 'AbortSignal | undefined',
-              description: 'Signal for cancelling the operation.',
             },
             {
               name: 'durationMs',
@@ -471,39 +426,22 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
                 'The wall-clock duration of the tool execution in milliseconds.',
             },
             {
-              name: 'functionId',
-              type: 'string | undefined',
+              name: 'messages',
+              type: 'Array<ModelMessage>',
               description:
-                'Identifier from telemetry settings for grouping related operations.',
+                'Messages that were sent to the language model to initiate the response that contained the tool call. Does not include the system prompt nor the assistant response that contained the tool call.',
             },
             {
-              name: 'metadata',
-              type: 'Record<string, unknown> | undefined',
-              description: 'Additional metadata from telemetry settings.',
+              name: 'toolContext',
+              type: 'InferToolContext<TOOLS[toolName]>',
+              description:
+                'Tool-specific context object for the tool call that just completed. Narrowed to the context type of the individual tool, not the entire tool set.',
             },
             {
-              name: 'experimental_context',
-              type: 'unknown',
+              name: 'toolOutput',
+              type: 'ToolOutput<TOOLS>',
               description:
-                'User-defined context object flowing through the generation.',
-            },
-            {
-              name: 'success',
-              type: 'boolean',
-              description:
-                'Discriminator indicating whether the tool call succeeded. When true, output is available. When false, error is available.',
-            },
-            {
-              name: 'output',
-              type: 'unknown',
-              description:
-                "The tool's return value (only present when `success: true`).",
-            },
-            {
-              name: 'error',
-              type: 'unknown',
-              description:
-                'The error that occurred during tool execution (only present when `success: false`).',
+                "Discriminated union representing the tool execution result. When `type` is `'tool-result'`, the `output` field contains the tool's return value. When `type` is `'tool-error'`, the `error` field contains the error.",
             },
           ],
         },
@@ -511,30 +449,43 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
     },
     {
       name: 'onStepFinish',
-      type: 'ToolLoopAgentOnStepFinishCallback',
+      type: 'GenerateTextOnStepFinishCallback',
       isOptional: true,
       description:
         'Callback invoked after each agent step (LLM/tool call) completes. If also specified in `generate()` or `stream()`, both callbacks are called (constructor first).',
     },
     {
       name: 'onFinish',
-      type: 'ToolLoopAgentOnFinishCallback',
+      type: 'GenerateTextOnFinishCallback',
       isOptional: true,
       description:
-        'Callback that is called when all agent steps are finished and the response is complete. Receives step results, total usage, experimental_context, functionId, and metadata. If also specified in `generate()` or `stream()`, both callbacks are called (constructor first).',
+        'Callback that is called when all agent steps are finished and the response is complete. Receives step results, total usage, shared `runtimeContext`, and `toolsContext`. If also specified in `generate()` or `stream()`, both callbacks are called (constructor first).',
     },
     {
-      name: 'experimental_context',
-      type: 'unknown',
+      name: 'runtimeContext',
+      type: 'CONTEXT',
       isOptional: true,
       description:
-        'Experimental: Custom context object passed to each tool call.',
+        'User-defined shared runtime context object passed to `prepareStep` and lifecycle callbacks.',
     },
     {
-      name: 'experimental_telemetry',
-      type: 'TelemetrySettings',
+      name: 'sensitiveRuntimeContext',
+      type: 'SensitiveContext<CONTEXT>',
       isOptional: true,
-      description: 'Experimental: Optional telemetry configuration.',
+      description:
+        'Top-level runtime context properties that contain sensitive data and should be excluded from telemetry. Properties marked as `true` are omitted from telemetry integrations. Lifecycle callbacks and returned results still receive the full `runtimeContext`.',
+    },
+    {
+      name: 'toolsContext',
+      type: 'InferToolSetContext<TOOLS>',
+      description:
+        'Per-tool context map keyed by tool name. Required when at least one tool defines `contextSchema`; not accepted when no tools need context.',
+    },
+    {
+      name: 'telemetry',
+      type: 'TelemetryOptions',
+      isOptional: true,
+      description: 'Optional telemetry configuration.',
     },
     {
       name: 'experimental_download',
@@ -636,6 +587,23 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
   ]}
 />
 
+## Properties
+
+<PropertiesTable
+  content={[
+    {
+      name: 'tools',
+      type: 'Record<string, Tool>',
+      description: 'The tool set configured for this agent. Read-only.',
+    },
+    {
+      name: 'id',
+      type: 'string | undefined',
+      description: 'The agent identifier, if one was provided in the constructor.',
+    },
+  ]}
+/>
+
 ## Methods
 
 ### `generate()`
@@ -683,42 +651,42 @@ const result = await agent.generate({
     },
     {
       name: 'experimental_onStart',
-      type: 'ToolLoopAgentOnStartCallback',
+      type: 'GenerateTextOnStartCallback',
       isOptional: true,
       description:
         'Callback that is called when the agent operation begins, before any LLM calls are made. If also specified in the constructor, both callbacks are called (constructor first). Experimental (can break in patch releases).',
     },
     {
       name: 'experimental_onStepStart',
-      type: 'ToolLoopAgentOnStepStartCallback',
+      type: 'GenerateTextOnStepStartCallback',
       isOptional: true,
       description:
         'Callback that is called when a step (LLM call) begins, before the provider is called. If also specified in the constructor, both callbacks are called (constructor first). Experimental (can break in patch releases).',
     },
     {
-      name: 'experimental_onToolCallStart',
-      type: 'ToolLoopAgentOnToolCallStartCallback',
+      name: 'experimental_onToolExecutionStart',
+      type: 'OnToolExecutionStartCallback',
       isOptional: true,
       description:
         "Callback that is called right before a tool's execute function runs. If also specified in the constructor, both callbacks are called (constructor first). Experimental (can break in patch releases).",
     },
     {
-      name: 'experimental_onToolCallFinish',
-      type: 'ToolLoopAgentOnToolCallFinishCallback',
+      name: 'experimental_onToolExecutionEnd',
+      type: 'OnToolExecutionEndCallback',
       isOptional: true,
       description:
         "Callback that is called right after a tool's execute function completes (or errors). If also specified in the constructor, both callbacks are called (constructor first). Experimental (can break in patch releases).",
     },
     {
       name: 'onStepFinish',
-      type: 'ToolLoopAgentOnStepFinishCallback',
+      type: 'GenerateTextOnStepFinishCallback',
       isOptional: true,
       description:
         'Callback invoked after each agent step (LLM/tool call) completes. If also specified in the constructor, both callbacks are called (constructor first, then this one).',
     },
     {
       name: 'onFinish',
-      type: 'ToolLoopAgentOnFinishCallback',
+      type: 'GenerateTextOnFinishCallback',
       isOptional: true,
       description:
         'Callback that is called when all agent steps are finished and the response is complete. If also specified in the constructor, both callbacks are called (constructor first, then this one).',
@@ -786,42 +754,42 @@ for await (const chunk of stream.textStream) {
     },
     {
       name: 'experimental_onStart',
-      type: 'ToolLoopAgentOnStartCallback',
+      type: 'GenerateTextOnStartCallback',
       isOptional: true,
       description:
         'Callback that is called when the agent operation begins, before any LLM calls are made. If also specified in the constructor, both callbacks are called (constructor first). Experimental (can break in patch releases).',
     },
     {
       name: 'experimental_onStepStart',
-      type: 'ToolLoopAgentOnStepStartCallback',
+      type: 'GenerateTextOnStepStartCallback',
       isOptional: true,
       description:
         'Callback that is called when a step (LLM call) begins, before the provider is called. If also specified in the constructor, both callbacks are called (constructor first). Experimental (can break in patch releases).',
     },
     {
-      name: 'experimental_onToolCallStart',
-      type: 'ToolLoopAgentOnToolCallStartCallback',
+      name: 'experimental_onToolExecutionStart',
+      type: 'OnToolExecutionStartCallback',
       isOptional: true,
       description:
         "Callback that is called right before a tool's execute function runs. If also specified in the constructor, both callbacks are called (constructor first). Experimental (can break in patch releases).",
     },
     {
-      name: 'experimental_onToolCallFinish',
-      type: 'ToolLoopAgentOnToolCallFinishCallback',
+      name: 'experimental_onToolExecutionEnd',
+      type: 'OnToolExecutionEndCallback',
       isOptional: true,
       description:
         "Callback that is called right after a tool's execute function completes (or errors). If also specified in the constructor, both callbacks are called (constructor first). Experimental (can break in patch releases).",
     },
     {
       name: 'onStepFinish',
-      type: 'ToolLoopAgentOnStepFinishCallback',
+      type: 'GenerateTextOnStepFinishCallback',
       isOptional: true,
       description:
         'Callback invoked after each agent step (LLM/tool call) completes. If also specified in the constructor, both callbacks are called (constructor first, then this one).',
     },
     {
       name: 'onFinish',
-      type: 'ToolLoopAgentOnFinishCallback',
+      type: 'GenerateTextOnFinishCallback',
       isOptional: true,
       description:
         'Callback that is called when all agent steps are finished and the response is complete. If also specified in the constructor, both callbacks are called (constructor first, then this one).',
@@ -834,6 +802,26 @@ for await (const chunk of stream.textStream) {
 The `stream()` method returns a `StreamTextResult` object (see [`streamText`](/docs/reference/ai-sdk-core/stream-text#returns) for details).
 
 ## Types
+
+### `ActiveTools`
+
+```ts
+type ActiveTools<TOOLS extends ToolSet> =
+  | ReadonlyArray<keyof TOOLS & string>
+  | undefined;
+```
+
+Limits an agent step to the listed tool names. `undefined` means no tool restriction is applied.
+
+### `SensitiveContext`
+
+```ts
+type SensitiveContext<CONTEXT extends Context> =
+  | { [KEY in keyof CONTEXT]?: boolean }
+  | undefined;
+```
+
+Marks top-level context properties that should be excluded from telemetry. Set a property to `true` to omit it from telemetry integrations; omitted or `false` properties are still sent.
 
 ### `InferAgentUIMessage`
 
@@ -887,7 +875,7 @@ type MetadataAgentUIMessage = InferAgentUIMessage<
 ### Basic Agent with Tools
 
 ```ts
-import { ToolLoopAgent, stepCountIs } from 'ai';
+import { ToolLoopAgent, isStepCount } from 'ai';
 import { weatherTool, calculatorTool } from './tools';
 
 const assistant = new ToolLoopAgent({
@@ -897,7 +885,7 @@ const assistant = new ToolLoopAgent({
     weather: weatherTool,
     calculator: calculatorTool,
   },
-  stopWhen: stepCountIs(3),
+  stopWhen: isStepCount(3),
 });
 
 const result = await assistant.generate({
@@ -952,22 +940,49 @@ console.log(result.output);
 ### Example: Approved Tool Execution
 
 ```ts
-import { openai } from '@ai-sdk/openai';
-import { ToolLoopAgent } from 'ai';
+import { ToolLoopAgent, ModelMessage, ToolApprovalResponse, tool } from 'ai';
+import { z } from 'zod';
 
 const agent = new ToolLoopAgent({
   model: __MODEL__,
   instructions: 'You are an agent with access to a weather API.',
   tools: {
-    weather: openai.tools.weather({
-      /* ... */
+    weather: tool({
+      description: 'Get the weather in a location',
+      inputSchema: z.object({
+        location: z.string(),
+      }),
+      execute: async ({ location }) => ({
+        location,
+        temperature: 72,
+      }),
     }),
   },
-  // Optionally require approval, etc.
+  toolApproval: {
+    weather: 'user-approval',
+  },
 });
 
-const result = await agent.generate({
-  prompt: 'Is it raining in Paris today?',
-});
-console.log(result.text);
+const messages: ModelMessage[] = [
+  { role: 'user', content: 'Is it raining in Paris today?' },
+];
+
+const result = await agent.generate({ messages });
+const approvals: ToolApprovalResponse[] = [];
+
+for (const part of result.content) {
+  if (part.type === 'tool-approval-request') {
+    approvals.push({
+      type: 'tool-approval-response',
+      approvalId: part.approvalId,
+      approved: true,
+    });
+  }
+}
+
+messages.push(...result.response.messages);
+messages.push({ role: 'tool', content: approvals });
+
+const approvedResult = await agent.generate({ messages });
+console.log(approvedResult.text);
 ```

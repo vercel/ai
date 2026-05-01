@@ -1,12 +1,15 @@
-import { openai, OpenAILanguageModelResponsesOptions } from '@ai-sdk/openai';
-import { stepCountIs, streamText, tool } from 'ai';
+import {
+  openai,
+  type OpenAILanguageModelResponsesOptions,
+} from '@ai-sdk/openai';
+import { isStepCount, streamText, tool } from 'ai';
 import { z } from 'zod';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
     model: openai.responses('o3-mini'),
-    stopWhen: stepCountIs(10),
+    stopWhen: isStepCount(10),
     tools: {
       generateRandomText: tool({
         description: 'Generate a random text of a given length',

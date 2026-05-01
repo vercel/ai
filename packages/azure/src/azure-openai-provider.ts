@@ -7,7 +7,7 @@ import {
   OpenAISpeechModel,
   OpenAITranscriptionModel,
 } from '@ai-sdk/openai/internal';
-import {
+import type {
   EmbeddingModelV4,
   LanguageModelV4,
   ProviderV4,
@@ -16,10 +16,10 @@ import {
   TranscriptionModelV4,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
   loadApiKey,
   loadSetting,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { azureOpenaiTools } from './azure-openai-tools';
 import { VERSION } from './version';
@@ -213,6 +213,7 @@ export function createAzure(
       url,
       headers: getHeaders,
       fetch: options.fetch,
+      // Soft-deprecated. TODO: remove in v8
       fileIdPrefixes: ['assistant-'],
     });
 

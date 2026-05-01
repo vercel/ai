@@ -1,6 +1,5 @@
-import {
+import type {
   APICallError,
-  InvalidResponseDataError,
   LanguageModelV4,
   LanguageModelV4CallOptions,
   LanguageModelV4Content,
@@ -8,6 +7,7 @@ import {
   LanguageModelV4GenerateResult,
   LanguageModelV4StreamPart,
   LanguageModelV4StreamResult,
+  LanguageModelV4Usage,
   SharedV4ProviderMetadata,
   SharedV4Warning,
 } from '@ai-sdk/provider';
@@ -16,34 +16,51 @@ import {
   createEventSourceResponseHandler,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
-  FetchFunction,
   generateId,
   isCustomReasoning,
-  isParsableJson,
   parseProviderOptions,
-  ParseResult,
   postJsonToApi,
-  ResponseHandler,
+  serializeModelOptions,
+  StreamingToolCallTracker,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
+  type StreamingToolCallDelta,
+  type FetchFunction,
+  type ParseResult,
+  type ResponseHandler,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import {
+  resolveProviderOptionsKey,
+  toCamelCase,
+  warnIfDeprecatedProviderOptionsKey,
+} from '../utils/to-camel-case';
+import {
   defaultOpenAICompatibleErrorStructure,
-  ProviderErrorStructure,
+  type ProviderErrorStructure,
 } from '../openai-compatible-error';
 import { convertOpenAICompatibleChatUsage } from './convert-openai-compatible-chat-usage';
 import { convertToOpenAICompatibleChatMessages } from './convert-to-openai-compatible-chat-messages';
 import { getResponseMetadata } from './get-response-metadata';
 import { mapOpenAICompatibleFinishReason } from './map-openai-compatible-finish-reason';
 import {
-  OpenAICompatibleChatModelId,
   openaiCompatibleLanguageModelChatOptions,
-} from './openai-compatible-chat-options';
-import { MetadataExtractor } from './openai-compatible-metadata-extractor';
+  type OpenAICompatibleChatModelId,
+} from './openai-compatible-chat-language-model-options';
+import type { MetadataExtractor } from './openai-compatible-metadata-extractor';
 import { prepareTools } from './openai-compatible-prepare-tools';
+
+type OpenAICompatibleStreamingToolCallDelta = StreamingToolCallDelta & {
+  extra_content?: {
+    google?: {
+      thought_signature?: string | null;
+    } | null;
+  } | null;
+};
 
 export type OpenAICompatibleChatConfig = {
   provider: string;
-  headers: () => Record<string, string | undefined>;
+  headers?: () => Record<string, string | undefined>;
   url: (options: { modelId: string; path: string }) => string;
   fetch?: FetchFunction;
   includeUsage?: boolean;
@@ -66,6 +83,20 @@ export type OpenAICompatibleChatConfig = {
    * than the official OpenAI API.
    */
   transformRequestBody?: (args: Record<string, any>) => Record<string, any>;
+
+  /**
+   * Optional usage converter for OpenAI-compatible providers with different
+   * token accounting semantics.
+   */
+  convertUsage?: (
+    usage: z.infer<typeof openaiCompatibleTokenUsageSchema>,
+  ) => LanguageModelV4Usage;
+};
+
+type PendingToolCall = {
+  id: string | null;
+  bufferedArguments: string;
+  extraContent: OpenAICompatibleStreamingToolCallDelta['extra_content'];
 };
 
 export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
@@ -74,9 +105,26 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
   readonly supportsStructuredOutputs: boolean;
 
   readonly modelId: OpenAICompatibleChatModelId;
-  private readonly config: OpenAICompatibleChatConfig;
+  protected readonly config: OpenAICompatibleChatConfig;
   private readonly failedResponseHandler: ResponseHandler<APICallError>;
   private readonly chunkSchema; // type inferred via constructor
+
+  static [WORKFLOW_SERIALIZE](model: OpenAICompatibleChatLanguageModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: string;
+    config: OpenAICompatibleChatConfig;
+  }) {
+    return new OpenAICompatibleChatLanguageModel(
+      options.modelId,
+      options.config,
+    );
+  }
 
   constructor(
     modelId: OpenAICompatibleChatModelId,
@@ -112,6 +160,15 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
     return this.config.transformRequestBody?.(args) ?? args;
   }
 
+  private convertUsage(
+    usage: z.infer<typeof openaiCompatibleTokenUsageSchema>,
+  ): LanguageModelV4Usage {
+    return (
+      this.config.convertUsage?.(usage) ??
+      convertOpenAICompatibleChatUsage(usage)
+    );
+  }
+
   private async getArgs({
     prompt,
     maxOutputTokens,
@@ -139,10 +196,18 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
 
     if (deprecatedOptions != null) {
       warnings.push({
-        type: 'other',
-        message: `The 'openai-compatible' key in providerOptions is deprecated. Use 'openaiCompatible' instead.`,
+        type: 'deprecated',
+        setting: "providerOptions key 'openai-compatible'",
+        message: "Use 'openaiCompatible' instead.",
       });
     }
+
+    // Warn when the raw (non-camelCase) provider name is used
+    warnIfDeprecatedProviderOptionsKey({
+      rawName: this.providerOptionsName,
+      providerOptions,
+      warnings,
+    });
 
     const compatibleOptions = Object.assign(
       deprecatedOptions ?? {},
@@ -153,6 +218,11 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
       })) ?? {},
       (await parseProviderOptions({
         provider: this.providerOptionsName,
+        providerOptions,
+        schema: openaiCompatibleLanguageModelChatOptions,
+      })) ?? {},
+      (await parseProviderOptions({
+        provider: toCamelCase(this.providerOptionsName),
         providerOptions,
         schema: openaiCompatibleLanguageModelChatOptions,
       })) ?? {},
@@ -186,7 +256,13 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
       toolChoice,
     });
 
+    const metadataKey = resolveProviderOptionsKey(
+      this.providerOptionsName,
+      providerOptions,
+    );
+
     return {
+      metadataKey,
       args: {
         // model id:
         model: this.modelId,
@@ -219,9 +295,10 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
         stop: stopSequences,
         seed,
         ...Object.fromEntries(
-          Object.entries(
-            providerOptions?.[this.providerOptionsName] ?? {},
-          ).filter(
+          Object.entries({
+            ...providerOptions?.[this.providerOptionsName],
+            ...providerOptions?.[toCamelCase(this.providerOptionsName)],
+          }).filter(
             ([key]) =>
               !Object.keys(
                 openaiCompatibleLanguageModelChatOptions.shape,
@@ -250,7 +327,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
   async doGenerate(
     options: LanguageModelV4CallOptions,
   ): Promise<LanguageModelV4GenerateResult> {
-    const { args, warnings } = await this.getArgs({ ...options });
+    const { args, warnings, metadataKey } = await this.getArgs({ ...options });
 
     const transformedBody = this.transformRequestBody(args);
     const body = JSON.stringify(transformedBody);
@@ -264,7 +341,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
         path: '/chat/completions',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body: transformedBody,
       failedResponseHandler: this.failedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -306,7 +383,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
           ...(thoughtSignature
             ? {
                 providerMetadata: {
-                  [this.providerOptionsName]: { thoughtSignature },
+                  [metadataKey]: { thoughtSignature },
                 },
               }
             : {}),
@@ -316,7 +393,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
 
     // provider metadata:
     const providerMetadata: SharedV4ProviderMetadata = {
-      [this.providerOptionsName]: {},
+      [metadataKey]: {},
       ...(await this.config.metadataExtractor?.extractMetadata?.({
         parsedBody: rawResponse,
       })),
@@ -324,11 +401,11 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
     const completionTokenDetails =
       responseBody.usage?.completion_tokens_details;
     if (completionTokenDetails?.accepted_prediction_tokens != null) {
-      providerMetadata[this.providerOptionsName].acceptedPredictionTokens =
+      providerMetadata[metadataKey].acceptedPredictionTokens =
         completionTokenDetails?.accepted_prediction_tokens;
     }
     if (completionTokenDetails?.rejected_prediction_tokens != null) {
-      providerMetadata[this.providerOptionsName].rejectedPredictionTokens =
+      providerMetadata[metadataKey].rejectedPredictionTokens =
         completionTokenDetails?.rejected_prediction_tokens;
     }
 
@@ -338,7 +415,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
         unified: mapOpenAICompatibleFinishReason(choice.finish_reason),
         raw: choice.finish_reason ?? undefined,
       },
-      usage: convertOpenAICompatibleChatUsage(responseBody.usage),
+      usage: this.convertUsage(responseBody.usage),
       providerMetadata,
       request: { body },
       response: {
@@ -353,7 +430,9 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
   async doStream(
     options: LanguageModelV4CallOptions,
   ): Promise<LanguageModelV4StreamResult> {
-    const { args, warnings } = await this.getArgs({ ...options });
+    const { args, warnings, metadataKey } = await this.getArgs({
+      ...options,
+    });
 
     const body = this.transformRequestBody({
       ...args,
@@ -373,7 +452,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
         path: '/chat/completions',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body,
       failedResponseHandler: this.failedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(
@@ -383,16 +462,66 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
       fetch: this.config.fetch,
     });
 
-    const toolCalls: Array<{
-      id: string;
-      type: 'function';
-      function: {
-        name: string;
-        arguments: string;
-      };
-      hasFinished: boolean;
-      thoughtSignature?: string;
-    }> = [];
+    const providerOptionsName = metadataKey;
+    let toolCallTracker: StreamingToolCallTracker<OpenAICompatibleStreamingToolCallDelta>;
+
+    // Buffers tool-call deltas by `index` until `function.name` is known.
+    // Some OpenAI-compatible providers send the first delta without
+    // `function.name`, which the shared tracker rejects on first chunk.
+    const pendingToolCalls = new Map<number, PendingToolCall>();
+    const forwardedToolCallIndices = new Set<number>();
+
+    const processToolCallDelta = (
+      toolCallDelta: OpenAICompatibleStreamingToolCallDelta,
+    ) => {
+      const index = toolCallDelta.index;
+
+      if (index == null || forwardedToolCallIndices.has(index)) {
+        toolCallTracker.processDelta(toolCallDelta);
+        return;
+      }
+
+      let pending = pendingToolCalls.get(index);
+      if (pending == null) {
+        pending = {
+          id: toolCallDelta.id ?? null,
+          bufferedArguments: '',
+          extraContent: toolCallDelta.extra_content ?? null,
+        };
+        pendingToolCalls.set(index, pending);
+      } else {
+        if (pending.id == null && toolCallDelta.id != null) {
+          pending.id = toolCallDelta.id;
+        }
+        if (
+          pending.extraContent == null &&
+          toolCallDelta.extra_content != null
+        ) {
+          pending.extraContent = toolCallDelta.extra_content;
+        }
+      }
+
+      const argumentsDelta = toolCallDelta.function?.arguments;
+      if (argumentsDelta != null) {
+        pending.bufferedArguments += argumentsDelta;
+      }
+
+      const name = toolCallDelta.function?.name;
+      if (name != null) {
+        const forwardDelta: OpenAICompatibleStreamingToolCallDelta = {
+          index,
+          id: pending.id,
+          function: {
+            name,
+            arguments: pending.bufferedArguments,
+          },
+          extra_content: pending.extraContent ?? undefined,
+        };
+        toolCallTracker.processDelta(forwardDelta);
+        pendingToolCalls.delete(index);
+        forwardedToolCallIndices.add(index);
+      }
+    };
 
     let finishReason: LanguageModelV4FinishReason = {
       unified: 'other',
@@ -401,9 +530,11 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
     let usage: z.infer<typeof openaiCompatibleTokenUsageSchema> | undefined =
       undefined;
     let isFirstChunk = true;
-    const providerOptionsName = this.providerOptionsName;
     let isActiveReasoning = false;
     let isActiveText = false;
+    const convertUsage = (
+      usage: z.infer<typeof openaiCompatibleTokenUsageSchema>,
+    ) => this.convertUsage(usage);
 
     return {
       stream: response.pipeThrough(
@@ -412,6 +543,22 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
           LanguageModelV4StreamPart
         >({
           start(controller) {
+            toolCallTracker =
+              new StreamingToolCallTracker<OpenAICompatibleStreamingToolCallDelta>(
+                controller,
+                {
+                  generateId,
+                  extractMetadata: delta => {
+                    const thoughtSignature =
+                      delta.extra_content?.google?.thought_signature;
+
+                    return thoughtSignature
+                      ? { [providerOptionsName]: { thoughtSignature } }
+                      : undefined;
+                  },
+                  buildToolCallProviderMetadata: metadata => metadata,
+                },
+              );
             controller.enqueue({ type: 'stream-start', warnings });
           },
 
@@ -523,134 +670,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
               }
 
               for (const toolCallDelta of delta.tool_calls) {
-                const index = toolCallDelta.index ?? toolCalls.length;
-
-                if (toolCalls[index] == null) {
-                  if (toolCallDelta.id == null) {
-                    throw new InvalidResponseDataError({
-                      data: toolCallDelta,
-                      message: `Expected 'id' to be a string.`,
-                    });
-                  }
-
-                  if (toolCallDelta.function?.name == null) {
-                    throw new InvalidResponseDataError({
-                      data: toolCallDelta,
-                      message: `Expected 'function.name' to be a string.`,
-                    });
-                  }
-
-                  controller.enqueue({
-                    type: 'tool-input-start',
-                    id: toolCallDelta.id,
-                    toolName: toolCallDelta.function.name,
-                  });
-
-                  toolCalls[index] = {
-                    id: toolCallDelta.id,
-                    type: 'function',
-                    function: {
-                      name: toolCallDelta.function.name,
-                      arguments: toolCallDelta.function.arguments ?? '',
-                    },
-                    hasFinished: false,
-                    thoughtSignature:
-                      toolCallDelta.extra_content?.google?.thought_signature ??
-                      undefined,
-                  };
-
-                  const toolCall = toolCalls[index];
-
-                  if (
-                    toolCall.function?.name != null &&
-                    toolCall.function?.arguments != null
-                  ) {
-                    // send delta if the argument text has already started:
-                    if (toolCall.function.arguments.length > 0) {
-                      controller.enqueue({
-                        type: 'tool-input-delta',
-                        id: toolCall.id,
-                        delta: toolCall.function.arguments,
-                      });
-                    }
-
-                    // check if tool call is complete
-                    // (some providers send the full tool call in one chunk):
-                    if (isParsableJson(toolCall.function.arguments)) {
-                      controller.enqueue({
-                        type: 'tool-input-end',
-                        id: toolCall.id,
-                      });
-
-                      controller.enqueue({
-                        type: 'tool-call',
-                        toolCallId: toolCall.id ?? generateId(),
-                        toolName: toolCall.function.name,
-                        input: toolCall.function.arguments,
-                        ...(toolCall.thoughtSignature
-                          ? {
-                              providerMetadata: {
-                                [providerOptionsName]: {
-                                  thoughtSignature: toolCall.thoughtSignature,
-                                },
-                              },
-                            }
-                          : {}),
-                      });
-                      toolCall.hasFinished = true;
-                    }
-                  }
-
-                  continue;
-                }
-
-                // existing tool call, merge if not finished
-                const toolCall = toolCalls[index];
-
-                if (toolCall.hasFinished) {
-                  continue;
-                }
-
-                if (toolCallDelta.function?.arguments != null) {
-                  toolCall.function!.arguments +=
-                    toolCallDelta.function?.arguments ?? '';
-                }
-
-                // send delta
-                controller.enqueue({
-                  type: 'tool-input-delta',
-                  id: toolCall.id,
-                  delta: toolCallDelta.function.arguments ?? '',
-                });
-
-                // check if tool call is complete
-                if (
-                  toolCall.function?.name != null &&
-                  toolCall.function?.arguments != null &&
-                  isParsableJson(toolCall.function.arguments)
-                ) {
-                  controller.enqueue({
-                    type: 'tool-input-end',
-                    id: toolCall.id,
-                  });
-
-                  controller.enqueue({
-                    type: 'tool-call',
-                    toolCallId: toolCall.id ?? generateId(),
-                    toolName: toolCall.function.name,
-                    input: toolCall.function.arguments,
-                    ...(toolCall.thoughtSignature
-                      ? {
-                          providerMetadata: {
-                            [providerOptionsName]: {
-                              thoughtSignature: toolCall.thoughtSignature,
-                            },
-                          },
-                        }
-                      : {}),
-                  });
-                  toolCall.hasFinished = true;
-                }
+                processToolCallDelta(toolCallDelta);
               }
             }
           },
@@ -664,31 +684,19 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
               controller.enqueue({ type: 'text-end', id: 'txt-0' });
             }
 
-            // go through all tool calls and send the ones that are not finished
-            for (const toolCall of toolCalls.filter(
-              toolCall => !toolCall.hasFinished,
-            )) {
-              controller.enqueue({
-                type: 'tool-input-end',
-                id: toolCall.id,
-              });
-
-              controller.enqueue({
-                type: 'tool-call',
-                toolCallId: toolCall.id ?? generateId(),
-                toolName: toolCall.function.name,
-                input: toolCall.function.arguments,
-                ...(toolCall.thoughtSignature
-                  ? {
-                      providerMetadata: {
-                        [providerOptionsName]: {
-                          thoughtSignature: toolCall.thoughtSignature,
-                        },
-                      },
-                    }
-                  : {}),
+            // Forward any tool-call deltas that never received a
+            // `function.name`. The tracker will throw on the missing name,
+            // preserving the original invalid-response semantics.
+            for (const [index, pending] of pendingToolCalls) {
+              toolCallTracker.processDelta({
+                index,
+                id: pending.id,
+                function: { arguments: pending.bufferedArguments },
               });
             }
+            pendingToolCalls.clear();
+
+            toolCallTracker.flush();
 
             const providerMetadata: SharedV4ProviderMetadata = {
               [providerOptionsName]: {},
@@ -712,7 +720,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
             controller.enqueue({
               type: 'finish',
               finishReason,
-              usage: convertOpenAICompatibleChatUsage(usage),
+              usage: convertUsage(usage),
               providerMetadata,
             });
           },

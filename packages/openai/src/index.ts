@@ -4,16 +4,22 @@ export type {
   OpenAILanguageModelResponsesOptions,
   /** @deprecated Use `OpenAILanguageModelResponsesOptions` instead. */
   OpenAILanguageModelResponsesOptions as OpenAIResponsesProviderOptions,
-} from './responses/openai-responses-options';
+} from './responses/openai-responses-language-model-options';
 export type {
   OpenAILanguageModelChatOptions,
   /** @deprecated Use `OpenAILanguageModelChatOptions` instead. */
   OpenAILanguageModelChatOptions as OpenAIChatLanguageModelOptions,
-} from './chat/openai-chat-options';
-export type { OpenAILanguageModelCompletionOptions } from './completion/openai-completion-options';
-export type { OpenAIEmbeddingModelOptions } from './embedding/openai-embedding-options';
-export type { OpenAISpeechModelOptions } from './speech/openai-speech-options';
-export type { OpenAITranscriptionModelOptions } from './transcription/openai-transcription-options';
+} from './chat/openai-chat-language-model-options';
+export type {
+  OpenAIImageModelOptions,
+  OpenAIImageModelGenerationOptions,
+  OpenAIImageModelEditOptions,
+} from './image/openai-image-model-options';
+export type { OpenAILanguageModelCompletionOptions } from './completion/openai-completion-language-model-options';
+export type { OpenAIEmbeddingModelOptions } from './embedding/openai-embedding-model-options';
+export type { OpenAISpeechModelOptions } from './speech/openai-speech-model-options';
+export type { OpenAITranscriptionModelOptions } from './transcription/openai-transcription-model-options';
+export type { OpenAIFilesOptions } from './files/openai-files-options';
 export type {
   OpenaiResponsesCompactionProviderMetadata,
   OpenaiResponsesProviderMetadata,

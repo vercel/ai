@@ -1,12 +1,12 @@
 import { openai } from '@ai-sdk/openai';
 import {
   convertToModelMessages,
-  InferUITools,
-  stepCountIs,
+  isStepCount,
   streamText,
   tool,
-  UIDataTypes,
-  UIMessage,
+  type InferUITools,
+  type UIDataTypes,
+  type UIMessage,
 } from 'ai';
 import { convertArrayToReadableStream, MockLanguageModelV3 } from 'ai/test';
 import { z } from 'zod';
@@ -45,7 +45,7 @@ export async function POST(req: Request) {
   const result = streamText({
     model: openai('gpt-4o'),
     messages: await convertToModelMessages(messages),
-    stopWhen: stepCountIs(5), // multi-steps for server-side tools
+    stopWhen: isStepCount(5), // multi-steps for server-side tools
     tools,
     prepareStep: async ({ stepNumber }) => {
       // inject invalid tool call in first step:

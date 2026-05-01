@@ -1,19 +1,19 @@
-import { JSONSchema7, JSONValue } from '@ai-sdk/provider';
+import type { JSONSchema7, JSONValue } from '@ai-sdk/provider';
 import {
   asSchema,
   dynamicTool,
-  FlexibleSchema,
   jsonSchema,
   safeParseJSON,
   safeValidateTypes,
-  Tool,
   tool,
-  ToolExecutionOptions,
-  ToolResultOutput,
+  type FlexibleSchema,
+  type Tool,
+  type ToolExecutionOptions,
+  type ToolResultOutput,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
+import type { z } from 'zod/v4';
 import { MCPClientError } from '../error/mcp-client-error';
-import {
+import type {
   JSONRPCError,
   JSONRPCNotification,
   JSONRPCRequest,
@@ -22,43 +22,43 @@ import {
 import {
   createMcpTransport,
   isCustomMcpTransport,
-  MCPTransport,
-  MCPTransportConfig,
+  type MCPTransport,
+  type MCPTransportConfig,
 } from './mcp-transport';
 import {
-  CallToolResult,
   CallToolResultSchema,
-  ClientCapabilities,
-  Configuration as ClientConfiguration,
-  ElicitationRequest,
   ElicitationRequestSchema,
-  ElicitResult,
   ElicitResultSchema,
   InitializeResultSchema,
   LATEST_PROTOCOL_VERSION,
-  ListResourceTemplatesResult,
   ListResourceTemplatesResultSchema,
-  ListResourcesResult,
   ListResourcesResultSchema,
-  ListPromptsResult,
   ListPromptsResultSchema,
-  ListToolsResult,
   ListToolsResultSchema,
-  McpToolSet,
-  Notification,
-  PaginatedRequest,
-  ReadResourceResult,
   ReadResourceResultSchema,
-  GetPromptResult,
   GetPromptResultSchema,
-  Request,
-  RequestOptions,
-  ServerCapabilities,
   SUPPORTED_PROTOCOL_VERSIONS,
-  ToolSchemas,
-  ToolMeta,
+  type CallToolResult,
+  type ClientCapabilities,
+  type Configuration,
+  type Configuration as ClientConfiguration,
+  type ElicitationRequest,
+  type ElicitResult,
+  type ListResourceTemplatesResult,
+  type ListResourcesResult,
+  type ListPromptsResult,
+  type ListToolsResult,
+  type McpToolSet,
+  type Notification,
+  type PaginatedRequest,
+  type ReadResourceResult,
+  type GetPromptResult,
+  type Request,
+  type RequestOptions,
+  type ServerCapabilities,
+  type ToolSchemas,
+  type ToolMeta,
 } from './types';
-
 const CLIENT_VERSION = '1.0.0';
 
 function mcpToModelOutput({
@@ -81,7 +81,7 @@ function mcpToModelOutput({
       }
       if (part.type === 'image' && 'data' in part && 'mimeType' in part) {
         return {
-          type: 'image-data' as const,
+          type: 'file-data' as const,
           data: part.data as string,
           mediaType: part.mimeType as string,
         };
@@ -119,6 +119,22 @@ export async function createMCPClient(
 }
 
 export interface MCPClient {
+  /**
+   * Information about the connected MCP server, as reported during initialization.
+   * @see https://modelcontextprotocol.io/specification/2025-11-25/schema#implementation
+   */
+  readonly serverInfo: Configuration;
+
+  /**
+   * Optional instructions provided by the server during the initialize handshake.
+   *
+   * These describe how to use the server and its features, and can be used by clients
+   * to improve LLM interactions (e.g. by including them in the system prompt).
+   *
+   * @see https://modelcontextprotocol.io/specification/2025-11-25/schema#initializeresult
+   */
+  readonly instructions?: string;
+
   tools<TOOL_SCHEMAS extends ToolSchemas = 'automatic'>(options?: {
     schemas?: TOOL_SCHEMAS;
   }): Promise<McpToolSet<TOOL_SCHEMAS>>;
@@ -201,6 +217,8 @@ class DefaultMCPClient implements MCPClient {
     (response: JSONRPCResponse | Error) => void
   > = new Map();
   private serverCapabilities: ServerCapabilities = {};
+  private _serverInfo: Configuration = { name: '', version: '' };
+  private _serverInstructions?: string;
   private isClosed = true;
   private elicitationRequestHandler?: (
     request: ElicitationRequest,
@@ -247,6 +265,14 @@ class DefaultMCPClient implements MCPClient {
     };
   }
 
+  get serverInfo(): Configuration {
+    return this._serverInfo;
+  }
+
+  get instructions(): string | undefined {
+    return this._serverInstructions;
+  }
+
   async init(): Promise<this> {
     try {
       await this.transport.start();
@@ -277,6 +303,8 @@ class DefaultMCPClient implements MCPClient {
       }
 
       this.serverCapabilities = result.capabilities;
+      this._serverInfo = result.serverInfo;
+      this._serverInstructions = result.instructions;
 
       // Complete initialization handshake:
       await this.notification({
@@ -420,7 +448,7 @@ class DefaultMCPClient implements MCPClient {
   }: {
     name: string;
     args: Record<string, unknown>;
-    options?: ToolExecutionOptions;
+    options?: ToolExecutionOptions<{}>;
   }): Promise<CallToolResult> {
     try {
       return this.request({
@@ -579,10 +607,14 @@ class DefaultMCPClient implements MCPClient {
 
       const execute = async (
         args: any,
-        options: ToolExecutionOptions,
+        options: ToolExecutionOptions<{}>,
       ): Promise<unknown> => {
         options?.abortSignal?.throwIfAborted();
         const result = await self.callTool({ name, args, options });
+
+        if (result.isError) {
+          return result;
+        }
 
         if (outputSchema != null) {
           return self.extractStructuredContent(result, outputSchema, name);
@@ -596,6 +628,9 @@ class DefaultMCPClient implements MCPClient {
           ? dynamicTool({
               description,
               title: resolvedTitle,
+              providerMetadata: {
+                mcp: { name: this.clientInfo.name },
+              },
               inputSchema: jsonSchema({
                 ...inputSchema,
                 properties: inputSchema.properties ?? {},
@@ -607,6 +642,9 @@ class DefaultMCPClient implements MCPClient {
           : tool({
               description,
               title: resolvedTitle,
+              providerMetadata: {
+                mcp: { name: this.clientInfo.name },
+              },
               inputSchema: schemas[name].inputSchema,
               ...(outputSchema != null ? { outputSchema } : {}),
               execute,

@@ -1,6 +1,6 @@
 import fs from 'fs';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { LanguageModelV4Prompt } from '@ai-sdk/provider';
+import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import {
   convertReadableStreamToArray,
@@ -463,10 +463,15 @@ describe('doGenerate', () => {
       }
     `);
 
-    expect(result.warnings).toContainEqual({
-      type: 'other',
-      message: `The 'openai-compatible' key in providerOptions is deprecated. Use 'openaiCompatible' instead.`,
-    });
+    expect(result.warnings).toMatchInlineSnapshot(`
+      [
+        {
+          "message": "Use 'openaiCompatible' instead.",
+          "setting": "providerOptions key 'openai-compatible'",
+          "type": "deprecated",
+        },
+      ]
+    `);
   });
 
   it('should include provider-specific options', async () => {
@@ -518,6 +523,206 @@ describe('doGenerate', () => {
         "model": "grok-3",
       }
     `);
+  });
+
+  describe('camelCase provider options', () => {
+    it('should accept camelCase provider options key for hyphenated provider name', async () => {
+      prepareJsonResponse({ content: 'Hello!' });
+
+      await provider('grok-3').doGenerate({
+        providerOptions: {
+          testProvider: {
+            someCustomOption: 'test-value',
+          },
+        },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        someCustomOption: 'test-value',
+      });
+    });
+
+    it('should prefer camelCase options over raw-name options', async () => {
+      prepareJsonResponse({ content: 'Hello!' });
+
+      await provider('grok-3').doGenerate({
+        providerOptions: {
+          'test-provider': {
+            someCustomOption: 'raw-value',
+          },
+          testProvider: {
+            someCustomOption: 'camel-value',
+          },
+        },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        someCustomOption: 'camel-value',
+      });
+    });
+
+    it('should use camelCase metadata key when camelCase provider options are used', async () => {
+      prepareJsonResponse({
+        content: 'Hello!',
+        usage: {
+          prompt_tokens: 20,
+          completion_tokens: 30,
+          total_tokens: 50,
+          completion_tokens_details: {
+            accepted_prediction_tokens: 15,
+          },
+        },
+      });
+
+      const result = await provider('grok-3').doGenerate({
+        providerOptions: {
+          testProvider: { reasoningEffort: 'high' },
+        },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.providerMetadata).toHaveProperty('testProvider');
+      expect(result.providerMetadata).not.toHaveProperty('test-provider');
+      expect(result.providerMetadata!['testProvider']).toMatchObject({
+        acceptedPredictionTokens: 15,
+      });
+    });
+
+    it('should use raw metadata key when raw provider options are used', async () => {
+      prepareJsonResponse({
+        content: 'Hello!',
+        usage: {
+          prompt_tokens: 20,
+          completion_tokens: 30,
+          total_tokens: 50,
+          completion_tokens_details: {
+            accepted_prediction_tokens: 15,
+          },
+        },
+      });
+
+      const result = await provider('grok-3').doGenerate({
+        providerOptions: {
+          'test-provider': { reasoningEffort: 'high' },
+        },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.providerMetadata).toHaveProperty('test-provider');
+      expect(result.providerMetadata!['test-provider']).toMatchObject({
+        acceptedPredictionTokens: 15,
+      });
+    });
+
+    it('should emit deprecated warning when raw provider options key is used', async () => {
+      prepareJsonResponse({ content: 'Hello!' });
+
+      const result = await provider('grok-3').doGenerate({
+        providerOptions: {
+          'test-provider': { reasoningEffort: 'high' },
+        },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.warnings).toMatchInlineSnapshot(`
+        [
+          {
+            "message": "Use 'testProvider' instead.",
+            "setting": "providerOptions key 'test-provider'",
+            "type": "deprecated",
+          },
+        ]
+      `);
+    });
+
+    it('should not emit deprecated warning when camelCase provider options key is used', async () => {
+      prepareJsonResponse({ content: 'Hello!' });
+
+      const result = await provider('grok-3').doGenerate({
+        providerOptions: {
+          testProvider: { reasoningEffort: 'high' },
+        },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.warnings).toMatchInlineSnapshot(`[]`);
+    });
+
+    it('should use raw metadata key when no provider options are passed', async () => {
+      prepareJsonResponse({ content: 'Hello!' });
+
+      const result = await provider('grok-3').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.providerMetadata).toHaveProperty('test-provider');
+    });
+
+    it('should include thought signature in providerMetadata with camelCase key', async () => {
+      prepareJsonResponse({
+        tool_calls: [
+          {
+            id: 'call-1',
+            type: 'function' as const,
+            function: {
+              name: 'test_tool',
+              arguments: '{"arg":"value"}',
+            },
+            extra_content: {
+              google: { thought_signature: '<Sig>' },
+            },
+          },
+        ],
+      });
+
+      const result = await provider('grok-3').doGenerate({
+        providerOptions: { testProvider: {} },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.content).toMatchObject([
+        {
+          type: 'tool-call',
+          providerMetadata: {
+            testProvider: { thoughtSignature: '<Sig>' },
+          },
+        },
+      ]);
+    });
+
+    it('should include thought signature in providerMetadata with raw key', async () => {
+      prepareJsonResponse({
+        tool_calls: [
+          {
+            id: 'call-1',
+            type: 'function' as const,
+            function: {
+              name: 'test_tool',
+              arguments: '{"arg":"value"}',
+            },
+            extra_content: {
+              google: { thought_signature: '<Sig>' },
+            },
+          },
+        ],
+      });
+
+      const result = await provider('grok-3').doGenerate({
+        providerOptions: { 'test-provider': {} },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.content).toMatchObject([
+        {
+          type: 'tool-call',
+          providerMetadata: {
+            'test-provider': { thoughtSignature: '<Sig>' },
+          },
+        },
+      ]);
+    });
   });
 
   it('should pass tools and toolChoice', async () => {
@@ -2071,6 +2276,165 @@ describe('doStream', () => {
     `);
   });
 
+  it('should stream tool deltas when function.name arrives in a later chunk', async () => {
+    server.urls['https://my.api.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"chatcmpl-late-name","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
+          `"choices":[{"index":0,"delta":{"role":"assistant","content":null},"finish_reason":null}]}\n\n`,
+        // First tool_calls delta carries id and (empty) arguments but no function.name
+        `data: {"id":"chatcmpl-late-name","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
+          `"choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"id":"call_late","type":"function","function":{"arguments":""}}]},` +
+          `"finish_reason":null}]}\n\n`,
+        // function.name arrives in the next chunk together with the start of the arguments
+        `data: {"id":"chatcmpl-late-name","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
+          `"choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"id":"call_late","type":"function","function":{"name":"test-tool","arguments":"{\\""}}]},` +
+          `"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-late-name","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
+          `"choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"value"}}]},` +
+          `"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-late-name","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
+          `"choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"\\":\\"hi\\"}"}}]},` +
+          `"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-late-name","object":"chat.completion.chunk","created":1729171479,"model":"grok-3",` +
+          `"choices":[{"index":0,"delta":{},"finish_reason":"tool_calls"}],` +
+          `"usage":{"prompt_tokens":18,"completion_tokens":10,"total_tokens":28}}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      tools: [
+        {
+          type: 'function',
+          name: 'test-tool',
+          inputSchema: {
+            type: 'object',
+            properties: { value: { type: 'string' } },
+            required: ['value'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+        },
+      ],
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
+        {
+          "id": "chatcmpl-late-name",
+          "modelId": "grok-3",
+          "timestamp": 2024-03-25T09:06:38.000Z,
+          "type": "response-metadata",
+        },
+        {
+          "id": "call_late",
+          "toolName": "test-tool",
+          "type": "tool-input-start",
+        },
+        {
+          "delta": "{"",
+          "id": "call_late",
+          "type": "tool-input-delta",
+        },
+        {
+          "delta": "value",
+          "id": "call_late",
+          "type": "tool-input-delta",
+        },
+        {
+          "delta": "":"hi"}",
+          "id": "call_late",
+          "type": "tool-input-delta",
+        },
+        {
+          "id": "call_late",
+          "type": "tool-input-end",
+        },
+        {
+          "input": "{"value":"hi"}",
+          "toolCallId": "call_late",
+          "toolName": "test-tool",
+          "type": "tool-call",
+        },
+        {
+          "finishReason": {
+            "raw": "tool_calls",
+            "unified": "tool-calls",
+          },
+          "providerMetadata": {
+            "test-provider": {},
+          },
+          "type": "finish",
+          "usage": {
+            "inputTokens": {
+              "cacheRead": 0,
+              "cacheWrite": undefined,
+              "noCache": 18,
+              "total": 18,
+            },
+            "outputTokens": {
+              "reasoning": 0,
+              "text": 10,
+              "total": 10,
+            },
+            "raw": {
+              "completion_tokens": 10,
+              "prompt_tokens": 18,
+              "total_tokens": 28,
+            },
+          },
+        },
+      ]
+    `);
+  });
+
+  it('should error when streamed tool call never receives a function.name', async () => {
+    server.urls['https://my.api.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"chatcmpl-no-name","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
+          `"choices":[{"index":0,"delta":{"role":"assistant","content":null},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-no-name","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
+          `"choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"id":"call_missing","type":"function","function":{"arguments":"{}"}}]},` +
+          `"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-no-name","object":"chat.completion.chunk","created":1729171479,"model":"grok-3",` +
+          `"choices":[{"index":0,"delta":{},"finish_reason":"tool_calls"}],` +
+          `"usage":{"prompt_tokens":18,"completion_tokens":10,"total_tokens":28}}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      tools: [
+        {
+          type: 'function',
+          name: 'test-tool',
+          inputSchema: {
+            type: 'object',
+            properties: { value: { type: 'string' } },
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+        },
+      ],
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    await expect(
+      convertReadableStreamToArray(stream),
+    ).rejects.toThrowErrorMatchingInlineSnapshot(
+      `[AI_InvalidResponseDataError: Expected 'function.name' to be a string.]`,
+    );
+  });
+
   it('should stream tool call with thought signature from extra_content', async () => {
     server.urls['https://my.api.com/v1/chat/completions'].response = {
       type: 'stream-chunks',
@@ -2783,7 +3147,7 @@ describe('doStream', () => {
           },
           {
             "error": [AI_JSONParseError: JSON parsing failed: Text: {unparsable}.
-        Error message: Expected property name or '}' in JSON at position 1 (line 1 column 2)],
+        Error message: SyntaxError: Expected property name or '}' in JSON at position 1 (line 1 column 2)],
             "type": "error",
           },
           {
@@ -2920,6 +3284,157 @@ describe('doStream', () => {
         "stream": true,
       }
     `);
+  });
+
+  describe('camelCase provider options', () => {
+    it('should accept camelCase provider options key for hyphenated provider name', async () => {
+      prepareStreamResponse({ content: [] });
+
+      await provider('grok-3').doStream({
+        providerOptions: {
+          testProvider: {
+            someCustomOption: 'test-value',
+          },
+        },
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        someCustomOption: 'test-value',
+      });
+    });
+
+    it('should prefer camelCase options over raw-name options', async () => {
+      prepareStreamResponse({ content: [] });
+
+      await provider('grok-3').doStream({
+        providerOptions: {
+          'test-provider': { someCustomOption: 'raw-value' },
+          testProvider: { someCustomOption: 'camel-value' },
+        },
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        someCustomOption: 'camel-value',
+      });
+    });
+
+    it('should emit deprecated warning when raw provider options key is used', async () => {
+      prepareStreamResponse({ content: ['Hello'] });
+
+      const { stream } = await provider('grok-3').doStream({
+        providerOptions: {
+          'test-provider': { reasoningEffort: 'high' },
+        },
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+      const streamStart = parts.find(part => part.type === 'stream-start');
+
+      expect(streamStart?.warnings).toMatchInlineSnapshot(`
+        [
+          {
+            "message": "Use 'testProvider' instead.",
+            "setting": "providerOptions key 'test-provider'",
+            "type": "deprecated",
+          },
+        ]
+      `);
+    });
+
+    it('should not emit deprecated warning when camelCase provider options key is used', async () => {
+      prepareStreamResponse({ content: ['Hello'] });
+
+      const { stream } = await provider('grok-3').doStream({
+        providerOptions: {
+          testProvider: { reasoningEffort: 'high' },
+        },
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+      const streamStart = parts.find(part => part.type === 'stream-start');
+
+      expect(streamStart?.warnings).toMatchInlineSnapshot(`[]`);
+    });
+
+    it('should use camelCase metadata key in finish event when camelCase options are used', async () => {
+      prepareStreamResponse({ content: ['Hello'] });
+
+      const { stream } = await provider('grok-3').doStream({
+        providerOptions: { testProvider: {} },
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+      const finishPart = parts.find(part => part.type === 'finish');
+
+      expect(finishPart?.providerMetadata).toHaveProperty('testProvider');
+      expect(finishPart?.providerMetadata).not.toHaveProperty('test-provider');
+    });
+
+    it('should use raw metadata key in finish event when raw options are used', async () => {
+      prepareStreamResponse({ content: ['Hello'] });
+
+      const { stream } = await provider('grok-3').doStream({
+        providerOptions: { 'test-provider': {} },
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+      const finishPart = parts.find(part => part.type === 'finish');
+
+      expect(finishPart?.providerMetadata).toHaveProperty('test-provider');
+    });
+
+    it('should use raw metadata key in finish event when no provider options are passed', async () => {
+      prepareStreamResponse({ content: ['Hello'] });
+
+      const { stream } = await provider('grok-3').doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+      const finishPart = parts.find(part => part.type === 'finish');
+
+      expect(finishPart?.providerMetadata).toHaveProperty('test-provider');
+    });
+
+    it('should use camelCase metadata key for thought signatures in streamed tool calls', async () => {
+      server.urls['https://my.api.com/v1/chat/completions'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"id":"chat-id","choices":[{"index":0,"delta":{"role":"assistant","tool_calls":[{"index":0,"id":"call-1","type":"function","function":{"name":"test_tool","arguments":"{\\"a\\":1}"},"extra_content":{"google":{"thought_signature":"<Sig>"}}}]},"finish_reason":null}]}\n\n`,
+          `data: {"id":"chat-id","choices":[{"index":0,"delta":{},"finish_reason":"tool_calls"}],"usage":{"prompt_tokens":10,"completion_tokens":5,"total_tokens":15}}\n\n`,
+          'data: [DONE]\n\n',
+        ],
+      };
+
+      const { stream } = await provider('grok-3').doStream({
+        providerOptions: { testProvider: {} },
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+      const toolCallEvent = parts.find(part => part.type === 'tool-call');
+
+      expect(toolCallEvent).toMatchObject({
+        type: 'tool-call',
+        providerMetadata: {
+          testProvider: { thoughtSignature: '<Sig>' },
+        },
+      });
+    });
   });
 
   it('should send request body', async () => {

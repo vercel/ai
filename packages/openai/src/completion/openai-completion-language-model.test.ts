@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 
-import { LanguageModelV4Prompt } from '@ai-sdk/provider';
+import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import {
   convertReadableStreamToArray,
@@ -615,7 +615,7 @@ describe('doStream', () => {
           },
           {
             "error": [AI_JSONParseError: JSON parsing failed: Text: {unparsable}.
-        Error message: Expected property name or '}' in JSON at position 1 (line 1 column 2)],
+        Error message: SyntaxError: Expected property name or '}' in JSON at position 1 (line 1 column 2)],
             "type": "error",
           },
           {

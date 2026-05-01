@@ -1,4 +1,4 @@
-import {
+import type {
   LanguageModelV4,
   EmbeddingModelV4,
   ProviderV4,
@@ -9,15 +9,15 @@ import {
   OpenAICompatibleEmbeddingModel,
 } from '@ai-sdk/openai-compatible';
 import {
-  FetchFunction,
   loadApiKey,
   withoutTrailingSlash,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
-import { DeepInfraChatModelId } from './deepinfra-chat-options';
-import { DeepInfraEmbeddingModelId } from './deepinfra-embedding-options';
-import { DeepInfraCompletionModelId } from './deepinfra-completion-options';
-import { DeepInfraImageModelId } from './deepinfra-image-settings';
+import type { DeepInfraChatModelId } from './deepinfra-chat-options';
+import type { DeepInfraEmbeddingModelId } from './deepinfra-embedding-options';
+import type { DeepInfraCompletionModelId } from './deepinfra-completion-options';
+import type { DeepInfraImageModelId } from './deepinfra-image-settings';
 import { DeepInfraImageModel } from './deepinfra-image-model';
 import { DeepInfraChatLanguageModel } from './deepinfra-chat-language-model';
 import { VERSION } from './version';
@@ -158,4 +158,4 @@ export function createDeepInfra(
   return provider;
 }
 
-export const deepinfra = createDeepInfra();
+export const deepInfra = createDeepInfra();

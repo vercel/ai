@@ -57,7 +57,10 @@ describe('user messages', () => {
             {
               type: 'file',
               mediaType: 'image/png',
-              data: Buffer.from([0, 1, 2, 3]).toString('base64'),
+              data: {
+                type: 'data' as const,
+                data: Buffer.from([0, 1, 2, 3]).toString('base64'),
+              },
             },
           ],
         },
@@ -71,7 +74,7 @@ describe('user messages', () => {
           { type: 'text', text: 'Hello' },
           {
             type: 'image_url',
-            image_url: { url: 'data:image/png;base64,AAECAw==' },
+            image_url: { url: 'AAECAw==' },
           },
         ],
       },
@@ -87,7 +90,10 @@ describe('user messages', () => {
             {
               type: 'file',
               mediaType: 'image/png',
-              data: Buffer.from([0, 1, 2, 3]).toString('base64'),
+              data: {
+                type: 'data' as const,
+                data: Buffer.from([0, 1, 2, 3]).toString('base64'),
+              },
               providerOptions: {
                 openai: {
                   imageDetail: 'low',
@@ -106,7 +112,7 @@ describe('user messages', () => {
           {
             type: 'image_url',
             image_url: {
-              url: 'data:image/png;base64,AAECAw==',
+              url: 'AAECAw==',
               detail: 'low',
             },
           },
@@ -125,7 +131,7 @@ describe('user messages', () => {
               content: [
                 {
                   type: 'file',
-                  data: 'AAECAw==',
+                  data: { type: 'data' as const, data: 'AAECAw==' },
                   mediaType: 'application/something',
                 },
               ],
@@ -144,7 +150,10 @@ describe('user messages', () => {
               content: [
                 {
                   type: 'file',
-                  data: new URL('https://example.com/foo.wav'),
+                  data: {
+                    type: 'url' as const,
+                    url: new URL('https://example.com/foo.wav'),
+                  },
                   mediaType: 'audio/wav',
                 },
               ],
@@ -162,7 +171,7 @@ describe('user messages', () => {
             content: [
               {
                 type: 'file',
-                data: 'AAECAw==',
+                data: { type: 'data' as const, data: 'AAECAw==' },
                 mediaType: 'audio/wav',
               },
             ],
@@ -191,7 +200,7 @@ describe('user messages', () => {
             content: [
               {
                 type: 'file',
-                data: 'AAECAw==',
+                data: { type: 'data' as const, data: 'AAECAw==' },
                 mediaType: 'audio/mpeg',
               },
             ],
@@ -220,7 +229,7 @@ describe('user messages', () => {
             content: [
               {
                 type: 'file',
-                data: 'AAECAw==',
+                data: { type: 'data' as const, data: 'AAECAw==' },
                 mediaType: 'audio/mp3', // not official but sometimes used
               },
             ],
@@ -252,7 +261,7 @@ describe('user messages', () => {
               {
                 type: 'file',
                 mediaType: 'application/pdf',
-                data: base64Data,
+                data: { type: 'data' as const, data: base64Data },
                 filename: 'document.pdf',
               },
             ],
@@ -288,7 +297,7 @@ describe('user messages', () => {
               {
                 type: 'file',
                 mediaType: 'application/pdf',
-                data,
+                data: { type: 'data' as const, data },
                 filename: 'document.pdf',
               },
             ],
@@ -313,7 +322,7 @@ describe('user messages', () => {
       ]);
     });
 
-    it('should convert messages with PDF file parts using file_id', async () => {
+    it('should convert messages with PDF file parts using provider reference', async () => {
       const result = convertToOpenAIChatMessages({
         prompt: [
           {
@@ -322,7 +331,10 @@ describe('user messages', () => {
               {
                 type: 'file',
                 mediaType: 'application/pdf',
-                data: 'file-pdf-12345',
+                data: {
+                  type: 'reference' as const,
+                  reference: { openai: 'file-pdf-12345' },
+                },
               },
             ],
           },
@@ -344,6 +356,64 @@ describe('user messages', () => {
       ]);
     });
 
+    it('should convert messages with image parts using provider reference', async () => {
+      const result = convertToOpenAIChatMessages({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'image/png',
+                data: {
+                  type: 'reference' as const,
+                  reference: { openai: 'file-img-12345' },
+                },
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(result.messages).toEqual([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              file: {
+                file_id: 'file-img-12345',
+              },
+            },
+          ],
+        },
+      ]);
+    });
+
+    it('should throw when provider reference does not contain openai', async () => {
+      expect(() =>
+        convertToOpenAIChatMessages({
+          prompt: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'file',
+                  mediaType: 'application/pdf',
+                  data: {
+                    type: 'reference' as const,
+                    reference: { anthropic: 'file-xyz' },
+                  },
+                },
+              ],
+            },
+          ],
+        }),
+      ).toThrow(
+        "No provider reference found for provider 'openai'. Available providers: anthropic",
+      );
+    });
+
     it('should use default filename for PDF file parts when not provided', async () => {
       const base64Data = 'AQIDBAU=';
 
@@ -355,7 +425,7 @@ describe('user messages', () => {
               {
                 type: 'file',
                 mediaType: 'application/pdf',
-                data: base64Data,
+                data: { type: 'data' as const, data: base64Data },
               },
             ],
           },
@@ -391,7 +461,7 @@ describe('user messages', () => {
                 {
                   type: 'file',
                   mediaType: 'text/plain',
-                  data: base64Data,
+                  data: { type: 'data' as const, data: base64Data },
                 },
               ],
             },
@@ -411,7 +481,10 @@ describe('user messages', () => {
                 {
                   type: 'file',
                   mediaType: 'application/pdf',
-                  data: new URL('https://example.com/document.pdf'),
+                  data: {
+                    type: 'url' as const,
+                    url: new URL('https://example.com/document.pdf'),
+                  },
                 },
               ],
             },
@@ -419,6 +492,131 @@ describe('user messages', () => {
           systemMessageMode: 'system',
         });
       }).toThrow('PDF file parts with URLs');
+    });
+
+    describe('top-level-only media type resolution', () => {
+      const pngBase64 = 'iVBORw0KGgo=';
+
+      it('detects image subtype from inline bytes for top-level "image"', () => {
+        const result = convertToOpenAIChatMessages({
+          prompt: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'file',
+                  mediaType: 'image',
+                  data: { type: 'data' as const, data: pngBase64 },
+                },
+              ],
+            },
+          ],
+        });
+        expect((result.messages[0]!.content as unknown[])[0]).toEqual({
+          type: 'image_url',
+          image_url: {
+            url: pngBase64,
+            detail: undefined,
+          },
+        });
+      });
+
+      it('normalizes image/* wildcard via detection', () => {
+        const result = convertToOpenAIChatMessages({
+          prompt: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'file',
+                  mediaType: 'image/*',
+                  data: { type: 'data' as const, data: pngBase64 },
+                },
+              ],
+            },
+          ],
+        });
+        expect((result.messages[0]!.content as unknown[])[0]).toEqual({
+          type: 'image_url',
+          image_url: {
+            url: pngBase64,
+            detail: undefined,
+          },
+        });
+      });
+
+      it('passes through URL source for top-level-only image (provider accepts raw URL)', () => {
+        const result = convertToOpenAIChatMessages({
+          prompt: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'file',
+                  mediaType: 'image',
+                  data: {
+                    type: 'url' as const,
+                    url: new URL('https://example.com/x.png'),
+                  },
+                },
+              ],
+            },
+          ],
+        });
+        expect((result.messages[0]!.content as unknown[])[0]).toEqual({
+          type: 'image_url',
+          image_url: {
+            url: 'https://example.com/x.png',
+            detail: undefined,
+          },
+        });
+      });
+
+      it('throws for top-level-only application (PDF requires full resolution) with URL source', () => {
+        expect(() =>
+          convertToOpenAIChatMessages({
+            prompt: [
+              {
+                role: 'user',
+                content: [
+                  {
+                    type: 'file',
+                    mediaType: 'application',
+                    data: {
+                      type: 'url' as const,
+                      url: new URL('https://example.com/x.pdf'),
+                    },
+                  },
+                ],
+              },
+            ],
+          }),
+        ).toThrow(/media type "application".*not passed as inline bytes/);
+      });
+
+      it('preserves full image/png pass-through', () => {
+        const result = convertToOpenAIChatMessages({
+          prompt: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'file',
+                  mediaType: 'image/png',
+                  data: { type: 'data' as const, data: pngBase64 },
+                },
+              ],
+            },
+          ],
+        });
+        expect((result.messages[0]!.content as unknown[])[0]).toEqual({
+          type: 'image_url',
+          image_url: {
+            url: pngBase64,
+            detail: undefined,
+          },
+        });
+      });
     });
   });
 });
@@ -455,7 +653,7 @@ describe('tool calls', () => {
     expect(result.messages).toEqual([
       {
         role: 'assistant',
-        content: '',
+        content: null,
         tool_calls: [
           {
             type: 'function',
@@ -473,6 +671,43 @@ describe('tool calls', () => {
         tool_call_id: 'quux',
       },
     ]);
+  });
+
+  it('should default missing tool call input to an empty object', () => {
+    const result = convertToOpenAIChatMessages({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'quux',
+              toolName: 'thwomp',
+              input: undefined,
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.messages).toMatchInlineSnapshot(`
+      [
+        {
+          "content": null,
+          "role": "assistant",
+          "tool_calls": [
+            {
+              "function": {
+                "arguments": "{}",
+                "name": "thwomp",
+              },
+              "id": "quux",
+              "type": "function",
+            },
+          ],
+        },
+      ]
+    `);
   });
 
   it('should handle different tool output types', () => {

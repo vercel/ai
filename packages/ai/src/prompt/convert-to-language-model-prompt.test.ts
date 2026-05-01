@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createDefaultDownloadFunction } from '../util/download/download-function';
 import {
   convertToLanguageModelMessage,
@@ -150,7 +150,7 @@ describe('convertToLanguageModelPrompt', () => {
               {
                 type: 'file',
                 mediaType: 'image/png',
-                data: new Uint8Array([0, 1, 2, 3]),
+                data: { type: 'data', data: new Uint8Array([0, 1, 2, 3]) },
               },
             ],
           },
@@ -189,7 +189,43 @@ describe('convertToLanguageModelPrompt', () => {
               {
                 type: 'file',
                 mediaType: 'image/png',
-                data: new Uint8Array([0, 1, 2, 3]),
+                data: { type: 'data', data: new Uint8Array([0, 1, 2, 3]) },
+              },
+            ],
+          },
+        ]);
+      });
+
+      it('should pass through provider reference for image parts without conversion', async () => {
+        const providerRef = { openai: 'file-abc123', anthropic: 'file-xyz789' };
+        const result = await convertToLanguageModelPrompt({
+          prompt: {
+            messages: [
+              {
+                role: 'user',
+                content: [
+                  {
+                    type: 'image',
+                    image: providerRef,
+                    mediaType: 'image/png',
+                  },
+                ],
+              },
+            ],
+          },
+          supportedUrls: {},
+          download: undefined,
+        });
+
+        expect(result).toEqual([
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'image/png',
+                filename: undefined,
+                data: { type: 'reference', reference: providerRef },
               },
             ],
           },
@@ -226,7 +262,10 @@ describe('convertToLanguageModelPrompt', () => {
             content: [
               {
                 type: 'file',
-                data: new URL('https://example.com/document.pdf'),
+                data: {
+                  type: 'url',
+                  url: new URL('https://example.com/document.pdf'),
+                },
                 mediaType: 'application/pdf',
               },
             ],
@@ -270,7 +309,7 @@ describe('convertToLanguageModelPrompt', () => {
               {
                 type: 'file',
                 mediaType: 'application/pdf',
-                data: new Uint8Array([0, 1, 2, 3]),
+                data: { type: 'data', data: new Uint8Array([0, 1, 2, 3]) },
               },
             ],
           },
@@ -306,7 +345,7 @@ describe('convertToLanguageModelPrompt', () => {
             content: [
               {
                 type: 'file',
-                data: base64Data,
+                data: { type: 'data', data: base64Data },
                 mediaType: 'text/plain',
               },
             ],
@@ -343,7 +382,10 @@ describe('convertToLanguageModelPrompt', () => {
             content: [
               {
                 type: 'file',
-                data: new Uint8Array([72, 101, 108, 108, 111]),
+                data: {
+                  type: 'data',
+                  data: new Uint8Array([72, 101, 108, 108, 111]),
+                },
                 mediaType: 'text/plain',
               },
             ],
@@ -384,7 +426,7 @@ describe('convertToLanguageModelPrompt', () => {
               {
                 type: 'file',
                 mediaType: 'application/pdf',
-                data: new Uint8Array([0, 1, 2, 3]),
+                data: { type: 'data', data: new Uint8Array([0, 1, 2, 3]) },
               },
             ],
           },
@@ -424,7 +466,7 @@ describe('convertToLanguageModelPrompt', () => {
               {
                 type: 'file',
                 mediaType: 'application/pdf',
-                data: new Uint8Array([0, 1, 2, 3]),
+                data: { type: 'data', data: new Uint8Array([0, 1, 2, 3]) },
               },
             ],
           },
@@ -469,7 +511,7 @@ describe('convertToLanguageModelPrompt', () => {
               {
                 type: 'file',
                 mediaType: 'application/pdf',
-                data: new Uint8Array([0, 1, 2, 3]),
+                data: { type: 'data', data: new Uint8Array([0, 1, 2, 3]) },
               },
             ],
           },
@@ -508,7 +550,10 @@ describe('convertToLanguageModelPrompt', () => {
               {
                 type: 'file',
                 mediaType: 'application/pdf',
-                data: new URL('https://example.com/document.pdf'),
+                data: {
+                  type: 'url',
+                  url: new URL('https://example.com/document.pdf'),
+                },
               },
             ],
           },
@@ -548,7 +593,7 @@ describe('convertToLanguageModelPrompt', () => {
               {
                 type: 'file',
                 mediaType: 'application/pdf',
-                data: new Uint8Array([0, 1, 2, 3]),
+                data: { type: 'data', data: new Uint8Array([0, 1, 2, 3]) },
               },
             ],
           },
@@ -584,7 +629,7 @@ describe('convertToLanguageModelPrompt', () => {
             content: [
               {
                 type: 'file',
-                data: 'SGVsbG8sIFdvcmxkIQ==',
+                data: { type: 'data', data: 'SGVsbG8sIFdvcmxkIQ==' },
                 mediaType: 'text/plain',
                 filename: 'hello.txt',
               },
@@ -627,7 +672,7 @@ describe('convertToLanguageModelPrompt', () => {
               {
                 type: 'file',
                 mediaType: 'application/pdf',
-                data: new Uint8Array([0, 1, 2, 3]),
+                data: { type: 'data', data: new Uint8Array([0, 1, 2, 3]) },
                 filename: 'important-document.pdf',
               },
             ],
@@ -666,12 +711,15 @@ describe('convertToLanguageModelPrompt', () => {
             {
               "content": [
                 {
-                  "data": Uint8Array [
-                    0,
-                    1,
-                    2,
-                    3,
-                  ],
+                  "data": {
+                    "data": Uint8Array [
+                      0,
+                      1,
+                      2,
+                      3,
+                    ],
+                    "type": "data",
+                  },
                   "filename": undefined,
                   "mediaType": "image/jpeg",
                   "providerOptions": undefined,
@@ -716,13 +764,16 @@ describe('convertToLanguageModelPrompt', () => {
             {
               "content": [
                 {
-                  "data": Uint8Array [
-                    72,
-                    101,
-                    108,
-                    108,
-                    111,
-                  ],
+                  "data": {
+                    "data": Uint8Array [
+                      72,
+                      101,
+                      108,
+                      108,
+                      111,
+                    ],
+                    "type": "data",
+                  },
                   "filename": undefined,
                   "mediaType": "application/octet-stream",
                   "providerOptions": undefined,
@@ -734,6 +785,43 @@ describe('convertToLanguageModelPrompt', () => {
             },
           ]
         `);
+      });
+
+      it('should pass through provider reference for file parts without conversion', async () => {
+        const providerRef = { openai: 'file-abc123', anthropic: 'file-xyz789' };
+        const result = await convertToLanguageModelPrompt({
+          prompt: {
+            messages: [
+              {
+                role: 'user',
+                content: [
+                  {
+                    type: 'file',
+                    data: providerRef,
+                    mediaType: 'application/pdf',
+                    filename: 'doc.pdf',
+                  },
+                ],
+              },
+            ],
+          },
+          supportedUrls: {},
+          download: undefined,
+        });
+
+        expect(result).toEqual([
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'application/pdf',
+                filename: 'doc.pdf',
+                data: { type: 'reference', reference: providerRef },
+              },
+            ],
+          },
+        ]);
       });
     });
 
@@ -831,41 +919,50 @@ describe('convertToLanguageModelPrompt', () => {
           {
             "content": [
               {
-                "data": Uint8Array [
-                  137,
-                  80,
-                  78,
-                  71,
-                  13,
-                  10,
-                  26,
-                  10,
-                  0,
-                ],
+                "data": {
+                  "data": Uint8Array [
+                    137,
+                    80,
+                    78,
+                    71,
+                    13,
+                    10,
+                    26,
+                    10,
+                    0,
+                  ],
+                  "type": "data",
+                },
                 "filename": undefined,
                 "mediaType": "image/png",
                 "providerOptions": undefined,
                 "type": "file",
               },
               {
-                "data": "http://127.0.0.1:3000/file",
+                "data": {
+                  "type": "url",
+                  "url": "http://127.0.0.1:3000/file",
+                },
                 "filename": undefined,
                 "mediaType": "application/octet-stream",
                 "providerOptions": undefined,
                 "type": "file",
               },
               {
-                "data": Uint8Array [
-                  137,
-                  80,
-                  78,
-                  71,
-                  13,
-                  10,
-                  26,
-                  10,
-                  1,
-                ],
+                "data": {
+                  "data": Uint8Array [
+                    137,
+                    80,
+                    78,
+                    71,
+                    13,
+                    10,
+                    26,
+                    10,
+                    1,
+                  ],
+                  "type": "data",
+                },
                 "filename": undefined,
                 "mediaType": "image/png",
                 "providerOptions": undefined,
@@ -1011,7 +1108,10 @@ describe('convertToLanguageModelPrompt', () => {
             {
               type: 'file',
               mediaType: 'text/plain',
-              data: new Uint8Array([72, 101, 108, 108, 111]),
+              data: {
+                type: 'data',
+                data: new Uint8Array([72, 101, 108, 108, 111]),
+              },
             },
           ],
         },
@@ -1071,8 +1171,11 @@ describe('convertToLanguageModelMessage', () => {
           content: [
             {
               type: 'file',
-              data: new URL('https://example.com/image.jpg'),
-              mediaType: 'image/*', // wildcard since we don't know the exact type
+              data: {
+                type: 'url',
+                url: new URL('https://example.com/image.jpg'),
+              },
+              mediaType: 'image',
             },
           ],
         });
@@ -1097,7 +1200,7 @@ describe('convertToLanguageModelMessage', () => {
           content: [
             {
               type: 'file',
-              data: '/9j/3Q==',
+              data: { type: 'data', data: '/9j/3Q==' },
               mediaType: 'image/jpeg',
             },
           ],
@@ -1124,7 +1227,7 @@ describe('convertToLanguageModelMessage', () => {
           content: [
             {
               type: 'file',
-              data: '/9j/3Q==',
+              data: { type: 'data', data: '/9j/3Q==' },
               mediaType: 'image/jpeg',
             },
           ],
@@ -1153,7 +1256,10 @@ describe('convertToLanguageModelMessage', () => {
           content: [
             {
               type: 'file',
-              data: new URL('https://example.com/image.jpg'),
+              data: {
+                type: 'url',
+                url: new URL('https://example.com/image.jpg'),
+              },
               mediaType: 'image/jpg',
             },
           ],
@@ -1180,7 +1286,7 @@ describe('convertToLanguageModelMessage', () => {
           content: [
             {
               type: 'file',
-              data: 'dGVzdA==',
+              data: { type: 'data', data: 'dGVzdA==' },
               mediaType: 'image/jpg',
             },
           ],
@@ -1407,6 +1513,38 @@ describe('convertToLanguageModelMessage', () => {
       });
     });
 
+    describe('file parts with provider reference', () => {
+      it('should pass through provider reference for assistant file parts without conversion', () => {
+        const providerRef = { openai: 'file-abc123', anthropic: 'file-xyz789' };
+        const result = convertToLanguageModelMessage({
+          message: {
+            role: 'assistant',
+            content: [
+              {
+                type: 'file',
+                data: providerRef,
+                mediaType: 'application/pdf',
+                filename: 'doc.pdf',
+              },
+            ],
+          },
+          downloadedAssets: {},
+        });
+
+        expect(result).toEqual({
+          role: 'assistant',
+          content: [
+            {
+              type: 'file',
+              data: { type: 'reference', reference: providerRef },
+              mediaType: 'application/pdf',
+              filename: 'doc.pdf',
+            },
+          ],
+        });
+      });
+    });
+
     describe('reasoning-file parts', () => {
       it('should convert reasoning-file part with base64 data', () => {
         const result = convertToLanguageModelMessage({
@@ -1432,7 +1570,10 @@ describe('convertToLanguageModelMessage', () => {
           {
             "content": [
               {
-                "data": "iVBORw0KGgo=",
+                "data": {
+                  "data": "iVBORw0KGgo=",
+                  "type": "data",
+                },
                 "mediaType": "image/png",
                 "providerOptions": {
                   "test-provider": {
@@ -1468,16 +1609,19 @@ describe('convertToLanguageModelMessage', () => {
           {
             "content": [
               {
-                "data": Uint8Array [
-                  137,
-                  80,
-                  78,
-                  71,
-                  13,
-                  10,
-                  26,
-                  10,
-                ],
+                "data": {
+                  "data": Uint8Array [
+                    137,
+                    80,
+                    78,
+                    71,
+                    13,
+                    10,
+                    26,
+                    10,
+                  ],
+                  "type": "data",
+                },
                 "mediaType": "image/png",
                 "providerOptions": undefined,
                 "type": "reasoning-file",
@@ -1717,7 +1861,7 @@ describe('convertToLanguageModelMessage', () => {
           content: [
             {
               type: 'file',
-              data: 'dGVzdA==',
+              data: { type: 'data', data: 'dGVzdA==' },
               mediaType: 'application/pdf',
             },
           ],
@@ -1745,7 +1889,7 @@ describe('convertToLanguageModelMessage', () => {
           content: [
             {
               type: 'file',
-              data: 'dGVzdA==',
+              data: { type: 'data', data: 'dGVzdA==' },
               mediaType: 'application/pdf',
               filename: 'test-document.pdf',
             },
@@ -1779,7 +1923,7 @@ describe('convertToLanguageModelMessage', () => {
           content: [
             {
               type: 'file',
-              data: 'dGVzdA==',
+              data: { type: 'data', data: 'dGVzdA==' },
               mediaType: 'application/pdf',
               providerOptions: {
                 'test-provider': {
@@ -1920,6 +2064,362 @@ describe('convertToLanguageModelMessage', () => {
       `);
     });
 
+    describe('deprecated content type warnings', () => {
+      let mockProcessEmitWarning: ReturnType<typeof vi.spyOn>;
+
+      beforeEach(() => {
+        mockProcessEmitWarning = vi
+          .spyOn(process, 'emitWarning')
+          .mockImplementation(() => {});
+      });
+
+      afterEach(() => {
+        mockProcessEmitWarning.mockRestore();
+      });
+
+      it('should emit DeprecationWarning for image-data', () => {
+        convertToLanguageModelMessage({
+          message: {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolName: 'toolName',
+                toolCallId: 'toolCallId',
+                output: {
+                  type: 'content',
+                  value: [
+                    {
+                      type: 'image-data',
+                      data: 'dGVzdA==',
+                      mediaType: 'image/png',
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+          downloadedAssets: {},
+        });
+
+        expect(mockProcessEmitWarning).toHaveBeenCalledOnce();
+        expect(mockProcessEmitWarning).toHaveBeenCalledWith(
+          'AI SDK Warning: Deprecated: ""tool-result" content of type "image-data"". The "image-data" type for tool result content is deprecated. Use the "file-data" type instead.',
+          { type: 'DeprecationWarning' },
+        );
+      });
+
+      it('should emit DeprecationWarning for image-url', () => {
+        convertToLanguageModelMessage({
+          message: {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolName: 'toolName',
+                toolCallId: 'toolCallId',
+                output: {
+                  type: 'content',
+                  value: [
+                    { type: 'image-url', url: 'https://example.com/image.png' },
+                  ],
+                },
+              },
+            ],
+          },
+          downloadedAssets: {},
+        });
+
+        expect(mockProcessEmitWarning).toHaveBeenCalledOnce();
+        expect(mockProcessEmitWarning).toHaveBeenCalledWith(
+          'AI SDK Warning: Deprecated: ""tool-result" content of type "image-url"". The "image-url" type for tool result content is deprecated. Use the "file-url" type instead.',
+          { type: 'DeprecationWarning' },
+        );
+      });
+
+      it('should emit DeprecationWarning for image-file-reference', () => {
+        convertToLanguageModelMessage({
+          message: {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolName: 'toolName',
+                toolCallId: 'toolCallId',
+                output: {
+                  type: 'content',
+                  value: [
+                    {
+                      type: 'image-file-reference',
+                      providerReference: { 'test-provider': 'fileId' },
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+          downloadedAssets: {},
+        });
+
+        expect(mockProcessEmitWarning).toHaveBeenCalledOnce();
+        expect(mockProcessEmitWarning).toHaveBeenCalledWith(
+          'AI SDK Warning: Deprecated: ""tool-result" content of type "image-file-reference"". The "image-file-reference" type for tool result content is deprecated. Use the "file-reference" type instead.',
+          { type: 'DeprecationWarning' },
+        );
+      });
+
+      it('should emit DeprecationWarning for image-file-id with object fileId', () => {
+        convertToLanguageModelMessage({
+          message: {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolName: 'toolName',
+                toolCallId: 'toolCallId',
+                output: {
+                  type: 'content',
+                  value: [
+                    {
+                      type: 'image-file-id',
+                      fileId: { 'test-provider': 'fileId' },
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+          downloadedAssets: {},
+        });
+
+        expect(mockProcessEmitWarning).toHaveBeenCalledOnce();
+        expect(mockProcessEmitWarning).toHaveBeenCalledWith(
+          'AI SDK Warning: Deprecated: ""tool-result" content of type "image-file-id"". The "image-file-id" type for tool result content is deprecated. Use the "file-reference" type instead.',
+          { type: 'DeprecationWarning' },
+        );
+      });
+
+      it('should emit DeprecationWarning for file-id with object fileId', () => {
+        convertToLanguageModelMessage({
+          message: {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolName: 'toolName',
+                toolCallId: 'toolCallId',
+                output: {
+                  type: 'content',
+                  value: [
+                    {
+                      type: 'file-id',
+                      fileId: { 'test-provider': 'fileId' },
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+          downloadedAssets: {},
+        });
+
+        expect(mockProcessEmitWarning).toHaveBeenCalledOnce();
+        expect(mockProcessEmitWarning).toHaveBeenCalledWith(
+          'AI SDK Warning: Deprecated: ""tool-result" content of type "file-id"". The "file-id" type for tool result content is deprecated. Use the "file-reference" type instead.',
+          { type: 'DeprecationWarning' },
+        );
+      });
+
+      it('should emit DeprecationWarning for file-url without mediaType (inferred)', () => {
+        convertToLanguageModelMessage({
+          message: {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolName: 'toolName',
+                toolCallId: 'toolCallId',
+                output: {
+                  type: 'content',
+                  value: [
+                    { type: 'file-url', url: 'https://example.com/image.png' },
+                  ],
+                },
+              },
+            ],
+          },
+          downloadedAssets: {},
+        });
+
+        expect(mockProcessEmitWarning).toHaveBeenCalledOnce();
+        expect(mockProcessEmitWarning).toHaveBeenCalledWith(
+          `AI SDK Warning: Deprecated: ""tool-result" content of type "file-url" without mediaType". The "file-url" tool result content part with URL "https://example.com/image.png" is missing a "mediaType". Inferred media type 'image/png' from URL.`,
+          { type: 'DeprecationWarning' },
+        );
+      });
+
+      it('should emit DeprecationWarning for file-url without mediaType (not inferable)', () => {
+        convertToLanguageModelMessage({
+          message: {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolName: 'toolName',
+                toolCallId: 'toolCallId',
+                output: {
+                  type: 'content',
+                  value: [
+                    { type: 'file-url', url: 'https://example.com/file' },
+                  ],
+                },
+              },
+            ],
+          },
+          downloadedAssets: {},
+        });
+
+        expect(mockProcessEmitWarning).toHaveBeenCalledOnce();
+        expect(mockProcessEmitWarning).toHaveBeenCalledWith(
+          `AI SDK Warning: Deprecated: ""tool-result" content of type "file-url" without mediaType". The "file-url" tool result content part with URL "https://example.com/file" is missing a "mediaType". Unable to infer media type from URL. Defaulting to 'application/octet-stream'.`,
+          { type: 'DeprecationWarning' },
+        );
+      });
+
+      it('should fall back when file-url extension collides with Object.prototype (e.g. `.constructor`)', () => {
+        // Regression: a previous implementation used `ext in URL_EXTENSION_TO_MEDIA_TYPE`,
+        // which traverses the prototype chain and returned the `Object`
+        // constructor (a function) for attacker-controlled extensions like
+        // `.constructor`, breaking the helper's `: string` contract.
+        convertToLanguageModelMessage({
+          message: {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolName: 'toolName',
+                toolCallId: 'toolCallId',
+                output: {
+                  type: 'content',
+                  value: [
+                    {
+                      type: 'file-url',
+                      url: 'https://example.com/foo.constructor',
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+          downloadedAssets: {},
+        });
+
+        expect(mockProcessEmitWarning).toHaveBeenCalledOnce();
+        expect(mockProcessEmitWarning).toHaveBeenCalledWith(
+          `AI SDK Warning: Deprecated: ""tool-result" content of type "file-url" without mediaType". The "file-url" tool result content part with URL "https://example.com/foo.constructor" is missing a "mediaType". Unable to infer media type from URL. Defaulting to 'application/octet-stream'.`,
+          { type: 'DeprecationWarning' },
+        );
+      });
+
+      it('should emit DeprecationWarning for deprecated types in assistant message tool-result content', () => {
+        convertToLanguageModelMessage({
+          message: {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'toolCallId',
+                toolName: 'toolName',
+                output: {
+                  type: 'content',
+                  value: [
+                    {
+                      type: 'image-data',
+                      data: 'dGVzdA==',
+                      mediaType: 'image/png',
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+          downloadedAssets: {},
+        });
+
+        expect(mockProcessEmitWarning).toHaveBeenCalledOnce();
+        expect(mockProcessEmitWarning).toHaveBeenCalledWith(
+          'AI SDK Warning: Deprecated: ""tool-result" content of type "image-data"". The "image-data" type for tool result content is deprecated. Use the "file-data" type instead.',
+          { type: 'DeprecationWarning' },
+        );
+      });
+
+      it('should emit one DeprecationWarning per deprecated item', () => {
+        convertToLanguageModelMessage({
+          message: {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolName: 'toolName',
+                toolCallId: 'toolCallId',
+                output: {
+                  type: 'content',
+                  value: [
+                    {
+                      type: 'image-data',
+                      data: 'dGVzdA==',
+                      mediaType: 'image/png',
+                    },
+                    { type: 'image-url', url: 'https://example.com/image.png' },
+                  ],
+                },
+              },
+            ],
+          },
+          downloadedAssets: {},
+        });
+
+        expect(mockProcessEmitWarning).toHaveBeenCalledTimes(2);
+      });
+
+      it('should not emit warnings for non-deprecated content types', () => {
+        convertToLanguageModelMessage({
+          message: {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolName: 'toolName',
+                toolCallId: 'toolCallId',
+                output: {
+                  type: 'content',
+                  value: [
+                    {
+                      type: 'file-data',
+                      data: 'dGVzdA==',
+                      mediaType: 'image/png',
+                    },
+                    {
+                      type: 'file-url',
+                      url: 'https://example.com/image.png',
+                      mediaType: 'image/png',
+                    },
+                    {
+                      type: 'file-reference',
+                      providerReference: { 'test-provider': 'fileId' },
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+          downloadedAssets: {},
+        });
+
+        expect(mockProcessEmitWarning).not.toHaveBeenCalled();
+      });
+    });
+
     it('should include multipart content', () => {
       const result = convertToLanguageModelMessage({
         message: {
@@ -1932,24 +2432,29 @@ describe('convertToLanguageModelMessage', () => {
               output: {
                 type: 'content',
                 value: [
-                  { type: 'file-url', url: 'https://example.com/image.png' },
+                  {
+                    type: 'file-url',
+                    url: 'https://example.com/image.png',
+                    mediaType: 'image/png',
+                  },
                   {
                     type: 'file-data',
                     data: 'dGVzdA==',
                     mediaType: 'image/png',
                   },
-                  { type: 'file-id', fileId: 'fileId' },
-                  { type: 'file-id', fileId: { 'test-provider': 'fileId' } },
+                  {
+                    type: 'file-reference',
+                    providerReference: { 'test-provider': 'fileId' },
+                  },
                   {
                     type: 'image-data',
                     data: 'dGVzdA==',
                     mediaType: 'image/png',
                   },
                   { type: 'image-url', url: 'https://example.com/image.png' },
-                  { type: 'image-file-id', fileId: 'fileId' },
                   {
-                    type: 'image-file-id',
-                    fileId: { 'test-provider': 'fileId' },
+                    type: 'image-file-reference',
+                    providerReference: { 'test-provider': 'fileId' },
                   },
                   {
                     type: 'custom',
@@ -1976,6 +2481,8 @@ describe('convertToLanguageModelMessage', () => {
                 "type": "content",
                 "value": [
                   {
+                    "mediaType": "image/png",
+                    "providerOptions": undefined,
                     "type": "file-url",
                     "url": "https://example.com/image.png",
                   },
@@ -1985,33 +2492,29 @@ describe('convertToLanguageModelMessage', () => {
                     "type": "file-data",
                   },
                   {
-                    "fileId": "fileId",
-                    "type": "file-id",
-                  },
-                  {
-                    "fileId": {
+                    "providerReference": {
                       "test-provider": "fileId",
                     },
-                    "type": "file-id",
+                    "type": "file-reference",
                   },
                   {
                     "data": "dGVzdA==",
                     "mediaType": "image/png",
-                    "type": "image-data",
+                    "providerOptions": undefined,
+                    "type": "file-data",
                   },
                   {
-                    "type": "image-url",
+                    "mediaType": "image/png",
+                    "providerOptions": undefined,
+                    "type": "file-url",
                     "url": "https://example.com/image.png",
                   },
                   {
-                    "fileId": "fileId",
-                    "type": "image-file-id",
-                  },
-                  {
-                    "fileId": {
+                    "providerOptions": undefined,
+                    "providerReference": {
                       "test-provider": "fileId",
                     },
-                    "type": "image-file-id",
+                    "type": "file-reference",
                   },
                   {
                     "providerOptions": {
@@ -2021,104 +2524,6 @@ describe('convertToLanguageModelMessage', () => {
                       },
                     },
                     "type": "custom",
-                  },
-                ],
-              },
-              "providerOptions": undefined,
-              "toolCallId": "toolCallId",
-              "toolName": "toolName",
-              "type": "tool-result",
-            },
-          ],
-          "providerOptions": undefined,
-          "role": "tool",
-        }
-      `);
-    });
-
-    it('should map deprecated media type to image-data', () => {
-      const result = convertToLanguageModelMessage({
-        message: {
-          role: 'tool',
-          content: [
-            {
-              type: 'tool-result',
-              toolName: 'toolName',
-              toolCallId: 'toolCallId',
-              output: {
-                type: 'content',
-                value: [
-                  { type: 'media', data: 'dGVzdA==', mediaType: 'image/png' },
-                ],
-              },
-            },
-          ],
-        },
-        downloadedAssets: {},
-      });
-
-      expect(result).toMatchInlineSnapshot(`
-        {
-          "content": [
-            {
-              "output": {
-                "type": "content",
-                "value": [
-                  {
-                    "data": "dGVzdA==",
-                    "mediaType": "image/png",
-                    "type": "image-data",
-                  },
-                ],
-              },
-              "providerOptions": undefined,
-              "toolCallId": "toolCallId",
-              "toolName": "toolName",
-              "type": "tool-result",
-            },
-          ],
-          "providerOptions": undefined,
-          "role": "tool",
-        }
-      `);
-    });
-
-    it('should map deprecated media type to file-data', () => {
-      const result = convertToLanguageModelMessage({
-        message: {
-          role: 'tool',
-          content: [
-            {
-              type: 'tool-result',
-              toolName: 'toolName',
-              toolCallId: 'toolCallId',
-              output: {
-                type: 'content',
-                value: [
-                  {
-                    type: 'media',
-                    data: 'dGVzdA==',
-                    mediaType: 'application/pdf',
-                  },
-                ],
-              },
-            },
-          ],
-        },
-        downloadedAssets: {},
-      });
-
-      expect(result).toMatchInlineSnapshot(`
-        {
-          "content": [
-            {
-              "output": {
-                "type": "content",
-                "value": [
-                  {
-                    "data": "dGVzdA==",
-                    "mediaType": "application/pdf",
-                    "type": "file-data",
                   },
                 ],
               },

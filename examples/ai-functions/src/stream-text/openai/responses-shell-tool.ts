@@ -1,5 +1,5 @@
 import { openai } from '@ai-sdk/openai';
-import { stepCountIs, streamText } from 'ai';
+import { isStepCount, streamText } from 'ai';
 import { executeShellCommand } from '../../lib/shell-executor';
 import { run } from '../../lib/run';
 
@@ -20,7 +20,7 @@ run(async () => {
       }),
     },
     prompt: 'List the files in my ~/Desktop directory',
-    stopWhen: stepCountIs(5),
+    stopWhen: isStepCount(5),
   });
 
   for await (const chunk of result.fullStream) {

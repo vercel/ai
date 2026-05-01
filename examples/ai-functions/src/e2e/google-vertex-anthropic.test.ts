@@ -7,17 +7,16 @@ import {
   createVertexAnthropic as createVertexAnthropicEdge,
   vertexAnthropic as vertexAnthropicEdge,
 } from '@ai-sdk/google-vertex/anthropic/edge';
-import { LanguageModelV3, LanguageModelV4 } from '@ai-sdk/provider';
-import { APICallError, generateText, stepCountIs } from 'ai';
+import type { LanguageModelV3, LanguageModelV4 } from '@ai-sdk/provider';
+import { generateText, isStepCount, type APICallError } from 'ai';
 import 'dotenv/config';
 import fs from 'fs';
 import { describe, expect, it } from 'vitest';
 import {
   createFeatureTestSuite,
   createLanguageModelWithCapabilities,
-  ModelWithCapabilities,
+  type ModelWithCapabilities,
 } from './feature-test-suite';
-
 const RUNTIME_VARIANTS = {
   edge: {
     name: 'Edge Runtime',
@@ -127,7 +126,8 @@ const toolTests = (model: LanguageModelV4) => {
               switch (action) {
                 case 'screenshot': {
                   return {
-                    type: 'image',
+                    type: 'file',
+                    mediaType: 'image',
                     data: fs
                       .readFileSync('./data/screenshot-editor.png')
                       .toString('base64'),
@@ -145,7 +145,7 @@ const toolTests = (model: LanguageModelV4) => {
                   typeof output === 'string'
                     ? { type: 'text', text: output }
                     : {
-                        type: 'image-data',
+                        type: 'file-data',
                         data: output.data,
                         mediaType: 'image/png',
                       },
@@ -156,7 +156,7 @@ const toolTests = (model: LanguageModelV4) => {
         },
         prompt:
           'How can I switch to dark mode? Take a look at the screen and tell me.',
-        stopWhen: stepCountIs(5),
+        stopWhen: isStepCount(5),
       });
 
       console.log(result.text);
@@ -188,7 +188,7 @@ README.md     build         data          node_modules  package.json  src       
           }),
         },
         prompt: 'List the files in my directory.',
-        stopWhen: stepCountIs(2),
+        stopWhen: isStepCount(2),
       });
 
       expect(result.text).toBeTruthy();
@@ -233,7 +233,7 @@ README.md     build         data          node_modules  package.json  src       
           }),
         },
         prompt: 'Update my README file to talk about AI.',
-        stopWhen: stepCountIs(5),
+        stopWhen: isStepCount(5),
       });
 
       expect(result.text).toBeTruthy();

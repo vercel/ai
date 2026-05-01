@@ -10,7 +10,7 @@ import {
   generateId,
   JsonToSseTransformStream,
   streamText,
-  UIMessage,
+  type UIMessage,
 } from 'ai';
 import { after } from 'next/server';
 import { createResumableStreamContext } from 'resumable-stream';

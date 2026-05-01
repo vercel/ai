@@ -1,14 +1,15 @@
-import { StreamTextTransform, UIMessageStreamOptions } from '../generate-text';
-import { Output } from '../generate-text/output';
-import { ToolSet } from '../generate-text/tool-set';
-import { TimeoutConfiguration } from '../prompt/call-settings';
-import { InferUIMessageChunk } from '../ui-message-stream';
+import type { Arrayable, Context, ToolSet } from '@ai-sdk/provider-utils';
+import type { GenerateTextOnStepFinishCallback } from '../generate-text/generate-text-events';
+import type { Output } from '../generate-text/output';
+import type { StreamTextTransform } from '../generate-text/stream-text';
+import type { UIMessageStreamOptions } from '../generate-text/stream-text-result';
+import type { TimeoutConfiguration } from '../prompt/request-options';
+import type { InferUIMessageChunk } from '../ui-message-stream';
 import { convertToModelMessages } from '../ui/convert-to-model-messages';
-import { InferUITools, UIMessage } from '../ui/ui-messages';
+import type { InferUITools, UIMessage } from '../ui/ui-messages';
 import { validateUIMessages } from '../ui/validate-ui-messages';
-import { AsyncIterableStream } from '../util/async-iterable-stream';
-import { Agent } from './agent';
-import type { ToolLoopAgentOnStepFinishCallback } from './tool-loop-agent-settings';
+import type { AsyncIterableStream } from '../util/async-iterable-stream';
+import type { Agent } from './agent';
 
 /**
  * Runs the agent and stream the output as a UI message stream.
@@ -26,6 +27,7 @@ import type { ToolLoopAgentOnStepFinishCallback } from './tool-loop-agent-settin
 export async function createAgentUIStream<
   CALL_OPTIONS = never,
   TOOLS extends ToolSet = {},
+  RUNTIME_CONTEXT extends Context = Context,
   OUTPUT extends Output = never,
   MESSAGE_METADATA = unknown,
 >({
@@ -38,15 +40,13 @@ export async function createAgentUIStream<
   onStepFinish,
   ...uiMessageStreamOptions
 }: {
-  agent: Agent<CALL_OPTIONS, TOOLS, OUTPUT>;
+  agent: Agent<CALL_OPTIONS, TOOLS, RUNTIME_CONTEXT, OUTPUT>;
   uiMessages: unknown[];
   abortSignal?: AbortSignal;
   timeout?: TimeoutConfiguration<TOOLS>;
   options?: CALL_OPTIONS;
-  experimental_transform?:
-    | StreamTextTransform<TOOLS>
-    | Array<StreamTextTransform<TOOLS>>;
-  onStepFinish?: ToolLoopAgentOnStepFinishCallback<TOOLS>;
+  experimental_transform?: Arrayable<StreamTextTransform<TOOLS>>;
+  onStepFinish?: GenerateTextOnStepFinishCallback<TOOLS>;
   // TODO `originalMessages` is part of this for bc, omit in v7
 } & UIMessageStreamOptions<
   UIMessage<MESSAGE_METADATA, never, InferUITools<TOOLS>>

@@ -10,7 +10,7 @@ describe('user messages', () => {
           { type: 'text', text: 'Hello' },
           {
             type: 'file',
-            data: 'AAECAw==',
+            data: { type: 'data' as const, data: 'AAECAw==' },
             mediaType: 'image/png',
           },
         ],
@@ -46,7 +46,7 @@ describe('user messages', () => {
           { type: 'text', text: 'Hi' },
           {
             type: 'file',
-            data: new Uint8Array([0, 1, 2, 3]),
+            data: { type: 'data' as const, data: new Uint8Array([0, 1, 2, 3]) },
             mediaType: 'image/png',
           },
         ],
@@ -201,5 +201,114 @@ describe('tool calls', () => {
         },
       ]
     `);
+  });
+
+  it('should throw for file parts with provider references', () => {
+    expect(() =>
+      convertToGroqChatMessages([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: {
+                type: 'reference' as const,
+                reference: { groq: 'file-ref-123' },
+              },
+              mediaType: 'image/png',
+            },
+          ],
+        },
+      ]),
+    ).toThrow(
+      "'file parts with provider references' functionality not supported",
+    );
+  });
+});
+
+describe('top-level-only media type resolution', () => {
+  const pngBase64 = 'iVBORw0KGgo=';
+
+  it('passes full image/png through unchanged for inline data', () => {
+    const result = convertToGroqChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            mediaType: 'image/png',
+            data: { type: 'data', data: pngBase64 },
+          },
+        ],
+      },
+    ]);
+
+    expect((result[0].content as unknown[])[0]).toEqual({
+      type: 'image_url',
+      image_url: { url: `data:image/png;base64,${pngBase64}` },
+    });
+  });
+
+  it('detects image subtype from inline bytes for top-level "image"', () => {
+    const result = convertToGroqChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            mediaType: 'image',
+            data: { type: 'data', data: pngBase64 },
+          },
+        ],
+      },
+    ]);
+
+    expect((result[0].content as unknown[])[0]).toEqual({
+      type: 'image_url',
+      image_url: { url: `data:image/png;base64,${pngBase64}` },
+    });
+  });
+
+  it('passes through URL source for top-level-only image', () => {
+    const result = convertToGroqChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            mediaType: 'image',
+            data: {
+              type: 'url',
+              url: new URL('https://example.com/x.png'),
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect((result[0].content as unknown[])[0]).toEqual({
+      type: 'image_url',
+      image_url: { url: 'https://example.com/x.png' },
+    });
+  });
+
+  it('normalizes image/* wildcard via detection', () => {
+    const result = convertToGroqChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            mediaType: 'image/*',
+            data: { type: 'data', data: pngBase64 },
+          },
+        ],
+      },
+    ]);
+
+    expect((result[0].content as unknown[])[0]).toEqual({
+      type: 'image_url',
+      image_url: { url: `data:image/png;base64,${pngBase64}` },
+    });
   });
 });

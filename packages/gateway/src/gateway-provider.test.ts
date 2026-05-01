@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
   gateway,
-  createGatewayProvider,
+  createGateway,
   getGatewayAuthToken,
 } from './gateway-provider';
 import { GatewayFetchMetadata } from './gateway-fetch-metadata';
@@ -10,6 +10,7 @@ import { NoSuchModelError } from '@ai-sdk/provider';
 import { GatewayEmbeddingModel } from './gateway-embedding-model';
 import { GatewayImageModel } from './gateway-image-model';
 import { GatewayVideoModel } from './gateway-video-model';
+import { GatewayRerankingModel } from './gateway-reranking-model';
 import { getVercelOidcToken, getVercelRequestId } from './vercel-environment';
 import { resolve } from '@ai-sdk/provider-utils';
 import { GatewayLanguageModel } from './gateway-language-model';
@@ -133,6 +134,37 @@ function getGatewayVideoModelInternalConfig(
   return config;
 }
 
+type GatewayRerankingModelInternalConfig = {
+  provider: string;
+  baseURL: string;
+  headers: () => Promise<Record<string, string>>;
+  fetch?: typeof fetch;
+  o11yHeaders: () => Promise<Record<string, string>>;
+};
+
+function assertIsGatewayRerankingModelInternalConfig(
+  value: unknown,
+): asserts value is GatewayRerankingModelInternalConfig {
+  if (
+    !value ||
+    typeof value !== 'object' ||
+    typeof (value as { provider?: unknown }).provider !== 'string' ||
+    typeof (value as { baseURL?: unknown }).baseURL !== 'string' ||
+    typeof (value as { headers?: unknown }).headers !== 'function' ||
+    typeof (value as { o11yHeaders?: unknown }).o11yHeaders !== 'function'
+  ) {
+    throw new Error('Invalid GatewayRerankingModel configuration');
+  }
+}
+
+function getGatewayRerankingModelInternalConfig(
+  model: GatewayRerankingModel,
+): GatewayRerankingModelInternalConfig {
+  const config = Reflect.get(model as object, 'config');
+  assertIsGatewayRerankingModelInternalConfig(config);
+  return config;
+}
+
 describe('GatewayProvider', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -147,7 +179,7 @@ describe('GatewayProvider', () => {
     }
   });
 
-  describe('createGatewayProvider', () => {
+  describe('createGateway', () => {
     it('should create provider with correct configuration', async () => {
       const options = {
         baseURL: 'https://api.example.com',
@@ -155,7 +187,7 @@ describe('GatewayProvider', () => {
         headers: { 'Custom-Header': 'value' },
       };
 
-      const provider = createGatewayProvider(options);
+      const provider = createGateway(options);
       provider('test-model');
 
       expect(GatewayLanguageModel).toHaveBeenCalledWith(
@@ -171,7 +203,7 @@ describe('GatewayProvider', () => {
       // Verify headers function
       const constructorCall = vi.mocked(GatewayLanguageModel).mock.calls[0];
       const config = constructorCall[1];
-      const headers = await config.headers();
+      const headers = await resolve(config.headers);
 
       expect(headers).toEqual({
         authorization: 'Bearer test-api-key',
@@ -188,12 +220,12 @@ describe('GatewayProvider', () => {
         headers: { 'Custom-Header': 'value' },
       };
 
-      const provider = createGatewayProvider(options);
+      const provider = createGateway(options);
       provider('test-model');
 
       const constructorCall = vi.mocked(GatewayLanguageModel).mock.calls[0];
       const config = constructorCall[1];
-      const headers = await config.headers();
+      const headers = (await resolve(config.headers))!;
 
       expect(headers).toEqual({
         authorization: 'Bearer mock-oidc-token',
@@ -205,7 +237,7 @@ describe('GatewayProvider', () => {
     });
 
     it('should throw error when instantiated with new keyword', () => {
-      const provider = createGatewayProvider({
+      const provider = createGateway({
         baseURL: 'https://api.example.com',
       });
 
@@ -220,7 +252,7 @@ describe('GatewayProvider', () => {
     });
 
     it('should create GatewayEmbeddingModel for embeddingModel', () => {
-      const provider = createGatewayProvider({
+      const provider = createGateway({
         baseURL: 'https://api.example.com',
       });
 
@@ -229,7 +261,7 @@ describe('GatewayProvider', () => {
     });
 
     it('should create GatewayImageModel for imageModel', () => {
-      const provider = createGatewayProvider({
+      const provider = createGateway({
         baseURL: 'https://api.example.com',
         apiKey: 'test-api-key',
       });
@@ -247,7 +279,7 @@ describe('GatewayProvider', () => {
 
     it('should reuse gateway headers and fetch for imageModel', async () => {
       const customFetch = vi.fn();
-      const provider = createGatewayProvider({
+      const provider = createGateway({
         baseURL: 'https://api.example.com',
         apiKey: 'test-api-key',
         headers: { 'Custom-Header': 'value' },
@@ -277,7 +309,7 @@ describe('GatewayProvider', () => {
     });
 
     it('should create GatewayVideoModel for videoModel', () => {
-      const provider = createGatewayProvider({
+      const provider = createGateway({
         baseURL: 'https://api.example.com',
         apiKey: 'test-api-key',
       });
@@ -295,7 +327,7 @@ describe('GatewayProvider', () => {
 
     it('should reuse gateway headers and fetch for videoModel', async () => {
       const customFetch = vi.fn();
-      const provider = createGatewayProvider({
+      const provider = createGateway({
         baseURL: 'https://api.example.com',
         apiKey: 'test-api-key',
         headers: { 'Custom-Header': 'value' },
@@ -324,6 +356,36 @@ describe('GatewayProvider', () => {
       expect(o11yHeaders).toEqual({ 'ai-o11y-request-id': 'mock-request-id' });
     });
 
+    it('should create GatewayRerankingModel for rerankingModel', () => {
+      const provider = createGateway({
+        baseURL: 'https://api.example.com',
+        apiKey: 'test-api-key',
+      });
+
+      const model = provider.rerankingModel('cohere/rerank-v3.5');
+
+      if (!(model instanceof GatewayRerankingModel)) {
+        fail('Expected GatewayRerankingModel to be created');
+      }
+
+      const config = getGatewayRerankingModelInternalConfig(model);
+      expect(config.provider).toBe('gateway');
+      expect(config.baseURL).toBe('https://api.example.com');
+    });
+
+    it('should create GatewayRerankingModel for reranking alias', () => {
+      const provider = createGateway({
+        baseURL: 'https://api.example.com',
+        apiKey: 'test-api-key',
+      });
+
+      const model = provider.reranking('cohere/rerank-v3.5');
+
+      if (!(model instanceof GatewayRerankingModel)) {
+        fail('Expected GatewayRerankingModel to be created');
+      }
+    });
+
     it('should fetch available models', async () => {
       mockGetAvailableModels.mockReturnValue({ models: [] });
 
@@ -332,7 +394,7 @@ describe('GatewayProvider', () => {
         apiKey: 'test-api-key',
       };
 
-      const provider = createGatewayProvider(options);
+      const provider = createGateway(options);
       await provider.getAvailableModels();
 
       expect(GatewayFetchMetadata).toHaveBeenCalledWith(
@@ -350,7 +412,7 @@ describe('GatewayProvider', () => {
         });
 
         let currentTime = new Date('2024-01-01T00:00:00Z').getTime();
-        const provider = createGatewayProvider({
+        const provider = createGateway({
           baseURL: 'https://api.example.com',
           metadataCacheRefreshMillis: 10000, // 10 seconds
           _internal: {
@@ -383,7 +445,7 @@ describe('GatewayProvider', () => {
         });
 
         let currentTime = new Date('2024-01-01T00:00:00Z').getTime();
-        const provider = createGatewayProvider({
+        const provider = createGateway({
           baseURL: 'https://api.example.com',
           _internal: {
             currentDate: () => new Date(currentTime),
@@ -418,7 +480,7 @@ describe('GatewayProvider', () => {
       vi.mocked(getVercelRequestId).mockResolvedValue('test-request-id');
 
       try {
-        const provider = createGatewayProvider({
+        const provider = createGateway({
           baseURL: 'https://api.example.com',
           apiKey: 'test-api-key',
         });
@@ -459,7 +521,7 @@ describe('GatewayProvider', () => {
       vi.mocked(getVercelRequestId).mockResolvedValue(undefined);
 
       try {
-        const provider = createGatewayProvider({
+        const provider = createGateway({
           baseURL: 'https://api.example.com',
           apiKey: 'test-api-key',
         });
@@ -499,7 +561,7 @@ describe('GatewayProvider', () => {
       mockGetAvailableModels.mockReturnValue({ models: [] });
 
       // Create a provider without specifying baseURL
-      const testProvider = createGatewayProvider({
+      const testProvider = createGateway({
         apiKey: 'test-key', // Provide API key to avoid OIDC token lookup
       });
 
@@ -516,7 +578,7 @@ describe('GatewayProvider', () => {
 
     it('should accept empty options', () => {
       // This should not throw an error
-      const provider = createGatewayProvider();
+      const provider = createGateway();
       expect(provider).toBeDefined();
       expect(typeof provider).toBe('function');
       expect(typeof provider.languageModel).toBe('function');
@@ -556,7 +618,7 @@ describe('GatewayProvider', () => {
       mockGetAvailableModels.mockReturnValue({ models: [] });
 
       const customBaseUrl = 'https://custom-api.example.com';
-      const testProvider = createGatewayProvider({
+      const testProvider = createGateway({
         baseURL: customBaseUrl,
         apiKey: 'test-key',
       });
@@ -586,7 +648,7 @@ describe('GatewayProvider', () => {
       mockGetAvailableModels.mockReturnValue({ models: [] });
 
       const testApiKey = 'test-api-key-123';
-      const testProvider = createGatewayProvider({
+      const testProvider = createGateway({
         apiKey: testApiKey,
       });
 
@@ -595,7 +657,7 @@ describe('GatewayProvider', () => {
 
       // Get the headers function that was passed to GatewayFetchMetadata
       const config = vi.mocked(GatewayFetchMetadata).mock.calls[0][0];
-      const headers = await resolve(config.headers());
+      const headers = (await resolve(config.headers))!;
 
       // Verify that the API key was used in the Authorization header
       expect(headers['authorization']).toBe(`Bearer ${testApiKey}`);
@@ -791,7 +853,7 @@ describe('GatewayProvider', () => {
       });
     });
 
-    describe('createGatewayProvider authentication', () => {
+    describe('createGateway authentication', () => {
       authTestCases.forEach(testCase => {
         it(`should handle provider creation with ${testCase.name}`, async () => {
           // Set up environment variables for this test case
@@ -831,7 +893,7 @@ describe('GatewayProvider', () => {
             options.apiKey = testCase.optionsApiKey;
           }
 
-          const provider = createGatewayProvider({
+          const provider = createGateway({
             ...options,
             // Force no caching to ensure headers are called each time
             metadataCacheRefreshMillis: 0,
@@ -952,7 +1014,7 @@ describe('GatewayProvider', () => {
           } as any;
         });
 
-        const provider = createGatewayProvider();
+        const provider = createGateway();
 
         try {
           await provider.getAvailableModels();
@@ -1030,7 +1092,7 @@ describe('GatewayProvider', () => {
           'vercel-deployment-oidc-token',
         );
 
-        const provider = createGatewayProvider();
+        const provider = createGateway();
         const models = await provider.getAvailableModels();
 
         expect(models).toBeDefined();
@@ -1044,7 +1106,7 @@ describe('GatewayProvider', () => {
           AI_GATEWAY_API_KEY: 'local-dev-api-key',
         };
 
-        const provider = createGatewayProvider();
+        const provider = createGateway();
         const models = await provider.getAvailableModels();
 
         expect(models).toBeDefined();
@@ -1060,7 +1122,7 @@ describe('GatewayProvider', () => {
         };
 
         const explicitApiKey = 'explicit-user-api-key';
-        const provider = createGatewayProvider({
+        const provider = createGateway({
           apiKey: explicitApiKey,
         });
 
@@ -1077,7 +1139,7 @@ describe('GatewayProvider', () => {
       const mockCredits = { balance: '150.50', total_used: '75.25' };
       mockGetCredits.mockReturnValue(mockCredits);
 
-      const provider = createGatewayProvider({
+      const provider = createGateway({
         apiKey: 'test-key',
       });
 
@@ -1094,15 +1156,15 @@ describe('GatewayProvider', () => {
     });
 
     it('should handle authentication errors in getCredits', async () => {
-      const provider = createGatewayProvider();
+      const provider = createGateway();
 
       const result = await provider.getCredits();
       expect(result).toEqual({ balance: '100.00', total_used: '50.00' });
     });
 
     it('should work with custom baseURL', async () => {
-      const customBaseURL = 'https://custom-gateway.example.com/v3/ai';
-      const provider = createGatewayProvider({
+      const customBaseURL = 'https://custom-gateway.example.com/v4/ai';
+      const provider = createGateway({
         apiKey: 'test-key',
         baseURL: customBaseURL,
       });
@@ -1119,7 +1181,7 @@ describe('GatewayProvider', () => {
     it('should work with OIDC authentication', async () => {
       vi.mocked(getVercelOidcToken).mockResolvedValue('oidc-token');
 
-      const provider = createGatewayProvider();
+      const provider = createGateway();
 
       const credits = await provider.getCredits();
 
@@ -1131,7 +1193,7 @@ describe('GatewayProvider', () => {
       const testError = new Error('Credits service unavailable');
       mockGetCredits.mockRejectedValue(testError);
 
-      const provider = createGatewayProvider({
+      const provider = createGateway({
         apiKey: 'test-key',
       });
 
@@ -1141,7 +1203,7 @@ describe('GatewayProvider', () => {
     });
 
     it('should include proper headers for credits request', async () => {
-      const provider = createGatewayProvider({
+      const provider = createGateway({
         apiKey: 'test-key',
         headers: { 'custom-header': 'custom-value' },
       });
@@ -1149,7 +1211,7 @@ describe('GatewayProvider', () => {
       await provider.getCredits();
 
       const config = vi.mocked(GatewayFetchMetadata).mock.calls[0][0];
-      const headers = await config.headers();
+      const headers = (await resolve(config.headers))!;
 
       expect(headers).toEqual({
         authorization: 'Bearer test-key',
@@ -1161,7 +1223,7 @@ describe('GatewayProvider', () => {
     });
 
     it('should be available on the provider interface', () => {
-      const provider = createGatewayProvider({ apiKey: 'test-key' });
+      const provider = createGateway({ apiKey: 'test-key' });
       expect(typeof provider.getCredits).toBe('function');
     });
   });
@@ -1173,7 +1235,7 @@ describe('GatewayProvider', () => {
       };
       mockGetSpendReport.mockReturnValue(mockResults);
 
-      const provider = createGatewayProvider({
+      const provider = createGateway({
         apiKey: 'test-key',
       });
 
@@ -1193,7 +1255,7 @@ describe('GatewayProvider', () => {
     });
 
     it('should pass params through to GatewaySpendReport', async () => {
-      const provider = createGatewayProvider({
+      const provider = createGateway({
         apiKey: 'test-key',
       });
 
@@ -1219,8 +1281,8 @@ describe('GatewayProvider', () => {
     });
 
     it('should work with custom baseURL', async () => {
-      const customBaseURL = 'https://custom-gateway.example.com/v3/ai';
-      const provider = createGatewayProvider({
+      const customBaseURL = 'https://custom-gateway.example.com/v4/ai';
+      const provider = createGateway({
         apiKey: 'test-key',
         baseURL: customBaseURL,
       });
@@ -1239,7 +1301,7 @@ describe('GatewayProvider', () => {
 
     it('should work with custom fetch function', async () => {
       const customFetch = vi.fn();
-      const provider = createGatewayProvider({
+      const provider = createGateway({
         apiKey: 'test-key',
         fetch: customFetch,
       });
@@ -1260,7 +1322,7 @@ describe('GatewayProvider', () => {
       const testError = new Error('Reporting service unavailable');
       mockGetSpendReport.mockRejectedValue(testError);
 
-      const provider = createGatewayProvider({
+      const provider = createGateway({
         apiKey: 'test-key',
       });
 
@@ -1273,7 +1335,7 @@ describe('GatewayProvider', () => {
     });
 
     it('should be available on the provider interface', () => {
-      const provider = createGatewayProvider({ apiKey: 'test-key' });
+      const provider = createGateway({ apiKey: 'test-key' });
       expect(typeof provider.getSpendReport).toBe('function');
     });
 
@@ -1291,7 +1353,7 @@ describe('GatewayProvider', () => {
         });
       });
 
-      const provider = createGatewayProvider({
+      const provider = createGateway({
         baseURL: 'https://api.example.com',
         apiKey: 'test-key',
       });
@@ -1313,7 +1375,7 @@ describe('GatewayProvider', () => {
         throw originalError;
       });
 
-      const provider = createGatewayProvider({
+      const provider = createGateway({
         baseURL: 'https://api.example.com',
         apiKey: 'test-key',
       });
@@ -1345,7 +1407,7 @@ describe('GatewayProvider', () => {
         ],
       });
 
-      const provider = createGatewayProvider({
+      const provider = createGateway({
         baseURL: 'https://api.example.com',
         apiKey: 'test-key',
       });
@@ -1390,7 +1452,7 @@ describe('GatewayProvider', () => {
         ],
       });
 
-      const provider = createGatewayProvider({
+      const provider = createGateway({
         baseURL: 'https://api.example.com',
         apiKey: 'test-key',
       });
@@ -1414,7 +1476,7 @@ describe('GatewayProvider', () => {
     });
 
     it('should handle non-existent model requests', async () => {
-      const provider = createGatewayProvider({
+      const provider = createGateway({
         baseURL: 'https://api.example.com',
         apiKey: 'test-key',
       });

@@ -1,24 +1,23 @@
 import {
-  EmbeddingModelV4,
-  LanguageModelV4,
   NoSuchModelError,
-  RerankingModelV4,
-  ProviderV4,
+  type EmbeddingModelV4,
+  type LanguageModelV4,
+  type RerankingModelV4,
+  type ProviderV4,
 } from '@ai-sdk/provider';
-
 import {
-  FetchFunction,
   generateId,
   loadApiKey,
   withoutTrailingSlash,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { CohereChatLanguageModel } from './cohere-chat-language-model';
-import { CohereChatModelId } from './cohere-chat-options';
+import type { CohereChatModelId } from './cohere-chat-language-model-options';
 import { CohereEmbeddingModel } from './cohere-embedding-model';
-import { CohereRerankingModelId } from './reranking/cohere-reranking-options';
+import type { CohereRerankingModelId } from './reranking/cohere-reranking-model-options';
 import { CohereRerankingModel } from './reranking/cohere-reranking-model';
-import { CohereEmbeddingModelId } from './cohere-embedding-options';
+import type { CohereEmbeddingModelId } from './cohere-embedding-model-options';
 import { VERSION } from './version';
 
 export interface CohereProvider extends ProviderV4 {

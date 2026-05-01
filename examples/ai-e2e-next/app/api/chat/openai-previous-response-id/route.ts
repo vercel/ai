@@ -1,16 +1,16 @@
 import {
   openai,
-  OpenaiResponsesProviderMetadata,
-  OpenAILanguageModelResponsesOptions,
+  type OpenaiResponsesProviderMetadata,
+  type OpenAILanguageModelResponsesOptions,
 } from '@ai-sdk/openai';
 import {
   convertToModelMessages,
   createUIMessageStream,
   createUIMessageStreamResponse,
-  InferUITools,
-  stepCountIs,
+  isStepCount,
   streamText,
-  UIMessage,
+  type InferUITools,
+  type UIMessage,
 } from 'ai';
 import { rollDieToolWithProgrammaticCalling } from '@/tool/roll-die-tool-with-programmatic-calling';
 
@@ -49,7 +49,7 @@ export async function POST(req: Request) {
         // Send only the latest user message; OpenAI will fetch prior turns via previousResponseId.
         messages: await convertToModelMessages([message]),
         tools,
-        stopWhen: stepCountIs(20),
+        stopWhen: isStepCount(20),
         reasoning: 'low',
         providerOptions: {
           openai: {

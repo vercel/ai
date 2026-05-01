@@ -1,41 +1,45 @@
-import { IdGenerator } from '@ai-sdk/provider-utils';
-import { ServerResponse } from 'node:http';
-import {
+import type { Context, IdGenerator, ToolSet } from '@ai-sdk/provider-utils';
+import type { ServerResponse } from 'node:http';
+import type {
   CallWarning,
   FinishReason,
   LanguageModelRequestMetadata,
   ProviderMetadata,
 } from '../types';
-import { Source } from '../types/language-model';
-import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
-import { LanguageModelUsage } from '../types/usage';
-import { InferUIMessageChunk } from '../ui-message-stream/ui-message-chunks';
-import { UIMessageStreamOnFinishCallback } from '../ui-message-stream/ui-message-stream-on-finish-callback';
-import { UIMessageStreamResponseInit } from '../ui-message-stream/ui-message-stream-response-init';
-import { InferUIMessageMetadata, UIMessage } from '../ui/ui-messages';
-import { AsyncIterableStream } from '../util/async-iterable-stream';
-import { ErrorHandler } from '../util/error-handler';
-import { ContentPart } from './content-part';
-import { GeneratedFile } from './generated-file';
-import { Output } from './output';
-import {
+import type { Source } from '../types/language-model';
+import type { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
+import type { LanguageModelUsage } from '../types/usage';
+import type { InferUIMessageChunk } from '../ui-message-stream/ui-message-chunks';
+import type { UIMessageStreamOnFinishCallback } from '../ui-message-stream/ui-message-stream-on-finish-callback';
+import type { UIMessageStreamResponseInit } from '../ui-message-stream/ui-message-stream-response-init';
+import type { InferUIMessageMetadata, UIMessage } from '../ui/ui-messages';
+import type { AsyncIterableStream } from '../util/async-iterable-stream';
+import type { ErrorHandler } from '../util/error-handler';
+import type { ContentPart } from './content-part';
+import type { GeneratedFile } from './generated-file';
+import type { Output } from './output';
+import type {
   InferCompleteOutput,
   InferElementOutput,
   InferPartialOutput,
 } from './output-utils';
-import { ReasoningOutput, ReasoningFileOutput } from './reasoning-output';
-import { ResponseMessage } from './response-message';
-import { StepResult } from './step-result';
-import { ToolApprovalRequestOutput } from './tool-approval-request-output';
-import { DynamicToolCall, StaticToolCall, TypedToolCall } from './tool-call';
-import { TypedToolError } from './tool-error';
-import { StaticToolOutputDenied } from './tool-output-denied';
-import {
+import type { ReasoningFileOutput, ReasoningOutput } from './reasoning-output';
+import type { ResponseMessage } from './response-message';
+import type { StepResult } from './step-result';
+import type { ToolApprovalRequestOutput } from './tool-approval-request-output';
+import type { ToolApprovalResponseOutput } from './tool-approval-response-output';
+import type {
+  DynamicToolCall,
+  StaticToolCall,
+  TypedToolCall,
+} from './tool-call';
+import type { TypedToolError } from './tool-error';
+import type { StaticToolOutputDenied } from './tool-output-denied';
+import type {
   DynamicToolResult,
   StaticToolResult,
   TypedToolResult,
 } from './tool-result';
-import { ToolSet } from './tool-set';
 
 export type UIMessageStreamOptions<UI_MESSAGE extends UIMessage> = {
   /**
@@ -108,6 +112,7 @@ export type ConsumeStreamOptions = {
  */
 export interface StreamTextResult<
   TOOLS extends ToolSet,
+  RUNTIME_CONTEXT extends Context,
   OUTPUT extends Output,
 > {
   /**
@@ -237,7 +242,7 @@ export interface StreamTextResult<
    *
    * Automatically consumes the stream.
    */
-  readonly steps: PromiseLike<Array<StepResult<TOOLS>>>;
+  readonly steps: PromiseLike<Array<StepResult<TOOLS, RUNTIME_CONTEXT>>>;
 
   /**
    * Additional request information from the last step.
@@ -467,6 +472,9 @@ export type TextStreamToolOutputDeniedPart<TOOLS extends ToolSet> = {
 export type TextStreamToolApprovalRequestPart<TOOLS extends ToolSet> =
   ToolApprovalRequestOutput<TOOLS>;
 
+export type TextStreamToolApprovalResponsePart<TOOLS extends ToolSet> =
+  ToolApprovalResponseOutput<TOOLS>;
+
 export type TextStreamStartStepPart = {
   type: 'start-step';
   request: LanguageModelRequestMetadata;
@@ -527,6 +535,7 @@ export type TextStreamPart<TOOLS extends ToolSet> =
   | TextStreamToolErrorPart<TOOLS>
   | TextStreamToolOutputDeniedPart<TOOLS>
   | TextStreamToolApprovalRequestPart<TOOLS>
+  | TextStreamToolApprovalResponsePart<TOOLS>
   | TextStreamStartStepPart
   | TextStreamFinishStepPart
   | TextStreamStartPart

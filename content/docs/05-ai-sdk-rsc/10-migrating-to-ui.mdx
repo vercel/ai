@@ -165,7 +165,7 @@ With AI SDK UI, `useChat` comes with built-in support for parallel tool calls. Y
 
 In AI SDK RSC, `streamUI` does not support multi-step tool calls. You will have to use a combination of `streamText`, `createStreamableUI` and `createStreamableValue`.
 
-With AI SDK UI, `useChat` comes with built-in support for multi-step tool calls. You can set `maxSteps` in the `streamText` function to define the number of steps the language model can make in a single call. The `useChat` hook will then handle the multi-step tool calls for you automatically.
+With AI SDK UI, `useChat` comes with built-in support for multi-step tool calls. You can set `stopWhen` in the `streamText` function to define when the model should stop making tool calls. The `useChat` hook will then handle the multi-step tool calls for you automatically.
 
 ### Generative User Interfaces
 
@@ -354,7 +354,6 @@ export function ListFlights({ chatId, flights }) {
   const { append } = useChat({
     id: chatId,
     body: { id: chatId },
-    maxSteps: 5,
   });
 
   return (

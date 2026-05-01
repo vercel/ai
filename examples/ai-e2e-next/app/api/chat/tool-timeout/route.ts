@@ -1,13 +1,13 @@
 import { openai } from '@ai-sdk/openai';
 import {
   convertToModelMessages,
-  InferUITools,
-  stepCountIs,
+  isStepCount,
   streamText,
   tool,
-  UIDataTypes,
-  UIMessage,
   validateUIMessages,
+  type InferUITools,
+  type UIDataTypes,
+  type UIMessage,
 } from 'ai';
 import { z } from 'zod';
 
@@ -55,7 +55,7 @@ export async function POST(req: Request) {
     timeout: {
       toolMs: 1000,
     },
-    stopWhen: stepCountIs(2),
+    stopWhen: isStepCount(2),
   });
 
   return result.toUIMessageStreamResponse();

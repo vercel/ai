@@ -1,13 +1,16 @@
-import { openai, OpenAILanguageModelResponsesOptions } from '@ai-sdk/openai';
+import {
+  openai,
+  type OpenAILanguageModelResponsesOptions,
+} from '@ai-sdk/openai';
 import {
   convertToModelMessages,
-  InferUITools,
-  stepCountIs,
+  isStepCount,
   streamText,
   tool,
-  UIDataTypes,
-  UIMessage,
   validateUIMessages,
+  type InferUITools,
+  type UIDataTypes,
+  type UIMessage,
 } from 'ai';
 import { z } from 'zod';
 
@@ -95,7 +98,7 @@ export async function POST(req: Request) {
   const result = streamText({
     model: openai('gpt-5-mini'),
     messages: await convertToModelMessages(messages),
-    stopWhen: stepCountIs(5), // multi-steps for server-side tools
+    stopWhen: isStepCount(5), // multi-steps for server-side tools
     tools,
     providerOptions: {
       openai: {

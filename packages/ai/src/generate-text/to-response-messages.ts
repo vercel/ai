@@ -1,12 +1,12 @@
-import {
+import type {
   AssistantContent,
   AssistantModelMessage,
   ToolContent,
   ToolModelMessage,
 } from '../prompt';
 import { createToolModelOutput } from '../prompt/create-tool-model-output';
-import { ContentPart } from './content-part';
-import { ToolSet } from './tool-set';
+import type { ContentPart } from './content-part';
+import type { ToolSet } from '@ai-sdk/provider-utils';
 
 /**
  * Converts the result of a `generateText` or `streamText` call to a list of response messages.
@@ -83,7 +83,8 @@ export async function toResponseMessages<TOOLS extends ToolSet>({
           type: 'tool-call',
           toolCallId: part.toolCallId,
           toolName: part.toolName,
-          input: part.input,
+          input:
+            part.invalid && typeof part.input !== 'object' ? {} : part.input,
           providerExecuted: part.providerExecuted,
           providerOptions: part.providerMetadata,
         });
@@ -127,6 +128,7 @@ export async function toResponseMessages<TOOLS extends ToolSet>({
           type: 'tool-approval-request',
           approvalId: part.approvalId,
           toolCallId: part.toolCall.toolCallId,
+          isAutomatic: part.isAutomatic,
         });
         break;
     }
@@ -142,9 +144,40 @@ export async function toResponseMessages<TOOLS extends ToolSet>({
   const toolResultContent: ToolContent = [];
   for (const part of inputContent) {
     if (
-      !(part.type === 'tool-result' || part.type === 'tool-error') ||
-      part.providerExecuted
+      part.type !== 'tool-approval-response' &&
+      part.type !== 'tool-result' &&
+      part.type !== 'tool-error'
     ) {
+      continue;
+    }
+
+    if (part.type === 'tool-approval-response') {
+      toolResultContent.push({
+        type: 'tool-approval-response',
+        approvalId: part.approvalId,
+        approved: part.approved,
+        reason: part.reason,
+        providerExecuted: part.providerExecuted,
+      });
+
+      // when the tool approval is denied,
+      // we need to add an execution-denied tool result
+      // since there is no corresponding tool result for the tool call
+      if (part.approved === false) {
+        toolResultContent.push({
+          type: 'tool-result',
+          toolCallId: part.toolCall.toolCallId,
+          toolName: part.toolCall.toolName,
+          output: {
+            type: 'execution-denied' as const,
+            reason: part.reason,
+          },
+        });
+      }
+      continue;
+    }
+
+    if (part.providerExecuted) {
       continue;
     }
 

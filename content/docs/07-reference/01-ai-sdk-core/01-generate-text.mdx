@@ -21,6 +21,10 @@ const { text } = await generateText({
 console.log(text);
 ```
 
+For guidance on `runtimeContext`, `toolsContext`, tool `context`, and sensitive
+context filtering, see [Runtime and Tool
+Context](/docs/ai-sdk-core/runtime-and-tool-context).
+
 To see `generateText` in action, check out [these examples](#examples).
 
 ## Import
@@ -323,6 +327,13 @@ To see `generateText` in action, check out [these examples](#examples).
       ],
     },
     {
+      name: 'allowSystemInMessages',
+      type: 'boolean',
+      isOptional: true,
+      description:
+        'Whether system messages are allowed in the `prompt` or `messages` fields. Defaults to false. System messages in the `system` option are always allowed. Enabling this for user-controlled messages can create a prompt injection risk.',
+    },
+    {
       name: 'tools',
       type: 'ToolSet',
       description:
@@ -478,20 +489,20 @@ To see `generateText` in action, check out [these examples](#examples).
         'Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.',
     },
     {
-      name: 'experimental_telemetry',
-      type: 'TelemetrySettings',
+      name: 'telemetry',
+      type: 'TelemetryOptions',
       isOptional: true,
-      description: 'Telemetry configuration. Experimental feature.',
+      description: 'Telemetry configuration.',
       properties: [
         {
-          type: 'TelemetrySettings',
+          type: 'TelemetryOptions',
           parameters: [
             {
               name: 'isEnabled',
               type: 'boolean',
               isOptional: true,
               description:
-                'Enable or disable telemetry. Disabled by default while experimental.',
+                'Enable or disable telemetry. Enabled by default. Set to `false` to opt out.',
             },
             {
               name: 'recordInputs',
@@ -515,11 +526,11 @@ To see `generateText` in action, check out [these examples](#examples).
                 'Identifier for this function. Used to group telemetry data by function.',
             },
             {
-              name: 'metadata',
+              name: 'integrations',
               isOptional: true,
-              type: 'Record<string, string | number | boolean | Array<null | undefined | string> | Array<null | undefined | number> | Array<null | undefined | boolean>>',
+              type: 'Telemetry | Telemetry[]',
               description:
-                'Additional information to include in the telemetry data.',
+                'Per-call telemetry integrations that receive lifecycle events. When provided, these replace any globally registered integrations for this call.',
             },
           ],
         },
@@ -534,17 +545,24 @@ To see `generateText` in action, check out [these examples](#examples).
     },
     {
       name: 'activeTools',
-      type: 'Array<TOOLNAME>',
+      type: 'ActiveTools<TOOLS>',
       isOptional: true,
       description:
-        'Limits the tools that are available for the model to call without changing the tool call and result types in the result. All tools are active by default.',
+        'Limits the tools that are available for the model to call without changing the tool call and result types in the result. All tools are active by default. Tool names are restricted to the string keys of the tool set.',
+    },
+    {
+      name: 'toolApproval',
+      type: 'ToolApprovalConfiguration<TOOLS, RUNTIME_CONTEXT>',
+      isOptional: true,
+      description:
+        "Approval configuration for this call. Pass a `GenericToolApprovalFunction` to handle all tool calls in one callback with `toolCall`, `tools`, `toolsContext`, `messages`, and `runtimeContext`, or pass a per-tool object where each key can be a status (`'not-applicable'`, `'approved'`, `'denied'`, or `'user-approval'`), an object form such as `{ type: 'denied', reason: 'blocked by policy' }`, or a `SingleToolApprovalFunction` that receives the tool input and options `toolCallId`, `messages`, `toolContext`, and `runtimeContext` (same shape as tool execution options without `abortSignal`, with `context` renamed to `toolContext`). The `RUNTIME_CONTEXT` type parameter matches the call's `runtimeContext`. A `GenericToolApprovalFunction` or `SingleToolApprovalFunction` may return `undefined` for the same effect as `'not-applicable'`. `'not-applicable'` is the default execution path and runs the tool without approval metadata. Use `'approved'`, `'denied'`, or their object forms when you want explicit automatic approval request/response parts in the output. Automatic approvals and denials can include a `reason`, which is forwarded to the emitted approval response. This setting takes precedence over a tool's `needsApproval` default.",
     },
     {
       name: 'stopWhen',
       type: 'StopCondition<TOOLS> | Array<StopCondition<TOOLS>>',
       isOptional: true,
       description:
-        'Condition for stopping the generation when there are tool results in the last step. When the condition is an array, any of the conditions can be met to stop the generation. Default: stepCountIs(1).',
+        'Condition for stopping the generation when there are tool results in the last step. When the condition is an array, any of the conditions can be met to stop the generation. Default: isStepCount(1).',
     },
     {
       name: 'prepareStep',
@@ -587,11 +605,17 @@ To see `generateText` in action, check out [these examples](#examples).
                         'The messages that will be sent to the model for the current step.',
                     },
                     {
-                      name: 'experimental_context',
-                      type: 'unknown',
+                      name: 'runtimeContext',
+                      type: 'CONTEXT',
                       isOptional: true,
                       description:
-                        'The context passed via the experimental_context setting (experimental).',
+                        'The shared runtime context passed via the `runtimeContext` setting.',
+                    },
+                    {
+                      name: 'toolsContext',
+                      type: 'InferToolSetContext<TOOLS>',
+                      description:
+                        'The per-tool context map passed via the `toolsContext` setting.',
                     },
                   ],
                 },
@@ -620,7 +644,7 @@ To see `generateText` in action, check out [these examples](#examples).
             },
             {
               name: 'activeTools',
-              type: 'Array<keyof TOOLS>',
+              type: 'ActiveTools<TOOLS>',
               isOptional: true,
               description:
                 'If provided, only these tools are enabled/available for this step.',
@@ -640,11 +664,17 @@ To see `generateText` in action, check out [these examples](#examples).
                 'Optionally override the full set of messages sent to the model for this step.',
             },
             {
-              name: 'experimental_context',
-              type: 'unknown',
+              name: 'runtimeContext',
+              type: 'CONTEXT',
               isOptional: true,
               description:
-                'Context that is passed into tool execution. Experimental. Changing the context will affect the context in this step and all subsequent steps.',
+                'Shared runtime context. Changing it will affect this step and all subsequent steps.',
+            },
+            {
+              name: 'toolsContext',
+              type: 'InferToolSetContext<TOOLS>',
+              description:
+                'Per-tool context map. Changing it will affect tool-specific context in this step and all subsequent steps.',
             },
             {
               name: 'providerOptions',
@@ -658,11 +688,24 @@ To see `generateText` in action, check out [these examples](#examples).
       ],
     },
     {
-      name: 'experimental_context',
-      type: 'unknown',
+      name: 'runtimeContext',
+      type: 'CONTEXT',
       isOptional: true,
       description:
-        'Context that is passed into tool execution. Experimental (can break in patch releases).',
+        'User-defined shared runtime context object passed to `prepareStep` and lifecycle callbacks.',
+    },
+    {
+      name: 'sensitiveRuntimeContext',
+      type: 'SensitiveContext<CONTEXT>',
+      isOptional: true,
+      description:
+        'Top-level runtime context properties that contain sensitive data and should be excluded from telemetry. Properties marked as `true` are omitted from telemetry integrations. Lifecycle callbacks and returned results still receive the full `runtimeContext`.',
+    },
+    {
+      name: 'toolsContext',
+      type: 'InferToolSetContext<TOOLS>',
+      description:
+        'Per-tool context map keyed by tool name. Required when at least one tool defines `contextSchema`; not accepted when no tools need context.',
     },
     {
       name: 'experimental_download',
@@ -891,18 +934,23 @@ To see `generateText` in action, check out [these examples](#examples).
     },
     {
       name: 'experimental_onStart',
-      type: '(event: OnStartEvent) => PromiseLike<void> | void',
+      type: '(event: GenerateTextStartEvent) => PromiseLike<void> | void',
       isOptional: true,
       description:
         'Callback that is called when the generateText operation begins, before any LLM calls are made. Errors thrown in this callback are silently caught and do not break the generation flow. Experimental (can break in patch releases).',
       properties: [
         {
-          type: 'OnStartEvent',
+          type: 'GenerateTextStartEvent',
           parameters: [
             {
-              name: 'model',
-              type: '{ provider: string; modelId: string }',
-              description: 'The model being used for the generation.',
+              name: 'provider',
+              type: 'string',
+              description: 'The provider identifier (e.g., "openai", "anthropic").',
+            },
+            {
+              name: 'modelId',
+              type: 'string',
+              description: 'The specific model identifier (e.g., "gpt-4o").',
             },
             {
               name: 'system',
@@ -910,15 +958,9 @@ To see `generateText` in action, check out [these examples](#examples).
               description: 'The system message(s) provided to the model.',
             },
             {
-              name: 'prompt',
-              type: 'string | Array<ModelMessage> | undefined',
-              description:
-                'The prompt string or array of messages if using the prompt option.',
-            },
-            {
               name: 'messages',
-              type: 'Array<ModelMessage> | undefined',
-              description: 'The messages array if using the messages option.',
+              type: 'Array<ModelMessage>',
+              description: 'The messages for this generation.',
             },
             {
               name: 'tools',
@@ -932,7 +974,7 @@ To see `generateText` in action, check out [these examples](#examples).
             },
             {
               name: 'activeTools',
-              type: 'Array<keyof TOOLS> | undefined',
+              type: 'ActiveTools<TOOLS>',
               description:
                 'Limits which tools are available for the model to call.',
             },
@@ -998,12 +1040,6 @@ To see `generateText` in action, check out [these examples](#examples).
               description: 'Additional provider-specific options.',
             },
             {
-              name: 'stopWhen',
-              type: 'StopCondition<TOOLS> | Array<StopCondition<TOOLS>> | undefined',
-              description:
-                'Condition(s) for stopping the generation. When the condition is an array, any of the conditions can be met to stop.',
-            },
-            {
               name: 'output',
               type: 'OUTPUT | undefined',
               description:
@@ -1021,21 +1057,16 @@ To see `generateText` in action, check out [these examples](#examples).
                 'Settings for controlling what data is included in step results.',
             },
             {
-              name: 'functionId',
-              type: 'string | undefined',
+              name: 'runtimeContext',
+              type: 'CONTEXT',
               description:
-                'Identifier from telemetry settings for grouping related operations.',
+                'User-defined shared runtime context object that flows through the generation lifecycle.',
             },
             {
-              name: 'metadata',
-              type: 'Record<string, unknown> | undefined',
-              description: 'Additional metadata passed to the generation.',
-            },
-            {
-              name: 'experimental_context',
-              type: 'unknown',
+              name: 'toolsContext',
+              type: 'InferToolSetContext<TOOLS>',
               description:
-                'User-defined context object that flows through the entire generation lifecycle.',
+                'Per-tool context map passed via `toolsContext`, keyed by tool name.',
             },
           ],
         },
@@ -1043,13 +1074,13 @@ To see `generateText` in action, check out [these examples](#examples).
     },
     {
       name: 'experimental_onStepStart',
-      type: '(event: OnStepStartEvent) => PromiseLike<void> | void',
+      type: '(event: GenerateTextStepStartEvent) => PromiseLike<void> | void',
       isOptional: true,
       description:
         'Callback that is called when a step (LLM call) begins, before the provider is called. Errors thrown in this callback are silently caught and do not break the generation flow. Experimental (can break in patch releases).',
       properties: [
         {
-          type: 'OnStepStartEvent',
+          type: 'GenerateTextStepStartEvent',
           parameters: [
             {
               name: 'stepNumber',
@@ -1057,9 +1088,14 @@ To see `generateText` in action, check out [these examples](#examples).
               description: 'Zero-based index of the current step.',
             },
             {
-              name: 'model',
-              type: '{ provider: string; modelId: string }',
-              description: 'The model being used for this step.',
+              name: 'provider',
+              type: 'string',
+              description: 'The provider identifier (e.g., "openai", "anthropic").',
+            },
+            {
+              name: 'modelId',
+              type: 'string',
+              description: 'The specific model identifier (e.g., "gpt-4o").',
             },
             {
               name: 'system',
@@ -1084,7 +1120,7 @@ To see `generateText` in action, check out [these examples](#examples).
             },
             {
               name: 'activeTools',
-              type: 'Array<keyof TOOLS> | undefined',
+              type: 'ActiveTools<TOOLS>',
               description: 'Limits which tools are available for this step.',
             },
             {
@@ -1134,47 +1170,119 @@ To see `generateText` in action, check out [these examples](#examples).
                 'Settings for controlling what data is included in step results.',
             },
             {
-              name: 'functionId',
-              type: 'string | undefined',
+              name: 'runtimeContext',
+              type: 'CONTEXT',
               description:
-                'Identifier from telemetry settings for grouping related operations.',
+                'User-defined shared runtime context object. May be updated from prepareStep between steps.',
             },
             {
-              name: 'metadata',
-              type: 'Record<string, unknown> | undefined',
-              description: 'Additional metadata from telemetry settings.',
-            },
-            {
-              name: 'experimental_context',
-              type: 'unknown',
+              name: 'toolsContext',
+              type: 'InferToolSetContext<TOOLS>',
               description:
-                'User-defined context object. May be updated from prepareStep between steps.',
+                'Per-tool context map. May be updated from prepareStep between steps.',
             },
           ],
         },
       ],
     },
     {
-      name: 'experimental_onToolCallStart',
-      type: '(event: OnToolCallStartEvent) => PromiseLike<void> | void',
+      name: 'experimental_onLanguageModelCallStart',
+      type: '(event: LanguageModelCallStartEvent) => PromiseLike<void> | void',
+      isOptional: true,
+      description:
+        'Callback that is called immediately before the provider model call begins. Unlike `experimental_onStepStart`, this callback is scoped to model work only and excludes any later client-side tool execution. Errors thrown in this callback are silently caught and do not break the generation flow. Experimental (can break in patch releases).',
+      properties: [
+        {
+          type: 'LanguageModelCallStartEvent',
+          parameters: [
+            {
+              name: 'callId',
+              type: 'string',
+              description: 'Unique identifier for the generation call.',
+            },
+            {
+              name: 'provider',
+              type: 'string',
+              description: 'The provider identifier for this model call.',
+            },
+            {
+              name: 'modelId',
+              type: 'string',
+              description: 'The specific model identifier for this model call.',
+            },
+            {
+              name: 'messages',
+              type: 'Array<ModelMessage>',
+              description: 'The messages that will be sent to the model.',
+            },
+            {
+              name: 'tools',
+              type: 'ReadonlyArray<Record<string, unknown>> | undefined',
+              description: 'Prepared tool definitions for the model call, if any.',
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'experimental_onLanguageModelCallEnd',
+      type: '(event: LanguageModelCallEndEvent) => PromiseLike<void> | void',
+      isOptional: true,
+      description:
+        'Callback that is called after the model response has been normalized and parsed, but before any client-side tool execution begins. Errors thrown in this callback are silently caught and do not break the generation flow. Experimental (can break in patch releases).',
+      properties: [
+        {
+          type: 'LanguageModelCallEndEvent',
+          parameters: [
+            {
+              name: 'callId',
+              type: 'string',
+              description: 'Unique identifier for the generation call.',
+            },
+            {
+              name: 'provider',
+              type: 'string',
+              description: 'The provider identifier for this model call.',
+            },
+            {
+              name: 'modelId',
+              type: 'string',
+              description: 'The specific model identifier for this model call.',
+            },
+            {
+              name: 'finishReason',
+              type: 'FinishReason',
+              description: 'The unified reason why the model call finished.',
+            },
+            {
+              name: 'usage',
+              type: 'LanguageModelUsage',
+              description: 'Token usage reported by the model call.',
+            },
+            {
+              name: 'content',
+              type: 'ReadonlyArray<ContentPart<TOOLS>>',
+              description:
+                'The content parts produced by the model call (text, reasoning, files, tool calls, etc.).',
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'experimental_onToolExecutionStart',
+      type: '(event: ToolExecutionStartEvent) => PromiseLike<void> | void',
       isOptional: true,
       description:
         "Callback that is called right before a tool's execute function runs. Errors thrown in this callback are silently caught and do not break the generation flow. Experimental (can break in patch releases).",
       properties: [
         {
-          type: 'OnToolCallStartEvent',
+          type: 'ToolExecutionStartEvent',
           parameters: [
             {
-              name: 'stepNumber',
-              type: 'number | undefined',
-              description:
-                'The zero-based index of the current step where this tool call occurs. May be undefined in streaming contexts.',
-            },
-            {
-              name: 'model',
-              type: '{ provider: string; modelId: string } | undefined',
-              description:
-                'Information about the model being used. May be undefined in streaming contexts.',
+              name: 'callId',
+              type: 'string',
+              description: 'Unique identifier for this generation call, used to correlate events.',
             },
             {
               name: 'toolCall',
@@ -1186,72 +1294,38 @@ To see `generateText` in action, check out [these examples](#examples).
               name: 'messages',
               type: 'Array<ModelMessage>',
               description:
-                'The conversation messages available at tool execution time.',
+                'Messages that were sent to the language model to initiate the response that contained the tool call. Does not include the system prompt nor the assistant response that contained the tool call.',
             },
             {
-              name: 'abortSignal',
-              type: 'AbortSignal | undefined',
-              description: 'Signal for cancelling the operation.',
-            },
-            {
-              name: 'functionId',
-              type: 'string | undefined',
+              name: 'toolContext',
+              type: 'InferToolContext<TOOLS[toolName]>',
               description:
-                'Identifier from telemetry settings for grouping related operations.',
-            },
-            {
-              name: 'metadata',
-              type: 'Record<string, unknown> | undefined',
-              description: 'Additional metadata from telemetry settings.',
-            },
-            {
-              name: 'experimental_context',
-              type: 'unknown',
-              description:
-                'User-defined context object flowing through the generation.',
+                'Tool-specific context object for the tool call that is about to execute. Narrowed to the context type of the individual tool, not the entire tool set.',
             },
           ],
         },
       ],
     },
     {
-      name: 'experimental_onToolCallFinish',
-      type: '(event: OnToolCallFinishEvent) => PromiseLike<void> | void',
+      name: 'experimental_onToolExecutionEnd',
+      type: '(event: ToolExecutionEndEvent) => PromiseLike<void> | void',
       isOptional: true,
       description:
-        "Callback that is called right after a tool's execute function completes (or errors). Uses a discriminated union on the `success` field: when `success: true`, `output` contains the tool result; when `success: false`, `error` contains the error. Errors thrown in this callback are silently caught and do not break the generation flow. Experimental (can break in patch releases).",
+        "Callback that is called right after a tool's execute function completes (or errors). The `toolOutput` field is a discriminated union: when `toolOutput.type` is `'tool-result'`, the `output` field contains the tool result; when `toolOutput.type` is `'tool-error'`, the `error` field contains the error. Errors thrown in this callback are silently caught and do not break the generation flow. Experimental (can break in patch releases).",
       properties: [
         {
-          type: 'OnToolCallFinishEvent',
+          type: 'ToolExecutionEndEvent',
           parameters: [
             {
-              name: 'stepNumber',
-              type: 'number | undefined',
-              description:
-                'The zero-based index of the current step where this tool call occurred. May be undefined in streaming contexts.',
-            },
-            {
-              name: 'model',
-              type: '{ provider: string; modelId: string } | undefined',
-              description:
-                'Information about the model being used. May be undefined in streaming contexts.',
+              name: 'callId',
+              type: 'string',
+              description: 'Unique identifier for this generation call, used to correlate events.',
             },
             {
               name: 'toolCall',
               type: 'TypedToolCall<TOOLS>',
               description:
                 'The full tool call object containing toolName, toolCallId, input, and metadata.',
-            },
-            {
-              name: 'messages',
-              type: 'Array<ModelMessage>',
-              description:
-                'The conversation messages available at tool execution time.',
-            },
-            {
-              name: 'abortSignal',
-              type: 'AbortSignal | undefined',
-              description: 'Signal for cancelling the operation.',
             },
             {
               name: 'durationMs',
@@ -1260,39 +1334,22 @@ To see `generateText` in action, check out [these examples](#examples).
                 'The wall-clock duration of the tool execution in milliseconds.',
             },
             {
-              name: 'functionId',
-              type: 'string | undefined',
+              name: 'messages',
+              type: 'Array<ModelMessage>',
               description:
-                'Identifier from telemetry settings for grouping related operations.',
+                'Messages that were sent to the language model to initiate the response that contained the tool call. Does not include the system prompt nor the assistant response that contained the tool call.',
             },
             {
-              name: 'metadata',
-              type: 'Record<string, unknown> | undefined',
-              description: 'Additional metadata from telemetry settings.',
+              name: 'toolContext',
+              type: 'InferToolContext<TOOLS[toolName]>',
+              description:
+                'Tool-specific context object for the tool call that just completed. Narrowed to the context type of the individual tool, not the entire tool set.',
             },
             {
-              name: 'experimental_context',
-              type: 'unknown',
+              name: 'toolOutput',
+              type: 'ToolOutput<TOOLS>',
               description:
-                'User-defined context object flowing through the generation.',
-            },
-            {
-              name: 'success',
-              type: 'boolean',
-              description:
-                'Discriminator indicating whether the tool call succeeded. When true, output is available. When false, error is available.',
-            },
-            {
-              name: 'output',
-              type: 'unknown',
-              description:
-                "The tool's return value (only present when `success: true`).",
-            },
-            {
-              name: 'error',
-              type: 'unknown',
-              description:
-                'The error that occurred during tool execution (only present when `success: false`).',
+                "Discriminated union representing the tool execution result. When `type` is `'tool-result'`, the `output` field contains the tool's return value. When `type` is `'tool-error'`, the `error` field contains the error.",
             },
           ],
         },
@@ -1320,21 +1377,16 @@ To see `generateText` in action, check out [these examples](#examples).
                 'Information about the model that produced this step.',
             },
             {
-              name: 'functionId',
-              type: 'string | undefined',
+              name: 'runtimeContext',
+              type: 'CONTEXT',
               description:
-                'Identifier from telemetry settings for grouping related operations.',
+                'User-defined shared runtime context object flowing through the generation.',
             },
             {
-              name: 'metadata',
-              type: 'Record<string, unknown> | undefined',
-              description: 'Additional metadata from telemetry settings.',
-            },
-            {
-              name: 'experimental_context',
-              type: 'unknown',
+              name: 'toolsContext',
+              type: 'InferToolSetContext<TOOLS>',
               description:
-                'User-defined context object flowing through the generation.',
+                'Per-tool context map for the generation step.',
             },
             {
               name: 'content',
@@ -1583,7 +1635,7 @@ To see `generateText` in action, check out [these examples](#examples).
         'Callback that is called when the entire generation completes (all steps finished). The event includes the final step result properties along with aggregated data from all steps.',
       properties: [
         {
-          type: 'OnFinishEvent',
+          type: 'GenerateTextEndEvent',
           parameters: [
             {
               name: 'stepNumber',
@@ -1595,17 +1647,6 @@ To see `generateText` in action, check out [these examples](#examples).
               type: '{ provider: string; modelId: string }',
               description:
                 'Information about the model that produced the final step.',
-            },
-            {
-              name: 'functionId',
-              type: 'string | undefined',
-              description:
-                'Identifier from telemetry settings for grouping related operations.',
-            },
-            {
-              name: 'metadata',
-              type: 'Record<string, unknown> | undefined',
-              description: 'Additional metadata from telemetry settings.',
             },
             {
               name: 'finishReason',
@@ -1974,10 +2015,16 @@ To see `generateText` in action, check out [these examples](#examples).
                 'Response information for every step. You can use this to get information about intermediate steps, such as the tool calls or the response headers.',
             },
             {
-              name: 'experimental_context',
-              type: 'unknown',
+              name: 'runtimeContext',
+              type: 'CONTEXT',
               description:
-                'The final state of the user-defined context object. This reflects any modifications made during the generation lifecycle via prepareStep or tool execution.',
+                'The final state of the user-defined shared runtime context object. This reflects any modifications made during the generation lifecycle via `prepareStep`.',
+            },
+            {
+              name: 'toolsContext',
+              type: 'InferToolSetContext<TOOLS>',
+              description:
+                'The final state of the per-tool context map passed via `toolsContext`.',
             },
           ],
         },
@@ -2383,7 +2430,7 @@ To see `generateText` in action, check out [these examples](#examples).
       name: 'output',
       type: 'Output',
       isOptional: true,
-      description: 'Experimental setting for generating structured outputs.',
+      description: 'The generated structured output. It uses the `output` specification.',
     },
     {
       name: 'steps',
@@ -2406,21 +2453,16 @@ To see `generateText` in action, check out [these examples](#examples).
                 'Information about the model that produced this step.',
             },
             {
-              name: 'functionId',
-              type: 'string | undefined',
+              name: 'runtimeContext',
+              type: 'CONTEXT',
               description:
-                'Identifier from telemetry settings for grouping related operations.',
+                'User-defined shared runtime context object flowing through the generation.',
             },
             {
-              name: 'metadata',
-              type: 'Record<string, unknown> | undefined',
-              description: 'Additional metadata from telemetry settings.',
-            },
-            {
-              name: 'experimental_context',
-              type: 'unknown',
+              name: 'toolsContext',
+              type: 'InferToolSetContext<TOOLS>',
               description:
-                'User-defined context object flowing through the generation.',
+                'Per-tool context map for the final generation step.',
             },
             {
               name: 'content',
@@ -2749,6 +2791,28 @@ To see `generateText` in action, check out [these examples](#examples).
     },
   ]}
 />
+
+## Types
+
+### `ActiveTools`
+
+```ts
+type ActiveTools<TOOLS extends ToolSet> =
+  | ReadonlyArray<keyof TOOLS & string>
+  | undefined;
+```
+
+Limits a generation step to the listed tool names. `undefined` means no tool restriction is applied.
+
+### `SensitiveContext`
+
+```ts
+type SensitiveContext<CONTEXT extends Context> =
+  | { [KEY in keyof CONTEXT]?: boolean }
+  | undefined;
+```
+
+Marks top-level context properties that should be excluded from telemetry. Set a property to `true` to omit it from telemetry integrations; omitted or `false` properties are still sent.
 
 ## Examples
 

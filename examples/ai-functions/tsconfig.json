@@ -36,6 +36,9 @@
       "path": "../../packages/cerebras"
     },
     {
+      "path": "../../packages/devtools"
+    },
+    {
       "path": "../../packages/elevenlabs"
     },
     {
@@ -99,6 +102,9 @@
       "path": "../../packages/openai-compatible"
     },
     {
+      "path": "../../packages/otel"
+    },
+    {
       "path": "../../packages/perplexity"
     },
     {
@@ -115,6 +121,9 @@
     },
     {
       "path": "../../packages/valibot"
+    },
+    {
+      "path": "../../packages/voyage"
     },
     {
       "path": "../../packages/xai"

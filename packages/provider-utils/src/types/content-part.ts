@@ -1,6 +1,8 @@
-import { JSONValue } from '@ai-sdk/provider';
-import { DataContent } from './data-content';
-import { ProviderOptions } from './provider-options';
+import type { JSONValue } from '@ai-sdk/provider';
+import type { DataContent } from './data-content';
+import type { FileData, FileDataData, FileDataUrl } from './file-data';
+import type { ProviderOptions } from './provider-options';
+import type { ProviderReference } from './provider-reference';
 
 /**
  * Text content part of a prompt. It contains a string of text.
@@ -23,6 +25,9 @@ export interface TextPart {
 
 /**
  * Image content part of a prompt. It contains an image.
+ *
+ * @deprecated Use `FilePart` with `mediaType: 'image'` instead:
+ * `{ type: 'file', mediaType: 'image', data: { type: 'data', data } }`.
  */
 export interface ImagePart {
   type: 'image';
@@ -32,8 +37,9 @@ export interface ImagePart {
    *
    * - data: a base64-encoded string, a Uint8Array, an ArrayBuffer, or a Buffer
    * - URL: a URL that points to the image
+   * - ProviderReference: a provider reference from `uploadFile`
    */
-  image: DataContent | URL;
+  image: DataContent | URL | ProviderReference;
 
   /**
    * Optional IANA media type of the image.
@@ -57,12 +63,16 @@ export interface FilePart {
   type: 'file';
 
   /**
-   * File data. Can either be:
+   * File data. Either a tagged shape or a bare shorthand:
    *
-   * - data: a base64-encoded string, a Uint8Array, an ArrayBuffer, or a Buffer
-   * - URL: a URL that points to the image
+   * - `{ type: 'data', data }` or bare `DataContent`: raw bytes
+   *   (base64 string, Uint8Array, ArrayBuffer, Buffer)
+   * - `{ type: 'url', url }` or bare `URL`: a URL that points to the file
+   * - `{ type: 'reference', reference }` or bare `ProviderReference`:
+   *   a provider reference from `uploadFile`
+   * - `{ type: 'text', text }`: inline text content (tagged only)
    */
-  data: DataContent | URL;
+  data: FileData | DataContent | URL | ProviderReference;
 
   /**
    * Optional filename of the file.
@@ -70,7 +80,14 @@ export interface FilePart {
   filename?: string;
 
   /**
-   * IANA media type of the file.
+   * Either a full IANA media type (`type/subtype`, e.g. `image/png`) or just
+   * the top-level IANA segment (e.g. `image`, `audio`, `video`, `text`).
+   *
+   * `*`-subtype wildcards (e.g. `image/*`) are normalized as equivalent to the
+   * top-level segment alone (e.g. `image`). Providers can use the helpers in
+   * `@ai-sdk/provider-utils` (`isFullMediaType`, `getTopLevelMediaType`,
+   * `detectMediaType`) to resolve the field according to their API
+   * requirements.
    *
    * @see https://www.iana.org/assignments/media-types/media-types.xhtml
    */
@@ -130,12 +147,21 @@ export interface ReasoningFilePart {
   type: 'reasoning-file';
 
   /**
-   * File data. Can either be:
+   * Reasoning file data.
    *
-   * - data: a base64-encoded string, a Uint8Array, an ArrayBuffer, or a Buffer
-   * - URL: a URL that points to the file
+   * Reasoning files originate from a model's reasoning output and are always
+   * raw bytes or a fetchable URL. Unlike `FilePart.data`, the `reference` and
+   * `text` shapes are not supported here: provider references describe files
+   * uploaded by the user (not produced as model output), and reasoning text is
+   * carried by `ReasoningPart` rather than as a file.
+   *
+   * Either a tagged shape or a bare shorthand:
+   *
+   * - `{ type: 'data', data }` or bare `DataContent`: raw bytes
+   *   (base64 string, Uint8Array, ArrayBuffer, Buffer)
+   * - `{ type: 'url', url }` or bare `URL`: a URL that points to the file
    */
-  data: DataContent | URL;
+  data: FileDataData | FileDataUrl | DataContent | URL;
 
   /**
    * IANA media type of the file.
@@ -291,14 +317,6 @@ export type ToolResultOutput =
             providerOptions?: ProviderOptions;
           }
         | {
-            /**
-             * @deprecated Use image-data or file-data instead.
-             */
-            type: 'media';
-            data: string;
-            mediaType: string;
-          }
-        | {
             type: 'file-data';
 
             /**
@@ -331,11 +349,20 @@ export type ToolResultOutput =
             url: string;
 
             /**
+             * IANA media type.
+             * @see https://www.iana.org/assignments/media-types/media-types.xhtml
+             */
+            mediaType?: string; // Temporarily optional. TODO: make required in v8, after migration period.
+
+            /**
              * Provider-specific options.
              */
             providerOptions?: ProviderOptions;
           }
         | {
+            /**
+             * @deprecated Use file-reference instead.
+             */
             type: 'file-id';
 
             /**
@@ -354,8 +381,22 @@ export type ToolResultOutput =
             providerOptions?: ProviderOptions;
           }
         | {
+            type: 'file-reference';
+
             /**
-             * Images that are referenced using base64 encoded data.
+             * Provider-specific references for the file.
+             * The key is the provider name, e.g. 'openai' or 'anthropic'.
+             */
+            providerReference: ProviderReference;
+
+            /**
+             * Provider-specific options.
+             */
+            providerOptions?: ProviderOptions;
+          }
+        | {
+            /**
+             * @deprecated Use file-data instead.
              */
             type: 'image-data';
 
@@ -377,7 +418,7 @@ export type ToolResultOutput =
           }
         | {
             /**
-             * Images that are referenced using a URL.
+             * @deprecated Use file-url instead.
              */
             type: 'image-url';
 
@@ -393,7 +434,7 @@ export type ToolResultOutput =
           }
         | {
             /**
-             * Images that are referenced using a provider file id.
+             * @deprecated Use file-reference instead.
              */
             type: 'image-file-id';
 
@@ -406,6 +447,23 @@ export type ToolResultOutput =
              * name, e.g. 'openai' or 'anthropic'.
              */
             fileId: string | Record<string, string>;
+
+            /**
+             * Provider-specific options.
+             */
+            providerOptions?: ProviderOptions;
+          }
+        | {
+            /**
+             * @deprecated Use file-reference instead.
+             */
+            type: 'image-file-reference';
+
+            /**
+             * Provider-specific references for the image file.
+             * The key is the provider name, e.g. 'openai' or 'anthropic'.
+             */
+            providerReference: ProviderReference;
 
             /**
              * Provider-specific options.

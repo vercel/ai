@@ -1,9 +1,14 @@
 import {
-  LanguageModelV4CallOptions,
-  SharedV4Warning,
   UnsupportedFunctionalityError,
+  type LanguageModelV4CallOptions,
+  type SharedV4ProviderReference,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
-import { ToolNameMapping, validateTypes } from '@ai-sdk/provider-utils';
+import {
+  resolveProviderReference,
+  validateTypes,
+  type ToolNameMapping,
+} from '@ai-sdk/provider-utils';
 import { codeInterpreterArgsSchema } from '../tool/code-interpreter';
 import { fileSearchArgsSchema } from '../tool/file-search';
 import { imageGenerationArgsSchema } from '../tool/image-generation';
@@ -13,7 +18,7 @@ import { shellArgsSchema } from '../tool/shell';
 import { toolSearchArgsSchema } from '../tool/tool-search';
 import { webSearchArgsSchema } from '../tool/web-search';
 import { webSearchPreviewArgsSchema } from '../tool/web-search-preview';
-import { OpenAIResponsesTool } from './openai-responses-api';
+import type { OpenAIResponsesTool } from './openai-responses-api';
 
 export async function prepareResponsesTools({
   tools,
@@ -360,7 +365,7 @@ function mapShellEnvironment(environment: {
       };
       skills?: Array<{
         type: string;
-        skillId?: string;
+        providerReference?: SharedV4ProviderReference;
         version?: string;
         name?: string;
         description?: string;
@@ -404,7 +409,7 @@ function mapShellSkills(
   skills:
     | Array<{
         type: string;
-        skillId?: string;
+        providerReference?: SharedV4ProviderReference;
         version?: string;
         name?: string;
         description?: string;
@@ -416,8 +421,11 @@ function mapShellSkills(
     skill.type === 'skillReference'
       ? {
           type: 'skill_reference' as const,
-          skill_id: skill.skillId!,
-          version: skill.version,
+          skill_id: resolveProviderReference({
+            reference: skill.providerReference ?? {},
+            provider: 'openai',
+          }),
+          version: skill.version ?? 'latest',
         }
       : {
           type: 'inline' as const,

@@ -1,6 +1,14 @@
-import { LanguageModelV4Prompt, SharedV4Warning } from '@ai-sdk/provider';
-import { convertToBase64 } from '@ai-sdk/provider-utils';
 import {
+  UnsupportedFunctionalityError,
+  type LanguageModelV4Prompt,
+  type SharedV4Warning,
+} from '@ai-sdk/provider';
+import {
+  convertToBase64,
+  getTopLevelMediaType,
+  resolveFullMediaType,
+} from '@ai-sdk/provider-utils';
+import type {
   FunctionCallItemParam,
   FunctionCallOutputItemParam,
   InputFileContentParam,
@@ -43,25 +51,38 @@ export async function convertToOpenResponsesInput({
               break;
             }
             case 'file': {
-              if (!part.mediaType.startsWith('image/')) {
-                warnings.push({
-                  type: 'other',
-                  message: `unsupported file content type: ${part.mediaType}`,
-                });
-                break;
+              switch (part.data.type) {
+                case 'reference': {
+                  throw new UnsupportedFunctionalityError({
+                    functionality: 'file parts with provider references',
+                  });
+                }
+                case 'text': {
+                  throw new UnsupportedFunctionalityError({
+                    functionality: 'text file parts',
+                  });
+                }
+                case 'url':
+                case 'data': {
+                  if (getTopLevelMediaType(part.mediaType) !== 'image') {
+                    warnings.push({
+                      type: 'other',
+                      message: `unsupported file content type: ${part.mediaType}`,
+                    });
+                    break;
+                  }
+
+                  userContent.push({
+                    type: 'input_image',
+                    ...(part.data.type === 'url'
+                      ? { image_url: part.data.url.toString() }
+                      : {
+                          image_url: `data:${resolveFullMediaType({ part })};base64,${convertToBase64(part.data.data)}`,
+                        }),
+                  });
+                  break;
+                }
               }
-
-              const mediaType =
-                part.mediaType === 'image/*' ? 'image/jpeg' : part.mediaType;
-
-              userContent.push({
-                type: 'input_image',
-                ...(part.data instanceof URL
-                  ? { image_url: part.data.toString() }
-                  : {
-                      image_url: `data:${mediaType};base64,${convertToBase64(part.data)}`,
-                    }),
-              });
               break;
             }
           }
@@ -128,7 +149,7 @@ export async function convertToOpenResponsesInput({
                 contentValue = output.value;
                 break;
               case 'execution-denied':
-                contentValue = output.reason ?? 'Tool execution denied.';
+                contentValue = output.reason ?? 'Tool call execution denied.';
                 break;
               case 'json':
               case 'error-json':
@@ -149,26 +170,33 @@ export async function convertToOpenResponsesInput({
                       });
                       break;
                     }
-                    case 'image-data': {
-                      contentParts.push({
-                        type: 'input_image',
-                        image_url: `data:${item.mediaType};base64,${item.data}`,
-                      });
-                      break;
-                    }
-                    case 'image-url': {
-                      contentParts.push({
-                        type: 'input_image',
-                        image_url: item.url,
-                      });
-                      break;
-                    }
                     case 'file-data': {
-                      contentParts.push({
-                        type: 'input_file',
-                        filename: item.filename ?? 'data',
-                        file_data: `data:${item.mediaType};base64,${item.data}`,
-                      });
+                      if (item.mediaType.startsWith('image/')) {
+                        contentParts.push({
+                          type: 'input_image',
+                          image_url: `data:${item.mediaType};base64,${item.data}`,
+                        });
+                      } else {
+                        contentParts.push({
+                          type: 'input_file',
+                          filename: item.filename ?? 'data',
+                          file_data: `data:${item.mediaType};base64,${item.data}`,
+                        });
+                      }
+                      break;
+                    }
+                    case 'file-url': {
+                      if (item.mediaType.startsWith('image/')) {
+                        contentParts.push({
+                          type: 'input_image',
+                          image_url: item.url,
+                        });
+                      } else {
+                        contentParts.push({
+                          type: 'input_file',
+                          file_url: item.url,
+                        });
+                      }
                       break;
                     }
                     default: {

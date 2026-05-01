@@ -2,7 +2,7 @@ import {
   createTestServer,
   TestResponseController,
 } from '@ai-sdk/test-server/with-vitest';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { HttpMCPTransport } from './mcp-http-transport';
 import { LATEST_PROTOCOL_VERSION } from './types';
 import { MCPClientError } from '../error/mcp-client-error';
@@ -22,7 +22,12 @@ describe('HttpMCPTransport', () => {
   let transport: HttpMCPTransport;
 
   beforeEach(() => {
+    vi.useFakeTimers();
     transport = new HttpMCPTransport({ url: 'http://localhost:4000/mcp' });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it('should POST JSON and receive JSON response', async () => {
@@ -186,19 +191,11 @@ describe('HttpMCPTransport', () => {
 
     await transport.start();
 
-    await new Promise<void>(resolve => {
-      const check = () => {
-        if (
-          server.calls.length > 0 &&
-          server.calls[0].requestMethod === 'GET'
-        ) {
-          resolve();
-        } else {
-          setTimeout(check, 0);
-        }
-      };
-      check();
-    });
+    while (
+      !(server.calls.length > 0 && server.calls[0].requestMethod === 'GET')
+    ) {
+      await vi.advanceTimersByTimeAsync(0);
+    }
 
     // Now make POST fail
     server.urls['http://localhost:4000/mcp'].response = {
@@ -425,6 +422,64 @@ describe('HttpMCPTransport', () => {
       );
 
       fetchSpy.mockRestore();
+    });
+  });
+
+  describe('custom fetch', () => {
+    it('should use provided fetch function instead of globalThis.fetch', async () => {
+      const customFetch = vi.fn(globalThis.fetch);
+
+      transport = new HttpMCPTransport({
+        url: 'http://localhost:4000/mcp',
+        fetch: customFetch,
+      });
+
+      server.urls['http://localhost:4000/mcp'].response = {
+        type: 'error',
+        status: 405,
+      };
+
+      await transport.start();
+
+      await vi.waitFor(() => {
+        expect(customFetch).toHaveBeenCalled();
+      });
+
+      expect(customFetch).toHaveBeenCalledWith(
+        'http://localhost:4000/mcp',
+        expect.objectContaining({ method: 'GET' }),
+      );
+    });
+
+    it('should use provided fetch function for POST send()', async () => {
+      const customFetch = vi.fn(globalThis.fetch);
+
+      transport = new HttpMCPTransport({
+        url: 'http://localhost:4000/mcp',
+        fetch: customFetch,
+      });
+
+      server.urls['http://localhost:4000/mcp'].response = {
+        type: 'json-value',
+        body: { jsonrpc: '2.0', id: 1, result: { ok: true } },
+        headers: { 'mcp-session-id': 'abc123' },
+      };
+
+      await transport.start();
+
+      const message = {
+        jsonrpc: '2.0' as const,
+        method: 'initialize',
+        id: 1,
+        params: {},
+      };
+
+      await transport.send(message);
+
+      expect(customFetch).toHaveBeenCalledWith(
+        'http://localhost:4000/mcp',
+        expect.objectContaining({ method: 'POST' }),
+      );
     });
   });
 });

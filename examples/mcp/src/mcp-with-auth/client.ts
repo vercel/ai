@@ -1,5 +1,5 @@
 import { openai } from '@ai-sdk/openai';
-import { generateText, stepCountIs } from 'ai';
+import { generateText, isStepCount } from 'ai';
 
 /**
  * @deprecated Use the `@ai-sdk/mcp` package instead.
@@ -13,14 +13,15 @@ import type {
 } from 'ai';
 */
 
-import { createMCPClient, auth } from '@ai-sdk/mcp';
-import 'dotenv/config';
-import type {
-  OAuthClientProvider,
-  OAuthClientInformation,
-  OAuthClientMetadata,
-  OAuthTokens,
+import {
+  createMCPClient,
+  auth,
+  type OAuthClientProvider,
+  type OAuthClientInformation,
+  type OAuthClientMetadata,
+  type OAuthTokens,
 } from '@ai-sdk/mcp';
+import 'dotenv/config';
 import { createServer } from 'node:http';
 import { exec } from 'node:child_process';
 
@@ -199,7 +200,7 @@ async function main() {
   const { text: answer } = await generateText({
     model: openai('gpt-4o-mini'),
     tools,
-    stopWhen: stepCountIs(10),
+    stopWhen: isStepCount(10),
     onStepFinish: async ({ toolResults }) => {
       if (toolResults.length > 0) {
         console.log('Tool execution results:');

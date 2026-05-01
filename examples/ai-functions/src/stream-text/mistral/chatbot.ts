@@ -1,5 +1,5 @@
 import { mistral } from '@ai-sdk/mistral';
-import { stepCountIs, ModelMessage, streamText, tool } from 'ai';
+import { isStepCount, streamText, tool, type ModelMessage } from 'ai';
 import * as readline from 'node:readline/promises';
 import { z } from 'zod';
 import { run } from '../../lib/run';
@@ -37,7 +37,7 @@ run(async () => {
           }),
         }),
       },
-      stopWhen: stepCountIs(5),
+      stopWhen: isStepCount(5),
       messages,
     });
 

@@ -113,7 +113,7 @@ Navigate to the Upstash Console and check the data browser of your Search databa
 Now let's create an agent that can interact with this knowledge base. Create a new file called `agent.ts`:
 
 ```ts filename="agent.ts"
-import { tool, stepCountIs, generateText, generateId } from 'ai';
+import { tool, isStepCount, generateText, generateId } from 'ai';
 import { z } from 'zod';
 import { Search } from '@upstash/search';
 
@@ -136,7 +136,7 @@ async function main(prompt: string) {
   const { text } = await generateText({
     model: 'openai/gpt-4o',
     prompt,
-    stopWhen: stepCountIs(5),
+    stopWhen: isStepCount(5),
     tools: {
       addResource: tool({
         description:
