@@ -85,6 +85,34 @@ Include usage information in streaming responses.
    * Whether the provider supports structured outputs in chat models.
    */
   supportsStructuredOutputs?: boolean;
+<<<<<<< HEAD
+=======
+
+  /**
+   * Optional function to transform the request body before sending it to the API.
+   * This is useful for proxy providers that may require a different request format
+   * than the official OpenAI API.
+   */
+  transformRequestBody?: (args: Record<string, any>) => Record<string, any>;
+
+  /**
+   * Optional metadata extractor to capture provider-specific metadata from API responses.
+   * This is useful for extracting non-standard fields, experimental features,
+   * or provider-specific metrics from both streaming and non-streaming responses.
+   */
+  metadataExtractor?: MetadataExtractor;
+
+  /**
+   * The supported URLs for chat models.
+   */
+  supportedUrls?: OpenAICompatibleChatConfig['supportedUrls'];
+
+  /**
+   * Optional usage converter for providers with token accounting semantics that
+   * differ from the default OpenAI-compatible shape.
+   */
+  convertUsage?: OpenAICompatibleChatConfig['convertUsage'];
+>>>>>>> 6043d24b7 (Backport: feat(vertex): add grok models to vertex provider (#14902))
 }
 
 /**
@@ -142,6 +170,13 @@ export function createOpenAICompatible<
       ...getCommonModelConfig('chat'),
       includeUsage: options.includeUsage,
       supportsStructuredOutputs: options.supportsStructuredOutputs,
+<<<<<<< HEAD
+=======
+      supportedUrls: options.supportedUrls,
+      transformRequestBody: options.transformRequestBody,
+      metadataExtractor: options.metadataExtractor,
+      convertUsage: options.convertUsage,
+>>>>>>> 6043d24b7 (Backport: feat(vertex): add grok models to vertex provider (#14902))
     });
 
   const createCompletionModel = (modelId: COMPLETION_MODEL_IDS) =>

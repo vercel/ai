@@ -1,5 +1,6 @@
 import {
   type APICallError,
+<<<<<<< HEAD
   type LanguageModelV2,
   type LanguageModelV2CallWarning,
   type LanguageModelV2Content,
@@ -7,6 +8,18 @@ import {
   type LanguageModelV2StreamPart,
   type SharedV2ProviderMetadata,
   InvalidResponseDataError,
+=======
+  type LanguageModelV3,
+  type LanguageModelV3CallOptions,
+  type LanguageModelV3Content,
+  type LanguageModelV3FinishReason,
+  type LanguageModelV3GenerateResult,
+  type LanguageModelV3StreamPart,
+  type LanguageModelV3StreamResult,
+  type LanguageModelV3Usage,
+  type SharedV3ProviderMetadata,
+  type SharedV3Warning,
+>>>>>>> 6043d24b7 (Backport: feat(vertex): add grok models to vertex provider (#14902))
 } from '@ai-sdk/provider';
 import {
   type FetchFunction,
@@ -54,7 +67,26 @@ export type OpenAICompatibleChatConfig = {
   /**
    * The supported URLs for the model.
    */
+<<<<<<< HEAD
   supportedUrls?: () => LanguageModelV2['supportedUrls'];
+=======
+  supportedUrls?: () => LanguageModelV3['supportedUrls'];
+
+  /**
+   * Optional function to transform the request body before sending it to the API.
+   * This is useful for proxy providers that may require a different request format
+   * than the official OpenAI API.
+   */
+  transformRequestBody?: (args: Record<string, any>) => Record<string, any>;
+
+  /**
+   * Optional usage converter for OpenAI-compatible providers with different
+   * token accounting semantics.
+   */
+  convertUsage?: (
+    usage: z.infer<typeof openaiCompatibleTokenUsageSchema>,
+  ) => LanguageModelV3Usage;
+>>>>>>> 6043d24b7 (Backport: feat(vertex): add grok models to vertex provider (#14902))
 };
 
 export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
@@ -97,6 +129,22 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
     return this.config.supportedUrls?.() ?? {};
   }
 
+<<<<<<< HEAD
+=======
+  private transformRequestBody(args: Record<string, any>): Record<string, any> {
+    return this.config.transformRequestBody?.(args) ?? args;
+  }
+
+  private convertUsage(
+    usage: z.infer<typeof openaiCompatibleTokenUsageSchema>,
+  ): LanguageModelV3Usage {
+    return (
+      this.config.convertUsage?.(usage) ??
+      convertOpenAICompatibleChatUsage(usage)
+    );
+  }
+
+>>>>>>> 6043d24b7 (Backport: feat(vertex): add grok models to vertex provider (#14902))
   private async getArgs({
     prompt,
     maxOutputTokens,
@@ -296,6 +344,10 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
         cachedInputTokens:
           responseBody.usage?.prompt_tokens_details?.cached_tokens ?? undefined,
       },
+<<<<<<< HEAD
+=======
+      usage: this.convertUsage(responseBody.usage),
+>>>>>>> 6043d24b7 (Backport: feat(vertex): add grok models to vertex provider (#14902))
       providerMetadata,
       request: { body },
       response: {
@@ -380,6 +432,9 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
     const providerOptionsName = this.providerOptionsName;
     let isActiveReasoning = false;
     let isActiveText = false;
+    const convertUsage = (
+      usage: z.infer<typeof openaiCompatibleTokenUsageSchema>,
+    ) => this.convertUsage(usage);
 
     return {
       stream: response.pipeThrough(
@@ -662,6 +717,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
             controller.enqueue({
               type: 'finish',
               finishReason,
+<<<<<<< HEAD
               usage: {
                 inputTokens: usage.promptTokens ?? undefined,
                 outputTokens: usage.completionTokens ?? undefined,
@@ -671,6 +727,9 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
                 cachedInputTokens:
                   usage.promptTokensDetails.cachedTokens ?? undefined,
               },
+=======
+              usage: convertUsage(usage),
+>>>>>>> 6043d24b7 (Backport: feat(vertex): add grok models to vertex provider (#14902))
               providerMetadata,
             });
           },
