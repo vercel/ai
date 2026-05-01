@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/otel",
-  "version": "1.0.0-canary.62",
+  "version": "1.0.0-canary.63",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,

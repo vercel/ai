@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 4.0.0-canary.15
+
+### Patch Changes
+
+- 0c4c275: trigger initial canary release
+
 ## 4.0.0-beta.14
 
 ### Major Changes

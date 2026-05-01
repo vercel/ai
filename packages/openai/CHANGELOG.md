@@ -1,5 +1,14 @@
 # @ai-sdk/openai
 
+## 4.0.0-canary.45
+
+### Patch Changes
+
+- 0c4c275: trigger initial canary release
+- Updated dependencies [0c4c275]
+  - @ai-sdk/provider-utils@5.0.0-canary.31
+  - @ai-sdk/provider@4.0.0-canary.15
+
 ## 4.0.0-beta.44
 
 ### Patch Changes
