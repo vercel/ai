@@ -123,7 +123,7 @@ describe('tool calls', () => {
     expect(result).toMatchInlineSnapshot(`
       [
         {
-          "content": "",
+          "content": null,
           "role": "assistant",
           "tool_calls": [
             {
@@ -167,7 +167,7 @@ describe('tool calls', () => {
     expect(result).toMatchInlineSnapshot(`
       [
         {
-          "content": "",
+          "content": null,
           "reasoning": "I think the tool will return the correct value.",
           "role": "assistant",
           "tool_calls": [

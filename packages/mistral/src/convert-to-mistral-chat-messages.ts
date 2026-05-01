@@ -138,7 +138,7 @@ export function convertToMistralChatMessages(
 
         messages.push({
           role: 'assistant',
-          content: text,
+          content: text.length > 0 || toolCalls.length === 0 ? text : null,
           prefix: isLastMessage ? true : undefined,
           tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
         });

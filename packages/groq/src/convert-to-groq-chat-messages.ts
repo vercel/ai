@@ -112,7 +112,7 @@ export function convertToGroqChatMessages(
 
         messages.push({
           role: 'assistant',
-          content: text,
+          content: text.length > 0 || toolCalls.length === 0 ? text : null,
           ...(reasoning.length > 0 ? { reasoning } : null),
           ...(toolCalls.length > 0 ? { tool_calls: toolCalls } : null),
         });
