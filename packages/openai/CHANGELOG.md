@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 4.0.0-beta.44
+
+### Patch Changes
+
+- bada0f3: feat(openai): preserve `namespace` on function_call output items
+
 ## 4.0.0-beta.43
 
 ### Patch Changes
