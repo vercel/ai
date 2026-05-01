@@ -1,5 +1,5 @@
 import { vertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
-import { isStepCount, ModelMessage, streamText, tool } from 'ai';
+import { isStepCount, streamText, tool, type ModelMessage } from 'ai';
 import * as readline from 'node:readline/promises';
 import { z } from 'zod';
 import { run } from '../../lib/run';

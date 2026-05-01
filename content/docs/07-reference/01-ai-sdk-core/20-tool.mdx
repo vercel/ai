@@ -12,6 +12,10 @@ It does not have any runtime behavior, but it helps TypeScript infer the types f
 Without this helper function, TypeScript is unable to connect the `inputSchema` and `contextSchema` properties to the tool callbacks,
 and the callback argument types cannot be inferred.
 
+For the full model of `runtimeContext`, `toolsContext`, tool `context`, and
+sensitive context filtering, see [Runtime and Tool
+Context](/docs/ai-sdk-core/runtime-and-tool-context).
+
 ```ts highlight={"1,4,9,10"}
 import { tool } from 'ai';
 import { z } from 'zod';
@@ -65,7 +69,7 @@ export const weatherTool = tool({
               isOptional: true,
               type: 'boolean | ((input: INPUT, options: { toolCallId: string; messages: ModelMessage[]; context: CONTEXT }) => boolean | Promise<boolean>)',
               description:
-                'Whether the tool needs user approval before execution. Can be a boolean or a function that receives the tool input plus execution metadata, including the typed `context`.',
+                'Deprecated. For `generateText`, `streamText`, and `ToolLoopAgent`, configure approval with `toolApproval` instead. Existing `needsApproval` usages still work as a compatibility fallback. When used, it can be a boolean or a function that receives the tool input plus execution metadata, including the typed `context`.',
             },
             {
               name: 'inputSchema',
@@ -85,7 +89,14 @@ export const weatherTool = tool({
               isOptional: true,
               type: 'Zod Schema | JSON Schema',
               description:
-                'An optional schema that describes the context expected by the tool. When provided, the `context` type in `execute`, `needsApproval`, and the input lifecycle callbacks is inferred from this schema.',
+                'An optional schema that describes the tool-specific context expected by the tool. When provided, the `context` type in `execute`, `needsApproval`, and the input lifecycle callbacks is inferred from this schema. The value is supplied via the tool\'s entry in `toolsContext`.',
+            },
+            {
+              name: 'sensitiveContext',
+              isOptional: true,
+              type: 'SensitiveContext<CONTEXT>',
+              description:
+                'Top-level context properties that contain sensitive data and should be excluded from telemetry. Properties marked as `true` are omitted from telemetry integrations. Tool execution, lifecycle callbacks, and returned results still receive the full tool context.',
             },
             {
               name: 'strict',
@@ -127,7 +138,7 @@ export const weatherTool = tool({
                       name: 'context',
                       type: 'CONTEXT',
                       description:
-                        'User-defined context that is passed into tool execution. When `contextSchema` is provided, this type is inferred from that schema.',
+                        'Tool-specific context passed into tool execution. When `contextSchema` is provided, this type is inferred from that schema and supplied from the matching entry in `toolsContext`.',
                     },
                   ],
                 },
@@ -174,6 +185,13 @@ export const weatherTool = tool({
               type: 'ProviderOptions',
               description:
                 'Additional provider-specific metadata. They are passed through to the provider from the AI SDK and enable provider-specific functionality that can be fully encapsulated in the provider.',
+            },
+            {
+              name: 'providerMetadata',
+              isOptional: true,
+              type: 'ProviderMetadata',
+              description:
+                "Optional metadata about the tool itself (e.g. its source). It is propagated onto the resulting tool call's providerMetadata so consumers can read it from tool call/result parts and UI message parts. Useful for sources of dynamic tools (e.g. an MCP server) to identify themselves.",
             },
             {
               name: 'type',

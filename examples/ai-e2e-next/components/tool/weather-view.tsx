@@ -1,4 +1,4 @@
-import { WeatherUIToolInvocation } from '@/tool/weather-tool';
+import type { WeatherUIToolInvocation } from '@/tool/weather-tool';
 
 export default function WeatherView({
   invocation,

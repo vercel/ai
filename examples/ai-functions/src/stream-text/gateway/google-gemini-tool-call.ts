@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import { google } from '@ai-sdk/google';
-import { createVertex } from '@ai-sdk/google-vertex';
+import { createGoogleVertex } from '@ai-sdk/google-vertex';
 import { isStepCount, streamText, tool } from 'ai';
 import { z } from 'zod';
 
@@ -8,11 +8,11 @@ import { z } from 'zod';
  * Verification for https://github.com/vercel/ai/issues/11413
  *
  * Simulates gateway cross-provider failover scenarios between Google AI Studio
- * and Vertex AI. Both providers share the same GoogleGenerativeAILanguageModel
+ * and Vertex AI. Both providers share the same GoogleLanguageModel
  * but store thoughtSignature under different providerOptions keys ("google"
  * vs "vertex").
  *
- * The fix makes convertToGoogleGenerativeAIMessages check both namespaces:
+ * The fix makes convertToGoogleMessages check both namespaces:
  *   - Primary: providerOptions[providerOptionsName]
  *   - Fallback: the other namespace ("vertex" or "google")
  *
@@ -24,7 +24,7 @@ import { z } from 'zod';
 async function main() {
   console.log('Issue #11413: Verifying bidirectional gateway failover fix\n');
 
-  const vertex = createVertex();
+  const vertex = createGoogleVertex();
 
   const weatherTool = tool({
     description: 'Get the weather for a location',

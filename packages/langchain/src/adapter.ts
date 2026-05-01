@@ -1,12 +1,12 @@
 import {
   SystemMessage,
-  BaseMessage,
-  AIMessageChunk,
+  type BaseMessage,
+  type AIMessageChunk,
 } from '@langchain/core/messages';
 import {
+  convertToModelMessages,
   type UIMessage,
   type UIMessageChunk,
-  convertToModelMessages,
   type ModelMessage,
 } from 'ai';
 import {
@@ -19,8 +19,8 @@ import {
   isToolResultPart,
   extractReasoningFromContentBlocks,
 } from './utils';
-import { type LangGraphEventState } from './types';
-import { type StreamCallbacks } from './stream-callbacks';
+import type { LangGraphEventState } from './types';
+import type { StreamCallbacks } from './stream-callbacks';
 
 /**
  * Converts AI SDK UIMessages to LangChain BaseMessage objects.

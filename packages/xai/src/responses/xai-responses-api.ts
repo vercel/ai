@@ -27,7 +27,8 @@ export type XaiResponsesSystemMessage = {
 export type XaiResponsesUserMessageContentPart =
   | { type: 'input_text'; text: string }
   | { type: 'input_image'; image_url: string }
-  | { type: 'input_file'; file_id: string };
+  | { type: 'input_file'; file_id: string }
+  | { type: 'input_file'; file_url: string };
 
 export type XaiResponsesUserMessage = {
   role: 'user';
@@ -248,6 +249,7 @@ export const xaiResponsesUsageSchema = z.object({
     .optional(),
   num_sources_used: z.number().optional(),
   num_server_side_tools_used: z.number().optional(),
+  cost_in_usd_ticks: z.number().nullish(),
 });
 
 export const xaiResponsesResponseSchema = z.object({

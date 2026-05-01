@@ -1,14 +1,12 @@
 import { anthropic } from '@ai-sdk/anthropic';
-import { ToolLoopAgent, InferAgentUIMessage } from 'ai';
-
+import { ToolLoopAgent, type InferAgentUIMessage } from 'ai';
 export const anthropicWebFetchAgent = new ToolLoopAgent({
   model: anthropic('claude-sonnet-4-5'),
   tools: {
     web_fetch: anthropic.tools.webFetch_20250910(),
   },
   reasoning: 'medium',
-  experimental_telemetry: {
-    isEnabled: true,
+  telemetry: {
     functionId: 'anthropic-web-fetch-agent',
   },
 });

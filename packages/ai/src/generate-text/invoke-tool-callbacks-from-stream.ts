@@ -1,24 +1,22 @@
-import { GenerationContext } from './generation-context';
-import { ModelCallStreamPart } from './stream-model-call';
-import type { ToolSet } from '@ai-sdk/provider-utils';
-import { ModelMessage } from '@ai-sdk/provider-utils';
+import type { Context, ModelMessage, ToolSet } from '@ai-sdk/provider-utils';
+import type { LanguageModelStreamPart } from './stream-language-model-call';
 
 export function invokeToolCallbacksFromStream<
   TOOLS extends ToolSet,
-  CONTEXT extends GenerationContext<TOOLS>,
+  RUNTIME_CONTEXT extends Context,
 >({
   stream,
   tools,
   stepInputMessages,
   abortSignal,
-  context,
+  runtimeContext,
 }: {
-  stream: ReadableStream<ModelCallStreamPart<TOOLS>>;
+  stream: ReadableStream<LanguageModelStreamPart<TOOLS>>;
   tools: TOOLS | undefined;
   stepInputMessages: Array<ModelMessage>;
   abortSignal: AbortSignal | undefined;
-  context: CONTEXT;
-}): ReadableStream<ModelCallStreamPart<TOOLS>> {
+  runtimeContext: RUNTIME_CONTEXT;
+}): ReadableStream<LanguageModelStreamPart<TOOLS>> {
   if (tools == null) return stream;
 
   const ongoingToolCallToolNames: Record<string, string> = {};
@@ -38,7 +36,7 @@ export function invokeToolCallbacksFromStream<
                 toolCallId: chunk.id,
                 messages: stepInputMessages,
                 abortSignal,
-                context,
+                context: runtimeContext,
               });
             }
 
@@ -55,7 +53,7 @@ export function invokeToolCallbacksFromStream<
                 toolCallId: chunk.id,
                 messages: stepInputMessages,
                 abortSignal,
-                context,
+                context: runtimeContext,
               });
             }
 
@@ -74,7 +72,7 @@ export function invokeToolCallbacksFromStream<
                 toolCallId: chunk.toolCallId,
                 messages: stepInputMessages,
                 abortSignal,
-                context,
+                context: runtimeContext,
               });
             }
           }

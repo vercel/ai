@@ -1,4 +1,4 @@
-import { StreamTextResult } from 'ai';
+import type { StreamTextResult } from 'ai';
 import fs from 'fs';
 
 export async function saveRawChunks({

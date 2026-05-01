@@ -8,17 +8,17 @@ import {
   convertUint8ArrayToBase64,
   createJsonResponseHandler,
   delay,
-  type FetchFunction,
   getFromApi,
   parseProviderOptions,
   postJsonToApi,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { xaiFailedResponseHandler } from './xai-error';
 import {
-  type XaiParsedVideoModelOptions,
   xaiVideoModelOptionsSchema,
-} from './xai-video-options';
+  type XaiParsedVideoModelOptions,
+} from './xai-video-model-options';
 import type { XaiVideoModelId } from './xai-video-settings';
 
 interface XaiVideoModelConfig {

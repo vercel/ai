@@ -70,7 +70,7 @@ export const retryWithExponentialBackoffRespectingRetryHeaders =
     abortSignal?: AbortSignal;
   } = {}): RetryFunction =>
   async <OUTPUT>(f: () => PromiseLike<OUTPUT>) =>
-    _retryWithExponentialBackoff(f, {
+    await _retryWithExponentialBackoff(f, {
       maxRetries,
       delayInMs: initialDelayInMs,
       backoffFactor,
@@ -129,7 +129,7 @@ async function _retryWithExponentialBackoff<OUTPUT>(
         { abortSignal },
       );
 
-      return _retryWithExponentialBackoff(
+      return await _retryWithExponentialBackoff(
         f,
         {
           maxRetries,

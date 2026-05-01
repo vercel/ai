@@ -1,5 +1,195 @@
 # @ai-sdk/gateway
 
+## 4.0.0-beta.66
+
+### Major Changes
+
+- 04e9009: chore: make provider implementations code patterns more consistent, including renaming certain exported symbols
+
+  For all externally exported symbols that were renamed, the old names continue to work via deprecated aliases.
+
+### Patch Changes
+
+- be09425: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [08d2129]
+  - @ai-sdk/provider-utils@5.0.0-beta.30
+
+## 4.0.0-beta.65
+
+### Patch Changes
+
+- 9bd6512: feat(provider): change file part data property to be tagged with a type and remove the image part type
+- 258c093: chore: ensure consistent import handling and avoid import duplicates or cycles
+- Updated dependencies [9bd6512]
+- Updated dependencies [258c093]
+- Updated dependencies [b6783da]
+  - @ai-sdk/provider-utils@5.0.0-beta.29
+  - @ai-sdk/provider@4.0.0-beta.14
+
+## 4.0.0-beta.64
+
+### Patch Changes
+
+- 9f0e36c: trigger release for all packages after provenance setup
+- Updated dependencies [9f0e36c]
+  - @ai-sdk/provider@4.0.0-beta.13
+  - @ai-sdk/provider-utils@5.0.0-beta.28
+
+## 4.0.0-beta.63
+
+### Patch Changes
+
+- baa5f20: chore(provider/gateway): update gateway model settings files
+- f9acbc0: feat(provider/openai): add gpt-image-2 model support
+- Updated dependencies [785fe16]
+- Updated dependencies [67df0a0]
+- Updated dependencies [befb78c]
+- Updated dependencies [0458559]
+- Updated dependencies [5852c0a]
+- Updated dependencies [fc92055]
+  - @ai-sdk/provider-utils@5.0.0-beta.27
+
+## 4.0.0-beta.62
+
+### Patch Changes
+
+- Updated dependencies [2e98477]
+  - @ai-sdk/provider-utils@5.0.0-beta.26
+
+## 4.0.0-beta.61
+
+### Patch Changes
+
+- Updated dependencies [eea8d98]
+  - @ai-sdk/provider-utils@5.0.0-beta.25
+
+## 4.0.0-beta.60
+
+### Patch Changes
+
+- Updated dependencies [f807e45]
+  - @ai-sdk/provider-utils@5.0.0-beta.24
+
+## 4.0.0-beta.59
+
+### Patch Changes
+
+- Updated dependencies [350ea38]
+  - @ai-sdk/provider-utils@5.0.0-beta.23
+
+## 4.0.0-beta.58
+
+### Patch Changes
+
+- 03dc15c: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-beta.57
+
+### Patch Changes
+
+- Updated dependencies [083947b]
+  - @ai-sdk/provider-utils@5.0.0-beta.22
+
+## 4.0.0-beta.56
+
+### Patch Changes
+
+- 0d8f107: feat(provider/anthropic): add support for Opus 4.7 and relevant API enhancements
+
+## 4.0.0-beta.55
+
+### Patch Changes
+
+- Updated dependencies [add1126]
+  - @ai-sdk/provider-utils@5.0.0-beta.21
+
+## 4.0.0-beta.54
+
+### Patch Changes
+
+- 5df9b6f: feat (provider/gateway): make model list resilient to unknown model types
+
+## 4.0.0-beta.53
+
+### Patch Changes
+
+- 0457e45: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-beta.52
+
+### Patch Changes
+
+- ba2e254: fix (provider/gateway): add 'reranking' to modelType validation schema and type so getAvailableModels() accepts reranking models from the gateway API
+
+## 4.0.0-beta.51
+
+### Patch Changes
+
+- cdcdec2: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-beta.50
+
+### Patch Changes
+
+- b3976a2: Add workflow serialization support to all provider models.
+
+  **`@ai-sdk/provider-utils`:** New `serializeModel()` helper that extracts only serializable properties from a model instance, filtering out functions and objects containing functions. Third-party provider authors can use this to add workflow support to their own models.
+
+  **All providers:** `headers` is now optional in provider config types. This is non-breaking — existing code that passes `headers` continues to work. Custom provider implementations that construct model configs manually can now omit `headers`, which is useful when models are deserialized from a workflow step boundary where auth is provided separately.
+
+  All provider model classes now include `WORKFLOW_SERIALIZE` and `WORKFLOW_DESERIALIZE` static methods, enabling them to cross workflow step boundaries without serialization errors.
+
+- Updated dependencies [b3976a2]
+- Updated dependencies [ff5eba1]
+  - @ai-sdk/provider-utils@5.0.0-beta.20
+  - @ai-sdk/provider@4.0.0-beta.12
+
+## 4.0.0-beta.49
+
+### Major Changes
+
+- ef992f8: Remove CommonJS exports from all packages. All packages are now ESM-only (`"type": "module"`). Consumers using `require()` must switch to ESM `import` syntax.
+
+### Patch Changes
+
+- Updated dependencies [ef992f8]
+  - @ai-sdk/provider@4.0.0-beta.11
+  - @ai-sdk/provider-utils@5.0.0-beta.19
+
+## 4.0.0-beta.48
+
+### Patch Changes
+
+- bdbd322: fix (packages/gateway): clarify sort docs
+- 8f53ccf: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-beta.47
+
+### Patch Changes
+
+- 90e2d8a: chore: fix unused vars not being flagged by our lint tooling
+- Updated dependencies [90e2d8a]
+  - @ai-sdk/provider-utils@5.0.0-beta.18
+
+## 4.0.0-beta.46
+
+### Patch Changes
+
+- 6b0a40d: feat (provider/gateway): add sort options
+
+## 4.0.0-beta.45
+
+### Patch Changes
+
+- Updated dependencies [3ae1786]
+  - @ai-sdk/provider-utils@5.0.0-beta.17
+
+## 4.0.0-beta.44
+
+### Patch Changes
+
+- 7943a4b: chore(provider/gateway): update gateway model settings files
+
 ## 4.0.0-beta.43
 
 ### Patch Changes

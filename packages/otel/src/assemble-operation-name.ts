@@ -1,11 +1,11 @@
-import type { TelemetrySettings } from 'ai';
+import type { TelemetryOptions } from 'ai';
 
 export function assembleOperationName({
   operationId,
   telemetry,
 }: {
   operationId: string;
-  telemetry?: TelemetrySettings;
+  telemetry?: TelemetryOptions;
 }) {
   return {
     // standardized operation and resource name:

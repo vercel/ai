@@ -1,5 +1,5 @@
-import { SpeechModelV4CallOptions } from './speech-model-v4-call-options';
-import { SpeechModelV4Result } from './speech-model-v4-result';
+import type { SpeechModelV4CallOptions } from './speech-model-v4-call-options';
+import type { SpeechModelV4Result } from './speech-model-v4-result';
 
 /**
  * Speech model specification version 3.

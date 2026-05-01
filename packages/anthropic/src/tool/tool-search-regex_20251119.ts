@@ -1,5 +1,5 @@
 import {
-  createProviderToolFactoryWithOutputSchema,
+  createProviderExecutedToolFactory,
   lazySchema,
   zodSchema,
 } from '@ai-sdk/provider-utils';
@@ -46,7 +46,7 @@ const toolSearchRegex_20251119InputSchema = lazySchema(() =>
   ),
 );
 
-const factory = createProviderToolFactoryWithOutputSchema<
+const factory = createProviderExecutedToolFactory<
   {
     /**
      * A regex pattern to search for tools.

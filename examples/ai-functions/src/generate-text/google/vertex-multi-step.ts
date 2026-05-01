@@ -1,11 +1,11 @@
-import { vertex } from '@ai-sdk/google-vertex';
+import { googleVertex } from '@ai-sdk/google-vertex';
 import { generateText, isStepCount, tool } from 'ai';
 import { z } from 'zod';
 import { run } from '../../lib/run';
 
 run(async () => {
   const { text } = await generateText({
-    model: vertex('gemini-2.5-flash'),
+    model: googleVertex('gemini-2.5-flash'),
     tools: {
       currentLocation: tool({
         description: 'Get the current location.',

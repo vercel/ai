@@ -1,9 +1,9 @@
-import { RerankingModelV4CallOptions } from '@ai-sdk/provider';
+import type { RerankingModelV4CallOptions } from '@ai-sdk/provider';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MockRerankingModelV4 } from '../test/mock-reranking-model-v4';
 import { rerank } from './rerank';
-import type { RerankOnStartEvent, RerankOnFinishEvent } from './rerank-events';
-import { RerankResult } from './rerank-result';
+import type { RerankStartEvent, RerankEndEvent } from './rerank-events';
+import type { RerankResult } from './rerank-result';
 describe('rerank', () => {
   describe('rerank with string documents', () => {
     let result: RerankResult<string>;
@@ -363,7 +363,7 @@ describe('rerank', () => {
     });
 
     it('should send correct event information', async () => {
-      let startEvent!: RerankOnStartEvent;
+      let startEvent!: RerankStartEvent;
 
       await rerank({
         model: mockModel,
@@ -374,9 +374,8 @@ describe('rerank', () => {
         ],
         query: 'rainy day',
         topN: 3,
-        experimental_telemetry: {
+        telemetry: {
           functionId: 'test-function',
-          metadata: { customKey: 'customValue' },
         },
         _internal: {
           generateCallId: () => 'test-call-id',
@@ -390,7 +389,35 @@ describe('rerank', () => {
     });
 
     it('should include telemetry fields', async () => {
-      let startEvent!: RerankOnStartEvent;
+      let startEvent!: RerankStartEvent;
+
+      await rerank({
+        model: mockModel,
+        documents: [
+          'sunny day at the beach',
+          'rainy day in the city',
+          'cloudy day in the mountains',
+        ],
+        query: 'rainy day',
+        telemetry: {
+          isEnabled: true,
+          recordInputs: false,
+          recordOutputs: true,
+          functionId: 'rerank-fn',
+        },
+        experimental_onStart: async event => {
+          startEvent = event;
+        },
+      });
+
+      expect(startEvent).not.toHaveProperty('isEnabled');
+      expect(startEvent).not.toHaveProperty('recordInputs');
+      expect(startEvent).not.toHaveProperty('recordOutputs');
+      expect(startEvent).not.toHaveProperty('functionId');
+    });
+
+    it('should accept deprecated experimental_telemetry as an alias for telemetry', async () => {
+      let startEvent!: RerankStartEvent;
 
       await rerank({
         model: mockModel,
@@ -404,23 +431,21 @@ describe('rerank', () => {
           isEnabled: true,
           recordInputs: false,
           recordOutputs: true,
-          functionId: 'rerank-fn',
-          metadata: { key: 'val' },
+          functionId: 'rerank-fn-deprecated',
         },
         experimental_onStart: async event => {
           startEvent = event;
         },
       });
 
-      expect(startEvent.isEnabled).toBe(true);
-      expect(startEvent.recordInputs).toBe(false);
-      expect(startEvent.recordOutputs).toBe(true);
-      expect(startEvent.functionId).toBe('rerank-fn');
-      expect(startEvent.metadata).toEqual({ key: 'val' });
+      expect(startEvent).not.toHaveProperty('isEnabled');
+      expect(startEvent).not.toHaveProperty('recordInputs');
+      expect(startEvent).not.toHaveProperty('recordOutputs');
+      expect(startEvent).not.toHaveProperty('functionId');
     });
 
     it('should include model information', async () => {
-      let startEvent!: RerankOnStartEvent;
+      let startEvent!: RerankStartEvent;
 
       await rerank({
         model: mockModel,
@@ -481,7 +506,7 @@ describe('rerank', () => {
     });
 
     it('should include providerOptions, headers, documents, and query', async () => {
-      let startEvent!: RerankOnStartEvent;
+      let startEvent!: RerankStartEvent;
 
       await rerank({
         model: mockModel,
@@ -536,7 +561,7 @@ describe('rerank', () => {
     });
 
     it('should send correct event information', async () => {
-      let finishEvent!: RerankOnFinishEvent;
+      let finishEvent!: RerankEndEvent;
 
       await rerank({
         model: mockModel,
@@ -547,9 +572,8 @@ describe('rerank', () => {
         ],
         query: 'rainy day',
         topN: 3,
-        experimental_telemetry: {
+        telemetry: {
           functionId: 'test-function',
-          metadata: { customKey: 'customValue' },
         },
         _internal: {
           generateCallId: () => 'test-call-id',
@@ -563,7 +587,7 @@ describe('rerank', () => {
     });
 
     it('should include ranking and documents in event', async () => {
-      let finishEvent!: RerankOnFinishEvent;
+      let finishEvent!: RerankEndEvent;
 
       await rerank({
         model: mockModel,
@@ -604,7 +628,7 @@ describe('rerank', () => {
     });
 
     it('should include model information', async () => {
-      let finishEvent!: RerankOnFinishEvent;
+      let finishEvent!: RerankEndEvent;
 
       await rerank({
         model: mockModel,
@@ -625,7 +649,7 @@ describe('rerank', () => {
     });
 
     it('should include warnings and providerMetadata', async () => {
-      let finishEvent!: RerankOnFinishEvent;
+      let finishEvent!: RerankEndEvent;
 
       await rerank({
         model: mockModel,
@@ -649,7 +673,7 @@ describe('rerank', () => {
     });
 
     it('should include response data', async () => {
-      let finishEvent!: RerankOnFinishEvent;
+      let finishEvent!: RerankEndEvent;
 
       await rerank({
         model: mockModel,
@@ -730,8 +754,8 @@ describe('rerank', () => {
     });
 
     it('should have consistent callId across both events', async () => {
-      let startEvent!: RerankOnStartEvent;
-      let finishEvent!: RerankOnFinishEvent;
+      let startEvent!: RerankStartEvent;
+      let finishEvent!: RerankEndEvent;
 
       await rerank({
         model: mockModel,
@@ -806,8 +830,8 @@ describe('rerank', () => {
     });
 
     it('should fire callbacks for empty documents', async () => {
-      let startEvent!: RerankOnStartEvent;
-      let finishEvent!: RerankOnFinishEvent;
+      let startEvent!: RerankStartEvent;
+      let finishEvent!: RerankEndEvent;
 
       await rerank({
         model: mockModel,

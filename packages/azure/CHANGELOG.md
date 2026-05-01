@@ -1,5 +1,154 @@
 # @ai-sdk/azure
 
+## 4.0.0-beta.43
+
+### Patch Changes
+
+- Updated dependencies [9ea40e0]
+  - @ai-sdk/openai@4.0.0-beta.43
+
+## 4.0.0-beta.42
+
+### Patch Changes
+
+- Updated dependencies [08d2129]
+- Updated dependencies [04e9009]
+  - @ai-sdk/provider-utils@5.0.0-beta.30
+  - @ai-sdk/openai@4.0.0-beta.42
+
+## 4.0.0-beta.41
+
+### Patch Changes
+
+- 9bd6512: feat(provider): change file part data property to be tagged with a type and remove the image part type
+- 258c093: chore: ensure consistent import handling and avoid import duplicates or cycles
+- Updated dependencies [9bd6512]
+- Updated dependencies [258c093]
+- Updated dependencies [b6783da]
+  - @ai-sdk/provider-utils@5.0.0-beta.29
+  - @ai-sdk/provider@4.0.0-beta.14
+  - @ai-sdk/openai@4.0.0-beta.41
+
+## 4.0.0-beta.40
+
+### Patch Changes
+
+- 9f0e36c: trigger release for all packages after provenance setup
+- Updated dependencies [9f0e36c]
+  - @ai-sdk/openai@4.0.0-beta.40
+  - @ai-sdk/provider@4.0.0-beta.13
+  - @ai-sdk/provider-utils@5.0.0-beta.28
+
+## 4.0.0-beta.39
+
+### Patch Changes
+
+- Updated dependencies [785fe16]
+- Updated dependencies [67df0a0]
+- Updated dependencies [befb78c]
+- Updated dependencies [0458559]
+- Updated dependencies [58a2ad7]
+- Updated dependencies [5852c0a]
+- Updated dependencies [fc92055]
+- Updated dependencies [f9acbc0]
+  - @ai-sdk/provider-utils@5.0.0-beta.27
+  - @ai-sdk/openai@4.0.0-beta.39
+
+## 4.0.0-beta.38
+
+### Patch Changes
+
+- Updated dependencies [2e98477]
+- Updated dependencies [bfb756d]
+  - @ai-sdk/provider-utils@5.0.0-beta.26
+  - @ai-sdk/openai@4.0.0-beta.38
+
+## 4.0.0-beta.37
+
+### Patch Changes
+
+- Updated dependencies [eea8d98]
+  - @ai-sdk/provider-utils@5.0.0-beta.25
+  - @ai-sdk/openai@4.0.0-beta.37
+
+## 4.0.0-beta.36
+
+### Patch Changes
+
+- Updated dependencies [f807e45]
+  - @ai-sdk/provider-utils@5.0.0-beta.24
+  - @ai-sdk/openai@4.0.0-beta.36
+
+## 4.0.0-beta.35
+
+### Patch Changes
+
+- Updated dependencies [350ea38]
+  - @ai-sdk/provider-utils@5.0.0-beta.23
+  - @ai-sdk/openai@4.0.0-beta.35
+
+## 4.0.0-beta.34
+
+### Patch Changes
+
+- Updated dependencies [083947b]
+  - @ai-sdk/provider-utils@5.0.0-beta.22
+  - @ai-sdk/openai@4.0.0-beta.34
+
+## 4.0.0-beta.33
+
+### Patch Changes
+
+- Updated dependencies [add1126]
+  - @ai-sdk/provider-utils@5.0.0-beta.21
+  - @ai-sdk/openai@4.0.0-beta.33
+
+## 4.0.0-beta.32
+
+### Patch Changes
+
+- Updated dependencies [0c4ac8a]
+  - @ai-sdk/openai@4.0.0-beta.32
+
+## 4.0.0-beta.31
+
+### Patch Changes
+
+- Updated dependencies [b3976a2]
+- Updated dependencies [ff5eba1]
+  - @ai-sdk/provider-utils@5.0.0-beta.20
+  - @ai-sdk/openai@4.0.0-beta.31
+  - @ai-sdk/provider@4.0.0-beta.12
+
+## 4.0.0-beta.30
+
+### Major Changes
+
+- ef992f8: Remove CommonJS exports from all packages. All packages are now ESM-only (`"type": "module"`). Consumers using `require()` must switch to ESM `import` syntax.
+
+### Patch Changes
+
+- Updated dependencies [ef992f8]
+  - @ai-sdk/openai@4.0.0-beta.30
+  - @ai-sdk/provider@4.0.0-beta.11
+  - @ai-sdk/provider-utils@5.0.0-beta.19
+
+## 4.0.0-beta.29
+
+### Patch Changes
+
+- Updated dependencies [90e2d8a]
+  - @ai-sdk/provider-utils@5.0.0-beta.18
+  - @ai-sdk/openai@4.0.0-beta.29
+
+## 4.0.0-beta.28
+
+### Patch Changes
+
+- Updated dependencies [3ae1786]
+  - @ai-sdk/provider-utils@5.0.0-beta.17
+  - @ai-sdk/openai@4.0.0-beta.28
+
 ## 4.0.0-beta.27
 
 ### Patch Changes

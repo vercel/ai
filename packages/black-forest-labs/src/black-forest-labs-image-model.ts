@@ -1,7 +1,5 @@
 import type { ImageModelV4, SharedV4Warning } from '@ai-sdk/provider';
-import type { InferSchema, Resolvable } from '@ai-sdk/provider-utils';
 import {
-  FetchFunction,
   combineHeaders,
   createBinaryResponseHandler,
   createJsonErrorResponseHandler,
@@ -9,15 +7,21 @@ import {
   createStatusCodeErrorResponseHandler,
   delay,
   getFromApi,
-  lazySchema,
   parseProviderOptions,
   postJsonToApi,
   resolve,
-  zodSchema,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
+  type Resolvable,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import type { BlackForestLabsAspectRatio } from './black-forest-labs-image-settings';
-import { BlackForestLabsImageModelId } from './black-forest-labs-image-settings';
+import { blackForestLabsImageModelOptionsSchema } from './black-forest-labs-image-model-options';
+import type {
+  BlackForestLabsAspectRatio,
+  BlackForestLabsImageModelId,
+} from './black-forest-labs-image-settings';
 
 const DEFAULT_POLL_INTERVAL_MILLIS = 500;
 const DEFAULT_POLL_TIMEOUT_MILLIS = 60000;
@@ -46,6 +50,20 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
 
   get provider(): string {
     return this.config.provider;
+  }
+
+  static [WORKFLOW_SERIALIZE](model: BlackForestLabsImageModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: BlackForestLabsImageModelId;
+    config: BlackForestLabsImageModelConfig;
+  }) {
+    return new BlackForestLabsImageModel(options.modelId, options.config);
   }
 
   constructor(
@@ -332,51 +350,6 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
     throw new Error('Black Forest Labs generation timed out.');
   }
 }
-
-export const blackForestLabsImageModelOptionsSchema = lazySchema(() =>
-  zodSchema(
-    z.object({
-      imagePrompt: z.string().optional(),
-      imagePromptStrength: z.number().min(0).max(1).optional(),
-      /** @deprecated use prompt.images instead */
-      inputImage: z.string().optional(),
-      /** @deprecated use prompt.images instead */
-      inputImage2: z.string().optional(),
-      /** @deprecated use prompt.images instead */
-      inputImage3: z.string().optional(),
-      /** @deprecated use prompt.images instead */
-      inputImage4: z.string().optional(),
-      /** @deprecated use prompt.images instead */
-      inputImage5: z.string().optional(),
-      /** @deprecated use prompt.images instead */
-      inputImage6: z.string().optional(),
-      /** @deprecated use prompt.images instead */
-      inputImage7: z.string().optional(),
-      /** @deprecated use prompt.images instead */
-      inputImage8: z.string().optional(),
-      /** @deprecated use prompt.images instead */
-      inputImage9: z.string().optional(),
-      /** @deprecated use prompt.images instead */
-      inputImage10: z.string().optional(),
-      steps: z.number().int().positive().optional(),
-      guidance: z.number().min(0).optional(),
-      width: z.number().int().min(256).max(1920).optional(),
-      height: z.number().int().min(256).max(1920).optional(),
-      outputFormat: z.enum(['jpeg', 'png']).optional(),
-      promptUpsampling: z.boolean().optional(),
-      raw: z.boolean().optional(),
-      safetyTolerance: z.number().int().min(0).max(6).optional(),
-      webhookSecret: z.string().optional(),
-      webhookUrl: z.url().optional(),
-      pollIntervalMillis: z.number().int().positive().optional(),
-      pollTimeoutMillis: z.number().int().positive().optional(),
-    }),
-  ),
-);
-
-export type BlackForestLabsImageModelOptions = InferSchema<
-  typeof blackForestLabsImageModelOptionsSchema
->;
 
 function convertSizeToAspectRatio(
   size: string,

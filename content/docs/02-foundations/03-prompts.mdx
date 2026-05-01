@@ -45,6 +45,14 @@ const result = await generateText({
 System prompts are the initial set of instructions given to models that help guide and constrain the models' behaviors and responses.
 You can set system prompts using the `system` property.
 System prompts work with both the `prompt` and the `messages` properties.
+System messages in `prompt` or `messages` are rejected by default; use the `system` property for system instructions, or set `allowSystemInMessages: true` when you need to send existing message histories that contain system messages.
+
+<Note type="warning">
+  Opting in with `allowSystemInMessages` can create a prompt injection risk
+  where users can override or set the system prompt by injecting system
+  messages. In most cases, only trusted server-side code should set system
+  instructions via the `system` or `instructions` property.
+</Note>
 
 ```ts highlight="3-6"
 const result = await generateText({
@@ -58,11 +66,6 @@ const result = await generateText({
     `Please suggest the best tourist activities for me to do.`,
 });
 ```
-
-<Note>
-  When you use a message prompt, you can also use system messages instead of a
-  system prompt.
-</Note>
 
 ## Message Prompts
 
@@ -118,10 +121,9 @@ const { text } = await generateText({
 For granular control over applying provider options at the message level, you can pass `providerOptions` to the message object:
 
 ```ts
-import { ModelMessage } from 'ai';
-
-const messages: ModelMessage[] = [
-  {
+const result = await generateText({
+  model: __MODEL__,
+  system: {
     role: 'system',
     content: 'Cached system message',
     providerOptions: {
@@ -129,7 +131,8 @@ const messages: ModelMessage[] = [
       anthropic: { cacheControl: { type: 'ephemeral' } },
     },
   },
-];
+  prompt: 'Invent a new holiday and describe its traditions.',
+});
 ```
 
 #### Message Part Level
@@ -151,9 +154,9 @@ const messages: ModelMessage[] = [
         },
       },
       {
-        type: 'image',
-        image:
-          'https://github.com/vercel/ai/blob/main/examples/ai-functions/data/comic-cat.png?raw=true',
+        type: 'file',
+        mediaType: 'image',
+        data: 'https://github.com/vercel/ai/blob/main/examples/ai-functions/data/comic-cat.png?raw=true',
         // Sets image detail configuration for image part:
         providerOptions: {
           openai: { imageDetail: 'low' },
@@ -226,8 +229,9 @@ const result = await generateText({
       content: [
         { type: 'text', text: 'Describe the image in detail.' },
         {
-          type: 'image',
-          image: fs.readFileSync('./data/comic-cat.png'),
+          type: 'file',
+          mediaType: 'image',
+          data: fs.readFileSync('./data/comic-cat.png'),
         },
       ],
     },
@@ -246,8 +250,9 @@ const result = await generateText({
       content: [
         { type: 'text', text: 'Describe the image in detail.' },
         {
-          type: 'image',
-          image: fs.readFileSync('./data/comic-cat.png').toString('base64'),
+          type: 'file',
+          mediaType: 'image',
+          data: fs.readFileSync('./data/comic-cat.png').toString('base64'),
         },
       ],
     },
@@ -266,9 +271,9 @@ const result = await generateText({
       content: [
         { type: 'text', text: 'Describe the image in detail.' },
         {
-          type: 'image',
-          image:
-            'https://github.com/vercel/ai/blob/main/examples/ai-functions/data/comic-cat.png?raw=true',
+          type: 'file',
+          mediaType: 'image',
+          data: 'https://github.com/vercel/ai/blob/main/examples/ai-functions/data/comic-cat.png?raw=true',
         },
       ],
     },
@@ -280,7 +285,7 @@ const result = await generateText({
 
 <Note type="warning">
   Only a few providers and models currently support file parts: [Google
-  Generative AI](/providers/ai-sdk-providers/google-generative-ai), [Google
+  Generative AI](/providers/ai-sdk-providers/google), [Google
   Vertex AI](/providers/ai-sdk-providers/google-vertex),
   [OpenAI](/providers/ai-sdk-providers/openai) (for `wav` and `mp3` audio with
   `gpt-4o-audio-preview`), [Anthropic](/providers/ai-sdk-providers/anthropic),
@@ -499,7 +504,7 @@ const result = await generateText({
           type: 'text',
           text: 'How many calories are in this block of cheese?',
         },
-        { type: 'image', image: fs.readFileSync('./data/roquefort.jpg') },
+        { type: 'file', mediaType: 'image', data: fs.readFileSync('./data/roquefort.jpg') },
       ],
     },
     {
@@ -581,7 +586,7 @@ const result = await generateText({
                 text: 'Here is the nutrition data for the cheese:',
               },
               {
-                type: 'image-data',
+                type: 'file-data',
                 data: fs
                   .readFileSync('./data/roquefort-nutrition-data.png')
                   .toString('base64'),

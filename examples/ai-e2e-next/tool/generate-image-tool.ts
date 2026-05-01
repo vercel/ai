@@ -1,5 +1,5 @@
 import { openai } from '@ai-sdk/openai';
-import { UIToolInvocation, tool, generateImage } from 'ai';
+import { tool, generateImage, type UIToolInvocation } from 'ai';
 import { z } from 'zod';
 
 export const generateImageTool = tool({
@@ -18,7 +18,7 @@ export const generateImageTool = tool({
   },
   toModelOutput: ({ output: { mediaType, base64 } }) => ({
     type: 'content',
-    value: [{ type: 'image-data', data: base64, mediaType }],
+    value: [{ type: 'file-data', data: base64, mediaType }],
   }),
 });
 

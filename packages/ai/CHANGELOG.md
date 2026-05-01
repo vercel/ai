@@ -1,5 +1,381 @@
 # ai
 
+## 7.0.0-beta.115
+
+### Patch Changes
+
+- 08d2129: feat(mcp): propagate the server name through dynamic tool parts
+- 202f107: feat(ai): create a diagnostics channel to push event data
+- Updated dependencies [08d2129]
+- Updated dependencies [04e9009]
+- Updated dependencies [be09425]
+  - @ai-sdk/provider-utils@5.0.0-beta.30
+  - @ai-sdk/gateway@4.0.0-beta.66
+
+## 7.0.0-beta.114
+
+### Major Changes
+
+- 1f7db50: fix(ai): remove experimental_customProvider
+- 9bd6512: feat(provider): change file part data property to be tagged with a type and remove the image part type
+
+### Patch Changes
+
+- 43a6750: fix(ai): preserve `allowSystemInMessages` across `streamText` retries
+- 81caa5d: fix(ai): remove ExtractLiteralUnion export
+- 258c093: chore: ensure consistent import handling and avoid import duplicates or cycles
+- 6147cdf: fix(ai): fix auto-complete on provider registry and custom provider
+- Updated dependencies [9bd6512]
+- Updated dependencies [258c093]
+- Updated dependencies [b6783da]
+  - @ai-sdk/provider-utils@5.0.0-beta.29
+  - @ai-sdk/provider@4.0.0-beta.14
+  - @ai-sdk/gateway@4.0.0-beta.65
+
+## 7.0.0-beta.113
+
+### Patch Changes
+
+- 9f0e36c: trigger release for all packages after provenance setup
+- Updated dependencies [9f0e36c]
+  - @ai-sdk/gateway@4.0.0-beta.64
+  - @ai-sdk/provider@4.0.0-beta.13
+  - @ai-sdk/provider-utils@5.0.0-beta.28
+
+## 7.0.0-beta.112
+
+### Major Changes
+
+- cf93359: feat(ai): remove/refactor event data sent via callbacks
+- 116c89f: feat(ai): remove telemetry data from the user-facing event data
+- 4e095b0: fix(ai): reject system messages in messages or prompt by default (opt-in)
+
+### Patch Changes
+
+- 5f3749c: refactoring: rename toolNeedsApproval to toolApproval
+- 0a51f7d: fix(ai): enforce `callOptionsSchema` at runtime in `ToolLoopAgent`
+
+  `ToolLoopAgentSettings.callOptionsSchema` was declared and documented as a runtime schema for `options`, but `tool-loop-agent.ts` never invoked it. Any invariant a developer encoded in the schema was silently bypassed at runtime, and unchecked `options` flowed straight into `prepareCall` and any `instructions` template that interpolated them.
+
+  `ToolLoopAgent.prepareCall` now validates caller-supplied `options` against `callOptionsSchema` (when set) via `safeValidateTypes`, throwing `InvalidArgumentError` on failure before forwarding to `prepareCall` / `generateText` / `streamText`.
+
+- 71d3022: fix(ai): unify generate text event callbacks
+- 67df0a0: feat: add sensitiveContext property to Tool
+- 4181cfe: fix(ai): harden `getMediaTypeFromUrl` against prototype-property collisions
+
+  `getMediaTypeFromUrl` (used to infer media types for `file-url` / `image-url` parts) used `ext in URL_EXTENSION_TO_MEDIA_TYPE` against a plain object literal. A URL ending in `.constructor` therefore resolved through the prototype chain and returned the `Object` constructor function, violating the helper's `: string` return type and forwarding a non-string value to provider adapters.
+
+  Switch to `Object.hasOwn(...)` so attacker-controlled extensions like `.constructor` cannot resolve to inherited `Object.prototype` keys.
+
+- 51ce232: feat(ai): add sensitiveRuntimeContext option
+- befb78c: refactoring: remove real-time delays in unit tests
+- 29d8cf4: feat(ai): rename the core-event types
+- 58a2ad7: fix: more precise default message for tool execution denial
+- 37d69b2: feat(ai): access runtime context in tool approval functions
+- 1043274: feat(ai): add a ModelCall start/end event
+- 7f59f04: feat(ai): add approval reason to automatic tool approvals
+- 7677c1e: feat(ai): allow tool approval functions to return undefined
+- f58f9bc: fix(ai): remove stopWhen from onStart event
+- e1bfb9c: feat(ai): remove unnecessary data from events
+- e87d71b: feat(ai): support automatic tool approval in ui messages
+- 9d486aa: feat(ai): generic tool approval function
+- 9b0bc8a: fix(mcp): prevent prototype pollution by using secureJsonParse
+- fc92055: feat(ai): automatic tool approval
+- Updated dependencies [785fe16]
+- Updated dependencies [67df0a0]
+- Updated dependencies [befb78c]
+- Updated dependencies [0458559]
+- Updated dependencies [5852c0a]
+- Updated dependencies [baa5f20]
+- Updated dependencies [fc92055]
+- Updated dependencies [f9acbc0]
+  - @ai-sdk/provider-utils@5.0.0-beta.27
+  - @ai-sdk/gateway@4.0.0-beta.63
+
+## 7.0.0-beta.111
+
+### Major Changes
+
+- 1949571: feat(ai): make experimental_telemetry stable
+- 6542d93: feat(ai): change naming nomenclature for `*TelemetryIntegration` to `*Telemetry`
+
+### Patch Changes
+
+- f319fde: feat(ai): validate tool context against contextSchema at runtime
+
+  Tool execution and approval callbacks now validate each tool's `toolsContext` entry against its `contextSchema`. Invalid tool context now throws `TypeValidationError` with tool-context validation metadata in `error.context`.
+
+- 511902c: skip validation for tool parts in terminal states when tool schema is no longer registered
+- 2e98477: fix: retain stack traces on async errors
+- 876fd3e: fix(ai): limit tool execution time duration to actual tool execution
+- f32c750: refactoring(ai): simplify mergeAbortSignals
+- Updated dependencies [2e98477]
+  - @ai-sdk/provider-utils@5.0.0-beta.26
+  - @ai-sdk/gateway@4.0.0-beta.62
+
+## 7.0.0-beta.110
+
+### Patch Changes
+
+- 72cb801: feat(ai): concurrent event notification
+
+## 7.0.0-beta.109
+
+### Patch Changes
+
+- ec98264: feat(ai): allow multiple integrations to be registered at once
+- eea8d98: refactoring: rename tool execution events
+- 75ef93e: remove the deprecated `experimental_output` alias and document the `output` migration for AI SDK 7
+- Updated dependencies [eea8d98]
+  - @ai-sdk/provider-utils@5.0.0-beta.25
+  - @ai-sdk/gateway@4.0.0-beta.61
+
+## 7.0.0-beta.108
+
+### Patch Changes
+
+- Updated dependencies [f807e45]
+  - @ai-sdk/provider-utils@5.0.0-beta.24
+  - @ai-sdk/gateway@4.0.0-beta.60
+
+## 7.0.0-beta.107
+
+### Patch Changes
+
+- 350ea38: refactoring: introduce Arrayable type
+- Updated dependencies [350ea38]
+  - @ai-sdk/provider-utils@5.0.0-beta.23
+  - @ai-sdk/gateway@4.0.0-beta.59
+
+## 7.0.0-beta.106
+
+### Patch Changes
+
+- Updated dependencies [03dc15c]
+  - @ai-sdk/gateway@4.0.0-beta.58
+
+## 7.0.0-beta.105
+
+### Patch Changes
+
+- 33d099c: fix(ai): omit reasoning-start/end when sendReasoning is false
+
+## 7.0.0-beta.104
+
+### Patch Changes
+
+- 2a74d43: Remove the deprecated `experimental_prepareStep` option from `generateText`.
+
+  Use `prepareStep` instead.
+
+## 7.0.0-beta.103
+
+### Patch Changes
+
+- 382d53b: refactoring: rename context to runtimeContext
+- 7bf7d7f: feat(ai): enable:true for telemetry by default
+- c3d4019: chore(ai): rename 'TelemetrySettings' to 'TelemetryOptions'
+- 083947b: feat(ai): separate toolsContext from context
+- Updated dependencies [083947b]
+  - @ai-sdk/provider-utils@5.0.0-beta.22
+  - @ai-sdk/gateway@4.0.0-beta.57
+
+## 7.0.0-beta.102
+
+### Patch Changes
+
+- Updated dependencies [0d8f107]
+  - @ai-sdk/gateway@4.0.0-beta.56
+
+## 7.0.0-beta.101
+
+### Patch Changes
+
+- 4873966: chore(ai): allow general usage of `logWarnings` and emit them via Node API when available
+
+## 7.0.0-beta.100
+
+### Patch Changes
+
+- add1126: refactoring: executeTool uses tool as parameter
+- Updated dependencies [add1126]
+  - @ai-sdk/provider-utils@5.0.0-beta.21
+  - @ai-sdk/gateway@4.0.0-beta.55
+
+## 7.0.0-beta.99
+
+### Patch Changes
+
+- 2a9c144: feat(ai): add toolNeedsApproval option
+
+## 7.0.0-beta.98
+
+### Patch Changes
+
+- Updated dependencies [5df9b6f]
+  - @ai-sdk/gateway@4.0.0-beta.54
+
+## 7.0.0-beta.97
+
+### Patch Changes
+
+- 208d045: fix(ai): skip global telemetry registration when local integration defined
+
+## 7.0.0-beta.96
+
+### Patch Changes
+
+- Updated dependencies [0457e45]
+  - @ai-sdk/gateway@4.0.0-beta.53
+
+## 7.0.0-beta.95
+
+### Patch Changes
+
+- c4f4b5f: refactoring(ai): remove deprecated experimental_activeTools option
+
+## 7.0.0-beta.94
+
+### Patch Changes
+
+- 1582efa: chore(ai): remove the metadata field from the telemetry settings
+
+## 7.0.0-beta.93
+
+### Patch Changes
+
+- bc47739: chore(ai): cleanup telemetry event data
+
+## 7.0.0-beta.92
+
+### Patch Changes
+
+- Updated dependencies [ba2e254]
+  - @ai-sdk/gateway@4.0.0-beta.52
+
+## 7.0.0-beta.91
+
+### Patch Changes
+
+- Updated dependencies [cdcdec2]
+  - @ai-sdk/gateway@4.0.0-beta.51
+
+## 7.0.0-beta.90
+
+### Patch Changes
+
+- 1db29c8: feat(ai): break `CallSettings` apart into `LanguageModelCallOptions` and `RequestOptions`
+
+## 7.0.0-beta.89
+
+### Patch Changes
+
+- ff5eba1: feat: roll `image-*` tool output types into their equivalent `file-*` types
+- Updated dependencies [b3976a2]
+- Updated dependencies [ff5eba1]
+  - @ai-sdk/provider-utils@5.0.0-beta.20
+  - @ai-sdk/gateway@4.0.0-beta.50
+  - @ai-sdk/provider@4.0.0-beta.12
+
+## 7.0.0-beta.88
+
+### Major Changes
+
+- ef992f8: Remove CommonJS exports from all packages. All packages are now ESM-only (`"type": "module"`). Consumers using `require()` must switch to ESM `import` syntax.
+
+### Patch Changes
+
+- Updated dependencies [ef992f8]
+  - @ai-sdk/gateway@4.0.0-beta.49
+  - @ai-sdk/provider@4.0.0-beta.11
+  - @ai-sdk/provider-utils@5.0.0-beta.19
+
+## 7.0.0-beta.87
+
+### Patch Changes
+
+- Updated dependencies [bdbd322]
+- Updated dependencies [8f53ccf]
+  - @ai-sdk/gateway@4.0.0-beta.48
+
+## 7.0.0-beta.86
+
+### Patch Changes
+
+- 5a6f514: feat(ai): support several tools in hasToolCall stop condition
+
+## 7.0.0-beta.85
+
+### Major Changes
+
+- 57bf606: chore(ai): simplify unified telemetry creation
+
+## 7.0.0-beta.84
+
+### Patch Changes
+
+- 90e2d8a: chore: fix unused vars not being flagged by our lint tooling
+- Updated dependencies [90e2d8a]
+  - @ai-sdk/provider-utils@5.0.0-beta.18
+  - @ai-sdk/gateway@4.0.0-beta.47
+
+## 7.0.0-beta.83
+
+### Patch Changes
+
+- Updated dependencies [6b0a40d]
+  - @ai-sdk/gateway@4.0.0-beta.46
+
+## 7.0.0-beta.82
+
+### Patch Changes
+
+- e27ed76: feat(devtools): add new devtools integration for telemetry
+
+## 7.0.0-beta.81
+
+### Patch Changes
+
+- 2fe1099: feat(ai): emit streaming chunks throught the onChunk callback
+- f04adcb: feat(ai): refresh `customProvider` and `createProviderRegistry` to support file and skill upload abstractions
+
+## 7.0.0-beta.80
+
+### Patch Changes
+
+- 3ae1786: fix: better context type inference
+- Updated dependencies [3ae1786]
+  - @ai-sdk/provider-utils@5.0.0-beta.17
+  - @ai-sdk/gateway@4.0.0-beta.45
+
+## 7.0.0-beta.79
+
+### Patch Changes
+
+- 6866afe: fix(ai): fix `lastAssistantMessageIsCompleteWithApprovalResponses` to no longer ignore `providerExecuted` tool approvals
+
+## 7.0.0-beta.78
+
+### Patch Changes
+
+- f372547: fix(ai): fix `providerExecuted` tool approvals being passed to language model twice
+- Updated dependencies [7943a4b]
+  - @ai-sdk/gateway@4.0.0-beta.44
+
+## 7.0.0-beta.77
+
+### Patch Changes
+
+- 2add429: fix(ai): skip passing invalid JSON inputs to response messages
+
+## 7.0.0-beta.76
+
+### Major Changes
+
+- fcc6869: refactor(ai/core): rename `ModelCallStreamPart` to `LanguageModelStreamPart` and align stream model call naming (`streamLanguageModelCall`, `experimental_streamLanguageModelCall`).
+
+  This updates experimental low-level stream primitives to use "language model call" terminology consistently.
+
 ## 7.0.0-beta.75
 
 ### Patch Changes

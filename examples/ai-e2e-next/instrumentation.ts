@@ -1,9 +1,9 @@
-import { registerTelemetryIntegration } from 'ai';
-import { OpenTelemetryIntegration } from '@ai-sdk/otel';
-import { LangfuseSpanProcessor, ShouldExportSpan } from '@langfuse/otel';
+import { registerTelemetry } from 'ai';
+import { LegacyOpenTelemetry } from '@ai-sdk/otel';
+import { LangfuseSpanProcessor, type ShouldExportSpan } from '@langfuse/otel';
 import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
 
-registerTelemetryIntegration(new OpenTelemetryIntegration());
+registerTelemetry(new LegacyOpenTelemetry());
 
 const shouldExportSpan: ShouldExportSpan = span => {
   return span.otelSpan.instrumentationScope.name !== 'next.js';

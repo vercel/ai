@@ -1,4 +1,4 @@
-import {
+import type {
   ImageModelV4,
   ImageModelV4File,
   SharedV4Warning,
@@ -10,17 +10,20 @@ import {
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
   downloadBlob,
-  FetchFunction,
   postFormDataToApi,
   postJsonToApi,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
-import { DeepInfraImageModelId } from './deepinfra-image-settings';
+import type { DeepInfraImageModelId } from './deepinfra-image-settings';
 import { z } from 'zod/v4';
 
 interface DeepInfraImageModelConfig {
   provider: string;
   baseURL: string;
-  headers: () => Record<string, string>;
+  headers?: () => Record<string, string>;
   fetch?: FetchFunction;
   _internal?: {
     currentDate?: () => Date;
@@ -33,6 +36,20 @@ export class DeepInfraImageModel implements ImageModelV4 {
 
   get provider(): string {
     return this.config.provider;
+  }
+
+  static [WORKFLOW_SERIALIZE](model: DeepInfraImageModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: DeepInfraImageModelId;
+    config: DeepInfraImageModelConfig;
+  }) {
+    return new DeepInfraImageModel(options.modelId, options.config);
   }
 
   constructor(
@@ -61,7 +78,7 @@ export class DeepInfraImageModel implements ImageModelV4 {
     if (files != null && files.length > 0) {
       const { value: response, responseHeaders } = await postFormDataToApi({
         url: this.getEditUrl(),
-        headers: combineHeaders(this.config.headers(), headers),
+        headers: combineHeaders(this.config.headers?.(), headers),
         formData: convertToFormData<DeepInfraFormDataInput>(
           {
             model: this.modelId,
@@ -102,7 +119,7 @@ export class DeepInfraImageModel implements ImageModelV4 {
     const splitSize = size?.split('x');
     const { value: response, responseHeaders } = await postJsonToApi({
       url: `${this.config.baseURL}/${this.modelId}`,
-      headers: combineHeaders(this.config.headers(), headers),
+      headers: combineHeaders(this.config.headers?.(), headers),
       body: {
         prompt,
         num_images: n,

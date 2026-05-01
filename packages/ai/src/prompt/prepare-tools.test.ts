@@ -1,5 +1,5 @@
 import { z } from 'zod/v4';
-import { Tool, tool } from '@ai-sdk/provider-utils';
+import { tool, type Tool } from '@ai-sdk/provider-utils';
 import { describe, expect, it } from 'vitest';
 import { prepareTools } from './prepare-tools';
 
@@ -14,16 +14,17 @@ const mockTools = {
   }),
 };
 
-const mockProviderTool: Tool = {
+const mockProviderDefinedTool: Tool = {
   type: 'provider',
   id: 'provider.tool-id',
+  isProviderExecuted: false,
   args: { key: 'value' },
   inputSchema: z.object({}),
 };
 
 const mockToolsWithProviderDefined = {
   ...mockTools,
-  providerTool: mockProviderTool,
+  providerTool: mockProviderDefinedTool,
 };
 
 describe('prepareTools', () => {

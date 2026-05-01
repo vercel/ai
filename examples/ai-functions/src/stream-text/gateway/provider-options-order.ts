@@ -1,4 +1,4 @@
-import { type GatewayProviderOptions } from '@ai-sdk/gateway';
+import type { GatewayProviderOptions } from '@ai-sdk/gateway';
 import { streamText } from 'ai';
 import { run } from '../../lib/run';
 

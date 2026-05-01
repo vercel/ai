@@ -10,13 +10,11 @@ import {
 import { GatewayInternalServerError } from './gateway-internal-server-error';
 import { GatewayResponseError } from './gateway-response-error';
 import {
-  InferSchema,
   lazySchema,
   safeValidateTypes,
-  validateTypes,
   zodSchema,
+  type InferSchema,
 } from '@ai-sdk/provider-utils';
-
 export async function createGatewayErrorFromResponse({
   response,
   statusCode,

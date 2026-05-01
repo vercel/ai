@@ -1,14 +1,14 @@
-import { StreamTextTransform, UIMessageStreamOptions } from '../generate-text';
-import { Output } from '../generate-text/output';
-import type { GenerationContext } from '../generate-text/generation-context';
-import type { ToolSet } from '@ai-sdk/provider-utils';
-import { TimeoutConfiguration } from '../prompt/call-settings';
+import type { Arrayable, Context, ToolSet } from '@ai-sdk/provider-utils';
+import type { GenerateTextOnStepFinishCallback } from '../generate-text/generate-text-events';
+import type { Output } from '../generate-text/output';
+import type { StreamTextTransform } from '../generate-text/stream-text';
+import type { UIMessageStreamOptions } from '../generate-text/stream-text-result';
+import type { TimeoutConfiguration } from '../prompt/request-options';
 import { createUIMessageStreamResponse } from '../ui-message-stream';
-import { UIMessageStreamResponseInit } from '../ui-message-stream/ui-message-stream-response-init';
-import { InferUITools, UIMessage } from '../ui/ui-messages';
-import { Agent } from './agent';
+import type { UIMessageStreamResponseInit } from '../ui-message-stream/ui-message-stream-response-init';
+import type { InferUITools, UIMessage } from '../ui/ui-messages';
+import type { Agent } from './agent';
 import { createAgentUIStream } from './create-agent-ui-stream';
-import type { ToolLoopAgentOnStepFinishCallback } from './tool-loop-agent-settings';
 
 /**
  * Runs the agent and returns a response object with a UI message stream.
@@ -30,8 +30,8 @@ import type { ToolLoopAgentOnStepFinishCallback } from './tool-loop-agent-settin
 export async function createAgentUIStreamResponse<
   CALL_OPTIONS = never,
   TOOLS extends ToolSet = {},
-  CONTEXT extends GenerationContext<TOOLS> = GenerationContext<TOOLS>,
-  OUTPUT extends Output<TOOLS, CONTEXT> = never,
+  RUNTIME_CONTEXT extends Context = Context,
+  OUTPUT extends Output = never,
   MESSAGE_METADATA = unknown,
 >({
   headers,
@@ -40,15 +40,13 @@ export async function createAgentUIStreamResponse<
   consumeSseStream,
   ...options
 }: {
-  agent: Agent<CALL_OPTIONS, TOOLS, CONTEXT, OUTPUT>;
+  agent: Agent<CALL_OPTIONS, TOOLS, RUNTIME_CONTEXT, OUTPUT>;
   uiMessages: unknown[];
   abortSignal?: AbortSignal;
   timeout?: TimeoutConfiguration<TOOLS>;
   options?: CALL_OPTIONS;
-  experimental_transform?:
-    | StreamTextTransform<TOOLS>
-    | Array<StreamTextTransform<TOOLS>>;
-  onStepFinish?: ToolLoopAgentOnStepFinishCallback<TOOLS>;
+  experimental_transform?: Arrayable<StreamTextTransform<TOOLS>>;
+  onStepFinish?: GenerateTextOnStepFinishCallback<TOOLS>;
 } & UIMessageStreamResponseInit &
   UIMessageStreamOptions<
     UIMessage<MESSAGE_METADATA, never, InferUITools<TOOLS>>

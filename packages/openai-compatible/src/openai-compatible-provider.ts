@@ -1,19 +1,19 @@
-import {
+import type {
   EmbeddingModelV4,
   ImageModelV4,
   LanguageModelV4,
   ProviderV4,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
   withoutTrailingSlash,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import {
-  OpenAICompatibleChatConfig,
   OpenAICompatibleChatLanguageModel,
+  type OpenAICompatibleChatConfig,
 } from './chat/openai-compatible-chat-language-model';
-import { MetadataExtractor } from './chat/openai-compatible-metadata-extractor';
+import type { MetadataExtractor } from './chat/openai-compatible-metadata-extractor';
 import { OpenAICompatibleCompletionLanguageModel } from './completion/openai-compatible-completion-language-model';
 import { OpenAICompatibleEmbeddingModel } from './embedding/openai-compatible-embedding-model';
 import { OpenAICompatibleImageModel } from './image/openai-compatible-image-model';
@@ -24,7 +24,7 @@ export interface OpenAICompatibleProvider<
   COMPLETION_MODEL_IDS extends string = string,
   EMBEDDING_MODEL_IDS extends string = string,
   IMAGE_MODEL_IDS extends string = string,
-> extends Omit<ProviderV4, 'imageModel'> {
+> extends ProviderV4 {
   (modelId: CHAT_MODEL_IDS): LanguageModelV4;
 
   languageModel(

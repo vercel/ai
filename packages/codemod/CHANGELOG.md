@@ -1,5 +1,23 @@
 # @ai-sdk/codemod
 
+## 4.0.0-beta.4
+
+### Patch Changes
+
+- 258c093: chore: ensure consistent import handling and avoid import duplicates or cycles
+
+## 4.0.0-beta.3
+
+### Patch Changes
+
+- 9f0e36c: trigger release for all packages after provenance setup
+
+## 4.0.0-beta.2
+
+### Patch Changes
+
+- 90e2d8a: chore: fix unused vars not being flagged by our lint tooling
+
 ## 4.0.0-beta.1
 
 ### Patch Changes

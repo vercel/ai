@@ -1,4 +1,4 @@
-import type { JSONValue, LanguageModelV4Prompt } from '@ai-sdk/provider';
+import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
 import type {
   ModelMessage,
   ProviderOptions,
@@ -21,7 +21,7 @@ import type { LanguageModelUsage } from '../types/usage';
  *
  * @deprecated
  */
-export interface ObjectOnStartEvent {
+export interface GenerateObjectStartEvent {
   /** Unique identifier for this generation call, used to correlate events. */
   readonly callId: string;
 
@@ -70,9 +70,6 @@ export interface ObjectOnStartEvent {
   /** Additional provider-specific options. */
   readonly providerOptions: ProviderOptions | undefined;
 
-  /** Abort signal for cancelling the operation. */
-  readonly abortSignal: AbortSignal | undefined;
-
   /** The output strategy type. */
   readonly output: 'object' | 'array' | 'enum' | 'no-schema';
 
@@ -84,21 +81,6 @@ export interface ObjectOnStartEvent {
 
   /** Optional description of the schema. */
   readonly schemaDescription: string | undefined;
-
-  /** Whether telemetry is enabled. */
-  readonly isEnabled: boolean | undefined;
-
-  /** Whether to record inputs in telemetry. Enabled by default. */
-  readonly recordInputs: boolean | undefined;
-
-  /** Whether to record outputs in telemetry. Enabled by default. */
-  readonly recordOutputs: boolean | undefined;
-
-  /** Identifier from telemetry settings for grouping related operations. */
-  readonly functionId: string | undefined;
-
-  /** Additional metadata from telemetry settings. */
-  readonly metadata: Record<string, JSONValue> | undefined;
 }
 
 /**
@@ -110,7 +92,7 @@ export interface ObjectOnStartEvent {
  *
  * @deprecated
  */
-export interface ObjectOnStepStartEvent {
+export interface GenerateObjectStepStartEvent {
   /** Unique identifier for this generation call, used to correlate events. */
   readonly callId: string;
 
@@ -129,15 +111,6 @@ export interface ObjectOnStepStartEvent {
   /** Additional HTTP headers sent with the request. */
   readonly headers: Record<string, string | undefined> | undefined;
 
-  /** Abort signal for cancelling the operation. */
-  readonly abortSignal: AbortSignal | undefined;
-
-  /** Identifier from telemetry settings for grouping related operations. */
-  readonly functionId: string | undefined;
-
-  /** Additional metadata from telemetry settings. */
-  readonly metadata: Record<string, unknown> | undefined;
-
   /** The prompt messages in provider format (for telemetry). */
   readonly promptMessages?: LanguageModelV4Prompt;
 }
@@ -151,7 +124,7 @@ export interface ObjectOnStepStartEvent {
  *
  * @deprecated
  */
-export interface ObjectOnStepFinishEvent {
+export interface GenerateObjectStepEndEvent {
   /** Unique identifier for this generation call, used to correlate events. */
   readonly callId: string;
 
@@ -190,12 +163,6 @@ export interface ObjectOnStepFinishEvent {
   /** Additional provider-specific metadata. */
   readonly providerMetadata: ProviderMetadata | undefined;
 
-  /** Identifier from telemetry settings for grouping related operations. */
-  readonly functionId: string | undefined;
-
-  /** Additional metadata from telemetry settings. */
-  readonly metadata: Record<string, unknown> | undefined;
-
   /** Milliseconds from the start of the stream to the first chunk (streaming only). */
   readonly msToFirstChunk: number | undefined;
 }
@@ -210,7 +177,7 @@ export interface ObjectOnStepFinishEvent {
  *
  * @deprecated
  */
-export interface ObjectOnFinishEvent<RESULT> {
+export interface GenerateObjectEndEvent<RESULT> {
   /** Unique identifier for this generation call, used to correlate events. */
   readonly callId: string;
 
@@ -249,10 +216,4 @@ export interface ObjectOnFinishEvent<RESULT> {
 
   /** Additional provider-specific metadata. */
   readonly providerMetadata: ProviderMetadata | undefined;
-
-  /** Identifier from telemetry settings for grouping related operations. */
-  readonly functionId: string | undefined;
-
-  /** Additional metadata from telemetry settings. */
-  readonly metadata: Record<string, unknown> | undefined;
 }
