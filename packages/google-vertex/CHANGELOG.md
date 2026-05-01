@@ -1,5 +1,11 @@
 # @ai-sdk/google-vertex
 
+## 5.0.0-beta.66
+
+### Patch Changes
+
+- 1f4058f: fix(vertex): use correct import for token generator
+
 ## 5.0.0-beta.65
 
 ### Patch Changes

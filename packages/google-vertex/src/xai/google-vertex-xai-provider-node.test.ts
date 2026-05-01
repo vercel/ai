@@ -3,10 +3,14 @@ import {
   createGoogleVertexXai,
   googleVertexXai,
 } from './google-vertex-xai-provider-node';
-import { generateAuthToken } from '../google-vertex-auth-google-auth-library';
+import { createAuthTokenGenerator } from '../google-vertex-auth-google-auth-library';
+
+const { generateAuthToken } = vi.hoisted(() => ({
+  generateAuthToken: vi.fn(),
+}));
 
 vi.mock('../google-vertex-auth-google-auth-library', () => ({
-  generateAuthToken: vi.fn(),
+  createAuthTokenGenerator: vi.fn(() => generateAuthToken),
 }));
 
 vi.mock('./google-vertex-xai-provider', () => ({
@@ -28,6 +32,7 @@ vi.mock('@ai-sdk/provider-utils', () => ({
 describe('google-vertex-xai-provider-node', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    generateAuthToken.mockReset();
   });
 
   it('should create provider with auth wrapper', async () => {
@@ -66,13 +71,8 @@ describe('google-vertex-xai-provider-node', () => {
       headers: { 'Content-Type': 'application/json' },
     });
 
-    expect(vi.mocked(generateAuthToken).mock.calls).toMatchInlineSnapshot(`
-      [
-        [
-          undefined,
-        ],
-      ]
-    `);
+    expect(createAuthTokenGenerator).toHaveBeenCalledWith(undefined);
+    expect(generateAuthToken.mock.calls).toEqual([[]]);
 
     expect(mockFetch.mock.calls).toMatchInlineSnapshot(`
       [
@@ -90,7 +90,7 @@ describe('google-vertex-xai-provider-node', () => {
     `);
   });
 
-  it('should pass googleAuthOptions to generateAuthToken', async () => {
+  it('should pass googleAuthOptions to createAuthTokenGenerator', async () => {
     vi.mocked(generateAuthToken).mockResolvedValue('mock-auth-token');
     const mockFetch = vi.fn().mockResolvedValue(new Response('{}'));
     global.fetch = mockFetch;
@@ -104,17 +104,8 @@ describe('google-vertex-xai-provider-node', () => {
     const customFetch = (provider as any).fetch;
     await customFetch('https://example.com/test', {});
 
-    expect(vi.mocked(generateAuthToken).mock.calls).toMatchInlineSnapshot(`
-      [
-        [
-          {
-            "scopes": [
-              "test-scope",
-            ],
-          },
-        ],
-      ]
-    `);
+    expect(createAuthTokenGenerator).toHaveBeenCalledWith(googleAuthOptions);
+    expect(generateAuthToken.mock.calls).toEqual([[]]);
   });
 
   it('should merge custom headers with auth header', async () => {
