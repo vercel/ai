@@ -1,6 +1,6 @@
 {
   "mode": "pre",
-  "tag": "beta",
+  "tag": "canary",
   "initialVersions": {
     "@ai-sdk/alibaba": "1.0.10",
     "@ai-sdk/amazon-bedrock": "4.0.77",
