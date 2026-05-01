@@ -1929,7 +1929,7 @@ Grok models on Vertex support JSON mode and schema-backed structured outputs:
 
 ```ts
 import { googleVertexXai } from '@ai-sdk/google-vertex/xai';
-import { generateObject } from 'ai';
+import { generateText, Output } from 'ai';
 import { z } from 'zod';
 
 const result = await generateText({
