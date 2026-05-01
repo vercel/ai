@@ -8,12 +8,12 @@ import {
   type FetchFunction,
   withoutTrailingSlash,
   withUserAgentSuffix,
-  getRuntimeEnvironmentUserAgent,
 } from '@ai-sdk/provider-utils';
 import {
   type OpenAICompatibleChatConfig,
   OpenAICompatibleChatLanguageModel,
 } from './chat/openai-compatible-chat-language-model';
+import type { MetadataExtractor } from './chat/openai-compatible-metadata-extractor';
 import { OpenAICompatibleCompletionLanguageModel } from './completion/openai-compatible-completion-language-model';
 import { OpenAICompatibleEmbeddingModel } from './embedding/openai-compatible-embedding-model';
 import { OpenAICompatibleImageModel } from './image/openai-compatible-image-model';
@@ -85,8 +85,6 @@ Include usage information in streaming responses.
    * Whether the provider supports structured outputs in chat models.
    */
   supportsStructuredOutputs?: boolean;
-<<<<<<< HEAD
-=======
 
   /**
    * Optional function to transform the request body before sending it to the API.
@@ -112,7 +110,6 @@ Include usage information in streaming responses.
    * differ from the default OpenAI-compatible shape.
    */
   convertUsage?: OpenAICompatibleChatConfig['convertUsage'];
->>>>>>> 6043d24b7 (Backport: feat(vertex): add grok models to vertex provider (#14902))
 }
 
 /**
@@ -170,13 +167,10 @@ export function createOpenAICompatible<
       ...getCommonModelConfig('chat'),
       includeUsage: options.includeUsage,
       supportsStructuredOutputs: options.supportsStructuredOutputs,
-<<<<<<< HEAD
-=======
       supportedUrls: options.supportedUrls,
       transformRequestBody: options.transformRequestBody,
       metadataExtractor: options.metadataExtractor,
       convertUsage: options.convertUsage,
->>>>>>> 6043d24b7 (Backport: feat(vertex): add grok models to vertex provider (#14902))
     });
 
   const createCompletionModel = (modelId: COMPLETION_MODEL_IDS) =>

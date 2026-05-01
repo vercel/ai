@@ -156,27 +156,11 @@ describe('google-vertex-xai-provider', () => {
       }),
     ).toMatchInlineSnapshot(`
       {
-        "inputTokens": {
-          "cacheRead": 654,
-          "cacheWrite": undefined,
-          "noCache": 9,
-          "total": 663,
-        },
-        "outputTokens": {
-          "reasoning": 124,
-          "text": 50,
-          "total": 174,
-        },
-        "raw": {
-          "completion_tokens": 50,
-          "completion_tokens_details": {
-            "reasoning_tokens": 124,
-          },
-          "prompt_tokens": 663,
-          "prompt_tokens_details": {
-            "cached_tokens": 654,
-          },
-        },
+        "cachedInputTokens": 654,
+        "inputTokens": 663,
+        "outputTokens": 174,
+        "reasoningTokens": 124,
+        "totalTokens": undefined,
       }
     `);
   });
@@ -211,7 +195,7 @@ describe('google-vertex-xai-provider', () => {
   it('should throw NoSuchModelError for embedding and image models', () => {
     const provider = createGoogleVertexXai({ project: 'test-project' });
 
-    expect(() => provider.embeddingModel('invalid-model-id')).toThrow(
+    expect(() => provider.textEmbeddingModel('invalid-model-id')).toThrow(
       NoSuchModelError,
     );
     expect(() => provider.imageModel('invalid-model-id')).toThrow(

@@ -1,8 +1,8 @@
 import {
   NoSuchModelError,
-  type LanguageModelV3,
-  type LanguageModelV3Usage,
-  type ProviderV3,
+  type LanguageModelV2,
+  type LanguageModelV2Usage,
+  type ProviderV2,
 } from '@ai-sdk/provider';
 import {
   createOpenAICompatible,
@@ -17,24 +17,24 @@ import {
 } from '@ai-sdk/provider-utils';
 import type { GoogleVertexXaiModelId } from './google-vertex-xai-options';
 
-export interface GoogleVertexXaiProvider extends ProviderV3 {
+export interface GoogleVertexXaiProvider extends ProviderV2 {
   /**
    * Creates a model for text generation.
    */
-  (modelId: GoogleVertexXaiModelId): LanguageModelV3;
+  (modelId: GoogleVertexXaiModelId): LanguageModelV2;
 
   /**
    * Creates a model for text generation.
    */
-  languageModel(modelId: GoogleVertexXaiModelId): LanguageModelV3;
+  languageModel(modelId: GoogleVertexXaiModelId): LanguageModelV2;
 
   /**
    * Creates a chat model for text generation.
    */
-  chatModel(modelId: GoogleVertexXaiModelId): LanguageModelV3;
+  chatModel(modelId: GoogleVertexXaiModelId): LanguageModelV2;
 
   /**
-   * @deprecated Use `embeddingModel` instead.
+   * Creates a text embedding model.
    */
   textEmbeddingModel(modelId: string): never;
 }
@@ -76,6 +76,7 @@ type GoogleVertexXaiUsage =
   | {
       prompt_tokens?: number | null;
       completion_tokens?: number | null;
+      total_tokens?: number | null;
       prompt_tokens_details?: {
         cached_tokens?: number | null;
       } | null;
@@ -88,49 +89,41 @@ type GoogleVertexXaiUsage =
 
 function convertGoogleVertexXaiUsage(
   usage: GoogleVertexXaiUsage,
-): LanguageModelV3Usage {
+): LanguageModelV2Usage {
   if (usage == null) {
     return {
-      inputTokens: {
-        total: undefined,
-        noCache: undefined,
-        cacheRead: undefined,
-        cacheWrite: undefined,
-      },
-      outputTokens: {
-        total: undefined,
-        text: undefined,
-        reasoning: undefined,
-      },
-      raw: undefined,
+      inputTokens: undefined,
+      outputTokens: undefined,
+      totalTokens: undefined,
+      reasoningTokens: undefined,
+      cachedInputTokens: undefined,
     };
   }
 
-  const promptTokens = usage.prompt_tokens ?? 0;
-  const completionTokens = usage.completion_tokens ?? 0;
-  const cacheReadTokens = usage.prompt_tokens_details?.cached_tokens ?? 0;
+  const promptTokens = usage.prompt_tokens ?? undefined;
+  const completionTokens = usage.completion_tokens ?? undefined;
+  const cachedInputTokens =
+    usage.prompt_tokens_details?.cached_tokens ?? undefined;
   const reasoningTokens =
-    usage.completion_tokens_details?.reasoning_tokens ?? 0;
+    usage.completion_tokens_details?.reasoning_tokens ?? undefined;
+  const outputTokens =
+    completionTokens == null && reasoningTokens == null
+      ? undefined
+      : (completionTokens ?? 0) + (reasoningTokens ?? 0);
 
   return {
-    inputTokens: {
-      total: promptTokens,
-      noCache: promptTokens - cacheReadTokens,
-      cacheRead: cacheReadTokens,
-      cacheWrite: undefined,
-    },
-    outputTokens: {
-      total: completionTokens + reasoningTokens,
-      text: completionTokens,
-      reasoning: reasoningTokens,
-    },
-    raw: usage,
+    inputTokens: promptTokens,
+    outputTokens,
+    totalTokens: usage.total_tokens ?? undefined,
+    reasoningTokens,
+    cachedInputTokens,
   };
 }
 
 function transformGoogleVertexXaiRequestBody(args: Record<string, any>) {
-  const { reasoning_effort: _reasoningEffort, ...rest } = args;
-  return rest;
+  const transformedArgs = { ...args };
+  delete transformedArgs.reasoning_effort;
+  return transformedArgs;
 }
 
 /**
@@ -196,14 +189,13 @@ export function createGoogleVertexXai(
     return createChatModel(modelId);
   };
 
-  provider.specificationVersion = 'v3' as const;
+  provider.specificationVersion = 'v2' as const;
   provider.languageModel = createChatModel;
   provider.chatModel = (modelId: GoogleVertexXaiModelId) =>
     getProvider().chatModel(modelId);
-  provider.embeddingModel = (modelId: string): never => {
-    throw new NoSuchModelError({ modelId, modelType: 'embeddingModel' });
+  provider.textEmbeddingModel = (modelId: string): never => {
+    throw new NoSuchModelError({ modelId, modelType: 'textEmbeddingModel' });
   };
-  provider.textEmbeddingModel = provider.embeddingModel;
   provider.imageModel = (modelId: string): never => {
     throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
   };

@@ -923,6 +923,36 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should transform request body before sending it', async () => {
+    prepareJsonResponse({ content: '' });
+
+    const model = new OpenAICompatibleChatLanguageModel('gpt-5', {
+      provider: 'test-provider',
+      url: () => 'https://my.api.com/v1/chat/completions',
+      headers: () => ({}),
+      transformRequestBody: args => {
+        const transformedArgs = { ...args };
+        delete transformedArgs.reasoning_effort;
+        return transformedArgs;
+      },
+    });
+
+    const { request } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        'test-provider': { reasoningEffort: 'high' },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'gpt-5',
+      messages: [{ role: 'user', content: 'Hello' }],
+    });
+    expect(request).toStrictEqual({
+      body: '{"model":"gpt-5","messages":[{"role":"user","content":"Hello"}]}',
+    });
+  });
+
   describe('usage details', () => {
     it('should extract detailed token usage when available', async () => {
       prepareJsonResponse({
@@ -960,6 +990,49 @@ describe('doGenerate', () => {
             "acceptedPredictionTokens": 15,
             "rejectedPredictionTokens": 5,
           },
+        }
+      `);
+    });
+
+    it('should use a custom usage converter when configured', async () => {
+      prepareJsonResponse({
+        usage: {
+          prompt_tokens: 20,
+          completion_tokens: 30,
+          total_tokens: 50,
+          completion_tokens_details: {
+            reasoning_tokens: 10,
+          },
+        },
+      });
+
+      const model = new OpenAICompatibleChatLanguageModel('gpt-4', {
+        provider: 'test-provider',
+        url: () => 'https://my.api.com/v1/chat/completions',
+        headers: () => ({}),
+        convertUsage: usage => ({
+          inputTokens: usage?.prompt_tokens ?? undefined,
+          outputTokens:
+            usage == null
+              ? undefined
+              : (usage.completion_tokens ?? 0) +
+                (usage.completion_tokens_details?.reasoning_tokens ?? 0),
+          totalTokens: usage?.total_tokens ?? undefined,
+          reasoningTokens:
+            usage?.completion_tokens_details?.reasoning_tokens ?? undefined,
+        }),
+      });
+
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.usage).toMatchInlineSnapshot(`
+        {
+          "inputTokens": 20,
+          "outputTokens": 40,
+          "reasoningTokens": 10,
+          "totalTokens": 50,
         }
       `);
     });
