@@ -2,6 +2,7 @@ import type { ImageModelV2, ImageModelV2CallWarning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createJsonResponseHandler,
+  parseProviderOptions,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import type { OpenAIConfig } from '../openai-config';
@@ -11,6 +12,7 @@ import {
   type OpenAIImageModelId,
   hasDefaultResponseFormat,
   modelMaxImagesPerCall,
+  openaiImageModelGenerationOptions,
 } from './openai-image-options';
 
 interface OpenAIImageModelConfig extends OpenAIConfig {
@@ -63,6 +65,14 @@ export class OpenAIImageModel implements ImageModelV2 {
     }
 
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+
+    const openaiOptions =
+      (await parseProviderOptions({
+        provider: 'openai',
+        providerOptions,
+        schema: openaiImageModelGenerationOptions,
+      })) ?? {};
+
     const { value: response, responseHeaders } = await postJsonToApi({
       url: this.config.url({
         path: '/images/generations',
@@ -74,7 +84,13 @@ export class OpenAIImageModel implements ImageModelV2 {
         prompt,
         n,
         size,
-        ...(providerOptions.openai ?? {}),
+        quality: openaiOptions.quality,
+        style: openaiOptions.style,
+        background: openaiOptions.background,
+        moderation: openaiOptions.moderation,
+        output_format: openaiOptions.outputFormat,
+        output_compression: openaiOptions.outputCompression,
+        user: openaiOptions.user,
         ...(!hasDefaultResponseFormat.has(this.modelId)
           ? { response_format: 'b64_json' }
           : {}),

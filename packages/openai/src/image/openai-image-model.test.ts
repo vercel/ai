@@ -63,6 +63,41 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should map provider options to snake_case for /images/generations', async () => {
+    prepareJsonResponse();
+
+    await provider.image('gpt-image-1').doGenerate({
+      prompt,
+      n: 1,
+      size: '1024x1024',
+      aspectRatio: undefined,
+      seed: undefined,
+      providerOptions: {
+        openai: {
+          quality: 'high',
+          background: 'transparent',
+          moderation: 'low',
+          outputFormat: 'webp',
+          outputCompression: 80,
+          user: 'user-123',
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'gpt-image-1',
+      prompt,
+      n: 1,
+      size: '1024x1024',
+      quality: 'high',
+      background: 'transparent',
+      moderation: 'low',
+      output_format: 'webp',
+      output_compression: 80,
+      user: 'user-123',
+    });
+  });
+
   it('should pass headers', async () => {
     prepareJsonResponse();
 
