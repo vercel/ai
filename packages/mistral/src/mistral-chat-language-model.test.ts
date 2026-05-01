@@ -230,6 +230,68 @@ describe('doGenerate', () => {
     `);
   });
 
+  it('should extract cached prompt token usage', async () => {
+    server.urls[CHAT_COMPLETIONS_URL].response = {
+      type: 'json-value',
+      body: {
+        object: 'chat.completion',
+        id: 'cached-token-test',
+        created: 1711113008,
+        model: 'mistral-small-latest',
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: 'assistant',
+              content: 'Hello',
+              tool_calls: null,
+            },
+            finish_reason: 'stop',
+            logprobs: null,
+          },
+        ],
+        usage: {
+          prompt_tokens: 127,
+          completion_tokens: 11,
+          total_tokens: 138,
+          num_cached_tokens: 125,
+          prompt_tokens_details: {
+            cached_tokens: 123,
+          },
+        },
+      },
+    };
+
+    const { usage } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(usage).toMatchInlineSnapshot(`
+      {
+        "inputTokens": {
+          "cacheRead": 125,
+          "cacheWrite": undefined,
+          "noCache": 2,
+          "total": 127,
+        },
+        "outputTokens": {
+          "reasoning": undefined,
+          "text": 11,
+          "total": 11,
+        },
+        "raw": {
+          "completion_tokens": 11,
+          "num_cached_tokens": 125,
+          "prompt_tokens": 127,
+          "prompt_tokens_details": {
+            "cached_tokens": 123,
+          },
+          "total_tokens": 138,
+        },
+      }
+    `);
+  });
+
   it('should send additional response information', async () => {
     prepareJsonFixtureResponse('mistral-text');
 
