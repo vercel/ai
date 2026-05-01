@@ -69,10 +69,6 @@
     },
     "./maas/edge": {
       "types": "./dist/maas/edge/index.d.ts",
-<<<<<<< HEAD
-      "import": "./dist/maas/edge/index.mjs",
-      "require": "./dist/maas/edge/index.js"
-=======
       "import": "./dist/maas/edge/index.js",
       "default": "./dist/maas/edge/index.js"
     },
@@ -85,7 +81,6 @@
       "types": "./dist/xai/edge/index.d.ts",
       "import": "./dist/xai/edge/index.js",
       "default": "./dist/xai/edge/index.js"
->>>>>>> e59c95505 (feat(vertex): add grok models to vertex provider (#14883))
     }
   },
   "dependencies": {

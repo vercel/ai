@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import {
   InvalidResponseDataError,
   type APICallError,
@@ -9,22 +8,9 @@ import {
   type LanguageModelV3GenerateResult,
   type LanguageModelV3StreamPart,
   type LanguageModelV3StreamResult,
+  type LanguageModelV3Usage,
   type SharedV3ProviderMetadata,
   type SharedV3Warning,
-=======
-import type {
-  APICallError,
-  LanguageModelV4,
-  LanguageModelV4CallOptions,
-  LanguageModelV4Content,
-  LanguageModelV4FinishReason,
-  LanguageModelV4GenerateResult,
-  LanguageModelV4StreamPart,
-  LanguageModelV4StreamResult,
-  LanguageModelV4Usage,
-  SharedV4ProviderMetadata,
-  SharedV4Warning,
->>>>>>> e59c95505 (feat(vertex): add grok models to vertex provider (#14883))
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -88,7 +74,7 @@ export type OpenAICompatibleChatConfig = {
    */
   convertUsage?: (
     usage: z.infer<typeof openaiCompatibleTokenUsageSchema>,
-  ) => LanguageModelV4Usage;
+  ) => LanguageModelV3Usage;
 };
 
 export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
@@ -137,7 +123,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
 
   private convertUsage(
     usage: z.infer<typeof openaiCompatibleTokenUsageSchema>,
-  ): LanguageModelV4Usage {
+  ): LanguageModelV3Usage {
     return (
       this.config.convertUsage?.(usage) ??
       convertOpenAICompatibleChatUsage(usage)
