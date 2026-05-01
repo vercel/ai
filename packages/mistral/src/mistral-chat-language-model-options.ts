@@ -7,6 +7,7 @@ export type MistralChatModelId =
   | 'ministral-14b-latest'
   | 'mistral-large-latest'
   | 'mistral-medium-latest'
+  | 'mistral-medium-3'
   | 'mistral-large-2512'
   | 'mistral-medium-2508'
   | 'mistral-medium-2505'
