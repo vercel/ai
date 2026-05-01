@@ -775,6 +775,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
             providerMetadata: {
               [providerOptionsName]: {
                 itemId: part.id,
+                ...(part.namespace != null && { namespace: part.namespace }),
               },
             },
           });
@@ -1383,6 +1384,13 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 controller.enqueue({
                   type: 'tool-input-end',
                   id: value.item.call_id,
+                  ...(value.item.namespace != null && {
+                    providerMetadata: {
+                      [providerOptionsName]: {
+                        namespace: value.item.namespace,
+                      },
+                    },
+                  }),
                 });
 
                 controller.enqueue({
@@ -1393,6 +1401,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   providerMetadata: {
                     [providerOptionsName]: {
                       itemId: value.item.id,
+                      ...(value.item.namespace != null && {
+                        namespace: value.item.namespace,
+                      }),
                     },
                   },
                 });
