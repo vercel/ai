@@ -1682,6 +1682,102 @@ describe('assistant messages', () => {
     expect(warnings).toMatchInlineSnapshot(`[]`);
   });
 
+  it('should place regular tool_use blocks after provider-executed tool results', async () => {
+    const warnings: SharedV4Warning[] = [];
+    const result = await convertToAnthropicPrompt({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'text',
+              text: 'I will search and then use the local tool.',
+            },
+            {
+              type: 'tool-call',
+              toolCallId: 'toolu_01Regular',
+              toolName: 'save_note',
+              input: { note: 'summary' },
+            },
+            {
+              type: 'tool-call',
+              toolCallId: 'srvtoolu_01Web',
+              toolName: 'web_search',
+              input: { query: 'latest news' },
+              providerExecuted: true,
+            },
+            {
+              type: 'tool-result',
+              toolCallId: 'srvtoolu_01Web',
+              toolName: 'web_search',
+              output: {
+                type: 'json',
+                value: [
+                  {
+                    url: 'https://example.com/news',
+                    title: 'News',
+                    pageAge: '1h',
+                    encryptedContent: 'encrypted-content',
+                    type: 'web_search_result',
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+      sendReasoning: false,
+      warnings,
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    expect(result.prompt.messages[0]).toMatchInlineSnapshot(`
+      {
+        "content": [
+          {
+            "cache_control": undefined,
+            "text": "I will search and then use the local tool.",
+            "type": "text",
+          },
+          {
+            "cache_control": undefined,
+            "id": "srvtoolu_01Web",
+            "input": {
+              "query": "latest news",
+            },
+            "name": "web_search",
+            "type": "server_tool_use",
+          },
+          {
+            "cache_control": undefined,
+            "content": [
+              {
+                "encrypted_content": "encrypted-content",
+                "page_age": "1h",
+                "title": "News",
+                "type": "web_search_result",
+                "url": "https://example.com/news",
+              },
+            ],
+            "tool_use_id": "srvtoolu_01Web",
+            "type": "web_search_tool_result",
+          },
+          {
+            "cache_control": undefined,
+            "id": "toolu_01Regular",
+            "input": {
+              "note": "summary",
+            },
+            "name": "save_note",
+            "type": "tool_use",
+          },
+        ],
+        "role": "assistant",
+      }
+    `);
+    expect(warnings).toMatchInlineSnapshot(`[]`);
+  });
+
   it('should convert anthropic web_fetch tool call and result parts', async () => {
     const warnings: SharedV4Warning[] = [];
     const result = await convertToAnthropicPrompt({

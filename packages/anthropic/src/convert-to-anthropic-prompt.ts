@@ -1072,7 +1072,10 @@ export async function convertToAnthropicPrompt({
           }
         }
 
-        messages.push({ role: 'assistant', content: anthropicContent });
+        messages.push({
+          role: 'assistant',
+          content: moveRegularToolUseBlocksToEnd(anthropicContent),
+        });
 
         break;
       }
@@ -1157,4 +1160,19 @@ function groupIntoBlocks(
   }
 
   return blocks;
+}
+
+function moveRegularToolUseBlocksToEnd(
+  content: AnthropicAssistantMessage['content'],
+): AnthropicAssistantMessage['content'] {
+  const regularToolUseBlocks = content.filter(part => part.type === 'tool_use');
+
+  if (regularToolUseBlocks.length === 0) {
+    return content;
+  }
+
+  return [
+    ...content.filter(part => part.type !== 'tool_use'),
+    ...regularToolUseBlocks,
+  ];
 }
