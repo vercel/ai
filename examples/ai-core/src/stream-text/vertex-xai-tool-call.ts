@@ -1,7 +1,7 @@
 import { googleVertexXai } from '@ai-sdk/google-vertex/xai';
 import { streamText, tool } from 'ai';
 import { z } from 'zod';
-import { run } from '../../lib/run';
+import { run } from '../lib/run';
 
 run(async () => {
   const result = streamText({

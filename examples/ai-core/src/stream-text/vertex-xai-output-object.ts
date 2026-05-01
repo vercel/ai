@@ -1,13 +1,13 @@
 import { googleVertexXai } from '@ai-sdk/google-vertex/xai';
 import { Output, streamText } from 'ai';
 import { z } from 'zod';
-import { run } from '../../lib/run';
+import { run } from '../lib/run';
 
 run(async () => {
   const result = streamText({
     model: googleVertexXai('xai/grok-4.20-reasoning'),
     maxOutputTokens: 2000,
-    output: Output.object({
+    experimental_output: Output.object({
       schema: z.object({
         characters: z.array(
           z.object({
@@ -24,7 +24,7 @@ run(async () => {
       'Generate 3 character descriptions for a fantasy role playing game.',
   });
 
-  for await (const partialOutput of result.partialOutputStream) {
+  for await (const partialOutput of result.experimental_partialOutputStream) {
     console.clear();
     console.log(partialOutput);
   }
