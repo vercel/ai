@@ -545,6 +545,19 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
             }
 
             if (!chunk.success) {
+              const raw = chunk.rawValue;
+
+              // If raw already looks like provider error, surface it
+              if (
+                raw &&
+                typeof raw === 'object' &&
+                'type' in raw &&
+                raw.type === 'error'
+              ) {
+                controller.enqueue({ type: 'error', error: raw });
+                return;
+              }
+
               controller.enqueue({ type: 'error', error: chunk.error });
               return;
             }
