@@ -644,34 +644,17 @@ describe('doGenerate', () => {
     });
   });
 
-  it('should expose serviceTier in provider metadata', async () => {
-    server.urls[TEST_URL_GEMINI_PRO].response = {
-      type: 'json-value',
-      body: {
-        candidates: [
-          {
-            content: {
-              parts: [{ text: 'test response' }],
-              role: 'model',
-            },
-            finishReason: 'STOP',
-            safetyRatings: SAFETY_RATINGS,
-          },
-        ],
-        usageMetadata: {
-          promptTokenCount: 1,
-          candidatesTokenCount: 2,
-          totalTokenCount: 3,
-        },
-        serviceTier: 'flex',
-      },
-    };
+  it('should read serviceTier from x-gemini-service-tier response header', async () => {
+    prepareJsonResponse({
+      content: 'test response',
+      headers: { 'x-gemini-service-tier': 'priority' },
+    });
 
     const { providerMetadata } = await model.doGenerate({
       prompt: TEST_PROMPT,
     });
 
-    expect(providerMetadata?.google.serviceTier).toBe('flex');
+    expect(providerMetadata?.google.serviceTier).toBe('priority');
   });
 
   it('should expose null serviceTier in provider metadata when not present', async () => {
@@ -4499,30 +4482,11 @@ describe('doStream', () => {
     ).toBeNull();
   });
 
-  it('should expose serviceTier in provider metadata on finish', async () => {
-    server.urls[TEST_URL_GEMINI_PRO].response = {
-      type: 'stream-chunks',
-      chunks: [
-        `data: ${JSON.stringify({
-          candidates: [
-            {
-              content: {
-                parts: [{ text: 'test response' }],
-                role: 'model',
-              },
-              finishReason: 'STOP',
-              safetyRatings: SAFETY_RATINGS,
-            },
-          ],
-          usageMetadata: {
-            promptTokenCount: 1,
-            candidatesTokenCount: 2,
-            totalTokenCount: 3,
-          },
-          serviceTier: 'flex',
-        })}\n\n`,
-      ],
-    };
+  it('should read serviceTier from x-gemini-service-tier response header', async () => {
+    prepareStreamResponse({
+      content: ['test'],
+      headers: { 'x-gemini-service-tier': 'priority' },
+    });
 
     const { stream } = await model.doStream({
       prompt: TEST_PROMPT,
@@ -4534,7 +4498,7 @@ describe('doStream', () => {
     expect(
       finishEvent?.type === 'finish' &&
         finishEvent.providerMetadata?.google.serviceTier,
-    ).toBe('flex');
+    ).toBe('priority');
   });
 
   it('should expose null serviceTier in provider metadata on finish when not present', async () => {

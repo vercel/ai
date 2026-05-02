@@ -489,7 +489,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
         safetyRatings: candidate.safetyRatings ?? null,
         usageMetadata: usageMetadata ?? null,
         finishMessage: candidate.finishMessage ?? null,
-        serviceTier: response.serviceTier ?? null,
+        serviceTier: responseHeaders?.['x-gemini-service-tier'] ?? null,
       } satisfies GoogleProviderMetadata),
       request: { body: args },
       response: {
@@ -537,7 +537,8 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     let providerMetadata: SharedV4ProviderMetadata | undefined = undefined;
     let lastGroundingMetadata: GroundingMetadataSchema | null = null;
     let lastUrlContextMetadata: UrlContextMetadataSchema | null = null;
-    let serviceTier: string | null = null;
+    const serviceTier: string | null =
+      responseHeaders?.['x-gemini-service-tier'] ?? null;
 
     const generateId = this.config.generateId;
     let hasToolCalls = false;
@@ -587,10 +588,6 @@ export class GoogleLanguageModel implements LanguageModelV4 {
 
             if (usageMetadata != null) {
               usage = usageMetadata;
-            }
-
-            if (value.serviceTier != null) {
-              serviceTier = value.serviceTier;
             }
 
             const candidate = value.candidates?.[0];
@@ -1423,7 +1420,6 @@ const responseSchema = lazySchema(() =>
           safetyRatings: z.array(getSafetyRatingSchema()).nullish(),
         })
         .nullish(),
-      serviceTier: z.string().nullish(),
     }),
   ),
 );
@@ -1472,7 +1468,6 @@ const chunkSchema = lazySchema(() =>
           safetyRatings: z.array(getSafetyRatingSchema()).nullish(),
         })
         .nullish(),
-      serviceTier: z.string().nullish(),
     }),
   ),
 );
