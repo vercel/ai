@@ -4,23 +4,13 @@ import { readFileSync } from 'fs';
 import { run } from '../../lib/run';
 import { saveRawChunks } from '../../lib/save-raw-chunks';
 
-/**
- * *** NOTICE ***
- *
- * This example is provided for reference only.
- * The `skills` and `container` configuration is not currently supported on the Microsoft Azure platform.
- *
- * Once Azure adds support for this feature, the example will function as expected
- * and will be updated accordingly.
- */
-
 const skillZip = readFileSync('data/island-rescue-skill.zip').toString(
   'base64',
 );
 
 run(async () => {
   const result = streamText({
-    model: azure.responses('gpt-5.2'),
+    model: azure.responses('gpt-5.4-mini'),
     tools: {
       shell: azure.tools.shell({
         environment: {
