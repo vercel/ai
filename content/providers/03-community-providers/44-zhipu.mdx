@@ -1,26 +1,35 @@
 ---
 title: Zhipu AI (Z.AI)
-description: Learn how to use the Zhipu (Z.AI) provider.
+description: Learn how to use the Zhipu (Z.AI) provider with the AI SDK.
 ---
 
 # Zhipu AI (Z.AI) Provider
 
-[Zhipu AI Provider](https://github.com/Xiang-CH/zhipu-ai-provider) is a community provider for the [AI SDK](/). It enables seamless integration with **GLM** and Embedding Models provided on [bigmodel.cn](https://bigmodel.cn/) or [z.ai](https://docs.z.ai/) by [ZhipuAI](https://www.zhipuai.cn/).
+[Zhipu AI SDK Provider](https://github.com/meabed/zhipu-ai-sdk-provider) is a community provider for the [AI SDK](/). It enables seamless integration with **GLM** models and more from [bigmodel.cn](https://open.bigmodel.cn/) or [z.ai](https://docs.z.ai/) by [ZhipuAI](https://www.zhipuai.cn/), including:
+
+- Latest GLM language models (`glm-5`, `glm-4.7`, `glm-4-plus`, long-context variants)
+- Multimodal / vision models (`glm-4v` series, thinking-flash)
+- Reasoning / thinking mode
+- Embeddings
+- Image generation (CogView series)
+- Text-to-speech
+- Built-in web search tool
+- Streaming, tool calling, structured output, token usage (incl. reasoning & cached tokens)
 
 ## Setup
 
 <Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
   <Tab>
-    <Snippet text="pnpm add zhipu-ai-provider" dark />
+    <Snippet text="pnpm add zhipu-ai-sdk-provider" dark />
   </Tab>
   <Tab>
-    <Snippet text="npm i zhipu-ai-provider" dark />
+    <Snippet text="npm i zhipu-ai-sdk-provider" dark />
   </Tab>
   <Tab>
-    <Snippet text="yarn add zhipu-ai-provider" dark />
+    <Snippet text="yarn add zhipu-ai-sdk-provider" dark />
   </Tab>
   <Tab>
-    <Snippet text="bun add zhipu-ai-provider" dark />
+    <Snippet text="bun add zhipu-ai-sdk-provider" dark />
   </Tab>
 </Tabs>
 
@@ -30,18 +39,20 @@ Set up your `.env` file / environment with your API key.
 ZHIPU_API_KEY=<your-api-key>
 ```
 
+Get your key from [open.bigmodel.cn](https://open.bigmodel.cn/) (China) or [z.ai](https://z.ai/) (international).
+
 ## Provider Instance
 
-You can import the default provider instance `zhipu` from `zhipu-ai-provider` (This automatically reads the API key from the environment variable `ZHIPU_API_KEY`):
+You can import the default provider instance `zhipu` from `zhipu-ai-sdk-provider` (this automatically reads the API key from the environment variable `ZHIPU_API_KEY`):
 
 ```ts
-import { zhipu } from 'zhipu-ai-provider';
+import { zhipu } from 'zhipu-ai-sdk-provider';
 ```
 
-Alternatively, you can create a provider instance with custom configuration with `createZhipu` (do this if you want to use the non-Chinese [Z.AI](https://docs.z.ai/guides) infrastructure):
+Alternatively, you can create a provider instance with custom configuration using `createZhipu` (use this if you want to use the international [Z.AI](https://docs.z.ai/guides) infrastructure):
 
 ```ts
-import { createZhipu } from 'zhipu-ai-provider';
+import { createZhipu } from 'zhipu-ai-sdk-provider';
 
 const zhipu = createZhipu({
   baseURL: 'https://api.z.ai/api/paas/v4',
@@ -51,31 +62,178 @@ const zhipu = createZhipu({
 
 You can use the following optional settings to customize the Zhipu provider instance:
 
-- **baseURL**: _string_
+- **baseURL** _string_
 
-  - Use a different URL prefix for API calls, e.g. to use proxy servers. The default prefix is `https://open.bigmodel.cn/api/paas/v4`.
+  Use a different URL prefix for API calls, e.g. to use proxy servers. The default prefix is `https://open.bigmodel.cn/api/paas/v4`.
 
-- **apiKey**: _string_
+- **apiKey** _string_
 
-  - Your API key for Zhipu [BigModel Platform](https://bigmodel.cn/). If not provided, the provider will attempt to read the API key from the environment variable `ZHIPU_API_KEY`.
+  Your API key for Zhipu [BigModel Platform](https://bigmodel.cn/). If not provided, the provider will attempt to read the API key from the environment variable `ZHIPU_API_KEY`.
 
-- **headers**: _Record\<string, string\>_
-  - Custom headers to include in the requests.
+- **headers** _Record\<string,string\>_
 
-## Example
+  Custom headers to include in the requests.
+
+## Language Models
+
+You can create language model instances using the provider instance and passing the model ID as the first argument:
 
 ```ts
-import { zhipu } from 'zhipu-ai-provider';
+import { zhipu } from 'zhipu-ai-sdk-provider';
 
-const { text } = await generateText({
-  model: zhipu('glm-4-plus'),
+const model = zhipu('glm-4.7');
+```
+
+### Example: Text Generation
+
+```ts
+import { generateText } from 'ai';
+import { zhipu } from 'zhipu-ai-sdk-provider';
+
+const { text, usage } = await generateText({
+  model: zhipu('glm-4.7'),
   prompt: 'Why is the sky blue?',
 });
 
-console.log(result);
+console.log(text);
+console.log(usage); // includes reasoning_tokens, cached_tokens, etc.
 ```
+
+### Example: Streaming
+
+```ts
+import { streamText } from 'ai';
+import { zhipu } from 'zhipu-ai-sdk-provider';
+
+const result = streamText({
+  model: zhipu('glm-5'),
+  messages: [{ role: 'user', content: 'Tell me a joke about AI.' }],
+});
+
+for await (const chunk of result.textStream) {
+  process.stdout.write(chunk);
+}
+```
+
+### Example: Vision / Multimodal
+
+```ts
+import { generateText } from 'ai';
+import { zhipu } from 'zhipu-ai-sdk-provider';
+
+const { text } = await generateText({
+  model: zhipu('glm-4.6v'),
+  messages: [
+    {
+      role: 'user',
+      content: [
+        { type: 'text', text: 'What is in this image?' },
+        { type: 'image', image: new URL('https://example.com/chart.png') },
+      ],
+    },
+  ],
+});
+```
+
+### Example: Tool Calling (incl. built-in web search)
+
+```ts
+import { generateText } from 'ai';
+import { zhipu } from 'zhipu-ai-sdk-provider';
+
+const result = await generateText({
+  model: zhipu('glm-5'),
+  tools: {
+    webSearch: zhipu.tools.webSearch,
+  },
+  prompt: 'What is the current weather in Toronto?',
+});
+```
+
+### Supported Language Models
+
+| Model ID                   | Notes                          |
+| -------------------------- | ------------------------------ |
+| `glm-5`                    | Latest flagship model          |
+| `glm-4.7`                  | Balanced performance           |
+| `glm-4.6`                  | General purpose                |
+| `glm-4-plus`               | Enhanced GLM-4                 |
+| `glm-4-long`               | Long-context variant           |
+| `glm-4.6v`                 | Vision / multimodal            |
+| `glm-4.5v`                 | Vision / multimodal            |
+| `glm-4v`                   | Vision / multimodal            |
+| `glm-4.1v-thinking-flash`  | Vision + reasoning             |
+| `glm-z1-air`               | Reasoning / thinking model     |
+| `glm-z1-flash`             | Fast reasoning model           |
+
+See the [Zhipu documentation](https://bigmodel.cn/dev/welcome) for the full and up-to-date list of available models.
+
+## Embedding Models
+
+You can create embedding model instances using the `.embeddingModel()` method:
+
+```ts
+import { embed } from 'ai';
+import { zhipu } from 'zhipu-ai-sdk-provider';
+
+const { embedding } = await embed({
+  model: zhipu.embeddingModel('embedding-3'),
+  value: 'Your text to embed here',
+});
+```
+
+### Supported Embedding Models
+
+| Model ID      |
+| ------------- |
+| `embedding-3` |
+| `embedding-2` |
+
+## Image Generation Models
+
+You can create image model instances using the `.imageModel()` method:
+
+```ts
+import { generateImage } from 'ai';
+import { zhipu } from 'zhipu-ai-sdk-provider';
+
+const { image } = await generateImage({
+  model: zhipu.imageModel('cogview-4'),
+  prompt: 'A futuristic city at sunset, cyberpunk style',
+});
+```
+
+### Supported Image Models
+
+| Model ID           |
+| ------------------ |
+| `cogview-4`        |
+| `cogview-3-flash`  |
+
+## Speech Models
+
+You can create text-to-speech model instances using the `.speechModel()` method:
+
+```ts
+import { generateSpeech } from 'ai';
+import { zhipu } from 'zhipu-ai-sdk-provider';
+
+const { speech } = await generateSpeech({
+  model: zhipu.speechModel('glm-tts'),
+  text: 'Hello, this is a test of Zhipu text-to-speech.',
+  voice: 'female-1',
+});
+```
+
+### Supported Speech Models
+
+| Model ID  |
+| --------- |
+| `glm-tts` |
 
 ## Documentation
 
 - **[Zhipu documentation](https://bigmodel.cn/dev/welcome)**
 - **[Z.AI documentation](https://docs.z.ai/)**
+- **[GitHub](https://github.com/meabed/zhipu-ai-sdk-provider)**
+- **[npm](https://www.npmjs.com/package/zhipu-ai-sdk-provider)**
