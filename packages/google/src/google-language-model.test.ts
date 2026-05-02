@@ -4069,6 +4069,72 @@ describe('doStream', () => {
     });
   });
 
+  describe('streaming no-args tool call', () => {
+    beforeEach(() => {
+      prepareChunksFixtureResponse('google-stream-no-args-tool-call');
+    });
+
+    it('should emit single-chunk no-args tool calls with thoughtSignature', async () => {
+      const vertexModel = new GoogleLanguageModel('gemini-pro', {
+        provider: 'google.vertex.chat',
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+        headers: { 'x-goog-api-key': 'test-api-key' },
+        generateId: () => 'test-id',
+      });
+
+      const { stream } = await vertexModel.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+        tools: [
+          {
+            type: 'function',
+            name: 'read_theme',
+            inputSchema: {
+              type: 'object',
+              properties: {},
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+          {
+            type: 'function',
+            name: 'read_screen',
+            inputSchema: {
+              type: 'object',
+              properties: { id: { type: 'string' } },
+              required: ['id'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        ],
+      });
+
+      const chunks = await convertReadableStreamToArray(stream);
+      const toolCalls = chunks.filter(chunk => chunk.type === 'tool-call');
+
+      expect(toolCalls).toEqual([
+        {
+          type: 'tool-call',
+          toolCallId: 'test-id',
+          toolName: 'read_theme',
+          input: '{}',
+          providerMetadata: {
+            googleVertex: { thoughtSignature: 'test-thought-signature' },
+            vertex: { thoughtSignature: 'test-thought-signature' },
+          },
+        },
+        {
+          type: 'tool-call',
+          toolCallId: 'test-id',
+          toolName: 'read_screen',
+          input: '{"id":"A"}',
+          providerMetadata: undefined,
+        },
+      ]);
+    });
+  });
+
   describe('streaming-tool-call-arguments-nested', () => {
     beforeEach(() => {
       prepareChunksFixtureResponse(
