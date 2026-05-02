@@ -1,5 +1,5 @@
 import { azure } from '@ai-sdk/azure';
-import { stepCountIs, streamText } from 'ai';
+import { streamText } from 'ai';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import { createApplyPatchExecutor } from '../../lib/apply-patch-file-editor';
@@ -17,7 +17,6 @@ run(async () => {
         execute: createApplyPatchExecutor(workspaceRoot),
       }),
     },
-    stopWhen: stepCountIs(5),
   });
 
   process.stdout.write('\n=== Model Response (Streaming) ===\n');
