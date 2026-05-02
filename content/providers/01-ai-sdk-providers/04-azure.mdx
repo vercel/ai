@@ -538,30 +538,6 @@ The code interpreter tool can be configured with:
   Source Document Parts](#typed-providermetadata-in-source-document-parts).
 </Note>
 
-#### Local Shell Tool
-
-The Azure OpenAI responses API support the local shell tool for Codex models through the `azure.tools.localShell` tool.
-Local shell is a tool that allows agents to run shell commands locally on a machine you or the user provides.
-
-```ts
-import { azure } from '@ai-sdk/azure';
-import { generateText, stepCountIs } from 'ai';
-
-const result = await generateText({
-  model: azure.responses('gpt-5-codex'),
-  tools: {
-    local_shell: azure.tools.localShell({
-      execute: async ({ action }) => {
-        // ... your implementation, e.g. sandbox access ...
-        return { output: stdout };
-      },
-    }),
-  },
-  prompt: 'List the files in my home directory.',
-  stopWhen: stepCountIs(2),
-});
-```
-
 #### Shell Tool
 
 The Azure OpenAI Responses API supports the shell tool through the `azure.tools.shell` tool.
@@ -573,19 +549,11 @@ The model proposes shell commands; your integration executes them and returns th
   add strict allow-/deny-lists before forwarding a command to the system shell.
 </Note>
 
-<Note type="warning">
-  The Azure OpenAI Responses API provides the shell tool, but it currently
-  does not support OpenAI-hosted container environments (`containerAuto`,
-  `containerReference`) or Skills.
-  This means:
-  - Hosted container execution is not available.
-  - `skills` configuration is not supported.
-  - The `environment` parameter is currently not supported.
-  When using `@ai-sdk/azure`, the shell tool must be executed via a local
-  `execute` callback, and sandboxing must be handled entirely by your
-  application.
+The shell tool supports three environment modes that control where commands are executed:
 
-</Note>
+##### Local Execution (default)
+
+When no `environment` is specified (or `type: 'local'` is used), commands are executed locally via your `execute` callback:
 
 ```ts
 import { azure } from '@ai-sdk/azure';
@@ -602,6 +570,108 @@ const result = await generateText({
     }),
   },
   prompt: 'List the files in the current directory and show disk usage.',
+});
+```
+
+
+##### Hosted Container (auto)
+
+Set `environment.type` to `'containerAuto'` to run commands in an OpenAI-hosted container. No `execute` callback is needed — Azure OpenAI handles execution server-side:
+
+<Note type="warning">
+  The Azure OpenAI Responses API shell tool currently does not support `networkPolicy`.
+</Note>
+
+```ts
+const result = await generateText({
+  model: azure('gpt-5.2'),
+  tools: {
+    shell: azure.tools.shell({
+      environment: {
+        type: 'containerAuto',
+        // optional configuration:
+        memoryLimit: '4g',
+        fileIds: ['file-abc123'],
+        networkPolicy: {
+          type: 'allowlist',
+          allowedDomains: ['example.com'],
+        },
+      },
+    }),
+  },
+  prompt: 'Install numpy and compute the eigenvalues of a 3x3 matrix.',
+});
+```
+
+The `containerAuto` environment supports:
+
+- **fileIds** _string[]_ - File IDs to make available in the container
+- **memoryLimit** _'1g' | '4g' | '16g' | '64g'_ - Memory limit for the container
+- **networkPolicy** - Network access policy:
+  - `{ type: 'disabled' }` — no network access
+  - `{ type: 'allowlist', allowedDomains: string[], domainSecrets?: Array<{ domain, name, value }> }` — allow specific domains with optional secrets
+
+##### Existing Container Reference
+
+Set `environment.type` to `'containerReference'` to use an existing container by ID:
+
+```ts
+const result = await generateText({
+  model: azure('gpt-5.2'),
+  tools: {
+    shell: azure.tools.shell({
+      environment: {
+        type: 'containerReference',
+        containerId: 'cntr_abc123',
+      },
+    }),
+  },
+  prompt: 'Check the status of running processes.',
+});
+```
+
+##### Execute Callback
+
+For local execution (default or `type: 'local'`), your execute function must return an output array with results for each command:
+
+- **stdout** _string_ - Standard output from the command
+- **stderr** _string_ - Standard error from the command
+- **outcome** - Either `{ type: 'timeout' }` or `{ type: 'exit', exitCode: number }`
+
+##### Skills
+
+[Skills](https://platform.openai.com/docs/guides/tools-skills) are versioned bundles of files with a `SKILL.md` manifest that extend the shell tool's capabilities. They can be attached to both `containerAuto` and `local` environments.
+
+<Note type="warning">
+  The Azure OpenAI Responses API shell tool currently does not support using Skills by `skill_id`.
+</Note>
+
+
+**Local skills** point to a directory on disk containing a `SKILL.md` file:
+
+```ts
+const result = await generateText({
+  model: azure('gpt-5.2'),
+  tools: {
+    shell: azure.tools.shell({
+      execute: async ({ action }) => {
+        // ... your local execution implementation ...
+        return { output: results };
+      },
+      environment: {
+        type: 'local',
+        skills: [
+          {
+            name: 'my-skill',
+            description: 'What this skill does',
+            path: resolve('path/to/skill-directory'),
+          },
+        ],
+      },
+    }),
+  },
+  prompt: 'Use the skill to solve this problem.',
+  stopWhen: isStepCount(5),
 });
 ```
 
