@@ -1,5 +1,42 @@
 # @ai-sdk/google-vertex
 
+## 5.0.0-canary.67
+
+### Patch Changes
+
+- 0c4c275: trigger initial canary release
+- Updated dependencies [0c4c275]
+  - @ai-sdk/openai-compatible@3.0.0-canary.37
+  - @ai-sdk/provider-utils@5.0.0-canary.31
+  - @ai-sdk/anthropic@4.0.0-canary.43
+  - @ai-sdk/provider@4.0.0-canary.15
+  - @ai-sdk/google@4.0.0-canary.50
+
+## 5.0.0-beta.66
+
+### Patch Changes
+
+- 1f4058f: fix(vertex): use correct import for token generator
+
+## 5.0.0-beta.65
+
+### Patch Changes
+
+- 96d056d: fix(provider/google-vertex): avoid recreating Node GoogleAuth clients for repeated requests
+
+  Create Google auth token generators per provider instance instead of using a
+  module-level shared `GoogleAuth` cache. This avoids unnecessary `GoogleAuth`
+  recreation when `googleAuthOptions` are omitted or when multiple provider
+  instances use equivalent auth settings.
+
+## 5.0.0-beta.64
+
+### Patch Changes
+
+- e59c955: feat(vertex): add grok models to vertex provider
+- Updated dependencies [e59c955]
+  - @ai-sdk/openai-compatible@3.0.0-beta.36
+
 ## 5.0.0-beta.63
 
 ### Major Changes

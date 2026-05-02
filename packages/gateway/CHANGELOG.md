@@ -1,5 +1,20 @@
 # @ai-sdk/gateway
 
+## 4.0.0-canary.68
+
+### Patch Changes
+
+- 0c4c275: trigger initial canary release
+- Updated dependencies [0c4c275]
+  - @ai-sdk/provider-utils@5.0.0-canary.31
+  - @ai-sdk/provider@4.0.0-canary.15
+
+## 4.0.0-beta.67
+
+### Patch Changes
+
+- e7e8f42: chore(provider/gateway): update gateway model settings files
+
 ## 4.0.0-beta.66
 
 ### Major Changes

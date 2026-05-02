@@ -1,5 +1,19 @@
 # @ai-sdk/llamaindex
 
+## 3.0.0-canary.117
+
+### Patch Changes
+
+- 0c4c275: trigger initial canary release
+- Updated dependencies [0c4c275]
+  - ai@7.0.0-canary.117
+
+## 3.0.0-beta.116
+
+### Patch Changes
+
+- ai@7.0.0-beta.116
+
 ## 3.0.0-beta.115
 
 ### Patch Changes

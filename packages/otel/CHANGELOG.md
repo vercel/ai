@@ -1,5 +1,20 @@
 # @ai-sdk/otel
 
+## 1.0.0-canary.63
+
+### Patch Changes
+
+- 0c4c275: trigger initial canary release
+- Updated dependencies [0c4c275]
+  - @ai-sdk/provider@4.0.0-canary.15
+  - ai@7.0.0-canary.117
+
+## 1.0.0-beta.62
+
+### Patch Changes
+
+- ai@7.0.0-beta.116
+
 ## 1.0.0-beta.61
 
 ### Patch Changes

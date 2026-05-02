@@ -1,5 +1,13 @@
 # @ai-sdk/devtools
 
+## 1.0.0-canary.20
+
+### Patch Changes
+
+- 0c4c275: trigger initial canary release
+- Updated dependencies [0c4c275]
+  - @ai-sdk/provider@4.0.0-canary.15
+
 ## 1.0.0-beta.19
 
 ### Patch Changes

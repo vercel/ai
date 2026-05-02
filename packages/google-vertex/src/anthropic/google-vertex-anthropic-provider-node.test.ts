@@ -1,12 +1,14 @@
 import { resolve } from '@ai-sdk/provider-utils';
+import { createAuthTokenGenerator } from '../google-vertex-auth-google-auth-library';
 import { createGoogleVertexAnthropic as createVertexAnthropicOriginal } from './google-vertex-anthropic-provider';
 import { createGoogleVertexAnthropic as createVertexAnthropicNode } from './google-vertex-anthropic-provider-node';
-import { generateAuthToken } from '../google-vertex-auth-google-auth-library';
 import { describe, beforeEach, expect, it, vi } from 'vitest';
 
 // Mock the imported modules
 vi.mock('../google-vertex-auth-google-auth-library', () => ({
-  generateAuthToken: vi.fn().mockResolvedValue('mock-auth-token'),
+  createAuthTokenGenerator: vi.fn(() =>
+    vi.fn().mockResolvedValue('mock-auth-token'),
+  ),
 }));
 
 vi.mock('./google-vertex-anthropic-provider', () => ({
@@ -51,7 +53,7 @@ describe('google-vertex-anthropic-provider-node', () => {
     });
   });
 
-  it('passes googleAuthOptions to generateAuthToken', async () => {
+  it('passes googleAuthOptions to createAuthTokenGenerator', async () => {
     createVertexAnthropicNode({
       googleAuthOptions: {
         scopes: ['https://www.googleapis.com/auth/cloud-platform'],
@@ -63,9 +65,9 @@ describe('google-vertex-anthropic-provider-node', () => {
     const passedOptions = vi.mocked(createVertexAnthropicOriginal).mock
       .calls[0][0];
 
-    await resolve(passedOptions?.headers); // call the headers function
+    await resolve(passedOptions?.headers);
 
-    expect(generateAuthToken).toHaveBeenCalledWith({
+    expect(createAuthTokenGenerator).toHaveBeenCalledWith({
       scopes: ['https://www.googleapis.com/auth/cloud-platform'],
       keyFile: 'path/to/key.json',
     });
@@ -86,7 +88,7 @@ describe('google-vertex-anthropic-provider-node', () => {
       Authorization: 'Bearer custom-token',
     });
     expect(customGenerate).toHaveBeenCalledTimes(1);
-    expect(generateAuthToken).not.toHaveBeenCalled();
+    expect(createAuthTokenGenerator).not.toHaveBeenCalled();
   });
 
   it('merges custom generateAuthToken with user-provided headers', async () => {
@@ -180,5 +182,19 @@ describe('google-vertex-anthropic-provider-node', () => {
     expect(await resolve(passedOptions?.headers)).toEqual({
       Authorization: 'Bearer null',
     });
+  });
+
+  it('creates the auth token generator once per provider instance', async () => {
+    createVertexAnthropicNode({ project: 'test-project' });
+
+    expect(createAuthTokenGenerator).toHaveBeenCalledTimes(1);
+
+    const passedOptions = vi.mocked(createVertexAnthropicOriginal).mock
+      .calls[0][0];
+
+    await resolve(passedOptions?.headers);
+    await resolve(passedOptions?.headers);
+
+    expect(createAuthTokenGenerator).toHaveBeenCalledTimes(1);
   });
 });

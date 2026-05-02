@@ -2559,6 +2559,77 @@ describe('OpenAIResponsesLanguageModel', () => {
           }
         `);
       });
+
+      it('should preserve namespace on function_call output', async () => {
+        server.urls['https://api.openai.com/v1/responses'].response = {
+          type: 'json-value',
+          body: {
+            id: 'resp_ns',
+            object: 'response',
+            created_at: 1741257730,
+            status: 'completed',
+            error: null,
+            incomplete_details: null,
+            input: [],
+            instructions: null,
+            max_output_tokens: null,
+            model: 'gpt-5.4',
+            output: [
+              {
+                type: 'function_call',
+                id: 'fc_ns_1',
+                call_id: 'call_ns_1',
+                name: 'get_weather',
+                arguments: '{"location":"NYC"}',
+                status: 'completed',
+                namespace: 'weather_ns',
+              },
+            ],
+            parallel_tool_calls: true,
+            previous_response_id: null,
+            reasoning: { effort: null, summary: null },
+            store: true,
+            temperature: 1,
+            text: { format: { type: 'text' } },
+            tool_choice: 'auto',
+            tools: [],
+            top_p: 1,
+            truncation: 'disabled',
+            usage: {
+              input_tokens: 0,
+              output_tokens: 0,
+              output_tokens_details: { reasoning_tokens: 0 },
+              total_tokens: 0,
+            },
+            user: null,
+            metadata: {},
+          },
+        };
+
+        const result = await createModel('gpt-5.4').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: TEST_TOOLS,
+        });
+
+        const toolCall = result.content.find(p => p.type === 'tool-call');
+        expect(toolCall?.providerMetadata?.openai).toMatchObject({
+          itemId: 'fc_ns_1',
+          namespace: 'weather_ns',
+        });
+      });
+
+      it('should not set namespace when absent from function_call output', async () => {
+        const result = await createModel('gpt-4o').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: TEST_TOOLS,
+        });
+
+        const toolCall = result.content.find(p => p.type === 'tool-call');
+        expect(
+          (toolCall?.providerMetadata?.openai as Record<string, unknown>)
+            ?.namespace,
+        ).toBeUndefined();
+      });
     });
 
     describe('code interpreter tool', () => {
@@ -3496,7 +3567,27 @@ describe('OpenAIResponsesLanguageModel', () => {
       });
 
       it('should include shell tool call and server-executed result in content', async () => {
-        expect(result.content).toMatchInlineSnapshot(`
+        const responseText = [
+          'Build a STOP huge signal STOP on the STOP beach using STOP rocks or STOP logs.',
+          'Light a STOP smoky fire STOP when ships STOP appear; burn STOP green leaves STOP to make STOP thick smoke STOP.',
+          'Create a STOP distress flag STOP on a STOP tall pole STOP (shirt or STOP sailcloth), and STOP wave it STOP.',
+          'Set up STOP three fires STOP in a STOP triangle (international distress). STOP Keep dry STOP tinder ready STOP.',
+          'Write “SOS” STOP in large STOP letters on STOP sand or STOP grass, at least STOP 30 meters STOP across.',
+          'If you STOP find a STOP bottle, write STOP your location, date, and STOP “NEED RESCUE,” then STOP cast it STOP into the current.',
+          'Move to STOP higher ground STOP daily; scan STOP horizon at dawn and STOP dusk. Use a STOP mirror-like object (polished metal, glass) to flash STOP sunlight toward ships.',
+          'Ration water STOP; collect rain STOP with leaves, shells, or cloth. Build a STOP simple shelter STOP near resources but above storm tide. Keep yourself healthy so you can signal quickly.',
+        ].join('  \n\n');
+
+        expect(result.content.find(part => part.type === 'text')).toMatchObject(
+          {
+            text: responseText,
+          },
+        );
+        expect(
+          result.content.map(part =>
+            part.type === 'text' ? { ...part, text: '<response text>' } : part,
+          ),
+        ).toMatchInlineSnapshot(`
           [
             {
               "input": "{"action":{"commands":["ls -R /home/oai/skills/island-rescue-ab6238cd308ce72a5ae69fd3ba1e3aeb"]}}",
@@ -3570,21 +3661,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                   "itemId": "msg_01b6b3812d7541bd00698f71a5de488196b6ae435d1a54ed9c",
                 },
               },
-              "text": "Build a STOP huge signal STOP on the STOP beach using STOP rocks or STOP logs.  
-
-          Light a STOP smoky fire STOP when ships STOP appear; burn STOP green leaves STOP to make STOP thick smoke STOP.  
-
-          Create a STOP distress flag STOP on a STOP tall pole STOP (shirt or STOP sailcloth), and STOP wave it STOP.  
-
-          Set up STOP three fires STOP in a STOP triangle (international distress). STOP Keep dry STOP tinder ready STOP.  
-
-          Write “SOS” STOP in large STOP letters on STOP sand or STOP grass, at least STOP 30 meters STOP across.  
-
-          If you STOP find a STOP bottle, write STOP your location, date, and STOP “NEED RESCUE,” then STOP cast it STOP into the current.  
-
-          Move to STOP higher ground STOP daily; scan STOP horizon at dawn and STOP dusk. Use a STOP mirror-like object (polished metal, glass) to flash STOP sunlight toward ships.  
-
-          Ration water STOP; collect rain STOP with leaves, shells, or cloth. Build a STOP simple shelter STOP near resources but above storm tide. Keep yourself healthy so you can signal quickly.",
+              "text": "<response text>",
               "type": "text",
             },
           ]
@@ -5688,6 +5765,75 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
         ]
       `);
+    });
+
+    it('should preserve namespace on streaming function_call output', async () => {
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data:{"type":"response.created","response":{"id":"resp_ns","object":"response","created_at":1741362087,"status":"in_progress","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"gpt-5.4","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[],"top_p":1,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n`,
+          `data:{"type":"response.output_item.added","output_index":0,"item":{"type":"function_call","id":"fc_ns_1","call_id":"call_ns_1","name":"get_weather","arguments":"","status":"in_progress"}}\n\n`,
+          `data:{"type":"response.function_call_arguments.delta","item_id":"fc_ns_1","output_index":0,"delta":"{\\"location\\":\\"NYC\\"}"}\n\n`,
+          `data:{"type":"response.function_call_arguments.done","item_id":"fc_ns_1","output_index":0,"arguments":"{\\"location\\":\\"NYC\\"}"}\n\n`,
+          `data:{"type":"response.output_item.done","output_index":0,"item":{"type":"function_call","id":"fc_ns_1","call_id":"call_ns_1","name":"get_weather","arguments":"{\\"location\\":\\"NYC\\"}","status":"completed","namespace":"weather_ns"}}\n\n`,
+          `data:{"type":"response.completed","response":{"id":"resp_ns","object":"response","created_at":1741362087,"status":"completed","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"gpt-5.4","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[],"top_p":1,"truncation":"disabled","usage":{"input_tokens":0,"input_tokens_details":{"cached_tokens":0},"output_tokens":0,"output_tokens_details":{"reasoning_tokens":0},"total_tokens":0},"user":null,"metadata":{}}}\n\n`,
+        ],
+      };
+
+      const { stream } = await createModel('gpt-5.4').doStream({
+        prompt: TEST_PROMPT,
+        tools: TEST_TOOLS,
+        includeRawChunks: false,
+      });
+
+      const events = await convertReadableStreamToArray(stream);
+      const toolCallEvent = events.find(e => e.type === 'tool-call');
+      expect(toolCallEvent).toBeDefined();
+      expect(
+        (toolCallEvent as Extract<typeof toolCallEvent, { type: 'tool-call' }>)
+          .providerMetadata?.openai,
+      ).toMatchObject({
+        itemId: 'fc_ns_1',
+        namespace: 'weather_ns',
+      });
+
+      const toolInputEnd = events.find(e => e.type === 'tool-input-end');
+      expect(toolInputEnd).toBeDefined();
+      expect(
+        (
+          toolInputEnd as Extract<
+            typeof toolInputEnd,
+            { type: 'tool-input-end' }
+          >
+        ).providerMetadata?.openai,
+      ).toMatchObject({ namespace: 'weather_ns' });
+    });
+
+    it('should not set namespace on streaming function_call when absent', async () => {
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data:{"type":"response.created","response":{"id":"resp_plain","object":"response","created_at":1741362087,"status":"in_progress","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"gpt-4o","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[],"top_p":1,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n`,
+          `data:{"type":"response.output_item.added","output_index":0,"item":{"type":"function_call","id":"fc_plain","call_id":"call_plain","name":"get_weather","arguments":"","status":"in_progress"}}\n\n`,
+          `data:{"type":"response.function_call_arguments.done","item_id":"fc_plain","output_index":0,"arguments":"{}"}\n\n`,
+          `data:{"type":"response.output_item.done","output_index":0,"item":{"type":"function_call","id":"fc_plain","call_id":"call_plain","name":"get_weather","arguments":"{}","status":"completed"}}\n\n`,
+          `data:{"type":"response.completed","response":{"id":"resp_plain","object":"response","created_at":1741362087,"status":"completed","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"gpt-4o","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[],"top_p":1,"truncation":"disabled","usage":{"input_tokens":0,"input_tokens_details":{"cached_tokens":0},"output_tokens":0,"output_tokens_details":{"reasoning_tokens":0},"total_tokens":0},"user":null,"metadata":{}}}\n\n`,
+        ],
+      };
+
+      const { stream } = await createModel('gpt-4o').doStream({
+        prompt: TEST_PROMPT,
+        tools: TEST_TOOLS,
+        includeRawChunks: false,
+      });
+
+      const events = await convertReadableStreamToArray(stream);
+      const toolCallEvent = events.find(e => e.type === 'tool-call');
+      expect(toolCallEvent).toBeDefined();
+      const meta = (
+        toolCallEvent as Extract<typeof toolCallEvent, { type: 'tool-call' }>
+      ).providerMetadata?.openai as Record<string, unknown> | undefined;
+      expect(meta?.namespace).toBeUndefined();
     });
 
     it('Should handle service tier', async () => {
