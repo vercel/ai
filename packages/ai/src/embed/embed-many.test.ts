@@ -10,6 +10,7 @@ import {
   vitest,
 } from 'vitest';
 import * as logWarningsModule from '../logger/log-warnings';
+import { MockEmbeddingModelV2 } from '../test/mock-embedding-model-v2';
 import { MockEmbeddingModelV4 } from '../test/mock-embedding-model-v4';
 import type { Embedding, EmbeddingModelUsage, Warning } from '../types';
 import { createResolvablePromise } from '../util/create-resolvable-promise';
@@ -459,6 +460,49 @@ describe('result.warnings', () => {
     });
 
     expect(result.warnings).toStrictEqual([warning1, warning2]);
+  });
+
+  it('should default to empty array when v2 model omits warnings (single call path)', async () => {
+    const result = await embedMany({
+      model: new MockEmbeddingModelV2<string>({
+        maxEmbeddingsPerCall: null,
+        doEmbed: async () => ({
+          embeddings: dummyEmbeddings,
+          usage: { tokens: 3 },
+        }),
+      }),
+      values: testValues,
+    });
+
+    expect(result.warnings).toStrictEqual([]);
+  });
+
+  it('should default to empty array when v2 model omits warnings (chunked path)', async () => {
+    let callCount = 0;
+    const result = await embedMany({
+      model: new MockEmbeddingModelV2<string>({
+        maxEmbeddingsPerCall: 2,
+        doEmbed: async () => {
+          switch (callCount++) {
+            case 0:
+              return {
+                embeddings: dummyEmbeddings.slice(0, 2),
+                usage: { tokens: 2 },
+              };
+            case 1:
+              return {
+                embeddings: dummyEmbeddings.slice(2),
+                usage: { tokens: 1 },
+              };
+            default:
+              throw new Error('Unexpected call');
+          }
+        },
+      }),
+      values: testValues,
+    });
+
+    expect(result.warnings).toStrictEqual([]);
   });
 });
 
