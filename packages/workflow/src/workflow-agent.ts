@@ -1174,10 +1174,30 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
     // This mirrors how stream-text.ts handles tool-approval-response parts:
     // approved tools are executed, denied tools get denial results, and
     // approval parts are stripped from the messages.
+    //
+    // Provider-executed tool approvals (e.g. MCP via Responses API) cannot
+    // be resolved locally — the provider owns execution. For those we keep
+    // both the `tool-approval-request` and `tool-approval-response` parts in
+    // the messages so the provider sees the approval on the next call. Only
+    // local approvals are executed and stripped here.
     const { approvedToolApprovals, deniedToolApprovals } =
       collectToolApprovalsFromMessages(prompt.messages);
 
-    if (approvedToolApprovals.length > 0 || deniedToolApprovals.length > 0) {
+    const localApprovedToolApprovals = approvedToolApprovals.filter(
+      a => !a.providerExecuted,
+    );
+    const localDeniedToolApprovals = deniedToolApprovals.filter(
+      a => !a.providerExecuted,
+    );
+    const localApprovalIds = new Set<string>([
+      ...localApprovedToolApprovals.map(a => a.approvalId),
+      ...localDeniedToolApprovals.map(a => a.approvalId),
+    ]);
+
+    if (
+      localApprovedToolApprovals.length > 0 ||
+      localDeniedToolApprovals.length > 0
+    ) {
       const _toolResultMessages: ModelMessage[] = [];
       const toolResultContent: Array<{
         type: 'tool-result';
@@ -1190,7 +1210,7 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
       }> = [];
 
       // Execute approved tools
-      for (const approval of approvedToolApprovals) {
+      for (const approval of localApprovedToolApprovals) {
         const tool = (this.tools as ToolSet)[approval.toolName];
         if (tool && typeof tool.execute === 'function') {
           try {
@@ -1224,7 +1244,7 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
       }
 
       // Create denial results for denied tools
-      for (const denial of deniedToolApprovals) {
+      for (const denial of localDeniedToolApprovals) {
         toolResultContent.push({
           type: 'tool-result' as const,
           toolCallId: denial.toolCallId,
@@ -1236,19 +1256,25 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
         });
       }
 
-      // Strip approval parts from messages and inject tool results
+      // Strip approval parts for local approvals only; preserve approval
+      // parts whose `approvalId` belongs to a provider-executed tool so the
+      // provider can process them on the next call.
       const cleanedMessages: ModelMessage[] = [];
       for (const msg of prompt.messages) {
         if (msg.role === 'assistant' && Array.isArray(msg.content)) {
           const filtered = (msg.content as any[]).filter(
-            (p: any) => p.type !== 'tool-approval-request',
+            (p: any) =>
+              p.type !== 'tool-approval-request' ||
+              !localApprovalIds.has(p.approvalId),
           );
           if (filtered.length > 0) {
             cleanedMessages.push({ ...msg, content: filtered });
           }
         } else if (msg.role === 'tool') {
           const filtered = (msg.content as any[]).filter(
-            (p: any) => p.type !== 'tool-approval-response',
+            (p: any) =>
+              p.type !== 'tool-approval-response' ||
+              !localApprovalIds.has(p.approvalId),
           );
           if (filtered.length > 0) {
             cleanedMessages.push({ ...msg, content: filtered });
@@ -1277,7 +1303,7 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
           .map(r => ({
             toolCallId: r.toolCallId,
             toolName: r.toolName,
-            input: approvedToolApprovals.find(
+            input: localApprovedToolApprovals.find(
               a => a.toolCallId === r.toolCallId,
             )?.input,
             output: 'value' in r.output ? r.output.value : undefined,
@@ -2169,6 +2195,14 @@ interface CollectedApproval {
   input: unknown;
   approvalId: string;
   reason?: string;
+  /**
+   * Whether the approval response is for a provider-executed tool call.
+   * Provider-executed approvals must be forwarded to the provider on resume
+   * rather than executed locally and stripped from the messages.
+   * `convertToLanguageModelPrompt` uses the same flag on the response part
+   * to decide which approval responses to forward to the model.
+   */
+  providerExecuted: boolean;
 }
 
 /**
@@ -2258,6 +2292,7 @@ function collectToolApprovalsFromMessages(messages: ModelMessage[]): {
       input: toolCall.input,
       approvalId: response.approvalId,
       reason: response.reason,
+      providerExecuted: response.providerExecuted === true,
     };
 
     if (response.approved) {
