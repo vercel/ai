@@ -1256,9 +1256,10 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
         });
       }
 
-      // Strip approval parts for local approvals only; preserve approval
-      // parts whose `approvalId` belongs to a provider-executed tool so the
-      // provider can process them on the next call.
+      // Strip approval parts that we processed locally; preserve everything
+      // else (provider-executed approvals, plus any unmatched/orphan request
+      // parts) so the next call to `convertToLanguageModelPrompt` can forward
+      // them to the provider.
       const cleanedMessages: ModelMessage[] = [];
       for (const msg of prompt.messages) {
         if (msg.role === 'assistant' && Array.isArray(msg.content)) {
@@ -2196,11 +2197,13 @@ interface CollectedApproval {
   approvalId: string;
   reason?: string;
   /**
-   * Whether the approval response is for a provider-executed tool call.
-   * Provider-executed approvals must be forwarded to the provider on resume
-   * rather than executed locally and stripped from the messages.
-   * `convertToLanguageModelPrompt` uses the same flag on the response part
-   * to decide which approval responses to forward to the model.
+   * Whether the original tool call is provider-executed.
+   *
+   * Sourced from the `tool-call` part rather than the `tool-approval-response`
+   * part: the tool-call's flag is what the provider declared, while the
+   * response part's `providerExecuted` is metadata the UI carries and may
+   * disagree. Matches the discriminator used by `stream-text.ts`
+   * (`packages/ai/src/generate-text/stream-text.ts:1335`).
    */
   providerExecuted: boolean;
 }
@@ -2227,7 +2230,7 @@ function collectToolApprovalsFromMessages(messages: ModelMessage[]): {
   // Gather tool calls from assistant messages
   const toolCallsByToolCallId: Record<
     string,
-    { toolName: string; input: unknown }
+    { toolName: string; input: unknown; providerExecuted: boolean }
   > = {};
   for (const message of messages) {
     if (message.role === 'assistant' && Array.isArray(message.content)) {
@@ -2236,6 +2239,7 @@ function collectToolApprovalsFromMessages(messages: ModelMessage[]): {
           toolCallsByToolCallId[part.toolCallId] = {
             toolName: part.toolName,
             input: part.input ?? part.args,
+            providerExecuted: part.providerExecuted === true,
           };
         }
       }
@@ -2292,7 +2296,7 @@ function collectToolApprovalsFromMessages(messages: ModelMessage[]): {
       input: toolCall.input,
       approvalId: response.approvalId,
       reason: response.reason,
-      providerExecuted: response.providerExecuted === true,
+      providerExecuted: toolCall.providerExecuted,
     };
 
     if (response.approved) {

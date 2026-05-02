@@ -3038,21 +3038,20 @@ describe('WorkflowAgent', () => {
       expect(mockIterator.next).toHaveBeenCalled();
     });
 
-    it('should preserve provider-executed tool-approval-response across resume', async () => {
+    it('should forward provider-executed tool-approval-response to the provider', async () => {
       // Inverse of #14289: provider-executed approvals must reach the
       // provider on resume rather than being silently dropped. The agent
-      // must NOT strip the `tool-approval-response` part whose
-      // `providerExecuted` flag is true, and must NOT synthesize a local
-      // tool-result for it. `convertToLanguageModelPrompt` then forwards
-      // the response to the provider on the next call.
+      // must NOT execute provider-executed approvals locally and must
+      // preserve their `tool-approval-response` so
+      // `convertToLanguageModelPrompt` forwards them to the provider.
       const tools: ToolSet = {
         web_search: {
-          type: 'provider' as const,
+          type: 'provider',
           id: 'test.web_search',
           args: {},
           isProviderExecuted: true,
           inputSchema: z.object({ query: z.string() }),
-        } as ToolSet[string],
+        },
       };
 
       const mockModel = createMockModel();
@@ -3115,7 +3114,6 @@ describe('WorkflowAgent', () => {
       const lastCall = calls[calls.length - 1][0];
       const sentPrompt = lastCall.prompt;
 
-      // The provider-executed tool-approval-response must reach the provider.
       const toolMessage = sentPrompt.find(m => m.role === 'tool');
       expect(toolMessage).toBeDefined();
       expect(toolMessage!.content).toEqual(
@@ -3123,17 +3121,248 @@ describe('WorkflowAgent', () => {
           expect.objectContaining({
             type: 'tool-approval-response',
             approvalId: 'approval-call-1',
+            approved: true,
           }),
         ]),
       );
 
-      // No synthetic local tool-result should have been injected for the
-      // provider-executed approval — the provider produces the result.
       const syntheticToolResult = sentPrompt
         .filter(m => m.role === 'tool')
         .flatMap(m => m.content as any[])
         .find(p => p.type === 'tool-result' && p.toolCallId === 'call-1');
       expect(syntheticToolResult).toBeUndefined();
+    });
+
+    it('should preserve denied provider-executed tool-approval-response', async () => {
+      // Symmetric to the approved-provider-executed test above: a denied
+      // approval for a provider-executed tool must also reach the provider
+      // (no synthetic local denial result, no part stripping).
+      const tools: ToolSet = {
+        web_search: {
+          type: 'provider',
+          id: 'test.web_search',
+          args: {},
+          isProviderExecuted: true,
+          inputSchema: z.object({ query: z.string() }),
+        },
+      };
+
+      const agent = new WorkflowAgent({
+        model: createMockModel(),
+        tools,
+      });
+
+      const mockWritable = new WritableStream({
+        write: vi.fn(),
+        close: vi.fn(),
+      });
+
+      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      vi.mocked(streamTextIterator).mockClear();
+      const mockIterator = {
+        next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
+      };
+      vi.mocked(streamTextIterator).mockReturnValue(
+        mockIterator as unknown as MockIterator,
+      );
+
+      await agent.stream({
+        messages: [
+          { role: 'user', content: 'Search for X' },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'web_search',
+                input: { query: 'X' },
+                providerExecuted: true,
+              },
+              {
+                type: 'tool-approval-request',
+                approvalId: 'approval-call-1',
+                toolCallId: 'call-1',
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-approval-response',
+                approvalId: 'approval-call-1',
+                approved: false,
+                reason: 'denied by user',
+                providerExecuted: true,
+              },
+            ],
+          },
+        ] as any,
+        writable: mockWritable,
+      });
+
+      const calls = vi.mocked(streamTextIterator).mock.calls;
+      const lastCall = calls[calls.length - 1][0];
+      const sentPrompt = lastCall.prompt;
+
+      const toolMessage = sentPrompt.find(m => m.role === 'tool');
+      expect(toolMessage).toBeDefined();
+      expect(toolMessage!.content).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            type: 'tool-approval-response',
+            approvalId: 'approval-call-1',
+            approved: false,
+          }),
+        ]),
+      );
+
+      const syntheticDenialResult = sentPrompt
+        .filter(m => m.role === 'tool')
+        .flatMap(m => m.content as any[])
+        .find(p => p.type === 'tool-result' && p.toolCallId === 'call-1');
+      expect(syntheticDenialResult).toBeUndefined();
+    });
+
+    it('should partition mixed local and provider-executed approvals correctly', async () => {
+      // Exercises the per-approvalId Set: in a single resume turn one tool
+      // is locally executed (its approval parts must be stripped, a synthetic
+      // tool-result injected) and another is provider-executed (its approval
+      // response must survive into the prompt unchanged).
+      const localExecuteFn = vi
+        .fn()
+        .mockResolvedValue({ city: 'London', temperature: 72 });
+      const tools: ToolSet = {
+        getWeather: {
+          description: 'Get weather',
+          inputSchema: z.object({ city: z.string() }),
+          execute: localExecuteFn,
+          needsApproval: true as const,
+        },
+        web_search: {
+          type: 'provider',
+          id: 'test.web_search',
+          args: {},
+          isProviderExecuted: true,
+          inputSchema: z.object({ query: z.string() }),
+        },
+      };
+
+      const agent = new WorkflowAgent({
+        model: createMockModel(),
+        tools,
+      });
+
+      const mockWritable = new WritableStream({
+        write: vi.fn(),
+        close: vi.fn(),
+      });
+
+      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      vi.mocked(streamTextIterator).mockClear();
+      const mockIterator = {
+        next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
+      };
+      vi.mocked(streamTextIterator).mockReturnValue(
+        mockIterator as unknown as MockIterator,
+      );
+
+      await agent.stream({
+        messages: [
+          { role: 'user', content: 'Plan my trip' },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'local-1',
+                toolName: 'getWeather',
+                input: { city: 'London' },
+              },
+              {
+                type: 'tool-approval-request',
+                approvalId: 'approval-local-1',
+                toolCallId: 'local-1',
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'provider-1',
+                toolName: 'web_search',
+                input: { query: 'London attractions' },
+                providerExecuted: true,
+              },
+              {
+                type: 'tool-approval-request',
+                approvalId: 'approval-provider-1',
+                toolCallId: 'provider-1',
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-approval-response',
+                approvalId: 'approval-local-1',
+                approved: true,
+              },
+              {
+                type: 'tool-approval-response',
+                approvalId: 'approval-provider-1',
+                approved: true,
+                providerExecuted: true,
+              },
+            ],
+          },
+        ] as any,
+        writable: mockWritable,
+      });
+
+      // Local tool was executed.
+      expect(localExecuteFn).toHaveBeenCalledWith(
+        { city: 'London' },
+        expect.objectContaining({ toolCallId: 'local-1' }),
+      );
+
+      const calls = vi.mocked(streamTextIterator).mock.calls;
+      const lastCall = calls[calls.length - 1][0];
+      const sentPrompt = lastCall.prompt;
+      const toolParts = sentPrompt
+        .filter(m => m.role === 'tool')
+        .flatMap(m => m.content as any[]);
+
+      // Local approval response is stripped.
+      expect(
+        toolParts.find(
+          p =>
+            p.type === 'tool-approval-response' &&
+            p.approvalId === 'approval-local-1',
+        ),
+      ).toBeUndefined();
+
+      // Provider-executed approval response is preserved for the provider.
+      expect(toolParts).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            type: 'tool-approval-response',
+            approvalId: 'approval-provider-1',
+            approved: true,
+          }),
+        ]),
+      );
+
+      // Local tool produced a synthetic tool-result; provider tool did not.
+      expect(
+        toolParts.find(
+          p => p.type === 'tool-result' && p.toolCallId === 'local-1',
+        ),
+      ).toBeDefined();
+      expect(
+        toolParts.find(
+          p => p.type === 'tool-result' && p.toolCallId === 'provider-1',
+        ),
+      ).toBeUndefined();
     });
   });
 });
