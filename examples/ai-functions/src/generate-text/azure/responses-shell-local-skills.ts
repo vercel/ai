@@ -1,22 +1,12 @@
 import { azure } from '@ai-sdk/azure';
-import { generateText } from 'ai';
+import { generateText, isStepCount } from 'ai';
 import { resolve } from 'path';
 import { executeShellCommand } from '../../lib/shell-executor';
 import { run } from '../../lib/run';
 
-/**
- * *** NOTICE ***
- *
- * This example is provided for reference only.
- * The `skills` configuration is not currently supported on the Microsoft Azure platform.
- *
- * Once Azure adds support for this feature, the example will function as expected
- * and will be updated accordingly.
- */
-
 run(async () => {
   const result = await generateText({
-    model: azure.responses('gpt-5.2'),
+    model: azure.responses('gpt-5.4-mini'),
     tools: {
       shell: azure.tools.shell({
         execute: async ({ action }) => {
@@ -42,7 +32,12 @@ run(async () => {
     },
     prompt:
       'You are trapped and lost on a lonely island in 1895. Find a way to get rescued!',
+    stopWhen: isStepCount(20),
   });
 
   console.log('Result:', result.text);
+  console.log(result.dynamicToolResults);
+  console.log(result.dynamicToolCalls);
+  console.log(result.toolCalls);
+  console.log(result.toolResults);
 });
