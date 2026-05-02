@@ -5,13 +5,13 @@ import { saveRawChunks } from '../../lib/save-raw-chunks';
 
 run(async () => {
   const result = await streamText({
-    model: azure('gpt-5-mini'),
-    prompt: 'Can you search the web for latest NYC mayoral election results?',
+    model: azure('gpt-5.4-mini'),
+    prompt: 'Please summarize about vercel/ai.',
     tools: {
       mcp: azure.tools.mcp({
         serverLabel: 'dmcp',
-        serverUrl: 'https://mcp.exa.ai/mcp',
-        serverDescription: 'A web-search API for AI agents',
+        serverUrl: 'https://mcp.deepwiki.com/mcp',
+        serverDescription: 'A depepwiki MCP',
       }),
     },
     includeRawChunks: true,

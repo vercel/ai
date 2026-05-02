@@ -1,17 +1,16 @@
 import { azure } from '@ai-sdk/azure';
-import { generateText, stepCountIs } from 'ai';
+import { generateText } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: azure.responses('gpt-5-mini'),
-    prompt: 'Can you search the web for latest NYC mayoral election results?',
-    stopWhen: stepCountIs(20),
+    model: azure.responses('gpt-5.4-mini'),
+    prompt: 'Please summarize about vercel/ai.',
     tools: {
       mcp: azure.tools.mcp({
         serverLabel: 'dmcp',
-        serverUrl: 'https://mcp.exa.ai/mcp',
-        serverDescription: 'A web-search API for AI agents',
+        serverUrl: 'https://mcp.deepwiki.com/mcp',
+        serverDescription: 'A depepwiki MCP',
       }),
     },
   });
