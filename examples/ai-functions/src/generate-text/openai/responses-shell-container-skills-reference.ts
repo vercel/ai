@@ -13,7 +13,7 @@ import { run } from '../../lib/run';
  * https://github.com/vercel/ai/blob/main/skills/use-ai-sdk/SKILL.md
  */
 
-const skillId = 'skill_69abcc2c483c8190b28cf1623f8ab0220a0a16fe847a2a76';
+const skillId = 'skill_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx';
 
 run(async () => {
   const result = await generateText({
@@ -25,7 +25,9 @@ run(async () => {
           skills: [
             {
               type: 'skillReference',
-              skillId,
+              providerReference: {
+                openai: skillId,
+              },
             },
           ],
         },

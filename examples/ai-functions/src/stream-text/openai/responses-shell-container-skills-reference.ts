@@ -25,7 +25,9 @@ run(async () => {
           skills: [
             {
               type: 'skillReference',
-              skillId,
+              providerReference: {
+                openai: skillId,
+              },
             },
           ],
         },
