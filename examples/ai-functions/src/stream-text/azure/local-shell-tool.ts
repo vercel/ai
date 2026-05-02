@@ -1,5 +1,5 @@
 import { azure } from '@ai-sdk/azure';
-import { stepCountIs, streamText } from 'ai';
+import { streamText } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
@@ -22,7 +22,6 @@ README.md     build         data          node_modules  package.json  src       
       }),
     },
     prompt: 'List the files in my home directory.',
-    stopWhen: stepCountIs(20),
   });
 
   for await (const chunk of result.fullStream) {

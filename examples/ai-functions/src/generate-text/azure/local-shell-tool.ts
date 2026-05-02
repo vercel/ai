@@ -1,5 +1,5 @@
 import { azure } from '@ai-sdk/azure';
-import { generateText, stepCountIs } from 'ai';
+import { generateText } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
@@ -21,7 +21,6 @@ README.md     build         data          node_modules  package.json  src       
       }),
     },
     prompt: 'List the files in my home directory.',
-    stopWhen: stepCountIs(20),
     onStepFinish: step => {
       console.dir(step.content, { depth: Infinity });
     },
