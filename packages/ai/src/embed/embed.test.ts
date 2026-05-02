@@ -181,6 +181,26 @@ describe('result.warnings', () => {
 
     expect(result.warnings).toStrictEqual(expectedWarnings);
   });
+
+  it('defaults warnings to [] when the model omits them (v2 shape)', async () => {
+    // Regression for #14926: EmbeddingModelV2 implementations may omit
+    // `warnings`; embed() previously propagated `undefined` and crashed
+    // downstream in logWarnings.
+    const { MockEmbeddingModelV2 } = await import(
+      '../test/mock-embedding-model-v2'
+    );
+    const result = await embed({
+      model: new MockEmbeddingModelV2<string>({
+        doEmbed: async () => ({
+          embeddings: [dummyEmbedding],
+          // intentionally no `warnings` field
+        }),
+      }),
+      value: testValue,
+    });
+
+    expect(result.warnings).toStrictEqual([]);
+  });
 });
 
 describe('logWarnings', () => {

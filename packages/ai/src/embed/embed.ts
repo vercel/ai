@@ -193,7 +193,9 @@ export async function embed({
         return {
           embedding,
           usage,
-          warnings: modelResponse.warnings,
+          // EmbeddingModelV2 implementations may omit `warnings`; default to []
+          // so logWarnings and downstream consumers don't crash on undefined.
+          warnings: modelResponse.warnings ?? [],
           providerMetadata: modelResponse.providerMetadata,
           response: modelResponse.response,
         };
