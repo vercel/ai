@@ -1,5 +1,5 @@
 import { azure } from '@ai-sdk/azure';
-import { generateText, stepCountIs } from 'ai';
+import { generateText } from 'ai';
 import { run } from '../../lib/run';
 import { print } from '../../lib/print';
 
@@ -18,7 +18,6 @@ run(async () => {
     },
     toolChoice: 'required',
     prompt: 'Write a SQL query to get all users older than 25.',
-    stopWhen: stepCountIs(5),
   });
 
   print('Tool calls:', result.toolCalls);

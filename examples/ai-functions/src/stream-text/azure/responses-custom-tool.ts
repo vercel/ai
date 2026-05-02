@@ -1,5 +1,5 @@
 import { azure } from '@ai-sdk/azure';
-import { stepCountIs, streamText } from 'ai';
+import { streamText } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
@@ -17,7 +17,6 @@ run(async () => {
     },
     toolChoice: 'required',
     prompt: 'Write a SQL query to get all users older than 25.',
-    stopWhen: stepCountIs(5),
   });
 
   for await (const chunk of result.fullStream) {
