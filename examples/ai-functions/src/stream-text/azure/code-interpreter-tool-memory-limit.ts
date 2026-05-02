@@ -1,5 +1,5 @@
 import { azure } from '@ai-sdk/azure';
-import { stepCountIs, streamText } from 'ai';
+import { streamText } from 'ai';
 import { run } from '../../lib/run';
 import { retrieveAzureContainer } from '../../lib/retrieve-azure-container';
 
@@ -15,7 +15,6 @@ run(async () => {
     },
     prompt:
       'Simulate rolling two dice 10000 times and, return the sum of all the results, and upload the result to a file.',
-    stopWhen: stepCountIs(5),
   });
 
   type CallCodeInterpreterToolCall = {

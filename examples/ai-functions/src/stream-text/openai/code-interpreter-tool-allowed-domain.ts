@@ -1,5 +1,5 @@
 import { openai } from '@ai-sdk/openai';
-import { streamText, stepCountIs } from 'ai';
+import { streamText } from 'ai';
 import { run } from '../../lib/run';
 import { retrieveOpenAIContainer } from '../../lib/retrieve-openai-container';
 
@@ -66,7 +66,6 @@ run(async () => {
       print("stars:", data.get("stargazers_count"))
       print("forks:", data.get("forks_count"))
       `,
-    stopWhen: stepCountIs(5),
   });
 
   type CallCodeInterpreterToolCall = {
