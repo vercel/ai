@@ -1,13 +1,13 @@
 import type { ToolSet } from '@ai-sdk/provider-utils';
-import { ProviderMetadata } from '../types';
-import { Source } from '../types/language-model';
-import { GeneratedFile } from './generated-file';
-import { ReasoningFileOutput, ReasoningOutput } from './reasoning-output';
-import { ToolApprovalRequestOutput } from './tool-approval-request-output';
-import { ToolApprovalResponseOutput } from './tool-approval-response-output';
-import { TypedToolCall } from './tool-call';
-import { TypedToolError } from './tool-error';
-import { TypedToolResult } from './tool-result';
+import type { ProviderMetadata } from '../types';
+import type { Source } from '../types/language-model';
+import type { GeneratedFile } from './generated-file';
+import type { ReasoningFileOutput, ReasoningOutput } from './reasoning-output';
+import type { ToolApprovalRequestOutput } from './tool-approval-request-output';
+import type { ToolApprovalResponseOutput } from './tool-approval-response-output';
+import type { TypedToolCall } from './tool-call';
+import type { TypedToolError } from './tool-error';
+import type { TypedToolResult } from './tool-result';
 
 export type ContentPart<TOOLS extends ToolSet> =
   | { type: 'text'; text: string; providerMetadata?: ProviderMetadata }

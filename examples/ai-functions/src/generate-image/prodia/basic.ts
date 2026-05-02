@@ -1,4 +1,4 @@
-import { ProdiaImageModelOptions, prodia } from '@ai-sdk/prodia';
+import { prodia, type ProdiaImageModelOptions } from '@ai-sdk/prodia';
 import { generateImage } from 'ai';
 import { presentImages } from '../../lib/present-image';
 import { run } from '../../lib/run';

@@ -1,15 +1,15 @@
-import {
+import type {
   Context,
   InferToolInput,
   InferToolSetContext,
   ModelMessage,
   ToolSet,
 } from '@ai-sdk/provider-utils';
-import {
+import type {
   ToolApprovalConfiguration,
   ToolApprovalStatus,
 } from './tool-approval-configuration';
-import { TypedToolCall } from './tool-call';
+import type { TypedToolCall } from './tool-call';
 import { validateToolContext } from './validate-tool-context';
 
 /**

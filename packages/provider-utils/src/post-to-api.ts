@@ -1,9 +1,9 @@
 import { APICallError } from '@ai-sdk/provider';
 import { extractResponseHeaders } from './extract-response-headers';
-import { FetchFunction } from './fetch-function';
+import type { FetchFunction } from './fetch-function';
 import { handleFetchError } from './handle-fetch-error';
 import { isAbortError } from './is-abort-error';
-import { ResponseHandler } from './response-handler';
+import type { ResponseHandler } from './response-handler';
 import { getRuntimeEnvironmentUserAgent } from './get-runtime-environment-user-agent';
 import { withUserAgentSuffix } from './with-user-agent-suffix';
 import { VERSION } from './version';

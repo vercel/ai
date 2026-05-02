@@ -1,4 +1,8 @@
-import { SharedV4ProviderOptions } from '../../shared/v4/shared-v4-provider-options';
+import type {
+  SharedV4FileDataData,
+  SharedV4FileDataText,
+} from '../../shared/v4/shared-v4-file-data';
+import type { SharedV4ProviderOptions } from '../../shared/v4/shared-v4-provider-options';
 
 export interface SkillsV4File {
   /**
@@ -7,9 +11,12 @@ export interface SkillsV4File {
   path: string;
 
   /**
-   * The content of the file, either as a base64 string or binary data.
+   * The file data.
+   *
+   * - `{ type: 'data', data }`: raw bytes (`Uint8Array`) or a base64-encoded string.
+   * - `{ type: 'text', text }`: inline text (UTF-8).
    */
-  content: string | Uint8Array;
+  data: SharedV4FileDataData | SharedV4FileDataText;
 }
 
 export interface SkillsV4UploadSkillCallOptions {

@@ -29,10 +29,10 @@ The ElevenLabs provider is available in the `@ai-sdk/elevenlabs` module. You can
 
 ## Provider Instance
 
-You can import the default provider instance `elevenlabs` from `@ai-sdk/elevenlabs`:
+You can import the default provider instance `elevenLabs` from `@ai-sdk/elevenlabs`:
 
 ```ts
-import { elevenlabs } from '@ai-sdk/elevenlabs';
+import { elevenLabs } from '@ai-sdk/elevenlabs';
 ```
 
 If you need a customized setup, you can import `createElevenLabs` from `@ai-sdk/elevenlabs` and create a provider instance with your settings:
@@ -40,7 +40,7 @@ If you need a customized setup, you can import `createElevenLabs` from `@ai-sdk/
 ```ts
 import { createElevenLabs } from '@ai-sdk/elevenlabs';
 
-const elevenlabs = createElevenLabs({
+const elevenLabs = createElevenLabs({
   // custom settings, e.g.
   fetch: customFetch,
 });
@@ -72,7 +72,7 @@ using the `.speech()` factory method.
 The first argument is the model id e.g. `eleven_multilingual_v2`.
 
 ```ts
-const model = elevenlabs.speech('eleven_multilingual_v2');
+const model = elevenLabs.speech('eleven_multilingual_v2');
 ```
 
 The `voice` argument can be set to a voice ID from the [ElevenLabs Voice Library](https://elevenlabs.io/app/voice-library).
@@ -80,10 +80,10 @@ You can find voice IDs by selecting a voice in the library and copying its ID.
 
 ```ts highlight="6"
 import { experimental_generateSpeech as generateSpeech } from 'ai';
-import { elevenlabs } from '@ai-sdk/elevenlabs';
+import { elevenLabs } from '@ai-sdk/elevenlabs';
 
 const result = await generateSpeech({
-  model: elevenlabs.speech('eleven_multilingual_v2'),
+  model: elevenLabs.speech('eleven_multilingual_v2'),
   text: 'Hello, world!',
   voice: '21m00Tcm4TlvDq8ikWAM', // Rachel voice
 });
@@ -94,12 +94,12 @@ You can also pass additional provider-specific options using the `providerOption
 ```ts highlight="7-9"
 import { experimental_generateSpeech as generateSpeech } from 'ai';
 import {
-  elevenlabs,
+  elevenLabs,
   type ElevenLabsSpeechModelOptions,
 } from '@ai-sdk/elevenlabs';
 
 const result = await generateSpeech({
-  model: elevenlabs.speech('eleven_multilingual_v2'),
+  model: elevenLabs.speech('eleven_multilingual_v2'),
   text: 'Hello, world!',
   voice: '21m00Tcm4TlvDq8ikWAM',
   providerOptions: {
@@ -188,7 +188,7 @@ using the `.transcription()` factory method.
 The first argument is the model id e.g. `scribe_v1`.
 
 ```ts
-const model = elevenlabs.transcription('scribe_v1');
+const model = elevenLabs.transcription('scribe_v1');
 ```
 
 You can also pass additional provider-specific options using the `providerOptions` argument. For example, supplying the input language in ISO-639-1 (e.g. `en`) format can sometimes improve transcription performance if known beforehand.
@@ -196,12 +196,12 @@ You can also pass additional provider-specific options using the `providerOption
 ```ts highlight="6"
 import { experimental_transcribe as transcribe } from 'ai';
 import {
-  elevenlabs,
+  elevenLabs,
   type ElevenLabsTranscriptionModelOptions,
 } from '@ai-sdk/elevenlabs';
 
 const result = await transcribe({
-  model: elevenlabs.transcription('scribe_v1'),
+  model: elevenLabs.transcription('scribe_v1'),
   audio: new Uint8Array([1, 2, 3, 4]),
   providerOptions: {
     elevenlabs: {

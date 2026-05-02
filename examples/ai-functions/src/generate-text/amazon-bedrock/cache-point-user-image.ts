@@ -1,16 +1,20 @@
-import { bedrock } from '@ai-sdk/amazon-bedrock';
+import { amazonBedrock } from '@ai-sdk/amazon-bedrock';
 import { generateText } from 'ai';
 import fs from 'node:fs';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: bedrock('anthropic.claude-3-5-sonnet-20241022-v2:0'),
+    model: amazonBedrock('anthropic.claude-3-5-sonnet-20241022-v2:0'),
     messages: [
       {
         role: 'user',
         content: [
-          { type: 'image', image: fs.readFileSync('./data/comic-cat.png') },
+          {
+            type: 'file',
+            mediaType: 'image',
+            data: fs.readFileSync('./data/comic-cat.png'),
+          },
           {
             type: 'text',
             text: 'What is in this image?',

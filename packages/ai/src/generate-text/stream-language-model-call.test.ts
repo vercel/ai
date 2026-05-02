@@ -1,14 +1,14 @@
-import {
+import type {
   LanguageModelV4StreamPart,
   LanguageModelV4Usage,
 } from '@ai-sdk/provider';
-import { tool } from '@ai-sdk/provider-utils';
+import { tool, type ToolSet } from '@ai-sdk/provider-utils';
 import {
   convertArrayToReadableStream,
   convertReadableStreamToArray,
 } from '@ai-sdk/provider-utils/test';
 import { describe, expect, it, vi } from 'vitest';
-import z from 'zod';
+import { z } from 'zod';
 import { NoSuchToolError } from '../error/no-such-tool-error';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import type {
@@ -16,8 +16,7 @@ import type {
   LanguageModelCallStartEvent,
 } from './language-model-events';
 import { streamLanguageModelCall } from './stream-language-model-call';
-import { ToolCallRepairFunction } from './tool-call-repair-function';
-import type { ToolSet } from '@ai-sdk/provider-utils';
+import type { ToolCallRepairFunction } from './tool-call-repair-function';
 
 const testUsage: LanguageModelV4Usage = {
   inputTokens: {
@@ -565,7 +564,7 @@ describe('streamLanguageModelCall', () => {
         streamParts: [
           {
             type: 'file',
-            data: 'SGVsbG8gV29ybGQ=', // "Hello World" base64-encoded
+            data: { type: 'data', data: 'SGVsbG8gV29ybGQ=' }, // "Hello World" base64-encoded
             mediaType: 'text/plain',
           },
           {
@@ -622,9 +621,12 @@ describe('streamLanguageModelCall', () => {
         streamParts: [
           {
             type: 'file',
-            data: new Uint8Array([
-              72, 101, 108, 108, 111, 32, 87, 111, 114, 108, 100,
-            ]), // "Hello World" as Uint8Array
+            data: {
+              type: 'data',
+              data: new Uint8Array([
+                72, 101, 108, 108, 111, 32, 87, 111, 114, 108, 100,
+              ]),
+            }, // "Hello World" as Uint8Array
             mediaType: 'text/plain',
             providerMetadata: {
               testProvider: { signature: 'test-signature' },

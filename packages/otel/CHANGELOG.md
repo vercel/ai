@@ -1,5 +1,92 @@
 # @ai-sdk/otel
 
+## 1.0.0-canary.63
+
+### Patch Changes
+
+- 0c4c275: trigger initial canary release
+- Updated dependencies [0c4c275]
+  - @ai-sdk/provider@4.0.0-canary.15
+  - ai@7.0.0-canary.117
+
+## 1.0.0-beta.62
+
+### Patch Changes
+
+- ai@7.0.0-beta.116
+
+## 1.0.0-beta.61
+
+### Patch Changes
+
+- Updated dependencies [08d2129]
+- Updated dependencies [202f107]
+  - ai@7.0.0-beta.115
+
+## 1.0.0-beta.60
+
+### Patch Changes
+
+- 18651f6: feat(otel): add opt-in options for supplemental AI SDK attributes on OpenTelemetry spans
+- 9bd6512: feat(provider): change file part data property to be tagged with a type and remove the image part type
+- 258c093: chore: ensure consistent import handling and avoid import duplicates or cycles
+- Updated dependencies [43a6750]
+- Updated dependencies [81caa5d]
+- Updated dependencies [1f7db50]
+- Updated dependencies [9bd6512]
+- Updated dependencies [258c093]
+- Updated dependencies [6147cdf]
+  - ai@7.0.0-beta.114
+  - @ai-sdk/provider@4.0.0-beta.14
+
+## 1.0.0-beta.59
+
+### Patch Changes
+
+- 9f0e36c: trigger release for all packages after provenance setup
+- Updated dependencies [9f0e36c]
+  - ai@7.0.0-beta.113
+  - @ai-sdk/provider@4.0.0-beta.13
+
+## 1.0.0-beta.58
+
+### Major Changes
+
+- cf93359: feat(ai): remove/refactor event data sent via callbacks
+- 8284dfa: feat(otel): rename OpenTelemetry to LegacyOpenTelemetry
+- 116c89f: feat(ai): remove telemetry data from the user-facing event data
+
+### Patch Changes
+
+- 29d8cf4: feat(ai): rename the core-event types
+- 1043274: feat(ai): add a ModelCall start/end event
+- 152c67c: feat(otel): add a step level span
+- e1bfb9c: feat(ai): remove unnecessary data from events
+- 64de016: feat(otel): rename GenAIOpenTelemetry to OpenTelemetry
+- Updated dependencies [5f3749c]
+- Updated dependencies [0a51f7d]
+- Updated dependencies [71d3022]
+- Updated dependencies [67df0a0]
+- Updated dependencies [4181cfe]
+- Updated dependencies [51ce232]
+- Updated dependencies [cf93359]
+- Updated dependencies [befb78c]
+- Updated dependencies [29d8cf4]
+- Updated dependencies [58a2ad7]
+- Updated dependencies [37d69b2]
+- Updated dependencies [1043274]
+- Updated dependencies [7f59f04]
+- Updated dependencies [7677c1e]
+- Updated dependencies [116c89f]
+- Updated dependencies [f58f9bc]
+- Updated dependencies [e1bfb9c]
+- Updated dependencies [e87d71b]
+- Updated dependencies [9d486aa]
+- Updated dependencies [9b0bc8a]
+- Updated dependencies [fc92055]
+- Updated dependencies [4e095b0]
+  - ai@7.0.0-beta.112
+
 ## 1.0.0-beta.57
 
 ### Major Changes

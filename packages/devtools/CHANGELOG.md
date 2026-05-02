@@ -1,5 +1,40 @@
 # @ai-sdk/devtools
 
+## 1.0.0-canary.20
+
+### Patch Changes
+
+- 0c4c275: trigger initial canary release
+- Updated dependencies [0c4c275]
+  - @ai-sdk/provider@4.0.0-canary.15
+
+## 1.0.0-beta.19
+
+### Patch Changes
+
+- 258c093: chore: ensure consistent import handling and avoid import duplicates or cycles
+- Updated dependencies [9bd6512]
+- Updated dependencies [258c093]
+  - @ai-sdk/provider@4.0.0-beta.14
+
+## 1.0.0-beta.18
+
+### Patch Changes
+
+- Updated dependencies [9f0e36c]
+  - @ai-sdk/provider@4.0.0-beta.13
+
+## 1.0.0-beta.17
+
+### Major Changes
+
+- cf93359: feat(ai): remove/refactor event data sent via callbacks
+- 116c89f: feat(ai): remove telemetry data from the user-facing event data
+
+### Patch Changes
+
+- 29d8cf4: feat(ai): rename the core-event types
+
 ## 1.0.0-beta.16
 
 ### Major Changes

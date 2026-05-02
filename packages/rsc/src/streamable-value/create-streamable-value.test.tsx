@@ -1,7 +1,10 @@
 import { delay } from '@ai-sdk/provider-utils';
 import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
 import { createStreamableValue } from './create-streamable-value';
-import { STREAMABLE_VALUE_TYPE, StreamableValue } from './streamable-value';
+import {
+  STREAMABLE_VALUE_TYPE,
+  type StreamableValue,
+} from './streamable-value';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 async function getRawChunks(streamableValue: StreamableValue<any, any>) {

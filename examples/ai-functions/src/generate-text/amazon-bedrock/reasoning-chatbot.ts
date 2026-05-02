@@ -1,5 +1,5 @@
-import { bedrock } from '@ai-sdk/amazon-bedrock';
-import { ModelMessage, generateText, isStepCount } from 'ai';
+import { amazonBedrock } from '@ai-sdk/amazon-bedrock';
+import { generateText, isStepCount, type ModelMessage } from 'ai';
 import * as readline from 'node:readline/promises';
 import { weatherTool } from '../../tools/weather-tool';
 import { run } from '../../lib/run';
@@ -17,7 +17,7 @@ run(async () => {
     messages.push({ role: 'user', content: userInput });
 
     const { steps, response } = await generateText({
-      model: bedrock('us.anthropic.claude-sonnet-4-5-20250929-v1:0'),
+      model: amazonBedrock('us.anthropic.claude-sonnet-4-5-20250929-v1:0'),
       tools: { weatherTool },
       system: `You are a helpful, respectful and honest assistant.`,
       messages,

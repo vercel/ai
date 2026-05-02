@@ -1,4 +1,4 @@
-import { ModelMessage, SystemModelMessage } from '@ai-sdk/provider-utils';
+import type { ModelMessage, SystemModelMessage } from '@ai-sdk/provider-utils';
 
 /**
  * Prompt part of the AI function options.
@@ -9,6 +9,15 @@ export type Prompt = {
    * System message to include in the prompt. Can be used with `prompt` or `messages`.
    */
   system?: string | SystemModelMessage | Array<SystemModelMessage>;
+
+  /**
+   * Whether system messages are allowed in the `prompt` or `messages` fields.
+   *
+   * When disabled, system messages must be provided through the `system` option.
+   *
+   * @default false
+   */
+  allowSystemInMessages?: boolean;
 } & (
   | {
       /**

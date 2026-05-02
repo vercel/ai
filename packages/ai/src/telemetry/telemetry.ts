@@ -35,7 +35,7 @@ import type {
   RerankingModelCallStartEvent,
 } from '../rerank/rerank-events';
 import type { Callback } from '../util/callback';
-import { TelemetryOptions } from '../telemetry/telemetry-options';
+import type { TelemetryOptions } from '../telemetry/telemetry-options';
 
 export type InferTelemetryEvent<EVENT> = EVENT &
   Omit<TelemetryOptions, 'integrations' | 'isEnabled'>;

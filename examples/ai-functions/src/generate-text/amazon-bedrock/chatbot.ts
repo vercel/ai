@@ -1,5 +1,5 @@
-import { bedrock } from '@ai-sdk/amazon-bedrock';
-import { ModelMessage, generateText } from 'ai';
+import { amazonBedrock } from '@ai-sdk/amazon-bedrock';
+import { generateText, type ModelMessage } from 'ai';
 import * as readline from 'node:readline/promises';
 import { weatherTool } from '../../tools/weather-tool';
 import { run } from '../../lib/run';
@@ -21,7 +21,7 @@ run(async () => {
     }
 
     const { text, toolCalls, toolResults, response } = await generateText({
-      model: bedrock('anthropic.claude-3-haiku-20240307-v1:0'),
+      model: amazonBedrock('anthropic.claude-3-haiku-20240307-v1:0'),
       tools: { weatherTool },
       system: `You are a helpful, respectful and honest assistant. If the weather is requested use the `,
       messages,

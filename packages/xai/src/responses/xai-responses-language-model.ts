@@ -1,4 +1,4 @@
-import {
+import type {
   LanguageModelV4,
   LanguageModelV4CallOptions,
   LanguageModelV4Content,
@@ -13,31 +13,31 @@ import {
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
-  FetchFunction,
   isCustomReasoning,
   mapReasoningToProviderEffort,
   parseProviderOptions,
-  ParseResult,
   postJsonToApi,
   serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
+  type FetchFunction,
+  type ParseResult,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
+import type { z } from 'zod/v4';
 import { getResponseMetadata } from '../get-response-metadata';
 import { xaiFailedResponseHandler } from '../xai-error';
 import { convertToXaiResponsesInput } from './convert-to-xai-responses-input';
 import { convertXaiResponsesUsage } from './convert-xai-responses-usage';
 import { mapXaiResponsesFinishReason } from './map-xai-responses-finish-reason';
 import {
-  XaiResponsesIncludeOptions,
   xaiResponsesChunkSchema,
   xaiResponsesResponseSchema,
+  type XaiResponsesIncludeOptions,
 } from './xai-responses-api';
 import {
-  XaiResponsesModelId,
   xaiLanguageModelResponsesOptions,
-} from './xai-responses-options';
+  type XaiResponsesModelId,
+} from './xai-responses-language-model-options';
 import { prepareResponsesTools } from './xai-responses-prepare-tools';
 
 type XaiResponsesConfig = {
@@ -80,6 +80,11 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
 
   readonly supportedUrls: Record<string, RegExp[]> = {
     'image/*': [/^https?:\/\/.*$/],
+    // xAI's Responses API accepts non-image documents (PDF, plain text, CSV, etc.) as
+    // `{ type: 'input_file', file_url }`. Keeping these URLs intact here lets them pass
+    // through to the converter instead of being downloaded to bytes by the SDK.
+    'application/pdf': [/^https?:\/\/.*$/],
+    'text/*': [/^https?:\/\/.*$/],
   };
 
   private async getArgs({

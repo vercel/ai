@@ -5,7 +5,7 @@ import { tool } from 'ai';
 import { WorkflowAgent } from '../workflow-agent.js';
 import { mockTextModel, mockSequenceModel } from '../providers/mock.js';
 import { FatalError, getWritable } from 'workflow';
-import z from 'zod';
+import { z } from 'zod';
 
 // ============================================================================
 // Tool step functions

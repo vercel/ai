@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/cerebras",
-  "version": "3.0.0-beta.31",
+  "version": "3.0.0-canary.37",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -60,12 +60,14 @@
     "node": ">=18"
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "provenance": true
   },
   "homepage": "https://ai-sdk.dev/docs",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/vercel/ai.git"
+    "url": "https://github.com/vercel/ai",
+    "directory": "packages/cerebras"
   },
   "bugs": {
     "url": "https://github.com/vercel/ai/issues"
@@ -73,6 +75,5 @@
   "keywords": [
     "ai"
   ],
-  "description": "The **Cerebras provider** for the [AI SDK](https://ai-sdk.dev/docs) contains language model support for [Cerebras](https://cerebras.ai), offering high-speed AI model inference powered by Cerebras Wafer-Scale Engines and CS-3 systems.",
-  "author": ""
+  "description": "The **Cerebras provider** for the [AI SDK](https://ai-sdk.dev/docs) contains language model support for [Cerebras](https://cerebras.ai), offering high-speed AI model inference powered by Cerebras Wafer-Scale Engines and CS-3 systems."
 }

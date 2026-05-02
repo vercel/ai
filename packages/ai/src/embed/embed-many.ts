@@ -1,20 +1,20 @@
 import {
   createIdGenerator,
-  ProviderOptions,
   withUserAgentSuffix,
+  type ProviderOptions,
 } from '@ai-sdk/provider-utils';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveEmbeddingModel } from '../model/resolve-model';
 import { createTelemetryDispatcher } from '../telemetry/create-telemetry-dispatcher';
-import { TelemetryOptions } from '../telemetry/telemetry-options';
-import { Embedding, EmbeddingModel, ProviderMetadata } from '../types';
-import { Warning } from '../types/warning';
+import type { TelemetryOptions } from '../telemetry/telemetry-options';
+import type { Embedding, EmbeddingModel, ProviderMetadata } from '../types';
+import type { Warning } from '../types/warning';
 import type { Callback } from '../util/callback';
 import { notify } from '../util/notify';
 import { prepareRetries } from '../util/prepare-retries';
 import { splitArray } from '../util/split-array';
 import type { EmbedEndEvent, EmbedStartEvent } from './embed-events';
-import { EmbedManyResult } from './embed-many-result';
+import type { EmbedManyResult } from './embed-many-result';
 import { VERSION } from '../version';
 
 const originalGenerateCallId = createIdGenerator({

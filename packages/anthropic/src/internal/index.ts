@@ -9,5 +9,5 @@ export type {
   AnthropicModelId,
   /** @deprecated Use `AnthropicModelId` instead. */
   AnthropicModelId as AnthropicMessagesModelId,
-} from '../anthropic-options';
+} from '../anthropic-language-model-options';
 export { prepareTools } from '../anthropic-prepare-tools';

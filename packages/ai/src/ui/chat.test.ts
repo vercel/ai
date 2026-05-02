@@ -4,13 +4,18 @@ import {
   TestResponseController,
 } from '@ai-sdk/test-server/with-vitest';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
+import type { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
 import { createResolvablePromise } from '../util/create-resolvable-promise';
-import { AbstractChat, ChatInit, ChatState, ChatStatus } from './chat';
+import {
+  AbstractChat,
+  type ChatInit,
+  type ChatState,
+  type ChatStatus,
+} from './chat';
 import { DefaultChatTransport } from './default-chat-transport';
 import { lastAssistantMessageIsCompleteWithApprovalResponses } from './last-assistant-message-is-complete-with-approval-responses';
 import { lastAssistantMessageIsCompleteWithToolCalls } from './last-assistant-message-is-complete-with-tool-calls';
-import { UIMessage } from './ui-messages';
+import type { UIMessage } from './ui-messages';
 
 class TestChatState<
   UI_MESSAGE extends UIMessage,

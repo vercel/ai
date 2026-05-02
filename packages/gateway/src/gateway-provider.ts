@@ -1,6 +1,7 @@
 import {
   loadOptionalSetting,
   withoutTrailingSlash,
+  withUserAgentSuffix,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { asGatewayError, GatewayAuthenticationError } from './errors';
@@ -43,7 +44,6 @@ import type {
   Experimental_VideoModelV4,
   ProviderV4,
 } from '@ai-sdk/provider';
-import { withUserAgentSuffix } from '@ai-sdk/provider-utils';
 import { VERSION } from './version';
 
 export interface GatewayProvider extends ProviderV4 {
@@ -176,7 +176,7 @@ const AI_GATEWAY_PROTOCOL_VERSION = '0.0.1';
 /**
  * Create a remote provider instance.
  */
-export function createGatewayProvider(
+export function createGateway(
   options: GatewayProviderSettings = {},
 ): GatewayProvider {
   let pendingMetadata: Promise<GatewayFetchMetadataResponse> | null = null;
@@ -386,7 +386,7 @@ export function createGatewayProvider(
   return provider;
 }
 
-export const gateway = createGatewayProvider();
+export const gateway = createGateway();
 
 export async function getGatewayAuthToken(
   options: GatewayProviderSettings,

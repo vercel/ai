@@ -1,6 +1,6 @@
 import { expect } from 'vitest';
 
-import {
+import type {
   FinishReason,
   LanguageModelResponseMetadata,
   LanguageModelUsage,

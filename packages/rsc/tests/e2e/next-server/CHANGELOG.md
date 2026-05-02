@@ -1,5 +1,73 @@
 # ai-core-e2e-next-server
 
+## 0.0.1-canary.0
+
+### Patch Changes
+
+- Updated dependencies [0c4c275]
+  - ai@7.0.0-canary.117
+
+## 0.0.1-beta.0
+
+### Patch Changes
+
+- ai@7.0.0-beta.116
+
+## 0.0.1-beta.0
+
+### Patch Changes
+
+- Updated dependencies [08d2129]
+- Updated dependencies [202f107]
+  - ai@7.0.0-beta.115
+
+## 0.0.1-beta.0
+
+### Patch Changes
+
+- Updated dependencies [43a6750]
+- Updated dependencies [81caa5d]
+- Updated dependencies [1f7db50]
+- Updated dependencies [9bd6512]
+- Updated dependencies [258c093]
+- Updated dependencies [6147cdf]
+  - ai@7.0.0-beta.114
+
+## 0.0.1-beta.0
+
+### Patch Changes
+
+- Updated dependencies [9f0e36c]
+  - ai@7.0.0-beta.113
+
+## 0.0.1-beta.0
+
+### Patch Changes
+
+- Updated dependencies [5f3749c]
+- Updated dependencies [0a51f7d]
+- Updated dependencies [71d3022]
+- Updated dependencies [67df0a0]
+- Updated dependencies [4181cfe]
+- Updated dependencies [51ce232]
+- Updated dependencies [cf93359]
+- Updated dependencies [befb78c]
+- Updated dependencies [29d8cf4]
+- Updated dependencies [58a2ad7]
+- Updated dependencies [37d69b2]
+- Updated dependencies [1043274]
+- Updated dependencies [7f59f04]
+- Updated dependencies [7677c1e]
+- Updated dependencies [116c89f]
+- Updated dependencies [f58f9bc]
+- Updated dependencies [e1bfb9c]
+- Updated dependencies [e87d71b]
+- Updated dependencies [9d486aa]
+- Updated dependencies [9b0bc8a]
+- Updated dependencies [fc92055]
+- Updated dependencies [4e095b0]
+  - ai@7.0.0-beta.112
+
 ## 0.0.1-beta.0
 
 ### Patch Changes

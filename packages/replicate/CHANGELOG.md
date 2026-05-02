@@ -1,5 +1,59 @@
 # @ai-sdk/replicate
 
+## 3.0.0-canary.33
+
+### Patch Changes
+
+- 0c4c275: trigger initial canary release
+- Updated dependencies [0c4c275]
+  - @ai-sdk/provider-utils@5.0.0-canary.31
+  - @ai-sdk/provider@4.0.0-canary.15
+
+## 3.0.0-beta.32
+
+### Major Changes
+
+- 04e9009: chore: make provider implementations code patterns more consistent, including renaming certain exported symbols
+
+  For all externally exported symbols that were renamed, the old names continue to work via deprecated aliases.
+
+### Patch Changes
+
+- Updated dependencies [08d2129]
+  - @ai-sdk/provider-utils@5.0.0-beta.30
+
+## 3.0.0-beta.31
+
+### Patch Changes
+
+- 258c093: chore: ensure consistent import handling and avoid import duplicates or cycles
+- Updated dependencies [9bd6512]
+- Updated dependencies [258c093]
+- Updated dependencies [b6783da]
+  - @ai-sdk/provider-utils@5.0.0-beta.29
+  - @ai-sdk/provider@4.0.0-beta.14
+
+## 3.0.0-beta.30
+
+### Patch Changes
+
+- 9f0e36c: trigger release for all packages after provenance setup
+- Updated dependencies [9f0e36c]
+  - @ai-sdk/provider@4.0.0-beta.13
+  - @ai-sdk/provider-utils@5.0.0-beta.28
+
+## 3.0.0-beta.29
+
+### Patch Changes
+
+- Updated dependencies [785fe16]
+- Updated dependencies [67df0a0]
+- Updated dependencies [befb78c]
+- Updated dependencies [0458559]
+- Updated dependencies [5852c0a]
+- Updated dependencies [fc92055]
+  - @ai-sdk/provider-utils@5.0.0-beta.27
+
 ## 3.0.0-beta.28
 
 ### Patch Changes

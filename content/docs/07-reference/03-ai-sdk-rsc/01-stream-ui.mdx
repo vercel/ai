@@ -256,6 +256,13 @@ To see `streamUI` in action, check out [these examples](#examples).
       ],
     },
     {
+      name: 'allowSystemInMessages',
+      type: 'boolean',
+      isOptional: true,
+      description:
+        'Whether system messages are allowed in the `prompt` or `messages` fields. Defaults to false. System messages in the `system` option are always allowed. Enabling this for user-controlled messages can create a prompt injection risk.',
+    },
+    {
       name: 'maxOutputTokens',
       type: 'number',
       isOptional: true,

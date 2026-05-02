@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { LanguageModelV4Usage } from '@ai-sdk/provider';
+import type { LanguageModelV4Usage } from '@ai-sdk/provider';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import { generateText } from './generate-text';
 import { streamText } from './stream-text';

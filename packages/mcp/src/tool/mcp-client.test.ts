@@ -1,19 +1,20 @@
+import type * as McpTransportModule from './mcp-transport';
 import { z } from 'zod/v4';
 import { MCPClientError } from '../error/mcp-client-error';
 import { createMCPClient } from './mcp-client';
 import { MockMCPTransport } from './mock-mcp-transport';
 import {
-  CallToolResult,
-  ListResourceTemplatesResult,
-  ListResourcesResult,
   ListToolsResult,
-  ReadResourceResult,
-  ListPromptsResult,
-  GetPromptResult,
-  Configuration,
   ElicitationRequestSchema,
+  type CallToolResult,
+  type ListResourceTemplatesResult,
+  type ListResourcesResult,
+  type ReadResourceResult,
+  type ListPromptsResult,
+  type GetPromptResult,
+  type Configuration,
 } from './types';
-import { JSONRPCRequest } from './json-rpc-message';
+import type { JSONRPCRequest } from './json-rpc-message';
 import {
   beforeEach,
   afterEach,
@@ -27,7 +28,7 @@ import {
 const createMockTransport = vi.fn(config => new MockMCPTransport(config));
 
 vi.mock('./mcp-transport.ts', async importOriginal => {
-  const actual = await importOriginal<typeof import('./mcp-transport')>();
+  const actual = await importOriginal<typeof McpTransportModule>();
   return {
     ...actual,
     createMcpTransport: vi.fn(config => {
@@ -90,6 +91,19 @@ describe('MCPClient', () => {
         "isError": false,
       }
     `);
+  });
+
+  it('should expose the configured client name on dynamic tools via providerMetadata', async () => {
+    client = await createMCPClient({
+      transport: { type: 'sse', url: 'https://example.com/sse' },
+      name: 'MyMCPServer',
+    });
+
+    const tools = await client.tools();
+
+    expect(tools['mock-tool'].providerMetadata).toEqual({
+      mcp: { name: 'MyMCPServer' },
+    });
   });
 
   it('should return serializable tool definitions via listTools()', async () => {
@@ -964,6 +978,40 @@ describe('MCPClient', () => {
         "version": "1.0.0",
       }
     `);
+  });
+
+  it('should expose instructions from initialization when server provides them', async () => {
+    createMockTransport.mockImplementation(
+      () =>
+        new MockMCPTransport({
+          initializeResult: {
+            protocolVersion: '2025-11-25',
+            serverInfo: {
+              name: 'mock-mcp-server',
+              version: '1.0.0',
+            },
+            capabilities: { tools: {} },
+            instructions:
+              'Use search tools to resolve IDs — never ask the user.',
+          },
+        }),
+    );
+
+    client = await createMCPClient({
+      transport: { type: 'sse', url: 'https://example.com/sse' },
+    });
+
+    expect(client.instructions).toBe(
+      'Use search tools to resolve IDs — never ask the user.',
+    );
+  });
+
+  it('should expose undefined instructions when server omits them', async () => {
+    client = await createMCPClient({
+      transport: { type: 'sse', url: 'https://example.com/sse' },
+    });
+
+    expect(client.instructions).toBeUndefined();
   });
 
   it('should close transport when client is closed', async () => {

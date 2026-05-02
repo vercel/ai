@@ -1,4 +1,4 @@
-import {
+import type {
   APICallError,
   LanguageModelV4,
   LanguageModelV4CallOptions,
@@ -7,6 +7,7 @@ import {
   LanguageModelV4GenerateResult,
   LanguageModelV4StreamPart,
   LanguageModelV4StreamResult,
+  LanguageModelV4Usage,
   SharedV4ProviderMetadata,
   SharedV4Warning,
 } from '@ai-sdk/provider';
@@ -15,18 +16,18 @@ import {
   createEventSourceResponseHandler,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
-  FetchFunction,
   generateId,
   isCustomReasoning,
   parseProviderOptions,
-  ParseResult,
   postJsonToApi,
-  ResponseHandler,
   serializeModelOptions,
-  type StreamingToolCallDelta,
   StreamingToolCallTracker,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
+  type StreamingToolCallDelta,
+  type FetchFunction,
+  type ParseResult,
+  type ResponseHandler,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import {
@@ -36,17 +37,17 @@ import {
 } from '../utils/to-camel-case';
 import {
   defaultOpenAICompatibleErrorStructure,
-  ProviderErrorStructure,
+  type ProviderErrorStructure,
 } from '../openai-compatible-error';
 import { convertOpenAICompatibleChatUsage } from './convert-openai-compatible-chat-usage';
 import { convertToOpenAICompatibleChatMessages } from './convert-to-openai-compatible-chat-messages';
 import { getResponseMetadata } from './get-response-metadata';
 import { mapOpenAICompatibleFinishReason } from './map-openai-compatible-finish-reason';
 import {
-  OpenAICompatibleChatModelId,
   openaiCompatibleLanguageModelChatOptions,
-} from './openai-compatible-chat-options';
-import { MetadataExtractor } from './openai-compatible-metadata-extractor';
+  type OpenAICompatibleChatModelId,
+} from './openai-compatible-chat-language-model-options';
+import type { MetadataExtractor } from './openai-compatible-metadata-extractor';
 import { prepareTools } from './openai-compatible-prepare-tools';
 
 type OpenAICompatibleStreamingToolCallDelta = StreamingToolCallDelta & {
@@ -82,6 +83,14 @@ export type OpenAICompatibleChatConfig = {
    * than the official OpenAI API.
    */
   transformRequestBody?: (args: Record<string, any>) => Record<string, any>;
+
+  /**
+   * Optional usage converter for OpenAI-compatible providers with different
+   * token accounting semantics.
+   */
+  convertUsage?: (
+    usage: z.infer<typeof openaiCompatibleTokenUsageSchema>,
+  ) => LanguageModelV4Usage;
 };
 
 type PendingToolCall = {
@@ -149,6 +158,15 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
 
   private transformRequestBody(args: Record<string, any>): Record<string, any> {
     return this.config.transformRequestBody?.(args) ?? args;
+  }
+
+  private convertUsage(
+    usage: z.infer<typeof openaiCompatibleTokenUsageSchema>,
+  ): LanguageModelV4Usage {
+    return (
+      this.config.convertUsage?.(usage) ??
+      convertOpenAICompatibleChatUsage(usage)
+    );
   }
 
   private async getArgs({
@@ -397,7 +415,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
         unified: mapOpenAICompatibleFinishReason(choice.finish_reason),
         raw: choice.finish_reason ?? undefined,
       },
-      usage: convertOpenAICompatibleChatUsage(responseBody.usage),
+      usage: this.convertUsage(responseBody.usage),
       providerMetadata,
       request: { body },
       response: {
@@ -514,6 +532,9 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
     let isFirstChunk = true;
     let isActiveReasoning = false;
     let isActiveText = false;
+    const convertUsage = (
+      usage: z.infer<typeof openaiCompatibleTokenUsageSchema>,
+    ) => this.convertUsage(usage);
 
     return {
       stream: response.pipeThrough(
@@ -699,7 +720,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
             controller.enqueue({
               type: 'finish',
               finishReason,
-              usage: convertOpenAICompatibleChatUsage(usage),
+              usage: convertUsage(usage),
               providerMetadata,
             });
           },

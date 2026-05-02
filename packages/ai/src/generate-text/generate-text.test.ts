@@ -1,16 +1,17 @@
 import {
-  LanguageModelV4CallOptions,
-  LanguageModelV4FunctionTool,
-  LanguageModelV4Prompt,
-  LanguageModelV4ProviderTool,
-  LanguageModelV4Usage,
+  InvalidPromptError,
+  type LanguageModelV4CallOptions,
+  type LanguageModelV4FunctionTool,
+  type LanguageModelV4Prompt,
+  type LanguageModelV4ProviderTool,
+  type LanguageModelV4Usage,
 } from '@ai-sdk/provider';
 import {
   dynamicTool,
   jsonSchema,
-  ModelMessage,
   tool,
-  ToolExecuteFunction,
+  type ModelMessage,
+  type ToolExecuteFunction,
 } from '@ai-sdk/provider-utils';
 import { mockId } from '@ai-sdk/provider-utils/test';
 import {
@@ -28,21 +29,21 @@ import { z } from 'zod/v4';
 import * as logWarningsModule from '../logger/log-warnings';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import { generateText } from './generate-text';
-import {
+import type {
   GenerateTextOnFinishCallback,
   GenerateTextOnStartCallback,
   GenerateTextOnStepFinishCallback,
   GenerateTextOnStepStartCallback,
 } from './generate-text-events';
-import { GenerateTextResult } from './generate-text-result';
+import type { GenerateTextResult } from './generate-text-result';
 import * as Output from './output';
-import { StepResult } from './step-result';
+import type { StepResult } from './step-result';
 import { isLoopFinished, isStepCount } from './stop-condition';
-import {
+import type {
   ToolExecutionEndEvent,
   ToolExecutionStartEvent,
 } from './tool-execution-events';
-import {
+import type {
   LanguageModelCallEndEvent,
   LanguageModelCallStartEvent,
 } from './language-model-events';
@@ -105,12 +106,12 @@ const modelWithFiles = new MockLanguageModelV4({
       { type: 'text', text: 'Hello, world!' },
       {
         type: 'file',
-        data: new Uint8Array([1, 2, 3]),
+        data: { type: 'data', data: new Uint8Array([1, 2, 3]) },
         mediaType: 'image/png',
       },
       {
         type: 'file',
-        data: 'QkFVRw==',
+        data: { type: 'data', data: 'QkFVRw==' },
         mediaType: 'image/jpeg',
       },
     ],
@@ -189,7 +190,7 @@ describe('generateText', () => {
               },
               {
                 type: 'file',
-                data: new Uint8Array([1, 2, 3]),
+                data: { type: 'data', data: new Uint8Array([1, 2, 3]) },
                 mediaType: 'image/png',
               },
               {
@@ -330,7 +331,7 @@ describe('generateText', () => {
               { type: 'text', text: 'Here is a thought image:' },
               {
                 type: 'reasoning-file',
-                data: new Uint8Array([10, 20, 30]),
+                data: { type: 'data', data: new Uint8Array([10, 20, 30]) },
                 mediaType: 'image/png',
                 providerMetadata: {
                   google: { thoughtSignature: 'sig123' },
@@ -338,7 +339,7 @@ describe('generateText', () => {
               },
               {
                 type: 'file',
-                data: new Uint8Array([40, 50, 60]),
+                data: { type: 'data', data: new Uint8Array([40, 50, 60]) },
                 mediaType: 'image/jpeg',
               },
             ],
@@ -937,6 +938,39 @@ describe('generateText', () => {
       expect(startEvent.maxOutputTokens).toBe(100);
       expect(startEvent.temperature).toBe(0.5);
       expect(startEvent.maxRetries).toBe(2);
+    });
+
+    it('should reject system messages in messages by default', async () => {
+      await expect(async () => {
+        await generateText({
+          model: new MockLanguageModelV4({
+            doGenerate: async () => ({
+              content: [{ type: 'text', text: 'Hello!' }],
+              ...dummyResponseValues,
+            }),
+          }),
+          messages: [{ role: 'system', content: 'INSTRUCTIONS' }],
+        });
+      }).rejects.toThrow(InvalidPromptError);
+    });
+
+    it('should allow system messages in messages when allowSystemInMessages is true', async () => {
+      const model = new MockLanguageModelV4({
+        doGenerate: async () => ({
+          content: [{ type: 'text', text: 'Hello!' }],
+          ...dummyResponseValues,
+        }),
+      });
+
+      await generateText({
+        model,
+        allowSystemInMessages: true,
+        messages: [{ role: 'system', content: 'INSTRUCTIONS' }],
+      });
+
+      expect(model.doGenerateCalls[0].prompt).toEqual([
+        { role: 'system', content: 'INSTRUCTIONS' },
+      ]);
     });
 
     it('should be called before doGenerate', async () => {
@@ -7276,6 +7310,96 @@ describe('generateText', () => {
         context: 'test',
       });
     });
+
+    it('should pass sensitive runtimeContext properties to callbacks', async () => {
+      const callbackContexts: unknown[] = [];
+
+      await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            content: [{ type: 'text', text: 'Hello, world!' }],
+            finishReason: { unified: 'stop', raw: 'stop' },
+          }),
+        }),
+        runtimeContext: {
+          userId: 'user-123',
+          requestId: 'request-123',
+        },
+        sensitiveRuntimeContext: {
+          userId: true,
+        },
+        prompt: 'test-input',
+        experimental_onStart: ({ runtimeContext }) => {
+          callbackContexts.push(runtimeContext);
+        },
+        experimental_onStepStart: ({ runtimeContext }) => {
+          callbackContexts.push(runtimeContext);
+        },
+        onStepFinish: ({ runtimeContext }) => {
+          callbackContexts.push(runtimeContext);
+        },
+        onFinish: ({ runtimeContext }) => {
+          callbackContexts.push(runtimeContext);
+        },
+      });
+
+      expect(callbackContexts).toEqual([
+        { userId: 'user-123', requestId: 'request-123' },
+        { userId: 'user-123', requestId: 'request-123' },
+        { userId: 'user-123', requestId: 'request-123' },
+        { userId: 'user-123', requestId: 'request-123' },
+      ]);
+    });
+
+    it('should exclude sensitive runtimeContext properties from telemetry', async () => {
+      const telemetryContexts: unknown[] = [];
+
+      await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            content: [{ type: 'text', text: 'Hello, world!' }],
+            finishReason: { unified: 'stop', raw: 'stop' },
+          }),
+        }),
+        runtimeContext: {
+          userId: 'user-123',
+          requestId: 'request-123',
+        },
+        sensitiveRuntimeContext: {
+          userId: true,
+        },
+        prompt: 'test-input',
+        telemetry: {
+          integrations: {
+            onStart: event => {
+              telemetryContexts.push(
+                (event as { runtimeContext: unknown }).runtimeContext,
+              );
+            },
+            onStepStart: ({ runtimeContext }) => {
+              telemetryContexts.push(runtimeContext);
+            },
+            onStepFinish: ({ runtimeContext }) => {
+              telemetryContexts.push(runtimeContext);
+            },
+            onFinish: event => {
+              telemetryContexts.push(
+                (event as { runtimeContext: unknown }).runtimeContext,
+              );
+            },
+          },
+        },
+      });
+
+      expect(telemetryContexts).toEqual([
+        { requestId: 'request-123' },
+        { requestId: 'request-123' },
+        { requestId: 'request-123' },
+        { requestId: 'request-123' },
+      ]);
+    });
   });
 
   describe('invalid tool calls', () => {
@@ -9753,12 +9877,15 @@ describe('generateText', () => {
                     "type": "text",
                   },
                   {
-                    "data": Uint8Array [
-                      1,
-                      2,
-                      3,
-                      4,
-                    ],
+                    "data": {
+                      "data": Uint8Array [
+                        1,
+                        2,
+                        3,
+                        4,
+                      ],
+                      "type": "data",
+                    },
                     "filename": undefined,
                     "mediaType": "image/png",
                     "providerOptions": undefined,

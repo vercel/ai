@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/bytedance",
-  "version": "2.0.0-beta.28",
+  "version": "2.0.0-canary.33",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -49,12 +49,14 @@
     "node": ">=18"
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "provenance": true
   },
   "homepage": "https://ai-sdk.dev/docs",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/vercel/ai.git"
+    "url": "https://github.com/vercel/ai",
+    "directory": "packages/bytedance"
   },
   "bugs": {
     "url": "https://github.com/vercel/ai/issues"

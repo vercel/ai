@@ -1,46 +1,44 @@
-import {
+import type {
   LanguageModelV4Content,
   LanguageModelV4GenerateResult,
   LanguageModelV4ToolCall,
 } from '@ai-sdk/provider';
-import type {
-  Arrayable,
-  Context,
-  InferToolSetContext,
-  ToolSet,
-} from '@ai-sdk/provider-utils';
 import {
   asArray,
   createIdGenerator,
   getErrorMessage,
-  IdGenerator,
-  ProviderOptions,
   withUserAgentSuffix,
+  type Arrayable,
+  type Context,
+  type InferToolSetContext,
+  type SensitiveContext,
+  type ToolSet,
+  type IdGenerator,
+  type ProviderOptions,
 } from '@ai-sdk/provider-utils';
 import { NoOutputGeneratedError } from '../error';
 import { ToolCallNotFoundForApprovalError } from '../error/tool-call-not-found-for-approval-error';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
-import { ModelMessage } from '../prompt';
+import type { ModelMessage } from '../prompt';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { createToolModelOutput } from '../prompt/create-tool-model-output';
-import { LanguageModelCallOptions } from '../prompt/language-model-call-options';
+import type { LanguageModelCallOptions } from '../prompt/language-model-call-options';
 import { prepareLanguageModelCallOptions } from '../prompt/prepare-language-model-call-options';
 import { prepareToolChoice } from '../prompt/prepare-tool-choice';
 import { prepareTools } from '../prompt/prepare-tools';
-import { Prompt } from '../prompt/prompt';
+import type { Prompt } from '../prompt/prompt';
 import {
   getStepTimeoutMs,
   getTotalTimeoutMs,
-  RequestOptions,
-  TimeoutConfiguration,
+  type RequestOptions,
+  type TimeoutConfiguration,
 } from '../prompt/request-options';
 import { standardizePrompt } from '../prompt/standardize-prompt';
 import { wrapGatewayError } from '../prompt/wrap-gateway-error';
-import { createTelemetryDispatcher } from '../telemetry/create-telemetry-dispatcher';
 import type { Telemetry } from '../telemetry/telemetry';
-import { TelemetryOptions } from '../telemetry/telemetry-options';
-import {
+import type { TelemetryOptions } from '../telemetry/telemetry-options';
+import type {
   LanguageModel,
   LanguageModelRequestMetadata,
   ToolChoice,
@@ -48,57 +46,59 @@ import {
 import {
   addLanguageModelUsage,
   asLanguageModelUsage,
-  LanguageModelUsage,
+  type LanguageModelUsage,
 } from '../types/usage';
-import { DownloadFunction } from '../util/download/download-function';
+import type { DownloadFunction } from '../util/download/download-function';
 import { mergeAbortSignals } from '../util/merge-abort-signals';
 import { mergeObjects } from '../util/merge-objects';
 import { notify } from '../util/notify';
 import { prepareRetries } from '../util/prepare-retries';
 import { VERSION } from '../version';
+import type { ActiveTools } from './active-tools';
 import { collectToolApprovals } from './collect-tool-approvals';
-import { ContentPart } from './content-part';
+import type { ContentPart } from './content-part';
 import { executeToolCall } from './execute-tool-call';
-import { filterActiveTools } from './filter-active-tool';
+import { filterActiveTools } from './filter-active-tools';
 import type {
   GenerateTextOnFinishCallback,
   GenerateTextOnStartCallback,
   GenerateTextOnStepFinishCallback,
   GenerateTextOnStepStartCallback,
 } from './generate-text-events';
-import { GenerateTextResult } from './generate-text-result';
+import type { GenerateTextResult } from './generate-text-result';
 import { DefaultGeneratedFile } from './generated-file';
 import type {
   OnLanguageModelCallEndCallback,
   OnLanguageModelCallStartCallback,
 } from './language-model-events';
-import { Output, text } from './output';
-import { InferCompleteOutput } from './output-utils';
+import { text, type Output } from './output';
+import type { InferCompleteOutput } from './output-utils';
 import { parseToolCall } from './parse-tool-call';
-import { PrepareStepFunction } from './prepare-step';
+import type { PrepareStepFunction } from './prepare-step';
 import { convertToReasoningOutputs } from './reasoning-output';
+import { createRestrictedTelemetryDispatcher } from './restricted-telemetry-dispatcher';
 import { resolveToolApproval } from './resolve-tool-approval';
-import { ResponseMessage } from './response-message';
-import { DefaultStepResult, StepResult } from './step-result';
+import type { ResponseMessage } from './response-message';
+import { DefaultStepResult, type StepResult } from './step-result';
 import {
   isStepCount,
   isStopConditionMet,
-  StopCondition,
+  type StopCondition,
 } from './stop-condition';
 import { toResponseMessages } from './to-response-messages';
-import { ToolApprovalConfiguration } from './tool-approval-configuration';
-import { ToolApprovalRequestOutput } from './tool-approval-request-output';
-import { ToolApprovalResponseOutput } from './tool-approval-response-output';
-import { TypedToolCall } from './tool-call';
-import { ToolCallRepairFunction } from './tool-call-repair-function';
-import { TypedToolError } from './tool-error';
-import {
+import type { ToolApprovalConfiguration } from './tool-approval-configuration';
+import type { ToolApprovalRequestOutput } from './tool-approval-request-output';
+import type { ToolApprovalResponseOutput } from './tool-approval-response-output';
+import type { TypedToolCall } from './tool-call';
+import type { ToolCallRepairFunction } from './tool-call-repair-function';
+import type { TypedToolError } from './tool-error';
+import type {
   OnToolExecutionEndCallback,
   OnToolExecutionStartCallback,
 } from './tool-execution-events';
-import { ToolOutput } from './tool-output';
-import { TypedToolResult } from './tool-result';
-import { ToolsContextParameter } from './tools-context-parameter';
+import type { ToolOutput } from './tool-output';
+import type { TypedToolResult } from './tool-result';
+import type { ToolsContextParameter } from './tools-context-parameter';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -122,6 +122,7 @@ const originalGenerateCallId = createIdGenerator({
  * @param system - A system message that will be part of the prompt.
  * @param prompt - A simple text prompt. You can either use `prompt` or `messages` but not both.
  * @param messages - A list of messages. You can either use `prompt` or `messages` but not both.
+ * @param allowSystemInMessages - Whether system messages are allowed in the `prompt` or `messages` fields. Default: false.
  *
  * @param maxOutputTokens - Maximum number of tokens to generate.
  * @param temperature - Temperature setting.
@@ -150,6 +151,7 @@ const originalGenerateCallId = createIdGenerator({
  * @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
  *
  * @param runtimeContext - User-defined runtime context that flows through the entire generation lifecycle.
+ * @param sensitiveRuntimeContext - Top-level runtime context properties that contain sensitive data and should be excluded from telemetry.
  *
  * @param experimental_onStart - Callback invoked when generation begins, before any LLM calls.
  * @param experimental_onStepStart - Callback invoked when each step begins, before the provider is called.
@@ -175,6 +177,7 @@ export async function generateText<
   system,
   prompt,
   messages,
+  allowSystemInMessages,
   maxRetries: maxRetriesArg,
   abortSignal,
   timeout,
@@ -190,6 +193,7 @@ export async function generateText<
   experimental_repairToolCall: repairToolCall,
   experimental_download: download,
   runtimeContext = {} as RUNTIME_CONTEXT,
+  sensitiveRuntimeContext,
   toolsContext = {} as InferToolSetContext<TOOLS>,
   experimental_include: include,
   _internal: {
@@ -253,10 +257,16 @@ export async function generateText<
     runtimeContext?: RUNTIME_CONTEXT;
 
     /**
+     * Top-level runtime context properties that contain sensitive data and
+     * should be excluded from telemetry.
+     */
+    sensitiveRuntimeContext?: SensitiveContext<NoInfer<RUNTIME_CONTEXT>>;
+
+    /**
      * Limits the tools that are available for the model to call without
      * changing the tool call and result types in the result.
      */
-    activeTools?: Array<keyof NoInfer<TOOLS>>;
+    activeTools?: ActiveTools<NoInfer<TOOLS>>;
 
     /**
      * Optional specification for parsing structured outputs from the LLM response.
@@ -409,12 +419,19 @@ export async function generateText<
     system,
     prompt,
     messages,
+    allowSystemInMessages,
   } as Prompt);
 
   const callId = generateCallId();
 
-  const telemetryDispatcher = createTelemetryDispatcher({
+  const telemetryDispatcher = createRestrictedTelemetryDispatcher<
+    TOOLS,
+    RUNTIME_CONTEXT,
+    OUTPUT
+  >({
     telemetry,
+    tools,
+    sensitiveRuntimeContext,
   });
 
   await notify({
@@ -445,12 +462,7 @@ export async function generateText<
       runtimeContext,
       toolsContext,
     },
-    callbacks: [
-      onStart,
-      telemetryDispatcher.onStart as
-        | undefined
-        | GenerateTextOnStartCallback<TOOLS, RUNTIME_CONTEXT, OUTPUT>,
-    ],
+    callbacks: [onStart, telemetryDispatcher.onStart],
   });
 
   try {
@@ -483,9 +495,7 @@ export async function generateText<
             event,
             callbacks: [
               onToolExecutionStart,
-              telemetryDispatcher.onToolExecutionStart as
-                | undefined
-                | OnToolExecutionStartCallback<TOOLS>,
+              telemetryDispatcher.onToolExecutionStart,
             ],
           }),
         onToolExecutionEnd: event =>
@@ -493,9 +503,7 @@ export async function generateText<
             event,
             callbacks: [
               onToolExecutionEnd,
-              telemetryDispatcher.onToolExecutionEnd as
-                | undefined
-                | OnToolExecutionEndCallback<TOOLS>,
+              telemetryDispatcher.onToolExecutionEnd,
             ],
           }),
         executeToolInTelemetryContext: telemetryDispatcher.executeTool,
@@ -645,12 +653,7 @@ export async function generateText<
             stepToolChoice,
             toolsContext,
           },
-          callbacks: [
-            onStepStart,
-            telemetryDispatcher.onStepStart as
-              | undefined
-              | GenerateTextOnStepStartCallback<TOOLS, RUNTIME_CONTEXT, OUTPUT>,
-          ],
+          callbacks: [onStepStart, telemetryDispatcher.onStepStart],
         });
 
         await notify({
@@ -882,9 +885,7 @@ export async function generateText<
                   event,
                   callbacks: [
                     onToolExecutionStart,
-                    telemetryDispatcher.onToolExecutionStart as
-                      | undefined
-                      | OnToolExecutionStartCallback<TOOLS>,
+                    telemetryDispatcher.onToolExecutionStart,
                   ],
                 }),
               onToolExecutionEnd: event =>
@@ -892,9 +893,7 @@ export async function generateText<
                   event,
                   callbacks: [
                     onToolExecutionEnd,
-                    telemetryDispatcher.onToolExecutionEnd as
-                      | undefined
-                      | OnToolExecutionEndCallback<TOOLS>,
+                    telemetryDispatcher.onToolExecutionEnd,
                   ],
                 }),
               executeToolInTelemetryContext: telemetryDispatcher.executeTool,
@@ -996,12 +995,7 @@ export async function generateText<
 
         await notify({
           event: currentStepResult,
-          callbacks: [
-            onStepFinish,
-            telemetryDispatcher.onStepFinish as
-              | undefined
-              | GenerateTextOnStepFinishCallback<TOOLS, RUNTIME_CONTEXT>,
-          ],
+          callbacks: [onStepFinish, telemetryDispatcher.onStepFinish],
         });
       } finally {
         if (stepTimeoutId != null) {
@@ -1066,12 +1060,7 @@ export async function generateText<
 
     await notify({
       event: onFinishEvent,
-      callbacks: [
-        onFinish,
-        telemetryDispatcher.onFinish as
-          | undefined
-          | GenerateTextOnFinishCallback<TOOLS, RUNTIME_CONTEXT>,
-      ],
+      callbacks: [onFinish, telemetryDispatcher.onFinish],
     });
 
     // parse output only if the last step was finished with "stop":
@@ -1290,7 +1279,13 @@ function asContent<TOOLS extends ToolSet>({
       case 'reasoning-file': {
         contentParts.push({
           type: part.type as 'file' | 'reasoning-file',
-          file: new DefaultGeneratedFile(part),
+          file: new DefaultGeneratedFile({
+            data:
+              part.data.type === 'data'
+                ? part.data.data
+                : part.data.url.toString(),
+            mediaType: part.mediaType,
+          }),
           ...(part.providerMetadata != null
             ? { providerMetadata: part.providerMetadata }
             : {}),

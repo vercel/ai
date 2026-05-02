@@ -1,5 +1,114 @@
 # ai
 
+## 7.0.0-canary.117
+
+### Patch Changes
+
+- 0c4c275: trigger initial canary release
+- Updated dependencies [0c4c275]
+  - @ai-sdk/provider-utils@5.0.0-canary.31
+  - @ai-sdk/provider@4.0.0-canary.15
+  - @ai-sdk/gateway@4.0.0-canary.68
+
+## 7.0.0-beta.116
+
+### Patch Changes
+
+- Updated dependencies [e7e8f42]
+  - @ai-sdk/gateway@4.0.0-beta.67
+
+## 7.0.0-beta.115
+
+### Patch Changes
+
+- 08d2129: feat(mcp): propagate the server name through dynamic tool parts
+- 202f107: feat(ai): create a diagnostics channel to push event data
+- Updated dependencies [08d2129]
+- Updated dependencies [04e9009]
+- Updated dependencies [be09425]
+  - @ai-sdk/provider-utils@5.0.0-beta.30
+  - @ai-sdk/gateway@4.0.0-beta.66
+
+## 7.0.0-beta.114
+
+### Major Changes
+
+- 1f7db50: fix(ai): remove experimental_customProvider
+- 9bd6512: feat(provider): change file part data property to be tagged with a type and remove the image part type
+
+### Patch Changes
+
+- 43a6750: fix(ai): preserve `allowSystemInMessages` across `streamText` retries
+- 81caa5d: fix(ai): remove ExtractLiteralUnion export
+- 258c093: chore: ensure consistent import handling and avoid import duplicates or cycles
+- 6147cdf: fix(ai): fix auto-complete on provider registry and custom provider
+- Updated dependencies [9bd6512]
+- Updated dependencies [258c093]
+- Updated dependencies [b6783da]
+  - @ai-sdk/provider-utils@5.0.0-beta.29
+  - @ai-sdk/provider@4.0.0-beta.14
+  - @ai-sdk/gateway@4.0.0-beta.65
+
+## 7.0.0-beta.113
+
+### Patch Changes
+
+- 9f0e36c: trigger release for all packages after provenance setup
+- Updated dependencies [9f0e36c]
+  - @ai-sdk/gateway@4.0.0-beta.64
+  - @ai-sdk/provider@4.0.0-beta.13
+  - @ai-sdk/provider-utils@5.0.0-beta.28
+
+## 7.0.0-beta.112
+
+### Major Changes
+
+- cf93359: feat(ai): remove/refactor event data sent via callbacks
+- 116c89f: feat(ai): remove telemetry data from the user-facing event data
+- 4e095b0: fix(ai): reject system messages in messages or prompt by default (opt-in)
+
+### Patch Changes
+
+- 5f3749c: refactoring: rename toolNeedsApproval to toolApproval
+- 0a51f7d: fix(ai): enforce `callOptionsSchema` at runtime in `ToolLoopAgent`
+
+  `ToolLoopAgentSettings.callOptionsSchema` was declared and documented as a runtime schema for `options`, but `tool-loop-agent.ts` never invoked it. Any invariant a developer encoded in the schema was silently bypassed at runtime, and unchecked `options` flowed straight into `prepareCall` and any `instructions` template that interpolated them.
+
+  `ToolLoopAgent.prepareCall` now validates caller-supplied `options` against `callOptionsSchema` (when set) via `safeValidateTypes`, throwing `InvalidArgumentError` on failure before forwarding to `prepareCall` / `generateText` / `streamText`.
+
+- 71d3022: fix(ai): unify generate text event callbacks
+- 67df0a0: feat: add sensitiveContext property to Tool
+- 4181cfe: fix(ai): harden `getMediaTypeFromUrl` against prototype-property collisions
+
+  `getMediaTypeFromUrl` (used to infer media types for `file-url` / `image-url` parts) used `ext in URL_EXTENSION_TO_MEDIA_TYPE` against a plain object literal. A URL ending in `.constructor` therefore resolved through the prototype chain and returned the `Object` constructor function, violating the helper's `: string` return type and forwarding a non-string value to provider adapters.
+
+  Switch to `Object.hasOwn(...)` so attacker-controlled extensions like `.constructor` cannot resolve to inherited `Object.prototype` keys.
+
+- 51ce232: feat(ai): add sensitiveRuntimeContext option
+- befb78c: refactoring: remove real-time delays in unit tests
+- 29d8cf4: feat(ai): rename the core-event types
+- 58a2ad7: fix: more precise default message for tool execution denial
+- 37d69b2: feat(ai): access runtime context in tool approval functions
+- 1043274: feat(ai): add a ModelCall start/end event
+- 7f59f04: feat(ai): add approval reason to automatic tool approvals
+- 7677c1e: feat(ai): allow tool approval functions to return undefined
+- f58f9bc: fix(ai): remove stopWhen from onStart event
+- e1bfb9c: feat(ai): remove unnecessary data from events
+- e87d71b: feat(ai): support automatic tool approval in ui messages
+- 9d486aa: feat(ai): generic tool approval function
+- 9b0bc8a: fix(mcp): prevent prototype pollution by using secureJsonParse
+- fc92055: feat(ai): automatic tool approval
+- Updated dependencies [785fe16]
+- Updated dependencies [67df0a0]
+- Updated dependencies [befb78c]
+- Updated dependencies [0458559]
+- Updated dependencies [5852c0a]
+- Updated dependencies [baa5f20]
+- Updated dependencies [fc92055]
+- Updated dependencies [f9acbc0]
+  - @ai-sdk/provider-utils@5.0.0-beta.27
+  - @ai-sdk/gateway@4.0.0-beta.63
+
 ## 7.0.0-beta.111
 
 ### Major Changes

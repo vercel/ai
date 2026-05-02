@@ -1,5 +1,85 @@
 # @ai-sdk/amazon-bedrock
 
+## 5.0.0-canary.48
+
+### Patch Changes
+
+- 0c4c275: trigger initial canary release
+- Updated dependencies [0c4c275]
+  - @ai-sdk/provider-utils@5.0.0-canary.31
+  - @ai-sdk/anthropic@4.0.0-canary.43
+  - @ai-sdk/provider@4.0.0-canary.15
+
+## 5.0.0-beta.47
+
+### Patch Changes
+
+- d0dbd96: Fix `createAmazonBedrock()` capturing `globalThis.fetch` at initialization time, which caused telemetry instrumentation (e.g. OpenTelemetry, Datadog) and other `globalThis.fetch` patches applied after provider creation to be silently ignored.
+
+## 5.0.0-beta.46
+
+### Major Changes
+
+- 04e9009: chore: make provider implementations code patterns more consistent, including renaming certain exported symbols
+
+  For all externally exported symbols that were renamed, the old names continue to work via deprecated aliases.
+
+### Patch Changes
+
+- Updated dependencies [08d2129]
+- Updated dependencies [04e9009]
+  - @ai-sdk/provider-utils@5.0.0-beta.30
+  - @ai-sdk/anthropic@4.0.0-beta.42
+
+## 5.0.0-beta.45
+
+### Patch Changes
+
+- 6732c16: fix(amazon-bedrock): do not use env var AWS_SESSION_TOKEN when keys are explicitly defined
+- 9bd6512: feat(provider): change file part data property to be tagged with a type and remove the image part type
+- 258c093: chore: ensure consistent import handling and avoid import duplicates or cycles
+- Updated dependencies [9bd6512]
+- Updated dependencies [258c093]
+- Updated dependencies [b6783da]
+  - @ai-sdk/provider-utils@5.0.0-beta.29
+  - @ai-sdk/anthropic@4.0.0-beta.41
+  - @ai-sdk/provider@4.0.0-beta.14
+
+## 5.0.0-beta.44
+
+### Patch Changes
+
+- Updated dependencies [c012d57]
+  - @ai-sdk/anthropic@4.0.0-beta.40
+
+## 5.0.0-beta.43
+
+### Patch Changes
+
+- 9f0e36c: trigger release for all packages after provenance setup
+- Updated dependencies [9f0e36c]
+  - @ai-sdk/anthropic@4.0.0-beta.39
+  - @ai-sdk/provider@4.0.0-beta.13
+  - @ai-sdk/provider-utils@5.0.0-beta.28
+
+## 5.0.0-beta.42
+
+### Patch Changes
+
+- fae8d44: fix(provider/amazon-bedrock): merge custom reasoning config properties when top-level reasoning parameter is set
+- 87d1723: chore(anthropic): remove unnecessary messages affix from Anthropic symbols and files
+- 58a2ad7: fix: more precise default message for tool execution denial
+- Updated dependencies [785fe16]
+- Updated dependencies [67df0a0]
+- Updated dependencies [87d1723]
+- Updated dependencies [befb78c]
+- Updated dependencies [0458559]
+- Updated dependencies [58a2ad7]
+- Updated dependencies [5852c0a]
+- Updated dependencies [fc92055]
+  - @ai-sdk/provider-utils@5.0.0-beta.27
+  - @ai-sdk/anthropic@4.0.0-beta.38
+
 ## 5.0.0-beta.41
 
 ### Patch Changes

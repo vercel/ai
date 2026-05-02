@@ -1,11 +1,11 @@
-import { vertex } from '@ai-sdk/google-vertex';
+import { googleVertex } from '@ai-sdk/google-vertex';
 import { generateText, jsonSchema, tool } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
   const { rawFinishReason, providerMetadata, response, text } =
     await generateText({
-      model: vertex('gemini-2.5-pro'),
+      model: googleVertex('gemini-2.5-pro'),
       messages: [
         {
           role: 'system',

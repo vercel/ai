@@ -1,15 +1,15 @@
-import { Context, tool } from '@ai-sdk/provider-utils';
+import { tool, type Context } from '@ai-sdk/provider-utils';
 import { describe, expectTypeOf, it } from 'vitest';
 import { z } from 'zod';
 import {
-  GenerateTextOnFinishCallback,
   Output,
-  ToolApprovalConfiguration,
+  type GenerateTextOnFinishCallback,
+  type ToolApprovalConfiguration,
 } from '../generate-text';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
-import { AsyncIterableStream } from '../util/async-iterable-stream';
-import { DeepPartial } from '../util/deep-partial';
-import { AgentCallParameters, AgentStreamParameters } from './agent';
+import type { AsyncIterableStream } from '../util/async-iterable-stream';
+import type { DeepPartial } from '../util/deep-partial';
+import type { AgentCallParameters, AgentStreamParameters } from './agent';
 import { ToolLoopAgent } from './tool-loop-agent';
 
 describe('ToolLoopAgent', () => {
@@ -236,6 +236,28 @@ describe('ToolLoopAgent', () => {
       });
     });
 
+    it('should accept sensitiveRuntimeContext for runtimeContext keys', async () => {
+      new ToolLoopAgent<never, {}, { userId: string; requestId: string }>({
+        model: new MockLanguageModelV4(),
+        runtimeContext: { userId: 'user-123', requestId: 'request-123' },
+        sensitiveRuntimeContext: {
+          userId: true,
+          requestId: false,
+        },
+      });
+    });
+
+    it('should reject unknown sensitiveRuntimeContext keys', async () => {
+      new ToolLoopAgent<never, {}, { userId: string }>({
+        model: new MockLanguageModelV4(),
+        runtimeContext: { userId: 'user-123' },
+        sensitiveRuntimeContext: {
+          // @ts-expect-error sensitiveRuntimeContext only supports runtimeContext properties
+          unknown: true,
+        },
+      });
+    });
+
     describe('prepareStep', () => {
       it('should expose default runtimeContext type', async () => {
         new ToolLoopAgent({
@@ -298,6 +320,30 @@ describe('ToolLoopAgent', () => {
               telemetryId: string;
             }>();
             expectTypeOf(toolsContext).toEqualTypeOf<{}>();
+          },
+        });
+      });
+    });
+
+    describe('prepareCall', () => {
+      it('should expose sensitiveRuntimeContext type', async () => {
+        new ToolLoopAgent<never, {}, { userId: string; requestId: string }>({
+          model: new MockLanguageModelV4(),
+          runtimeContext: { userId: 'user-123', requestId: 'request-123' },
+          sensitiveRuntimeContext: { userId: true },
+          prepareCall: options => {
+            expectTypeOf(options.sensitiveRuntimeContext).toEqualTypeOf<
+              | {
+                  userId?: boolean | undefined;
+                  requestId?: boolean | undefined;
+                }
+              | undefined
+            >();
+
+            return {
+              ...options,
+              prompt: 'Hello, world!',
+            };
           },
         });
       });

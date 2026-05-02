@@ -77,6 +77,62 @@ const codeAgent = new ToolLoopAgent({
 });
 ```
 
+### Context and Agent State
+
+Use `runtimeContext` as the agent's shared runtime state. It flows through the
+agent loop and is available in `prepareStep`, lifecycle callbacks, and final
+results. If a tool needs server-side values such as credentials, scoped
+permissions, or default settings, pass them through `toolsContext` and declare
+them with the tool's `contextSchema`.
+
+```ts highlight="8-15,21-31,37-49"
+import { ToolLoopAgent, tool } from 'ai';
+import { z } from 'zod';
+
+const agent = new ToolLoopAgent({
+  model: __MODEL__,
+  tools: {
+    searchTickets: tool({
+      description: 'Search support tickets',
+      inputSchema: z.object({
+        query: z.string(),
+      }),
+      contextSchema: z.object({
+        apiKey: z.string(),
+        accountId: z.string(),
+      }),
+      execute: async ({ query }, { context }) =>
+        searchTickets(query, context.accountId, context.apiKey),
+    }),
+  },
+  prepareStep: async ({ runtimeContext }) => {
+    if (runtimeContext.escalated) {
+      return { temperature: 0.1 };
+    }
+
+    return {};
+  },
+});
+
+const result = await agent.generate({
+  prompt: 'Find open billing tickets for this account.',
+  runtimeContext: {
+    requestId: 'req_abc',
+    escalated: false,
+  },
+  toolsContext: {
+    searchTickets: {
+      apiKey: process.env.SUPPORT_API_KEY!,
+      accountId: 'acct_123',
+    },
+  },
+});
+```
+
+For the full model, including sensitive context filtering and where each context
+value is available, see [Runtime and Tool
+Context](/docs/ai-sdk-core/runtime-and-tool-context).
+
 You can also require approval before a tool executes. Configure approval on the
 `ToolLoopAgent` with `toolApproval`. The older `needsApproval` property on
 tools is deprecated for `ToolLoopAgent`. `toolApproval` can be a

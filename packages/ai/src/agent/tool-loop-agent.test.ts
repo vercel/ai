@@ -1,4 +1,4 @@
-import { LanguageModelV4CallOptions } from '@ai-sdk/provider';
+import type { LanguageModelV4CallOptions } from '@ai-sdk/provider';
 import { tool } from '@ai-sdk/provider-utils';
 import {
   convertArrayToReadableStream,
@@ -6,23 +6,24 @@ import {
 } from '@ai-sdk/provider-utils/test';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
-import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
-import { ToolLoopAgent } from './tool-loop-agent';
-import {
+import type {
+  GenerateTextOnFinishCallback,
+  GenerateTextOnStartCallback,
+  GenerateTextOnStepStartCallback,
+} from '../generate-text/generate-text-events';
+import type {
   ToolExecutionEndEvent,
   ToolExecutionStartEvent,
 } from '../generate-text/tool-execution-events';
+import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
+import { now } from '../util/now';
+import { ToolLoopAgent } from './tool-loop-agent';
 
 // mock now function
 vi.mock('../util/now', () => ({
   now: vi.fn(),
 }));
-import { now } from '../util/now';
-import {
-  GenerateTextOnFinishCallback,
-  GenerateTextOnStartCallback,
-  GenerateTextOnStepStartCallback,
-} from '../generate-text/generate-text-events';
+
 const mockNow = vi.mocked(now);
 
 const testSettings = {
@@ -3081,6 +3082,67 @@ describe('ToolLoopAgent', () => {
         ]);
       });
 
+      it('should exclude sensitive runtimeContext properties from telemetry', async () => {
+        const callbackContexts: unknown[] = [];
+        const telemetryContexts: unknown[] = [];
+
+        const agent = new ToolLoopAgent({
+          model: new MockLanguageModelV4({
+            doGenerate: async () => ({
+              content: [{ type: 'text' as const, text: 'Hello!' }],
+              ...dummyResponseValues,
+              finishReason: { unified: 'stop' as const, raw: 'stop' },
+            }),
+          }),
+          runtimeContext: {
+            userId: 'user-123',
+            requestId: 'request-123',
+          },
+          sensitiveRuntimeContext: {
+            userId: true,
+          },
+          experimental_onStart: async ({ runtimeContext }) => {
+            callbackContexts.push(runtimeContext);
+          },
+          onStepFinish: async ({ runtimeContext }) => {
+            callbackContexts.push(runtimeContext);
+          },
+          onFinish: async ({ runtimeContext }) => {
+            callbackContexts.push(runtimeContext);
+          },
+          telemetry: {
+            integrations: {
+              onStart: async event => {
+                telemetryContexts.push(
+                  (event as { runtimeContext: unknown }).runtimeContext,
+                );
+              },
+              onStepFinish: async ({ runtimeContext }) => {
+                telemetryContexts.push(runtimeContext);
+              },
+              onFinish: async event => {
+                telemetryContexts.push(
+                  (event as { runtimeContext: unknown }).runtimeContext,
+                );
+              },
+            },
+          },
+        });
+
+        await agent.generate({ prompt: 'test' });
+
+        expect(callbackContexts).toEqual([
+          { userId: 'user-123', requestId: 'request-123' },
+          { userId: 'user-123', requestId: 'request-123' },
+          { userId: 'user-123', requestId: 'request-123' },
+        ]);
+        expect(telemetryContexts).toEqual([
+          { requestId: 'request-123' },
+          { requestId: 'request-123' },
+          { requestId: 'request-123' },
+        ]);
+      });
+
       it('should call integration listeners alongside agent callbacks', async () => {
         const events: string[] = [];
 
@@ -3322,6 +3384,78 @@ describe('ToolLoopAgent', () => {
           'global-onStart',
           'global-onStepFinish',
           'global-onFinish',
+        ]);
+      });
+
+      it('should exclude sensitive runtimeContext properties from telemetry', async () => {
+        const callbackContexts: unknown[] = [];
+        const telemetryContexts: unknown[] = [];
+
+        const agent = new ToolLoopAgent({
+          model: new MockLanguageModelV4({
+            doStream: async () => ({
+              stream: convertArrayToReadableStream([
+                { type: 'stream-start', warnings: [] },
+                {
+                  type: 'response-metadata',
+                  id: 'id-0',
+                  modelId: 'mock-model-id',
+                  timestamp: new Date(0),
+                },
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: 'Hello!' },
+                { type: 'text-end', id: '1' },
+                dummyStreamFinish,
+              ]),
+            }),
+          }),
+          runtimeContext: {
+            userId: 'user-123',
+            requestId: 'request-123',
+          },
+          sensitiveRuntimeContext: {
+            userId: true,
+          },
+          experimental_onStart: async ({ runtimeContext }) => {
+            callbackContexts.push(runtimeContext);
+          },
+          onStepFinish: async ({ runtimeContext }) => {
+            callbackContexts.push(runtimeContext);
+          },
+          onFinish: async ({ runtimeContext }) => {
+            callbackContexts.push(runtimeContext);
+          },
+          telemetry: {
+            integrations: {
+              onStart: async event => {
+                telemetryContexts.push(
+                  (event as { runtimeContext: unknown }).runtimeContext,
+                );
+              },
+              onStepFinish: async ({ runtimeContext }) => {
+                telemetryContexts.push(runtimeContext);
+              },
+              onFinish: async event => {
+                telemetryContexts.push(
+                  (event as { runtimeContext: unknown }).runtimeContext,
+                );
+              },
+            },
+          },
+        });
+
+        const result = await agent.stream({ prompt: 'test' });
+        await result.consumeStream();
+
+        expect(callbackContexts).toEqual([
+          { userId: 'user-123', requestId: 'request-123' },
+          { userId: 'user-123', requestId: 'request-123' },
+          { userId: 'user-123', requestId: 'request-123' },
+        ]);
+        expect(telemetryContexts).toEqual([
+          { requestId: 'request-123' },
+          { requestId: 'request-123' },
+          { requestId: 'request-123' },
         ]);
       });
 

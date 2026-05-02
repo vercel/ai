@@ -1,5 +1,8 @@
 import { readFileSync } from 'node:fs';
-import { GoogleVertexImageModelOptions, vertex } from '@ai-sdk/google-vertex';
+import {
+  googleVertex,
+  type GoogleVertexImageModelOptions,
+} from '@ai-sdk/google-vertex';
 import { generateImage } from 'ai';
 import { presentImages } from '../../lib/present-image';
 import { run } from '../../lib/run';
@@ -22,7 +25,7 @@ run(async () => {
   console.log(`PROMPT: ${prompt}`);
 
   const { images } = await generateImage({
-    model: vertex.image('imagen-3.0-capability-001'),
+    model: googleVertex.image('imagen-3.0-capability-001'),
     prompt: {
       text: prompt,
       images: [image],

@@ -1,4 +1,4 @@
-import {
+import type {
   JSONValue,
   LanguageModelV4FinishReason,
   LanguageModelV4StreamPart,
@@ -9,45 +9,45 @@ import {
 import {
   createIdGenerator,
   DelayedPromise,
-  FlexibleSchema,
-  ProviderOptions,
   type InferSchema,
+  type FlexibleSchema,
+  type ProviderOptions,
 } from '@ai-sdk/provider-utils';
-import { ServerResponse } from 'http';
+import type { ServerResponse } from 'http';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
-import { LanguageModelCallOptions } from '../prompt/language-model-call-options';
+import type { LanguageModelCallOptions } from '../prompt/language-model-call-options';
 import { prepareLanguageModelCallOptions } from '../prompt/prepare-language-model-call-options';
-import { RequestOptions } from '../prompt/request-options';
+import type { RequestOptions } from '../prompt/request-options';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
-import { Prompt } from '../prompt/prompt';
+import type { Prompt } from '../prompt/prompt';
 import { standardizePrompt } from '../prompt/standardize-prompt';
 import { wrapGatewayError } from '../prompt/wrap-gateway-error';
 import { createTelemetryDispatcher } from '../telemetry/create-telemetry-dispatcher';
-import { TelemetryOptions } from '../telemetry/telemetry-options';
+import type { TelemetryOptions } from '../telemetry/telemetry-options';
 import { createTextStreamResponse } from '../text-stream/create-text-stream-response';
 import { pipeTextStreamToResponse } from '../text-stream/pipe-text-stream-to-response';
-import {
+import type {
   CallWarning,
   FinishReason,
   LanguageModel,
 } from '../types/language-model';
-import { LanguageModelRequestMetadata } from '../types/language-model-request-metadata';
-import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
-import { ProviderMetadata } from '../types/provider-metadata';
+import type { LanguageModelRequestMetadata } from '../types/language-model-request-metadata';
+import type { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
+import type { ProviderMetadata } from '../types/provider-metadata';
 import {
   asLanguageModelUsage,
   createNullLanguageModelUsage,
-  LanguageModelUsage,
+  type LanguageModelUsage,
 } from '../types/usage';
-import { DeepPartial, isDeepEqualData, parsePartialJson } from '../util';
+import { isDeepEqualData, parsePartialJson, type DeepPartial } from '../util';
 import {
-  AsyncIterableStream,
   createAsyncIterableStream,
+  type AsyncIterableStream,
 } from '../util/async-iterable-stream';
 import type { Callback } from '../util/callback';
 import { createStitchableStream } from '../util/create-stitchable-stream';
-import { DownloadFunction } from '../util/download/download-function';
+import type { DownloadFunction } from '../util/download/download-function';
 import { notify } from '../util/notify';
 import { now as originalNow } from '../util/now';
 import { prepareRetries } from '../util/prepare-retries';
@@ -57,10 +57,13 @@ import type {
   GenerateObjectStepEndEvent,
   GenerateObjectStepStartEvent,
 } from './structured-output-events';
-import { getOutputStrategy, OutputStrategy } from './output-strategy';
+import { getOutputStrategy, type OutputStrategy } from './output-strategy';
 import { parseAndValidateObjectResultWithRepair } from './parse-and-validate-object-result';
-import { RepairTextFunction } from './repair-text';
-import { ObjectStreamPart, StreamObjectResult } from './stream-object-result';
+import type { RepairTextFunction } from './repair-text';
+import type {
+  ObjectStreamPart,
+  StreamObjectResult,
+} from './stream-object-result';
 import { validateObjectGenerationInput } from './validate-object-generation-input';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aiobj', size: 24 });
@@ -123,6 +126,7 @@ export type StreamObjectOnFinishCallback<RESULT> = (event: {
  * @param system - A system message that will be part of the prompt.
  * @param prompt - A simple text prompt. You can either use `prompt` or `messages` but not both.
  * @param messages - A list of messages. You can either use `prompt` or `messages` but not both.
+ * @param allowSystemInMessages - Whether system messages are allowed in the `prompt` or `messages` fields. Default: false.
  *
  * @param maxOutputTokens - Maximum number of tokens to generate.
  * @param temperature - Temperature setting.
@@ -313,6 +317,7 @@ export function streamObject<
     system,
     prompt,
     messages,
+    allowSystemInMessages,
     maxRetries,
     abortSignal,
     headers,
@@ -370,6 +375,7 @@ export function streamObject<
     system,
     prompt,
     messages,
+    allowSystemInMessages,
     schemaName,
     schemaDescription,
     providerOptions,
@@ -422,6 +428,7 @@ class DefaultStreamObjectResult<
     system,
     prompt,
     messages,
+    allowSystemInMessages,
     schemaName,
     schemaDescription,
     providerOptions,
@@ -446,6 +453,7 @@ class DefaultStreamObjectResult<
     system: Prompt['system'];
     prompt: Prompt['prompt'];
     messages: Prompt['messages'];
+    allowSystemInMessages: Prompt['allowSystemInMessages'];
     schemaName: string | undefined;
     schemaDescription: string | undefined;
     providerOptions: ProviderOptions | undefined;
@@ -533,6 +541,7 @@ class DefaultStreamObjectResult<
         system,
         prompt,
         messages,
+        allowSystemInMessages,
       } as Prompt);
 
       const callOptions = {

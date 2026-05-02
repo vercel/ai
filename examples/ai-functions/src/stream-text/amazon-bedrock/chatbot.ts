@@ -1,5 +1,5 @@
-import { bedrock } from '@ai-sdk/amazon-bedrock';
-import { isStepCount, ModelMessage, streamText, tool } from 'ai';
+import { amazonBedrock } from '@ai-sdk/amazon-bedrock';
+import { isStepCount, streamText, tool, type ModelMessage } from 'ai';
 import * as readline from 'node:readline/promises';
 import { z } from 'zod';
 import { run } from '../../lib/run';
@@ -18,7 +18,7 @@ run(async () => {
     messages.push({ role: 'user', content: userInput });
 
     const result = streamText({
-      model: bedrock('anthropic.claude-3-haiku-20240307-v1:0'),
+      model: amazonBedrock('anthropic.claude-3-haiku-20240307-v1:0'),
       tools: {
         weather: tool({
           description: 'Get the weather in a location',

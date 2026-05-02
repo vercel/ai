@@ -1,5 +1,114 @@
 # @ai-sdk/google-vertex
 
+## 5.0.0-canary.67
+
+### Patch Changes
+
+- 0c4c275: trigger initial canary release
+- Updated dependencies [0c4c275]
+  - @ai-sdk/openai-compatible@3.0.0-canary.37
+  - @ai-sdk/provider-utils@5.0.0-canary.31
+  - @ai-sdk/anthropic@4.0.0-canary.43
+  - @ai-sdk/provider@4.0.0-canary.15
+  - @ai-sdk/google@4.0.0-canary.50
+
+## 5.0.0-beta.66
+
+### Patch Changes
+
+- 1f4058f: fix(vertex): use correct import for token generator
+
+## 5.0.0-beta.65
+
+### Patch Changes
+
+- 96d056d: fix(provider/google-vertex): avoid recreating Node GoogleAuth clients for repeated requests
+
+  Create Google auth token generators per provider instance instead of using a
+  module-level shared `GoogleAuth` cache. This avoids unnecessary `GoogleAuth`
+  recreation when `googleAuthOptions` are omitted or when multiple provider
+  instances use equivalent auth settings.
+
+## 5.0.0-beta.64
+
+### Patch Changes
+
+- e59c955: feat(vertex): add grok models to vertex provider
+- Updated dependencies [e59c955]
+  - @ai-sdk/openai-compatible@3.0.0-beta.36
+
+## 5.0.0-beta.63
+
+### Major Changes
+
+- 04e9009: chore: make provider implementations code patterns more consistent, including renaming certain exported symbols
+
+  For all externally exported symbols that were renamed, the old names continue to work via deprecated aliases.
+
+### Patch Changes
+
+- 780e563: feat(provider/google-vertex): allow overriding Vertex Anthropic auth token generation
+- Updated dependencies [08d2129]
+- Updated dependencies [04e9009]
+  - @ai-sdk/provider-utils@5.0.0-beta.30
+  - @ai-sdk/openai-compatible@3.0.0-beta.35
+  - @ai-sdk/anthropic@4.0.0-beta.42
+  - @ai-sdk/google@4.0.0-beta.49
+
+## 5.0.0-beta.62
+
+### Patch Changes
+
+- 9bd6512: feat(provider): change file part data property to be tagged with a type and remove the image part type
+- 258c093: chore: ensure consistent import handling and avoid import duplicates or cycles
+- Updated dependencies [9bd6512]
+- Updated dependencies [258c093]
+- Updated dependencies [b6783da]
+  - @ai-sdk/openai-compatible@3.0.0-beta.34
+  - @ai-sdk/provider-utils@5.0.0-beta.29
+  - @ai-sdk/anthropic@4.0.0-beta.41
+  - @ai-sdk/provider@4.0.0-beta.14
+  - @ai-sdk/google@4.0.0-beta.48
+
+## 5.0.0-beta.61
+
+### Patch Changes
+
+- Updated dependencies [c012d57]
+  - @ai-sdk/anthropic@4.0.0-beta.40
+
+## 5.0.0-beta.60
+
+### Patch Changes
+
+- 9f0e36c: trigger release for all packages after provenance setup
+- Updated dependencies [9f0e36c]
+  - @ai-sdk/anthropic@4.0.0-beta.39
+  - @ai-sdk/google@4.0.0-beta.47
+  - @ai-sdk/openai-compatible@3.0.0-beta.33
+  - @ai-sdk/provider@4.0.0-beta.13
+  - @ai-sdk/provider-utils@5.0.0-beta.28
+
+## 5.0.0-beta.59
+
+### Patch Changes
+
+- 87d1723: chore(anthropic): remove unnecessary messages affix from Anthropic symbols and files
+- Updated dependencies [ab81968]
+- Updated dependencies [785fe16]
+- Updated dependencies [67df0a0]
+- Updated dependencies [87d1723]
+- Updated dependencies [befb78c]
+- Updated dependencies [0458559]
+- Updated dependencies [58a2ad7]
+- Updated dependencies [5852c0a]
+- Updated dependencies [84f36e0]
+- Updated dependencies [fc92055]
+  - @ai-sdk/openai-compatible@3.0.0-beta.32
+  - @ai-sdk/provider-utils@5.0.0-beta.27
+  - @ai-sdk/anthropic@4.0.0-beta.38
+  - @ai-sdk/google@4.0.0-beta.46
+
 ## 5.0.0-beta.58
 
 ### Patch Changes

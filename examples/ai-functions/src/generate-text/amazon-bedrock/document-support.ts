@@ -1,11 +1,11 @@
-import { bedrock } from '@ai-sdk/amazon-bedrock';
+import { amazonBedrock } from '@ai-sdk/amazon-bedrock';
 import { generateText } from 'ai';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import { run } from '../../lib/run';
 
 run(async () => {
-  const model = bedrock('us.anthropic.claude-sonnet-4-5-20250929-v1:0');
+  const model = amazonBedrock('us.anthropic.claude-sonnet-4-5-20250929-v1:0');
 
   const testCases = [
     {

@@ -1,13 +1,14 @@
 import {
-  LanguageModelV4Prompt,
   UnsupportedFunctionalityError,
+  type LanguageModelV4Prompt,
 } from '@ai-sdk/provider';
 import {
   convertToBase64,
-  isProviderReference,
+  isFullMediaType,
+  resolveFullMediaType,
   resolveProviderReference,
 } from '@ai-sdk/provider-utils';
-import {
+import type {
   GoogleContent,
   GoogleContentPart,
   GoogleFunctionResponsePart,
@@ -170,7 +171,13 @@ export function convertToGoogleMessages(
   prompt: LanguageModelV4Prompt,
   options?: {
     isGemmaModel?: boolean;
-    providerOptionsName?: string;
+    /**
+     * Names to look up under `providerOptions` when reading per-part metadata
+     * (e.g. thought signatures). Tried in order; first match wins. For the
+     * Vertex provider this is `['googleVertex', 'vertex']` (new key first,
+     * legacy key as fallback) and for the Google provider it is `['google']`.
+     */
+    providerOptionsNames?: readonly string[];
     supportsFunctionResponseParts?: boolean;
   },
 ): GooglePrompt {
@@ -178,9 +185,29 @@ export function convertToGoogleMessages(
   const contents: Array<GoogleContent> = [];
   let systemMessagesAllowed = true;
   const isGemmaModel = options?.isGemmaModel ?? false;
-  const providerOptionsName = options?.providerOptionsName ?? 'google';
+  const providerOptionsNames = options?.providerOptionsNames ?? ['google'];
+  const isVertexLike = !providerOptionsNames.includes('google');
   const supportsFunctionResponseParts =
     options?.supportsFunctionResponseParts ?? true;
+
+  const readProviderOpts = (part: {
+    providerOptions?: Record<string, unknown> | undefined;
+  }): Record<string, unknown> | undefined => {
+    for (const name of providerOptionsNames) {
+      const v = part.providerOptions?.[name];
+      if (v != null) return v as Record<string, unknown>;
+    }
+    // Cross-namespace fallback (gateway interop): Vertex providers may receive
+    // metadata under `google`, and the Google provider may receive metadata
+    // under `googleVertex`/`vertex`.
+    if (isVertexLike) {
+      return part.providerOptions?.google as
+        | Record<string, unknown>
+        | undefined;
+    }
+    return (part.providerOptions?.googleVertex ??
+      part.providerOptions?.vertex) as Record<string, unknown> | undefined;
+  };
 
   for (const { role, content } of prompt) {
     switch (role) {
@@ -209,39 +236,56 @@ export function convertToGoogleMessages(
             }
 
             case 'file': {
-              const mediaType =
-                part.mediaType === 'image/*' ? 'image/jpeg' : part.mediaType;
-
-              if (part.data instanceof URL) {
-                parts.push({
-                  fileData: {
-                    mimeType: mediaType,
-                    fileUri: part.data.toString(),
-                  },
-                });
-              } else if (isProviderReference(part.data)) {
-                if (providerOptionsName === 'vertex') {
-                  throw new UnsupportedFunctionalityError({
-                    functionality: 'file parts with provider references',
+              switch (part.data.type) {
+                case 'url': {
+                  parts.push({
+                    fileData: {
+                      mimeType: resolveFullMediaType({ part }),
+                      fileUri: part.data.url.toString(),
+                    },
                   });
+                  break;
                 }
+                case 'reference': {
+                  if (isVertexLike) {
+                    throw new UnsupportedFunctionalityError({
+                      functionality: 'file parts with provider references',
+                    });
+                  }
 
-                parts.push({
-                  fileData: {
-                    mimeType: mediaType,
-                    fileUri: resolveProviderReference({
-                      reference: part.data,
-                      provider: 'google',
-                    }),
-                  },
-                });
-              } else {
-                parts.push({
-                  inlineData: {
-                    mimeType: mediaType,
-                    data: convertToBase64(part.data),
-                  },
-                });
+                  parts.push({
+                    fileData: {
+                      mimeType: resolveFullMediaType({ part }),
+                      fileUri: resolveProviderReference({
+                        reference: part.data.reference,
+                        provider: 'google',
+                      }),
+                    },
+                  });
+                  break;
+                }
+                case 'text': {
+                  parts.push({
+                    inlineData: {
+                      mimeType: isFullMediaType(part.mediaType)
+                        ? part.mediaType
+                        : 'text/plain',
+                      data: convertToBase64(
+                        new TextEncoder().encode(part.data.text),
+                      ),
+                    },
+                  });
+                  break;
+                }
+                case 'data': {
+                  parts.push({
+                    inlineData: {
+                      mimeType: resolveFullMediaType({ part }),
+                      data: convertToBase64(part.data.data),
+                    },
+                  });
+                  break;
+                }
               }
 
               break;
@@ -260,11 +304,7 @@ export function convertToGoogleMessages(
           role: 'model',
           parts: content
             .map(part => {
-              const providerOpts =
-                part.providerOptions?.[providerOptionsName] ??
-                (providerOptionsName !== 'google'
-                  ? part.providerOptions?.google
-                  : part.providerOptions?.vertex);
+              const providerOpts = readProviderOpts(part);
               const thoughtSignature =
                 providerOpts?.thoughtSignature != null
                   ? String(providerOpts.thoughtSignature)
@@ -291,63 +331,86 @@ export function convertToGoogleMessages(
                 }
 
                 case 'reasoning-file': {
-                  if (part.data instanceof URL) {
-                    throw new UnsupportedFunctionalityError({
-                      functionality:
-                        'File data URLs in assistant messages are not supported',
-                    });
+                  switch (part.data.type) {
+                    case 'url': {
+                      throw new UnsupportedFunctionalityError({
+                        functionality:
+                          'File data URLs in assistant messages are not supported',
+                      });
+                    }
+                    case 'data': {
+                      return {
+                        inlineData: {
+                          mimeType: part.mediaType,
+                          data: convertToBase64(part.data.data),
+                        },
+                        thought: true,
+                        thoughtSignature,
+                      };
+                    }
                   }
-
-                  return {
-                    inlineData: {
-                      mimeType: part.mediaType,
-                      data: convertToBase64(part.data),
-                    },
-                    thought: true,
-                    thoughtSignature,
-                  };
+                  break;
                 }
 
                 case 'file': {
-                  if (part.data instanceof URL) {
-                    throw new UnsupportedFunctionalityError({
-                      functionality:
-                        'File data URLs in assistant messages are not supported',
-                    });
-                  }
-
-                  if (isProviderReference(part.data)) {
-                    if (providerOptionsName === 'vertex') {
+                  switch (part.data.type) {
+                    case 'url': {
                       throw new UnsupportedFunctionalityError({
-                        functionality: 'file parts with provider references',
+                        functionality:
+                          'File data URLs in assistant messages are not supported',
                       });
                     }
+                    case 'reference': {
+                      if (isVertexLike) {
+                        throw new UnsupportedFunctionalityError({
+                          functionality: 'file parts with provider references',
+                        });
+                      }
 
-                    return {
-                      fileData: {
-                        mimeType: part.mediaType,
-                        fileUri: resolveProviderReference({
-                          reference: part.data,
-                          provider: 'google',
-                        }),
-                      },
-                      ...(providerOpts?.thought === true
-                        ? { thought: true }
-                        : {}),
-                      thoughtSignature,
-                    };
+                      return {
+                        fileData: {
+                          mimeType: part.mediaType,
+                          fileUri: resolveProviderReference({
+                            reference: part.data.reference,
+                            provider: 'google',
+                          }),
+                        },
+                        ...(providerOpts?.thought === true
+                          ? { thought: true }
+                          : {}),
+                        thoughtSignature,
+                      };
+                    }
+                    case 'text': {
+                      return {
+                        inlineData: {
+                          mimeType: isFullMediaType(part.mediaType)
+                            ? part.mediaType
+                            : 'text/plain',
+                          data: convertToBase64(
+                            new TextEncoder().encode(part.data.text),
+                          ),
+                        },
+                        ...(providerOpts?.thought === true
+                          ? { thought: true }
+                          : {}),
+                        thoughtSignature,
+                      };
+                    }
+                    case 'data': {
+                      return {
+                        inlineData: {
+                          mimeType: part.mediaType,
+                          data: convertToBase64(part.data.data),
+                        },
+                        ...(providerOpts?.thought === true
+                          ? { thought: true }
+                          : {}),
+                        thoughtSignature,
+                      };
+                    }
                   }
-
-                  return {
-                    inlineData: {
-                      mimeType: part.mediaType,
-                      data: convertToBase64(part.data),
-                    },
-                    ...(providerOpts?.thought === true
-                      ? { thought: true }
-                      : {}),
-                    thoughtSignature,
-                  };
+                  break;
                 }
 
                 case 'tool-call': {
@@ -425,11 +488,7 @@ export function convertToGoogleMessages(
             continue;
           }
 
-          const partProviderOpts =
-            part.providerOptions?.[providerOptionsName] ??
-            (providerOptionsName !== 'google'
-              ? part.providerOptions?.google
-              : part.providerOptions?.vertex);
+          const partProviderOpts = readProviderOpts(part);
           const serverToolCallId =
             partProviderOpts?.serverToolCallId != null
               ? String(partProviderOpts.serverToolCallId)

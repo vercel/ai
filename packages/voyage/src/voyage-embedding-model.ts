@@ -1,22 +1,22 @@
 import {
-  EmbeddingModelV4,
   TooManyEmbeddingValuesForCallError,
+  type EmbeddingModelV4,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createJsonResponseHandler,
-  FetchFunction,
   parseProviderOptions,
   postJsonToApi,
   serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import {
-  VoyageEmbeddingModelId,
   voyageEmbeddingModelOptions,
-} from './voyage-embedding-options';
+  type VoyageEmbeddingModelId,
+} from './voyage-embedding-model-options';
 import { voyageFailedResponseHandler } from './voyage-error';
 
 type VoyageEmbeddingConfig = {

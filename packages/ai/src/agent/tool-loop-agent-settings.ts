@@ -1,15 +1,14 @@
 import type {
   Arrayable,
   Context,
+  FlexibleSchema,
   IdGenerator,
   InferToolSetContext,
-  ToolSet,
-} from '@ai-sdk/provider-utils';
-import {
-  FlexibleSchema,
   MaybePromiseLike,
   ProviderOptions,
+  SensitiveContext,
   SystemModelMessage,
+  ToolSet,
 } from '@ai-sdk/provider-utils';
 import type {
   GenerateTextOnFinishCallback,
@@ -17,23 +16,24 @@ import type {
   GenerateTextOnStepFinishCallback,
   GenerateTextOnStepStartCallback,
 } from '../generate-text/generate-text-events';
-import { Output } from '../generate-text/output';
-import { PrepareStepFunction } from '../generate-text/prepare-step';
-import { StopCondition } from '../generate-text/stop-condition';
-import { ToolApprovalConfiguration } from '../generate-text/tool-approval-configuration';
-import { ToolCallRepairFunction } from '../generate-text/tool-call-repair-function';
-import {
+import type { ActiveTools } from '../generate-text/active-tools';
+import type { Output } from '../generate-text/output';
+import type { PrepareStepFunction } from '../generate-text/prepare-step';
+import type { StopCondition } from '../generate-text/stop-condition';
+import type { ToolApprovalConfiguration } from '../generate-text/tool-approval-configuration';
+import type { ToolCallRepairFunction } from '../generate-text/tool-call-repair-function';
+import type {
   OnToolExecutionEndCallback,
   OnToolExecutionStartCallback,
 } from '../generate-text/tool-execution-events';
-import { ToolsContextParameter } from '../generate-text/tools-context-parameter';
-import { LanguageModelCallOptions } from '../prompt/language-model-call-options';
-import { Prompt } from '../prompt/prompt';
-import { RequestOptions } from '../prompt/request-options';
-import { TelemetryOptions } from '../telemetry/telemetry-options';
-import { LanguageModel, ToolChoice } from '../types/language-model';
-import { DownloadFunction } from '../util/download/download-function';
-import { AgentCallParameters } from './agent';
+import type { ToolsContextParameter } from '../generate-text/tools-context-parameter';
+import type { LanguageModelCallOptions } from '../prompt/language-model-call-options';
+import type { Prompt } from '../prompt/prompt';
+import type { RequestOptions } from '../prompt/request-options';
+import type { TelemetryOptions } from '../telemetry/telemetry-options';
+import type { LanguageModel, ToolChoice } from '../types/language-model';
+import type { DownloadFunction } from '../util/download/download-function';
+import type { AgentCallParameters } from './agent';
 
 /**
  * Configuration options for an agent.
@@ -92,7 +92,7 @@ export type ToolLoopAgentSettings<
      * Limits the tools that are available for the model to call without
      * changing the tool call and result types in the result.
      */
-    activeTools?: Array<keyof NoInfer<TOOLS>>;
+    activeTools?: ActiveTools<NoInfer<TOOLS>>;
 
     /**
      * Optional specification for generating structured outputs.
@@ -104,6 +104,12 @@ export type ToolLoopAgentSettings<
      * If you need to mutate runtime context, update it in `prepareStep`.
      */
     runtimeContext?: RUNTIME_CONTEXT;
+
+    /**
+     * Top-level runtime context properties that contain sensitive data and
+     * should be excluded from telemetry.
+     */
+    sensitiveRuntimeContext?: SensitiveContext<NoInfer<RUNTIME_CONTEXT>>;
 
     /**
      * Optional tool approval configuration.
@@ -238,6 +244,7 @@ export type ToolLoopAgentSettings<
           | 'providerOptions'
           | 'experimental_download'
           | 'runtimeContext'
+          | 'sensitiveRuntimeContext'
           | '_internal'
         > & { toolsContext: InferToolSetContext<TOOLS> },
     ) => MaybePromiseLike<
@@ -268,6 +275,7 @@ export type ToolLoopAgentSettings<
         | 'providerOptions'
         | 'experimental_download'
         | 'runtimeContext'
+        | 'sensitiveRuntimeContext'
         | '_internal'
       > &
         Omit<Prompt, 'system'> & {

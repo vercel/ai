@@ -22,13 +22,13 @@ OTEL_EXPORTER_OTLP_ENDPOINT=https://api.traceloop.com
 OTEL_EXPORTER_OTLP_HEADERS="Authorization=Bearer <Your API Key>"
 ```
 
-Install `@ai-sdk/otel` and register the `OpenTelemetry` in your `instrumentation.ts` file:
+Install `@ai-sdk/otel` and register the `LegacyOpenTelemetry` in your `instrumentation.ts` file:
 
 ```typescript filename="instrumentation.ts"
 import { registerTelemetry } from 'ai';
-import { OpenTelemetry } from '@ai-sdk/otel';
+import { LegacyOpenTelemetry } from '@ai-sdk/otel';
 
-registerTelemetry(new OpenTelemetry());
+registerTelemetry(new LegacyOpenTelemetry());
 ```
 
 You can then use the `telemetry` option to enable telemetry on supported AI SDK function calls:

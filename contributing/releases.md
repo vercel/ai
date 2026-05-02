@@ -1,5 +1,7 @@
 # Releases
 
+# Releases - for maintainers only
+
 We use [changesets](https://github.com/changesets/action) for automated releases.
 
 ## Changesets
@@ -30,3 +32,49 @@ Quick reference:
 - Enter beta mode: `pnpm changeset pre enter beta`
 - Exit beta mode: `pnpm changeset pre exit`
 - Backport fixes: add the `backport` label to the merged PR
+
+## Provenance
+
+All packages are published with [npm provenance](https://docs.npmjs.com/generating-provenance-statements). This is enabled via:
+
+- `publishConfig.provenance: true` in each package's `package.json`
+- `id-token: write` permission in `.github/workflows/release.yml`
+- A [Trusted Publisher](https://docs.npmjs.com/trusted-publishers) configured per package on npmjs.com, pointing at `vercel/ai` and `release.yml`
+
+For an existing package, no action is required — provenance is emitted automatically on every publish. For a **new** package, see [Bootstrapping a new `@ai-sdk/*` package](#bootstrapping-a-new-ai-sdk-package) below.
+
+### Bootstrapping a new `@ai-sdk/*` package
+
+npm requires a package to exist before a Trusted Publisher can be configured for it. The first publish therefore has to happen manually, before the package is wired into the monorepo's release workflow. This must be done by a member of the Vercel IT team who has publish rights on the `@ai-sdk` npm scope.
+
+Steps:
+
+1. Create a new empty folder outside the monorepo.
+2. `cd` into that folder.
+3. Create a `package.json` from the template below, replacing `<package-name>`:
+
+   ```json
+   {
+     "name": "@ai-sdk/<package-name>",
+     "version": "0.0.0",
+     "publishConfig": {
+       "access": "public",
+       "provenance": true
+     },
+     "repository": {
+       "type": "git",
+       "url": "https://github.com/vercel/ai",
+       "directory": "packages/<package-name>"
+     }
+   }
+   ```
+
+4. Run `npm publish`.
+5. Open `https://www.npmjs.com/package/@ai-sdk/<package-name>/access` and configure the Trusted Publisher with:
+   - **Publisher:** GitHub Actions
+   - **Organization or user:** `vercel`
+   - **Repository:** `ai`
+   - **Workflow name:** `release.yml`
+   - **Environment name:** _(leave empty)_
+
+After this is done, subsequent releases of the package go through the normal changesets flow on `main`.

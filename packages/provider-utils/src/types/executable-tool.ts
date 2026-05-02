@@ -1,4 +1,4 @@
-import { Tool } from './tool';
+import type { Tool } from './tool';
 
 /**
  * A tool that is guaranteed to expose an execute function.

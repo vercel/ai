@@ -1,12 +1,12 @@
 import { generateText, tool } from 'ai';
 import { z } from 'zod';
 import { weatherTool } from '../../tools/weather-tool';
-import { bedrock } from '@ai-sdk/amazon-bedrock';
+import { amazonBedrock } from '@ai-sdk/amazon-bedrock';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: bedrock('anthropic.claude-3-haiku-20240307-v1:0'),
+    model: amazonBedrock('anthropic.claude-3-haiku-20240307-v1:0'),
     maxOutputTokens: 512,
     tools: {
       weather: weatherTool,

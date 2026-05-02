@@ -1,5 +1,76 @@
 # @ai-sdk/azure
 
+## 4.0.0-canary.45
+
+### Patch Changes
+
+- 0c4c275: trigger initial canary release
+- Updated dependencies [0c4c275]
+  - @ai-sdk/provider-utils@5.0.0-canary.31
+  - @ai-sdk/provider@4.0.0-canary.15
+  - @ai-sdk/openai@4.0.0-canary.45
+
+## 4.0.0-beta.44
+
+### Patch Changes
+
+- Updated dependencies [bada0f3]
+  - @ai-sdk/openai@4.0.0-beta.44
+
+## 4.0.0-beta.43
+
+### Patch Changes
+
+- Updated dependencies [9ea40e0]
+  - @ai-sdk/openai@4.0.0-beta.43
+
+## 4.0.0-beta.42
+
+### Patch Changes
+
+- Updated dependencies [08d2129]
+- Updated dependencies [04e9009]
+  - @ai-sdk/provider-utils@5.0.0-beta.30
+  - @ai-sdk/openai@4.0.0-beta.42
+
+## 4.0.0-beta.41
+
+### Patch Changes
+
+- 9bd6512: feat(provider): change file part data property to be tagged with a type and remove the image part type
+- 258c093: chore: ensure consistent import handling and avoid import duplicates or cycles
+- Updated dependencies [9bd6512]
+- Updated dependencies [258c093]
+- Updated dependencies [b6783da]
+  - @ai-sdk/provider-utils@5.0.0-beta.29
+  - @ai-sdk/provider@4.0.0-beta.14
+  - @ai-sdk/openai@4.0.0-beta.41
+
+## 4.0.0-beta.40
+
+### Patch Changes
+
+- 9f0e36c: trigger release for all packages after provenance setup
+- Updated dependencies [9f0e36c]
+  - @ai-sdk/openai@4.0.0-beta.40
+  - @ai-sdk/provider@4.0.0-beta.13
+  - @ai-sdk/provider-utils@5.0.0-beta.28
+
+## 4.0.0-beta.39
+
+### Patch Changes
+
+- Updated dependencies [785fe16]
+- Updated dependencies [67df0a0]
+- Updated dependencies [befb78c]
+- Updated dependencies [0458559]
+- Updated dependencies [58a2ad7]
+- Updated dependencies [5852c0a]
+- Updated dependencies [fc92055]
+- Updated dependencies [f9acbc0]
+  - @ai-sdk/provider-utils@5.0.0-beta.27
+  - @ai-sdk/openai@4.0.0-beta.39
+
 ## 4.0.0-beta.38
 
 ### Patch Changes

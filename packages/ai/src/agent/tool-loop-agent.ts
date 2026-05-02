@@ -1,18 +1,26 @@
-import type { Context, ModelMessage, ToolSet } from '@ai-sdk/provider-utils';
-import { validateTypes } from '@ai-sdk/provider-utils';
-import { generateText } from '../generate-text/generate-text';
 import {
+  validateTypes,
+  type Context,
+  type ModelMessage,
+  type ToolSet,
+} from '@ai-sdk/provider-utils';
+import { generateText } from '../generate-text/generate-text';
+import type {
   GenerateTextOnStartCallback,
   GenerateTextOnStepStartCallback,
 } from '../generate-text/generate-text-events';
-import { GenerateTextResult } from '../generate-text/generate-text-result';
-import { Output } from '../generate-text/output';
+import type { GenerateTextResult } from '../generate-text/generate-text-result';
+import type { Output } from '../generate-text/output';
 import { isStepCount } from '../generate-text/stop-condition';
 import { streamText } from '../generate-text/stream-text';
-import { StreamTextResult } from '../generate-text/stream-text-result';
-import { Prompt } from '../prompt';
+import type { StreamTextResult } from '../generate-text/stream-text-result';
+import type { Prompt } from '../prompt';
 import { mergeCallbacks } from '../util/merge-callbacks';
-import { Agent, AgentCallParameters, AgentStreamParameters } from './agent';
+import type {
+  Agent,
+  AgentCallParameters,
+  AgentStreamParameters,
+} from './agent';
 import type { ToolLoopAgentSettings } from './tool-loop-agent-settings';
 
 /**
