@@ -1,58 +1,52 @@
-import type { Context, ToolSet } from '@ai-sdk/provider-utils';
-import {
+import type {
+  Arrayable,
+  Context,
   IdGenerator,
   InferToolSetContext,
   ModelMessage,
+  ToolSet,
 } from '@ai-sdk/provider-utils';
-import { TimeoutConfiguration } from '../prompt/call-settings';
-import type { TelemetryIntegration } from '../telemetry/telemetry-integration';
-import { TelemetrySettings } from '../telemetry/telemetry-settings';
+import type { TimeoutConfiguration } from '../prompt/request-options';
+import type { Telemetry } from '../telemetry/telemetry';
 import { executeToolCall } from './execute-tool-call';
-import { isApprovalNeeded } from './is-approval-needed';
-import { LanguageModelStreamPart } from './stream-language-model-call';
-import {
-  StreamTextOnToolCallFinishCallback,
-  StreamTextOnToolCallStartCallback,
-} from './stream-text';
-import { TypedToolCall } from './tool-call';
+import { resolveToolApproval } from './resolve-tool-approval';
+import type { LanguageModelStreamPart } from './stream-language-model-call';
+import type { ToolApprovalConfiguration } from './tool-approval-configuration';
+import type { TypedToolCall } from './tool-call';
+import type {
+  OnToolExecutionEndCallback,
+  OnToolExecutionStartCallback,
+} from './tool-execution-events';
 
 export function createExecuteToolsTransformation<
   TOOLS extends ToolSet,
-  USER_CONTEXT extends Context = Context,
+  RUNTIME_CONTEXT extends Context | unknown | never,
 >({
   tools,
-  telemetry,
   callId,
   messages,
   abortSignal,
   timeout,
-  context,
+  toolsContext,
+  toolApproval,
+  runtimeContext,
   generateId,
-  stepNumber,
-  provider,
-  modelId,
-  onToolCallStart,
-  onToolCallFinish,
+  onToolExecutionStart,
+  onToolExecutionEnd,
   executeToolInTelemetryContext,
 }: {
   tools: TOOLS | undefined;
-  telemetry: TelemetrySettings | undefined;
   callId: string;
   messages: ModelMessage[];
   abortSignal: AbortSignal | undefined;
   timeout?: TimeoutConfiguration<TOOLS>;
-  context: InferToolSetContext<TOOLS> & USER_CONTEXT;
+  toolsContext: InferToolSetContext<TOOLS>;
+  toolApproval?: ToolApprovalConfiguration<TOOLS, RUNTIME_CONTEXT>;
+  runtimeContext: RUNTIME_CONTEXT;
   generateId: IdGenerator;
-  stepNumber?: number;
-  provider?: string;
-  modelId?: string;
-  onToolCallStart?:
-    | StreamTextOnToolCallStartCallback<TOOLS>
-    | Array<StreamTextOnToolCallStartCallback<TOOLS> | undefined | null>;
-  onToolCallFinish?:
-    | StreamTextOnToolCallFinishCallback<TOOLS>
-    | Array<StreamTextOnToolCallFinishCallback<TOOLS> | undefined | null>;
-  executeToolInTelemetryContext?: TelemetryIntegration['executeTool'];
+  onToolExecutionStart?: Arrayable<OnToolExecutionStartCallback<TOOLS>>;
+  onToolExecutionEnd?: Arrayable<OnToolExecutionEndCallback<TOOLS>>;
+  executeToolInTelemetryContext?: Telemetry['executeTool'];
 }): TransformStream<
   LanguageModelStreamPart<TOOLS>,
   LanguageModelStreamPart<TOOLS>
@@ -74,10 +68,11 @@ export function createExecuteToolsTransformation<
       controller.enqueue(chunk);
 
       const chunkType = chunk.type;
+
       switch (chunkType) {
         case 'tool-call': {
           if (chunk.invalid) {
-            break;
+            return;
           }
 
           const tool = tools?.[chunk.toolName];
@@ -85,23 +80,73 @@ export function createExecuteToolsTransformation<
           if (tool == null) {
             // ignore tool calls for tools that are not available,
             // e.g. provider-executed dynamic tools
-            break;
+            return;
           }
 
-          if (
-            await isApprovalNeeded({
-              tool,
-              toolCall: chunk,
-              messages,
-              context,
-            })
-          ) {
-            controller.enqueue({
-              type: 'tool-approval-request',
-              approvalId: generateId(),
-              toolCall: chunk,
-            });
-            break;
+          const toolApprovalStatus = await resolveToolApproval({
+            tools,
+            toolCall: chunk,
+            toolApproval,
+            messages,
+            toolsContext,
+            runtimeContext,
+          });
+
+          switch (toolApprovalStatus.type) {
+            case 'user-approval': {
+              controller.enqueue({
+                type: 'tool-approval-request',
+                approvalId: generateId(),
+                toolCall: chunk,
+              });
+
+              return; // don't execute tool
+            }
+
+            case 'denied': {
+              const approvalId = generateId();
+
+              controller.enqueue({
+                type: 'tool-approval-request',
+                approvalId,
+                toolCall: chunk,
+                isAutomatic: true,
+              });
+              controller.enqueue({
+                type: 'tool-approval-response',
+                approvalId,
+                approved: false,
+                toolCall: chunk,
+                reason: toolApprovalStatus.reason,
+                providerExecuted: chunk.providerExecuted,
+              });
+
+              return; // don't execute tool
+            }
+
+            case 'approved': {
+              const approvalId = generateId();
+
+              controller.enqueue({
+                type: 'tool-approval-request',
+                approvalId,
+                toolCall: chunk,
+                isAutomatic: true,
+              });
+              controller.enqueue({
+                type: 'tool-approval-response',
+                approvalId,
+                approved: true,
+                toolCall: chunk,
+                reason: toolApprovalStatus.reason,
+                providerExecuted: chunk.providerExecuted,
+              });
+
+              break; // continue with tool execution
+            }
+
+            case 'not-applicable':
+              break; // continue with tool execution
           }
 
           // Only execute tools that are not provider-executed:
@@ -109,7 +154,7 @@ export function createExecuteToolsTransformation<
             toolCallsToExecute.push(chunk);
           }
 
-          break;
+          return;
         }
 
         case 'model-call-end': {
@@ -122,17 +167,13 @@ export function createExecuteToolsTransformation<
                 const result = await executeToolCall({
                   toolCall,
                   tools,
-                  telemetry,
                   callId,
                   messages,
                   abortSignal,
                   timeout,
-                  context,
-                  stepNumber,
-                  provider,
-                  modelId,
-                  onToolCallStart,
-                  onToolCallFinish,
+                  toolsContext,
+                  onToolExecutionStart,
+                  onToolExecutionEnd,
                   executeToolInTelemetryContext,
                   onPreliminaryToolResult: result => {
                     controller.enqueue(result);
@@ -148,7 +189,7 @@ export function createExecuteToolsTransformation<
             }),
           );
 
-          break;
+          return;
         }
       }
     },

@@ -1,17 +1,15 @@
 import type { InferToolContext } from './infer-tool-context';
 import type { ToolSet } from './tool-set';
-import type { UnionToIntersection } from './union-to-intersection';
 
 /**
  * Infer the context type for a tool set.
  *
- * The inferred type contains all properties required by the contexts of the
- * tools in the set.
+ * The inferred type maps each tool name to its required context type.
  *
- * If there are incompatible properties, they will be of type `never`.
+ * Tools without required context properties are omitted from the result.
  */
-export type InferToolSetContext<TOOLS extends ToolSet> = UnionToIntersection<
-  {
-    [K in keyof TOOLS]: InferToolContext<NoInfer<TOOLS[K]>>;
-  }[keyof TOOLS]
->;
+export type InferToolSetContext<TOOLS extends ToolSet> = {
+  [K in keyof TOOLS as InferToolContext<NoInfer<TOOLS[K]>> extends never
+    ? never
+    : K]: InferToolContext<NoInfer<TOOLS[K]>>;
+};

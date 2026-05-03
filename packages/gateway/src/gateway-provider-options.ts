@@ -1,4 +1,8 @@
-import { InferSchema, lazySchema, zodSchema } from '@ai-sdk/provider-utils';
+import {
+  lazySchema,
+  zodSchema,
+  type InferSchema,
+} from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
 // https://vercel.com/docs/ai-gateway/provider-options
@@ -20,7 +24,7 @@ const gatewayProviderOptions = lazySchema(() =>
       /**
        * Sort providers by a performance or cost metric before routing.
        *
-       * - `'cost'`: lowest input cost first
+       * - `'cost'`: lowest cost first
        * - `'ttft'`: lowest time-to-first-token first
        * - `'tps'`: highest tokens-per-second first
        */

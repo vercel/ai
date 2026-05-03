@@ -4,21 +4,21 @@ export type {
   OpenAICompatibleLanguageModelChatOptions,
   /** @deprecated Use `OpenAICompatibleLanguageModelChatOptions` instead. */
   OpenAICompatibleLanguageModelChatOptions as OpenAICompatibleProviderOptions,
-} from './chat/openai-compatible-chat-options';
+} from './chat/openai-compatible-chat-language-model-options';
 export { OpenAICompatibleCompletionLanguageModel } from './completion/openai-compatible-completion-language-model';
 export type {
   OpenAICompatibleCompletionModelId,
   OpenAICompatibleLanguageModelCompletionOptions,
   /** @deprecated Use `OpenAICompatibleLanguageModelCompletionOptions` instead. */
   OpenAICompatibleLanguageModelCompletionOptions as OpenAICompatibleCompletionProviderOptions,
-} from './completion/openai-compatible-completion-options';
+} from './completion/openai-compatible-completion-language-model-options';
 export { OpenAICompatibleEmbeddingModel } from './embedding/openai-compatible-embedding-model';
 export type {
   OpenAICompatibleEmbeddingModelId,
   OpenAICompatibleEmbeddingModelOptions,
   /** @deprecated Use `OpenAICompatibleEmbeddingModelOptions` instead. */
   OpenAICompatibleEmbeddingModelOptions as OpenAICompatibleEmbeddingProviderOptions,
-} from './embedding/openai-compatible-embedding-options';
+} from './embedding/openai-compatible-embedding-model-options';
 export { OpenAICompatibleImageModel } from './image/openai-compatible-image-model';
 export type {
   OpenAICompatibleErrorData,

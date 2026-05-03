@@ -10,52 +10,17 @@ import {
   createJsonResponseHandler,
   delay,
   getFromApi,
-  lazySchema,
   parseProviderOptions,
   postJsonToApi,
-  zodSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import type { FalConfig } from './fal-config';
 import { falErrorDataSchema, falFailedResponseHandler } from './fal-error';
+import {
+  falVideoModelOptionsSchema,
+  type FalVideoModelOptions,
+} from './fal-video-model-options';
 import type { FalVideoModelId } from './fal-video-settings';
-
-export type FalVideoModelOptions = {
-  loop?: boolean | null;
-  motionStrength?: number | null;
-  pollIntervalMs?: number | null;
-  pollTimeoutMs?: number | null;
-  resolution?: string | null;
-  negativePrompt?: string | null;
-  promptOptimizer?: boolean | null;
-  [key: string]: unknown; // For passthrough
-};
-
-// Provider options schema for FAL video generation
-export const falVideoModelOptionsSchema = lazySchema(() =>
-  zodSchema(
-    z
-      .object({
-        // Video loop - only for Luma models
-        loop: z.boolean().nullish(),
-
-        // Motion strength (provider-specific)
-        motionStrength: z.number().min(0).max(1).nullish(),
-
-        // Polling configuration
-        pollIntervalMs: z.number().positive().nullish(),
-        pollTimeoutMs: z.number().positive().nullish(),
-
-        // Resolution (model-specific, e.g., '480p', '720p', '1080p')
-        resolution: z.string().nullish(),
-
-        // Model-specific parameters
-        negativePrompt: z.string().nullish(),
-        promptOptimizer: z.boolean().nullish(),
-      })
-      .passthrough(),
-  ),
-);
 
 interface FalVideoModelConfig extends FalConfig {
   _internal?: {
@@ -158,7 +123,7 @@ export class FalVideoModel implements Experimental_VideoModelV4 {
         path: `https://queue.fal.run/fal-ai/${this.normalizedModelId}`,
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body,
       failedResponseHandler: falFailedResponseHandler,
       successfulResponseHandler:
@@ -189,7 +154,7 @@ export class FalVideoModel implements Experimental_VideoModelV4 {
               path: responseUrl,
               modelId: this.modelId,
             }),
-            headers: combineHeaders(this.config.headers(), options.headers),
+            headers: combineHeaders(this.config.headers?.(), options.headers),
             failedResponseHandler: async ({
               response,
               url,

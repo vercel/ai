@@ -1,14 +1,14 @@
 import {
   generateId as generateIdFunc,
   getErrorMessage,
-  IdGenerator,
+  type IdGenerator,
 } from '@ai-sdk/provider-utils';
-import { UIMessage } from '../ui/ui-messages';
+import type { UIMessage } from '../ui/ui-messages';
 import { handleUIMessageStreamFinish } from './handle-ui-message-stream-finish';
-import { InferUIMessageChunk } from './ui-message-chunks';
-import { UIMessageStreamOnFinishCallback } from './ui-message-stream-on-finish-callback';
-import { UIMessageStreamOnStepFinishCallback } from './ui-message-stream-on-step-finish-callback';
-import { UIMessageStreamWriter } from './ui-message-stream-writer';
+import type { InferUIMessageChunk } from './ui-message-chunks';
+import type { UIMessageStreamOnFinishCallback } from './ui-message-stream-on-finish-callback';
+import type { UIMessageStreamOnStepFinishCallback } from './ui-message-stream-on-step-finish-callback';
+import type { UIMessageStreamWriter } from './ui-message-stream-writer';
 
 /**
  * Creates a UI message stream that can be used to send messages to the client.
@@ -66,7 +66,7 @@ export function createUIMessageStream<UI_MESSAGE extends UIMessage>({
   function safeEnqueue(data: InferUIMessageChunk<UI_MESSAGE>) {
     try {
       controller.enqueue(data);
-    } catch (error) {
+    } catch {
       // suppress errors when the stream has been closed
     }
   }
@@ -129,7 +129,7 @@ export function createUIMessageStream<UI_MESSAGE extends UIMessage>({
   waitForStreams.finally(() => {
     try {
       controller.close();
-    } catch (error) {
+    } catch {
       // suppress errors when the stream has been closed
     }
   });

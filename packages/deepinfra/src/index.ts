@@ -1,4 +1,9 @@
-export { createDeepInfra, deepinfra } from './deepinfra-provider';
+export {
+  createDeepInfra,
+  deepInfra,
+  /** @deprecated Use `deepInfra` instead. */
+  deepInfra as deepinfra,
+} from './deepinfra-provider';
 export type {
   DeepInfraProvider,
   DeepInfraProviderSettings,

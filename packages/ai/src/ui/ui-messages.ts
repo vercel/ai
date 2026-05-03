@@ -1,14 +1,14 @@
-import {
+import type {
   InferToolInput,
   InferToolOutput,
   Tool,
   ToolCall,
+  ToolSet,
 } from '@ai-sdk/provider-utils';
-import { ToolSet } from '../generate-text';
-import { ProviderMetadata } from '../types/provider-metadata';
-import { ProviderReference } from '../types/provider-reference';
-import { DeepPartial } from '../util/deep-partial';
-import { ValueOf } from '../util/value-of';
+import type { ProviderMetadata } from '../types/provider-metadata';
+import type { ProviderReference } from '../types/provider-reference';
+import type { DeepPartial } from '../util/deep-partial';
+import type { ValueOf } from '../util/value-of';
 
 /**
  * The data types that can be used in the UI message for the UI message data parts.
@@ -180,7 +180,14 @@ export type FileUIPart = {
   type: 'file';
 
   /**
-   * IANA media type of the file.
+   * Either a full IANA media type (`type/subtype`, e.g. `image/png`) or just
+   * the top-level IANA segment (e.g. `image`, `audio`, `video`, `text`).
+   *
+   * `*`-subtype wildcards (e.g. `image/*`) are normalized as equivalent to the
+   * top-level segment alone (e.g. `image`). Providers can use the helpers in
+   * `@ai-sdk/provider-utils` (`isFullMediaType`, `getTopLevelMediaType`,
+   * `detectMediaType`) to resolve the field according to their API
+   * requirements.
    *
    * @see https://www.iana.org/assignments/media-types/media-types.xhtml
    */
@@ -306,6 +313,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
         id: string;
         approved?: never;
         reason?: never;
+        isAutomatic?: boolean;
       };
     }
   | {
@@ -318,6 +326,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
         id: string;
         approved: boolean;
         reason?: string;
+        isAutomatic?: boolean;
       };
     }
   | {
@@ -332,6 +341,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
         id: string;
         approved: true;
         reason?: string;
+        isAutomatic?: boolean;
       };
     }
   | {
@@ -346,6 +356,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
         id: string;
         approved: true;
         reason?: string;
+        isAutomatic?: boolean;
       };
     }
   | {
@@ -358,6 +369,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
         id: string;
         approved: false;
         reason?: string;
+        isAutomatic?: boolean;
       };
     }
 );
@@ -413,6 +425,7 @@ export type DynamicToolUIPart = {
         id: string;
         approved?: never;
         reason?: never;
+        isAutomatic?: boolean;
       };
     }
   | {
@@ -425,6 +438,7 @@ export type DynamicToolUIPart = {
         id: string;
         approved: boolean;
         reason?: string;
+        isAutomatic?: boolean;
       };
     }
   | {
@@ -439,6 +453,7 @@ export type DynamicToolUIPart = {
         id: string;
         approved: true;
         reason?: string;
+        isAutomatic?: boolean;
       };
     }
   | {
@@ -452,6 +467,7 @@ export type DynamicToolUIPart = {
         id: string;
         approved: true;
         reason?: string;
+        isAutomatic?: boolean;
       };
     }
   | {
@@ -464,6 +480,7 @@ export type DynamicToolUIPart = {
         id: string;
         approved: false;
         reason?: string;
+        isAutomatic?: boolean;
       };
     }
 );

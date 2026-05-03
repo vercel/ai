@@ -1,10 +1,11 @@
-import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { createAlibaba } from './alibaba-provider';
 import { loadApiKey } from '@ai-sdk/provider-utils';
-import { AlibabaLanguageModel } from './alibaba-chat-language-model';
+import { AlibabaChatLanguageModel } from './alibaba-chat-language-model';
 import { AlibabaVideoModel } from './alibaba-video-model';
 
-const AlibabaLanguageModelMock = AlibabaLanguageModel as unknown as Mock;
+const AlibabaChatLanguageModelMock =
+  AlibabaChatLanguageModel as unknown as Mock;
 const AlibabaVideoModelMock = AlibabaVideoModel as unknown as Mock;
 
 vi.mock('./alibaba-chat-language-model', () => {
@@ -18,7 +19,7 @@ vi.mock('./alibaba-chat-language-model', () => {
     this.settings = settings;
   });
   return {
-    AlibabaLanguageModel: mockConstructor,
+    AlibabaChatLanguageModel: mockConstructor,
   };
 });
 
@@ -56,7 +57,7 @@ describe('AlibabaProvider', () => {
       const provider = createAlibaba();
       const model = provider('qwen-plus');
 
-      const constructorCall = AlibabaLanguageModelMock.mock.calls[0];
+      const constructorCall = AlibabaChatLanguageModelMock.mock.calls[0];
       const config = constructorCall[1];
       config.headers();
 
@@ -76,7 +77,7 @@ describe('AlibabaProvider', () => {
       const provider = createAlibaba(options);
       const model = provider('qwen-plus');
 
-      const constructorCall = AlibabaLanguageModelMock.mock.calls[0];
+      const constructorCall = AlibabaChatLanguageModelMock.mock.calls[0];
       const config = constructorCall[1];
       config.headers();
 
@@ -92,14 +93,14 @@ describe('AlibabaProvider', () => {
       const modelId = 'qwen3-max';
 
       const model = provider(modelId);
-      expect(model).toBeInstanceOf(AlibabaLanguageModel);
+      expect(model).toBeInstanceOf(AlibabaChatLanguageModel);
     });
 
     it('should pass includeUsage option to language model', () => {
       const provider = createAlibaba({ includeUsage: false });
       provider('qwen-plus');
 
-      const constructorCall = AlibabaLanguageModelMock.mock.calls[0];
+      const constructorCall = AlibabaChatLanguageModelMock.mock.calls[0];
       const config = constructorCall[1];
 
       expect(config.includeUsage).toBe(false);
@@ -109,7 +110,7 @@ describe('AlibabaProvider', () => {
       const provider = createAlibaba();
       provider('qwen-plus');
 
-      const constructorCall = AlibabaLanguageModelMock.mock.calls[0];
+      const constructorCall = AlibabaChatLanguageModelMock.mock.calls[0];
       const config = constructorCall[1];
 
       expect(config.includeUsage).toBe(true);
@@ -123,7 +124,7 @@ describe('AlibabaProvider', () => {
 
       const model = provider.chatModel(modelId);
 
-      expect(model).toBeInstanceOf(AlibabaLanguageModel);
+      expect(model).toBeInstanceOf(AlibabaChatLanguageModel);
     });
   });
 
@@ -134,7 +135,7 @@ describe('AlibabaProvider', () => {
 
       const model = provider.languageModel(modelId);
 
-      expect(model).toBeInstanceOf(AlibabaLanguageModel);
+      expect(model).toBeInstanceOf(AlibabaChatLanguageModel);
     });
   });
 

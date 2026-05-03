@@ -1,4 +1,4 @@
-import { mistral, type MistralLanguageModelOptions } from '@ai-sdk/mistral';
+import { mistral, type MistralLanguageModelChatOptions } from '@ai-sdk/mistral';
 import { generateText, Output } from 'ai';
 import { z } from 'zod';
 import { run } from '../../lib/run';
@@ -24,7 +24,7 @@ run(async () => {
     providerOptions: {
       mistral: {
         strictJsonSchema: true,
-      } satisfies MistralLanguageModelOptions,
+      } satisfies MistralLanguageModelChatOptions,
     },
   });
 

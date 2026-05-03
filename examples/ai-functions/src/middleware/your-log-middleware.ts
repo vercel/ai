@@ -1,5 +1,5 @@
-import { LanguageModelV4StreamPart } from '@ai-sdk/provider';
-import { LanguageModelMiddleware } from 'ai';
+import type { LanguageModelV4StreamPart } from '@ai-sdk/provider';
+import type { LanguageModelMiddleware } from 'ai';
 
 export const yourLogMiddleware: LanguageModelMiddleware = {
   wrapGenerate: async ({ doGenerate, params }) => {

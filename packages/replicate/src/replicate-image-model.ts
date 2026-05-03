@@ -1,22 +1,23 @@
 import type { ImageModelV4, SharedV4Warning } from '@ai-sdk/provider';
-import type { Resolvable } from '@ai-sdk/provider-utils';
 import {
   combineHeaders,
   convertImageModelFileToDataUri,
   createBinaryResponseHandler,
   createJsonResponseHandler,
-  FetchFunction,
   getFromApi,
-  InferSchema,
-  lazySchema,
   parseProviderOptions,
   postJsonToApi,
   resolve,
-  zodSchema,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
+  type Resolvable,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { replicateFailedResponseHandler } from './replicate-error';
-import { ReplicateImageModelId } from './replicate-image-settings';
+import { replicateImageModelOptionsSchema } from './replicate-image-model-options';
+import type { ReplicateImageModelId } from './replicate-image-settings';
 
 interface ReplicateImageModelConfig {
   provider: string;
@@ -46,6 +47,20 @@ export class ReplicateImageModel implements ImageModelV4 {
 
   private get isFlux2Model(): boolean {
     return FLUX_2_MODEL_PATTERN.test(this.modelId);
+  }
+
+  static [WORKFLOW_SERIALIZE](model: ReplicateImageModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: ReplicateImageModelId;
+    config: ReplicateImageModelConfig;
+  }) {
+    return new ReplicateImageModel(options.modelId, options.config);
   }
 
   constructor(
@@ -148,7 +163,7 @@ export class ReplicateImageModel implements ImageModelV4 {
           : `${this.config.baseURL}/models/${modelId}/predictions`,
 
       headers: combineHeaders(
-        await resolve(this.config.headers),
+        this.config.headers ? await resolve(this.config.headers) : undefined,
         headers,
         preferHeader,
       ),
@@ -206,63 +221,3 @@ export class ReplicateImageModel implements ImageModelV4 {
 const replicateImageResponseSchema = z.object({
   output: z.union([z.array(z.string()), z.string()]),
 });
-
-/**
- * Provider options schema for Replicate image generation.
- *
- * Note: Different Replicate models support different parameters.
- * This schema includes common parameters, but you can pass any
- * model-specific parameters through the passthrough.
- */
-export const replicateImageModelOptionsSchema = lazySchema(() =>
-  zodSchema(
-    z
-      .object({
-        /**
-         * Maximum time in seconds to wait for the prediction to complete in sync mode.
-         * By default, Replicate uses sync mode with a 60-second timeout.
-         *
-         * - When not specified: Uses default 60-second sync wait (`prefer: wait`)
-         * - When set to a positive number: Uses that duration (`prefer: wait=N`)
-         */
-        maxWaitTimeInSeconds: z.number().positive().nullish(),
-
-        /**
-         * Guidance scale for classifier-free guidance.
-         * Higher values make the output more closely match the prompt.
-         */
-        guidance_scale: z.number().nullish(),
-
-        /**
-         * Number of denoising steps. More steps = higher quality but slower.
-         */
-        num_inference_steps: z.number().nullish(),
-
-        /**
-         * Negative prompt to guide what to avoid in the generation.
-         */
-        negative_prompt: z.string().nullish(),
-
-        /**
-         * Output image format.
-         */
-        output_format: z.enum(['png', 'jpg', 'webp']).nullish(),
-
-        /**
-         * Output image quality (1-100). Only applies to jpg and webp.
-         */
-        output_quality: z.number().min(1).max(100).nullish(),
-
-        /**
-         * Strength of the transformation for img2img (0-1).
-         * Lower values keep more of the original image.
-         */
-        strength: z.number().min(0).max(1).nullish(),
-      })
-      .passthrough(),
-  ),
-);
-
-export type ReplicateImageModelOptions = InferSchema<
-  typeof replicateImageModelOptionsSchema
->;

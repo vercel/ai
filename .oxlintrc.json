@@ -11,6 +11,20 @@
       "rules": {
         "no-redeclare": "off"
       }
+    },
+    {
+      "files": ["examples/**", "**/*.test.ts"],
+      "rules": {
+        "no-unused-vars": "off"
+      }
+    },
+    {
+      "files": [
+        "packages/provider-utils/src/to-json-schema/zod3-to-json-schema/**"
+      ],
+      "rules": {
+        "import/no-cycle": "off"
+      }
     }
   ],
   "rules": {
@@ -64,7 +78,7 @@
     "no-unneeded-ternary": "off",
     "no-unsafe-finally": "off",
     "no-unused-expressions": "off",
-    "no-unused-vars": "off",
+    "no-unused-vars": "error",
     "no-use-before-define": "off",
     "no-useless-catch": "off",
     "no-useless-concat": "off",
@@ -88,12 +102,12 @@
     "yoda": "off",
 
     "import/consistent-type-specifier-style": "off",
-    "import/first": "off",
-    "import/namespace": "off",
-    "import/no-cycle": "off",
-    "import/no-duplicates": "off",
-    "import/no-mutable-exports": "off",
-    "import/no-named-as-default": "off",
+    "import/first": "error",
+    "import/namespace": "error",
+    "import/no-cycle": "error",
+    "import/no-duplicates": ["error", { "preferInline": true }],
+    "import/no-mutable-exports": "error",
+    "import/no-named-as-default": "error",
 
     "jsdoc/check-tag-names": "off",
     "jsdoc/empty-tags": "off",
@@ -209,7 +223,7 @@
     "typescript/consistent-generic-constructors": "off",
     "typescript/consistent-indexed-object-style": "off",
     "typescript/consistent-type-definitions": "off",
-    "typescript/consistent-type-imports": "off",
+    "typescript/consistent-type-imports": "error",
     "typescript/no-dynamic-delete": "off",
     "typescript/no-empty-interface": "off",
     "typescript/no-empty-object-type": "off",

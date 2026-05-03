@@ -15,7 +15,7 @@ on:
 concurrency: ${{ github.workflow }}-${{ github.event.pull_request.number }}
 
 permissions:
-  contents: read
+  contents: write
   pull-requests: write
 
 jobs:
@@ -32,7 +32,7 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -75,23 +75,10 @@ jobs:
       contains(github.event.pull_request.labels.*.name, 'backport')
 
     steps:
-      - name: Create access token for GitHub App
-        uses: actions/create-github-app-token@v2
-        id: app-token
-        with:
-          app-id: ${{ vars.VERCEL_AI_SDK_GITHUB_APP_CLIENT_ID }}
-          private-key: ${{ secrets.VERCEL_AI_SDK_GITHUB_APP_PRIVATE_KEY_PKCS8 }}
-
-      - name: Get GitHub App User ID
-        id: app-user-id
-        run: echo "user-id=$(gh api "/users/${{ steps.app-token.outputs.app-slug }}[bot]" --jq .id)" >> "$GITHUB_OUTPUT"
-        env:
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
-
-      - name: Configure git user for GitHub App
+      - name: Configure Git
         run: |
-          git config --global user.name '${{ steps.app-token.outputs.app-slug }}[bot]'
-          git config --global user.email '${{ steps.app-user-id.outputs.user-id }}+${{ steps.app-token.outputs.app-slug }}[bot]@users.noreply.github.com'
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
 
       - name: Check for existing backport PR
         id: check-existing
@@ -103,21 +90,20 @@ jobs:
             echo "existing-pr=$EXISTING_PR" >> "$GITHUB_OUTPUT"
           fi
         env:
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Remove backport label (already backported)
         if: steps.check-existing.outputs.existing-pr
         run: |
           gh pr edit ${{ github.event.pull_request.number }} --remove-label backport || true
         env:
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Checkout Repository
         if: '!steps.check-existing.outputs.existing-pr'
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
-          token: ${{ steps.app-token.outputs.token }}
           ref: ${{ needs.find-branch.outputs.release-branch }}
 
       - name: Create backport branch
@@ -181,16 +167,93 @@ jobs:
           # In case of failure, commit the conflicts to allow inspection
           git add .
           git commit -m "Backport conflicts for PR #${{ github.event.pull_request.number }} to ${{ needs.find-branch.outputs.release-branch }}"
-      - name: Push backport branch
+      - name: Push backport branch as signed commit
         if: '!steps.check-existing.outputs.existing-pr'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          BASE_BRANCH: ${{ needs.find-branch.outputs.release-branch }}
+          BACKPORT_BRANCH: backport-pr-${{ github.event.pull_request.number }}-to-${{ needs.find-branch.outputs.release-branch }}
         run: |
-          BACKPORT_BRANCH="backport-pr-${{ github.event.pull_request.number }}-to-${{ needs.find-branch.outputs.release-branch }}"
-          if git ls-remote --exit-code origin "refs/heads/${BACKPORT_BRANCH}" > /dev/null 2>&1; then
-            echo "Branch ${BACKPORT_BRANCH} already exists on remote (orphaned from a previous run). Force-pushing."
-            git push --force-with-lease origin "${BACKPORT_BRANCH}"
+          # Commits made via the GitHub API with GITHUB_TOKEN are signed by
+          # GitHub automatically. We build the file additions/deletions from
+          # the local cherry-pick result (vs. the base branch tip) and post
+          # them as a single signed commit via the GraphQL
+          # createCommitOnBranch mutation.
+          #
+          # File contents and the assembled JSON payload are kept on disk
+          # and fed to jq via --rawfile / --slurpfile so they never land on
+          # argv — passing them as command-line arguments hits the kernel
+          # ARG_MAX limit on larger backports and fails with "Argument list
+          # too long".
+          set -euo pipefail
+
+          PARENT_OID=$(git rev-parse "origin/${BASE_BRANCH}")
+          HEADLINE=$(git log -1 --format=%s HEAD)
+
+          WORK="$(mktemp -d)"
+          ADDITIONS="${WORK}/additions.json"
+          DELETIONS="${WORK}/deletions.json"
+          BODY_FILE="${WORK}/body.txt"
+          PAYLOAD="${WORK}/payload.json"
+
+          git log -1 --format=%b HEAD > "$BODY_FILE"
+          echo '[]' > "$ADDITIONS"
+          echo '[]' > "$DELETIONS"
+
+          # Collect added/modified files (rename-aware diff is decomposed
+          # into delete+add via --no-renames so each path is independent).
+          while IFS= read -r -d '' path; do
+            [ -z "$path" ] && continue
+            b64="${WORK}/b64"
+            base64 -w0 < "$path" | tr -d '\n' > "$b64"
+            jq -c --arg p "$path" --rawfile c "$b64" \
+              '. + [{path: $p, contents: $c}]' \
+              "$ADDITIONS" > "${ADDITIONS}.tmp"
+            mv "${ADDITIONS}.tmp" "$ADDITIONS"
+          done < <(git diff --no-renames --name-only --diff-filter=AM -z "${PARENT_OID}" HEAD)
+
+          while IFS= read -r -d '' path; do
+            [ -z "$path" ] && continue
+            jq -c --arg p "$path" '. + [{path: $p}]' "$DELETIONS" > "${DELETIONS}.tmp"
+            mv "${DELETIONS}.tmp" "$DELETIONS"
+          done < <(git diff --no-renames --name-only --diff-filter=D -z "${PARENT_OID}" HEAD)
+
+          # Reset the remote branch to the base branch tip (or create it
+          # fresh). This is the "branch already exists, force-push" path
+          # from before, expressed via the refs API.
+          if gh api "repos/${REPO}/git/refs/heads/${BACKPORT_BRANCH}" >/dev/null 2>&1; then
+            echo "Branch ${BACKPORT_BRANCH} already exists on remote (orphaned from a previous run). Force-updating to ${PARENT_OID}."
+            gh api --method PATCH "repos/${REPO}/git/refs/heads/${BACKPORT_BRANCH}" \
+              -f "sha=${PARENT_OID}" -F force=true >/dev/null
           else
-            git push origin "${BACKPORT_BRANCH}"
+            gh api --method POST "repos/${REPO}/git/refs" \
+              -f "ref=refs/heads/${BACKPORT_BRANCH}" \
+              -f "sha=${PARENT_OID}" >/dev/null
           fi
+
+          jq -n \
+            --arg query 'mutation($input: CreateCommitOnBranchInput!) { createCommitOnBranch(input: $input) { commit { oid url } } }' \
+            --arg repo "${REPO}" \
+            --arg branch "${BACKPORT_BRANCH}" \
+            --arg expected "${PARENT_OID}" \
+            --arg headline "${HEADLINE}" \
+            --rawfile body "$BODY_FILE" \
+            --slurpfile additions "$ADDITIONS" \
+            --slurpfile deletions "$DELETIONS" \
+            '{
+              query: $query,
+              variables: {
+                input: {
+                  branch: {repositoryNameWithOwner: $repo, branchName: $branch},
+                  expectedHeadOid: $expected,
+                  message: {headline: $headline, body: ($body | rtrimstr("\n"))},
+                  fileChanges: {additions: $additions[0], deletions: $deletions[0]}
+                }
+              }
+            }' > "$PAYLOAD"
+
+          gh api graphql --input "$PAYLOAD"
 
       - name: Determine PR assignee
         if: '!steps.check-existing.outputs.existing-pr'
@@ -208,7 +271,7 @@ jobs:
             fi
           fi
         env:
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           MERGED_BY_TYPE: ${{ github.event.pull_request.merged_by.type }}
           MERGED_BY_LOGIN: ${{ github.event.pull_request.merged_by.login }}
           PR_AUTHOR_TYPE: ${{ github.event.pull_request.user.type }}
@@ -244,7 +307,7 @@ jobs:
           gh pr merge "$PR_URL" --auto --squash || echo "Auto-merge could not be enabled"
           echo "Created backport PR $PR_URL"
         env:
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ASSIGNEE_LOGIN: ${{ steps.assignee.outputs.login }}
           PR_TITLE: 'Backport: ${{ github.event.pull_request.title }}'
           PR_BODY_NO_CONFLICTS: 'This is an automated backport of #${{ github.event.pull_request.number }} to the ${{ needs.find-branch.outputs.release-branch }} branch. FYI @${{ github.event.pull_request.user.login }}'
@@ -266,25 +329,25 @@ jobs:
           gh pr edit ${{ github.event.pull_request.number }} --remove-label backport
           echo "Removed backport label from original PR #${{ github.event.pull_request.number }}"
         env:
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Success Comment on original PR
         if: "!steps.check-existing.outputs.existing-pr && steps.cherry-pick.outputs.has-conflicts == 'false' && steps.create-pr.outputs.backport-pr-url"
         run: |
           gh pr comment ${{ github.event.pull_request.number }} --body "✅ Backport PR created: ${{ steps.create-pr.outputs.backport-pr-url }}"
         env:
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Error Comment on original PR
         if: "!steps.check-existing.outputs.existing-pr && steps.cherry-pick.outputs.has-conflicts == 'true' && steps.create-pr.outputs.backport-pr-url"
         run: |
           gh pr comment ${{ github.event.pull_request.number }} --body "⚠️ Backport to ${{ needs.find-branch.outputs.release-branch }} created but has conflicts: ${{ steps.create-pr.outputs.backport-pr-url }}"
         env:
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Pull request failure Comment on original PR
         if: "!steps.check-existing.outputs.existing-pr && steps.cherry-pick.outputs.has-conflicts == 'true' && !steps.create-pr.outputs.backport-pr-url"
         run: |
           gh pr comment ${{ github.event.pull_request.number }} --body "❌ Backport to ${{ needs.find-branch.outputs.release-branch }} failed. This backport requires manual intervention. [View workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
         env:
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

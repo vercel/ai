@@ -1,52 +1,21 @@
-import { SpeechModelV4, SharedV4Warning } from '@ai-sdk/provider';
+import type { SpeechModelV4, SharedV4Warning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createBinaryResponseHandler,
   parseProviderOptions,
   postJsonToApi,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
-import { ElevenLabsConfig } from './elevenlabs-config';
+import type { ElevenLabsConfig } from './elevenlabs-config';
 import { elevenlabsFailedResponseHandler } from './elevenlabs-error';
-import { ElevenLabsSpeechAPITypes } from './elevenlabs-speech-api-types';
-import {
+import { elevenLabsSpeechModelOptionsSchema } from './elevenlabs-speech-model-options';
+import type { ElevenLabsSpeechAPITypes } from './elevenlabs-speech-api-types';
+import type {
   ElevenLabsSpeechModelId,
   ElevenLabsSpeechVoiceId,
 } from './elevenlabs-speech-options';
-
-// Schema for camelCase input from users
-const elevenLabsSpeechModelOptionsSchema = z.object({
-  languageCode: z.string().optional(),
-  voiceSettings: z
-    .object({
-      stability: z.number().min(0).max(1).optional(),
-      similarityBoost: z.number().min(0).max(1).optional(),
-      style: z.number().min(0).max(1).optional(),
-      useSpeakerBoost: z.boolean().optional(),
-    })
-    .optional(),
-  pronunciationDictionaryLocators: z
-    .array(
-      z.object({
-        pronunciationDictionaryId: z.string(),
-        versionId: z.string().optional(),
-      }),
-    )
-    .max(3)
-    .optional(),
-  seed: z.number().min(0).max(4294967295).optional(),
-  previousText: z.string().optional(),
-  nextText: z.string().optional(),
-  previousRequestIds: z.array(z.string()).max(3).optional(),
-  nextRequestIds: z.array(z.string()).max(3).optional(),
-  applyTextNormalization: z.enum(['auto', 'on', 'off']).optional(),
-  applyLanguageTextNormalization: z.boolean().optional(),
-  enableLogging: z.boolean().optional(),
-});
-
-export type ElevenLabsSpeechModelOptions = z.infer<
-  typeof elevenLabsSpeechModelOptionsSchema
->;
 
 interface ElevenLabsSpeechModelConfig extends ElevenLabsConfig {
   _internal?: {
@@ -59,6 +28,20 @@ export class ElevenLabsSpeechModel implements SpeechModelV4 {
 
   get provider(): string {
     return this.config.provider;
+  }
+
+  static [WORKFLOW_SERIALIZE](model: ElevenLabsSpeechModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: ElevenLabsSpeechModelId;
+    config: ElevenLabsSpeechModelConfig;
+  }) {
+    return new ElevenLabsSpeechModel(options.modelId, options.config);
   }
 
   constructor(
@@ -233,7 +216,7 @@ export class ElevenLabsSpeechModel implements SpeechModelV4 {
         const queryString = new URLSearchParams(queryParams).toString();
         return queryString ? `${baseUrl}?${queryString}` : baseUrl;
       })(),
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body: requestBody,
       failedResponseHandler: elevenlabsFailedResponseHandler,
       successfulResponseHandler: createBinaryResponseHandler(),

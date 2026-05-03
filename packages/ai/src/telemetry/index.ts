@@ -1,4 +1,8 @@
-export type { TelemetrySettings } from './telemetry-settings';
-export type { TelemetryIntegration } from './telemetry-integration';
-export { bindTelemetryIntegration } from './get-global-telemetry-integration';
-export { registerTelemetryIntegration } from './telemetry-integration-registry';
+export type { TelemetryOptions } from './telemetry-options';
+export type { InferTelemetryEvent, Telemetry } from './telemetry';
+export { registerTelemetry } from './telemetry-registry';
+export {
+  AI_SDK_TELEMETRY_DIAGNOSTIC_CHANNEL,
+  type TelemetryDiagnosticChannelMessage,
+  type TelemetryDiagnosticEventType,
+} from './diagnostic-channel';

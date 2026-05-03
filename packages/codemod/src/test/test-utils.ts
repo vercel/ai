@@ -1,5 +1,4 @@
-import { API, FileInfo } from 'jscodeshift';
-import jscodeshift from 'jscodeshift';
+import jscodeshift, { type API, type FileInfo } from 'jscodeshift';
 import { join } from 'path';
 import { existsSync, readFileSync, writeFileSync } from 'fs';
 import ts from 'typescript';
@@ -146,7 +145,7 @@ export function validateSyntax(code: string, extension: string): void {
   };
 
   // Override module resolution
-  host.resolveModuleNameLiterals = (moduleLiterals, containingFile) => {
+  host.resolveModuleNameLiterals = moduleLiterals => {
     return moduleLiterals.map(moduleLiteral => ({
       resolvedModule: {
         resolvedFileName: `${moduleLiteral.text}.d.ts`,

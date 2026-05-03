@@ -144,5 +144,5 @@ This ensures TypeScript correctly narrows the type of `part.data` for subsequent
 | --------- | -------------------- | ------------------- |
 | OpenAI    | [`packages/openai/src/files/openai-files.ts`](../packages/openai/src/files/openai-files.ts) | [`packages/openai/src/chat/convert-to-openai-chat-messages.ts`](../packages/openai/src/chat/convert-to-openai-chat-messages.ts) |
 | Anthropic | [`packages/anthropic/src/anthropic-files.ts`](../packages/anthropic/src/anthropic-files.ts) | [`packages/anthropic/src/convert-to-anthropic-messages-prompt.ts`](../packages/anthropic/src/convert-to-anthropic-messages-prompt.ts) |
-| Google    | [`packages/google/src/google-generative-ai-files.ts`](../packages/google/src/google-generative-ai-files.ts) | [`packages/google/src/convert-to-google-generative-ai-messages.ts`](../packages/google/src/convert-to-google-generative-ai-messages.ts) |
+| Google    | [`packages/google/src/google-files.ts`](../packages/google/src/google-files.ts) | [`packages/google/src/convert-to-google-messages.ts`](../packages/google/src/convert-to-google-messages.ts) |
 | xAI       | [`packages/xai/src/files/xai-files.ts`](../packages/xai/src/files/xai-files.ts) | [`packages/xai/src/convert-to-xai-chat-messages.ts`](../packages/xai/src/convert-to-xai-chat-messages.ts) |

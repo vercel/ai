@@ -19,7 +19,8 @@
     "ci:version": "changeset version && node .github/scripts/cleanup-examples-changesets.mjs && pnpm install --no-frozen-lockfile",
     "clean-examples": "node .github/scripts/cleanup-examples-changesets.mjs && pnpm install --no-frozen-lockfile",
     "check": "ultracite check",
-    "fix": "ultracite fix"
+    "fix": "ultracite fix",
+    "konsistent": "konsistent --config-path .github/konsistent.json"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx,mjs,cjs}": [
@@ -27,11 +28,12 @@
     ]
   },
   "devDependencies": {
-    "lint-staged": "^15.5.1",
     "@changesets/cli": "2.27.10",
     "@playwright/test": "^1.44.1",
     "del-cli": "^5.1.0",
     "husky": "^9.1.7",
+    "konsistent": "0.0.1-alpha.15",
+    "lint-staged": "^15.5.1",
     "next": "15.0.7",
     "oxfmt": "^0.41.0",
     "oxlint": "^1.56.0",
@@ -43,7 +45,7 @@
     "typescript": "5.8.3",
     "ultracite": "7.3.2",
     "update-ts-references": "^3.6.0",
-    "vitest": "4.1.0"
+    "vitest": "4.1.5"
   },
   "engines": {
     "node": "^18.0.0 || ^20.0.0 || ^22.0.0 || ^24.0.0"
@@ -51,7 +53,7 @@
   "homepage": "https://ai-sdk.dev/docs",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/vercel/ai.git"
+    "url": "https://github.com/vercel/ai"
   },
   "license": "Apache License",
   "bugs": {

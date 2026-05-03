@@ -1,7 +1,6 @@
-import { InferToolInput } from '@ai-sdk/provider-utils';
-import { ProviderMetadata } from '../types';
-import { ValueOf } from '../util/value-of';
-import type { ToolSet } from '@ai-sdk/provider-utils';
+import type { InferToolInput, ToolSet } from '@ai-sdk/provider-utils';
+import type { ProviderMetadata } from '../types';
+import type { ValueOf } from '../util/value-of';
 
 type BaseToolCall = {
   type: 'tool-call';

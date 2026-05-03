@@ -1,18 +1,18 @@
-import { ModelMessage, tool } from '@ai-sdk/provider-utils';
+import { tool, type ModelMessage } from '@ai-sdk/provider-utils';
 import {
   convertArrayToReadableStream,
   convertReadableStreamToArray,
 } from '@ai-sdk/provider-utils/test';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod/v4';
-import { LanguageModelStreamPart } from './stream-language-model-call';
+import type { LanguageModelStreamPart } from './stream-language-model-call';
 import { invokeToolCallbacksFromStream } from './invoke-tool-callbacks-from-stream';
 
 describe('invokeToolCallbacksFromStream', () => {
   it('should invoke tool callbacks in order and pass through the stream', async () => {
     const recordedCalls: unknown[] = [];
     const abortController = new AbortController();
-    const context = { requestId: 'req-1' };
+    const runtimeContext = { requestId: 'req-1' };
     const stepInputMessages: Array<ModelMessage> = [
       { role: 'user', content: 'test-input' },
     ];
@@ -51,7 +51,7 @@ describe('invokeToolCallbacksFromStream', () => {
       tools,
       stepInputMessages,
       abortSignal: abortController.signal,
-      context,
+      runtimeContext,
     });
     const resultChunks = await convertReadableStreamToArray(result);
     const recordedCallsForSnapshot = recordedCalls.map(call => ({
