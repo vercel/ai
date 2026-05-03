@@ -34,15 +34,15 @@ jobs:
       - name: Get GitHub token from gh-sts
         id: gh-token
         run: |
-          RESPONSE=$(curl -sf https://gh-sts.vercel-infra.com/prod/token \
+          RESPONSE=$(curl -sf https://gh-sts.vercel-infra.com/token \
             -H "Content-Type: application/json" \
-            -H "Authorization: bearer ${{ steps.oidc.outputs.token }}" \
+            -H "Authorization: Bearer ${{ steps.oidc.outputs.token }}" \
             -d '{
+              "owner": "vercel",
+              "repo": "vercel",
               "permissions": {
                 "pull_requests": "read"
-              },
-              "owner": "vercel"
-              "repo": "vercel"
+              }
             }')
           echo "token=$(echo "$RESPONSE" | jq -r '.token')" >> "$GITHUB_OUTPUT"
 
