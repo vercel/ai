@@ -1,0 +1,87 @@
+---
+title: Future AGI
+description: Trace and evaluate AI SDK applications with Future AGI
+---
+
+# Future AGI
+
+[Future AGI](https://futureagi.com) is an open-source e2e agent engineering and optimization platform that helps you ship self-improving AI agents. The [`@traceai/vercel`](https://www.npmjs.com/package/@traceai/vercel) package provides a drop-in OpenTelemetry `SpanProcessor` that converts AI SDK spans into Future AGI's semantic conventions and exports them over OTLP.
+
+## Setup
+
+Future AGI works with [AI SDK telemetry data](/docs/ai-sdk-core/telemetry) through [OpenTelemetry](https://opentelemetry.io/docs/). Sign up at [app.futureagi.com](https://app.futureagi.com) to get your `FI_API_KEY` and `FI_SECRET_KEY`.
+
+### Next.js
+
+Add the credentials to your `.env`:
+
+```bash filename=".env"
+FI_API_KEY=your_api_key
+FI_SECRET_KEY=your_secret_key
+```
+
+Install the integration and its OpenTelemetry dependencies:
+
+```bash
+npm install @traceai/vercel @vercel/otel \
+  @opentelemetry/api @opentelemetry/sdk-trace-base \
+  @opentelemetry/exporter-trace-otlp-grpc @grpc/grpc-js \
+  @ai-sdk/openai
+```
+
+Create an `instrumentation.ts` at the root of your Next.js project. Next.js auto-loads this file on the server.
+
+```typescript filename="instrumentation.ts"
+// @ts-ignore  @vercel/otel ships without types
+import { registerOTel } from '@vercel/otel';
+import type { SpanExporter } from '@opentelemetry/sdk-trace-base';
+import { FISimpleSpanProcessor, isFISpan } from '@traceai/vercel';
+import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-grpc';
+import { Metadata } from '@grpc/grpc-js';
+
+export function register() {
+  const metadata = new Metadata();
+  metadata.set('x-api-key', process.env.FI_API_KEY as string);
+  metadata.set('x-secret-key', process.env.FI_SECRET_KEY as string);
+
+  registerOTel({
+    attributes: {
+      'service.name': 'vercel-ai-app',
+      project_name: 'vercel-ai-app',
+      project_type: 'observe',
+    },
+    spanProcessors: [
+      new FISimpleSpanProcessor({
+        exporter: new OTLPTraceExporter({
+          url: 'grpc://grpc.futureagi.com',
+          metadata,
+        }) as unknown as SpanExporter,
+        // Export only AI SDK spans translated to Future AGI semantics
+        spanFilter: isFISpan,
+      }),
+    ],
+  });
+}
+```
+
+Use the AI SDK as usual and enable telemetry on each call:
+
+```typescript
+import { generateText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+const result = await generateText({
+  model: openai('gpt-4o-mini'),
+  prompt: 'Write a short story about a cat.',
+  experimental_telemetry: { isEnabled: true },
+});
+```
+
+Every `generateText`, `streamText`, `generateObject`, and tool call now produces an OpenTelemetry span that lands in your Future AGI dashboard with prompts, completions, token usage, and tool invocations attached.
+
+## Resources
+
+- [Future AGI Vercel AI SDK guide](https://docs.futureagi.com/docs/integrations/traceai/vercel)
+- [`@traceai/vercel` on npm](https://www.npmjs.com/package/@traceai/vercel)
+- [`traceAI` on GitHub](https://github.com/future-agi/traceAI)
+- [Future AGI documentation](https://docs.futureagi.com)
