@@ -36,13 +36,13 @@ jobs:
         run: |
           RESPONSE=$(curl -sf https://gh-sts.vercel-infra.com/prod/token \
             -H "Content-Type: application/json" \
+            -H "Authorization: bearer ${{ steps.oidc.outputs.token }}" \
             -d '{
-              "token": "${{ steps.oidc.outputs.token }}",
               "permissions": {
-                "meta": "read",
                 "pull_requests": "read"
               },
-              "repositories": ["vercel/ai"]
+              "owner": "vercel"
+              "repo": "vercel"
             }')
           echo "token=$(echo "$RESPONSE" | jq -r '.token')" >> "$GITHUB_OUTPUT"
 
