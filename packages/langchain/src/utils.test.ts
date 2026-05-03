@@ -397,6 +397,7 @@ describe('processModelChunk', () => {
       messageId: 'default',
       reasoningStarted: false,
       textStarted: false,
+      emittedImages: new Set<string>(),
     };
     const chunks: unknown[] = [];
     const controller = createMockController(chunks);
@@ -422,6 +423,7 @@ describe('processModelChunk', () => {
       messageId: 'msg-1',
       reasoningStarted: false,
       textStarted: true,
+      emittedImages: new Set<string>(),
     };
     const chunks: unknown[] = [];
     const controller = createMockController(chunks);
@@ -443,6 +445,7 @@ describe('processModelChunk', () => {
       messageId: 'default',
       reasoningStarted: false,
       textStarted: false,
+      emittedImages: new Set<string>(),
     };
     const chunks: unknown[] = [];
     const controller = createMockController(chunks);
@@ -466,6 +469,7 @@ describe('processModelChunk', () => {
       messageId: 'default',
       reasoningStarted: false,
       textStarted: false,
+      emittedImages: new Set<string>(),
     };
     const chunks: unknown[] = [];
     const controller = createMockController(chunks);
@@ -490,6 +494,7 @@ describe('processModelChunk', () => {
       messageId: 'default',
       reasoningStarted: false,
       textStarted: false,
+      emittedImages: new Set<string>(),
     };
     const chunks: unknown[] = [];
     const controller = createMockController(chunks);
@@ -518,6 +523,7 @@ describe('processModelChunk', () => {
       messageId: 'default',
       reasoningStarted: false,
       textStarted: false,
+      emittedImages: new Set<string>(),
     };
     const chunks: unknown[] = [];
     const controller = createMockController(chunks);
@@ -557,6 +563,7 @@ describe('processModelChunk', () => {
       messageId: 'default',
       reasoningStarted: false,
       textStarted: false,
+      emittedImages: new Set<string>(),
     };
     const chunks: unknown[] = [];
     const controller = createMockController(chunks);
@@ -597,6 +604,7 @@ describe('processModelChunk', () => {
       messageId: 'default',
       reasoningStarted: false,
       textStarted: false,
+      emittedImages: new Set<string>(),
     };
     const chunks: unknown[] = [];
     const controller = createMockController(chunks);
@@ -629,6 +637,7 @@ describe('processModelChunk', () => {
       messageId: 'default',
       reasoningStarted: false,
       textStarted: false,
+      emittedImages: new Set<string>(),
     };
     const chunks: unknown[] = [];
     const controller = createMockController(chunks);
@@ -666,6 +675,7 @@ describe('processModelChunk', () => {
       textStarted: false,
       reasoningMessageId: null as string | null,
       textMessageId: null as string | null,
+      emittedImages: new Set<string>(),
     };
     const chunks: unknown[] = [];
     const controller = createMockController(chunks);
@@ -726,6 +736,7 @@ describe('processModelChunk', () => {
       messageId: 'default',
       reasoningStarted: false,
       textStarted: false,
+      emittedImages: new Set<string>(),
     };
     const chunks: unknown[] = [];
     const controller = createMockController(chunks);
@@ -756,6 +767,7 @@ describe('processModelChunk', () => {
       messageId: 'default',
       reasoningStarted: false,
       textStarted: false,
+      emittedImages: new Set<string>(),
     };
     const chunks: unknown[] = [];
     const controller = createMockController(chunks);
@@ -780,6 +792,7 @@ describe('processModelChunk', () => {
       messageId: 'default',
       reasoningStarted: false,
       textStarted: false,
+      emittedImages: new Set<string>(),
     };
     const chunks: unknown[] = [];
     const controller = createMockController(chunks);
@@ -803,6 +816,7 @@ describe('processModelChunk', () => {
       messageId: 'default',
       reasoningStarted: false,
       textStarted: false,
+      emittedImages: new Set<string>(),
     };
     const chunks: unknown[] = [];
     const controller = createMockController(chunks);
@@ -844,6 +858,7 @@ describe('processModelChunk', () => {
       textStarted: false,
       reasoningMessageId: null as string | null,
       textMessageId: null as string | null,
+      emittedImages: new Set<string>(),
     };
     const chunks: unknown[] = [];
     const controller = createMockController(chunks);

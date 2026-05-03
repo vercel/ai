@@ -393,17 +393,10 @@ export function processModelChunk(
     reasoningMessageId?: string | null;
     /** Track the ID used for text-start to ensure text-end uses the same ID */
     textMessageId?: string | null;
-    emittedImages?: Set<string>;
+    emittedImages: Set<string>;
   },
   controller: ReadableStreamDefaultController<UIMessageChunk>,
 ): void {
-  /**
-   * Initialize emittedImages set if not present
-   */
-  if (!state.emittedImages) {
-    state.emittedImages = new Set<string>();
-  }
-
   /**
    * Get the message ID from the chunk if available
    */
@@ -447,8 +440,8 @@ export function processModelChunk(
   const fileBlocks = extractFileContentBlocks(chunk);
   for (const fileBlock of fileBlocks) {
     const fileKey = `cb-file:${fileBlock.mediaType}:${fileBlock.data.length}:${fileBlock.data.substring(0, Math.min(50, fileBlock.data.length))}`;
-    if (!state.emittedImages!.has(fileKey)) {
-      state.emittedImages!.add(fileKey);
+    if (!state.emittedImages.has(fileKey)) {
+      state.emittedImages.add(fileKey);
       controller.enqueue({
         type: 'file',
         mediaType: fileBlock.mediaType,

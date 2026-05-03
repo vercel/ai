@@ -133,7 +133,7 @@ function processStreamEventsEvent(
     textStarted: boolean;
     textMessageId: string | null;
     reasoningMessageId: string | null;
-    emittedImages?: Set<string>;
+    emittedImages: Set<string>;
   },
   controller: ReadableStreamDefaultController<UIMessageChunk>,
 ): void {
@@ -204,9 +204,6 @@ function processStreamEventsEvent(
          */
         const fileBlocks = extractFileContentBlocks(chunk);
         for (const fileBlock of fileBlocks) {
-          if (!state.emittedImages) {
-            state.emittedImages = new Set<string>();
-          }
           const fileKey = `cb-file:${fileBlock.mediaType}:${fileBlock.data.length}:${fileBlock.data.substring(0, Math.min(50, fileBlock.data.length))}`;
           if (!state.emittedImages.has(fileKey)) {
             state.emittedImages.add(fileKey);
@@ -401,6 +398,7 @@ export function toUIMessageStream<TState = unknown>(
     textMessageId: null as string | null,
     /** Track the ID used for reasoning-start to ensure reasoning-end uses the same ID */
     reasoningMessageId: null as string | null,
+    emittedImages: new Set<string>(),
   };
 
   /**
