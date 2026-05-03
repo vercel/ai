@@ -39,7 +39,7 @@ jobs:
             -H "Authorization: Bearer ${{ steps.oidc.outputs.token }}" \
             -d '{
               "owner": "vercel",
-              "repo": "vercel",
+              "repo": "ai",
               "permissions": {
                 "pull_requests": "read"
               }
