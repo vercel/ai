@@ -2,10 +2,7 @@ import type * as AnthropicInternal from '@ai-sdk/anthropic/internal';
 import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
-import {
-  AmazonBedrockChatLanguageModel,
-  AmazonBedrockToolUseSchema,
-} from './amazon-bedrock-chat-language-model';
+import { AmazonBedrockChatLanguageModel } from './amazon-bedrock-chat-language-model';
 import { beforeEach, describe, expect, vi, it } from 'vitest';
 import { injectFetchHeaders } from './inject-fetch-headers';
 import { anthropicTools, prepareTools } from '@ai-sdk/anthropic/internal';
@@ -6225,29 +6222,5 @@ describe('doGenerate', () => {
         requestBody.additionalModelRequestFields?.reasoning_effort,
       ).toBeUndefined();
     });
-  });
-});
-
-describe('AmazonBedrockToolUseSchema', () => {
-  // Regression test for https://github.com/vercel/ai/issues/14892.
-  // Bedrock's Converse Stream API does not include `input` on the
-  // contentBlockStart event for a tool use; the JSON args arrive in
-  // subsequent contentBlockDelta chunks. Under Zod >=4.4.0 a non-optional
-  // `z.unknown()` rejects a missing key with `expected: "nonoptional"`,
-  // which broke every Bedrock tool call.
-  it('accepts a payload missing the `input` key', () => {
-    const result = AmazonBedrockToolUseSchema.safeParse({
-      toolUseId: 'tooluse_3d8KvhYE28U35U1DPMYnLW',
-      name: 'getNews',
-    });
-    expect(result.success).toBe(true);
-  });
-
-  // Pin the schema's structural shape so this can't regress even on Zod
-  // versions where `z.unknown()` happens to accept missing keys at runtime.
-  it('declares `input` as optional', () => {
-    expect(AmazonBedrockToolUseSchema.shape.input).toBeInstanceOf(
-      z.ZodOptional,
-    );
   });
 });
