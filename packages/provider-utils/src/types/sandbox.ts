@@ -1,3 +1,6 @@
+/**
+ * Sandbox environment that can execute commands.
+ */
 export type Sandbox = {
   /**
    * Description of the sandbox environment that can be added to the agent's instructions
@@ -9,9 +12,25 @@ export type Sandbox = {
   /**
    * Execute a command in the sandbox.
    */
-  executeCommand: (options: { command: string }) => PromiseLike<{
+  executeCommand: (options: {
+    /**
+     * Command to execute in the sandbox.
+     */
+    command: string;
+  }) => PromiseLike<{
+    /**
+     * Exit code returned by the command.
+     */
     exitCode: number;
+
+    /**
+     * Standard output produced by the command.
+     */
     stdout: string;
+
+    /**
+     * Standard error produced by the command.
+     */
     stderr: string;
   }>;
 };
