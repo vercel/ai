@@ -1,5 +1,11 @@
 # @ai-sdk/test-server
 
+## 2.0.0-canary.4
+
+### Patch Changes
+
+- 0c4c275: trigger initial canary release
+
 ## 2.0.0-beta.3
 
 ### Patch Changes

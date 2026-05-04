@@ -620,6 +620,35 @@ describe('createApiKeyFetchFunction', () => {
     }
   });
 
+  it('should resolve default fetch lazily when no custom fetch provided', async () => {
+    const originalFetch = globalThis.fetch;
+    const initialFetch = vi.fn().mockResolvedValue(new Response('Initial'));
+    const patchedFetch = vi.fn().mockResolvedValue(new Response('Patched'));
+
+    globalThis.fetch = initialFetch;
+    const fetchFn = createApiKeyFetchFunction('test-api-key-lazy');
+    globalThis.fetch = patchedFetch;
+
+    try {
+      await fetchFn('http://example.com', {
+        method: 'POST',
+        body: '{"test": "data"}',
+      });
+
+      expect(initialFetch).not.toHaveBeenCalled();
+      expect(patchedFetch).toHaveBeenCalledWith('http://example.com', {
+        method: 'POST',
+        body: '{"test": "data"}',
+        headers: {
+          Authorization: 'Bearer test-api-key-lazy',
+          'user-agent': 'ai-sdk/amazon-bedrock/0.0.0-test runtime/testenv',
+        },
+      });
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
   it('should handle empty string API key', async () => {
     const dummyResponse = new Response('OK', { status: 200 });
     const dummyFetch = vi.fn().mockResolvedValue(dummyResponse);

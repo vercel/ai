@@ -1,5 +1,41 @@
 # @ai-sdk/svelte
 
+## 5.0.0-canary.120
+
+### Patch Changes
+
+- Updated dependencies [5463d0d]
+  - @ai-sdk/provider-utils@5.0.0-canary.32
+  - ai@7.0.0-canary.120
+
+## 5.0.0-canary.119
+
+### Patch Changes
+
+- ai@7.0.0-canary.119
+
+## 5.0.0-canary.118
+
+### Patch Changes
+
+- Updated dependencies [47e65d6]
+  - ai@7.0.0-canary.118
+
+## 5.0.0-canary.117
+
+### Patch Changes
+
+- 0c4c275: trigger initial canary release
+- Updated dependencies [0c4c275]
+  - @ai-sdk/provider-utils@5.0.0-canary.31
+  - ai@7.0.0-canary.117
+
+## 5.0.0-beta.116
+
+### Patch Changes
+
+- ai@7.0.0-beta.116
+
 ## 5.0.0-beta.115
 
 ### Patch Changes

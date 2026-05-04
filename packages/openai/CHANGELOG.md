@@ -1,5 +1,41 @@
 # @ai-sdk/openai
 
+## 4.0.0-canary.48
+
+### Patch Changes
+
+- d6c79e3: feat(openai): add GPT-5.5 chat model IDs
+
+## 4.0.0-canary.47
+
+### Patch Changes
+
+- 5463d0d: feat(provider): align tool result output content file part types with top-level message file part types
+- Updated dependencies [5463d0d]
+  - @ai-sdk/provider-utils@5.0.0-canary.32
+  - @ai-sdk/provider@4.0.0-canary.16
+
+## 4.0.0-canary.46
+
+### Patch Changes
+
+- cd9c311: fix(openai, openai-compatible): only send null content for assistant messages with tool calls
+
+## 4.0.0-canary.45
+
+### Patch Changes
+
+- 0c4c275: trigger initial canary release
+- Updated dependencies [0c4c275]
+  - @ai-sdk/provider-utils@5.0.0-canary.31
+  - @ai-sdk/provider@4.0.0-canary.15
+
+## 4.0.0-beta.44
+
+### Patch Changes
+
+- bada0f3: feat(openai): preserve `namespace` on function_call output items
+
 ## 4.0.0-beta.43
 
 ### Patch Changes

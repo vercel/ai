@@ -1,5 +1,11 @@
 # @ai-sdk/codemod
 
+## 4.0.0-canary.5
+
+### Patch Changes
+
+- 0c4c275: trigger initial canary release
+
 ## 4.0.0-beta.4
 
 ### Patch Changes

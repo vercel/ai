@@ -925,8 +925,8 @@ describe('tool messages', () => {
                     text: 'Image generated successfully',
                   },
                   {
-                    type: 'file-data',
-                    data: 'AAECAw==',
+                    type: 'file',
+                    data: { type: 'data', data: 'AAECAw==' },
                     mediaType: 'image/png',
                   },
                 ],
@@ -995,8 +995,11 @@ describe('tool messages', () => {
                     text: 'PDF generated successfully',
                   },
                   {
-                    type: 'file-data',
-                    data: 'JVBERi0xLjQKJeLjz9MKNCAwIG9iago=', // Sample PDF base64
+                    type: 'file',
+                    data: {
+                      type: 'data',
+                      data: 'JVBERi0xLjQKJeLjz9MKNCAwIG9iago=', // Sample PDF base64
+                    },
                     mediaType: 'application/pdf',
                   },
                 ],
@@ -1138,8 +1141,11 @@ describe('tool messages', () => {
                 type: 'content',
                 value: [
                   {
-                    type: 'file-url',
-                    url: 'https://example.com/document.pdf',
+                    type: 'file',
+                    data: {
+                      type: 'url',
+                      url: new URL('https://example.com/document.pdf'),
+                    },
                     mediaType: 'application/pdf',
                   },
                 ],
@@ -1199,8 +1205,11 @@ describe('tool messages', () => {
                 type: 'content',
                 value: [
                   {
-                    type: 'file-url',
-                    url: 'https://example.com/image.png',
+                    type: 'file',
+                    data: {
+                      type: 'url',
+                      url: new URL('https://example.com/image.png'),
+                    },
                     mediaType: 'image/png',
                   },
                 ],

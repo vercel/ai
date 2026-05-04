@@ -1,5 +1,31 @@
 # @ai-sdk/amazon-bedrock
 
+## 5.0.0-canary.49
+
+### Patch Changes
+
+- 5463d0d: feat(provider): align tool result output content file part types with top-level message file part types
+- Updated dependencies [5463d0d]
+  - @ai-sdk/provider-utils@5.0.0-canary.32
+  - @ai-sdk/provider@4.0.0-canary.16
+  - @ai-sdk/anthropic@4.0.0-canary.44
+
+## 5.0.0-canary.48
+
+### Patch Changes
+
+- 0c4c275: trigger initial canary release
+- Updated dependencies [0c4c275]
+  - @ai-sdk/provider-utils@5.0.0-canary.31
+  - @ai-sdk/anthropic@4.0.0-canary.43
+  - @ai-sdk/provider@4.0.0-canary.15
+
+## 5.0.0-beta.47
+
+### Patch Changes
+
+- d0dbd96: Fix `createAmazonBedrock()` capturing `globalThis.fetch` at initialization time, which caused telemetry instrumentation (e.g. OpenTelemetry, Datadog) and other `globalThis.fetch` patches applied after provider creation to be silently ignored.
+
 ## 5.0.0-beta.46
 
 ### Major Changes

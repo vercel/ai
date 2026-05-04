@@ -767,29 +767,45 @@ export async function convertToOpenAIResponsesInput({
                     switch (item.type) {
                       case 'text':
                         return { type: 'input_text' as const, text: item.text };
-                      case 'file-data':
-                        if (item.mediaType.startsWith('image/')) {
+                      case 'file': {
+                        const topLevel = getTopLevelMediaType(item.mediaType);
+
+                        if (item.data.type === 'data') {
+                          const fullMediaType = resolveFullMediaType({
+                            part: item,
+                          });
+                          if (topLevel === 'image') {
+                            return {
+                              type: 'input_image' as const,
+                              image_url: `data:${fullMediaType};base64,${convertToBase64(item.data.data)}`,
+                            };
+                          }
                           return {
-                            type: 'input_image' as const,
-                            image_url: `data:${item.mediaType};base64,${item.data}`,
+                            type: 'input_file' as const,
+                            filename: item.filename ?? 'data',
+                            file_data: `data:${fullMediaType};base64,${convertToBase64(item.data.data)}`,
                           };
                         }
-                        return {
-                          type: 'input_file' as const,
-                          filename: item.filename ?? 'data',
-                          file_data: `data:${item.mediaType};base64,${item.data}`,
-                        };
-                      case 'file-url':
-                        if (item.mediaType.startsWith('image/')) {
+
+                        if (item.data.type === 'url') {
+                          if (topLevel === 'image') {
+                            return {
+                              type: 'input_image' as const,
+                              image_url: item.data.url.toString(),
+                            };
+                          }
                           return {
-                            type: 'input_image' as const,
-                            image_url: item.url,
+                            type: 'input_file' as const,
+                            file_url: item.data.url.toString(),
                           };
                         }
-                        return {
-                          type: 'input_file' as const,
-                          file_url: item.url,
-                        };
+
+                        warnings.push({
+                          type: 'other',
+                          message: `unsupported custom tool content part type: ${item.type} with data type: ${item.data.type}`,
+                        });
+                        return undefined;
+                      }
                       default:
                         warnings.push({
                           type: 'other',
@@ -832,31 +848,44 @@ export async function convertToOpenAIResponsesInput({
                       return { type: 'input_text' as const, text: item.text };
                     }
 
-                    case 'file-data': {
-                      if (item.mediaType.startsWith('image/')) {
-                        return {
-                          type: 'input_image' as const,
-                          image_url: `data:${item.mediaType};base64,${item.data}`,
-                        };
-                      }
-                      return {
-                        type: 'input_file' as const,
-                        filename: item.filename ?? 'data',
-                        file_data: `data:${item.mediaType};base64,${item.data}`,
-                      };
-                    }
+                    case 'file': {
+                      const topLevel = getTopLevelMediaType(item.mediaType);
 
-                    case 'file-url': {
-                      if (item.mediaType.startsWith('image/')) {
+                      if (item.data.type === 'data') {
+                        const fullMediaType = resolveFullMediaType({
+                          part: item,
+                        });
+                        if (topLevel === 'image') {
+                          return {
+                            type: 'input_image' as const,
+                            image_url: `data:${fullMediaType};base64,${convertToBase64(item.data.data)}`,
+                          };
+                        }
                         return {
-                          type: 'input_image' as const,
-                          image_url: item.url,
+                          type: 'input_file' as const,
+                          filename: item.filename ?? 'data',
+                          file_data: `data:${fullMediaType};base64,${convertToBase64(item.data.data)}`,
                         };
                       }
-                      return {
-                        type: 'input_file' as const,
-                        file_url: item.url,
-                      };
+
+                      if (item.data.type === 'url') {
+                        if (topLevel === 'image') {
+                          return {
+                            type: 'input_image' as const,
+                            image_url: item.data.url.toString(),
+                          };
+                        }
+                        return {
+                          type: 'input_file' as const,
+                          file_url: item.data.url.toString(),
+                        };
+                      }
+
+                      warnings.push({
+                        type: 'other',
+                        message: `unsupported tool content part type: ${item.type} with data type: ${item.data.type}`,
+                      });
+                      return undefined;
                     }
 
                     default: {

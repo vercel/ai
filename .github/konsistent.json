@@ -206,7 +206,6 @@
             "packages/gateway/src/gateway-reranking-model.ts",
             "packages/mistral/src/mistral-embedding-model.ts",
             "packages/openai-compatible/src/image/openai-compatible-image-model.ts",
-            "packages/openai/src/image/openai-image-model.ts",
             "packages/perplexity/src/perplexity-language-model.ts"
           ]
         },

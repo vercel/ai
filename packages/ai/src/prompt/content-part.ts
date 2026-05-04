@@ -196,6 +196,14 @@ export const outputSchema: z.ZodType<ToolResultOutput> = z.discriminatedUnion(
             providerOptions: providerMetadataSchema.optional(),
           }),
           z.object({
+            type: z.literal('file'),
+            data: taggedFileDataSchema,
+            mediaType: z.string(),
+            filename: z.string().optional(),
+            providerOptions: providerMetadataSchema.optional(),
+          }),
+          z.object({
+            // Deprecated.
             type: z.literal('file-data'),
             data: z.string(),
             mediaType: z.string(),
@@ -203,39 +211,45 @@ export const outputSchema: z.ZodType<ToolResultOutput> = z.discriminatedUnion(
             providerOptions: providerMetadataSchema.optional(),
           }),
           z.object({
+            // Deprecated.
             type: z.literal('file-url'),
             url: z.string(),
-            // Temporarily optional. TODO: make required in v8, after migration period.
             mediaType: z.string().optional(),
             providerOptions: providerMetadataSchema.optional(),
           }),
           z.object({
+            // Deprecated.
             type: z.literal('file-id'),
             fileId: z.union([z.string(), z.record(z.string(), z.string())]),
             providerOptions: providerMetadataSchema.optional(),
           }),
           z.object({
+            // Deprecated.
             type: z.literal('file-reference'),
             providerReference: z.record(z.string(), z.string()),
             providerOptions: providerMetadataSchema.optional(),
           }),
           z.object({
+            // Deprecated.
             type: z.literal('image-data'),
             data: z.string(),
             mediaType: z.string(),
             providerOptions: providerMetadataSchema.optional(),
           }),
           z.object({
+            // Deprecated.
             type: z.literal('image-url'),
             url: z.string(),
             providerOptions: providerMetadataSchema.optional(),
           }),
           z.object({
+            // Deprecated.
             type: z.literal('image-file-id'),
             fileId: z.union([z.string(), z.record(z.string(), z.string())]),
             providerOptions: providerMetadataSchema.optional(),
           }),
           z.object({
+            // Deprecated.
             type: z.literal('image-file-reference'),
             providerReference: z.record(z.string(), z.string()),
             providerOptions: providerMetadataSchema.optional(),

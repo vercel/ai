@@ -554,26 +554,28 @@ The deprecated tool result content part of `{ type: 'media' }` has been removed 
 
 Use `{ type: 'file-data' }` for all inline file content, including images.
 
-### Tool Result Content: Migrate Away From `image-*` and `*-id` Variants
+### Tool Result Content: Migrate Away From `image-*` and `file-*` variants to `file`
 
-The `image-*` content part types and the `file-id` / `image-file-id` types are deprecated in AI SDK 7. Auto-migration is applied at runtime, so existing tool outputs continue to work without code changes. However, updating to the new types is recommended.
+All `image-*` and legacy `file-*` content part types for `toModelOutput` results are deprecated in AI SDK 7 in favor of a single canonical `file` variant that mirrors the top-level `FilePart` shape. Auto-migration is applied at runtime, so existing tool outputs continue to work without code changes. However, updating to the new shape is recommended.
 
-Images are just files with an image media type, so the general `file-*` types cover all cases:
+The new shape carries a tagged `data` discriminated union, and it always has `mediaType`:
 
-- `{ type: 'image-data', data, mediaType }` → `{ type: 'file-data', data, mediaType }` (same fields)
-- `{ type: 'image-url', url }` → `{ type: 'file-url', url, mediaType: 'image/jpeg' }` (add the appropriate `mediaType`)
-- `{ type: 'image-file-reference', providerReference }` → `{ type: 'file-reference', providerReference }`
+- `{ type: 'file-data', data, mediaType, filename? }` → `{ type: 'file', mediaType, filename, data: { type: 'data', data } }`
+- `{ type: 'file-url', url, mediaType }` → `{ type: 'file', mediaType, data: { type: 'url', url: new URL(url) } }`
+- `{ type: 'file-reference', providerReference }` → `{ type: 'file', mediaType, data: { type: 'reference', reference: providerReference } }`
 
-`ProviderReference` is a provider-to-file-ID map (for example `{ openai: 'file_123', anthropic: 'file_abc' }`) that lets the same logical file be reused across providers. Where supported, upload files to the provider first and reference them for inference. The `file-id` / `image-file-id` types, which held a single ID, are replaced by `file-reference`:
+Images are just files with an image media type, so the `image-*` aliases collapse into the same shape — pass `mediaType: 'image'` (or a more specific `image/*` subtype) instead:
 
-- `{ type: 'file-id', fileId }` → `{ type: 'file-reference', providerReference }`
-- `{ type: 'image-file-id', fileId }` → `{ type: 'file-reference', providerReference }` (skip the intermediate step)
+- `{ type: 'image-data', data, mediaType }` → `{ type: 'file', mediaType, data: { type: 'data', data } }`
+- `{ type: 'image-url', url }` → `{ type: 'file', mediaType: 'image', data: { type: 'url', url: new URL(url) } }`
+- `{ type: 'image-file-reference', providerReference }` → `{ type: 'file', mediaType: 'image', data: { type: 'reference', reference: providerReference } }`
 
-Note that `file-url` now requires a `mediaType` field so providers can correctly determine how to handle the file. Update parsing/validation and discriminated unions to use the replacement types:
+The `-id` content part types (`file-id` and `image-file-id`) are also generally deprecated in favor of the `reference` data shape, which carries a full `ProviderReference` (a provider-to-file-ID map like `{ openai: 'file_123', anthropic: 'file_abc' }`) that lets the same logical file be reused across providers. The single-ID `-id` variants required the runtime to know which provider the ID belonged to; the explicit reference shape removes that ambiguity:
 
-- `file-data` (replaces `image-data`)
-- `file-url` (replaces `image-url`) — now requires `mediaType`
-- `file-reference` (replaces `image-file-reference`, `file-id`, `image-file-id`)
+- `{ type: 'file-id', fileId }` → `{ type: 'file', mediaType, data: { type: 'reference', reference: { [provider]: fileId } } }`
+- `{ type: 'image-file-id', fileId }` → `{ type: 'file', mediaType: 'image', data: { type: 'reference', reference: { [provider]: fileId } } }`
+
+`mediaType` on the new `file` variant accepts either a full IANA type (e.g. `'image/png'`) or just a top-level segment (e.g. `'image'`, `'audio'`, `'video'`, `'text'`). When only a top-level segment is provided, the subtype is auto-detected from inline bytes where possible. Update parsing/validation and discriminated unions to handle the single canonical `file` variant.
 
 ### Message Parts: Migrate Away From Deprecated `image` Part
 

@@ -570,17 +570,100 @@ function mapToolResultOutput({
     type: 'content',
     value: output.value.map(item => {
       switch (item.type) {
+        case 'file': {
+          const { data, mediaType } = convertToLanguageModelV4FilePart(
+            item.data,
+          );
+          return {
+            type: 'file' as const,
+            data,
+            filename: item.filename,
+            mediaType: mediaType ?? item.mediaType,
+            providerOptions: item.providerOptions,
+          };
+        }
+        case 'file-data': {
+          warnings.push({
+            type: 'deprecated',
+            setting: '"tool-result" content of type "file-data"',
+            message: `The "file-data" type for tool result content is deprecated. Use the "file" type with mediaType and { type: 'data', data } instead.`,
+          });
+          return {
+            type: 'file' as const,
+            data: { type: 'data' as const, data: item.data },
+            filename: item.filename,
+            mediaType: item.mediaType,
+            providerOptions: item.providerOptions,
+          };
+        }
+        case 'file-url': {
+          const mediaType = item.mediaType ?? getMediaTypeFromUrl(item.url);
+          let message = `The "file-url" type for tool result content is deprecated. Use the "file" type with mediaType and { type: 'url', url } instead.`;
+          if (!item.mediaType) {
+            const inferenceSuffix =
+              mediaType === 'application/octet-stream'
+                ? `Unable to infer media type from URL. Defaulting to 'application/octet-stream'.`
+                : `Inferred media type '${mediaType}' from URL.`;
+            message = `The "file-url" tool result content part with URL "${item.url}" is missing a "mediaType". ${inferenceSuffix} ${message}`;
+          }
+          warnings.push({
+            type: 'deprecated',
+            setting: '"tool-result" content of type "file-url"',
+            message,
+          });
+          return {
+            type: 'file' as const,
+            data: { type: 'url' as const, url: new URL(item.url) },
+            mediaType,
+            providerOptions: item.providerOptions,
+          };
+        }
+        case 'file-id': {
+          warnings.push({
+            type: 'deprecated',
+            setting: '"tool-result" content of type "file-id"',
+            message: `The "file-id" type for tool result content is deprecated. Use the "file" type with mediaType and { type: 'reference', reference } instead.`,
+          });
+          return {
+            type: 'file' as const,
+            data: {
+              type: 'reference' as const,
+              reference: convertFileIdToProviderReference({
+                fileId: item.fileId,
+                provider,
+              }),
+            },
+            mediaType: 'application',
+            providerOptions: item.providerOptions,
+          };
+        }
+        case 'file-reference': {
+          warnings.push({
+            type: 'deprecated',
+            setting: '"tool-result" content of type "file-reference"',
+            message: `The "file-reference" type for tool result content is deprecated. Use the "file" type with mediaType and { type: 'reference', reference } instead.`,
+          });
+          return {
+            type: 'file' as const,
+            data: {
+              type: 'reference' as const,
+              reference: item.providerReference,
+            },
+            mediaType: 'application',
+            providerOptions: item.providerOptions,
+          };
+        }
         // The "image-*" types are legacy and deprecated.
         // TODO: remove migration in v8 in combination with the removal of these types from the provider utils.
         case 'image-data': {
           warnings.push({
             type: 'deprecated',
             setting: '"tool-result" content of type "image-data"',
-            message: `The "image-data" type for tool result content is deprecated. Use the "file-data" type instead.`,
+            message: `The "image-data" type for tool result content is deprecated. Use the "file" type with mediaType and { type: 'data', data } instead.`,
           });
           return {
-            type: 'file-data' as const,
-            data: item.data,
+            type: 'file' as const,
+            data: { type: 'data' as const, data: item.data },
             mediaType: item.mediaType,
             providerOptions: item.providerOptions,
           };
@@ -589,12 +672,12 @@ function mapToolResultOutput({
           warnings.push({
             type: 'deprecated',
             setting: '"tool-result" content of type "image-url"',
-            message: `The "image-url" type for tool result content is deprecated. Use the "file-url" type instead.`,
+            message: `The "image-url" type for tool result content is deprecated. Use the "file" type with mediaType 'image' (or a specific image/* subtype) and { type: 'url', url } instead.`,
           });
           return {
-            type: 'file-url' as const,
-            url: item.url,
-            mediaType: getMediaTypeFromUrl(item.url, 'image/*'),
+            type: 'file' as const,
+            data: { type: 'url' as const, url: new URL(item.url) },
+            mediaType: 'image',
             providerOptions: item.providerOptions,
           };
         }
@@ -602,14 +685,18 @@ function mapToolResultOutput({
           warnings.push({
             type: 'deprecated',
             setting: '"tool-result" content of type "image-file-id"',
-            message: `The "image-file-id" type for tool result content is deprecated. Use the "file-reference" type instead.`,
+            message: `The "image-file-id" type for tool result content is deprecated. Use the "file" type with mediaType and { type: 'reference', reference } instead.`,
           });
           return {
-            type: 'file-reference' as const,
-            providerReference: convertFileIdToProviderReference({
-              fileId: item.fileId,
-              provider,
-            }),
+            type: 'file' as const,
+            data: {
+              type: 'reference' as const,
+              reference: convertFileIdToProviderReference({
+                fileId: item.fileId,
+                provider,
+              }),
+            },
+            mediaType: 'image',
             providerOptions: item.providerOptions,
           };
         }
@@ -617,49 +704,15 @@ function mapToolResultOutput({
           warnings.push({
             type: 'deprecated',
             setting: '"tool-result" content of type "image-file-reference"',
-            message: `The "image-file-reference" type for tool result content is deprecated. Use the "file-reference" type instead.`,
+            message: `The "image-file-reference" type for tool result content is deprecated. Use the "file" type with mediaType and { type: 'reference', reference } instead.`,
           });
           return {
-            type: 'file-reference' as const,
-            providerReference: item.providerReference,
-            providerOptions: item.providerOptions,
-          };
-        }
-        case 'file-id': {
-          warnings.push({
-            type: 'deprecated',
-            setting: '"tool-result" content of type "file-id"',
-            message: `The "file-id" type for tool result content is deprecated. Use the "file-reference" type instead.`,
-          });
-          return {
-            type: 'file-reference' as const,
-            providerReference: convertFileIdToProviderReference({
-              fileId: item.fileId,
-              provider,
-            }),
-            providerOptions: item.providerOptions,
-          };
-        }
-        case 'file-url': {
-          const mediaType = item.mediaType ?? getMediaTypeFromUrl(item.url);
-          if (!item.mediaType) {
-            const messageSuffix =
-              mediaType === 'application/octet-stream'
-                ? `Unable to infer media type from URL. Defaulting to 'application/octet-stream'.`
-                : `Inferred media type '${mediaType}' from URL.`;
-            warnings.push({
-              type: 'deprecated',
-              setting:
-                '"tool-result" content of type "file-url" without mediaType',
-              message:
-                `The "file-url" tool result content part with URL "${item.url}" is missing a "mediaType". ` +
-                messageSuffix,
-            });
-          }
-          return {
-            type: 'file-url' as const,
-            url: item.url,
-            mediaType,
+            type: 'file' as const,
+            data: {
+              type: 'reference' as const,
+              reference: item.providerReference,
+            },
+            mediaType: 'image',
             providerOptions: item.providerOptions,
           };
         }
@@ -692,7 +745,6 @@ function convertFileIdToProviderReference({
 }
 
 // Temporary private helper (see below).
-// TODO: remove in v8
 const URL_EXTENSION_TO_MEDIA_TYPE: Record<string, string> = {
   jpg: 'image/jpeg',
   jpeg: 'image/jpeg',
@@ -719,7 +771,6 @@ const URL_EXTENSION_TO_MEDIA_TYPE: Record<string, string> = {
  * unrecognized, or the URL cannot be parsed.
  *
  * Temporary private helper as a best-effort solution for missing media types on "file-url" content parts.
- * TODO: remove in v8 when "file-url" content parts are required to have media types, after a migration period.
  */
 function getMediaTypeFromUrl(
   url: string,

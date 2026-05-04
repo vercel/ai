@@ -34,9 +34,12 @@ run(async () => {
             type: 'content',
             value: [
               {
-                type: 'file-data',
-                data: Buffer.from(output.bytes).toString('base64'),
+                type: 'file',
                 mediaType: 'image/jpeg',
+                data: {
+                  type: 'data',
+                  data: Buffer.from(output.bytes).toString('base64'),
+                },
               },
             ],
           };

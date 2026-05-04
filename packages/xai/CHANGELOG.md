@@ -1,5 +1,38 @@
 # @ai-sdk/xai
 
+## 4.0.0-canary.52
+
+### Patch Changes
+
+- Updated dependencies [5463d0d]
+  - @ai-sdk/provider-utils@5.0.0-canary.32
+  - @ai-sdk/provider@4.0.0-canary.16
+  - @ai-sdk/openai-compatible@3.0.0-canary.39
+
+## 4.0.0-canary.51
+
+### Patch Changes
+
+- Updated dependencies [cd9c311]
+  - @ai-sdk/openai-compatible@3.0.0-canary.38
+
+## 4.0.0-canary.50
+
+### Patch Changes
+
+- 0c4c275: trigger initial canary release
+- Updated dependencies [0c4c275]
+  - @ai-sdk/openai-compatible@3.0.0-canary.37
+  - @ai-sdk/provider-utils@5.0.0-canary.31
+  - @ai-sdk/provider@4.0.0-canary.15
+
+## 4.0.0-beta.49
+
+### Patch Changes
+
+- Updated dependencies [e59c955]
+  - @ai-sdk/openai-compatible@3.0.0-beta.36
+
 ## 4.0.0-beta.48
 
 ### Major Changes

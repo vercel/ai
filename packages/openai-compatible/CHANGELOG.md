@@ -1,5 +1,34 @@
 # @ai-sdk/openai-compatible
 
+## 3.0.0-canary.39
+
+### Patch Changes
+
+- Updated dependencies [5463d0d]
+  - @ai-sdk/provider-utils@5.0.0-canary.32
+  - @ai-sdk/provider@4.0.0-canary.16
+
+## 3.0.0-canary.38
+
+### Patch Changes
+
+- cd9c311: fix(openai, openai-compatible): only send null content for assistant messages with tool calls
+
+## 3.0.0-canary.37
+
+### Patch Changes
+
+- 0c4c275: trigger initial canary release
+- Updated dependencies [0c4c275]
+  - @ai-sdk/provider-utils@5.0.0-canary.31
+  - @ai-sdk/provider@4.0.0-canary.15
+
+## 3.0.0-beta.36
+
+### Patch Changes
+
+- e59c955: feat(vertex): add grok models to vertex provider
+
 ## 3.0.0-beta.35
 
 ### Major Changes

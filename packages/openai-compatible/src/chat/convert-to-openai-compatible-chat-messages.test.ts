@@ -532,6 +532,25 @@ describe('tool calls', () => {
     ]);
   });
 
+  it('should send empty string content for assistant messages with no tool calls', () => {
+    const result = convertToOpenAICompatibleChatMessages([
+      {
+        role: 'assistant',
+        content: [{ type: 'text', text: '' }],
+      },
+    ]);
+
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "content": "",
+          "role": "assistant",
+          "tool_calls": undefined,
+        },
+      ]
+    `);
+  });
+
   it('should handle text output type in tool results', () => {
     const result = convertToOpenAICompatibleChatMessages([
       {
