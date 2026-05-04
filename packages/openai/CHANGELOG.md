@@ -1,5 +1,14 @@
 # @ai-sdk/openai
 
+## 4.0.0-canary.47
+
+### Patch Changes
+
+- 5463d0d: feat(provider): align tool result output content file part types with top-level message file part types
+- Updated dependencies [5463d0d]
+  - @ai-sdk/provider-utils@5.0.0-canary.32
+  - @ai-sdk/provider@4.0.0-canary.16
+
 ## 4.0.0-canary.46
 
 ### Patch Changes

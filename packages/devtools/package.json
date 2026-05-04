@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/devtools",
-  "version": "1.0.0-canary.20",
+  "version": "1.0.0-canary.21",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
