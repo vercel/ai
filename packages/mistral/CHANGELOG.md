@@ -1,5 +1,11 @@
 # @ai-sdk/mistral
 
+## 4.0.0-canary.35
+
+### Patch Changes
+
+- 8abd80f: Map cached token counts from Mistral API usage response. Previously all prompt tokens were reported as noCacheTokens, ignoring the `num_cached_tokens`, `prompt_tokens_details.cached_tokens`, and `prompt_token_details.cached_tokens` fields returned by Mistral.
+
 ## 4.0.0-canary.34
 
 ### Patch Changes

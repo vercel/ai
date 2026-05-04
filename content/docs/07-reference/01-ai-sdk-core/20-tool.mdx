@@ -16,6 +16,13 @@ For the full model of `runtimeContext`, `toolsContext`, tool `context`, and
 sensitive context filtering, see [Runtime and Tool
 Context](/docs/ai-sdk-core/runtime-and-tool-context).
 
+The `Tool` type is a union of four tool kinds:
+
+- `FunctionTool`: a user-defined function-style tool with known input and output types.
+- `DynamicTool`: a function-style tool defined at runtime, with `unknown` input and output types.
+- `ProviderDefinedTool`: a provider-defined tool that your code executes.
+- `ProviderExecutedTool`: a provider-defined tool that the provider executes.
+
 ```ts highlight={"1,4,9,10"}
 import { tool } from 'ai';
 import { z } from 'zod';
@@ -196,30 +203,37 @@ export const weatherTool = tool({
             {
               name: 'type',
               isOptional: true,
-              type: "'function' | 'provider-defined'",
+              type: "'function' | 'dynamic' | 'provider'",
               description:
-                'The type of the tool. Defaults to "function" for regular tools. Use "provider-defined" for provider-specific tools.',
+                'The type of the tool. Defaults to "function" for regular tools. Use "dynamic" for tools defined at runtime and "provider" for provider-specific tools.',
             },
             {
               name: 'id',
               isOptional: true,
-              type: 'string',
+              type: '`${string}.${string}`',
               description:
-                'The ID of the tool for provider-defined tools. Should follow the format `<provider-name>.<unique-tool-name>`. Required when type is "provider-defined".',
+                'The ID of a provider tool. Must follow the format `<provider-name>.<unique-tool-name>`. Required when type is "provider".',
             },
             {
-              name: 'name',
+              name: 'isProviderExecuted',
               isOptional: true,
-              type: 'string',
+              type: 'boolean',
               description:
-                'The name of the tool that the user must use in the tool set. Required when type is "provider-defined".',
+                'Whether a provider tool is executed by the provider. Set to `false` for `ProviderDefinedTool` and `true` for `ProviderExecutedTool`. Required when type is "provider".',
             },
             {
               name: 'args',
               isOptional: true,
               type: 'Record<string, unknown>',
               description:
-                'The arguments for configuring the tool. Must match the expected arguments defined by the provider for this tool. Required when type is "provider-defined".',
+                'The arguments for configuring a provider tool. Must match the expected arguments defined by the provider for this tool. Required when type is "provider".',
+            },
+            {
+              name: 'supportsDeferredResults',
+              isOptional: true,
+              type: 'boolean',
+              description:
+                'Whether a provider-executed tool supports results that arrive without a matching tool call in the current response. Only available for `ProviderExecutedTool`.',
             },
           ],
         },

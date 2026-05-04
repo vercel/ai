@@ -7,6 +7,7 @@ import {
   type LanguageModelV4Usage,
 } from '@ai-sdk/provider';
 import {
+  DelayedPromise,
   dynamicTool,
   jsonSchema,
   tool,
@@ -4949,6 +4950,38 @@ describe('generateText', () => {
       });
 
       expect(receivedAbortSignal).toBeDefined();
+    });
+
+    it('should abort when step timeout expires', async () => {
+      let receivedAbortSignal: AbortSignal | undefined;
+      const delayedPromise = new DelayedPromise<void>();
+
+      const generatePromise = generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async ({ abortSignal }) => {
+            receivedAbortSignal = abortSignal;
+            await delayedPromise.promise;
+            return {
+              ...dummyResponseValues,
+              content: [{ type: 'text', text: 'Hello, world!' }],
+            };
+          },
+        }),
+        prompt: 'test-input',
+        timeout: { stepMs: 50 },
+        maxRetries: 0,
+      });
+
+      // Advance time past the step timeout — fires stepAbortController.abort(...)
+      await vi.advanceTimersByTimeAsync(100);
+
+      // Allow doGenerate to complete so the test cleans up
+      delayedPromise.resolve(undefined);
+
+      await generatePromise.catch(() => {});
+
+      expect(receivedAbortSignal?.aborted).toBe(true);
+      expect((receivedAbortSignal?.reason as Error)?.name).toBe('TimeoutError');
     });
   });
 
