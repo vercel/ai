@@ -507,6 +507,48 @@ Tool call spans (`execute_tool {toolName}`) are nested under the step span and c
 - `gen_ai.tool.call.arguments`: the input arguments (stringified JSON, when `recordInputs` is enabled)
 - `gen_ai.tool.call.result`: the output result (stringified JSON, when `recordOutputs` is enabled). Only set when the tool call succeeds.
 
+### Custom OpenTelemetry span attributes
+
+Use `enrichSpanAttributes` to add custom attributes to spans created by the
+`OpenTelemetry` integration. This is useful when an observability backend needs
+vendor-specific attributes that are not AI SDK-owned semantics.
+
+```ts
+import { registerTelemetry } from 'ai';
+import { OpenTelemetry } from '@ai-sdk/otel';
+
+registerTelemetry(
+  new OpenTelemetry({
+    enrichSpanAttributes: ({
+      spanType,
+      operationId,
+      callId,
+      runtimeContext,
+    }) => {
+      return {
+        ...getCustomAttributes(runtimeContext, spanType),
+        'my_app.operation_id': operationId,
+        'my_app.call_id': callId,
+      };
+    },
+  }),
+);
+```
+
+The callback runs when each span is created and receives:
+
+- `spanType`: the type of span being created (`operation`, `step`, `languageModel`, `tool`, `embedding`, or `reranking`).
+- `operationId`: the AI SDK operation ID for the current call, such as `ai.generateText` or `ai.streamText`.
+- `callId`: the unique ID for the current AI SDK call.
+- `runtimeContext`: the telemetry-filtered runtime context for text generation spans, including updates from `prepareStep`.
+
+Custom attributes are merged with AI SDK attributes on the span. AI SDK-owned
+attributes take precedence when a custom attribute uses the same key.
+
+`sensitiveRuntimeContext` is applied before telemetry integrations receive
+`runtimeContext`, so custom span enrichment does not receive top-level runtime
+context properties marked as sensitive.
+
 ### Supplemental AI SDK attributes on OpenTelemetry spans
 
 The GenAI semantic conventions cover the core model, prompt, response, tool call, and usage data. You can opt into additional AI SDK-specific attributes for data that is not represented by GenAI semantics:

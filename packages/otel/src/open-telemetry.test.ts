@@ -7,7 +7,7 @@ import {
   type Tracer,
 } from '@opentelemetry/api';
 import type { Telemetry } from 'ai';
-import { OpenTelemetry } from './open-telemetry';
+import { OpenTelemetry, type EnrichSpanAttributes } from './open-telemetry';
 
 type MockSpan = Span & {
   name: string;
@@ -930,6 +930,128 @@ describe('OpenTelemetry', () => {
           },
           "name": "rerank gpt-4",
           "runtimeAttributes": {},
+        }
+      `);
+    });
+  });
+
+  describe('enrichSpanAttributes', () => {
+    it('adds custom attributes to created spans', () => {
+      const enrichSpanAttributes = vi.fn<EnrichSpanAttributes>(
+        ({ spanType, runtimeContext }) => {
+          const userId = runtimeContext?.userId;
+
+          return {
+            'custom.span_type': spanType,
+            ...(typeof userId === 'string' ? { 'custom.user_id': userId } : {}),
+            'gen_ai.operation.name': 'custom_operation',
+          };
+        },
+      );
+
+      integration = new OpenTelemetry({
+        tracer,
+        enrichSpanAttributes,
+      });
+
+      integration.onStart!(
+        makeOnStartEvent({
+          runtimeContext: { userId: 'root-user' },
+        }),
+      );
+      integration.onStepStart!(
+        makeStepStartEvent({
+          runtimeContext: { userId: 'step-user' },
+        }),
+      );
+      integration.onLanguageModelCallStart!(makeLanguageModelCallStartEvent());
+      integration.onToolExecutionStart!(makeToolCallStartEvent());
+
+      expect(tracer.spans.map(span => getSpanStartAttributes(tracer, span)))
+        .toMatchInlineSnapshot(`
+        [
+          {
+            "custom.span_type": "operation",
+            "custom.user_id": "root-user",
+            "gen_ai.input.messages": "[{"role":"user","parts":[{"type":"text","content":"Hello"}]}]",
+            "gen_ai.operation.name": "invoke_agent",
+            "gen_ai.provider.name": "openai",
+            "gen_ai.request.max_tokens": 100,
+            "gen_ai.request.model": "gpt-4",
+            "gen_ai.request.temperature": 0.7,
+          },
+          {
+            "custom.span_type": "step",
+            "custom.user_id": "step-user",
+            "gen_ai.operation.name": "agent_step",
+          },
+          {
+            "custom.span_type": "languageModel",
+            "custom.user_id": "step-user",
+            "gen_ai.operation.name": "chat",
+            "gen_ai.provider.name": "openai",
+            "gen_ai.request.max_tokens": 100,
+            "gen_ai.request.model": "gpt-4",
+            "gen_ai.request.temperature": 0.7,
+          },
+          {
+            "custom.span_type": "tool",
+            "custom.user_id": "step-user",
+            "gen_ai.operation.name": "execute_tool",
+            "gen_ai.tool.call.arguments": "{"query":"test"}",
+            "gen_ai.tool.call.id": "tool-call-1",
+            "gen_ai.tool.name": "myTool",
+            "gen_ai.tool.type": "function",
+          },
+        ]
+      `);
+
+      expect(enrichSpanAttributes.mock.calls.map(([args]) => args)).toEqual([
+        {
+          callId,
+          operationId: 'ai.generateText',
+          runtimeContext: { userId: 'root-user' },
+          spanType: 'operation',
+        },
+        {
+          callId,
+          operationId: 'ai.generateText',
+          runtimeContext: { userId: 'step-user' },
+          spanType: 'step',
+        },
+        {
+          callId,
+          operationId: 'ai.generateText',
+          runtimeContext: { userId: 'step-user' },
+          spanType: 'languageModel',
+        },
+        {
+          callId,
+          operationId: 'ai.generateText',
+          runtimeContext: { userId: 'step-user' },
+          spanType: 'tool',
+        },
+      ]);
+    });
+
+    it('ignores enrichment callback errors', () => {
+      integration = new OpenTelemetry({
+        tracer,
+        enrichSpanAttributes: () => {
+          throw new Error('custom attribute failure');
+        },
+      });
+
+      integration.onStart!(makeOnStartEvent());
+
+      expect(getStartSpanAttributes(tracer, 0)).toMatchInlineSnapshot(`
+        {
+          "gen_ai.input.messages": "[{"role":"user","parts":[{"type":"text","content":"Hello"}]}]",
+          "gen_ai.operation.name": "invoke_agent",
+          "gen_ai.provider.name": "openai",
+          "gen_ai.request.max_tokens": 100,
+          "gen_ai.request.model": "gpt-4",
+          "gen_ai.request.temperature": 0.7,
         }
       `);
     });
