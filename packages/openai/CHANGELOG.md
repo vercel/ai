@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 3.0.60
+
+### Patch Changes
+
+- 6dcd8e6: feat(openai): add GPT-5.5 chat model IDs
+
 ## 3.0.59
 
 ### Patch Changes
