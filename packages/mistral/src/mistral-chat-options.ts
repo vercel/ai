@@ -7,12 +7,14 @@ export type MistralChatModelId =
   | 'ministral-14b-latest'
   | 'mistral-large-latest'
   | 'mistral-medium-latest'
+  | 'mistral-medium-3'
   | 'mistral-large-2512'
   | 'mistral-medium-2508'
   | 'mistral-medium-2505'
   | 'mistral-small-2506'
   | 'pixtral-large-latest'
   // reasoning config support models
+  | 'mistral-medium-3.5'
   | 'mistral-small-latest'
   | 'mistral-small-2603'
   // reasoning models
