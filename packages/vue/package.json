@@ -1,10 +1,10 @@
 {
   "name": "@ai-sdk/vue",
-  "version": "4.0.0-beta.75",
+  "version": "4.0.0-canary.117",
+  "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
-  "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "scripts": {
     "build": "pnpm clean && tsup --tsconfig tsconfig.build.json",
@@ -19,8 +19,8 @@
     "./package.json": "./package.json",
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.mjs",
-      "require": "./dist/index.js"
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
     }
   },
   "files": [
@@ -51,7 +51,7 @@
     "msw": "2.6.4",
     "tsup": "^7.2.0",
     "typescript": "5.8.3",
-    "vitest": "^4.1.0",
+    "vitest": "^4.1.5",
     "zod": "3.25.76"
   },
   "peerDependencies": {
@@ -61,12 +61,14 @@
     "node": ">=18"
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "provenance": true
   },
   "homepage": "https://ai-sdk.dev/docs",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/vercel/ai.git"
+    "url": "https://github.com/vercel/ai",
+    "directory": "packages/vue"
   },
   "bugs": {
     "url": "https://github.com/vercel/ai/issues"

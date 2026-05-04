@@ -1,4 +1,4 @@
-import { JSONObject } from '@ai-sdk/provider';
+import type { JSONObject } from '@ai-sdk/provider';
 
 /**
  * Represents a single iteration in the usage breakdown.
@@ -21,9 +21,6 @@ export interface AnthropicUsageIteration {
 
 export interface AnthropicMessageMetadata {
   usage: JSONObject;
-  // TODO remove cacheCreationInputTokens in AI SDK 6
-  // (use value in usage object instead)
-  cacheCreationInputTokens: number | null;
   stopSequence: string | null;
 
   /**

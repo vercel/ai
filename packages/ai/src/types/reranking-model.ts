@@ -1,4 +1,4 @@
-import { RerankingModelV3, RerankingModelV4 } from '@ai-sdk/provider';
+import type { RerankingModelV3, RerankingModelV4 } from '@ai-sdk/provider';
 
 /**
  * Reranking model that is used by the AI SDK.

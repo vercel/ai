@@ -1,4 +1,4 @@
-import { huggingface } from '@ai-sdk/huggingface';
+import { huggingFace } from '@ai-sdk/huggingface';
 import { generateText, streamText, Output } from 'ai';
 import { describe, it, expect } from 'vitest';
 import { z } from 'zod/v4';
@@ -7,7 +7,7 @@ import 'dotenv/config';
 describe('HuggingFace Provider', () => {
   it('should generate text', async () => {
     const result = await generateText({
-      model: huggingface('meta-llama/Llama-3.1-8B-Instruct'),
+      model: huggingFace('meta-llama/Llama-3.1-8B-Instruct'),
       prompt: 'Say hello',
     });
 
@@ -18,7 +18,7 @@ describe('HuggingFace Provider', () => {
 
   it('should stream text', async () => {
     const result = streamText({
-      model: huggingface('meta-llama/Llama-3.1-8B-Instruct'),
+      model: huggingFace('meta-llama/Llama-3.1-8B-Instruct'),
       prompt: 'Count from 1 to 3',
     });
 
@@ -33,7 +33,7 @@ describe('HuggingFace Provider', () => {
 
   it('should generate object', async () => {
     const result = await generateText({
-      model: huggingface.responses('moonshotai/Kimi-K2-Instruct'),
+      model: huggingFace.responses('moonshotai/Kimi-K2-Instruct'),
       output: Output.object({
         schema: z.object({
           name: z.string(),
@@ -52,7 +52,7 @@ describe('HuggingFace Provider', () => {
 
   it('should stream object', async () => {
     const result = streamText({
-      model: huggingface.responses('moonshotai/Kimi-K2-Instruct'),
+      model: huggingFace.responses('moonshotai/Kimi-K2-Instruct'),
       output: Output.object({
         schema: z.object({
           items: z.array(z.string()),
@@ -72,7 +72,7 @@ describe('HuggingFace Provider', () => {
 
   it('should handle multi-message conversations', async () => {
     const result = await generateText({
-      model: huggingface('meta-llama/Llama-3.1-8B-Instruct'),
+      model: huggingFace('meta-llama/Llama-3.1-8B-Instruct'),
       messages: [
         { role: 'user', content: 'Hello' },
         { role: 'assistant', content: 'Hi there! How can I help you?' },
@@ -86,7 +86,7 @@ describe('HuggingFace Provider', () => {
 
   it('should handle system messages', async () => {
     const result = await generateText({
-      model: huggingface('meta-llama/Llama-3.1-8B-Instruct'),
+      model: huggingFace('meta-llama/Llama-3.1-8B-Instruct'),
       system:
         'You are a helpful assistant that responds with exactly one word.',
       prompt: 'Say hello',
@@ -98,7 +98,7 @@ describe('HuggingFace Provider', () => {
 
   it('should respect temperature settings', async () => {
     const result = await generateText({
-      model: huggingface('meta-llama/Llama-3.1-8B-Instruct'),
+      model: huggingFace('meta-llama/Llama-3.1-8B-Instruct'),
       prompt: 'Generate a random number',
       temperature: 0.1,
     });
@@ -109,7 +109,7 @@ describe('HuggingFace Provider', () => {
 
   it('should respect max tokens', async () => {
     const result = await generateText({
-      model: huggingface('meta-llama/Llama-3.1-8B-Instruct'),
+      model: huggingFace('meta-llama/Llama-3.1-8B-Instruct'),
       prompt: 'Write a long story',
       maxOutputTokens: 10,
     });

@@ -1,10 +1,10 @@
-import { LanguageModelV4Usage } from '@ai-sdk/provider';
+import type { LanguageModelV4Usage } from '@ai-sdk/provider';
 import { delay } from '@ai-sdk/provider-utils';
 import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
 import { asLanguageModelUsage } from 'ai/internal';
 import { MockLanguageModelV4 } from 'ai/test';
 import React from 'react';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
 import { streamUI } from './stream-ui';
 
@@ -111,6 +111,14 @@ const mockToolModel = new MockLanguageModelV4({
 });
 
 describe('result.value', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('should render text', async () => {
     const result = await streamUI({
       model: mockTextModel,
@@ -150,7 +158,9 @@ describe('result.value', () => {
       },
     });
 
-    const rendered = await simulateFlightServerRender(result.value);
+    const renderedPromise = simulateFlightServerRender(result.value);
+    await vi.runAllTimersAsync();
+    const rendered = await renderedPromise;
     expect(rendered).toMatchSnapshot();
   });
 
@@ -173,7 +183,9 @@ describe('result.value', () => {
       },
     });
 
-    const rendered = await simulateFlightServerRender(result.value);
+    const renderedPromise = simulateFlightServerRender(result.value);
+    await vi.runAllTimersAsync();
+    const rendered = await renderedPromise;
     expect(rendered).toMatchSnapshot();
   });
 
@@ -205,6 +217,8 @@ describe('rsc - streamUI() onFinish callback', () => {
   >[0];
 
   beforeEach(async () => {
+    vi.useFakeTimers();
+
     const ui = await streamUI({
       model: mockToolModel,
       prompt: '',
@@ -226,7 +240,13 @@ describe('rsc - streamUI() onFinish callback', () => {
     });
 
     // consume stream
-    await simulateFlightServerRender(ui.value);
+    const renderPromise = simulateFlightServerRender(ui.value);
+    await vi.runAllTimersAsync();
+    await renderPromise;
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it('should contain token usage', () => {

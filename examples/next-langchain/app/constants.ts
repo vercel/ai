@@ -8,9 +8,8 @@ import {
   Activity,
   Image,
   Wand2,
-  LucideIcon,
+  type LucideIcon,
 } from 'lucide-react';
-
 export interface NavItem {
   href: string;
   label: string;

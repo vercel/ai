@@ -44,11 +44,11 @@ The AI SDK abstracts away the differences between model providers, eliminates bo
 At the center of the AI SDK is [AI SDK Core](/docs/ai-sdk-core/overview), which provides a unified API to call any LLM. The code snippet below is all you need to call Llama 3.1 (using [DeepInfra](https://deepinfra.com)) with the AI SDK:
 
 ```ts
-import { deepinfra } from '@ai-sdk/deepinfra';
+import { deepInfra } from '@ai-sdk/deepinfra';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: deepinfra('meta-llama/Meta-Llama-3.1-405B-Instruct'),
+  model: deepInfra('meta-llama/Meta-Llama-3.1-405B-Instruct'),
   prompt: 'What is love?',
 });
 ```
@@ -65,10 +65,10 @@ AI SDK Core abstracts away the differences between model providers, allowing you
 
 ```tsx highlight="2,5"
 import { generateText } from 'ai';
-import { bedrock } from '@ai-sdk/amazon-bedrock';
+import { amazonBedrock } from '@ai-sdk/amazon-bedrock';
 
 const { text } = await generateText({
-  model: bedrock('meta.llama3-1-405b-instruct-v1'),
+  model: amazonBedrock('meta.llama3-1-405b-instruct-v1'),
   prompt: 'What is love?',
 });
 ```
@@ -79,10 +79,10 @@ To stream the model's response as it's being generated, update your code snippet
 
 ```tsx
 import { streamText } from 'ai';
-import { deepinfra } from '@ai-sdk/deepinfra';
+import { deepInfra } from '@ai-sdk/deepinfra';
 
 const { textStream } = streamText({
-  model: deepinfra('meta-llama/Meta-Llama-3.1-405B-Instruct'),
+  model: deepInfra('meta-llama/Meta-Llama-3.1-405B-Instruct'),
   prompt: 'What is love?',
 });
 ```
@@ -93,11 +93,11 @@ While text generation can be useful, you might want to generate structured JSON 
 
 ```ts
 import { generateText, Output } from 'ai';
-import { deepinfra } from '@ai-sdk/deepinfra';
+import { deepInfra } from '@ai-sdk/deepinfra';
 import { z } from 'zod';
 
 const { output } = await generateText({
-  model: deepinfra('meta-llama/Meta-Llama-3.1-70B-Instruct'),
+  model: deepInfra('meta-llama/Meta-Llama-3.1-70B-Instruct'),
   output: Output.object({
     schema: z.object({
       recipe: z.object({
@@ -127,11 +127,11 @@ Here's an example of how you can use a tool with the AI SDK and Llama 3.1:
 
 ```ts
 import { generateText, tool } from 'ai';
-import { deepinfra } from '@ai-sdk/deepinfra';
+import { deepInfra } from '@ai-sdk/deepinfra';
 import { z } from 'zod';
 
 const { text } = await generateText({
-  model: deepinfra('meta-llama/Meta-Llama-3.1-70B-Instruct'),
+  model: deepInfra('meta-llama/Meta-Llama-3.1-70B-Instruct'),
   prompt: 'What is the weather like today?',
   tools: {
     getWeather: tool({
@@ -158,13 +158,13 @@ Agents use LLMs to choose the next step in a problem-solving process. They can r
 
 ### Implementing Agents with the AI SDK
 
-The AI SDK supports agent implementation through the `maxSteps` parameter. This allows the model to make multiple decisions and tool calls in a single interaction.
+The AI SDK supports agent implementation through the `stopWhen` parameter and built-in stop conditions. This allows the model to make multiple decisions and tool calls in a single interaction.
 
 Here's an example of an agent that solves math problems:
 
 ```tsx
-import { generateText, tool } from 'ai';
-import { deepinfra } from '@ai-sdk/deepinfra';
+import { generateText, tool, isStepCount } from 'ai';
+import { deepInfra } from '@ai-sdk/deepinfra';
 import * as mathjs from 'mathjs';
 import { z } from 'zod';
 
@@ -172,7 +172,7 @@ const problem =
   'Calculate the profit for a day if revenue is $5000 and expenses are $3500.';
 
 const { text: answer } = await generateText({
-  model: deepinfra('meta-llama/Meta-Llama-3.1-70B-Instruct'),
+  model: deepInfra('meta-llama/Meta-Llama-3.1-70B-Instruct'),
   system:
     'You are solving math problems. Reason step by step. Use the calculator when necessary.',
   prompt: problem,
@@ -183,7 +183,7 @@ const { text: answer } = await generateText({
       execute: async ({ expression }) => mathjs.evaluate(expression),
     }),
   },
-  maxSteps: 5,
+  stopWhen: isStepCount(5),
 });
 ```
 
@@ -200,7 +200,7 @@ With four main hooks — [`useChat`](/docs/reference/ai-sdk-ui/use-chat), [`useC
 Let's explore building a chatbot with [Next.js](https://nextjs.org), the AI SDK, and Llama 3.1 (via [DeepInfra](https://deepinfra.com)):
 
 ```tsx filename="app/api/chat/route.ts"
-import { deepinfra } from '@ai-sdk/deepinfra';
+import { deepInfra } from '@ai-sdk/deepinfra';
 import { convertToModelMessages, streamText, UIMessage } from 'ai';
 
 // Allow streaming responses up to 30 seconds
@@ -210,7 +210,7 @@ export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
 
   const result = streamText({
-    model: deepinfra('meta-llama/Meta-Llama-3.1-70B-Instruct'),
+    model: deepInfra('meta-llama/Meta-Llama-3.1-70B-Instruct'),
     messages: await convertToModelMessages(messages),
   });
 
@@ -278,12 +278,12 @@ First, create a Server Action.
 'use server';
 
 import { streamUI } from '@ai-sdk/rsc';
-import { deepinfra } from '@ai-sdk/deepinfra';
+import { deepInfra } from '@ai-sdk/deepinfra';
 import { z } from 'zod';
 
 export async function streamComponent() {
   const result = await streamUI({
-    model: deepinfra('meta-llama/Meta-Llama-3.1-70B-Instruct'),
+    model: deepInfra('meta-llama/Meta-Llama-3.1-70B-Instruct'),
     prompt: 'Get the weather for San Francisco',
     text: ({ content }) => <div>{content}</div>,
     tools: {
@@ -359,10 +359,10 @@ const { text } = await generateText({
 
 ```tsx
 import { generateText } from 'ai';
-import { deepinfra } from '@ai-sdk/deepinfra';
+import { deepInfra } from '@ai-sdk/deepinfra';
 
 const { text } = await generateText({
-  model: deepinfra('meta-llama/Meta-Llama-3.1-70B-Instruct'),
+  model: deepInfra('meta-llama/Meta-Llama-3.1-70B-Instruct'),
   prompt: 'What is love?',
 });
 ```

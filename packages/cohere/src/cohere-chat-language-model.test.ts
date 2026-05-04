@@ -1,4 +1,4 @@
-import { LanguageModelV4Prompt } from '@ai-sdk/provider';
+import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import {
   convertReadableStreamToArray,
@@ -239,7 +239,10 @@ describe('doGenerate', () => {
               { type: 'text', text: 'What are AI benefits?' },
               {
                 type: 'file',
-                data: 'AI provides automation and efficiency.',
+                data: {
+                  type: 'data' as const,
+                  data: 'AI provides automation and efficiency.',
+                },
                 mediaType: 'text/plain',
                 filename: 'ai-benefits.txt',
               },
@@ -260,7 +263,10 @@ describe('doGenerate', () => {
               { type: 'text', text: 'What does this say?' },
               {
                 type: 'file',
-                data: 'This is a test document.',
+                data: {
+                  type: 'data' as const,
+                  data: 'This is a test document.',
+                },
                 mediaType: 'text/plain',
                 filename: 'test.txt',
               },
@@ -299,13 +305,19 @@ describe('doGenerate', () => {
               { type: 'text', text: 'What do these documents say?' },
               {
                 type: 'file',
-                data: Buffer.from('First document content'),
+                data: {
+                  type: 'data' as const,
+                  data: Buffer.from('First document content'),
+                },
                 mediaType: 'text/plain',
                 filename: 'doc1.txt',
               },
               {
                 type: 'file',
-                data: Buffer.from('Second document content'),
+                data: {
+                  type: 'data' as const,
+                  data: Buffer.from('Second document content'),
+                },
                 mediaType: 'text/plain',
                 filename: 'doc2.txt',
               },
@@ -350,7 +362,10 @@ describe('doGenerate', () => {
               { type: 'text', text: 'What is in this JSON?' },
               {
                 type: 'file',
-                data: Buffer.from('{"key": "value"}'),
+                data: {
+                  type: 'data' as const,
+                  data: Buffer.from('{"key": "value"}'),
+                },
                 mediaType: 'application/json',
                 filename: 'data.json',
               },
@@ -380,27 +395,38 @@ describe('doGenerate', () => {
       `);
     });
 
-    it('should throw error for unsupported file types', async () => {
-      await expect(
-        model.doGenerate({
-          prompt: [
-            {
-              role: 'user',
-              content: [
-                { type: 'text', text: 'What is this?' },
-                {
-                  type: 'file',
-                  data: Buffer.from('PDF binary data'),
-                  mediaType: 'application/pdf',
-                  filename: 'document.pdf',
+    it('should not include mediaType in the outgoing payload (category D)', async () => {
+      await model.doGenerate({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: 'What is this?' },
+              {
+                type: 'file',
+                data: {
+                  type: 'data' as const,
+                  data: Buffer.from('Some file content'),
                 },
-              ],
-            },
-          ],
-        }),
-      ).rejects.toThrow(
-        "Media type 'application/pdf' is not supported. Supported media types are: text/* and application/json.",
-      );
+                mediaType: 'application/pdf',
+                filename: 'document.pdf',
+              },
+            ],
+          },
+        ],
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.documents).toEqual([
+        {
+          data: {
+            text: 'Some file content',
+            title: 'document.pdf',
+          },
+        },
+      ]);
+      expect(JSON.stringify(requestBody)).not.toContain('application/pdf');
+      expect(JSON.stringify(requestBody)).not.toContain('mediaType');
     });
 
     it('should successfully process supported text media types', async () => {
@@ -412,13 +438,19 @@ describe('doGenerate', () => {
               { type: 'text', text: 'What is this?' },
               {
                 type: 'file',
-                data: Buffer.from('This is plain text content'),
+                data: {
+                  type: 'data' as const,
+                  data: Buffer.from('This is plain text content'),
+                },
                 mediaType: 'text/plain',
                 filename: 'text.txt',
               },
               {
                 type: 'file',
-                data: Buffer.from('# Markdown Header\nContent'),
+                data: {
+                  type: 'data' as const,
+                  data: Buffer.from('# Markdown Header\nContent'),
+                },
                 mediaType: 'text/markdown',
                 filename: 'doc.md',
               },

@@ -1,4 +1,4 @@
-import {
+import type {
   LanguageModelV2,
   LanguageModelV3,
   LanguageModelV4,
@@ -6,9 +6,9 @@ import {
   LanguageModelV4GenerateResult,
   LanguageModelV4StreamResult,
 } from '@ai-sdk/provider';
+import { asArray } from '@ai-sdk/provider-utils';
 import { asLanguageModelV4 } from '../model/as-language-model-v4';
-import { LanguageModelMiddleware } from '../types';
-import { asArray } from '../util/as-array';
+import type { LanguageModelMiddleware } from '../types';
 
 /**
  * Wraps a LanguageModelV4 instance with middleware functionality.
@@ -82,27 +82,32 @@ const doWrap = ({
       params: LanguageModelV4CallOptions,
     ): Promise<LanguageModelV4GenerateResult> {
       const transformedParams = await doTransform({ params, type: 'generate' });
-      const doGenerate = async () => model.doGenerate(transformedParams);
-      const doStream = async () => model.doStream(transformedParams);
+      const doGenerate = async () => await model.doGenerate(transformedParams);
+      const doStream = async () => await model.doStream(transformedParams);
       return wrapGenerate
-        ? wrapGenerate({
+        ? await wrapGenerate({
             doGenerate,
             doStream,
             params: transformedParams,
             model,
           })
-        : doGenerate();
+        : await doGenerate();
     },
 
     async doStream(
       params: LanguageModelV4CallOptions,
     ): Promise<LanguageModelV4StreamResult> {
       const transformedParams = await doTransform({ params, type: 'stream' });
-      const doGenerate = async () => model.doGenerate(transformedParams);
-      const doStream = async () => model.doStream(transformedParams);
+      const doGenerate = async () => await model.doGenerate(transformedParams);
+      const doStream = async () => await model.doStream(transformedParams);
       return wrapStream
-        ? wrapStream({ doGenerate, doStream, params: transformedParams, model })
-        : doStream();
+        ? await wrapStream({
+            doGenerate,
+            doStream,
+            params: transformedParams,
+            model,
+          })
+        : await doStream();
     },
   };
 };

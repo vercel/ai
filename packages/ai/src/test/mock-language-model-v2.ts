@@ -1,4 +1,4 @@
-import { LanguageModelV2 } from '@ai-sdk/provider';
+import type { LanguageModelV2 } from '@ai-sdk/provider';
 import { notImplemented } from './not-implemented';
 
 export class MockLanguageModelV2 implements LanguageModelV2 {
@@ -42,7 +42,7 @@ export class MockLanguageModelV2 implements LanguageModelV2 {
       this.doGenerateCalls.push(options);
 
       if (typeof doGenerate === 'function') {
-        return doGenerate(options);
+        return await doGenerate(options);
       } else if (Array.isArray(doGenerate)) {
         return doGenerate[this.doGenerateCalls.length];
       } else {
@@ -53,7 +53,7 @@ export class MockLanguageModelV2 implements LanguageModelV2 {
       this.doStreamCalls.push(options);
 
       if (typeof doStream === 'function') {
-        return doStream(options);
+        return await doStream(options);
       } else if (Array.isArray(doStream)) {
         return doStream[this.doStreamCalls.length];
       } else {
@@ -63,7 +63,7 @@ export class MockLanguageModelV2 implements LanguageModelV2 {
     this._supportedUrls =
       typeof supportedUrls === 'function'
         ? supportedUrls
-        : async () => supportedUrls;
+        : async () => await supportedUrls;
   }
 
   get supportedUrls() {

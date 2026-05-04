@@ -44,7 +44,7 @@ describe('XaiFiles', () => {
       });
 
       await files.uploadFile({
-        data: new Uint8Array([1, 2, 3]),
+        data: { type: 'data', data: new Uint8Array([1, 2, 3]) },
         mediaType: 'application/octet-stream',
       });
 
@@ -71,7 +71,7 @@ describe('XaiFiles', () => {
       });
 
       const result = await files.uploadFile({
-        data: new Uint8Array([1, 2, 3]),
+        data: { type: 'data', data: new Uint8Array([1, 2, 3]) },
         mediaType: 'application/octet-stream',
       });
 
@@ -97,7 +97,7 @@ describe('XaiFiles', () => {
       });
 
       const result = await files.uploadFile({
-        data: new Uint8Array([1]),
+        data: { type: 'data', data: new Uint8Array([1]) },
         mediaType: 'application/octet-stream',
       });
 
@@ -121,7 +121,7 @@ describe('XaiFiles', () => {
       });
 
       await files.uploadFile({
-        data: new Uint8Array([1, 2, 3]),
+        data: { type: 'data', data: new Uint8Array([1, 2, 3]) },
         mediaType: 'application/octet-stream',
         filename: 'custom-name.pdf',
       });
@@ -143,7 +143,7 @@ describe('XaiFiles', () => {
       });
 
       await files.uploadFile({
-        data: new Uint8Array([1, 2, 3]),
+        data: { type: 'data', data: new Uint8Array([1, 2, 3]) },
         mediaType: 'application/octet-stream',
       });
 
@@ -164,7 +164,7 @@ describe('XaiFiles', () => {
       });
 
       await files.uploadFile({
-        data: new Uint8Array([1]),
+        data: { type: 'data', data: new Uint8Array([1]) },
         mediaType: 'application/octet-stream',
         providerOptions: {
           xai: { teamId: 'team-123' },
@@ -187,7 +187,7 @@ describe('XaiFiles', () => {
       });
 
       await files.uploadFile({
-        data: new Uint8Array([1]),
+        data: { type: 'data', data: new Uint8Array([1]) },
         mediaType: 'application/octet-stream',
       });
 
@@ -207,7 +207,7 @@ describe('XaiFiles', () => {
       });
 
       await files.uploadFile({
-        data: 'dGVzdA==',
+        data: { type: 'data', data: 'dGVzdA==' },
         mediaType: 'application/octet-stream',
       });
 
@@ -239,7 +239,7 @@ describe('XaiFiles', () => {
       });
 
       const result = await files.uploadFile({
-        data: new Uint8Array([1]),
+        data: { type: 'data', data: new Uint8Array([1]) },
         mediaType: 'application/octet-stream',
       });
 
@@ -257,7 +257,7 @@ describe('XaiFiles', () => {
       });
 
       const result = await files.uploadFile({
-        data: new Uint8Array([1]),
+        data: { type: 'data', data: new Uint8Array([1]) },
         mediaType: 'application/octet-stream',
       });
 

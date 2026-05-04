@@ -1,6 +1,6 @@
 import {
   openaiMCPApprovalAgent,
-  OpenAIMCPApprovalAgentUIMessage,
+  type OpenAIMCPApprovalAgentUIMessage,
 } from '@/agent/openai/mcp-approval-agent';
 import { createAgentUIStreamResponse } from 'ai';
 

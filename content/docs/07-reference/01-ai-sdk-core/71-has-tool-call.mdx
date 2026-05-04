@@ -5,9 +5,9 @@ description: API Reference for hasToolCall.
 
 # `hasToolCall()`
 
-Creates a stop condition that stops when a specific tool is called.
+Creates a stop condition that stops when any specified tool is called in the most recent step.
 
-This function is used with `stopWhen` in `generateText` and `streamText` to control when a tool-calling loop should stop based on whether a particular tool has been invoked.
+This function is used with `stopWhen` in `generateText` and `streamText` to control when a tool-calling loop should stop based on whether one of the specified tools has been invoked.
 
 ```ts
 import { generateText, hasToolCall } from 'ai';
@@ -35,17 +35,17 @@ const result = await generateText({
 <PropertiesTable
   content={[
     {
-      name: 'toolName',
-      type: 'string',
+      name: '...toolNames',
+      type: 'string[]',
       description:
-        'The name of the tool that should trigger the stop condition when called.',
+        'One or more tool names. The stop condition triggers when any of them is called in the most recent step.',
     },
   ]}
 />
 
 ### Returns
 
-A `StopCondition` function that returns `true` when the specified tool is called in the current step. The function can be used with the `stopWhen` parameter in `generateText` and `streamText`.
+A `StopCondition` function that returns `true` when any of the specified tools is called in the most recent step. The function can be used with the `stopWhen` parameter in `generateText` and `streamText`.
 
 ## Examples
 
@@ -63,6 +63,24 @@ const result = await generateText({
     search: searchTool,
   },
   stopWhen: hasToolCall('submitAnswer'),
+});
+```
+
+### Match Multiple Tools
+
+Stop when any of several tools is called in the most recent step:
+
+```ts
+import { generateText, hasToolCall } from 'ai';
+
+const result = await generateText({
+  model: yourModel,
+  tools: {
+    weather: weatherTool,
+    search: searchTool,
+    finalAnswer: finalAnswerTool,
+  },
+  stopWhen: hasToolCall('weather', 'finalAnswer'),
 });
 ```
 

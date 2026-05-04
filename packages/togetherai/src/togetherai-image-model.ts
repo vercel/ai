@@ -1,23 +1,24 @@
-import { ImageModelV4, SharedV4Warning } from '@ai-sdk/provider';
+import type { ImageModelV4, SharedV4Warning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   convertImageModelFileToDataUri,
   createJsonResponseHandler,
   createJsonErrorResponseHandler,
-  FetchFunction,
-  InferSchema,
-  lazySchema,
   parseProviderOptions,
   postJsonToApi,
-  zodSchema,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
-import { TogetherAIImageModelId } from './togetherai-image-settings';
+import { togetheraiImageModelOptionsSchema } from './togetherai-image-model-options';
+import type { TogetherAIImageModelId } from './togetherai-image-settings';
 import { z } from 'zod/v4';
 
 interface TogetherAIImageModelConfig {
   provider: string;
   baseURL: string;
-  headers: () => Record<string, string>;
+  headers?: () => Record<string, string>;
   fetch?: FetchFunction;
   _internal?: {
     currentDate?: () => Date;
@@ -30,6 +31,20 @@ export class TogetherAIImageModel implements ImageModelV4 {
 
   get provider(): string {
     return this.config.provider;
+  }
+
+  static [WORKFLOW_SERIALIZE](model: TogetherAIImageModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: TogetherAIImageModelId;
+    config: TogetherAIImageModelConfig;
+  }) {
+    return new TogetherAIImageModel(options.modelId, options.config);
   }
 
   constructor(
@@ -95,7 +110,7 @@ export class TogetherAIImageModel implements ImageModelV4 {
     // https://docs.together.ai/reference/post_images-generations
     const { value: response, responseHeaders } = await postJsonToApi({
       url: `${this.config.baseURL}/images/generations`,
-      headers: combineHeaders(this.config.headers(), headers),
+      headers: combineHeaders(this.config.headers?.(), headers),
       body: {
         model: this.modelId,
         prompt,
@@ -149,40 +164,3 @@ const togetheraiErrorSchema = z.object({
     message: z.string(),
   }),
 });
-
-/**
- * Provider options schema for Together AI image generation.
- */
-export const togetheraiImageModelOptionsSchema = lazySchema(() =>
-  zodSchema(
-    z
-      .object({
-        /**
-         * Number of generation steps. Higher values can improve quality.
-         */
-        steps: z.number().nullish(),
-
-        /**
-         * Guidance scale for image generation.
-         */
-        guidance: z.number().nullish(),
-
-        /**
-         * Negative prompt to guide what to avoid.
-         */
-        negative_prompt: z.string().nullish(),
-
-        /**
-         * Disable the safety checker for image generation.
-         * When true, the API will not reject images flagged as potentially NSFW.
-         * Not available for Flux Schnell Free and Flux Pro models.
-         */
-        disable_safety_checker: z.boolean().nullish(),
-      })
-      .passthrough(),
-  ),
-);
-
-export type TogetherAIImageModelOptions = InferSchema<
-  typeof togetheraiImageModelOptionsSchema
->;

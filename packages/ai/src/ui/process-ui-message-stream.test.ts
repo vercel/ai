@@ -1,12 +1,12 @@
 import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
-import { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
+import type { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
 import { consumeStream } from '../util/consume-stream';
 import {
   createStreamingUIMessageState,
   processUIMessageStream,
-  StreamingUIMessageState,
+  type StreamingUIMessageState,
 } from './process-ui-message-stream';
-import { InferUIMessageData, UIMessage } from './ui-messages';
+import type { InferUIMessageData, UIMessage } from './ui-messages';
 import { beforeEach, describe, it, expect, vi } from 'vitest';
 import { UIMessageStreamError } from '../error/ui-message-stream-error';
 
@@ -7430,6 +7430,316 @@ describe('processUIMessageStream', () => {
             "type": "dynamic-tool",
           },
         ]
+      `);
+    });
+  });
+
+  describe('automatic tool approval denial (static tool)', () => {
+    beforeEach(async () => {
+      const stream = createUIMessageStream([
+        { type: 'start' },
+        { type: 'start-step' },
+        {
+          input: {
+            value: 'value',
+          },
+          toolCallId: 'call-1',
+          toolName: 'tool1',
+          type: 'tool-input-available',
+        },
+        {
+          approvalId: 'id-1',
+          isAutomatic: true,
+          toolCallId: 'call-1',
+          type: 'tool-approval-request',
+        },
+        {
+          approvalId: 'id-1',
+          approved: false,
+          reason: 'Policy denied execution',
+          type: 'tool-approval-response',
+        },
+        {
+          toolCallId: 'call-1',
+          type: 'tool-output-denied',
+        },
+        { type: 'finish-step' },
+        { type: 'finish' },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+    });
+
+    it('should keep automatic approval metadata through denial', () => {
+      expect(writeCalls.map(call => call.message.parts[1]))
+        .toMatchInlineSnapshot(`
+        [
+          {
+            "errorText": undefined,
+            "input": {
+              "value": "value",
+            },
+            "output": undefined,
+            "preliminary": undefined,
+            "providerExecuted": undefined,
+            "rawInput": undefined,
+            "state": "input-available",
+            "title": undefined,
+            "toolCallId": "call-1",
+            "type": "tool-tool1",
+          },
+          {
+            "approval": {
+              "id": "id-1",
+              "isAutomatic": true,
+            },
+            "errorText": undefined,
+            "input": {
+              "value": "value",
+            },
+            "output": undefined,
+            "preliminary": undefined,
+            "providerExecuted": undefined,
+            "rawInput": undefined,
+            "state": "approval-requested",
+            "title": undefined,
+            "toolCallId": "call-1",
+            "type": "tool-tool1",
+          },
+          {
+            "approval": {
+              "approved": false,
+              "id": "id-1",
+              "isAutomatic": true,
+              "reason": "Policy denied execution",
+            },
+            "errorText": undefined,
+            "input": {
+              "value": "value",
+            },
+            "output": undefined,
+            "preliminary": undefined,
+            "providerExecuted": undefined,
+            "rawInput": undefined,
+            "state": "approval-responded",
+            "title": undefined,
+            "toolCallId": "call-1",
+            "type": "tool-tool1",
+          },
+          {
+            "approval": {
+              "approved": false,
+              "id": "id-1",
+              "isAutomatic": true,
+              "reason": "Policy denied execution",
+            },
+            "errorText": undefined,
+            "input": {
+              "value": "value",
+            },
+            "output": undefined,
+            "preliminary": undefined,
+            "providerExecuted": undefined,
+            "rawInput": undefined,
+            "state": "output-denied",
+            "title": undefined,
+            "toolCallId": "call-1",
+            "type": "tool-tool1",
+          },
+        ]
+      `);
+
+      expect(state!.message.parts[1]).toMatchInlineSnapshot(`
+        {
+          "approval": {
+            "approved": false,
+            "id": "id-1",
+            "isAutomatic": true,
+            "reason": "Policy denied execution",
+          },
+          "errorText": undefined,
+          "input": {
+            "value": "value",
+          },
+          "output": undefined,
+          "preliminary": undefined,
+          "providerExecuted": undefined,
+          "rawInput": undefined,
+          "state": "output-denied",
+          "title": undefined,
+          "toolCallId": "call-1",
+          "type": "tool-tool1",
+        }
+      `);
+    });
+  });
+
+  describe('automatic tool approval with execution (dynamic tool)', () => {
+    beforeEach(async () => {
+      const stream = createUIMessageStream([
+        { type: 'start' },
+        { type: 'start-step' },
+        {
+          dynamic: true,
+          input: {
+            value: 'value',
+          },
+          toolCallId: 'call-1',
+          toolName: 'tool1',
+          type: 'tool-input-available',
+        },
+        {
+          approvalId: 'id-1',
+          isAutomatic: true,
+          toolCallId: 'call-1',
+          type: 'tool-approval-request',
+        },
+        {
+          approvalId: 'id-1',
+          approved: true,
+          reason: 'trusted internal tool',
+          type: 'tool-approval-response',
+        },
+        {
+          output: 'result1',
+          toolCallId: 'call-1',
+          type: 'tool-output-available',
+        },
+        { type: 'finish-step' },
+        { type: 'finish' },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+    });
+
+    it('should keep automatic approval metadata through execution', () => {
+      expect(writeCalls.map(call => call.message.parts[1]))
+        .toMatchInlineSnapshot(`
+        [
+          {
+            "errorText": undefined,
+            "input": {
+              "value": "value",
+            },
+            "output": undefined,
+            "preliminary": undefined,
+            "providerExecuted": undefined,
+            "state": "input-available",
+            "title": undefined,
+            "toolCallId": "call-1",
+            "toolName": "tool1",
+            "type": "dynamic-tool",
+          },
+          {
+            "approval": {
+              "id": "id-1",
+              "isAutomatic": true,
+            },
+            "errorText": undefined,
+            "input": {
+              "value": "value",
+            },
+            "output": undefined,
+            "preliminary": undefined,
+            "providerExecuted": undefined,
+            "state": "approval-requested",
+            "title": undefined,
+            "toolCallId": "call-1",
+            "toolName": "tool1",
+            "type": "dynamic-tool",
+          },
+          {
+            "approval": {
+              "approved": true,
+              "id": "id-1",
+              "isAutomatic": true,
+              "reason": "trusted internal tool",
+            },
+            "errorText": undefined,
+            "input": {
+              "value": "value",
+            },
+            "output": undefined,
+            "preliminary": undefined,
+            "providerExecuted": undefined,
+            "state": "approval-responded",
+            "title": undefined,
+            "toolCallId": "call-1",
+            "toolName": "tool1",
+            "type": "dynamic-tool",
+          },
+          {
+            "approval": {
+              "approved": true,
+              "id": "id-1",
+              "isAutomatic": true,
+              "reason": "trusted internal tool",
+            },
+            "errorText": undefined,
+            "input": {
+              "value": "value",
+            },
+            "output": "result1",
+            "preliminary": undefined,
+            "providerExecuted": undefined,
+            "rawInput": undefined,
+            "state": "output-available",
+            "title": undefined,
+            "toolCallId": "call-1",
+            "toolName": "tool1",
+            "type": "dynamic-tool",
+          },
+        ]
+      `);
+
+      expect(state!.message.parts[1]).toMatchInlineSnapshot(`
+        {
+          "approval": {
+            "approved": true,
+            "id": "id-1",
+            "isAutomatic": true,
+            "reason": "trusted internal tool",
+          },
+          "errorText": undefined,
+          "input": {
+            "value": "value",
+          },
+          "output": "result1",
+          "preliminary": undefined,
+          "providerExecuted": undefined,
+          "rawInput": undefined,
+          "state": "output-available",
+          "title": undefined,
+          "toolCallId": "call-1",
+          "toolName": "tool1",
+          "type": "dynamic-tool",
+        }
       `);
     });
   });

@@ -5,11 +5,10 @@ import { useChat } from '@ai-sdk/react';
 import {
   DefaultChatTransport,
   getToolName,
+  isToolUIPart,
   type DynamicToolUIPart,
   type ToolUIPart,
-  isToolUIPart,
 } from 'ai';
-
 export default function Chat() {
   const { error, status, sendMessage, messages, regenerate, stop } = useChat({
     transport: new DefaultChatTransport({ api: '/chat/mcp/chat' }),
@@ -64,6 +63,14 @@ export default function Chat() {
                             Tool ID: {toolName}
                           </div>
                         )}
+                        {part.type === 'dynamic-tool' &&
+                          'callProviderMetadata' in part &&
+                          typeof part.callProviderMetadata?.mcp?.name ===
+                            'string' && (
+                            <div className="text-xs text-gray-500">
+                              MCP server: {part.callProviderMetadata.mcp.name}
+                            </div>
+                          )}
                       </div>
                     </div>
 

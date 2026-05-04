@@ -264,6 +264,41 @@ console.log(text);
 
 For more customization options over your agent's web-access functionality, visit the [Tavily AI SDK Documentation](https://docs.tavily.com/documentation/integrations/vercel).
 
+#### You.com
+
+<Note>
+  Get your API key from the [You.com API Keys page](https://you.com/platform/api-keys).
+</Note>
+
+First, install the You.com AI SDK plugin:
+
+```bash
+pnpm install @youdotcom-oss/ai-sdk-plugin
+```
+
+Then, you can import and pass the tools into `generateText`, `streamText`, or your agent. You.com provides three tools: `youSearch` for real-time web search with advanced filtering, `youResearch` for deep research with cited sources and configurable effort (lite to exhaustive), and `youContents` for extracting webpage content in markdown or HTML:
+
+```ts
+import { generateText, isStepCount } from 'ai';
+__PROVIDER_IMPORT__;
+import { youSearch, youResearch, youContents } from '@youdotcom-oss/ai-sdk-plugin';
+
+const { text } = await generateText({
+  model: __MODEL__,
+  prompt: 'Research the latest developments in quantum computing',
+  tools: {
+    search: youSearch(),
+    research: youResearch(),
+    extract: youContents(),
+  },
+  stopWhen: isStepCount(5),
+});
+
+console.log(text);
+```
+
+For more configuration options and customization, see the [You.com AI SDK Plugin documentation](https://github.com/youdotcom-oss/dx-toolkit/tree/main/packages/ai-sdk-plugin#readme).
+
 ### Build and use custom tools
 
 For more control over your web search functionality, you can build custom tools using web scraping and crawling APIs. This approach allows you to customize search parameters, handle specific data formats, and integrate with specialized search services.

@@ -1,10 +1,19 @@
-import { expectTypeOf } from 'vitest';
+import { describe, expectTypeOf, it } from 'vitest';
 import { generateObject } from './generate-object';
 import { z } from 'zod/v4';
-import { JSONValue } from '@ai-sdk/provider';
-import { describe, it } from 'vitest';
+import type { JSONValue } from '@ai-sdk/provider';
 
 describe('generateObject', () => {
+  it('should not accept timeout option', async () => {
+    generateObject({
+      schema: z.object({ number: z.number() }),
+      model: undefined!,
+      messages: [],
+      // @ts-expect-error timeout is not supported for the deprecated generateObject API
+      timeout: 5000,
+    });
+  });
+
   it('should support enum types', async () => {
     const result = await generateObject({
       output: 'enum',

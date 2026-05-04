@@ -1,59 +1,20 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { createVertex } from './google-vertex-provider';
-import { GoogleGenerativeAILanguageModel } from '@ai-sdk/google/internal';
-import { GoogleVertexEmbeddingModel } from './google-vertex-embedding-model';
-import { GoogleVertexImageModel } from './google-vertex-image-model';
-import { GoogleVertexVideoModel } from './google-vertex-video-model';
+import { resolve } from '@ai-sdk/provider-utils';
+import { createAuthTokenGenerator } from './google-vertex-auth-google-auth-library';
+import { createGoogleVertex as createGoogleVertexOriginal } from './google-vertex-provider-base';
+import { createGoogleVertex as createVertexNode } from './google-vertex-provider';
+import { describe, beforeEach, afterEach, expect, it, vi } from 'vitest';
 
 // Mock the imported modules
-vi.mock('@ai-sdk/provider-utils', async importOriginal => {
-  const actual =
-    await importOriginal<typeof import('@ai-sdk/provider-utils')>();
-  return {
-    ...actual,
-    loadSetting: vi.fn().mockImplementation(({ settingValue }) => settingValue),
-    loadOptionalSetting: vi
-      .fn()
-      .mockImplementation(({ settingValue, environmentVariableName }) => {
-        if (settingValue) return settingValue;
-        if (
-          environmentVariableName === 'GOOGLE_VERTEX_API_KEY' &&
-          process.env.GOOGLE_VERTEX_API_KEY
-        ) {
-          return process.env.GOOGLE_VERTEX_API_KEY;
-        }
-        return undefined;
-      }),
-    generateId: vi.fn().mockReturnValue('mock-id'),
-    withoutTrailingSlash: vi.fn().mockImplementation(url => url),
-    resolve: vi.fn().mockImplementation(async value => {
-      if (typeof value === 'function') return value();
-      return value;
-    }),
-    withUserAgentSuffix: vi.fn().mockImplementation(headers => headers),
-  };
-});
-
-vi.mock('@ai-sdk/google/internal', () => ({
-  GoogleGenerativeAILanguageModel: vi.fn(),
-  googleTools: {
-    googleSearch: vi.fn(),
-    urlContext: vi.fn(),
-    fileSearch: vi.fn(),
-    codeExecution: vi.fn(),
-  },
+vi.mock('./google-vertex-auth-google-auth-library', () => ({
+  createAuthTokenGenerator: vi.fn(() =>
+    vi.fn().mockResolvedValue('mock-auth-token'),
+  ),
 }));
 
-vi.mock('./google-vertex-embedding-model', () => ({
-  GoogleVertexEmbeddingModel: vi.fn(),
-}));
-
-vi.mock('./google-vertex-image-model', () => ({
-  GoogleVertexImageModel: vi.fn(),
-}));
-
-vi.mock('./google-vertex-video-model', () => ({
-  GoogleVertexVideoModel: vi.fn(),
+vi.mock('./google-vertex-provider-base', () => ({
+  createGoogleVertex: vi.fn().mockImplementation(options => ({
+    ...options,
+  })),
 }));
 
 describe('google-vertex-provider', () => {
@@ -66,317 +27,82 @@ describe('google-vertex-provider', () => {
     delete process.env.GOOGLE_VERTEX_API_KEY;
   });
 
-  it('should create a language model with default settings', () => {
-    const provider = createVertex({
-      project: 'test-project',
-      location: 'test-location',
-    });
-    provider('test-model-id');
+  it('default headers function should return auth token', async () => {
+    createVertexNode({ project: 'test-project' });
 
-    expect(GoogleGenerativeAILanguageModel).toHaveBeenCalledWith(
-      'test-model-id',
-      expect.objectContaining({
-        provider: 'google.vertex.chat',
-        baseURL:
-          'https://test-location-aiplatform.googleapis.com/v1beta1/projects/test-project/locations/test-location/publishers/google',
-        headers: expect.any(Function),
-        generateId: expect.any(Function),
+    expect(createGoogleVertexOriginal).toHaveBeenCalledTimes(1);
+    const passedOptions = vi.mocked(createGoogleVertexOriginal).mock
+      .calls[0][0];
+
+    expect(typeof passedOptions?.headers).toBe('function');
+    expect(await resolve(passedOptions?.headers)).toStrictEqual({
+      Authorization: 'Bearer mock-auth-token',
+    });
+  });
+
+  it('should use custom headers in addition to auth token when provided', async () => {
+    createVertexNode({
+      project: 'test-project',
+      headers: async () => ({
+        'Custom-Header': 'custom-value',
       }),
-    );
-  });
-
-  it('should throw an error when using new keyword', () => {
-    const provider = createVertex({ project: 'test-project' });
-
-    expect(() => new (provider as any)('test-model-id')).toThrow(
-      'The Google Vertex AI model function cannot be called with the new keyword.',
-    );
-  });
-
-  it('should create an embedding model with correct settings', () => {
-    const provider = createVertex({
-      project: 'test-project',
-      location: 'test-location',
-    });
-    provider.embeddingModel('test-embedding-model');
-
-    expect(GoogleVertexEmbeddingModel).toHaveBeenCalledWith(
-      'test-embedding-model',
-      expect.objectContaining({
-        provider: 'google.vertex.embedding',
-        headers: expect.any(Function),
-        baseURL:
-          'https://test-location-aiplatform.googleapis.com/v1beta1/projects/test-project/locations/test-location/publishers/google',
-      }),
-    );
-  });
-
-  it('should pass custom headers to the model constructor', () => {
-    const customHeaders = { 'Custom-Header': 'custom-value' };
-    const provider = createVertex({
-      project: 'test-project',
-      location: 'test-location',
-      headers: customHeaders,
-    });
-    provider('test-model-id');
-
-    expect(GoogleGenerativeAILanguageModel).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        headers: expect.any(Function),
-      }),
-    );
-  });
-
-  it('should pass custom generateId function to the model constructor', () => {
-    const customGenerateId = () => 'custom-id';
-    const provider = createVertex({
-      project: 'test-project',
-      location: 'test-location',
-      generateId: customGenerateId,
-    });
-    provider('test-model-id');
-
-    expect(GoogleGenerativeAILanguageModel).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        generateId: customGenerateId,
-      }),
-    );
-  });
-
-  it('should use languageModel method to create a model', () => {
-    const provider = createVertex({
-      project: 'test-project',
-      location: 'test-location',
-    });
-    provider.languageModel('test-model-id');
-
-    expect(GoogleGenerativeAILanguageModel).toHaveBeenCalledWith(
-      'test-model-id',
-      expect.any(Object),
-    );
-  });
-
-  it('should use custom baseURL when provided', () => {
-    const customBaseURL = 'https://custom-endpoint.example.com';
-    const provider = createVertex({
-      project: 'test-project',
-      location: 'test-location',
-      baseURL: customBaseURL,
-    });
-    provider('test-model-id');
-
-    expect(GoogleGenerativeAILanguageModel).toHaveBeenCalledWith(
-      'test-model-id',
-      expect.objectContaining({
-        baseURL: customBaseURL,
-      }),
-    );
-  });
-
-  it('should create an image model with default settings', () => {
-    const provider = createVertex({
-      project: 'test-project',
-      location: 'test-location',
-    });
-    provider.image('imagen-3.0-generate-002');
-
-    expect(GoogleVertexImageModel).toHaveBeenCalledWith(
-      'imagen-3.0-generate-002',
-      expect.objectContaining({
-        provider: 'google.vertex.image',
-        baseURL:
-          'https://test-location-aiplatform.googleapis.com/v1beta1/projects/test-project/locations/test-location/publishers/google',
-        headers: expect.any(Function),
-      }),
-    );
-  });
-
-  it('should use correct URL for global region', () => {
-    const provider = createVertex({
-      project: 'test-project',
-      location: 'global',
-    });
-    provider('test-model-id');
-
-    expect(GoogleGenerativeAILanguageModel).toHaveBeenCalledWith(
-      'test-model-id',
-      expect.objectContaining({
-        provider: 'google.vertex.chat',
-        baseURL:
-          'https://aiplatform.googleapis.com/v1beta1/projects/test-project/locations/global/publishers/google',
-        headers: expect.any(Function),
-        generateId: expect.any(Function),
-      }),
-    );
-  });
-
-  it('should use correct URL for global region with embedding model', () => {
-    const provider = createVertex({
-      project: 'test-project',
-      location: 'global',
-    });
-    provider.embeddingModel('test-embedding-model');
-
-    expect(GoogleVertexEmbeddingModel).toHaveBeenCalledWith(
-      'test-embedding-model',
-      expect.objectContaining({
-        provider: 'google.vertex.embedding',
-        headers: expect.any(Function),
-        baseURL:
-          'https://aiplatform.googleapis.com/v1beta1/projects/test-project/locations/global/publishers/google',
-      }),
-    );
-  });
-
-  it('should use correct URL for global region with image model', () => {
-    const provider = createVertex({
-      project: 'test-project',
-      location: 'global',
-    });
-    provider.image('imagen-3.0-generate-002');
-
-    expect(GoogleVertexImageModel).toHaveBeenCalledWith(
-      'imagen-3.0-generate-002',
-      expect.objectContaining({
-        provider: 'google.vertex.image',
-        baseURL:
-          'https://aiplatform.googleapis.com/v1beta1/projects/test-project/locations/global/publishers/google',
-        headers: expect.any(Function),
-      }),
-    );
-  });
-
-  it('should expose tools', () => {
-    const provider = createVertex({
-      project: 'test-project',
-      location: 'test-location',
     });
 
-    expect(provider.tools).toBeDefined();
-    expect(provider.tools.googleSearch).toBeDefined();
-    expect(provider.tools.urlContext).toBeDefined();
-    expect(provider.tools.codeExecution).toBeDefined();
+    expect(createGoogleVertexOriginal).toHaveBeenCalledTimes(1);
+    const passedOptions = vi.mocked(createGoogleVertexOriginal).mock
+      .calls[0][0];
+
+    expect(await resolve(passedOptions?.headers)).toEqual({
+      Authorization: 'Bearer mock-auth-token',
+      'Custom-Header': 'custom-value',
+    });
   });
 
-  it('should use region-prefixed URL for non-global regions', () => {
-    const provider = createVertex({
-      project: 'test-project',
-      location: 'us-central1',
-    });
-    provider('test-model-id');
-
-    expect(GoogleGenerativeAILanguageModel).toHaveBeenCalledWith(
-      'test-model-id',
-      expect.objectContaining({
-        provider: 'google.vertex.chat',
-        baseURL:
-          'https://us-central1-aiplatform.googleapis.com/v1beta1/projects/test-project/locations/us-central1/publishers/google',
-        headers: expect.any(Function),
-        generateId: expect.any(Function),
-      }),
-    );
-  });
-
-  it('should use express mode base URL when apiKey is provided', () => {
-    const provider = createVertex({
-      apiKey: 'test-api-key',
-    });
-    provider('test-model-id');
-
-    expect(GoogleGenerativeAILanguageModel).toHaveBeenCalledWith(
-      'test-model-id',
-      expect.objectContaining({
-        baseURL: 'https://aiplatform.googleapis.com/v1/publishers/google',
-      }),
-    );
-  });
-
-  it('should add API key as query parameter via custom fetch', async () => {
-    const provider = createVertex({
-      apiKey: 'test-api-key',
-    });
-    provider('test-model-id');
-
-    const calledConfig = vi.mocked(GoogleGenerativeAILanguageModel).mock
-      .calls[0][1];
-    const customFetch = calledConfig.fetch;
-
-    expect(customFetch).toBeDefined();
-
-    const mockResponse = new Response('{}');
-    const originalFetch = vi.fn().mockResolvedValue(mockResponse);
-    vi.stubGlobal('fetch', originalFetch);
-
-    await customFetch!(
-      'https://aiplatform.googleapis.com/v1/publishers/google/models/gemini-2.5-pro:streamGenerateContent',
-      {},
-    );
-
-    expect(originalFetch).toHaveBeenCalledWith(
-      'https://aiplatform.googleapis.com/v1/publishers/google/models/gemini-2.5-pro:streamGenerateContent',
-      {
-        headers: {
-          'x-goog-api-key': 'test-api-key',
-        },
+  it('passes googleAuthOptions to createAuthTokenGenerator', async () => {
+    createVertexNode({
+      googleAuthOptions: {
+        scopes: ['https://www.googleapis.com/auth/cloud-platform'],
+        keyFile: 'path/to/key.json',
       },
-    );
+    });
 
-    vi.unstubAllGlobals();
+    expect(createGoogleVertexOriginal).toHaveBeenCalledTimes(1);
+    const passedOptions = vi.mocked(createGoogleVertexOriginal).mock
+      .calls[0][0];
+
+    await resolve(passedOptions?.headers); // call the headers function
+
+    expect(createAuthTokenGenerator).toHaveBeenCalledWith({
+      scopes: ['https://www.googleapis.com/auth/cloud-platform'],
+      keyFile: 'path/to/key.json',
+    });
   });
 
-  it('should create a video model with default settings', () => {
-    const provider = createVertex({
-      project: 'test-project',
-      location: 'test-location',
+  it('should pass options through to base provider when apiKey is provided', async () => {
+    createVertexNode({
+      apiKey: 'test-api-key',
     });
-    provider.video('veo-2.0-generate-001');
 
-    expect(GoogleVertexVideoModel).toHaveBeenCalledWith(
-      'veo-2.0-generate-001',
-      expect.objectContaining({
-        provider: 'google.vertex.video',
-        baseURL:
-          'https://test-location-aiplatform.googleapis.com/v1beta1/projects/test-project/locations/test-location/publishers/google',
-        headers: expect.any(Function),
-        generateId: expect.any(Function),
-      }),
-    );
+    expect(createGoogleVertexOriginal).toHaveBeenCalledTimes(1);
+    const passedOptions = vi.mocked(createGoogleVertexOriginal).mock
+      .calls[0][0];
+
+    expect(passedOptions?.apiKey).toBe('test-api-key');
+    expect(passedOptions?.headers).toBeUndefined();
+    expect(createAuthTokenGenerator).not.toHaveBeenCalled();
   });
 
-  it('should use correct URL for global region with video model', () => {
-    const provider = createVertex({
-      project: 'test-project',
-      location: 'global',
-    });
-    provider.video('veo-3.0-generate-001');
+  it('creates the auth token generator once per provider instance', async () => {
+    createVertexNode({ project: 'test-project' });
 
-    expect(GoogleVertexVideoModel).toHaveBeenCalledWith(
-      'veo-3.0-generate-001',
-      expect.objectContaining({
-        provider: 'google.vertex.video',
-        baseURL:
-          'https://aiplatform.googleapis.com/v1beta1/projects/test-project/locations/global/publishers/google',
-        headers: expect.any(Function),
-      }),
-    );
-  });
+    expect(createAuthTokenGenerator).toHaveBeenCalledTimes(1);
 
-  it('should use custom baseURL for video model when provided', () => {
-    const customBaseURL = 'https://custom-endpoint.example.com';
-    const provider = createVertex({
-      project: 'test-project',
-      location: 'test-location',
-      baseURL: customBaseURL,
-    });
-    provider.video('veo-2.0-generate-001');
+    const passedOptions = vi.mocked(createGoogleVertexOriginal).mock
+      .calls[0][0];
 
-    expect(GoogleVertexVideoModel).toHaveBeenCalledWith(
-      'veo-2.0-generate-001',
-      expect.objectContaining({
-        baseURL: customBaseURL,
-      }),
-    );
+    await resolve(passedOptions?.headers);
+    await resolve(passedOptions?.headers);
+
+    expect(createAuthTokenGenerator).toHaveBeenCalledTimes(1);
   });
 });

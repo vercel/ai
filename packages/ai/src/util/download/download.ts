@@ -3,8 +3,6 @@ import {
   readResponseWithSizeLimit,
   DEFAULT_MAX_DOWNLOAD_SIZE,
   validateDownloadUrl,
-} from '@ai-sdk/provider-utils';
-import {
   withUserAgentSuffix,
   getRuntimeEnvironmentUserAgent,
 } from '@ai-sdk/provider-utils';

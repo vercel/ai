@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { FetchFunction } from '@ai-sdk/provider-utils';
+import type { FetchFunction } from '@ai-sdk/provider-utils';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { OpenAICompatibleImageModel } from './openai-compatible-image-model';
 import { z } from 'zod/v4';
-import { ProviderErrorStructure } from '../openai-compatible-error';
-import { ImageModelV4CallOptions } from '@ai-sdk/provider';
+import type { ProviderErrorStructure } from '../openai-compatible-error';
+import type { ImageModelV4CallOptions } from '@ai-sdk/provider';
 
 const prompt = 'A photorealistic astronaut riding a horse';
 

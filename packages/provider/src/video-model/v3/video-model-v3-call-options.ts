@@ -1,5 +1,5 @@
-import { SharedV3ProviderOptions } from '../../shared';
-import { VideoModelV3File } from './video-model-v3-file';
+import type { SharedV3ProviderOptions } from '../../shared';
+import type { VideoModelV3File } from './video-model-v3-file';
 
 export type VideoModelV3CallOptions = {
   /**

@@ -1,4 +1,4 @@
-import { deepinfra } from '@ai-sdk/deepinfra';
+import { deepInfra } from '@ai-sdk/deepinfra';
 import { generateText, tool } from 'ai';
 import { z } from 'zod';
 import { weatherTool } from '../../tools/weather-tool';
@@ -6,7 +6,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: deepinfra('mistralai/Mixtral-8x7B-Instruct-v0.1'),
+    model: deepInfra('mistralai/Mixtral-8x7B-Instruct-v0.1'),
     maxOutputTokens: 512,
     tools: {
       weather: weatherTool,

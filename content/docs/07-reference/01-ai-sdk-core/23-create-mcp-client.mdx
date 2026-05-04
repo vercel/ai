@@ -153,10 +153,23 @@ It currently does not support accepting notifications from an MCP server, and cu
 
 ### Returns
 
-Returns a Promise that resolves to an `MCPClient` with the following methods:
+Returns a Promise that resolves to an `MCPClient` with the following properties and methods:
 
 <PropertiesTable
   content={[
+    {
+      name: 'serverInfo',
+      type: 'Configuration',
+      description:
+        'Information about the connected MCP server (name, version, optional title), as reported during the initialize handshake.',
+    },
+    {
+      name: 'instructions',
+      type: 'string',
+      isOptional: true,
+      description:
+        'Optional instructions provided by the server during the initialize handshake. Describes how to use the server and its features. Useful for inclusion in the LLM system prompt.',
+    },
     {
       name: 'tools',
       type: `async (options?: {

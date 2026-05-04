@@ -1,23 +1,22 @@
-import { JSONObject } from '@ai-sdk/provider';
-import { ProviderOptions, withUserAgentSuffix } from '@ai-sdk/provider-utils';
+import type { JSONObject } from '@ai-sdk/provider';
+import {
+  detectMediaType,
+  withUserAgentSuffix,
+  type ProviderOptions,
+} from '@ai-sdk/provider-utils';
 import { NoSpeechGeneratedError } from '../error/no-speech-generated-error';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveSpeechModel } from '../model/resolve-model';
-import { SpeechModel } from '../types/speech-model';
-import { SpeechModelResponseMetadata } from '../types/speech-model-response-metadata';
-import { Warning } from '../types/warning';
-import {
-  audioMediaTypeSignatures,
-  detectMediaType,
-} from '../util/detect-media-type';
+import type { SpeechModel } from '../types/speech-model';
+import type { SpeechModelResponseMetadata } from '../types/speech-model-response-metadata';
+import type { Warning } from '../types/warning';
 import { prepareRetries } from '../util/prepare-retries';
 import { VERSION } from '../version';
-import { SpeechResult } from './generate-speech-result';
+import type { SpeechResult } from './generate-speech-result';
 import {
   DefaultGeneratedAudioFile,
-  GeneratedAudioFile,
+  type GeneratedAudioFile,
 } from './generated-audio-file';
-
 /**
  * Generates speech audio using a speech model.
  *
@@ -162,7 +161,7 @@ export async function generateSpeech({
       mediaType:
         detectMediaType({
           data: result.audio,
-          signatures: audioMediaTypeSignatures,
+          topLevelType: 'audio',
         }) ?? 'audio/mp3',
     }),
     warnings: result.warnings,

@@ -12,6 +12,7 @@ describe('convertToDeepSeekChatMessages', () => {
           },
         ],
         responseFormat: undefined,
+        modelId: 'deepseek-chat',
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -36,13 +37,17 @@ describe('convertToDeepSeekChatMessages', () => {
               { type: 'text', text: 'Hello' },
               {
                 type: 'file',
-                data: Buffer.from([0, 1, 2, 3]).toString('base64'),
+                data: {
+                  type: 'data' as const,
+                  data: Buffer.from([0, 1, 2, 3]).toString('base64'),
+                },
                 mediaType: 'image/png',
               },
             ],
           },
         ],
         responseFormat: undefined,
+        modelId: 'deepseek-chat',
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -61,6 +66,33 @@ describe('convertToDeepSeekChatMessages', () => {
           ],
         }
       `);
+    });
+
+    it('should accept top-level-only mediaType without error and not read it (category D)', async () => {
+      const result = convertToDeepSeekChatMessages({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: 'Hello' },
+              {
+                type: 'file',
+                data: {
+                  type: 'data' as const,
+                  data: Buffer.from([0, 1, 2, 3]).toString('base64'),
+                },
+                mediaType: 'image',
+              },
+            ],
+          },
+        ],
+        responseFormat: undefined,
+        modelId: 'deepseek-chat',
+      });
+
+      expect(result.messages).toEqual([{ role: 'user', content: 'Hello' }]);
+      expect(JSON.stringify(result.messages)).not.toContain('image');
+      expect(JSON.stringify(result.messages)).not.toContain('mediaType');
     });
   });
 
@@ -92,6 +124,7 @@ describe('convertToDeepSeekChatMessages', () => {
           },
         ],
         responseFormat: undefined,
+        modelId: 'deepseek-chat',
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -150,6 +183,7 @@ describe('convertToDeepSeekChatMessages', () => {
           },
         ],
         responseFormat: undefined,
+        modelId: 'deepseek-chat',
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -216,6 +250,7 @@ describe('convertToDeepSeekChatMessages', () => {
           },
         ],
         responseFormat: undefined,
+        modelId: 'deepseek-chat',
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -290,6 +325,7 @@ describe('convertToDeepSeekChatMessages', () => {
           },
         ],
         responseFormat: undefined,
+        modelId: 'deepseek-chat',
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -321,6 +357,134 @@ describe('convertToDeepSeekChatMessages', () => {
             },
             {
               "content": "Goodbye",
+              "role": "user",
+            },
+          ],
+          "warnings": [],
+        }
+      `);
+    });
+  });
+
+  describe('deepseek-v4 thinking mode', () => {
+    // V4 demands `reasoning_content` on every assistant turn — including ones
+    // before the last user message. Stripping it like we do for R1 makes the
+    // API reject multi-turn requests with "The `reasoning_content` in the
+    // thinking mode must be passed back to the API."
+    it('should preserve reasoning_content from prior turns for deepseek-v4', () => {
+      const result = convertToDeepSeekChatMessages({
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Hello' }],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'reasoning',
+                text: 'I think the tool will return the correct value.',
+              },
+              {
+                type: 'tool-call',
+                input: { foo: 'bar123' },
+                toolCallId: 'quux',
+                toolName: 'thwomp',
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'quux',
+                toolName: 'thwomp',
+                output: { type: 'json', value: { oof: '321rab' } },
+              },
+            ],
+          },
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Goodbye' }],
+          },
+        ],
+        responseFormat: undefined,
+        modelId: 'deepseek-v4-pro',
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "messages": [
+            {
+              "content": "Hello",
+              "role": "user",
+            },
+            {
+              "content": "",
+              "reasoning_content": "I think the tool will return the correct value.",
+              "role": "assistant",
+              "tool_calls": [
+                {
+                  "function": {
+                    "arguments": "{"foo":"bar123"}",
+                    "name": "thwomp",
+                  },
+                  "id": "quux",
+                  "type": "function",
+                },
+              ],
+            },
+            {
+              "content": "{"oof":"321rab"}",
+              "role": "tool",
+              "tool_call_id": "quux",
+            },
+            {
+              "content": "Goodbye",
+              "role": "user",
+            },
+          ],
+          "warnings": [],
+        }
+      `);
+    });
+
+    it('should back-fill empty reasoning_content for deepseek-v4 assistant messages with no reasoning part', () => {
+      const result = convertToDeepSeekChatMessages({
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Hello' }],
+          },
+          {
+            role: 'assistant',
+            content: [{ type: 'text', text: 'Hi there' }],
+          },
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Again' }],
+          },
+        ],
+        responseFormat: undefined,
+        modelId: 'deepseek-v4-pro',
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "messages": [
+            {
+              "content": "Hello",
+              "role": "user",
+            },
+            {
+              "content": "Hi there",
+              "reasoning_content": "",
+              "role": "assistant",
+              "tool_calls": undefined,
+            },
+            {
+              "content": "Again",
               "role": "user",
             },
           ],

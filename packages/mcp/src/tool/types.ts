@@ -1,6 +1,6 @@
 import { z } from 'zod/v4';
-import { JSONObject } from '@ai-sdk/provider';
-import { FlexibleSchema, Tool } from '@ai-sdk/provider-utils';
+import type { JSONObject } from '@ai-sdk/provider';
+import type { FlexibleSchema, Tool } from '@ai-sdk/provider-utils';
 
 export const LATEST_PROTOCOL_VERSION = '2025-11-25';
 export const SUPPORTED_PROTOCOL_VERSIONS = [
@@ -56,8 +56,10 @@ export type McpToolSet<TOOL_SCHEMAS extends ToolSchemas = 'automatic'> =
 const ClientOrServerImplementationSchema = z.looseObject({
   name: z.string(),
   version: z.string(),
+  title: z.optional(z.string()),
 });
 
+// Maps to `Implementation` in the MCP specification
 export type Configuration = z.infer<typeof ClientOrServerImplementationSchema>;
 
 export const BaseParamsSchema = z.looseObject({
