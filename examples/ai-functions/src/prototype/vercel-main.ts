@@ -1,6 +1,6 @@
 import { run } from '../lib/run';
+import { VercelSandbox } from '../sandbox/vercel-sandbox';
 import { sandboxAgent } from './sandbox-agent';
-import { VercelSandbox } from './vercel-sandbox';
 
 run(async () => {
   const sandbox = await VercelSandbox.create();

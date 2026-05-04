@@ -4,11 +4,19 @@ import { type Sandbox } from 'ai';
 
 const execAsync = promisify(exec);
 
+/**
+ * WARNING: This is not a security sandbox.
+ *
+ * LocalSandbox only sets the working directory for shell commands. Commands can
+ * still read or edit files outside `rootDirectory` through absolute paths,
+ * parent-directory paths, symlinks, subprocesses, and shell features. Only use
+ * this with trusted commands.
+ */
 export class LocalSandbox implements Sandbox {
   /**
-   * Root of the sandbox, used as the working directory by default.
-   * This does not provide filesystem isolation; commands can escape it
-   * with paths like `..`.
+   * Root directory used as the default working directory.
+   *
+   * WARNING: This does not provide filesystem isolation.
    */
   readonly rootDirectory: string;
 
@@ -40,6 +48,10 @@ export class LocalSandbox implements Sandbox {
   }
 
   get description() {
-    return `Root directory: ${this.rootDirectory}`;
+    return [
+      'WARNING: LocalSandbox is not a true sandbox.',
+      'Commands can access files outside the root directory.',
+      `Root directory: ${this.rootDirectory}`,
+    ].join('\n');
   }
 }
