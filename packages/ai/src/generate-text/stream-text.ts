@@ -1516,6 +1516,7 @@ class DefaultStreamTextResult<
             messages: stepInputMessages,
             toolsContext,
             runtimeContext,
+            sandbox,
           });
 
           const stepModel = resolveLanguageModel(

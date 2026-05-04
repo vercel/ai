@@ -210,6 +210,7 @@ export class ToolLoopAgent<
   async stream({
     abortSignal,
     timeout,
+    sandbox,
     experimental_transform,
     experimental_onStart,
     experimental_onStepStart,
@@ -226,6 +227,7 @@ export class ToolLoopAgent<
     const callbackArgs = {
       abortSignal,
       timeout,
+      sandbox,
       experimental_transform,
       experimental_onStart: mergeCallbacks(
         this.settings.experimental_onStart,
