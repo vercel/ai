@@ -1,5 +1,8 @@
-import { spawn } from 'node:child_process';
+import { exec } from 'node:child_process';
+import { promisify } from 'node:util';
 import { type Sandbox } from 'ai';
+
+const execAsync = promisify(exec);
 
 export class LocalSandbox implements Sandbox {
   /**
@@ -13,39 +16,27 @@ export class LocalSandbox implements Sandbox {
     this.rootDirectory = rootDirectory;
   }
 
-  executeCommand({ command }: { command: string }) {
-    return new Promise<{
-      exitCode: number;
-      stdout: string;
-      stderr: string;
-    }>(resolve => {
-      const childProcess = spawn(command, {
+  async executeCommand({ command }: { command: string }) {
+    try {
+      const { stdout, stderr } = await execAsync(command, {
         cwd: this.rootDirectory,
-        shell: true,
-      });
-      const stdout: Buffer[] = [];
-      const stderr: Buffer[] = [];
-
-      childProcess.stdout.on('data', data => {
-        stdout.push(Buffer.from(data));
+        timeout: 60_000,
+        maxBuffer: 10 * 1024 * 1024,
       });
 
-      childProcess.stderr.on('data', data => {
-        stderr.push(Buffer.from(data));
-      });
-
-      childProcess.on('error', error => {
-        stderr.push(Buffer.from(error.message));
-      });
-
-      childProcess.on('close', exitCode => {
-        resolve({
-          exitCode: exitCode ?? 1,
-          stdout: Buffer.concat(stdout).toString(),
-          stderr: Buffer.concat(stderr).toString(),
-        });
-      });
-    });
+      return {
+        exitCode: 0,
+        stdout: stdout || '',
+        stderr: stderr || '',
+      };
+    } catch (error: any) {
+      return {
+        exitCode:
+          error?.killed || error?.signal === 'SIGTERM' ? 1 : (error?.code ?? 1),
+        stdout: error?.stdout ?? '',
+        stderr: error?.stderr ?? String(error),
+      };
+    }
   }
 
   get description() {
