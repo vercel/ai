@@ -1069,7 +1069,7 @@ const AmazonBedrockAdditionalModelResponseFieldsSchema = z
   })
   .catchall(z.unknown());
 
-export const AmazonBedrockToolUseSchema = z.object({
+const AmazonBedrockToolUseSchema = z.object({
   toolUseId: z.string(),
   name: z.string(),
   input: z.unknown().optional(),
