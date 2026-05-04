@@ -1,5 +1,12 @@
 # @ai-sdk/rsc
 
+## 1.0.186
+
+### Patch Changes
+
+- Updated dependencies [cb911d2]
+  - ai@5.0.184
+
 ## 1.0.185
 
 ### Patch Changes
