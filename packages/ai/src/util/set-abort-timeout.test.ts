@@ -11,53 +11,81 @@ describe('setAbortTimeout', () => {
   });
 
   it('should not abort the controller before the timeout elapses', () => {
-    const controller = new AbortController();
+    const abortController = new AbortController();
 
-    setAbortTimeout({ controller, label: 'Step', ms: 100 });
+    setAbortTimeout({ abortController, label: 'Step', timeoutMs: 100 });
     vi.advanceTimersByTime(99);
 
-    expect(controller.signal.aborted).toBe(false);
+    expect(abortController.signal.aborted).toBe(false);
   });
 
   it('should abort the controller when the timeout elapses', () => {
-    const controller = new AbortController();
+    const abortController = new AbortController();
 
-    setAbortTimeout({ controller, label: 'Step', ms: 100 });
+    setAbortTimeout({ abortController, label: 'Step', timeoutMs: 100 });
     vi.advanceTimersByTime(100);
 
-    expect(controller.signal.aborted).toBe(true);
+    expect(abortController.signal.aborted).toBe(true);
   });
 
   it('should abort with a TimeoutError DOMException', () => {
-    const controller = new AbortController();
+    const abortController = new AbortController();
 
-    setAbortTimeout({ controller, label: 'Step', ms: 100 });
+    setAbortTimeout({ abortController, label: 'Step', timeoutMs: 100 });
     vi.advanceTimersByTime(100);
 
-    expect(controller.signal.reason).toBeInstanceOf(DOMException);
-    expect((controller.signal.reason as DOMException).name).toBe(
+    expect(abortController.signal.reason).toBeInstanceOf(DOMException);
+    expect((abortController.signal.reason as DOMException).name).toBe(
       'TimeoutError',
     );
   });
 
   it('should include the label and duration in the abort reason message', () => {
-    const controller = new AbortController();
+    const abortController = new AbortController();
 
-    setAbortTimeout({ controller, label: 'Chunk', ms: 250 });
+    setAbortTimeout({ abortController, label: 'Chunk', timeoutMs: 250 });
     vi.advanceTimersByTime(250);
 
-    expect((controller.signal.reason as DOMException).message).toBe(
+    expect((abortController.signal.reason as DOMException).message).toBe(
       'Chunk timeout of 250ms exceeded',
     );
   });
 
   it('should return a timeout id that can be cleared to cancel the abort', () => {
-    const controller = new AbortController();
+    const abortController = new AbortController();
 
-    const id = setAbortTimeout({ controller, label: 'Step', ms: 100 });
+    const id = setAbortTimeout({
+      abortController,
+      label: 'Step',
+      timeoutMs: 100,
+    });
     clearTimeout(id);
     vi.advanceTimersByTime(100);
 
-    expect(controller.signal.aborted).toBe(false);
+    expect(abortController.signal.aborted).toBe(false);
+  });
+
+  it('should return undefined when abortController is undefined', () => {
+    const id = setAbortTimeout({
+      abortController: undefined,
+      label: 'Step',
+      timeoutMs: 100,
+    });
+
+    expect(id).toBeUndefined();
+  });
+
+  it('should return undefined when timeoutMs is undefined', () => {
+    const abortController = new AbortController();
+
+    const id = setAbortTimeout({
+      abortController,
+      label: 'Step',
+      timeoutMs: undefined,
+    });
+    vi.advanceTimersByTime(1000);
+
+    expect(id).toBeUndefined();
+    expect(abortController.signal.aborted).toBe(false);
   });
 });

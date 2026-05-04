@@ -1461,30 +1461,25 @@ class DefaultStreamTextResult<
         const includeRawChunks = self.includeRawChunks;
 
         // Set up step timeout if configured
-        const stepTimeoutId =
-          stepTimeoutMs != null
-            ? setAbortTimeout({
-                controller: stepAbortController!,
-                label: 'Step',
-                ms: stepTimeoutMs,
-              })
-            : undefined;
+        const stepTimeoutId = setAbortTimeout({
+          abortController: stepAbortController,
+          label: 'Step',
+          timeoutMs: stepTimeoutMs,
+        });
 
         // Set up chunk timeout tracking (will be reset on each chunk)
         let chunkTimeoutId: ReturnType<typeof setTimeout> | undefined =
           undefined;
 
         function resetChunkTimeout() {
-          if (chunkTimeoutMs != null) {
-            if (chunkTimeoutId != null) {
-              clearTimeout(chunkTimeoutId);
-            }
-            chunkTimeoutId = setAbortTimeout({
-              controller: chunkAbortController!,
-              label: 'Chunk',
-              ms: chunkTimeoutMs,
-            });
+          if (chunkTimeoutId != null) {
+            clearTimeout(chunkTimeoutId);
           }
+          chunkTimeoutId = setAbortTimeout({
+            abortController: chunkAbortController,
+            label: 'Chunk',
+            timeoutMs: chunkTimeoutMs,
+          });
         }
 
         function clearChunkTimeout() {
