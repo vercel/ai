@@ -9,7 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@ai-sdk/openai": "4.0.0-canary.47",
+    "@ai-sdk/openai": "4.0.0-canary.48",
     "@ai-sdk/react": "4.0.0-canary.120",
     "@opentelemetry/api-logs": "0.55.0",
     "@opentelemetry/instrumentation": "0.52.1",

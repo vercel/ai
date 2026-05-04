@@ -13,7 +13,7 @@
   "private": true,
   "dependencies": {
     "@ai-sdk/angular": "3.0.0-canary.120",
-    "@ai-sdk/openai": "4.0.0-canary.47",
+    "@ai-sdk/openai": "4.0.0-canary.48",
     "@angular/common": "^20.3.2",
     "@angular/compiler": "^20.3.2",
     "@angular/core": "^20.3.2",

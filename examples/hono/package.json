@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "dependencies": {
-    "@ai-sdk/openai": "4.0.0-canary.47",
+    "@ai-sdk/openai": "4.0.0-canary.48",
     "@hono/node-server": "1.13.7",
     "ai": "7.0.0-canary.120",
     "dotenv": "16.4.5",
