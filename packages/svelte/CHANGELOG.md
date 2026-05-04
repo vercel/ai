@@ -1,5 +1,12 @@
 # @ai-sdk/svelte
 
+## 5.0.0-canary.118
+
+### Patch Changes
+
+- Updated dependencies [47e65d6]
+  - ai@7.0.0-canary.118
+
 ## 5.0.0-canary.117
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 4.0.0-canary.46
+
+### Patch Changes
+
+- cd9c311: fix(openai, openai-compatible): only send null content for assistant messages with tool calls
+
 ## 4.0.0-canary.45
 
 ### Patch Changes
