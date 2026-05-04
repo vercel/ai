@@ -582,9 +582,9 @@ This is the legacy format. Consider migrating to the `OpenTelemetry` for better 
   - `operation.name`: `ai.generateText.doGenerate` and the functionId that was set through `telemetry.functionId`
   - `ai.operationId`: `"ai.generateText.doGenerate"`
   - `ai.prompt.messages`: the messages that were passed into the provider
-  - `ai.prompt.tools`: array of stringified tool definitions. The tools can be of type `function` or `provider-defined-client`.
-    Function tools have a `name`, `description` (optional), and `inputSchema` (JSON schema).
-    Provider-defined-client tools have a `name`, `id`, and `input` (Record).
+  - `ai.prompt.tools`: array of stringified tool definitions. The serialized tools can be of type `function` or `provider`.
+    Function tools include `FunctionTool` and `DynamicTool` definitions and have a `name`, `description` (optional), and `inputSchema` (JSON schema).
+    Provider tools include `ProviderDefinedTool` and `ProviderExecutedTool` definitions and have a `name`, `id`, and `args` (Record).
   - `ai.prompt.toolChoice`: the stringified tool choice setting (JSON). It has a `type` property
     (`auto`, `none`, `required`, `tool`), and if the type is `tool`, a `toolName` property with the specific tool.
   - `ai.response.text`: the text that was generated
@@ -615,9 +615,9 @@ This is the legacy format. Consider migrating to the `OpenTelemetry` for better 
   - `operation.name`: `ai.streamText.doStream` and the functionId that was set through `telemetry.functionId`
   - `ai.operationId`: `"ai.streamText.doStream"`
   - `ai.prompt.messages`: the messages that were passed into the provider
-  - `ai.prompt.tools`: array of stringified tool definitions. The tools can be of type `function` or `provider-defined-client`.
-    Function tools have a `name`, `description` (optional), and `inputSchema` (JSON schema).
-    Provider-defined-client tools have a `name`, `id`, and `input` (Record).
+  - `ai.prompt.tools`: array of stringified tool definitions. The serialized tools can be of type `function` or `provider`.
+    Function tools include `FunctionTool` and `DynamicTool` definitions and have a `name`, `description` (optional), and `inputSchema` (JSON schema).
+    Provider tools include `ProviderDefinedTool` and `ProviderExecutedTool` definitions and have a `name`, `id`, and `args` (Record).
   - `ai.prompt.toolChoice`: the stringified tool choice setting (JSON). It has a `type` property
     (`auto`, `none`, `required`, `tool`), and if the type is `tool`, a `toolName` property with the specific tool.
   - `ai.response.text`: the text that was generated
