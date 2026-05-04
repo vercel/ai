@@ -1186,9 +1186,11 @@ const { text } = await generateText({
   and Google (Gemini 3 models).
 </Note>
 
-For Google, use base64 media parts (`file-data`) or base64
-`data:` URLs in URL-style parts. Remote HTTP(S) URLs in tool-result URL parts
-are not supported.
+For Google, use base64 inline-data file parts
+(`{ type: 'file', mediaType, data: { type: 'data', data } }`) or base64
+`data:` URLs in URL-style file parts
+(`{ type: 'file', mediaType, data: { type: 'url', url: new URL('data:...') } }`).
+Remote HTTP(S) URLs in tool-result URL parts are not supported.
 
 In order to send multi-modal tool results, e.g. screenshots, back to the model,
 they need to be converted into a specific format.
@@ -1228,7 +1230,13 @@ const result = await generateText({
           value:
             typeof output === 'string'
               ? [{ type: 'text', text: output }]
-              : [{ type: 'media', data: output.data, mediaType: 'image/png' }],
+              : [
+                  {
+                    type: 'file',
+                    mediaType: 'image/png',
+                    data: { type: 'data', data: output.data },
+                  },
+                ],
         };
       },
     }),

@@ -1,5 +1,13 @@
 # @ai-sdk/black-forest-labs
 
+## 2.0.0-canary.33
+
+### Patch Changes
+
+- Updated dependencies [5463d0d]
+  - @ai-sdk/provider-utils@5.0.0-canary.32
+  - @ai-sdk/provider@4.0.0-canary.16
+
 ## 2.0.0-canary.32
 
 ### Patch Changes

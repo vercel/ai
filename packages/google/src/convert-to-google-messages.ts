@@ -1,9 +1,11 @@
 import {
   UnsupportedFunctionalityError,
   type LanguageModelV4Prompt,
+  type LanguageModelV4ToolResultOutput,
 } from '@ai-sdk/provider';
 import {
   convertToBase64,
+  getTopLevelMediaType,
   isFullMediaType,
   resolveFullMediaType,
   resolveProviderReference,
@@ -58,10 +60,10 @@ function convertUrlToolResultPart(
 function appendToolResultParts(
   parts: GoogleContentPart[],
   toolName: string,
-  outputValue: Array<{
-    type: string;
-    [key: string]: unknown;
-  }>,
+  outputValue: Extract<
+    LanguageModelV4ToolResultOutput,
+    { type: 'content' }
+  >['value'],
 ): void {
   const functionResponseParts: GoogleFunctionResponsePart[] = [];
   const responseTextParts: string[] = [];
@@ -69,25 +71,27 @@ function appendToolResultParts(
   for (const contentPart of outputValue) {
     switch (contentPart.type) {
       case 'text': {
-        responseTextParts.push(contentPart.text as string);
+        responseTextParts.push(contentPart.text);
         break;
       }
-      case 'file-data': {
-        functionResponseParts.push({
-          inlineData: {
-            mimeType: contentPart.mediaType as string,
-            data: contentPart.data as string,
-          },
-        });
-        break;
-      }
-      case 'file-url': {
-        const functionResponsePart = convertUrlToolResultPart(
-          contentPart.url as string,
-        );
+      case 'file': {
+        if (contentPart.data.type === 'data') {
+          functionResponseParts.push({
+            inlineData: {
+              mimeType: resolveFullMediaType({ part: contentPart }),
+              data: convertToBase64(contentPart.data.data),
+            },
+          });
+        } else if (contentPart.data.type === 'url') {
+          const functionResponsePart = convertUrlToolResultPart(
+            contentPart.data.url.toString(),
+          );
 
-        if (functionResponsePart != null) {
-          functionResponseParts.push(functionResponsePart);
+          if (functionResponsePart != null) {
+            functionResponseParts.push(functionResponsePart);
+          } else {
+            responseTextParts.push(JSON.stringify(contentPart));
+          }
         } else {
           responseTextParts.push(JSON.stringify(contentPart));
         }
@@ -125,10 +129,10 @@ function appendToolResultParts(
 function appendLegacyToolResultParts(
   parts: GoogleContentPart[],
   toolName: string,
-  outputValue: Array<{
-    type: string;
-    [key: string]: unknown;
-  }>,
+  outputValue: Extract<
+    LanguageModelV4ToolResultOutput,
+    { type: 'content' }
+  >['value'],
 ): void {
   for (const contentPart of outputValue) {
     switch (contentPart.type) {
@@ -143,13 +147,16 @@ function appendLegacyToolResultParts(
           },
         });
         break;
-      case 'file-data':
-        if ((contentPart.mediaType as string).startsWith('image/')) {
+      case 'file': {
+        if (
+          contentPart.data.type === 'data' &&
+          getTopLevelMediaType(contentPart.mediaType) === 'image'
+        ) {
           parts.push(
             {
               inlineData: {
-                mimeType: contentPart.mediaType as string,
-                data: contentPart.data as string,
+                mimeType: resolveFullMediaType({ part: contentPart }),
+                data: convertToBase64(contentPart.data.data),
               },
             },
             {
@@ -160,6 +167,7 @@ function appendLegacyToolResultParts(
           parts.push({ text: JSON.stringify(contentPart) });
         }
         break;
+      }
       default:
         parts.push({ text: JSON.stringify(contentPart) });
         break;
