@@ -129,6 +129,7 @@ export async function generateText<
   system,
   prompt,
   messages,
+  allowSystemInMessages,
   maxRetries: maxRetriesArg,
   abortSignal,
   headers,
@@ -273,6 +274,7 @@ A function that attempts to repair a tool call that failed to parse.
     system,
     prompt,
     messages,
+    allowSystemInMessages,
   } as Prompt);
 
   const tracer = getTracer(telemetry);

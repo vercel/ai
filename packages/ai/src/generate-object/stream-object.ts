@@ -282,6 +282,7 @@ Callback that is called when the LLM response and the final object validation ar
     system,
     prompt,
     messages,
+    allowSystemInMessages,
     maxRetries,
     abortSignal,
     headers,
@@ -335,6 +336,7 @@ Callback that is called when the LLM response and the final object validation ar
     system,
     prompt,
     messages,
+    allowSystemInMessages,
     schemaName,
     schemaDescription,
     providerOptions,
@@ -384,6 +386,7 @@ class DefaultStreamObjectResult<
     system,
     prompt,
     messages,
+    allowSystemInMessages,
     schemaName,
     schemaDescription,
     providerOptions,
@@ -405,6 +408,7 @@ class DefaultStreamObjectResult<
     system: Prompt['system'];
     prompt: Prompt['prompt'];
     messages: Prompt['messages'];
+    allowSystemInMessages: Prompt['allowSystemInMessages'];
     schemaName: string | undefined;
     schemaDescription: string | undefined;
     providerOptions: ProviderOptions | undefined;
@@ -483,6 +487,7 @@ class DefaultStreamObjectResult<
           system,
           prompt,
           messages,
+          allowSystemInMessages,
         } as Prompt);
 
         const callOptions = {
