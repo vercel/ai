@@ -52,7 +52,7 @@ You can use the following optional settings to customize the Together.ai provide
 - **baseURL** _string_
 
   Use a different URL prefix for API calls, e.g. to use proxy servers.
-  The default prefix is `https://api.together.xyz/v1`.
+  The default prefix is `https://api.together.ai/v1`.
 
 - **apiKey** _string_
 
@@ -72,10 +72,10 @@ You can use the following optional settings to customize the Together.ai provide
 
 ## Language Models
 
-You can create [Together.ai models](https://docs.together.ai/docs/serverless-models) using a provider instance. The first argument is the model id, e.g. `google/gemma-2-9b-it`.
+You can create [Together.ai models](https://docs.together.ai/docs/serverless-models) using a provider instance. The first argument is the model id, e.g. `Qwen/Qwen3.5-9B`.
 
 ```ts
-const model = togetherai('google/gemma-2-9b-it');
+const model = togetherai('Qwen/Qwen3.5-9B');
 ```
 
 ### Reasoning Models
@@ -194,7 +194,7 @@ The following provider options are available:
 
   Disable the safety checker for image generation.
   When true, the API will not reject images flagged as potentially NSFW.
-  Not available for Flux Schnell Free and Flux Pro models.
+  Not available for all models.
 
 ### Image Editing
 
@@ -210,6 +210,8 @@ Together AI supports image editing through FLUX Kontext models. Pass input image
 Transform an existing image using text prompts:
 
 ```ts
+import { readFileSync } from 'fs';
+
 const imageBuffer = readFileSync('./input-image.png');
 
 const { images } = await generateImage({
