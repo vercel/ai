@@ -246,6 +246,7 @@ export type StreamTextOnAbortCallback<
  * @param timeout - An optional timeout in milliseconds. The call will be aborted if it takes longer than the specified timeout.
  * @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
  *
+ * @param sandbox - The sandbox environment that is passed through to the tool execution.
  * @param runtimeContext - User-defined runtime context that flows through the entire generation lifecycle.
  * @param sensitiveRuntimeContext - Top-level runtime context properties that contain sensitive data and should be excluded from telemetry.
  *
@@ -351,7 +352,7 @@ export function streamText<
     providerOptions?: ProviderOptions;
 
     /**
-     * The sandbox environment that the generation is operating in.
+     * The sandbox environment that is passed through to the tool execution.
      */
     sandbox?: Sandbox;
 
