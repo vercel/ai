@@ -9,7 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@ai-sdk/openai": "4.0.0-canary.47",
+    "@ai-sdk/openai": "4.0.0-canary.48",
     "@ai-sdk/react": "4.0.0-canary.120",
     "@vercel/functions": "^3.1.0",
     "ai": "7.0.0-canary.120",

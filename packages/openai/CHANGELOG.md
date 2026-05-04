@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 4.0.0-canary.48
+
+### Patch Changes
+
+- d6c79e3: feat(openai): add GPT-5.5 chat model IDs
+
 ## 4.0.0-canary.47
 
 ### Patch Changes
