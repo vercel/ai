@@ -1,3 +1,4 @@
+import { printFullStream } from '../../lib/print-full-stream';
 import { run } from '../../lib/run';
 import { LocalSandbox } from '../../sandbox/local-sandbox';
 import { sandboxAgent } from './sandbox-agent';
@@ -12,7 +13,5 @@ run(async () => {
     sandbox,
   });
 
-  for await (const textPart of result.textStream) {
-    process.stdout.write(textPart);
-  }
+  await printFullStream({ result });
 });

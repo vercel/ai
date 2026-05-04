@@ -1,6 +1,7 @@
 import { run } from '../../lib/run';
 import { VercelSandbox } from '../../sandbox/vercel-sandbox';
 import { sandboxAgent } from './sandbox-agent';
+import { printFullStream } from '../../lib/print-full-stream';
 
 run(async () => {
   const sandbox = await VercelSandbox.create();
@@ -11,9 +12,7 @@ run(async () => {
       sandbox,
     });
 
-    for await (const textPart of result.textStream) {
-      process.stdout.write(textPart);
-    }
+    await printFullStream({ result });
   } finally {
     await sandbox.stop();
   }
