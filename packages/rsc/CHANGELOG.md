@@ -1,5 +1,11 @@
 # @ai-sdk/rsc
 
+## 3.0.0-canary.120
+
+### Patch Changes
+
+- ai@7.0.0-canary.119
+
 ## 3.0.0-canary.119
 
 ### Patch Changes
