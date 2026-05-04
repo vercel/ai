@@ -3,12 +3,11 @@
 # Regenerates the gateway model settings files
 # (packages/gateway/src/gateway-*-model-settings.ts) from the upstream
 # gateway model list and opens a PR for review on each release branch
-# (main, release-v6.0, release-v5.0). Runs on weekdays at 8am PT.
+# (main, release-v6.0, release-v5.0).
 #
 # The generated PRs are how new models become available in
-# `@ai-sdk/gateway` — without a merge here, the package keeps shipping the
-# previous snapshot of the model list. If this workflow breaks, gateway
-# users stop seeing new models.
+# `@ai-sdk/gateway`. They surface as IDE autocomplete
+# suggestions when users type a model string.
 
 name: Update Gateway Model Settings
 
@@ -199,7 +198,7 @@ jobs:
           PR_BODY=$(cat <<EOF
           Automated update of the gateway model settings files.
 
-          Regenerated from the upstream gateway model list by [\`update-model-settings.yml\`]($WORKFLOW_FILE_URL) ([this run]($WORKFLOW_RUN_URL)). Merging this PR is what makes newly-released gateway models visible in \`@ai-sdk/gateway\`.
+          Regenerated from the upstream gateway model list by [\`update-model-settings.yml\`]($WORKFLOW_FILE_URL) ([this run]($WORKFLOW_RUN_URL)). Merging this PR is what surfaces newly-released gateway models as IDE autocomplete suggestions when users type a model string with \`@ai-sdk/gateway\`.
 
           See the workflow file for details on cadence and scope.
           EOF
