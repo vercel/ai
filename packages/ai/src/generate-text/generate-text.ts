@@ -578,7 +578,16 @@ export async function generateText<
       // Set up step timeout if configured
       const stepTimeoutId =
         stepTimeoutMs != null
-          ? setTimeout(() => stepAbortController!.abort(), stepTimeoutMs)
+          ? setTimeout(
+              () =>
+                stepAbortController!.abort(
+                  new DOMException(
+                    `Step timeout of ${stepTimeoutMs}ms exceeded`,
+                    'TimeoutError',
+                  ),
+                ),
+              stepTimeoutMs,
+            )
           : undefined;
 
       try {

@@ -1462,7 +1462,16 @@ class DefaultStreamTextResult<
         // Set up step timeout if configured
         const stepTimeoutId =
           stepTimeoutMs != null
-            ? setTimeout(() => stepAbortController!.abort(), stepTimeoutMs)
+            ? setTimeout(
+                () =>
+                  stepAbortController!.abort(
+                    new DOMException(
+                      `Step timeout of ${stepTimeoutMs}ms exceeded`,
+                      'TimeoutError',
+                    ),
+                  ),
+                stepTimeoutMs,
+              )
             : undefined;
 
         // Set up chunk timeout tracking (will be reset on each chunk)
@@ -1475,7 +1484,13 @@ class DefaultStreamTextResult<
               clearTimeout(chunkTimeoutId);
             }
             chunkTimeoutId = setTimeout(
-              () => chunkAbortController!.abort(),
+              () =>
+                chunkAbortController!.abort(
+                  new DOMException(
+                    `Chunk timeout of ${chunkTimeoutMs}ms exceeded`,
+                    'TimeoutError',
+                  ),
+                ),
               chunkTimeoutMs,
             );
           }
