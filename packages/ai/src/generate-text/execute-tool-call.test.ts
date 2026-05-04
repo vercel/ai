@@ -1,4 +1,4 @@
-import { tool } from '@ai-sdk/provider-utils';
+import { tool, type Sandbox } from '@ai-sdk/provider-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as z from 'zod/v4';
 import { TypeValidationError } from '../error';
@@ -79,6 +79,38 @@ describe('executeToolCall', () => {
         output: 'test-result',
         dynamic: false,
       });
+    });
+
+    it('should pass sandbox to tool execution', async () => {
+      const sandbox = {
+        description: 'test sandbox',
+        executeCommand: vi.fn(async () => ({
+          exitCode: 0,
+          stdout: 'ok',
+          stderr: '',
+        })),
+      } satisfies Sandbox;
+      let receivedSandbox: Sandbox | undefined;
+
+      await executeToolCall({
+        toolCall: createToolCall(),
+        tools: {
+          testTool: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }, { sandbox }) => {
+              receivedSandbox = sandbox;
+              return `${value}-result`;
+            },
+          }),
+        },
+        callId: 'test-telemetry-call-id',
+        messages: [],
+        abortSignal: undefined,
+        sandbox,
+        toolsContext: {},
+      });
+
+      expect(receivedSandbox).toBe(sandbox);
     });
 
     it('should preserve providerMetadata from toolCall', async () => {
