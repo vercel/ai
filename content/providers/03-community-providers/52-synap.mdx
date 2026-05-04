@@ -1,0 +1,122 @@
+---
+title: Synap
+description: Learn how to use Synap long-term memory with the Vercel AI SDK.
+---
+
+# Synap
+
+[Synap](https://maximem.ai) is a long-term memory platform that adds persistent,
+structured memory to AI agents and assistants. Synap automatically extracts facts,
+preferences, and episodic events from conversations, and retrieves only the relevant
+context at inference time — reducing prompt length and cost while personalising every
+response.
+
+- **Persistent Memory**: Long-term storage that survives across sessions and devices
+- **Automatic Extraction**: Facts, preferences, and events extracted without any schema
+- **Multi-Scope**: Scoped to user, customer, or organisation for multi-tenant apps
+- **Fast Mode**: Sub-100 ms context retrieval via an anticipation cache
+- **Zero-config Recording**: Middleware intercepts every turn automatically
+
+Learn more in the [Synap documentation](https://docs.maximem.ai).
+
+## Setup
+
+The Synap provider for the Vercel AI SDK is available in the `@maximem/synap-vercel-adk`
+package.
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add @maximem/synap-vercel-adk" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @maximem/synap-vercel-adk" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @maximem/synap-vercel-adk" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="bun add @maximem/synap-vercel-adk" dark />
+  </Tab>
+</Tabs>
+
+Get an API key at [dashboard.maximem.ai](https://dashboard.maximem.ai).
+
+## Provider Instance
+
+Create a `SynapProvider` and call `init()` once at application startup:
+
+```typescript
+import { createSynap } from '@maximem/synap-vercel-adk';
+
+const synap = createSynap({
+  apiKey: process.env.SYNAP_API_KEY!,
+});
+
+await synap.init();
+```
+
+## Wrapping a Model
+
+Wrap any Vercel AI SDK `LanguageModelV1` with Synap context injection. The wrapped model
+is a drop-in replacement — pass it to `generateText`, `streamText`, or any other AI SDK
+function unchanged.
+
+```typescript
+import { anthropic } from '@ai-sdk/anthropic';
+import { generateText } from 'ai';
+
+const model = synap.wrap(anthropic('claude-sonnet-4-6'), {
+  userId: 'user_123',
+  customerId: 'acme_corp',
+});
+
+const { text } = await generateText({
+  model,
+  messages: [{ role: 'user', content: 'What are my dietary restrictions?' }],
+});
+```
+
+Synap automatically:
+1. Fetches relevant memory context before the request is sent to the LLM
+2. Injects it as a system prompt block
+3. Records the conversation turn for background memory extraction
+
+## Streaming
+
+Works identically with `streamText`:
+
+```typescript
+import { streamText } from 'ai';
+
+const result = streamText({
+  model,
+  messages: [{ role: 'user', content: 'Recommend a restaurant for tonight.' }],
+});
+
+for await (const chunk of result.textStream) {
+  process.stdout.write(chunk);
+}
+```
+
+## Low-Level Middleware
+
+For advanced use cases you can use `createSynapMiddleware` directly:
+
+```typescript
+import { wrapLanguageModel } from 'ai';
+import { createSynapMiddleware } from '@maximem/synap-vercel-adk';
+
+const model = wrapLanguageModel({
+  model: anthropic('claude-sonnet-4-6'),
+  middleware: createSynapMiddleware({
+    userId: 'user_123',
+    credentials: { instanceId: '...', token: '...' },
+  }),
+});
+```
+
+## Additional Resources
+
+- [Synap Documentation](https://docs.maximem.ai)
+- [Vercel AI SDK Integration Guide](https://docs.maximem.ai/integrations/vercel-adk)
+- [Dashboard](https://dashboard.maximem.ai)
