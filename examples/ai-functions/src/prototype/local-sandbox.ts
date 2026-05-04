@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process';
-import type { Sandbox } from './sandbox';
+import { type Sandbox } from 'ai';
 
 export class LocalSandbox implements Sandbox {
   /**
