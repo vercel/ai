@@ -1,5 +1,11 @@
 # @ai-sdk/mistral
 
+## 4.0.0-canary.36
+
+### Patch Changes
+
+- 3ae1d12: Add support for mistral-medium-3.5
+
 ## 4.0.0-canary.35
 
 ### Patch Changes

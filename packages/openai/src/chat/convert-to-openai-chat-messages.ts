@@ -203,7 +203,7 @@ export function convertToOpenAIChatMessages({
 
         messages.push({
           role: 'assistant',
-          content: text || null,
+          content: toolCalls.length > 0 ? text || null : text,
           tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
         });
 

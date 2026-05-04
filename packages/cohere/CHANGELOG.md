@@ -1,5 +1,11 @@
 # @ai-sdk/cohere
 
+## 4.0.0-canary.34
+
+### Patch Changes
+
+- f2919d5: feat(provider/cohere): add support for passing images to Cohere models
+
 ## 4.0.0-canary.33
 
 ### Patch Changes
