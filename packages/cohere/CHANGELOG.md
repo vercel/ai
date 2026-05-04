@@ -1,5 +1,11 @@
 # @ai-sdk/cohere
 
+## 3.0.34
+
+### Patch Changes
+
+- 563e9dd: feat(provider/cohere): add support for passing images to Cohere models
+
 ## 3.0.33
 
 ### Patch Changes
