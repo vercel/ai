@@ -20,6 +20,8 @@
     "server:elicitation-ui": "tsx src/elicitation-ui/server.ts",
     "server:tool-meta": "tsx src/tool-meta/server.ts",
     "client:tool-meta": "tsx src/tool-meta/client.ts",
+    "server:provider-metadata": "tsx src/provider-metadata/server.ts",
+    "client:provider-metadata": "tsx src/provider-metadata/client.ts",
     "server:server-instructions": "tsx src/server-instructions/server.ts",
     "client:server-instructions": "tsx src/server-instructions/client.ts",
     "stdio:build": "tsc src/stdio/server.ts --outDir src/stdio/dist --target es2023 --module nodenext",

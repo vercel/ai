@@ -43,9 +43,17 @@ export default function Chat() {
               if (isToolUIPart(part)) {
                 const toolPart = part as ToolUIPart<any> | DynamicToolUIPart;
                 const toolName = getToolName(toolPart);
+                const mcpMetadata =
+                  'callProviderMetadata' in toolPart
+                    ? toolPart.callProviderMetadata?.mcp
+                    : undefined;
+                const mcpTitle =
+                  typeof mcpMetadata?.title === 'string'
+                    ? mcpMetadata.title
+                    : undefined;
 
                 // Display tool title if available, fallback to tool name
-                const displayName = toolPart.title || toolName;
+                const displayName = mcpTitle || toolPart.title || toolName;
 
                 return (
                   <div

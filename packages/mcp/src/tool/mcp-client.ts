@@ -58,6 +58,7 @@ import {
   type ServerCapabilities,
   type ToolSchemas,
   type ToolMeta,
+  type McpProviderMetadata,
 } from './types';
 const CLIENT_VERSION = '1.0.0';
 
@@ -611,6 +612,11 @@ class DefaultMCPClient implements MCPClient {
       const self = this;
       const outputSchema =
         schemas !== 'automatic' ? schemas[name]?.outputSchema : undefined;
+      const mcpProviderMetadata = {
+        clientName: this.clientInfo.name,
+        toolName: name,
+        ...(resolvedTitle != null ? { title: resolvedTitle } : {}),
+      } satisfies McpProviderMetadata;
 
       const execute = async (
         args: any,
@@ -636,7 +642,7 @@ class DefaultMCPClient implements MCPClient {
               description,
               title: resolvedTitle,
               providerMetadata: {
-                mcp: { clientName: this.clientInfo.name },
+                mcp: mcpProviderMetadata,
               },
               inputSchema: jsonSchema({
                 ...inputSchema,
@@ -650,7 +656,7 @@ class DefaultMCPClient implements MCPClient {
               description,
               title: resolvedTitle,
               providerMetadata: {
-                mcp: { clientName: this.clientInfo.name },
+                mcp: mcpProviderMetadata,
               },
               inputSchema: schemas[name].inputSchema,
               ...(outputSchema != null ? { outputSchema } : {}),

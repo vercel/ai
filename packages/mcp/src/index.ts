@@ -18,6 +18,7 @@ export type {
   ElicitationRequest,
   ElicitResult,
   ListToolsResult,
+  McpProviderMetadata,
   ClientCapabilities as MCPClientCapabilities,
 } from './tool/types';
 export { auth, UnauthorizedError } from './tool/oauth';

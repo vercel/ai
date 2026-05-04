@@ -59,6 +59,8 @@ type BaseTool<
 > = {
   /**
    * An optional title of the tool.
+   *
+   * @deprecated Use `providerMetadata` for source-specific tool display metadata.
    */
   title?: string;
 
