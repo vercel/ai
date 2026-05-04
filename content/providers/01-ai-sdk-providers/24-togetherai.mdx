@@ -129,7 +129,6 @@ The Together.ai provider also supports [completion models](https://docs.together
 | `deepseek-ai/DeepSeek-V4-Pro`                       | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `openai/gpt-oss-120b`                               | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `openai/gpt-oss-20b`                                | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `meta-llama/Llama-3.3-70B-Instruct-Turbo`           | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `google/gemma-4-31B-it`                             | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 
@@ -150,7 +149,7 @@ import { togetherai } from '@ai-sdk/togetherai';
 import { generateImage } from 'ai';
 
 const { images } = await generateImage({
-  model: togetherai.image('black-forest-labs/FLUX.1-dev'),
+  model: togetherai.image('black-forest-labs/FLUX.1-schnell'),
   prompt: 'A delighted resplendent quetzal mid flight amidst raindrops',
 });
 ```
@@ -165,9 +164,9 @@ import {
 import { generateImage } from 'ai';
 
 const { images } = await generateImage({
-  model: togetherai.image('black-forest-labs/FLUX.1-dev'),
+  model: togetherai.image('black-forest-labs/FLUX.1-schnell'),
   prompt: 'A delighted resplendent quetzal mid flight amidst raindrops',
-  size: '512x512',
+  size: '1024x1024',
   // Optional additional provider-specific request parameters
   providerOptions: {
     togetherai: {
