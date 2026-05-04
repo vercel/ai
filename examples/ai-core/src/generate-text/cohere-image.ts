@@ -1,9 +1,9 @@
 import { cohere } from '@ai-sdk/cohere';
 import { generateText } from 'ai';
+import 'dotenv/config';
 import fs from 'node:fs';
-import { run } from '../../lib/run';
 
-run(async () => {
+async function main() {
   const result = await generateText({
     model: cohere('command-a-vision-07-2025'),
     messages: [
@@ -27,4 +27,6 @@ run(async () => {
   console.log(result.text);
   console.log();
   console.log('Usage:', result.usage);
-});
+}
+
+main().catch(console.error);

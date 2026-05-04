@@ -34,12 +34,7 @@ export const cohereChatModelOptions = z.object({
     .optional(),
 });
 
-<<<<<<< HEAD
 export type CohereChatModelOptions = z.infer<typeof cohereChatModelOptions>;
-=======
-export type CohereLanguageModelOptions = z.infer<
-  typeof cohereLanguageModelOptions
->;
 
 export const cohereImagePartProviderOptions = z.object({
   /**
@@ -53,4 +48,3 @@ export const cohereImagePartProviderOptions = z.object({
 export type CohereImagePartProviderOptions = z.infer<
   typeof cohereImagePartProviderOptions
 >;
->>>>>>> 563e9dd1f (Backport: feat(provider/cohere): add support for passing images to Cohere models (#14953))

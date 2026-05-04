@@ -1,9 +1,9 @@
 import { cohere } from '@ai-sdk/cohere';
 import { streamText } from 'ai';
+import 'dotenv/config';
 import fs from 'node:fs';
-import { run } from '../../lib/run';
 
-run(async () => {
+async function main() {
   const result = streamText({
     model: cohere('command-a-vision-07-2025'),
     messages: [
@@ -28,4 +28,6 @@ run(async () => {
   console.log();
   console.log('Token usage:', await result.usage);
   console.log('Finish reason:', await result.finishReason);
-});
+}
+
+main().catch(console.error);

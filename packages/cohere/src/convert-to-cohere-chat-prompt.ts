@@ -1,13 +1,8 @@
 import {
   type LanguageModelV2CallWarning,
+  type LanguageModelV2FilePart,
   type LanguageModelV2Prompt,
   UnsupportedFunctionalityError,
-<<<<<<< HEAD
-=======
-  type LanguageModelV3FilePart,
-  type LanguageModelV3Prompt,
-  type SharedV3Warning,
->>>>>>> 563e9dd1f (Backport: feat(provider/cohere): add support for passing images to Cohere models (#14953))
 } from '@ai-sdk/provider';
 import { convertToBase64, parseProviderOptions } from '@ai-sdk/provider-utils';
 import { cohereImagePartProviderOptions } from './cohere-chat-options';
@@ -17,24 +12,15 @@ import type {
   CohereUserMessageContent,
 } from './cohere-chat-prompt';
 
-<<<<<<< HEAD
-export function convertToCohereChatPrompt(prompt: LanguageModelV2Prompt): {
-=======
 export async function convertToCohereChatPrompt(
-  prompt: LanguageModelV3Prompt,
+  prompt: LanguageModelV2Prompt,
 ): Promise<{
->>>>>>> 563e9dd1f (Backport: feat(provider/cohere): add support for passing images to Cohere models (#14953))
   messages: CohereChatPrompt;
   documents: Array<{
     data: { text: string; title?: string };
   }>;
-<<<<<<< HEAD
   warnings: LanguageModelV2CallWarning[];
-} {
-=======
-  warnings: SharedV3Warning[];
 }> {
->>>>>>> 563e9dd1f (Backport: feat(provider/cohere): add support for passing images to Cohere models (#14953))
   const messages: CohereChatPrompt = [];
   const documents: Array<{ data: { text: string; title?: string } }> = [];
   const warnings: LanguageModelV2CallWarning[] = [];
@@ -205,7 +191,7 @@ function isImageMediaType(mediaType: string | undefined): boolean {
   return mediaType === 'image' || mediaType?.startsWith('image/') === true;
 }
 
-function buildImageUrl({ part }: { part: LanguageModelV3FilePart }): string {
+function buildImageUrl({ part }: { part: LanguageModelV2FilePart }): string {
   if (part.data instanceof URL) {
     return part.data.toString();
   }
