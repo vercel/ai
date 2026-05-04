@@ -82,6 +82,7 @@ import { mergeObjects } from '../util/merge-objects';
 import { notify } from '../util/notify';
 import { now as originalNow } from '../util/now';
 import { prepareRetries } from '../util/prepare-retries';
+import { setAbortTimeout } from '../util/set-abort-timeout';
 import type { ActiveTools } from './active-tools';
 import { collectToolApprovals } from './collect-tool-approvals';
 import type { ContentPart } from './content-part';
@@ -1462,16 +1463,7 @@ class DefaultStreamTextResult<
         // Set up step timeout if configured
         const stepTimeoutId =
           stepTimeoutMs != null
-            ? setTimeout(
-                () =>
-                  stepAbortController!.abort(
-                    new DOMException(
-                      `Step timeout of ${stepTimeoutMs}ms exceeded`,
-                      'TimeoutError',
-                    ),
-                  ),
-                stepTimeoutMs,
-              )
+            ? setAbortTimeout(stepAbortController!, 'Step', stepTimeoutMs)
             : undefined;
 
         // Set up chunk timeout tracking (will be reset on each chunk)
@@ -1483,14 +1475,9 @@ class DefaultStreamTextResult<
             if (chunkTimeoutId != null) {
               clearTimeout(chunkTimeoutId);
             }
-            chunkTimeoutId = setTimeout(
-              () =>
-                chunkAbortController!.abort(
-                  new DOMException(
-                    `Chunk timeout of ${chunkTimeoutMs}ms exceeded`,
-                    'TimeoutError',
-                  ),
-                ),
+            chunkTimeoutId = setAbortTimeout(
+              chunkAbortController!,
+              'Chunk',
               chunkTimeoutMs,
             );
           }

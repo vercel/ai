@@ -53,6 +53,7 @@ import { mergeAbortSignals } from '../util/merge-abort-signals';
 import { mergeObjects } from '../util/merge-objects';
 import { notify } from '../util/notify';
 import { prepareRetries } from '../util/prepare-retries';
+import { setAbortTimeout } from '../util/set-abort-timeout';
 import { VERSION } from '../version';
 import type { ActiveTools } from './active-tools';
 import { collectToolApprovals } from './collect-tool-approvals';
@@ -578,16 +579,7 @@ export async function generateText<
       // Set up step timeout if configured
       const stepTimeoutId =
         stepTimeoutMs != null
-          ? setTimeout(
-              () =>
-                stepAbortController!.abort(
-                  new DOMException(
-                    `Step timeout of ${stepTimeoutMs}ms exceeded`,
-                    'TimeoutError',
-                  ),
-                ),
-              stepTimeoutMs,
-            )
+          ? setAbortTimeout(stepAbortController!, 'Step', stepTimeoutMs)
           : undefined;
 
       try {
