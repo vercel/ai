@@ -5,24 +5,22 @@ description: Learn how to use Synap long-term memory with the Vercel AI SDK.
 
 # Synap
 
-[Synap](https://maximem.ai) is a long-term memory platform that adds persistent,
-structured memory to AI agents and assistants. Synap automatically extracts facts,
-preferences, and episodic events from conversations, and retrieves only the relevant
-context at inference time — reducing prompt length and cost while personalising every
-response.
+[Synap](https://maximem.ai) is a managed memory layer for AI agents and assistants. Unlike simple chat-history stores, Synap runs a full extraction pipeline on every conversation turn — automatically identifying facts, preferences, episodes, emotions, and temporal events — and stores them in a dual vector + knowledge-graph backend. At inference time it retrieves only what is semantically relevant to the current query, keeping prompts short and responses accurate.
 
-- **Persistent Memory**: Long-term storage that survives across sessions and devices
-- **Automatic Extraction**: Facts, preferences, and events extracted without any schema
-- **Multi-Scope**: Scoped to user, customer, or organisation for multi-tenant apps
-- **Fast Mode**: Sub-100 ms context retrieval via an anticipation cache
-- **Zero-config Recording**: Middleware intercepts every turn automatically
+**What makes Synap different:**
+
+- **Five typed memory categories** — facts, preferences, episodes, emotions, temporal events — each with confidence and strength scores
+- **Entity resolution** — "John", "Mr. Smith", "my manager" are automatically unified into one canonical record across all conversations, turning isolated chats into a queryable knowledge graph
+- **Four-level memory scoping** — User → Customer → Client → World — strict multi-tenant isolation so personal data never leaks between users or organisations
+- **Dual retrieval modes** — Fast (~50–100 ms, vector similarity) and Accurate (vector + graph traversal, ~200–500 ms) can be mixed per query
+- **Context compaction** — long conversations compress into structured summaries with validation scores, cutting token costs without losing critical context
+- **Async extraction** — the ingestion pipeline runs in the background; it never adds latency to the user's turn
 
 Learn more in the [Synap documentation](https://docs.maximem.ai).
 
 ## Setup
 
-The Synap provider for the Vercel AI SDK is available in the `@maximem/synap-vercel-adk`
-package.
+The Synap provider for the Vercel AI SDK is available in the `@maximem/synap-vercel-adk` package.
 
 <Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
   <Tab>
@@ -39,11 +37,11 @@ package.
   </Tab>
 </Tabs>
 
-Get an API key at [dashboard.maximem.ai](https://dashboard.maximem.ai).
+Get an API key at [synap.maximem.ai](https://synap.maximem.ai).
 
 ## Provider Instance
 
-Create a `SynapProvider` and call `init()` once at application startup:
+Create a `SynapProvider` once at application startup and call `init()`:
 
 ```typescript
 import { createSynap } from '@maximem/synap-vercel-adk';
@@ -57,9 +55,7 @@ await synap.init();
 
 ## Wrapping a Model
 
-Wrap any Vercel AI SDK `LanguageModelV1` with Synap context injection. The wrapped model
-is a drop-in replacement — pass it to `generateText`, `streamText`, or any other AI SDK
-function unchanged.
+Wrap any Vercel AI SDK `LanguageModelV1` with Synap. The wrapped model is a drop-in replacement — pass it to `generateText`, `streamText`, or any other AI SDK call unchanged.
 
 ```typescript
 import { anthropic } from '@ai-sdk/anthropic';
@@ -76,14 +72,14 @@ const { text } = await generateText({
 });
 ```
 
-Synap automatically:
-1. Fetches relevant memory context before the request is sent to the LLM
-2. Injects it as a system prompt block
-3. Records the conversation turn for background memory extraction
+On every call Synap automatically:
+1. Fetches semantically relevant memories from the user's knowledge graph
+2. Injects them as a system-prompt context block (Fast mode, ~50 ms)
+3. Records the conversation turn for background extraction into long-term memory
 
 ## Streaming
 
-Works identically with `streamText`:
+Identical API with `streamText`:
 
 ```typescript
 import { streamText } from 'ai';
@@ -98,9 +94,26 @@ for await (const chunk of result.textStream) {
 }
 ```
 
+## Retrieval Modes
+
+Switch to Accurate mode for queries that need relationship-aware, multi-hop reasoning across the knowledge graph:
+
+```typescript
+const model = synap.wrap(anthropic('claude-sonnet-4-6'), {
+  userId: 'user_123',
+  customerId: 'acme_corp',
+  retrievalMode: 'accurate', // default: 'fast'
+});
+```
+
+| Mode | Latency (P95) | Method |
+|------|--------------|--------|
+| `fast` | ~100 ms | Vector similarity |
+| `accurate` | ~500 ms | Vector + graph traversal |
+
 ## Low-Level Middleware
 
-For advanced use cases you can use `createSynapMiddleware` directly:
+For advanced use cases use `createSynapMiddleware` directly:
 
 ```typescript
 import { wrapLanguageModel } from 'ai';
@@ -119,4 +132,5 @@ const model = wrapLanguageModel({
 
 - [Synap Documentation](https://docs.maximem.ai)
 - [Vercel AI SDK Integration Guide](https://docs.maximem.ai/integrations/vercel-adk)
-- [Dashboard](https://dashboard.maximem.ai)
+- [Dashboard](https://synap.maximem.ai)
+- [npm: @maximem/synap-vercel-adk](https://www.npmjs.com/package/@maximem/synap-vercel-adk)
