@@ -41,11 +41,11 @@ using [multi-step calls](/docs/ai-sdk-core/tools-and-tool-calling#multi-step-cal
 
 ## Types of Tools
 
-The AI SDK supports three types of tools, each with different trade-offs:
+The AI SDK supports four types of tools, each with different trade-offs:
 
-### Custom Tools
+### Function Tools
 
-Custom tools are tools you define entirely yourself, including the description, input schema, and execute function. They are provider-agnostic and give you full control.
+Function tools are tools you define entirely yourself, including the description, input schema, and optional execute function. They are provider-agnostic and give you full control.
 
 ```ts
 import { tool } from 'ai';
@@ -64,6 +64,26 @@ const weatherTool = tool({
 ```
 
 **When to use**: When you need full control, want provider portability, or are implementing application-specific functionality.
+
+### Dynamic Tools
+
+Dynamic tools are function-style tools where the input and output types are not known at development time. They are useful for tools loaded from external sources, such as MCP servers, user-defined functions, or databases.
+
+```ts
+import { dynamicTool } from 'ai';
+import { z } from 'zod';
+
+const runtimeTool = dynamicTool({
+  description: 'Execute a tool loaded at runtime',
+  inputSchema: z.object({}),
+  execute: async input => {
+    // input is typed as unknown
+    return runRuntimeTool(input);
+  },
+});
+```
+
+**When to use**: When tools are discovered or generated at runtime and their exact TypeScript input/output types are not known when you write the code.
 
 ### Provider-Defined Tools
 
@@ -114,13 +134,13 @@ const result = await generateText({
 
 ### Comparison
 
-| Aspect             | Custom Tools             | Provider-Defined Tools | Provider-Executed Tools |
-| ------------------ | ------------------------ | ---------------------- | ----------------------- |
-| **Execution**      | Your code                | Your code              | Provider's servers      |
-| **Schema**         | You define               | Provider defines       | Provider defines        |
-| **Portability**    | Works with any provider  | Provider-specific      | Provider-specific       |
-| **Model Training** | General tool use         | Optimized for the tool | Optimized for the tool  |
-| **Setup**          | You implement everything | You implement execute  | Configuration only      |
+| Aspect             | Function Tools           | Dynamic Tools          | Provider-Defined Tools | Provider-Executed Tools |
+| ------------------ | ------------------------ | ---------------------- | ---------------------- | ----------------------- |
+| **Execution**      | Your code                | Your code              | Your code              | Provider's servers      |
+| **Schema**         | You define               | Runtime-defined        | Provider defines       | Provider defines        |
+| **Portability**    | Works with any provider  | Works with any provider | Provider-specific      | Provider-specific       |
+| **Model Training** | General tool use         | General tool use       | Optimized for the tool | Optimized for the tool  |
+| **Setup**          | You implement everything | You load or generate the tool | You implement execute  | Configuration only      |
 
 <Note>
   Provider-defined and provider-executed tools are documented in each provider's

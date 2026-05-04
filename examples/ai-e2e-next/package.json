@@ -19,7 +19,7 @@
     "@ai-sdk/google-vertex": "5.0.0-canary.67",
     "@ai-sdk/groq": "4.0.0-canary.35",
     "@ai-sdk/mcp": "2.0.0-canary.38",
-    "@ai-sdk/mistral": "4.0.0-canary.34",
+    "@ai-sdk/mistral": "4.0.0-canary.35",
     "@ai-sdk/openai": "4.0.0-canary.45",
     "@ai-sdk/otel": "1.0.0-canary.63",
     "@ai-sdk/perplexity": "4.0.0-canary.35",

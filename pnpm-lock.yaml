@@ -99,7 +99,7 @@ importers:
         specifier: 2.0.0-canary.38
         version: link:../../packages/mcp
       '@ai-sdk/mistral':
-        specifier: 4.0.0-canary.34
+        specifier: 4.0.0-canary.35
         version: link:../../packages/mistral
       '@ai-sdk/openai':
         specifier: 4.0.0-canary.45
