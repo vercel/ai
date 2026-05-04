@@ -1,5 +1,5 @@
-import { run } from '../lib/run';
-import { VercelSandbox } from '../sandbox/vercel-sandbox';
+import { run } from '../../lib/run';
+import { VercelSandbox } from '../../sandbox/vercel-sandbox';
 import { sandboxAgent } from './sandbox-agent';
 
 run(async () => {

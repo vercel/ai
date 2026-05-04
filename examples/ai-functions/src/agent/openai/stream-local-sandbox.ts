@@ -1,5 +1,5 @@
-import { run } from '../lib/run';
-import { LocalSandbox } from '../sandbox/local-sandbox';
+import { run } from '../../lib/run';
+import { LocalSandbox } from '../../sandbox/local-sandbox';
 import { sandboxAgent } from './sandbox-agent';
 
 run(async () => {
