@@ -1,5 +1,11 @@
 # ai
 
+## 5.0.184
+
+### Patch Changes
+
+- cb911d2: fix(ai): add allowSystemInMessages option and warn by default when system messages are found in prompt or messages
+
 ## 5.0.183
 
 ### Patch Changes
