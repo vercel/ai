@@ -18,6 +18,7 @@ import {
   tool,
   type ToolSet,
   type ModelMessage,
+  type Sandbox,
   type Tool,
   type ToolExecuteFunction,
 } from '@ai-sdk/provider-utils';
@@ -18207,6 +18208,51 @@ describe('streamText', () => {
       });
     });
 
+    it('should pass sandbox to tool execution', async () => {
+      const sandbox = {
+        description: 'test sandbox',
+        executeCommand: vi.fn(async () => ({
+          exitCode: 0,
+          stdout: 'ok',
+          stderr: '',
+        })),
+      } satisfies Sandbox;
+      let recordedSandbox: Sandbox | undefined;
+
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'tool-call',
+              toolCallId: 'call-1',
+              toolName: 't1',
+              input: `{ "value": "value" }`,
+            },
+            {
+              type: 'finish',
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: testUsage,
+            },
+          ]),
+        }),
+        tools: {
+          t1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }, { sandbox }) => {
+              recordedSandbox = sandbox;
+              return { value };
+            },
+          }),
+        },
+        sandbox,
+        prompt: 'test-input',
+      });
+
+      await result.consumeStream();
+
+      expect(recordedSandbox).toBe(sandbox);
+    });
+
     it('should pass runtimeContext to prepareStep', async () => {
       let capturedContext: unknown;
 
@@ -18236,6 +18282,46 @@ describe('streamText', () => {
 
       await result.consumeStream();
       expect(capturedContext).toEqual({ myData: 'test-value' });
+    });
+
+    it('should pass sandbox to prepareStep', async () => {
+      const sandbox = {
+        description: 'test sandbox',
+        executeCommand: vi.fn(async () => ({
+          exitCode: 0,
+          stdout: 'ok',
+          stderr: '',
+        })),
+      } satisfies Sandbox;
+      let capturedSandbox: Sandbox | undefined;
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: 'Hello' },
+              { type: 'text-end', id: '1' },
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: testUsage,
+              },
+            ]),
+            response: {},
+          }),
+        }),
+        sandbox,
+        prepareStep: async ({ sandbox }) => {
+          capturedSandbox = sandbox;
+          return undefined;
+        },
+        prompt: 'test',
+      });
+
+      await result.consumeStream();
+
+      expect(capturedSandbox).toBe(sandbox);
     });
 
     it('should send runtimeContext in onFinish callback', async () => {
