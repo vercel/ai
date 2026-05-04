@@ -1,6 +1,5 @@
 import { tool } from 'ai';
 import { z } from 'zod';
-import type { Sandbox } from './sandbox';
 
 export function sandboxShellTool() {
   return tool({
@@ -8,10 +7,12 @@ export function sandboxShellTool() {
     inputSchema: z.object({
       command: z.string(),
     }),
-    contextSchema: z.object({
-      sandbox: z.custom<Sandbox>(),
-    }),
-    execute: async ({ command }, { context: { sandbox } }) => {
+
+    execute: async ({ command }, { sandbox }) => {
+      // TODO figure out type inference to turn the runtime error into a type error
+      if (!sandbox) {
+        throw new Error('Sandbox is not available');
+      }
       return sandbox.executeCommand({ command });
     },
   });

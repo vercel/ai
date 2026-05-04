@@ -12,13 +12,14 @@ import {
   isAbortError,
   type Arrayable,
   type Context,
+  type IdGenerator,
   type InferToolSetContext,
+  type ProviderOptions,
+  type Sandbox,
   type SensitiveContext,
   type ToolApprovalResponse,
-  type ToolSet,
-  type IdGenerator,
-  type ProviderOptions,
   type ToolContent,
+  type ToolSet,
 } from '@ai-sdk/provider-utils';
 import type { ServerResponse } from 'node:http';
 import { NoOutputGeneratedError } from '../error';
@@ -85,14 +86,20 @@ import { prepareRetries } from '../util/prepare-retries';
 import type { ActiveTools } from './active-tools';
 import { collectToolApprovals } from './collect-tool-approvals';
 import type { ContentPart } from './content-part';
+import { createExecuteToolsTransformation } from './create-execute-tools-transformation';
+import { executeToolCall } from './execute-tool-call';
+import { filterActiveTools } from './filter-active-tools';
+import type {
+  GenerateTextOnFinishCallback,
+  GenerateTextOnStartCallback,
+  GenerateTextOnStepFinishCallback,
+  GenerateTextOnStepStartCallback,
+} from './generate-text-events';
+import { invokeToolCallbacksFromStream } from './invoke-tool-callbacks-from-stream';
 import type {
   OnLanguageModelCallEndCallback,
   OnLanguageModelCallStartCallback,
 } from './language-model-events';
-import { createExecuteToolsTransformation } from './create-execute-tools-transformation';
-import { executeToolCall } from './execute-tool-call';
-import { filterActiveTools } from './filter-active-tools';
-import { invokeToolCallbacksFromStream } from './invoke-tool-callbacks-from-stream';
 import { text, type Output } from './output';
 import type {
   InferCompleteOutput,
@@ -101,8 +108,8 @@ import type {
 } from './output-utils';
 import type { PrepareStepFunction } from './prepare-step';
 import { convertToReasoningOutputs } from './reasoning-output';
-import { createRestrictedTelemetryDispatcher } from './restricted-telemetry-dispatcher';
 import type { ResponseMessage } from './response-message';
+import { createRestrictedTelemetryDispatcher } from './restricted-telemetry-dispatcher';
 import { DefaultStepResult, type StepResult } from './step-result';
 import {
   isStepCount,
@@ -130,12 +137,6 @@ import type {
 import type { ToolOutput } from './tool-output';
 import type { StaticToolOutputDenied } from './tool-output-denied';
 import type { ToolsContextParameter } from './tools-context-parameter';
-import type {
-  GenerateTextOnFinishCallback,
-  GenerateTextOnStartCallback,
-  GenerateTextOnStepFinishCallback,
-  GenerateTextOnStepStartCallback,
-} from './generate-text-events';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -272,6 +273,7 @@ export function streamText<
   timeout,
   headers,
   stopWhen = isStepCount(1),
+  sandbox,
   output,
   toolApproval,
   experimental_telemetry,
@@ -346,6 +348,11 @@ export function streamText<
      * functionality that can be fully encapsulated in the provider.
      */
     providerOptions?: ProviderOptions;
+
+    /**
+     * The sandbox environment that the generation is operating in.
+     */
+    sandbox?: Sandbox;
 
     /**
      * Runtime context. Treat runtime context as immutable.
@@ -553,6 +560,7 @@ export function streamText<
     prompt,
     messages,
     allowSystemInMessages,
+    sandbox,
     tools,
     toolsContext,
     runtimeContext,
@@ -742,6 +750,7 @@ class DefaultStreamTextResult<
     prompt,
     messages,
     allowSystemInMessages,
+    sandbox,
     tools,
     toolChoice,
     transforms,
@@ -791,6 +800,7 @@ class DefaultStreamTextResult<
     prompt: Prompt['prompt'];
     messages: Prompt['messages'];
     allowSystemInMessages: Prompt['allowSystemInMessages'];
+    sandbox: Sandbox | undefined;
     tools: TOOLS | undefined;
     toolChoice: ToolChoice<TOOLS> | undefined;
     transforms: Array<StreamTextTransform<TOOLS>>;
@@ -1615,6 +1625,7 @@ class DefaultStreamTextResult<
               messages: stepInputMessages,
               abortSignal,
               timeout,
+              sandbox,
               toolsContext,
               toolApproval,
               runtimeContext,

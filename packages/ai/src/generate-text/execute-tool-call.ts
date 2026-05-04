@@ -4,8 +4,9 @@ import {
   type Arrayable,
   type InferToolInput,
   type InferToolSetContext,
-  type ToolSet,
   type ModelMessage,
+  type Sandbox,
+  type ToolSet,
 } from '@ai-sdk/provider-utils';
 import {
   getToolTimeoutMs,
@@ -45,6 +46,7 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   messages,
   abortSignal,
   timeout,
+  sandbox,
   onPreliminaryToolResult,
   onToolExecutionStart,
   onToolExecutionEnd,
@@ -57,6 +59,7 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   abortSignal: AbortSignal | undefined;
   toolsContext: InferToolSetContext<TOOLS>;
   timeout?: TimeoutConfiguration<TOOLS>;
+  sandbox?: Sandbox;
   onPreliminaryToolResult?: (result: TypedToolResult<TOOLS>) => void;
   onToolExecutionStart?: Arrayable<OnToolExecutionStartCallback<TOOLS>>;
   onToolExecutionEnd?: Arrayable<OnToolExecutionEndCallback<TOOLS>>;
@@ -117,6 +120,7 @@ export async function executeToolCall<TOOLS extends ToolSet>({
               messages,
               abortSignal: toolAbortSignal,
               context,
+              sandbox,
             },
           });
 
