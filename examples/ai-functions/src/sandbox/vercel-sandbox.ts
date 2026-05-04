@@ -1,23 +1,14 @@
 import { type Sandbox as AISandbox } from 'ai';
-import { Sandbox as VercelSandboxSDK } from '@vercel/sandbox';
+import type { Sandbox as VercelSandboxSDK } from '@vercel/sandbox';
 
 const rootDirectory = '/vercel/sandbox';
 
 export class VercelSandbox implements AISandbox {
-  private constructor(
-    private readonly sandbox: Awaited<
+  constructor(
+    public readonly sandbox: Awaited<
       ReturnType<typeof VercelSandboxSDK.create>
     >,
   ) {}
-
-  static async create() {
-    const sandbox = await VercelSandboxSDK.create({
-      timeout: 5 * 60 * 1000,
-      runtime: 'node22',
-    });
-
-    return new VercelSandbox(sandbox);
-  }
 
   async executeCommand({ command }: { command: string }) {
     const result = await this.sandbox.runCommand({
