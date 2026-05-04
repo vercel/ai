@@ -8,11 +8,15 @@
  * @param ms - Duration in milliseconds before the controller is aborted.
  * @returns The timeout id, suitable for passing to `clearTimeout`.
  */
-export function setAbortTimeout(
-  controller: AbortController,
-  label: string,
-  ms: number,
-): ReturnType<typeof setTimeout> {
+export function setAbortTimeout({
+  controller,
+  label,
+  ms,
+}: {
+  controller: AbortController;
+  label: string;
+  ms: number;
+}): ReturnType<typeof setTimeout> {
   return setTimeout(
     () =>
       controller.abort(

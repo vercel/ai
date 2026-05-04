@@ -1463,7 +1463,11 @@ class DefaultStreamTextResult<
         // Set up step timeout if configured
         const stepTimeoutId =
           stepTimeoutMs != null
-            ? setAbortTimeout(stepAbortController!, 'Step', stepTimeoutMs)
+            ? setAbortTimeout({
+                controller: stepAbortController!,
+                label: 'Step',
+                ms: stepTimeoutMs,
+              })
             : undefined;
 
         // Set up chunk timeout tracking (will be reset on each chunk)
@@ -1475,11 +1479,11 @@ class DefaultStreamTextResult<
             if (chunkTimeoutId != null) {
               clearTimeout(chunkTimeoutId);
             }
-            chunkTimeoutId = setAbortTimeout(
-              chunkAbortController!,
-              'Chunk',
-              chunkTimeoutMs,
-            );
+            chunkTimeoutId = setAbortTimeout({
+              controller: chunkAbortController!,
+              label: 'Chunk',
+              ms: chunkTimeoutMs,
+            });
           }
         }
 

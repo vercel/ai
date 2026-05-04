@@ -579,7 +579,11 @@ export async function generateText<
       // Set up step timeout if configured
       const stepTimeoutId =
         stepTimeoutMs != null
-          ? setAbortTimeout(stepAbortController!, 'Step', stepTimeoutMs)
+          ? setAbortTimeout({
+              controller: stepAbortController!,
+              label: 'Step',
+              ms: stepTimeoutMs,
+            })
           : undefined;
 
       try {
