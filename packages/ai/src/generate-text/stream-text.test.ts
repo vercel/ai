@@ -13677,6 +13677,7 @@ describe('streamText', () => {
 
       // The abort signal should have been triggered due to chunk timeout
       expect(receivedAbortSignal?.aborted).toBe(true);
+      expect((receivedAbortSignal?.reason as Error)?.name).toBe('TimeoutError');
     });
 
     it('should support chunkMs alongside totalMs and stepMs', async () => {

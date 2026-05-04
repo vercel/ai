@@ -1,5 +1,14 @@
 # @ai-sdk/anthropic
 
+## 4.0.0-canary.44
+
+### Patch Changes
+
+- 5463d0d: feat(provider): align tool result output content file part types with top-level message file part types
+- Updated dependencies [5463d0d]
+  - @ai-sdk/provider-utils@5.0.0-canary.32
+  - @ai-sdk/provider@4.0.0-canary.16
+
 ## 4.0.0-canary.43
 
 ### Patch Changes
