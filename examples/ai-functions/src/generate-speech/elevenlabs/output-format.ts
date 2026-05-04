@@ -1,11 +1,11 @@
-import { elevenlabs } from '@ai-sdk/elevenlabs';
+import { elevenLabs } from '@ai-sdk/elevenlabs';
 import { experimental_generateSpeech as generateSpeech } from 'ai';
 import { saveAudioFile } from '../../lib/save-audio';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateSpeech({
-    model: elevenlabs.speech('eleven_multilingual_v2'),
+    model: elevenLabs.speech('eleven_multilingual_v2'),
     text: 'This audio is generated in high-quality MP3 format.',
     outputFormat: 'mp3_44100_192', // High-quality MP3 at 192kbps
   });

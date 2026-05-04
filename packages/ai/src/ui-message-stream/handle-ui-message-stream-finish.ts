@@ -1,13 +1,13 @@
 import {
   createStreamingUIMessageState,
   processUIMessageStream,
-  StreamingUIMessageState,
+  type StreamingUIMessageState,
 } from '../ui/process-ui-message-stream';
-import { UIMessage } from '../ui/ui-messages';
-import { ErrorHandler } from '../util/error-handler';
-import { InferUIMessageChunk, UIMessageChunk } from './ui-message-chunks';
-import { UIMessageStreamOnFinishCallback } from './ui-message-stream-on-finish-callback';
-import { UIMessageStreamOnStepFinishCallback } from './ui-message-stream-on-step-finish-callback';
+import type { UIMessage } from '../ui/ui-messages';
+import type { ErrorHandler } from '../util/error-handler';
+import type { InferUIMessageChunk, UIMessageChunk } from './ui-message-chunks';
+import type { UIMessageStreamOnFinishCallback } from './ui-message-stream-on-finish-callback';
+import type { UIMessageStreamOnStepFinishCallback } from './ui-message-stream-on-step-finish-callback';
 
 export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
   messageId,

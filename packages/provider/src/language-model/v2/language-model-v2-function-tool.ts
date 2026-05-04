@@ -1,5 +1,5 @@
-import { JSONSchema7 } from 'json-schema';
-import { SharedV2ProviderOptions } from '../../shared';
+import type { JSONSchema7 } from 'json-schema';
+import type { SharedV2ProviderOptions } from '../../shared';
 
 /**
  * A tool has a name, a description, and a set of parameters.

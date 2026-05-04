@@ -5,10 +5,7 @@ import { webFetch_20260209OutputSchema } from './tool/web-fetch-20260209';
 import { webFetch_20250910OutputSchema } from './tool/web-fetch-20250910';
 import { webSearch_20260209OutputSchema } from './tool/web-search_20260209';
 import { webSearch_20250305OutputSchema } from './tool/web-search_20250305';
-import {
-  anthropicMessagesChunkSchema,
-  anthropicMessagesResponseSchema,
-} from './anthropic-messages-api';
+import { anthropicChunkSchema, anthropicResponseSchema } from './anthropic-api';
 
 describe('prepareTools', () => {
   it('should return undefined tools and tool_choice when tools are null', async () => {
@@ -1543,7 +1540,7 @@ describe('webSearch_20260209OutputSchema', () => {
   });
 });
 
-describe('anthropicMessagesResponseSchema - web_fetch_tool_result', () => {
+describe('anthropicResponseSchema - web_fetch_tool_result', () => {
   it('should accept PDF response with base64 source', async () => {
     const pdfResponse = {
       type: 'message',
@@ -1576,7 +1573,7 @@ describe('anthropicMessagesResponseSchema - web_fetch_tool_result', () => {
       },
     };
 
-    const schema = anthropicMessagesResponseSchema();
+    const schema = anthropicResponseSchema();
     const result = await schema.validate!(pdfResponse);
 
     expect(result.success).toBe(true);
@@ -1614,14 +1611,14 @@ describe('anthropicMessagesResponseSchema - web_fetch_tool_result', () => {
       },
     };
 
-    const schema = anthropicMessagesResponseSchema();
+    const schema = anthropicResponseSchema();
     const result = await schema.validate!(textResponse);
 
     expect(result.success).toBe(true);
   });
 });
 
-describe('anthropicMessagesChunkSchema - web_fetch_tool_result', () => {
+describe('anthropicChunkSchema - web_fetch_tool_result', () => {
   it('should accept base64 PDF source in streaming response', async () => {
     const pdfChunk = {
       type: 'content_block_start',
@@ -1646,7 +1643,7 @@ describe('anthropicMessagesChunkSchema - web_fetch_tool_result', () => {
       },
     };
 
-    const schema = anthropicMessagesChunkSchema();
+    const schema = anthropicChunkSchema();
     const result = await schema.validate!(pdfChunk);
 
     expect(result.success).toBe(true);
@@ -1676,7 +1673,7 @@ describe('anthropicMessagesChunkSchema - web_fetch_tool_result', () => {
       },
     };
 
-    const schema = anthropicMessagesChunkSchema();
+    const schema = anthropicChunkSchema();
     const result = await schema.validate!(pdfChunk);
 
     expect(result.success).toBe(true);

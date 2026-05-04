@@ -28,8 +28,9 @@ run(async () => {
             text: output.description,
           },
           {
-            type: 'image-url',
+            type: 'file-url',
             url: output.imageUrl,
+            mediaType: 'image/png',
           },
         ],
       };

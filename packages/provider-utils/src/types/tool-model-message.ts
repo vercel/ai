@@ -1,6 +1,6 @@
-import { ToolResultPart } from './content-part';
-import { ProviderOptions } from './provider-options';
-import { ToolApprovalResponse } from './tool-approval-response';
+import type { ToolResultPart } from './content-part';
+import type { ProviderOptions } from './provider-options';
+import type { ToolApprovalResponse } from './tool-approval-response';
 
 /**
  * A tool message. It contains the result of one or more tool calls.

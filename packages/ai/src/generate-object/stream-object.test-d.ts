@@ -1,12 +1,21 @@
-import { JSONValue } from '@ai-sdk/provider';
-import { expectTypeOf } from 'vitest';
+import type { JSONValue } from '@ai-sdk/provider';
+import { describe, expectTypeOf, it } from 'vitest';
 import { z } from 'zod/v4';
-import { AsyncIterableStream } from '../util/async-iterable-stream';
-import { FinishReason } from '../types';
+import type { AsyncIterableStream } from '../util/async-iterable-stream';
+import type { FinishReason } from '../types';
 import { streamObject } from './stream-object';
-import { describe, it } from 'vitest';
 
 describe('streamObject', () => {
+  it('should not accept timeout option', () => {
+    streamObject({
+      schema: z.object({ number: z.number() }),
+      model: undefined!,
+      prompt: 'test',
+      // @ts-expect-error timeout is not supported for the deprecated streamObject API
+      timeout: 5000,
+    });
+  });
+
   it('should have finishReason property with correct type', () => {
     const result = streamObject({
       schema: z.object({ number: z.number() }),

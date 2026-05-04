@@ -1,5 +1,5 @@
 import { isStreamableValue } from './is-streamable-value';
-import { StreamableValue } from './streamable-value';
+import type { StreamableValue } from './streamable-value';
 
 /**
  * `readStreamableValue` takes a streamable value created via the `createStreamableValue().value` API,

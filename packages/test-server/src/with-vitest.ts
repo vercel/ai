@@ -6,7 +6,6 @@ import {
   type UrlHandler,
   type UrlHandlers,
 } from './index';
-
 export function createTestServer<
   URLS extends {
     [url: string]: {

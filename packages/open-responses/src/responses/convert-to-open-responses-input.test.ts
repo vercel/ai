@@ -131,7 +131,7 @@ describe('convertToOpenResponsesInput', () => {
             content: [
               {
                 type: 'file',
-                data: 'ZmFrZS1kYXRh',
+                data: { type: 'data' as const, data: 'ZmFrZS1kYXRh' },
                 mediaType: 'image/png',
               },
             ],
@@ -163,7 +163,10 @@ describe('convertToOpenResponsesInput', () => {
             content: [
               {
                 type: 'file',
-                data: new URL('https://example.com/image.png'),
+                data: {
+                  type: 'url' as const,
+                  url: new URL('https://example.com/image.png'),
+                },
                 mediaType: 'image/png',
               },
             ],
@@ -196,7 +199,7 @@ describe('convertToOpenResponsesInput', () => {
               { type: 'text', text: 'Here is an image id.' },
               {
                 type: 'file',
-                data: 'UERGREFUQQ==',
+                data: { type: 'data' as const, data: 'UERGREFUQQ==' },
                 mediaType: 'application/pdf',
               },
             ],
@@ -611,8 +614,9 @@ describe('convertToOpenResponsesInput', () => {
                   type: 'content',
                   value: [
                     {
-                      type: 'image-url',
+                      type: 'file-url',
                       url: 'https://example.com/image.png',
+                      mediaType: 'image/png',
                     },
                   ],
                 },
@@ -876,6 +880,127 @@ describe('convertToOpenResponsesInput', () => {
           },
         ]
       `);
+    });
+  });
+
+  describe('provider reference', () => {
+    it('should throw for file parts with provider references', async () => {
+      await expect(
+        convertToOpenResponsesInput({
+          prompt: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'file',
+                  data: {
+                    type: 'reference' as const,
+                    reference: { openResponses: 'file-ref-123' },
+                  },
+                  mediaType: 'image/png',
+                },
+              ],
+            },
+          ],
+        }),
+      ).rejects.toThrow(
+        "'file parts with provider references' functionality not supported",
+      );
+    });
+  });
+
+  describe('top-level-only media type resolution', () => {
+    const pngBase64 = 'iVBORw0KGgo=';
+
+    it('passes full image/png through unchanged for inline data', async () => {
+      const result = await convertToOpenResponsesInput({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'image/png',
+                data: { type: 'data', data: pngBase64 },
+              },
+            ],
+          },
+        ],
+      });
+
+      expect((result.input[0] as { content: unknown[] }).content[0]).toEqual({
+        type: 'input_image',
+        image_url: `data:image/png;base64,${pngBase64}`,
+      });
+    });
+
+    it('detects image subtype from inline bytes for top-level "image"', async () => {
+      const result = await convertToOpenResponsesInput({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'image',
+                data: { type: 'data', data: pngBase64 },
+              },
+            ],
+          },
+        ],
+      });
+
+      expect((result.input[0] as { content: unknown[] }).content[0]).toEqual({
+        type: 'input_image',
+        image_url: `data:image/png;base64,${pngBase64}`,
+      });
+    });
+
+    it('passes through URL source for top-level-only image', async () => {
+      const result = await convertToOpenResponsesInput({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'image',
+                data: {
+                  type: 'url',
+                  url: new URL('https://example.com/x.png'),
+                },
+              },
+            ],
+          },
+        ],
+      });
+
+      expect((result.input[0] as { content: unknown[] }).content[0]).toEqual({
+        type: 'input_image',
+        image_url: 'https://example.com/x.png',
+      });
+    });
+
+    it('normalizes image/* wildcard via detection', async () => {
+      const result = await convertToOpenResponsesInput({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'image/*',
+                data: { type: 'data', data: pngBase64 },
+              },
+            ],
+          },
+        ],
+      });
+
+      expect((result.input[0] as { content: unknown[] }).content[0]).toEqual({
+        type: 'input_image',
+        image_url: `data:image/png;base64,${pngBase64}`,
+      });
     });
   });
 });

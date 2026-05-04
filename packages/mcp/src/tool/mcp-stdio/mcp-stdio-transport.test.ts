@@ -1,10 +1,10 @@
 import type { ChildProcess } from 'node:child_process';
 import { EventEmitter } from 'node:events';
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
-import { JSONRPCMessage } from '../json-rpc-message';
+import type { JSONRPCMessage } from '../json-rpc-message';
 import { MCPClientError } from '../../error/mcp-client-error';
 import { createChildProcess } from './create-child-process';
-import { StdioMCPTransport } from './mcp-stdio-transport';
+import { deserializeMessage, StdioMCPTransport } from './mcp-stdio-transport';
 
 vi.mock('./create-child-process', { spy: true });
 
@@ -201,7 +201,9 @@ describe('StdioMCPTransport', () => {
       };
 
       mockStdout.emit('data', Buffer.from(JSON.stringify(message) + '\n'));
-      expect(onMessageSpy).toHaveBeenCalledWith(message);
+      await vi.waitFor(() => {
+        expect(onMessageSpy).toHaveBeenCalledWith(message);
+      });
     });
 
     it('should handle partial messages correctly', async () => {
@@ -215,7 +217,41 @@ describe('StdioMCPTransport', () => {
       const messageStr = JSON.stringify(message);
       mockStdout.emit('data', Buffer.from(messageStr.slice(0, 10)));
       mockStdout.emit('data', Buffer.from(messageStr.slice(10) + '\n'));
-      expect(onMessageSpy).toHaveBeenCalledWith(message);
+      await vi.waitFor(() => {
+        expect(onMessageSpy).toHaveBeenCalledWith(message);
+      });
+    });
+  });
+
+  describe('deserializeMessage', () => {
+    it('should reject payloads containing __proto__ (prototype pollution)', async () => {
+      const malicious =
+        '{"jsonrpc":"2.0","id":1,"result":{"__proto__":{"polluted":true}}}';
+
+      await expect(
+        deserializeMessage(malicious),
+      ).rejects.toThrowErrorMatchingInlineSnapshot(
+        `
+        [AI_JSONParseError: JSON parsing failed: Text: {"jsonrpc":"2.0","id":1,"result":{"__proto__":{"polluted":true}}}.
+        Error message: SyntaxError: Object contains forbidden prototype property]
+      `,
+      );
+      expect(({} as Record<string, unknown>).polluted).toBeUndefined();
+    });
+
+    it('should reject payloads containing constructor.prototype', async () => {
+      const malicious =
+        '{"jsonrpc":"2.0","id":1,"result":{"constructor":{"prototype":{"polluted":true}}}}';
+
+      await expect(
+        deserializeMessage(malicious),
+      ).rejects.toThrowErrorMatchingInlineSnapshot(
+        `
+        [AI_JSONParseError: JSON parsing failed: Text: {"jsonrpc":"2.0","id":1,"result":{"constructor":{"prototype":{"polluted":true}}}}.
+        Error message: SyntaxError: Object contains forbidden prototype property]
+      `,
+      );
+      expect(({} as Record<string, unknown>).polluted).toBeUndefined();
     });
   });
 

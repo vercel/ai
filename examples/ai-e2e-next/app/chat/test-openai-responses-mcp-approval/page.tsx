@@ -8,7 +8,7 @@ import {
   DefaultChatTransport,
   lastAssistantMessageIsCompleteWithApprovalResponses,
 } from 'ai';
-import { OpenAIResponsesMCPApprovalMessage } from '@/app/api/chat/openai-responses-mcp-approval/route';
+import type { OpenAIResponsesMCPApprovalMessage } from '@/app/api/chat/openai-responses-mcp-approval/route';
 
 export default function TestOpenAIResponsesMCPApproval() {
   const { status, sendMessage, messages, addToolApprovalResponse } =

@@ -1,64 +1,39 @@
 import type {
+  Arrayable,
   Context,
-  InferToolSetContext,
-  ToolSet,
-} from '@ai-sdk/provider-utils';
-import {
   FlexibleSchema,
+  IdGenerator,
+  InferToolSetContext,
   MaybePromiseLike,
   ProviderOptions,
+  SensitiveContext,
   SystemModelMessage,
+  ToolSet,
 } from '@ai-sdk/provider-utils';
 import type {
-  OnFinishEvent,
-  OnStartEvent,
-  OnStepFinishEvent,
-  OnStepStartEvent,
-  OnToolCallFinishEvent,
-  OnToolCallStartEvent,
-} from '../generate-text/core-events';
-import { Output } from '../generate-text/output';
-import { PrepareStepFunction } from '../generate-text/prepare-step';
-import { StopCondition } from '../generate-text/stop-condition';
-import { ToolCallRepairFunction } from '../generate-text/tool-call-repair-function';
-import { CallSettings, TimeoutConfiguration } from '../prompt/call-settings';
-import { Prompt } from '../prompt/prompt';
-import { TelemetrySettings } from '../telemetry/telemetry-settings';
-import { LanguageModel, ToolChoice } from '../types/language-model';
-import { DownloadFunction } from '../util/download/download-function';
-import { Listener } from '../util/notify';
-import { ContextParameter } from '../generate-text/context-parameter';
-import { AgentCallParameters } from './agent';
-
-export type ToolLoopAgentOnStartCallback<
-  TOOLS extends ToolSet = ToolSet,
-  USER_CONTEXT extends Context = Context,
-  OUTPUT extends Output = Output,
-> = Listener<OnStartEvent<TOOLS, USER_CONTEXT, OUTPUT>>;
-
-export type ToolLoopAgentOnStepStartCallback<
-  TOOLS extends ToolSet = ToolSet,
-  USER_CONTEXT extends Context = Context,
-  OUTPUT extends Output = Output,
-> = Listener<OnStepStartEvent<TOOLS, USER_CONTEXT, OUTPUT>>;
-
-export type ToolLoopAgentOnToolCallStartCallback<
-  TOOLS extends ToolSet = ToolSet,
-> = Listener<OnToolCallStartEvent<TOOLS>>;
-
-export type ToolLoopAgentOnToolCallFinishCallback<
-  TOOLS extends ToolSet = ToolSet,
-> = Listener<OnToolCallFinishEvent<TOOLS>>;
-
-export type ToolLoopAgentOnStepFinishCallback<
-  TOOLS extends ToolSet = ToolSet,
-  USER_CONTEXT extends Context = Context,
-> = Listener<OnStepFinishEvent<TOOLS, USER_CONTEXT>>;
-
-export type ToolLoopAgentOnFinishCallback<
-  TOOLS extends ToolSet = ToolSet,
-  USER_CONTEXT extends Context = Context,
-> = Listener<OnFinishEvent<TOOLS, USER_CONTEXT>>;
+  GenerateTextOnFinishCallback,
+  GenerateTextOnStartCallback,
+  GenerateTextOnStepFinishCallback,
+  GenerateTextOnStepStartCallback,
+} from '../generate-text/generate-text-events';
+import type { ActiveTools } from '../generate-text/active-tools';
+import type { Output } from '../generate-text/output';
+import type { PrepareStepFunction } from '../generate-text/prepare-step';
+import type { StopCondition } from '../generate-text/stop-condition';
+import type { ToolApprovalConfiguration } from '../generate-text/tool-approval-configuration';
+import type { ToolCallRepairFunction } from '../generate-text/tool-call-repair-function';
+import type {
+  OnToolExecutionEndCallback,
+  OnToolExecutionStartCallback,
+} from '../generate-text/tool-execution-events';
+import type { ToolsContextParameter } from '../generate-text/tools-context-parameter';
+import type { LanguageModelCallOptions } from '../prompt/language-model-call-options';
+import type { Prompt } from '../prompt/prompt';
+import type { RequestOptions } from '../prompt/request-options';
+import type { TelemetryOptions } from '../telemetry/telemetry-options';
+import type { LanguageModel, ToolChoice } from '../types/language-model';
+import type { DownloadFunction } from '../util/download/download-function';
+import type { AgentCallParameters } from './agent';
 
 /**
  * Configuration options for an agent.
@@ -66,18 +41,11 @@ export type ToolLoopAgentOnFinishCallback<
 export type ToolLoopAgentSettings<
   CALL_OPTIONS = never,
   TOOLS extends ToolSet = {},
-  USER_CONTEXT extends Context = Context,
+  RUNTIME_CONTEXT extends Context = Context,
   OUTPUT extends Output = never,
-> = Omit<CallSettings, 'abortSignal'> &
-  ContextParameter<TOOLS, USER_CONTEXT> & {
-    /**
-     * Timeout in milliseconds. The call will be aborted if it takes longer
-     * than the specified timeout. Can be used alongside abortSignal.
-     *
-     * Can be specified as a number (milliseconds) or as an object with `totalMs`.
-     */
-    timeout?: TimeoutConfiguration<TOOLS>;
-
+> = LanguageModelCallOptions &
+  Omit<RequestOptions<TOOLS>, 'abortSignal'> &
+  ToolsContextParameter<TOOLS> & {
     /**
      * The id of the agent.
      */
@@ -106,20 +74,25 @@ export type ToolLoopAgentSettings<
      *
      * @default isStepCount(20)
      */
-    stopWhen?:
-      | StopCondition<NoInfer<TOOLS>, USER_CONTEXT>
-      | Array<StopCondition<NoInfer<TOOLS>, USER_CONTEXT>>;
+    stopWhen?: Arrayable<StopCondition<NoInfer<TOOLS>, RUNTIME_CONTEXT>>;
 
     /**
-     * Optional telemetry configuration (experimental).
+     * Optional telemetry configuration.
      */
-    experimental_telemetry?: TelemetrySettings;
+    telemetry?: TelemetryOptions;
+
+    /**
+     * Optional telemetry configuration.
+     *
+     * @deprecated Use `telemetry` instead. This alias will be removed in a future major release.
+     */
+    experimental_telemetry?: TelemetryOptions;
 
     /**
      * Limits the tools that are available for the model to call without
      * changing the tool call and result types in the result.
      */
-    activeTools?: Array<keyof NoInfer<TOOLS>>;
+    activeTools?: ActiveTools<NoInfer<TOOLS>>;
 
     /**
      * Optional specification for generating structured outputs.
@@ -127,9 +100,28 @@ export type ToolLoopAgentSettings<
     output?: OUTPUT;
 
     /**
+     * Runtime context. Treat runtime context as immutable.
+     * If you need to mutate runtime context, update it in `prepareStep`.
+     */
+    runtimeContext?: RUNTIME_CONTEXT;
+
+    /**
+     * Top-level runtime context properties that contain sensitive data and
+     * should be excluded from telemetry.
+     */
+    sensitiveRuntimeContext?: SensitiveContext<NoInfer<RUNTIME_CONTEXT>>;
+
+    /**
+     * Optional tool approval configuration.
+     *
+     * This configuration takes precedence over tool-defined approval settings.
+     */
+    toolApproval?: ToolApprovalConfiguration<NoInfer<TOOLS>, RUNTIME_CONTEXT>;
+
+    /**
      * Optional function that you can use to provide different settings for a step.
      */
-    prepareStep?: PrepareStepFunction<NoInfer<TOOLS>, USER_CONTEXT>;
+    prepareStep?: PrepareStepFunction<NoInfer<TOOLS>, RUNTIME_CONTEXT>;
 
     /**
      * A function that attempts to repair a tool call that failed to parse.
@@ -139,49 +131,49 @@ export type ToolLoopAgentSettings<
     /**
      * Callback that is called when the agent operation begins, before any LLM calls.
      */
-    experimental_onStart?: ToolLoopAgentOnStartCallback<
+    experimental_onStart?: GenerateTextOnStartCallback<
       NoInfer<TOOLS>,
-      USER_CONTEXT,
+      RUNTIME_CONTEXT,
       NoInfer<OUTPUT>
     >;
 
     /**
      * Callback that is called when a step (LLM call) begins, before the provider is called.
      */
-    experimental_onStepStart?: ToolLoopAgentOnStepStartCallback<
+    experimental_onStepStart?: GenerateTextOnStepStartCallback<
       NoInfer<TOOLS>,
-      NoInfer<USER_CONTEXT>,
+      NoInfer<RUNTIME_CONTEXT>,
       NoInfer<OUTPUT>
     >;
 
     /**
      * Callback that is called before each tool execution begins.
      */
-    experimental_onToolCallStart?: ToolLoopAgentOnToolCallStartCallback<
+    experimental_onToolExecutionStart?: OnToolExecutionStartCallback<
       NoInfer<TOOLS>
     >;
 
     /**
      * Callback that is called after each tool execution completes.
      */
-    experimental_onToolCallFinish?: ToolLoopAgentOnToolCallFinishCallback<
+    experimental_onToolExecutionEnd?: OnToolExecutionEndCallback<
       NoInfer<TOOLS>
     >;
 
     /**
      * Callback that is called when each step (LLM call) is finished, including intermediate steps.
      */
-    onStepFinish?: ToolLoopAgentOnStepFinishCallback<
+    onStepFinish?: GenerateTextOnStepFinishCallback<
       NoInfer<TOOLS>,
-      NoInfer<USER_CONTEXT>
+      NoInfer<RUNTIME_CONTEXT>
     >;
 
     /**
      * Callback that is called when all steps are finished and the response is complete.
      */
-    onFinish?: ToolLoopAgentOnFinishCallback<
+    onFinish?: GenerateTextOnFinishCallback<
       NoInfer<TOOLS>,
-      NoInfer<USER_CONTEXT>
+      NoInfer<RUNTIME_CONTEXT>
     >;
 
     /**
@@ -199,6 +191,14 @@ export type ToolLoopAgentSettings<
     experimental_download?: DownloadFunction | undefined;
 
     /**
+     * Internal. For test use only. May change without notice.
+     */
+    _internal?: {
+      generateId?: IdGenerator;
+      generateCallId?: IdGenerator;
+    };
+
+    /**
      * The schema for the call options.
      */
     callOptionsSchema?: FlexibleSchema<CALL_OPTIONS>;
@@ -213,7 +213,7 @@ export type ToolLoopAgentSettings<
         AgentCallParameters<
           CALL_OPTIONS,
           NoInfer<TOOLS>,
-          NoInfer<USER_CONTEXT>
+          NoInfer<RUNTIME_CONTEXT>
         >,
         'onStepFinish'
       > &
@@ -221,7 +221,7 @@ export type ToolLoopAgentSettings<
           ToolLoopAgentSettings<
             CALL_OPTIONS,
             TOOLS,
-            USER_CONTEXT,
+            RUNTIME_CONTEXT,
             NoInfer<OUTPUT>
           >,
           | 'model'
@@ -237,17 +237,22 @@ export type ToolLoopAgentSettings<
           | 'headers'
           | 'instructions'
           | 'stopWhen'
+          | 'telemetry'
           | 'experimental_telemetry'
           | 'activeTools'
+          | 'toolApproval'
           | 'providerOptions'
           | 'experimental_download'
-        > & { context: InferToolSetContext<TOOLS> & USER_CONTEXT },
+          | 'runtimeContext'
+          | 'sensitiveRuntimeContext'
+          | '_internal'
+        > & { toolsContext: InferToolSetContext<TOOLS> },
     ) => MaybePromiseLike<
       Pick<
         ToolLoopAgentSettings<
           CALL_OPTIONS,
           TOOLS,
-          USER_CONTEXT,
+          RUNTIME_CONTEXT,
           NoInfer<OUTPUT>
         >,
         | 'model'
@@ -263,13 +268,18 @@ export type ToolLoopAgentSettings<
         | 'headers'
         | 'instructions'
         | 'stopWhen'
+        | 'telemetry'
         | 'experimental_telemetry'
         | 'activeTools'
+        | 'toolApproval'
         | 'providerOptions'
         | 'experimental_download'
+        | 'runtimeContext'
+        | 'sensitiveRuntimeContext'
+        | '_internal'
       > &
         Omit<Prompt, 'system'> & {
-          context: InferToolSetContext<TOOLS> & USER_CONTEXT;
+          toolsContext: InferToolSetContext<TOOLS>;
         }
     >;
   };

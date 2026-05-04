@@ -1,37 +1,23 @@
 import {
+  NoSuchModelError,
   type Experimental_VideoModelV4,
   type LanguageModelV4,
-  NoSuchModelError,
   type ProviderV4,
 } from '@ai-sdk/provider';
 import {
-  createJsonErrorResponseHandler,
-  type FetchFunction,
   loadApiKey,
   withoutTrailingSlash,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
-import { AlibabaLanguageModel } from './alibaba-chat-language-model';
-import type { AlibabaChatModelId } from './alibaba-chat-options';
+import { AlibabaChatLanguageModel } from './alibaba-chat-language-model';
+import type { AlibabaChatModelId } from './alibaba-chat-language-model-options';
 import { AlibabaVideoModel } from './alibaba-video-model';
 import type { AlibabaVideoModelId } from './alibaba-video-settings';
 import { VERSION } from './version';
 
-export type AlibabaErrorData = z.infer<typeof alibabaErrorDataSchema>;
-
-const alibabaErrorDataSchema = z.object({
-  error: z.object({
-    message: z.string(),
-    code: z.string().nullish(),
-    type: z.string().nullish(),
-  }),
-});
-
-export const alibabaFailedResponseHandler = createJsonErrorResponseHandler({
-  errorSchema: alibabaErrorDataSchema,
-  errorToMessage: data => data.error.message,
-});
+export type { AlibabaErrorData } from './alibaba-error';
+export { alibabaFailedResponseHandler } from './alibaba-error';
 
 export interface AlibabaProvider extends ProviderV4 {
   (modelId: AlibabaChatModelId): LanguageModelV4;
@@ -125,7 +111,7 @@ export function createAlibaba(
     );
 
   const createLanguageModel = (modelId: AlibabaChatModelId) =>
-    new AlibabaLanguageModel(modelId, {
+    new AlibabaChatLanguageModel(modelId, {
       provider: 'alibaba.chat',
       baseURL,
       headers: getHeaders,

@@ -1,6 +1,5 @@
 import { openai } from '@ai-sdk/openai';
-import { InferAgentUIMessage, ToolLoopAgent } from 'ai';
-
+import { ToolLoopAgent, type InferAgentUIMessage } from 'ai';
 export const openaiCodeInterpreterAgent = new ToolLoopAgent({
   model: openai('gpt-5-nano'),
   tools: {

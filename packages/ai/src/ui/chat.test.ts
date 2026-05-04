@@ -1,17 +1,21 @@
+import { mockId } from '@ai-sdk/provider-utils/test';
 import {
   createTestServer,
   TestResponseController,
 } from '@ai-sdk/test-server/with-vitest';
-import { mockId } from '@ai-sdk/provider-utils/test';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
 import { createResolvablePromise } from '../util/create-resolvable-promise';
-import { AbstractChat, ChatInit, ChatState, ChatStatus } from './chat';
-import { UIMessage } from './ui-messages';
-import { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
+import {
+  AbstractChat,
+  type ChatInit,
+  type ChatState,
+  type ChatStatus,
+} from './chat';
 import { DefaultChatTransport } from './default-chat-transport';
-import { lastAssistantMessageIsCompleteWithToolCalls } from './last-assistant-message-is-complete-with-tool-calls';
-import { describe, it, expect, beforeEach } from 'vitest';
-import { delay } from '@ai-sdk/provider-utils';
 import { lastAssistantMessageIsCompleteWithApprovalResponses } from './last-assistant-message-is-complete-with-approval-responses';
+import { lastAssistantMessageIsCompleteWithToolCalls } from './last-assistant-message-is-complete-with-tool-calls';
+import type { UIMessage } from './ui-messages';
 
 class TestChatState<
   UI_MESSAGE extends UIMessage,
@@ -71,6 +75,14 @@ const server = createTestServer({
 });
 
 describe('Chat', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   describe('send a simple message', () => {
     let chat: TestChat;
     let letOnFinishArgs: any[] = [];
@@ -476,7 +488,7 @@ describe('Chat', () => {
 
       // wait until the stream is consumed before sending the error
       while ((chat.messages[1]?.parts[1] as any)?.text !== 'Hello') {
-        await delay();
+        await vi.advanceTimersByTimeAsync(0);
       }
 
       controller.error(new TypeError('fetch failed'));
@@ -708,7 +720,7 @@ describe('Chat', () => {
 
       // wait until the stream is consumed before sending the error
       while ((chat.messages[1]?.parts[1] as any)?.text !== 'Hello') {
-        await delay();
+        await vi.advanceTimersByTimeAsync(0);
       }
 
       await chat.stop();

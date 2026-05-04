@@ -1,11 +1,13 @@
-import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
-import type { OpenAICompatibleProvider } from '@ai-sdk/openai-compatible';
 import {
-  FetchFunction,
+  createOpenAICompatible,
+  type OpenAICompatibleProvider,
+} from '@ai-sdk/openai-compatible';
+import {
   loadOptionalSetting,
   loadSetting,
-  Resolvable,
   withoutTrailingSlash,
+  type FetchFunction,
+  type Resolvable,
 } from '@ai-sdk/provider-utils';
 import type { GoogleVertexMaasModelId } from './google-vertex-maas-options';
 
@@ -55,7 +57,7 @@ export interface GoogleVertexMaasProviderSettings {
  *
  * @see https://cloud.google.com/vertex-ai/generative-ai/docs/maas/use-open-models
  */
-export function createVertexMaas(
+export function createGoogleVertexMaas(
   options: GoogleVertexMaasProviderSettings = {},
 ): GoogleVertexMaasProvider {
   // Lazy-load settings to support loading from environment variables at runtime

@@ -1,6 +1,11 @@
-import { vertex } from '@ai-sdk/google-vertex';
-import { type GoogleLanguageModelOptions } from '@ai-sdk/google';
-import { convertToModelMessages, streamText, UIDataTypes, UIMessage } from 'ai';
+import { googleVertex } from '@ai-sdk/google-vertex';
+import type { GoogleLanguageModelOptions } from '@ai-sdk/google';
+import {
+  convertToModelMessages,
+  streamText,
+  type UIDataTypes,
+  type UIMessage,
+} from 'ai';
 import { z } from 'zod';
 
 export const maxDuration = 60;
@@ -25,7 +30,7 @@ export async function POST(req: Request) {
   const { messages } = await req.json();
 
   const result = streamText({
-    model: vertex('gemini-3.1-pro-preview'),
+    model: googleVertex('gemini-3.1-pro-preview'),
     messages: await convertToModelMessages(messages),
     system:
       'You are a helpful weather assistant. ' +

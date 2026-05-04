@@ -1,4 +1,4 @@
-import { ValueOf } from '../util/value-of';
+import type { ValueOf } from '../util/value-of';
 import type { ToolSet } from '@ai-sdk/provider-utils';
 
 /**
