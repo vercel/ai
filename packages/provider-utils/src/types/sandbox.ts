@@ -12,7 +12,7 @@ export type Sandbox = {
   /**
    * Execute a command in the sandbox.
    */
-  executeCommand: (options: {
+  readonly executeCommand: (options: {
     /**
      * Command to execute in the sandbox.
      */
