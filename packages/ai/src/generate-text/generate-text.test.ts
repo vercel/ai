@@ -12,6 +12,7 @@ import {
   jsonSchema,
   tool,
   type ModelMessage,
+  type Sandbox,
   type ToolExecuteFunction,
 } from '@ai-sdk/provider-utils';
 import { mockId } from '@ai-sdk/provider-utils/test';
@@ -7298,6 +7299,49 @@ describe('generateText', () => {
       `);
     });
 
+    it('should pass sandbox to tool execution', async () => {
+      const sandbox = {
+        description: 'test sandbox',
+        executeCommand: vi.fn(async () => ({
+          exitCode: 0,
+          stdout: 'ok',
+          stderr: '',
+        })),
+      } satisfies Sandbox;
+      let recordedSandbox: Sandbox | undefined;
+
+      await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            content: [
+              {
+                type: 'tool-call',
+                toolCallType: 'function',
+                toolCallId: 'call-1',
+                toolName: 't1',
+                input: `{ "value": "test" }`,
+              },
+            ],
+            finishReason: { unified: 'tool-calls', raw: undefined },
+          }),
+        }),
+        tools: {
+          t1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }, { sandbox }) => {
+              recordedSandbox = sandbox;
+              return { value };
+            },
+          }),
+        },
+        sandbox,
+        prompt: 'test-input',
+      });
+
+      expect(recordedSandbox).toBe(sandbox);
+    });
+
     it('should pass runtimeContext to prepareStep', async () => {
       let capturedContext: unknown;
 
@@ -7317,6 +7361,35 @@ describe('generateText', () => {
       });
 
       expect(capturedContext).toEqual({ myData: 'test-value' });
+    });
+
+    it('should pass sandbox to prepareStep', async () => {
+      const sandbox = {
+        description: 'test sandbox',
+        executeCommand: vi.fn(async () => ({
+          exitCode: 0,
+          stdout: 'ok',
+          stderr: '',
+        })),
+      } satisfies Sandbox;
+      let capturedSandbox: Sandbox | undefined;
+
+      await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            content: [{ type: 'text', text: 'Hello, world!' }],
+          }),
+        }),
+        sandbox,
+        prepareStep: async ({ sandbox }) => {
+          capturedSandbox = sandbox;
+          return undefined;
+        },
+        prompt: 'test',
+      });
+
+      expect(capturedSandbox).toBe(sandbox);
     });
 
     it('should send runtimeContext in onFinish callback', async () => {
