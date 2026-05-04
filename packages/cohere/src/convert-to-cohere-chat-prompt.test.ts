@@ -38,9 +38,8 @@ describe('convert to cohere chat prompt', () => {
       });
     });
 
-<<<<<<< HEAD
-    it('should throw error for unsupported media types', () => {
-      expect(() => {
+    it('should throw error for unsupported media types', async () => {
+      await expect(
         convertToCohereChatPrompt([
           {
             role: 'user',
@@ -50,60 +49,11 @@ describe('convert to cohere chat prompt', () => {
                 data: Buffer.from('PDF content'),
                 mediaType: 'application/pdf',
                 filename: 'test.pdf',
-=======
-    it('should accept top-level-only mediaType without error (category D: mediaType not consumed)', async () => {
-      const result = await convertToCohereChatPrompt([
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'file',
-              data: {
-                type: 'data' as const,
-                data: Buffer.from('This is file content'),
-              },
-              mediaType: 'text',
-              filename: 'test.txt',
-            },
-          ],
-        },
-      ]);
-
-      expect(result).toEqual({
-        messages: [
-          {
-            role: 'user',
-            content: '',
-          },
-        ],
-        documents: [
-          {
-            data: {
-              text: 'This is file content',
-              title: 'test.txt',
-            },
-          },
-        ],
-        warnings: [],
-      });
-    });
-
-    it('should not read mediaType (document payload carries only text + title)', async () => {
-      const result = await convertToCohereChatPrompt([
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'file',
-              data: {
-                type: 'data' as const,
-                data: Buffer.from('PDF-like content'),
->>>>>>> f2919d531 (feat(provider/cohere): add support for passing images to Cohere models (#14860))
               },
             ],
           },
-        ]);
-      }).toThrow("Media type 'application/pdf' is not supported");
+        ]),
+      ).rejects.toThrow("Media type 'application/pdf' is not supported");
     });
   });
 
@@ -116,10 +66,7 @@ describe('convert to cohere chat prompt', () => {
             { type: 'text', text: 'What is in this image?' },
             {
               type: 'file',
-              data: {
-                type: 'data' as const,
-                data: new Uint8Array([0, 1, 2, 3]),
-              },
+              data: new Uint8Array([0, 1, 2, 3]),
               mediaType: 'image/png',
             },
           ],
@@ -151,10 +98,7 @@ describe('convert to cohere chat prompt', () => {
           content: [
             {
               type: 'file',
-              data: {
-                type: 'url' as const,
-                url: new URL('https://example.com/cat.png'),
-              },
+              data: new URL('https://example.com/cat.png'),
               mediaType: 'image/png',
             },
           ],
@@ -185,10 +129,7 @@ describe('convert to cohere chat prompt', () => {
           content: [
             {
               type: 'file',
-              data: {
-                type: 'data' as const,
-                data: new Uint8Array([0, 1, 2, 3]),
-              },
+              data: new Uint8Array([0, 1, 2, 3]),
               mediaType: 'image/png',
               providerOptions: {
                 cohere: { detail: 'high' },
@@ -219,10 +160,7 @@ describe('convert to cohere chat prompt', () => {
           content: [
             {
               type: 'file',
-              data: {
-                type: 'data' as const,
-                data: new Uint8Array([0, 1, 2, 3]),
-              },
+              data: new Uint8Array([0, 1, 2, 3]),
               mediaType: 'image/png',
             },
           ],
@@ -248,18 +186,12 @@ describe('convert to cohere chat prompt', () => {
             { type: 'text', text: 'See attached:' },
             {
               type: 'file',
-              data: {
-                type: 'data' as const,
-                data: new Uint8Array([0, 1, 2, 3]),
-              },
+              data: new Uint8Array([0, 1, 2, 3]),
               mediaType: 'image/png',
             },
             {
               type: 'file',
-              data: {
-                type: 'data' as const,
-                data: Buffer.from('Doc text'),
-              },
+              data: Buffer.from('Doc text'),
               mediaType: 'text/plain',
               filename: 'note.txt',
             },
@@ -289,17 +221,14 @@ describe('convert to cohere chat prompt', () => {
       ]);
     });
 
-    it('should accept top-level "image" media type and detect full type from bytes', async () => {
-      const pngSignature = new Uint8Array([
-        0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
-      ]);
+    it('should accept top-level "image" media type and fall back to image/jpeg in data URI', async () => {
       const result = await convertToCohereChatPrompt([
         {
           role: 'user',
           content: [
             {
               type: 'file',
-              data: { type: 'data' as const, data: pngSignature },
+              data: new Uint8Array([0, 1, 2, 3]),
               mediaType: 'image',
             },
           ],
@@ -311,7 +240,7 @@ describe('convert to cohere chat prompt', () => {
         image_url: { url: string };
       };
       expect(part.type).toBe('image_url');
-      expect(part.image_url.url).toMatch(/^data:image\/png;base64,/);
+      expect(part.image_url.url).toBe('data:image/jpeg;base64,AAECAw==');
     });
   });
 
@@ -430,31 +359,4 @@ describe('convert to cohere chat prompt', () => {
       });
     });
   });
-<<<<<<< HEAD
-=======
-
-  describe('provider reference', () => {
-    it('should throw for file parts with provider references', async () => {
-      await expect(
-        convertToCohereChatPrompt([
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'file',
-                data: {
-                  type: 'reference' as const,
-                  reference: { cohere: 'doc-ref-123' },
-                },
-                mediaType: 'text/plain',
-              },
-            ],
-          },
-        ]),
-      ).rejects.toThrow(
-        "'file parts with provider references' functionality not supported",
-      );
-    });
-  });
->>>>>>> f2919d531 (feat(provider/cohere): add support for passing images to Cohere models (#14860))
 });

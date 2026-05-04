@@ -13,7 +13,7 @@ run(async () => {
           { type: 'text', text: 'Describe the image in detail.' },
           {
             type: 'file',
-            mediaType: 'image',
+            mediaType: 'image/png',
             data: fs.readFileSync('./data/comic-cat.png').toString('base64'),
           },
         ],
