@@ -14,7 +14,7 @@ export const sandboxAgent = new ToolLoopAgent({
   prepareCall: ({ sandbox, ...rest }) => ({
     ...rest,
     instructions:
-      `${rest.instructions}` +
+      `${rest.instructions}\n` +
       `You are operating in the following sandbox: ${sandbox?.description}`,
   }),
 });
