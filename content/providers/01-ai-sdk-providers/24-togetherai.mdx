@@ -118,14 +118,21 @@ The Together.ai provider also supports [completion models](https://docs.together
 
 | Model                                               | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
 | --------------------------------------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `moonshotai/Kimi-K2.5`                              | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `moonshotai/Kimi-K2.6`                              | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `moonshotai/Kimi-K2.5`                              | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `Qwen/Qwen3.5-397B-A17B`                            | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `MiniMaxAI/MiniMax-M2.5`                            | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8`           | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `Qwen/Qwen3-235B-A22B-Instruct-2507-tput`           | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `Qwen/Qwen2.5-7B-Instruct-Turbo`                    | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `MiniMaxAI/MiniMax-M2.7`                            | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `zai-org/GLM-5.1`                                   | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `zai-org/GLM-5`                                     | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `deepseek-ai/DeepSeek-V3.1`                         | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `deepseek-ai/DeepSeek-V4-Pro`                       | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `openai/gpt-oss-120b`                               | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `openai/gpt-oss-20b`                                | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `meta-llama/Llama-3.3-70B-Instruct-Turbo`           | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `google/gemma-4-31B-it`                             | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 
 <Note>
   The table above lists popular models. Please see the [Together.ai
@@ -254,27 +261,32 @@ const { images } = await generateImage({
 | -------------------------------------- | ---------------------------------- |
 | `black-forest-labs/FLUX.1-kontext-pro` | Production quality, balanced speed |
 | `black-forest-labs/FLUX.1-kontext-max` | Maximum image fidelity             |
-| `black-forest-labs/FLUX.1-kontext-dev` | Development and experimentation    |
 
 ### Model Capabilities
 
 Together.ai image models support various image dimensions that vary by model. Common sizes include 512x512, 768x768, and 1024x1024, with some models supporting up to 1792x1792. The default size is 1024x1024.
 
-| Available Models                           |
-| ------------------------------------------ |
-| `stabilityai/stable-diffusion-xl-base-1.0` |
-| `black-forest-labs/FLUX.1-dev`             |
-| `black-forest-labs/FLUX.1-dev-lora`        |
-| `black-forest-labs/FLUX.1-schnell`         |
-| `black-forest-labs/FLUX.1-canny`           |
-| `black-forest-labs/FLUX.1-depth`           |
-| `black-forest-labs/FLUX.1-redux`           |
-| `black-forest-labs/FLUX.1.1-pro`           |
-| `black-forest-labs/FLUX.1-pro`             |
-| `black-forest-labs/FLUX.1-schnell-Free`    |
-| `black-forest-labs/FLUX.1-kontext-pro`     |
-| `black-forest-labs/FLUX.1-kontext-max`     |
-| `black-forest-labs/FLUX.1-kontext-dev`     |
+| Available Models                        |
+| --------------------------------------- |
+| `google/gemini-3-pro-image`             |
+| `google/flash-image-2.5`               |
+| `google/flash-image-3.1`               |
+| `google/imagen-4.0-ultra`              |
+| `google/imagen-4.0-preview`            |
+| `google/imagen-4.0-fast`               |
+| `black-forest-labs/FLUX.2-max`         |
+| `black-forest-labs/FLUX.2-pro`         |
+| `black-forest-labs/FLUX.2-dev`         |
+| `black-forest-labs/FLUX.2-flex`        |
+| `black-forest-labs/FLUX.1.1-pro`       |
+| `black-forest-labs/FLUX.1-kontext-pro` |
+| `black-forest-labs/FLUX.1-kontext-max` |
+| `black-forest-labs/FLUX.1-krea-dev`    |
+| `black-forest-labs/FLUX.1-schnell`     |
+| `openai/gpt-image-1.5`                 |
+| `Qwen/Qwen-Image-2.0-Pro`              |
+| `Qwen/Qwen-Image-2.0`                  |
+| `Qwen/Qwen-Image`                      |
 
 <Note>
   Please see the [Together.ai models
@@ -309,78 +321,3 @@ const { embedding } = await embed({
   For a complete list of available embedding models, see the [Together.ai models
   page](https://docs.together.ai/docs/serverless-models#embedding-models).
 </Note>
-
-## Reranking Models
-
-You can create Together.ai reranking models using the `.reranking()` factory method.
-For more on reranking with the AI SDK see [rerank()](/docs/reference/ai-sdk-core/rerank).
-
-```ts
-import { togetherai } from '@ai-sdk/togetherai';
-import { rerank } from 'ai';
-
-const documents = [
-  'sunny day at the beach',
-  'rainy afternoon in the city',
-  'snowy night in the mountains',
-];
-
-const { ranking } = await rerank({
-  model: togetherai.reranking('mixedbread-ai/Mxbai-Rerank-Large-V2'),
-  documents,
-  query: 'talk about rain',
-  topN: 2,
-});
-
-console.log(ranking);
-// [
-//   { originalIndex: 1, score: 0.9, document: 'rainy afternoon in the city' },
-//   { originalIndex: 0, score: 0.3, document: 'sunny day at the beach' }
-// ]
-```
-
-Together.ai reranking models support additional provider options for object documents. You can specify which fields to use for ranking:
-
-```ts
-import {
-  togetherai,
-  type TogetherAIRerankingModelOptions,
-} from '@ai-sdk/togetherai';
-import { rerank } from 'ai';
-
-const documents = [
-  {
-    from: 'Paul Doe',
-    subject: 'Follow-up',
-    text: 'We are happy to give you a discount of 20%.',
-  },
-  {
-    from: 'John McGill',
-    subject: 'Missing Info',
-    text: 'Here is the pricing from Oracle: $5000/month',
-  },
-];
-
-const { ranking } = await rerank({
-  model: togetherai.reranking('mixedbread-ai/Mxbai-Rerank-Large-V2'),
-  documents,
-  query: 'Which pricing did we get from Oracle?',
-  providerOptions: {
-    togetherai: {
-      rankFields: ['from', 'subject', 'text'], // Specify which fields to rank by
-    } satisfies TogetherAIRerankingModelOptions,
-  },
-});
-```
-
-The following provider options are available:
-
-- **rankFields** _string[]_
-
-  Array of field names to use for ranking when documents are JSON objects. If not specified, all fields are used.
-
-### Model Capabilities
-
-| Model                                 |
-| ------------------------------------- |
-| `mixedbread-ai/Mxbai-Rerank-Large-V2` |
