@@ -107,7 +107,7 @@ export type AgentCallParameters<
     onFinish?: GenerateTextOnFinishCallback<TOOLS, RUNTIME_CONTEXT>;
 
     /**
-     * The sandbox environment that the agent is operating in.
+     * The sandbox environment that is passed through to the tool execution.
      */
     sandbox?: Sandbox;
   };
