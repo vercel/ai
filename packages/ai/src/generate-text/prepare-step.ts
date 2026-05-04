@@ -127,7 +127,5 @@ export type PrepareStepResult<
        * container IDs for Anthropic's code execution.
        */
       providerOptions?: ProviderOptions;
-
-      // TODO return a sandbox
     }
   | undefined;
