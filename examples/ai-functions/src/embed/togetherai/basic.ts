@@ -4,7 +4,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const { embedding, usage, warnings } = await embed({
-    model: togetherai.embeddingModel('BAAI/bge-base-en-v1.5'),
+    model: togetherai.embeddingModel('intfloat/multilingual-e5-large-instruct'),
     value: 'sunny day at the beach',
   });
 

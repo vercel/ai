@@ -1,9 +1,13 @@
+import type { TogetherAIChatModelId } from './togetherai-chat-options';
+
+// Models that only work on the chat completions endpoint, not text completions
+type CompletionExclusions =
+  | 'deepseek-ai/DeepSeek-R1' // service unavailable on /v1/completions
+  | 'Qwen/Qwen3.6-Plus' // streaming-only model
+  | 'arize-ai/qwen-2-1.5b-instruct'; // service unavailable on /v1/completions
+
 // https://docs.together.ai/docs/serverless-models#language-models
-export type TogetherAICompletionModelId =
-  | 'meta-llama/Llama-2-70b-hf'
-  | 'mistralai/Mistral-7B-v0.1'
-  | 'mistralai/Mixtral-8x7B-v0.1'
-  | 'Meta-Llama/Llama-Guard-7b'
-  | 'codellama/CodeLlama-34b-Instruct-hf'
-  | 'Qwen/Qwen2.5-Coder-32B-Instruct'
-  | (string & {});
+export type TogetherAICompletionModelId = Exclude<
+  TogetherAIChatModelId,
+  CompletionExclusions
+>;
