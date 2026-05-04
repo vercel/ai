@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 3.0.59
+
+### Patch Changes
+
+- 38966ab: fix(openai, openai-compatible): only send null content for assistant messages with tool calls
+
 ## 3.0.58
 
 ### Patch Changes
