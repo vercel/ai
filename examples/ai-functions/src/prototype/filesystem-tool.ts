@@ -92,7 +92,7 @@ const agent = new ToolLoopAgent({
 
 run(async () => {
   const result = await agent.stream({
-    prompt: 'List the files in the sandbox root directory',
+    prompt: 'List the files in the directory',
   });
 
   for await (const textPart of result.textStream) {
