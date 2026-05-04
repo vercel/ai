@@ -5,6 +5,16 @@ import { run } from '../lib/run';
 import { z } from 'zod';
 
 type Sandbox = {
+  /**
+   * Description of the sandbox environment that can be added to the agent's instructions
+   * so that the agent knows about relevant details such as the root directory, exposed
+   * ports, the public hostname, etc.
+   */
+  readonly description: string;
+
+  /**
+   * Execute a command in the sandbox.
+   */
   executeCommand: (options: { command: string }) => PromiseLike<{
     exitCode: number;
     stdout: string;
@@ -58,6 +68,10 @@ class LocalSandbox implements Sandbox {
       });
     });
   }
+
+  get description() {
+    return `Root directory: ${this.rootDirectory}`;
+  }
 }
 
 function sandboxShellTool() {
@@ -75,17 +89,25 @@ function sandboxShellTool() {
   });
 }
 
+const sandbox = new LocalSandbox({
+  rootDirectory: `${process.env.HOME}/Downloads`,
+});
+
 const agent = new ToolLoopAgent({
   model: openai('gpt-5.5'),
-  instructions: 'You are a helpful assistant that can run shell commands.',
+
+  instructions:
+    `You are a helpful assistant that can run shell commands.` +
+    `You are operating in the following sandbox:` +
+    sandbox.description,
+
   tools: {
     shell: sandboxShellTool(),
   },
+
   toolsContext: {
     shell: {
-      sandbox: new LocalSandbox({
-        rootDirectory: `${process.env.HOME}/Downloads`,
-      }),
+      sandbox,
     },
   },
 });
