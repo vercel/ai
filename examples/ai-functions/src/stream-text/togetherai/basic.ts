@@ -4,7 +4,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: togetherai('google/gemma-2-9b-it'),
+    model: togetherai('Qwen/Qwen3.5-9B'),
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 

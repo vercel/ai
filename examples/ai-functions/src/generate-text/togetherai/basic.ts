@@ -4,7 +4,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const { text, usage } = await generateText({
-    model: togetherai('meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo'),
+    model: togetherai('Qwen/Qwen3.5-9B'),
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 
