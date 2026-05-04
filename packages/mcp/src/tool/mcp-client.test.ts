@@ -243,9 +243,12 @@ describe('MCPClient', () => {
         "type": "content",
         "value": [
           {
-            "data": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==",
+            "data": {
+              "data": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==",
+              "type": "data",
+            },
             "mediaType": "image/png",
-            "type": "file-data",
+            "type": "file",
           },
         ],
       }
@@ -393,9 +396,12 @@ describe('MCPClient', () => {
             "type": "text",
           },
           {
-            "data": "base64data",
+            "data": {
+              "data": "base64data",
+              "type": "data",
+            },
             "mediaType": "image/png",
-            "type": "file-data",
+            "type": "file",
           },
         ],
       }

@@ -349,50 +349,73 @@ export async function convertToAnthropicPrompt({
                               type: 'text' as const,
                               text: contentPart.text,
                             };
-                          case 'file-url': {
-                            if (contentPart.mediaType.startsWith('image/')) {
-                              return {
-                                type: 'image' as const,
-                                source: {
-                                  type: 'url' as const,
-                                  url: contentPart.url,
-                                },
-                              };
-                            }
-                            return {
-                              type: 'document' as const,
-                              source: {
-                                type: 'url' as const,
-                                url: contentPart.url,
-                              },
-                            };
-                          }
-                          case 'file-data': {
-                            if (contentPart.mediaType.startsWith('image/')) {
-                              return {
-                                type: 'image' as const,
-                                source: {
-                                  type: 'base64' as const,
-                                  media_type: contentPart.mediaType,
-                                  data: contentPart.data,
-                                },
-                              };
-                            }
-                            if (contentPart.mediaType === 'application/pdf') {
-                              betas.add('pdfs-2024-09-25');
+                          case 'file': {
+                            const topLevel = getTopLevelMediaType(
+                              contentPart.mediaType,
+                            );
+
+                            if (contentPart.data.type === 'url') {
+                              if (topLevel === 'image') {
+                                return {
+                                  type: 'image' as const,
+                                  source: {
+                                    type: 'url' as const,
+                                    url: contentPart.data.url.toString(),
+                                  },
+                                };
+                              }
                               return {
                                 type: 'document' as const,
                                 source: {
-                                  type: 'base64' as const,
-                                  media_type: contentPart.mediaType,
-                                  data: contentPart.data,
+                                  type: 'url' as const,
+                                  url: contentPart.data.url.toString(),
                                 },
                               };
                             }
 
+                            if (contentPart.data.type === 'data') {
+                              if (topLevel === 'image') {
+                                return {
+                                  type: 'image' as const,
+                                  source: {
+                                    type: 'base64' as const,
+                                    media_type: resolveFullMediaType({
+                                      part: contentPart,
+                                    }),
+                                    data: convertToBase64(
+                                      contentPart.data.data,
+                                    ),
+                                  },
+                                };
+                              }
+                              if (
+                                resolveFullMediaType({ part: contentPart }) ===
+                                'application/pdf'
+                              ) {
+                                betas.add('pdfs-2024-09-25');
+                                return {
+                                  type: 'document' as const,
+                                  source: {
+                                    type: 'base64' as const,
+                                    media_type: 'application/pdf',
+                                    data: convertToBase64(
+                                      contentPart.data.data,
+                                    ),
+                                  },
+                                };
+                              }
+
+                              warnings.push({
+                                type: 'other',
+                                message: `unsupported tool content part type: ${contentPart.type} with media type: ${contentPart.mediaType}`,
+                              });
+
+                              return undefined;
+                            }
+
                             warnings.push({
                               type: 'other',
-                              message: `unsupported tool content part type: ${contentPart.type} with media type: ${contentPart.mediaType}`,
+                              message: `unsupported tool content part type: ${contentPart.type} with data type: ${contentPart.data.type}`,
                             });
 
                             return undefined;
@@ -417,7 +440,7 @@ export async function convertToAnthropicPrompt({
                           default: {
                             warnings.push({
                               type: 'other',
-                              message: `unsupported tool content part type: ${contentPart.type}`,
+                              message: `unsupported tool content part type: ${(contentPart as { type: string }).type}`,
                             });
 
                             return undefined;
