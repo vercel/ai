@@ -1,5 +1,11 @@
 # @ai-sdk/google-vertex
 
+## 3.0.137
+
+### Patch Changes
+
+- 5ee88f6: fix(google-vertex): include CJS output for xai sub-module build
+
 ## 3.0.136
 
 ### Patch Changes
