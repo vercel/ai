@@ -19,7 +19,7 @@
               "tsconfig.json"
             ]
           },
-          "excludeFiles": ["packages/mcp", "packages/otel", "packages/voyage"]
+          "excludeFiles": []
         },
         {
           "name": "package-dir-must-have-index",
