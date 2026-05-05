@@ -668,6 +668,157 @@ describe('generateObject', () => {
       });
     });
 
+    describe('options.experimental_repairOnValidationError', () => {
+      it('should repair on first attempt when schema validation fails', async () => {
+        let callCount = 0;
+        const result = await generateObject({
+          model: new MockLanguageModelV4({
+            doGenerate: async () => {
+              callCount++;
+              return {
+                ...dummyResponseValues,
+                content: [
+                  {
+                    type: 'text',
+                    text:
+                      callCount === 1
+                        ? '{ "content": 42 }' // fails: number not string
+                        : '{ "content": "repaired" }',
+                  },
+                ],
+              };
+            },
+          }),
+          schema: z.object({ content: z.string() }),
+          prompt: 'prompt',
+          experimental_repairOnValidationError: true,
+        });
+
+        expect(callCount).toBe(2);
+        expect(result.object).toStrictEqual({ content: 'repaired' });
+      });
+
+      it('should retry up to N times when configured as a number', async () => {
+        let callCount = 0;
+        const result = await generateObject({
+          model: new MockLanguageModelV4({
+            doGenerate: async () => {
+              callCount++;
+              return {
+                ...dummyResponseValues,
+                content: [
+                  {
+                    type: 'text',
+                    text:
+                      callCount <= 2
+                        ? '{ "content": 42 }'
+                        : '{ "content": "repaired" }',
+                  },
+                ],
+              };
+            },
+          }),
+          schema: z.object({ content: z.string() }),
+          prompt: 'prompt',
+          experimental_repairOnValidationError: 3,
+        });
+
+        expect(callCount).toBe(3);
+        expect(result.object).toStrictEqual({ content: 'repaired' });
+      });
+
+      it('should throw NoObjectGeneratedError when all repair attempts fail', async () => {
+        await expect(
+          generateObject({
+            model: new MockLanguageModelV4({
+              doGenerate: async () => ({
+                ...dummyResponseValues,
+                content: [{ type: 'text', text: '{ "content": 42 }' }],
+              }),
+            }),
+            schema: z.object({ content: z.string() }),
+            prompt: 'prompt',
+            experimental_repairOnValidationError: 1,
+          }),
+        ).rejects.toThrow('No object generated');
+      });
+
+      it('should accumulate usage across repair calls', async () => {
+        let callCount = 0;
+        const result = await generateObject({
+          model: new MockLanguageModelV4({
+            doGenerate: async () => {
+              callCount++;
+              return {
+                finishReason: { unified: 'stop', raw: 'stop' } as const,
+                usage: {
+                  inputTokens: {
+                    total: 10,
+                    noCache: 10,
+                    cacheRead: undefined,
+                    cacheWrite: undefined,
+                  },
+                  outputTokens: { total: 5, text: 5, reasoning: undefined },
+                },
+                response: {
+                  id: 'id-1',
+                  timestamp: new Date(123),
+                  modelId: 'm-1',
+                },
+                warnings: [],
+                content: [
+                  {
+                    type: 'text',
+                    text:
+                      callCount === 1
+                        ? '{ "content": 42 }'
+                        : '{ "content": "ok" }',
+                  },
+                ],
+              };
+            },
+          }),
+          schema: z.object({ content: z.string() }),
+          prompt: 'prompt',
+          experimental_repairOnValidationError: true,
+        });
+
+        expect(callCount).toBe(2);
+        expect(result.usage.inputTokens).toBe(20);
+        expect(result.usage.outputTokens).toBe(10);
+      });
+
+      it('should compose with experimental_repairText: string repair fails, LLM repair succeeds', async () => {
+        let callCount = 0;
+        const result = await generateObject({
+          model: new MockLanguageModelV4({
+            doGenerate: async () => {
+              callCount++;
+              return {
+                ...dummyResponseValues,
+                content: [
+                  {
+                    type: 'text',
+                    text:
+                      callCount === 1
+                        ? '{ "content": 42 }'
+                        : '{ "content": "llm-repaired" }',
+                  },
+                ],
+              };
+            },
+          }),
+          schema: z.object({ content: z.string() }),
+          prompt: 'prompt',
+          experimental_repairText: async () => null, // string repair gives up
+          experimental_repairOnValidationError: true,
+        });
+
+        expect(callCount).toBe(2);
+        expect(result.object).toStrictEqual({ content: 'llm-repaired' });
+      });
+    });
+
     describe('options.providerOptions', () => {
       it('should pass provider options to model', async () => {
         const result = await generateObject({
