@@ -2155,7 +2155,7 @@ describe('convertToOpenAIResponsesInput', () => {
       `);
     });
 
-    it('should forward openai.imageDetail providerOptions on tool-result image (data)', async () => {
+    it('should forward openai.imageDetail providerOptions on tool-result image-data', async () => {
       const result = await convertToOpenAIResponsesInput({
         toolNameMapping: testToolNameMapping,
         prompt: [
@@ -2170,9 +2170,9 @@ describe('convertToOpenAIResponsesInput', () => {
                   type: 'content',
                   value: [
                     {
-                      type: 'file',
+                      type: 'image-data',
                       mediaType: 'image/png',
-                      data: { type: 'data', data: 'base64_data' },
+                      data: 'base64_data',
                       providerOptions: {
                         openai: { imageDetail: 'original' },
                       },
@@ -2205,7 +2205,7 @@ describe('convertToOpenAIResponsesInput', () => {
       `);
     });
 
-    it('should forward openai.imageDetail providerOptions on tool-result image (url)', async () => {
+    it('should forward openai.imageDetail providerOptions on tool-result image-url', async () => {
       const result = await convertToOpenAIResponsesInput({
         toolNameMapping: testToolNameMapping,
         prompt: [
@@ -2220,12 +2220,8 @@ describe('convertToOpenAIResponsesInput', () => {
                   type: 'content',
                   value: [
                     {
-                      type: 'file',
-                      mediaType: 'image/png',
-                      data: {
-                        type: 'url',
-                        url: new URL('https://example.com/x.png'),
-                      },
+                      type: 'image-url',
+                      url: 'https://example.com/x.png',
                       providerOptions: {
                         openai: { imageDetail: 'high' },
                       },

@@ -697,16 +697,21 @@ export async function convertToOpenAIResponsesInput({
                     switch (item.type) {
                       case 'text':
                         return { type: 'input_text' as const, text: item.text };
-<<<<<<< HEAD
                       case 'image-data':
                         return {
                           type: 'input_image' as const,
                           image_url: `data:${item.mediaType};base64,${item.data}`,
+                          detail:
+                            item.providerOptions?.[providerOptionsName]
+                              ?.imageDetail,
                         };
                       case 'image-url':
                         return {
                           type: 'input_image' as const,
                           image_url: item.url,
+                          detail:
+                            item.providerOptions?.[providerOptionsName]
+                              ?.imageDetail,
                         };
                       case 'file-data':
                         return {
@@ -719,52 +724,6 @@ export async function convertToOpenAIResponsesInput({
                           type: 'input_file' as const,
                           file_url: item.url,
                         };
-=======
-                      case 'file': {
-                        const topLevel = getTopLevelMediaType(item.mediaType);
-                        const imageDetail =
-                          item.providerOptions?.[providerOptionsName]
-                            ?.imageDetail;
-
-                        if (item.data.type === 'data') {
-                          const fullMediaType = resolveFullMediaType({
-                            part: item,
-                          });
-                          if (topLevel === 'image') {
-                            return {
-                              type: 'input_image' as const,
-                              image_url: `data:${fullMediaType};base64,${convertToBase64(item.data.data)}`,
-                              detail: imageDetail,
-                            };
-                          }
-                          return {
-                            type: 'input_file' as const,
-                            filename: item.filename ?? 'data',
-                            file_data: `data:${fullMediaType};base64,${convertToBase64(item.data.data)}`,
-                          };
-                        }
-
-                        if (item.data.type === 'url') {
-                          if (topLevel === 'image') {
-                            return {
-                              type: 'input_image' as const,
-                              image_url: item.data.url.toString(),
-                              detail: imageDetail,
-                            };
-                          }
-                          return {
-                            type: 'input_file' as const,
-                            file_url: item.data.url.toString(),
-                          };
-                        }
-
-                        warnings.push({
-                          type: 'other',
-                          message: `unsupported custom tool content part type: ${item.type} with data type: ${item.data.type}`,
-                        });
-                        return undefined;
-                      }
->>>>>>> 7bbc1942b (feat(provider/openai): forward imageDetail providerOptions on tool-result image content (#14970))
                       default:
                         warnings.push({
                           type: 'other',
@@ -807,11 +766,13 @@ export async function convertToOpenAIResponsesInput({
                       return { type: 'input_text' as const, text: item.text };
                     }
 
-<<<<<<< HEAD
                     case 'image-data': {
                       return {
                         type: 'input_image' as const,
                         image_url: `data:${item.mediaType};base64,${item.data}`,
+                        detail:
+                          item.providerOptions?.[providerOptionsName]
+                            ?.imageDetail,
                       };
                     }
 
@@ -819,6 +780,9 @@ export async function convertToOpenAIResponsesInput({
                       return {
                         type: 'input_image' as const,
                         image_url: item.url,
+                        detail:
+                          item.providerOptions?.[providerOptionsName]
+                            ?.imageDetail,
                       };
                     }
 
@@ -829,45 +793,6 @@ export async function convertToOpenAIResponsesInput({
                         file_data: `data:${item.mediaType};base64,${item.data}`,
                       };
                     }
-=======
-                    case 'file': {
-                      const topLevel = getTopLevelMediaType(item.mediaType);
-                      const imageDetail =
-                        item.providerOptions?.[providerOptionsName]
-                          ?.imageDetail;
-
-                      if (item.data.type === 'data') {
-                        const fullMediaType = resolveFullMediaType({
-                          part: item,
-                        });
-                        if (topLevel === 'image') {
-                          return {
-                            type: 'input_image' as const,
-                            image_url: `data:${fullMediaType};base64,${convertToBase64(item.data.data)}`,
-                            detail: imageDetail,
-                          };
-                        }
-                        return {
-                          type: 'input_file' as const,
-                          filename: item.filename ?? 'data',
-                          file_data: `data:${fullMediaType};base64,${convertToBase64(item.data.data)}`,
-                        };
-                      }
-
-                      if (item.data.type === 'url') {
-                        if (topLevel === 'image') {
-                          return {
-                            type: 'input_image' as const,
-                            image_url: item.data.url.toString(),
-                            detail: imageDetail,
-                          };
-                        }
-                        return {
-                          type: 'input_file' as const,
-                          file_url: item.data.url.toString(),
-                        };
-                      }
->>>>>>> 7bbc1942b (feat(provider/openai): forward imageDetail providerOptions on tool-result image content (#14970))
 
                     case 'file-url': {
                       return {
