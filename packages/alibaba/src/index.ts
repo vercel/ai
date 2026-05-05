@@ -6,6 +6,8 @@ export type {
   /** @deprecated Use `AlibabaLanguageModelChatOptions` instead. */
   AlibabaLanguageModelChatOptions as AlibabaProviderOptions,
 } from './alibaba-chat-language-model-options';
+export type { AlibabaEmbeddingModelOptions } from './alibaba-embedding-model-options';
+export type { AlibabaEmbeddingModelId } from './alibaba-embedding-settings';
 export type { AlibabaCacheControl } from './alibaba-chat-prompt';
 export {
   type AlibabaProvider,

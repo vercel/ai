@@ -1,5 +1,6 @@
 import {
   NoSuchModelError,
+  type EmbeddingModelV4,
   type Experimental_VideoModelV4,
   type LanguageModelV4,
   type ProviderV4,
@@ -12,6 +13,8 @@ import {
 } from '@ai-sdk/provider-utils';
 import { AlibabaChatLanguageModel } from './alibaba-chat-language-model';
 import type { AlibabaChatModelId } from './alibaba-chat-language-model-options';
+import { AlibabaEmbeddingModel } from './alibaba-embedding-model';
+import type { AlibabaEmbeddingModelId } from './alibaba-embedding-settings';
 import { AlibabaVideoModel } from './alibaba-video-model';
 import type { AlibabaVideoModelId } from './alibaba-video-settings';
 import { VERSION } from './version';
@@ -41,6 +44,26 @@ export interface AlibabaProvider extends ProviderV4 {
    * Creates a model for video generation.
    */
   videoModel(modelId: AlibabaVideoModelId): Experimental_VideoModelV4;
+
+  /**
+   * Creates a model for text embeddings.
+   */
+  embedding(modelId: AlibabaEmbeddingModelId): EmbeddingModelV4;
+
+  /**
+   * Creates a model for text embeddings.
+   */
+  embeddingModel(modelId: AlibabaEmbeddingModelId): EmbeddingModelV4;
+
+  /**
+   * @deprecated Use `embedding` instead.
+   */
+  textEmbedding(modelId: AlibabaEmbeddingModelId): EmbeddingModelV4;
+
+  /**
+   * @deprecated Use `embeddingModel` instead.
+   */
+  textEmbeddingModel(modelId: AlibabaEmbeddingModelId): EmbeddingModelV4;
 }
 
 export interface AlibabaProviderSettings {
@@ -119,6 +142,14 @@ export function createAlibaba(
       includeUsage: options.includeUsage ?? true,
     });
 
+  const createEmbeddingModel = (modelId: AlibabaEmbeddingModelId) =>
+    new AlibabaEmbeddingModel(modelId, {
+      provider: 'alibaba.embedding',
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+
   const createVideoModel = (modelId: AlibabaVideoModelId) =>
     new AlibabaVideoModel(modelId, {
       provider: 'alibaba.video',
@@ -142,13 +173,13 @@ export function createAlibaba(
   provider.chatModel = createLanguageModel;
   provider.video = createVideoModel;
   provider.videoModel = createVideoModel;
+  provider.embedding = createEmbeddingModel;
+  provider.embeddingModel = createEmbeddingModel;
+  provider.textEmbedding = createEmbeddingModel;
+  provider.textEmbeddingModel = createEmbeddingModel;
 
   provider.imageModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
-  };
-
-  provider.embeddingModel = (modelId: string) => {
-    throw new NoSuchModelError({ modelId, modelType: 'embeddingModel' });
   };
 
   return provider;
