@@ -565,7 +565,7 @@ console.log(text);`,
       yarn: 'yarn add @nitrosend/ai-sdk ai @ai-sdk/mcp zod @ai-sdk/openai',
       bun: 'bun add @nitrosend/ai-sdk ai @ai-sdk/mcp zod @ai-sdk/openai',
     },
-    codeExample: `import { generateText, stepCountIs } from 'ai';
+    codeExample: `import { generateText, isStepCount } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { withNitrosendTools } from '@nitrosend/ai-sdk';
 
@@ -573,7 +573,7 @@ const result = await withNitrosendTools({}, async ({ tools }) => {
   return generateText({
     model: openai('gpt-4o'),
     tools,
-    stopWhen: stepCountIs(5),
+    stopWhen: isStepCount(5),
     prompt: 'Send a welcome email to founder@acme.com from our team.',
   });
 });
