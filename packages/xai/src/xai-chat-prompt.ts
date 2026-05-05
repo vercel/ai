@@ -23,7 +23,7 @@ export type XaiUserMessageContent =
 
 export interface XaiAssistantMessage {
   role: 'assistant';
-  content: string;
+  content: string | null;
   tool_calls?: Array<{
     id: string;
     type: 'function';
