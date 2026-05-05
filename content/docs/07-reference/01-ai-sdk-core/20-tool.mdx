@@ -140,6 +140,13 @@ export const weatherTool = tool({
                       description:
                         'Tool-specific context passed into tool execution. When `contextSchema` is provided, this type is inferred from that schema and supplied from the matching entry in `toolsContext`.',
                     },
+                    {
+                      name: 'sandbox',
+                      type: 'Sandbox',
+                      isOptional: true,
+                      description:
+                        'Optional sandbox environment passed from the generation or agent call. Use it when a tool needs to execute commands or code in a sandbox.',
+                    },
                   ],
                 },
               ],
