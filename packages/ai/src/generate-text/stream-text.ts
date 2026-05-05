@@ -329,14 +329,14 @@ export function streamText<
     /**
      * Optional telemetry configuration.
      */
-    telemetry?: TelemetryOptions<RUNTIME_CONTEXT>;
+    telemetry?: TelemetryOptions<RUNTIME_CONTEXT, NoInfer<TOOLS>>;
 
     /**
      * Optional telemetry configuration.
      *
      * @deprecated Use `telemetry` instead. This alias will be removed in a future major release.
      */
-    experimental_telemetry?: TelemetryOptions<RUNTIME_CONTEXT>;
+    experimental_telemetry?: TelemetryOptions<RUNTIME_CONTEXT, NoInfer<TOOLS>>;
 
     /**
      * Additional provider-specific options. They are passed through
@@ -765,7 +765,7 @@ class DefaultStreamTextResult<
     include,
   }: {
     model: LanguageModelV4;
-    telemetry: TelemetryOptions<RUNTIME_CONTEXT> | undefined;
+    telemetry: TelemetryOptions<RUNTIME_CONTEXT, TOOLS> | undefined;
     headers: Record<string, string | undefined> | undefined;
     settings: LanguageModelCallOptions;
     maxRetries: number | undefined;
@@ -848,8 +848,8 @@ class DefaultStreamTextResult<
       OUTPUT
     >({
       telemetry,
-      tools,
       includeRuntimeContext: telemetry?.includeRuntimeContext,
+      includeToolsContext: telemetry?.includeToolsContext,
     });
 
     // promise to ensure that the step has been fully processed by the event processor

@@ -2,12 +2,15 @@ import type {
   Context,
   InferToolContext,
   InferToolSetContext,
-  SensitiveContext,
   ToolSet,
 } from '@ai-sdk/provider-utils';
 import { createTelemetryDispatcher } from '../telemetry/create-telemetry-dispatcher';
 import type { TelemetryDispatcher } from '../telemetry/telemetry';
-import type { TelemetryOptions } from '../telemetry/telemetry-options';
+import type {
+  IncludedContext,
+  IncludedToolsContext,
+  TelemetryOptions,
+} from '../telemetry/telemetry-options';
 import type {
   GenerateTextOnFinishCallback,
   GenerateTextOnStartCallback,
@@ -20,10 +23,6 @@ import type {
   OnToolExecutionEndCallback,
   OnToolExecutionStartCallback,
 } from './tool-execution-events';
-
-type IncludedRuntimeContext<CONTEXT extends Context> =
-  | { [KEY in keyof CONTEXT]?: boolean }
-  | undefined;
 
 /**
  * Telemetry dispatcher for text generation with callbacks typed to the
@@ -59,33 +58,17 @@ function filterIncludedContext<CONTEXT extends Context>({
   includeContext,
 }: {
   context: CONTEXT;
-  includeContext: IncludedRuntimeContext<CONTEXT>;
+  includeContext: IncludedContext<CONTEXT>;
 }): Context {
+  if (context == null) {
+    return {};
+  }
+
   return Object.fromEntries(
     Object.entries(context).filter(
       ([key]) => includeContext?.[key as keyof CONTEXT] === true,
     ),
   );
-}
-
-/**
- * Returns a shallow copy of the context with top-level properties marked as
- * sensitive removed.
- */
-function filterSensitiveContext<CONTEXT extends Context>({
-  context,
-  sensitiveContext,
-}: {
-  context: CONTEXT;
-  sensitiveContext: SensitiveContext<CONTEXT>;
-}): Context {
-  return sensitiveContext == null
-    ? context
-    : Object.fromEntries(
-        Object.entries(context).filter(
-          ([key]) => sensitiveContext[key as keyof CONTEXT] !== true,
-        ),
-      );
 }
 
 /**
@@ -97,12 +80,12 @@ function restrictStepResult<
   RUNTIME_CONTEXT extends Context,
 >({
   step,
-  tools,
   includeRuntimeContext,
+  includeToolsContext,
 }: {
   step: StepResult<TOOLS, RUNTIME_CONTEXT>;
-  tools: TOOLS | undefined;
-  includeRuntimeContext: IncludedRuntimeContext<RUNTIME_CONTEXT>;
+  includeRuntimeContext: IncludedContext<RUNTIME_CONTEXT>;
+  includeToolsContext: IncludedToolsContext<TOOLS>;
 }) {
   return new DefaultStepResult({
     callId: step.callId,
@@ -114,8 +97,8 @@ function restrictStepResult<
       includeContext: includeRuntimeContext,
     }),
     toolsContext: filterToolsContext({
-      tools,
       toolsContext: step.toolsContext,
+      includeToolsContext,
     }),
     content: step.content,
     finishReason: step.finishReason,
@@ -129,51 +112,54 @@ function restrictStepResult<
 }
 
 /**
- * Returns a shallow copy of the tools context with sensitive top-level
- * properties removed for each tool that marks them as sensitive.
+ * Returns a shallow copy of the tools context with only top-level properties
+ * marked for telemetry inclusion for each tool.
  */
 function filterToolsContext<TOOLS extends ToolSet>({
-  tools,
   toolsContext,
+  includeToolsContext,
 }: {
-  tools: TOOLS | undefined;
   toolsContext: InferToolSetContext<TOOLS>;
+  includeToolsContext: IncludedToolsContext<TOOLS>;
 }): InferToolSetContext<TOOLS> {
-  if (tools == null) {
-    return toolsContext;
+  if (includeToolsContext == null) {
+    return {} as InferToolSetContext<TOOLS>;
   }
 
   return Object.fromEntries(
     Object.entries(toolsContext).map(([toolName, toolContext]) => [
       toolName,
       filterToolContext({
-        tools,
         toolName,
         toolContext,
+        includeToolsContext,
       }),
     ]),
   ) as InferToolSetContext<TOOLS>;
 }
 
 function filterToolContext<TOOLS extends ToolSet>({
-  tools,
   toolName,
   toolContext,
+  includeToolsContext,
 }: {
-  tools: TOOLS | undefined;
   toolName: string;
   toolContext: unknown;
+  includeToolsContext: IncludedToolsContext<TOOLS>;
 }) {
-  const sensitiveToolContext = tools?.[toolName]?.sensitiveContext as
-    | SensitiveContext<InferToolContext<TOOLS[typeof toolName]>>
-    | undefined;
+  const includeToolContext = (
+    includeToolsContext as
+      | Record<
+          string,
+          IncludedContext<InferToolContext<TOOLS[typeof toolName]>>
+        >
+      | undefined
+  )?.[toolName];
 
-  return sensitiveToolContext == null
-    ? toolContext
-    : filterSensitiveContext({
-        context: toolContext as InferToolContext<TOOLS[typeof toolName]>,
-        sensitiveContext: sensitiveToolContext,
-      });
+  return filterIncludedContext({
+    context: toolContext as InferToolContext<TOOLS[typeof toolName]>,
+    includeContext: includeToolContext,
+  });
 }
 
 /**
@@ -186,12 +172,12 @@ export function createRestrictedTelemetryDispatcher<
   OUTPUT extends Output,
 >({
   telemetry,
-  tools,
   includeRuntimeContext,
+  includeToolsContext,
 }: {
-  telemetry?: TelemetryOptions<RUNTIME_CONTEXT>;
-  tools?: TOOLS | undefined;
-  includeRuntimeContext: IncludedRuntimeContext<RUNTIME_CONTEXT>;
+  telemetry?: TelemetryOptions<RUNTIME_CONTEXT, TOOLS>;
+  includeRuntimeContext: IncludedContext<RUNTIME_CONTEXT>;
+  includeToolsContext?: IncludedToolsContext<TOOLS>;
 }): RestrictedTelemetryDispatcher<TOOLS, RUNTIME_CONTEXT, OUTPUT> {
   const telemetryDispatcher = createTelemetryDispatcher({ telemetry });
 
@@ -205,8 +191,8 @@ export function createRestrictedTelemetryDispatcher<
           includeContext: includeRuntimeContext,
         }),
         toolsContext: filterToolsContext({
-          tools,
           toolsContext: event.toolsContext,
+          includeToolsContext,
         }),
       }),
     onStepStart: event =>
@@ -217,19 +203,23 @@ export function createRestrictedTelemetryDispatcher<
           includeContext: includeRuntimeContext,
         }),
         steps: event.steps.map(step =>
-          restrictStepResult({ step, tools, includeRuntimeContext }),
+          restrictStepResult({
+            step,
+            includeRuntimeContext,
+            includeToolsContext,
+          }),
         ),
         toolsContext: filterToolsContext({
-          tools,
           toolsContext: event.toolsContext,
+          includeToolsContext,
         }),
       }),
     onStepFinish: event =>
       telemetryDispatcher.onStepFinish?.(
         restrictStepResult({
           step: event,
-          tools,
           includeRuntimeContext,
+          includeToolsContext,
         }),
       ),
     onFinish: event =>
@@ -240,29 +230,33 @@ export function createRestrictedTelemetryDispatcher<
           includeContext: includeRuntimeContext,
         }),
         steps: event.steps.map(step =>
-          restrictStepResult({ step, tools, includeRuntimeContext }),
+          restrictStepResult({
+            step,
+            includeRuntimeContext,
+            includeToolsContext,
+          }),
         ),
         toolsContext: filterToolsContext({
-          tools,
           toolsContext: event.toolsContext,
+          includeToolsContext,
         }),
       }),
     onToolExecutionStart: event =>
       telemetryDispatcher.onToolExecutionStart?.({
         ...event,
         toolContext: filterToolContext({
-          tools,
           toolName: event.toolCall.toolName,
           toolContext: event.toolContext,
+          includeToolsContext,
         }),
       }),
     onToolExecutionEnd: event =>
       telemetryDispatcher.onToolExecutionEnd?.({
         ...event,
         toolContext: filterToolContext({
-          tools,
           toolName: event.toolCall.toolName,
           toolContext: event.toolContext,
+          includeToolsContext,
         }),
       }),
   };

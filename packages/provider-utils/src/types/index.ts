@@ -31,7 +31,6 @@ export type { InferToolSetContext } from './infer-tool-set-context';
 export type { ModelMessage } from './model-message';
 export type { ProviderOptions } from './provider-options';
 export type { ProviderReference } from './provider-reference';
-export type { SensitiveContext } from './sensitive-context';
 export type { SystemModelMessage } from './system-model-message';
 export {
   dynamicTool,

@@ -120,12 +120,12 @@ In this example, telemetry integrations receive `runtimeContext` as `{ requestId
   receive the full `runtimeContext`.
 </Note>
 
-### Sensitive tool context
+### Tool context
 
 Tool-specific context can also contain values that are useful during execution but should not be sent to telemetry providers, such as API keys or access tokens.
-Use `sensitiveContext` on a tool definition to mark top-level properties from that tool's `context` as sensitive:
+Use `telemetry.includeToolsContext` to include selected top-level properties from a tool's `context` in telemetry:
 
-```ts highlight="9-11,19-23"
+```ts highlight="18-24"
 const weatherTool = tool({
   inputSchema: z.object({
     location: z.string(),
@@ -134,9 +134,6 @@ const weatherTool = tool({
     weatherApiKey: z.string(),
     defaultUnit: z.enum(['celsius', 'fahrenheit']),
   }),
-  sensitiveContext: {
-    weatherApiKey: true,
-  },
   execute: async ({ location }, { context }) =>
     fetchWeather(location, context.weatherApiKey, context.defaultUnit),
 });
@@ -151,18 +148,25 @@ const result = await generateText({
     },
   },
   prompt: 'What is the weather in San Francisco?',
+  telemetry: {
+    includeToolsContext: {
+      weather: {
+        defaultUnit: true,
+      },
+    },
+  },
 });
 ```
 
 In this example, telemetry integrations receive `toolsContext.weather` and tool execution telemetry event `toolContext` as `{ defaultUnit: 'fahrenheit' }`.
-Properties set to `false` or omitted are still sent. `sensitiveContext` is supported by `generateText`, `streamText`, and `ToolLoopAgent`.
+Properties set to `false` or omitted are excluded. If `telemetry.includeToolsContext` is omitted, no tool context properties are included. `telemetry.includeToolsContext` is supported by `generateText`, `streamText`, and `ToolLoopAgent`.
 
 <Note>
-  `sensitiveContext` only filters telemetry integrations, including OpenTelemetry
-  integrations. Tool execution, lifecycle callbacks, and returned results still
-  receive the full tool context. See [Runtime and Tool
-  Context](/docs/ai-sdk-core/runtime-and-tool-context) for the difference between
-  tool execution context and telemetry event context.
+  `telemetry.includeToolsContext` only filters telemetry integrations, including
+  OpenTelemetry integrations. Tool execution, lifecycle callbacks, and returned
+  results still receive the full tool context. See [Runtime and Tool
+  Context](/docs/ai-sdk-core/runtime-and-tool-context) for the difference
+  between tool execution context and telemetry event context.
 </Note>
 
 ## Custom Tracer

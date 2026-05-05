@@ -1,6 +1,6 @@
 ---
 title: Runtime and Tool Context
-description: Learn how runtime context, tool context, and sensitive context work together.
+description: Learn how runtime context, tool context, and telemetry context filtering work together.
 ---
 
 # Runtime and Tool Context
@@ -23,7 +23,7 @@ should affect execution.
 | tool `context` | Each tool's `toolsContext` entry, validated by its `contextSchema` | Tool `execute`, `needsApproval`, and tool input lifecycle callbacks | Values needed by one tool |
 | `toolContext` | Derived from one tool's context | Tool approval callbacks and tool execution events | The event/callback name for one tool's context |
 | `telemetry.includeRuntimeContext` | The generation or agent call | Telemetry filtering | Top-level `runtimeContext` properties to include in telemetry |
-| `sensitiveContext` | The tool definition | Telemetry filtering | Top-level tool context properties to omit from telemetry |
+| `telemetry.includeToolsContext` | The generation or agent call | Telemetry filtering | Top-level tool context properties to include in telemetry |
 
 In agents, `runtimeContext` is the agent's shared runtime state. It flows
 through the loop and can be read or updated in `prepareStep` between model
@@ -39,7 +39,7 @@ generateText / streamText / ToolLoopAgent
        -> prepareStep
        -> one tool's context / toolContext
             -> execute, approval callbacks, tool events
-            -> telemetry, filtered by sensitiveContext
+            -> telemetry, filtered by telemetry.includeToolsContext
 ```
 
 ## Runtime Context
@@ -124,11 +124,12 @@ between steps, inspect the previous step in `prepareStep` and return an updated
 ## Telemetry Context Filtering
 
 Context often contains values that are useful inside your application but should
-not be sent to telemetry providers. Mark top-level runtime context properties
-with `telemetry.includeRuntimeContext` to include them in telemetry, and mark top-level
-tool context properties with `sensitiveContext` to omit them from telemetry.
+not be sent to telemetry providers. Use `telemetry.includeRuntimeContext` to
+include selected top-level runtime context properties in telemetry, and
+`telemetry.includeToolsContext` to include selected top-level tool context
+properties per tool.
 
-```ts highlight="12-14,24-26,39-41,48-50"
+```ts highlight="36-45"
 import { ToolLoopAgent, tool } from 'ai';
 import { z } from 'zod';
 
@@ -141,9 +142,6 @@ const customerLookup = tool({
     apiKey: z.string(),
     region: z.string(),
   }),
-  sensitiveContext: {
-    apiKey: true,
-  },
   execute: async ({ customerId }, { context }) => {
     return lookupCustomer({
       customerId,
@@ -169,6 +167,11 @@ const result = await agent.generate({
     includeRuntimeContext: {
       requestId: true,
     },
+    includeToolsContext: {
+      customerLookup: {
+        region: true,
+      },
+    },
   },
   toolsContext: {
     customerLookup: {
@@ -180,7 +183,7 @@ const result = await agent.generate({
 ```
 
 In this example, telemetry receives `runtimeContext` with only `requestId` and the
-`customerLookup` context without `apiKey`.
+`customerLookup` context with only `region`.
 
 <Note>
   Context filters only affect telemetry integrations, including OpenTelemetry
@@ -190,8 +193,10 @@ In this example, telemetry receives `runtimeContext` with only `requestId` and t
 
 Context telemetry filtering is shallow. For `telemetry.includeRuntimeContext`, only
 top-level properties marked as `true` are sent when it is configured; if it is
-omitted, no runtime context properties are sent. For `sensitiveContext`,
-top-level properties marked as `true` are omitted.
+omitted, no runtime context properties are sent. For
+`telemetry.includeToolsContext`, only top-level tool context properties marked as
+`true` are sent when it is configured; if it is omitted, no tool context
+properties are sent.
 
 ## Where Context Is Available
 
@@ -202,7 +207,7 @@ top-level properties marked as `true` are omitted.
 | Tool approval | Read in generic and per-tool callbacks | Read in generic callbacks | Read as `toolContext` in per-tool callbacks |
 | Tool execution events | Not included | Not included | Read as `toolContext` |
 | Step results and finish callbacks | Read final or per-step state | Read final or per-step state | Available through the per-tool entries in `toolsContext` |
-| Telemetry | Filtered by `telemetry.includeRuntimeContext` | Filtered per tool | Filtered by each tool's `sensitiveContext` |
+| Telemetry | Filtered by `telemetry.includeRuntimeContext` | Filtered by `telemetry.includeToolsContext` | Filtered by `telemetry.includeToolsContext` |
 
 ## Choosing the Right Context
 
@@ -212,8 +217,8 @@ top-level properties marked as `true` are omitted.
   such as API keys, scoped clients, user permissions, or default tool settings.
 - Use prompt messages for information the model should reason about or mention
   in its answer.
-- Use `telemetry.includeRuntimeContext` and `sensitiveContext` to reduce telemetry
-  exposure, not as a general security boundary.
+- Use `telemetry.includeRuntimeContext` and `telemetry.includeToolsContext` to
+  reduce telemetry exposure, not as a general security boundary.
 
 Learn more about [tools and tool calling](/docs/ai-sdk-core/tools-and-tool-calling),
 [event listeners](/docs/ai-sdk-core/event-listeners), and

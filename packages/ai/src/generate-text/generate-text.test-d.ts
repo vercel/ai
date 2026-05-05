@@ -143,6 +143,44 @@ describe('generateText types', () => {
       });
     });
 
+    it('should accept includeToolsContext for toolsContext keys', async () => {
+      generateText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+        tools: twoToolsWithContext,
+        toolsContext: {
+          weather: { weatherApiKey: 'key' },
+          db: { dbUrl: 'url' },
+        },
+        telemetry: {
+          includeToolsContext: {
+            weather: { weatherApiKey: true },
+            db: { dbUrl: false },
+          },
+        },
+      });
+    });
+
+    it('should reject unknown includeToolsContext keys', async () => {
+      generateText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+        tools: twoToolsWithContext,
+        toolsContext: {
+          weather: { weatherApiKey: 'key' },
+          db: { dbUrl: 'url' },
+        },
+        telemetry: {
+          includeToolsContext: {
+            weather: {
+              // @ts-expect-error includeToolsContext only supports tool context properties
+              unknown: true,
+            },
+          },
+        },
+      });
+    });
+
     it('should expose original runtimeContext in callbacks', async () => {
       generateText({
         model: new MockLanguageModelV4(),

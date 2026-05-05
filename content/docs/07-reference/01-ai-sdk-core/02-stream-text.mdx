@@ -534,6 +534,13 @@ To see `streamText` in action, check out [these examples](#examples).
                 'Top-level runtime context properties that should be included in telemetry. Runtime context properties are excluded unless they are explicitly set to `true`. Lifecycle callbacks and returned results still receive the full `runtimeContext`.',
             },
             {
+              name: 'includeToolsContext',
+              type: '{ [TOOL_NAME in keyof InferToolSetContext<TOOLS>]?: { [KEY in keyof InferToolSetContext<TOOLS>[TOOL_NAME]]?: boolean } }',
+              isOptional: true,
+              description:
+                'Top-level tool context properties that should be included in telemetry, configured per tool. Tool context properties are excluded unless they are explicitly set to `true`. Lifecycle callbacks and returned results still receive the full `toolsContext`.',
+            },
+            {
               name: 'integrations',
               isOptional: true,
               type: 'Telemetry | Telemetry[]',
@@ -3795,16 +3802,6 @@ type ActiveTools<TOOLS extends ToolSet> =
 ```
 
 Limits a generation step to the listed tool names. `undefined` means no tool restriction is applied.
-
-### `SensitiveContext`
-
-```ts
-type SensitiveContext<CONTEXT extends Context> =
-  | { [KEY in keyof CONTEXT]?: boolean }
-  | undefined;
-```
-
-Marks top-level context properties that should be excluded from telemetry. Set a property to `true` to omit it from telemetry integrations; omitted or `false` properties are still sent.
 
 ## Examples
 

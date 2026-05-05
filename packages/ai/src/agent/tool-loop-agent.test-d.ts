@@ -249,6 +249,42 @@ describe('ToolLoopAgent', () => {
       });
     });
 
+    it('should accept includeToolsContext for toolsContext keys', async () => {
+      new ToolLoopAgent<never, typeof twoToolsWithContext>({
+        model: new MockLanguageModelV4(),
+        tools: twoToolsWithContext,
+        toolsContext: {
+          weather: { weatherApiKey: 'key' },
+          db: { dbUrl: 'url' },
+        },
+        telemetry: {
+          includeToolsContext: {
+            weather: { weatherApiKey: true },
+            db: { dbUrl: false },
+          },
+        },
+      });
+    });
+
+    it('should reject unknown includeToolsContext keys', async () => {
+      new ToolLoopAgent<never, typeof twoToolsWithContext>({
+        model: new MockLanguageModelV4(),
+        tools: twoToolsWithContext,
+        toolsContext: {
+          weather: { weatherApiKey: 'key' },
+          db: { dbUrl: 'url' },
+        },
+        telemetry: {
+          includeToolsContext: {
+            weather: {
+              // @ts-expect-error includeToolsContext only supports tool context properties
+              unknown: true,
+            },
+          },
+        },
+      });
+    });
+
     it('should reject unknown includeRuntimeContext keys', async () => {
       new ToolLoopAgent<never, {}, { userId: string }>({
         model: new MockLanguageModelV4(),

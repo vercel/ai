@@ -1,10 +1,30 @@
-import type { Arrayable, Context } from '@ai-sdk/provider-utils';
+import type {
+  Arrayable,
+  Context,
+  InferToolSetContext,
+  ToolSet,
+} from '@ai-sdk/provider-utils';
 import type { Telemetry } from './telemetry';
+
+export type IncludedContext<CONTEXT extends Context | unknown | never> =
+  | { [KEY in keyof NoInfer<CONTEXT>]?: boolean }
+  | undefined;
+
+export type IncludedToolsContext<TOOLS extends ToolSet> =
+  | {
+      [TOOL_NAME in keyof NoInfer<
+        InferToolSetContext<TOOLS>
+      >]?: IncludedContext<NoInfer<InferToolSetContext<TOOLS>[TOOL_NAME]>>;
+    }
+  | undefined;
 
 /**
  * Telemetry configuration.
  */
-export type TelemetryOptions<RUNTIME_CONTEXT extends Context = Context> = {
+export type TelemetryOptions<
+  RUNTIME_CONTEXT extends Context = Context,
+  TOOLS extends ToolSet = ToolSet,
+> = {
   /**
    * Enable or disable telemetry. Enabled by default when a telemetry
    * integration is registered. Set to `false` to opt out.
@@ -36,9 +56,15 @@ export type TelemetryOptions<RUNTIME_CONTEXT extends Context = Context> = {
    * Top-level runtime context properties that should be included in telemetry.
    * Runtime context properties are excluded unless they are explicitly set to `true`.
    */
-  includeRuntimeContext?:
-    | { [KEY in keyof NoInfer<RUNTIME_CONTEXT>]?: boolean }
-    | undefined;
+  includeRuntimeContext?: IncludedContext<RUNTIME_CONTEXT>;
+
+  /**
+   * Top-level tool context properties that should be included in telemetry,
+   * configured per tool.
+   *
+   * Tool context properties are excluded unless they are explicitly set to `true`.
+   */
+  includeToolsContext?: IncludedToolsContext<TOOLS>;
 
   /**
    * Per-call telemetry integrations that receive lifecycle events during generation.

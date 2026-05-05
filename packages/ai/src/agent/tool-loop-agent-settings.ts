@@ -78,14 +78,14 @@ export type ToolLoopAgentSettings<
     /**
      * Optional telemetry configuration.
      */
-    telemetry?: TelemetryOptions<RUNTIME_CONTEXT>;
+    telemetry?: TelemetryOptions<RUNTIME_CONTEXT, NoInfer<TOOLS>>;
 
     /**
      * Optional telemetry configuration.
      *
      * @deprecated Use `telemetry` instead. This alias will be removed in a future major release.
      */
-    experimental_telemetry?: TelemetryOptions<RUNTIME_CONTEXT>;
+    experimental_telemetry?: TelemetryOptions<RUNTIME_CONTEXT, NoInfer<TOOLS>>;
 
     /**
      * Limits the tools that are available for the model to call without

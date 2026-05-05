@@ -19,9 +19,6 @@ const agent = new ToolLoopAgent({
         requestId: z.string(),
         secretKey: z.string(),
       }),
-      sensitiveContext: {
-        secretKey: true,
-      },
       execute: async ({ location }, { context }) => ({
         location,
         temperature: 72,
@@ -45,6 +42,11 @@ const agent = new ToolLoopAgent({
     functionId: 'my-awesome-agent',
     includeRuntimeContext: {
       requestId: true,
+    },
+    includeToolsContext: {
+      weather: {
+        requestId: true,
+      },
     },
   },
 });

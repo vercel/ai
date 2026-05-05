@@ -231,14 +231,14 @@ export async function generateText<
     /**
      * Optional telemetry configuration.
      */
-    telemetry?: TelemetryOptions<RUNTIME_CONTEXT>;
+    telemetry?: TelemetryOptions<RUNTIME_CONTEXT, NoInfer<TOOLS>>;
 
     /**
      * Optional telemetry configuration.
      *
      * @deprecated Use `telemetry` instead. This alias will be removed in a future major release.
      */
-    experimental_telemetry?: TelemetryOptions<RUNTIME_CONTEXT>;
+    experimental_telemetry?: TelemetryOptions<RUNTIME_CONTEXT, NoInfer<TOOLS>>;
 
     /**
      * Additional provider-specific options. They are passed through
@@ -421,8 +421,8 @@ export async function generateText<
     OUTPUT
   >({
     telemetry,
-    tools,
     includeRuntimeContext: telemetry?.includeRuntimeContext,
+    includeToolsContext: telemetry?.includeToolsContext,
   });
 
   await notify({
