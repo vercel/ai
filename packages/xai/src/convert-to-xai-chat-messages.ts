@@ -113,7 +113,7 @@ export function convertToXaiChatMessages(prompt: LanguageModelV4Prompt): {
 
         messages.push({
           role: 'assistant',
-          content: text,
+          content: toolCalls.length > 0 ? text || null : text,
           tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
         });
 

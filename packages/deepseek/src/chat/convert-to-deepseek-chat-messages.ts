@@ -129,7 +129,7 @@ export function convertToDeepSeekChatMessages({
         // string when the source message had no reasoning part at all.
         messages.push({
           role: 'assistant',
-          content: text,
+          content: toolCalls.length > 0 ? text || null : text,
           reasoning_content: reasoning ?? (isDeepSeekV4 ? '' : undefined),
           tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
         });

@@ -225,7 +225,7 @@ describe('convertToXaiChatMessages', () => {
     expect(messages).toEqual([
       {
         role: 'assistant',
-        content: '',
+        content: null,
         tool_calls: [
           {
             id: 'call_123',
@@ -270,7 +270,7 @@ describe('convertToXaiChatMessages', () => {
     expect(messages).toEqual([
       {
         role: 'assistant',
-        content: '',
+        content: null,
         tool_calls: [
           {
             id: 'call_123',
