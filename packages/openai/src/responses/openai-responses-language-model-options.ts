@@ -332,7 +332,7 @@ export const openaiLanguageModelResponsesOptionsSchema = lazySchema(() =>
       /**
        * Restrict the callable tools to a subset while keeping the full tools
        * list intact, so prompt caching is preserved across requests with
-       * different allow-lists.
+       * different allowlists.
        *
        * When set, this overrides the request-level `toolChoice` and emits
        * `tool_choice: { type: "allowed_tools", mode, tools }` on the wire.
