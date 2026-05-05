@@ -127,7 +127,7 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
       }));
 
     // Convert tool choice to the Open Responses format
-    let convertedToolChoice: ToolChoiceParam | undefined =
+    const convertedToolChoice: ToolChoiceParam | undefined =
       toolChoice == null
         ? undefined
         : toolChoice.type === 'tool'
@@ -154,17 +154,6 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
       providerOptions,
       schema: openResponsesLanguageModelOptions,
     });
-
-    if (openResponsesOptions?.allowedTools != null) {
-      convertedToolChoice = {
-        type: 'allowed_tools',
-        tools: openResponsesOptions.allowedTools.toolNames.map(name => ({
-          type: 'function',
-          name,
-        })),
-        mode: openResponsesOptions.allowedTools.mode ?? 'auto',
-      };
-    }
 
     const resolvedReasoningEffort = isCustomReasoning(reasoning)
       ? reasoning === 'none'
