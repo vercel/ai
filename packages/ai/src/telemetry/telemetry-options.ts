@@ -1,5 +1,4 @@
 import type { Arrayable, Context } from '@ai-sdk/provider-utils';
-import type { IncludeContext } from './include-context';
 import type { Telemetry } from './telemetry';
 
 /**
@@ -37,7 +36,9 @@ export type TelemetryOptions<RUNTIME_CONTEXT extends Context = Context> = {
    * Top-level runtime context properties that should be included in telemetry.
    * Runtime context properties are excluded unless they are explicitly set to `true`.
    */
-  includeRuntimeContext?: IncludeContext<NoInfer<RUNTIME_CONTEXT>>;
+  includeRuntimeContext?:
+    | { [KEY in keyof NoInfer<RUNTIME_CONTEXT>]?: boolean }
+    | undefined;
 
   /**
    * Per-call telemetry integrations that receive lifecycle events during generation.

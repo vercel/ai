@@ -6,7 +6,6 @@ import type {
   ToolSet,
 } from '@ai-sdk/provider-utils';
 import { createTelemetryDispatcher } from '../telemetry/create-telemetry-dispatcher';
-import type { IncludeContext } from '../telemetry/include-context';
 import type { TelemetryDispatcher } from '../telemetry/telemetry';
 import type { TelemetryOptions } from '../telemetry/telemetry-options';
 import type {
@@ -21,6 +20,10 @@ import type {
   OnToolExecutionEndCallback,
   OnToolExecutionStartCallback,
 } from './tool-execution-events';
+
+type IncludedRuntimeContext<CONTEXT extends Context> =
+  | { [KEY in keyof CONTEXT]?: boolean }
+  | undefined;
 
 /**
  * Telemetry dispatcher for text generation with callbacks typed to the
@@ -56,7 +59,7 @@ function filterIncludedContext<CONTEXT extends Context>({
   includeContext,
 }: {
   context: CONTEXT;
-  includeContext: IncludeContext<CONTEXT>;
+  includeContext: IncludedRuntimeContext<CONTEXT>;
 }): Context {
   return Object.fromEntries(
     Object.entries(context).filter(
@@ -99,7 +102,7 @@ function restrictStepResult<
 }: {
   step: StepResult<TOOLS, RUNTIME_CONTEXT>;
   tools: TOOLS | undefined;
-  includeRuntimeContext: IncludeContext<RUNTIME_CONTEXT>;
+  includeRuntimeContext: IncludedRuntimeContext<RUNTIME_CONTEXT>;
 }) {
   return new DefaultStepResult({
     callId: step.callId,
@@ -188,7 +191,7 @@ export function createRestrictedTelemetryDispatcher<
 }: {
   telemetry?: TelemetryOptions<RUNTIME_CONTEXT>;
   tools?: TOOLS | undefined;
-  includeRuntimeContext: IncludeContext<RUNTIME_CONTEXT>;
+  includeRuntimeContext: IncludedRuntimeContext<RUNTIME_CONTEXT>;
 }): RestrictedTelemetryDispatcher<TOOLS, RUNTIME_CONTEXT, OUTPUT> {
   const telemetryDispatcher = createTelemetryDispatcher({ telemetry });
 

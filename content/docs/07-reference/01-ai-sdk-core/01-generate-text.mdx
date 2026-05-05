@@ -527,7 +527,7 @@ To see `generateText` in action, check out [these examples](#examples).
             },
             {
               name: 'includeRuntimeContext',
-              type: 'IncludeContext<CONTEXT>',
+              type: '{ [KEY in keyof CONTEXT]?: boolean }',
               isOptional: true,
               description:
                 'Top-level runtime context properties that should be included in telemetry. Runtime context properties are excluded unless they are explicitly set to `true`. Lifecycle callbacks and returned results still receive the full `runtimeContext`.',
@@ -2803,16 +2803,6 @@ type ActiveTools<TOOLS extends ToolSet> =
 ```
 
 Limits a generation step to the listed tool names. `undefined` means no tool restriction is applied.
-
-### `IncludeContext`
-
-```ts
-type IncludeContext<CONTEXT extends Context> =
-  | { [KEY in keyof CONTEXT]?: boolean }
-  | undefined;
-```
-
-Marks top-level context properties that should be included in telemetry. When configured, only properties set to `true` are sent to telemetry integrations; if omitted, no properties are sent.
 
 ### `SensitiveContext`
 
