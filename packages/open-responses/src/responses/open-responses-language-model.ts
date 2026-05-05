@@ -127,21 +127,12 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
       }));
 
     // Convert tool choice to the Open Responses format
-    const convertedToolChoice: ToolChoiceParam | undefined =
+    let convertedToolChoice: ToolChoiceParam | undefined =
       toolChoice == null
         ? undefined
         : toolChoice.type === 'tool'
           ? { type: 'function', name: toolChoice.toolName }
-          : toolChoice.type === 'allowedTools'
-            ? {
-                type: 'allowed_tools',
-                tools: toolChoice.toolNames.map(name => ({
-                  type: 'function',
-                  name,
-                })),
-                mode: toolChoice.mode ?? 'auto',
-              }
-            : toolChoice.type; // 'auto' | 'none' | 'required'
+          : toolChoice.type; // 'auto' | 'none' | 'required'
 
     const textFormat =
       responseFormat?.type === 'json'
@@ -163,6 +154,17 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
       providerOptions,
       schema: openResponsesLanguageModelOptions,
     });
+
+    if (openResponsesOptions?.allowedTools != null) {
+      convertedToolChoice = {
+        type: 'allowed_tools',
+        tools: openResponsesOptions.allowedTools.toolNames.map(name => ({
+          type: 'function',
+          name,
+        })),
+        mode: openResponsesOptions.allowedTools.mode ?? 'auto',
+      };
+    }
 
     const resolvedReasoningEffort = isCustomReasoning(reasoning)
       ? reasoning === 'none'

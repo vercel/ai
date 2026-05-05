@@ -98,17 +98,9 @@ export type Source = LanguageModelV4Source;
  * - `required`: the model must call a tool. It can choose which tool to call.
  * - `none`: the model must not call tools
  * - `{ type: 'tool', toolName: string (typed) }`: the model must call the specified tool
- * - `{ type: 'allowedTools', toolNames: string[] (typed), mode? }`: restrict the
- *   callable tools to a subset while preserving the full tools list. `mode` is
- *   `'auto'` (default) or `'required'`.
  */
 export type ToolChoice<TOOLS extends Record<string, unknown>> =
   | 'auto'
   | 'none'
   | 'required'
-  | { type: 'tool'; toolName: Extract<keyof TOOLS, string> }
-  | {
-      type: 'allowedTools';
-      toolNames: Array<Extract<keyof TOOLS, string>>;
-      mode?: 'auto' | 'required';
-    };
+  | { type: 'tool'; toolName: Extract<keyof TOOLS, string> };

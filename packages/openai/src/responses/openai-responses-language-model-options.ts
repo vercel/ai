@@ -328,6 +328,23 @@ export const openaiLanguageModelResponsesOptionsSchema = lazySchema(() =>
           }),
         )
         .nullish(),
+
+      /**
+       * Restrict the callable tools to a subset while keeping the full tools
+       * list intact, so prompt caching is preserved across requests with
+       * different allow-lists.
+       *
+       * When set, this overrides the request-level `toolChoice` and emits
+       * `tool_choice: { type: "allowed_tools", mode, tools }` on the wire.
+       *
+       * @see https://platform.openai.com/docs/api-reference/responses/create#responses_create-tool_choice
+       */
+      allowedTools: z
+        .object({
+          toolNames: z.array(z.string()).min(1),
+          mode: z.enum(['auto', 'required']).optional(),
+        })
+        .optional(),
     }),
   ),
 );

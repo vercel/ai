@@ -23,11 +23,16 @@ import type { OpenAIResponsesTool } from './openai-responses-api';
 export async function prepareResponsesTools({
   tools,
   toolChoice,
+  allowedTools,
   toolNameMapping,
   customProviderToolNames,
 }: {
   tools: LanguageModelV4CallOptions['tools'];
   toolChoice: LanguageModelV4CallOptions['toolChoice'] | undefined;
+  allowedTools?: {
+    toolNames: string[];
+    mode?: 'auto' | 'required';
+  };
   toolNameMapping?: ToolNameMapping;
   customProviderToolNames?: Set<string>;
 }): Promise<{
@@ -295,6 +300,21 @@ export async function prepareResponsesTools({
     }
   }
 
+  if (allowedTools != null) {
+    return {
+      tools: openaiTools,
+      toolChoice: {
+        type: 'allowed_tools',
+        mode: allowedTools.mode ?? 'auto',
+        tools: allowedTools.toolNames.map(name => ({
+          type: 'function',
+          name: toolNameMapping?.toProviderToolName(name) ?? name,
+        })),
+      },
+      toolWarnings,
+    };
+  }
+
   if (toolChoice == null) {
     return { tools: openaiTools, toolChoice: undefined, toolWarnings };
   }
@@ -325,20 +345,6 @@ export async function prepareResponsesTools({
             : resolvedCustomProviderToolNames.has(resolvedToolName)
               ? { type: 'custom', name: resolvedToolName }
               : { type: 'function', name: resolvedToolName },
-        toolWarnings,
-      };
-    }
-    case 'allowedTools': {
-      return {
-        tools: openaiTools,
-        toolChoice: {
-          type: 'allowed_tools',
-          mode: toolChoice.mode ?? 'auto',
-          tools: toolChoice.toolNames.map(name => ({
-            type: 'function',
-            name: toolNameMapping?.toProviderToolName(name) ?? name,
-          })),
-        },
         toolWarnings,
       };
     }
