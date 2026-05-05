@@ -337,7 +337,7 @@ export const openaiLanguageModelResponsesOptionsSchema = lazySchema(() =>
        * When set, this overrides the request-level `toolChoice` and emits
        * `tool_choice: { type: "allowed_tools", mode, tools }` on the wire.
        *
-       * @see https://platform.openai.com/docs/api-reference/responses/create#responses_create-tool_choice
+       * @see https://developers.openai.com/api/reference/resources/responses/methods/create#(resource)%20responses%20%3E%20(model)%20tool_choice_allowed%20%3E%20(schema)
        */
       allowedTools: z
         .object({
