@@ -22566,10 +22566,19 @@ describe('streamText', () => {
       let result: StreamTextResult<any, any, any>;
       let prompts: LanguageModelV4Prompt[];
       let executeFunction: ToolExecuteFunction<any, any, any>;
+      let sandbox: Sandbox;
 
       beforeEach(async () => {
         prompts = [];
         executeFunction = vi.fn().mockReturnValue('result1');
+        sandbox = {
+          description: 'test sandbox',
+          executeCommand: vi.fn(async () => ({
+            exitCode: 0,
+            stdout: 'ok',
+            stderr: '',
+          })),
+        };
         result = streamText({
           model: new MockLanguageModelV4({
             doStream: async ({ prompt }) => {
@@ -22602,6 +22611,7 @@ describe('streamText', () => {
           toolApproval: {
             tool1: 'user-approval',
           },
+          sandbox,
           stopWhen: isStepCount(3),
           _internal: {
             generateId: mockId({ prefix: 'id' }),
@@ -22652,6 +22662,15 @@ describe('streamText', () => {
             abortSignal: undefined,
             toolCallId: 'call-1',
             messages: expect.any(Array),
+          }),
+        );
+      });
+
+      it('should pass sandbox to approved tool execution', async () => {
+        expect(executeFunction).toHaveBeenCalledWith(
+          { value: 'value' },
+          expect.objectContaining({
+            sandbox,
           }),
         );
       });
