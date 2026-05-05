@@ -263,7 +263,6 @@
             "haveFiles": ["${providerId}-video-model-options.ts"]
           },
           "excludeFiles": [
-            "packages/bytedance/src/bytedance-video-model.ts",
             "packages/gateway/src/gateway-video-model.ts"
           ]
         },
