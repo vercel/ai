@@ -119,7 +119,21 @@ const audioMediaTypeSignatures = [
   },
   {
     mediaType: 'audio/mp4' as const,
-    bytesPrefix: [0x66, 0x74, 0x79, 0x70],
+    // ISO BMFF M4A audio: 4-byte box length, "ftyp", then the "M4A " brand.
+    bytesPrefix: [
+      null,
+      null,
+      null,
+      null,
+      0x66, // f
+      0x74, // t
+      0x79, // y
+      0x70, // p
+      0x4d, // M
+      0x34, // 4
+      0x41, // A
+      0x20, // (space)
+    ],
   },
   {
     mediaType: 'audio/webm',
