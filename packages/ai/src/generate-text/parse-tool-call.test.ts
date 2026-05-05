@@ -580,7 +580,7 @@ describe('parseToolCall', () => {
         tools: {
           weather: dynamicTool({
             description: 'Get weather',
-            providerMetadata: { mcp: { name: 'MyMCPServer' } },
+            providerMetadata: { mcp: { clientName: 'MyMCPClient' } },
             inputSchema: jsonSchema({
               type: 'object',
               properties: { location: { type: 'string' } },
@@ -595,7 +595,7 @@ describe('parseToolCall', () => {
       });
 
       expect(result.providerMetadata).toEqual({
-        mcp: { name: 'MyMCPServer' },
+        mcp: { clientName: 'MyMCPClient' },
       });
     });
 
@@ -610,7 +610,7 @@ describe('parseToolCall', () => {
         tools: {
           calculator: tool({
             description: 'Calculate',
-            providerMetadata: { mcp: { name: 'MyMCPServer' } },
+            providerMetadata: { mcp: { clientName: 'MyMCPClient' } },
             inputSchema: z.object({ a: z.number(), b: z.number() }),
             execute: async ({ a, b }) => a + b,
           }),
@@ -621,7 +621,7 @@ describe('parseToolCall', () => {
       });
 
       expect(result.providerMetadata).toEqual({
-        mcp: { name: 'MyMCPServer' },
+        mcp: { clientName: 'MyMCPClient' },
       });
     });
 
@@ -633,14 +633,14 @@ describe('parseToolCall', () => {
           toolName: 'weather',
           input: '{"location":"Paris"}',
           providerMetadata: {
-            mcp: { name: 'OverriddenByModel' },
+            mcp: { clientName: 'OverriddenByModel' },
             anthropic: { cacheControl: { type: 'ephemeral' } },
           },
         },
         tools: {
           weather: dynamicTool({
             description: 'Get weather',
-            providerMetadata: { mcp: { name: 'MyMCPServer' } },
+            providerMetadata: { mcp: { clientName: 'MyMCPClient' } },
             inputSchema: jsonSchema({
               type: 'object',
               properties: { location: { type: 'string' } },
@@ -655,7 +655,7 @@ describe('parseToolCall', () => {
       });
 
       expect(result.providerMetadata).toEqual({
-        mcp: { name: 'OverriddenByModel' },
+        mcp: { clientName: 'OverriddenByModel' },
         anthropic: { cacheControl: { type: 'ephemeral' } },
       });
     });
@@ -671,7 +671,7 @@ describe('parseToolCall', () => {
         tools: {
           weather: dynamicTool({
             description: 'Get weather',
-            providerMetadata: { mcp: { name: 'MyMCPServer' } },
+            providerMetadata: { mcp: { clientName: 'MyMCPClient' } },
             inputSchema: jsonSchema({
               type: 'object',
               properties: { location: { type: 'string' } },
@@ -688,7 +688,7 @@ describe('parseToolCall', () => {
 
       expect(result.invalid).toBe(true);
       expect(result.providerMetadata).toEqual({
-        mcp: { name: 'MyMCPServer' },
+        mcp: { clientName: 'MyMCPClient' },
       });
     });
   });

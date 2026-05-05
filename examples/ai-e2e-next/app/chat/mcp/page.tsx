@@ -69,11 +69,23 @@ export default function Chat() {
                             Tool ID: {toolName}
                           </div>
                         )}
+<<<<<<< HEAD
                         {mcpServerName != null && (
                           <div className="text-xs text-gray-500">
                             MCP server: {mcpServerName}
                           </div>
                         )}
+=======
+                        {part.type === 'dynamic-tool' &&
+                          'callProviderMetadata' in part &&
+                          typeof part.callProviderMetadata?.mcp?.clientName ===
+                            'string' && (
+                            <div className="text-xs text-gray-500">
+                              MCP server:{' '}
+                              {part.callProviderMetadata.mcp.clientName}
+                            </div>
+                          )}
+>>>>>>> 14517599a (feat(mcp): deprecate name and use clientName for MCPClient (#14966))
                       </div>
                     </div>
 
