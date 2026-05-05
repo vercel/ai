@@ -11,7 +11,7 @@ export async function POST(req: Request) {
   const [client, { messages }] = await Promise.all([
     createMCPClient({
       transport,
-      name: 'local-calculator-mcp',
+      clientName: 'local-calculator-mcp',
     }),
     req.json(),
   ]);

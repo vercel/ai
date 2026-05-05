@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/voyage",
-  "version": "1.0.0-canary.6",
+  "version": "1.0.0-canary.7",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
