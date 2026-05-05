@@ -4,6 +4,7 @@ import {
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
+  convertBase64ToUint8Array,
   createJsonResponseHandler,
   parseProviderOptions,
   postJsonToApi,
@@ -103,7 +104,11 @@ export class MistralEmbeddingModel implements EmbeddingModelV4 {
 
     return {
       warnings: [],
-      embeddings: response.data.map(item => item.embedding),
+      embeddings: response.data.map(item =>
+        typeof item.embedding === 'string'
+          ? decodeBase64Embedding(item.embedding)
+          : item.embedding,
+      ),
       usage: response.usage
         ? { tokens: response.usage.prompt_tokens }
         : undefined,
@@ -112,9 +117,21 @@ export class MistralEmbeddingModel implements EmbeddingModelV4 {
   }
 }
 
+function decodeBase64Embedding(base64: string): number[] {
+  const bytes = convertBase64ToUint8Array(base64);
+  const floats = new Float32Array(
+    bytes.buffer,
+    bytes.byteOffset,
+    bytes.byteLength / 4,
+  );
+  return Array.from(floats);
+}
+
 // minimal version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
 const MistralTextEmbeddingResponseSchema = z.object({
-  data: z.array(z.object({ embedding: z.array(z.number()) })),
+  data: z.array(
+    z.object({ embedding: z.union([z.array(z.number()), z.string()]) }),
+  ),
   usage: z.object({ prompt_tokens: z.number() }).nullish(),
 });
