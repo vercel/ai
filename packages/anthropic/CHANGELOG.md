@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 3.0.75
+
+### Patch Changes
+
+- 3f06680: Remove stale `effort-2025-11-24` beta header — the extended thinking effort parameter is GA and no longer requires the beta flag. Vertex AI's strict validator was actively rejecting requests with this header.
+
 ## 3.0.74
 
 ### Patch Changes

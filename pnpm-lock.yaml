@@ -66,10 +66,10 @@ importers:
   examples/ai-e2e-next:
     dependencies:
       '@ai-sdk/amazon-bedrock':
-        specifier: 4.0.100
+        specifier: 4.0.101
         version: link:../../packages/amazon-bedrock
       '@ai-sdk/anthropic':
-        specifier: 3.0.74
+        specifier: 3.0.75
         version: link:../../packages/anthropic
       '@ai-sdk/azure':
         specifier: 3.0.61
@@ -87,13 +87,13 @@ importers:
         specifier: 3.0.67
         version: link:../../packages/google
       '@ai-sdk/google-vertex':
-        specifier: 4.0.120
+        specifier: 4.0.121
         version: link:../../packages/google-vertex
       '@ai-sdk/groq':
         specifier: 3.0.38
         version: link:../../packages/groq
       '@ai-sdk/mcp':
-        specifier: 1.0.39
+        specifier: 1.0.40
         version: link:../../packages/mcp
       '@ai-sdk/mistral':
         specifier: 3.0.35
@@ -818,7 +818,7 @@ importers:
   examples/next-google-vertex:
     dependencies:
       '@ai-sdk/google-vertex':
-        specifier: 4.0.120
+        specifier: 4.0.121
         version: link:../../packages/google-vertex
       ai:
         specifier: 6.0.175
