@@ -11,7 +11,6 @@ import {
   type Arrayable,
   type Context,
   type InferToolSetContext,
-  type SensitiveContext,
   type ToolSet,
   type IdGenerator,
   type ProviderOptions,
@@ -68,6 +67,7 @@ import type {
 } from './generate-text-events';
 import type { GenerateTextResult } from './generate-text-result';
 import { DefaultGeneratedFile } from './generated-file';
+import type { IncludeContext } from './include-context';
 import type {
   OnLanguageModelCallEndCallback,
   OnLanguageModelCallStartCallback,
@@ -152,7 +152,7 @@ const originalGenerateCallId = createIdGenerator({
  * @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
  *
  * @param runtimeContext - User-defined runtime context that flows through the entire generation lifecycle.
- * @param sensitiveRuntimeContext - Top-level runtime context properties that contain sensitive data and should be excluded from telemetry.
+ * @param includeRuntimeContext - Top-level runtime context properties that should be included in telemetry. If omitted, all runtime context properties are included.
  *
  * @param experimental_onStart - Callback invoked when generation begins, before any LLM calls.
  * @param experimental_onStepStart - Callback invoked when each step begins, before the provider is called.
@@ -194,7 +194,7 @@ export async function generateText<
   experimental_repairToolCall: repairToolCall,
   experimental_download: download,
   runtimeContext = {} as RUNTIME_CONTEXT,
-  sensitiveRuntimeContext,
+  includeRuntimeContext,
   toolsContext = {} as InferToolSetContext<TOOLS>,
   experimental_include: include,
   _internal: {
@@ -258,10 +258,10 @@ export async function generateText<
     runtimeContext?: RUNTIME_CONTEXT;
 
     /**
-     * Top-level runtime context properties that contain sensitive data and
-     * should be excluded from telemetry.
+     * Top-level runtime context properties that should be included in telemetry.
+     * If omitted, all runtime context properties are included.
      */
-    sensitiveRuntimeContext?: SensitiveContext<NoInfer<RUNTIME_CONTEXT>>;
+    includeRuntimeContext?: IncludeContext<NoInfer<RUNTIME_CONTEXT>>;
 
     /**
      * Limits the tools that are available for the model to call without
@@ -432,7 +432,7 @@ export async function generateText<
   >({
     telemetry,
     tools,
-    sensitiveRuntimeContext,
+    includeRuntimeContext,
   });
 
   await notify({

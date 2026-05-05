@@ -38,7 +38,7 @@ describe('createRestrictedTelemetryDispatcher types', () => {
     RuntimeContext,
     Output
   >({
-    sensitiveRuntimeContext: { userId: true },
+    includeRuntimeContext: { userId: true },
   });
 
   it('exposes text telemetry callbacks with the original runtimeContext type', () => {
@@ -64,7 +64,7 @@ describe('createRestrictedTelemetryDispatcher types', () => {
       RuntimeContext,
       Output
     >({
-      sensitiveRuntimeContext: { userId: true },
+      includeRuntimeContext: { userId: true },
     });
 
     expectTypeOf(telemetryDispatcher.onToolExecutionStart).toMatchTypeOf<

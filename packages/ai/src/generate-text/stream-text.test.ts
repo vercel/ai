@@ -5705,7 +5705,7 @@ describe('streamText', () => {
       });
     });
 
-    it('should pass sensitive runtimeContext properties to callbacks', async () => {
+    it('should pass full runtimeContext to callbacks', async () => {
       const callbackContexts: unknown[] = [];
 
       const result = streamText({
@@ -5715,8 +5715,8 @@ describe('streamText', () => {
           userId: 'user-123',
           requestId: 'request-123',
         },
-        sensitiveRuntimeContext: {
-          userId: true,
+        includeRuntimeContext: {
+          requestId: true,
         },
         experimental_onStart: async ({ runtimeContext }) => {
           callbackContexts.push(runtimeContext);
@@ -5743,7 +5743,7 @@ describe('streamText', () => {
       ]);
     });
 
-    it('should exclude sensitive runtimeContext properties from telemetry', async () => {
+    it('should include configured runtimeContext properties in telemetry', async () => {
       const telemetryContexts: unknown[] = [];
 
       const result = streamText({
@@ -5753,8 +5753,8 @@ describe('streamText', () => {
           userId: 'user-123',
           requestId: 'request-123',
         },
-        sensitiveRuntimeContext: {
-          userId: true,
+        includeRuntimeContext: {
+          requestId: true,
         },
         telemetry: {
           integrations: {

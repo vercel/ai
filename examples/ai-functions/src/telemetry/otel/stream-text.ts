@@ -23,8 +23,9 @@ run(async () => {
       someOtherThing: 'other-value',
       secretApiKey: 'sk-secret',
     },
-    sensitiveRuntimeContext: {
-      secretApiKey: true,
+    includeRuntimeContext: {
+      something: true,
+      someOtherThing: true,
     },
     telemetry: {
       functionId: 'my-awesome-function',

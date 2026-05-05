@@ -3082,7 +3082,7 @@ describe('ToolLoopAgent', () => {
         ]);
       });
 
-      it('should exclude sensitive runtimeContext properties from telemetry', async () => {
+      it('should include configured runtimeContext properties in telemetry', async () => {
         const callbackContexts: unknown[] = [];
         const telemetryContexts: unknown[] = [];
 
@@ -3098,8 +3098,8 @@ describe('ToolLoopAgent', () => {
             userId: 'user-123',
             requestId: 'request-123',
           },
-          sensitiveRuntimeContext: {
-            userId: true,
+          includeRuntimeContext: {
+            requestId: true,
           },
           experimental_onStart: async ({ runtimeContext }) => {
             callbackContexts.push(runtimeContext);
@@ -3387,7 +3387,7 @@ describe('ToolLoopAgent', () => {
         ]);
       });
 
-      it('should exclude sensitive runtimeContext properties from telemetry', async () => {
+      it('should include configured runtimeContext properties in telemetry', async () => {
         const callbackContexts: unknown[] = [];
         const telemetryContexts: unknown[] = [];
 
@@ -3413,8 +3413,8 @@ describe('ToolLoopAgent', () => {
             userId: 'user-123',
             requestId: 'request-123',
           },
-          sensitiveRuntimeContext: {
-            userId: true,
+          includeRuntimeContext: {
+            requestId: true,
           },
           experimental_onStart: async ({ runtimeContext }) => {
             callbackContexts.push(runtimeContext);

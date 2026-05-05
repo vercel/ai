@@ -13,7 +13,6 @@ import {
   type Arrayable,
   type Context,
   type InferToolSetContext,
-  type SensitiveContext,
   type ToolApprovalResponse,
   type ToolSet,
   type IdGenerator,
@@ -86,6 +85,7 @@ import { setAbortTimeout } from '../util/set-abort-timeout';
 import type { ActiveTools } from './active-tools';
 import { collectToolApprovals } from './collect-tool-approvals';
 import type { ContentPart } from './content-part';
+import type { IncludeContext } from './include-context';
 import type {
   OnLanguageModelCallEndCallback,
   OnLanguageModelCallStartCallback,
@@ -246,7 +246,7 @@ export type StreamTextOnAbortCallback<
  * @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
  *
  * @param runtimeContext - User-defined runtime context that flows through the entire generation lifecycle.
- * @param sensitiveRuntimeContext - Top-level runtime context properties that contain sensitive data and should be excluded from telemetry.
+ * @param includeRuntimeContext - Top-level runtime context properties that should be included in telemetry. If omitted, all runtime context properties are included.
  *
  * @param onChunk - Callback that is called for each chunk of the stream. The stream processing will pause until the callback promise is resolved.
  * @param onError - Callback that is called when an error occurs during streaming. You can use it to log errors.
@@ -298,7 +298,7 @@ export function streamText<
   experimental_onToolExecutionStart: onToolExecutionStart,
   experimental_onToolExecutionEnd: onToolExecutionEnd,
   runtimeContext = {} as RUNTIME_CONTEXT,
-  sensitiveRuntimeContext,
+  includeRuntimeContext,
   toolsContext = {} as InferToolSetContext<TOOLS>,
   experimental_include: include,
   _internal: {
@@ -355,10 +355,10 @@ export function streamText<
     runtimeContext?: RUNTIME_CONTEXT;
 
     /**
-     * Top-level runtime context properties that contain sensitive data and
-     * should be excluded from telemetry.
+     * Top-level runtime context properties that should be included in telemetry.
+     * If omitted, all runtime context properties are included.
      */
-    sensitiveRuntimeContext?: SensitiveContext<NoInfer<RUNTIME_CONTEXT>>;
+    includeRuntimeContext?: IncludeContext<NoInfer<RUNTIME_CONTEXT>>;
 
     /**
      * Limits the tools that are available for the model to call without
@@ -557,7 +557,7 @@ export function streamText<
     tools,
     toolsContext,
     runtimeContext,
-    sensitiveRuntimeContext,
+    includeRuntimeContext,
     toolChoice,
     transforms: asArray(transform),
     activeTools,
@@ -770,7 +770,7 @@ class DefaultStreamTextResult<
     onToolExecutionStart,
     onToolExecutionEnd,
     runtimeContext,
-    sensitiveRuntimeContext,
+    includeRuntimeContext,
     toolsContext,
     download,
     include,
@@ -787,7 +787,7 @@ class DefaultStreamTextResult<
     chunkAbortController: AbortController | undefined;
     toolsContext: InferToolSetContext<TOOLS>;
     runtimeContext: RUNTIME_CONTEXT;
-    sensitiveRuntimeContext: SensitiveContext<RUNTIME_CONTEXT>;
+    includeRuntimeContext: IncludeContext<RUNTIME_CONTEXT>;
     system: Prompt['system'];
     prompt: Prompt['prompt'];
     messages: Prompt['messages'];
@@ -861,7 +861,7 @@ class DefaultStreamTextResult<
     >({
       telemetry,
       tools,
-      sensitiveRuntimeContext,
+      includeRuntimeContext,
     });
 
     // promise to ensure that the step has been fully processed by the event processor

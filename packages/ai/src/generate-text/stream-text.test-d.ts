@@ -261,12 +261,12 @@ describe('streamText types', () => {
       });
     });
 
-    it('should accept sensitiveRuntimeContext for runtimeContext keys', async () => {
+    it('should accept includeRuntimeContext for runtimeContext keys', async () => {
       streamText({
         model: new MockLanguageModelV4(),
         prompt: 'Hello',
         runtimeContext: { userId: 'user-123', requestId: 'request-123' },
-        sensitiveRuntimeContext: {
+        includeRuntimeContext: {
           userId: true,
           requestId: false,
         },
@@ -278,7 +278,7 @@ describe('streamText types', () => {
         model: new MockLanguageModelV4(),
         prompt: 'Hello',
         runtimeContext: { userId: 'user-123', requestId: 'request-123' },
-        sensitiveRuntimeContext: { userId: true },
+        includeRuntimeContext: { userId: true },
         experimental_onStart: ({ runtimeContext }) => {
           expectTypeOf(runtimeContext).toEqualTypeOf<{
             userId: string;
@@ -306,13 +306,13 @@ describe('streamText types', () => {
       });
     });
 
-    it('should reject unknown sensitiveRuntimeContext keys', async () => {
+    it('should reject unknown includeRuntimeContext keys', async () => {
       streamText({
         model: new MockLanguageModelV4(),
         prompt: 'Hello',
         runtimeContext: { userId: 'user-123' },
-        sensitiveRuntimeContext: {
-          // @ts-expect-error sensitiveRuntimeContext only supports runtimeContext properties
+        includeRuntimeContext: {
+          // @ts-expect-error includeRuntimeContext only supports runtimeContext properties
           unknown: true,
         },
       });

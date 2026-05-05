@@ -7344,7 +7344,7 @@ describe('generateText', () => {
       });
     });
 
-    it('should pass sensitive runtimeContext properties to callbacks', async () => {
+    it('should pass full runtimeContext to callbacks', async () => {
       const callbackContexts: unknown[] = [];
 
       await generateText({
@@ -7359,8 +7359,8 @@ describe('generateText', () => {
           userId: 'user-123',
           requestId: 'request-123',
         },
-        sensitiveRuntimeContext: {
-          userId: true,
+        includeRuntimeContext: {
+          requestId: true,
         },
         prompt: 'test-input',
         experimental_onStart: ({ runtimeContext }) => {
@@ -7385,7 +7385,7 @@ describe('generateText', () => {
       ]);
     });
 
-    it('should exclude sensitive runtimeContext properties from telemetry', async () => {
+    it('should include configured runtimeContext properties in telemetry', async () => {
       const telemetryContexts: unknown[] = [];
 
       await generateText({
@@ -7400,8 +7400,8 @@ describe('generateText', () => {
           userId: 'user-123',
           requestId: 'request-123',
         },
-        sensitiveRuntimeContext: {
-          userId: true,
+        includeRuntimeContext: {
+          requestId: true,
         },
         prompt: 'test-input',
         telemetry: {
