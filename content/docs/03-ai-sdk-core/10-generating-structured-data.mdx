@@ -451,6 +451,39 @@ try {
 }
 ```
 
+## Automatic Repair on Validation Error
+
+When schema validation fails, you can automatically retry generation with the validation error appended to the conversation using `experimental_repairOnValidationError`. The model sees its own failed response alongside the exact Zod error, which usually produces a valid object on the next attempt.
+
+```ts
+import { generateText, Output } from 'ai';
+import { z } from 'zod';
+
+const result = await generateText({
+  model,
+  output: Output.object({
+    schema: z.object({
+      name: z.string(),
+      age: z.number(),
+    }),
+  }),
+  prompt: 'Generate a user profile.',
+  experimental_repairOnValidationError: true, // 1 repair attempt
+});
+```
+
+Pass a number to allow multiple attempts:
+
+```ts
+experimental_repairOnValidationError: 3, // up to 3 repair attempts
+```
+
+Each repair attempt makes an additional LLM call with the failed response and validation error included in the conversation. Token usage from repair calls is accumulated in the result's `totalUsage`.
+
+If all repair attempts fail, a `NoObjectGeneratedError` is thrown.
+
+This option is also available on the deprecated `generateObject` function.
+
 ## More Examples
 
 You can see structured output generation in action using various frameworks in the following examples:
