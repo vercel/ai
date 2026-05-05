@@ -1554,6 +1554,58 @@ describe('GoogleInteractionsLanguageModel agent polling (TASK-10)', () => {
     expect(getCallCount).toBe(2);
   });
 
+  it('surfaces image outputs as file parts in the synthesized stream', async () => {
+    pollServer.urls[POST_URL].response = {
+      type: 'json-value',
+      body: {
+        id: 'v1_poll-test',
+        status: 'completed',
+        outputs: [
+          { type: 'text', text: 'here is your image' },
+          {
+            type: 'image',
+            data: 'aGVsbG8=',
+            mime_type: 'image/png',
+          },
+          {
+            type: 'image',
+            uri: 'https://example.com/img.png',
+            mime_type: 'image/png',
+          },
+        ],
+        usage: {
+          total_input_tokens: 5,
+          total_output_tokens: 3,
+          total_tokens: 8,
+        },
+      },
+    };
+
+    const fastProvider = createGoogle({
+      apiKey: 'test-api-key',
+      generateId: () => 'test-id',
+    });
+    const agentModel = fastProvider.interactions({ agent: AGENT_NAME });
+    const { stream } = await agentModel.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+    const parts = await convertReadableStreamToArray(stream);
+    const fileParts = parts.filter(p => p.type === 'file');
+    expect(fileParts).toEqual([
+      expect.objectContaining({
+        type: 'file',
+        mediaType: 'image/png',
+        data: { type: 'data', data: 'aGVsbG8=' },
+      }),
+      expect.objectContaining({
+        type: 'file',
+        mediaType: 'image/png',
+        data: { type: 'url', url: new URL('https://example.com/img.png') },
+      }),
+    ]);
+  });
+
   it('synthesizes a complete stream when POST already returns a terminal status', async () => {
     pollServer.urls[POST_URL].response = {
       type: 'json-value',

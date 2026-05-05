@@ -145,7 +145,8 @@ export function synthesizeGoogleInteractionsAgentStream({
             });
             break;
           }
-          case 'source': {
+          case 'source':
+          case 'file': {
             controller.enqueue(part);
             break;
           }
