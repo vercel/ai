@@ -262,7 +262,10 @@ describe('logWarnings', () => {
       expect(mockProcessEmitWarning).toHaveBeenNthCalledWith(
         3,
         `AI SDK Warning (zzz / MMM): Deprecated: "providerOptions key 'old-key'". Use 'oldKey' instead.`,
-        { type: 'DeprecationWarning' },
+        {
+          type: 'DeprecationWarning',
+          code: 'AISDK_DEP_PROVIDEROPTIONS_KEY_OLD_KEY',
+        },
       );
       expect(mockProcessEmitWarning).toHaveBeenNthCalledWith(
         4,
