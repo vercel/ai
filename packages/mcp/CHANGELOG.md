@@ -1,5 +1,12 @@
 # @ai-sdk/mcp
 
+## 1.0.40
+
+### Patch Changes
+
+- 221a984: Add `resource_link` content type to `CallToolResultSchema` and `PromptMessageSchema` per MCP spec. Fixes hard rejection when MCP servers return `resource_link` content parts with zod ≥ 4.4.x.
+- 0084974: feat(mcp): deprecate name and use clientName for MCPClient
+
 ## 1.0.39
 
 ### Patch Changes
