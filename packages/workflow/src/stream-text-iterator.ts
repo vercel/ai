@@ -44,8 +44,6 @@ export interface StreamTextIteratorYieldValue {
   messages: LanguageModelV4Prompt;
   /** The step result from the current step */
   step?: StepResult<ToolSet, any>;
-  /** The current experimental context */
-  context?: unknown;
   /** The current runtime context shared across the agent loop */
   runtimeContext?: Context;
   /** The current per-tool context, keyed by tool name */
@@ -67,7 +65,6 @@ export async function* streamTextIterator({
   prepareStep,
   generationSettings,
   toolChoice,
-  experimental_context,
   runtimeContext,
   toolsContext,
   telemetry,
@@ -86,7 +83,6 @@ export async function* streamTextIterator({
   prepareStep?: PrepareStepCallback<any>;
   generationSettings?: GenerationSettings;
   toolChoice?: ToolChoice<ToolSet>;
-  experimental_context?: unknown;
   runtimeContext?: Context;
   toolsContext?: Record<string, Context | undefined>;
   telemetry?: TelemetryOptions;
@@ -102,7 +98,6 @@ export async function* streamTextIterator({
   let currentModel: LanguageModel = model;
   let currentGenerationSettings = generationSettings ?? {};
   let currentToolChoice = toolChoice;
-  let currentContext = experimental_context;
   let currentRuntimeContext: Context = runtimeContext ?? {};
   let currentToolsContext: Record<string, Context | undefined> =
     toolsContext ?? {};
@@ -130,7 +125,6 @@ export async function* streamTextIterator({
         messages: conversationPrompt,
         runtimeContext: currentRuntimeContext,
         toolsContext: currentToolsContext as never,
-        experimental_context: currentContext,
       });
 
       // Apply any overrides from prepareStep
@@ -162,9 +156,6 @@ export async function* streamTextIterator({
             content: prepareResult.system,
           });
         }
-      }
-      if (prepareResult.experimental_context !== undefined) {
-        currentContext = prepareResult.experimental_context;
       }
       if (prepareResult.runtimeContext !== undefined) {
         currentRuntimeContext = prepareResult.runtimeContext;
@@ -331,7 +322,6 @@ export async function* streamTextIterator({
           toolCalls,
           messages: conversationPrompt,
           step,
-          context: currentContext,
           runtimeContext: currentRuntimeContext,
           toolsContext: currentToolsContext,
           providerExecutedToolResults,
@@ -405,7 +395,6 @@ export async function* streamTextIterator({
       toolCalls: [],
       messages: conversationPrompt,
       step: lastStep,
-      context: currentContext,
       runtimeContext: currentRuntimeContext,
       toolsContext: currentToolsContext,
     };

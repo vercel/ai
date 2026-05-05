@@ -330,11 +330,6 @@ export interface PrepareStepInfo<TTools extends ToolSet = ToolSet> {
    * `prepareStep` to update it for the current and subsequent steps.
    */
   toolsContext: InferToolSetContext<TTools>;
-
-  /**
-   * The context passed via the experimental_context setting (experimental).
-   */
-  experimental_context: unknown;
 }
 
 /**
@@ -380,12 +375,6 @@ export interface PrepareStepResult extends Partial<GenerationSettings> {
    * Returning a value replaces the agent's tools context.
    */
   toolsContext?: Record<string, Context | undefined>;
-
-  /**
-   * Context that is passed into tool execution. Experimental.
-   * Changing the context will affect the context in this step and all subsequent steps.
-   */
-  experimental_context?: unknown;
 }
 
 /**
@@ -420,7 +409,6 @@ export interface PrepareCallOptions<
    * Per-tool context, keyed by tool name.
    */
   toolsContext?: InferToolSetContext<TTools>;
-  experimental_context?: unknown;
   messages: ModelMessage[];
 }
 
@@ -518,15 +506,6 @@ export interface WorkflowAgentOptions<
    * Per-stream `toolsContext` values passed to `stream()` override this default.
    */
   toolsContext?: InferToolSetContext<TTools>;
-
-  /**
-   * Default context that is passed into tool execution for every stream call on this agent.
-   *
-   * Per-stream `experimental_context` values passed to `stream()` override this default.
-   * Experimental (can break in patch releases).
-   * @default undefined
-   */
-  experimental_context?: unknown;
 
   /**
    * Default stop condition for the agent loop. When the condition is an array,
@@ -656,11 +635,6 @@ export type WorkflowAgentOnFinishCallback<
    * The per-tool context at the end of the agent loop.
    */
   readonly toolsContext: Record<string, Context | undefined>;
-
-  /**
-   * Context that is passed into tool execution.
-   */
-  readonly experimental_context: unknown;
 
   /**
    * The generated structured output. It uses the `output` specification.
@@ -876,13 +850,6 @@ export type WorkflowAgentStreamOptions<
      * Overrides the constructor-level `toolsContext` if provided.
      */
     toolsContext?: InferToolSetContext<TTools>;
-
-    /**
-     * Context that is passed into tool execution.
-     * Experimental (can break in patch releases).
-     * @default undefined
-     */
-    experimental_context?: unknown;
 
     /**
      * Optional specification for parsing structured outputs from the LLM response.
@@ -1147,7 +1114,6 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
   private telemetry?: TelemetryOptions;
   private runtimeContext?: Context;
   private toolsContext?: InferToolSetContext<TBaseTools>;
-  private experimentalContext: unknown;
   private stopWhen?:
     | StopCondition<ToolSet, any>
     | Array<StopCondition<ToolSet, any>>;
@@ -1174,7 +1140,6 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
     this.telemetry = options.telemetry ?? options.experimental_telemetry;
     this.runtimeContext = options.runtimeContext;
     this.toolsContext = options.toolsContext;
-    this.experimentalContext = options.experimental_context;
     this.stopWhen = options.stopWhen;
     this.activeTools = options.activeTools;
     this.output = options.output;
@@ -1226,8 +1191,6 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
       options.prompt;
     let effectiveMessages: Array<ModelMessage> | undefined = options.messages;
     let effectiveGenerationSettings = { ...this.generationSettings };
-    let effectiveExperimentalContext =
-      options.experimental_context ?? this.experimentalContext;
     let effectiveRuntimeContext: Context = (options.runtimeContext ??
       this.runtimeContext ??
       {}) as Context;
@@ -1258,7 +1221,6 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
         experimental_telemetry: effectiveTelemetryFromPrepare,
         runtimeContext: effectiveRuntimeContext,
         toolsContext: effectiveToolsContext as InferToolSetContext<TBaseTools>,
-        experimental_context: effectiveExperimentalContext,
         messages: resolvedMessagesForPrepareCall,
         ...effectiveGenerationSettings,
       } as PrepareCallOptions<TBaseTools>);
@@ -1277,8 +1239,6 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
           string,
           Context | undefined
         >;
-      if (prepared.experimental_context !== undefined)
-        effectiveExperimentalContext = prepared.experimental_context;
       if (prepared.toolChoice !== undefined)
         effectiveToolChoiceFromPrepare =
           prepared.toolChoice as ToolChoice<TBaseTools>;
@@ -1346,7 +1306,6 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
               toolName: approval.toolName,
               tool,
               toolsContext: effectiveToolsContext,
-              fallbackContext: effectiveExperimentalContext,
             });
             const toolResult = await execute(approval.input, {
               toolCallId: approval.toolCallId,
@@ -1537,7 +1496,6 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
         : this.tools;
 
     // Initialize context
-    let experimentalContext = effectiveExperimentalContext;
     let runtimeContext: Context = effectiveRuntimeContext;
     let toolsContext: Record<string, Context | undefined> =
       effectiveToolsContext;
@@ -1561,7 +1519,6 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
       toolCall: { toolCallId: string; toolName: string; input: unknown },
       tools: ToolSet,
       messages: LanguageModelV4Prompt,
-      fallbackContext: unknown,
       perToolContexts: Record<string, Context | undefined>,
       currentStepNumber: number = 0,
     ): Promise<LanguageModelV4ToolResultPart> => {
@@ -1585,9 +1542,8 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
             toolName: toolCall.toolName,
             tool,
             toolsContext: perToolContexts,
-            fallbackContext,
           })
-        : fallbackContext;
+        : undefined;
 
       const startTime = Date.now();
       let result: LanguageModelV4ToolResultPart;
@@ -1667,7 +1623,6 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
         (this.prepareStep as PrepareStepCallback<ToolSet> | undefined),
       generationSettings: mergedGenerationSettings,
       toolChoice: effectiveToolChoice as ToolChoice<ToolSet>,
-      experimental_context: experimentalContext,
       runtimeContext,
       toolsContext,
       telemetry: effectiveTelemetry,
@@ -1700,7 +1655,6 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
           toolCalls,
           messages: iterMessages,
           step,
-          context,
           runtimeContext: yieldedRuntimeContext,
           toolsContext: yieldedToolsContext,
           providerExecutedToolResults,
@@ -1709,9 +1663,6 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
         const currentStepNumber = steps.length;
         if (step) {
           steps.push(step as unknown as StepResult<TTools, any>);
-        }
-        if (context !== undefined) {
-          experimentalContext = context;
         }
         if (yieldedRuntimeContext !== undefined) {
           runtimeContext = yieldedRuntimeContext;
@@ -1745,7 +1696,6 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
                 toolName: tc.toolName,
                 tool,
                 toolsContext,
-                fallbackContext: experimentalContext,
               });
               return tool.needsApproval(tc.input, {
                 toolCallId: tc.toolCallId,
@@ -1786,7 +1736,6 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
                     toolCall,
                     effectiveTools as ToolSet,
                     iterMessages,
-                    experimentalContext,
                     toolsContext,
                     currentStepNumber,
                   ),
@@ -1847,7 +1796,6 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
                 totalUsage: aggregateUsage(steps),
                 runtimeContext,
                 toolsContext,
-                experimental_context: experimentalContext,
                 output: undefined as OUTPUT,
               });
             }
@@ -1898,7 +1846,6 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
                   toolCall,
                   effectiveTools as ToolSet,
                   iterMessages,
-                  experimentalContext,
                   toolsContext,
                   currentStepNumber,
                 ),
@@ -2037,7 +1984,6 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
         totalUsage: aggregateUsage(steps),
         runtimeContext,
         toolsContext,
-        experimental_context: experimentalContext,
         output: experimentalOutput,
       });
     }
@@ -2196,28 +2142,21 @@ async function writeApprovalToolResults(
 
 /**
  * Resolve the per-tool context that gets passed into a tool's `execute`
- * (and `needsApproval`) function.
- *
- * Resolution order:
- *   1. If the tool has an entry in `toolsContext`, validate it against
- *      `tool.contextSchema` (when present) and pass it through.
- *   2. Otherwise, fall back to `fallbackContext` (the legacy
- *      `experimental_context`) for backwards compatibility.
+ * (and `needsApproval`) function. When the tool declares a `contextSchema`,
+ * the entry is validated against it.
  */
 async function resolveToolContext({
   toolName,
   tool,
   toolsContext,
-  fallbackContext,
 }: {
   toolName: string;
   tool: ToolSet[string];
   toolsContext: Record<string, Context | undefined> | undefined;
-  fallbackContext: unknown;
 }): Promise<unknown> {
   const entry = toolsContext?.[toolName];
   if (entry === undefined) {
-    return fallbackContext;
+    return undefined;
   }
 
   const contextSchema = (tool as { contextSchema?: unknown }).contextSchema;
@@ -2330,7 +2269,7 @@ async function executeTool(
   toolCall: { toolCallId: string; toolName: string; input: unknown },
   tools: ToolSet,
   messages: LanguageModelV4Prompt,
-  experimentalContext?: unknown,
+  context?: unknown,
 ): Promise<LanguageModelV4ToolResultPart> {
   const tool = tools[toolCall.toolName];
   if (!tool) throw new Error(`Tool "${toolCall.toolName}" not found`);
@@ -2354,8 +2293,8 @@ async function executeTool(
       toolCallId: toolCall.toolCallId,
       // Pass the conversation messages to the tool so it has context about the conversation
       messages,
-      // Pass context to the tool
-      context: experimentalContext,
+      // Pass per-tool context to the tool (resolved from `toolsContext`)
+      context,
     });
 
     // Use the appropriate output type based on the result

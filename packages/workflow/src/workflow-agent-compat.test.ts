@@ -545,7 +545,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
       });
 
       // GAP: WorkflowAgent's onStart event doesn't include system, temperature,
-      // maxOutputTokens, experimental_context, or resolved model yet.
+      // maxOutputTokens, runtimeContext, or resolved model yet.
       // These fields need to be added to match ToolLoopAgent's GenerateTextStartEvent.
       it('should pass correct event information', async () => {
         let startEvent!: any;
@@ -555,7 +555,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
           instructions: 'You are a helpful assistant',
           temperature: 0.7,
           maxOutputTokens: 500,
-          experimental_context: { userId: 'test-user' },
+          runtimeContext: { userId: 'test-user' },
         });
 
         const { writable } = createMockWritable();
@@ -574,10 +574,9 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
           messages: startEvent.messages,
           temperature: startEvent.temperature,
           maxOutputTokens: startEvent.maxOutputTokens,
-          experimental_context: startEvent.experimental_context,
+          runtimeContext: startEvent.runtimeContext,
         }).toMatchInlineSnapshot(`
           {
-            "experimental_context": undefined,
             "maxOutputTokens": undefined,
             "messages": [
               {
@@ -634,6 +633,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
               "specificationVersion": "v4",
             },
             "prompt": undefined,
+            "runtimeContext": undefined,
             "system": undefined,
             "temperature": undefined,
           }
@@ -724,7 +724,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
       });
 
       // GAP: WorkflowAgent's onStepStart event doesn't include system,
-      // experimental_context, or resolved model yet.
+      // runtimeContext, or resolved model yet.
       // These fields need to be added to match ToolLoopAgent's GenerateTextStepStartEvent.
       it('should pass correct event information', async () => {
         let stepStartEvent!: any;
@@ -732,7 +732,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
         const agent = new WorkflowAgent({
           model: mockModel,
           instructions: 'You are a helpful assistant',
-          experimental_context: { userId: 'test-user' },
+          runtimeContext: { userId: 'test-user' },
         });
 
         const { writable } = createMockWritable();
@@ -750,10 +750,9 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
           system: stepStartEvent.system,
           messagesLength: stepStartEvent.messages.length,
           steps: stepStartEvent.steps,
-          experimental_context: stepStartEvent.experimental_context,
+          runtimeContext: stepStartEvent.runtimeContext,
         }).toMatchInlineSnapshot(`
           {
-            "experimental_context": undefined,
             "messagesLength": 3,
             "model": MockLanguageModelV4 {
               "_supportedUrls": [Function],
@@ -803,6 +802,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
               "provider": "mock-provider",
               "specificationVersion": "v4",
             },
+            "runtimeContext": undefined,
             "stepNumber": 0,
             "steps": [],
             "system": undefined,
