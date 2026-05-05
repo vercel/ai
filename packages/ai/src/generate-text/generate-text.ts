@@ -152,7 +152,7 @@ const originalGenerateCallId = createIdGenerator({
  * @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
  *
  * @param runtimeContext - User-defined runtime context that flows through the entire generation lifecycle.
- * @param includeRuntimeContext - Top-level runtime context properties that should be included in telemetry. If omitted, all runtime context properties are included.
+ * @param includeRuntimeContext - Top-level runtime context properties that should be included in telemetry. Runtime context properties are excluded unless they are explicitly set to `true`.
  *
  * @param experimental_onStart - Callback invoked when generation begins, before any LLM calls.
  * @param experimental_onStepStart - Callback invoked when each step begins, before the provider is called.
@@ -259,7 +259,7 @@ export async function generateText<
 
     /**
      * Top-level runtime context properties that should be included in telemetry.
-     * If omitted, all runtime context properties are included.
+     * Runtime context properties are excluded unless they are explicitly set to `true`.
      */
     includeRuntimeContext?: IncludeContext<NoInfer<RUNTIME_CONTEXT>>;
 

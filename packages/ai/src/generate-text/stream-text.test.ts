@@ -5789,6 +5789,44 @@ describe('streamText', () => {
       ]);
     });
 
+    it('should exclude runtimeContext from telemetry by default', async () => {
+      const telemetryContexts: unknown[] = [];
+
+      const result = streamText({
+        model: createTestModel(),
+        prompt: 'test-input',
+        runtimeContext: {
+          userId: 'user-123',
+          requestId: 'request-123',
+        },
+        telemetry: {
+          integrations: {
+            onStart: async event => {
+              telemetryContexts.push(
+                (event as { runtimeContext: unknown }).runtimeContext,
+              );
+            },
+            onStepStart: async ({ runtimeContext }) => {
+              telemetryContexts.push(runtimeContext);
+            },
+            onStepFinish: async ({ runtimeContext }) => {
+              telemetryContexts.push(runtimeContext);
+            },
+            onFinish: async event => {
+              telemetryContexts.push(
+                (event as { runtimeContext: unknown }).runtimeContext,
+              );
+            },
+          },
+        },
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      expect(telemetryContexts).toEqual([{}, {}, {}, {}]);
+    });
+
     it('should send correct information with system and messages', async () => {
       let startEvent!: Parameters<GenerateTextOnStartCallback>[0];
 

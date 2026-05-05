@@ -70,7 +70,7 @@ function createStepResult({
 }
 
 describe('createRestrictedTelemetryDispatcher', () => {
-  it('passes through runtimeContext unchanged when no include context is configured', async () => {
+  it('excludes runtimeContext when no include context is configured', async () => {
     const onStart = vi.fn();
     const telemetryDispatcher = createRestrictedTelemetryDispatcher({
       telemetry: { integrations: { onStart } },
@@ -81,11 +81,8 @@ describe('createRestrictedTelemetryDispatcher', () => {
 
     const telemetryEvent = onStart.mock.calls[0][0];
 
-    expect(telemetryEvent.runtimeContext).toBe(runtimeContext);
-    expect(telemetryEvent.runtimeContext).toEqual({
-      userId: 'user-123',
-      requestId: 'request-123',
-    });
+    expect(telemetryEvent.runtimeContext).not.toBe(runtimeContext);
+    expect(telemetryEvent.runtimeContext).toEqual({});
   });
 
   it('only includes runtimeContext properties marked as true', async () => {

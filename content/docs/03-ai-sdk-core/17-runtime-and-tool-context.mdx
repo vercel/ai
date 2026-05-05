@@ -188,7 +188,7 @@ In this example, telemetry receives `runtimeContext` with only `requestId` and t
 
 Context telemetry filtering is shallow. For `includeRuntimeContext`, only
 top-level properties marked as `true` are sent when it is configured; if it is
-omitted, all runtime context properties are sent. For `sensitiveContext`,
+omitted, no runtime context properties are sent. For `sensitiveContext`,
 top-level properties marked as `true` are omitted.
 
 ## Where Context Is Available

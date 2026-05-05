@@ -110,7 +110,7 @@ const result = await generateText({
 });
 ```
 
-In this example, telemetry integrations receive `runtimeContext` as `{ requestId: 'req_abc' }`. Properties set to `false` or omitted are excluded. If `includeRuntimeContext` is omitted, all runtime context properties are included. `includeRuntimeContext` is supported by `generateText`, `streamText`, and `ToolLoopAgent`.
+In this example, telemetry integrations receive `runtimeContext` as `{ requestId: 'req_abc' }`. Properties set to `false` or omitted are excluded. If `includeRuntimeContext` is omitted, no runtime context properties are included. `includeRuntimeContext` is supported by `generateText`, `streamText`, and `ToolLoopAgent`.
 
 <Note>
   `includeRuntimeContext` only filters telemetry integrations, including

@@ -7433,6 +7433,47 @@ describe('generateText', () => {
         { requestId: 'request-123' },
       ]);
     });
+
+    it('should exclude runtimeContext from telemetry by default', async () => {
+      const telemetryContexts: unknown[] = [];
+
+      await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            content: [{ type: 'text', text: 'Hello, world!' }],
+            finishReason: { unified: 'stop', raw: 'stop' },
+          }),
+        }),
+        runtimeContext: {
+          userId: 'user-123',
+          requestId: 'request-123',
+        },
+        prompt: 'test-input',
+        telemetry: {
+          integrations: {
+            onStart: event => {
+              telemetryContexts.push(
+                (event as { runtimeContext: unknown }).runtimeContext,
+              );
+            },
+            onStepStart: ({ runtimeContext }) => {
+              telemetryContexts.push(runtimeContext);
+            },
+            onStepFinish: ({ runtimeContext }) => {
+              telemetryContexts.push(runtimeContext);
+            },
+            onFinish: event => {
+              telemetryContexts.push(
+                (event as { runtimeContext: unknown }).runtimeContext,
+              );
+            },
+          },
+        },
+      });
+
+      expect(telemetryContexts).toEqual([{}, {}, {}, {}]);
+    });
   });
 
   describe('invalid tool calls', () => {

@@ -58,13 +58,11 @@ function filterIncludedContext<CONTEXT extends Context>({
   context: CONTEXT;
   includeContext: IncludeContext<CONTEXT>;
 }): Context {
-  return includeContext == null
-    ? context
-    : Object.fromEntries(
-        Object.entries(context).filter(
-          ([key]) => includeContext[key as keyof CONTEXT] === true,
-        ),
-      );
+  return Object.fromEntries(
+    Object.entries(context).filter(
+      ([key]) => includeContext?.[key as keyof CONTEXT] === true,
+    ),
+  );
 }
 
 /**

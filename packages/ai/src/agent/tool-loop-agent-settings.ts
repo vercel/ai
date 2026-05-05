@@ -107,7 +107,7 @@ export type ToolLoopAgentSettings<
 
     /**
      * Top-level runtime context properties that should be included in telemetry.
-     * If omitted, all runtime context properties are included.
+     * Runtime context properties are excluded unless they are explicitly set to `true`.
      */
     includeRuntimeContext?: IncludeContext<NoInfer<RUNTIME_CONTEXT>>;
 
