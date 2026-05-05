@@ -6,17 +6,16 @@ import type {
   InferToolSetContext,
   MaybePromiseLike,
   ProviderOptions,
-  SensitiveContext,
   SystemModelMessage,
   ToolSet,
 } from '@ai-sdk/provider-utils';
+import type { ActiveTools } from '../generate-text/active-tools';
 import type {
   GenerateTextOnFinishCallback,
   GenerateTextOnStartCallback,
   GenerateTextOnStepFinishCallback,
   GenerateTextOnStepStartCallback,
 } from '../generate-text/generate-text-events';
-import type { ActiveTools } from '../generate-text/active-tools';
 import type { Output } from '../generate-text/output';
 import type { PrepareStepFunction } from '../generate-text/prepare-step';
 import type { StopCondition } from '../generate-text/stop-condition';
@@ -26,6 +25,7 @@ import type {
   OnToolExecutionEndCallback,
   OnToolExecutionStartCallback,
 } from '../generate-text/tool-execution-events';
+import type { ToolInputRefinement } from '../generate-text/tool-input-refinement';
 import type { ToolsContextParameter } from '../generate-text/tools-context-parameter';
 import type { LanguageModelCallOptions } from '../prompt/language-model-call-options';
 import type { Prompt } from '../prompt/prompt';
@@ -79,14 +79,14 @@ export type ToolLoopAgentSettings<
     /**
      * Optional telemetry configuration.
      */
-    telemetry?: TelemetryOptions;
+    telemetry?: TelemetryOptions<RUNTIME_CONTEXT, NoInfer<TOOLS>>;
 
     /**
      * Optional telemetry configuration.
      *
      * @deprecated Use `telemetry` instead. This alias will be removed in a future major release.
      */
-    experimental_telemetry?: TelemetryOptions;
+    experimental_telemetry?: TelemetryOptions<RUNTIME_CONTEXT, NoInfer<TOOLS>>;
 
     /**
      * Limits the tools that are available for the model to call without
@@ -106,12 +106,6 @@ export type ToolLoopAgentSettings<
     runtimeContext?: RUNTIME_CONTEXT;
 
     /**
-     * Top-level runtime context properties that contain sensitive data and
-     * should be excluded from telemetry.
-     */
-    sensitiveRuntimeContext?: SensitiveContext<NoInfer<RUNTIME_CONTEXT>>;
-
-    /**
      * Optional tool approval configuration.
      *
      * This configuration takes precedence over tool-defined approval settings.
@@ -127,6 +121,14 @@ export type ToolLoopAgentSettings<
      * A function that attempts to repair a tool call that failed to parse.
      */
     experimental_repairToolCall?: ToolCallRepairFunction<NoInfer<TOOLS>>;
+
+    /**
+     * Optional mapping of tool names to functions that refine parsed tool inputs.
+     *
+     * The refined input must have the same type shape as the tool input. Refined
+     * inputs are used for tool execution, outputs, callbacks, and telemetry.
+     */
+    experimental_refineToolInput?: ToolInputRefinement<NoInfer<TOOLS>>;
 
     /**
      * Callback that is called when the agent operation begins, before any LLM calls.
@@ -243,8 +245,8 @@ export type ToolLoopAgentSettings<
           | 'toolApproval'
           | 'providerOptions'
           | 'experimental_download'
+          | 'experimental_refineToolInput'
           | 'runtimeContext'
-          | 'sensitiveRuntimeContext'
           | '_internal'
         > & { toolsContext: InferToolSetContext<TOOLS> },
     ) => MaybePromiseLike<
@@ -274,8 +276,8 @@ export type ToolLoopAgentSettings<
         | 'toolApproval'
         | 'providerOptions'
         | 'experimental_download'
+        | 'experimental_refineToolInput'
         | 'runtimeContext'
-        | 'sensitiveRuntimeContext'
         | '_internal'
       > &
         Omit<Prompt, 'system'> & {

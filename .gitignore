@@ -4,6 +4,7 @@
 .env
 .envrc
 .next
+.pnpm-store
 .turbo
 .well-known
 .workflow-vitest

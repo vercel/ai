@@ -1,5 +1,5 @@
-export type { ContentPart } from './content-part';
 export type { ActiveTools } from './active-tools';
+export type { ContentPart } from './content-part';
 export { filterActiveTools as experimental_filterActiveTools } from './filter-active-tools';
 export { generateText } from './generate-text';
 export type {
@@ -95,6 +95,7 @@ export type {
   ToolExecutionEndEvent,
   ToolExecutionStartEvent,
 } from './tool-execution-events';
+export type { ToolInputRefinement } from './tool-input-refinement';
 export type {
   StaticToolOutputDenied,
   TypedToolOutputDenied,

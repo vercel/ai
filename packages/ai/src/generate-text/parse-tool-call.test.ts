@@ -42,6 +42,44 @@ describe('parseToolCall', () => {
     `);
   });
 
+  it('should refine input after successfully parsing a valid tool call', async () => {
+    const result = await parseToolCall({
+      toolCall: {
+        type: 'tool-call',
+        toolName: 'testTool',
+        toolCallId: '123',
+        input: '{"value": " raw "}',
+      },
+      tools: {
+        testTool: tool({
+          inputSchema: z.object({
+            value: z.string(),
+          }),
+        }),
+      } as const,
+      repairToolCall: undefined,
+      refineToolInput: {
+        testTool: input => ({ value: input.value.trim() }),
+      },
+      messages: [],
+      system: undefined,
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "input": {
+          "value": "raw",
+        },
+        "providerExecuted": undefined,
+        "providerMetadata": undefined,
+        "title": undefined,
+        "toolCallId": "123",
+        "toolName": "testTool",
+        "type": "tool-call",
+      }
+    `);
+  });
+
   it('should successfully parse a valid provider-executed dynamic tool call', async () => {
     const result = await parseToolCall({
       toolCall: {
@@ -580,7 +618,7 @@ describe('parseToolCall', () => {
         tools: {
           weather: dynamicTool({
             description: 'Get weather',
-            providerMetadata: { mcp: { name: 'MyMCPServer' } },
+            providerMetadata: { mcp: { clientName: 'MyMCPClient' } },
             inputSchema: jsonSchema({
               type: 'object',
               properties: { location: { type: 'string' } },
@@ -595,7 +633,7 @@ describe('parseToolCall', () => {
       });
 
       expect(result.providerMetadata).toEqual({
-        mcp: { name: 'MyMCPServer' },
+        mcp: { clientName: 'MyMCPClient' },
       });
     });
 
@@ -610,7 +648,7 @@ describe('parseToolCall', () => {
         tools: {
           calculator: tool({
             description: 'Calculate',
-            providerMetadata: { mcp: { name: 'MyMCPServer' } },
+            providerMetadata: { mcp: { clientName: 'MyMCPClient' } },
             inputSchema: z.object({ a: z.number(), b: z.number() }),
             execute: async ({ a, b }) => a + b,
           }),
@@ -621,7 +659,7 @@ describe('parseToolCall', () => {
       });
 
       expect(result.providerMetadata).toEqual({
-        mcp: { name: 'MyMCPServer' },
+        mcp: { clientName: 'MyMCPClient' },
       });
     });
 
@@ -633,14 +671,14 @@ describe('parseToolCall', () => {
           toolName: 'weather',
           input: '{"location":"Paris"}',
           providerMetadata: {
-            mcp: { name: 'OverriddenByModel' },
+            mcp: { clientName: 'OverriddenByModel' },
             anthropic: { cacheControl: { type: 'ephemeral' } },
           },
         },
         tools: {
           weather: dynamicTool({
             description: 'Get weather',
-            providerMetadata: { mcp: { name: 'MyMCPServer' } },
+            providerMetadata: { mcp: { clientName: 'MyMCPClient' } },
             inputSchema: jsonSchema({
               type: 'object',
               properties: { location: { type: 'string' } },
@@ -655,7 +693,7 @@ describe('parseToolCall', () => {
       });
 
       expect(result.providerMetadata).toEqual({
-        mcp: { name: 'OverriddenByModel' },
+        mcp: { clientName: 'OverriddenByModel' },
         anthropic: { cacheControl: { type: 'ephemeral' } },
       });
     });
@@ -671,7 +709,7 @@ describe('parseToolCall', () => {
         tools: {
           weather: dynamicTool({
             description: 'Get weather',
-            providerMetadata: { mcp: { name: 'MyMCPServer' } },
+            providerMetadata: { mcp: { clientName: 'MyMCPClient' } },
             inputSchema: jsonSchema({
               type: 'object',
               properties: { location: { type: 'string' } },
@@ -688,7 +726,7 @@ describe('parseToolCall', () => {
 
       expect(result.invalid).toBe(true);
       expect(result.providerMetadata).toEqual({
-        mcp: { name: 'MyMCPServer' },
+        mcp: { clientName: 'MyMCPClient' },
       });
     });
   });

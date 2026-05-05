@@ -1,5 +1,12 @@
 # @ai-sdk/voyage
 
+## 1.0.0-canary.7
+
+### Patch Changes
+
+- Updated dependencies [2427d88]
+  - @ai-sdk/provider-utils@5.0.0-canary.33
+
 ## 1.0.0-canary.6
 
 ### Patch Changes

@@ -1,5 +1,13 @@
 # @ai-sdk/alibaba
 
+## 2.0.0-canary.42
+
+### Patch Changes
+
+- Updated dependencies [2427d88]
+  - @ai-sdk/provider-utils@5.0.0-canary.33
+  - @ai-sdk/openai-compatible@3.0.0-canary.40
+
 ## 2.0.0-canary.41
 
 ### Patch Changes
