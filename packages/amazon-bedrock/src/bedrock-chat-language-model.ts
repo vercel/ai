@@ -1013,7 +1013,7 @@ const BedrockAdditionalModelResponseFieldsSchema = z
 const BedrockToolUseSchema = z.object({
   toolUseId: z.string(),
   name: z.string(),
-  input: z.unknown(),
+  input: z.unknown().optional(),
 });
 
 const BedrockReasoningTextSchema = z.object({
