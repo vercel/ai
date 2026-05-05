@@ -811,12 +811,12 @@ For the full mental model, examples, lifecycle details, and guidance on choosing
 between prompt context, runtime context, and tool context, see
 [Runtime and Tool Context](/docs/ai-sdk-core/runtime-and-tool-context).
 
-### Sensitive Tool Context
+### Tool Context Telemetry
 
 Tool context often contains server-side values such as API keys, access tokens, or internal identifiers.
-Use `sensitiveContext` on a tool definition to exclude top-level context properties from telemetry integrations:
+Use `telemetry.includeToolsContext` to include selected top-level context properties in telemetry integrations:
 
-```ts highlight="10-12,25-29"
+```ts highlight="24-30"
 const weatherTool = tool({
   description: 'Get the weather in a location',
   inputSchema: z.object({
@@ -826,9 +826,6 @@ const weatherTool = tool({
     weatherApiKey: z.string(),
     defaultUnit: z.enum(['celsius', 'fahrenheit']),
   }),
-  sensitiveContext: {
-    weatherApiKey: true,
-  },
   execute: async ({ location }, { context }) => {
     return fetchWeather({
       location,
@@ -848,18 +845,25 @@ const result = await generateText({
     },
   },
   prompt: 'What is the weather in San Francisco?',
+  telemetry: {
+    includeToolsContext: {
+      weather: {
+        defaultUnit: true,
+      },
+    },
+  },
 });
 ```
 
 Telemetry integrations receive the `weather` tool context as `{ defaultUnit: 'fahrenheit' }`.
-Properties set to `false` or omitted are still sent.
+Properties set to `false` or omitted are excluded. If `telemetry.includeToolsContext` is omitted, no tool context properties are included.
 
 <Note>
-  `sensitiveContext` only filters telemetry integrations. Tool execution,
-  lifecycle callbacks, and returned results still receive the full typed tool
-  context. See [Runtime and Tool
-  Context](/docs/ai-sdk-core/runtime-and-tool-context) for how tool context flows
-  through execution and telemetry.
+  `telemetry.includeToolsContext` only filters telemetry integrations. Tool
+  execution, lifecycle callbacks, and returned results still receive the full
+  typed tool context. See [Runtime and Tool
+  Context](/docs/ai-sdk-core/runtime-and-tool-context) for how tool context
+  flows through execution and telemetry.
 </Note>
 
 ## Tool Input Lifecycle Hooks

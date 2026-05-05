@@ -1346,6 +1346,10 @@ describe('LegacyOpenTelemetry integration with generateText', () => {
       experimental_telemetry: {
         isEnabled: true,
         functionId: 'test-function-id',
+        includeRuntimeContext: {
+          test1: true,
+          test2: true,
+        },
         integrations: new LegacyOpenTelemetry({ tracer }),
       },
     });
@@ -1853,6 +1857,10 @@ describe('LegacyOpenTelemetry integration with streamText', () => {
       experimental_telemetry: {
         isEnabled: true,
         functionId: 'test-function-id',
+        includeRuntimeContext: {
+          test1: true,
+          test2: true,
+        },
         integrations: new LegacyOpenTelemetry({ tracer }),
       },
       _internal: { now: mockValues(0, 100, 500) },

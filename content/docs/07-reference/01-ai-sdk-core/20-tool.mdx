@@ -99,13 +99,6 @@ export const weatherTool = tool({
                 'An optional schema that describes the tool-specific context expected by the tool. When provided, the `context` type in `execute`, `needsApproval`, and the input lifecycle callbacks is inferred from this schema. The value is supplied via the tool\'s entry in `toolsContext`.',
             },
             {
-              name: 'sensitiveContext',
-              isOptional: true,
-              type: 'SensitiveContext<CONTEXT>',
-              description:
-                'Top-level context properties that contain sensitive data and should be excluded from telemetry. Properties marked as `true` are omitted from telemetry integrations. Tool execution, lifecycle callbacks, and returned results still receive the full tool context.',
-            },
-            {
               name: 'strict',
               isOptional: true,
               type: 'boolean',

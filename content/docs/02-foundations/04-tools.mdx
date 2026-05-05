@@ -166,6 +166,48 @@ The AI SDK supports the following schemas:
   setting.
 </Note>
 
+## Refining Tool Inputs
+
+Different LLM providers can generate slightly different tool inputs for the same
+tool input type. For example, one provider might produce `null` for an optional
+field while another produces an empty string.
+
+When you do not own the tool, such as with tools from a third-party package, you
+may not be able to change the tool's `inputSchema` to accept both shapes. In
+these cases, you can use the experimental `experimental_refineToolInput` option
+to normalize a parsed tool input before it is executed and before it appears in
+outputs, lifecycle callbacks, and telemetry.
+
+```ts
+import { generateText, tool } from 'ai';
+import { z } from 'zod';
+
+const result = await generateText({
+  model: 'openai/gpt-5-mini',
+  tools: {
+    search: tool({
+      inputSchema: z.object({
+        query: z.string(),
+        category: z.string().nullable(),
+      }),
+      execute: async ({ query, category }) => {
+        return search({ query, category });
+      },
+    }),
+  },
+  experimental_refineToolInput: {
+    search: input => ({
+      ...input,
+      category: input.category === '' ? null : input.category,
+    }),
+  },
+  prompt: 'Search for ski jackets with no category.',
+});
+```
+
+Refinement functions are typed per tool. Each function receives the typed input
+for its tool and must return an input with the same type shape.
+
 ## Tool Packages
 
 Given tools are JavaScript objects, they can be packaged and distributed through npm like any other library. This makes it easy to share reusable tools across projects and with the community.

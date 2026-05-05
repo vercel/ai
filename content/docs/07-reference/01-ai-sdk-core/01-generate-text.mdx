@@ -526,6 +526,20 @@ To see `generateText` in action, check out [these examples](#examples).
                 'Identifier for this function. Used to group telemetry data by function.',
             },
             {
+              name: 'includeRuntimeContext',
+              type: '{ [KEY in keyof CONTEXT]?: boolean }',
+              isOptional: true,
+              description:
+                'Top-level runtime context properties that should be included in telemetry. Runtime context properties are excluded unless they are explicitly set to `true`. Lifecycle callbacks and returned results still receive the full `runtimeContext`.',
+            },
+            {
+              name: 'includeToolsContext',
+              type: '{ [TOOL_NAME in keyof InferToolSetContext<TOOLS>]?: { [KEY in keyof InferToolSetContext<TOOLS>[TOOL_NAME]]?: boolean } }',
+              isOptional: true,
+              description:
+                'Top-level tool context properties that should be included in telemetry, configured per tool. Tool context properties are excluded unless they are explicitly set to `true`. Lifecycle callbacks and returned results still receive the full `toolsContext`.',
+            },
+            {
               name: 'integrations',
               isOptional: true,
               type: 'Telemetry | Telemetry[]',
@@ -556,6 +570,13 @@ To see `generateText` in action, check out [these examples](#examples).
       isOptional: true,
       description:
         "Approval configuration for this call. Pass a `GenericToolApprovalFunction` to handle all tool calls in one callback with `toolCall`, `tools`, `toolsContext`, `messages`, and `runtimeContext`, or pass a per-tool object where each key can be a status (`'not-applicable'`, `'approved'`, `'denied'`, or `'user-approval'`), an object form such as `{ type: 'denied', reason: 'blocked by policy' }`, or a `SingleToolApprovalFunction` that receives the tool input and options `toolCallId`, `messages`, `toolContext`, and `runtimeContext` (same shape as tool execution options without `abortSignal`, with `context` renamed to `toolContext`). The `RUNTIME_CONTEXT` type parameter matches the call's `runtimeContext`. A `GenericToolApprovalFunction` or `SingleToolApprovalFunction` may return `undefined` for the same effect as `'not-applicable'`. `'not-applicable'` is the default execution path and runs the tool without approval metadata. Use `'approved'`, `'denied'`, or their object forms when you want explicit automatic approval request/response parts in the output. Automatic approvals and denials can include a `reason`, which is forwarded to the emitted approval response. This setting takes precedence over a tool's `needsApproval` default.",
+    },
+    {
+      name: 'experimental_refineToolInput',
+      type: 'ToolInputRefinement<TOOLS>',
+      isOptional: true,
+      description:
+        'Optional mapping of tool names to functions that refine parsed tool inputs. Each function receives the typed input for its tool and must return the same input type shape. The refined input is used for tool execution, output parts, lifecycle callbacks, and telemetry.',
     },
     {
       name: 'stopWhen',
@@ -693,13 +714,6 @@ To see `generateText` in action, check out [these examples](#examples).
       isOptional: true,
       description:
         'User-defined shared runtime context object passed to `prepareStep` and lifecycle callbacks.',
-    },
-    {
-      name: 'sensitiveRuntimeContext',
-      type: 'SensitiveContext<CONTEXT>',
-      isOptional: true,
-      description:
-        'Top-level runtime context properties that contain sensitive data and should be excluded from telemetry. Properties marked as `true` are omitted from telemetry integrations. Lifecycle callbacks and returned results still receive the full `runtimeContext`.',
     },
     {
       name: 'toolsContext',
@@ -2803,16 +2817,6 @@ type ActiveTools<TOOLS extends ToolSet> =
 ```
 
 Limits a generation step to the listed tool names. `undefined` means no tool restriction is applied.
-
-### `SensitiveContext`
-
-```ts
-type SensitiveContext<CONTEXT extends Context> =
-  | { [KEY in keyof CONTEXT]?: boolean }
-  | undefined;
-```
-
-Marks top-level context properties that should be excluded from telemetry. Set a property to `true` to omit it from telemetry integrations; omitted or `false` properties are still sent.
 
 ## Examples
 
