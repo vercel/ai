@@ -817,6 +817,103 @@ describe('generateObject', () => {
         expect(callCount).toBe(2);
         expect(result.object).toStrictEqual({ content: 'llm-repaired' });
       });
+
+      it('should have empty repairHistory when option is not set', async () => {
+        const result = await generateObject({
+          model: new MockLanguageModelV4({
+            doGenerate: async () => ({
+              ...dummyResponseValues,
+              content: [{ type: 'text', text: '{ "content": "ok" }' }],
+            }),
+          }),
+          schema: z.object({ content: z.string() }),
+          prompt: 'prompt',
+        });
+
+        expect(result.experimental_repairHistory).toEqual([]);
+      });
+
+      it('should have empty repairHistory when first attempt succeeds', async () => {
+        const result = await generateObject({
+          model: new MockLanguageModelV4({
+            doGenerate: async () => ({
+              ...dummyResponseValues,
+              content: [{ type: 'text', text: '{ "content": "ok" }' }],
+            }),
+          }),
+          schema: z.object({ content: z.string() }),
+          prompt: 'prompt',
+          experimental_repairOnValidationError: true,
+        });
+
+        expect(result.experimental_repairHistory).toEqual([]);
+      });
+
+      it('should record one repairHistory entry on first-attempt failure', async () => {
+        let callCount = 0;
+        const result = await generateObject({
+          model: new MockLanguageModelV4({
+            doGenerate: async () => {
+              callCount++;
+              return {
+                ...dummyResponseValues,
+                content: [
+                  {
+                    type: 'text',
+                    text:
+                      callCount === 1
+                        ? '{ "content": 42 }'
+                        : '{ "content": "ok" }',
+                  },
+                ],
+              };
+            },
+          }),
+          schema: z.object({ content: z.string() }),
+          prompt: 'prompt',
+          experimental_repairOnValidationError: true,
+        });
+
+        expect(result.experimental_repairHistory).toHaveLength(1);
+        expect(result.experimental_repairHistory[0].text).toBe(
+          '{ "content": 42 }',
+        );
+        expect(result.experimental_repairHistory[0].error).toBeDefined();
+      });
+
+      it('should record N repairHistory entries after N failures', async () => {
+        let callCount = 0;
+        const result = await generateObject({
+          model: new MockLanguageModelV4({
+            doGenerate: async () => {
+              callCount++;
+              return {
+                ...dummyResponseValues,
+                content: [
+                  {
+                    type: 'text',
+                    text:
+                      callCount <= 2
+                        ? `{ "content": ${callCount} }` // fails for first 2
+                        : '{ "content": "ok" }',
+                  },
+                ],
+              };
+            },
+          }),
+          schema: z.object({ content: z.string() }),
+          prompt: 'prompt',
+          experimental_repairOnValidationError: 3,
+        });
+
+        expect(result.experimental_repairHistory).toHaveLength(2);
+        expect(result.experimental_repairHistory[0].text).toBe(
+          '{ "content": 1 }',
+        );
+        expect(result.experimental_repairHistory[1].text).toBe(
+          '{ "content": 2 }',
+        );
+      });
     });
 
     describe('options.providerOptions', () => {
