@@ -7551,12 +7551,7 @@ describe('generateText', () => {
         },
       });
 
-      expect(telemetryContexts).toEqual([
-        { weather: {} },
-        { weather: {} },
-        { weather: {} },
-        { weather: {} },
-      ]);
+      expect(telemetryContexts).toEqual([{}, {}, {}, {}]);
     });
 
     it('should exclude runtimeContext from telemetry by default', async () => {

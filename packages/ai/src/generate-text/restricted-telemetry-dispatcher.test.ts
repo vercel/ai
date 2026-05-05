@@ -164,10 +164,7 @@ describe('createRestrictedTelemetryDispatcher', () => {
 
     const telemetryEvent = onStart.mock.calls[0][0];
 
-    expect(telemetryEvent.toolsContext).toEqual({
-      weather: {},
-      stocks: {},
-    });
+    expect(telemetryEvent.toolsContext).toEqual({});
   });
 
   it('includes configured runtimeContext for step start events and previous steps', async () => {
