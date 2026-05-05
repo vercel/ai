@@ -1,5 +1,26 @@
 # @ai-sdk/mistral
 
+## 4.0.0-canary.37
+
+### Patch Changes
+
+- 5463d0d: feat(provider): align tool result output content file part types with top-level message file part types
+- Updated dependencies [5463d0d]
+  - @ai-sdk/provider-utils@5.0.0-canary.32
+  - @ai-sdk/provider@4.0.0-canary.16
+
+## 4.0.0-canary.36
+
+### Patch Changes
+
+- 3ae1d12: Add support for mistral-medium-3.5
+
+## 4.0.0-canary.35
+
+### Patch Changes
+
+- 8abd80f: Map cached token counts from Mistral API usage response. Previously all prompt tokens were reported as noCacheTokens, ignoring the `num_cached_tokens`, `prompt_tokens_details.cached_tokens`, and `prompt_token_details.cached_tokens` fields returned by Mistral.
+
 ## 4.0.0-canary.34
 
 ### Patch Changes

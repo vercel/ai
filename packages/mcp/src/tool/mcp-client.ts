@@ -81,9 +81,9 @@ function mcpToModelOutput({
       }
       if (part.type === 'image' && 'data' in part && 'mimeType' in part) {
         return {
-          type: 'file-data' as const,
-          data: part.data as string,
+          type: 'file' as const,
           mediaType: part.mimeType as string,
+          data: { type: 'data' as const, data: part.data as string },
         };
       }
       return { type: 'text' as const, text: JSON.stringify(part) };

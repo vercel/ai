@@ -50,8 +50,8 @@ export class CohereChatLanguageModel implements LanguageModelV4 {
 
   readonly modelId: CohereChatModelId;
 
-  readonly supportedUrls = {
-    // No URLs are supported.
+  readonly supportedUrls: Record<string, RegExp[]> = {
+    'image/*': [/^https?:\/\/.*$/],
   };
 
   private readonly config: CohereChatConfig;
@@ -108,7 +108,7 @@ export class CohereChatLanguageModel implements LanguageModelV4 {
       messages: chatPrompt,
       documents: cohereDocuments,
       warnings: promptWarnings,
-    } = convertToCohereChatPrompt(prompt);
+    } = await convertToCohereChatPrompt(prompt);
 
     const {
       tools: cohereTools,

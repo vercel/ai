@@ -1,5 +1,16 @@
 # @ai-sdk/provider-utils
 
+## 5.0.0-canary.32
+
+### Major Changes
+
+- 5463d0d: feat(provider): align tool result output content file part types with top-level message file part types
+
+### Patch Changes
+
+- Updated dependencies [5463d0d]
+  - @ai-sdk/provider@4.0.0-canary.16
+
 ## 5.0.0-canary.31
 
 ### Patch Changes
