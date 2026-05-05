@@ -12,8 +12,29 @@ export {
   type MCPClientConfig,
   type MCPClient,
 } from './tool/mcp-client';
+export {
+  MCP_APP_EXTENSION_NAME,
+  MCP_APP_LEGACY_RESOURCE_URI_META_KEY,
+  MCP_APP_MIME_TYPE,
+  getMCPAppResourceFromReadResult,
+  getMCPAppResourceUri,
+  getMCPAppResourceUris,
+  getMCPAppToolMeta,
+  isMCPAppModelVisibleTool,
+  isMCPAppTool,
+  isMCPAppVisibleTool,
+  mcpAppClientCapabilities,
+  readMCPAppResource,
+  splitMCPAppTools,
+  type MCPAppResource,
+  type MCPAppResourceCSP,
+  type MCPAppResourceMeta,
+  type MCPAppToolMeta,
+  type MCPAppToolVisibility,
+} from './tool/mcp-apps';
 export { ElicitationRequestSchema, ElicitResultSchema } from './tool/types';
 export type {
+  CallToolResult,
   Configuration,
   ElicitationRequest,
   ElicitResult,

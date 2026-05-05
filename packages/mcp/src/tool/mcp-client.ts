@@ -154,6 +154,15 @@ export interface MCPClient {
   }): Promise<ListToolsResult>;
 
   /**
+   * Calls a tool on the MCP server.
+   */
+  callTool(args: {
+    name: string;
+    arguments?: Record<string, unknown>;
+    options?: RequestOptions;
+  }): Promise<CallToolResult>;
+
+  /**
    * Creates AI SDK tools from tool definitions.
    */
   toolsFromDefinitions<TOOL_SCHEMAS extends ToolSchemas = 'automatic'>(
@@ -448,14 +457,14 @@ class DefaultMCPClient implements MCPClient {
     });
   }
 
-  private async callTool({
+  private async callToolInternal({
     name,
     args,
     options,
   }: {
     name: string;
     args: Record<string, unknown>;
-    options?: ToolExecutionOptions<{}>;
+    options?: { abortSignal?: AbortSignal };
   }): Promise<CallToolResult> {
     try {
       return this.request({
@@ -468,6 +477,22 @@ class DefaultMCPClient implements MCPClient {
     } catch (error) {
       throw error;
     }
+  }
+
+  callTool({
+    name,
+    arguments: args = {},
+    options,
+  }: {
+    name: string;
+    arguments?: Record<string, unknown>;
+    options?: RequestOptions;
+  }): Promise<CallToolResult> {
+    return this.callToolInternal({
+      name,
+      args,
+      options: { abortSignal: options?.signal },
+    });
   }
 
   private async listResourcesInternal({
@@ -617,7 +642,7 @@ class DefaultMCPClient implements MCPClient {
         options: ToolExecutionOptions<{}>,
       ): Promise<unknown> => {
         options?.abortSignal?.throwIfAborted();
-        const result = await self.callTool({ name, args, options });
+        const result = await self.callToolInternal({ name, args, options });
 
         if (result.isError) {
           return result;
