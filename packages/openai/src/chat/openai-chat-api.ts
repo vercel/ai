@@ -21,12 +21,7 @@ export type OpenAIChatToolChoice =
   | 'auto'
   | 'none'
   | 'required'
-  | { type: 'function'; function: { name: string } }
-  | {
-      type: 'allowed_tools';
-      mode: 'auto' | 'required';
-      tools: Array<{ type: 'function'; function: { name: string } }>;
-    };
+  | { type: 'function'; function: { name: string } };
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency

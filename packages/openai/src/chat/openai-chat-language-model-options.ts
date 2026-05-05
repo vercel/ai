@@ -198,23 +198,6 @@ export const openaiLanguageModelChatOptions = lazySchema(() =>
        * and defaults `systemMessageMode` to `developer` unless overridden.
        */
       forceReasoning: z.boolean().optional(),
-
-      /**
-       * Restrict the callable tools to a subset while keeping the full tools
-       * list intact, so prompt caching is preserved across requests with
-       * different allowlists.
-       *
-       * When set, this overrides the request-level `toolChoice` and emits
-       * `tool_choice: { type: "allowed_tools", mode, tools }` on the wire.
-       *
-       * @see https://developers.openai.com/api/reference/resources/chat/methods/create#(resource)%20chat%20%3E%20(model)%20tool_choice_allowed%20%3E%20(schema)
-       */
-      allowedTools: z
-        .object({
-          toolNames: z.array(z.string()).min(1),
-          mode: z.enum(['auto', 'required']).optional(),
-        })
-        .optional(),
     }),
   ),
 );

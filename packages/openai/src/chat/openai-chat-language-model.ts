@@ -325,7 +325,6 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
     } = prepareChatTools({
       tools,
       toolChoice,
-      allowedTools: openaiOptions.allowedTools ?? undefined,
     });
 
     return {
