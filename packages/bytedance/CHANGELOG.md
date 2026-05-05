@@ -1,5 +1,12 @@
 # @ai-sdk/bytedance
 
+## 2.0.0-canary.35
+
+### Patch Changes
+
+- Updated dependencies [2427d88]
+  - @ai-sdk/provider-utils@5.0.0-canary.33
+
 ## 2.0.0-canary.34
 
 ### Patch Changes

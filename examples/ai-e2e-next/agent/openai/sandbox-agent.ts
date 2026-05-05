@@ -1,0 +1,24 @@
+import { sandboxShellTool } from '@/tool/sandbox-shell-tool';
+import { openai } from '@ai-sdk/openai';
+import type { InferAgentUIMessage} from 'ai';
+import { ToolLoopAgent } from 'ai';
+
+export const sandboxAgent = new ToolLoopAgent({
+  model: openai('gpt-5.5'),
+
+  tools: {
+    shell: sandboxShellTool(),
+  },
+
+  prepareCall: ({ sandbox, ...rest }) => ({
+    ...rest,
+    instructions:
+      `You are a helpful assistant that can run shell commands.\n` +
+      `You are operating in the following sandbox: ${sandbox?.description}`,
+  }),
+});
+
+export type SandboxAgentUIMessage = InferAgentUIMessage<
+  typeof sandboxAgent,
+  { sandboxId?: string }
+>;

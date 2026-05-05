@@ -3,8 +3,8 @@
   "version": "0.0.0",
   "private": true,
   "dependencies": {
-    "@ai-sdk/openai": "4.0.0-canary.48",
-    "ai": "7.0.0-canary.120",
+    "@ai-sdk/openai": "4.0.0-canary.49",
+    "ai": "7.0.0-canary.121",
     "dotenv": "16.4.5",
     "zod": "3.25.76"
   },

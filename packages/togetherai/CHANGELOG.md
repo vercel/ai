@@ -1,5 +1,13 @@
 # @ai-sdk/togetherai
 
+## 3.0.0-canary.40
+
+### Patch Changes
+
+- Updated dependencies [2427d88]
+  - @ai-sdk/provider-utils@5.0.0-canary.33
+  - @ai-sdk/openai-compatible@3.0.0-canary.40
+
 ## 3.0.0-canary.39
 
 ### Patch Changes

@@ -1,5 +1,16 @@
 # ai
 
+## 7.0.0-canary.121
+
+### Patch Changes
+
+- 2427d88: feat(ai): change Tool.sensitiveContext to telemetry.includeToolsContext and make it opt-in
+- 5588abd: feat(ai): add experimental_refineToolInput option to ToolLoopAgent, generateText, streamText
+- 6dd6b83: feat(ai): change sensitiveRuntimeContext to telemetry.includeRuntimeContext and make it opt-in
+- Updated dependencies [2427d88]
+  - @ai-sdk/provider-utils@5.0.0-canary.33
+  - @ai-sdk/gateway@4.0.0-canary.71
+
 ## 7.0.0-canary.120
 
 ### Major Changes
