@@ -1577,6 +1577,44 @@ describe('smoothStream', () => {
         anthropic: { redactedData: 'redacted-thinking-data' },
       });
     });
+
+    it('should preserve providerMetadata on all word-boundary chunks emitted from the while loop', async () => {
+      // When smoothStream detects word boundaries, it emits multiple chunks
+      // from the while loop. Each of those must carry the providerMetadata
+      // from the original delta — not just the final flushed remainder.
+      const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+        { type: 'reasoning-start', id: '1' },
+        {
+          text: 'one two three ',
+          type: 'reasoning-delta',
+          id: '1',
+          providerMetadata: {
+            anthropic: { signature: 'sig_xyz' },
+          },
+        },
+        { type: 'reasoning-end', id: '1' },
+      ]).pipeThrough(
+        smoothStream({
+          chunking: 'word',
+          delayInMs: 10,
+          _internal: { delay },
+        })({ tools: {} }),
+      );
+
+      await consumeStream(stream);
+
+      const reasoningDeltas = events.filter(
+        (e: any) => e.type === 'reasoning-delta',
+      );
+
+      // All three word chunks should carry providerMetadata
+      expect(reasoningDeltas.length).toBeGreaterThanOrEqual(3);
+      for (const chunk of reasoningDeltas) {
+        expect(chunk.providerMetadata).toEqual({
+          anthropic: { signature: 'sig_xyz' },
+        });
+      }
+    });
   });
 
   describe('Intl.Segmenter chunking', () => {
