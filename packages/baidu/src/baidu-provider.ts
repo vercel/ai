@@ -32,7 +32,7 @@ const defaultBaseURL = 'https://qianfan.baidubce.com/v2';
 export function createBaidu(
   options: BaiduProviderSettings = {},
 ): BaiduProvider {
-  const baseURL = withoutTrailingSlash(options.baseURL ?? defaultBaseURL);
+  const baseURL = withoutTrailingSlash(options.baseURL) ?? defaultBaseURL;
   const getHeaders = () =>
     withUserAgentSuffix(
       {

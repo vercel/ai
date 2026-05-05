@@ -45,7 +45,6 @@ describe('convertBaiduChatUsage', () => {
       convertBaiduChatUsage({
         prompt_tokens: 120,
         completion_tokens: 45,
-        total_tokens: 165,
         prompt_tokens_details: {
           cached_tokens: 20,
         },
@@ -75,7 +74,6 @@ describe('convertBaiduChatUsage', () => {
           "prompt_tokens_details": {
             "cached_tokens": 20,
           },
-          "total_tokens": 165,
         },
       }
     `);
@@ -85,7 +83,6 @@ describe('convertBaiduChatUsage', () => {
     const usage = {
       prompt_tokens: 9,
       completion_tokens: 3,
-      total_tokens: 12,
       prompt_tokens_details: {
         cached_tokens: 1,
       },

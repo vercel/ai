@@ -17,6 +17,12 @@ type BaiduChatConfig = {
   includeUsage?: boolean;
 };
 
+function isOpenAICompatibleChatConfig(
+  config: BaiduChatConfig | OpenAICompatibleChatConfig,
+): config is OpenAICompatibleChatConfig {
+  return 'url' in config;
+}
+
 export class BaiduChatLanguageModel extends OpenAICompatibleChatLanguageModel {
   static [WORKFLOW_SERIALIZE](model: BaiduChatLanguageModel) {
     return serializeModelOptions({
@@ -26,23 +32,34 @@ export class BaiduChatLanguageModel extends OpenAICompatibleChatLanguageModel {
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
-    modelId: BaiduChatModelId;
-    config: BaiduChatConfig;
+    modelId: string;
+    config: OpenAICompatibleChatConfig;
   }) {
-    return new BaiduChatLanguageModel(options.modelId, options.config);
+    return new BaiduChatLanguageModel(
+      options.modelId as BaiduChatModelId,
+      options.config,
+    );
   }
 
-  constructor(modelId: BaiduChatModelId, config: BaiduChatConfig) {
-    super(modelId, {
-      provider: config.provider,
-      url: ({ path }) => `${config.baseURL}${path}`,
-      headers: config.headers,
-      fetch: config.fetch,
-      includeUsage: config.includeUsage,
-      supportedUrls: () => ({
-        'image/*': [/^https?:\/\/.*$/, /^data:image\/.+$/],
-      }),
-      convertUsage: convertBaiduChatUsage,
-    } satisfies OpenAICompatibleChatConfig);
+  constructor(
+    modelId: BaiduChatModelId,
+    config: BaiduChatConfig | OpenAICompatibleChatConfig,
+  ) {
+    super(
+      modelId,
+      isOpenAICompatibleChatConfig(config)
+        ? config
+        : ({
+            provider: config.provider,
+            url: ({ path }) => `${config.baseURL}${path}`,
+            headers: config.headers,
+            fetch: config.fetch,
+            includeUsage: config.includeUsage,
+            supportedUrls: () => ({
+              'image/*': [/^https?:\/\/.*$/, /^data:image\/.+$/],
+            }),
+            convertUsage: convertBaiduChatUsage,
+          } satisfies OpenAICompatibleChatConfig),
+    );
   }
 }

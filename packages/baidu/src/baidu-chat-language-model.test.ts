@@ -1,6 +1,9 @@
 import fs from 'node:fs';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
+import type {
+  LanguageModelV4Prompt,
+  LanguageModelV4StreamPart,
+} from '@ai-sdk/provider';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { createBaidu } from './baidu-provider';
@@ -67,9 +70,7 @@ function normalizeGenerateResult(
   };
 }
 
-function normalizeStreamParts(
-  parts: Awaited<ReturnType<typeof convertReadableStreamToArray>>,
-) {
+function normalizeStreamParts(parts: LanguageModelV4StreamPart[]) {
   return parts.map(part =>
     part.type === 'response-metadata'
       ? { ...part, timestamp: '<timestamp>' }
