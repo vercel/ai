@@ -1,5 +1,14 @@
 # @ai-sdk/amazon-bedrock
 
+## 5.0.0-canary.50
+
+### Patch Changes
+
+- 68c5081: fix(provider/amazon-bedrock): mark `input` optional on tool-use schema so streaming `contentBlockStart` events parse under Zod >= 4.4.0
+- Updated dependencies [2427d88]
+  - @ai-sdk/provider-utils@5.0.0-canary.33
+  - @ai-sdk/anthropic@4.0.0-canary.45
+
 ## 5.0.0-canary.49
 
 ### Patch Changes

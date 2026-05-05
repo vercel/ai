@@ -1,5 +1,13 @@
 # @ai-sdk/openai
 
+## 4.0.0-canary.49
+
+### Patch Changes
+
+- 7bbc194: feat(provider/openai): forward imageDetail providerOptions on tool-result image content
+- Updated dependencies [2427d88]
+  - @ai-sdk/provider-utils@5.0.0-canary.33
+
 ## 4.0.0-canary.48
 
 ### Patch Changes
