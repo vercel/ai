@@ -1,0 +1,220 @@
+---
+title: Honcho
+description: Add persistent memory and user reasoning to any AI SDK model.
+---
+
+# Honcho
+
+[Honcho](https://honcho.dev) is a persistent memory service for AI agents. The [`@honcho-ai/vercel-ai-sdk`](https://github.com/plastic-labs/vercel-ai-sdk-package) package wraps any AI SDK model with reasoning-backed user memory.
+
+Features include:
+
+- **Reasoning-Backed Memory**: Derives conclusions and builds evolving representations of users from interaction history
+- **Peer-Based Architecture**: Models humans and agents as peers — any participant can observe and be observed
+- **Automatic Context Injection**: Middleware injects user context before generation and persists messages after
+- **Six Memory Tools**: `honcho_chat`, `honcho_context`, `honcho_search`, `honcho_search_conclusions`, `honcho_get_representation`, `honcho_save_conclusion`
+- **Multi-User Isolation**: Each user is a peer scoped to your workspace; sessions group conversations between peers
+- **Free API Credits**: Get started with free credits
+
+Learn more in the [Honcho Documentation](https://docs.honcho.dev)
+
+## Setup
+
+The Honcho AI SDK provider is available in the `@honcho-ai/vercel-ai-sdk` package:
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add @honcho-ai/vercel-ai-sdk" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @honcho-ai/vercel-ai-sdk" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @honcho-ai/vercel-ai-sdk" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="bun add @honcho-ai/vercel-ai-sdk" dark />
+  </Tab>
+</Tabs>
+
+## Provider Instance
+
+Get your API key and workspace ID from [app.honcho.dev](https://app.honcho.dev) and set them as environment variables:
+
+```bash
+export HONCHO_API_KEY=your-api-key
+export HONCHO_WORKSPACE_ID=your-workspace-id
+```
+
+Create a Honcho provider instance with `createHoncho`. With the env vars set above, no arguments are required:
+
+```typescript
+import { createHoncho } from '@honcho-ai/vercel-ai-sdk';
+
+const honcho = createHoncho();
+```
+
+## Middleware
+
+The middleware is compatible with `wrapLanguageModel` and handles two things automatically:
+
+1. **Before generation** — Honcho fetches context for the user (representation, summary, recent messages) and injects it into the system prompt
+2. **After generation** — user and assistant messages are persisted back to Honcho with correct peer attribution
+
+<Note>
+  The first turn returns empty context — there's nothing stored yet. Every turn
+  after that, the model receives the user's representation, derived conclusions,
+  and recent message history automatically.
+</Note>
+
+```typescript
+import { wrapLanguageModel, generateText } from 'ai';
+import { anthropic } from '@ai-sdk/anthropic';
+
+const model = wrapLanguageModel({
+  model: anthropic('claude-sonnet-4-6'),
+  middleware: honcho.middleware({
+    userId: 'user-abc',
+    sessionId: 'session-123',
+  }),
+});
+```
+
+Each call passes `userId`, `sessionId`, and (optionally) `assistantId` directly. There is no separate session handle to construct — identity flows in per request. Use stable values for the lifetime of a conversation so each turn reinjects updated context. `assistantId` defaults to `"assistant"`; missing `userId` or `sessionId` lazily generate provider-scoped IDs.
+
+### Peers
+
+Honcho's core primitive is the **peer** — any entity (human or agent) that persists and changes over time. Inside a session, each peer's observation behavior is configured:
+
+- The **user peer** is added with `observe_me: true` — its messages are observed and reasoned about
+- The **assistant peer** is added with `observe_others: true` — it builds a running understanding of other peers in the session
+
+This dual-peer setup is how Honcho constructs a representation of the user from the assistant's point of view: derived conclusions, behavioral patterns, biographical facts, and more.
+
+## Tools
+
+Honcho exposes the following tools the model can invoke during generation to query and update what it knows about the user:
+
+- **`honcho_chat`** — Ask natural language questions about the user; Honcho's dialectic reasoning synthesizes answers from their full interaction history.
+- **`honcho_context`** — Get combined session and peer context: recent messages, summaries, the peer's representation, and peer card.
+- **`honcho_search`** — Semantic search across stored conversation messages.
+- **`honcho_search_conclusions`** — Query derived conclusions: personality traits, preferences, behavioral patterns, biographical facts.
+- **`honcho_get_representation`** — Get a full synthesized profile of the user.
+- **`honcho_save_conclusion`** — Persist an observation or conclusion about the user for future sessions.
+
+```typescript
+const result = await generateText({
+  model,
+  tools: honcho.tools({
+    userId: 'user-abc',
+    sessionId: 'session-123',
+  }),
+  prompt: 'What patterns have you noticed about me?',
+});
+```
+
+Pass the same `userId` and `sessionId` to `honcho.tools()` so tool calls bind to the same peers as the middleware.
+
+## Examples
+
+### Next.js Route Handler
+
+```typescript
+import { createHoncho } from '@honcho-ai/vercel-ai-sdk';
+import { wrapLanguageModel, streamText } from 'ai';
+import { anthropic } from '@ai-sdk/anthropic';
+
+const honcho = createHoncho({
+  workspaceId: process.env.HONCHO_WORKSPACE_ID!,
+});
+
+export async function POST(req: Request) {
+  const { messages, sessionId, userId } = await req.json();
+
+  const model = wrapLanguageModel({
+    model: anthropic('claude-sonnet-4-6'),
+    middleware: honcho.middleware({
+      userId,
+      sessionId,
+      assistantId: 'my-app',
+    }),
+  });
+
+  const result = streamText({
+    model,
+    tools: honcho.tools({ userId, sessionId, assistantId: 'my-app' }),
+    messages,
+  });
+
+  return result.toDataStreamResponse();
+}
+```
+
+`streamText` works the same way as `generateText` — middleware persists messages after the stream completes, no extra code needed.
+
+## Configuration
+
+### Middleware Options
+
+```typescript
+const middleware = honcho.middleware({
+  userId: 'user-abc',
+  sessionId: 'session-123',
+  assistantId: 'assistant-xyz',
+  persistInput: true,
+  injectHistory: true,
+  formatContext: (context) => `<memory>${context.summary?.content ?? ''}</memory>`,
+  onError: (err) => {
+    console.error('[honcho]', err);
+  },
+});
+```
+
+Pass `sessionId: null` to disable session mode for a single call.
+
+### Provider Options
+
+```typescript
+const honcho = createHoncho({
+  workspaceId: 'ws-123',
+  apiKey: 'hk_...', // Defaults to HONCHO_API_KEY env var
+  environment: 'production', // 'production' | 'local'
+  baseURL: 'https://...', // Custom API endpoint
+});
+```
+
+## Additional Modules
+
+| Module   | Import                              | Description                                                   |
+| -------- | ----------------------------------- | ------------------------------------------------------------- |
+| OpenAI   | `@honcho-ai/vercel-ai-sdk/openai`   | Direct OpenAI SDK integration (without AI SDK tool wrappers). |
+| Identity | `@honcho-ai/vercel-ai-sdk/identity` | Live identity documents backed by Honcho peer cards.          |
+
+### OpenAI (`@honcho-ai/vercel-ai-sdk/openai`)
+
+Use this when you're integrating with the OpenAI SDK directly (without AI SDK tool wrappers).
+
+```typescript
+import OpenAI from 'openai';
+import { createHoncho } from '@honcho-ai/vercel-ai-sdk';
+import { honchoOpenAITools } from '@honcho-ai/vercel-ai-sdk/openai';
+
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const honcho = createHoncho();
+
+const honchoTools = honchoOpenAITools({
+  client: honcho.client,
+  defaultPeerId: 'user-abc',
+  defaultObserverPeerId: 'assistant-xyz',
+  defaultSessionId: 'session-123',
+});
+```
+
+Pass `honchoTools.definitions` to OpenAI tool calling, then execute each call with `honchoTools.execute(name, args)`.
+
+## Additional Resources
+
+- [GitHub Repository](https://github.com/plastic-labs/vercel-ai-sdk-package)
+- [Honcho Platform](https://honcho.dev)
+- [Honcho Documentation](https://docs.honcho.dev)
+- [Plastic Labs](https://plasticlabs.ai)

@@ -207,6 +207,42 @@ The `bankId` identifies the memory store and is typically a user ID. In multi-us
 
 See the [Hindsight provider documentation](/providers/community-providers/hindsight) for full setup and configuration.
 
+### Honcho
+
+[Honcho](/providers/community-providers/honcho) gives agents persistent, reasoning-backed memory through middleware plus six tools: `honcho_chat`, `honcho_context`, `honcho_search`, `honcho_search_conclusions`, `honcho_get_representation`, and `honcho_save_conclusion`. Honcho derives conclusions about users and builds evolving representations of them over time.
+
+```bash
+pnpm add @honcho-ai/vercel-ai-sdk
+```
+
+```ts
+import { createHoncho } from '@honcho-ai/vercel-ai-sdk';
+import { wrapLanguageModel, generateText } from 'ai';
+import { anthropic } from '@ai-sdk/anthropic';
+
+const honcho = createHoncho({
+  workspaceId: process.env.HONCHO_WORKSPACE_ID!,
+});
+
+const userId = 'user-abc';
+const sessionId = 'session-123';
+
+const model = wrapLanguageModel({
+  model: anthropic('claude-sonnet-4-6'),
+  middleware: honcho.middleware({ userId, sessionId }),
+});
+
+const { text } = await generateText({
+  model,
+  tools: honcho.tools({ userId, sessionId }),
+  prompt: 'Based on our conversations, what do I care about most?',
+});
+```
+
+The middleware injects relevant context into the system prompt before generation and persists messages after. Use stable `userId` and `sessionId` across a conversation so each turn reinjects updated context. Honcho is middleware, not a model provider — it works with any AI SDK provider.
+
+See the [Honcho provider documentation](/providers/community-providers/honcho) for full setup and configuration.
+
 **When to use memory providers**: these providers are a good fit when you want memory without building any storage infrastructure. The tradeoff is that the provider controls memory behavior, so you have less visibility into what gets stored and how it is retrieved. You also take on a dependency on an external service.
 
 ## Custom Tool
