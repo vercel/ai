@@ -1,5 +1,12 @@
 # @ai-sdk/mcp
 
+## 2.0.0-canary.41
+
+### Patch Changes
+
+- b79094c: Add `resource_link` content type to `CallToolResultSchema` and `PromptMessageSchema` per MCP spec. Fixes hard rejection when MCP servers return `resource_link` content parts with zod ≥ 4.4.x.
+- 1451759: feat(mcp): deprecate name and use clientName for MCPClient
+
 ## 2.0.0-canary.40
 
 ### Patch Changes
