@@ -60,6 +60,20 @@ export interface GenerateObjectResult<OBJECT> {
   readonly providerMetadata: ProviderMetadata | undefined;
 
   /**
+   * History of schema validation repair attempts made during the call.
+   * Each entry is a failed attempt: the text the model produced and the
+   * validation error that caused the retry.
+   *
+   * Empty when `experimental_repairOnValidationError` is not set or the
+   * first attempt succeeded. Useful for collecting (bad output, error)
+   * pairs to fine-tune models.
+   */
+  readonly experimental_repairHistory: ReadonlyArray<{
+    readonly text: string;
+    readonly error: unknown;
+  }>;
+
+  /**
    * Converts the object to a JSON response.
    * The response will have a status code of 200 and a content type of `application/json; charset=utf-8`.
    */

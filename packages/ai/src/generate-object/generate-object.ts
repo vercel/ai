@@ -440,6 +440,7 @@ export async function generateObject<
       callbacks: [onStepFinish, telemetryDispatcher.onObjectStepFinish],
     });
 
+    const repairHistory: Array<{ text: string; error: unknown }> = [];
     let object: RESULT;
     {
       let repairAttempt = 0;
@@ -468,6 +469,7 @@ export async function generateObject<
             NoObjectGeneratedError.isInstance(error) &&
             TypeValidationError.isInstance(error.cause)
           ) {
+            repairHistory.push({ text: repairText_, error: error.cause });
             repairAttempt++;
             repairPromptMessages = [
               ...repairPromptMessages,
@@ -543,6 +545,7 @@ export async function generateObject<
       request,
       response,
       providerMetadata: resultProviderMetadata,
+      repairHistory,
     });
   } catch (error) {
     await telemetryDispatcher.onError?.({ callId, error });
@@ -559,6 +562,7 @@ class DefaultGenerateObjectResult<T> implements GenerateObjectResult<T> {
   readonly response: GenerateObjectResult<T>['response'];
   readonly request: GenerateObjectResult<T>['request'];
   readonly reasoning: GenerateObjectResult<T>['reasoning'];
+  readonly experimental_repairHistory: GenerateObjectResult<T>['experimental_repairHistory'];
 
   constructor(options: {
     object: GenerateObjectResult<T>['object'];
@@ -569,6 +573,7 @@ class DefaultGenerateObjectResult<T> implements GenerateObjectResult<T> {
     response: GenerateObjectResult<T>['response'];
     request: GenerateObjectResult<T>['request'];
     reasoning: GenerateObjectResult<T>['reasoning'];
+    repairHistory: GenerateObjectResult<T>['experimental_repairHistory'];
   }) {
     this.object = options.object;
     this.finishReason = options.finishReason;
@@ -578,6 +583,7 @@ class DefaultGenerateObjectResult<T> implements GenerateObjectResult<T> {
     this.response = options.response;
     this.request = options.request;
     this.reasoning = options.reasoning;
+    this.experimental_repairHistory = options.repairHistory;
   }
 
   toJsonResponse(init?: ResponseInit): Response {
