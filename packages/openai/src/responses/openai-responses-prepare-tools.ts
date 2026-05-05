@@ -18,11 +18,16 @@ import type { OpenAIResponsesTool } from './openai-responses-api';
 export async function prepareResponsesTools({
   tools,
   toolChoice,
+  allowedTools,
   toolNameMapping,
   customProviderToolNames,
 }: {
   tools: LanguageModelV3CallOptions['tools'];
   toolChoice: LanguageModelV3CallOptions['toolChoice'] | undefined;
+  allowedTools?: {
+    toolNames: string[];
+    mode?: 'auto' | 'required';
+  };
   toolNameMapping?: ToolNameMapping;
   customProviderToolNames?: Set<string>;
 }): Promise<{
@@ -39,7 +44,12 @@ export async function prepareResponsesTools({
     | { type: 'code_interpreter' }
     | { type: 'mcp' }
     | { type: 'image_generation' }
-    | { type: 'apply_patch' };
+    | { type: 'apply_patch' }
+    | {
+        type: 'allowed_tools';
+        mode: 'auto' | 'required';
+        tools: Array<{ type: 'function'; name: string }>;
+      };
   toolWarnings: SharedV3Warning[];
 }> {
   // when the tools array is empty, change it to undefined to prevent errors:
@@ -283,6 +293,21 @@ export async function prepareResponsesTools({
         });
         break;
     }
+  }
+
+  if (allowedTools != null) {
+    return {
+      tools: openaiTools,
+      toolChoice: {
+        type: 'allowed_tools',
+        mode: allowedTools.mode ?? 'auto',
+        tools: allowedTools.toolNames.map(name => ({
+          type: 'function',
+          name: toolNameMapping?.toProviderToolName(name) ?? name,
+        })),
+      },
+      toolWarnings,
+    };
   }
 
   if (toolChoice == null) {
