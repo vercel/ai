@@ -20,6 +20,7 @@ export type {
   OpenAICompatibleEmbeddingModelOptions as OpenAICompatibleEmbeddingProviderOptions,
 } from './embedding/openai-compatible-embedding-model-options';
 export { OpenAICompatibleImageModel } from './image/openai-compatible-image-model';
+export type { OpenAICompatibleImageModelOptions } from './image/openai-compatible-image-model-options';
 export type {
   OpenAICompatibleErrorData,
   ProviderErrorStructure,
