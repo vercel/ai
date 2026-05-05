@@ -70,10 +70,20 @@ export async function parseToolCall<TOOLS extends ToolSet>({
 
       let repairedToolCall: LanguageModelV4ToolCall | null = null;
 
+      // Strip execute so that any generateText call inside the repair callback
+      // does not execute tools — preventing double execution when the outer
+      // generateText runs the repaired tool call itself.
+      const toolsForRepair = Object.fromEntries(
+        Object.entries(tools).map(([name, t]) => [
+          name,
+          { ...t, execute: undefined },
+        ]),
+      ) as TOOLS;
+
       try {
         repairedToolCall = await repairToolCall({
           toolCall,
-          tools,
+          tools: toolsForRepair,
           inputSchema: async ({ toolName }) => {
             const { inputSchema } = tools[toolName];
             return await asSchema(inputSchema).jsonSchema;

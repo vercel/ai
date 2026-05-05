@@ -367,6 +367,52 @@ describe('parseToolCall', () => {
       `);
     });
 
+    it('should strip execute from tools passed to repairToolCall to prevent double execution', async () => {
+      let toolsReceivedByRepair: unknown;
+
+      const repairToolCall = vi.fn().mockImplementation(({ tools }) => {
+        toolsReceivedByRepair = tools;
+        return Promise.resolve({
+          toolCallType: 'function',
+          toolName: 'testTool',
+          toolCallId: '123',
+          input: '{"param1": "test", "param2": 42}',
+        });
+      });
+
+      const executeFn = vi.fn().mockResolvedValue({ ok: true });
+
+      await parseToolCall({
+        toolCall: {
+          type: 'tool-call',
+          toolName: 'testTool',
+          toolCallId: '123',
+          input: 'invalid json',
+        },
+        tools: {
+          testTool: tool({
+            inputSchema: z.object({
+              param1: z.string(),
+              param2: z.number(),
+            }),
+            execute: executeFn,
+          }),
+        } as const,
+        repairToolCall,
+        messages: [],
+        system: undefined,
+      });
+
+      expect(repairToolCall).toHaveBeenCalledTimes(1);
+      // execute must be stripped so that generateText inside the repair callback
+      // does not execute the tool — the outer generateText owns execution.
+      expect(
+        (toolsReceivedByRepair as Record<string, { execute: unknown }>).testTool
+          .execute,
+      ).toBeUndefined();
+      expect(executeFn).not.toHaveBeenCalled();
+    });
+
     it('should re-throw error if tool call repair returns null', async () => {
       const repairToolCall = vi.fn().mockResolvedValue(null);
 
