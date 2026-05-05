@@ -1,22 +1,32 @@
-# AI SDK - Baidu Provider
+---
+title: Baidu
+description: Learn how to use Baidu Qianfan models with the AI SDK.
+---
 
-The **[Baidu provider](https://ai-sdk.dev/providers/ai-sdk-providers/baidu)** for the [AI SDK](https://ai-sdk.dev/docs) contains language model support for Baidu Qianfan's OpenAI-compatible chat completions API.
+# Baidu Provider
+
+Baidu Qianfan provides access to Baidu and partner models through an OpenAI-compatible chat completions API. This package currently supports chat models only.
+
+API keys can be obtained from the [Baidu Qianfan Console](https://console.bce.baidu.com/qianfan/overview).
 
 ## Setup
 
-The Baidu provider is available in the `@ai-sdk/baidu` module. You can install it with
+The Baidu provider is available via the `@ai-sdk/baidu` module. You can install it with:
 
-```bash
-npm i @ai-sdk/baidu
-```
-
-## Skill for Coding Agents
-
-If you use coding agents such as Claude Code or Cursor, we highly recommend adding the AI SDK skill to your repository:
-
-```shell
-npx skills add vercel/ai
-```
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add @ai-sdk/baidu" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @ai-sdk/baidu" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @ai-sdk/baidu" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="bun add @ai-sdk/baidu" dark />
+  </Tab>
+</Tabs>
 
 ## Provider Instance
 
@@ -61,7 +71,9 @@ You can use the following optional settings to customize the Baidu provider inst
   Include usage information in streaming responses. When enabled, token usage will be included in the final chunk.
   Defaults to `true`.
 
-## Language Model Example
+## Language Models
+
+You can create language models using a provider instance:
 
 ```ts
 import { baidu } from '@ai-sdk/baidu';
@@ -81,7 +93,12 @@ const model = baidu.chatModel('ernie-4.5-turbo-128k');
 const model = baidu.languageModel('ernie-4.5-turbo-128k');
 ```
 
-## Tool Calling Example
+Baidu language models can be used in the `streamText` function
+(see [AI SDK Core](/docs/ai-sdk-core)).
+
+### Tool Calling
+
+Baidu Qianfan models support tool calling through the OpenAI-compatible chat API:
 
 ```ts
 import { baidu } from '@ai-sdk/baidu';
@@ -106,7 +123,9 @@ const { text } = await generateText({
 });
 ```
 
-## Image Input Example
+### Image Input
+
+Vision-capable Baidu models can accept image input alongside text:
 
 ```ts
 import { baidu } from '@ai-sdk/baidu';
@@ -130,11 +149,17 @@ const { text } = await generateText({
 });
 ```
 
-Baidu language models can be used in the `streamText` function
-(see [AI SDK Core](https://ai-sdk.dev/docs/ai-sdk-core)).
+## Model Capabilities
 
-Model IDs are passed through to Baidu Qianfan's OpenAI-compatible chat API. You can also pass any available provider model ID as a string if needed.
+| Model                    | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
+| ------------------------ | ------------------- | ------------------- | ------------------- | ------------------- |
+| `ernie-4.5-turbo-128k`   | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `ernie-4.5-turbo-vl-32k` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `ernie-x1-turbo-32k`     | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `deepseek-v3.1`          | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 
-## Documentation
-
-Please check out the **[Baidu provider documentation](https://ai-sdk.dev/providers/ai-sdk-providers/baidu)** for more information.
+<Note>
+  Please see the [Baidu Qianfan docs](https://cloud.baidu.com/doc/WENXINWORKSHOP/s/wm7ltcvg8)
+  for a full list of available models. You can also pass any available provider
+  model ID as a string if needed.
+</Note>
