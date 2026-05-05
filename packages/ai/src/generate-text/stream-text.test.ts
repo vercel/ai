@@ -1569,6 +1569,79 @@ describe('streamText', () => {
       ).toMatchSnapshot();
     });
 
+    it('should refine tool input before tool execution, stream parts, and callbacks', async () => {
+      const modelCallEndEvents: LanguageModelCallEndEvent<any>[] = [];
+      const toolExecutionStartEvents: Array<{
+        toolCall: { input: unknown };
+      }> = [];
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                input: `{ "value": " raw " }`,
+              },
+              {
+                type: 'finish',
+                finishReason: { unified: 'tool-calls', raw: undefined },
+                usage: testUsage,
+              },
+            ]),
+          }),
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async input => {
+              expect(input).toStrictEqual({ value: 'raw' });
+              return `result:${input.value}`;
+            },
+          }),
+        },
+        experimental_refineToolInput: {
+          tool1: input => ({ value: input.value.trim() }),
+        },
+        experimental_onLanguageModelCallEnd: event => {
+          modelCallEndEvents.push(event);
+        },
+        experimental_onToolExecutionStart: event => {
+          toolExecutionStartEvents.push(event);
+        },
+        prompt: 'test-input',
+      });
+
+      const fullStream = await convertAsyncIterableToArray(result.fullStream);
+
+      expect(fullStream).toContainEqual(
+        expect.objectContaining({
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'tool1',
+          input: { value: 'raw' },
+        }),
+      );
+      expect(fullStream).toContainEqual(
+        expect.objectContaining({
+          type: 'tool-result',
+          toolCallId: 'call-1',
+          toolName: 'tool1',
+          input: { value: 'raw' },
+          output: 'result:raw',
+        }),
+      );
+      expect(modelCallEndEvents[0].content[0]).toMatchObject({
+        type: 'tool-call',
+        input: { value: 'raw' },
+      });
+      expect(toolExecutionStartEvents[0].toolCall.input).toStrictEqual({
+        value: 'raw',
+      });
+    });
+
     it('should send tool call deltas', async () => {
       const result = streamText({
         model: createTestModel({

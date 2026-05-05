@@ -117,6 +117,13 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
         'Optional callback to attempt automatic recovery when a tool call cannot be parsed.',
     },
     {
+      name: 'experimental_refineToolInput',
+      type: 'ToolInputRefinement<TOOLS>',
+      isOptional: true,
+      description:
+        'Optional mapping of tool names to functions that refine parsed tool inputs. Each function receives the typed input for its tool and must return the same input type shape. The refined input is used for tool execution, output parts, lifecycle callbacks, and telemetry in both `generate()` and `stream()`.',
+    },
+    {
       name: 'experimental_onStart',
       type: 'GenerateTextOnStartCallback',
       isOptional: true,

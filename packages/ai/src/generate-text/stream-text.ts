@@ -12,12 +12,12 @@ import {
   isAbortError,
   type Arrayable,
   type Context,
-  type InferToolSetContext,
-  type ToolApprovalResponse,
-  type ToolSet,
   type IdGenerator,
+  type InferToolSetContext,
   type ProviderOptions,
+  type ToolApprovalResponse,
   type ToolContent,
+  type ToolSet,
 } from '@ai-sdk/provider-utils';
 import type { ServerResponse } from 'node:http';
 import { NoOutputGeneratedError } from '../error';
@@ -85,14 +85,20 @@ import { setAbortTimeout } from '../util/set-abort-timeout';
 import type { ActiveTools } from './active-tools';
 import { collectToolApprovals } from './collect-tool-approvals';
 import type { ContentPart } from './content-part';
+import { createExecuteToolsTransformation } from './create-execute-tools-transformation';
+import { executeToolCall } from './execute-tool-call';
+import { filterActiveTools } from './filter-active-tools';
+import type {
+  GenerateTextOnFinishCallback,
+  GenerateTextOnStartCallback,
+  GenerateTextOnStepFinishCallback,
+  GenerateTextOnStepStartCallback,
+} from './generate-text-events';
+import { invokeToolCallbacksFromStream } from './invoke-tool-callbacks-from-stream';
 import type {
   OnLanguageModelCallEndCallback,
   OnLanguageModelCallStartCallback,
 } from './language-model-events';
-import { createExecuteToolsTransformation } from './create-execute-tools-transformation';
-import { executeToolCall } from './execute-tool-call';
-import { filterActiveTools } from './filter-active-tools';
-import { invokeToolCallbacksFromStream } from './invoke-tool-callbacks-from-stream';
 import { text, type Output } from './output';
 import type {
   InferCompleteOutput,
@@ -101,8 +107,8 @@ import type {
 } from './output-utils';
 import type { PrepareStepFunction } from './prepare-step';
 import { convertToReasoningOutputs } from './reasoning-output';
-import { createRestrictedTelemetryDispatcher } from './restricted-telemetry-dispatcher';
 import type { ResponseMessage } from './response-message';
+import { createRestrictedTelemetryDispatcher } from './restricted-telemetry-dispatcher';
 import { DefaultStepResult, type StepResult } from './step-result';
 import {
   isStepCount,
@@ -127,15 +133,10 @@ import type {
   OnToolExecutionEndCallback,
   OnToolExecutionStartCallback,
 } from './tool-execution-events';
+import type { ToolInputRefinement } from './tool-input-refinement';
 import type { ToolOutput } from './tool-output';
 import type { StaticToolOutputDenied } from './tool-output-denied';
 import type { ToolsContextParameter } from './tools-context-parameter';
-import type {
-  GenerateTextOnFinishCallback,
-  GenerateTextOnStartCallback,
-  GenerateTextOnStepFinishCallback,
-  GenerateTextOnStepStartCallback,
-} from './generate-text-events';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -245,6 +246,7 @@ export type StreamTextOnAbortCallback<
  * @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
  *
  * @param runtimeContext - User-defined runtime context that flows through the entire generation lifecycle.
+ * @param experimental_refineToolInput - Optional mapping of tool names to functions that refine parsed tool inputs before tools are executed and before outputs, callbacks, and telemetry are recorded.
  *
  * @param onChunk - Callback that is called for each chunk of the stream. The stream processing will pause until the callback promise is resolved.
  * @param onError - Callback that is called when an error occurs during streaming. You can use it to log errors.
@@ -279,6 +281,7 @@ export function streamText<
   providerOptions,
   activeTools,
   experimental_repairToolCall: repairToolCall,
+  experimental_refineToolInput: refineToolInput,
   experimental_transform: transform,
   experimental_download: download,
   includeRawChunks = false,
@@ -386,6 +389,14 @@ export function streamText<
      * A function that attempts to repair a tool call that failed to parse.
      */
     experimental_repairToolCall?: ToolCallRepairFunction<TOOLS>;
+
+    /**
+     * Optional mapping of tool names to functions that refine parsed tool inputs.
+     *
+     * The refined input must have the same type shape as the tool input. Refined
+     * inputs are used for tool execution, stream parts, callbacks, and telemetry.
+     */
+    experimental_refineToolInput?: ToolInputRefinement<NoInfer<TOOLS>>;
 
     /**
      * Optional stream transformations.
@@ -552,6 +563,7 @@ export function streamText<
     transforms: asArray(transform),
     activeTools,
     repairToolCall,
+    refineToolInput,
     stopConditions: asArray(stopWhen),
     output,
     toolApproval,
@@ -738,6 +750,7 @@ class DefaultStreamTextResult<
     transforms,
     activeTools,
     repairToolCall,
+    refineToolInput,
     stopConditions,
     output,
     toolApproval,
@@ -785,6 +798,7 @@ class DefaultStreamTextResult<
     transforms: Array<StreamTextTransform<TOOLS>>;
     activeTools: ActiveTools<TOOLS>;
     repairToolCall: ToolCallRepairFunction<TOOLS> | undefined;
+    refineToolInput: ToolInputRefinement<TOOLS> | undefined;
     stopConditions: Array<
       StopCondition<NoInfer<TOOLS>, NoInfer<RUNTIME_CONTEXT>>
     >;
@@ -1542,6 +1556,7 @@ class DefaultStreamTextResult<
               messages: stepMessages,
               allowSystemInMessages,
               repairToolCall,
+              refineToolInput,
               abortSignal,
               headers,
               includeRawChunks,

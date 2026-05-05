@@ -8,16 +8,16 @@ import {
   createIdGenerator,
   type Arrayable,
   type IdGenerator,
-  type ToolSet,
   type ModelMessage,
   type ProviderOptions,
   type SystemModelMessage,
+  type ToolSet,
 } from '@ai-sdk/provider-utils';
 import { ToolCallNotFoundForApprovalError } from '../error/tool-call-not-found-for-approval-error';
 import { resolveLanguageModel } from '../model/resolve-model';
-import type { LanguageModelCallOptions } from '../prompt/language-model-call-options';
 import type { Prompt } from '../prompt';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
+import type { LanguageModelCallOptions } from '../prompt/language-model-call-options';
 import { prepareToolChoice } from '../prompt/prepare-tool-choice';
 import { prepareTools } from '../prompt/prepare-tools';
 import { standardizePrompt } from '../prompt/standardize-prompt';
@@ -58,6 +58,7 @@ import type {
 import type { TypedToolCall } from './tool-call';
 import type { ToolCallRepairFunction } from './tool-call-repair-function';
 import type { TypedToolError } from './tool-error';
+import type { ToolInputRefinement } from './tool-input-refinement';
 import type { TypedToolResult } from './tool-result';
 
 const originalGenerateId = createIdGenerator({
@@ -167,6 +168,7 @@ export type LanguageModelStreamPart<TOOLS extends ToolSet = ToolSet> =
  * @param includeRawChunks - Whether to include raw provider stream chunks in the model stream.
  * @param providerOptions - Additional provider-specific options.
  * @param repairToolCall - A function that can repair invalid tool calls before they are emitted.
+ * @param refineToolInput - Optional mapping of tool names to functions that refine parsed tool inputs before they are emitted, used for telemetry, or executed.
  * @param onStart - A callback that receives the fully converted prompt before the model call starts.
  *
  * @returns A stream of model call parts together with request and response metadata when available.
@@ -189,6 +191,7 @@ export async function streamLanguageModelCall<
   includeRawChunks,
   providerOptions,
   repairToolCall,
+  refineToolInput,
   callId,
   _internal: {
     generateId = originalGenerateId,
@@ -209,6 +212,7 @@ export async function streamLanguageModelCall<
   includeRawChunks?: boolean;
   providerOptions?: ProviderOptions;
   repairToolCall?: ToolCallRepairFunction<TOOLS> | undefined;
+  refineToolInput?: ToolInputRefinement<TOOLS> | undefined;
   callId?: string;
   _internal?: {
     generateId?: IdGenerator;
@@ -312,6 +316,7 @@ export async function streamLanguageModelCall<
       system: standardizedPrompt.system,
       messages: standardizedPrompt.messages,
       repairToolCall,
+      refineToolInput,
       callId: effectiveCallId,
       provider: resolvedModel.provider,
       modelId: resolvedModel.modelId,
@@ -335,6 +340,7 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
   system,
   messages,
   repairToolCall,
+  refineToolInput,
   callId,
   provider,
   modelId,
@@ -345,6 +351,7 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
   system: string | SystemModelMessage | Array<SystemModelMessage> | undefined;
   messages: ModelMessage[];
   repairToolCall: ToolCallRepairFunction<TOOLS> | undefined;
+  refineToolInput: ToolInputRefinement<TOOLS> | undefined;
   callId: string;
   provider: string;
   modelId: string;
@@ -503,6 +510,7 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
               toolCall: chunk,
               tools,
               repairToolCall,
+              refineToolInput,
               system,
               messages,
             });

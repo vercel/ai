@@ -5,6 +5,7 @@ import {
   Output,
   type GenerateTextOnFinishCallback,
   type ToolApprovalConfiguration,
+  type ToolInputRefinement,
 } from '../generate-text';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import type { AsyncIterableStream } from '../util/async-iterable-stream';
@@ -110,9 +111,18 @@ describe('ToolLoopAgent', () => {
             return 'user-approval';
           },
         },
+        experimental_refineToolInput: {
+          testTool: input => {
+            expectTypeOf(input).toEqualTypeOf<{ value: string }>();
+            return { value: input.value.trim() };
+          },
+        },
         prepareCall: options => {
           expectTypeOf(options.toolApproval).toEqualTypeOf<
             ToolApprovalConfiguration<typeof tools, Context> | undefined
+          >();
+          expectTypeOf(options.experimental_refineToolInput).toEqualTypeOf<
+            ToolInputRefinement<typeof tools> | undefined
           >();
 
           return {
