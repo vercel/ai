@@ -81,7 +81,7 @@ export default defineConfig([
   },
   {
     entry: ['src/xai/index.ts'],
-    format: ['esm'],
+    format: ['cjs', 'esm'],
     dts: true,
     sourcemap: true,
     define: {
@@ -94,7 +94,7 @@ export default defineConfig([
   },
   {
     entry: ['src/xai/edge/index.ts'],
-    format: ['esm'],
+    format: ['cjs', 'esm'],
     dts: true,
     sourcemap: true,
     define: {
