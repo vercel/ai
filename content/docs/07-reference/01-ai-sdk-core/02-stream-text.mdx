@@ -527,6 +527,13 @@ To see `streamText` in action, check out [these examples](#examples).
                 'Identifier for this function. Used to group telemetry data by function.',
             },
             {
+              name: 'includeRuntimeContext',
+              type: '{ [KEY in keyof CONTEXT]?: boolean }',
+              isOptional: true,
+              description:
+                'Top-level runtime context properties that should be included in telemetry. Runtime context properties are excluded unless they are explicitly set to `true`. Lifecycle callbacks and returned results still receive the full `runtimeContext`.',
+            },
+            {
               name: 'integrations',
               isOptional: true,
               type: 'Telemetry | Telemetry[]',
@@ -737,13 +744,6 @@ To see `streamText` in action, check out [these examples](#examples).
       isOptional: true,
       description:
         'User-defined shared runtime context object passed to `prepareStep` and lifecycle callbacks.',
-    },
-    {
-      name: 'sensitiveRuntimeContext',
-      type: 'SensitiveContext<CONTEXT>',
-      isOptional: true,
-      description:
-        'Top-level runtime context properties that contain sensitive data and should be excluded from telemetry. Properties marked as `true` are omitted from telemetry integrations. Lifecycle callbacks and returned results still receive the full `runtimeContext`.',
     },
     {
       name: 'toolsContext',

@@ -5705,7 +5705,7 @@ describe('streamText', () => {
       });
     });
 
-    it('should pass sensitive runtimeContext properties to callbacks', async () => {
+    it('should pass full runtimeContext to callbacks', async () => {
       const callbackContexts: unknown[] = [];
 
       const result = streamText({
@@ -5715,8 +5715,10 @@ describe('streamText', () => {
           userId: 'user-123',
           requestId: 'request-123',
         },
-        sensitiveRuntimeContext: {
-          userId: true,
+        telemetry: {
+          includeRuntimeContext: {
+            requestId: true,
+          },
         },
         experimental_onStart: async ({ runtimeContext }) => {
           callbackContexts.push(runtimeContext);
@@ -5743,7 +5745,7 @@ describe('streamText', () => {
       ]);
     });
 
-    it('should exclude sensitive runtimeContext properties from telemetry', async () => {
+    it('should include configured runtimeContext properties in telemetry', async () => {
       const telemetryContexts: unknown[] = [];
 
       const result = streamText({
@@ -5753,10 +5755,10 @@ describe('streamText', () => {
           userId: 'user-123',
           requestId: 'request-123',
         },
-        sensitiveRuntimeContext: {
-          userId: true,
-        },
         telemetry: {
+          includeRuntimeContext: {
+            requestId: true,
+          },
           integrations: {
             onStart: async event => {
               telemetryContexts.push(
@@ -5787,6 +5789,44 @@ describe('streamText', () => {
         { requestId: 'request-123' },
         { requestId: 'request-123' },
       ]);
+    });
+
+    it('should exclude runtimeContext from telemetry by default', async () => {
+      const telemetryContexts: unknown[] = [];
+
+      const result = streamText({
+        model: createTestModel(),
+        prompt: 'test-input',
+        runtimeContext: {
+          userId: 'user-123',
+          requestId: 'request-123',
+        },
+        telemetry: {
+          integrations: {
+            onStart: async event => {
+              telemetryContexts.push(
+                (event as { runtimeContext: unknown }).runtimeContext,
+              );
+            },
+            onStepStart: async ({ runtimeContext }) => {
+              telemetryContexts.push(runtimeContext);
+            },
+            onStepFinish: async ({ runtimeContext }) => {
+              telemetryContexts.push(runtimeContext);
+            },
+            onFinish: async event => {
+              telemetryContexts.push(
+                (event as { runtimeContext: unknown }).runtimeContext,
+              );
+            },
+          },
+        },
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      expect(telemetryContexts).toEqual([{}, {}, {}, {}]);
     });
 
     it('should send correct information with system and messages', async () => {

@@ -236,24 +236,28 @@ describe('ToolLoopAgent', () => {
       });
     });
 
-    it('should accept sensitiveRuntimeContext for runtimeContext keys', async () => {
+    it('should accept includeRuntimeContext for runtimeContext keys', async () => {
       new ToolLoopAgent<never, {}, { userId: string; requestId: string }>({
         model: new MockLanguageModelV4(),
         runtimeContext: { userId: 'user-123', requestId: 'request-123' },
-        sensitiveRuntimeContext: {
-          userId: true,
-          requestId: false,
+        telemetry: {
+          includeRuntimeContext: {
+            userId: true,
+            requestId: false,
+          },
         },
       });
     });
 
-    it('should reject unknown sensitiveRuntimeContext keys', async () => {
+    it('should reject unknown includeRuntimeContext keys', async () => {
       new ToolLoopAgent<never, {}, { userId: string }>({
         model: new MockLanguageModelV4(),
         runtimeContext: { userId: 'user-123' },
-        sensitiveRuntimeContext: {
-          // @ts-expect-error sensitiveRuntimeContext only supports runtimeContext properties
-          unknown: true,
+        telemetry: {
+          includeRuntimeContext: {
+            // @ts-expect-error includeRuntimeContext only supports runtimeContext properties
+            unknown: true,
+          },
         },
       });
     });
@@ -326,13 +330,17 @@ describe('ToolLoopAgent', () => {
     });
 
     describe('prepareCall', () => {
-      it('should expose sensitiveRuntimeContext type', async () => {
+      it('should expose includeRuntimeContext type', async () => {
         new ToolLoopAgent<never, {}, { userId: string; requestId: string }>({
           model: new MockLanguageModelV4(),
           runtimeContext: { userId: 'user-123', requestId: 'request-123' },
-          sensitiveRuntimeContext: { userId: true },
+          telemetry: {
+            includeRuntimeContext: { userId: true },
+          },
           prepareCall: options => {
-            expectTypeOf(options.sensitiveRuntimeContext).toEqualTypeOf<
+            expectTypeOf(
+              options.telemetry?.includeRuntimeContext,
+            ).toEqualTypeOf<
               | {
                   userId?: boolean | undefined;
                   requestId?: boolean | undefined;

@@ -1,10 +1,10 @@
-import type { Arrayable } from '@ai-sdk/provider-utils';
+import type { Arrayable, Context } from '@ai-sdk/provider-utils';
 import type { Telemetry } from './telemetry';
 
 /**
  * Telemetry configuration.
  */
-export type TelemetryOptions = {
+export type TelemetryOptions<RUNTIME_CONTEXT extends Context = Context> = {
   /**
    * Enable or disable telemetry. Enabled by default when a telemetry
    * integration is registered. Set to `false` to opt out.
@@ -31,6 +31,14 @@ export type TelemetryOptions = {
    * Identifier for this function. Used to group telemetry data by function.
    */
   functionId?: string;
+
+  /**
+   * Top-level runtime context properties that should be included in telemetry.
+   * Runtime context properties are excluded unless they are explicitly set to `true`.
+   */
+  includeRuntimeContext?:
+    | { [KEY in keyof NoInfer<RUNTIME_CONTEXT>]?: boolean }
+    | undefined;
 
   /**
    * Per-call telemetry integrations that receive lifecycle events during generation.

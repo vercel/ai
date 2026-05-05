@@ -21,6 +21,10 @@ import type {
   OnToolExecutionStartCallback,
 } from './tool-execution-events';
 
+type IncludedRuntimeContext<CONTEXT extends Context> =
+  | { [KEY in keyof CONTEXT]?: boolean }
+  | undefined;
+
 /**
  * Telemetry dispatcher for text generation with callbacks typed to the
  * operation-specific tool set, runtime context, and output shape.
@@ -47,10 +51,28 @@ export type RestrictedTelemetryDispatcher<
 };
 
 /**
- * Returns a shallow copy of the runtime context with top-level properties
- * marked as sensitive removed.
+ * Returns a shallow copy of the runtime context with only top-level
+ * properties marked for telemetry inclusion.
  */
-function filterContext<CONTEXT extends Context>({
+function filterIncludedContext<CONTEXT extends Context>({
+  context,
+  includeContext,
+}: {
+  context: CONTEXT;
+  includeContext: IncludedRuntimeContext<CONTEXT>;
+}): Context {
+  return Object.fromEntries(
+    Object.entries(context).filter(
+      ([key]) => includeContext?.[key as keyof CONTEXT] === true,
+    ),
+  );
+}
+
+/**
+ * Returns a shallow copy of the context with top-level properties marked as
+ * sensitive removed.
+ */
+function filterSensitiveContext<CONTEXT extends Context>({
   context,
   sensitiveContext,
 }: {
@@ -67,8 +89,8 @@ function filterContext<CONTEXT extends Context>({
 }
 
 /**
- * Creates a copy of a step result whose runtime context has sensitive
- * top-level properties removed before it is sent to telemetry integrations.
+ * Creates a copy of a step result whose runtime context only contains
+ * top-level properties marked for telemetry inclusion.
  */
 function restrictStepResult<
   TOOLS extends ToolSet,
@@ -76,20 +98,20 @@ function restrictStepResult<
 >({
   step,
   tools,
-  sensitiveRuntimeContext,
+  includeRuntimeContext,
 }: {
   step: StepResult<TOOLS, RUNTIME_CONTEXT>;
   tools: TOOLS | undefined;
-  sensitiveRuntimeContext: SensitiveContext<RUNTIME_CONTEXT>;
+  includeRuntimeContext: IncludedRuntimeContext<RUNTIME_CONTEXT>;
 }) {
   return new DefaultStepResult({
     callId: step.callId,
     stepNumber: step.stepNumber,
     provider: step.model.provider,
     modelId: step.model.modelId,
-    runtimeContext: filterContext({
+    runtimeContext: filterIncludedContext({
       context: step.runtimeContext,
-      sensitiveContext: sensitiveRuntimeContext,
+      includeContext: includeRuntimeContext,
     }),
     toolsContext: filterToolsContext({
       tools,
@@ -148,15 +170,15 @@ function filterToolContext<TOOLS extends ToolSet>({
 
   return sensitiveToolContext == null
     ? toolContext
-    : filterContext({
+    : filterSensitiveContext({
         context: toolContext as InferToolContext<TOOLS[typeof toolName]>,
         sensitiveContext: sensitiveToolContext,
       });
 }
 
 /**
- * Creates a telemetry dispatcher that redacts configured runtime context
- * properties from text-generation lifecycle events before dispatching them.
+ * Creates a telemetry dispatcher that only includes configured runtime context
+ * properties in text-generation lifecycle events before dispatching them.
  */
 export function createRestrictedTelemetryDispatcher<
   TOOLS extends ToolSet,
@@ -165,11 +187,11 @@ export function createRestrictedTelemetryDispatcher<
 >({
   telemetry,
   tools,
-  sensitiveRuntimeContext,
+  includeRuntimeContext,
 }: {
-  telemetry?: TelemetryOptions;
+  telemetry?: TelemetryOptions<RUNTIME_CONTEXT>;
   tools?: TOOLS | undefined;
-  sensitiveRuntimeContext: SensitiveContext<RUNTIME_CONTEXT>;
+  includeRuntimeContext: IncludedRuntimeContext<RUNTIME_CONTEXT>;
 }): RestrictedTelemetryDispatcher<TOOLS, RUNTIME_CONTEXT, OUTPUT> {
   const telemetryDispatcher = createTelemetryDispatcher({ telemetry });
 
@@ -178,9 +200,9 @@ export function createRestrictedTelemetryDispatcher<
     onStart: event =>
       telemetryDispatcher.onStart?.({
         ...event,
-        runtimeContext: filterContext({
+        runtimeContext: filterIncludedContext({
           context: event.runtimeContext,
-          sensitiveContext: sensitiveRuntimeContext,
+          includeContext: includeRuntimeContext,
         }),
         toolsContext: filterToolsContext({
           tools,
@@ -190,12 +212,12 @@ export function createRestrictedTelemetryDispatcher<
     onStepStart: event =>
       telemetryDispatcher.onStepStart?.({
         ...event,
-        runtimeContext: filterContext({
+        runtimeContext: filterIncludedContext({
           context: event.runtimeContext,
-          sensitiveContext: sensitiveRuntimeContext,
+          includeContext: includeRuntimeContext,
         }),
         steps: event.steps.map(step =>
-          restrictStepResult({ step, tools, sensitiveRuntimeContext }),
+          restrictStepResult({ step, tools, includeRuntimeContext }),
         ),
         toolsContext: filterToolsContext({
           tools,
@@ -207,18 +229,18 @@ export function createRestrictedTelemetryDispatcher<
         restrictStepResult({
           step: event,
           tools,
-          sensitiveRuntimeContext,
+          includeRuntimeContext,
         }),
       ),
     onFinish: event =>
       telemetryDispatcher.onFinish?.({
         ...event,
-        runtimeContext: filterContext({
+        runtimeContext: filterIncludedContext({
           context: event.runtimeContext,
-          sensitiveContext: sensitiveRuntimeContext,
+          includeContext: includeRuntimeContext,
         }),
         steps: event.steps.map(step =>
-          restrictStepResult({ step, tools, sensitiveRuntimeContext }),
+          restrictStepResult({ step, tools, includeRuntimeContext }),
         ),
         toolsContext: filterToolsContext({
           tools,

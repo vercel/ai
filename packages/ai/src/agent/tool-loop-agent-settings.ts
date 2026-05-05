@@ -6,7 +6,6 @@ import type {
   InferToolSetContext,
   MaybePromiseLike,
   ProviderOptions,
-  SensitiveContext,
   SystemModelMessage,
   ToolSet,
 } from '@ai-sdk/provider-utils';
@@ -79,14 +78,14 @@ export type ToolLoopAgentSettings<
     /**
      * Optional telemetry configuration.
      */
-    telemetry?: TelemetryOptions;
+    telemetry?: TelemetryOptions<RUNTIME_CONTEXT>;
 
     /**
      * Optional telemetry configuration.
      *
      * @deprecated Use `telemetry` instead. This alias will be removed in a future major release.
      */
-    experimental_telemetry?: TelemetryOptions;
+    experimental_telemetry?: TelemetryOptions<RUNTIME_CONTEXT>;
 
     /**
      * Limits the tools that are available for the model to call without
@@ -104,12 +103,6 @@ export type ToolLoopAgentSettings<
      * If you need to mutate runtime context, update it in `prepareStep`.
      */
     runtimeContext?: RUNTIME_CONTEXT;
-
-    /**
-     * Top-level runtime context properties that contain sensitive data and
-     * should be excluded from telemetry.
-     */
-    sensitiveRuntimeContext?: SensitiveContext<NoInfer<RUNTIME_CONTEXT>>;
 
     /**
      * Optional tool approval configuration.
@@ -244,7 +237,6 @@ export type ToolLoopAgentSettings<
           | 'providerOptions'
           | 'experimental_download'
           | 'runtimeContext'
-          | 'sensitiveRuntimeContext'
           | '_internal'
         > & { toolsContext: InferToolSetContext<TOOLS> },
     ) => MaybePromiseLike<
@@ -275,7 +267,6 @@ export type ToolLoopAgentSettings<
         | 'providerOptions'
         | 'experimental_download'
         | 'runtimeContext'
-        | 'sensitiveRuntimeContext'
         | '_internal'
       > &
         Omit<Prompt, 'system'> & {

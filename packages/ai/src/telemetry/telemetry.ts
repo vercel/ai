@@ -38,7 +38,10 @@ import type { Callback } from '../util/callback';
 import type { TelemetryOptions } from '../telemetry/telemetry-options';
 
 export type InferTelemetryEvent<EVENT> = EVENT &
-  Omit<TelemetryOptions, 'integrations' | 'isEnabled'>;
+  Omit<
+    TelemetryOptions,
+    'integrations' | 'isEnabled' | 'includeRuntimeContext'
+  >;
 
 type OperationStartEvent =
   | GenerateTextStartEvent

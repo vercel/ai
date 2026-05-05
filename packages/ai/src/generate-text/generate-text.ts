@@ -11,7 +11,6 @@ import {
   type Arrayable,
   type Context,
   type InferToolSetContext,
-  type SensitiveContext,
   type ToolSet,
   type IdGenerator,
   type ProviderOptions,
@@ -152,8 +151,6 @@ const originalGenerateCallId = createIdGenerator({
  * @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
  *
  * @param runtimeContext - User-defined runtime context that flows through the entire generation lifecycle.
- * @param sensitiveRuntimeContext - Top-level runtime context properties that contain sensitive data and should be excluded from telemetry.
- *
  * @param experimental_onStart - Callback invoked when generation begins, before any LLM calls.
  * @param experimental_onStepStart - Callback invoked when each step begins, before the provider is called.
  * Receives step number, messages (in ModelMessage format), tools, and runtimeContext.
@@ -194,7 +191,6 @@ export async function generateText<
   experimental_repairToolCall: repairToolCall,
   experimental_download: download,
   runtimeContext = {} as RUNTIME_CONTEXT,
-  sensitiveRuntimeContext,
   toolsContext = {} as InferToolSetContext<TOOLS>,
   experimental_include: include,
   _internal: {
@@ -235,14 +231,14 @@ export async function generateText<
     /**
      * Optional telemetry configuration.
      */
-    telemetry?: TelemetryOptions;
+    telemetry?: TelemetryOptions<RUNTIME_CONTEXT>;
 
     /**
      * Optional telemetry configuration.
      *
      * @deprecated Use `telemetry` instead. This alias will be removed in a future major release.
      */
-    experimental_telemetry?: TelemetryOptions;
+    experimental_telemetry?: TelemetryOptions<RUNTIME_CONTEXT>;
 
     /**
      * Additional provider-specific options. They are passed through
@@ -256,12 +252,6 @@ export async function generateText<
      * If you need to mutate runtime context, update it in `prepareStep`.
      */
     runtimeContext?: RUNTIME_CONTEXT;
-
-    /**
-     * Top-level runtime context properties that contain sensitive data and
-     * should be excluded from telemetry.
-     */
-    sensitiveRuntimeContext?: SensitiveContext<NoInfer<RUNTIME_CONTEXT>>;
 
     /**
      * Limits the tools that are available for the model to call without
@@ -432,7 +422,7 @@ export async function generateText<
   >({
     telemetry,
     tools,
-    sensitiveRuntimeContext,
+    includeRuntimeContext: telemetry?.includeRuntimeContext,
   });
 
   await notify({

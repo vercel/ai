@@ -92,9 +92,9 @@ const result = await generateText({
 });
 ```
 
-### Sensitive runtime context
+### Runtime context telemetry inclusion
 
-`runtimeContext` can contain values that are useful inside your application but should not be sent to telemetry providers, such as user identifiers, tenant IDs, or credentials. Use `sensitiveRuntimeContext` to mark top-level `runtimeContext` properties that should be excluded from telemetry:
+`runtimeContext` can contain values that are useful inside your application but should not be sent to telemetry providers, such as user identifiers, tenant IDs, or credentials. Use `telemetry.includeRuntimeContext` to mark the top-level `runtimeContext` properties that should be included in telemetry:
 
 ```ts highlight="8-10"
 const result = await generateText({
@@ -104,16 +104,18 @@ const result = await generateText({
     userId: 'user_123',
     requestId: 'req_abc',
   },
-  sensitiveRuntimeContext: {
-    userId: true,
+  telemetry: {
+    includeRuntimeContext: {
+      requestId: true,
+    },
   },
 });
 ```
 
-In this example, telemetry integrations receive `runtimeContext` as `{ requestId: 'req_abc' }`. Properties set to `false` or omitted are still sent. `sensitiveRuntimeContext` is supported by `generateText`, `streamText`, and `ToolLoopAgent`.
+In this example, telemetry integrations receive `runtimeContext` as `{ requestId: 'req_abc' }`. Properties set to `false` or omitted are excluded. If `telemetry.includeRuntimeContext` is omitted, no runtime context properties are included. `telemetry.includeRuntimeContext` is supported by `generateText`, `streamText`, and `ToolLoopAgent`.
 
 <Note>
-  `sensitiveRuntimeContext` only filters telemetry integrations, including
+  `telemetry.includeRuntimeContext` only filters telemetry integrations, including
   OpenTelemetry integrations. Lifecycle callbacks and returned results still
   receive the full `runtimeContext`.
 </Note>
@@ -704,7 +706,7 @@ Many spans that use LLMs (`ai.generateText`, `ai.generateText.doGenerate`, `ai.s
 - `ai.response.providerMetadata`: provider specific metadata returned with the generation response
 - `ai.settings.maxRetries`: the maximum number of retries that were set
 - `ai.telemetry.functionId`: the functionId that was set through `telemetry.functionId`
-- `ai.settings.runtimeContext.*`: the runtime context that was passed in through the `runtimeContext` option, excluding top-level properties marked with `sensitiveRuntimeContext`
+- `ai.settings.runtimeContext.*`: the runtime context that was passed in through the `runtimeContext` option, filtered to top-level properties marked with `telemetry.includeRuntimeContext` when configured
 - `ai.usage.completionTokens`: the number of completion tokens that were used
 - `ai.usage.promptTokens`: the number of prompt tokens that were used
 
