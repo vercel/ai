@@ -129,14 +129,54 @@ describe('generateText types', () => {
       });
     });
 
-    it('should accept sensitiveRuntimeContext for runtimeContext keys', async () => {
+    it('should accept includeRuntimeContext for runtimeContext keys', async () => {
       generateText({
         model: new MockLanguageModelV4(),
         prompt: 'Hello',
         runtimeContext: { userId: 'user-123', requestId: 'request-123' },
-        sensitiveRuntimeContext: {
-          userId: true,
-          requestId: false,
+        telemetry: {
+          includeRuntimeContext: {
+            userId: true,
+            requestId: false,
+          },
+        },
+      });
+    });
+
+    it('should accept includeToolsContext for toolsContext keys', async () => {
+      generateText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+        tools: twoToolsWithContext,
+        toolsContext: {
+          weather: { weatherApiKey: 'key' },
+          db: { dbUrl: 'url' },
+        },
+        telemetry: {
+          includeToolsContext: {
+            weather: { weatherApiKey: true },
+            db: { dbUrl: false },
+          },
+        },
+      });
+    });
+
+    it('should reject unknown includeToolsContext keys', async () => {
+      generateText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+        tools: twoToolsWithContext,
+        toolsContext: {
+          weather: { weatherApiKey: 'key' },
+          db: { dbUrl: 'url' },
+        },
+        telemetry: {
+          includeToolsContext: {
+            weather: {
+              // @ts-expect-error includeToolsContext only supports tool context properties
+              unknown: true,
+            },
+          },
         },
       });
     });
@@ -146,7 +186,9 @@ describe('generateText types', () => {
         model: new MockLanguageModelV4(),
         prompt: 'Hello',
         runtimeContext: { userId: 'user-123', requestId: 'request-123' },
-        sensitiveRuntimeContext: { userId: true },
+        telemetry: {
+          includeRuntimeContext: { userId: true },
+        },
         experimental_onStart: ({ runtimeContext }) => {
           expectTypeOf(runtimeContext).toEqualTypeOf<{
             userId: string;
@@ -174,14 +216,16 @@ describe('generateText types', () => {
       });
     });
 
-    it('should reject unknown sensitiveRuntimeContext keys', async () => {
+    it('should reject unknown includeRuntimeContext keys', async () => {
       generateText({
         model: new MockLanguageModelV4(),
         prompt: 'Hello',
         runtimeContext: { userId: 'user-123' },
-        sensitiveRuntimeContext: {
-          // @ts-expect-error sensitiveRuntimeContext only supports runtimeContext properties
-          unknown: true,
+        telemetry: {
+          includeRuntimeContext: {
+            // @ts-expect-error includeRuntimeContext only supports runtimeContext properties
+            unknown: true,
+          },
         },
       });
     });

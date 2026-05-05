@@ -32,7 +32,6 @@ export type { ModelMessage } from './model-message';
 export type { ProviderOptions } from './provider-options';
 export type { ProviderReference } from './provider-reference';
 export type { Sandbox } from './sandbox';
-export type { SensitiveContext } from './sensitive-context';
 export type { SystemModelMessage } from './system-model-message';
 export {
   dynamicTool,

@@ -1,5 +1,14 @@
 # @ai-sdk/cerebras
 
+## 3.0.0-canary.39
+
+### Patch Changes
+
+- Updated dependencies [5463d0d]
+  - @ai-sdk/provider-utils@5.0.0-canary.32
+  - @ai-sdk/provider@4.0.0-canary.16
+  - @ai-sdk/openai-compatible@3.0.0-canary.39
+
 ## 3.0.0-canary.38
 
 ### Patch Changes

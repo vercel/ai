@@ -64,6 +64,8 @@ export type OpenAIChatModelId =
   | 'gpt-5.4-nano-2026-03-17'
   | 'gpt-5.4-pro'
   | 'gpt-5.4-pro-2026-03-05'
+  | 'gpt-5.5'
+  | 'gpt-5.5-2026-04-23'
   | (string & {});
 
 export const openaiLanguageModelChatOptions = lazySchema(() =>

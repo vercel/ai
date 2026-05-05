@@ -19,7 +19,6 @@ export {
   type InferToolOutput,
   type Sandbox,
   type Schema,
-  type SensitiveContext,
   type Tool,
   type ToolApprovalRequest,
   type ToolApprovalResponse,

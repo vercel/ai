@@ -4,7 +4,6 @@ import type { ToolResultOutput } from './content-part';
 import type { Context } from './context';
 import type { NeverOptional } from './never-optional';
 import type { ProviderOptions } from './provider-options';
-import type { SensitiveContext } from './sensitive-context';
 import type {
   ToolExecuteFunction,
   ToolExecutionOptions,
@@ -95,12 +94,6 @@ type BaseTool<
    * The context is passed to execute function as part of the execution options.
    */
   contextSchema?: FlexibleSchema<CONTEXT>;
-
-  /**
-   * Marks top-level context properties that contain sensitive data and should be excluded from telemetry.
-   * Properties marked as `true` are omitted from telemetry integrations.
-   */
-  sensitiveContext?: SensitiveContext<CONTEXT>;
 
   /**
    * Whether the tool needs approval before it can be executed.
