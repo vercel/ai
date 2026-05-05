@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 3.0.62
+
+### Patch Changes
+
+- 65edcca: feat: add allowedTools provider option for OpenAI Responses
+
 ## 3.0.61
 
 ### Patch Changes
