@@ -3082,7 +3082,7 @@ describe('ToolLoopAgent', () => {
         ]);
       });
 
-      it('should exclude sensitive runtimeContext properties from telemetry', async () => {
+      it('should include configured runtimeContext properties in telemetry', async () => {
         const callbackContexts: unknown[] = [];
         const telemetryContexts: unknown[] = [];
 
@@ -3098,9 +3098,6 @@ describe('ToolLoopAgent', () => {
             userId: 'user-123',
             requestId: 'request-123',
           },
-          sensitiveRuntimeContext: {
-            userId: true,
-          },
           experimental_onStart: async ({ runtimeContext }) => {
             callbackContexts.push(runtimeContext);
           },
@@ -3111,6 +3108,9 @@ describe('ToolLoopAgent', () => {
             callbackContexts.push(runtimeContext);
           },
           telemetry: {
+            includeRuntimeContext: {
+              requestId: true,
+            },
             integrations: {
               onStart: async event => {
                 telemetryContexts.push(
@@ -3387,7 +3387,7 @@ describe('ToolLoopAgent', () => {
         ]);
       });
 
-      it('should exclude sensitive runtimeContext properties from telemetry', async () => {
+      it('should include configured runtimeContext properties in telemetry', async () => {
         const callbackContexts: unknown[] = [];
         const telemetryContexts: unknown[] = [];
 
@@ -3413,9 +3413,6 @@ describe('ToolLoopAgent', () => {
             userId: 'user-123',
             requestId: 'request-123',
           },
-          sensitiveRuntimeContext: {
-            userId: true,
-          },
           experimental_onStart: async ({ runtimeContext }) => {
             callbackContexts.push(runtimeContext);
           },
@@ -3426,6 +3423,9 @@ describe('ToolLoopAgent', () => {
             callbackContexts.push(runtimeContext);
           },
           telemetry: {
+            includeRuntimeContext: {
+              requestId: true,
+            },
             integrations: {
               onStart: async event => {
                 telemetryContexts.push(

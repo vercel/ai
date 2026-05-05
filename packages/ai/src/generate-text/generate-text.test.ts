@@ -7,6 +7,7 @@ import {
   type LanguageModelV4Usage,
 } from '@ai-sdk/provider';
 import {
+  DelayedPromise,
   dynamicTool,
   jsonSchema,
   tool,
@@ -589,6 +590,58 @@ describe('generateText', () => {
           },
         ]
       `);
+    });
+
+    it('should refine tool input before tool execution, outputs, and callbacks', async () => {
+      const modelCallEndEvents: LanguageModelCallEndEvent<any>[] = [];
+      const toolExecutionStartEvents: ToolExecutionStartEvent<any>[] = [];
+
+      const result = await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            content: [
+              {
+                type: 'tool-call',
+                toolCallType: 'function',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                input: `{ "value": " raw " }`,
+              },
+            ],
+            finishReason: { unified: 'tool-calls', raw: undefined },
+          }),
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async input => {
+              expect(input).toStrictEqual({ value: 'raw' });
+              return `result:${input.value}`;
+            },
+          }),
+        },
+        experimental_refineToolInput: {
+          tool1: input => ({ value: input.value.trim() }),
+        },
+        experimental_onLanguageModelCallEnd: event => {
+          modelCallEndEvents.push(event);
+        },
+        experimental_onToolExecutionStart: event => {
+          toolExecutionStartEvents.push(event);
+        },
+        prompt: 'test-input',
+      });
+
+      expect(result.toolCalls[0].input).toStrictEqual({ value: 'raw' });
+      expect(result.toolResults[0].input).toStrictEqual({ value: 'raw' });
+      expect(modelCallEndEvents[0].content[0]).toMatchObject({
+        type: 'tool-call',
+        input: { value: 'raw' },
+      });
+      expect(toolExecutionStartEvents[0].toolCall.input).toStrictEqual({
+        value: 'raw',
+      });
     });
   });
 
@@ -4950,6 +5003,38 @@ describe('generateText', () => {
 
       expect(receivedAbortSignal).toBeDefined();
     });
+
+    it('should abort when step timeout expires', async () => {
+      let receivedAbortSignal: AbortSignal | undefined;
+      const delayedPromise = new DelayedPromise<void>();
+
+      const generatePromise = generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async ({ abortSignal }) => {
+            receivedAbortSignal = abortSignal;
+            await delayedPromise.promise;
+            return {
+              ...dummyResponseValues,
+              content: [{ type: 'text', text: 'Hello, world!' }],
+            };
+          },
+        }),
+        prompt: 'test-input',
+        timeout: { stepMs: 50 },
+        maxRetries: 0,
+      });
+
+      // Advance time past the step timeout — fires stepAbortController.abort(...)
+      await vi.advanceTimersByTimeAsync(100);
+
+      // Allow doGenerate to complete so the test cleans up
+      delayedPromise.resolve(undefined);
+
+      await generatePromise.catch(() => {});
+
+      expect(receivedAbortSignal?.aborted).toBe(true);
+      expect((receivedAbortSignal?.reason as Error)?.name).toBe('TimeoutError');
+    });
   });
 
   describe('options.activeTools', () => {
@@ -7311,7 +7396,7 @@ describe('generateText', () => {
       });
     });
 
-    it('should pass sensitive runtimeContext properties to callbacks', async () => {
+    it('should pass full runtimeContext to callbacks', async () => {
       const callbackContexts: unknown[] = [];
 
       await generateText({
@@ -7326,10 +7411,12 @@ describe('generateText', () => {
           userId: 'user-123',
           requestId: 'request-123',
         },
-        sensitiveRuntimeContext: {
-          userId: true,
-        },
         prompt: 'test-input',
+        telemetry: {
+          includeRuntimeContext: {
+            requestId: true,
+          },
+        },
         experimental_onStart: ({ runtimeContext }) => {
           callbackContexts.push(runtimeContext);
         },
@@ -7352,7 +7439,7 @@ describe('generateText', () => {
       ]);
     });
 
-    it('should exclude sensitive runtimeContext properties from telemetry', async () => {
+    it('should include configured runtimeContext properties in telemetry', async () => {
       const telemetryContexts: unknown[] = [];
 
       await generateText({
@@ -7367,11 +7454,11 @@ describe('generateText', () => {
           userId: 'user-123',
           requestId: 'request-123',
         },
-        sensitiveRuntimeContext: {
-          userId: true,
-        },
         prompt: 'test-input',
         telemetry: {
+          includeRuntimeContext: {
+            requestId: true,
+          },
           integrations: {
             onStart: event => {
               telemetryContexts.push(
@@ -7399,6 +7486,165 @@ describe('generateText', () => {
         { requestId: 'request-123' },
         { requestId: 'request-123' },
       ]);
+    });
+
+    it('should include configured toolsContext properties in telemetry', async () => {
+      const telemetryContexts: unknown[] = [];
+      const tools = {
+        weather: tool({
+          inputSchema: z.object({ city: z.string() }),
+          contextSchema: z.object({
+            apiKey: z.string(),
+            region: z.string(),
+          }),
+          execute: async () => 'sunny',
+        }),
+      };
+
+      await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            content: [{ type: 'text', text: 'Hello, world!' }],
+            finishReason: { unified: 'stop', raw: 'stop' },
+          }),
+        }),
+        prompt: 'test-input',
+        tools,
+        toolsContext: {
+          weather: {
+            apiKey: 'secret-api-key',
+            region: 'eu',
+          },
+        },
+        telemetry: {
+          includeToolsContext: {
+            weather: {
+              region: true,
+            },
+          },
+          integrations: {
+            onStart: event => {
+              telemetryContexts.push(
+                (event as { toolsContext: unknown }).toolsContext,
+              );
+            },
+            onStepStart: ({ toolsContext }) => {
+              telemetryContexts.push(toolsContext);
+            },
+            onStepFinish: ({ toolsContext }) => {
+              telemetryContexts.push(toolsContext);
+            },
+            onFinish: event => {
+              telemetryContexts.push(
+                (event as { toolsContext: unknown }).toolsContext,
+              );
+            },
+          },
+        },
+      });
+
+      expect(telemetryContexts).toEqual([
+        { weather: { region: 'eu' } },
+        { weather: { region: 'eu' } },
+        { weather: { region: 'eu' } },
+        { weather: { region: 'eu' } },
+      ]);
+    });
+
+    it('should exclude toolsContext properties from telemetry by default', async () => {
+      const telemetryContexts: unknown[] = [];
+      const tools = {
+        weather: tool({
+          inputSchema: z.object({ city: z.string() }),
+          contextSchema: z.object({
+            apiKey: z.string(),
+            region: z.string(),
+          }),
+          execute: async () => 'sunny',
+        }),
+      };
+
+      await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            content: [{ type: 'text', text: 'Hello, world!' }],
+            finishReason: { unified: 'stop', raw: 'stop' },
+          }),
+        }),
+        prompt: 'test-input',
+        tools,
+        toolsContext: {
+          weather: {
+            apiKey: 'secret-api-key',
+            region: 'eu',
+          },
+        },
+        telemetry: {
+          integrations: {
+            onStart: event => {
+              telemetryContexts.push(
+                (event as { toolsContext: unknown }).toolsContext,
+              );
+            },
+            onStepStart: ({ toolsContext }) => {
+              telemetryContexts.push(toolsContext);
+            },
+            onStepFinish: ({ toolsContext }) => {
+              telemetryContexts.push(toolsContext);
+            },
+            onFinish: event => {
+              telemetryContexts.push(
+                (event as { toolsContext: unknown }).toolsContext,
+              );
+            },
+          },
+        },
+      });
+
+      expect(telemetryContexts).toEqual([{}, {}, {}, {}]);
+    });
+
+    it('should exclude runtimeContext from telemetry by default', async () => {
+      const telemetryContexts: unknown[] = [];
+
+      await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            content: [{ type: 'text', text: 'Hello, world!' }],
+            finishReason: { unified: 'stop', raw: 'stop' },
+          }),
+        }),
+        runtimeContext: {
+          userId: 'user-123',
+          requestId: 'request-123',
+        },
+        prompt: 'test-input',
+        telemetry: {
+          integrations: {
+            onStart: event => {
+              telemetryContexts.push(
+                (event as { runtimeContext: unknown }).runtimeContext,
+              );
+            },
+            onStepStart: ({ runtimeContext }) => {
+              telemetryContexts.push(runtimeContext);
+            },
+            onStepFinish: ({ runtimeContext }) => {
+              telemetryContexts.push(runtimeContext);
+            },
+            onFinish: event => {
+              telemetryContexts.push(
+                (event as { runtimeContext: unknown }).runtimeContext,
+              );
+            },
+          },
+        },
+      });
+
+      expect(telemetryContexts).toEqual([{}, {}, {}, {}]);
     });
   });
 

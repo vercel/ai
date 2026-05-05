@@ -12,13 +12,12 @@ import {
   isAbortError,
   type Arrayable,
   type Context,
-  type InferToolSetContext,
-  type SensitiveContext,
-  type ToolApprovalResponse,
-  type ToolSet,
   type IdGenerator,
+  type InferToolSetContext,
   type ProviderOptions,
+  type ToolApprovalResponse,
   type ToolContent,
+  type ToolSet,
 } from '@ai-sdk/provider-utils';
 import type { ServerResponse } from 'node:http';
 import { NoOutputGeneratedError } from '../error';
@@ -82,17 +81,24 @@ import { mergeObjects } from '../util/merge-objects';
 import { notify } from '../util/notify';
 import { now as originalNow } from '../util/now';
 import { prepareRetries } from '../util/prepare-retries';
+import { setAbortTimeout } from '../util/set-abort-timeout';
 import type { ActiveTools } from './active-tools';
 import { collectToolApprovals } from './collect-tool-approvals';
 import type { ContentPart } from './content-part';
+import { createExecuteToolsTransformation } from './create-execute-tools-transformation';
+import { executeToolCall } from './execute-tool-call';
+import { filterActiveTools } from './filter-active-tools';
+import type {
+  GenerateTextOnFinishCallback,
+  GenerateTextOnStartCallback,
+  GenerateTextOnStepFinishCallback,
+  GenerateTextOnStepStartCallback,
+} from './generate-text-events';
+import { invokeToolCallbacksFromStream } from './invoke-tool-callbacks-from-stream';
 import type {
   OnLanguageModelCallEndCallback,
   OnLanguageModelCallStartCallback,
 } from './language-model-events';
-import { createExecuteToolsTransformation } from './create-execute-tools-transformation';
-import { executeToolCall } from './execute-tool-call';
-import { filterActiveTools } from './filter-active-tools';
-import { invokeToolCallbacksFromStream } from './invoke-tool-callbacks-from-stream';
 import { text, type Output } from './output';
 import type {
   InferCompleteOutput,
@@ -101,8 +107,8 @@ import type {
 } from './output-utils';
 import type { PrepareStepFunction } from './prepare-step';
 import { convertToReasoningOutputs } from './reasoning-output';
-import { createRestrictedTelemetryDispatcher } from './restricted-telemetry-dispatcher';
 import type { ResponseMessage } from './response-message';
+import { createRestrictedTelemetryDispatcher } from './restricted-telemetry-dispatcher';
 import { DefaultStepResult, type StepResult } from './step-result';
 import {
   isStepCount,
@@ -127,15 +133,10 @@ import type {
   OnToolExecutionEndCallback,
   OnToolExecutionStartCallback,
 } from './tool-execution-events';
+import type { ToolInputRefinement } from './tool-input-refinement';
 import type { ToolOutput } from './tool-output';
 import type { StaticToolOutputDenied } from './tool-output-denied';
 import type { ToolsContextParameter } from './tools-context-parameter';
-import type {
-  GenerateTextOnFinishCallback,
-  GenerateTextOnStartCallback,
-  GenerateTextOnStepFinishCallback,
-  GenerateTextOnStepStartCallback,
-} from './generate-text-events';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -245,7 +246,7 @@ export type StreamTextOnAbortCallback<
  * @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
  *
  * @param runtimeContext - User-defined runtime context that flows through the entire generation lifecycle.
- * @param sensitiveRuntimeContext - Top-level runtime context properties that contain sensitive data and should be excluded from telemetry.
+ * @param experimental_refineToolInput - Optional mapping of tool names to functions that refine parsed tool inputs before tools are executed and before outputs, callbacks, and telemetry are recorded.
  *
  * @param onChunk - Callback that is called for each chunk of the stream. The stream processing will pause until the callback promise is resolved.
  * @param onError - Callback that is called when an error occurs during streaming. You can use it to log errors.
@@ -280,6 +281,7 @@ export function streamText<
   providerOptions,
   activeTools,
   experimental_repairToolCall: repairToolCall,
+  experimental_refineToolInput: refineToolInput,
   experimental_transform: transform,
   experimental_download: download,
   includeRawChunks = false,
@@ -297,7 +299,6 @@ export function streamText<
   experimental_onToolExecutionStart: onToolExecutionStart,
   experimental_onToolExecutionEnd: onToolExecutionEnd,
   runtimeContext = {} as RUNTIME_CONTEXT,
-  sensitiveRuntimeContext,
   toolsContext = {} as InferToolSetContext<TOOLS>,
   experimental_include: include,
   _internal: {
@@ -331,14 +332,14 @@ export function streamText<
     /**
      * Optional telemetry configuration.
      */
-    telemetry?: TelemetryOptions;
+    telemetry?: TelemetryOptions<RUNTIME_CONTEXT, NoInfer<TOOLS>>;
 
     /**
      * Optional telemetry configuration.
      *
      * @deprecated Use `telemetry` instead. This alias will be removed in a future major release.
      */
-    experimental_telemetry?: TelemetryOptions;
+    experimental_telemetry?: TelemetryOptions<RUNTIME_CONTEXT, NoInfer<TOOLS>>;
 
     /**
      * Additional provider-specific options. They are passed through
@@ -352,12 +353,6 @@ export function streamText<
      * If you need to mutate runtime context, update it in `prepareStep`.
      */
     runtimeContext?: RUNTIME_CONTEXT;
-
-    /**
-     * Top-level runtime context properties that contain sensitive data and
-     * should be excluded from telemetry.
-     */
-    sensitiveRuntimeContext?: SensitiveContext<NoInfer<RUNTIME_CONTEXT>>;
 
     /**
      * Limits the tools that are available for the model to call without
@@ -394,6 +389,14 @@ export function streamText<
      * A function that attempts to repair a tool call that failed to parse.
      */
     experimental_repairToolCall?: ToolCallRepairFunction<TOOLS>;
+
+    /**
+     * Optional mapping of tool names to functions that refine parsed tool inputs.
+     *
+     * The refined input must have the same type shape as the tool input. Refined
+     * inputs are used for tool execution, stream parts, callbacks, and telemetry.
+     */
+    experimental_refineToolInput?: ToolInputRefinement<NoInfer<TOOLS>>;
 
     /**
      * Optional stream transformations.
@@ -556,11 +559,11 @@ export function streamText<
     tools,
     toolsContext,
     runtimeContext,
-    sensitiveRuntimeContext,
     toolChoice,
     transforms: asArray(transform),
     activeTools,
     repairToolCall,
+    refineToolInput,
     stopConditions: asArray(stopWhen),
     output,
     toolApproval,
@@ -747,6 +750,7 @@ class DefaultStreamTextResult<
     transforms,
     activeTools,
     repairToolCall,
+    refineToolInput,
     stopConditions,
     output,
     toolApproval,
@@ -769,13 +773,12 @@ class DefaultStreamTextResult<
     onToolExecutionStart,
     onToolExecutionEnd,
     runtimeContext,
-    sensitiveRuntimeContext,
     toolsContext,
     download,
     include,
   }: {
     model: LanguageModelV4;
-    telemetry: TelemetryOptions | undefined;
+    telemetry: TelemetryOptions<RUNTIME_CONTEXT, TOOLS> | undefined;
     headers: Record<string, string | undefined> | undefined;
     settings: LanguageModelCallOptions;
     maxRetries: number | undefined;
@@ -786,7 +789,6 @@ class DefaultStreamTextResult<
     chunkAbortController: AbortController | undefined;
     toolsContext: InferToolSetContext<TOOLS>;
     runtimeContext: RUNTIME_CONTEXT;
-    sensitiveRuntimeContext: SensitiveContext<RUNTIME_CONTEXT>;
     system: Prompt['system'];
     prompt: Prompt['prompt'];
     messages: Prompt['messages'];
@@ -796,6 +798,7 @@ class DefaultStreamTextResult<
     transforms: Array<StreamTextTransform<TOOLS>>;
     activeTools: ActiveTools<TOOLS>;
     repairToolCall: ToolCallRepairFunction<TOOLS> | undefined;
+    refineToolInput: ToolInputRefinement<TOOLS> | undefined;
     stopConditions: Array<
       StopCondition<NoInfer<TOOLS>, NoInfer<RUNTIME_CONTEXT>>
     >;
@@ -859,8 +862,8 @@ class DefaultStreamTextResult<
       OUTPUT
     >({
       telemetry,
-      tools,
-      sensitiveRuntimeContext,
+      includeRuntimeContext: telemetry?.includeRuntimeContext,
+      includeToolsContext: telemetry?.includeToolsContext,
     });
 
     // promise to ensure that the step has been fully processed by the event processor
@@ -1460,25 +1463,25 @@ class DefaultStreamTextResult<
         const includeRawChunks = self.includeRawChunks;
 
         // Set up step timeout if configured
-        const stepTimeoutId =
-          stepTimeoutMs != null
-            ? setTimeout(() => stepAbortController!.abort(), stepTimeoutMs)
-            : undefined;
+        const stepTimeoutId = setAbortTimeout({
+          abortController: stepAbortController,
+          label: 'Step',
+          timeoutMs: stepTimeoutMs,
+        });
 
         // Set up chunk timeout tracking (will be reset on each chunk)
         let chunkTimeoutId: ReturnType<typeof setTimeout> | undefined =
           undefined;
 
         function resetChunkTimeout() {
-          if (chunkTimeoutMs != null) {
-            if (chunkTimeoutId != null) {
-              clearTimeout(chunkTimeoutId);
-            }
-            chunkTimeoutId = setTimeout(
-              () => chunkAbortController!.abort(),
-              chunkTimeoutMs,
-            );
+          if (chunkTimeoutId != null) {
+            clearTimeout(chunkTimeoutId);
           }
+          chunkTimeoutId = setAbortTimeout({
+            abortController: chunkAbortController,
+            label: 'Chunk',
+            timeoutMs: chunkTimeoutMs,
+          });
         }
 
         function clearChunkTimeout() {
@@ -1553,6 +1556,7 @@ class DefaultStreamTextResult<
               messages: stepMessages,
               allowSystemInMessages,
               repairToolCall,
+              refineToolInput,
               abortSignal,
               headers,
               includeRawChunks,

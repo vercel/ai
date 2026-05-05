@@ -2501,9 +2501,9 @@ describe('convertToOpenAIResponsesInput', () => {
                   type: 'content',
                   value: [
                     {
-                      type: 'file-data',
+                      type: 'file',
                       mediaType: 'image/png',
-                      data: 'base64_data',
+                      data: { type: 'data', data: 'base64_data' },
                     },
                   ],
                 },
@@ -2522,7 +2522,111 @@ describe('convertToOpenAIResponsesInput', () => {
             "call_id": "call_123",
             "output": [
               {
+                "detail": undefined,
                 "image_url": "data:image/png;base64,base64_data",
+                "type": "input_image",
+              },
+            ],
+            "type": "function_call_output",
+          },
+        ]
+      `);
+    });
+
+    it('should forward openai.imageDetail providerOptions on tool-result image (data)', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_123',
+                toolName: 'view_image',
+                output: {
+                  type: 'content',
+                  value: [
+                    {
+                      type: 'file',
+                      mediaType: 'image/png',
+                      data: { type: 'data', data: 'base64_data' },
+                      providerOptions: {
+                        openai: { imageDetail: 'original' },
+                      },
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "call_id": "call_123",
+            "output": [
+              {
+                "detail": "original",
+                "image_url": "data:image/png;base64,base64_data",
+                "type": "input_image",
+              },
+            ],
+            "type": "function_call_output",
+          },
+        ]
+      `);
+    });
+
+    it('should forward openai.imageDetail providerOptions on tool-result image (url)', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_123',
+                toolName: 'view_image',
+                output: {
+                  type: 'content',
+                  value: [
+                    {
+                      type: 'file',
+                      mediaType: 'image/png',
+                      data: {
+                        type: 'url',
+                        url: new URL('https://example.com/x.png'),
+                      },
+                      providerOptions: {
+                        openai: { imageDetail: 'high' },
+                      },
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "call_id": "call_123",
+            "output": [
+              {
+                "detail": "high",
+                "image_url": "https://example.com/x.png",
                 "type": "input_image",
               },
             ],
@@ -2547,8 +2651,11 @@ describe('convertToOpenAIResponsesInput', () => {
                   type: 'content',
                   value: [
                     {
-                      type: 'file-url',
-                      url: 'https://example.com/screenshot.png',
+                      type: 'file',
+                      data: {
+                        type: 'url',
+                        url: new URL('https://example.com/screenshot.png'),
+                      },
                       mediaType: 'image/png',
                     },
                   ],
@@ -2568,6 +2675,7 @@ describe('convertToOpenAIResponsesInput', () => {
             "call_id": "call_123",
             "output": [
               {
+                "detail": undefined,
                 "image_url": "https://example.com/screenshot.png",
                 "type": "input_image",
               },
@@ -2594,9 +2702,9 @@ describe('convertToOpenAIResponsesInput', () => {
                   type: 'content',
                   value: [
                     {
-                      type: 'file-data',
+                      type: 'file',
                       mediaType: 'application/pdf',
-                      data: base64Data,
+                      data: { type: 'data', data: base64Data },
                       filename: 'document.pdf',
                     },
                   ],
@@ -2642,8 +2750,11 @@ describe('convertToOpenAIResponsesInput', () => {
                   type: 'content',
                   value: [
                     {
-                      type: 'file-url',
-                      url: 'https://example.com/document.pdf',
+                      type: 'file',
+                      data: {
+                        type: 'url',
+                        url: new URL('https://example.com/document.pdf'),
+                      },
                       mediaType: 'application/pdf',
                     },
                   ],
@@ -2693,8 +2804,11 @@ describe('convertToOpenAIResponsesInput', () => {
                       text: 'Here is the file you asked for:',
                     },
                     {
-                      type: 'file-url',
-                      url: 'https://example.com/test.pdf',
+                      type: 'file',
+                      data: {
+                        type: 'url',
+                        url: new URL('https://example.com/test.pdf'),
+                      },
                       mediaType: 'application/pdf',
                     },
                   ],
@@ -2749,14 +2863,14 @@ describe('convertToOpenAIResponsesInput', () => {
                       text: 'The weather in San Francisco is 72°F',
                     },
                     {
-                      type: 'file-data',
+                      type: 'file',
                       mediaType: 'image/png',
-                      data: 'base64_data',
+                      data: { type: 'data', data: 'base64_data' },
                     },
                     {
-                      type: 'file-data',
+                      type: 'file',
                       mediaType: 'application/pdf',
-                      data: base64Data,
+                      data: { type: 'data', data: base64Data },
                     },
                   ],
                 },
@@ -2779,6 +2893,7 @@ describe('convertToOpenAIResponsesInput', () => {
                 "type": "input_text",
               },
               {
+                "detail": undefined,
                 "image_url": "data:image/png;base64,base64_data",
                 "type": "input_image",
               },
@@ -4895,8 +5010,11 @@ describe('convertToOpenAIResponsesInput', () => {
                   value: [
                     { type: 'text', text: 'Here is the file:' },
                     {
-                      type: 'file-url',
-                      url: 'https://example.com/test.pdf',
+                      type: 'file',
+                      data: {
+                        type: 'url',
+                        url: new URL('https://example.com/test.pdf'),
+                      },
                       mediaType: 'application/pdf',
                     },
                   ],
