@@ -316,20 +316,6 @@ export const openaiLanguageModelResponsesOptionsSchema = lazySchema(() =>
        * and defaults `systemMessageMode` to `developer` unless overridden.
        */
       forceReasoning: z.boolean().optional(),
-<<<<<<< HEAD:packages/openai/src/responses/openai-responses-options.ts
-=======
-
-      /**
-       * Enable server-side context management (compaction).
-       */
-      contextManagement: z
-        .array(
-          z.object({
-            type: z.literal('compaction'),
-            compactThreshold: z.number(),
-          }),
-        )
-        .nullish(),
 
       /**
        * Restrict the callable tools to a subset while keeping the full tools
@@ -347,7 +333,6 @@ export const openaiLanguageModelResponsesOptionsSchema = lazySchema(() =>
           mode: z.enum(['auto', 'required']).optional(),
         })
         .optional(),
->>>>>>> 29e6ac6f1 (feat(openai): add allowedTools provider option for Responses (#15038)):packages/openai/src/responses/openai-responses-language-model-options.ts
     }),
   ),
 );

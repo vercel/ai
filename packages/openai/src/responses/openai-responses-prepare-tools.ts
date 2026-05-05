@@ -22,17 +22,12 @@ export async function prepareResponsesTools({
   toolNameMapping,
   customProviderToolNames,
 }: {
-<<<<<<< HEAD
   tools: LanguageModelV3CallOptions['tools'];
   toolChoice: LanguageModelV3CallOptions['toolChoice'] | undefined;
-=======
-  tools: LanguageModelV4CallOptions['tools'];
-  toolChoice: LanguageModelV4CallOptions['toolChoice'] | undefined;
   allowedTools?: {
     toolNames: string[];
     mode?: 'auto' | 'required';
   };
->>>>>>> 29e6ac6f1 (feat(openai): add allowedTools provider option for Responses (#15038))
   toolNameMapping?: ToolNameMapping;
   customProviderToolNames?: Set<string>;
 }): Promise<{
@@ -49,18 +44,13 @@ export async function prepareResponsesTools({
     | { type: 'code_interpreter' }
     | { type: 'mcp' }
     | { type: 'image_generation' }
-<<<<<<< HEAD
-    | { type: 'apply_patch' };
-  toolWarnings: SharedV3Warning[];
-=======
     | { type: 'apply_patch' }
     | {
         type: 'allowed_tools';
         mode: 'auto' | 'required';
         tools: Array<{ type: 'function'; name: string }>;
       };
-  toolWarnings: SharedV4Warning[];
->>>>>>> 29e6ac6f1 (feat(openai): add allowedTools provider option for Responses (#15038))
+  toolWarnings: SharedV3Warning[];
 }> {
   // when the tools array is empty, change it to undefined to prevent errors:
   tools = tools?.length ? tools : undefined;
