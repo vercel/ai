@@ -25,6 +25,7 @@ import { z } from 'zod/v4';
 import { convertPerplexityUsage } from './convert-perplexity-usage';
 import { convertToPerplexityMessages } from './convert-to-perplexity-messages';
 import { mapPerplexityFinishReason } from './map-perplexity-finish-reason';
+import type { PerplexityLanguageModelOptions } from './perplexity-language-model-options';
 import type { PerplexityLanguageModelId } from './perplexity-options';
 
 type PerplexityChatConfig = {
@@ -127,7 +128,9 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
             : undefined,
 
         // provider extensions
-        ...(providerOptions?.perplexity ?? {}),
+        ...((providerOptions?.perplexity as
+          | PerplexityLanguageModelOptions
+          | undefined) ?? {}),
 
         // messages:
         messages: convertToPerplexityMessages(prompt),
