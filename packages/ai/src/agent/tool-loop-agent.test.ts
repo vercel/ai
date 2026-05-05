@@ -98,6 +98,31 @@ describe('ToolLoopAgent', () => {
       `);
     });
 
+    it('should pass sandbox to prepareCall', async () => {
+      const sandbox = {
+        description: 'test sandbox',
+        executeCommand: vi.fn(async () => ({
+          exitCode: 0,
+          stdout: 'ok',
+          stderr: '',
+        })),
+      } satisfies Sandbox;
+      let recordedSandbox: Sandbox | undefined;
+
+      const agent = new ToolLoopAgent({
+        model: mockModel,
+        prepareCall: options => {
+          recordedSandbox = options.sandbox;
+
+          return options;
+        },
+      });
+
+      await agent.generate({ prompt: 'Hello, world!', sandbox });
+
+      expect(recordedSandbox).toBe(sandbox);
+    });
+
     it('should pass abortSignal to generateText', async () => {
       const abortController = new AbortController();
 
@@ -637,6 +662,32 @@ describe('ToolLoopAgent', () => {
         }
       `,
       );
+    });
+
+    it('should pass sandbox to prepareCall', async () => {
+      const sandbox = {
+        description: 'test sandbox',
+        executeCommand: vi.fn(async () => ({
+          exitCode: 0,
+          stdout: 'ok',
+          stderr: '',
+        })),
+      } satisfies Sandbox;
+      let recordedSandbox: Sandbox | undefined;
+
+      const agent = new ToolLoopAgent({
+        model: mockModel,
+        prepareCall: options => {
+          recordedSandbox = options.sandbox;
+
+          return options;
+        },
+      });
+
+      const result = await agent.stream({ prompt: 'Hello, world!', sandbox });
+      await result.consumeStream();
+
+      expect(recordedSandbox).toBe(sandbox);
     });
 
     it('should pass abortSignal to streamText', async () => {

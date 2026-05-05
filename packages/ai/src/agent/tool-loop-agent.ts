@@ -2,6 +2,7 @@ import {
   validateTypes,
   type Context,
   type ModelMessage,
+  type Sandbox,
   type ToolSet,
 } from '@ai-sdk/provider-utils';
 import { generateText } from '../generate-text/generate-text';
@@ -78,6 +79,7 @@ export class ToolLoopAgent<
     prompt?: string | Array<ModelMessage>;
     messages?: Array<ModelMessage>;
     options?: CALL_OPTIONS;
+    sandbox?: Sandbox;
   }): Promise<
     Omit<
       ToolLoopAgentSettings<CALL_OPTIONS, TOOLS, RUNTIME_CONTEXT, OUTPUT>,
@@ -171,7 +173,7 @@ export class ToolLoopAgent<
     GenerateTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>
   > {
     const generate = generateText<TOOLS, RUNTIME_CONTEXT, OUTPUT>;
-    const preparedCall = await this.prepareCall(options);
+    const preparedCall = await this.prepareCall({ ...options, sandbox });
     const callbackArgs = {
       abortSignal,
       timeout,
@@ -225,7 +227,7 @@ export class ToolLoopAgent<
     StreamTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>
   > {
     const stream = streamText<TOOLS, RUNTIME_CONTEXT, OUTPUT>;
-    const preparedCall = await this.prepareCall(options);
+    const preparedCall = await this.prepareCall({ ...options, sandbox });
     const callbackArgs = {
       abortSignal,
       timeout,
