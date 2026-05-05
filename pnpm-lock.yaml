@@ -96,7 +96,7 @@ importers:
         specifier: 1.0.39
         version: link:../../packages/mcp
       '@ai-sdk/mistral':
-        specifier: 3.0.34
+        specifier: 3.0.35
         version: link:../../packages/mistral
       '@ai-sdk/openai':
         specifier: 3.0.60

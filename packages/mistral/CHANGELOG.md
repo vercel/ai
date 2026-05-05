@@ -1,5 +1,11 @@
 # @ai-sdk/mistral
 
+## 3.0.35
+
+### Patch Changes
+
+- c4321f0: Add support for mistral-medium-3.5
+
 ## 3.0.34
 
 ### Patch Changes
