@@ -9,13 +9,13 @@ import type {
   SystemModelMessage,
   ToolSet,
 } from '@ai-sdk/provider-utils';
+import type { ActiveTools } from '../generate-text/active-tools';
 import type {
   GenerateTextOnFinishCallback,
   GenerateTextOnStartCallback,
   GenerateTextOnStepFinishCallback,
   GenerateTextOnStepStartCallback,
 } from '../generate-text/generate-text-events';
-import type { ActiveTools } from '../generate-text/active-tools';
 import type { Output } from '../generate-text/output';
 import type { PrepareStepFunction } from '../generate-text/prepare-step';
 import type { StopCondition } from '../generate-text/stop-condition';
@@ -25,6 +25,7 @@ import type {
   OnToolExecutionEndCallback,
   OnToolExecutionStartCallback,
 } from '../generate-text/tool-execution-events';
+import type { ToolInputRefinement } from '../generate-text/tool-input-refinement';
 import type { ToolsContextParameter } from '../generate-text/tools-context-parameter';
 import type { LanguageModelCallOptions } from '../prompt/language-model-call-options';
 import type { Prompt } from '../prompt/prompt';
@@ -120,6 +121,14 @@ export type ToolLoopAgentSettings<
      * A function that attempts to repair a tool call that failed to parse.
      */
     experimental_repairToolCall?: ToolCallRepairFunction<NoInfer<TOOLS>>;
+
+    /**
+     * Optional mapping of tool names to functions that refine parsed tool inputs.
+     *
+     * The refined input must have the same type shape as the tool input. Refined
+     * inputs are used for tool execution, outputs, callbacks, and telemetry.
+     */
+    experimental_refineToolInput?: ToolInputRefinement<NoInfer<TOOLS>>;
 
     /**
      * Callback that is called when the agent operation begins, before any LLM calls.
@@ -236,6 +245,7 @@ export type ToolLoopAgentSettings<
           | 'toolApproval'
           | 'providerOptions'
           | 'experimental_download'
+          | 'experimental_refineToolInput'
           | 'runtimeContext'
           | '_internal'
         > & { toolsContext: InferToolSetContext<TOOLS> },
@@ -266,6 +276,7 @@ export type ToolLoopAgentSettings<
         | 'toolApproval'
         | 'providerOptions'
         | 'experimental_download'
+        | 'experimental_refineToolInput'
         | 'runtimeContext'
         | '_internal'
       > &

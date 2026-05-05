@@ -134,6 +134,7 @@ import type {
   OnToolExecutionEndCallback,
   OnToolExecutionStartCallback,
 } from './tool-execution-events';
+import type { ToolInputRefinement } from './tool-input-refinement';
 import type { ToolOutput } from './tool-output';
 import type { StaticToolOutputDenied } from './tool-output-denied';
 import type { ToolsContextParameter } from './tools-context-parameter';
@@ -247,6 +248,7 @@ export type StreamTextOnAbortCallback<
  *
  * @param sandbox - The sandbox environment that is passed through to the tool execution.
  * @param runtimeContext - User-defined runtime context that flows through the entire generation lifecycle.
+ * @param experimental_refineToolInput - Optional mapping of tool names to functions that refine parsed tool inputs before tools are executed and before outputs, callbacks, and telemetry are recorded.
  *
  * @param onChunk - Callback that is called for each chunk of the stream. The stream processing will pause until the callback promise is resolved.
  * @param onError - Callback that is called when an error occurs during streaming. You can use it to log errors.
@@ -282,6 +284,7 @@ export function streamText<
   providerOptions,
   activeTools,
   experimental_repairToolCall: repairToolCall,
+  experimental_refineToolInput: refineToolInput,
   experimental_transform: transform,
   experimental_download: download,
   includeRawChunks = false,
@@ -394,6 +397,14 @@ export function streamText<
      * A function that attempts to repair a tool call that failed to parse.
      */
     experimental_repairToolCall?: ToolCallRepairFunction<TOOLS>;
+
+    /**
+     * Optional mapping of tool names to functions that refine parsed tool inputs.
+     *
+     * The refined input must have the same type shape as the tool input. Refined
+     * inputs are used for tool execution, stream parts, callbacks, and telemetry.
+     */
+    experimental_refineToolInput?: ToolInputRefinement<NoInfer<TOOLS>>;
 
     /**
      * Optional stream transformations.
@@ -561,6 +572,7 @@ export function streamText<
     transforms: asArray(transform),
     activeTools,
     repairToolCall,
+    refineToolInput,
     stopConditions: asArray(stopWhen),
     output,
     toolApproval,
@@ -748,6 +760,7 @@ class DefaultStreamTextResult<
     transforms,
     activeTools,
     repairToolCall,
+    refineToolInput,
     stopConditions,
     output,
     toolApproval,
@@ -796,6 +809,7 @@ class DefaultStreamTextResult<
     transforms: Array<StreamTextTransform<TOOLS>>;
     activeTools: ActiveTools<TOOLS>;
     repairToolCall: ToolCallRepairFunction<TOOLS> | undefined;
+    refineToolInput: ToolInputRefinement<TOOLS> | undefined;
     stopConditions: Array<
       StopCondition<NoInfer<TOOLS>, NoInfer<RUNTIME_CONTEXT>>
     >;
@@ -1554,6 +1568,7 @@ class DefaultStreamTextResult<
               messages: stepMessages,
               allowSystemInMessages,
               repairToolCall,
+              refineToolInput,
               abortSignal,
               headers,
               includeRawChunks,
