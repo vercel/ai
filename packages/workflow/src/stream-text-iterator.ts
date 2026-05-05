@@ -3,6 +3,7 @@ import type {
   LanguageModelV4Prompt,
   LanguageModelV4ToolResultPart,
 } from '@ai-sdk/provider';
+import type { Context } from '@ai-sdk/provider-utils';
 import {
   experimental_filterActiveTools as filterActiveTools,
   type Experimental_LanguageModelStreamPart as ModelCallStreamPart,
@@ -45,6 +46,10 @@ export interface StreamTextIteratorYieldValue {
   step?: StepResult<ToolSet, any>;
   /** The current experimental context */
   context?: unknown;
+  /** The current runtime context shared across the agent loop */
+  runtimeContext?: Context;
+  /** The current per-tool context, keyed by tool name */
+  toolsContext?: Record<string, Context | undefined>;
   /** Provider-executed tool results (keyed by tool call ID) */
   providerExecutedToolResults?: Map<string, ProviderExecutedToolResult>;
 }
@@ -63,6 +68,8 @@ export async function* streamTextIterator({
   generationSettings,
   toolChoice,
   experimental_context,
+  runtimeContext,
+  toolsContext,
   telemetry,
   includeRawChunks = false,
   repairToolCall,
@@ -80,6 +87,8 @@ export async function* streamTextIterator({
   generationSettings?: GenerationSettings;
   toolChoice?: ToolChoice<ToolSet>;
   experimental_context?: unknown;
+  runtimeContext?: Context;
+  toolsContext?: Record<string, Context | undefined>;
   telemetry?: TelemetryOptions;
   includeRawChunks?: boolean;
   repairToolCall?: ToolCallRepairFunction<ToolSet>;
@@ -94,6 +103,9 @@ export async function* streamTextIterator({
   let currentGenerationSettings = generationSettings ?? {};
   let currentToolChoice = toolChoice;
   let currentContext = experimental_context;
+  let currentRuntimeContext: Context = runtimeContext ?? {};
+  let currentToolsContext: Record<string, Context | undefined> =
+    toolsContext ?? {};
   let currentActiveTools: string[] | undefined;
 
   const steps: StepResult<any, any>[] = [];
@@ -116,6 +128,8 @@ export async function* streamTextIterator({
         stepNumber,
         steps,
         messages: conversationPrompt,
+        runtimeContext: currentRuntimeContext,
+        toolsContext: currentToolsContext as never,
         experimental_context: currentContext,
       });
 
@@ -151,6 +165,15 @@ export async function* streamTextIterator({
       }
       if (prepareResult.experimental_context !== undefined) {
         currentContext = prepareResult.experimental_context;
+      }
+      if (prepareResult.runtimeContext !== undefined) {
+        currentRuntimeContext = prepareResult.runtimeContext;
+      }
+      if (prepareResult.toolsContext !== undefined) {
+        currentToolsContext = prepareResult.toolsContext as Record<
+          string,
+          Context | undefined
+        >;
       }
       if (prepareResult.activeTools !== undefined) {
         currentActiveTools = prepareResult.activeTools;
@@ -309,6 +332,8 @@ export async function* streamTextIterator({
           messages: conversationPrompt,
           step,
           context: currentContext,
+          runtimeContext: currentRuntimeContext,
+          toolsContext: currentToolsContext,
           providerExecutedToolResults,
         };
 
@@ -381,6 +406,8 @@ export async function* streamTextIterator({
       messages: conversationPrompt,
       step: lastStep,
       context: currentContext,
+      runtimeContext: currentRuntimeContext,
+      toolsContext: currentToolsContext,
     };
   }
 

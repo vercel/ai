@@ -7,6 +7,11 @@ import type {
   SharedV4ProviderOptions,
 } from '@ai-sdk/provider';
 import {
+  validateTypes,
+  type Context,
+  type InferToolSetContext,
+} from '@ai-sdk/provider-utils';
+import {
   Output,
   experimental_filterActiveTools as filterActiveTools,
   type FinishReason,
@@ -92,6 +97,25 @@ export interface OutputSpecification<OUTPUT, PARTIAL> {
 export type ProviderOptions = SharedV4ProviderOptions;
 
 /**
+ * Top-level runtime context properties that should be included in telemetry.
+ * Properties are excluded unless they are explicitly set to `true`.
+ */
+export type IncludedRuntimeContext =
+  | { [key: string]: boolean | undefined }
+  | undefined;
+
+/**
+ * Top-level tool context properties that should be included in telemetry,
+ * configured per tool. Properties are excluded unless they are explicitly set
+ * to `true`.
+ */
+export type IncludedToolsContext =
+  | {
+      [toolName: string]: { [key: string]: boolean | undefined } | undefined;
+    }
+  | undefined;
+
+/**
  * Telemetry settings for observability.
  */
 export interface TelemetryOptions {
@@ -133,6 +157,20 @@ export interface TelemetryOptions {
    * information, to reduce data transfers, or to increase performance.
    */
   recordOutputs?: boolean;
+
+  /**
+   * Top-level runtime context properties that should be included in telemetry.
+   * Runtime context properties are excluded unless they are explicitly set to `true`.
+   */
+  includeRuntimeContext?: IncludedRuntimeContext;
+
+  /**
+   * Top-level tool context properties that should be included in telemetry,
+   * configured per tool.
+   *
+   * Tool context properties are excluded unless they are explicitly set to `true`.
+   */
+  includeToolsContext?: IncludedToolsContext;
 
   /**
    * Custom tracer for the telemetry.
@@ -279,6 +317,21 @@ export interface PrepareStepInfo<TTools extends ToolSet = ToolSet> {
   messages: LanguageModelV4Prompt;
 
   /**
+   * The runtime context that flows through the agent loop.
+   * Treat the value as immutable; return a new `runtimeContext` from
+   * `prepareStep` to update it for the current and subsequent steps.
+   */
+  runtimeContext: Context;
+
+  /**
+   * Per-tool context, keyed by tool name. Each tool receives only its own
+   * validated entry as `context` during execution.
+   * Treat the value as immutable; return a new `toolsContext` from
+   * `prepareStep` to update it for the current and subsequent steps.
+   */
+  toolsContext: InferToolSetContext<TTools>;
+
+  /**
    * The context passed via the experimental_context setting (experimental).
    */
   experimental_context: unknown;
@@ -317,6 +370,18 @@ export interface PrepareStepResult extends Partial<GenerationSettings> {
   activeTools?: string[];
 
   /**
+   * Updated runtime context for the current and subsequent steps.
+   * Returning a value replaces the agent's runtime context.
+   */
+  runtimeContext?: Context;
+
+  /**
+   * Updated per-tool context for the current and subsequent steps.
+   * Returning a value replaces the agent's tools context.
+   */
+  toolsContext?: Record<string, Context | undefined>;
+
+  /**
    * Context that is passed into tool execution. Experimental.
    * Changing the context will affect the context in this step and all subsequent steps.
    */
@@ -346,6 +411,15 @@ export interface PrepareCallOptions<
    * @deprecated Use `telemetry` instead. This alias will be removed in a future major release.
    */
   experimental_telemetry?: TelemetryOptions;
+  /**
+   * Runtime context that flows through the agent loop.
+   * Treat as immutable; return a new `runtimeContext` to update it for the call.
+   */
+  runtimeContext?: Context;
+  /**
+   * Per-tool context, keyed by tool name.
+   */
+  toolsContext?: InferToolSetContext<TTools>;
   experimental_context?: unknown;
   messages: ModelMessage[];
 }
@@ -421,6 +495,29 @@ export interface WorkflowAgentOptions<
    * @deprecated Use `telemetry` instead. This alias will be removed in a future major release.
    */
   experimental_telemetry?: TelemetryOptions;
+
+  /**
+   * Default runtime context for every stream call on this agent.
+   *
+   * The runtime context flows through `prepareStep`, lifecycle callbacks,
+   * step results, and telemetry (filtered by `telemetry.includeRuntimeContext`).
+   * Treat as immutable; return a new `runtimeContext` from `prepareStep`
+   * to update it between steps.
+   *
+   * Per-stream `runtimeContext` values passed to `stream()` override this default.
+   */
+  runtimeContext?: Context;
+
+  /**
+   * Default per-tool context for every stream call on this agent.
+   *
+   * Each tool receives only its own validated entry as `context` during
+   * execution. Tools that declare a `contextSchema` validate their entry
+   * against the schema; otherwise the entry is passed through as-is.
+   *
+   * Per-stream `toolsContext` values passed to `stream()` override this default.
+   */
+  toolsContext?: InferToolSetContext<TTools>;
 
   /**
    * Default context that is passed into tool execution for every stream call on this agent.
@@ -549,6 +646,16 @@ export type WorkflowAgentOnFinishCallback<
    * The total token usage across all steps.
    */
   readonly totalUsage: LanguageModelUsage;
+
+  /**
+   * The runtime context at the end of the agent loop.
+   */
+  readonly runtimeContext: Context;
+
+  /**
+   * The per-tool context at the end of the agent loop.
+   */
+  readonly toolsContext: Record<string, Context | undefined>;
 
   /**
    * Context that is passed into tool execution.
@@ -750,6 +857,25 @@ export type WorkflowAgentStreamOptions<
      * @deprecated Use `telemetry` instead. This alias will be removed in a future major release.
      */
     experimental_telemetry?: TelemetryOptions;
+
+    /**
+     * Runtime context that flows through the agent loop.
+     *
+     * Treat as immutable; return a new `runtimeContext` from `prepareStep`
+     * to update it between steps.
+     *
+     * Overrides the constructor-level `runtimeContext` if provided.
+     */
+    runtimeContext?: Context;
+
+    /**
+     * Per-tool context, keyed by tool name. Each tool receives only its own
+     * validated entry as `context` during execution. Tools that declare a
+     * `contextSchema` validate their entry against the schema.
+     *
+     * Overrides the constructor-level `toolsContext` if provided.
+     */
+    toolsContext?: InferToolSetContext<TTools>;
 
     /**
      * Context that is passed into tool execution.
@@ -1019,6 +1145,8 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
   private generationSettings: GenerationSettings;
   private toolChoice?: ToolChoice<TBaseTools>;
   private telemetry?: TelemetryOptions;
+  private runtimeContext?: Context;
+  private toolsContext?: InferToolSetContext<TBaseTools>;
   private experimentalContext: unknown;
   private stopWhen?:
     | StopCondition<ToolSet, any>
@@ -1044,6 +1172,8 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
     this.instructions = options.instructions ?? options.system;
     this.toolChoice = options.toolChoice;
     this.telemetry = options.telemetry ?? options.experimental_telemetry;
+    this.runtimeContext = options.runtimeContext;
+    this.toolsContext = options.toolsContext;
     this.experimentalContext = options.experimental_context;
     this.stopWhen = options.stopWhen;
     this.activeTools = options.activeTools;
@@ -1098,6 +1228,14 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
     let effectiveGenerationSettings = { ...this.generationSettings };
     let effectiveExperimentalContext =
       options.experimental_context ?? this.experimentalContext;
+    let effectiveRuntimeContext: Context = (options.runtimeContext ??
+      this.runtimeContext ??
+      {}) as Context;
+    let effectiveToolsContext: Record<string, Context | undefined> =
+      (options.toolsContext ?? this.toolsContext ?? {}) as unknown as Record<
+        string,
+        Context | undefined
+      >;
     let effectiveToolChoiceFromPrepare = options.toolChoice ?? this.toolChoice;
     let effectiveTelemetryFromPrepare =
       options.telemetry ?? options.experimental_telemetry ?? this.telemetry;
@@ -1118,6 +1256,8 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
         toolChoice: effectiveToolChoiceFromPrepare as ToolChoice<TBaseTools>,
         telemetry: effectiveTelemetryFromPrepare,
         experimental_telemetry: effectiveTelemetryFromPrepare,
+        runtimeContext: effectiveRuntimeContext,
+        toolsContext: effectiveToolsContext as InferToolSetContext<TBaseTools>,
         experimental_context: effectiveExperimentalContext,
         messages: resolvedMessagesForPrepareCall,
         ...effectiveGenerationSettings,
@@ -1130,6 +1270,13 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
         effectiveMessages = prepared.messages as Array<ModelMessage>;
         effectivePrompt = undefined; // messages from prepareCall take precedence
       }
+      if (prepared.runtimeContext !== undefined)
+        effectiveRuntimeContext = prepared.runtimeContext;
+      if (prepared.toolsContext !== undefined)
+        effectiveToolsContext = prepared.toolsContext as Record<
+          string,
+          Context | undefined
+        >;
       if (prepared.experimental_context !== undefined)
         effectiveExperimentalContext = prepared.experimental_context;
       if (prepared.toolChoice !== undefined)
@@ -1195,10 +1342,16 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
         if (tool && typeof tool.execute === 'function') {
           try {
             const { execute } = tool;
+            const resolvedContext = await resolveToolContext({
+              toolName: approval.toolName,
+              tool,
+              toolsContext: effectiveToolsContext,
+              fallbackContext: effectiveExperimentalContext,
+            });
             const toolResult = await execute(approval.input, {
               toolCallId: approval.toolCallId,
               messages: [],
-              context: effectiveExperimentalContext,
+              context: resolvedContext,
             });
             toolResultContent.push({
               type: 'tool-result' as const,
@@ -1385,6 +1538,9 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
 
     // Initialize context
     let experimentalContext = effectiveExperimentalContext;
+    let runtimeContext: Context = effectiveRuntimeContext;
+    let toolsContext: Record<string, Context | undefined> =
+      effectiveToolsContext;
 
     const steps: StepResult<TTools, any>[] = [];
 
@@ -1405,7 +1561,8 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
       toolCall: { toolCallId: string; toolName: string; input: unknown },
       tools: ToolSet,
       messages: LanguageModelV4Prompt,
-      context?: unknown,
+      fallbackContext: unknown,
+      perToolContexts: Record<string, Context | undefined>,
       currentStepNumber: number = 0,
     ): Promise<LanguageModelV4ToolResultPart> => {
       const toolCallEvent: ToolCall = {
@@ -1422,10 +1579,20 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
         });
       }
 
+      const tool = tools[toolCall.toolName];
+      const resolvedContext = tool
+        ? await resolveToolContext({
+            toolName: toolCall.toolName,
+            tool,
+            toolsContext: perToolContexts,
+            fallbackContext,
+          })
+        : fallbackContext;
+
       const startTime = Date.now();
       let result: LanguageModelV4ToolResultPart;
       try {
-        result = await executeTool(toolCall, tools, messages, context);
+        result = await executeTool(toolCall, tools, messages, resolvedContext);
       } catch (err) {
         const durationMs = Date.now() - startTime;
         if (mergedOnToolExecutionEnd) {
@@ -1501,6 +1668,8 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
       generationSettings: mergedGenerationSettings,
       toolChoice: effectiveToolChoice as ToolChoice<ToolSet>,
       experimental_context: experimentalContext,
+      runtimeContext,
+      toolsContext,
       telemetry: effectiveTelemetry,
       includeRawChunks: options.includeRawChunks ?? false,
       repairToolCall: (options.experimental_repairToolCall ??
@@ -1532,6 +1701,8 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
           messages: iterMessages,
           step,
           context,
+          runtimeContext: yieldedRuntimeContext,
+          toolsContext: yieldedToolsContext,
           providerExecutedToolResults,
         } = result.value;
         // Capture current step number before pushing (0-based)
@@ -1541,6 +1712,12 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
         }
         if (context !== undefined) {
           experimentalContext = context;
+        }
+        if (yieldedRuntimeContext !== undefined) {
+          runtimeContext = yieldedRuntimeContext;
+        }
+        if (yieldedToolsContext !== undefined) {
+          toolsContext = yieldedToolsContext;
         }
 
         // Only execute tools if there are tool calls
@@ -1564,10 +1741,16 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
               if (tool.needsApproval == null) return false;
               if (typeof tool.needsApproval === 'boolean')
                 return tool.needsApproval;
+              const resolvedContext = await resolveToolContext({
+                toolName: tc.toolName,
+                tool,
+                toolsContext,
+                fallbackContext: experimentalContext,
+              });
               return tool.needsApproval(tc.input, {
                 toolCallId: tc.toolCallId,
                 messages: iterMessages as unknown as ModelMessage[],
-                context: experimentalContext,
+                context: resolvedContext,
               });
             }),
           );
@@ -1604,6 +1787,7 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
                     effectiveTools as ToolSet,
                     iterMessages,
                     experimentalContext,
+                    toolsContext,
                     currentStepNumber,
                   ),
               ),
@@ -1661,6 +1845,8 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
                 text: lastStep?.text ?? '',
                 finishReason: lastStep?.finishReason ?? 'other',
                 totalUsage: aggregateUsage(steps),
+                runtimeContext,
+                toolsContext,
                 experimental_context: experimentalContext,
                 output: undefined as OUTPUT,
               });
@@ -1713,6 +1899,7 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
                   effectiveTools as ToolSet,
                   iterMessages,
                   experimentalContext,
+                  toolsContext,
                   currentStepNumber,
                 ),
             ),
@@ -1848,6 +2035,8 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
         text: lastStep?.text ?? '',
         finishReason: lastStep?.finishReason ?? 'other',
         totalUsage: aggregateUsage(steps),
+        runtimeContext,
+        toolsContext,
         experimental_context: experimentalContext,
         output: experimentalOutput,
       });
@@ -2003,6 +2192,44 @@ async function writeApprovalToolResults(
   } finally {
     writer.releaseLock();
   }
+}
+
+/**
+ * Resolve the per-tool context that gets passed into a tool's `execute`
+ * (and `needsApproval`) function.
+ *
+ * Resolution order:
+ *   1. If the tool has an entry in `toolsContext`, validate it against
+ *      `tool.contextSchema` (when present) and pass it through.
+ *   2. Otherwise, fall back to `fallbackContext` (the legacy
+ *      `experimental_context`) for backwards compatibility.
+ */
+async function resolveToolContext({
+  toolName,
+  tool,
+  toolsContext,
+  fallbackContext,
+}: {
+  toolName: string;
+  tool: ToolSet[string];
+  toolsContext: Record<string, Context | undefined> | undefined;
+  fallbackContext: unknown;
+}): Promise<unknown> {
+  const entry = toolsContext?.[toolName];
+  if (entry === undefined) {
+    return fallbackContext;
+  }
+
+  const contextSchema = (tool as { contextSchema?: unknown }).contextSchema;
+  if (contextSchema == null) {
+    return entry;
+  }
+
+  return await validateTypes({
+    value: entry,
+    schema: contextSchema as Parameters<typeof validateTypes>[0]['schema'],
+    context: { field: 'tool context', entityName: toolName },
+  });
 }
 
 function aggregateUsage(steps: StepResult<any, any>[]): LanguageModelUsage {

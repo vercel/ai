@@ -2382,6 +2382,288 @@ describe('WorkflowAgent', () => {
     });
   });
 
+  describe('runtimeContext and toolsContext', () => {
+    it('should pass per-tool toolsContext entry as the tool execute context', async () => {
+      let receivedContext: unknown;
+
+      const tools: ToolSet = {
+        weather: {
+          description: 'Get weather',
+          inputSchema: z.object({}),
+          execute: async (_input, options) => {
+            receivedContext = options.context;
+            return { result: 'ok' };
+          },
+        },
+      };
+
+      const mockModel = createMockModel();
+
+      const agent = new WorkflowAgent({
+        model: mockModel,
+        tools,
+      });
+
+      const mockWritable = new WritableStream({
+        write: vi.fn(),
+        close: vi.fn(),
+      });
+
+      const mockMessages: LanguageModelV4Prompt = [
+        { role: 'user', content: [{ type: 'text', text: 'test' }] },
+      ];
+
+      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const mockIterator = {
+        next: vi
+          .fn()
+          .mockResolvedValueOnce({
+            done: false,
+            value: {
+              toolCalls: [
+                {
+                  toolCallId: 'call-1',
+                  toolName: 'weather',
+                  input: '{}',
+                } as LanguageModelV4ToolCall,
+              ],
+              messages: mockMessages,
+            },
+          })
+          .mockResolvedValueOnce({ done: true, value: [] }),
+      };
+      vi.mocked(streamTextIterator).mockReturnValue(
+        mockIterator as unknown as MockIterator,
+      );
+
+      await agent.stream({
+        messages: [{ role: 'user', content: 'test' }],
+        writable: mockWritable,
+        toolsContext: {
+          weather: { weatherApiKey: 'secret-key', defaultUnit: 'celsius' },
+        },
+      });
+
+      expect(receivedContext).toEqual({
+        weatherApiKey: 'secret-key',
+        defaultUnit: 'celsius',
+      });
+    });
+
+    it('should fall back to experimental_context when no toolsContext entry exists', async () => {
+      let receivedContext: unknown;
+
+      const tools: ToolSet = {
+        weather: {
+          description: 'Get weather',
+          inputSchema: z.object({}),
+          execute: async (_input, options) => {
+            receivedContext = options.context;
+            return { result: 'ok' };
+          },
+        },
+      };
+
+      const mockModel = createMockModel();
+
+      const agent = new WorkflowAgent({
+        model: mockModel,
+        tools,
+      });
+
+      const mockWritable = new WritableStream({
+        write: vi.fn(),
+        close: vi.fn(),
+      });
+
+      const mockMessages: LanguageModelV4Prompt = [
+        { role: 'user', content: [{ type: 'text', text: 'test' }] },
+      ];
+
+      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const mockIterator = {
+        next: vi
+          .fn()
+          .mockResolvedValueOnce({
+            done: false,
+            value: {
+              toolCalls: [
+                {
+                  toolCallId: 'call-1',
+                  toolName: 'weather',
+                  input: '{}',
+                } as LanguageModelV4ToolCall,
+              ],
+              messages: mockMessages,
+            },
+          })
+          .mockResolvedValueOnce({ done: true, value: [] }),
+      };
+      vi.mocked(streamTextIterator).mockReturnValue(
+        mockIterator as unknown as MockIterator,
+      );
+
+      await agent.stream({
+        messages: [{ role: 'user', content: 'test' }],
+        writable: mockWritable,
+        experimental_context: { fallback: true },
+      });
+
+      expect(receivedContext).toEqual({ fallback: true });
+    });
+
+    it('should validate per-tool context against contextSchema', async () => {
+      const tools: ToolSet = {
+        weather: {
+          description: 'Get weather',
+          inputSchema: z.object({}),
+          contextSchema: z.object({
+            apiKey: z.string(),
+          }),
+          execute: async () => ({ result: 'ok' }),
+        },
+      };
+
+      const mockModel = createMockModel();
+
+      const agent = new WorkflowAgent({
+        model: mockModel,
+        tools,
+      });
+
+      const mockWritable = new WritableStream({
+        write: vi.fn(),
+        close: vi.fn(),
+      });
+
+      const mockMessages: LanguageModelV4Prompt = [
+        { role: 'user', content: [{ type: 'text', text: 'test' }] },
+      ];
+
+      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const mockIterator = {
+        next: vi
+          .fn()
+          .mockResolvedValueOnce({
+            done: false,
+            value: {
+              toolCalls: [
+                {
+                  toolCallId: 'call-1',
+                  toolName: 'weather',
+                  input: '{}',
+                } as LanguageModelV4ToolCall,
+              ],
+              messages: mockMessages,
+            },
+          })
+          .mockResolvedValueOnce({ done: true, value: [] }),
+      };
+      vi.mocked(streamTextIterator).mockReturnValue(
+        mockIterator as unknown as MockIterator,
+      );
+
+      // Invalid context (missing required apiKey) should reject through the
+      // schema validation path.
+      await expect(
+        agent.stream({
+          messages: [{ role: 'user', content: 'test' }],
+          writable: mockWritable,
+          // intentionally missing required `apiKey`
+          toolsContext: { weather: {} as { apiKey: string } },
+        }),
+      ).rejects.toThrow();
+    });
+
+    it('should pass runtimeContext to onFinish', async () => {
+      const onFinish = vi.fn();
+      const mockModel = createMockModel();
+
+      const agent = new WorkflowAgent({
+        model: mockModel,
+        tools: {},
+        onFinish,
+      });
+
+      const mockWritable = new WritableStream({
+        write: vi.fn(),
+        close: vi.fn(),
+      });
+
+      const mockStep: StepResult<any, any> = {
+        content: [{ type: 'text', text: 'Hello' }],
+        text: 'Hello',
+        reasoningText: undefined,
+        reasoning: [],
+        files: [],
+        sources: [],
+        toolCalls: [],
+        toolResults: [],
+        finishReason: 'stop',
+        usage: { inputTokens: 10, outputTokens: 5, totalTokens: 15 },
+        request: {},
+        response: {
+          id: 'test-id',
+          modelId: 'test-model',
+          timestamp: new Date(),
+        },
+        warnings: [],
+      } as unknown as StepResult<any, any>;
+
+      const mockMessages: LanguageModelV4Prompt = [
+        { role: 'user', content: [{ type: 'text', text: 'test' }] },
+      ];
+
+      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const mockIterator = {
+        next: vi
+          .fn()
+          .mockResolvedValueOnce({
+            done: false,
+            value: {
+              toolCalls: [],
+              messages: mockMessages,
+              step: mockStep,
+              runtimeContext: { tenantId: 'tenant_123' },
+              toolsContext: { weather: { unit: 'fahrenheit' } },
+            },
+          })
+          .mockResolvedValueOnce({ done: true, value: mockMessages }),
+      };
+      vi.mocked(streamTextIterator).mockReturnValue(
+        mockIterator as unknown as MockIterator,
+      );
+
+      await agent.stream({
+        messages: [{ role: 'user', content: 'test' }],
+        writable: mockWritable,
+        runtimeContext: { tenantId: 'tenant_123' },
+        toolsContext: { weather: { unit: 'fahrenheit' } },
+      });
+
+      expect(onFinish).toHaveBeenCalledWith(
+        expect.objectContaining({
+          runtimeContext: { tenantId: 'tenant_123' },
+          toolsContext: { weather: { unit: 'fahrenheit' } },
+        }),
+      );
+    });
+
+    it('should accept includeRuntimeContext and includeToolsContext on telemetry', () => {
+      // Compile-time check: the new telemetry options should be accepted.
+      const agent = new WorkflowAgent({
+        model: createMockModel(),
+        tools: {},
+        telemetry: {
+          isEnabled: true,
+          includeRuntimeContext: { requestId: true },
+          includeToolsContext: { weather: { region: true } },
+        },
+      });
+      expect(agent).toBeDefined();
+    });
+  });
+
   describe('stream result', () => {
     it('should return messages and steps in result', async () => {
       const mockModel = createMockModel();
