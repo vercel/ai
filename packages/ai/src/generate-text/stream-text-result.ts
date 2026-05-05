@@ -1,3 +1,4 @@
+import type { JSONObject } from '@ai-sdk/provider';
 import type { Context, IdGenerator, ToolSet } from '@ai-sdk/provider-utils';
 import type { ServerResponse } from 'node:http';
 import type {
@@ -421,6 +422,7 @@ export type TextStreamToolInputStartPart = {
   id: string;
   toolName: string;
   providerMetadata?: ProviderMetadata;
+  toolMetadata?: JSONObject;
   providerExecuted?: boolean;
   dynamic?: boolean;
   title?: string;
