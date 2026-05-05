@@ -43,7 +43,6 @@ import { getModelPath } from './get-model-path';
 import { googleFailedResponseHandler } from './google-error';
 import {
   googleLanguageModelOptions,
-  VertexServiceTierMap,
   type GoogleLanguageModelOptions,
   type GoogleModelId,
 } from './google-language-model-options';
@@ -183,11 +182,43 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       });
     }
 
-    // Vertex API requires another service tier format.
-    let sanitizedServiceTier: string | undefined = googleOptions?.serviceTier;
     if (googleOptions?.serviceTier && isVertexProvider) {
-      sanitizedServiceTier = VertexServiceTierMap[googleOptions.serviceTier];
+      warnings.push({
+        type: 'other',
+        message:
+          "'serviceTier' is a Gemini API option and is not supported on Vertex AI. " +
+          "Use 'sharedRequestType' (and optionally 'requestType') instead. See " +
+          'https://docs.cloud.google.com/vertex-ai/generative-ai/docs/priority-paygo',
+      });
     }
+    if (
+      (googleOptions?.sharedRequestType || googleOptions?.requestType) &&
+      !isVertexProvider
+    ) {
+      warnings.push({
+        type: 'other',
+        message:
+          "'sharedRequestType' and 'requestType' are Vertex AI options and " +
+          `are ignored with the current Google provider (${this.config.provider}).`,
+      });
+    }
+
+    const vertexPaygoHeaders: Record<string, string> | undefined =
+      isVertexProvider &&
+      (googleOptions?.sharedRequestType || googleOptions?.requestType)
+        ? {
+            ...(googleOptions.sharedRequestType && {
+              'X-Vertex-AI-LLM-Shared-Request-Type':
+                googleOptions.sharedRequestType,
+            }),
+            ...(googleOptions.requestType && {
+              'X-Vertex-AI-LLM-Request-Type': googleOptions.requestType,
+            }),
+          }
+        : undefined;
+    const bodyServiceTier = isVertexProvider
+      ? undefined
+      : googleOptions?.serviceTier;
 
     const isGemmaModel = this.modelId.toLowerCase().startsWith('gemma-');
     const supportsFunctionResponseParts = this.modelId.startsWith('gemini-3');
@@ -288,17 +319,18 @@ export class GoogleLanguageModel implements LanguageModelV4 {
         toolConfig,
         cachedContent: googleOptions?.cachedContent,
         labels: googleOptions?.labels,
-        serviceTier: sanitizedServiceTier,
+        serviceTier: bodyServiceTier,
       },
       warnings: [...warnings, ...toolWarnings],
       providerOptionsNames,
+      extraHeaders: vertexPaygoHeaders,
     };
   }
 
   async doGenerate(
     options: LanguageModelV4CallOptions,
   ): Promise<LanguageModelV4GenerateResult> {
-    const { args, warnings, providerOptionsNames } =
+    const { args, warnings, providerOptionsNames, extraHeaders } =
       await this.getArgs(options);
     const wrapProviderMetadata = (payload: Record<string, unknown>) =>
       Object.fromEntries(
@@ -308,6 +340,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     const mergedHeaders = combineHeaders(
       this.config.headers ? await resolve(this.config.headers) : undefined,
       options.headers,
+      extraHeaders,
     );
 
     const {
@@ -503,10 +536,8 @@ export class GoogleLanguageModel implements LanguageModelV4 {
   async doStream(
     options: LanguageModelV4CallOptions,
   ): Promise<LanguageModelV4StreamResult> {
-    const { args, warnings, providerOptionsNames } = await this.getArgs(
-      options,
-      { isStreaming: true },
-    );
+    const { args, warnings, providerOptionsNames, extraHeaders } =
+      await this.getArgs(options, { isStreaming: true });
     const wrapProviderMetadata = (payload: Record<string, unknown>) =>
       Object.fromEntries(
         providerOptionsNames.map(name => [name, payload]),
@@ -515,6 +546,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     const headers = combineHeaders(
       this.config.headers ? await resolve(this.config.headers) : undefined,
       options.headers,
+      extraHeaders,
     );
 
     const { responseHeaders, value: response } = await postJsonToApi({
