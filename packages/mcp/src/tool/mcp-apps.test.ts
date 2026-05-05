@@ -219,6 +219,7 @@ describe('MCP Apps helpers', () => {
             "type": "text",
           },
         ],
+        "isError": false,
         "structuredContent": {
           "ok": true,
         },
