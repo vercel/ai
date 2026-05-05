@@ -1,5 +1,3 @@
-import { z } from 'zod/v4';
-
 export type MoonshotAIChatModelId =
   | 'moonshot-v1-8k'
   | 'moonshot-v1-32k'
@@ -12,17 +10,5 @@ export type MoonshotAIChatModelId =
   | 'kimi-k2.5'
   | (string & {});
 
-export const moonshotaiLanguageModelOptions = z.object({
-  thinking: z
-    .object({
-      type: z.enum(['enabled', 'disabled']).optional(),
-      budgetTokens: z.number().int().min(1024).optional(),
-    })
-    .optional(),
-
-  reasoningHistory: z.enum(['disabled', 'interleaved', 'preserved']).optional(),
-});
-
-export type MoonshotAILanguageModelOptions = z.infer<
-  typeof moonshotaiLanguageModelOptions
->;
+export { moonshotaiLanguageModelChatOptions as moonshotaiLanguageModelOptions } from './moonshotai-chat-language-model-options';
+export type { MoonshotAILanguageModelChatOptions as MoonshotAILanguageModelOptions } from './moonshotai-chat-language-model-options';

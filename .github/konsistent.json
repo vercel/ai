@@ -233,10 +233,7 @@
             ],
             "haveFiles": ["${providerId}-${modelKind}-model-options.ts"]
           },
-          "excludeFiles": [
-            "packages/deepinfra/src/deepinfra-chat-language-model.ts",
-            "packages/moonshotai/src/moonshotai-chat-language-model.ts"
-          ]
+          "excludeFiles": []
         },
         {
           "name": "provider-video-model-file-must-export-model-class",
