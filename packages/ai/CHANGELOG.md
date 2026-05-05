@@ -112,7 +112,7 @@
 
   Switch to `Object.hasOwn(...)` so attacker-controlled extensions like `.constructor` cannot resolve to inherited `Object.prototype` keys.
 
-- 51ce232: feat(ai): add telemetry.includeRuntimeContext option
+- 51ce232: feat(ai): add sensitiveRuntimeContext option
 - befb78c: refactoring: remove real-time delays in unit tests
 - 29d8cf4: feat(ai): rename the core-event types
 - 58a2ad7: fix: more precise default message for tool execution denial
