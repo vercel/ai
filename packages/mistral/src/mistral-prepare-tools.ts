@@ -5,6 +5,22 @@ import {
 } from '@ai-sdk/provider';
 import type { MistralToolChoice } from './mistral-chat-prompt';
 
+type MistralFunctionTool = {
+  type: 'function';
+  function: {
+    name: string;
+    description: string | undefined;
+    parameters: unknown;
+    strict?: boolean;
+  };
+};
+
+type MistralBuiltinTool =
+  | { type: 'web_search' }
+  | { type: 'web_search_premium' };
+
+type MistralTool = MistralFunctionTool | MistralBuiltinTool;
+
 export function prepareTools({
   tools,
   toolChoice,
@@ -12,17 +28,7 @@ export function prepareTools({
   tools: LanguageModelV4CallOptions['tools'];
   toolChoice?: LanguageModelV4CallOptions['toolChoice'];
 }): {
-  tools:
-    | Array<{
-        type: 'function';
-        function: {
-          name: string;
-          description: string | undefined;
-          parameters: unknown;
-          strict?: boolean;
-        };
-      }>
-    | undefined;
+  tools: Array<MistralTool> | undefined;
   toolChoice: MistralToolChoice | undefined;
   toolWarnings: SharedV4Warning[];
 } {
@@ -35,22 +41,23 @@ export function prepareTools({
     return { tools: undefined, toolChoice: undefined, toolWarnings };
   }
 
-  const mistralTools: Array<{
-    type: 'function';
-    function: {
-      name: string;
-      description: string | undefined;
-      parameters: unknown;
-      strict?: boolean;
-    };
-  }> = [];
+  const mistralTools: Array<MistralTool> = [];
 
   for (const tool of tools) {
     if (tool.type === 'provider') {
-      toolWarnings.push({
-        type: 'unsupported',
-        feature: `provider-defined tool ${tool.id}`,
-      });
+      switch (tool.id) {
+        case 'mistral.web_search':
+          mistralTools.push({ type: 'web_search' });
+          break;
+        case 'mistral.web_search_premium':
+          mistralTools.push({ type: 'web_search_premium' });
+          break;
+        default:
+          toolWarnings.push({
+            type: 'unsupported',
+            feature: `provider-defined tool ${tool.id}`,
+          });
+      }
     } else {
       mistralTools.push({
         type: 'function',
@@ -82,7 +89,9 @@ export function prepareTools({
     case 'tool':
       return {
         tools: mistralTools.filter(
-          tool => tool.function.name === toolChoice.toolName,
+          tool =>
+            tool.type === 'function' &&
+            tool.function.name === toolChoice.toolName,
         ),
         toolChoice: 'any',
         toolWarnings,

@@ -14,10 +14,16 @@ import { MistralChatLanguageModel } from './mistral-chat-language-model';
 import type { MistralChatModelId } from './mistral-chat-language-model-options';
 import { MistralEmbeddingModel } from './mistral-embedding-model';
 import type { MistralEmbeddingModelId } from './mistral-embedding-options';
+import { mistralTools } from './mistral-tools';
 import { VERSION } from './version';
 
 export interface MistralProvider extends ProviderV4 {
   (modelId: MistralChatModelId): LanguageModelV4;
+
+  /**
+   * Built-in Mistral tools (e.g. web_search, web_search_premium).
+   */
+  tools: typeof mistralTools;
 
   /**
    * Creates a model for text generation.
@@ -127,6 +133,7 @@ export function createMistral(
   };
 
   provider.specificationVersion = 'v4' as const;
+  provider.tools = mistralTools;
   provider.languageModel = createChatModel;
   provider.chat = createChatModel;
   provider.embedding = createEmbeddingModel;
