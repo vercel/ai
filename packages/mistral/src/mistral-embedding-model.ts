@@ -5,6 +5,7 @@ import {
 import {
   combineHeaders,
   createJsonResponseHandler,
+  parseProviderOptions,
   postJsonToApi,
   serializeModelOptions,
   WORKFLOW_SERIALIZE,
@@ -13,6 +14,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import type { MistralEmbeddingModelId } from './mistral-embedding-options';
+import { mistralEmbeddingModelOptions } from './mistral-embedding-model-options';
 import { mistralFailedResponseHandler } from './mistral-error';
 
 type MistralEmbeddingConfig = {
@@ -60,9 +62,16 @@ export class MistralEmbeddingModel implements EmbeddingModelV4 {
     values,
     abortSignal,
     headers,
+    providerOptions,
   }: Parameters<EmbeddingModelV4['doEmbed']>[0]): Promise<
     Awaited<ReturnType<EmbeddingModelV4['doEmbed']>>
   > {
+    const embeddingOptions = await parseProviderOptions({
+      provider: 'mistral',
+      providerOptions,
+      schema: mistralEmbeddingModelOptions,
+    });
+
     if (values.length > this.maxEmbeddingsPerCall) {
       throw new TooManyEmbeddingValuesForCallError({
         provider: this.provider,
@@ -82,7 +91,7 @@ export class MistralEmbeddingModel implements EmbeddingModelV4 {
       body: {
         model: this.modelId,
         input: values,
-        encoding_format: 'float',
+        encoding_format: embeddingOptions?.encodingFormat ?? 'float',
       },
       failedResponseHandler: mistralFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
