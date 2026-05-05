@@ -69,10 +69,10 @@ importers:
   examples/ai-e2e-next:
     dependencies:
       '@ai-sdk/amazon-bedrock':
-        specifier: 5.0.0-canary.50
+        specifier: 5.0.0-canary.51
         version: link:../../packages/amazon-bedrock
       '@ai-sdk/anthropic':
-        specifier: 4.0.0-canary.45
+        specifier: 4.0.0-canary.46
         version: link:../../packages/anthropic
       '@ai-sdk/azure':
         specifier: 4.0.0-canary.49
@@ -90,13 +90,13 @@ importers:
         specifier: 4.0.0-canary.53
         version: link:../../packages/google
       '@ai-sdk/google-vertex':
-        specifier: 5.0.0-canary.71
+        specifier: 5.0.0-canary.72
         version: link:../../packages/google-vertex
       '@ai-sdk/groq':
         specifier: 4.0.0-canary.37
         version: link:../../packages/groq
       '@ai-sdk/mcp':
-        specifier: 2.0.0-canary.40
+        specifier: 2.0.0-canary.41
         version: link:../../packages/mcp
       '@ai-sdk/mistral':
         specifier: 4.0.0-canary.38
@@ -839,7 +839,7 @@ importers:
   examples/next-google-vertex:
     dependencies:
       '@ai-sdk/google-vertex':
-        specifier: 5.0.0-canary.71
+        specifier: 5.0.0-canary.72
         version: link:../../packages/google-vertex
       ai:
         specifier: 7.0.0-canary.121

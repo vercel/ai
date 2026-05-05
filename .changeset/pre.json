@@ -87,6 +87,7 @@
     "@ai-sdk/voyage": "0.0.0"
   },
   "changesets": [
+    "add-resource-link-content",
     "angry-tigers-heal",
     "azjeb-lylmk-htihq",
     "bedrock-lazy-fetch",
@@ -151,6 +152,7 @@
     "fast-ears-beam",
     "fifty-phones-decide",
     "five-trainers-cheat",
+    "fix-anthropic-remove-stale-effort-beta-header",
     "fix-anthropic-temperature-top-p",
     "fix-embedding-jsdoc",
     "fix-gateway-reranking-modeltype",
@@ -269,6 +271,7 @@
     "pretty-pandas-sleep",
     "proud-zebras-wave",
     "psncj-ecfys-yryon",
+    "purple-chefs-jog",
     "purple-colts-rescue",
     "quick-meals-help",
     "quick-rocks-swim",
