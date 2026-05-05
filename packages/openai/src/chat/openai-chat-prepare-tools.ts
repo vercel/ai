@@ -11,9 +11,14 @@ import type {
 export function prepareChatTools({
   tools,
   toolChoice,
+  allowedTools,
 }: {
   tools: LanguageModelV4CallOptions['tools'];
   toolChoice?: LanguageModelV4CallOptions['toolChoice'];
+  allowedTools?: {
+    toolNames: string[];
+    mode?: 'auto' | 'required';
+  };
 }): {
   tools?: OpenAIChatFunctionTool[];
   toolChoice?: OpenAIChatToolChoice;
@@ -50,6 +55,21 @@ export function prepareChatTools({
         });
         break;
     }
+  }
+
+  if (allowedTools != null) {
+    return {
+      tools: openaiTools,
+      toolChoice: {
+        type: 'allowed_tools',
+        mode: allowedTools.mode ?? 'auto',
+        tools: allowedTools.toolNames.map(name => ({
+          type: 'function',
+          function: { name },
+        })),
+      },
+      toolWarnings,
+    };
   }
 
   if (toolChoice == null) {
