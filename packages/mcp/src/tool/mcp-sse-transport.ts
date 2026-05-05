@@ -29,6 +29,7 @@ export class SseMCPTransport implements MCPTransport {
   private resourceMetadataUrl?: URL;
   private redirectMode: RequestRedirect;
   private fetchFn: FetchFunction;
+  private negotiatedProtocolVersion?: string;
 
   onclose?: () => void;
   onerror?: (error: unknown) => void;
@@ -60,7 +61,8 @@ export class SseMCPTransport implements MCPTransport {
     const headers: Record<string, string> = {
       ...this.headers,
       ...base,
-      'mcp-protocol-version': LATEST_PROTOCOL_VERSION,
+      'mcp-protocol-version':
+        this.negotiatedProtocolVersion ?? LATEST_PROTOCOL_VERSION,
     };
 
     if (this.authProvider) {
@@ -75,6 +77,10 @@ export class SseMCPTransport implements MCPTransport {
       `ai-sdk/${VERSION}`,
       getRuntimeEnvironmentUserAgent(),
     );
+  }
+
+  setNegotiatedProtocolVersion(version: string): void {
+    this.negotiatedProtocolVersion = version;
   }
 
   async start(): Promise<void> {

@@ -38,6 +38,9 @@ export class HttpMCPTransport implements MCPTransport {
   private redirectMode: RequestRedirect;
   private fetchFn: FetchFunction;
 
+  // Protocol version negotiated during initialize handshake (MCP spec §4.1.1)
+  private negotiatedProtocolVersion?: string;
+
   // Inbound SSE resumption and reconnection state
   private lastInboundEventId?: string;
   private inboundReconnectAttempts = 0;
@@ -78,7 +81,8 @@ export class HttpMCPTransport implements MCPTransport {
     const headers: Record<string, string> = {
       ...this.headers,
       ...base,
-      'mcp-protocol-version': LATEST_PROTOCOL_VERSION,
+      'mcp-protocol-version':
+        this.negotiatedProtocolVersion ?? LATEST_PROTOCOL_VERSION,
     };
 
     if (this.sessionId) {
@@ -97,6 +101,10 @@ export class HttpMCPTransport implements MCPTransport {
       `ai-sdk/${VERSION}`,
       getRuntimeEnvironmentUserAgent(),
     );
+  }
+
+  setNegotiatedProtocolVersion(version: string): void {
+    this.negotiatedProtocolVersion = version;
   }
 
   async start(): Promise<void> {

@@ -482,4 +482,65 @@ describe('HttpMCPTransport', () => {
       );
     });
   });
+
+  describe('setNegotiatedProtocolVersion', () => {
+    it('should use the negotiated protocol version in subsequent requests', async () => {
+      const negotiatedVersion = '2025-06-18';
+
+      server.urls['http://localhost:4000/mcp'].response = ({ callNumber }) => {
+        switch (callNumber) {
+          case 0:
+            // GET SSE returns 405 (server doesn't support inbound SSE)
+            return { type: 'error', status: 405 };
+          default:
+            return {
+              type: 'json-value',
+              body: { jsonrpc: '2.0', id: 1, result: { ok: true } },
+            };
+        }
+      };
+
+      await transport.start();
+      transport.setNegotiatedProtocolVersion(negotiatedVersion);
+
+      await transport.send({
+        jsonrpc: '2.0' as const,
+        method: 'notifications/initialized',
+        params: {},
+      });
+
+      const postCall = server.calls.find(c => c.requestMethod === 'POST');
+      expect(postCall?.requestHeaders['mcp-protocol-version']).toBe(
+        negotiatedVersion,
+      );
+    });
+
+    it('should use LATEST_PROTOCOL_VERSION before negotiation', async () => {
+      server.urls['http://localhost:4000/mcp'].response = ({ callNumber }) => {
+        switch (callNumber) {
+          case 0:
+            return { type: 'error', status: 405 };
+          default:
+            return {
+              type: 'json-value',
+              body: { jsonrpc: '2.0', id: 1, result: { ok: true } },
+            };
+        }
+      };
+
+      await transport.start();
+
+      await transport.send({
+        jsonrpc: '2.0' as const,
+        method: 'initialize',
+        id: 1,
+        params: {},
+      });
+
+      const postCall = server.calls.find(c => c.requestMethod === 'POST');
+      expect(postCall?.requestHeaders['mcp-protocol-version']).toBe(
+        LATEST_PROTOCOL_VERSION,
+      );
+    });
+  });
 });

@@ -27,6 +27,15 @@ export interface MCPTransport {
   close(): Promise<void>;
 
   /**
+   * Called by the client after a successful initialize handshake to store the
+   * protocol version that the server actually negotiated. HTTP/SSE transports
+   * use this value for the `mcp-protocol-version` header on subsequent requests
+   * so they conform to the MCP spec (the header SHOULD reflect the negotiated
+   * version, not always the client's latest).
+   */
+  setNegotiatedProtocolVersion?(version: string): void;
+
+  /**
    * Event handler for transport closure
    */
   onclose?: () => void;
