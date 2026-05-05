@@ -701,11 +701,17 @@ export async function convertToOpenAIResponsesInput({
                         return {
                           type: 'input_image' as const,
                           image_url: `data:${item.mediaType};base64,${item.data}`,
+                          detail:
+                            item.providerOptions?.[providerOptionsName]
+                              ?.imageDetail,
                         };
                       case 'image-url':
                         return {
                           type: 'input_image' as const,
                           image_url: item.url,
+                          detail:
+                            item.providerOptions?.[providerOptionsName]
+                              ?.imageDetail,
                         };
                       case 'file-data':
                         return {
@@ -764,6 +770,9 @@ export async function convertToOpenAIResponsesInput({
                       return {
                         type: 'input_image' as const,
                         image_url: `data:${item.mediaType};base64,${item.data}`,
+                        detail:
+                          item.providerOptions?.[providerOptionsName]
+                            ?.imageDetail,
                       };
                     }
 
@@ -771,6 +780,9 @@ export async function convertToOpenAIResponsesInput({
                       return {
                         type: 'input_image' as const,
                         image_url: item.url,
+                        detail:
+                          item.providerOptions?.[providerOptionsName]
+                            ?.imageDetail,
                       };
                     }
 
