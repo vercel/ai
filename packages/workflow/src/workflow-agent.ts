@@ -516,6 +516,16 @@ export interface WorkflowAgentOptions<
    * model, tools, instructions, or other settings based on runtime context.
    */
   prepareCall?: PrepareCallCallback<TTools>;
+
+  /**
+   * Whether to allow system messages inside the `prompt` or `messages` fields.
+   * When `false` (the default), system messages in `prompt` or `messages` are
+   * rejected to prevent prompt-injection attacks. Set to `true` only when you
+   * intentionally interleave system messages with user messages.
+   *
+   * @default false
+   */
+  allowSystemInMessages?: boolean;
 }
 
 /**
@@ -1028,6 +1038,7 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
   private experimentalRepairToolCall?: ToolCallRepairFunction<TBaseTools>;
   private experimentalDownload?: DownloadFunction;
   private prepareStep?: PrepareStepCallback<TBaseTools>;
+  private allowSystemInMessages: boolean;
   private constructorOnStepFinish?: WorkflowAgentOnStepFinishCallback<ToolSet>;
   private constructorOnFinish?: WorkflowAgentOnFinishCallback<ToolSet>;
   private constructorOnStart?: WorkflowAgentOnStartCallback;
@@ -1060,6 +1071,7 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
     this.constructorOnToolExecutionEnd =
       options.experimental_onToolExecutionEnd;
     this.prepareCall = options.prepareCall;
+    this.allowSystemInMessages = options.allowSystemInMessages ?? false;
 
     // Extract generation settings
     this.generationSettings = {
@@ -1164,7 +1176,7 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
 
     const prompt = await standardizePrompt({
       system: effectiveInstructions,
-      allowSystemInMessages: true, // TODO: consider exposing this as a parameter
+      allowSystemInMessages: this.allowSystemInMessages,
       ...(effectivePrompt != null
         ? { prompt: effectivePrompt }
         : { messages: effectiveMessages! }),
