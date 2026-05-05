@@ -1,4 +1,8 @@
-import type { JSONValue } from '@ai-sdk/provider';
+import {
+  TypeValidationError,
+  type JSONValue,
+  type LanguageModelV4Prompt,
+} from '@ai-sdk/provider';
 import {
   createIdGenerator,
   withUserAgentSuffix,
@@ -23,7 +27,7 @@ import type { TelemetryOptions } from '../telemetry/telemetry-options';
 import type { LanguageModel } from '../types/language-model';
 import type { LanguageModelRequestMetadata } from '../types/language-model-request-metadata';
 import type { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
-import { asLanguageModelUsage } from '../types/usage';
+import { addLanguageModelUsage, asLanguageModelUsage } from '../types/usage';
 import type { Callback } from '../util/callback';
 import type { DownloadFunction } from '../util/download/download-function';
 import { notify } from '../util/notify';
@@ -169,6 +173,14 @@ export async function generateObject<
       experimental_repairText?: RepairTextFunction;
 
       /**
+       * When the output schema validation fails, automatically retry generation
+       * with the validation error appended to the conversation.
+       * `true` = 1 repair attempt, `number` = up to N repair attempts.
+       * @default false
+       */
+      experimental_repairOnValidationError?: boolean | number;
+
+      /**
        * Optional telemetry configuration.
        */
       telemetry?: TelemetryOptions;
@@ -238,6 +250,7 @@ export async function generateObject<
     abortSignal,
     headers,
     experimental_repairText: repairText,
+    experimental_repairOnValidationError: repairOnValidationError,
     experimental_telemetry,
     telemetry = experimental_telemetry,
     experimental_download: download,
@@ -274,6 +287,13 @@ export async function generateObject<
     maxRetries: maxRetriesArg,
     abortSignal,
   });
+
+  const maxRepairAttempts =
+    repairOnValidationError === true
+      ? 1
+      : typeof repairOnValidationError === 'number'
+        ? repairOnValidationError
+        : 0;
 
   const outputStrategy = getOutputStrategy({
     output,
@@ -387,7 +407,7 @@ export async function generateObject<
     }
 
     const finishReason = generateResult.finishReason.unified;
-    const usage = asLanguageModelUsage(generateResult.usage);
+    let usage = asLanguageModelUsage(generateResult.usage);
     const warnings = generateResult.warnings;
     const resultProviderMetadata = generateResult.providerMetadata;
     const request: LanguageModelRequestMetadata = generateResult.request ?? {};
@@ -420,16 +440,83 @@ export async function generateObject<
       callbacks: [onStepFinish, telemetryDispatcher.onObjectStepFinish],
     });
 
-    const object = await parseAndValidateObjectResultWithRepair(
-      text,
-      outputStrategy,
-      repairText,
-      {
-        response,
-        usage,
-        finishReason,
-      },
-    );
+    let object: RESULT;
+    {
+      let repairAttempt = 0;
+      let repairText_ = text;
+      let repairResponse = response;
+      let repairUsage = usage;
+      let repairPromptMessages: LanguageModelV4Prompt = promptMessages;
+
+      while (true) {
+        try {
+          object = await parseAndValidateObjectResultWithRepair(
+            repairText_,
+            outputStrategy,
+            repairText,
+            {
+              response: repairResponse,
+              usage: repairUsage,
+              finishReason,
+            },
+          );
+          usage = repairUsage;
+          break;
+        } catch (error) {
+          if (
+            repairAttempt < maxRepairAttempts &&
+            NoObjectGeneratedError.isInstance(error) &&
+            TypeValidationError.isInstance(error.cause)
+          ) {
+            repairAttempt++;
+            repairPromptMessages = [
+              ...repairPromptMessages,
+              {
+                role: 'assistant' as const,
+                content: [{ type: 'text' as const, text: repairText_ }],
+              },
+              {
+                role: 'user' as const,
+                content: [
+                  {
+                    type: 'text' as const,
+                    text: `The response failed schema validation:\n\n${error.cause.message}\n\nPlease provide a corrected response.`,
+                  },
+                ],
+              },
+            ];
+
+            const repairResult = await retry(() =>
+              model.doGenerate({
+                responseFormat: {
+                  type: 'json',
+                  schema: jsonSchema,
+                  name: schemaName,
+                  description: schemaDescription,
+                },
+                ...prepareLanguageModelCallOptions(settings),
+                prompt: repairPromptMessages,
+                providerOptions,
+                abortSignal,
+                headers: headersWithUserAgent,
+              }),
+            );
+
+            repairText_ = extractTextContent(repairResult.content) ?? '';
+            repairResponse = {
+              id: repairResult.response?.id ?? generateId(),
+              timestamp: repairResult.response?.timestamp ?? currentDate(),
+              modelId: repairResult.response?.modelId ?? model.modelId,
+              headers: repairResult.response?.headers,
+            };
+            const repairCallUsage = asLanguageModelUsage(repairResult.usage);
+            repairUsage = addLanguageModelUsage(repairUsage, repairCallUsage);
+          } else {
+            throw error;
+          }
+        }
+      }
+    }
 
     await notify({
       event: {
