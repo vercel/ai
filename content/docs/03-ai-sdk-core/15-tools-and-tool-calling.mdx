@@ -1111,6 +1111,15 @@ const result = await generateText({
     messages,
     system,
   }) => {
+    // Strip execute functions so the inner generateText only asks the model
+    // for corrected arguments without running the tools a second time.
+    const toolsForRepair = Object.fromEntries(
+      Object.entries(tools).map(([name, { execute: _execute, ...rest }]) => [
+        name,
+        rest,
+      ]),
+    );
+
     const result = await generateText({
       model,
       system,
@@ -1139,7 +1148,7 @@ const result = await generateText({
           ],
         },
       ],
-      tools,
+      tools: toolsForRepair,
     });
 
     const newToolCall = result.toolCalls.find(
