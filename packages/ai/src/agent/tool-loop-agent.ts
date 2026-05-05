@@ -10,6 +10,10 @@ import type {
   GenerateTextOnStepStartCallback,
 } from '../generate-text/generate-text-events';
 import type { GenerateTextResult } from '../generate-text/generate-text-result';
+import type {
+  OnLanguageModelCallEndCallback,
+  OnLanguageModelCallStartCallback,
+} from '../generate-text/language-model-events';
 import type { Output } from '../generate-text/output';
 import { isStepCount } from '../generate-text/stop-condition';
 import { streamText } from '../generate-text/stream-text';
@@ -85,6 +89,8 @@ export class ToolLoopAgent<
       | 'instructions'
       | 'experimental_onStart'
       | 'experimental_onStepStart'
+      | 'experimental_onLanguageModelCallStart'
+      | 'experimental_onLanguageModelCallEnd'
       | 'experimental_onToolExecutionStart'
       | 'experimental_onToolExecutionEnd'
       | 'onStepFinish'
@@ -107,6 +113,8 @@ export class ToolLoopAgent<
     const {
       experimental_onStart: _settingsOnStart,
       experimental_onStepStart: _settingsOnStepStart,
+      experimental_onLanguageModelCallStart: _settingsOnLanguageModelCallStart,
+      experimental_onLanguageModelCallEnd: _settingsOnLanguageModelCallEnd,
       experimental_onToolExecutionStart: _settingsOnToolExecutionStart,
       experimental_onToolExecutionEnd: _settingsOnToolExecutionEnd,
       onStepFinish: _settingsOnStepFinish,
@@ -161,6 +169,8 @@ export class ToolLoopAgent<
     timeout,
     experimental_onStart,
     experimental_onStepStart,
+    experimental_onLanguageModelCallStart,
+    experimental_onLanguageModelCallEnd,
     experimental_onToolExecutionStart,
     experimental_onToolExecutionEnd,
     onStepFinish,
@@ -184,6 +194,18 @@ export class ToolLoopAgent<
         this.settings.experimental_onStepStart,
         experimental_onStepStart as
           | GenerateTextOnStepStartCallback<TOOLS, RUNTIME_CONTEXT, OUTPUT>
+          | undefined,
+      ),
+      experimental_onLanguageModelCallStart: mergeCallbacks(
+        this.settings.experimental_onLanguageModelCallStart,
+        experimental_onLanguageModelCallStart as
+          | OnLanguageModelCallStartCallback
+          | undefined,
+      ),
+      experimental_onLanguageModelCallEnd: mergeCallbacks(
+        this.settings.experimental_onLanguageModelCallEnd,
+        experimental_onLanguageModelCallEnd as
+          | OnLanguageModelCallEndCallback<TOOLS>
           | undefined,
       ),
       experimental_onToolExecutionStart: mergeCallbacks(
@@ -213,6 +235,8 @@ export class ToolLoopAgent<
     experimental_transform,
     experimental_onStart,
     experimental_onStepStart,
+    experimental_onLanguageModelCallStart,
+    experimental_onLanguageModelCallEnd,
     experimental_onToolExecutionStart,
     experimental_onToolExecutionEnd,
     onStepFinish,
@@ -237,6 +261,18 @@ export class ToolLoopAgent<
         this.settings.experimental_onStepStart,
         experimental_onStepStart as
           | GenerateTextOnStepStartCallback<TOOLS, RUNTIME_CONTEXT, OUTPUT>
+          | undefined,
+      ),
+      experimental_onLanguageModelCallStart: mergeCallbacks(
+        this.settings.experimental_onLanguageModelCallStart,
+        experimental_onLanguageModelCallStart as
+          | OnLanguageModelCallStartCallback
+          | undefined,
+      ),
+      experimental_onLanguageModelCallEnd: mergeCallbacks(
+        this.settings.experimental_onLanguageModelCallEnd,
+        experimental_onLanguageModelCallEnd as
+          | OnLanguageModelCallEndCallback<TOOLS>
           | undefined,
       ),
       experimental_onToolExecutionStart: mergeCallbacks(

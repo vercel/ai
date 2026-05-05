@@ -23,6 +23,10 @@ import type { StopCondition } from '../generate-text/stop-condition';
 import type { ToolApprovalConfiguration } from '../generate-text/tool-approval-configuration';
 import type { ToolCallRepairFunction } from '../generate-text/tool-call-repair-function';
 import type {
+  OnLanguageModelCallEndCallback,
+  OnLanguageModelCallStartCallback,
+} from '../generate-text/language-model-events';
+import type {
   OnToolExecutionEndCallback,
   OnToolExecutionStartCallback,
 } from '../generate-text/tool-execution-events';
@@ -144,6 +148,19 @@ export type ToolLoopAgentSettings<
       NoInfer<TOOLS>,
       NoInfer<RUNTIME_CONTEXT>,
       NoInfer<OUTPUT>
+    >;
+
+    /**
+     * Callback that is called immediately before the provider model call begins.
+     */
+    experimental_onLanguageModelCallStart?: OnLanguageModelCallStartCallback;
+
+    /**
+     * Callback that is called after the model response has been normalized and
+     * parsed, but before any client-side tool execution begins.
+     */
+    experimental_onLanguageModelCallEnd?: OnLanguageModelCallEndCallback<
+      NoInfer<TOOLS>
     >;
 
     /**

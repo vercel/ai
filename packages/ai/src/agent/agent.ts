@@ -15,6 +15,10 @@ import type { Output } from '../generate-text/output';
 import type { StreamTextTransform } from '../generate-text/stream-text';
 import type { StreamTextResult } from '../generate-text/stream-text-result';
 import type {
+  OnLanguageModelCallEndCallback,
+  OnLanguageModelCallStartCallback,
+} from '../generate-text/language-model-events';
+import type {
   OnToolExecutionEndCallback,
   OnToolExecutionStartCallback,
 } from '../generate-text/tool-execution-events';
@@ -84,6 +88,17 @@ export type AgentCallParameters<
       TOOLS,
       RUNTIME_CONTEXT
     >;
+
+    /**
+     * Callback that is called immediately before the provider model call begins.
+     */
+    experimental_onLanguageModelCallStart?: OnLanguageModelCallStartCallback;
+
+    /**
+     * Callback that is called after the model response has been normalized and
+     * parsed, but before any client-side tool execution begins.
+     */
+    experimental_onLanguageModelCallEnd?: OnLanguageModelCallEndCallback<TOOLS>;
 
     /**
      * Callback that is called before each tool execution begins.

@@ -6,6 +6,10 @@ import {
   type GenerateTextOnFinishCallback,
   type ToolApprovalConfiguration,
 } from '../generate-text';
+import type {
+  OnLanguageModelCallEndCallback,
+  OnLanguageModelCallStartCallback,
+} from '../generate-text/language-model-events';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import type { AsyncIterableStream } from '../util/async-iterable-stream';
 import type { DeepPartial } from '../util/deep-partial';
@@ -37,6 +41,70 @@ describe('ToolLoopAgent', () => {
       expectTypeOf(agentCallback).toMatchTypeOf<
         GenerateTextOnFinishCallback<{}, {}>
       >();
+    });
+  });
+
+  describe('language model call callbacks', () => {
+    it('should accept experimental_onLanguageModelCallStart in generate', async () => {
+      const agent = new ToolLoopAgent({
+        model: new MockLanguageModelV4(),
+      });
+
+      expectTypeOf<
+        Parameters<
+          typeof agent.generate
+        >[0]['experimental_onLanguageModelCallStart']
+      >().toEqualTypeOf<OnLanguageModelCallStartCallback | undefined>();
+    });
+
+    it('should accept experimental_onLanguageModelCallEnd in generate', async () => {
+      const agent = new ToolLoopAgent({
+        model: new MockLanguageModelV4(),
+      });
+
+      expectTypeOf<
+        Parameters<
+          typeof agent.generate
+        >[0]['experimental_onLanguageModelCallEnd']
+      >().toEqualTypeOf<OnLanguageModelCallEndCallback<{}> | undefined>();
+    });
+
+    it('should accept experimental_onLanguageModelCallStart in stream', () => {
+      const agent = new ToolLoopAgent({
+        model: new MockLanguageModelV4(),
+      });
+
+      expectTypeOf<
+        Parameters<
+          typeof agent.stream
+        >[0]['experimental_onLanguageModelCallStart']
+      >().toEqualTypeOf<OnLanguageModelCallStartCallback | undefined>();
+    });
+
+    it('should accept experimental_onLanguageModelCallEnd in stream', () => {
+      const agent = new ToolLoopAgent({
+        model: new MockLanguageModelV4(),
+      });
+
+      expectTypeOf<
+        Parameters<
+          typeof agent.stream
+        >[0]['experimental_onLanguageModelCallEnd']
+      >().toEqualTypeOf<OnLanguageModelCallEndCallback<{}> | undefined>();
+    });
+
+    it('should allow setting experimental_onLanguageModelCallStart in constructor', () => {
+      new ToolLoopAgent({
+        model: new MockLanguageModelV4(),
+        experimental_onLanguageModelCallStart: () => {},
+      });
+    });
+
+    it('should allow setting experimental_onLanguageModelCallEnd in constructor', () => {
+      new ToolLoopAgent({
+        model: new MockLanguageModelV4(),
+        experimental_onLanguageModelCallEnd: () => {},
+      });
     });
   });
 
