@@ -1088,6 +1088,7 @@ export async function generateText<
 
     // parse output only if the last step was finished with "stop":
     let resolvedOutput;
+    const repairHistory: Array<{ text: string; error: unknown }> = [];
     if (lastStep.finishReason === 'stop') {
       const outputSpecification = output ?? text();
 
@@ -1115,6 +1116,7 @@ export async function generateText<
             NoObjectGeneratedError.isInstance(error) &&
             TypeValidationError.isInstance(error.cause)
           ) {
+            repairHistory.push({ text: repairText, error: error.cause });
             repairAttempt++;
             repairPromptMessages = [
               ...repairPromptMessages,
@@ -1172,6 +1174,7 @@ export async function generateText<
       steps,
       totalUsage,
       output: resolvedOutput,
+      repairHistory,
     });
   } catch (error) {
     await telemetryDispatcher.onError?.({ callId, error });
@@ -1232,16 +1235,27 @@ class DefaultGenerateTextResult<
 > implements GenerateTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT> {
   readonly steps: GenerateTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>['steps'];
   readonly totalUsage: LanguageModelUsage;
+  readonly experimental_repairHistory: GenerateTextResult<
+    TOOLS,
+    RUNTIME_CONTEXT,
+    OUTPUT
+  >['experimental_repairHistory'];
   private readonly _output: InferCompleteOutput<OUTPUT> | undefined;
 
   constructor(options: {
     steps: GenerateTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>['steps'];
     output: InferCompleteOutput<OUTPUT> | undefined;
     totalUsage: LanguageModelUsage;
+    repairHistory: GenerateTextResult<
+      TOOLS,
+      RUNTIME_CONTEXT,
+      OUTPUT
+    >['experimental_repairHistory'];
   }) {
     this.steps = options.steps;
     this._output = options.output;
     this.totalUsage = options.totalUsage;
+    this.experimental_repairHistory = options.repairHistory;
   }
 
   private get finalStep() {
