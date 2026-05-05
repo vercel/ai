@@ -1,5 +1,5 @@
 import { google } from '@ai-sdk/google';
-import { streamText, stepCountIs } from 'ai';
+import { streamText, isStepCount } from 'ai';
 import { weatherTool } from '../../tools/weather-tool';
 import { run } from '../../lib/run';
 
@@ -7,7 +7,7 @@ run(async () => {
   const result = streamText({
     model: google.interactions('gemini-2.5-flash'),
     tools: { getWeather: weatherTool },
-    stopWhen: stepCountIs(5),
+    stopWhen: isStepCount(5),
     prompt: 'What is the weather in San Francisco right now?',
   });
 
