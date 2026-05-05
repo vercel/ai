@@ -1,0 +1,5 @@
+{"id":"chatcmpl-baidu-text-stream-1","object":"chat.completion.chunk","created":1770774506,"model":"ernie-4.5-turbo-128k","choices":[{"index":0,"delta":{"role":"assistant","content":"Hello"},"finish_reason":null}],"usage":null}
+{"id":"chatcmpl-baidu-text-stream-1","object":"chat.completion.chunk","created":1770774506,"model":"ernie-4.5-turbo-128k","choices":[{"index":0,"delta":{"content":" from"},"finish_reason":null}],"usage":null}
+{"id":"chatcmpl-baidu-text-stream-1","object":"chat.completion.chunk","created":1770774506,"model":"ernie-4.5-turbo-128k","choices":[{"index":0,"delta":{"content":" Qianfan!"},"finish_reason":null}],"usage":null}
+{"id":"chatcmpl-baidu-text-stream-1","object":"chat.completion.chunk","created":1770774506,"model":"ernie-4.5-turbo-128k","choices":[{"index":0,"delta":{},"finish_reason":"stop"}],"usage":null}
+{"id":"chatcmpl-baidu-text-stream-1","object":"chat.completion.chunk","created":1770774506,"model":"ernie-4.5-turbo-128k","choices":[],"usage":{"prompt_tokens":12,"completion_tokens":7,"total_tokens":19,"prompt_tokens_details":{"cached_tokens":2}}}

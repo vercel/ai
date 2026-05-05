@@ -1,3 +1,4 @@
+import { NoSuchModelError } from '@ai-sdk/provider';
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { createBaidu } from './baidu-provider';
 import { loadApiKey } from '@ai-sdk/provider-utils';
@@ -16,15 +17,11 @@ const { BaiduChatLanguageModel } = vi.hoisted(() => ({
 
 const BaiduChatLanguageModelMock = BaiduChatLanguageModel as unknown as Mock;
 
-vi.mock(
-  './baidu-chat-language-model',
-  () => {
-    return {
-      BaiduChatLanguageModel,
-    };
-  },
-  { virtual: true },
-);
+vi.mock('./baidu-chat-language-model', () => {
+  return {
+    BaiduChatLanguageModel,
+  };
+});
 
 vi.mock('@ai-sdk/provider-utils', async () => {
   const actual = await vi.importActual('@ai-sdk/provider-utils');
@@ -133,6 +130,26 @@ describe('BaiduProvider', () => {
       const model = provider.languageModel('ernie-x1-turbo-32k');
 
       expect(model).toBeInstanceOf(BaiduChatLanguageModel);
+    });
+  });
+
+  describe('embeddingModel', () => {
+    it('should throw NoSuchModelError for embedding models', () => {
+      const provider = createBaidu();
+
+      expect(() => provider.embeddingModel('embedding-model')).toThrow(
+        NoSuchModelError,
+      );
+    });
+  });
+
+  describe('imageModel', () => {
+    it('should throw NoSuchModelError for image models', () => {
+      const provider = createBaidu();
+
+      expect(() => provider.imageModel('image-model')).toThrow(
+        NoSuchModelError,
+      );
     });
   });
 });

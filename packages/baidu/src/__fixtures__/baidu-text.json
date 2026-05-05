@@ -1,0 +1,24 @@
+{
+  "id": "chatcmpl-baidu-text-1",
+  "object": "chat.completion",
+  "created": 1770774444,
+  "model": "ernie-4.5-turbo-128k",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "Hello from Qianfan!"
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 12,
+    "completion_tokens": 7,
+    "total_tokens": 19,
+    "prompt_tokens_details": {
+      "cached_tokens": 2
+    }
+  }
+}
