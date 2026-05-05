@@ -118,8 +118,42 @@ const audioMediaTypeSignatures = [
     bytesPrefix: [0x40, 0x15, 0x00, 0x00],
   },
   {
+    // M4A audio files: ftyp box with 'M4A ' brand at bytes 8-11.
+    // ISO BMFF layout: [4-byte size][ftyp][M4A ][...]. The size bytes 0-2
+    // are 0x00, byte 3 is the low size byte (wildcard).
     mediaType: 'audio/mp4' as const,
-    bytesPrefix: [0x66, 0x74, 0x79, 0x70],
+    bytesPrefix: [
+      0x00,
+      0x00,
+      0x00,
+      null,
+      0x66,
+      0x74,
+      0x79,
+      0x70, // 'ftyp'
+      0x4d,
+      0x34,
+      0x41,
+      0x20, // 'M4A '
+    ],
+  },
+  {
+    // M4B audiobook files: same layout with 'M4B ' brand.
+    mediaType: 'audio/mp4' as const,
+    bytesPrefix: [
+      0x00,
+      0x00,
+      0x00,
+      null,
+      0x66,
+      0x74,
+      0x79,
+      0x70, // 'ftyp'
+      0x4d,
+      0x34,
+      0x42,
+      0x20, // 'M4B '
+    ],
   },
   {
     mediaType: 'audio/webm',

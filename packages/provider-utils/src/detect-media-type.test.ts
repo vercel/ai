@@ -543,8 +543,26 @@ describe('detectMediaType signature matching', () => {
   });
 
   describe('MP4', () => {
-    it('should detect MP4 from bytes', () => {
-      const mp4Bytes = new Uint8Array([0x66, 0x74, 0x79, 0x70]);
+    // Real m4a/mp4 files use ISO Base Media File Format box structure:
+    // [4-byte box size][4-byte 'ftyp'...]. The 'ftyp' marker is at offset 4,
+    // not offset 0. Files from iOS AVAudioRecorder, Android AAC encoder,
+    // ffmpeg -c:a aac, and ElevenLabs TTS all follow this layout.
+    it('should detect MP4 from real-world bytes (ftyp at offset 4)', () => {
+      // Matches bytes 0..7 of a real m4a: 00 00 00 1c 66 74 79 70
+      const mp4Bytes = new Uint8Array([
+        0x00,
+        0x00,
+        0x00,
+        0x1c, // box size (28 bytes)
+        0x66,
+        0x74,
+        0x79,
+        0x70, // 'ftyp'
+        0x4d,
+        0x34,
+        0x41,
+        0x20, // 'M4A '
+      ]);
       expect(
         detectMediaType({
           data: mp4Bytes,
@@ -553,11 +571,47 @@ describe('detectMediaType signature matching', () => {
       ).toBe('audio/mp4');
     });
 
-    it('should detect MP4 from base64', () => {
-      const mp4Base64 = 'ZnR5cA'; // Base64 string starting with MP4 signature
+    it('should detect MP4 from base64 (real-world ftyp at offset 4)', () => {
+      const mp4Bytes = new Uint8Array([
+        0x00, 0x00, 0x00, 0x1c, 0x66, 0x74, 0x79, 0x70, 0x4d, 0x34, 0x41, 0x20,
+      ]);
+      const mp4Base64 = convertUint8ArrayToBase64(mp4Bytes);
       expect(
         detectMediaType({
           data: mp4Base64,
+          topLevelType: 'audio',
+        }),
+      ).toBe('audio/mp4');
+    });
+
+    it('should not detect MP4 when ftyp is at offset 0 (malformed structure)', () => {
+      const malformedBytes = new Uint8Array([0x66, 0x74, 0x79, 0x70]);
+      expect(
+        detectMediaType({
+          data: malformedBytes,
+          topLevelType: 'audio',
+        }),
+      ).toBeUndefined();
+    });
+
+    it('should detect M4B audiobook from bytes', () => {
+      const m4bBytes = new Uint8Array([
+        0x00,
+        0x00,
+        0x00,
+        0x20, // box size
+        0x66,
+        0x74,
+        0x79,
+        0x70, // 'ftyp'
+        0x4d,
+        0x34,
+        0x42,
+        0x20, // 'M4B '
+      ]);
+      expect(
+        detectMediaType({
+          data: m4bBytes,
           topLevelType: 'audio',
         }),
       ).toBe('audio/mp4');
