@@ -92,11 +92,7 @@ describe('MCPClient', () => {
     `);
   });
 
-<<<<<<< HEAD
-  it('should expose the configured client name on tools via providerMetadata', async () => {
-=======
   it('should expose MCP tool metadata on dynamic tools via providerMetadata', async () => {
->>>>>>> 14517599a (feat(mcp): deprecate name and use clientName for MCPClient (#14966))
     client = await createMCPClient({
       transport: { type: 'sse', url: 'https://example.com/sse' },
       clientName: 'MyMCPClient',
