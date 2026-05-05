@@ -1419,6 +1419,76 @@ describe('doGenerate', () => {
     `);
   });
 
+  it('should include customMetadata in source providerMetadata when present', async () => {
+    prepareJsonResponse({
+      content: 'test response with custom metadata',
+      groundingMetadata: {
+        groundingChunks: [
+          {
+            retrievedContext: {
+              fileSearchStore: 'fileSearchStores/store-xyz',
+              title: 'Document with Metadata',
+              customMetadata: {
+                category: 'technical',
+                year: 2024,
+                tags: ['ai', 'sdk'],
+              },
+            },
+          },
+          {
+            retrievedContext: {
+              fileSearchStore: 'fileSearchStores/store-abc',
+              title: 'Document without Metadata',
+              // no customMetadata
+            },
+          },
+        ],
+      },
+    });
+
+    const { content } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(content).toMatchInlineSnapshot(`
+      [
+        {
+          "providerMetadata": undefined,
+          "text": "test response with custom metadata",
+          "type": "text",
+        },
+        {
+          "filename": "store-xyz",
+          "id": "test-id",
+          "mediaType": "application/octet-stream",
+          "providerMetadata": {
+            "google": {
+              "customMetadata": {
+                "category": "technical",
+                "tags": [
+                  "ai",
+                  "sdk",
+                ],
+                "year": 2024,
+              },
+            },
+          },
+          "sourceType": "document",
+          "title": "Document with Metadata",
+          "type": "source",
+        },
+        {
+          "filename": "store-abc",
+          "id": "test-id",
+          "mediaType": "application/octet-stream",
+          "sourceType": "document",
+          "title": "Document without Metadata",
+          "type": "source",
+        },
+      ]
+    `);
+  });
+
   it('should handle URL sources with undefined title correctly', async () => {
     prepareJsonResponse({
       content: 'test response with URLs',
