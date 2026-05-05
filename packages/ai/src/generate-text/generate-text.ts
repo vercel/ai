@@ -1,7 +1,9 @@
-import type {
-  LanguageModelV4Content,
-  LanguageModelV4GenerateResult,
-  LanguageModelV4ToolCall,
+import {
+  TypeValidationError,
+  type LanguageModelV4Content,
+  type LanguageModelV4GenerateResult,
+  type LanguageModelV4Prompt,
+  type LanguageModelV4ToolCall,
 } from '@ai-sdk/provider';
 import {
   asArray,
@@ -16,6 +18,7 @@ import {
   type ProviderOptions,
 } from '@ai-sdk/provider-utils';
 import { NoOutputGeneratedError } from '../error';
+import { NoObjectGeneratedError } from '../error/no-object-generated-error';
 import { ToolCallNotFoundForApprovalError } from '../error/tool-call-not-found-for-approval-error';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
@@ -38,6 +41,7 @@ import { wrapGatewayError } from '../prompt/wrap-gateway-error';
 import type { Telemetry } from '../telemetry/telemetry';
 import type { TelemetryOptions } from '../telemetry/telemetry-options';
 import type {
+  FinishReason,
   LanguageModel,
   LanguageModelRequestMetadata,
   ToolChoice,
@@ -55,6 +59,7 @@ import { prepareRetries } from '../util/prepare-retries';
 import { setAbortTimeout } from '../util/set-abort-timeout';
 import { VERSION } from '../version';
 import type { ActiveTools } from './active-tools';
+import { extractTextContent } from './extract-text-content';
 import { collectToolApprovals } from './collect-tool-approvals';
 import type { ContentPart } from './content-part';
 import { executeToolCall } from './execute-tool-call';
@@ -189,6 +194,7 @@ export async function generateText<
   activeTools,
   prepareStep,
   experimental_repairToolCall: repairToolCall,
+  experimental_repairOnValidationError: repairOnValidationError,
   experimental_download: download,
   runtimeContext = {} as RUNTIME_CONTEXT,
   toolsContext = {} as InferToolSetContext<TOOLS>,
@@ -287,6 +293,15 @@ export async function generateText<
      * A function that attempts to repair a tool call that failed to parse.
      */
     experimental_repairToolCall?: ToolCallRepairFunction<NoInfer<TOOLS>>;
+
+    /**
+     * When the output schema validation fails, automatically retry generation
+     * with the validation error appended to the conversation.
+     * `true` = 1 repair attempt, `number` = up to N repair attempts.
+     * Only applies when `output` is set to a schema-based Output specification.
+     * @default false
+     */
+    experimental_repairOnValidationError?: boolean | number;
 
     /**
      * Callback that is called when the generateText operation begins,
@@ -393,6 +408,13 @@ export async function generateText<
     totalTimeoutMs,
     stepAbortController?.signal,
   );
+
+  const maxRepairAttempts =
+    repairOnValidationError === true
+      ? 1
+      : typeof repairOnValidationError === 'number'
+        ? repairOnValidationError
+        : 0;
 
   const { maxRetries, retry } = prepareRetries({
     maxRetries: maxRetriesArg,
@@ -560,6 +582,10 @@ export async function generateText<
     const steps: GenerateTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>['steps'] =
       [];
 
+    let lastStepModel = model;
+    let lastStepPromptMessages: LanguageModelV4Prompt = [];
+    let lastStepProviderOptions = providerOptions;
+
     // Track provider-executed tool calls that support deferred results
     // (e.g., code_execution in programmatic tool calling scenarios).
     // These tools may not return their results in the same turn as their call.
@@ -623,6 +649,11 @@ export async function generateText<
           providerOptions,
           prepareStepResult?.providerOptions,
         );
+
+        lastStepModel = stepModel;
+        lastStepPromptMessages = promptMessages;
+        lastStepProviderOptions = stepProviderOptions;
+
         const stepNumber = steps.length;
 
         await notify({
@@ -1008,7 +1039,7 @@ export async function generateText<
 
     const lastStep = steps[steps.length - 1];
 
-    const totalUsage = steps.reduce(
+    let totalUsage = steps.reduce(
       (totalUsage, step) => {
         return addLanguageModelUsage(totalUsage, step.usage);
       },
@@ -1059,14 +1090,82 @@ export async function generateText<
     let resolvedOutput;
     if (lastStep.finishReason === 'stop') {
       const outputSpecification = output ?? text();
-      resolvedOutput = await outputSpecification.parseCompleteOutput(
-        { text: lastStep.text },
-        {
-          response: lastStep.response,
-          usage: lastStep.usage,
-          finishReason: lastStep.finishReason,
-        },
-      );
+
+      let repairAttempt = 0;
+      let repairText = lastStep.text;
+      let repairResponse: typeof lastStep.response = lastStep.response;
+      let repairUsage = lastStep.usage;
+      let repairFinishReason: FinishReason = lastStep.finishReason;
+      let repairPromptMessages = lastStepPromptMessages;
+
+      while (true) {
+        try {
+          resolvedOutput = await outputSpecification.parseCompleteOutput(
+            { text: repairText },
+            {
+              response: repairResponse,
+              usage: repairUsage,
+              finishReason: repairFinishReason,
+            },
+          );
+          break;
+        } catch (error) {
+          if (
+            repairAttempt < maxRepairAttempts &&
+            NoObjectGeneratedError.isInstance(error) &&
+            TypeValidationError.isInstance(error.cause)
+          ) {
+            repairAttempt++;
+            repairPromptMessages = [
+              ...repairPromptMessages,
+              {
+                role: 'assistant' as const,
+                content: [{ type: 'text' as const, text: repairText }],
+              },
+              {
+                role: 'user' as const,
+                content: [
+                  {
+                    type: 'text' as const,
+                    text: `The response failed schema validation:\n\n${error.cause.message}\n\nPlease provide a corrected response.`,
+                  },
+                ],
+              },
+            ];
+
+            const repairResult = await retry(async () => {
+              const result = await lastStepModel.doGenerate({
+                ...callSettings,
+                responseFormat: await output?.responseFormat,
+                prompt: repairPromptMessages,
+                providerOptions: lastStepProviderOptions,
+                abortSignal: mergedAbortSignal,
+                headers: headersWithUserAgent,
+              });
+
+              return {
+                ...result,
+                response: {
+                  id: result.response?.id ?? generateId(),
+                  timestamp: result.response?.timestamp ?? new Date(),
+                  modelId: result.response?.modelId ?? lastStepModel.modelId,
+                  headers: result.response?.headers,
+                  body: result.response?.body,
+                  messages: [],
+                },
+              };
+            });
+
+            repairText = extractTextContent(repairResult.content) ?? '';
+            repairResponse = repairResult.response;
+            repairUsage = asLanguageModelUsage(repairResult.usage);
+            repairFinishReason = repairResult.finishReason.unified;
+            totalUsage = addLanguageModelUsage(totalUsage, repairUsage);
+          } else {
+            throw error;
+          }
+        }
+      }
     }
 
     return new DefaultGenerateTextResult({
