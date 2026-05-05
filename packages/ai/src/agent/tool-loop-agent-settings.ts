@@ -16,7 +16,6 @@ import type {
   GenerateTextOnStepStartCallback,
 } from '../generate-text/generate-text-events';
 import type { ActiveTools } from '../generate-text/active-tools';
-import type { IncludeContext } from '../generate-text/include-context';
 import type { Output } from '../generate-text/output';
 import type { PrepareStepFunction } from '../generate-text/prepare-step';
 import type { StopCondition } from '../generate-text/stop-condition';
@@ -79,14 +78,14 @@ export type ToolLoopAgentSettings<
     /**
      * Optional telemetry configuration.
      */
-    telemetry?: TelemetryOptions;
+    telemetry?: TelemetryOptions<RUNTIME_CONTEXT>;
 
     /**
      * Optional telemetry configuration.
      *
      * @deprecated Use `telemetry` instead. This alias will be removed in a future major release.
      */
-    experimental_telemetry?: TelemetryOptions;
+    experimental_telemetry?: TelemetryOptions<RUNTIME_CONTEXT>;
 
     /**
      * Limits the tools that are available for the model to call without
@@ -104,12 +103,6 @@ export type ToolLoopAgentSettings<
      * If you need to mutate runtime context, update it in `prepareStep`.
      */
     runtimeContext?: RUNTIME_CONTEXT;
-
-    /**
-     * Top-level runtime context properties that should be included in telemetry.
-     * Runtime context properties are excluded unless they are explicitly set to `true`.
-     */
-    includeRuntimeContext?: IncludeContext<NoInfer<RUNTIME_CONTEXT>>;
 
     /**
      * Optional tool approval configuration.
@@ -244,7 +237,6 @@ export type ToolLoopAgentSettings<
           | 'providerOptions'
           | 'experimental_download'
           | 'runtimeContext'
-          | 'includeRuntimeContext'
           | '_internal'
         > & { toolsContext: InferToolSetContext<TOOLS> },
     ) => MaybePromiseLike<
@@ -275,7 +267,6 @@ export type ToolLoopAgentSettings<
         | 'providerOptions'
         | 'experimental_download'
         | 'runtimeContext'
-        | 'includeRuntimeContext'
         | '_internal'
       > &
         Omit<Prompt, 'system'> & {

@@ -5715,8 +5715,10 @@ describe('streamText', () => {
           userId: 'user-123',
           requestId: 'request-123',
         },
-        includeRuntimeContext: {
-          requestId: true,
+        telemetry: {
+          includeRuntimeContext: {
+            requestId: true,
+          },
         },
         experimental_onStart: async ({ runtimeContext }) => {
           callbackContexts.push(runtimeContext);
@@ -5753,10 +5755,10 @@ describe('streamText', () => {
           userId: 'user-123',
           requestId: 'request-123',
         },
-        includeRuntimeContext: {
-          requestId: true,
-        },
         telemetry: {
+          includeRuntimeContext: {
+            requestId: true,
+          },
           integrations: {
             onStart: async event => {
               telemetryContexts.push(

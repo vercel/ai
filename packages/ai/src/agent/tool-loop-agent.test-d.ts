@@ -240,9 +240,11 @@ describe('ToolLoopAgent', () => {
       new ToolLoopAgent<never, {}, { userId: string; requestId: string }>({
         model: new MockLanguageModelV4(),
         runtimeContext: { userId: 'user-123', requestId: 'request-123' },
-        includeRuntimeContext: {
-          userId: true,
-          requestId: false,
+        telemetry: {
+          includeRuntimeContext: {
+            userId: true,
+            requestId: false,
+          },
         },
       });
     });
@@ -251,9 +253,11 @@ describe('ToolLoopAgent', () => {
       new ToolLoopAgent<never, {}, { userId: string }>({
         model: new MockLanguageModelV4(),
         runtimeContext: { userId: 'user-123' },
-        includeRuntimeContext: {
-          // @ts-expect-error includeRuntimeContext only supports runtimeContext properties
-          unknown: true,
+        telemetry: {
+          includeRuntimeContext: {
+            // @ts-expect-error includeRuntimeContext only supports runtimeContext properties
+            unknown: true,
+          },
         },
       });
     });
@@ -330,9 +334,13 @@ describe('ToolLoopAgent', () => {
         new ToolLoopAgent<never, {}, { userId: string; requestId: string }>({
           model: new MockLanguageModelV4(),
           runtimeContext: { userId: 'user-123', requestId: 'request-123' },
-          includeRuntimeContext: { userId: true },
+          telemetry: {
+            includeRuntimeContext: { userId: true },
+          },
           prepareCall: options => {
-            expectTypeOf(options.includeRuntimeContext).toEqualTypeOf<
+            expectTypeOf(
+              options.telemetry?.includeRuntimeContext,
+            ).toEqualTypeOf<
               | {
                   userId?: boolean | undefined;
                   requestId?: boolean | undefined;

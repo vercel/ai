@@ -2,4 +2,4 @@
 "ai": patch
 ---
 
-feat(ai): add sensitiveRuntimeContext option
+feat(ai): add telemetry.includeRuntimeContext option

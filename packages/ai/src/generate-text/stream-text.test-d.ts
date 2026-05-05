@@ -266,9 +266,11 @@ describe('streamText types', () => {
         model: new MockLanguageModelV4(),
         prompt: 'Hello',
         runtimeContext: { userId: 'user-123', requestId: 'request-123' },
-        includeRuntimeContext: {
-          userId: true,
-          requestId: false,
+        telemetry: {
+          includeRuntimeContext: {
+            userId: true,
+            requestId: false,
+          },
         },
       });
     });
@@ -278,7 +280,9 @@ describe('streamText types', () => {
         model: new MockLanguageModelV4(),
         prompt: 'Hello',
         runtimeContext: { userId: 'user-123', requestId: 'request-123' },
-        includeRuntimeContext: { userId: true },
+        telemetry: {
+          includeRuntimeContext: { userId: true },
+        },
         experimental_onStart: ({ runtimeContext }) => {
           expectTypeOf(runtimeContext).toEqualTypeOf<{
             userId: string;
@@ -311,9 +315,11 @@ describe('streamText types', () => {
         model: new MockLanguageModelV4(),
         prompt: 'Hello',
         runtimeContext: { userId: 'user-123' },
-        includeRuntimeContext: {
-          // @ts-expect-error includeRuntimeContext only supports runtimeContext properties
-          unknown: true,
+        telemetry: {
+          includeRuntimeContext: {
+            // @ts-expect-error includeRuntimeContext only supports runtimeContext properties
+            unknown: true,
+          },
         },
       });
     });

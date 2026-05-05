@@ -6,6 +6,7 @@ import type {
   ToolSet,
 } from '@ai-sdk/provider-utils';
 import { createTelemetryDispatcher } from '../telemetry/create-telemetry-dispatcher';
+import type { IncludeContext } from '../telemetry/include-context';
 import type { TelemetryDispatcher } from '../telemetry/telemetry';
 import type { TelemetryOptions } from '../telemetry/telemetry-options';
 import type {
@@ -14,7 +15,6 @@ import type {
   GenerateTextOnStepFinishCallback,
   GenerateTextOnStepStartCallback,
 } from './generate-text-events';
-import type { IncludeContext } from './include-context';
 import type { Output } from './output';
 import { DefaultStepResult, type StepResult } from './step-result';
 import type {
@@ -186,7 +186,7 @@ export function createRestrictedTelemetryDispatcher<
   tools,
   includeRuntimeContext,
 }: {
-  telemetry?: TelemetryOptions;
+  telemetry?: TelemetryOptions<RUNTIME_CONTEXT>;
   tools?: TOOLS | undefined;
   includeRuntimeContext: IncludeContext<RUNTIME_CONTEXT>;
 }): RestrictedTelemetryDispatcher<TOOLS, RUNTIME_CONTEXT, OUTPUT> {

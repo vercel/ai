@@ -7359,10 +7359,12 @@ describe('generateText', () => {
           userId: 'user-123',
           requestId: 'request-123',
         },
-        includeRuntimeContext: {
-          requestId: true,
-        },
         prompt: 'test-input',
+        telemetry: {
+          includeRuntimeContext: {
+            requestId: true,
+          },
+        },
         experimental_onStart: ({ runtimeContext }) => {
           callbackContexts.push(runtimeContext);
         },
@@ -7400,11 +7402,11 @@ describe('generateText', () => {
           userId: 'user-123',
           requestId: 'request-123',
         },
-        includeRuntimeContext: {
-          requestId: true,
-        },
         prompt: 'test-input',
         telemetry: {
+          includeRuntimeContext: {
+            requestId: true,
+          },
           integrations: {
             onStart: event => {
               telemetryContexts.push(

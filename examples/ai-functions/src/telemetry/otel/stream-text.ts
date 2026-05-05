@@ -23,12 +23,12 @@ run(async () => {
       someOtherThing: 'other-value',
       secretApiKey: 'sk-secret',
     },
-    includeRuntimeContext: {
-      something: true,
-      someOtherThing: true,
-    },
     telemetry: {
       functionId: 'my-awesome-function',
+      includeRuntimeContext: {
+        something: true,
+        someOtherThing: true,
+      },
     },
   });
 

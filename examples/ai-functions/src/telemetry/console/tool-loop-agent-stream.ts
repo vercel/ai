@@ -41,11 +41,11 @@ const agent = new ToolLoopAgent({
     requestId: 'request-123',
     secretApiKey: 'sk-secret',
   },
-  includeRuntimeContext: {
-    requestId: true,
-  },
   telemetry: {
     functionId: 'my-awesome-agent',
+    includeRuntimeContext: {
+      requestId: true,
+    },
   },
 });
 
