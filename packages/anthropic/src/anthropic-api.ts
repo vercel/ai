@@ -155,7 +155,9 @@ export interface AnthropicServerToolUseContent {
     | 'text_editor_code_execution'
     // tool search:
     | 'tool_search_tool_regex'
-    | 'tool_search_tool_bm25';
+    | 'tool_search_tool_bm25'
+    // advisor:
+    | 'advisor';
   input: unknown;
   cache_control: AnthropicCacheControl | undefined;
 }
@@ -337,6 +339,17 @@ export interface AnthropicWebFetchToolResultContent {
       };
   cache_control: AnthropicCacheControl | undefined;
 }
+
+export interface AnthropicAdvisorToolResultContent {
+  type: 'advisor_tool_result';
+  tool_use_id: string;
+  content:
+    | { type: 'advisor_result'; text: string }
+    | { type: 'advisor_redacted_result'; encrypted_content: string }
+    | { type: 'advisor_tool_result_error'; error_code: string };
+  cache_control: AnthropicCacheControl | undefined;
+}
+
 export interface AnthropicMcpToolUseContent {
   type: 'mcp_tool_use';
   id: string;
@@ -463,6 +476,13 @@ export type AnthropicTool =
   | {
       type: 'tool_search_tool_bm25_20251119';
       name: string;
+    }
+  | {
+      type: 'advisor_20260301';
+      name: string;
+      model: string;
+      max_uses?: number;
+      caching?: { type: 'ephemeral'; ttl?: '5m' | '1h' } | null;
     };
 
 export type AnthropicSpeed = 'fast' | 'standard';
@@ -836,6 +856,25 @@ export const anthropicResponseSchema = lazySchema(() =>
               }),
             ]),
           }),
+          // advisor tool results for advisor_20260301:
+          z.object({
+            type: z.literal('advisor_tool_result'),
+            tool_use_id: z.string(),
+            content: z.discriminatedUnion('type', [
+              z.object({
+                type: z.literal('advisor_result'),
+                text: z.string(),
+              }),
+              z.object({
+                type: z.literal('advisor_redacted_result'),
+                encrypted_content: z.string(),
+              }),
+              z.object({
+                type: z.literal('advisor_tool_result_error'),
+                error_code: z.string(),
+              }),
+            ]),
+          }),
         ]),
       ),
       stop_reason: z.string().nullish(),
@@ -1190,6 +1229,25 @@ export const anthropicChunkSchema = lazySchema(() =>
               }),
               z.object({
                 type: z.literal('tool_search_tool_result_error'),
+                error_code: z.string(),
+              }),
+            ]),
+          }),
+          // advisor tool results for advisor_20260301:
+          z.object({
+            type: z.literal('advisor_tool_result'),
+            tool_use_id: z.string(),
+            content: z.discriminatedUnion('type', [
+              z.object({
+                type: z.literal('advisor_result'),
+                text: z.string(),
+              }),
+              z.object({
+                type: z.literal('advisor_redacted_result'),
+                encrypted_content: z.string(),
+              }),
+              z.object({
+                type: z.literal('advisor_tool_result_error'),
                 error_code: z.string(),
               }),
             ]),

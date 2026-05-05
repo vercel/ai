@@ -1058,6 +1058,15 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
               input: JSON.stringify(part.input),
               providerExecuted: true,
             });
+          } else if (part.name === 'advisor') {
+            serverToolCalls[part.id] = part.name;
+            content.push({
+              type: 'tool-call',
+              toolCallId: part.id,
+              toolName: toolNameMapping.toCustomToolName('advisor'),
+              input: '{}',
+              providerExecuted: true,
+            });
           }
 
           break;
@@ -1276,6 +1285,18 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
           }
           break;
         }
+
+        // advisor tool results:
+        case 'advisor_tool_result': {
+          content.push({
+            type: 'tool-result',
+            toolCallId: part.tool_use_id,
+            toolName: toolNameMapping.toCustomToolName('advisor'),
+            isError: part.content.type === 'advisor_tool_result_error',
+            result: part.content,
+          });
+          break;
+        }
       }
     }
 
@@ -1435,6 +1456,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       | 'text_editor_code_execution_tool_result'
       | 'bash_code_execution_tool_result'
       | 'tool_search_tool_result'
+      | 'advisor_tool_result'
       | 'mcp_tool_use'
       | 'mcp_tool_result'
       | 'compaction'
@@ -1659,8 +1681,40 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                       toolName: customToolName,
                       providerExecuted: true,
                     });
+                  } else if (part.name === 'advisor') {
+                    serverToolCalls[part.id] = part.name;
+                    const customToolName =
+                      toolNameMapping.toCustomToolName('advisor');
+
+                    contentBlocks[value.index] = {
+                      type: 'tool-call',
+                      toolCallId: part.id,
+                      toolName: customToolName,
+                      input: '{}',
+                      providerExecuted: true,
+                      firstDelta: false,
+                      providerToolName: part.name,
+                    };
+
+                    controller.enqueue({
+                      type: 'tool-input-start',
+                      id: part.id,
+                      toolName: customToolName,
+                      providerExecuted: true,
+                    });
                   }
 
+                  return;
+                }
+
+                case 'advisor_tool_result': {
+                  controller.enqueue({
+                    type: 'tool-result',
+                    toolCallId: part.tool_use_id,
+                    toolName: toolNameMapping.toCustomToolName('advisor'),
+                    isError: part.content.type === 'advisor_tool_result_error',
+                    result: part.content,
+                  });
                   return;
                 }
 

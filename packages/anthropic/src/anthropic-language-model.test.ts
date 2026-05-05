@@ -4317,6 +4317,105 @@ describe('AnthropicLanguageModel', () => {
       });
     });
 
+    describe('advisor 20260301', () => {
+      it('should send correct request body and beta header', async () => {
+        prepareJsonFixtureResponse('anthropic-advisor-20260301.1');
+
+        await model.doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'anthropic.advisor_20260301',
+              name: 'advisor',
+              args: { model: 'claude-opus-4-6', maxUses: 3 },
+            },
+          ],
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "max_tokens": 4096,
+            "messages": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "claude-3-haiku-20240307",
+            "tools": [
+              {
+                "max_uses": 3,
+                "model": "claude-opus-4-6",
+                "name": "advisor",
+                "type": "advisor_20260301",
+              },
+            ],
+          }
+        `);
+
+        expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
+          {
+            "anthropic-beta": "advisor-tool-2026-03-01",
+            "anthropic-version": "2023-06-01",
+            "content-type": "application/json",
+            "x-api-key": "test-api-key",
+          }
+        `);
+      });
+
+      it('should include advisor tool call and result in content', async () => {
+        prepareJsonFixtureResponse('anthropic-advisor-20260301.1');
+
+        const result = await model.doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'anthropic.advisor_20260301',
+              name: 'advisor',
+              args: { model: 'claude-opus-4-6' },
+            },
+          ],
+        });
+
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "text": "Let me consult the advisor for guidance on this complex question.",
+              "type": "text",
+            },
+            {
+              "input": "{}",
+              "providerExecuted": true,
+              "toolCallId": "srvtoolu_01XYZadvisor0000000000001",
+              "toolName": "advisor",
+              "type": "tool-call",
+            },
+            {
+              "isError": false,
+              "result": {
+                "text": "Based on my analysis, the recommended approach is to use a recursive algorithm with memoization to achieve O(n) time complexity.",
+                "type": "advisor_result",
+              },
+              "toolCallId": "srvtoolu_01XYZadvisor0000000000001",
+              "toolName": "advisor",
+              "type": "tool-result",
+            },
+            {
+              "text": "Following the advisor's recommendation, I'll implement the solution with memoization.",
+              "type": "text",
+            },
+          ]
+        `);
+      });
+    });
+
     describe('code execution 20250825', () => {
       it('should send request body with include and tool', async () => {
         prepareJsonFixtureResponse('anthropic-code-execution-20250825.1');
