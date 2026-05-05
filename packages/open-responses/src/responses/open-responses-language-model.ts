@@ -132,7 +132,16 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
         ? undefined
         : toolChoice.type === 'tool'
           ? { type: 'function', name: toolChoice.toolName }
-          : toolChoice.type; // 'auto' | 'none' | 'required'
+          : toolChoice.type === 'allowedTools'
+            ? {
+                type: 'allowed_tools',
+                tools: toolChoice.toolNames.map(name => ({
+                  type: 'function',
+                  name,
+                })),
+                mode: toolChoice.mode ?? 'auto',
+              }
+            : toolChoice.type; // 'auto' | 'none' | 'required'
 
     const textFormat =
       responseFormat?.type === 'json'

@@ -62,4 +62,43 @@ describe('prepareToolChoice', () => {
       }
     `);
   });
+
+  it('handles allowedTools with default mode', () => {
+    const result = prepareToolChoice({
+      toolChoice: {
+        type: 'allowedTools',
+        toolNames: ['tool1', 'tool2'],
+      },
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "toolNames": [
+          "tool1",
+          "tool2",
+        ],
+        "type": "allowedTools",
+      }
+    `);
+  });
+
+  it('handles allowedTools with explicit required mode', () => {
+    const result = prepareToolChoice({
+      toolChoice: {
+        type: 'allowedTools',
+        toolNames: ['tool1'],
+        mode: 'required',
+      },
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "mode": "required",
+        "toolNames": [
+          "tool1",
+        ],
+        "type": "allowedTools",
+      }
+    `);
+  });
 });

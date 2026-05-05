@@ -442,6 +442,37 @@ describe('OpenResponsesLanguageModel', () => {
 
         expect(await server.calls[0].requestBodyJson).toMatchSnapshot();
       });
+
+      it('should send tool_choice allowed_tools with default mode', async () => {
+        prepareJsonFixtureResponse('lmstudio-basic.1');
+
+        await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [TEST_TOOL],
+          toolChoice: {
+            type: 'allowedTools',
+            toolNames: ['get_weather'],
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchSnapshot();
+      });
+
+      it('should send tool_choice allowed_tools with required mode', async () => {
+        prepareJsonFixtureResponse('lmstudio-basic.1');
+
+        await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [TEST_TOOL],
+          toolChoice: {
+            type: 'allowedTools',
+            toolNames: ['get_weather'],
+            mode: 'required',
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchSnapshot();
+      });
     });
 
     describe('system messages', () => {
