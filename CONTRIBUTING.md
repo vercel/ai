@@ -45,6 +45,12 @@ To set up the repository on your local machine, follow these steps:
 5. **Install Dependencies**: Navigate to the project directory and run `pnpm install` to install all necessary dependencies. This also sets up Git hooks via Husky.
 6. **Build the Project**: Run `pnpm build` in the root to build all packages.
 
+### Using Git Worktrees
+
+If you work on multiple branches in parallel using [git worktrees](https://git-scm.com/docs/git-worktree), run `pnpm worktree:setup` from the root of a newly created worktree. This symlinks the `.env` files (root, `examples/ai-functions`, and `examples/ai-e2e-next`) from your main worktree into the new one and runs `pnpm install`.
+
+Tip: consider automating this so you don't have to remember it on every new worktree — for example, by wrapping `git worktree add` in a shell alias/function that `cd`s into the new directory and runs `pnpm worktree:setup`, or by invoking it from a `post-checkout` hook (which fires on `git worktree add`).
+
 ### Running the Examples
 
 1. `cd examples/ai-functions` (for AI SDK Core, or another example folder)

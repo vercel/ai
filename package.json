@@ -20,7 +20,8 @@
     "clean-examples": "node .github/scripts/cleanup-examples-changesets.mjs && pnpm install --no-frozen-lockfile",
     "check": "ultracite check",
     "fix": "ultracite fix",
-    "konsistent": "konsistent --config-path .github/konsistent.json"
+    "konsistent": "konsistent --config-path .github/konsistent.json",
+    "worktree:setup": "bash tools/worktree-setup.sh"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx,mjs,cjs}": [
