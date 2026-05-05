@@ -108,6 +108,67 @@ describe('MCPClient', () => {
     });
   });
 
+  it('should expose MCP Apps metadata on tools via providerMetadata', async () => {
+    createMockTransport.mockImplementation(
+      () =>
+        new MockMCPTransport({
+          overrideTools: [
+            {
+              name: 'showDashboard',
+              description: 'Show dashboard',
+              inputSchema: {
+                type: 'object',
+                properties: {
+                  topic: { type: 'string' },
+                },
+              },
+              _meta: {
+                ui: {
+                  resourceUri: 'ui://ai-sdk-e2e/dashboard',
+                  visibility: ['model', 'app'],
+                },
+              },
+            },
+          ],
+        }),
+    );
+
+    client = await createMCPClient({
+      transport: { type: 'sse', url: 'https://example.com/sse' },
+      clientName: 'MyMCPClient',
+    });
+
+    const dynamicTools = await client.tools();
+    const typedTools = await client.tools({
+      schemas: {
+        showDashboard: {
+          inputSchema: z.object({
+            topic: z.string(),
+          }),
+        },
+      },
+    });
+
+    expect(dynamicTools.showDashboard.providerMetadata).toMatchInlineSnapshot(`
+      {
+        "mcp": {
+          "app": {
+            "mimeType": "text/html;profile=mcp-app",
+            "resourceUri": "ui://ai-sdk-e2e/dashboard",
+            "visibility": [
+              "model",
+              "app",
+            ],
+          },
+          "clientName": "MyMCPClient",
+        },
+      }
+    `);
+    expect(typedTools.showDashboard.providerMetadata).toEqual(
+      dynamicTools.showDashboard.providerMetadata,
+    );
+  });
+
   it('should support deprecated name for MCP tool providerMetadata', async () => {
     client = await createMCPClient({
       transport: { type: 'sse', url: 'https://example.com/sse' },

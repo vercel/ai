@@ -1,4 +1,4 @@
-import type { JSONSchema7, JSONValue } from '@ai-sdk/provider';
+import type { JSONObject, JSONSchema7, JSONValue } from '@ai-sdk/provider';
 import {
   asSchema,
   dynamicTool,
@@ -25,6 +25,7 @@ import {
   type MCPTransport,
   type MCPTransportConfig,
 } from './mcp-transport';
+import { getMCPAppToolMeta, MCP_APP_MIME_TYPE } from './mcp-apps';
 import {
   CallToolResultSchema,
   ElicitationRequestSchema,
@@ -636,6 +637,20 @@ class DefaultMCPClient implements MCPClient {
       const self = this;
       const outputSchema =
         schemas !== 'automatic' ? schemas[name]?.outputSchema : undefined;
+      const appMeta = getMCPAppToolMeta({ _meta });
+      const providerMetadata = {
+        mcp: {
+          clientName: this.clientInfo.name,
+          ...(appMeta?.resourceUri != null
+            ? {
+                app: {
+                  ...appMeta,
+                  mimeType: MCP_APP_MIME_TYPE,
+                } as JSONObject,
+              }
+            : {}),
+        },
+      };
 
       const execute = async (
         args: any,
@@ -660,9 +675,7 @@ class DefaultMCPClient implements MCPClient {
           ? dynamicTool({
               description,
               title: resolvedTitle,
-              providerMetadata: {
-                mcp: { clientName: this.clientInfo.name },
-              },
+              providerMetadata,
               inputSchema: jsonSchema({
                 ...inputSchema,
                 properties: inputSchema.properties ?? {},
@@ -674,9 +687,7 @@ class DefaultMCPClient implements MCPClient {
           : tool({
               description,
               title: resolvedTitle,
-              providerMetadata: {
-                mcp: { clientName: this.clientInfo.name },
-              },
+              providerMetadata,
               inputSchema: schemas[name].inputSchema,
               ...(outputSchema != null ? { outputSchema } : {}),
               execute,
