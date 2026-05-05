@@ -879,6 +879,72 @@ describe('doStream', () => {
     });
   });
 
+  describe('empty choices (Azure AI Services content-filter chunks)', () => {
+    beforeEach(() => {
+      prepareChunksFixtureResponse('mistral-empty-choices');
+    });
+
+    it('should skip chunks with empty choices array and still stream text', async () => {
+      const result = await model.doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const parts = await convertReadableStreamToArray(result.stream);
+      expect(parts).toMatchInlineSnapshot(`
+        [
+          {
+            "type": "stream-start",
+            "warnings": [],
+          },
+          {
+            "id": "abc123",
+            "modelId": "mistral-small-latest",
+            "timestamp": 2026-01-22T13:32:00.000Z,
+            "type": "response-metadata",
+          },
+          {
+            "id": "0",
+            "type": "text-start",
+          },
+          {
+            "delta": "Hello!",
+            "id": "0",
+            "type": "text-delta",
+          },
+          {
+            "id": "0",
+            "type": "text-end",
+          },
+          {
+            "finishReason": {
+              "raw": "stop",
+              "unified": "stop",
+            },
+            "type": "finish",
+            "usage": {
+              "inputTokens": {
+                "cacheRead": undefined,
+                "cacheWrite": undefined,
+                "noCache": 5,
+                "total": 5,
+              },
+              "outputTokens": {
+                "reasoning": undefined,
+                "text": 3,
+                "total": 3,
+              },
+              "raw": {
+                "completion_tokens": 3,
+                "prompt_tokens": 5,
+                "total_tokens": 8,
+              },
+            },
+          },
+        ]
+      `);
+    });
+  });
+
   it('should pass the messages', async () => {
     prepareChunksFixtureResponse('mistral-text');
 

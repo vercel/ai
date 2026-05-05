@@ -378,6 +378,11 @@ export class MistralChatLanguageModel implements LanguageModelV4 {
             }
 
             const choice = value.choices[0];
+
+            if (choice == null) {
+              return;
+            }
+
             const delta = choice.delta;
 
             const textContent = extractTextContent(delta.content);

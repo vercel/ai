@@ -1,0 +1,4 @@
+{"id":"abc123","object":"chat.completion.chunk","created":1769088720,"model":"mistral-small-latest","choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":null,"logprobs":null}]}
+{"id":"abc123","object":"chat.completion.chunk","created":1769088720,"model":"mistral-small-latest","choices":[],"usage":null}
+{"id":"abc123","object":"chat.completion.chunk","created":1769088720,"model":"mistral-small-latest","choices":[{"index":0,"delta":{"content":"Hello!"},"finish_reason":null,"logprobs":null}]}
+{"id":"abc123","object":"chat.completion.chunk","created":1769088720,"model":"mistral-small-latest","choices":[{"index":0,"delta":{"content":""},"finish_reason":"stop","logprobs":null}],"usage":{"prompt_tokens":5,"total_tokens":8,"completion_tokens":3}}
