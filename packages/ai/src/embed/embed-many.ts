@@ -222,7 +222,7 @@ export async function embedMany({
         });
 
       logWarnings({
-        warnings,
+        warnings: warnings ?? [],
         provider: model.provider,
         model: model.modelId,
       });
@@ -247,7 +247,7 @@ export async function embedMany({
         values,
         embeddings,
         usage,
-        warnings,
+        warnings: warnings ?? [],
         providerMetadata,
         responses: [response],
       });
@@ -327,7 +327,7 @@ export async function embedMany({
 
       for (const result of results) {
         embeddings.push(...result.embeddings);
-        warnings.push(...result.warnings);
+        warnings.push(...(result.warnings ?? []));
         responses.push(result.response);
         tokens += result.usage.tokens;
         if (result.providerMetadata) {

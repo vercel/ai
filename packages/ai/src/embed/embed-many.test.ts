@@ -423,6 +423,50 @@ describe('result.warnings', () => {
     expect(result.warnings).toStrictEqual(expectedWarnings);
   });
 
+  it('should not crash when doEmbed returns undefined warnings (v2 provider, single call)', async () => {
+    const result = await embedMany({
+      model: new MockEmbeddingModelV4({
+        maxEmbeddingsPerCall: null,
+        doEmbed: async () => ({
+          embeddings: dummyEmbeddings,
+          warnings: undefined as unknown as [],
+        }),
+      }),
+      values: testValues,
+    });
+
+    expect(result.warnings).toStrictEqual([]);
+  });
+
+  it('should not crash when doEmbed returns undefined warnings (v2 provider, chunked calls)', async () => {
+    let callCount = 0;
+
+    const result = await embedMany({
+      model: new MockEmbeddingModelV4({
+        maxEmbeddingsPerCall: 2,
+        doEmbed: async () => {
+          switch (callCount++) {
+            case 0:
+              return {
+                embeddings: dummyEmbeddings.slice(0, 2),
+                warnings: undefined as unknown as [],
+              };
+            case 1:
+              return {
+                embeddings: dummyEmbeddings.slice(2),
+                warnings: undefined as unknown as [],
+              };
+            default:
+              throw new Error('Unexpected call');
+          }
+        },
+      }),
+      values: testValues,
+    });
+
+    expect(result.warnings).toStrictEqual([]);
+  });
+
   it('should aggregate warnings from multiple calls', async () => {
     const warning1: Warning = {
       type: 'other',

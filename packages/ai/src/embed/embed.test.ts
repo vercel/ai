@@ -183,6 +183,23 @@ describe('result.warnings', () => {
   });
 });
 
+describe('result.warnings - undefined from v2 provider', () => {
+  it('should not crash when doEmbed returns undefined warnings', async () => {
+    const result = await embed({
+      model: new MockEmbeddingModelV4({
+        doEmbed: async () => ({
+          embeddings: [dummyEmbedding],
+          // v2 providers do not include warnings in their doEmbed response
+          warnings: undefined as unknown as [],
+        }),
+      }),
+      value: testValue,
+    });
+
+    expect(result.embedding).toStrictEqual(dummyEmbedding);
+  });
+});
+
 describe('logWarnings', () => {
   let logWarningsSpy: ReturnType<typeof vitest.spyOn>;
 

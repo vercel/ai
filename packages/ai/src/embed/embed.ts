@@ -199,7 +199,11 @@ export async function embed({
         };
       });
 
-    logWarnings({ warnings, provider: model.provider, model: model.modelId });
+    logWarnings({
+      warnings: warnings ?? [],
+      provider: model.provider,
+      model: model.modelId,
+    });
 
     await notify({
       event: {
@@ -221,7 +225,7 @@ export async function embed({
       value,
       embedding,
       usage,
-      warnings,
+      warnings: warnings ?? [],
       providerMetadata,
       response,
     });
