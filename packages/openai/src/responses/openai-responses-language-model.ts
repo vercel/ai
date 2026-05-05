@@ -213,6 +213,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
     } = await prepareResponsesTools({
       tools,
       toolChoice,
+      allowedTools: openaiOptions?.allowedTools ?? undefined,
       toolNameMapping,
       customProviderToolNames,
     });
