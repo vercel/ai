@@ -6,7 +6,7 @@ function asRecord(value: unknown): Record<string, unknown> | undefined {
     : undefined;
 }
 
-function isVisibility(value: unknown): value is 'model' | 'app' {
+function isMCPAppToolVisibleTo(value: unknown): value is 'model' | 'app' {
   return value === 'model' || value === 'app';
 }
 
@@ -49,12 +49,12 @@ export function getMCPAppFromToolPart(
   }
 
   const visibility = Array.isArray(appMetadata.visibility)
-    ? appMetadata.visibility.filter(isVisibility)
+    ? appMetadata.visibility.filter(isMCPAppToolVisibleTo)
     : undefined;
 
   return {
     resourceUri: appMetadata.resourceUri,
-    mimeType: 'text/html;profile=mcp-app',
+    mimeType: appMetadata.mimeType,
     ...(visibility != null ? { visibility } : {}),
   };
 }
