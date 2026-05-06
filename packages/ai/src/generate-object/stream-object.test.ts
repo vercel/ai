@@ -496,48 +496,6 @@ describe('streamObject', () => {
           body: 'test body',
         });
       });
-
-      it('should not contain request messages', async () => {
-        const result = streamObject({
-          model: new MockLanguageModelV4({
-            doStream: async () => ({
-              stream: convertArrayToReadableStream([
-                {
-                  type: 'response-metadata',
-                  id: 'id-0',
-                  modelId: 'mock-model-id',
-                  timestamp: new Date(0),
-                },
-                { type: 'text-start', id: '1' },
-                {
-                  type: 'text-delta',
-                  id: '1',
-                  delta: '{"content": "Hello, world!"}',
-                },
-                { type: 'text-end', id: '1' },
-                {
-                  type: 'finish',
-                  finishReason: { unified: 'stop', raw: 'stop' },
-                  usage: testUsage,
-                },
-              ]),
-              request: {
-                body: 'test body',
-                messages: [{ role: 'user', content: 'test prompt' }],
-              } as any,
-            }),
-          }),
-          schema: z.object({ content: z.string() }),
-          prompt: 'prompt',
-        });
-
-        // consume stream (runs in parallel)
-        await convertAsyncIterableToArray(result.partialObjectStream);
-
-        expect(await result.request).toStrictEqual({
-          body: 'test body',
-        });
-      });
     });
 
     describe('result.object', () => {

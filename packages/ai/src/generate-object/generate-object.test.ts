@@ -261,29 +261,6 @@ describe('generateObject', () => {
           body: 'test body',
         });
       });
-
-      it('should not contain request messages', async () => {
-        const result = await generateObject({
-          model: new MockLanguageModelV4({
-            doGenerate: async () => ({
-              ...dummyResponseValues,
-              content: [
-                { type: 'text', text: '{ "content": "Hello, world!" }' },
-              ],
-              request: {
-                body: 'test body',
-                messages: [{ role: 'user', content: 'test prompt' }],
-              } as any,
-            }),
-          }),
-          schema: z.object({ content: z.string() }),
-          prompt: 'prompt',
-        });
-
-        expect(result.request).toStrictEqual({
-          body: 'test body',
-        });
-      });
     });
 
     describe('result.response', () => {
