@@ -673,6 +673,27 @@ describe('tool calls', () => {
     ]);
   });
 
+  it('should send empty string content for assistant messages with no tool calls', () => {
+    const result = convertToOpenAIChatMessages({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [{ type: 'text', text: '' }],
+        },
+      ],
+    });
+
+    expect(result.messages).toMatchInlineSnapshot(`
+      [
+        {
+          "content": "",
+          "role": "assistant",
+          "tool_calls": undefined,
+        },
+      ]
+    `);
+  });
+
   it('should default missing tool call input to an empty object', () => {
     const result = convertToOpenAIChatMessages({
       prompt: [

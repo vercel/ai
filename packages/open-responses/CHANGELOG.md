@@ -1,5 +1,21 @@
 # @ai-sdk/open-responses
 
+## 2.0.0-canary.36
+
+### Patch Changes
+
+- Updated dependencies [2427d88]
+  - @ai-sdk/provider-utils@5.0.0-canary.33
+
+## 2.0.0-canary.35
+
+### Patch Changes
+
+- 5463d0d: feat(provider): align tool result output content file part types with top-level message file part types
+- Updated dependencies [5463d0d]
+  - @ai-sdk/provider-utils@5.0.0-canary.32
+  - @ai-sdk/provider@4.0.0-canary.16
+
 ## 2.0.0-canary.34
 
 ### Patch Changes

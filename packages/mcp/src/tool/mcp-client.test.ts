@@ -93,16 +93,33 @@ describe('MCPClient', () => {
     `);
   });
 
-  it('should expose the configured client name on dynamic tools via providerMetadata', async () => {
+  it('should expose MCP tool metadata on dynamic tools via providerMetadata', async () => {
     client = await createMCPClient({
       transport: { type: 'sse', url: 'https://example.com/sse' },
-      name: 'MyMCPServer',
+      clientName: 'MyMCPClient',
     });
 
     const tools = await client.tools();
 
     expect(tools['mock-tool'].providerMetadata).toEqual({
-      mcp: { name: 'MyMCPServer' },
+      mcp: {
+        clientName: 'MyMCPClient',
+      },
+    });
+  });
+
+  it('should support deprecated name for MCP tool providerMetadata', async () => {
+    client = await createMCPClient({
+      transport: { type: 'sse', url: 'https://example.com/sse' },
+      name: 'DeprecatedMCPServer',
+    });
+
+    const tools = await client.tools();
+
+    expect(tools['mock-tool'].providerMetadata).toEqual({
+      mcp: {
+        clientName: 'DeprecatedMCPServer',
+      },
     });
   });
 
@@ -243,9 +260,12 @@ describe('MCPClient', () => {
         "type": "content",
         "value": [
           {
-            "data": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==",
+            "data": {
+              "data": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==",
+              "type": "data",
+            },
             "mediaType": "image/png",
-            "type": "file-data",
+            "type": "file",
           },
         ],
       }
@@ -393,9 +413,12 @@ describe('MCPClient', () => {
             "type": "text",
           },
           {
-            "data": "base64data",
+            "data": {
+              "data": "base64data",
+              "type": "data",
+            },
             "mediaType": "image/png",
-            "type": "file-data",
+            "type": "file",
           },
         ],
       }
@@ -1229,6 +1252,49 @@ describe('MCPClient', () => {
 
     expect(capturedClientInfo).toBeDefined();
     expect(capturedClientInfo?.version).toBe('2.5.0');
+  });
+
+  it('should use clientName for client info when provided', async () => {
+    const mockTransport = new MockMCPTransport();
+    let capturedClientInfo: { name: string; version: string } | undefined;
+
+    const originalSend = mockTransport.send.bind(mockTransport);
+    mockTransport.send = vi.fn(async (message: JSONRPCRequest) => {
+      if (message.method === 'initialize' && message.params) {
+        capturedClientInfo = message.params.clientInfo as Configuration;
+      }
+      return originalSend(message);
+    });
+
+    client = await createMCPClient({
+      transport: mockTransport,
+      clientName: 'CustomMCPClient',
+    });
+
+    expect(capturedClientInfo).toBeDefined();
+    expect(capturedClientInfo?.name).toBe('CustomMCPClient');
+  });
+
+  it('should prefer clientName over deprecated name for client info', async () => {
+    const mockTransport = new MockMCPTransport();
+    let capturedClientInfo: { name: string; version: string } | undefined;
+
+    const originalSend = mockTransport.send.bind(mockTransport);
+    mockTransport.send = vi.fn(async (message: JSONRPCRequest) => {
+      if (message.method === 'initialize' && message.params) {
+        capturedClientInfo = message.params.clientInfo as Configuration;
+      }
+      return originalSend(message);
+    });
+
+    client = await createMCPClient({
+      transport: mockTransport,
+      clientName: 'CustomMCPClient',
+      name: 'DeprecatedMCPServer',
+    });
+
+    expect(capturedClientInfo).toBeDefined();
+    expect(capturedClientInfo?.name).toBe('CustomMCPClient');
   });
 
   it('should use default version when not provided', async () => {

@@ -6,7 +6,7 @@ description: Learn about tool calling and multi-step calls (using stopWhen) with
 # Tool Calling
 
 As covered under Foundations, [tools](/docs/foundations/tools) are objects that can be called by the model to perform a specific task.
-AI SDK Core tools contain several core elements:
+Function tools and dynamic tools contain several core elements:
 
 - **`description`**: An optional description of the tool that can influence when the tool is picked.
 - **`inputSchema`**: A [Zod schema](/docs/foundations/tools#schemas) or a [JSON schema](/docs/reference/ai-sdk-core/json-schema) that defines the input parameters. The schema is consumed by the LLM, and also used to validate the LLM tool calls.
@@ -811,12 +811,12 @@ For the full mental model, examples, lifecycle details, and guidance on choosing
 between prompt context, runtime context, and tool context, see
 [Runtime and Tool Context](/docs/ai-sdk-core/runtime-and-tool-context).
 
-### Sensitive Tool Context
+### Tool Context Telemetry
 
 Tool context often contains server-side values such as API keys, access tokens, or internal identifiers.
-Use `sensitiveContext` on a tool definition to exclude top-level context properties from telemetry integrations:
+Use `telemetry.includeToolsContext` to include selected top-level context properties in telemetry integrations:
 
-```ts highlight="10-12,25-29"
+```ts highlight="24-30"
 const weatherTool = tool({
   description: 'Get the weather in a location',
   inputSchema: z.object({
@@ -826,9 +826,6 @@ const weatherTool = tool({
     weatherApiKey: z.string(),
     defaultUnit: z.enum(['celsius', 'fahrenheit']),
   }),
-  sensitiveContext: {
-    weatherApiKey: true,
-  },
   execute: async ({ location }, { context }) => {
     return fetchWeather({
       location,
@@ -848,18 +845,25 @@ const result = await generateText({
     },
   },
   prompt: 'What is the weather in San Francisco?',
+  telemetry: {
+    includeToolsContext: {
+      weather: {
+        defaultUnit: true,
+      },
+    },
+  },
 });
 ```
 
 Telemetry integrations receive the `weather` tool context as `{ defaultUnit: 'fahrenheit' }`.
-Properties set to `false` or omitted are still sent.
+Properties set to `false` or omitted are excluded. If `telemetry.includeToolsContext` is omitted, no tool context properties are included.
 
 <Note>
-  `sensitiveContext` only filters telemetry integrations. Tool execution,
-  lifecycle callbacks, and returned results still receive the full typed tool
-  context. See [Runtime and Tool
-  Context](/docs/ai-sdk-core/runtime-and-tool-context) for how tool context flows
-  through execution and telemetry.
+  `telemetry.includeToolsContext` only filters telemetry integrations. Tool
+  execution, lifecycle callbacks, and returned results still receive the full
+  typed tool context. See [Runtime and Tool
+  Context](/docs/ai-sdk-core/runtime-and-tool-context) for how tool context
+  flows through execution and telemetry.
 </Note>
 
 ## Tool Input Lifecycle Hooks
@@ -1186,9 +1190,11 @@ const { text } = await generateText({
   and Google (Gemini 3 models).
 </Note>
 
-For Google, use base64 media parts (`file-data`) or base64
-`data:` URLs in URL-style parts. Remote HTTP(S) URLs in tool-result URL parts
-are not supported.
+For Google, use base64 inline-data file parts
+(`{ type: 'file', mediaType, data: { type: 'data', data } }`) or base64
+`data:` URLs in URL-style file parts
+(`{ type: 'file', mediaType, data: { type: 'url', url: new URL('data:...') } }`).
+Remote HTTP(S) URLs in tool-result URL parts are not supported.
 
 In order to send multi-modal tool results, e.g. screenshots, back to the model,
 they need to be converted into a specific format.
@@ -1228,7 +1234,13 @@ const result = await generateText({
           value:
             typeof output === 'string'
               ? [{ type: 'text', text: output }]
-              : [{ type: 'media', data: output.data, mediaType: 'image/png' }],
+              : [
+                  {
+                    type: 'file',
+                    mediaType: 'image/png',
+                    data: { type: 'data', data: output.data },
+                  },
+                ],
         };
       },
     }),

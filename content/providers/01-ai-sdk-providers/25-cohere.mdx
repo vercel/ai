@@ -108,6 +108,7 @@ and support structured data generation with [`Output`](/docs/reference/ai-sdk-co
 | ----------------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
 | `command-a-03-2025`           | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `command-a-reasoning-08-2025` | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `command-a-vision-07-2025`    | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `command-r7b-12-2024`         | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `command-r-plus-04-2024`      | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `command-r-plus`              | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
@@ -125,6 +126,62 @@ and support structured data generation with [`Output`](/docs/reference/ai-sdk-co
   available models. You can also pass any available provider model ID as a
   string if needed.
 </Note>
+
+#### Image Inputs
+
+Vision-capable Cohere models such as `command-a-vision-07-2025` accept image inputs as part of the message content. You can pass images as raw bytes, base64-encoded strings, or URLs:
+
+```ts
+import { cohere } from '@ai-sdk/cohere';
+import { generateText } from 'ai';
+import { readFileSync } from 'node:fs';
+
+const { text } = await generateText({
+  model: cohere('command-a-vision-07-2025'),
+  messages: [
+    {
+      role: 'user',
+      content: [
+        { type: 'text', text: 'Describe the image in detail.' },
+        {
+          type: 'file',
+          mediaType: 'image',
+          data: readFileSync('./data/comic-cat.png'),
+        },
+      ],
+    },
+  ],
+});
+```
+
+You can use the `cohere` provider option on a file part to set the [image input detail](https://docs.cohere.com/docs/image-inputs) to `high`, `low`, or `auto`:
+
+```ts highlight="2,16-18"
+import { cohere } from '@ai-sdk/cohere';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: cohere('command-a-vision-07-2025'),
+  messages: [
+    {
+      role: 'user',
+      content: [
+        { type: 'text', text: 'Describe the image in detail.' },
+        {
+          type: 'file',
+          mediaType: 'image',
+          data: 'https://github.com/vercel/ai/blob/main/examples/ai-functions/data/comic-cat.png?raw=true',
+
+          // Cohere specific options - image detail:
+          providerOptions: {
+            cohere: { detail: 'high' },
+          },
+        },
+      ],
+    },
+  ],
+});
+```
 
 #### Reasoning
 

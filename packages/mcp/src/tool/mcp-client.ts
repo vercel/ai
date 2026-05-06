@@ -81,9 +81,9 @@ function mcpToModelOutput({
       }
       if (part.type === 'image' && 'data' in part && 'mimeType' in part) {
         return {
-          type: 'file-data' as const,
-          data: part.data as string,
+          type: 'file' as const,
           mediaType: part.mimeType as string,
+          data: { type: 'data' as const, data: part.data as string },
         };
       }
       return { type: 'text' as const, text: JSON.stringify(part) };
@@ -99,6 +99,12 @@ export interface MCPClientConfig {
   /** Optional callback for uncaught errors */
   onUncaughtError?: (error: unknown) => void;
   /** Optional client name, defaults to 'ai-sdk-mcp-client' */
+  clientName?: string;
+  /**
+   * Optional client name, defaults to 'ai-sdk-mcp-client'
+   *
+   * @deprecated Use `clientName` instead.
+   */
   name?: string;
   /** Optional client version, defaults to '1.0.0' */
   version?: string;
@@ -226,7 +232,8 @@ class DefaultMCPClient implements MCPClient {
 
   constructor({
     transport: transportConfig,
-    name = 'ai-sdk-mcp-client',
+    name,
+    clientName = name ?? 'ai-sdk-mcp-client',
     version = CLIENT_VERSION,
     onUncaughtError,
     capabilities,
@@ -260,7 +267,7 @@ class DefaultMCPClient implements MCPClient {
     };
 
     this.clientInfo = {
-      name,
+      name: clientName,
       version,
     };
   }
@@ -629,7 +636,7 @@ class DefaultMCPClient implements MCPClient {
               description,
               title: resolvedTitle,
               providerMetadata: {
-                mcp: { name: this.clientInfo.name },
+                mcp: { clientName: this.clientInfo.name },
               },
               inputSchema: jsonSchema({
                 ...inputSchema,
@@ -643,7 +650,7 @@ class DefaultMCPClient implements MCPClient {
               description,
               title: resolvedTitle,
               providerMetadata: {
-                mcp: { name: this.clientInfo.name },
+                mcp: { clientName: this.clientInfo.name },
               },
               inputSchema: schemas[name].inputSchema,
               ...(outputSchema != null ? { outputSchema } : {}),

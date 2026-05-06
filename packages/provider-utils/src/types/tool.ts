@@ -4,7 +4,6 @@ import type { ToolResultOutput } from './content-part';
 import type { Context } from './context';
 import type { NeverOptional } from './never-optional';
 import type { ProviderOptions } from './provider-options';
-import type { SensitiveContext } from './sensitive-context';
 import type {
   ToolExecuteFunction,
   ToolExecutionOptions,
@@ -95,12 +94,6 @@ type BaseTool<
    * The context is passed to execute function as part of the execution options.
    */
   contextSchema?: FlexibleSchema<CONTEXT>;
-
-  /**
-   * Marks top-level context properties that contain sensitive data and should be excluded from telemetry.
-   * Properties marked as `true` are omitted from telemetry integrations.
-   */
-  sensitiveContext?: SensitiveContext<CONTEXT>;
 
   /**
    * Whether the tool needs approval before it can be executed.
@@ -208,7 +201,7 @@ type BaseFunctionTool<
 };
 
 /**
- * Tool with user-defined input and output schemas.
+ * Tool with user-defined input and output schemas that is executed by the AI SDK.
  */
 export type FunctionTool<
   INPUT extends JSONValue | unknown | never = any,
@@ -219,8 +212,10 @@ export type FunctionTool<
 };
 
 /**
- * Tool that is defined at runtime (e.g. an MCP tool).
+ * Tool that is defined at runtime.
  * The types of input and output are not known at development time.
+ *
+ * For example, MCP tools that are not known at development time.
  */
 export type DynamicTool<
   INPUT extends JSONValue | unknown | never = any,
@@ -259,6 +254,8 @@ type BaseProviderTool<
 /**
  * Tool with provider-defined input and output schemas that is executed by the
  * user.
+ *
+ * For example, shell tools that are executed in a local shell, but have provider-defined input and output schemas.
  */
 export type ProviderDefinedTool<
   INPUT extends JSONValue | unknown | never = any,
@@ -277,6 +274,8 @@ export type ProviderDefinedTool<
 /**
  * Tool with provider-defined input and output schemas that is executed by the
  * provider.
+ *
+ * For example, web search tools and code execution tools that are executed by the provider itself.
  */
 export type ProviderExecutedTool<
   INPUT extends JSONValue | unknown | never = any,

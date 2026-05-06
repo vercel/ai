@@ -170,31 +170,41 @@ export async function convertToOpenResponsesInput({
                       });
                       break;
                     }
-                    case 'file-data': {
-                      if (item.mediaType.startsWith('image/')) {
-                        contentParts.push({
-                          type: 'input_image',
-                          image_url: `data:${item.mediaType};base64,${item.data}`,
+                    case 'file': {
+                      const topLevel = getTopLevelMediaType(item.mediaType);
+
+                      if (item.data.type === 'data') {
+                        const fullMediaType = resolveFullMediaType({
+                          part: item,
                         });
+                        if (topLevel === 'image') {
+                          contentParts.push({
+                            type: 'input_image',
+                            image_url: `data:${fullMediaType};base64,${convertToBase64(item.data.data)}`,
+                          });
+                        } else {
+                          contentParts.push({
+                            type: 'input_file',
+                            filename: item.filename ?? 'data',
+                            file_data: `data:${fullMediaType};base64,${convertToBase64(item.data.data)}`,
+                          });
+                        }
+                      } else if (item.data.type === 'url') {
+                        if (topLevel === 'image') {
+                          contentParts.push({
+                            type: 'input_image',
+                            image_url: item.data.url.toString(),
+                          });
+                        } else {
+                          contentParts.push({
+                            type: 'input_file',
+                            file_url: item.data.url.toString(),
+                          });
+                        }
                       } else {
-                        contentParts.push({
-                          type: 'input_file',
-                          filename: item.filename ?? 'data',
-                          file_data: `data:${item.mediaType};base64,${item.data}`,
-                        });
-                      }
-                      break;
-                    }
-                    case 'file-url': {
-                      if (item.mediaType.startsWith('image/')) {
-                        contentParts.push({
-                          type: 'input_image',
-                          image_url: item.url,
-                        });
-                      } else {
-                        contentParts.push({
-                          type: 'input_file',
-                          file_url: item.url,
+                        warnings.push({
+                          type: 'other',
+                          message: `unsupported tool content part type: ${item.type} with data type: ${item.data.type}`,
                         });
                       }
                       break;

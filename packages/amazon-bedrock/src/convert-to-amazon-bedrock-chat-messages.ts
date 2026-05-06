@@ -219,23 +219,37 @@ export async function convertToAmazonBedrockChatMessages(
                       switch (contentPart.type) {
                         case 'text':
                           return { text: contentPart.text };
-                        case 'file-data':
-                          if (!contentPart.mediaType.startsWith('image/')) {
+                        case 'file': {
+                          if (
+                            getTopLevelMediaType(contentPart.mediaType) !==
+                            'image'
+                          ) {
                             throw new UnsupportedFunctionalityError({
                               functionality: `media type: ${contentPart.mediaType}`,
                             });
                           }
 
-                          const format = getAmazonBedrockImageFormat(
-                            contentPart.mediaType,
-                          );
+                          if (contentPart.data.type !== 'data') {
+                            throw new UnsupportedFunctionalityError({
+                              functionality: `tool result file data of type "${contentPart.data.type}"`,
+                            });
+                          }
+
+                          const fullMediaType = resolveFullMediaType({
+                            part: contentPart,
+                          });
+                          const format =
+                            getAmazonBedrockImageFormat(fullMediaType);
 
                           return {
                             image: {
                               format,
-                              source: { bytes: contentPart.data },
+                              source: {
+                                bytes: convertToBase64(contentPart.data.data),
+                              },
                             },
                           };
+                        }
                         default: {
                           throw new UnsupportedFunctionalityError({
                             functionality: `unsupported tool content part type: ${contentPart.type}`,
