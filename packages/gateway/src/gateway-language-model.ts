@@ -198,30 +198,23 @@ export class GatewayLanguageModel implements LanguageModelV4 {
   }
 
   /**
-   * Encodes file parts in the prompt to base64. Mutates the passed options
-   * instance directly to avoid copying the file data.
-   * @param options - The options to encode.
-   * @returns The options with the file parts encoded.
+   * Encodes inline `Uint8Array` file part data to a base64 string in place,
+   * preserving the v4 `{ type: 'data' }` shape so the wire format matches the
+   * spec. URL file parts are left alone — `JSON.stringify` serializes the URL
+   * via `toJSON()`, so server-side both shapes arrive as plain strings.
    */
   private maybeEncodeFileParts(options: LanguageModelV4CallOptions) {
     for (const message of options.prompt) {
       for (const part of message.content) {
         if (this.isFilePart(part)) {
           const filePart = part as LanguageModelV4FilePart;
-          // If the file part is a URL it will get cleanly converted to a string.
-          // If it's a binary file attachment we convert it to a data url.
-          // In either case, server-side we should only ever see URLs as strings.
           if (
             filePart.data.type === 'data' &&
             filePart.data.data instanceof Uint8Array
           ) {
-            const buffer = Uint8Array.from(filePart.data.data);
-            const base64Data = Buffer.from(buffer).toString('base64');
             filePart.data = {
-              type: 'url',
-              url: new URL(
-                `data:${filePart.mediaType || 'application/octet-stream'};base64,${base64Data}`,
-              ),
+              type: 'data',
+              data: Buffer.from(filePart.data.data).toString('base64'),
             };
           }
         }
