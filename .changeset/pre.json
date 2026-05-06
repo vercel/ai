@@ -84,7 +84,7 @@
     "@ai-sdk/otel": "0.0.0",
     "@example/next-workflow": "0.0.0",
     "@ai-sdk/workflow": "0.0.0",
-    "@ai-sdk/voyage": "0.0.0"
+    "@ai-sdk/voyage": "1.0.0"
   },
   "changesets": [
     "add-resource-link-content",

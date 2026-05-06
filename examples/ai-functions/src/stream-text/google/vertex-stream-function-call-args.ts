@@ -21,7 +21,9 @@ run(async () => {
         streamFunctionCallArguments: true,
       },
     },
-    includeRawChunks: true,
+    experimental_include: {
+      rawChunks: true,
+    },
   });
 
   for await (const part of result.fullStream) {

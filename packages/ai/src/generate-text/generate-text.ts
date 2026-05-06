@@ -116,6 +116,7 @@ export type GenerateTextInclude = {
   /**
    * Whether to retain the request body in step results.
    * The request body can be large when sending images or files.
+   *
    * @default true
    */
   requestBody?: boolean;
@@ -123,16 +124,19 @@ export type GenerateTextInclude = {
   /**
    * Whether to retain the request messages in step results.
    * The request messages can be large when sending images or files.
+   *
    * @default false
    */
   requestMessages?: boolean;
 
   /**
    * Whether to retain the response body in step results.
+   *
    * @default true
    */
   responseBody?: boolean;
 };
+
 /**
  * Generate a text and call tools for a given prompt using a language model.
  *

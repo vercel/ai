@@ -592,7 +592,7 @@ To see `streamText` in action, check out [these examples](#examples).
       type: 'boolean',
       isOptional: true,
       description:
-        'Whether to include raw chunks from the provider in the stream. When enabled, you will receive raw chunks with type "raw" that contain the unprocessed data from the provider. This allows access to cutting-edge provider features not yet wrapped by the AI SDK. Defaults to false.',
+        'Deprecated. Use experimental_include.rawChunks instead. Whether to include raw chunks from the provider in the stream. When enabled, you will receive raw chunks with type "raw" that contain the unprocessed data from the provider. This allows access to cutting-edge provider features not yet wrapped by the AI SDK. Defaults to false.',
     },
     {
       name: 'providerOptions',
@@ -774,10 +774,10 @@ To see `streamText` in action, check out [these examples](#examples).
     },
     {
       name: 'experimental_include',
-      type: '{ requestBody?: boolean; requestMessages?: boolean }',
+      type: '{ requestBody?: boolean; requestMessages?: boolean; rawChunks?: boolean }',
       isOptional: true,
       description:
-        'Controls inclusion of request body and request messages in step results. By default, request body is included and request messages are excluded. When processing many large payloads (e.g., images), set requestBody to false to reduce memory usage. Set requestMessages to true when you need access to the messages sent to the model. Experimental feature.',
+        'Controls inclusion of request body and request messages in step results, and raw provider chunks in the stream. By default, request body is included, request messages are excluded, and raw chunks are excluded. When processing many large payloads (e.g., images), set requestBody to false to reduce memory usage. Set requestMessages to true when you need access to the messages sent to the model. Set rawChunks to true when you need access to raw provider chunks. Experimental feature.',
       properties: [
         {
           type: 'Object',
@@ -795,6 +795,13 @@ To see `streamText` in action, check out [these examples](#examples).
               isOptional: true,
               description:
                 'Whether to include the request messages in step results. The request messages can be large when sending images or files. Default: false.',
+            },
+            {
+              name: 'rawChunks',
+              type: 'boolean',
+              isOptional: true,
+              description:
+                'Whether to include raw chunks from the provider in the stream. When enabled, raw chunks with type "raw" contain unprocessed provider data. Default: false.',
             },
           ],
         },
@@ -1873,7 +1880,8 @@ To see `streamText` in action, check out [these examples](#examples).
             {
               name: 'provider',
               type: 'string',
-              description: 'The provider identifier (e.g., "openai", "anthropic").',
+              description:
+                'The provider identifier (e.g., "openai", "anthropic").',
             },
             {
               name: 'modelId',
@@ -2018,7 +2026,8 @@ To see `streamText` in action, check out [these examples](#examples).
             {
               name: 'provider',
               type: 'string',
-              description: 'The provider identifier (e.g., "openai", "anthropic").',
+              description:
+                'The provider identifier (e.g., "openai", "anthropic").',
             },
             {
               name: 'modelId',
@@ -2144,7 +2153,8 @@ To see `streamText` in action, check out [these examples](#examples).
             {
               name: 'tools',
               type: 'ReadonlyArray<Record<string, unknown>> | undefined',
-              description: 'Prepared tool definitions for the model call, if any.',
+              description:
+                'Prepared tool definitions for the model call, if any.',
             },
           ],
         },
@@ -2208,7 +2218,8 @@ To see `streamText` in action, check out [these examples](#examples).
             {
               name: 'callId',
               type: 'string',
-              description: 'Unique identifier for this generation call, used to correlate events.',
+              description:
+                'Unique identifier for this generation call, used to correlate events.',
             },
             {
               name: 'toolCall',
@@ -2245,7 +2256,8 @@ To see `streamText` in action, check out [these examples](#examples).
             {
               name: 'callId',
               type: 'string',
-              description: 'Unique identifier for this generation call, used to correlate events.',
+              description:
+                'Unique identifier for this generation call, used to correlate events.',
             },
             {
               name: 'toolCall',

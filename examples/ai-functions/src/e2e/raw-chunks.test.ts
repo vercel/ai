@@ -20,7 +20,9 @@ describe('Raw Chunks E2E Tests', () => {
         const result = streamText({
           model,
           prompt: 'Say hello!',
-          includeRawChunks: true,
+          experimental_include: {
+            rawChunks: true,
+          },
         });
 
         const chunks = [];
@@ -35,7 +37,9 @@ describe('Raw Chunks E2E Tests', () => {
         const result = streamText({
           model,
           prompt: 'Say hello!',
-          includeRawChunks: false,
+          experimental_include: {
+            rawChunks: false,
+          },
         });
 
         const chunks = [];
@@ -50,7 +54,9 @@ describe('Raw Chunks E2E Tests', () => {
         const result = streamText({
           model,
           prompt: 'Say hello!',
-          includeRawChunks: true,
+          experimental_include: {
+            rawChunks: true,
+          },
         });
 
         const chunks = [];

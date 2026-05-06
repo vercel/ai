@@ -13,7 +13,9 @@ run(async () => {
     model: anthropic('claude-3-haiku-20240307'),
     prompt:
       'Write a short poem about coding. Include reasoning about your creative process.',
-    includeRawChunks: true,
+    experimental_include: {
+      rawChunks: true,
+    },
     onChunk({ chunk }) {
       if (chunk.type === 'text-delta') {
         textChunkCount++;

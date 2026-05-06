@@ -6,7 +6,9 @@ run(async () => {
   const result = streamText({
     model: xai('grok-4-latest'),
     prompt: 'write one short sentence about san francisco',
-    includeRawChunks: true,
+    experimental_include: {
+      rawChunks: true,
+    },
     providerOptions: {
       xai: {
         logprobs: true,
