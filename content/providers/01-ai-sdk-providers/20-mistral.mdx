@@ -5,7 +5,7 @@ description: Learn how to use Mistral.
 
 # Mistral AI Provider
 
-The [Mistral AI](https://mistral.ai/) provider contains language model support for the Mistral chat API.
+The [Mistral AI](https://mistral.ai/) provider contains language model support for the Mistral chat API and transcription model support for the Mistral audio transcription API.
 
 ## Setup
 
@@ -238,6 +238,74 @@ const { text } = await generateText({
 Mistral language models can also be used in the `streamText` function
 and support structured data generation with [`Output`](/docs/reference/ai-sdk-core/output)
 (see [AI SDK Core](/docs/ai-sdk-core)).
+
+## Transcription Models
+
+You can create models that call the [Mistral audio transcription API](https://docs.mistral.ai/api/endpoint/audio/transcriptions) using the `.transcription()` factory method.
+
+```ts
+const model = mistral.transcription('voxtral-mini-latest');
+```
+
+You can use Mistral transcription models with the `experimental_transcribe` function:
+
+```ts
+import { mistral } from '@ai-sdk/mistral';
+import { experimental_transcribe as transcribe } from 'ai';
+import { readFile } from 'fs/promises';
+
+const result = await transcribe({
+  model: mistral.transcription('voxtral-mini-latest'),
+  audio: await readFile('audio.mp3'),
+});
+```
+
+Mistral transcription models support additional provider options. You can pass them as provider options and utilize `MistralTranscriptionModelOptions` for typing:
+
+```ts
+import {
+  mistral,
+  type MistralTranscriptionModelOptions,
+} from '@ai-sdk/mistral';
+import { experimental_transcribe as transcribe } from 'ai';
+import { readFile } from 'fs/promises';
+
+const result = await transcribe({
+  model: mistral.transcription('voxtral-mini-latest'),
+  audio: await readFile('audio.mp3'),
+  providerOptions: {
+    mistral: {
+      timestampGranularities: ['segment'],
+      diarize: true,
+      contextBias: ['Vercel', 'AI SDK'],
+    } satisfies MistralTranscriptionModelOptions,
+  },
+});
+```
+
+The following optional provider options are available for Mistral transcription models:
+
+- **language** _string_
+
+  Language of the audio, e.g. `en`. Providing the language can boost accuracy.
+
+- **temperature** _number_
+
+  Sampling temperature for the transcription.
+
+- **timestampGranularities** _Array&lt;'segment' | 'word'&gt;_
+
+  Timestamp granularities to include in the transcription response.
+
+  Mistral notes that `timestamp_granularities` is currently not compatible with `language`; the SDK sends the options as provided and lets the Mistral API validate unsupported combinations.
+
+- **diarize** _boolean_
+
+  Whether to identify speakers in the transcription.
+
+- **contextBias** _string[]_
+
+  Words or phrases to guide the model toward correct spellings of names, technical terms, or domain-specific vocabulary.
 
 #### Structured Outputs
 

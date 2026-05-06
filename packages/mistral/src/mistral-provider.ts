@@ -3,6 +3,7 @@ import {
   type EmbeddingModelV3,
   type LanguageModelV3,
   type ProviderV3,
+  type TranscriptionModelV3,
 } from '@ai-sdk/provider';
 import {
   loadApiKey,
@@ -14,6 +15,8 @@ import { MistralChatLanguageModel } from './mistral-chat-language-model';
 import type { MistralChatModelId } from './mistral-chat-options';
 import { MistralEmbeddingModel } from './mistral-embedding-model';
 import type { MistralEmbeddingModelId } from './mistral-embedding-options';
+import { MistralTranscriptionModel } from './mistral-transcription-model';
+import type { MistralTranscriptionModelId } from './mistral-transcription-options';
 import { VERSION } from './version';
 
 export interface MistralProvider extends ProviderV3 {
@@ -38,6 +41,18 @@ export interface MistralProvider extends ProviderV3 {
    * Creates a model for text embeddings.
    */
   embeddingModel: (modelId: MistralEmbeddingModelId) => EmbeddingModelV3;
+
+  /**
+   * Creates a model for audio transcription.
+   */
+  transcription(modelId: MistralTranscriptionModelId): TranscriptionModelV3;
+
+  /**
+   * Creates a model for audio transcription.
+   */
+  transcriptionModel(
+    modelId: MistralTranscriptionModelId,
+  ): TranscriptionModelV3;
 
   /**
    * @deprecated Use `embedding` instead.
@@ -116,6 +131,14 @@ export function createMistral(
       fetch: options.fetch,
     });
 
+  const createTranscriptionModel = (modelId: MistralTranscriptionModelId) =>
+    new MistralTranscriptionModel(modelId, {
+      provider: 'mistral.transcription',
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+
   const provider = function (modelId: MistralChatModelId) {
     if (new.target) {
       throw new Error(
@@ -131,6 +154,8 @@ export function createMistral(
   provider.chat = createChatModel;
   provider.embedding = createEmbeddingModel;
   provider.embeddingModel = createEmbeddingModel;
+  provider.transcription = createTranscriptionModel;
+  provider.transcriptionModel = createTranscriptionModel;
   provider.textEmbedding = createEmbeddingModel;
   provider.textEmbeddingModel = createEmbeddingModel;
 
