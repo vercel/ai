@@ -278,6 +278,8 @@ export async function* streamTextIterator({
             telemetry,
             repairToolCall,
             responseFormat,
+            runtimeContext: currentRuntimeContext,
+            toolsContext: currentToolsContext,
           },
         );
 

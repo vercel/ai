@@ -519,8 +519,6 @@ export async function agentToolInputSchemaE2e(a: number, b: number) {
  * - `toolsContext` holds per-tool, schema-validated context. The
  *   `lookupCustomer` tool declares `contextSchema`, so its entry is
  *   validated and the tool's `execute` only sees its own context.
- * - `telemetry.includeRuntimeContext` / `telemetry.includeToolsContext`
- *   scope which top-level keys are visible to telemetry integrations.
  */
 export async function agentRuntimeAndToolsContextE2e() {
   'use workflow';
@@ -562,11 +560,6 @@ export async function agentRuntimeAndToolsContextE2e() {
         apiKey: 'sk-test-key',
         region: 'us',
       },
-    },
-    telemetry: {
-      isEnabled: true,
-      includeRuntimeContext: { requestId: true },
-      includeToolsContext: { lookupCustomer: { region: true } },
     },
     prepareStep: ({ stepNumber, runtimeContext }) => ({
       runtimeContext: { ...runtimeContext, lastStep: stepNumber },

@@ -2510,6 +2510,60 @@ describe('WorkflowAgent', () => {
       ).rejects.toThrow();
     });
 
+    it('should validate missing per-tool context against contextSchema', async () => {
+      const tools: ToolSet = {
+        weather: {
+          description: 'Get weather',
+          inputSchema: z.object({}),
+          contextSchema: z.object({
+            apiKey: z.string(),
+          }),
+          execute: async () => ({ result: 'ok' }),
+        },
+      };
+
+      const agent = new WorkflowAgent({
+        model: createMockModel(),
+        tools,
+      });
+
+      const mockWritable = new WritableStream({
+        write: vi.fn(),
+        close: vi.fn(),
+      });
+
+      const mockMessages: LanguageModelV4Prompt = [
+        { role: 'user', content: [{ type: 'text', text: 'test' }] },
+      ];
+
+      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const mockIterator = {
+        next: vi.fn().mockResolvedValueOnce({
+          done: false,
+          value: {
+            toolCalls: [
+              {
+                toolCallId: 'call-1',
+                toolName: 'weather',
+                input: '{}',
+              } as LanguageModelV4ToolCall,
+            ],
+            messages: mockMessages,
+          },
+        }),
+      };
+      vi.mocked(streamTextIterator).mockReturnValue(
+        mockIterator as unknown as MockIterator,
+      );
+
+      await expect(
+        agent.stream({
+          messages: [{ role: 'user', content: 'test' }],
+          writable: mockWritable,
+        }),
+      ).rejects.toThrow();
+    });
+
     it('should pass runtimeContext to onFinish', async () => {
       const onFinish = vi.fn();
       const mockModel = createMockModel();
@@ -2582,20 +2636,6 @@ describe('WorkflowAgent', () => {
           toolsContext: { weather: { unit: 'fahrenheit' } },
         }),
       );
-    });
-
-    it('should accept includeRuntimeContext and includeToolsContext on telemetry', () => {
-      // Compile-time check: the new telemetry options should be accepted.
-      const agent = new WorkflowAgent({
-        model: createMockModel(),
-        tools: {},
-        telemetry: {
-          isEnabled: true,
-          includeRuntimeContext: { requestId: true },
-          includeToolsContext: { weather: { region: true } },
-        },
-      });
-      expect(agent).toBeDefined();
     });
   });
 

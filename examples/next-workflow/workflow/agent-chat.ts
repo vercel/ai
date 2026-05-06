@@ -158,14 +158,6 @@ export async function chat(messages: UIMessage[], request: ChatRequestContext) {
       deleteFile: { rootDir: request.fileRootDir },
     },
 
-    telemetry: {
-      isEnabled: true,
-      // Expose `requestId` for correlation; keep `tenantId`/`plan` private.
-      includeRuntimeContext: { requestId: true },
-      // Expose only the unit (not the sandbox path) on weather spans.
-      includeToolsContext: { getWeather: { defaultUnit: true } },
-    },
-
     // `prepareStep` can read `runtimeContext` and tweak settings per-step.
     // Enterprise plans get more deterministic answers.
     prepareStep: ({ runtimeContext }) => {

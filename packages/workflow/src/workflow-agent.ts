@@ -97,25 +97,6 @@ export interface OutputSpecification<OUTPUT, PARTIAL> {
 export type ProviderOptions = SharedV4ProviderOptions;
 
 /**
- * Top-level runtime context properties that should be included in telemetry.
- * Properties are excluded unless they are explicitly set to `true`.
- */
-export type IncludedRuntimeContext =
-  | { [key: string]: boolean | undefined }
-  | undefined;
-
-/**
- * Top-level tool context properties that should be included in telemetry,
- * configured per tool. Properties are excluded unless they are explicitly set
- * to `true`.
- */
-export type IncludedToolsContext =
-  | {
-      [toolName: string]: { [key: string]: boolean | undefined } | undefined;
-    }
-  | undefined;
-
-/**
  * Telemetry settings for observability.
  */
 export interface TelemetryOptions {
@@ -157,20 +138,6 @@ export interface TelemetryOptions {
    * information, to reduce data transfers, or to increase performance.
    */
   recordOutputs?: boolean;
-
-  /**
-   * Top-level runtime context properties that should be included in telemetry.
-   * Runtime context properties are excluded unless they are explicitly set to `true`.
-   */
-  includeRuntimeContext?: IncludedRuntimeContext;
-
-  /**
-   * Top-level tool context properties that should be included in telemetry,
-   * configured per tool.
-   *
-   * Tool context properties are excluded unless they are explicitly set to `true`.
-   */
-  includeToolsContext?: IncludedToolsContext;
 
   /**
    * Custom tracer for the telemetry.
@@ -488,9 +455,12 @@ export interface WorkflowAgentOptions<
    * Default runtime context for every stream call on this agent.
    *
    * The runtime context flows through `prepareStep`, lifecycle callbacks,
-   * step results, and telemetry (filtered by `telemetry.includeRuntimeContext`).
+   * and step results.
    * Treat as immutable; return a new `runtimeContext` from `prepareStep`
    * to update it between steps.
+   *
+   * In workflow context, keep values serializable so they can cross workflow
+   * and step boundaries.
    *
    * Per-stream `runtimeContext` values passed to `stream()` override this default.
    */
@@ -502,6 +472,9 @@ export interface WorkflowAgentOptions<
    * Each tool receives only its own validated entry as `context` during
    * execution. Tools that declare a `contextSchema` validate their entry
    * against the schema; otherwise the entry is passed through as-is.
+   *
+   * In workflow context, keep values serializable so they can cross workflow
+   * and step boundaries.
    *
    * Per-stream `toolsContext` values passed to `stream()` override this default.
    */
@@ -838,6 +811,9 @@ export type WorkflowAgentStreamOptions<
      * Treat as immutable; return a new `runtimeContext` from `prepareStep`
      * to update it between steps.
      *
+     * In workflow context, keep values serializable so they can cross workflow
+     * and step boundaries.
+     *
      * Overrides the constructor-level `runtimeContext` if provided.
      */
     runtimeContext?: Context;
@@ -846,6 +822,9 @@ export type WorkflowAgentStreamOptions<
      * Per-tool context, keyed by tool name. Each tool receives only its own
      * validated entry as `context` during execution. Tools that declare a
      * `contextSchema` validate their entry against the schema.
+     *
+     * In workflow context, keep values serializable so they can cross workflow
+     * and step boundaries.
      *
      * Overrides the constructor-level `toolsContext` if provided.
      */
@@ -2152,12 +2131,8 @@ async function resolveToolContext({
   tool: ToolSet[string];
   toolsContext: Record<string, Context | undefined> | undefined;
 }): Promise<unknown> {
-  const entry = toolsContext?.[toolName];
-  if (entry === undefined) {
-    return undefined;
-  }
-
   const contextSchema = (tool as { contextSchema?: unknown }).contextSchema;
+  const entry = toolsContext?.[toolName];
   if (contextSchema == null) {
     return entry;
   }

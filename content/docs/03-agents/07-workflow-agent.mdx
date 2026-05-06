@@ -429,14 +429,6 @@ const agent = new WorkflowAgent({
     weather: { defaultUnit: "celsius" },
   },
 
-  // Telemetry filtering: only top-level keys marked `true` are forwarded
-  // to telemetry integrations. Everything else stays private.
-  telemetry: {
-    isEnabled: true,
-    includeRuntimeContext: { requestId: true },
-    includeToolsContext: { weather: { defaultUnit: true } },
-  },
-
   prepareStep: ({ runtimeContext }) => {
     if (runtimeContext.plan === "enterprise") {
       return { temperature: 0.2 };
@@ -447,6 +439,10 @@ const agent = new WorkflowAgent({
 ```
 
 `runtimeContext` and `toolsContext` can also be passed per-call to `stream()`, where they override the constructor-level defaults.
+
+Because `WorkflowAgent` runs inside the Workflow runtime, context values may be persisted and replayed across workflow and step boundaries. Keep `runtimeContext`, `toolsContext`, and any context values returned from `prepareStep` serializable. Use plain data such as strings, numbers, booleans, arrays, plain objects, dates, URLs, maps, sets, and other Workflow-supported structured data. Do not put functions, class instances, symbols, `WeakMap`, `WeakSet`, database clients, or SDK clients in context. Pass identifiers or configuration data instead, and recreate non-serializable resources inside step functions.
+
+This differs from `ToolLoopAgent`, which runs in memory and can carry richer JavaScript values for the lifetime of a single process. With `WorkflowAgent`, treating context as durable data keeps workflow replay and step execution reliable.
 
 ### prepareCall
 
