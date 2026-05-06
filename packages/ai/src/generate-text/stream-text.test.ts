@@ -18653,7 +18653,15 @@ describe('streamText', () => {
                   "type": "start",
                 },
                 {
-                  "request": {},
+                  "request": {
+                    body: undefined,
+                    messages: [
+                      {
+                        content: "test-input",
+                        role: "user",
+                      },
+                    ],
+                  },
                   "type": "start-step",
                   "warnings": [],
                 },
