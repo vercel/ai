@@ -15181,14 +15181,6 @@ describe('streamText', () => {
               };
             }
 
-            if (chunk.type === 'start-step') {
-              if (chunk.request.body != null) {
-                chunk.request.body = (
-                  chunk.request.body as string
-                ).toUpperCase();
-              }
-            }
-
             if (chunk.type === 'finish-step') {
               if (chunk.providerMetadata?.testProvider != null) {
                 chunk.providerMetadata.testProvider = {
