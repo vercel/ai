@@ -390,7 +390,8 @@ export async function generateText<
      * Disabling inclusion can help reduce memory usage when processing
      * large payloads like images.
      *
-     * By default, all data is included for backwards compatibility.
+     * By default, request and response bodies are included, and request
+     * messages are excluded.
      */
     experimental_include?: GenerateTextInclude;
 
@@ -972,7 +973,7 @@ export async function generateText<
               ? currentModelResponse.request?.body
               : undefined,
           messages:
-            (include?.requestMessages ?? true)
+            (include?.requestMessages ?? false)
               ? cloneModelMessages(stepMessages)
               : undefined,
         };

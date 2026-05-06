@@ -220,12 +220,7 @@ exports[`streamText > result.fullStream > should send delayed asynchronous tool 
   {
     "request": {
       "body": undefined,
-      "messages": [
-        {
-          "content": "test-input",
-          "role": "user",
-        },
-      ],
+      "messages": undefined,
     },
     "type": "start-step",
     "warnings": [],
@@ -312,12 +307,7 @@ exports[`streamText > result.fullStream > should send tool calls 1`] = `
   {
     "request": {
       "body": undefined,
-      "messages": [
-        {
-          "content": "test-input",
-          "role": "user",
-        },
-      ],
+      "messages": undefined,
     },
     "type": "start-step",
     "warnings": [],
@@ -398,12 +388,7 @@ exports[`streamText > result.fullStream > should send tool results 1`] = `
   {
     "request": {
       "body": undefined,
-      "messages": [
-        {
-          "content": "test-input",
-          "role": "user",
-        },
-      ],
+      "messages": undefined,
     },
     "type": "start-step",
     "warnings": [],
@@ -770,12 +755,7 @@ exports[`streamText > tools with custom schema > should send tool calls 1`] = `
   {
     "request": {
       "body": undefined,
-      "messages": [
-        {
-          "content": "test-input",
-          "role": "user",
-        },
-      ],
+      "messages": undefined,
     },
     "type": "start-step",
     "warnings": [],

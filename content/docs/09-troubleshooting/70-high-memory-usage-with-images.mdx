@@ -43,7 +43,6 @@ const result = await generateText({
   // Disable inclusion of large request data to reduce memory usage
   experimental_include: {
     requestBody: false,
-    requestMessages: false,
     responseBody: false,
   },
 });
@@ -54,7 +53,7 @@ const result = await generateText({
 The `experimental_include` option accepts:
 
 - `requestBody`: Set to `false` to exclude the request body from step results. This is where base64-encoded images are often stored. Default: `true`. Available in both `generateText` and `streamText`.
-- `requestMessages`: Set to `false` to exclude the request messages from step results. This can exclude large message content such as images and files. Default: `true`. Available in both `generateText` and `streamText`.
+- `requestMessages`: Set to `true` to include the request messages in step results. The request messages can contain large message content such as images and files. Default: `false`. Available in both `generateText` and `streamText`.
 - `responseBody`: Set to `false` to exclude the response body from step results. Default: `true`. Only available in `generateText`.
 
 ### When to use
@@ -68,7 +67,7 @@ The `experimental_include` option accepts:
 When you disable body inclusion:
 
 - You won't have access to `result.request.body` or `result.response.body`
-- You won't have access to `result.request.messages` when `requestMessages` is disabled
+- You won't have access to `result.request.messages` unless `requestMessages` is enabled
 - Debugging may be harder since you can't inspect the raw request/response
 - If you need the bodies for logging or debugging, consider extracting the data you need before the next iteration
 
@@ -97,7 +96,6 @@ for (const imageUrl of imageUrls) {
     ],
     experimental_include: {
       requestBody: false,
-      requestMessages: false,
     },
   });
 

@@ -8,7 +8,7 @@ run(async () => {
     model: openai('gpt-5-nano'),
     prompt: 'Invent a new holiday and describe its traditions.',
     experimental_include: {
-      requestMessages: false,
+      requestMessages: true,
     },
   });
 

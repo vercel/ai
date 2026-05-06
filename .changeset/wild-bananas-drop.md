@@ -2,4 +2,4 @@
 "ai": patch
 ---
 
-feat: introduce include.requestMessage option for opting out of storing request messages
+feat: introduce include.requestMessage option for step request message storage opt-in

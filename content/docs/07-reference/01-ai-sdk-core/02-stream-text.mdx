@@ -777,7 +777,7 @@ To see `streamText` in action, check out [these examples](#examples).
       type: '{ requestBody?: boolean; requestMessages?: boolean }',
       isOptional: true,
       description:
-        'Controls inclusion of request body and request messages in step results. By default, both are included. When processing many large payloads (e.g., images), set requestBody and/or requestMessages to false to reduce memory usage. Experimental feature.',
+        'Controls inclusion of request body and request messages in step results. By default, request body is included and request messages are excluded. When processing many large payloads (e.g., images), set requestBody to false to reduce memory usage. Set requestMessages to true when you need access to the messages sent to the model. Experimental feature.',
       properties: [
         {
           type: 'Object',
@@ -794,7 +794,7 @@ To see `streamText` in action, check out [these examples](#examples).
               type: 'boolean',
               isOptional: true,
               description:
-                'Whether to include the request messages in step results. The request messages can be large when sending images or files. Default: true.',
+                'Whether to include the request messages in step results. The request messages can be large when sending images or files. Default: false.',
             },
           ],
         },
@@ -2615,7 +2615,7 @@ To see `streamText` in action, check out [these examples](#examples).
               type: 'Array<ModelMessage>',
               isOptional: true,
               description:
-                'The input messages that were sent to the model for this step. Undefined when requestMessages is set to false.',
+                'The input messages that were sent to the model for this step. Undefined by default unless requestMessages is set to true.',
             },
             {
               name: 'body',
@@ -2900,7 +2900,7 @@ To see `streamText` in action, check out [these examples](#examples).
                       type: 'Array<ModelMessage>',
                       isOptional: true,
                       description:
-                        'The input messages that were sent to the model for this step. Undefined when requestMessages is set to false.',
+                        'The input messages that were sent to the model for this step. Undefined by default unless requestMessages is set to true.',
                     },
                     {
                       name: 'body',
