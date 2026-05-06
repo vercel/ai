@@ -6,7 +6,7 @@ import type {
   MCPAppJsonRpcRequest,
   MCPAppJsonRpcResponse,
   MCPAppToolCallParams,
-} from './mcp-app-types';
+} from './types';
 
 const MCP_APP_PROTOCOL_VERSION = '2026-01-26';
 

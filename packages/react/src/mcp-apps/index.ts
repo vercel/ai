@@ -1,13 +1,13 @@
 export { getMCPAppFromToolPart } from './get-mcp-app-from-tool-part';
-export { MCPAppBridge } from './mcp-app-bridge';
-export { MCPAppFrame } from './mcp-app-frame';
-export { MCPAppRenderer } from './mcp-app-renderer';
+export { MCPAppBridge } from './bridge';
+export { MCPAppFrame } from './AppFrame';
+export { MCPAppRenderer } from './AppRenderer';
 export {
   MCP_APP_DEFAULT_INNER_SANDBOX,
   MCP_APP_DEFAULT_OUTER_SANDBOX,
   getMCPAppAllowAttribute,
   getMCPAppCSP,
-} from './mcp-app-sandbox';
+} from './sandbox';
 export { normalizeMCPAppToolResult } from './normalize-mcp-app-tool-result';
 export type {
   MCPAppBridgeHandlers,
@@ -26,4 +26,4 @@ export type {
   MCPAppSandboxConfig,
   MCPAppToolCallParams,
   MCPAppToolPart,
-} from './mcp-app-types';
+} from './types';

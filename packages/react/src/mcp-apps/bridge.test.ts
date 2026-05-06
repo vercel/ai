@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { MCPAppBridge } from './mcp-app-bridge';
+import { MCPAppBridge } from './bridge';
 
 function createTargetWindow() {
   return {

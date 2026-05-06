@@ -1,4 +1,4 @@
-import type { MCPAppResourceCSP } from './mcp-app-types';
+import type { MCPAppResourceCSP } from './types';
 
 /**
  * Default sandbox permissions for the outer sandbox proxy iframe.

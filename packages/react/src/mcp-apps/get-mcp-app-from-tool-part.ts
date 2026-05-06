@@ -1,4 +1,4 @@
-import type { MCPAppMetadata, MCPAppToolPart } from './mcp-app-types';
+import type { MCPAppMetadata, MCPAppToolPart } from './types';
 
 function asRecord(value: unknown): Record<string, unknown> | undefined {
   return value != null && typeof value === 'object' && !Array.isArray(value)

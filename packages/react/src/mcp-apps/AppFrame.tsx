@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useRef } from 'react';
-import { MCPAppBridge } from './mcp-app-bridge';
+import { MCPAppBridge } from './bridge';
 import {
   MCP_APP_DEFAULT_INNER_SANDBOX,
   MCP_APP_DEFAULT_OUTER_SANDBOX,
   getMCPAppAllowAttribute,
   getMCPAppCSP,
-} from './mcp-app-sandbox';
-import type { MCPAppFrameProps } from './mcp-app-types';
+} from './sandbox';
+import type { MCPAppFrameProps } from './types';
 import { normalizeMCPAppToolResult } from './normalize-mcp-app-tool-result';
 
 function sendToolState({
