@@ -123,71 +123,9 @@ describe('DeepSeekChatLanguageModel', () => {
       });
     });
 
-<<<<<<< HEAD
-=======
-    describe('top-level reasoning', () => {
+    describe('reasoning_effort', () => {
       beforeEach(() => {
         prepareJsonFixtureResponse('deepseek-text');
-      });
-
-      it('should map top-level reasoning to thinking enabled', async () => {
-        await provider.chat('deepseek-reasoner').doGenerate({
-          prompt: TEST_PROMPT,
-          reasoning: 'high',
-        });
-
-        const requestBody = await server.calls[0].requestBodyJson;
-        expect(requestBody.thinking).toStrictEqual({
-          type: 'enabled',
-        });
-        expect(requestBody.reasoning_effort).toBe('high');
-      });
-
-      it('should map top-level reasoning none to thinking disabled', async () => {
-        await provider.chat('deepseek-reasoner').doGenerate({
-          prompt: TEST_PROMPT,
-          reasoning: 'none',
-        });
-
-        const requestBody = await server.calls[0].requestBodyJson;
-        expect(requestBody.thinking).toStrictEqual({
-          type: 'disabled',
-        });
-        expect(requestBody.reasoning_effort).toBeUndefined();
-      });
-
-      it('should map top-level reasoning xhigh to reasoning_effort max', async () => {
-        const result = await provider.chat('deepseek-reasoner').doGenerate({
-          prompt: TEST_PROMPT,
-          reasoning: 'xhigh',
-        });
-
-        expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
-          'max',
-        );
-        expect(result.warnings).toContainEqual({
-          type: 'compatibility',
-          feature: 'reasoning',
-          details:
-            'reasoning "xhigh" is not directly supported by this model. mapped to effort "max".',
-        });
-      });
-
-      it('should map top-level reasoning low to reasoning_effort high with compatibility warning', async () => {
-        const result = await provider.chat('deepseek-reasoner').doGenerate({
-          prompt: TEST_PROMPT,
-          reasoning: 'low',
-        });
-
-        expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
-          'high',
-        );
-        expect(result.warnings).toContainEqual({
-          type: 'compatibility',
-          feature: 'reasoning',
-          details:
-            'reasoning "low" is not directly supported by this model. mapped to effort "high".',
-        });
       });
 
       it('should pass providerOptions reasoningEffort', async () => {
@@ -196,61 +134,42 @@ describe('DeepSeekChatLanguageModel', () => {
           providerOptions: {
             deepseek: {
               reasoningEffort: 'max',
-            } satisfies DeepSeekLanguageModelChatOptions,
+            } satisfies DeepSeekLanguageModelOptions,
           },
         });
 
         const requestBody = await server.calls[0].requestBodyJson;
         expect(requestBody.reasoning_effort).toBe('max');
-        // When only reasoningEffort is set without thinking, thinking should be
-        // undefined and rely on the API default (enabled).
         expect(requestBody.thinking).toBeUndefined();
       });
 
-      it('should prefer providerOptions thinking over top-level reasoning', async () => {
+      it('should not send reasoning_effort when thinking is disabled', async () => {
         await provider.chat('deepseek-reasoner').doGenerate({
           prompt: TEST_PROMPT,
-          reasoning: 'none',
           providerOptions: {
             deepseek: {
-              thinking: { type: 'enabled' },
-            } satisfies DeepSeekLanguageModelChatOptions,
+              thinking: { type: 'disabled' },
+              reasoningEffort: 'high',
+            } satisfies DeepSeekLanguageModelOptions,
           },
         });
 
-        expect((await server.calls[0].requestBodyJson).thinking).toStrictEqual({
-          type: 'enabled',
-        });
+        expect(
+          (await server.calls[0].requestBodyJson).reasoning_effort,
+        ).toBeUndefined();
       });
 
-      it('should prefer providerOptions reasoningEffort over top-level reasoning', async () => {
-        await provider.chat('deepseek-reasoner').doGenerate({
-          prompt: TEST_PROMPT,
-          reasoning: 'high',
-          providerOptions: {
-            deepseek: {
-              reasoningEffort: 'max',
-            } satisfies DeepSeekLanguageModelChatOptions,
-          },
-        });
-
-        expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
-          'max',
-        );
-      });
-
-      it('should not set thinking when reasoning is not specified', async () => {
+      it('should not set reasoning_effort when not specified', async () => {
         await provider.chat('deepseek-reasoner').doGenerate({
           prompt: TEST_PROMPT,
         });
 
         expect(
-          (await server.calls[0].requestBodyJson).thinking,
+          (await server.calls[0].requestBodyJson).reasoning_effort,
         ).toBeUndefined();
       });
     });
 
->>>>>>> eda4373ca (feat(provider/deepseek): support DeepSeek V4 reasoning effort (#14743))
     describe('tool call', () => {
       beforeEach(() => {
         prepareJsonFixtureResponse('deepseek-tool-call');
