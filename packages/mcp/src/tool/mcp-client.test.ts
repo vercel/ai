@@ -102,7 +102,9 @@ describe('MCPClient', () => {
     const tools = await client.tools();
 
     expect(tools['mock-tool'].metadata).toEqual({
-      clientName: 'MyMCPClient',
+      mcp: {
+        clientName: 'MyMCPClient',
+      },
     });
   });
 
@@ -176,7 +178,9 @@ describe('MCPClient', () => {
     const tools = await client.tools();
 
     expect(tools['mock-tool'].metadata).toEqual({
-      clientName: 'DeprecatedMCPServer',
+      mcp: {
+        clientName: 'DeprecatedMCPServer',
+      },
     });
   });
 
