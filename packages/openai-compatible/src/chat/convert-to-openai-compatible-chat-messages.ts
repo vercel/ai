@@ -31,6 +31,14 @@ function getAudioFormat(mediaType: string): 'wav' | 'mp3' | null {
 
 export function convertToOpenAICompatibleChatMessages(
   prompt: LanguageModelV4Prompt,
+  options?: {
+    /**
+     * The field name to use for reasoning content in assistant messages.
+     * Some providers (e.g. Cerebras) use 'reasoning' instead of 'reasoning_content'.
+     * @default 'reasoning_content'
+     */
+    reasoningFieldName?: string;
+  },
 ): OpenAICompatibleChatPrompt {
   const messages: OpenAICompatibleChatPrompt = [];
   for (const { role, content, ...message } of prompt) {
@@ -224,7 +232,12 @@ export function convertToOpenAICompatibleChatMessages(
         messages.push({
           role: 'assistant',
           content: toolCalls.length > 0 ? text || null : text,
-          ...(reasoning.length > 0 ? { reasoning_content: reasoning } : {}),
+          ...(reasoning.length > 0
+            ? {
+                [options?.reasoningFieldName ?? 'reasoning_content']:
+                  reasoning,
+              }
+            : {}),
           tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
           ...metadata,
         });

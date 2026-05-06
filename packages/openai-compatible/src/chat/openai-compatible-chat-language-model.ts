@@ -91,6 +91,13 @@ export type OpenAICompatibleChatConfig = {
   convertUsage?: (
     usage: z.infer<typeof openaiCompatibleTokenUsageSchema>,
   ) => LanguageModelV4Usage;
+
+  /**
+   * The field name to use for reasoning content in assistant messages.
+   * Some providers (e.g. Cerebras) use 'reasoning' instead of 'reasoning_content'.
+   * @default 'reasoning_content'
+   */
+  reasoningFieldName?: string;
 };
 
 type PendingToolCall = {
@@ -314,7 +321,9 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
         verbosity: compatibleOptions.textVerbosity,
 
         // messages:
-        messages: convertToOpenAICompatibleChatMessages(prompt),
+        messages: convertToOpenAICompatibleChatMessages(prompt, {
+          reasoningFieldName: this.config.reasoningFieldName,
+        }),
 
         // tools:
         tools: openaiTools,

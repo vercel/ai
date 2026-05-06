@@ -1431,4 +1431,49 @@ describe('top-level-only media type resolution', () => {
       image_url: { url: `data:image/png;base64,${pngBase64}` },
     });
   });
+
+  it('uses reasoning_content by default for assistant reasoning', () => {
+    const result = convertToOpenAICompatibleChatMessages([
+      {
+        role: 'assistant',
+        content: [
+          { type: 'reasoning', text: 'thinking...' },
+          { type: 'text', text: 'answer' },
+        ],
+      },
+    ]);
+
+    expect(result).toStrictEqual([
+      {
+        role: 'assistant',
+        content: 'answer',
+        reasoning_content: 'thinking...',
+        tool_calls: undefined,
+      },
+    ]);
+  });
+
+  it('uses custom reasoningFieldName when provided', () => {
+    const result = convertToOpenAICompatibleChatMessages(
+      [
+        {
+          role: 'assistant',
+          content: [
+            { type: 'reasoning', text: 'thinking...' },
+            { type: 'text', text: 'answer' },
+          ],
+        },
+      ],
+      { reasoningFieldName: 'reasoning' },
+    );
+
+    expect(result).toStrictEqual([
+      {
+        role: 'assistant',
+        content: 'answer',
+        reasoning: 'thinking...',
+        tool_calls: undefined,
+      },
+    ]);
+  });
 });

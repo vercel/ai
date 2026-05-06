@@ -101,6 +101,7 @@ export function createCerebras(
       fetch: options.fetch,
       errorStructure: cerebrasErrorStructure,
       supportsStructuredOutputs: true,
+      reasoningFieldName: 'reasoning',
     });
   };
 
