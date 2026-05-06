@@ -11,7 +11,7 @@ export function verifyNoObjectGeneratedError(
   error: unknown,
   expected: {
     message: string;
-    response: LanguageModelResponseMetadata & {
+    response: Omit<LanguageModelResponseMetadata, 'messages' | 'body'> & {
       body?: string;
     };
     usage: LanguageModelUsage;

@@ -955,12 +955,12 @@ export async function generateText<
         // Add step information (after response messages are updated):
         // Conditionally include request.body and response.body based on include settings.
         // Large payloads (e.g., base64-encoded images) can cause memory issues.
-        const stepRequest: LanguageModelRequestMetadata =
-          (include?.requestBody ?? true)
-            ? (currentModelResponse.request ?? {})
-            : { ...currentModelResponse.request, body: undefined };
-        const stepRequestWithMessages = {
-          ...stepRequest,
+        const stepRequest: LanguageModelRequestMetadata = {
+          ...currentModelResponse.request,
+          body:
+            (include?.requestBody ?? true)
+              ? currentModelResponse.request?.body
+              : undefined,
           messages: structuredClone(stepMessages),
         };
 
@@ -988,7 +988,7 @@ export async function generateText<
             usage: asLanguageModelUsage(currentModelResponse.usage),
             warnings: currentModelResponse.warnings,
             providerMetadata: currentModelResponse.providerMetadata,
-            request: stepRequestWithMessages,
+            request: stepRequest,
             response: stepResponse,
             toolsContext,
           });
