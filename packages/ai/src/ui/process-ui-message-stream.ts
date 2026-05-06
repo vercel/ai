@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-import { TypeValidationContext } from '@ai-sdk/provider';
-=======
-import type { JSONObject } from '@ai-sdk/provider';
->>>>>>> 329a01b91 (feat(ai): add toolMetadata for tool specific metdata (#15021))
+import { TypeValidationContext, type JSONObject } from '@ai-sdk/provider';
 import { validateTypes, type FlexibleSchema } from '@ai-sdk/provider-utils';
 import { UIMessageStreamError } from '../error/ui-message-stream-error';
 import type { ProviderMetadata } from '../types';

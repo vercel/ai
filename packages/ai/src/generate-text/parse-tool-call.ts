@@ -13,26 +13,6 @@ import type { DynamicToolCall, TypedToolCall } from './tool-call';
 import type { ToolCallRepairFunction } from './tool-call-repair-function';
 import type { ToolSet } from './tool-set';
 
-/**
- * Merge the tool's static `providerMetadata` (e.g. an MCP server name)
- * with the `providerMetadata` returned by the language model on the tool
- * call. Model-supplied metadata wins on conflicting top-level namespaces.
- */
-function mergeToolProviderMetadata(
-  toolMetadata: ProviderMetadata | undefined,
-  callMetadata: ProviderMetadata | undefined,
-): ProviderMetadata | undefined {
-  if (toolMetadata == null) {
-    return callMetadata;
-  }
-
-  if (callMetadata == null) {
-    return toolMetadata;
-  }
-
-  return { ...toolMetadata, ...callMetadata };
-}
-
 export async function parseToolCall<TOOLS extends ToolSet>({
   toolCall,
   tools,

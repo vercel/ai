@@ -1,9 +1,5 @@
-<<<<<<< HEAD
-import type { IdGenerator } from '@ai-sdk/provider-utils';
-=======
 import type { JSONObject } from '@ai-sdk/provider';
-import type { Context, IdGenerator, ToolSet } from '@ai-sdk/provider-utils';
->>>>>>> 329a01b91 (feat(ai): add toolMetadata for tool specific metdata (#15021))
+import type { IdGenerator } from '@ai-sdk/provider-utils';
 import type { ServerResponse } from 'node:http';
 import type {
   CallWarning,
@@ -376,154 +372,6 @@ export interface StreamTextResult<
   toTextStreamResponse(init?: ResponseInit): Response;
 }
 
-<<<<<<< HEAD
-=======
-export type TextStreamTextDeltaPart = {
-  type: 'text-delta';
-  id: string;
-  providerMetadata?: ProviderMetadata;
-  text: string;
-};
-
-export type TextStreamTextStartPart = {
-  type: 'text-start';
-  id: string;
-  providerMetadata?: ProviderMetadata;
-};
-
-export type TextStreamTextEndPart = {
-  type: 'text-end';
-  id: string;
-  providerMetadata?: ProviderMetadata;
-};
-
-export type TextStreamReasoningStartPart = {
-  type: 'reasoning-start';
-  id: string;
-  providerMetadata?: ProviderMetadata;
-};
-
-export type TextStreamReasoningEndPart = {
-  type: 'reasoning-end';
-  id: string;
-  providerMetadata?: ProviderMetadata;
-};
-
-export type TextStreamReasoningDeltaPart = {
-  type: 'reasoning-delta';
-  providerMetadata?: ProviderMetadata;
-  id: string;
-  text: string;
-};
-
-export type TextStreamCustomPart = {
-  type: 'custom';
-  kind: `${string}.${string}`;
-  providerMetadata?: ProviderMetadata;
-};
-
-export type TextStreamToolInputStartPart = {
-  type: 'tool-input-start';
-  id: string;
-  toolName: string;
-  providerMetadata?: ProviderMetadata;
-  toolMetadata?: JSONObject;
-  providerExecuted?: boolean;
-  dynamic?: boolean;
-  title?: string;
-};
-
-export type TextStreamToolInputEndPart = {
-  type: 'tool-input-end';
-  id: string;
-  providerMetadata?: ProviderMetadata;
-};
-
-export type TextStreamToolInputDeltaPart = {
-  type: 'tool-input-delta';
-  id: string;
-  delta: string;
-  providerMetadata?: ProviderMetadata;
-};
-
-export type TextStreamSourcePart = { type: 'source' } & Source;
-
-export type TextStreamFilePart = {
-  type: 'file';
-  file: GeneratedFile;
-  providerMetadata?: ProviderMetadata;
-};
-
-export type TextStreamReasoningFilePart = {
-  type: 'reasoning-file';
-  file: GeneratedFile;
-  providerMetadata?: ProviderMetadata;
-};
-
-export type TextStreamToolCallPart<TOOLS extends ToolSet> = {
-  type: 'tool-call';
-} & TypedToolCall<TOOLS>;
-
-export type TextStreamToolResultPart<TOOLS extends ToolSet> = {
-  type: 'tool-result';
-} & TypedToolResult<TOOLS>;
-
-export type TextStreamToolErrorPart<TOOLS extends ToolSet> = {
-  type: 'tool-error';
-} & TypedToolError<TOOLS>;
-
-export type TextStreamToolOutputDeniedPart<TOOLS extends ToolSet> = {
-  type: 'tool-output-denied';
-} & StaticToolOutputDenied<TOOLS>;
-
-export type TextStreamToolApprovalRequestPart<TOOLS extends ToolSet> =
-  ToolApprovalRequestOutput<TOOLS>;
-
-export type TextStreamToolApprovalResponsePart<TOOLS extends ToolSet> =
-  ToolApprovalResponseOutput<TOOLS>;
-
-export type TextStreamStartStepPart = {
-  type: 'start-step';
-  request: LanguageModelRequestMetadata;
-  warnings: CallWarning[];
-};
-
-export type TextStreamFinishStepPart = {
-  type: 'finish-step';
-  response: LanguageModelResponseMetadata;
-  usage: LanguageModelUsage;
-  finishReason: FinishReason;
-  rawFinishReason: string | undefined;
-  providerMetadata: ProviderMetadata | undefined;
-};
-
-export type TextStreamStartPart = {
-  type: 'start';
-};
-
-export type TextStreamFinishPart = {
-  type: 'finish';
-  finishReason: FinishReason;
-  rawFinishReason: string | undefined;
-  totalUsage: LanguageModelUsage;
-};
-
-export type TextStreamAbortPart = {
-  type: 'abort';
-  reason?: string;
-};
-
-export type TextStreamErrorPart = {
-  type: 'error';
-  error: unknown;
-};
-
-export type TextStreamRawPart = {
-  type: 'raw';
-  rawValue: unknown;
-};
-
->>>>>>> 329a01b91 (feat(ai): add toolMetadata for tool specific metdata (#15021))
 export type TextStreamPart<TOOLS extends ToolSet> =
   | {
       type: 'text-start';
@@ -562,6 +410,7 @@ export type TextStreamPart<TOOLS extends ToolSet> =
       id: string;
       toolName: string;
       providerMetadata?: ProviderMetadata;
+      toolMetadata?: JSONObject;
       providerExecuted?: boolean;
       dynamic?: boolean;
       title?: string;

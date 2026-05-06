@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-import type { JSONValue, SharedV3ProviderMetadata } from '@ai-sdk/provider';
-=======
 import type { JSONValue, JSONObject } from '@ai-sdk/provider';
->>>>>>> 329a01b91 (feat(ai): add toolMetadata for tool specific metdata (#15021))
 import type { FlexibleSchema } from '../schema';
 import type { ToolResultOutput } from './content-part';
 import type { ModelMessage } from './model-message';
@@ -141,11 +137,7 @@ export type Tool<
    * and UI message parts. This is useful for sources of dynamic tools (e.g.
    * an MCP server) to identify themselves.
    */
-<<<<<<< HEAD
-  providerMetadata?: SharedV3ProviderMetadata;
-=======
   metadata?: JSONObject;
->>>>>>> 329a01b91 (feat(ai): add toolMetadata for tool specific metdata (#15021))
 
   /**
    * The schema of the input that the tool expects.
@@ -307,7 +299,7 @@ export function dynamicTool(tool: {
   description?: string;
   title?: string;
   providerOptions?: ProviderOptions;
-  providerMetadata?: SharedV3ProviderMetadata;
+  metadata?: JSONObject;
   inputSchema: FlexibleSchema<unknown>;
   execute: ToolExecuteFunction<unknown, unknown>;
 

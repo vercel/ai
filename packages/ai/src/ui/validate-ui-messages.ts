@@ -1,8 +1,8 @@
-<<<<<<< HEAD
-import { TypeValidationContext, TypeValidationError } from '@ai-sdk/provider';
-=======
-import { TypeValidationError, type JSONObject } from '@ai-sdk/provider';
->>>>>>> 329a01b91 (feat(ai): add toolMetadata for tool specific metdata (#15021))
+import {
+  TypeValidationContext,
+  TypeValidationError,
+  type JSONObject,
+} from '@ai-sdk/provider';
 import {
   lazySchema,
   StandardSchemaV1,
