@@ -1581,10 +1581,30 @@ To see `generateText` in action, check out [these examples](#examples).
               name: 'request',
               type: 'LanguageModelRequestMetadata',
               description: 'Additional request information.',
+              properties: [
+                {
+                  type: 'LanguageModelRequestMetadata',
+                  parameters: [
+                    {
+                      name: 'messages',
+                      type: 'Array<ModelMessage>',
+                      description:
+                        'The input messages that were sent to the model for this step.',
+                    },
+                    {
+                      name: 'body',
+                      type: 'unknown',
+                      isOptional: true,
+                      description:
+                        'Request HTTP body that was sent to the provider API.',
+                    },
+                  ],
+                },
+              ],
             },
             {
               name: 'response',
-              type: 'LanguageModelResponseMetadata & { messages: Array<ResponseMessage>; body?: unknown }',
+              type: 'LanguageModelResponseMetadata',
               description: 'Additional response information.',
               properties: [
                 {
@@ -1978,10 +1998,30 @@ To see `generateText` in action, check out [these examples](#examples).
               type: 'LanguageModelRequestMetadata',
               description:
                 'Additional request information from the final step.',
+              properties: [
+                {
+                  type: 'LanguageModelRequestMetadata',
+                  parameters: [
+                    {
+                      name: 'messages',
+                      type: 'Array<ModelMessage>',
+                      description:
+                        'The input messages that were sent to the model for this step.',
+                    },
+                    {
+                      name: 'body',
+                      type: 'unknown',
+                      isOptional: true,
+                      description:
+                        'Request HTTP body that was sent to the provider API.',
+                    },
+                  ],
+                },
+              ],
             },
             {
               name: 'response',
-              type: 'LanguageModelResponseMetadata & { messages: Array<ResponseMessage>; body?: unknown }',
+              type: 'LanguageModelResponseMetadata',
               description:
                 'Additional response information from the final step.',
               properties: [
@@ -2011,6 +2051,13 @@ To see `generateText` in action, check out [these examples](#examples).
                       isOptional: true,
                       type: 'Record<string, string>',
                       description: 'Optional response headers.',
+                    },
+                    {
+                      name: 'body',
+                      isOptional: true,
+                      type: 'unknown',
+                      description:
+                        'Response body (available only for providers that use HTTP requests).',
                     },
                     {
                       name: 'messages',
@@ -2370,10 +2417,17 @@ To see `generateText` in action, check out [these examples](#examples).
           type: 'LanguageModelRequestMetadata',
           parameters: [
             {
-              name: 'body',
-              type: 'string',
+              name: 'messages',
+              type: 'Array<ModelMessage>',
               description:
-                'Raw request HTTP body that was sent to the provider API as a string (JSON should be stringified).',
+                'The input messages that were sent to the model for this step.',
+            },
+            {
+              name: 'body',
+              type: 'unknown',
+              isOptional: true,
+              description:
+                'Request HTTP body that was sent to the provider API.',
             },
           ],
         },
@@ -2735,10 +2789,17 @@ To see `generateText` in action, check out [these examples](#examples).
                   type: 'LanguageModelRequestMetadata',
                   parameters: [
                     {
-                      name: 'body',
-                      type: 'string',
+                      name: 'messages',
+                      type: 'Array<ModelMessage>',
                       description:
-                        'Raw request HTTP body that was sent to the provider API as a string (JSON should be stringified).',
+                        'The input messages that were sent to the model for this step.',
+                    },
+                    {
+                      name: 'body',
+                      type: 'unknown',
+                      isOptional: true,
+                      description:
+                        'Request HTTP body that was sent to the provider API.',
                     },
                   ],
                 },

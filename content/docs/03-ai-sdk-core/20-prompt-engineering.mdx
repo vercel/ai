@@ -129,6 +129,19 @@ const result = await generateText({
 console.log(result.warnings);
 ```
 
+### Request Messages
+
+You can inspect the input messages that were sent to the model for the final step using `request.messages`.
+
+```ts highlight="6"
+const result = await generateText({
+  model: __MODEL__,
+  prompt: 'Hello, world!',
+});
+
+console.log(result.request.messages);
+```
+
 ### HTTP Request Bodies
 
 You can inspect the raw HTTP request bodies for models that expose them, e.g. [OpenAI](/providers/ai-sdk-providers/openai).

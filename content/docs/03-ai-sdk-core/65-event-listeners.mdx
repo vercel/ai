@@ -746,13 +746,14 @@ const result = await generateText({
     {
       name: 'request',
       type: 'LanguageModelRequestMetadata',
-      description: 'Additional request information.',
+      description:
+        'Additional request information, including the messages sent to the model and the request body when available.',
     },
     {
       name: 'response',
       type: 'LanguageModelResponseMetadata',
       description:
-        'Additional response information including id, modelId, timestamp, headers, and messages.',
+        'Additional response information including id, modelId, timestamp, headers, body, and messages.',
     },
     {
       name: 'runtimeContext',
@@ -895,12 +896,14 @@ const result = await generateText({
     {
       name: 'request',
       type: 'LanguageModelRequestMetadata',
-      description: 'Additional request information from the final step.',
+      description:
+        'Additional request information from the final step, including the messages sent to the model and the request body when available.',
     },
     {
       name: 'response',
       type: 'LanguageModelResponseMetadata',
-      description: 'Additional response information from the final step.',
+      description:
+        'Additional response information from the final step, including id, modelId, timestamp, headers, body, and messages.',
     },
     {
       name: 'runtimeContext',

@@ -2604,10 +2604,17 @@ To see `streamText` in action, check out [these examples](#examples).
           type: 'LanguageModelRequestMetadata',
           parameters: [
             {
-              name: 'body',
-              type: 'string',
+              name: 'messages',
+              type: 'Array<ModelMessage>',
               description:
-                'Raw request HTTP body that was sent to the provider API as a string (JSON should be stringified).',
+                'The input messages that were sent to the model for this step.',
+            },
+            {
+              name: 'body',
+              type: 'unknown',
+              isOptional: true,
+              description:
+                'Request HTTP body that was sent to the provider API.',
             },
           ],
         },
@@ -2615,7 +2622,7 @@ To see `streamText` in action, check out [these examples](#examples).
     },
     {
       name: 'response',
-      type: 'Promise<LanguageModelResponseMetadata & { messages: Array<ResponseMessage>; }>',
+      type: 'Promise<LanguageModelResponseMetadata>',
       description: 'Additional response information from the last step.',
       properties: [
         {
@@ -2644,6 +2651,13 @@ To see `streamText` in action, check out [these examples](#examples).
               isOptional: true,
               type: 'Record<string, string>',
               description: 'Optional response headers.',
+            },
+            {
+              name: 'body',
+              isOptional: true,
+              type: 'unknown',
+              description:
+                'Response body (available only for providers that use HTTP requests).',
             },
             {
               name: 'messages',
@@ -2874,10 +2888,17 @@ To see `streamText` in action, check out [these examples](#examples).
                   type: 'RequestMetadata',
                   parameters: [
                     {
-                      name: 'body',
-                      type: 'string',
+                      name: 'messages',
+                      type: 'Array<ModelMessage>',
                       description:
-                        'Raw request HTTP body that was sent to the provider API as a string (JSON should be stringified).',
+                        'The input messages that were sent to the model for this step.',
+                    },
+                    {
+                      name: 'body',
+                      type: 'unknown',
+                      isOptional: true,
+                      description:
+                        'Request HTTP body that was sent to the provider API.',
                     },
                   ],
                 },
@@ -3228,10 +3249,17 @@ To see `streamText` in action, check out [these examples](#examples).
                   type: 'LanguageModelRequestMetadata',
                   parameters: [
                     {
-                      name: 'body',
-                      type: 'string',
+                      name: 'messages',
+                      type: 'Array<ModelMessage>',
                       description:
-                        'Raw request HTTP body that was sent to the provider API as a string.',
+                        'The input messages that were sent to the model for this step.',
+                    },
+                    {
+                      name: 'body',
+                      type: 'unknown',
+                      isOptional: true,
+                      description:
+                        'Request HTTP body that was sent to the provider API.',
                     },
                   ],
                 },
@@ -3256,9 +3284,9 @@ To see `streamText` in action, check out [these examples](#examples).
             },
             {
               name: 'response',
-              type: 'LanguageModelResponseMetadata',
+              type: "Omit<LanguageModelResponseMetadata, 'messages' | 'body'>",
               description:
-                'Response metadata from the language model provider.',
+                'Response metadata from the language model provider. `messages` and `body` are not included on `finish-step` stream parts.',
               properties: [
                 {
                   type: 'LanguageModelResponseMetadata',
