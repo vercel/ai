@@ -1,0 +1,9 @@
+{"interaction":{"id":"v1_ChdzT240YVlHeElfV0p6N0lQZ2R1czRRYxIXc09uNGFZR3hJX1dKejdJUGdkdXM0UWM","status":"in_progress","object":"interaction","model":"gemini-2.5-flash"},"event_type":"interaction.start"}
+{"interaction_id":"v1_ChdzT240YVlHeElfV0p6N0lQZ2R1czRRYxIXc09uNGFZR3hJX1dKejdJUGdkdXM0UWM","status":"in_progress","event_type":"interaction.status_update"}
+{"index":0,"content":{"type":"thought"},"event_type":"content.start"}
+{"index":0,"delta":{"signature":"CiQBDDnWxwaJgUfWI7CnvSyCZPpZ4Q3ZP5nauFEsbWxlLbsQQdgKagEMOdbHodC88GjqFxxdnMJLZUIDrMCa3PiEWjIo6/CBy4H1O57pNrBiyVjUzdlzZZLs/xJZyU47IDEeibwgwBSSHeL1VE9q61fsCEIZeSWb/HXdqXgYm5LuzclcmnYiFT/+3zc5+IhF4gEKggIBDDnWx9cvnT2MSepPqr0ha3gkvvff6JpZUnmbOxdWZ0rLMSXyTG0cvaA4oHvL1jiN+3iU/Vzgf4ZyDsMDmuYBf4pEepjECTu6qadYfhaxkqDXdhGPSfdZDLZHvfkPihuBFeRK7mSgEsQJ+bAazpqaN3Tchu4zOU1NExjUf6mcPnG7Edaq8S5JtiOt3HGqmzXUIF3KuoRHDA2C2nVFfOERVh4MphLwgwAScw7+4sxnLcaahhfRIMZKq7b5FPZJSWfcziNYlnsOtCOUwJtQj+Y8aMtn40yHdrw2xv4rgJ1uKzaERABAxOJX4UeJvH4MAYngFXvEWl2WtLw8yYRKFutkRCE=","type":"thought_signature"},"event_type":"content.delta"}
+{"index":0,"event_type":"content.stop"}
+{"index":1,"content":{"id":"odkxni2w","type":"function_call"},"event_type":"content.start"}
+{"index":1,"delta":{"id":"odkxni2w","type":"function_call","name":"getWeather","arguments":{"location":"San Francisco"}},"event_type":"content.delta"}
+{"index":1,"event_type":"content.stop"}
+{"interaction":{"id":"v1_ChdzT240YVlHeElfV0p6N0lQZ2R1czRRYxIXc09uNGFZR3hJX1dKejdJUGdkdXM0UWM","status":"requires_action","usage":{"total_tokens":136,"total_input_tokens":54,"input_tokens_by_modality":[{"modality":"text","tokens":54}],"total_cached_tokens":0,"total_output_tokens":15,"total_tool_use_tokens":0,"total_thought_tokens":67},"role":"model","created":"2026-05-04T18:47:13Z","updated":"2026-05-04T18:47:13Z","service_tier":"standard","object":"interaction","model":"gemini-2.5-flash"},"event_type":"interaction.complete"}

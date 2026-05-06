@@ -1085,6 +1085,402 @@ The following Zod features are known to not work with Google:
   available provider model ID as a string if needed.
 </Note>
 
+## Interactions API
+
+The [Gemini Interactions API](https://ai.google.dev/gemini-api/docs/interactions)
+(`POST /v1beta/interactions`) is a separate Google endpoint with server-side
+state, unified content blocks, first-class built-in tools, agent presets, and
+native multimodal image output. It is reached via the `google.interactions(...)`
+factory:
+
+```ts
+import { google } from '@ai-sdk/google';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: google.interactions('gemini-2.5-flash'),
+  prompt: 'Hello, how are you?',
+});
+```
+
+`google.interactions(...)` accepts either a model ID string (e.g.
+`'gemini-2.5-flash'`, `'gemini-3-pro-preview'`) or `{ agent: <name> }` to use
+a Gemini [agent preset](#agent-presets). The returned model can be passed to
+`generateText` and `streamText` like any other AI SDK language model.
+
+<Note>
+  Use `google(...)` for the standard `:generateContent` /
+  `:streamGenerateContent` endpoints, and `google.interactions(...)` for the
+  new Interactions endpoint. Pick one per model instance — they target
+  different request bodies and SSE event vocabularies.
+</Note>
+
+### Provider Options
+
+The Interactions model reads its options from the shared
+`providerOptions.google.*` namespace. Validate them with the
+`GoogleLanguageModelInteractionsOptions` type:
+
+```ts
+import {
+  google,
+  type GoogleLanguageModelInteractionsOptions,
+} from '@ai-sdk/google';
+import { generateText } from 'ai';
+
+await generateText({
+  model: google.interactions('gemini-2.5-flash'),
+  prompt: 'What color is the sky in one word?',
+  providerOptions: {
+    google: {
+      serviceTier: 'priority',
+    } satisfies GoogleLanguageModelInteractionsOptions,
+  },
+});
+```
+
+The following optional provider options are available:
+
+- **previousInteractionId** _string_
+
+  Server-side interaction id from a prior turn. When set, the server pulls
+  prior context from its own state and only the new user message is sent on
+  the wire. Pair with the default `store: true` to chain stateful
+  conversations. See [Stateful chaining](#stateful-chaining).
+
+- **store** _boolean_
+
+  Whether the server should persist the interaction. Defaults to `true`.
+  Set to `false` for stateless multi-turn conversations where the full
+  message history is re-sent on every turn.
+
+- **agent** _string_
+
+  Name of a Gemini agent preset (e.g. `'deep-research-pro-preview-12-2025'`).
+
+  <Note>
+    Prefer the factory form `google.interactions({ agent: '...' })` over
+    setting `agent` in provider options — the factory is type-checked
+    against the supported agent names.
+  </Note>
+
+- **agentConfig** _object_
+
+  Per-agent configuration. Currently supports `{ type: 'dynamic' }` and
+  `{ type: 'deep-research', thinkingSummaries?, visualization?, collaborativePlanning? }`.
+
+- **thinkingLevel** _'minimal' | 'low' | 'medium' | 'high'_
+
+  Controls reasoning depth for thinking-enabled models. Mapped onto the
+  Interactions request's `thinking_level`.
+
+- **thinkingSummaries** _'auto' | 'none'_
+
+  Whether the model returns synthesized thought summaries on reasoning
+  parts. Defaults to the API default.
+
+- **imageConfig** _\{ aspectRatio?: string; imageSize?: '1K' | '2K' | '4K' | '512' \}_
+
+  Image generation configuration when `responseModalities` includes
+  `'image'`. `aspectRatio` accepts `1:1`, `2:3`, `3:2`, `3:4`, `4:3`,
+  `4:5`, `5:4`, `9:16`, `16:9`, `21:9`, `1:8`, `8:1`, `1:4`, `4:1`.
+
+- **mediaResolution** _'low' | 'medium' | 'high' | 'ultra_high'_
+
+  Media resolution applied to image inputs / outputs.
+
+- **responseModalities** _Array\<'text' | 'image' | 'audio' | 'video' | 'document'\>_
+
+  The modalities the model may emit. Defaults to text-only. Pass
+  `['image']` (or `['text', 'image']`) to enable native image output. See
+  [Image output](#image-output-via-interactions).
+
+- **serviceTier** _'flex' | 'standard' | 'priority'_
+
+  Service tier for the request. Mirrored back on
+  `result.providerMetadata.google.serviceTier` for observability.
+
+- **systemInstruction** _string_
+
+  Alternative to the AI SDK `system` message. If both are set, the AI SDK
+  `system` message wins and a warning is emitted.
+
+- **pollingTimeoutMs** _number_
+
+  Maximum time, in milliseconds, to poll a background interaction (agent
+  call) before giving up. Defaults to 30 minutes (1,800,000 ms). Long-running
+  agents such as deep research may need longer.
+
+### Provider Metadata
+
+`result.providerMetadata.google` (typed via `GoogleInteractionsProviderMetadata`)
+exposes:
+
+- **interactionId** _string_
+
+  Server-side interaction id. Pass this back as `previousInteractionId` on
+  the next turn to chain.
+
+- **serviceTier** _string_
+
+  Service tier the request actually ran on.
+
+- **signature** _string_
+
+  Per-block signature hash, set by the SDK on output reasoning and
+  tool-call parts. Round-tripped automatically on the next turn.
+
+### Stateful chaining
+
+With the default `store: true`, the server retains the prior turn so the
+next request only needs to send the new user message and the
+`previousInteractionId`:
+
+```ts
+import { google } from '@ai-sdk/google';
+import { generateText } from 'ai';
+
+const turn1 = await generateText({
+  model: google.interactions('gemini-2.5-flash'),
+  prompt: 'What are the three largest cities in Spain?',
+});
+
+const interactionId = turn1.providerMetadata?.google?.interactionId as
+  | string
+  | undefined;
+
+const turn2 = await generateText({
+  model: google.interactions('gemini-2.5-flash'),
+  prompt: 'What is the most famous landmark in the second one?',
+  providerOptions: {
+    google: { previousInteractionId: interactionId },
+  },
+});
+```
+
+For stateless multi-turn conversations, set `store: false` and re-send the
+full message history on every turn (no `previousInteractionId`):
+
+```ts
+import { google } from '@ai-sdk/google';
+import { generateText, type ModelMessage } from 'ai';
+
+const messages: Array<ModelMessage> = [
+  { role: 'user', content: 'What are the three largest cities in Spain?' },
+];
+
+const turn1 = await generateText({
+  model: google.interactions('gemini-2.5-flash'),
+  messages,
+  providerOptions: { google: { store: false } },
+});
+
+messages.push(...turn1.response.messages);
+messages.push({
+  role: 'user',
+  content: 'What is the most famous landmark in the second one?',
+});
+
+const turn2 = await generateText({
+  model: google.interactions('gemini-2.5-flash'),
+  messages,
+  providerOptions: { google: { store: false } },
+});
+```
+
+### Built-in Tools
+
+The Interactions API ships a built-in tool catalog. The provider-defined
+tools under `google.tools.*` map onto Interactions tool descriptors:
+
+| AI SDK tool                    | Interactions tool type | Notes                                                                       |
+| ------------------------------ | ---------------------- | --------------------------------------------------------------------------- |
+| `google.tools.googleSearch`    | `google_search`        | Web / image search grounding.                                               |
+| `google.tools.codeExecution`   | `code_execution`       | Server-side Python execution.                                               |
+| `google.tools.urlContext`      | `url_context`          | Fetch URLs referenced in the prompt.                                        |
+| `google.tools.fileSearch`      | `file_search`          | Retrieval from File Search stores.                                          |
+| `google.tools.googleMaps`      | `google_maps`          | Maps grounding for nearby-places queries.                                   |
+| _provider tool_ `google.computer_use` | `computer_use`         | Computer use (browser environment).                                  |
+| _provider tool_ `google.mcp_server`   | `mcp_server`           | Remote MCP server passthrough.                                       |
+| _provider tool_ `google.retrieval`    | `retrieval`            | Vertex AI Search retrieval.                                          |
+
+Function tools (`type: 'function'`) defined with the AI SDK `tool(...)`
+helper are translated to Interactions `function` tool descriptors. Other
+tool kinds emit a warning and are dropped.
+
+```ts
+import { google } from '@ai-sdk/google';
+import { generateText } from 'ai';
+
+const { text, sources } = await generateText({
+  model: google.interactions('gemini-2.5-flash'),
+  tools: {
+    google_search: google.tools.googleSearch({}),
+  },
+  prompt:
+    "What's a notable AI development from this past week? " +
+    'Include the date for each item you mention.',
+});
+```
+
+Function tools work the same way as on the standard provider:
+
+```ts
+import { google } from '@ai-sdk/google';
+import { generateText, stepCountIs, tool } from 'ai';
+import { z } from 'zod';
+
+const weatherTool = tool({
+  description: 'Get the weather for a city.',
+  inputSchema: z.object({ city: z.string() }),
+  execute: async ({ city }) => `It is sunny in ${city}.`,
+});
+
+const { text, toolCalls } = await generateText({
+  model: google.interactions('gemini-2.5-flash'),
+  tools: { getWeather: weatherTool },
+  stopWhen: stepCountIs(5),
+  prompt: 'What is the weather in San Francisco right now?',
+});
+```
+
+### Image output via Interactions
+
+Set `responseModalities: ['image']` on a Gemini image-capable model to get
+images as `LanguageModelV4FilePart` files in the response. No tool wrapping
+is required.
+
+```ts
+import { google } from '@ai-sdk/google';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: google.interactions('gemini-3-pro-image-preview'),
+  prompt: 'Generate an image of a comic cat in a spaceship.',
+  providerOptions: {
+    google: {
+      responseModalities: ['image'],
+    },
+  },
+});
+
+for (const file of result.files) {
+  if (file.mediaType.startsWith('image/')) {
+    // file.uint8Array | file.base64 | file.mediaType
+  }
+}
+```
+
+Iterative image editing pairs naturally with stateful chaining — keep
+`previousInteractionId` set across turns and the model edits its prior
+output:
+
+```ts
+import { google } from '@ai-sdk/google';
+import { generateText } from 'ai';
+
+const model = google.interactions('gemini-3-pro-image-preview');
+
+const turn1 = await generateText({
+  model,
+  prompt: 'Generate an image of a comic cat in a spaceship.',
+  providerOptions: { google: { responseModalities: ['image'] } },
+});
+
+const interactionId = turn1.providerMetadata?.google?.interactionId as
+  | string
+  | undefined;
+
+const turn2 = await generateText({
+  model,
+  prompt: 'now make the cat red',
+  providerOptions: {
+    google: {
+      responseModalities: ['image'],
+      previousInteractionId: interactionId,
+    },
+  },
+});
+```
+
+### Agent presets
+
+Pass `{ agent: <name> }` to target a Gemini agent preset. The factory
+type-checks the agent name against the supported set:
+
+```ts
+import { google } from '@ai-sdk/google';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: google.interactions({
+    agent: 'deep-research-pro-preview-12-2025',
+  }),
+  prompt:
+    'Briefly summarize the most-cited papers on retrieval-augmented generation since 2024 (2-3 sentences).',
+});
+```
+
+Agent calls run with `background: true` on the wire and the SDK polls the
+`GET /interactions/{id}` endpoint internally until the interaction
+completes. The default polling timeout is 30 minutes; raise it via
+`pollingTimeoutMs` for slower agents:
+
+```ts
+await generateText({
+  model: google.interactions({ agent: 'deep-research-max-preview-04-2026' }),
+  prompt: 'Produce a long-form research brief on ...',
+  providerOptions: {
+    google: {
+      pollingTimeoutMs: 60 * 60 * 1000, // 1 hour
+    },
+  },
+});
+```
+
+Agents also chain through `previousInteractionId` like model-id calls.
+
+### Streaming
+
+`streamText` is supported and consumes the seven Interactions SSE event
+types (`interaction.start`, `content.start`, `content.delta`,
+`content.stop`, `interaction.status_update`, `interaction.complete`,
+`error`). The stream's `finish` part exposes `interactionId` on
+`providerMetadata.google` so callers can chain.
+
+```ts
+import { google } from '@ai-sdk/google';
+import { streamText } from 'ai';
+
+const result = streamText({
+  model: google.interactions('gemini-2.5-flash'),
+  prompt: 'Hello, how are you?',
+});
+
+for await (const textPart of result.textStream) {
+  process.stdout.write(textPart);
+}
+
+const googleMetadata = (await result.providerMetadata)?.google;
+console.log('Interaction id:', googleMetadata?.interactionId);
+```
+
+### Runnable Examples
+
+Paired `generateText` + `streamText` examples live under:
+
+- `examples/ai-functions/src/generate-text/google/interactions-*.ts`
+- `examples/ai-functions/src/stream-text/google/interactions-*.ts`
+
+Notable examples: `interactions-basic`, `interactions-multi-turn-stateful`,
+`interactions-multi-turn-stateless`, `interactions-tool-call`,
+`interactions-google-search`, `interactions-image-output`,
+`interactions-image-output-modify`, `interactions-image-base64`,
+`interactions-image-reference`, `interactions-image-url`,
+`interactions-pdf`, `interactions-structured-output`,
+`interactions-service-tier`, `interactions-agent-single-turn`, and
+`interactions-agent-multi-turn`.
+
 ## Gemma Models
 
 You can use [Gemma models](https://deepmind.google/models/gemma/) with the Google Generative AI API.

@@ -1,0 +1,10 @@
+{"interaction":{"id":"v1_ChdPZDM0YWRHZ0ZOZXlxdHNQMjdyU2tBYxIXT2QzNGFkR2dGTmV5cXRzUDI3clNrQWM","status":"in_progress","object":"interaction","model":"gemini-2.5-flash"},"event_type":"interaction.start"}
+{"interaction_id":"v1_ChdPZDM0YWRHZ0ZOZXlxdHNQMjdyU2tBYxIXT2QzNGFkR2dGTmV5cXRzUDI3clNrQWM","status":"in_progress","event_type":"interaction.status_update"}
+{"index":0,"content":{"type":"thought"},"event_type":"content.start"}
+{"index":0,"delta":{"signature":"CiQBDDnWxytZFpiQuIZjP8oHNBmOKwhpGddG0lQFQyXcOKLEml4KdAEMOdbH4ehCqkGJqC+xNM2vWwZSUJmSyrGwF8bzQNyy3C+9V/H4WPaSUMqo7JmudP08l6IlSbM9LEhEtwVZqI1I//WswzKBf+mQZl7oLmAURaxZhXLlqHIX8jxQZcKe3/INZNwNZWA4ZqpO4jTywln55FtGClMBDDnWx2KSMtCAZ2Iyz0IKjbISA2RLaHe8fgZ8kueEqX9JwPboCK2S4uvgNR4oUl7xUDjzO0nqfSZEYdiUxhPVyCpTJgUxgwoubMn5QRyk3sDGEQ==","type":"thought_signature"},"event_type":"content.delta"}
+{"index":0,"event_type":"content.stop"}
+{"index":1,"content":{"type":"text"},"event_type":"content.start"}
+{"index":1,"delta":{"text":"Hello! I'm doing well, thank you for asking.\n\nAs an AI, I don't have feelings in the way humans do, but I'm fully","type":"text"},"event_type":"content.delta"}
+{"index":1,"delta":{"text":" operational and ready to assist you.\n\nHow can I help you today?","type":"text"},"event_type":"content.delta"}
+{"index":1,"event_type":"content.stop"}
+{"interaction":{"id":"v1_ChdPZDM0YWRHZ0ZOZXlxdHNQMjdyU2tBYxIXT2QzNGFkR2dGTmV5cXRzUDI3clNrQWM","status":"completed","usage":{"total_tokens":86,"total_input_tokens":7,"input_tokens_by_modality":[{"modality":"text","tokens":7}],"total_cached_tokens":0,"total_output_tokens":50,"total_tool_use_tokens":0,"total_thought_tokens":29},"role":"model","created":"2026-05-04T17:54:02Z","updated":"2026-05-04T17:54:02Z","service_tier":"standard","object":"interaction","model":"gemini-2.5-flash"},"event_type":"interaction.complete"}
