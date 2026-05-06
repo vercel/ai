@@ -9,7 +9,6 @@ import {
 import { InvalidToolInputError } from '../error/invalid-tool-input-error';
 import { NoSuchToolError } from '../error/no-such-tool-error';
 import { ToolCallRepairError } from '../error/tool-call-repair-error';
-import type { ProviderMetadata } from '../types';
 import type { DynamicToolCall, TypedToolCall } from './tool-call';
 import type { ToolCallRepairFunction } from './tool-call-repair-function';
 import type { ToolSet } from './tool-set';
@@ -102,6 +101,7 @@ export async function parseToolCall<TOOLS extends ToolSet>({
     // use parsed input when possible
     const parsedInput = await safeParseJSON({ text: toolCall.input });
     const input = parsedInput.success ? parsedInput.value : toolCall.input;
+    const tool = tools?.[toolCall.toolName];
 
     // TODO AI SDK 6: special invalid tool call parts
     return {
@@ -112,12 +112,10 @@ export async function parseToolCall<TOOLS extends ToolSet>({
       dynamic: true,
       invalid: true,
       error,
-      title: tools?.[toolCall.toolName]?.title,
+      title: tool?.title,
       providerExecuted: toolCall.providerExecuted,
-      providerMetadata: mergeToolProviderMetadata(
-        tools?.[toolCall.toolName]?.providerMetadata,
-        toolCall.providerMetadata,
-      ),
+      providerMetadata: toolCall.providerMetadata,
+      ...(tool?.metadata != null ? { toolMetadata: tool.metadata } : {}),
     };
   }
 }
@@ -189,11 +187,6 @@ async function doParseToolCall<TOOLS extends ToolSet>({
     });
   }
 
-  const mergedProviderMetadata = mergeToolProviderMetadata(
-    tool.providerMetadata,
-    toolCall.providerMetadata,
-  );
-
   return tool.type === 'dynamic'
     ? {
         type: 'tool-call',
@@ -201,7 +194,8 @@ async function doParseToolCall<TOOLS extends ToolSet>({
         toolName: toolCall.toolName,
         input: parseResult.value,
         providerExecuted: toolCall.providerExecuted,
-        providerMetadata: mergedProviderMetadata,
+        providerMetadata: toolCall.providerMetadata,
+        ...(tool.metadata != null ? { toolMetadata: tool.metadata } : {}),
         dynamic: true,
         title: tool.title,
       }
@@ -211,7 +205,8 @@ async function doParseToolCall<TOOLS extends ToolSet>({
         toolName,
         input: parseResult.value,
         providerExecuted: toolCall.providerExecuted,
-        providerMetadata: mergedProviderMetadata,
+        providerMetadata: toolCall.providerMetadata,
+        ...(tool.metadata != null ? { toolMetadata: tool.metadata } : {}),
         title: tool.title,
       };
 }

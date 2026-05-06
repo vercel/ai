@@ -70,11 +70,20 @@ export default function Chat() {
                             Tool ID: {toolName}
                           </div>
                         )}
+<<<<<<< HEAD
                         {mcpServerName != null && (
                           <div className="text-xs text-gray-500">
                             MCP server: {mcpServerName}
                           </div>
                         )}
+=======
+                        {part.type === 'dynamic-tool' &&
+                          typeof part.toolMetadata?.clientName === 'string' && (
+                            <div className="text-xs text-gray-500">
+                              MCP server: {part.toolMetadata.clientName}
+                            </div>
+                          )}
+>>>>>>> 329a01b91 (feat(ai): add toolMetadata for tool specific metdata (#15021))
                       </div>
                     </div>
 

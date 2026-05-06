@@ -108,6 +108,74 @@ describe('executeToolCall', () => {
         providerMetadata: { custom: { key: 'value' } },
       });
     });
+<<<<<<< HEAD
+=======
+
+    it('should preserve toolMetadata from toolCall', async () => {
+      const result = await executeToolCall({
+        toolCall: createToolCall({
+          toolMetadata: { clientName: 'MyMCPClient' },
+        }),
+        tools: {
+          testTool: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => `${value}-result`,
+          }),
+        },
+        callId: 'test-telemetry-call-id',
+        messages: [],
+        abortSignal: undefined,
+        toolsContext: {},
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "dynamic": false,
+          "input": {
+            "value": "test",
+          },
+          "output": "test-result",
+          "toolCallId": "call-1",
+          "toolMetadata": {
+            "clientName": "MyMCPClient",
+          },
+          "toolName": "testTool",
+          "type": "tool-result",
+        }
+      `);
+    });
+
+    it('should throw TypeValidationError when tool context fails validation', async () => {
+      try {
+        await executeToolCall({
+          toolCall: createToolCall(),
+          tools: {
+            testTool: tool({
+              inputSchema: z.object({ value: z.string() }),
+              contextSchema: z.object({ key1: z.string() }),
+              execute: async ({ value }) => `${value}-result`,
+            }),
+          },
+          callId: 'test-telemetry-call-id',
+          messages: [],
+          abortSignal: undefined,
+          toolsContext: { testTool: { key1: 1 } as any },
+        });
+
+        expect.unreachable('expected executeToolCall to throw');
+      } catch (error) {
+        expect(TypeValidationError.isInstance(error)).toBe(true);
+
+        if (TypeValidationError.isInstance(error)) {
+          expect(error.value).toEqual({ key1: 1 });
+          expect(error.context).toEqual({
+            field: 'tool context',
+            entityName: 'testTool',
+          });
+        }
+      }
+    });
+>>>>>>> 329a01b91 (feat(ai): add toolMetadata for tool specific metdata (#15021))
   });
 
   describe('when tool execution fails', () => {
@@ -165,6 +233,42 @@ describe('executeToolCall', () => {
         type: 'tool-error',
         providerMetadata: { custom: { key: 'value' } },
       });
+    });
+
+    it('should preserve toolMetadata from toolCall on error', async () => {
+      const result = await executeToolCall({
+        toolCall: createToolCall({
+          toolMetadata: { clientName: 'MyMCPClient' },
+        }),
+        tools: {
+          testTool: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async (): Promise<string> => {
+              throw new Error('execution failed');
+            },
+          }),
+        },
+        callId: 'test-telemetry-call-id',
+        messages: [],
+        abortSignal: undefined,
+        toolsContext: {},
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "dynamic": false,
+          "error": [Error: execution failed],
+          "input": {
+            "value": "test",
+          },
+          "toolCallId": "call-1",
+          "toolMetadata": {
+            "clientName": "MyMCPClient",
+          },
+          "toolName": "testTool",
+          "type": "tool-error",
+        }
+      `);
     });
   });
 

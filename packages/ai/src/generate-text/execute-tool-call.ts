@@ -91,15 +91,35 @@ export async function executeToolCall<TOOLS extends ToolSet>({
           output: () => JSON.stringify(input),
         },
       },
+<<<<<<< HEAD
     }),
     tracer,
     fn: async span => {
       let output: unknown;
+=======
+    });
+  } catch (error) {
+    const toolError = {
+      type: 'tool-error',
+      toolCallId,
+      toolName,
+      input,
+      error,
+      dynamic: tool.type === 'dynamic',
+      ...(toolCall.providerMetadata != null
+        ? { providerMetadata: toolCall.providerMetadata }
+        : {}),
+      ...(toolCall.toolMetadata != null
+        ? { toolMetadata: toolCall.toolMetadata }
+        : {}),
+    } as TypedToolError<TOOLS>;
+>>>>>>> 329a01b91 (feat(ai): add toolMetadata for tool specific metdata (#15021))
 
       await notify({ event: baseCallbackEvent, callbacks: onToolCallStart });
 
       const startTime = now();
 
+<<<<<<< HEAD
       try {
         const stream = executeTool({
           execute: tool.execute!.bind(tool),
@@ -111,6 +131,22 @@ export async function executeToolCall<TOOLS extends ToolSet>({
             experimental_context,
           },
         });
+=======
+  const toolResult = {
+    type: 'tool-result',
+    toolCallId,
+    toolName,
+    input,
+    output,
+    dynamic: tool.type === 'dynamic',
+    ...(toolCall.providerMetadata != null
+      ? { providerMetadata: toolCall.providerMetadata }
+      : {}),
+    ...(toolCall.toolMetadata != null
+      ? { toolMetadata: toolCall.toolMetadata }
+      : {}),
+  } as TypedToolResult<TOOLS>;
+>>>>>>> 329a01b91 (feat(ai): add toolMetadata for tool specific metdata (#15021))
 
         for await (const part of stream) {
           if (part.type === 'preliminary') {

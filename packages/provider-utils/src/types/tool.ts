@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 import type { JSONValue, SharedV3ProviderMetadata } from '@ai-sdk/provider';
+=======
+import type { JSONValue, JSONObject } from '@ai-sdk/provider';
+>>>>>>> 329a01b91 (feat(ai): add toolMetadata for tool specific metdata (#15021))
 import type { FlexibleSchema } from '../schema';
 import type { ToolResultOutput } from './content-part';
 import type { ModelMessage } from './model-message';
@@ -133,11 +137,15 @@ export type Tool<
    *
    * Unlike `providerOptions`, this metadata is not sent to the language
    * model. Instead, it is propagated onto the resulting tool call's
-   * `providerMetadata` so consumers can read it from tool call / result
-   * parts and UI message parts. This is useful for sources of dynamic
-   * tools (e.g. an MCP server) to identify themselves.
+   * `toolMetadata` so consumers can read it from tool call / result parts
+   * and UI message parts. This is useful for sources of dynamic tools (e.g.
+   * an MCP server) to identify themselves.
    */
+<<<<<<< HEAD
   providerMetadata?: SharedV3ProviderMetadata;
+=======
+  metadata?: JSONObject;
+>>>>>>> 329a01b91 (feat(ai): add toolMetadata for tool specific metdata (#15021))
 
   /**
    * The schema of the input that the tool expects.
