@@ -2921,6 +2921,73 @@ describe('streamText', () => {
         'world!',
       ]);
     });
+
+    it('should write text from all steps when using multi-step tool calls', async () => {
+      const mockResponse = createMockServerResponse();
+
+      let responseCount = 0;
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => {
+            switch (responseCount++) {
+              case 0:
+                return {
+                  stream: convertArrayToReadableStream([
+                    {
+                      type: 'tool-call',
+                      id: 'call-1',
+                      toolCallId: 'call-1',
+                      toolName: 'tool1',
+                      input: `{ "value": "test" }`,
+                    },
+                    {
+                      type: 'finish',
+                      finishReason: {
+                        unified: 'tool-calls',
+                        raw: 'tool_calls',
+                      },
+                      usage: { inputTokens: 10, outputTokens: 5 },
+                    },
+                  ]),
+                };
+              case 1:
+                return {
+                  stream: convertArrayToReadableStream([
+                    { type: 'text-start', id: '1' },
+                    { type: 'text-delta', id: '1', delta: 'Tool result: ' },
+                    { type: 'text-delta', id: '1', delta: 'success' },
+                    { type: 'text-end', id: '1' },
+                    {
+                      type: 'finish',
+                      finishReason: { unified: 'stop', raw: 'stop' },
+                      usage: { inputTokens: 20, outputTokens: 10 },
+                    },
+                  ]),
+                };
+              default:
+                throw new Error(`Unexpected response count: ${responseCount}`);
+            }
+          },
+        }),
+        tools: {
+          tool1: {
+            inputSchema: z.object({ value: z.string() }),
+            execute: async () => 'result1',
+          },
+        },
+        prompt: 'test-input',
+        stopWhen: isStepCount(3),
+      });
+
+      result.pipeTextStreamToResponse(mockResponse);
+
+      await mockResponse.waitForEnd();
+
+      expect(mockResponse.getDecodedChunks()).toEqual([
+        'Tool result: ',
+        'success',
+      ]);
+    });
   });
 
   describe('result.toUIMessageStream', () => {
@@ -4593,6 +4660,69 @@ describe('streamText', () => {
         'Hello',
         ', ',
         'world!',
+      ]);
+    });
+
+    it('should stream text from all steps when using multi-step tool calls', async () => {
+      let responseCount = 0;
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => {
+            switch (responseCount++) {
+              case 0:
+                return {
+                  stream: convertArrayToReadableStream([
+                    {
+                      type: 'tool-call',
+                      id: 'call-1',
+                      toolCallId: 'call-1',
+                      toolName: 'tool1',
+                      input: `{ "value": "test" }`,
+                    },
+                    {
+                      type: 'finish',
+                      finishReason: {
+                        unified: 'tool-calls',
+                        raw: 'tool_calls',
+                      },
+                      usage: { inputTokens: 10, outputTokens: 5 },
+                    },
+                  ]),
+                };
+              case 1:
+                return {
+                  stream: convertArrayToReadableStream([
+                    { type: 'text-start', id: '1' },
+                    { type: 'text-delta', id: '1', delta: 'Tool result: ' },
+                    { type: 'text-delta', id: '1', delta: 'success' },
+                    { type: 'text-end', id: '1' },
+                    {
+                      type: 'finish',
+                      finishReason: { unified: 'stop', raw: 'stop' },
+                      usage: { inputTokens: 20, outputTokens: 10 },
+                    },
+                  ]),
+                };
+              default:
+                throw new Error(`Unexpected response count: ${responseCount}`);
+            }
+          },
+        }),
+        tools: {
+          tool1: {
+            inputSchema: z.object({ value: z.string() }),
+            execute: async () => 'result1',
+          },
+        },
+        prompt: 'test-input',
+        stopWhen: isStepCount(3),
+      });
+
+      const response = result.toTextStreamResponse();
+
+      expect(await convertResponseStreamToArray(response)).toStrictEqual([
+        'Tool result: ',
+        'success',
       ]);
     });
   });
