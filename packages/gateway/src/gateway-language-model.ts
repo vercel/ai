@@ -198,10 +198,7 @@ export class GatewayLanguageModel implements LanguageModelV4 {
   }
 
   /**
-   * Encodes inline `Uint8Array` file part data to a base64 string in place,
-   * preserving the v4 `{ type: 'data' }` shape so the wire format matches the
-   * spec. URL file parts are left alone — `JSON.stringify` serializes the URL
-   * via `toJSON()`, so server-side both shapes arrive as plain strings.
+   * Encodes inline `Uint8Array` file part data to a base64 string in place.
    */
   private maybeEncodeFileParts(options: LanguageModelV4CallOptions) {
     for (const message of options.prompt) {
