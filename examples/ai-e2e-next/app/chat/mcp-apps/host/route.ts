@@ -1,12 +1,19 @@
 import { readMCPAppResource, splitMCPAppTools } from '@ai-sdk/mcp';
-import { asRecord } from '@ai-sdk/provider-utils';
+import { isJSONObject, type JSONObject } from '@ai-sdk/provider';
+import { safeParseJSON } from '@ai-sdk/provider-utils';
 import { createLocalMCPAppsClient } from '../mcp-client';
 
 export async function POST(req: Request) {
   const requestUrl = new URL(req.url);
-  const body = await req.json();
-  const method = body.method;
-  const params = asRecord(body.params);
+  const bodyResult = await safeParseJSON({ text: await req.text() });
+
+  if (!bodyResult.success) {
+    return Response.json({ error: 'Invalid JSON' }, { status: 400 });
+  }
+
+  const body = isJSONObject(bodyResult.value) ? bodyResult.value : undefined;
+  const method = body?.method;
+  const params = isJSONObject(body?.params) ? body.params : undefined;
 
   if (typeof method !== 'string') {
     return Response.json({ error: 'Missing method' }, { status: 400 });
@@ -59,9 +66,13 @@ export async function POST(req: Request) {
           );
         }
 
+        const toolArguments: JSONObject = isJSONObject(params.arguments)
+          ? params.arguments
+          : {};
+
         const result = await client.callTool({
           name: params.name,
-          arguments: asRecord(params.arguments) ?? {},
+          arguments: toolArguments,
         });
 
         console.log('[mcp-apps/host] app tool call', {

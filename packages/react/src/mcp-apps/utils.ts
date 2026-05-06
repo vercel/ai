@@ -1,4 +1,4 @@
-import { asRecord } from '@ai-sdk/provider-utils';
+import { isJSONObject } from '@ai-sdk/provider';
 import type { MCPAppMetadata, MCPAppRendererProps } from './types';
 
 /**
@@ -27,8 +27,8 @@ import type { MCPAppMetadata, MCPAppRendererProps } from './types';
 export function getMCPAppFromToolPart(
   part: MCPAppRendererProps['part'],
 ): MCPAppMetadata | undefined {
-  const mcpMetadata = asRecord(part.callProviderMetadata?.mcp);
-  const appMetadata = asRecord(mcpMetadata?.app);
+  const rawAppMetadata = part.callProviderMetadata?.mcp?.app;
+  const appMetadata = isJSONObject(rawAppMetadata) ? rawAppMetadata : undefined;
 
   if (
     appMetadata == null ||

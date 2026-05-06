@@ -35,6 +35,7 @@
     "README.md"
   ],
   "dependencies": {
+    "@ai-sdk/provider": "workspace:*",
     "@ai-sdk/provider-utils": "workspace:*",
     "ai": "workspace:*",
     "swr": "^2.2.5",

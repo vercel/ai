@@ -1,4 +1,5 @@
-import { asRecord, convertBase64ToUint8Array } from '@ai-sdk/provider-utils';
+import { isJSONObject, type JSONObject } from '@ai-sdk/provider';
+import { convertBase64ToUint8Array } from '@ai-sdk/provider-utils';
 import type { MCPClient } from './mcp-client';
 import type {
   ClientCapabilities,
@@ -81,8 +82,17 @@ type MCPAppToolLike = {
   [key: string]: unknown;
 };
 
-function getToolUiMeta(meta?: ToolMeta): Record<string, unknown> | undefined {
-  return asRecord(meta?.ui);
+function getToolUiMeta(meta?: ToolMeta): JSONObject | undefined {
+  const uiMeta = meta?.ui;
+  return isJSONObject(uiMeta) ? uiMeta : undefined;
+}
+
+function getResourceUiMeta(meta: unknown): MCPAppResourceMeta | undefined {
+  const resourceMeta = isJSONObject(meta) ? meta : undefined;
+  const rawUiMeta = resourceMeta?.ui;
+  const uiMeta = isJSONObject(rawUiMeta) ? rawUiMeta : undefined;
+
+  return uiMeta as MCPAppResourceMeta | undefined;
 }
 
 function parseVisibility(value: unknown): MCPAppToolVisibility[] | undefined {
@@ -216,9 +226,7 @@ export function getMCPAppResourceFromReadResult({
     throw new Error(`Unsupported MCP App resource content format: ${uri}`);
   }
 
-  const meta = asRecord(asRecord(content._meta)?.ui) as
-    | MCPAppResourceMeta
-    | undefined;
+  const meta = getResourceUiMeta(content._meta);
 
   return { uri, mimeType: MCP_APP_MIME_TYPE, html, meta };
 }

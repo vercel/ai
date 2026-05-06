@@ -1,4 +1,4 @@
-import { asRecord } from '@ai-sdk/provider-utils';
+import { isJSONObject } from '@ai-sdk/provider';
 import type {
   MCPAppBridgeHandlers,
   MCPAppHostContext,
@@ -15,7 +15,13 @@ const MCP_APP_PROTOCOL_VERSION = '2026-01-26';
  * Checks whether an iframe message looks like a JSON-RPC 2.0 message.
  */
 function isJsonRpcMessage(value: unknown): value is MCPAppJsonRpcMessage {
-  return asRecord(value)?.jsonrpc === '2.0';
+  return (
+    value != null &&
+    typeof value === 'object' &&
+    !Array.isArray(value) &&
+    'jsonrpc' in value &&
+    value.jsonrpc === '2.0'
+  );
 }
 
 /**
@@ -47,13 +53,13 @@ function toError(error: unknown): Error {
  * Validates the params for app-initiated `tools/call` requests.
  */
 function assertToolCallParams(params: unknown): MCPAppToolCallParams {
-  const record = asRecord(params);
-  if (typeof record?.name !== 'string') {
+  if (!isJSONObject(params) || typeof params.name !== 'string') {
     throw new Error('Invalid tools/call params');
   }
+
   return {
-    name: record.name,
-    arguments: asRecord(record.arguments),
+    name: params.name,
+    arguments: isJSONObject(params.arguments) ? params.arguments : undefined,
   };
 }
 
