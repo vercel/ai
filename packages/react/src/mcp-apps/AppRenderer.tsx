@@ -5,7 +5,7 @@ import type {
   MCPAppRendererProps,
   MCPAppResource,
 } from './types';
-import { getMCPAppFromToolPart } from './util';
+import { getMCPAppFromToolPart } from './utils';
 
 type LoadedResourceState = {
   resourceUri: string;

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { MCPAppRendererProps } from './types';
-import { getMCPAppFromToolPart } from './util';
+import { getMCPAppFromToolPart } from './utils';
 
 describe('getMCPAppFromToolPart', () => {
   it('extracts normalized app metadata from tool call provider metadata', () => {
