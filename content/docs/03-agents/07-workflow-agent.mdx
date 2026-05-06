@@ -438,11 +438,11 @@ const agent = new WorkflowAgent({
     console.log(`Step ${stepNumber} starting`);
   },
 
-  experimental_onToolExecutionStart({ toolCall }) {
+  onToolExecutionStart({ toolCall }) {
     console.log(`Calling tool: ${toolCall.toolName}`);
   },
 
-  experimental_onToolExecutionEnd({ toolCall, toolOutput }) {
+  onToolExecutionEnd({ toolCall, toolOutput }) {
     console.log(`Tool finished: ${toolCall.toolName}`);
   },
 
@@ -591,7 +591,7 @@ whether approval is required (see [Tool Approval](#tool-approval) above).
 
 ### Everything else
 
-Other options carry over with the same names: `prepareStep`, `onStepFinish`, `onFinish`, `onError`, `toolChoice`, `activeTools`, `timeout`, `experimental_context`, `experimental_repairToolCall`, and the usual generation settings (`temperature`, `maxOutputTokens`, `topP`, …). `WorkflowAgent` additionally adds `prepareCall` (runs once before the loop) and the `experimental_onStart` / `experimental_onStepStart` / `experimental_onToolExecutionStart` / `experimental_onToolExecutionEnd` lifecycle callbacks documented above.
+Other options carry over with the same names: `prepareStep`, `onStepFinish`, `onFinish`, `onError`, `toolChoice`, `activeTools`, `timeout`, `experimental_context`, `experimental_repairToolCall`, and the usual generation settings (`temperature`, `maxOutputTokens`, `topP`, …). `WorkflowAgent` additionally adds `prepareCall` (runs once before the loop) and the `experimental_onStart` / `experimental_onStepStart` / `onToolExecutionStart` / `onToolExecutionEnd` lifecycle callbacks documented above.
 
 ## Next Steps
 

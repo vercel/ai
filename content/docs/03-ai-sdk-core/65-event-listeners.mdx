@@ -56,12 +56,12 @@ const result = await generateText({
         'Called after the model response has been normalized and parsed, but before any client-side tool execution begins.',
     },
     {
-      name: 'experimental_onToolExecutionStart',
+      name: 'onToolExecutionStart',
       type: '(event: ToolExecutionStartEvent) => void | Promise<void>',
       description: "Called when a tool's execute function is about to run.",
     },
     {
-      name: 'experimental_onToolExecutionEnd',
+      name: 'onToolExecutionEnd',
       type: '(event: ToolExecutionEndEvent) => void | Promise<void>',
       description: "Called when a tool's execute function completes or errors.",
     },
@@ -481,7 +481,7 @@ const result = await generateText({
   ]}
 />
 
-#### `experimental_onToolExecutionStart`
+#### `onToolExecutionStart`
 
 Called before a tool's `execute` function runs.
 
@@ -490,7 +490,7 @@ const result = await generateText({
   model: openai('gpt-4o'),
   prompt: 'What is the weather?',
   tools: { getWeather },
-  experimental_onToolExecutionStart: event => {
+  onToolExecutionStart: event => {
     console.log('Tool:', event.toolCall.toolName);
     console.log('Input:', event.toolCall.input);
   },
@@ -551,7 +551,7 @@ const result = await generateText({
   ]}
 />
 
-#### `experimental_onToolExecutionEnd`
+#### `onToolExecutionEnd`
 
 Called after a tool's `execute` function completes or errors. The `toolOutput` field is a discriminated union: check `toolOutput.type` to determine whether it is a `'tool-result'` (success) or `'tool-error'` (failure).
 
@@ -560,7 +560,7 @@ const result = await generateText({
   model: openai('gpt-4o'),
   prompt: 'What is the weather?',
   tools: { getWeather },
-  experimental_onToolExecutionEnd: event => {
+  onToolExecutionEnd: event => {
     console.log('Tool:', event.toolCall.toolName);
     console.log('Duration:', event.durationMs, 'ms');
 
@@ -1248,10 +1248,10 @@ const result = await generateText({
   model: openai('gpt-4o'),
   prompt: 'What is the weather?',
   tools: { getWeather },
-  experimental_onToolExecutionStart: event => {
+  onToolExecutionStart: event => {
     console.log(`Tool "${event.toolCall.toolName}" starting...`);
   },
-  experimental_onToolExecutionEnd: event => {
+  onToolExecutionEnd: event => {
     if (event.toolOutput.type === 'tool-result') {
       console.log(
         `Tool "${event.toolCall.toolName}" completed in ${event.durationMs}ms`,
