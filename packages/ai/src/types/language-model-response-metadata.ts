@@ -1,5 +1,8 @@
 import type { ResponseMessage } from '../generate-text/response-message';
 
+/**
+ * Metadata for a language model response.
+ */
 export type LanguageModelResponseMetadata = {
   /**
    * The response messages that were generated during the call.

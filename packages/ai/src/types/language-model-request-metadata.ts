@@ -1,5 +1,8 @@
 import type { ModelMessage } from '@ai-sdk/provider-utils';
 
+/**
+ * Metadata for a language model request.
+ */
 export type LanguageModelRequestMetadata = {
   /**
    * The input messages that were sent to the model for this step.
