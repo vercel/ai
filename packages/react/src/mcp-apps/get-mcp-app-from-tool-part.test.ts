@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { getMCPAppFromToolPart } from './get-mcp-app-from-tool-part';
-import type { MCPAppToolPart } from './types';
+import type { MCPAppRendererProps } from './types';
 
 describe('getMCPAppFromToolPart', () => {
   it('extracts normalized app metadata from tool call provider metadata', () => {
@@ -20,7 +20,7 @@ describe('getMCPAppFromToolPart', () => {
           },
         },
       },
-    } satisfies MCPAppToolPart;
+    } satisfies MCPAppRendererProps['part'];
 
     expect(getMCPAppFromToolPart(part)).toMatchInlineSnapshot(`
       {
@@ -44,7 +44,7 @@ describe('getMCPAppFromToolPart', () => {
       callProviderMetadata: {
         mcp: { clientName: 'local-mcp-apps' },
       },
-    } satisfies MCPAppToolPart;
+    } satisfies MCPAppRendererProps['part'];
 
     expect(getMCPAppFromToolPart(part)).toBeUndefined();
   });

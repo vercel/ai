@@ -6,9 +6,9 @@ import {
   useChat,
   type MCPAppBridgeHandlers,
   type MCPAppMetadata,
+  type MCPAppRendererProps,
   type MCPAppResource,
   type MCPAppSandboxConfig,
-  type MCPAppToolPart,
 } from '@ai-sdk/react';
 import { DefaultChatTransport, isToolUIPart } from 'ai';
 
@@ -59,7 +59,7 @@ const mcpAppHandlers: MCPAppBridgeHandlers = {
   },
 };
 
-function MCPAppTool({ part }: { part: MCPAppToolPart }) {
+function MCPAppTool({ part }: { part: MCPAppRendererProps['part'] }) {
   return (
     <MCPAppRenderer
       part={part}

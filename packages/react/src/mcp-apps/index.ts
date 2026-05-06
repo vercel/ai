@@ -7,5 +7,4 @@ export type {
   MCPAppResourceCSP,
   MCPAppResourceMeta,
   MCPAppSandboxConfig,
-  MCPAppToolPart,
 } from './types';

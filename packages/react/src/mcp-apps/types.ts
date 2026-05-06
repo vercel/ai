@@ -1,8 +1,6 @@
 import type { DynamicToolUIPart, ToolUIPart, UITools } from 'ai';
 import type { CSSProperties, ReactNode } from 'react';
 
-export type MCPAppToolPart = ToolUIPart<UITools> | DynamicToolUIPart;
-
 export type MCPAppDisplayMode = 'inline' | 'fullscreen' | 'pip';
 
 export type MCPAppMetadata = {
@@ -84,7 +82,7 @@ export type MCPAppFrameProps = {
 };
 
 export type MCPAppRendererProps = {
-  part: MCPAppToolPart;
+  part: ToolUIPart<UITools> | DynamicToolUIPart;
   sandbox: MCPAppSandboxConfig;
   resource?: MCPAppResource;
   loadResource?: (app: MCPAppMetadata) => Promise<MCPAppResource>;
