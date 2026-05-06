@@ -4,6 +4,14 @@
 
 ### Patch Changes
 
+- Updated dependencies [79b2468]
+- Updated dependencies [c22750c]
+  - ai@7.0.0-canary.122
+
+## 0.0.1-canary.0
+
+### Patch Changes
+
 - Updated dependencies [2427d88]
 - Updated dependencies [5588abd]
 - Updated dependencies [6dd6b83]

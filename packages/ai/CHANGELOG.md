@@ -1,5 +1,12 @@
 # ai
 
+## 7.0.0-canary.122
+
+### Patch Changes
+
+- 79b2468: feat: add request.messages to StepResult
+- c22750c: fix(ai): move onToolExecutionStart and onToolExecutionEnd to stable
+
 ## 7.0.0-canary.121
 
 ### Patch Changes
