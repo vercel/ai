@@ -154,6 +154,7 @@ export type StreamTextInclude = {
   /**
    * Whether to retain the request body in step results.
    * The request body can be large when sending images or files.
+   *
    * @default true
    */
   requestBody?: boolean;
@@ -161,9 +162,23 @@ export type StreamTextInclude = {
   /**
    * Whether to retain the request messages in step results.
    * The request messages can be large when sending images or files.
+   *
    * @default true
    */
   requestMessages?: boolean;
+
+  /**
+   * Whether to include raw chunks from the provider in the stream.
+   *
+   * When enabled, you will receive raw chunks with type 'raw' that contain
+   * the unprocessed data from the provider.
+   *
+   * This allows access to cutting-edge provider features not yet wrapped by
+   * the AI SDK.
+   *
+   * @default false
+   */
+  rawChunks?: boolean;
 };
 
 /**
@@ -302,7 +317,7 @@ export function streamText<
   experimental_refineToolInput: refineToolInput,
   experimental_transform: transform,
   experimental_download: download,
-  includeRawChunks = false,
+  includeRawChunks,
   onChunk,
   onError = ({ error }) => {
     console.error(error);
@@ -435,6 +450,8 @@ export function streamText<
      * When enabled, you will receive raw chunks with type 'raw' that contain the unprocessed data from the provider.
      * This allows access to cutting-edge provider features not yet wrapped by the AI SDK.
      * Defaults to false.
+     *
+     * @deprecated Use `experimental_include.rawChunks` instead.
      */
     includeRawChunks?: boolean;
 
@@ -577,7 +594,7 @@ export function streamText<
     toolApproval,
     providerOptions,
     prepareStep,
-    includeRawChunks,
+    includeRawChunks: include?.rawChunks ?? includeRawChunks ?? false,
     timeout,
     onChunk,
     onError,
@@ -2179,7 +2196,9 @@ class DefaultStreamTextResult<
 
     if (transform == null) {
       throw new UnsupportedFunctionalityError({
-        functionality: `element streams in ${this.outputSpecification?.name ?? 'text'} mode`,
+        functionality: `element streams in ${
+          this.outputSpecification?.name ?? 'text'
+        } mode`,
       });
     }
 

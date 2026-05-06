@@ -17305,7 +17305,7 @@ describe('streamText', () => {
   });
 
   describe('raw chunks forwarding', () => {
-    it('should forward raw chunks when includeRawChunks is enabled', async () => {
+    it('should forward raw chunks when experimental_include.rawChunks is enabled', async () => {
       const modelWithRawChunks = createTestModel({
         stream: convertArrayToReadableStream([
           { type: 'stream-start', warnings: [] },
@@ -17336,7 +17336,9 @@ describe('streamText', () => {
       const result = streamText({
         model: modelWithRawChunks,
         prompt: 'test prompt',
-        includeRawChunks: true,
+        experimental_include: {
+          rawChunks: true,
+        },
       });
 
       const chunks = await convertAsyncIterableToArray(result.fullStream);
@@ -17386,7 +17388,9 @@ describe('streamText', () => {
       const result = streamText({
         model: modelWithRawChunks,
         prompt: 'test prompt',
-        includeRawChunks: false,
+        experimental_include: {
+          rawChunks: false,
+        },
       });
 
       const chunks = await convertAsyncIterableToArray(result.fullStream);
@@ -17394,7 +17398,7 @@ describe('streamText', () => {
       expect(chunks.filter(chunk => chunk.type === 'raw')).toHaveLength(0);
     });
 
-    it('should pass through the includeRawChunks flag correctly to the model', async () => {
+    it('should pass through the experimental_include.rawChunks flag correctly to the model', async () => {
       let capturedOptions: any;
 
       const model = new MockLanguageModelV4({
@@ -17417,13 +17421,15 @@ describe('streamText', () => {
       await streamText({
         model,
         prompt: 'test prompt',
-        includeRawChunks: true,
+        experimental_include: {
+          rawChunks: true,
+        },
       }).consumeStream();
 
       expect(capturedOptions.includeRawChunks).toBe(true);
     });
 
-    it('should call onChunk with raw chunks when includeRawChunks is enabled', async () => {
+    it('should call onChunk with raw chunks when experimental_include.rawChunks is enabled', async () => {
       const onChunkCalls: Array<any> = [];
 
       const modelWithRawChunks = createTestModel({
@@ -17473,7 +17479,9 @@ describe('streamText', () => {
       const result = streamText({
         model: modelWithRawChunks,
         prompt: 'test prompt',
-        includeRawChunks: true,
+        experimental_include: {
+          rawChunks: true,
+        },
         onChunk({ chunk }) {
           onChunkCalls.push(chunk);
         },
@@ -17560,7 +17568,9 @@ describe('streamText', () => {
       await streamText({
         model,
         prompt: 'test prompt',
-        includeRawChunks: true,
+        experimental_include: {
+          rawChunks: true,
+        },
       }).consumeStream();
 
       expect(capturedOptions.includeRawChunks).toBe(true);
@@ -17568,7 +17578,9 @@ describe('streamText', () => {
       await streamText({
         model,
         prompt: 'test prompt',
-        includeRawChunks: false,
+        experimental_include: {
+          rawChunks: false,
+        },
       }).consumeStream();
 
       expect(capturedOptions.includeRawChunks).toBe(false);
@@ -17576,6 +17588,65 @@ describe('streamText', () => {
       await streamText({
         model,
         prompt: 'test prompt',
+      }).consumeStream();
+
+      expect(capturedOptions.includeRawChunks).toBe(false);
+    });
+
+    it('should use deprecated includeRawChunks as fallback', async () => {
+      let capturedOptions: any;
+
+      const model = new MockLanguageModelV4({
+        doStream: async options => {
+          capturedOptions = options;
+          return {
+            stream: convertArrayToReadableStream([
+              { type: 'stream-start', warnings: [] },
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: testUsage,
+              },
+            ]),
+          };
+        },
+      });
+
+      await streamText({
+        model,
+        prompt: 'test prompt',
+        includeRawChunks: true,
+      }).consumeStream();
+
+      expect(capturedOptions.includeRawChunks).toBe(true);
+    });
+
+    it('should prefer experimental_include.rawChunks over deprecated includeRawChunks', async () => {
+      let capturedOptions: any;
+
+      const model = new MockLanguageModelV4({
+        doStream: async options => {
+          capturedOptions = options;
+          return {
+            stream: convertArrayToReadableStream([
+              { type: 'stream-start', warnings: [] },
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: testUsage,
+              },
+            ]),
+          };
+        },
+      });
+
+      await streamText({
+        model,
+        prompt: 'test prompt',
+        experimental_include: {
+          rawChunks: false,
+        },
+        includeRawChunks: true,
       }).consumeStream();
 
       expect(capturedOptions.includeRawChunks).toBe(false);
@@ -24895,7 +24966,7 @@ describe('streamText', () => {
       `);
     });
 
-    it('should call integration onChunk with raw chunks when includeRawChunks is enabled', async () => {
+    it('should call integration onChunk with raw chunks when experimental_include.rawChunks is enabled', async () => {
       const chunks: Array<Record<string, unknown>> = [];
 
       const result = streamText({
@@ -24924,7 +24995,9 @@ describe('streamText', () => {
           }),
         }),
         prompt: 'test-input',
-        includeRawChunks: true,
+        experimental_include: {
+          rawChunks: true,
+        },
         onError: () => {},
         telemetry: {
           integrations: {

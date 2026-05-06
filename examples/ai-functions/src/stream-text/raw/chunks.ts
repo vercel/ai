@@ -6,7 +6,9 @@ run(async () => {
   const result = streamText({
     model: openai('gpt-4o-mini'),
     prompt: 'Count from 1 to 3 slowly.',
-    includeRawChunks: true,
+    experimental_include: {
+      rawChunks: true,
+    },
   });
 
   let textChunkCount = 0;

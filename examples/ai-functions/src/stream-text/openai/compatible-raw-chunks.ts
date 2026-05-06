@@ -14,7 +14,9 @@ run(async () => {
   const result = streamText({
     model: openaiCompatible.completionModel('gpt-3.5-turbo-instruct'),
     prompt: 'Hello, World!',
-    includeRawChunks: true,
+    experimental_include: {
+      rawChunks: true,
+    },
   });
 
   let textChunkCount = 0;

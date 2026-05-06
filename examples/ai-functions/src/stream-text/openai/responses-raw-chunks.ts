@@ -15,7 +15,9 @@ run(async () => {
         reasoningSummary: 'auto',
       } satisfies OpenAILanguageModelResponsesOptions,
     },
-    includeRawChunks: true,
+    experimental_include: {
+      rawChunks: true,
+    },
   });
 
   let textChunkCount = 0;

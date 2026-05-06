@@ -23,7 +23,9 @@ run(async () => {
     },
     toolChoice: 'required',
     prompt: 'What is the weather in my current location and in Rome?',
-    includeRawChunks: true,
+    experimental_include: {
+      rawChunks: true,
+    },
   });
 
   await saveRawChunks({

@@ -32,7 +32,9 @@ run(async () => {
       }),
     },
     prompt: 'read data for user 123',
-    includeRawChunks: true,
+    experimental_include: {
+      rawChunks: true,
+    },
     onStepFinish: ({ toolCalls, toolResults }) => {
       if (toolCalls) {
         console.log(`\ntool calls: ${toolCalls.length}`);
@@ -129,7 +131,9 @@ run(async () => {
     const turn2 = streamText({
       model: google('gemini-3.1-pro-preview'),
       messages: messagesForTurn2,
-      includeRawChunks: true,
+      experimental_include: {
+        rawChunks: true,
+      },
       tools: {
         readuserdata: tool({
           description: 'read user data from file',
@@ -183,7 +187,9 @@ run(async () => {
     const turn3 = streamText({
       model: google('gemini-3.1-pro-preview'),
       messages: messagesForTurn3,
-      includeRawChunks: true,
+      experimental_include: {
+        rawChunks: true,
+      },
       tools: {
         readuserdata: tool({
           description: 'read user data from file',
