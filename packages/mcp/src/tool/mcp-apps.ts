@@ -1,4 +1,4 @@
-import { convertBase64ToUint8Array } from '@ai-sdk/provider-utils';
+import { asRecord, convertBase64ToUint8Array } from '@ai-sdk/provider-utils';
 import type { MCPClient } from './mcp-client';
 import type {
   ClientCapabilities,
@@ -80,12 +80,6 @@ type MCPAppToolLike = {
   _meta?: ToolMeta;
   [key: string]: unknown;
 };
-
-function asRecord(value: unknown): Record<string, unknown> | undefined {
-  return value != null && typeof value === 'object' && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : undefined;
-}
 
 function getToolUiMeta(meta?: ToolMeta): Record<string, unknown> | undefined {
   return asRecord(meta?.ui);

@@ -1,10 +1,5 @@
+import { asRecord } from '@ai-sdk/provider-utils';
 import type { MCPAppMetadata, MCPAppRendererProps } from './types';
-
-function asRecord(value: unknown): Record<string, unknown> | undefined {
-  return value != null && typeof value === 'object' && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : undefined;
-}
 
 /**
  * Extracts MCP App metadata from an AI SDK tool UI part.

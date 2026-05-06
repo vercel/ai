@@ -1,11 +1,6 @@
 import { readMCPAppResource, splitMCPAppTools } from '@ai-sdk/mcp';
+import { asRecord } from '@ai-sdk/provider-utils';
 import { createLocalMCPAppsClient } from '../mcp-client';
-
-function asRecord(value: unknown): Record<string, unknown> | undefined {
-  return value != null && typeof value === 'object' && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : undefined;
-}
 
 export async function POST(req: Request) {
   const requestUrl = new URL(req.url);

@@ -1,5 +1,6 @@
 export { asArray } from './as-array';
 export type { Arrayable } from './as-array';
+export { asRecord } from './as-record';
 export * from './combine-headers';
 export { convertAsyncIteratorToReadableStream } from './convert-async-iterator-to-readable-stream';
 export { convertInlineFileDataToUint8Array } from './convert-inline-file-data-to-uint8-array';

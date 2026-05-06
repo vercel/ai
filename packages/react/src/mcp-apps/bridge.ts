@@ -1,3 +1,4 @@
+import { asRecord } from '@ai-sdk/provider-utils';
 import type {
   MCPAppBridgeHandlers,
   MCPAppHostContext,
@@ -9,15 +10,6 @@ import type {
 } from './types';
 
 const MCP_APP_PROTOCOL_VERSION = '2026-01-26';
-
-/**
- * Returns an object-like value as a record, or `undefined` for primitives/arrays.
- */
-function asRecord(value: unknown): Record<string, unknown> | undefined {
-  return value != null && typeof value === 'object' && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : undefined;
-}
 
 /**
  * Checks whether an iframe message looks like a JSON-RPC 2.0 message.
