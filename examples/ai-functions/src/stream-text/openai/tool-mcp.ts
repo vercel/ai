@@ -14,7 +14,7 @@ run(async () => {
         serverDescription: 'A web-search API for AI agents',
       }),
     },
-    experimental_include: {
+    include: {
       rawChunks: true,
     },
   });

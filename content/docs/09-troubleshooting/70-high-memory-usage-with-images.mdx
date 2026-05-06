@@ -23,7 +23,7 @@ For example, processing 100 images of 500KB each would include ~50MB+ of request
 
 ## Solution
 
-Use the `experimental_include` option to disable inclusion of request messages and/or request and response bodies:
+Use the `include` option to disable inclusion of request messages and/or request and response bodies:
 
 ```ts
 import { generateText } from 'ai';
@@ -41,7 +41,7 @@ const result = await generateText({
     },
   ],
   // Disable inclusion of large request data to reduce memory usage
-  experimental_include: {
+  include: {
     requestBody: false,
     responseBody: false,
   },
@@ -50,7 +50,7 @@ const result = await generateText({
 
 ### Options
 
-The `experimental_include` option accepts:
+The `include` option accepts:
 
 - `requestBody`: Set to `false` to exclude the request body from step results. This is where base64-encoded images are often stored. Default: `true`. Available in both `generateText` and `streamText`.
 - `requestMessages`: Set to `true` to include the request messages in step results. The request messages can contain large message content such as images and files. Default: `false`. Available in both `generateText` and `streamText`.
@@ -95,7 +95,7 @@ for (const imageUrl of imageUrls) {
         ],
       },
     ],
-    experimental_include: {
+    include: {
       requestBody: false,
     },
   });

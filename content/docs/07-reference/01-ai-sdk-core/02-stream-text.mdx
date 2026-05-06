@@ -592,7 +592,7 @@ To see `streamText` in action, check out [these examples](#examples).
       type: 'boolean',
       isOptional: true,
       description:
-        'Deprecated. Use experimental_include.rawChunks instead. Whether to include raw chunks from the provider in the stream. When enabled, you will receive raw chunks with type "raw" that contain the unprocessed data from the provider. This allows access to cutting-edge provider features not yet wrapped by the AI SDK. Defaults to false.',
+        'Deprecated. Use include.rawChunks instead. Whether to include raw chunks from the provider in the stream. When enabled, you will receive raw chunks with type "raw" that contain the unprocessed data from the provider. This allows access to cutting-edge provider features not yet wrapped by the AI SDK. Defaults to false.',
     },
     {
       name: 'providerOptions',
@@ -773,11 +773,11 @@ To see `streamText` in action, check out [these examples](#examples).
         'Custom download function to control how URLs are fetched when they appear in prompts. By default, files are downloaded if the model does not support the URL for the given media type. Experimental feature. Return null to pass the URL directly to the model (when supported), or return downloaded content with data and media type.',
     },
     {
-      name: 'experimental_include',
+      name: 'include',
       type: '{ requestBody?: boolean; requestMessages?: boolean; rawChunks?: boolean }',
       isOptional: true,
       description:
-        'Controls inclusion of request body and request messages in step results, and raw provider chunks in the stream. By default, request body is included, request messages are excluded, and raw chunks are excluded. When processing many large payloads (e.g., images), set requestBody to false to reduce memory usage. Set requestMessages to true when you need access to the messages sent to the model. Set rawChunks to true when you need access to raw provider chunks. Experimental feature.',
+        'Controls inclusion of request body and request messages in step results, and raw provider chunks in the stream. By default, request body is included, request messages are excluded, and raw chunks are excluded. When processing many large payloads (e.g., images), set requestBody to false to reduce memory usage. Set requestMessages to true when you need access to the messages sent to the model. Set rawChunks to true when you need access to raw provider chunks.',
       properties: [
         {
           type: 'Object',

@@ -339,7 +339,8 @@ export function streamText<
   experimental_onToolCallFinish,
   runtimeContext = {} as RUNTIME_CONTEXT,
   toolsContext = {} as InferToolSetContext<TOOLS>,
-  experimental_include: include,
+  include,
+  experimental_include: experimentalInclude,
   _internal: {
     now = originalNow,
     generateId = originalGenerateId,
@@ -457,7 +458,7 @@ export function streamText<
      * This allows access to cutting-edge provider features not yet wrapped by the AI SDK.
      * Defaults to false.
      *
-     * @deprecated Use `experimental_include.rawChunks` instead.
+     * @deprecated Use `include.rawChunks` instead.
      */
     includeRawChunks?: boolean;
 
@@ -563,6 +564,13 @@ export function streamText<
      * By default, request bodies are included and request messages are
      * excluded.
      */
+    include?: StreamTextInclude;
+
+    /**
+     * Settings for controlling what data is included in step results.
+     *
+     * @deprecated Use `include` instead.
+     */
     experimental_include?: StreamTextInclude;
 
     /**
@@ -574,6 +582,8 @@ export function streamText<
       generateCallId?: IdGenerator;
     };
   }): StreamTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT> {
+  include ??= experimentalInclude;
+
   const totalTimeoutMs = getTotalTimeoutMs(timeout);
   const stepTimeoutMs = getStepTimeoutMs(timeout);
   const chunkTimeoutMs = getChunkTimeoutMs(timeout);

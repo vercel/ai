@@ -23,7 +23,7 @@ run(async () => {
     },
     toolChoice: 'required',
     prompt: 'What is the weather in my current location and in Rome?',
-    experimental_include: {
+    include: {
       rawChunks: true,
     },
   });

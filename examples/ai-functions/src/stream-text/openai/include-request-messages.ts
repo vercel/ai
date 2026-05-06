@@ -7,7 +7,7 @@ run(async () => {
   const result = streamText({
     model: openai('gpt-5-nano'),
     prompt: 'Invent a new holiday and describe its traditions.',
-    experimental_include: {
+    include: {
       requestMessages: true,
     },
   });

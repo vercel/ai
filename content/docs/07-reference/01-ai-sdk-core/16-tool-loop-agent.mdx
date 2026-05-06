@@ -110,6 +110,13 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
         'Optional function to mutate step settings or inject state for each agent step.',
     },
     {
+      name: 'include',
+      type: '{ requestBody?: boolean; requestMessages?: boolean; responseBody?: boolean; rawChunks?: boolean }',
+      isOptional: true,
+      description:
+        'Settings for controlling what data is included in step results. requestBody, requestMessages, and responseBody apply to generate(); requestBody, requestMessages, and rawChunks apply to stream().',
+    },
+    {
       name: 'experimental_repairToolCall',
       type: 'ToolCallRepairFunction',
       isOptional: true,

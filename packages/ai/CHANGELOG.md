@@ -1,5 +1,12 @@
 # ai
 
+## 7.0.0-canary.124
+
+### Patch Changes
+
+- 69aeb0e: feat: add deprecated tool call lifecycle callback aliases for AI SDK 6 compatibility.
+- 48e92f3: feat: make include stable
+
 ## 7.0.0-canary.123
 
 ### Patch Changes

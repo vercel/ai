@@ -316,9 +316,9 @@ const result = await generateText({
 });
 ```
 
-### Streaming: Move `includeRawChunks` to `experimental_include.rawChunks`
+### Streaming: Move `includeRawChunks` to `include.rawChunks`
 
-The top-level `includeRawChunks` option on `streamText` is deprecated in AI SDK 7. Move it into the `experimental_include` options object as `rawChunks`.
+The top-level `includeRawChunks` option on `streamText` is deprecated in AI SDK 7. Move it into the `include` options object as `rawChunks`.
 
 ```tsx filename="AI SDK 6"
 const result = streamText({
@@ -332,13 +332,42 @@ const result = streamText({
 const result = streamText({
   model: yourModel,
   prompt: 'Hello',
-  experimental_include: {
+  include: {
     rawChunks: true,
   },
 });
 ```
 
 The deprecated top-level option continues to work in AI SDK 7, so you can migrate incrementally.
+
+### Rename `experimental_include` to `include`
+
+The `experimental_include` option for `generateText`, `streamText`, and
+`ToolLoopAgent` is now stable and has been renamed to `include`.
+
+```tsx filename="AI SDK 6"
+const result = await generateText({
+  model: yourModel,
+  prompt: 'Hello',
+  experimental_include: {
+    requestBody: false,
+  },
+});
+```
+
+```tsx filename="AI SDK 7"
+const result = await generateText({
+  model: yourModel,
+  prompt: 'Hello',
+  include: {
+    requestBody: false,
+  },
+});
+```
+
+The deprecated `experimental_include` name continues to work for backwards
+compatibility. If both `include` and `experimental_include` are provided,
+`include` takes precedence.
 
 ### Context: `experimental_context` Became Tool `context`, and Shared Runtime Data Moved to `runtimeContext`
 

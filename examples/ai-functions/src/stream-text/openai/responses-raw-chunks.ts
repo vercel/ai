@@ -15,7 +15,7 @@ run(async () => {
         reasoningSummary: 'auto',
       } satisfies OpenAILanguageModelResponsesOptions,
     },
-    experimental_include: {
+    include: {
       rawChunks: true,
     },
   });

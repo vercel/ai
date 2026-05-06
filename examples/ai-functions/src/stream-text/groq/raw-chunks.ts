@@ -6,7 +6,7 @@ run(async () => {
   const result = streamText({
     model: groq('llama-3.3-70b-versatile'),
     prompt: 'Count from 1 to 3 slowly.',
-    experimental_include: {
+    include: {
       rawChunks: true,
     },
   });

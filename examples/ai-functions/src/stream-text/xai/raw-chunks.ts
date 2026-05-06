@@ -6,7 +6,7 @@ run(async () => {
   const result = streamText({
     model: xai('grok-3'),
     prompt: 'Count from 1 to 3 slowly.',
-    experimental_include: {
+    include: {
       rawChunks: true,
     },
   });

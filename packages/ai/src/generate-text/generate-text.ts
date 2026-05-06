@@ -224,7 +224,8 @@ export async function generateText<
   experimental_download: download,
   runtimeContext = {} as RUNTIME_CONTEXT,
   toolsContext = {} as InferToolSetContext<TOOLS>,
-  experimental_include: include,
+  include,
+  experimental_include: experimentalInclude,
   _internal: {
     generateId = originalGenerateId,
     generateCallId = originalGenerateCallId,
@@ -411,6 +412,13 @@ export async function generateText<
      * By default, request and response bodies are included, and request
      * messages are excluded.
      */
+    include?: GenerateTextInclude;
+
+    /**
+     * Settings for controlling what data is included in step results.
+     *
+     * @deprecated Use `include` instead.
+     */
     experimental_include?: GenerateTextInclude;
 
     /**
@@ -421,6 +429,8 @@ export async function generateText<
       generateCallId?: IdGenerator;
     };
   }): Promise<GenerateTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>> {
+  include ??= experimentalInclude;
+
   const model = resolveLanguageModel(modelArg);
   const stopConditions = asArray(stopWhen);
   const resolvedOnToolExecutionStart =

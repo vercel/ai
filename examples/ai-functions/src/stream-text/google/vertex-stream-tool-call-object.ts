@@ -25,7 +25,7 @@ run(async () => {
         }),
       },
     },
-    experimental_include: {
+    include: {
       rawChunks: true,
     },
   });

@@ -378,6 +378,19 @@ describe('ToolLoopAgent', () => {
         });
       });
 
+      it('should forward include to generateText', async () => {
+        const agent = new ToolLoopAgent({
+          model: mockModel,
+          include: { requestMessages: true },
+        });
+
+        const result = await agent.generate({ prompt: 'test' });
+
+        expect(result.request.messages).toStrictEqual([
+          { role: 'user', content: 'test' },
+        ]);
+      });
+
       it('should honor toolApproval in generate', async () => {
         let modelCallCount = 0;
         const execute = vi.fn(async () => 'tool-result');
@@ -583,6 +596,21 @@ describe('ToolLoopAgent', () => {
 
       // timeout is merged into abortSignal, so we check that an abort signal was created
       expect(doStreamOptions?.abortSignal).toBeDefined();
+    });
+
+    it('should forward include to streamText', async () => {
+      const agent = new ToolLoopAgent({
+        model: mockModel,
+        include: { rawChunks: true },
+      });
+
+      const result = await agent.stream({
+        prompt: 'Hello, world!',
+      });
+
+      await result.consumeStream();
+
+      expect(doStreamOptions?.includeRawChunks).toBe(true);
     });
 
     it('should pass string instructions', async () => {

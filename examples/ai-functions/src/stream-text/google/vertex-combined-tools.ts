@@ -20,7 +20,7 @@ run(async () => {
         execute: async ({ value }) => `pong: ${value}`,
       }),
     },
-    experimental_include: {
+    include: {
       rawChunks: true,
     },
     maxRetries: 0,

@@ -1,5 +1,11 @@
 # @ai-sdk/voyage
 
+## 2.0.0-canary.8
+
+### Patch Changes
+
+- c25eb7a: chore(voyage): trigger canary release at 2.0.0
+
 ## 1.0.0-canary.7
 
 ### Patch Changes
