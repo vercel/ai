@@ -275,7 +275,7 @@ const result = await transcribe({
   audio: await readFile('audio.mp3'),
   providerOptions: {
     mistral: {
-      timestampGranularities: ['segment'],
+      timestamp_granularities: 'segment',
       diarize: true,
       contextBias: ['Vercel', 'AI SDK'],
     } satisfies MistralTranscriptionModelOptions,
@@ -293,7 +293,7 @@ The following optional provider options are available for Mistral transcription 
 
   Sampling temperature for the transcription.
 
-- **timestampGranularities** _Array&lt;'segment' | 'word'&gt;_
+- **timestamp_granularities** _'segment' | 'word'_
 
   Timestamp granularities to include in the transcription response.
 

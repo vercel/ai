@@ -82,7 +82,7 @@ export class MistralTranscriptionModel implements TranscriptionModelV3 {
       const transcriptionModelOptions = {
         language: mistralOptions.language,
         temperature: mistralOptions.temperature,
-        timestamp_granularities: mistralOptions.timestampGranularities,
+        timestamp_granularities: mistralOptions.timestamp_granularities,
         diarize: mistralOptions.diarize,
         context_bias: mistralOptions.contextBias,
       };

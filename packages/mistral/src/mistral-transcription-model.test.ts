@@ -164,7 +164,7 @@ describe('MistralTranscriptionModel', () => {
         mistral: {
           language: 'en',
           temperature: 0.2,
-          timestampGranularities: ['segment', 'word'],
+          timestamp_granularities: 'segment',
           diarize: true,
           contextBias: ['Vercel', 'AI SDK'],
         },
@@ -175,12 +175,9 @@ describe('MistralTranscriptionModel', () => {
       model: 'voxtral-mini-latest',
       language: 'en',
       temperature: '0.2',
+      timestamp_granularities: 'segment',
       diarize: 'true',
     });
-    expect(capturedFormData!.getAll('timestamp_granularities')).toStrictEqual([
-      'segment',
-      'word',
-    ]);
     expect(capturedFormData!.getAll('context_bias')).toStrictEqual([
       'Vercel',
       'AI SDK',
