@@ -7,7 +7,7 @@ import {
   getMCPAppCSP,
 } from './sandbox';
 import type { MCPAppFrameProps } from './types';
-import { normalizeMCPAppToolResult } from './normalize-mcp-app-tool-result';
+import { normalizeMCPAppToolResult } from './util';
 
 function sendToolState({
   bridge,

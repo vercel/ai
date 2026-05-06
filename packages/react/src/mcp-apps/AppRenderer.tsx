@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
-import { getMCPAppFromToolPart } from './get-mcp-app-from-tool-part';
 import { MCPAppFrame } from './AppFrame';
 import type {
   MCPAppMetadata,
   MCPAppRendererProps,
   MCPAppResource,
 } from './types';
+import { getMCPAppFromToolPart } from './util';
 
 type LoadedResourceState = {
   resourceUri: string;
