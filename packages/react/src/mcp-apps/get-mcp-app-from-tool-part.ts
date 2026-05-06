@@ -6,10 +6,6 @@ function asRecord(value: unknown): Record<string, unknown> | undefined {
     : undefined;
 }
 
-function isMCPAppToolVisibleTo(value: unknown): value is 'model' | 'app' {
-  return value === 'model' || value === 'app';
-}
-
 /**
  * Extracts MCP App metadata from an AI SDK tool UI part.
  *
@@ -43,18 +39,15 @@ export function getMCPAppFromToolPart(
     appMetadata == null ||
     appMetadata.mimeType !== 'text/html;profile=mcp-app' ||
     typeof appMetadata.resourceUri !== 'string' ||
-    !appMetadata.resourceUri.startsWith('ui://')
+    !appMetadata.resourceUri.startsWith('ui://') ||
+    (appMetadata.visibility != null &&
+      (!Array.isArray(appMetadata.visibility) ||
+        appMetadata.visibility.some(
+          value => value !== 'model' && value !== 'app',
+        )))
   ) {
     return undefined;
   }
 
-  const visibility = Array.isArray(appMetadata.visibility)
-    ? appMetadata.visibility.filter(isMCPAppToolVisibleTo)
-    : undefined;
-
-  return {
-    resourceUri: appMetadata.resourceUri,
-    mimeType: appMetadata.mimeType,
-    ...(visibility != null ? { visibility } : {}),
-  };
+  return appMetadata as MCPAppMetadata;
 }
