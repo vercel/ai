@@ -292,7 +292,15 @@ describe('extractReasoningMiddleware', () => {
               "type": "start",
             },
             {
-              "request": {},
+              "request": {
+                "body": undefined,
+                "messages": [
+                  {
+                    "content": "Hello, how can I help?",
+                    "role": "user",
+                  },
+                ],
+              },
               "type": "start-step",
               "warnings": [],
             },
@@ -434,7 +442,15 @@ describe('extractReasoningMiddleware', () => {
               "type": "start",
             },
             {
-              "request": {},
+              "request": {
+                "body": undefined,
+                "messages": [
+                  {
+                    "content": "Hello, how can I help?",
+                    "role": "user",
+                  },
+                ],
+              },
               "type": "start-step",
               "warnings": [],
             },
@@ -584,7 +600,15 @@ describe('extractReasoningMiddleware', () => {
               "type": "start",
             },
             {
-              "request": {},
+              "request": {
+                "body": undefined,
+                "messages": [
+                  {
+                    "content": "Hello, how can I help?",
+                    "role": "user",
+                  },
+                ],
+              },
               "type": "start-step",
               "warnings": [],
             },
@@ -724,7 +748,15 @@ describe('extractReasoningMiddleware', () => {
               "type": "start",
             },
             {
-              "request": {},
+              "request": {
+                "body": undefined,
+                "messages": [
+                  {
+                    "content": "Hello, how can I help?",
+                    "role": "user",
+                  },
+                ],
+              },
               "type": "start-step",
               "warnings": [],
             },
@@ -823,7 +855,15 @@ describe('extractReasoningMiddleware', () => {
               "type": "start",
             },
             {
-              "request": {},
+              "request": {
+                "body": undefined,
+                "messages": [
+                  {
+                    "content": "Hello, how can I help?",
+                    "role": "user",
+                  },
+                ],
+              },
               "type": "start-step",
               "warnings": [],
             },
@@ -953,7 +993,15 @@ describe('extractReasoningMiddleware', () => {
               "type": "start",
             },
             {
-              "request": {},
+              "request": {
+                "body": undefined,
+                "messages": [
+                  {
+                    "content": "Hello, how can I help?",
+                    "role": "user",
+                  },
+                ],
+              },
               "type": "start-step",
               "warnings": [],
             },

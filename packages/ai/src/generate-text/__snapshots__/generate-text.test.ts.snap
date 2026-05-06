@@ -59,6 +59,7 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
   "reasoning": [],
   "reasoningText": undefined,
   "request": {
+    "body": undefined,
     "messages": [
       {
         "content": "test-input",
@@ -184,6 +185,7 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
       "providerMetadata": undefined,
       "rawFinishReason": undefined,
       "request": {
+        "body": undefined,
         "messages": [
           {
             "content": "test-input",
@@ -267,6 +269,7 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
       "providerMetadata": undefined,
       "rawFinishReason": "stop",
       "request": {
+        "body": undefined,
         "messages": [
           {
             "content": "test-input",
@@ -452,6 +455,7 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
     "providerMetadata": undefined,
     "rawFinishReason": undefined,
     "request": {
+      "body": undefined,
       "messages": [
         {
           "content": "test-input",
@@ -535,6 +539,7 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
     "providerMetadata": undefined,
     "rawFinishReason": "stop",
     "request": {
+      "body": undefined,
       "messages": [
         {
           "content": "test-input",
@@ -725,6 +730,7 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > resul
     "providerMetadata": undefined,
     "rawFinishReason": undefined,
     "request": {
+      "body": undefined,
       "messages": [
         {
           "content": "test-input",
@@ -808,6 +814,7 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > resul
     "providerMetadata": undefined,
     "rawFinishReason": "stop",
     "request": {
+      "body": undefined,
       "messages": [
         {
           "content": "test-input",
@@ -954,6 +961,7 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
     "providerMetadata": undefined,
     "rawFinishReason": undefined,
     "request": {
+      "body": undefined,
       "messages": [
         {
           "content": "new input from prepareStep",
@@ -1039,6 +1047,7 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
     "providerMetadata": undefined,
     "rawFinishReason": "stop",
     "request": {
+      "body": undefined,
       "messages": [
         {
           "content": "test-input",
@@ -1231,6 +1240,7 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
     "providerMetadata": undefined,
     "rawFinishReason": undefined,
     "request": {
+      "body": undefined,
       "messages": [
         {
           "content": "new input from prepareStep",
@@ -1316,6 +1326,7 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
     "providerMetadata": undefined,
     "rawFinishReason": "stop",
     "request": {
+      "body": undefined,
       "messages": [
         {
           "content": "test-input",
@@ -1886,6 +1897,7 @@ exports[`generateText > result.steps > should add the reasoning from the model r
     "providerMetadata": undefined,
     "rawFinishReason": "stop",
     "request": {
+      "body": undefined,
       "messages": [
         {
           "content": "prompt",
@@ -1993,6 +2005,7 @@ exports[`generateText > result.steps > should contain files 1`] = `
     "providerMetadata": undefined,
     "rawFinishReason": "stop",
     "request": {
+      "body": undefined,
       "messages": [
         {
           "content": "prompt",
@@ -2098,6 +2111,7 @@ exports[`generateText > result.steps > should contain sources 1`] = `
     "providerMetadata": undefined,
     "rawFinishReason": "stop",
     "request": {
+      "body": undefined,
       "messages": [
         {
           "content": "prompt",

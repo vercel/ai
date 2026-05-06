@@ -3061,6 +3061,7 @@ describe('generateText', () => {
           "reasoning": [],
           "reasoningText": undefined,
           "request": {
+            "body": undefined,
             "messages": [
               {
                 "content": "irrelevant",
@@ -3179,6 +3180,7 @@ describe('generateText', () => {
               "providerMetadata": undefined,
               "rawFinishReason": "stop",
               "request": {
+                "body": undefined,
                 "messages": [
                   {
                     "content": "irrelevant",
@@ -3714,6 +3716,7 @@ describe('generateText', () => {
                   "providerMetadata": undefined,
                   "rawFinishReason": undefined,
                   "request": {
+                    "body": undefined,
                     "messages": [
                       {
                         "content": "new input from prepareStep",
@@ -3799,6 +3802,7 @@ describe('generateText', () => {
                   "providerMetadata": undefined,
                   "rawFinishReason": "stop",
                   "request": {
+                    "body": undefined,
                     "messages": [
                       {
                         "content": "test-input",
@@ -3986,6 +3990,7 @@ describe('generateText', () => {
                   "providerMetadata": undefined,
                   "rawFinishReason": undefined,
                   "request": {
+                    "body": undefined,
                     "messages": [
                       {
                         "content": "new input from prepareStep",
@@ -4071,6 +4076,7 @@ describe('generateText', () => {
                   "providerMetadata": undefined,
                   "rawFinishReason": "stop",
                   "request": {
+                    "body": undefined,
                     "messages": [
                       {
                         "content": "test-input",
@@ -4497,6 +4503,7 @@ describe('generateText', () => {
                   "providerMetadata": undefined,
                   "rawFinishReason": undefined,
                   "request": {
+                    "body": undefined,
                     "messages": [
                       {
                         "content": "test-input",
@@ -4602,6 +4609,7 @@ describe('generateText', () => {
                   "providerMetadata": undefined,
                   "rawFinishReason": undefined,
                   "request": {
+                    "body": undefined,
                     "messages": [
                       {
                         "content": "test-input",
@@ -8060,6 +8068,7 @@ describe('generateText', () => {
               "providerMetadata": undefined,
               "rawFinishReason": undefined,
               "request": {
+                "body": undefined,
                 "messages": [
                   {
                     "content": "test-input",

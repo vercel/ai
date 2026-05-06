@@ -56,17 +56,6 @@ exports[`streamObject > output = "object" > options.onFinish > should be called 
   "response": {
     "headers": undefined,
     "id": "id-0",
-    "messages": [
-      {
-        "content": [
-          {
-            "text": "{ "content": "Hello, world!" }",
-            "type": "text",
-          },
-        ],
-        "role": "assistant",
-      },
-    ],
     "modelId": "mock-model-id",
     "timestamp": 1970-01-01T00:00:00.000Z,
   },
@@ -103,17 +92,6 @@ exports[`streamObject > output = "object" > options.onFinish > should be called 
   "response": {
     "headers": undefined,
     "id": "id-0",
-    "messages": [
-      {
-        "content": [
-          {
-            "text": "{ "invalid": "Hello, world!" }",
-            "type": "text",
-          },
-        ],
-        "role": "assistant",
-      },
-    ],
     "modelId": "mock-model-id",
     "timestamp": 1970-01-01T00:00:00.000Z,
   },
@@ -191,17 +169,6 @@ exports[`streamObject > output = "object" > result.fullStream > should send full
     },
     "response": {
       "id": "id-0",
-      "messages": [
-        {
-          "content": [
-            {
-              "text": "{ "content": "Hello, world!" }",
-              "type": "text",
-            },
-          ],
-          "role": "assistant",
-        },
-      ],
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
