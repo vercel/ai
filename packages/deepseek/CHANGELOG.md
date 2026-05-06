@@ -1,5 +1,11 @@
 # @ai-sdk/deepseek
 
+## 2.0.33
+
+### Patch Changes
+
+- ee294d0: feat(provider/deepseek): add DeepSeek V4 reasoning effort support
+
 ## 2.0.32
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 3.0.68
+
+### Patch Changes
+
+- e0f8c9e: feat(provider/google): add support for the Gemini Interactions API
+
 ## 3.0.67
 
 ### Patch Changes

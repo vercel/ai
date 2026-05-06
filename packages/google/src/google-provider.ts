@@ -26,6 +26,12 @@ import type {
 import { GoogleGenerativeAIImageModel } from './google-generative-ai-image-model';
 import { GoogleGenerativeAIVideoModel } from './google-generative-ai-video-model';
 import type { GoogleGenerativeAIVideoModelId } from './google-generative-ai-video-settings';
+import {
+  GoogleInteractionsLanguageModel,
+  type GoogleInteractionsModelInput,
+} from './interactions/google-interactions-language-model';
+import type { GoogleInteractionsModelId } from './interactions/google-interactions-language-model-options';
+import type { GoogleInteractionsAgentName } from './interactions/google-interactions-agent';
 
 export interface GoogleGenerativeAIProvider extends ProviderV3 {
   (modelId: GoogleGenerativeAIModelId): LanguageModelV3;
@@ -80,6 +86,17 @@ export interface GoogleGenerativeAIProvider extends ProviderV3 {
   videoModel(
     modelId: GoogleGenerativeAIVideoModelId,
   ): Experimental_VideoModelV3;
+
+  /**
+   * Creates a language model targeting the Gemini Interactions API
+   * (`POST /v1beta/interactions`). Pass either a model ID (string) or
+   * `{ agent: <name> }` to use a Gemini agent preset.
+   */
+  interactions(
+    modelIdOrAgent:
+      | GoogleInteractionsModelId
+      | { agent: GoogleInteractionsAgentName },
+  ): LanguageModelV3;
 
   tools: typeof googleTools;
 }
@@ -194,6 +211,22 @@ export function createGoogleGenerativeAI(
       generateId: options.generateId ?? generateId,
     });
 
+  const createInteractionsModel = (
+    modelIdOrAgent:
+      | GoogleInteractionsModelId
+      | { agent: GoogleInteractionsAgentName },
+  ) =>
+    new GoogleInteractionsLanguageModel(
+      modelIdOrAgent as GoogleInteractionsModelInput,
+      {
+        provider: `${providerName}.interactions`,
+        baseURL,
+        headers: getHeaders,
+        generateId: options.generateId ?? generateId,
+        fetch: options.fetch,
+      },
+    );
+
   const provider = function (modelId: GoogleGenerativeAIModelId) {
     if (new.target) {
       throw new Error(
@@ -216,6 +249,7 @@ export function createGoogleGenerativeAI(
   provider.imageModel = createImageModel;
   provider.video = createVideoModel;
   provider.videoModel = createVideoModel;
+  provider.interactions = createInteractionsModel;
   provider.tools = googleTools;
 
   return provider as GoogleGenerativeAIProvider;
