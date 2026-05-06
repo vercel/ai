@@ -91,8 +91,6 @@ const model = deepseek.languageModel('deepseek-chat');
 DeepSeek language models can be used in the `streamText` function
 (see [AI SDK Core](/docs/ai-sdk-core)).
 
-<<<<<<< HEAD
-=======
 The following optional provider options are available for DeepSeek models:
 
 - `thinking` _object_
@@ -107,7 +105,7 @@ The following optional provider options are available for DeepSeek models:
   Ignored when thinking is explicitly disabled.
 
 ```ts highlight="7-12"
-import { deepseek, type DeepSeekLanguageModelOptions } from '@ai-sdk/deepseek';
+import { deepseek, type DeepSeekChatOptions } from '@ai-sdk/deepseek';
 import { generateText } from 'ai';
 
 const { text, reasoning } = await generateText({
@@ -117,12 +115,11 @@ const { text, reasoning } = await generateText({
     deepseek: {
       thinking: { type: 'enabled' },
       reasoningEffort: 'high',
-    } satisfies DeepSeekLanguageModelOptions,
+    } satisfies DeepSeekChatOptions,
   },
 });
 ```
 
->>>>>>> ee294d0ee (Backport: feat(provider/deepseek): support DeepSeek V4 reasoning effort (#15064))
 ### Reasoning
 
 DeepSeek has reasoning support for the `deepseek-reasoner` model. The reasoning is exposed through streaming:

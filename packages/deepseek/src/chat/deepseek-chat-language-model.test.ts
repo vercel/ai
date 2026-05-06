@@ -134,7 +134,7 @@ describe('DeepSeekChatLanguageModel', () => {
           providerOptions: {
             deepseek: {
               reasoningEffort: 'max',
-            } satisfies DeepSeekLanguageModelOptions,
+            } satisfies DeepSeekChatOptions,
           },
         });
 
@@ -150,7 +150,7 @@ describe('DeepSeekChatLanguageModel', () => {
             deepseek: {
               thinking: { type: 'disabled' },
               reasoningEffort: 'high',
-            } satisfies DeepSeekLanguageModelOptions,
+            } satisfies DeepSeekChatOptions,
           },
         });
 
