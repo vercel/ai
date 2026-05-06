@@ -156,7 +156,7 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
       type: 'WorkflowAgentOnStartCallback',
       isOptional: true,
       description:
-        'Callback called when the agent starts streaming, before any LLM calls. Receives the model and messages. If also specified in `stream()`, both callbacks fire (constructor first). Experimental (can break in patch releases).',
+        'Callback called when the agent starts streaming, before any LLM calls. Receives the model, messages, runtime context, and tools context. If also specified in `stream()`, both callbacks fire (constructor first). Experimental (can break in patch releases).',
       properties: [
         {
           type: 'GenerateTextStartEvent',
@@ -171,6 +171,16 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
               type: 'Array<ModelMessage>',
               description: 'The messages being sent to the model.',
             },
+            {
+              name: 'runtimeContext',
+              type: 'Context',
+              description: 'The shared runtime context for the agent loop.',
+            },
+            {
+              name: 'toolsContext',
+              type: 'InferToolSetContext<Tools>',
+              description: 'The per-tool context map for the agent loop.',
+            },
           ],
         },
       ],
@@ -180,7 +190,7 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
       type: 'WorkflowAgentOnStepStartCallback',
       isOptional: true,
       description:
-        'Callback called before each step (LLM call) begins. Receives step number, model, and messages. If also specified in `stream()`, both callbacks fire (constructor first). Experimental (can break in patch releases).',
+        'Callback called before each step (LLM call) begins. Receives step number, model, messages, previous steps, runtime context, and tools context. If also specified in `stream()`, both callbacks fire (constructor first). Experimental (can break in patch releases).',
       properties: [
         {
           type: 'GenerateTextStepStartEvent',
@@ -199,6 +209,16 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
               name: 'steps',
               type: 'ReadonlyArray<StepResult>',
               description: 'Results from all previously finished steps.',
+            },
+            {
+              name: 'runtimeContext',
+              type: 'Context',
+              description: 'The shared runtime context for this step.',
+            },
+            {
+              name: 'toolsContext',
+              type: 'InferToolSetContext<Tools>',
+              description: 'The per-tool context map for this step.',
             },
           ],
         },

@@ -2319,6 +2319,39 @@ describe('WorkflowAgent', () => {
   });
 
   describe('runtimeContext and toolsContext', () => {
+    async function mockIteratorWithToolCall(toolName = 'weather') {
+      const mockWritable = new WritableStream({
+        write: vi.fn(),
+        close: vi.fn(),
+      });
+
+      const mockMessages: LanguageModelV4Prompt = [
+        { role: 'user', content: [{ type: 'text', text: 'test' }] },
+      ];
+
+      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      vi.mocked(streamTextIterator).mockReturnValue({
+        next: vi
+          .fn()
+          .mockResolvedValueOnce({
+            done: false,
+            value: {
+              toolCalls: [
+                {
+                  toolCallId: 'call-1',
+                  toolName,
+                  input: '{}',
+                } as LanguageModelV4ToolCall,
+              ],
+              messages: mockMessages,
+            },
+          })
+          .mockResolvedValueOnce({ done: true, value: [] }),
+      } as unknown as MockIterator);
+
+      return mockWritable;
+    }
+
     it('should pass per-tool toolsContext entry as the tool execute context', async () => {
       let receivedContext: unknown;
 
@@ -2333,44 +2366,12 @@ describe('WorkflowAgent', () => {
         },
       };
 
-      const mockModel = createMockModel();
-
       const agent = new WorkflowAgent({
-        model: mockModel,
+        model: createMockModel(),
         tools,
       });
 
-      const mockWritable = new WritableStream({
-        write: vi.fn(),
-        close: vi.fn(),
-      });
-
-      const mockMessages: LanguageModelV4Prompt = [
-        { role: 'user', content: [{ type: 'text', text: 'test' }] },
-      ];
-
-      const { streamTextIterator } = await import('./stream-text-iterator.js');
-      const mockIterator = {
-        next: vi
-          .fn()
-          .mockResolvedValueOnce({
-            done: false,
-            value: {
-              toolCalls: [
-                {
-                  toolCallId: 'call-1',
-                  toolName: 'weather',
-                  input: '{}',
-                } as LanguageModelV4ToolCall,
-              ],
-              messages: mockMessages,
-            },
-          })
-          .mockResolvedValueOnce({ done: true, value: [] }),
-      };
-      vi.mocked(streamTextIterator).mockReturnValue(
-        mockIterator as unknown as MockIterator,
-      );
+      const mockWritable = await mockIteratorWithToolCall();
 
       await agent.stream({
         messages: [{ role: 'user', content: 'test' }],
@@ -2400,44 +2401,12 @@ describe('WorkflowAgent', () => {
         },
       };
 
-      const mockModel = createMockModel();
-
       const agent = new WorkflowAgent({
-        model: mockModel,
+        model: createMockModel(),
         tools,
       });
 
-      const mockWritable = new WritableStream({
-        write: vi.fn(),
-        close: vi.fn(),
-      });
-
-      const mockMessages: LanguageModelV4Prompt = [
-        { role: 'user', content: [{ type: 'text', text: 'test' }] },
-      ];
-
-      const { streamTextIterator } = await import('./stream-text-iterator.js');
-      const mockIterator = {
-        next: vi
-          .fn()
-          .mockResolvedValueOnce({
-            done: false,
-            value: {
-              toolCalls: [
-                {
-                  toolCallId: 'call-1',
-                  toolName: 'weather',
-                  input: '{}',
-                } as LanguageModelV4ToolCall,
-              ],
-              messages: mockMessages,
-            },
-          })
-          .mockResolvedValueOnce({ done: true, value: [] }),
-      };
-      vi.mocked(streamTextIterator).mockReturnValue(
-        mockIterator as unknown as MockIterator,
-      );
+      const mockWritable = await mockIteratorWithToolCall();
 
       await agent.stream({
         messages: [{ role: 'user', content: 'test' }],
@@ -2447,122 +2416,39 @@ describe('WorkflowAgent', () => {
       expect(receivedContext).toBeUndefined();
     });
 
-    it('should validate per-tool context against contextSchema', async () => {
-      const tools: ToolSet = {
-        weather: {
-          description: 'Get weather',
-          inputSchema: z.object({}),
-          contextSchema: z.object({
-            apiKey: z.string(),
-          }),
-          execute: async () => ({ result: 'ok' }),
-        },
-      };
-
-      const mockModel = createMockModel();
-
-      const agent = new WorkflowAgent({
-        model: mockModel,
-        tools,
-      });
-
-      const mockWritable = new WritableStream({
-        write: vi.fn(),
-        close: vi.fn(),
-      });
-
-      const mockMessages: LanguageModelV4Prompt = [
-        { role: 'user', content: [{ type: 'text', text: 'test' }] },
-      ];
-
-      const { streamTextIterator } = await import('./stream-text-iterator.js');
-      const mockIterator = {
-        next: vi
-          .fn()
-          .mockResolvedValueOnce({
-            done: false,
-            value: {
-              toolCalls: [
-                {
-                  toolCallId: 'call-1',
-                  toolName: 'weather',
-                  input: '{}',
-                } as LanguageModelV4ToolCall,
-              ],
-              messages: mockMessages,
-            },
-          })
-          .mockResolvedValueOnce({ done: true, value: [] }),
-      };
-      vi.mocked(streamTextIterator).mockReturnValue(
-        mockIterator as unknown as MockIterator,
-      );
-
-      // Invalid context (missing required apiKey) should reject through the
-      // schema validation path.
-      await expect(
-        agent.stream({
-          messages: [{ role: 'user', content: 'test' }],
-          writable: mockWritable,
-          // intentionally missing required `apiKey`
-          toolsContext: { weather: {} as { apiKey: string } },
-        }),
-      ).rejects.toThrow();
-    });
-
-    it('should validate missing per-tool context against contextSchema', async () => {
-      const tools: ToolSet = {
-        weather: {
-          description: 'Get weather',
-          inputSchema: z.object({}),
-          contextSchema: z.object({
-            apiKey: z.string(),
-          }),
-          execute: async () => ({ result: 'ok' }),
-        },
-      };
-
-      const agent = new WorkflowAgent({
-        model: createMockModel(),
-        tools,
-      });
-
-      const mockWritable = new WritableStream({
-        write: vi.fn(),
-        close: vi.fn(),
-      });
-
-      const mockMessages: LanguageModelV4Prompt = [
-        { role: 'user', content: [{ type: 'text', text: 'test' }] },
-      ];
-
-      const { streamTextIterator } = await import('./stream-text-iterator.js');
-      const mockIterator = {
-        next: vi.fn().mockResolvedValueOnce({
-          done: false,
-          value: {
-            toolCalls: [
-              {
-                toolCallId: 'call-1',
-                toolName: 'weather',
-                input: '{}',
-              } as LanguageModelV4ToolCall,
-            ],
-            messages: mockMessages,
+    it.each([
+      ['invalid', { weather: {} as { apiKey: string } }],
+      ['missing', undefined],
+    ])(
+      'should validate %s per-tool context against contextSchema',
+      async (_case, toolsContext) => {
+        const tools: ToolSet = {
+          weather: {
+            description: 'Get weather',
+            inputSchema: z.object({}),
+            contextSchema: z.object({
+              apiKey: z.string(),
+            }),
+            execute: async () => ({ result: 'ok' }),
           },
-        }),
-      };
-      vi.mocked(streamTextIterator).mockReturnValue(
-        mockIterator as unknown as MockIterator,
-      );
+        };
 
-      await expect(
-        agent.stream({
-          messages: [{ role: 'user', content: 'test' }],
-          writable: mockWritable,
-        }),
-      ).rejects.toThrow();
-    });
+        const agent = new WorkflowAgent({
+          model: createMockModel(),
+          tools,
+        });
+
+        const mockWritable = await mockIteratorWithToolCall();
+
+        await expect(
+          agent.stream({
+            messages: [{ role: 'user', content: 'test' }],
+            writable: mockWritable,
+            ...(toolsContext !== undefined && { toolsContext }),
+          }),
+        ).rejects.toThrow();
+      },
+    );
 
     it('should pass runtimeContext to onFinish', async () => {
       const onFinish = vi.fn();

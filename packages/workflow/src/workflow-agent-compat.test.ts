@@ -544,9 +544,6 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
         `);
       });
 
-      // GAP: WorkflowAgent's onStart event doesn't include system, temperature,
-      // maxOutputTokens, runtimeContext, or resolved model yet.
-      // These fields need to be added to match ToolLoopAgent's GenerateTextStartEvent.
       it('should pass correct event information', async () => {
         let startEvent!: any;
 
@@ -575,6 +572,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
           temperature: startEvent.temperature,
           maxOutputTokens: startEvent.maxOutputTokens,
           runtimeContext: startEvent.runtimeContext,
+          toolsContext: startEvent.toolsContext,
         }).toMatchInlineSnapshot(`
           {
             "maxOutputTokens": undefined,
@@ -633,9 +631,12 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
               "specificationVersion": "v4",
             },
             "prompt": undefined,
-            "runtimeContext": undefined,
+            "runtimeContext": {
+              "userId": "test-user",
+            },
             "system": undefined,
             "temperature": undefined,
+            "toolsContext": {},
           }
         `);
       });
@@ -723,9 +724,6 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
         `);
       });
 
-      // GAP: WorkflowAgent's onStepStart event doesn't include system,
-      // runtimeContext, or resolved model yet.
-      // These fields need to be added to match ToolLoopAgent's GenerateTextStepStartEvent.
       it('should pass correct event information', async () => {
         let stepStartEvent!: any;
 
@@ -751,6 +749,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
           messagesLength: stepStartEvent.messages.length,
           steps: stepStartEvent.steps,
           runtimeContext: stepStartEvent.runtimeContext,
+          toolsContext: stepStartEvent.toolsContext,
         }).toMatchInlineSnapshot(`
           {
             "messagesLength": 3,
@@ -802,10 +801,13 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
               "provider": "mock-provider",
               "specificationVersion": "v4",
             },
-            "runtimeContext": undefined,
+            "runtimeContext": {
+              "userId": "test-user",
+            },
             "stepNumber": 0,
             "steps": [],
             "system": undefined,
+            "toolsContext": {},
           }
         `);
       });
@@ -1031,7 +1033,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
         `);
       });
 
-      it.fails('should pass correct event information', async () => {
+      it('should pass correct event information', async () => {
         let event!: any;
 
         const agent = new WorkflowAgent({
@@ -1059,6 +1061,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
           toolCallId: event.toolCall.toolCallId,
           toolCallInput: event.toolCall.input,
           messagesLength: event.messages.length,
+          toolContext: event.toolContext,
         }).toMatchInlineSnapshot(`
           {
             "messagesLength": 1,
@@ -1067,6 +1070,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
               "value": "test",
             },
             "toolCallName": "testTool",
+            "toolContext": undefined,
           }
         `);
       });
@@ -1169,7 +1173,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
         `);
       });
 
-      it.fails('should pass correct event information on success', async () => {
+      it('should pass correct event information on success', async () => {
         let event!: any;
 
         const agent = new WorkflowAgent({
@@ -1200,6 +1204,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
           success: event.success,
           output: event.success ? event.output : undefined,
           messagesLength: event.messages.length,
+          toolContext: event.toolContext,
         }).toMatchInlineSnapshot(`
           {
             "messagesLength": 1,
@@ -1210,6 +1215,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
               "value": "hello",
             },
             "toolCallName": "testTool",
+            "toolContext": undefined,
           }
         `);
       });
