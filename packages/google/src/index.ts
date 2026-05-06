@@ -21,6 +21,12 @@ export type {
   GoogleVideoModelOptions as GoogleGenerativeAIVideoProviderOptions,
 } from './google-generative-ai-video-model';
 export type { GoogleGenerativeAIVideoModelId } from './google-generative-ai-video-settings';
+export type {
+  GoogleLanguageModelInteractionsOptions,
+  GoogleInteractionsModelId,
+} from './interactions/google-interactions-language-model-options';
+export type { GoogleInteractionsProviderMetadata } from './interactions/google-interactions-provider-metadata';
+export type { GoogleInteractionsAgentName } from './interactions/google-interactions-agent';
 export { createGoogleGenerativeAI, google } from './google-provider';
 export type {
   GoogleGenerativeAIProvider,
