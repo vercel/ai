@@ -279,6 +279,32 @@ This applies to all AI SDK functions and agents that accept telemetry configurat
 
 No behavior changes beyond the rename. You can migrate incrementally — mixed usage of `telemetry` and `experimental_telemetry` in the same codebase is supported during the deprecation window.
 
+### Streaming: Move `includeRawChunks` to `experimental_include.rawChunks`
+
+The top-level `includeRawChunks` option on `streamText` is deprecated in AI SDK
+7. Move it into the `experimental_include` options object as `rawChunks`.
+
+```tsx filename="AI SDK 6"
+const result = streamText({
+  model: yourModel,
+  prompt: 'Hello',
+  includeRawChunks: true,
+});
+```
+
+```tsx filename="AI SDK 7"
+const result = streamText({
+  model: yourModel,
+  prompt: 'Hello',
+  experimental_include: {
+    rawChunks: true,
+  },
+});
+```
+
+The deprecated top-level option continues to work in AI SDK 7, so you can
+migrate incrementally.
+
 ### Context: `experimental_context` Became Tool `context`, and Shared Runtime Data Moved to `runtimeContext`
 
 In AI SDK 7, the tool callback option previously exposed as `experimental_context` has been renamed to `context` and is now stable.
