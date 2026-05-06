@@ -18654,11 +18654,11 @@ describe('streamText', () => {
                 },
                 {
                   "request": {
-                    body: undefined,
-                    messages: [
+                    "body": undefined,
+                    "messages": [
                       {
-                        content: "test-input",
-                        role: "user",
+                        "content": "test-input",
+                        "role": "user",
                       },
                     ],
                   },
