@@ -1,6 +1,6 @@
 import type {
-  LanguageModelV4CallOptions,
-  SharedV4Warning,
+  LanguageModelV3CallOptions,
+  SharedV3Warning,
 } from '@ai-sdk/provider';
 import type {
   GoogleInteractionsTool,
@@ -10,7 +10,7 @@ import type {
 export type PrepareGoogleInteractionsToolsResult = {
   tools: Array<GoogleInteractionsTool> | undefined;
   toolChoice: GoogleInteractionsToolChoice | undefined;
-  toolWarnings: Array<SharedV4Warning>;
+  toolWarnings: Array<SharedV3Warning>;
 };
 
 /**
@@ -49,10 +49,10 @@ export function prepareGoogleInteractionsTools({
   tools,
   toolChoice,
 }: {
-  tools: LanguageModelV4CallOptions['tools'];
-  toolChoice?: LanguageModelV4CallOptions['toolChoice'];
+  tools: LanguageModelV3CallOptions['tools'];
+  toolChoice?: LanguageModelV3CallOptions['toolChoice'];
 }): PrepareGoogleInteractionsToolsResult {
-  const toolWarnings: Array<SharedV4Warning> = [];
+  const toolWarnings: Array<SharedV3Warning> = [];
 
   const normalized = tools?.length ? tools : undefined;
 

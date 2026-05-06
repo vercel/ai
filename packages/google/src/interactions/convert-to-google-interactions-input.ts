@@ -1,16 +1,10 @@
 import type {
-  LanguageModelV4FilePart,
-  LanguageModelV4Prompt,
-  LanguageModelV4ToolResultOutput,
-  SharedV4Warning,
+  LanguageModelV3FilePart,
+  LanguageModelV3Prompt,
+  LanguageModelV3ToolResultOutput,
+  SharedV3Warning,
 } from '@ai-sdk/provider';
-import {
-  convertToBase64,
-  getTopLevelMediaType,
-  isFullMediaType,
-  resolveFullMediaType,
-  resolveProviderReference,
-} from '@ai-sdk/provider-utils';
+import { convertToBase64 } from '@ai-sdk/provider-utils';
 import type {
   GoogleInteractionsContent,
   GoogleInteractionsFunctionResultContent,
@@ -19,6 +13,20 @@ import type {
   GoogleInteractionsTextContent,
   GoogleInteractionsTurn,
 } from './google-interactions-prompt';
+
+function getTopLevelMediaType(mediaType: string): string {
+  const slashIndex = mediaType.indexOf('/');
+  return slashIndex === -1 ? mediaType : mediaType.substring(0, slashIndex);
+}
+
+function isFullMediaType(mediaType: string): boolean {
+  const slashIndex = mediaType.indexOf('/');
+  if (slashIndex === -1) {
+    return false;
+  }
+  const subtype = mediaType.substring(slashIndex + 1);
+  return subtype.length > 0 && subtype !== '*';
+}
 
 export type GoogleInteractionsMediaResolution =
   | 'low'
@@ -29,11 +37,11 @@ export type GoogleInteractionsMediaResolution =
 export type ConvertToGoogleInteractionsInputResult = {
   input: GoogleInteractionsInput;
   systemInstruction: string | undefined;
-  warnings: Array<SharedV4Warning>;
+  warnings: Array<SharedV3Warning>;
 };
 
 /**
- * Converts an AI SDK `LanguageModelV4Prompt` into the Gemini Interactions
+ * Converts an AI SDK `LanguageModelV3Prompt` into the Gemini Interactions
  * request shape (`{ input, system_instruction }`).
  *
  * Handles text parts, file parts (image / audio / document / video, all four
@@ -57,7 +65,7 @@ export function convertToGoogleInteractionsInput({
   store,
   mediaResolution,
 }: {
-  prompt: LanguageModelV4Prompt;
+  prompt: LanguageModelV3Prompt;
   previousInteractionId?: string;
   store?: boolean;
   /**
@@ -69,7 +77,7 @@ export function convertToGoogleInteractionsInput({
    */
   mediaResolution?: GoogleInteractionsMediaResolution;
 }): ConvertToGoogleInteractionsInputResult {
-  const warnings: Array<SharedV4Warning> = [];
+  const warnings: Array<SharedV3Warning> = [];
 
   /*
    * Behavior matrix per PRD § "Public-API contracts" → "Configurable behavior
@@ -209,7 +217,7 @@ export function convertToGoogleInteractionsInput({
          * The `result` field is a discriminated union: a plain string for
          * text-only results, or an array of `text` / `image` content blocks
          * for mixed text/image results. Our converter takes the AI SDK
-         * canonical `LanguageModelV4ToolResultOutput` and maps:
+         * canonical `LanguageModelV3ToolResultOutput` and maps:
          * - `{ type: 'text', value }` → `result: <string>`
          * - `{ type: 'json', value }` → `result: <stringified JSON>`
          * - `{ type: 'error-text', value }` → `result: <string>` + `is_error: true`
@@ -274,35 +282,25 @@ export function convertToGoogleInteractionsInput({
 }
 
 /**
- * Maps a single AI SDK `LanguageModelV4FilePart` to a Gemini Interactions
+ * Maps a single AI SDK `LanguageModelV3FilePart` to a Gemini Interactions
  * content block (`image` / `audio` / `document` / `video`).
  *
- * Rules for the four `data.type` cases:
- * - `data` (Uint8Array / base64) → block with inline `data` (base64) +
+ * Rules for the V3 `data` shapes:
+ * - `Uint8Array` / `string` (base64) → block with inline `data` (base64) +
  *   `mime_type`.
- * - `url` → block with `uri` set to the URL string verbatim.
- * - `reference` → block with `uri` set to the resolved `google` provider
- *   reference (Files API URI like
- *   `https://generativelanguage.googleapis.com/v1beta/files/<id>`).
- * - `text` → collapsed to a `text` block (the wire format has no text-on-file
- *   shape; emit an inline text block instead).
+ * - `URL` → block with `uri` set to the URL string verbatim. Files API URIs
+ *   (e.g. `https://generativelanguage.googleapis.com/v1beta/files/<id>`) and
+ *   YouTube URLs are passed through the same way.
  */
 function convertFilePartToContent({
   part,
   warnings,
   mediaResolution,
 }: {
-  part: LanguageModelV4FilePart;
-  warnings: Array<SharedV4Warning>;
+  part: LanguageModelV3FilePart;
+  warnings: Array<SharedV3Warning>;
   mediaResolution?: GoogleInteractionsMediaResolution;
 }): GoogleInteractionsContent | undefined {
-  if (part.data.type === 'text') {
-    return {
-      type: 'text',
-      text: part.data.text,
-    };
-  }
-
   const topLevel = getTopLevelMediaType(part.mediaType);
   let kind: 'image' | 'audio' | 'video' | 'document' | undefined;
   switch (topLevel) {
@@ -341,41 +339,29 @@ function convertFilePartToContent({
       ? { resolution: mediaResolution }
       : {};
 
-  switch (part.data.type) {
-    case 'data': {
-      const mimeType = resolveFullMediaType({ part });
-      return {
-        type: kind,
-        data: convertToBase64(part.data.data),
-        mime_type: mimeType,
-        ...resolutionField,
-      };
-    }
-    case 'url': {
-      return {
-        type: kind,
-        uri: part.data.url.toString(),
-        ...(isFullMediaType(part.mediaType)
-          ? { mime_type: part.mediaType }
-          : {}),
-        ...resolutionField,
-      };
-    }
-    case 'reference': {
-      const uri = resolveProviderReference({
-        reference: part.data.reference,
-        provider: 'google',
-      });
-      return {
-        type: kind,
-        uri,
-        ...(isFullMediaType(part.mediaType)
-          ? { mime_type: part.mediaType }
-          : {}),
-        ...resolutionField,
-      };
-    }
+  if (part.data instanceof URL) {
+    return {
+      type: kind,
+      uri: part.data.toString(),
+      ...(isFullMediaType(part.mediaType) ? { mime_type: part.mediaType } : {}),
+      ...resolutionField,
+    };
   }
+
+  if (!isFullMediaType(part.mediaType)) {
+    warnings.push({
+      type: 'other',
+      message: `google.interactions: inline file data requires a full IANA media type (e.g. "image/png"), got "${part.mediaType}"; part dropped.`,
+    });
+    return undefined;
+  }
+
+  return {
+    type: kind,
+    data: convertToBase64(part.data),
+    mime_type: part.mediaType,
+    ...resolutionField,
+  };
 }
 
 /*
@@ -401,10 +387,10 @@ function compactPromptForPreviousInteraction({
   prompt,
   previousInteractionId,
 }: {
-  prompt: LanguageModelV4Prompt;
+  prompt: LanguageModelV3Prompt;
   previousInteractionId: string;
-}): LanguageModelV4Prompt {
-  const out: LanguageModelV4Prompt = [];
+}): LanguageModelV3Prompt {
+  const out: LanguageModelV3Prompt = [];
   const droppedToolCallIds = new Set<string>();
 
   for (const message of prompt) {
@@ -473,9 +459,9 @@ function convertToolResultPart({
 }: {
   toolCallId: string;
   toolName: string;
-  output: LanguageModelV4ToolResultOutput;
+  output: LanguageModelV3ToolResultOutput;
   signature: string | undefined;
-  warnings: Array<SharedV4Warning>;
+  warnings: Array<SharedV3Warning>;
 }): GoogleInteractionsFunctionResultContent {
   const base = {
     type: 'function_result' as const,
@@ -506,16 +492,56 @@ function convertToolResultPart({
       for (const item of output.value) {
         if (item.type === 'text') {
           blocks.push({ type: 'text', text: item.text });
-        } else if (item.type === 'file') {
-          const topLevel = getTopLevelMediaType(item.mediaType);
+        } else if (item.type === 'image-data') {
+          const imageBlock = filePartToImageBlock({
+            part: {
+              type: 'file',
+              mediaType: item.mediaType,
+              data: item.data,
+            },
+            warnings,
+          });
+          if (imageBlock != null) {
+            blocks.push(imageBlock);
+          }
+        } else if (item.type === 'image-url') {
+          const imageBlock = filePartToImageBlock({
+            part: {
+              type: 'file',
+              mediaType: 'image/*',
+              data: new URL(item.url),
+            },
+            warnings,
+          });
+          if (imageBlock != null) {
+            blocks.push(imageBlock);
+          }
+        } else if (item.type === 'file-data' || item.type === 'file-url') {
+          const mediaType =
+            item.type === 'file-data' ? item.mediaType : 'application/*';
+          const topLevel = getTopLevelMediaType(mediaType);
           if (topLevel !== 'image') {
             warnings.push({
               type: 'other',
-              message: `google.interactions: tool-result file with mediaType "${item.mediaType}" is not supported (Interactions \`function_result.result\` accepts only text and image content); part dropped.`,
+              message: `google.interactions: tool-result file with mediaType "${mediaType}" is not supported (Interactions \`function_result.result\` accepts only text and image content); part dropped.`,
             });
             continue;
           }
-          const imageBlock = filePartToImageBlock({ part: item, warnings });
+          const imageBlock = filePartToImageBlock({
+            part:
+              item.type === 'file-data'
+                ? {
+                    type: 'file',
+                    mediaType: item.mediaType,
+                    data: item.data,
+                  }
+                : {
+                    type: 'file',
+                    mediaType,
+                    data: new URL(item.url),
+                  },
+            warnings,
+          });
           if (imageBlock != null) {
             blocks.push(imageBlock);
           }
@@ -538,62 +564,32 @@ function filePartToImageBlock({
   part: {
     type: 'file';
     mediaType: string;
-    data:
-      | { type: 'data'; data: Uint8Array | string }
-      | { type: 'url'; url: URL }
-      | { type: 'reference'; reference: Record<string, string> }
-      | { type: 'text'; text: string };
+    data: Uint8Array | string | URL;
     filename?: string;
   };
-  warnings: Array<SharedV4Warning>;
+  warnings: Array<SharedV3Warning>;
 }): GoogleInteractionsImageContent | undefined {
-  switch (part.data.type) {
-    case 'data': {
-      const mimeType = isFullMediaType(part.mediaType)
-        ? part.mediaType
-        : resolveFullMediaType({
-            part: {
-              type: 'file',
-              mediaType: part.mediaType,
-              data: part.data,
-            } as LanguageModelV4FilePart,
-          });
-      return {
-        type: 'image',
-        data: convertToBase64(part.data.data),
-        mime_type: mimeType,
-      };
-    }
-    case 'url':
-      return {
-        type: 'image',
-        uri: part.data.url.toString(),
-        ...(isFullMediaType(part.mediaType)
-          ? { mime_type: part.mediaType }
-          : {}),
-      };
-    case 'reference': {
-      const uri = resolveProviderReference({
-        reference: part.data.reference,
-        provider: 'google',
-      });
-      return {
-        type: 'image',
-        uri,
-        ...(isFullMediaType(part.mediaType)
-          ? { mime_type: part.mediaType }
-          : {}),
-      };
-    }
-    case 'text': {
-      warnings.push({
-        type: 'other',
-        message:
-          'google.interactions: tool-result image part with `data.type === "text"` is not representable as an image; part dropped.',
-      });
-      return undefined;
-    }
+  if (part.data instanceof URL) {
+    return {
+      type: 'image',
+      uri: part.data.toString(),
+      ...(isFullMediaType(part.mediaType) ? { mime_type: part.mediaType } : {}),
+    };
   }
+
+  if (!isFullMediaType(part.mediaType)) {
+    warnings.push({
+      type: 'other',
+      message: `google.interactions: tool-result image part requires a full IANA media type (e.g. "image/png"), got "${part.mediaType}"; part dropped.`,
+    });
+    return undefined;
+  }
+
+  return {
+    type: 'image',
+    data: convertToBase64(part.data),
+    mime_type: part.mediaType,
+  };
 }
 
 /*

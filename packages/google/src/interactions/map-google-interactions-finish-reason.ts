@@ -1,4 +1,4 @@
-import type { LanguageModelV4FinishReason } from '@ai-sdk/provider';
+import type { LanguageModelV3FinishReason } from '@ai-sdk/provider';
 import type { GoogleInteractionsStatus } from './google-interactions-prompt';
 
 /*
@@ -14,7 +14,7 @@ export function mapGoogleInteractionsFinishReason({
 }: {
   status: GoogleInteractionsStatus | string | null | undefined;
   hasFunctionCall: boolean;
-}): LanguageModelV4FinishReason['unified'] {
+}): LanguageModelV3FinishReason['unified'] {
   switch (status) {
     case 'completed':
       return hasFunctionCall ? 'tool-calls' : 'stop';

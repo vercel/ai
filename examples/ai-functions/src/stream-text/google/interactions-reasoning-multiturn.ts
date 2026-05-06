@@ -25,9 +25,12 @@ run(async () => {
   const turn1 = streamText({
     model: google.interactions('gemini-2.5-flash'),
     messages,
-    reasoning: 'medium',
     providerOptions: {
-      google: { store: false, thinkingSummaries: 'auto' },
+      google: {
+        store: false,
+        thinkingLevel: 'medium',
+        thinkingSummaries: 'auto',
+      },
     },
   });
   for await (const part of turn1.fullStream) {
@@ -51,9 +54,12 @@ run(async () => {
   const turn2 = streamText({
     model: google.interactions('gemini-2.5-flash'),
     messages,
-    reasoning: 'medium',
     providerOptions: {
-      google: { store: false, thinkingSummaries: 'auto' },
+      google: {
+        store: false,
+        thinkingLevel: 'medium',
+        thinkingSummaries: 'auto',
+      },
     },
   });
   for await (const part of turn2.fullStream) {

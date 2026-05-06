@@ -147,10 +147,7 @@ describe('parseGoogleInteractionsOutputs', () => {
       expect(content).toMatchInlineSnapshot(`
         [
           {
-            "data": {
-              "data": "aGVsbG8td29ybGQ=",
-              "type": "data",
-            },
+            "data": "aGVsbG8td29ybGQ=",
             "mediaType": "image/png",
             "providerMetadata": {
               "google": {
@@ -178,11 +175,13 @@ describe('parseGoogleInteractionsOutputs', () => {
       expect(content[0]).toMatchObject({
         type: 'file',
         mediaType: 'image/jpeg',
-        data: { type: 'url' },
+        data: '',
+        providerMetadata: {
+          google: {
+            imageUri: 'https://example.test/img.jpg',
+          },
+        },
       });
-      expect((content[0] as { data: { url: URL } }).data.url.toString()).toBe(
-        'https://example.test/img.jpg',
-      );
     });
 
     it('skips an image block with neither data nor uri', () => {

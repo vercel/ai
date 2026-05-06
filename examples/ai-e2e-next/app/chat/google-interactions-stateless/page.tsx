@@ -34,7 +34,7 @@ export default function Chat() {
                 </div>
               );
             } else if (
-              (part.type === 'file' || part.type === 'reasoning-file') &&
+              part.type === 'file' &&
               part.mediaType.startsWith('image/')
             ) {
               return (

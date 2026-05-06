@@ -24,9 +24,12 @@ run(async () => {
   const turn1 = await generateText({
     model: google.interactions('gemini-2.5-flash'),
     messages,
-    reasoning: 'medium',
     providerOptions: {
-      google: { store: false, thinkingSummaries: 'auto' },
+      google: {
+        store: false,
+        thinkingLevel: 'medium',
+        thinkingSummaries: 'auto',
+      },
     },
   });
 
@@ -47,9 +50,12 @@ run(async () => {
   const turn2 = await generateText({
     model: google.interactions('gemini-2.5-flash'),
     messages,
-    reasoning: 'medium',
     providerOptions: {
-      google: { store: false, thinkingSummaries: 'auto' },
+      google: {
+        store: false,
+        thinkingLevel: 'medium',
+        thinkingSummaries: 'auto',
+      },
     },
   });
 

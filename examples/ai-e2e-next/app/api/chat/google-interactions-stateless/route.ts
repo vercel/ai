@@ -12,10 +12,10 @@ export async function POST(req: Request) {
   const result = streamText({
     model: google.interactions('gemini-3.1-flash-image-preview'),
     messages: await convertToModelMessages(messages),
-    reasoning: 'high',
     providerOptions: {
       google: {
         responseModalities: ['text', 'image'],
+        thinkingLevel: 'high',
         thinkingSummaries: 'auto',
         store: false,
       } satisfies GoogleLanguageModelInteractionsOptions,

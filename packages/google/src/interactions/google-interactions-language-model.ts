@@ -1,11 +1,11 @@
 import type {
-  LanguageModelV4,
-  LanguageModelV4CallOptions,
-  LanguageModelV4FinishReason,
-  LanguageModelV4GenerateResult,
-  LanguageModelV4StreamResult,
-  SharedV4ProviderMetadata,
-  SharedV4Warning,
+  LanguageModelV3,
+  LanguageModelV3CallOptions,
+  LanguageModelV3FinishReason,
+  LanguageModelV3GenerateResult,
+  LanguageModelV3StreamResult,
+  SharedV3ProviderMetadata,
+  SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -15,9 +15,6 @@ import {
   parseProviderOptions,
   postJsonToApi,
   resolve,
-  serializeModelOptions,
-  WORKFLOW_DESERIALIZE,
-  WORKFLOW_SERIALIZE,
   type FetchFunction,
   type Resolvable,
 } from '@ai-sdk/provider-utils';
@@ -55,15 +52,15 @@ export type GoogleInteractionsConfig = {
   headers?: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
   generateId: () => string;
-  supportedUrls?: () => LanguageModelV4['supportedUrls'];
+  supportedUrls?: () => LanguageModelV3['supportedUrls'];
 };
 
 export type GoogleInteractionsModelInput =
   | GoogleInteractionsModelId
   | { agent: string };
 
-export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
-  readonly specificationVersion = 'v4';
+export class GoogleInteractionsLanguageModel implements LanguageModelV3 {
+  readonly specificationVersion = 'v3';
 
   readonly modelId: string;
 
@@ -74,27 +71,6 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
   readonly agent: string | undefined;
 
   private readonly config: GoogleInteractionsConfig;
-
-  static [WORKFLOW_SERIALIZE](model: GoogleInteractionsLanguageModel) {
-    return {
-      ...serializeModelOptions({
-        modelId: model.modelId,
-        config: model.config,
-      }),
-      agent: model.agent,
-    };
-  }
-
-  static [WORKFLOW_DESERIALIZE](options: {
-    modelId: string;
-    agent?: string;
-    config: GoogleInteractionsConfig;
-  }) {
-    return new GoogleInteractionsLanguageModel(
-      options.agent != null ? { agent: options.agent } : options.modelId,
-      options.config,
-    );
-  }
 
   constructor(
     modelOrAgent: GoogleInteractionsModelInput,
@@ -130,8 +106,8 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
     };
   }
 
-  private async getArgs(options: LanguageModelV4CallOptions) {
-    const warnings: Array<SharedV4Warning> = [];
+  private async getArgs(options: LanguageModelV3CallOptions) {
+    const warnings: Array<SharedV3Warning> = [];
 
     const opts = await parseProviderOptions({
       provider: 'google',
@@ -233,7 +209,7 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
      * into `generation_config`. Tool-related fields land here in later tasks.
      *
      * When an agent is set, none of these fields are accepted by the API. Per
-     * PRD US 31 we emit a single `LanguageModelV4CallWarning` listing the
+     * PRD US 31 we emit a single `LanguageModelV3CallWarning` listing the
      * dropped field names and continue (do not throw); the agent-only
      * `agent_config` field supersedes them.
      */
@@ -342,8 +318,8 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
   }
 
   async doGenerate(
-    options: LanguageModelV4CallOptions,
-  ): Promise<LanguageModelV4GenerateResult> {
+    options: LanguageModelV3CallOptions,
+  ): Promise<LanguageModelV3GenerateResult> {
     const { args, warnings, isAgent, pollingTimeoutMs } =
       await this.getArgs(options);
 
@@ -409,7 +385,7 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
       interactionId,
     });
 
-    const finishReason: LanguageModelV4FinishReason = {
+    const finishReason: LanguageModelV3FinishReason = {
       unified: mapGoogleInteractionsFinishReason({
         status: response.status,
         hasFunctionCall,
@@ -437,7 +413,7 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
      * `response.id` is omitted when `store: false` (fully stateless mode), so
      * `interactionId` is only surfaced when the API actually returned one.
      */
-    const providerMetadata: SharedV4ProviderMetadata = {
+    const providerMetadata: SharedV3ProviderMetadata = {
       google: {
         ...(interactionId != null ? { interactionId } : {}),
         ...(serviceTier != null ? { serviceTier } : {}),
@@ -470,8 +446,8 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
   }
 
   async doStream(
-    options: LanguageModelV4CallOptions,
-  ): Promise<LanguageModelV4StreamResult> {
+    options: LanguageModelV3CallOptions,
+  ): Promise<LanguageModelV3StreamResult> {
     const { args, warnings, isAgent, pollingTimeoutMs } =
       await this.getArgs(options);
 
@@ -567,12 +543,12 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
     pollingTimeoutMs,
   }: {
     args: GoogleInteractionsRequestBody;
-    warnings: Array<SharedV4Warning>;
+    warnings: Array<SharedV3Warning>;
     url: string;
     mergedHeaders: Record<string, string | undefined>;
-    options: LanguageModelV4CallOptions;
+    options: LanguageModelV3CallOptions;
     pollingTimeoutMs: number | undefined;
-  }): Promise<LanguageModelV4StreamResult> {
+  }): Promise<LanguageModelV3StreamResult> {
     const postResult = await postJsonToApi({
       url,
       headers: mergedHeaders,

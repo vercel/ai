@@ -1,8 +1,8 @@
-import type { LanguageModelV4FunctionTool } from '@ai-sdk/provider';
+import type { LanguageModelV3FunctionTool } from '@ai-sdk/provider';
 import { describe, expect, it } from 'vitest';
 import { prepareGoogleInteractionsTools } from './prepare-google-interactions-tools';
 
-const FUNCTION_TOOL: LanguageModelV4FunctionTool = {
+const FUNCTION_TOOL: LanguageModelV3FunctionTool = {
   type: 'function',
   name: 'getWeather',
   description: 'Get the current weather in a location',

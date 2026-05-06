@@ -20,28 +20,18 @@ import type { GoogleGenerativeAIModelId } from './google-generative-ai-options';
 import { googleTools } from './google-tools';
 
 import type {
-<<<<<<< HEAD
   GoogleGenerativeAIImageSettings,
   GoogleGenerativeAIImageModelId,
 } from './google-generative-ai-image-settings';
 import { GoogleGenerativeAIImageModel } from './google-generative-ai-image-model';
 import { GoogleGenerativeAIVideoModel } from './google-generative-ai-video-model';
 import type { GoogleGenerativeAIVideoModelId } from './google-generative-ai-video-settings';
-=======
-  GoogleImageSettings,
-  GoogleImageModelId,
-} from './google-image-settings';
-import { GoogleImageModel } from './google-image-model';
-import { GoogleFiles } from './google-files';
-import { GoogleVideoModel } from './google-video-model';
-import type { GoogleVideoModelId } from './google-video-settings';
 import {
   GoogleInteractionsLanguageModel,
   type GoogleInteractionsModelInput,
 } from './interactions/google-interactions-language-model';
 import type { GoogleInteractionsModelId } from './interactions/google-interactions-language-model-options';
 import type { GoogleInteractionsAgentName } from './interactions/google-interactions-agent';
->>>>>>> b04e23e44 (feat(provider/google): add support for the Gemini Interactions API (#15013))
 
 export interface GoogleGenerativeAIProvider extends ProviderV3 {
   (modelId: GoogleGenerativeAIModelId): LanguageModelV3;
@@ -106,7 +96,7 @@ export interface GoogleGenerativeAIProvider extends ProviderV3 {
     modelIdOrAgent:
       | GoogleInteractionsModelId
       | { agent: GoogleInteractionsAgentName },
-  ): LanguageModelV4;
+  ): LanguageModelV3;
 
   tools: typeof googleTools;
 }
@@ -221,9 +211,6 @@ export function createGoogleGenerativeAI(
       generateId: options.generateId ?? generateId,
     });
 
-<<<<<<< HEAD
-  const provider = function (modelId: GoogleGenerativeAIModelId) {
-=======
   const createInteractionsModel = (
     modelIdOrAgent:
       | GoogleInteractionsModelId
@@ -240,8 +227,7 @@ export function createGoogleGenerativeAI(
       },
     );
 
-  const provider = function (modelId: GoogleModelId) {
->>>>>>> b04e23e44 (feat(provider/google): add support for the Gemini Interactions API (#15013))
+  const provider = function (modelId: GoogleGenerativeAIModelId) {
     if (new.target) {
       throw new Error(
         'The Google Generative AI model function cannot be called with the new keyword.',
@@ -263,11 +249,7 @@ export function createGoogleGenerativeAI(
   provider.imageModel = createImageModel;
   provider.video = createVideoModel;
   provider.videoModel = createVideoModel;
-<<<<<<< HEAD
-=======
-  provider.files = createFiles;
   provider.interactions = createInteractionsModel;
->>>>>>> b04e23e44 (feat(provider/google): add support for the Gemini Interactions API (#15013))
   provider.tools = googleTools;
 
   return provider as GoogleGenerativeAIProvider;

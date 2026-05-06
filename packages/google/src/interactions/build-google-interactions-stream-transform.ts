@@ -1,10 +1,10 @@
 import type {
   JSONValue,
-  LanguageModelV4FinishReason,
-  LanguageModelV4Source,
-  LanguageModelV4StreamPart,
-  SharedV4ProviderMetadata,
-  SharedV4Warning,
+  LanguageModelV3FinishReason,
+  LanguageModelV3Source,
+  LanguageModelV3StreamPart,
+  SharedV3ProviderMetadata,
+  SharedV3Warning,
 } from '@ai-sdk/provider';
 import type { ParseResult } from '@ai-sdk/provider-utils';
 import type {
@@ -100,7 +100,7 @@ type OpenBlockState =
   | { kind: 'unknown'; id: string };
 
 /**
- * Builds a `TransformStream<ParseResult<GoogleInteractionsEvent>, LanguageModelV4StreamPart>`
+ * Builds a `TransformStream<ParseResult<GoogleInteractionsEvent>, LanguageModelV3StreamPart>`
  * over the seven Interactions SSE event types.
  *
  * Surfaces text + thought (reasoning), function_call, image, built-in tool
@@ -112,7 +112,7 @@ export function buildGoogleInteractionsStreamTransform({
   includeRawChunks,
   serviceTier: headerServiceTier,
 }: {
-  warnings: Array<SharedV4Warning>;
+  warnings: Array<SharedV3Warning>;
   generateId: () => string;
   includeRawChunks?: boolean;
   /**
@@ -126,7 +126,7 @@ export function buildGoogleInteractionsStreamTransform({
   serviceTier?: string;
 }): TransformStream<
   ParseResult<GoogleInteractionsEvent>,
-  LanguageModelV4StreamPart
+  LanguageModelV3StreamPart
 > {
   let interactionId: string | undefined;
   let usage: GoogleInteractionsUsage | undefined;
@@ -149,7 +149,7 @@ export function buildGoogleInteractionsStreamTransform({
    */
   const emittedSourceKeys = new Set<string>();
 
-  function sourceKey(source: LanguageModelV4Source): string {
+  function sourceKey(source: LanguageModelV3Source): string {
     return source.sourceType === 'url'
       ? `url:${source.url}`
       : `doc:${source.filename ?? source.title}`;
@@ -157,7 +157,7 @@ export function buildGoogleInteractionsStreamTransform({
 
   return new TransformStream<
     ParseResult<GoogleInteractionsEvent>,
-    LanguageModelV4StreamPart
+    LanguageModelV3StreamPart
   >({
     start(controller) {
       controller.enqueue({ type: 'stream-start', warnings });
@@ -531,15 +531,27 @@ export function buildGoogleInteractionsStreamTransform({
               controller.enqueue({
                 type: 'file',
                 mediaType: open.mimeType ?? 'image/png',
-                data: { type: 'data', data: open.data },
+                data: open.data,
                 ...(providerMetadata ? { providerMetadata } : {}),
               });
             } else if (open.uri != null && open.uri.length > 0) {
+              /*
+               * V3 `LanguageModelV3File` only supports inline data (`string` /
+               * `Uint8Array`). URL-only image outputs cannot be represented as
+               * a file stream part on the v3 spec; surface the URI through
+               * provider metadata so callers can still recover it.
+               */
+              const uriProviderMetadata = {
+                google: {
+                  ...(interactionId != null ? { interactionId } : {}),
+                  imageUri: open.uri,
+                },
+              };
               controller.enqueue({
                 type: 'file',
                 mediaType: open.mimeType ?? 'image/png',
-                data: { type: 'url', url: new URL(open.uri) },
-                ...(providerMetadata ? { providerMetadata } : {}),
+                data: '',
+                providerMetadata: uriProviderMetadata,
               });
             }
           } else if (open.kind === 'function_call') {
@@ -673,7 +685,7 @@ export function buildGoogleInteractionsStreamTransform({
     },
 
     flush(controller) {
-      const finishReason: LanguageModelV4FinishReason = {
+      const finishReason: LanguageModelV3FinishReason = {
         unified: mapGoogleInteractionsFinishReason({
           status: finishStatus,
           hasFunctionCall,
@@ -681,7 +693,7 @@ export function buildGoogleInteractionsStreamTransform({
         raw: finishStatus,
       };
 
-      const providerMetadata: SharedV4ProviderMetadata = {
+      const providerMetadata: SharedV3ProviderMetadata = {
         google: {
           ...(interactionId != null ? { interactionId } : {}),
           ...(serviceTier != null ? { serviceTier } : {}),

@@ -1,11 +1,11 @@
-import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
+import type { LanguageModelV3Prompt } from '@ai-sdk/provider';
 import { describe, expect, it } from 'vitest';
 import { convertToGoogleInteractionsInput } from './convert-to-google-interactions-input';
 
 describe('convertToGoogleInteractionsInput', () => {
   describe('text-only prompts', () => {
     it('emits a single-turn array of text content blocks', () => {
-      const prompt: LanguageModelV4Prompt = [
+      const prompt: LanguageModelV3Prompt = [
         {
           role: 'user',
           content: [{ type: 'text', text: 'Hello, how are you?' }],
@@ -29,7 +29,7 @@ describe('convertToGoogleInteractionsInput', () => {
     });
 
     it('extracts system messages into systemInstruction', () => {
-      const prompt: LanguageModelV4Prompt = [
+      const prompt: LanguageModelV3Prompt = [
         { role: 'system', content: 'You are a helpful assistant.' },
         {
           role: 'user',
@@ -46,7 +46,7 @@ describe('convertToGoogleInteractionsInput', () => {
   describe('image file parts', () => {
     it('maps a base64 / Uint8Array data part to an inline image block', () => {
       const bytes = new Uint8Array([1, 2, 3, 4]);
-      const prompt: LanguageModelV4Prompt = [
+      const prompt: LanguageModelV3Prompt = [
         {
           role: 'user',
           content: [
@@ -54,7 +54,7 @@ describe('convertToGoogleInteractionsInput', () => {
             {
               type: 'file',
               mediaType: 'image/png',
-              data: { type: 'data', data: bytes },
+              data: bytes,
             },
           ],
         },
@@ -82,14 +82,14 @@ describe('convertToGoogleInteractionsInput', () => {
     });
 
     it('passes a base64-string data part through untouched', () => {
-      const prompt: LanguageModelV4Prompt = [
+      const prompt: LanguageModelV3Prompt = [
         {
           role: 'user',
           content: [
             {
               type: 'file',
               mediaType: 'image/jpeg',
-              data: { type: 'data', data: 'SGVsbG8=' },
+              data: 'SGVsbG8=',
             },
           ],
         },
@@ -107,7 +107,7 @@ describe('convertToGoogleInteractionsInput', () => {
     });
 
     it('maps a url data part to an image block with `uri` (URL passthrough)', () => {
-      const prompt: LanguageModelV4Prompt = [
+      const prompt: LanguageModelV3Prompt = [
         {
           role: 'user',
           content: [
@@ -115,10 +115,7 @@ describe('convertToGoogleInteractionsInput', () => {
             {
               type: 'file',
               mediaType: 'image/png',
-              data: {
-                type: 'url',
-                url: new URL('https://example.com/cat.png'),
-              },
+              data: new URL('https://example.com/cat.png'),
             },
           ],
         },
@@ -146,17 +143,14 @@ describe('convertToGoogleInteractionsInput', () => {
     });
 
     it('omits mime_type for url parts when only a top-level mediaType is given', () => {
-      const prompt: LanguageModelV4Prompt = [
+      const prompt: LanguageModelV3Prompt = [
         {
           role: 'user',
           content: [
             {
               type: 'file',
               mediaType: 'image',
-              data: {
-                type: 'url',
-                url: new URL('https://example.com/cat.png'),
-              },
+              data: new URL('https://example.com/cat.png'),
             },
           ],
         },
@@ -172,8 +166,8 @@ describe('convertToGoogleInteractionsInput', () => {
       ]);
     });
 
-    it('maps a reference data part to an image block with the resolved Files API URI', () => {
-      const prompt: LanguageModelV4Prompt = [
+    it('maps a Files API URL to an image block with `uri`', () => {
+      const prompt: LanguageModelV3Prompt = [
         {
           role: 'user',
           content: [
@@ -181,13 +175,9 @@ describe('convertToGoogleInteractionsInput', () => {
             {
               type: 'file',
               mediaType: 'image/png',
-              data: {
-                type: 'reference',
-                reference: {
-                  google:
-                    'https://generativelanguage.googleapis.com/v1beta/files/abc123',
-                },
-              },
+              data: new URL(
+                'https://generativelanguage.googleapis.com/v1beta/files/abc123',
+              ),
             },
           ],
         },
@@ -214,35 +204,15 @@ describe('convertToGoogleInteractionsInput', () => {
       `);
     });
 
-    it('throws when a reference does not contain a `google` entry', () => {
-      const prompt: LanguageModelV4Prompt = [
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'file',
-              mediaType: 'image/png',
-              data: {
-                type: 'reference',
-                reference: { openai: 'file-abc' },
-              },
-            },
-          ],
-        },
-      ];
-
-      expect(() => convertToGoogleInteractionsInput({ prompt })).toThrow();
-    });
-
     it('threads mediaResolution onto inline image blocks', () => {
-      const prompt: LanguageModelV4Prompt = [
+      const prompt: LanguageModelV3Prompt = [
         {
           role: 'user',
           content: [
             {
               type: 'file',
               mediaType: 'image/png',
-              data: { type: 'data', data: 'SGVsbG8=' },
+              data: 'SGVsbG8=',
             },
           ],
         },
@@ -267,14 +237,14 @@ describe('convertToGoogleInteractionsInput', () => {
   describe('document file parts', () => {
     it('maps an application/pdf data part to a document block', () => {
       const bytes = new Uint8Array([1, 2, 3]);
-      const prompt: LanguageModelV4Prompt = [
+      const prompt: LanguageModelV3Prompt = [
         {
           role: 'user',
           content: [
             {
               type: 'file',
               mediaType: 'application/pdf',
-              data: { type: 'data', data: bytes },
+              data: bytes,
             },
           ],
         },
@@ -292,14 +262,14 @@ describe('convertToGoogleInteractionsInput', () => {
     });
 
     it('passes a base64-string PDF data part through as a document block', () => {
-      const prompt: LanguageModelV4Prompt = [
+      const prompt: LanguageModelV3Prompt = [
         {
           role: 'user',
           content: [
             {
               type: 'file',
               mediaType: 'application/pdf',
-              data: { type: 'data', data: 'JVBERi0=' },
+              data: 'JVBERi0=',
             },
           ],
         },
@@ -317,7 +287,7 @@ describe('convertToGoogleInteractionsInput', () => {
     });
 
     it('maps a url PDF data part to a document block with `uri` (URL passthrough)', () => {
-      const prompt: LanguageModelV4Prompt = [
+      const prompt: LanguageModelV3Prompt = [
         {
           role: 'user',
           content: [
@@ -325,10 +295,7 @@ describe('convertToGoogleInteractionsInput', () => {
             {
               type: 'file',
               mediaType: 'application/pdf',
-              data: {
-                type: 'url',
-                url: new URL('https://example.com/paper.pdf'),
-              },
+              data: new URL('https://example.com/paper.pdf'),
             },
           ],
         },
@@ -355,21 +322,17 @@ describe('convertToGoogleInteractionsInput', () => {
       `);
     });
 
-    it('maps a reference PDF data part to a document block with the resolved Files API URI', () => {
-      const prompt: LanguageModelV4Prompt = [
+    it('maps a Files API URL PDF part to a document block with `uri`', () => {
+      const prompt: LanguageModelV3Prompt = [
         {
           role: 'user',
           content: [
             {
               type: 'file',
               mediaType: 'application/pdf',
-              data: {
-                type: 'reference',
-                reference: {
-                  google:
-                    'https://generativelanguage.googleapis.com/v1beta/files/doc-xyz',
-                },
-              },
+              data: new URL(
+                'https://generativelanguage.googleapis.com/v1beta/files/doc-xyz',
+              ),
             },
           ],
         },
@@ -385,32 +348,11 @@ describe('convertToGoogleInteractionsInput', () => {
         },
       ]);
     });
-
-    it('collapses a text-data document part to an inline text block (no text+data on the wire)', () => {
-      const prompt: LanguageModelV4Prompt = [
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'file',
-              mediaType: 'application/pdf',
-              data: { type: 'text', text: 'extracted PDF body' },
-            },
-          ],
-        },
-      ];
-
-      const result = convertToGoogleInteractionsInput({ prompt });
-
-      expect(result.input).toEqual([
-        { type: 'text', text: 'extracted PDF body' },
-      ]);
-    });
   });
 
   describe('video file parts', () => {
     it('passes a YouTube URL through as a video block with `uri`', () => {
-      const prompt: LanguageModelV4Prompt = [
+      const prompt: LanguageModelV3Prompt = [
         {
           role: 'user',
           content: [
@@ -418,10 +360,7 @@ describe('convertToGoogleInteractionsInput', () => {
             {
               type: 'file',
               mediaType: 'video/*',
-              data: {
-                type: 'url',
-                url: new URL('https://www.youtube.com/watch?v=dQw4w9WgXcQ'),
-              },
+              data: new URL('https://www.youtube.com/watch?v=dQw4w9WgXcQ'),
             },
           ],
         },
@@ -448,17 +387,14 @@ describe('convertToGoogleInteractionsInput', () => {
     });
 
     it('passes a youtu.be short URL through as a video block', () => {
-      const prompt: LanguageModelV4Prompt = [
+      const prompt: LanguageModelV3Prompt = [
         {
           role: 'user',
           content: [
             {
               type: 'file',
               mediaType: 'video/mp4',
-              data: {
-                type: 'url',
-                url: new URL('https://youtu.be/abc123'),
-              },
+              data: new URL('https://youtu.be/abc123'),
             },
           ],
         },
@@ -476,14 +412,14 @@ describe('convertToGoogleInteractionsInput', () => {
     });
 
     it('maps a video data part to an inline video block', () => {
-      const prompt: LanguageModelV4Prompt = [
+      const prompt: LanguageModelV3Prompt = [
         {
           role: 'user',
           content: [
             {
               type: 'file',
               mediaType: 'video/mp4',
-              data: { type: 'data', data: new Uint8Array([5, 6, 7]) },
+              data: new Uint8Array([5, 6, 7]),
             },
           ],
         },
@@ -500,21 +436,17 @@ describe('convertToGoogleInteractionsInput', () => {
       ]);
     });
 
-    it('maps a video reference part to a video block with the resolved Files API URI', () => {
-      const prompt: LanguageModelV4Prompt = [
+    it('maps a video Files API URL to a video block with `uri`', () => {
+      const prompt: LanguageModelV3Prompt = [
         {
           role: 'user',
           content: [
             {
               type: 'file',
               mediaType: 'video/mp4',
-              data: {
-                type: 'reference',
-                reference: {
-                  google:
-                    'https://generativelanguage.googleapis.com/v1beta/files/vid-xyz',
-                },
-              },
+              data: new URL(
+                'https://generativelanguage.googleapis.com/v1beta/files/vid-xyz',
+              ),
             },
           ],
         },
@@ -532,107 +464,9 @@ describe('convertToGoogleInteractionsInput', () => {
     });
   });
 
-  describe('text file parts', () => {
-    it('collapses a text-data file part into an inline text block', () => {
-      const prompt: LanguageModelV4Prompt = [
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'file',
-              mediaType: 'text/plain',
-              data: { type: 'text', text: 'inline text content' },
-            },
-          ],
-        },
-      ];
-
-      const result = convertToGoogleInteractionsInput({ prompt });
-
-      expect(result.input).toEqual([
-        {
-          type: 'text',
-          text: 'inline text content',
-        },
-      ]);
-    });
-
-    it('merges an inline text-data file part with an adjacent text part', () => {
-      const prompt: LanguageModelV4Prompt = [
-        {
-          role: 'user',
-          content: [
-            { type: 'text', text: 'Please review:' },
-            {
-              type: 'file',
-              mediaType: 'text/plain',
-              data: { type: 'text', text: 'inline body' },
-            },
-          ],
-        },
-      ];
-
-      const result = convertToGoogleInteractionsInput({ prompt });
-
-      expect(result.input).toEqual([
-        { type: 'text', text: 'Please review:\n\ninline body' },
-      ]);
-    });
-
-    it('does not merge a text part across a non-text part', () => {
-      const prompt: LanguageModelV4Prompt = [
-        {
-          role: 'user',
-          content: [
-            { type: 'text', text: 'before' },
-            {
-              type: 'file',
-              mediaType: 'image/png',
-              data: { type: 'data', data: 'AQID' },
-            },
-            {
-              type: 'file',
-              mediaType: 'text/plain',
-              data: { type: 'text', text: 'after' },
-            },
-          ],
-        },
-      ];
-
-      const result = convertToGoogleInteractionsInput({ prompt });
-
-      expect(result.input).toEqual([
-        { type: 'text', text: 'before' },
-        { type: 'image', data: 'AQID', mime_type: 'image/png' },
-        { type: 'text', text: 'after' },
-      ]);
-    });
-
-    it('merges three adjacent text-derived parts into one', () => {
-      const prompt: LanguageModelV4Prompt = [
-        {
-          role: 'user',
-          content: [
-            { type: 'text', text: 'a' },
-            { type: 'text', text: 'b' },
-            {
-              type: 'file',
-              mediaType: 'text/markdown',
-              data: { type: 'text', text: 'c' },
-            },
-          ],
-        },
-      ];
-
-      const result = convertToGoogleInteractionsInput({ prompt });
-
-      expect(result.input).toEqual([{ type: 'text', text: 'a\n\nb\n\nc' }]);
-    });
-  });
-
   describe('assistant tool-call parts', () => {
     it('emits a function_call content block from an assistant tool-call part with object input', () => {
-      const prompt: LanguageModelV4Prompt = [
+      const prompt: LanguageModelV3Prompt = [
         {
           role: 'user',
           content: [{ type: 'text', text: "What's the weather in NYC?" }],
@@ -681,7 +515,7 @@ describe('convertToGoogleInteractionsInput', () => {
     });
 
     it('parses a stringified tool-call input safely', () => {
-      const prompt: LanguageModelV4Prompt = [
+      const prompt: LanguageModelV3Prompt = [
         {
           role: 'user',
           content: [{ type: 'text', text: 'Hi' }],
@@ -708,7 +542,7 @@ describe('convertToGoogleInteractionsInput', () => {
     });
 
     it('round-trips a function_call signature via providerMetadata.google.signature', () => {
-      const prompt: LanguageModelV4Prompt = [
+      const prompt: LanguageModelV3Prompt = [
         {
           role: 'user',
           content: [{ type: 'text', text: 'Hi' }],
@@ -738,7 +572,7 @@ describe('convertToGoogleInteractionsInput', () => {
 
   describe('tool-result messages', () => {
     it('maps a text tool result to a function_result block on a user turn', () => {
-      const prompt: LanguageModelV4Prompt = [
+      const prompt: LanguageModelV3Prompt = [
         {
           role: 'user',
           content: [{ type: 'text', text: 'What is the weather?' }],
@@ -809,7 +643,7 @@ describe('convertToGoogleInteractionsInput', () => {
     });
 
     it('serializes a json tool result to a stringified payload', () => {
-      const prompt: LanguageModelV4Prompt = [
+      const prompt: LanguageModelV3Prompt = [
         { role: 'user', content: [{ type: 'text', text: 'q' }] },
         {
           role: 'assistant',
@@ -844,7 +678,7 @@ describe('convertToGoogleInteractionsInput', () => {
     });
 
     it('maps an error-text tool result to is_error: true', () => {
-      const prompt: LanguageModelV4Prompt = [
+      const prompt: LanguageModelV3Prompt = [
         { role: 'user', content: [{ type: 'text', text: 'q' }] },
         {
           role: 'assistant',
@@ -881,7 +715,7 @@ describe('convertToGoogleInteractionsInput', () => {
     });
 
     it('maps a content output with mixed text and image parts to an array result', () => {
-      const prompt: LanguageModelV4Prompt = [
+      const prompt: LanguageModelV3Prompt = [
         { role: 'user', content: [{ type: 'text', text: 'q' }] },
         {
           role: 'assistant',
@@ -906,9 +740,9 @@ describe('convertToGoogleInteractionsInput', () => {
                 value: [
                   { type: 'text', text: 'Here is the result:' },
                   {
-                    type: 'file',
+                    type: 'image-data',
                     mediaType: 'image/png',
-                    data: { type: 'data', data: 'AQID' },
+                    data: 'AQID',
                   },
                 ],
               },
@@ -939,7 +773,7 @@ describe('convertToGoogleInteractionsInput', () => {
     });
 
     it('emits a warning when a content tool-result contains a non-image file part', () => {
-      const prompt: LanguageModelV4Prompt = [
+      const prompt: LanguageModelV3Prompt = [
         { role: 'user', content: [{ type: 'text', text: 'q' }] },
         {
           role: 'assistant',
@@ -963,9 +797,9 @@ describe('convertToGoogleInteractionsInput', () => {
                 type: 'content',
                 value: [
                   {
-                    type: 'file',
+                    type: 'file-data',
                     mediaType: 'application/pdf',
-                    data: { type: 'data', data: 'AQID' },
+                    data: 'AQID',
                   },
                 ],
               },
@@ -989,7 +823,7 @@ describe('convertToGoogleInteractionsInput', () => {
     const PREV_ID = 'v1_prev-interaction-abc';
 
     it('drops an assistant turn whose parts carry the matching interactionId', () => {
-      const prompt: LanguageModelV4Prompt = [
+      const prompt: LanguageModelV3Prompt = [
         {
           role: 'user',
           content: [{ type: 'text', text: 'first user input' }],
@@ -1040,7 +874,7 @@ describe('convertToGoogleInteractionsInput', () => {
     });
 
     it('keeps an assistant turn from a different interaction', () => {
-      const prompt: LanguageModelV4Prompt = [
+      const prompt: LanguageModelV3Prompt = [
         {
           role: 'user',
           content: [{ type: 'text', text: 'first user input' }],
@@ -1075,7 +909,7 @@ describe('convertToGoogleInteractionsInput', () => {
     });
 
     it('drops the matching assistant tool-call turn AND its paired tool-result message', () => {
-      const prompt: LanguageModelV4Prompt = [
+      const prompt: LanguageModelV3Prompt = [
         {
           role: 'user',
           content: [{ type: 'text', text: 'q1' }],
@@ -1130,7 +964,7 @@ describe('convertToGoogleInteractionsInput', () => {
     });
 
     it('does not compact when store=false (incoherent combo) and emits a warning', () => {
-      const prompt: LanguageModelV4Prompt = [
+      const prompt: LanguageModelV3Prompt = [
         {
           role: 'user',
           content: [{ type: 'text', text: 'q1' }],
@@ -1170,7 +1004,7 @@ describe('convertToGoogleInteractionsInput', () => {
     });
 
     it('reduces a stateful turn-2 wire body to only the new user message', () => {
-      const prompt: LanguageModelV4Prompt = [
+      const prompt: LanguageModelV3Prompt = [
         {
           role: 'user',
           content: [{ type: 'text', text: 'first user input' }],
@@ -1231,7 +1065,7 @@ describe('convertToGoogleInteractionsInput', () => {
     });
 
     it('round-trips a thought signature on a turn-1 reasoning output back onto the turn-2 wire block', () => {
-      const prompt: LanguageModelV4Prompt = [
+      const prompt: LanguageModelV3Prompt = [
         {
           role: 'user',
           content: [{ type: 'text', text: 'q' }],
@@ -1272,7 +1106,7 @@ describe('convertToGoogleInteractionsInput', () => {
 
   describe('stateless multi-turn (store: false, no previousInteractionId)', () => {
     it('forwards full history verbatim and emits no warnings', () => {
-      const prompt: LanguageModelV4Prompt = [
+      const prompt: LanguageModelV3Prompt = [
         {
           role: 'user',
           content: [
@@ -1330,7 +1164,7 @@ describe('convertToGoogleInteractionsInput', () => {
 
     it('does not compact assistant turns even when they carry a stale interactionId', () => {
       const STALE_ID = 'v1_stale-interaction';
-      const prompt: LanguageModelV4Prompt = [
+      const prompt: LanguageModelV3Prompt = [
         {
           role: 'user',
           content: [{ type: 'text', text: 'q1' }],
@@ -1367,7 +1201,7 @@ describe('convertToGoogleInteractionsInput', () => {
 
   describe('unsupported file media types', () => {
     it('emits a warning and drops the part when media type is unrecognized', () => {
-      const prompt: LanguageModelV4Prompt = [
+      const prompt: LanguageModelV3Prompt = [
         {
           role: 'user',
           content: [
@@ -1375,7 +1209,7 @@ describe('convertToGoogleInteractionsInput', () => {
             {
               type: 'file',
               mediaType: 'unknown/blob',
-              data: { type: 'data', data: 'AQID' },
+              data: 'AQID',
             },
           ],
         },

@@ -1,4 +1,4 @@
-import type { LanguageModelV4Source } from '@ai-sdk/provider';
+import type { LanguageModelV3Source } from '@ai-sdk/provider';
 import type {
   GoogleInteractionsAnnotation,
   GoogleInteractionsBuiltinToolResultContent,
@@ -35,7 +35,7 @@ function basename(uriOrName: string): string | undefined {
 
 /**
  * Maps a single text-block annotation (`url_citation` / `file_citation` /
- * `place_citation`) onto a `LanguageModelV4Source`. Returns `undefined` when
+ * `place_citation`) onto a `LanguageModelV3Source`. Returns `undefined` when
  * the annotation lacks the minimum payload to form a source (e.g. a URL
  * citation without a `url`).
  */
@@ -45,7 +45,7 @@ export function annotationToSource({
 }: {
   annotation: GoogleInteractionsAnnotation | { type: string };
   generateId: () => string;
-}): LanguageModelV4Source | undefined {
+}): LanguageModelV3Source | undefined {
   switch (annotation.type) {
     case 'url_citation': {
       const a = annotation as GoogleInteractionsURLCitation;
@@ -100,7 +100,7 @@ export function annotationToSource({
 
 /**
  * Maps a built-in tool *result* content block to zero or more
- * `LanguageModelV4Source` parts. The Interactions API exposes grounding
+ * `LanguageModelV3Source` parts. The Interactions API exposes grounding
  * sources both inline (via `text_annotation` deltas) and via tool-result
  * content blocks; the latter is what this function consumes.
  *
@@ -117,8 +117,8 @@ export function builtinToolResultToSources({
 }: {
   block: GoogleInteractionsBuiltinToolResultContent;
   generateId: () => string;
-}): Array<LanguageModelV4Source> {
-  const sources: Array<LanguageModelV4Source> = [];
+}): Array<LanguageModelV3Source> {
+  const sources: Array<LanguageModelV3Source> = [];
 
   switch (block.type) {
     case 'url_context_result': {
@@ -213,7 +213,7 @@ export function builtinToolResultToSources({
 
 /**
  * Given a list of annotations attached to a single `text` content block,
- * returns the corresponding `LanguageModelV4Source` parts (de-duplicated by
+ * returns the corresponding `LanguageModelV3Source` parts (de-duplicated by
  * URL/filename to avoid double-counting when the same citation reappears
  * across deltas).
  */
@@ -226,10 +226,10 @@ export function annotationsToSources({
     | null
     | undefined;
   generateId: () => string;
-}): Array<LanguageModelV4Source> {
+}): Array<LanguageModelV3Source> {
   if (annotations == null) return [];
   const seen = new Set<string>();
-  const sources: Array<LanguageModelV4Source> = [];
+  const sources: Array<LanguageModelV3Source> = [];
   for (const annotation of annotations) {
     const source = annotationToSource({ annotation, generateId });
     if (source == null) continue;

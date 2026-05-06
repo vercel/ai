@@ -1,9 +1,9 @@
-import type { JSONObject, LanguageModelV4Usage } from '@ai-sdk/provider';
+import type { JSONObject, LanguageModelV3Usage } from '@ai-sdk/provider';
 import type { GoogleInteractionsUsage } from './google-interactions-api';
 
 export function convertGoogleInteractionsUsage(
   usage: GoogleInteractionsUsage | undefined | null,
-): LanguageModelV4Usage {
+): LanguageModelV3Usage {
   if (usage == null) {
     return {
       inputTokens: {

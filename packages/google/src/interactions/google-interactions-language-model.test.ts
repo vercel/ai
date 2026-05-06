@@ -1,14 +1,14 @@
 import type {
   JSONSchema7,
-  LanguageModelV4FunctionTool,
-  LanguageModelV4Prompt,
-  LanguageModelV4ProviderTool,
+  LanguageModelV3FunctionTool,
+  LanguageModelV3Prompt,
+  LanguageModelV3ProviderTool,
 } from '@ai-sdk/provider';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import * as fs from 'node:fs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { createGoogle } from '../google-provider';
+import { createGoogleGenerativeAI } from '../google-provider';
 
 vi.mock('../version', () => ({
   VERSION: '0.0.0-test',
@@ -17,11 +17,11 @@ vi.mock('../version', () => ({
 const TEST_URL =
   'https://generativelanguage.googleapis.com/v1beta/interactions';
 
-const TEST_PROMPT: LanguageModelV4Prompt = [
+const TEST_PROMPT: LanguageModelV3Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello, how are you?' }] },
 ];
 
-const provider = createGoogle({
+const provider = createGoogleGenerativeAI({
   apiKey: 'test-api-key',
   generateId: () => 'test-id',
 });
@@ -168,7 +168,7 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
     });
 
     it('emits Array<Turn> when there is more than one turn', async () => {
-      const prompt: LanguageModelV4Prompt = [
+      const prompt: LanguageModelV3Prompt = [
         { role: 'system', content: 'You are a helpful assistant.' },
         { role: 'user', content: [{ type: 'text', text: 'Hi' }] },
         { role: 'assistant', content: [{ type: 'text', text: 'Hello!' }] },
@@ -868,7 +868,7 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
   });
 
   describe('tool calling (multi-step flow)', () => {
-    const WEATHER_TOOL: LanguageModelV4FunctionTool = {
+    const WEATHER_TOOL: LanguageModelV3FunctionTool = {
       type: 'function',
       name: 'getWeather',
       description: 'Get the current weather in a location',
@@ -1098,7 +1098,7 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
   });
 
   describe('built-in google_search tool (TASK-7)', () => {
-    const GOOGLE_SEARCH_TOOL: LanguageModelV4ProviderTool = {
+    const GOOGLE_SEARCH_TOOL: LanguageModelV3ProviderTool = {
       type: 'provider',
       id: 'google.google_search',
       name: 'google_search',
@@ -1182,7 +1182,7 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
       expect(filePart).toMatchObject({
         type: 'file',
         mediaType: 'image/jpeg',
-        data: { type: 'data', data: '__IMAGE_DATA_TRUNCATED__' },
+        data: '__IMAGE_DATA_TRUNCATED__',
         providerMetadata: {
           google: {
             interactionId:
@@ -1471,7 +1471,7 @@ describe('GoogleInteractionsLanguageModel agent polling (TASK-10)', () => {
       };
     };
 
-    const fastProvider = createGoogle({
+    const fastProvider = createGoogleGenerativeAI({
       apiKey: 'test-api-key',
       generateId: () => 'test-id',
     });
@@ -1525,7 +1525,7 @@ describe('GoogleInteractionsLanguageModel agent polling (TASK-10)', () => {
       };
     };
 
-    const fastProvider = createGoogle({
+    const fastProvider = createGoogleGenerativeAI({
       apiKey: 'test-api-key',
       generateId: () => 'test-id',
     });
@@ -1581,7 +1581,7 @@ describe('GoogleInteractionsLanguageModel agent polling (TASK-10)', () => {
       },
     };
 
-    const fastProvider = createGoogle({
+    const fastProvider = createGoogleGenerativeAI({
       apiKey: 'test-api-key',
       generateId: () => 'test-id',
     });
@@ -1596,12 +1596,17 @@ describe('GoogleInteractionsLanguageModel agent polling (TASK-10)', () => {
       expect.objectContaining({
         type: 'file',
         mediaType: 'image/png',
-        data: { type: 'data', data: 'aGVsbG8=' },
+        data: 'aGVsbG8=',
       }),
       expect.objectContaining({
         type: 'file',
         mediaType: 'image/png',
-        data: { type: 'url', url: new URL('https://example.com/img.png') },
+        data: '',
+        providerMetadata: expect.objectContaining({
+          google: expect.objectContaining({
+            imageUri: 'https://example.com/img.png',
+          }),
+        }),
       }),
     ]);
   });
@@ -1621,7 +1626,7 @@ describe('GoogleInteractionsLanguageModel agent polling (TASK-10)', () => {
       },
     };
 
-    const fastProvider = createGoogle({
+    const fastProvider = createGoogleGenerativeAI({
       apiKey: 'test-api-key',
       generateId: () => 'test-id',
     });
@@ -2195,7 +2200,7 @@ describe('GoogleInteractionsLanguageModel.doStream', () => {
   });
 
   describe('tool calling (multi-step flow)', () => {
-    const WEATHER_TOOL: LanguageModelV4FunctionTool = {
+    const WEATHER_TOOL: LanguageModelV3FunctionTool = {
       type: 'function',
       name: 'getWeather',
       description: 'Get the current weather in a location',
@@ -2317,7 +2322,7 @@ describe('GoogleInteractionsLanguageModel.doStream', () => {
   });
 
   describe('built-in google_search tool (TASK-7)', () => {
-    const GOOGLE_SEARCH_TOOL: LanguageModelV4ProviderTool = {
+    const GOOGLE_SEARCH_TOOL: LanguageModelV3ProviderTool = {
       type: 'provider',
       id: 'google.google_search',
       name: 'google_search',
@@ -2407,7 +2412,7 @@ describe('GoogleInteractionsLanguageModel.doStream', () => {
       expect(filePart).toMatchObject({
         type: 'file',
         mediaType: 'image/jpeg',
-        data: { type: 'data', data: '__IMAGE_DATA_TRUNCATED__' },
+        data: '__IMAGE_DATA_TRUNCATED__',
         providerMetadata: {
           google: {
             interactionId:
@@ -2440,7 +2445,6 @@ describe('GoogleInteractionsLanguageModel.doStream', () => {
       expect(filePart).toMatchObject({
         type: 'file',
         mediaType: 'image/jpeg',
-        data: { type: 'data' },
       });
     });
   });

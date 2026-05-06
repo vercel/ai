@@ -1,4 +1,4 @@
-import type { JSONValue, LanguageModelV4Content } from '@ai-sdk/provider';
+import type { JSONValue, LanguageModelV3Content } from '@ai-sdk/provider';
 import type { GoogleInteractionsContentBlock } from './google-interactions-api';
 import {
   annotationsToSources,
@@ -10,7 +10,7 @@ import type {
 } from './google-interactions-prompt';
 
 export type ParseGoogleInteractionsOutputsResult = {
-  content: Array<LanguageModelV4Content>;
+  content: Array<LanguageModelV3Content>;
   hasFunctionCall: boolean;
 };
 
@@ -71,7 +71,7 @@ function builtinToolNameFromResultType(type: string): string {
 
 /**
  * Walks the `outputs[]` array of an Interaction response and emits AI SDK
- * `LanguageModelV4Content[]`. Surfaces:
+ * `LanguageModelV3Content[]`. Surfaces:
  *
  * - `text` blocks (with annotations -> source parts)
  * - `thought` blocks (reasoning)
@@ -97,7 +97,7 @@ export function parseGoogleInteractionsOutputs({
    */
   interactionId?: string;
 }): ParseGoogleInteractionsOutputsResult {
-  const content: Array<LanguageModelV4Content> = [];
+  const content: Array<LanguageModelV3Content> = [];
   let hasFunctionCall = false;
 
   if (outputs == null) {
@@ -158,15 +158,26 @@ export function parseGoogleInteractionsOutputs({
           content.push({
             type: 'file',
             mediaType: image.mime_type ?? 'image/png',
-            data: { type: 'data', data: image.data },
+            data: image.data,
             ...googleProviderMetadata({ interactionId }),
           });
         } else if (image.uri != null && image.uri.length > 0) {
+          /*
+           * V3 `LanguageModelV3File` only supports inline data (`string` /
+           * `Uint8Array`). URL-only image outputs cannot be represented as a
+           * file content part on the v3 spec; surface the URI through provider
+           * metadata so callers can still recover it.
+           */
           content.push({
             type: 'file',
             mediaType: image.mime_type ?? 'image/png',
-            data: { type: 'url', url: new URL(image.uri) },
-            ...googleProviderMetadata({ interactionId }),
+            data: '',
+            providerMetadata: {
+              google: {
+                ...(interactionId != null ? { interactionId } : {}),
+                imageUri: image.uri,
+              },
+            },
           });
         }
         break;

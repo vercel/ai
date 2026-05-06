@@ -1,5 +1,5 @@
 import { describe, expectTypeOf, it } from 'vitest';
-import { createGoogle } from '../google-provider';
+import { createGoogleGenerativeAI } from '../google-provider';
 import type { GoogleInteractionsAgentName } from './google-interactions-agent';
 
 describe('GoogleInteractionsAgentName', () => {
@@ -21,7 +21,7 @@ describe('GoogleInteractionsAgentName', () => {
 });
 
 describe('google.interactions agent factory typing', () => {
-  const google = createGoogle({ apiKey: 'test' });
+  const google = createGoogleGenerativeAI({ apiKey: 'test' });
 
   it('accepts a known agent name', () => {
     google.interactions({ agent: 'deep-research-pro-preview-12-2025' });

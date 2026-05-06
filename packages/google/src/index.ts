@@ -21,28 +21,15 @@ export type {
   GoogleVideoModelOptions as GoogleGenerativeAIVideoProviderOptions,
 } from './google-generative-ai-video-model';
 export type { GoogleGenerativeAIVideoModelId } from './google-generative-ai-video-settings';
-export { createGoogleGenerativeAI, google } from './google-provider';
-export type {
-<<<<<<< HEAD
-  GoogleGenerativeAIProvider,
-  GoogleGenerativeAIProviderSettings,
-=======
-  GoogleVideoModelId,
-  /** @deprecated Use `GoogleVideoModelId` instead. */
-  GoogleVideoModelId as GoogleGenerativeAIVideoModelId,
-} from './google-video-settings';
-export type { GoogleFilesUploadOptions } from './google-files';
 export type {
   GoogleLanguageModelInteractionsOptions,
   GoogleInteractionsModelId,
 } from './interactions/google-interactions-language-model-options';
 export type { GoogleInteractionsProviderMetadata } from './interactions/google-interactions-provider-metadata';
 export type { GoogleInteractionsAgentName } from './interactions/google-interactions-agent';
-export {
-  createGoogle,
-  google,
-  /** @deprecated Use `createGoogle` instead. */
-  createGoogle as createGoogleGenerativeAI,
->>>>>>> b04e23e44 (feat(provider/google): add support for the Gemini Interactions API (#15013))
+export { createGoogleGenerativeAI, google } from './google-provider';
+export type {
+  GoogleGenerativeAIProvider,
+  GoogleGenerativeAIProviderSettings,
 } from './google-provider';
 export { VERSION } from './version';

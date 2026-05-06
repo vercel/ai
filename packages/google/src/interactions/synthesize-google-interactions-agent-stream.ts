@@ -1,8 +1,8 @@
 import type {
-  LanguageModelV4FinishReason,
-  LanguageModelV4StreamPart,
-  SharedV4ProviderMetadata,
-  SharedV4Warning,
+  LanguageModelV3FinishReason,
+  LanguageModelV3StreamPart,
+  SharedV3ProviderMetadata,
+  SharedV3Warning,
 } from '@ai-sdk/provider';
 import { convertGoogleInteractionsUsage } from './convert-google-interactions-usage';
 import { type GoogleInteractionsResponse } from './google-interactions-api';
@@ -10,7 +10,7 @@ import { mapGoogleInteractionsFinishReason } from './map-google-interactions-fin
 import { parseGoogleInteractionsOutputs } from './parse-google-interactions-outputs';
 
 /**
- * Synthesizes a `LanguageModelV4StreamPart` stream from a fully-resolved
+ * Synthesizes a `LanguageModelV3StreamPart` stream from a fully-resolved
  * Interaction response (i.e. the `response` returned after polling a
  * `background: true` agent call to a terminal status).
  *
@@ -28,12 +28,12 @@ export function synthesizeGoogleInteractionsAgentStream({
   headerServiceTier,
 }: {
   response: GoogleInteractionsResponse;
-  warnings: Array<SharedV4Warning>;
+  warnings: Array<SharedV3Warning>;
   generateId: () => string;
   includeRawChunks?: boolean;
   headerServiceTier?: string;
-}): ReadableStream<LanguageModelV4StreamPart> {
-  return new ReadableStream<LanguageModelV4StreamPart>({
+}): ReadableStream<LanguageModelV3StreamPart> {
+  return new ReadableStream<LanguageModelV3StreamPart>({
     start(controller) {
       controller.enqueue({ type: 'stream-start', warnings });
 
@@ -157,7 +157,7 @@ export function synthesizeGoogleInteractionsAgentStream({
 
       const serviceTier = response.service_tier ?? headerServiceTier;
 
-      const finishReason: LanguageModelV4FinishReason = {
+      const finishReason: LanguageModelV3FinishReason = {
         unified: mapGoogleInteractionsFinishReason({
           status: response.status,
           hasFunctionCall,
@@ -165,7 +165,7 @@ export function synthesizeGoogleInteractionsAgentStream({
         raw: response.status,
       };
 
-      const providerMetadata: SharedV4ProviderMetadata = {
+      const providerMetadata: SharedV3ProviderMetadata = {
         google: {
           ...(interactionId != null ? { interactionId } : {}),
           ...(serviceTier != null ? { serviceTier } : {}),
