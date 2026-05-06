@@ -458,29 +458,7 @@ class DefaultMCPClient implements MCPClient {
     });
   }
 
-  private async callToolInternal({
-    name,
-    args,
-    options,
-  }: {
-    name: string;
-    args: Record<string, unknown>;
-    options?: { abortSignal?: AbortSignal };
-  }): Promise<CallToolResult> {
-    try {
-      return this.request({
-        request: { method: 'tools/call', params: { name, arguments: args } },
-        resultSchema: CallToolResultSchema,
-        options: {
-          signal: options?.abortSignal,
-        },
-      });
-    } catch (error) {
-      throw error;
-    }
-  }
-
-  callTool({
+  async callTool({
     name,
     arguments: args = {},
     options,
@@ -489,11 +467,15 @@ class DefaultMCPClient implements MCPClient {
     arguments?: Record<string, unknown>;
     options?: RequestOptions;
   }): Promise<CallToolResult> {
-    return this.callToolInternal({
-      name,
-      args,
-      options: { abortSignal: options?.signal },
-    });
+    try {
+      return this.request({
+        request: { method: 'tools/call', params: { name, arguments: args } },
+        resultSchema: CallToolResultSchema,
+        options,
+      });
+    } catch (error) {
+      throw error;
+    }
   }
 
   private async listResourcesInternal({
@@ -657,7 +639,11 @@ class DefaultMCPClient implements MCPClient {
         options: ToolExecutionOptions<{}>,
       ): Promise<unknown> => {
         options?.abortSignal?.throwIfAborted();
-        const result = await self.callToolInternal({ name, args, options });
+        const result = await self.callTool({
+          name,
+          arguments: args,
+          options: { signal: options?.abortSignal },
+        });
 
         if (result.isError) {
           return result;
