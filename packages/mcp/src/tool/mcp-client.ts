@@ -620,7 +620,7 @@ class DefaultMCPClient implements MCPClient {
       const outputSchema =
         schemas !== 'automatic' ? schemas[name]?.outputSchema : undefined;
       const appMeta = getMCPAppToolMeta({ _meta });
-      const providerMetadata = {
+      const metadata = {
         mcp: {
           clientName: this.clientInfo.name,
           ...(appMeta?.resourceUri != null
@@ -661,7 +661,7 @@ class DefaultMCPClient implements MCPClient {
           ? dynamicTool({
               description,
               title: resolvedTitle,
-              providerMetadata,
+              metadata,
               inputSchema: jsonSchema({
                 ...inputSchema,
                 properties: inputSchema.properties ?? {},
@@ -673,7 +673,7 @@ class DefaultMCPClient implements MCPClient {
           : tool({
               description,
               title: resolvedTitle,
-              providerMetadata,
+              metadata,
               inputSchema: schemas[name].inputSchema,
               ...(outputSchema != null ? { outputSchema } : {}),
               execute,

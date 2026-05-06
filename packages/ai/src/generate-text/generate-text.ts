@@ -19,6 +19,7 @@ import { NoOutputGeneratedError } from '../error';
 import { ToolCallNotFoundForApprovalError } from '../error/tool-call-not-found-for-approval-error';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
+import { cloneModelMessages } from '../prompt/clone-model-message';
 import type { ModelMessage } from '../prompt';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { createToolModelOutput } from '../prompt/create-tool-model-output';
@@ -110,6 +111,32 @@ const originalGenerateCallId = createIdGenerator({
   prefix: 'call',
   size: 24,
 });
+
+export type GenerateTextInclude = {
+  /**
+   * Whether to retain the request body in step results.
+   * The request body can be large when sending images or files.
+   *
+   * @default true
+   */
+  requestBody?: boolean;
+
+  /**
+   * Whether to retain the request messages in step results.
+   * The request messages can be large when sending images or files.
+   *
+   * @default false
+   */
+  requestMessages?: boolean;
+
+  /**
+   * Whether to retain the response body in step results.
+   *
+   * @default true
+   */
+  responseBody?: boolean;
+};
+
 /**
  * Generate a text and call tools for a given prompt using a language model.
  *
@@ -156,10 +183,12 @@ const originalGenerateCallId = createIdGenerator({
  * @param experimental_onStart - Callback invoked when generation begins, before any LLM calls.
  * @param experimental_onStepStart - Callback invoked when each step begins, before the provider is called.
  * Receives step number, messages (in ModelMessage format), tools, and runtimeContext.
- * @param experimental_onToolExecutionStart - Callback invoked before each tool execution begins.
+ * @param onToolExecutionStart - Callback invoked before each tool execution begins.
  * Receives tool name, call ID, input, and context.
- * @param experimental_onToolExecutionEnd - Callback invoked after each tool execution completes.
+ * @param experimental_onToolCallStart - Deprecated alias for `onToolExecutionStart`.
+ * @param onToolExecutionEnd - Callback invoked after each tool execution completes.
  * Uses a discriminated union: check `success` to determine if `output` or `error` is present.
+ * @param experimental_onToolCallFinish - Deprecated alias for `onToolExecutionEnd`.
  * @param onStepFinish - Callback that is called when each step (LLM call) is finished, including intermediate steps.
  * @param onFinish - Callback that is called when all steps are finished and the response is complete.
  *
@@ -195,7 +224,8 @@ export async function generateText<
   experimental_download: download,
   runtimeContext = {} as RUNTIME_CONTEXT,
   toolsContext = {} as InferToolSetContext<TOOLS>,
-  experimental_include: include,
+  include,
+  experimental_include: experimentalInclude,
   _internal: {
     generateId = originalGenerateId,
     generateCallId = originalGenerateCallId,
@@ -204,8 +234,10 @@ export async function generateText<
   experimental_onStepStart: onStepStart,
   experimental_onLanguageModelCallStart: onLanguageModelCallStart,
   experimental_onLanguageModelCallEnd: onLanguageModelCallEnd,
-  experimental_onToolExecutionStart: onToolExecutionStart,
-  experimental_onToolExecutionEnd: onToolExecutionEnd,
+  onToolExecutionStart,
+  onToolExecutionEnd,
+  experimental_onToolCallStart,
+  experimental_onToolCallFinish,
   onStepFinish,
   onFinish,
   ...settings
@@ -335,16 +367,26 @@ export async function generateText<
     /**
      * Callback that is called right before a tool's execute function runs.
      */
-    experimental_onToolExecutionStart?: OnToolExecutionStartCallback<
-      NoInfer<TOOLS>
-    >;
+    onToolExecutionStart?: OnToolExecutionStartCallback<NoInfer<TOOLS>>;
+
+    /**
+     * Callback that is called right before a tool's execute function runs.
+     *
+     * @deprecated Use `onToolExecutionStart` instead.
+     */
+    experimental_onToolCallStart?: OnToolExecutionStartCallback<NoInfer<TOOLS>>;
 
     /**
      * Callback that is called right after a tool's execute function completes (or errors).
      */
-    experimental_onToolExecutionEnd?: OnToolExecutionEndCallback<
-      NoInfer<TOOLS>
-    >;
+    onToolExecutionEnd?: OnToolExecutionEndCallback<NoInfer<TOOLS>>;
+
+    /**
+     * Callback that is called right after a tool's execute function completes (or errors).
+     *
+     * @deprecated Use `onToolExecutionEnd` instead.
+     */
+    experimental_onToolCallFinish?: OnToolExecutionEndCallback<NoInfer<TOOLS>>;
 
     /**
      * Callback that is called when each step (LLM call) is finished, including intermediate steps.
@@ -367,22 +409,17 @@ export async function generateText<
      * Disabling inclusion can help reduce memory usage when processing
      * large payloads like images.
      *
-     * By default, all data is included for backwards compatibility.
+     * By default, request and response bodies are included, and request
+     * messages are excluded.
      */
-    experimental_include?: {
-      /**
-       * Whether to retain the request body in step results.
-       * The request body can be large when sending images or files.
-       * @default true
-       */
-      requestBody?: boolean;
+    include?: GenerateTextInclude;
 
-      /**
-       * Whether to retain the response body in step results.
-       * @default true
-       */
-      responseBody?: boolean;
-    };
+    /**
+     * Settings for controlling what data is included in step results.
+     *
+     * @deprecated Use `include` instead.
+     */
+    experimental_include?: GenerateTextInclude;
 
     /**
      * Internal. For test use only. May change without notice.
@@ -392,8 +429,14 @@ export async function generateText<
       generateCallId?: IdGenerator;
     };
   }): Promise<GenerateTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>> {
+  include ??= experimentalInclude;
+
   const model = resolveLanguageModel(modelArg);
   const stopConditions = asArray(stopWhen);
+  const resolvedOnToolExecutionStart =
+    onToolExecutionStart ?? experimental_onToolCallStart;
+  const resolvedOnToolExecutionEnd =
+    onToolExecutionEnd ?? experimental_onToolCallFinish;
 
   const totalTimeoutMs = getTotalTimeoutMs(timeout);
   const stepTimeoutMs = getStepTimeoutMs(timeout);
@@ -496,7 +539,7 @@ export async function generateText<
           notify({
             event,
             callbacks: [
-              onToolExecutionStart,
+              resolvedOnToolExecutionStart,
               telemetryDispatcher.onToolExecutionStart,
             ],
           }),
@@ -504,7 +547,7 @@ export async function generateText<
           notify({
             event,
             callbacks: [
-              onToolExecutionEnd,
+              resolvedOnToolExecutionEnd,
               telemetryDispatcher.onToolExecutionEnd,
             ],
           }),
@@ -888,7 +931,7 @@ export async function generateText<
                 notify({
                   event,
                   callbacks: [
-                    onToolExecutionStart,
+                    resolvedOnToolExecutionStart,
                     telemetryDispatcher.onToolExecutionStart,
                   ],
                 }),
@@ -896,7 +939,7 @@ export async function generateText<
                 notify({
                   event,
                   callbacks: [
-                    onToolExecutionEnd,
+                    resolvedOnToolExecutionEnd,
                     telemetryDispatcher.onToolExecutionEnd,
                   ],
                 }),
@@ -955,15 +998,22 @@ export async function generateText<
         // Add step information (after response messages are updated):
         // Conditionally include request.body and response.body based on include settings.
         // Large payloads (e.g., base64-encoded images) can cause memory issues.
-        const stepRequest: LanguageModelRequestMetadata =
-          (include?.requestBody ?? true)
-            ? (currentModelResponse.request ?? {})
-            : { ...currentModelResponse.request, body: undefined };
+        const stepRequest: LanguageModelRequestMetadata = {
+          ...currentModelResponse.request,
+          body:
+            (include?.requestBody ?? true)
+              ? currentModelResponse.request?.body
+              : undefined,
+          messages:
+            (include?.requestMessages ?? false)
+              ? cloneModelMessages(stepMessages)
+              : undefined,
+        };
 
         const stepResponse = {
           ...currentModelResponse.response,
           // deep clone msgs to avoid mutating past messages in multi-step:
-          messages: structuredClone(responseMessages),
+          messages: cloneModelMessages(responseMessages),
           // Conditionally include response body:
           body:
             (include?.responseBody ?? true)
@@ -1335,6 +1385,9 @@ function asContent<TOOLS extends ToolSet>({
               ...(part.providerMetadata != null
                 ? { providerMetadata: part.providerMetadata }
                 : {}),
+              ...(tool?.metadata != null
+                ? { toolMetadata: tool.metadata }
+                : {}),
             } as TypedToolError<TOOLS>);
           } else {
             contentParts.push({
@@ -1347,6 +1400,9 @@ function asContent<TOOLS extends ToolSet>({
               dynamic: part.dynamic,
               ...(part.providerMetadata != null
                 ? { providerMetadata: part.providerMetadata }
+                : {}),
+              ...(tool?.metadata != null
+                ? { toolMetadata: tool.metadata }
                 : {}),
             } as TypedToolResult<TOOLS>);
           }
@@ -1365,6 +1421,9 @@ function asContent<TOOLS extends ToolSet>({
             ...(part.providerMetadata != null
               ? { providerMetadata: part.providerMetadata }
               : {}),
+            ...(toolCall.toolMetadata != null
+              ? { toolMetadata: toolCall.toolMetadata }
+              : {}),
           } as TypedToolError<TOOLS>);
         } else {
           contentParts.push({
@@ -1377,6 +1436,9 @@ function asContent<TOOLS extends ToolSet>({
             dynamic: toolCall.dynamic,
             ...(part.providerMetadata != null
               ? { providerMetadata: part.providerMetadata }
+              : {}),
+            ...(toolCall.toolMetadata != null
+              ? { toolMetadata: toolCall.toolMetadata }
               : {}),
           } as TypedToolResult<TOOLS>);
         }

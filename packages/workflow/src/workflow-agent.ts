@@ -503,12 +503,12 @@ export interface WorkflowAgentOptions<
   /**
    * Callback called before a tool's execute function runs.
    */
-  experimental_onToolExecutionStart?: WorkflowAgentOnToolExecutionStartCallback;
+  onToolExecutionStart?: WorkflowAgentOnToolExecutionStartCallback;
 
   /**
    * Callback called after a tool execution completes.
    */
-  experimental_onToolExecutionEnd?: WorkflowAgentOnToolExecutionEndCallback;
+  onToolExecutionEnd?: WorkflowAgentOnToolExecutionEndCallback;
 
   /**
    * Prepare the parameters for the stream call.
@@ -846,12 +846,12 @@ export type WorkflowAgentStreamOptions<
     /**
      * Callback called before a tool's execute function runs.
      */
-    experimental_onToolExecutionStart?: WorkflowAgentOnToolExecutionStartCallback;
+    onToolExecutionStart?: WorkflowAgentOnToolExecutionStartCallback;
 
     /**
      * Callback called after a tool execution completes.
      */
-    experimental_onToolExecutionEnd?: WorkflowAgentOnToolExecutionEndCallback;
+    onToolExecutionEnd?: WorkflowAgentOnToolExecutionEndCallback;
 
     /**
      * Callback function called before each step in the agent loop.
@@ -1055,10 +1055,8 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
     this.constructorOnFinish = options.onFinish;
     this.constructorOnStart = options.experimental_onStart;
     this.constructorOnStepStart = options.experimental_onStepStart;
-    this.constructorOnToolExecutionStart =
-      options.experimental_onToolExecutionStart;
-    this.constructorOnToolExecutionEnd =
-      options.experimental_onToolExecutionEnd;
+    this.constructorOnToolExecutionStart = options.onToolExecutionStart;
+    this.constructorOnToolExecutionEnd = options.onToolExecutionEnd;
     this.prepareCall = options.prepareCall;
 
     // Extract generation settings
@@ -1360,11 +1358,11 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
     );
     const mergedOnToolExecutionStart = mergeCallbacks(
       this.constructorOnToolExecutionStart,
-      options.experimental_onToolExecutionStart,
+      options.onToolExecutionStart,
     );
     const mergedOnToolExecutionEnd = mergeCallbacks(
       this.constructorOnToolExecutionEnd,
-      options.experimental_onToolExecutionEnd,
+      options.onToolExecutionEnd,
     );
 
     // Determine effective tool choice

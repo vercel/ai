@@ -281,7 +281,7 @@ function makeStepFinishEvent(overrides?: Record<string, unknown>) {
       },
     },
     warnings: undefined,
-    request: { body: undefined },
+    request: { body: undefined, messages: [] },
     response: {
       id: 'resp-1',
       modelId: 'gpt-4-0613',

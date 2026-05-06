@@ -2143,8 +2143,8 @@ describe('WorkflowAgent', () => {
       const agent = new WorkflowAgent({
         model: mockModel,
         tools,
-        experimental_onToolExecutionStart: onToolExecutionStart,
-        experimental_onToolExecutionEnd: onToolExecutionEnd,
+        onToolExecutionStart: onToolExecutionStart,
+        onToolExecutionEnd: onToolExecutionEnd,
       });
 
       const mockWritable = new WritableStream({
@@ -2228,7 +2228,7 @@ describe('WorkflowAgent', () => {
       const agent = new WorkflowAgent({
         model: mockModel,
         tools,
-        experimental_onToolExecutionEnd: onToolExecutionEnd,
+        onToolExecutionEnd: onToolExecutionEnd,
       });
 
       const mockWritable = new WritableStream({
