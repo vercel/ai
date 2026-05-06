@@ -6,7 +6,7 @@ run(async () => {
   const result = streamText({
     model: mistral('mistral-small-latest'),
     prompt: 'Count from 1 to 3 slowly.',
-    experimental_include: {
+    include: {
       rawChunks: true,
     },
   });

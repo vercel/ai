@@ -6,7 +6,7 @@ run(async () => {
   const result = streamText({
     model: azure.completion('model-router'),
     prompt: 'Say where is copenhagen in three words max',
-    experimental_include: {
+    include: {
       rawChunks: true,
     },
   });

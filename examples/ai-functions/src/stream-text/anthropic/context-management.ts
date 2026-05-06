@@ -8,7 +8,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    experimental_include: {
+    include: {
       rawChunks: true,
     },
     onChunk({ chunk }) {

@@ -6,7 +6,7 @@ run(async () => {
   const result = streamText({
     model: google('gemini-2.0-flash'),
     prompt: 'Count from 1 to 3 slowly.',
-    experimental_include: {
+    include: {
       rawChunks: true,
     },
   });

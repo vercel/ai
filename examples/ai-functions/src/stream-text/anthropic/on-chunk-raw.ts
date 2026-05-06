@@ -13,7 +13,7 @@ run(async () => {
     model: anthropic('claude-3-haiku-20240307'),
     prompt:
       'Write a short poem about coding. Include reasoning about your creative process.',
-    experimental_include: {
+    include: {
       rawChunks: true,
     },
     onChunk({ chunk }) {

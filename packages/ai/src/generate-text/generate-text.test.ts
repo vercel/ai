@@ -847,11 +847,54 @@ describe('generateText', () => {
           }),
         }),
         prompt: 'prompt',
+        include: { requestBody: false },
+      });
+
+      expect(result.request).toStrictEqual({
+        body: undefined,
+        messages: undefined,
+      });
+    });
+
+    it('should accept deprecated experimental_include as an alias for include', async () => {
+      const result = await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async ({}) => ({
+            ...dummyResponseValues,
+            content: [{ type: 'text', text: 'Hello, world!' }],
+            request: {
+              body: 'test body',
+            },
+          }),
+        }),
+        prompt: 'prompt',
         experimental_include: { requestBody: false },
       });
 
       expect(result.request).toStrictEqual({
         body: undefined,
+        messages: undefined,
+      });
+    });
+
+    it('should prefer include over deprecated experimental_include', async () => {
+      const result = await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async ({}) => ({
+            ...dummyResponseValues,
+            content: [{ type: 'text', text: 'Hello, world!' }],
+            request: {
+              body: 'test body',
+            },
+          }),
+        }),
+        prompt: 'prompt',
+        include: { requestBody: true },
+        experimental_include: { requestBody: false },
+      });
+
+      expect(result.request).toStrictEqual({
+        body: 'test body',
         messages: undefined,
       });
     });
@@ -868,7 +911,7 @@ describe('generateText', () => {
           }),
         }),
         prompt: 'prompt',
-        experimental_include: { requestMessages: true },
+        include: { requestMessages: true },
       });
 
       expect(result.request).toStrictEqual({
@@ -896,7 +939,7 @@ describe('generateText', () => {
         prepareStep: async () => ({
           messages: preparedMessages,
         }),
-        experimental_include: { requestMessages: true },
+        include: { requestMessages: true },
       });
 
       expect(result.request.messages).toStrictEqual(preparedMessages);

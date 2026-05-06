@@ -21,7 +21,7 @@ run(async () => {
         streamFunctionCallArguments: true,
       },
     },
-    experimental_include: {
+    include: {
       rawChunks: true,
     },
   });

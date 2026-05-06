@@ -42,6 +42,18 @@ describe('ToolLoopAgent', () => {
   });
 
   describe('generate', () => {
+    it('should accept include and deprecated experimental_include', async () => {
+      new ToolLoopAgent({
+        model: new MockLanguageModelV4(),
+        include: { requestMessages: true },
+      });
+
+      new ToolLoopAgent({
+        model: new MockLanguageModelV4(),
+        experimental_include: { requestMessages: true },
+      });
+    });
+
     it('should not allow system prompt', async () => {
       const agent = new ToolLoopAgent({
         model: new MockLanguageModelV4(),
