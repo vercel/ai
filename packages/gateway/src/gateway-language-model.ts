@@ -199,6 +199,8 @@ export class GatewayLanguageModel implements LanguageModelV4 {
 
   /**
    * Encodes inline `Uint8Array` file part data to a base64 string in place.
+   * @param options - The options to encode.
+   * @returns The options with the file parts encoded.
    */
   private maybeEncodeFileParts(options: LanguageModelV4CallOptions) {
     for (const message of options.prompt) {
