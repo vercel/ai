@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 4.0.0-canary.54
+
+### Patch Changes
+
+- b04e23e: feat(provider/google): add support for the Gemini Interactions API
+
 ## 4.0.0-canary.53
 
 ### Patch Changes
