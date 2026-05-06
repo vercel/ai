@@ -369,7 +369,7 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
       ],
     },
     {
-      name: 'experimental_onToolExecutionStart',
+      name: 'onToolExecutionStart',
       type: 'OnToolExecutionStartCallback',
       isOptional: true,
       description:
@@ -406,7 +406,7 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
       ],
     },
     {
-      name: 'experimental_onToolExecutionEnd',
+      name: 'onToolExecutionEnd',
       type: 'OnToolExecutionEndCallback',
       isOptional: true,
       description:
@@ -685,14 +685,14 @@ const result = await agent.generate({
         'Callback that is called when a step (LLM call) begins, before the provider is called. If also specified in the constructor, both callbacks are called (constructor first). Experimental (can break in patch releases).',
     },
     {
-      name: 'experimental_onToolExecutionStart',
+      name: 'onToolExecutionStart',
       type: 'OnToolExecutionStartCallback',
       isOptional: true,
       description:
         "Callback that is called right before a tool's execute function runs. If also specified in the constructor, both callbacks are called (constructor first). Experimental (can break in patch releases).",
     },
     {
-      name: 'experimental_onToolExecutionEnd',
+      name: 'onToolExecutionEnd',
       type: 'OnToolExecutionEndCallback',
       isOptional: true,
       description:
@@ -788,14 +788,14 @@ for await (const chunk of stream.textStream) {
         'Callback that is called when a step (LLM call) begins, before the provider is called. If also specified in the constructor, both callbacks are called (constructor first). Experimental (can break in patch releases).',
     },
     {
-      name: 'experimental_onToolExecutionStart',
+      name: 'onToolExecutionStart',
       type: 'OnToolExecutionStartCallback',
       isOptional: true,
       description:
         "Callback that is called right before a tool's execute function runs. If also specified in the constructor, both callbacks are called (constructor first). Experimental (can break in patch releases).",
     },
     {
-      name: 'experimental_onToolExecutionEnd',
+      name: 'onToolExecutionEnd',
       type: 'OnToolExecutionEndCallback',
       isOptional: true,
       description:

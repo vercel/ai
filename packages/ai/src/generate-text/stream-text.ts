@@ -298,8 +298,8 @@ export function streamText<
   experimental_onStepStart: onStepStart,
   experimental_onLanguageModelCallStart: onLanguageModelCallStart,
   experimental_onLanguageModelCallEnd: onLanguageModelCallEnd,
-  experimental_onToolExecutionStart: onToolExecutionStart,
-  experimental_onToolExecutionEnd: onToolExecutionEnd,
+  onToolExecutionStart,
+  onToolExecutionEnd,
   runtimeContext = {} as RUNTIME_CONTEXT,
   toolsContext = {} as InferToolSetContext<TOOLS>,
   experimental_include: include,
@@ -495,16 +495,12 @@ export function streamText<
     /**
      * Callback that is called right before a tool's execute function runs.
      */
-    experimental_onToolExecutionStart?: OnToolExecutionStartCallback<
-      NoInfer<TOOLS>
-    >;
+    onToolExecutionStart?: OnToolExecutionStartCallback<NoInfer<TOOLS>>;
 
     /**
      * Callback that is called right after a tool's execute function completes (or errors).
      */
-    experimental_onToolExecutionEnd?: OnToolExecutionEndCallback<
-      NoInfer<TOOLS>
-    >;
+    onToolExecutionEnd?: OnToolExecutionEndCallback<NoInfer<TOOLS>>;
 
     /**
      * Settings for controlling what data is included in step results.

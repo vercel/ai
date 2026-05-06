@@ -157,9 +157,9 @@ const originalGenerateCallId = createIdGenerator({
  * @param experimental_onStart - Callback invoked when generation begins, before any LLM calls.
  * @param experimental_onStepStart - Callback invoked when each step begins, before the provider is called.
  * Receives step number, messages (in ModelMessage format), tools, and runtimeContext.
- * @param experimental_onToolExecutionStart - Callback invoked before each tool execution begins.
+ * @param onToolExecutionStart - Callback invoked before each tool execution begins.
  * Receives tool name, call ID, input, and context.
- * @param experimental_onToolExecutionEnd - Callback invoked after each tool execution completes.
+ * @param onToolExecutionEnd - Callback invoked after each tool execution completes.
  * Uses a discriminated union: check `success` to determine if `output` or `error` is present.
  * @param onStepFinish - Callback that is called when each step (LLM call) is finished, including intermediate steps.
  * @param onFinish - Callback that is called when all steps are finished and the response is complete.
@@ -205,8 +205,8 @@ export async function generateText<
   experimental_onStepStart: onStepStart,
   experimental_onLanguageModelCallStart: onLanguageModelCallStart,
   experimental_onLanguageModelCallEnd: onLanguageModelCallEnd,
-  experimental_onToolExecutionStart: onToolExecutionStart,
-  experimental_onToolExecutionEnd: onToolExecutionEnd,
+  onToolExecutionStart,
+  onToolExecutionEnd,
   onStepFinish,
   onFinish,
   ...settings
@@ -336,16 +336,12 @@ export async function generateText<
     /**
      * Callback that is called right before a tool's execute function runs.
      */
-    experimental_onToolExecutionStart?: OnToolExecutionStartCallback<
-      NoInfer<TOOLS>
-    >;
+    onToolExecutionStart?: OnToolExecutionStartCallback<NoInfer<TOOLS>>;
 
     /**
      * Callback that is called right after a tool's execute function completes (or errors).
      */
-    experimental_onToolExecutionEnd?: OnToolExecutionEndCallback<
-      NoInfer<TOOLS>
-    >;
+    onToolExecutionEnd?: OnToolExecutionEndCallback<NoInfer<TOOLS>>;
 
     /**
      * Callback that is called when each step (LLM call) is finished, including intermediate steps.
