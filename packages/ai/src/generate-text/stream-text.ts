@@ -2365,6 +2365,9 @@ class DefaultStreamTextResult<
                 ...(part.providerMetadata != null
                   ? { providerMetadata: part.providerMetadata }
                   : {}),
+                ...(part.toolMetadata != null
+                  ? { toolMetadata: part.toolMetadata }
+                  : {}),
                 ...(dynamic != null ? { dynamic } : {}),
                 ...(part.title != null ? { title: part.title } : {}),
               });
@@ -2395,6 +2398,9 @@ class DefaultStreamTextResult<
                   ...(part.providerMetadata != null
                     ? { providerMetadata: part.providerMetadata }
                     : {}),
+                  ...(part.toolMetadata != null
+                    ? { toolMetadata: part.toolMetadata }
+                    : {}),
                   ...(dynamic != null ? { dynamic } : {}),
                   errorText: onError(part.error),
                   ...(part.title != null ? { title: part.title } : {}),
@@ -2410,6 +2416,9 @@ class DefaultStreamTextResult<
                     : {}),
                   ...(part.providerMetadata != null
                     ? { providerMetadata: part.providerMetadata }
+                    : {}),
+                  ...(part.toolMetadata != null
+                    ? { toolMetadata: part.toolMetadata }
                     : {}),
                   ...(dynamic != null ? { dynamic } : {}),
                   ...(part.title != null ? { title: part.title } : {}),
@@ -2457,6 +2466,9 @@ class DefaultStreamTextResult<
                 ...(part.providerMetadata != null
                   ? { providerMetadata: part.providerMetadata }
                   : {}),
+                ...(part.toolMetadata != null
+                  ? { toolMetadata: part.toolMetadata }
+                  : {}),
                 ...(part.preliminary != null
                   ? { preliminary: part.preliminary }
                   : {}),
@@ -2481,6 +2493,9 @@ class DefaultStreamTextResult<
                   : {}),
                 ...(part.providerMetadata != null
                   ? { providerMetadata: part.providerMetadata }
+                  : {}),
+                ...(part.toolMetadata != null
+                  ? { toolMetadata: part.toolMetadata }
                   : {}),
                 ...(dynamic != null ? { dynamic } : {}),
               });

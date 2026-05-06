@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 4.0.0-canary.46
+
+### Patch Changes
+
+- e5c4f40: Remove stale `effort-2025-11-24` beta header — the extended thinking effort parameter is GA and no longer requires the beta flag. Vertex AI's strict validator was actively rejecting requests with this header.
+
 ## 4.0.0-canary.45
 
 ### Patch Changes

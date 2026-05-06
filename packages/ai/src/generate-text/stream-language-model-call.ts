@@ -528,6 +528,9 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
                 error: getErrorMessage(toolCall.error!),
                 dynamic: true,
                 title: toolCall.title,
+                ...(toolCall.toolMetadata != null
+                  ? { toolMetadata: toolCall.toolMetadata }
+                  : {}),
               });
               break;
             }
@@ -565,30 +568,37 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
 
         case 'tool-result': {
           const toolName = chunk.toolName as keyof TOOLS & string;
+          const toolCall = toolCallsByToolCallId.get(chunk.toolCallId);
 
           const toolResultPart = chunk.isError
             ? ({
                 type: 'tool-error',
                 toolCallId: chunk.toolCallId,
                 toolName,
-                input: toolCallsByToolCallId.get(chunk.toolCallId)?.input,
+                input: toolCall?.input,
                 providerExecuted: true,
                 error: chunk.result,
                 dynamic: chunk.dynamic,
                 ...(chunk.providerMetadata != null
                   ? { providerMetadata: chunk.providerMetadata }
                   : {}),
+                ...(toolCall?.toolMetadata != null
+                  ? { toolMetadata: toolCall.toolMetadata }
+                  : {}),
               } as TypedToolError<TOOLS>)
             : ({
                 type: 'tool-result',
                 toolCallId: chunk.toolCallId,
                 toolName,
-                input: toolCallsByToolCallId.get(chunk.toolCallId)?.input,
+                input: toolCall?.input,
                 output: chunk.result,
                 providerExecuted: true,
                 dynamic: chunk.dynamic,
                 ...(chunk.providerMetadata != null
                   ? { providerMetadata: chunk.providerMetadata }
+                  : {}),
+                ...(toolCall?.toolMetadata != null
+                  ? { toolMetadata: toolCall.toolMetadata }
                   : {}),
               } as TypedToolResult<TOOLS>);
 
@@ -605,6 +615,7 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
             ...chunk,
             dynamic: chunk.dynamic ?? tool?.type === 'dynamic',
             title: tool?.title,
+            ...(tool?.metadata != null ? { toolMetadata: tool.metadata } : {}),
           });
           break;
         }

@@ -152,6 +152,9 @@ export async function executeToolCall<TOOLS extends ToolSet>({
       ...(toolCall.providerMetadata != null
         ? { providerMetadata: toolCall.providerMetadata }
         : {}),
+      ...(toolCall.toolMetadata != null
+        ? { toolMetadata: toolCall.toolMetadata }
+        : {}),
     } as TypedToolError<TOOLS>;
 
     await notify({
@@ -175,6 +178,9 @@ export async function executeToolCall<TOOLS extends ToolSet>({
     dynamic: tool.type === 'dynamic',
     ...(toolCall.providerMetadata != null
       ? { providerMetadata: toolCall.providerMetadata }
+      : {}),
+    ...(toolCall.toolMetadata != null
+      ? { toolMetadata: toolCall.toolMetadata }
       : {}),
   } as TypedToolResult<TOOLS>;
 
