@@ -119,6 +119,11 @@ export class DeepSeekChatLanguageModel implements LanguageModelV3 {
       toolChoice,
     });
 
+    const thinking =
+      deepseekOptions.thinking?.type != null
+        ? { type: deepseekOptions.thinking.type }
+        : undefined;
+
     return {
       args: {
         model: this.modelId,
@@ -133,10 +138,11 @@ export class DeepSeekChatLanguageModel implements LanguageModelV3 {
         messages,
         tools: deepseekTools,
         tool_choice: deepseekToolChoices,
-        thinking:
-          deepseekOptions.thinking?.type != null
-            ? { type: deepseekOptions.thinking.type }
-            : undefined,
+        thinking,
+        ...(thinking?.type !== 'disabled' &&
+          deepseekOptions.reasoningEffort != null && {
+            reasoning_effort: deepseekOptions.reasoningEffort,
+          }),
       },
       warnings: [...warnings, ...toolWarnings],
     };
