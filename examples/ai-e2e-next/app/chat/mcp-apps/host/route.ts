@@ -17,6 +17,8 @@ export async function POST(req: Request) {
     return Response.json({ error: 'Missing method' }, { status: 400 });
   }
 
+  console.log('[mcp-apps/host] request', { method, params });
+
   const client = await createLocalMCPAppsClient(requestUrl.origin);
 
   try {
@@ -25,6 +27,10 @@ export async function POST(req: Request) {
         if (typeof params?.uri !== 'string') {
           return Response.json({ error: 'Missing uri' }, { status: 400 });
         }
+
+        console.log('[mcp-apps/host] read MCP app resource', {
+          uri: params.uri,
+        });
 
         return Response.json(
           await readMCPAppResource({ client, uri: params.uri }),
@@ -35,6 +41,8 @@ export async function POST(req: Request) {
         if (typeof params?.uri !== 'string') {
           return Response.json({ error: 'Missing uri' }, { status: 400 });
         }
+
+        console.log('[mcp-apps/host] read resource', { uri: params.uri });
 
         return Response.json(await client.readResource({ uri: params.uri }));
       }
@@ -56,12 +64,18 @@ export async function POST(req: Request) {
           );
         }
 
-        return Response.json(
-          await client.callTool({
-            name: params.name,
-            arguments: asRecord(params.arguments) ?? {},
-          }),
-        );
+        const result = await client.callTool({
+          name: params.name,
+          arguments: asRecord(params.arguments) ?? {},
+        });
+
+        console.log('[mcp-apps/host] app tool call', {
+          name: params.name,
+          arguments: params.arguments,
+          result,
+        });
+
+        return Response.json(result);
       }
 
       default:

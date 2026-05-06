@@ -420,27 +420,36 @@ function createServer() {
         },
       },
     },
-    async ({ topic }) => ({
-      content: [
-        {
-          type: 'text',
-          text: `Rendered an MCP App dashboard for "${topic}".`,
-        },
-      ],
-      structuredContent: {
-        topic,
-        cards: [
-          { label: 'Requests', value: 128 },
-          { label: 'Latency', value: '42ms' },
-          { label: 'Status', value: 'Healthy' },
+    async ({ topic }) => {
+      const result = {
+        content: [
+          {
+            type: 'text' as const,
+            text: `Rendered an MCP App dashboard for "${topic}".`,
+          },
         ],
-      },
-      _meta: {
-        ui: {
-          resourceUri: DASHBOARD_RESOURCE_URI,
+        structuredContent: {
+          topic,
+          cards: [
+            { label: 'Requests', value: 128 },
+            { label: 'Latency', value: '42ms' },
+            { label: 'Status', value: 'Healthy' },
+          ],
         },
-      },
-    }),
+        _meta: {
+          ui: {
+            resourceUri: DASHBOARD_RESOURCE_URI,
+          },
+        },
+      };
+
+      console.log('[mcp-apps/server] tool showDashboard', {
+        input: { topic },
+        result,
+      });
+
+      return result;
+    },
   );
 
   server.registerTool(
@@ -464,10 +473,10 @@ function createServer() {
       const nextScore =
         typeof roll === 'number' && roll >= 12 ? score + 1 : score;
 
-      return {
+      const result = {
         content: [
           {
-            type: 'text',
+            type: 'text' as const,
             text:
               typeof roll === 'number'
                 ? `Rolled ${roll}. Score is now ${nextScore}.`
@@ -490,6 +499,13 @@ function createServer() {
           },
         },
       };
+
+      console.log('[mcp-apps/server] tool showDiceGame', {
+        input: { roll: shouldRoll, score },
+        result,
+      });
+
+      return result;
     },
   );
 
@@ -502,20 +518,29 @@ function createServer() {
         city: z.string().describe('The city to get weather for.'),
       },
     },
-    async ({ city }) => ({
-      content: [
-        {
-          type: 'text',
-          text: `The weather in ${city} is sunny and 72F.`,
+    async ({ city }) => {
+      const result = {
+        content: [
+          {
+            type: 'text' as const,
+            text: `The weather in ${city} is sunny and 72F.`,
+          },
+        ],
+        structuredContent: {
+          city,
+          condition: 'sunny',
+          temperature: 72,
+          unit: 'fahrenheit',
         },
-      ],
-      structuredContent: {
-        city,
-        condition: 'sunny',
-        temperature: 72,
-        unit: 'fahrenheit',
-      },
-    }),
+      };
+
+      console.log('[mcp-apps/server] tool getWeather', {
+        input: { city },
+        result,
+      });
+
+      return result;
+    },
   );
 
   server.registerTool(
@@ -534,22 +559,31 @@ function createServer() {
         },
       },
     },
-    async ({ reason }) => ({
-      content: [
-        {
-          type: 'text',
-          text: `Dashboard data refreshed${reason ? `: ${reason}` : ''}.`,
-        },
-      ],
-      structuredContent: {
-        refreshedAt: new Date().toISOString(),
-        cards: [
-          { label: 'Requests', value: 143 },
-          { label: 'Latency', value: '39ms' },
-          { label: 'Status', value: 'Healthy' },
+    async ({ reason }) => {
+      const result = {
+        content: [
+          {
+            type: 'text' as const,
+            text: `Dashboard data refreshed${reason ? `: ${reason}` : ''}.`,
+          },
         ],
-      },
-    }),
+        structuredContent: {
+          refreshedAt: new Date().toISOString(),
+          cards: [
+            { label: 'Requests', value: 143 },
+            { label: 'Latency', value: '39ms' },
+            { label: 'Status', value: 'Healthy' },
+          ],
+        },
+      };
+
+      console.log('[mcp-apps/server] tool refreshDashboardData', {
+        input: { reason },
+        result,
+      });
+
+      return result;
+    },
   );
 
   return server;
