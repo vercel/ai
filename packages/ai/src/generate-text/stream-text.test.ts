@@ -18002,12 +18002,7 @@ describe('streamText', () => {
                 {
                   "request": {
                     "body": undefined,
-                    "messages": [
-                      {
-                        "content": "test-input",
-                        "role": "user",
-                      },
-                    ],
+                    "messages": undefined,
                   },
                   "type": "start-step",
                   "warnings": [],
