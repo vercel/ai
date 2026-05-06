@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 4.0.0-canary.50
+
+### Patch Changes
+
+- 29e6ac6: feat: add allowedTools provider option for OpenAI Responses
+
 ## 4.0.0-canary.49
 
 ### Patch Changes

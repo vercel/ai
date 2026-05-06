@@ -304,7 +304,10 @@ export async function doStreamStep(
         totalTokens: 0,
       } as LanguageModelUsage),
     warnings,
-    request: { body: '' },
+    request: {
+      body: '',
+      messages: [], // TODO implement step request messages
+    },
     response: {
       id: responseMetadata?.id ?? 'unknown',
       timestamp: responseMetadata?.timestamp ?? new Date(),

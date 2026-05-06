@@ -14,6 +14,7 @@ import {
   type Context,
   type IdGenerator,
   type InferToolSetContext,
+  type ModelMessage,
   type ProviderOptions,
   type ToolApprovalResponse,
   type ToolContent,
@@ -23,6 +24,7 @@ import type { ServerResponse } from 'node:http';
 import { NoOutputGeneratedError } from '../error';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
+import { cloneModelMessages } from '../prompt/clone-model-message';
 import { createToolModelOutput } from '../prompt/create-tool-model-output';
 import type { LanguageModelCallOptions } from '../prompt/language-model-call-options';
 import { prepareLanguageModelCallOptions } from '../prompt/prepare-language-model-call-options';
@@ -147,6 +149,22 @@ const originalGenerateCallId = createIdGenerator({
   prefix: 'call',
   size: 24,
 });
+
+export type StreamTextInclude = {
+  /**
+   * Whether to retain the request body in step results.
+   * The request body can be large when sending images or files.
+   * @default true
+   */
+  requestBody?: boolean;
+
+  /**
+   * Whether to retain the request messages in step results.
+   * The request messages can be large when sending images or files.
+   * @default false
+   */
+  requestMessages?: boolean;
+};
 
 /**
  * A transformation that is applied to the stream.
@@ -296,8 +314,8 @@ export function streamText<
   experimental_onStepStart: onStepStart,
   experimental_onLanguageModelCallStart: onLanguageModelCallStart,
   experimental_onLanguageModelCallEnd: onLanguageModelCallEnd,
-  experimental_onToolExecutionStart: onToolExecutionStart,
-  experimental_onToolExecutionEnd: onToolExecutionEnd,
+  onToolExecutionStart,
+  onToolExecutionEnd,
   runtimeContext = {} as RUNTIME_CONTEXT,
   toolsContext = {} as InferToolSetContext<TOOLS>,
   experimental_include: include,
@@ -493,32 +511,22 @@ export function streamText<
     /**
      * Callback that is called right before a tool's execute function runs.
      */
-    experimental_onToolExecutionStart?: OnToolExecutionStartCallback<
-      NoInfer<TOOLS>
-    >;
+    onToolExecutionStart?: OnToolExecutionStartCallback<NoInfer<TOOLS>>;
 
     /**
      * Callback that is called right after a tool's execute function completes (or errors).
      */
-    experimental_onToolExecutionEnd?: OnToolExecutionEndCallback<
-      NoInfer<TOOLS>
-    >;
+    onToolExecutionEnd?: OnToolExecutionEndCallback<NoInfer<TOOLS>>;
 
     /**
      * Settings for controlling what data is included in step results.
      * Disabling inclusion can help reduce memory usage when processing
      * large payloads like images.
      *
-     * By default, all data is included for backwards compatibility.
+     * By default, request bodies are included and request messages are
+     * excluded.
      */
-    experimental_include?: {
-      /**
-       * Whether to retain the request body in step results.
-       * The request body can be large when sending images or files.
-       * @default true
-       */
-      requestBody?: boolean;
-    };
+    experimental_include?: StreamTextInclude;
 
     /**
      * Internal. For test use only. May change without notice.
@@ -814,7 +822,7 @@ class DefaultStreamTextResult<
     generateCallId: () => string;
     timeout: TimeoutConfiguration<TOOLS> | undefined;
     download: DownloadFunction | undefined;
-    include: { requestBody?: boolean } | undefined;
+    include: StreamTextInclude | undefined;
 
     // callbacks:
     onChunk: undefined | StreamTextOnChunkCallback<TOOLS>;
@@ -876,7 +884,8 @@ class DefaultStreamTextResult<
     let recordedFinishReason: FinishReason | undefined = undefined;
     let recordedRawFinishReason: string | undefined = undefined;
     let recordedTotalUsage: LanguageModelUsage | undefined = undefined;
-    let recordedRequest: LanguageModelRequestMetadata = {};
+    let recordedRequest: Omit<LanguageModelRequestMetadata, 'messages'> = {};
+    let recordedRequestMessages: Array<ModelMessage> = [];
     let recordedWarnings: Array<CallWarning> = [];
     const recordedSteps: StepResult<TOOLS, RUNTIME_CONTEXT>[] = [];
 
@@ -1083,10 +1092,19 @@ class DefaultStreamTextResult<
               rawFinishReason: part.rawFinishReason,
               usage: part.usage,
               warnings: recordedWarnings,
-              request: recordedRequest,
+              request: {
+                ...recordedRequest,
+                messages:
+                  (include?.requestMessages ?? false)
+                    ? cloneModelMessages(recordedRequestMessages)
+                    : undefined,
+              },
               response: {
                 ...part.response,
-                messages: [...recordedResponseMessages, ...stepMessages],
+                messages: cloneModelMessages([
+                  ...recordedResponseMessages,
+                  ...stepMessages,
+                ]),
               },
               providerMetadata: part.providerMetadata,
             });
@@ -1637,10 +1655,16 @@ class DefaultStreamTextResult<
 
           // Conditionally include request.body based on include settings.
           // Large payloads (e.g., base64-encoded images) can cause memory issues.
-          const stepRequest: LanguageModelRequestMetadata =
-            (include?.requestBody ?? true)
-              ? (request ?? {})
-              : { ...request, body: undefined };
+          const stepRequest: LanguageModelRequestMetadata = {
+            ...request,
+            body: (include?.requestBody ?? true) ? request?.body : undefined,
+            messages:
+              (include?.requestMessages ?? false)
+                ? cloneModelMessages(stepMessages)
+                : undefined,
+          };
+          recordedRequestMessages = stepRequest.messages ?? [];
+
           const stepToolCalls: TypedToolCall<TOOLS>[] = [];
           const stepToolOutputs: ToolOutput<TOOLS>[] = [];
           const stepToolApprovalResponses: ToolApprovalResponse[] = [];
@@ -2351,6 +2375,9 @@ class DefaultStreamTextResult<
                 ...(part.providerMetadata != null
                   ? { providerMetadata: part.providerMetadata }
                   : {}),
+                ...(part.toolMetadata != null
+                  ? { toolMetadata: part.toolMetadata }
+                  : {}),
                 ...(dynamic != null ? { dynamic } : {}),
                 ...(part.title != null ? { title: part.title } : {}),
               });
@@ -2381,6 +2408,9 @@ class DefaultStreamTextResult<
                   ...(part.providerMetadata != null
                     ? { providerMetadata: part.providerMetadata }
                     : {}),
+                  ...(part.toolMetadata != null
+                    ? { toolMetadata: part.toolMetadata }
+                    : {}),
                   ...(dynamic != null ? { dynamic } : {}),
                   errorText: onError(part.error),
                   ...(part.title != null ? { title: part.title } : {}),
@@ -2396,6 +2426,9 @@ class DefaultStreamTextResult<
                     : {}),
                   ...(part.providerMetadata != null
                     ? { providerMetadata: part.providerMetadata }
+                    : {}),
+                  ...(part.toolMetadata != null
+                    ? { toolMetadata: part.toolMetadata }
                     : {}),
                   ...(dynamic != null ? { dynamic } : {}),
                   ...(part.title != null ? { title: part.title } : {}),
@@ -2443,6 +2476,9 @@ class DefaultStreamTextResult<
                 ...(part.providerMetadata != null
                   ? { providerMetadata: part.providerMetadata }
                   : {}),
+                ...(part.toolMetadata != null
+                  ? { toolMetadata: part.toolMetadata }
+                  : {}),
                 ...(part.preliminary != null
                   ? { preliminary: part.preliminary }
                   : {}),
@@ -2467,6 +2503,9 @@ class DefaultStreamTextResult<
                   : {}),
                 ...(part.providerMetadata != null
                   ? { providerMetadata: part.providerMetadata }
+                  : {}),
+                ...(part.toolMetadata != null
+                  ? { toolMetadata: part.toolMetadata }
                   : {}),
                 ...(dynamic != null ? { dynamic } : {}),
               });

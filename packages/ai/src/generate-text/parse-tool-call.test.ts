@@ -606,8 +606,8 @@ describe('parseToolCall', () => {
     });
   });
 
-  describe('tool providerMetadata propagation', () => {
-    it('should propagate tool providerMetadata onto a parsed dynamic tool call', async () => {
+  describe('tool metadata propagation', () => {
+    it('should propagate tool metadata onto a parsed dynamic tool call', async () => {
       const result = await parseToolCall({
         toolCall: {
           type: 'tool-call',
@@ -618,7 +618,7 @@ describe('parseToolCall', () => {
         tools: {
           weather: dynamicTool({
             description: 'Get weather',
-            providerMetadata: { mcp: { clientName: 'MyMCPClient' } },
+            metadata: { clientName: 'MyMCPClient' },
             inputSchema: jsonSchema({
               type: 'object',
               properties: { location: { type: 'string' } },
@@ -632,12 +632,26 @@ describe('parseToolCall', () => {
         messages: [],
       });
 
-      expect(result.providerMetadata).toEqual({
-        mcp: { clientName: 'MyMCPClient' },
-      });
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "dynamic": true,
+          "input": {
+            "location": "Paris",
+          },
+          "providerExecuted": undefined,
+          "providerMetadata": undefined,
+          "title": undefined,
+          "toolCallId": "call-1",
+          "toolMetadata": {
+            "clientName": "MyMCPClient",
+          },
+          "toolName": "weather",
+          "type": "tool-call",
+        }
+      `);
     });
 
-    it('should propagate tool providerMetadata onto a parsed static tool call', async () => {
+    it('should propagate tool metadata onto a parsed static tool call', async () => {
       const result = await parseToolCall({
         toolCall: {
           type: 'tool-call',
@@ -648,7 +662,7 @@ describe('parseToolCall', () => {
         tools: {
           calculator: tool({
             description: 'Calculate',
-            providerMetadata: { mcp: { clientName: 'MyMCPClient' } },
+            metadata: { clientName: 'MyMCPClient' },
             inputSchema: z.object({ a: z.number(), b: z.number() }),
             execute: async ({ a, b }) => a + b,
           }),
@@ -658,12 +672,26 @@ describe('parseToolCall', () => {
         messages: [],
       });
 
-      expect(result.providerMetadata).toEqual({
-        mcp: { clientName: 'MyMCPClient' },
-      });
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "input": {
+            "a": 5,
+            "b": 3,
+          },
+          "providerExecuted": undefined,
+          "providerMetadata": undefined,
+          "title": undefined,
+          "toolCallId": "call-2",
+          "toolMetadata": {
+            "clientName": "MyMCPClient",
+          },
+          "toolName": "calculator",
+          "type": "tool-call",
+        }
+      `);
     });
 
-    it('should merge tool providerMetadata with model-supplied providerMetadata (model wins on conflicts)', async () => {
+    it('should keep tool metadata separate from model-supplied providerMetadata', async () => {
       const result = await parseToolCall({
         toolCall: {
           type: 'tool-call',
@@ -671,14 +699,13 @@ describe('parseToolCall', () => {
           toolName: 'weather',
           input: '{"location":"Paris"}',
           providerMetadata: {
-            mcp: { clientName: 'OverriddenByModel' },
             anthropic: { cacheControl: { type: 'ephemeral' } },
           },
         },
         tools: {
           weather: dynamicTool({
             description: 'Get weather',
-            providerMetadata: { mcp: { clientName: 'MyMCPClient' } },
+            metadata: { clientName: 'MyMCPClient' },
             inputSchema: jsonSchema({
               type: 'object',
               properties: { location: { type: 'string' } },
@@ -692,13 +719,26 @@ describe('parseToolCall', () => {
         messages: [],
       });
 
-      expect(result.providerMetadata).toEqual({
-        mcp: { clientName: 'OverriddenByModel' },
-        anthropic: { cacheControl: { type: 'ephemeral' } },
-      });
+      expect({
+        providerMetadata: result.providerMetadata,
+        toolMetadata: result.toolMetadata,
+      }).toMatchInlineSnapshot(`
+        {
+          "providerMetadata": {
+            "anthropic": {
+              "cacheControl": {
+                "type": "ephemeral",
+              },
+            },
+          },
+          "toolMetadata": {
+            "clientName": "MyMCPClient",
+          },
+        }
+      `);
     });
 
-    it('should propagate tool providerMetadata onto an invalid tool call', async () => {
+    it('should propagate tool metadata onto an invalid tool call', async () => {
       const result = await parseToolCall({
         toolCall: {
           type: 'tool-call',
@@ -709,7 +749,7 @@ describe('parseToolCall', () => {
         tools: {
           weather: dynamicTool({
             description: 'Get weather',
-            providerMetadata: { mcp: { clientName: 'MyMCPClient' } },
+            metadata: { clientName: 'MyMCPClient' },
             inputSchema: jsonSchema({
               type: 'object',
               properties: { location: { type: 'string' } },
@@ -724,10 +764,17 @@ describe('parseToolCall', () => {
         messages: [],
       });
 
-      expect(result.invalid).toBe(true);
-      expect(result.providerMetadata).toEqual({
-        mcp: { clientName: 'MyMCPClient' },
-      });
+      expect({
+        invalid: result.invalid,
+        toolMetadata: result.toolMetadata,
+      }).toMatchInlineSnapshot(`
+        {
+          "invalid": true,
+          "toolMetadata": {
+            "clientName": "MyMCPClient",
+          },
+        }
+      `);
     });
   });
 });

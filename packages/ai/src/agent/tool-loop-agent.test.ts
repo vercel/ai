@@ -1815,7 +1815,7 @@ describe('ToolLoopAgent', () => {
     });
   });
 
-  describe('experimental_onToolExecutionStart', () => {
+  describe('onToolExecutionStart', () => {
     describe('generate', () => {
       const dummyResponseValues = {
         usage: {
@@ -1866,7 +1866,7 @@ describe('ToolLoopAgent', () => {
         });
       }
 
-      it('should call experimental_onToolExecutionStart from constructor', async () => {
+      it('should call onToolExecutionStart from constructor', async () => {
         const calls: string[] = [];
 
         const agent = new ToolLoopAgent({
@@ -1878,7 +1878,7 @@ describe('ToolLoopAgent', () => {
                 `${value}-result`,
             }),
           },
-          experimental_onToolExecutionStart: async () => {
+          onToolExecutionStart: async () => {
             calls.push('constructor');
           },
         });
@@ -1892,7 +1892,7 @@ describe('ToolLoopAgent', () => {
         `);
       });
 
-      it('should call experimental_onToolExecutionStart from generate method', async () => {
+      it('should call onToolExecutionStart from generate method', async () => {
         const calls: string[] = [];
 
         const agent = new ToolLoopAgent({
@@ -1908,7 +1908,7 @@ describe('ToolLoopAgent', () => {
 
         await agent.generate({
           prompt: 'test',
-          experimental_onToolExecutionStart: async () => {
+          onToolExecutionStart: async () => {
             calls.push('method');
           },
         });
@@ -1932,14 +1932,14 @@ describe('ToolLoopAgent', () => {
                 `${value}-result`,
             }),
           },
-          experimental_onToolExecutionStart: async () => {
+          onToolExecutionStart: async () => {
             calls.push('constructor');
           },
         });
 
         await agent.generate({
           prompt: 'test',
-          experimental_onToolExecutionStart: async () => {
+          onToolExecutionStart: async () => {
             calls.push('method');
           },
         });
@@ -1969,7 +1969,7 @@ describe('ToolLoopAgent', () => {
 
         await agent.generate({
           prompt: 'test',
-          experimental_onToolExecutionStart: async e => {
+          onToolExecutionStart: async e => {
             event = e;
           },
         });
@@ -2069,7 +2069,7 @@ describe('ToolLoopAgent', () => {
         });
       }
 
-      it('should call experimental_onToolExecutionStart from constructor', async () => {
+      it('should call onToolExecutionStart from constructor', async () => {
         const calls: string[] = [];
 
         const agent = new ToolLoopAgent({
@@ -2081,7 +2081,7 @@ describe('ToolLoopAgent', () => {
                 `${value}-result`,
             }),
           },
-          experimental_onToolExecutionStart: async () => {
+          onToolExecutionStart: async () => {
             calls.push('constructor');
           },
         });
@@ -2096,7 +2096,7 @@ describe('ToolLoopAgent', () => {
         `);
       });
 
-      it('should call experimental_onToolExecutionStart from stream method', async () => {
+      it('should call onToolExecutionStart from stream method', async () => {
         const calls: string[] = [];
 
         const agent = new ToolLoopAgent({
@@ -2112,7 +2112,7 @@ describe('ToolLoopAgent', () => {
 
         const result = await agent.stream({
           prompt: 'test',
-          experimental_onToolExecutionStart: async () => {
+          onToolExecutionStart: async () => {
             calls.push('method');
           },
         });
@@ -2138,14 +2138,14 @@ describe('ToolLoopAgent', () => {
                 `${value}-result`,
             }),
           },
-          experimental_onToolExecutionStart: async () => {
+          onToolExecutionStart: async () => {
             calls.push('constructor');
           },
         });
 
         const result = await agent.stream({
           prompt: 'test',
-          experimental_onToolExecutionStart: async () => {
+          onToolExecutionStart: async () => {
             calls.push('method');
           },
         });
@@ -2177,7 +2177,7 @@ describe('ToolLoopAgent', () => {
 
         const result = await agent.stream({
           prompt: 'test',
-          experimental_onToolExecutionStart: async e => {
+          onToolExecutionStart: async e => {
             event = e;
           },
         });
@@ -2211,7 +2211,7 @@ describe('ToolLoopAgent', () => {
     });
   });
 
-  describe('experimental_onToolExecutionEnd', () => {
+  describe('onToolExecutionEnd', () => {
     describe('generate', () => {
       const dummyResponseValues = {
         usage: {
@@ -2293,7 +2293,7 @@ describe('ToolLoopAgent', () => {
         });
       }
 
-      it('should call experimental_onToolExecutionEnd from constructor', async () => {
+      it('should call onToolExecutionEnd from constructor', async () => {
         const calls: string[] = [];
 
         const agent = new ToolLoopAgent({
@@ -2305,7 +2305,7 @@ describe('ToolLoopAgent', () => {
                 `${value}-result`,
             }),
           },
-          experimental_onToolExecutionEnd: async () => {
+          onToolExecutionEnd: async () => {
             calls.push('constructor');
           },
         });
@@ -2319,7 +2319,7 @@ describe('ToolLoopAgent', () => {
         `);
       });
 
-      it('should call experimental_onToolExecutionEnd from generate method', async () => {
+      it('should call onToolExecutionEnd from generate method', async () => {
         const calls: string[] = [];
 
         const agent = new ToolLoopAgent({
@@ -2335,7 +2335,7 @@ describe('ToolLoopAgent', () => {
 
         await agent.generate({
           prompt: 'test',
-          experimental_onToolExecutionEnd: async () => {
+          onToolExecutionEnd: async () => {
             calls.push('method');
           },
         });
@@ -2359,14 +2359,14 @@ describe('ToolLoopAgent', () => {
                 `${value}-result`,
             }),
           },
-          experimental_onToolExecutionEnd: async () => {
+          onToolExecutionEnd: async () => {
             calls.push('constructor');
           },
         });
 
         await agent.generate({
           prompt: 'test',
-          experimental_onToolExecutionEnd: async () => {
+          onToolExecutionEnd: async () => {
             calls.push('method');
           },
         });
@@ -2396,7 +2396,7 @@ describe('ToolLoopAgent', () => {
 
         await agent.generate({
           prompt: 'test',
-          experimental_onToolExecutionEnd: async e => {
+          onToolExecutionEnd: async e => {
             event = e;
           },
         });
@@ -2507,7 +2507,7 @@ describe('ToolLoopAgent', () => {
         });
       }
 
-      it('should call experimental_onToolExecutionEnd from constructor', async () => {
+      it('should call onToolExecutionEnd from constructor', async () => {
         const calls: string[] = [];
 
         const agent = new ToolLoopAgent({
@@ -2519,7 +2519,7 @@ describe('ToolLoopAgent', () => {
                 `${value}-result`,
             }),
           },
-          experimental_onToolExecutionEnd: async () => {
+          onToolExecutionEnd: async () => {
             calls.push('constructor');
           },
         });
@@ -2534,7 +2534,7 @@ describe('ToolLoopAgent', () => {
         `);
       });
 
-      it('should call experimental_onToolExecutionEnd from stream method', async () => {
+      it('should call onToolExecutionEnd from stream method', async () => {
         const calls: string[] = [];
 
         const agent = new ToolLoopAgent({
@@ -2550,7 +2550,7 @@ describe('ToolLoopAgent', () => {
 
         const result = await agent.stream({
           prompt: 'test',
-          experimental_onToolExecutionEnd: async () => {
+          onToolExecutionEnd: async () => {
             calls.push('method');
           },
         });
@@ -2576,14 +2576,14 @@ describe('ToolLoopAgent', () => {
                 `${value}-result`,
             }),
           },
-          experimental_onToolExecutionEnd: async () => {
+          onToolExecutionEnd: async () => {
             calls.push('constructor');
           },
         });
 
         const result = await agent.stream({
           prompt: 'test',
-          experimental_onToolExecutionEnd: async () => {
+          onToolExecutionEnd: async () => {
             calls.push('method');
           },
         });
@@ -2615,7 +2615,7 @@ describe('ToolLoopAgent', () => {
 
         const result = await agent.stream({
           prompt: 'test',
-          experimental_onToolExecutionEnd: async e => {
+          onToolExecutionEnd: async e => {
             event = e;
           },
         });

@@ -627,7 +627,7 @@ describe('generateText', () => {
         experimental_onLanguageModelCallEnd: event => {
           modelCallEndEvents.push(event);
         },
-        experimental_onToolExecutionStart: event => {
+        onToolExecutionStart: event => {
           toolExecutionStartEvents.push(event);
         },
         prompt: 'test-input',
@@ -815,7 +815,7 @@ describe('generateText', () => {
   });
 
   describe('result.request', () => {
-    it('should contain request body by default', async () => {
+    it('should contain request body but not request messages by default', async () => {
       const result = await generateText({
         model: new MockLanguageModelV4({
           doGenerate: async ({}) => ({
@@ -831,6 +831,7 @@ describe('generateText', () => {
 
       expect(result.request).toStrictEqual({
         body: 'test body',
+        messages: undefined,
       });
     });
 
@@ -851,7 +852,55 @@ describe('generateText', () => {
 
       expect(result.request).toStrictEqual({
         body: undefined,
+        messages: undefined,
       });
+    });
+
+    it('should include request messages when retention.requestMessages is true', async () => {
+      const result = await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async ({}) => ({
+            ...dummyResponseValues,
+            content: [{ type: 'text', text: 'Hello, world!' }],
+            request: {
+              body: 'test body',
+            },
+          }),
+        }),
+        prompt: 'prompt',
+        experimental_include: { requestMessages: true },
+      });
+
+      expect(result.request).toStrictEqual({
+        body: 'test body',
+        messages: [{ role: 'user', content: 'prompt' }],
+      });
+      expect(result.steps[0].request.messages).toStrictEqual([
+        { role: 'user', content: 'prompt' },
+      ]);
+    });
+
+    it('should contain messages from after prepareStep', async () => {
+      const preparedMessages: Array<ModelMessage> = [
+        { role: 'user', content: 'prepared prompt' },
+      ];
+
+      const result = await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async ({}) => ({
+            ...dummyResponseValues,
+            content: [{ type: 'text', text: 'Hello, world!' }],
+          }),
+        }),
+        prompt: 'prompt',
+        prepareStep: async () => ({
+          messages: preparedMessages,
+        }),
+        experimental_include: { requestMessages: true },
+      });
+
+      expect(result.request.messages).toStrictEqual(preparedMessages);
+      expect(result.steps[0].request.messages).toStrictEqual(preparedMessages);
     });
   });
 
@@ -1762,10 +1811,10 @@ describe('generateText', () => {
         experimental_onLanguageModelCallEnd: async () => {
           callOrder.push('onLanguageModelCallEnd');
         },
-        experimental_onToolExecutionStart: async () => {
+        onToolExecutionStart: async () => {
           callOrder.push('onToolExecutionStart');
         },
-        experimental_onToolExecutionEnd: async () => {
+        onToolExecutionEnd: async () => {
           callOrder.push('onToolExecutionEnd');
         },
         onStepFinish: async () => {
@@ -1918,7 +1967,7 @@ describe('generateText', () => {
     });
   });
 
-  describe('options.experimental_onToolExecutionStart', () => {
+  describe('options.onToolExecutionStart', () => {
     it('should be called with correct tool name, id, and input', async () => {
       const toolExecutionStartEvents: ToolExecutionStartEvent<any>[] = [];
 
@@ -1949,7 +1998,7 @@ describe('generateText', () => {
           generateId: () => 'test-call-id',
           generateCallId: () => 'test-telemetry-call-id',
         },
-        experimental_onToolExecutionStart: async event => {
+        onToolExecutionStart: async event => {
           toolExecutionStartEvents.push(event);
         },
       });
@@ -2013,7 +2062,7 @@ describe('generateText', () => {
             execute: async ({ value }) => `${value}-result`,
           }),
         },
-        experimental_onToolExecutionStart: async event => {
+        onToolExecutionStart: async event => {
           toolExecutionStartEvents.push(event);
         },
         ...defaultSettings(),
@@ -2096,7 +2145,7 @@ describe('generateText', () => {
           }),
         },
         prompt: 'test-input',
-        experimental_onToolExecutionStart: async () => {
+        onToolExecutionStart: async () => {
           callOrder.push('onToolExecutionStart');
         },
       });
@@ -2130,7 +2179,7 @@ describe('generateText', () => {
           }),
         },
         prompt: 'test-input',
-        experimental_onToolExecutionStart: async () => {
+        onToolExecutionStart: async () => {
           throw new Error('callback error');
         },
       });
@@ -2164,7 +2213,7 @@ describe('generateText', () => {
           }),
         },
         prompt: 'test-input',
-        experimental_onToolExecutionStart: async event => {
+        onToolExecutionStart: async event => {
           toolExecutionStartEvents.push(event);
         },
       });
@@ -2199,7 +2248,7 @@ describe('generateText', () => {
           }),
         },
         toolsContext: { tool1: { context: 'test' } },
-        experimental_onToolExecutionStart: async event => {
+        onToolExecutionStart: async event => {
           toolExecutionStartEvents.push(event);
         },
         ...defaultSettings(),
@@ -2235,7 +2284,7 @@ describe('generateText', () => {
     });
   });
 
-  describe('options.experimental_onToolExecutionEnd', () => {
+  describe('options.onToolExecutionEnd', () => {
     it('should be called with correct data on success', async () => {
       const toolExecutionEndEvents: ToolExecutionEndEvent<any>[] = [];
 
@@ -2261,7 +2310,7 @@ describe('generateText', () => {
             execute: async ({ value }) => `${value}-result`,
           }),
         },
-        experimental_onToolExecutionEnd: async event => {
+        onToolExecutionEnd: async event => {
           toolExecutionEndEvents.push(event);
         },
         ...defaultSettings(),
@@ -2333,7 +2382,7 @@ describe('generateText', () => {
             },
           }),
         },
-        experimental_onToolExecutionEnd: async event => {
+        onToolExecutionEnd: async event => {
           toolExecutionEndEvents.push(event);
         },
         ...defaultSettings(),
@@ -2403,7 +2452,7 @@ describe('generateText', () => {
           }),
         },
         prompt: 'test-input',
-        experimental_onToolExecutionEnd: async event => {
+        onToolExecutionEnd: async event => {
           toolExecutionEndEvents.push(event);
         },
       });
@@ -2436,7 +2485,7 @@ describe('generateText', () => {
           }),
         },
         prompt: 'test-input',
-        experimental_onToolExecutionEnd: async () => {
+        onToolExecutionEnd: async () => {
           throw new Error('callback error');
         },
       });
@@ -2470,7 +2519,7 @@ describe('generateText', () => {
           }),
         },
         prompt: 'test-input',
-        experimental_onToolExecutionEnd: async event => {
+        onToolExecutionEnd: async event => {
           toolExecutionEndEvents.push(event);
         },
       });
@@ -2505,7 +2554,7 @@ describe('generateText', () => {
           }),
         },
         toolsContext: { tool1: { context: 'test' } },
-        experimental_onToolExecutionEnd: async event => {
+        onToolExecutionEnd: async event => {
           toolExecutionEndEvents.push(event);
         },
         ...defaultSettings(),
@@ -2581,7 +2630,7 @@ describe('generateText', () => {
           }),
         },
         toolsContext: { tool1: { context: 'test' } },
-        experimental_onToolExecutionEnd: async event => {
+        onToolExecutionEnd: async event => {
           toolExecutionEndEvents.push(event);
         },
         ...defaultSettings(),
@@ -2628,7 +2677,7 @@ describe('generateText', () => {
     });
   });
 
-  describe('options.experimental_onToolExecutionStart and experimental_onToolExecutionEnd ordering', () => {
+  describe('options.onToolExecutionStart and onToolExecutionEnd ordering', () => {
     it('should call start before finish', async () => {
       const callOrder: string[] = [];
 
@@ -2655,10 +2704,10 @@ describe('generateText', () => {
           }),
         },
         prompt: 'test-input',
-        experimental_onToolExecutionStart: async () => {
+        onToolExecutionStart: async () => {
           callOrder.push('onToolExecutionStart');
         },
-        experimental_onToolExecutionEnd: async () => {
+        onToolExecutionEnd: async () => {
           callOrder.push('onToolExecutionEnd');
         },
       });
@@ -2692,10 +2741,10 @@ describe('generateText', () => {
           }),
         },
         prompt: 'test-input',
-        experimental_onToolExecutionStart: async () => {
+        onToolExecutionStart: async () => {
           callOrder.push('onToolExecutionStart');
         },
-        experimental_onToolExecutionEnd: async () => {
+        onToolExecutionEnd: async () => {
           callOrder.push('onToolExecutionEnd');
         },
         onStepFinish: async () => {
@@ -2764,10 +2813,10 @@ describe('generateText', () => {
           }),
         },
         stopWhen: isStepCount(4),
-        experimental_onToolExecutionStart: async event => {
+        onToolExecutionStart: async event => {
           toolExecutionStartEvents.push(event);
         },
-        experimental_onToolExecutionEnd: async event => {
+        onToolExecutionEnd: async event => {
           toolExecutionEndEvents.push(event);
         },
         ...defaultSettings(),
@@ -3036,7 +3085,10 @@ describe('generateText', () => {
           "rawFinishReason": "stop",
           "reasoning": [],
           "reasoningText": undefined,
-          "request": {},
+          "request": {
+            "body": undefined,
+            "messages": undefined,
+          },
           "response": {
             "body": undefined,
             "headers": {
@@ -3147,7 +3199,10 @@ describe('generateText', () => {
               },
               "providerMetadata": undefined,
               "rawFinishReason": "stop",
-              "request": {},
+              "request": {
+                "body": undefined,
+                "messages": undefined,
+              },
               "response": {
                 "body": undefined,
                 "headers": {
@@ -3675,7 +3730,10 @@ describe('generateText', () => {
                   },
                   "providerMetadata": undefined,
                   "rawFinishReason": undefined,
-                  "request": {},
+                  "request": {
+                    "body": undefined,
+                    "messages": undefined,
+                  },
                   "response": {
                     "body": undefined,
                     "headers": undefined,
@@ -3753,7 +3811,10 @@ describe('generateText', () => {
                   },
                   "providerMetadata": undefined,
                   "rawFinishReason": "stop",
-                  "request": {},
+                  "request": {
+                    "body": undefined,
+                    "messages": undefined,
+                  },
                   "response": {
                     "body": undefined,
                     "headers": {
@@ -3904,7 +3965,10 @@ describe('generateText', () => {
                   },
                   "providerMetadata": undefined,
                   "rawFinishReason": undefined,
-                  "request": {},
+                  "request": {
+                    "body": undefined,
+                    "messages": undefined,
+                  },
                   "response": {
                     "body": undefined,
                     "headers": undefined,
@@ -3982,7 +4046,10 @@ describe('generateText', () => {
                   },
                   "providerMetadata": undefined,
                   "rawFinishReason": "stop",
-                  "request": {},
+                  "request": {
+                    "body": undefined,
+                    "messages": undefined,
+                  },
                   "response": {
                     "body": undefined,
                     "headers": {
@@ -4372,7 +4439,10 @@ describe('generateText', () => {
                   },
                   "providerMetadata": undefined,
                   "rawFinishReason": undefined,
-                  "request": {},
+                  "request": {
+                    "body": undefined,
+                    "messages": undefined,
+                  },
                   "response": {
                     "body": undefined,
                     "headers": undefined,
@@ -4470,7 +4540,10 @@ describe('generateText', () => {
                   },
                   "providerMetadata": undefined,
                   "rawFinishReason": undefined,
-                  "request": {},
+                  "request": {
+                    "body": undefined,
+                    "messages": undefined,
+                  },
                   "response": {
                     "body": undefined,
                     "headers": undefined,
@@ -7921,7 +7994,10 @@ describe('generateText', () => {
               },
               "providerMetadata": undefined,
               "rawFinishReason": undefined,
-              "request": {},
+              "request": {
+                "body": undefined,
+                "messages": undefined,
+              },
               "response": {
                 "body": undefined,
                 "headers": undefined,

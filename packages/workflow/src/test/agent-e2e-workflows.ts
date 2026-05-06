@@ -334,7 +334,7 @@ export async function agentOnStepStartE2e() {
 }
 
 // ============================================================================
-// GAP tests — experimental_onToolExecutionStart
+// GAP tests — onToolExecutionStart
 // ============================================================================
 
 export async function agentonToolExecutionStartE2e() {
@@ -356,14 +356,14 @@ export async function agentonToolExecutionStartE2e() {
         execute: echoStep,
       },
     },
-    experimental_onToolExecutionStart: async () => {
+    onToolExecutionStart: async () => {
       calls.push('constructor');
     },
   } as any);
   await agent.stream({
     messages: [{ role: 'user', content: 'test' }],
     writable: getWritable(),
-    experimental_onToolExecutionStart: async () => {
+    onToolExecutionStart: async () => {
       calls.push('method');
     },
   } as any);
@@ -371,7 +371,7 @@ export async function agentonToolExecutionStartE2e() {
 }
 
 // ============================================================================
-// GAP tests — experimental_onToolExecutionEnd
+// GAP tests — onToolExecutionEnd
 // ============================================================================
 
 export async function agentonToolExecutionEndE2e() {
@@ -394,14 +394,14 @@ export async function agentonToolExecutionEndE2e() {
         execute: addNumbers,
       },
     },
-    experimental_onToolExecutionEnd: async () => {
+    onToolExecutionEnd: async () => {
       calls.push('constructor');
     },
   } as any);
   await agent.stream({
     messages: [{ role: 'user', content: 'test' }],
     writable: getWritable(),
-    experimental_onToolExecutionEnd: async (event: any) => {
+    onToolExecutionEnd: async (event: any) => {
       calls.push('method');
       capturedEvent = {
         toolName: event?.toolCall?.toolName,

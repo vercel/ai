@@ -153,11 +153,11 @@ export const customTool = dynamicTool({
               description: 'Additional provider-specific metadata.'
             },
             {
-              name: 'providerMetadata',
+              name: 'metadata',
               isOptional: true,
-              type: 'ProviderMetadata',
+              type: 'JSONObject',
               description:
-                "Optional metadata about the tool itself (e.g. its source). It is propagated onto the resulting tool call's providerMetadata so consumers can read it from tool call/result parts and UI message parts. Useful for sources of dynamic tools (e.g. an MCP server) to identify themselves."
+                "Optional metadata about the tool itself (e.g. its source). It is propagated onto the resulting tool call's toolMetadata so consumers can read it from tool call/result parts and UI message parts. Useful for sources of dynamic tools (e.g. an MCP server) to identify themselves."
             }
           ]
         }

@@ -935,9 +935,9 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
     });
   });
 
-  describe('experimental_onToolExecutionStart', () => {
+  describe('onToolExecutionStart', () => {
     describe('stream', () => {
-      it('should call experimental_onToolExecutionStart from constructor', async () => {
+      it('should call onToolExecutionStart from constructor', async () => {
         const calls: string[] = [];
 
         const agent = new WorkflowAgent({
@@ -949,7 +949,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
                 `${value}-result`,
             }),
           },
-          experimental_onToolExecutionStart: async () => {
+          onToolExecutionStart: async () => {
             calls.push('constructor');
           },
         });
@@ -967,7 +967,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
         `);
       });
 
-      it('should call experimental_onToolExecutionStart from stream method', async () => {
+      it('should call onToolExecutionStart from stream method', async () => {
         const calls: string[] = [];
 
         const agent = new WorkflowAgent({
@@ -985,7 +985,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
         await agent.stream({
           messages: [{ role: 'user' as const, content: 'test' }],
           writable,
-          experimental_onToolExecutionStart: async () => {
+          onToolExecutionStart: async () => {
             calls.push('method');
           },
         });
@@ -1009,7 +1009,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
                 `${value}-result`,
             }),
           },
-          experimental_onToolExecutionStart: async () => {
+          onToolExecutionStart: async () => {
             calls.push('constructor');
           },
         });
@@ -1018,7 +1018,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
         await agent.stream({
           messages: [{ role: 'user' as const, content: 'test' }],
           writable,
-          experimental_onToolExecutionStart: async () => {
+          onToolExecutionStart: async () => {
             calls.push('method');
           },
         });
@@ -1049,7 +1049,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
         await agent.stream({
           messages: [{ role: 'user' as const, content: 'test' }],
           writable,
-          experimental_onToolExecutionStart: async (e: any) => {
+          onToolExecutionStart: async (e: any) => {
             event = e;
           },
         });
@@ -1073,9 +1073,9 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
     });
   });
 
-  describe('experimental_onToolExecutionEnd', () => {
+  describe('onToolExecutionEnd', () => {
     describe('stream', () => {
-      it('should call experimental_onToolExecutionEnd from constructor', async () => {
+      it('should call onToolExecutionEnd from constructor', async () => {
         const calls: string[] = [];
 
         const agent = new WorkflowAgent({
@@ -1087,7 +1087,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
                 `${value}-result`,
             }),
           },
-          experimental_onToolExecutionEnd: async () => {
+          onToolExecutionEnd: async () => {
             calls.push('constructor');
           },
         });
@@ -1105,7 +1105,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
         `);
       });
 
-      it('should call experimental_onToolExecutionEnd from stream method', async () => {
+      it('should call onToolExecutionEnd from stream method', async () => {
         const calls: string[] = [];
 
         const agent = new WorkflowAgent({
@@ -1123,7 +1123,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
         await agent.stream({
           messages: [{ role: 'user' as const, content: 'test' }],
           writable,
-          experimental_onToolExecutionEnd: async () => {
+          onToolExecutionEnd: async () => {
             calls.push('method');
           },
         });
@@ -1147,7 +1147,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
                 `${value}-result`,
             }),
           },
-          experimental_onToolExecutionEnd: async () => {
+          onToolExecutionEnd: async () => {
             calls.push('constructor');
           },
         });
@@ -1156,7 +1156,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
         await agent.stream({
           messages: [{ role: 'user' as const, content: 'test' }],
           writable,
-          experimental_onToolExecutionEnd: async () => {
+          onToolExecutionEnd: async () => {
             calls.push('method');
           },
         });
@@ -1187,7 +1187,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
         await agent.stream({
           messages: [{ role: 'user' as const, content: 'test' }],
           writable,
-          experimental_onToolExecutionEnd: async (e: any) => {
+          onToolExecutionEnd: async (e: any) => {
             event = e;
           },
         });

@@ -196,7 +196,7 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
       ],
     },
     {
-      name: 'experimental_onToolExecutionStart',
+      name: 'onToolExecutionStart',
       type: 'WorkflowAgentonToolExecutionStartCallback',
       isOptional: true,
       description:
@@ -230,7 +230,7 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
       ],
     },
     {
-      name: 'experimental_onToolExecutionEnd',
+      name: 'onToolExecutionEnd',
       type: 'WorkflowAgentonToolExecutionEndCallback',
       isOptional: true,
       description:
@@ -511,18 +511,18 @@ const result = await agent.stream({
         'Per-call onStepStart callback. If also specified in the constructor, both fire (constructor first). Experimental.',
     },
     {
-      name: 'experimental_onToolExecutionStart',
+      name: 'onToolExecutionStart',
       type: 'WorkflowAgentonToolExecutionStartCallback',
       isOptional: true,
       description:
-        'Per-call onToolExecutionStart callback. If also specified in the constructor, both fire (constructor first). Experimental.',
+        'Per-call onToolExecutionStart callback. If also specified in the constructor, both fire (constructor first).',
     },
     {
-      name: 'experimental_onToolExecutionEnd',
+      name: 'onToolExecutionEnd',
       type: 'WorkflowAgentonToolExecutionEndCallback',
       isOptional: true,
       description:
-        'Per-call onToolExecutionEnd callback. If also specified in the constructor, both fire (constructor first). Experimental.',
+        'Per-call onToolExecutionEnd callback. If also specified in the constructor, both fire (constructor first).',
     },
     {
       name: 'onStepFinish',

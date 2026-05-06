@@ -403,10 +403,12 @@ class DefaultStreamObjectResult<
     ProviderMetadata | undefined
   >();
   private readonly _warnings = new DelayedPromise<CallWarning[] | undefined>();
-  private readonly _request =
-    new DelayedPromise<LanguageModelRequestMetadata>();
-  private readonly _response =
-    new DelayedPromise<LanguageModelResponseMetadata>();
+  private readonly _request = new DelayedPromise<
+    Omit<LanguageModelRequestMetadata, 'messages'>
+  >();
+  private readonly _response = new DelayedPromise<
+    Omit<LanguageModelResponseMetadata, 'messages'>
+  >();
   private readonly _finishReason = new DelayedPromise<FinishReason>();
 
   private readonly baseStream: ReadableStream<ObjectStreamPart<PARTIAL>>;
