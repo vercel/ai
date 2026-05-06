@@ -132,6 +132,7 @@ console.log(result.warnings);
 ### Request Messages
 
 You can inspect the input messages that were sent to the model for the final step using `request.messages`.
+Set `experimental_include.requestMessages` to `false` to omit these messages from step results.
 
 ```ts highlight="6"
 const result = await generateText({

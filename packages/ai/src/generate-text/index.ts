@@ -1,7 +1,7 @@
 export type { ActiveTools } from './active-tools';
 export type { ContentPart } from './content-part';
 export { filterActiveTools as experimental_filterActiveTools } from './filter-active-tools';
-export { generateText } from './generate-text';
+export { generateText, type GenerateTextInclude } from './generate-text';
 export type {
   GenerateTextEndEvent,
   GenerateTextOnFinishCallback,
@@ -59,6 +59,7 @@ export {
 } from './stream-language-model-call';
 export {
   streamText,
+  type StreamTextInclude,
   type StreamTextOnChunkCallback,
   type StreamTextOnErrorCallback,
   type StreamTextTransform,

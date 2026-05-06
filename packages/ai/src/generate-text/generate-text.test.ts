@@ -856,6 +856,28 @@ describe('generateText', () => {
       });
     });
 
+    it('should exclude request messages when retention.requestMessages is false', async () => {
+      const result = await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async ({}) => ({
+            ...dummyResponseValues,
+            content: [{ type: 'text', text: 'Hello, world!' }],
+            request: {
+              body: 'test body',
+            },
+          }),
+        }),
+        prompt: 'prompt',
+        experimental_include: { requestMessages: false },
+      });
+
+      expect(result.request).toStrictEqual({
+        body: 'test body',
+        messages: undefined,
+      });
+      expect(result.steps[0].request.messages).toBeUndefined();
+    });
+
     it('should contain messages from after prepareStep', async () => {
       const preparedMessages: Array<ModelMessage> = [
         { role: 'user', content: 'prepared prompt' },

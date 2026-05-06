@@ -150,6 +150,22 @@ const originalGenerateCallId = createIdGenerator({
   size: 24,
 });
 
+export type StreamTextInclude = {
+  /**
+   * Whether to retain the request body in step results.
+   * The request body can be large when sending images or files.
+   * @default true
+   */
+  requestBody?: boolean;
+
+  /**
+   * Whether to retain the request messages in step results.
+   * The request messages can be large when sending images or files.
+   * @default true
+   */
+  requestMessages?: boolean;
+};
+
 /**
  * A transformation that is applied to the stream.
  *
@@ -513,14 +529,7 @@ export function streamText<
      *
      * By default, all data is included for backwards compatibility.
      */
-    experimental_include?: {
-      /**
-       * Whether to retain the request body in step results.
-       * The request body can be large when sending images or files.
-       * @default true
-       */
-      requestBody?: boolean;
-    };
+    experimental_include?: StreamTextInclude;
 
     /**
      * Internal. For test use only. May change without notice.
@@ -816,7 +825,7 @@ class DefaultStreamTextResult<
     generateCallId: () => string;
     timeout: TimeoutConfiguration<TOOLS> | undefined;
     download: DownloadFunction | undefined;
-    include: { requestBody?: boolean } | undefined;
+    include: StreamTextInclude | undefined;
 
     // callbacks:
     onChunk: undefined | StreamTextOnChunkCallback<TOOLS>;
@@ -1088,7 +1097,10 @@ class DefaultStreamTextResult<
               warnings: recordedWarnings,
               request: {
                 ...recordedRequest,
-                messages: cloneModelMessages(recordedRequestMessages),
+                messages:
+                  (include?.requestMessages ?? true)
+                    ? cloneModelMessages(recordedRequestMessages)
+                    : undefined,
               },
               response: {
                 ...part.response,
@@ -1649,9 +1661,12 @@ class DefaultStreamTextResult<
           const stepRequest: LanguageModelRequestMetadata = {
             ...request,
             body: (include?.requestBody ?? true) ? request?.body : undefined,
-            messages: cloneModelMessages(stepMessages),
+            messages:
+              (include?.requestMessages ?? true)
+                ? cloneModelMessages(stepMessages)
+                : undefined,
           };
-          recordedRequestMessages = stepRequest.messages;
+          recordedRequestMessages = stepRequest.messages ?? [];
 
           const stepToolCalls: TypedToolCall<TOOLS>[] = [];
           const stepToolOutputs: ToolOutput<TOOLS>[] = [];

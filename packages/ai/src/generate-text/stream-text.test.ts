@@ -5167,6 +5167,38 @@ describe('streamText', () => {
       });
     });
 
+    it('should exclude request messages when retention.requestMessages is false', async () => {
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'Hello' },
+            { type: 'text-end', id: '1' },
+            {
+              type: 'finish',
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: testUsage,
+            },
+          ]),
+          request: { body: 'test body' },
+        }),
+        prompt: 'test-input',
+        experimental_include: { requestMessages: false },
+      });
+
+      expect(await result.request).toStrictEqual({
+        body: 'test body',
+        messages: undefined,
+      });
+      expect((await result.steps)[0].request.messages).toBeUndefined();
+    });
+
     it('should resolve with messages from after prepareStep', async () => {
       const preparedMessages: Array<ModelMessage> = [
         { role: 'user', content: 'prepared prompt' },
