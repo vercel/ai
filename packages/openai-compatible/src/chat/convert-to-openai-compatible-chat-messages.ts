@@ -234,8 +234,7 @@ export function convertToOpenAICompatibleChatMessages(
           content: toolCalls.length > 0 ? text || null : text,
           ...(reasoning.length > 0
             ? {
-                [options?.reasoningFieldName ?? 'reasoning_content']:
-                  reasoning,
+                [options?.reasoningFieldName ?? 'reasoning_content']: reasoning,
               }
             : {}),
           tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
