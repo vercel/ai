@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import {
   InvalidResponseDataError,
   type APICallError,
@@ -8,6 +9,18 @@ import {
   type LanguageModelV3GenerateResult,
   type LanguageModelV3StreamPart,
   type LanguageModelV3StreamResult,
+=======
+import type {
+  APICallError,
+  LanguageModelV4,
+  LanguageModelV4CallOptions,
+  LanguageModelV4Content,
+  LanguageModelV4FinishReason,
+  LanguageModelV4GenerateResult,
+  LanguageModelV4StreamPart,
+  LanguageModelV4StreamResult,
+  SharedV4Warning,
+>>>>>>> eda4373ca (feat(provider/deepseek): support DeepSeek V4 reasoning effort (#14743))
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -15,7 +28,12 @@ import {
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
   generateId,
+<<<<<<< HEAD
   isParsableJson,
+=======
+  isCustomReasoning,
+  mapReasoningToProviderEffort,
+>>>>>>> eda4373ca (feat(provider/deepseek): support DeepSeek V4 reasoning effort (#14743))
   parseProviderOptions,
   postJsonToApi,
   type FetchFunction,
@@ -101,13 +119,14 @@ export class DeepSeekChatLanguageModel implements LanguageModelV3 {
       responseFormat,
       modelId: this.modelId,
     });
+    const allWarnings: SharedV4Warning[] = [...warnings];
 
     if (topK != null) {
-      warnings.push({ type: 'unsupported', feature: 'topK' });
+      allWarnings.push({ type: 'unsupported', feature: 'topK' });
     }
 
     if (seed != null) {
-      warnings.push({ type: 'unsupported', feature: 'seed' });
+      allWarnings.push({ type: 'unsupported', feature: 'seed' });
     }
 
     const {
@@ -118,6 +137,29 @@ export class DeepSeekChatLanguageModel implements LanguageModelV3 {
       tools,
       toolChoice,
     });
+
+    const thinking =
+      deepseekOptions.thinking?.type != null
+        ? { type: deepseekOptions.thinking.type }
+        : isCustomReasoning(reasoning)
+          ? { type: reasoning === 'none' ? 'disabled' : 'enabled' }
+          : undefined;
+
+    const reasoningEffort =
+      deepseekOptions.reasoningEffort ??
+      (isCustomReasoning(reasoning) && reasoning !== 'none'
+        ? mapReasoningToProviderEffort({
+            reasoning,
+            effortMap: {
+              minimal: 'high',
+              low: 'high',
+              medium: 'high',
+              high: 'high',
+              xhigh: 'max',
+            },
+            warnings: allWarnings,
+          })
+        : undefined);
 
     return {
       args: {
@@ -133,12 +175,20 @@ export class DeepSeekChatLanguageModel implements LanguageModelV3 {
         messages,
         tools: deepseekTools,
         tool_choice: deepseekToolChoices,
+<<<<<<< HEAD
         thinking:
           deepseekOptions.thinking?.type != null
             ? { type: deepseekOptions.thinking.type }
             : undefined,
+=======
+        thinking,
+        ...(thinking?.type !== 'disabled' &&
+          reasoningEffort != null && {
+            reasoning_effort: reasoningEffort,
+          }),
+>>>>>>> eda4373ca (feat(provider/deepseek): support DeepSeek V4 reasoning effort (#14743))
       },
-      warnings: [...warnings, ...toolWarnings],
+      warnings: [...allWarnings, ...toolWarnings],
     };
   }
 
