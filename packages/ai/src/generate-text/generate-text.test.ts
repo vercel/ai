@@ -815,7 +815,7 @@ describe('generateText', () => {
   });
 
   describe('result.request', () => {
-    it('should contain request body by default', async () => {
+    it('should contain request body but not request messages by default', async () => {
       const result = await generateText({
         model: new MockLanguageModelV4({
           doGenerate: async ({}) => ({
@@ -831,7 +831,7 @@ describe('generateText', () => {
 
       expect(result.request).toStrictEqual({
         body: 'test body',
-        messages: [{ role: 'user', content: 'prompt' }],
+        messages: undefined,
       });
     });
 
@@ -852,8 +852,32 @@ describe('generateText', () => {
 
       expect(result.request).toStrictEqual({
         body: undefined,
+        messages: undefined,
+      });
+    });
+
+    it('should include request messages when retention.requestMessages is true', async () => {
+      const result = await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async ({}) => ({
+            ...dummyResponseValues,
+            content: [{ type: 'text', text: 'Hello, world!' }],
+            request: {
+              body: 'test body',
+            },
+          }),
+        }),
+        prompt: 'prompt',
+        experimental_include: { requestMessages: true },
+      });
+
+      expect(result.request).toStrictEqual({
+        body: 'test body',
         messages: [{ role: 'user', content: 'prompt' }],
       });
+      expect(result.steps[0].request.messages).toStrictEqual([
+        { role: 'user', content: 'prompt' },
+      ]);
     });
 
     it('should contain messages from after prepareStep', async () => {
@@ -872,6 +896,7 @@ describe('generateText', () => {
         prepareStep: async () => ({
           messages: preparedMessages,
         }),
+        experimental_include: { requestMessages: true },
       });
 
       expect(result.request.messages).toStrictEqual(preparedMessages);
@@ -3062,12 +3087,7 @@ describe('generateText', () => {
           "reasoningText": undefined,
           "request": {
             "body": undefined,
-            "messages": [
-              {
-                "content": "irrelevant",
-                "role": "user",
-              },
-            ],
+            "messages": undefined,
           },
           "response": {
             "body": undefined,
@@ -3181,12 +3201,7 @@ describe('generateText', () => {
               "rawFinishReason": "stop",
               "request": {
                 "body": undefined,
-                "messages": [
-                  {
-                    "content": "irrelevant",
-                    "role": "user",
-                  },
-                ],
+                "messages": undefined,
               },
               "response": {
                 "body": undefined,
@@ -3717,12 +3732,7 @@ describe('generateText', () => {
                   "rawFinishReason": undefined,
                   "request": {
                     "body": undefined,
-                    "messages": [
-                      {
-                        "content": "new input from prepareStep",
-                        "role": "user",
-                      },
-                    ],
+                    "messages": undefined,
                   },
                   "response": {
                     "body": undefined,
@@ -3803,41 +3813,7 @@ describe('generateText', () => {
                   "rawFinishReason": "stop",
                   "request": {
                     "body": undefined,
-                    "messages": [
-                      {
-                        "content": "test-input",
-                        "role": "user",
-                      },
-                      {
-                        "content": [
-                          {
-                            "input": {
-                              "value": "value",
-                            },
-                            "providerExecuted": undefined,
-                            "providerOptions": undefined,
-                            "toolCallId": "call-1",
-                            "toolName": "tool1",
-                            "type": "tool-call",
-                          },
-                        ],
-                        "role": "assistant",
-                      },
-                      {
-                        "content": [
-                          {
-                            "output": {
-                              "type": "text",
-                              "value": "result1",
-                            },
-                            "toolCallId": "call-1",
-                            "toolName": "tool1",
-                            "type": "tool-result",
-                          },
-                        ],
-                        "role": "tool",
-                      },
-                    ],
+                    "messages": undefined,
                   },
                   "response": {
                     "body": undefined,
@@ -3991,12 +3967,7 @@ describe('generateText', () => {
                   "rawFinishReason": undefined,
                   "request": {
                     "body": undefined,
-                    "messages": [
-                      {
-                        "content": "new input from prepareStep",
-                        "role": "user",
-                      },
-                    ],
+                    "messages": undefined,
                   },
                   "response": {
                     "body": undefined,
@@ -4077,41 +4048,7 @@ describe('generateText', () => {
                   "rawFinishReason": "stop",
                   "request": {
                     "body": undefined,
-                    "messages": [
-                      {
-                        "content": "test-input",
-                        "role": "user",
-                      },
-                      {
-                        "content": [
-                          {
-                            "input": {
-                              "value": "value",
-                            },
-                            "providerExecuted": undefined,
-                            "providerOptions": undefined,
-                            "toolCallId": "call-1",
-                            "toolName": "tool1",
-                            "type": "tool-call",
-                          },
-                        ],
-                        "role": "assistant",
-                      },
-                      {
-                        "content": [
-                          {
-                            "output": {
-                              "type": "text",
-                              "value": "result1",
-                            },
-                            "toolCallId": "call-1",
-                            "toolName": "tool1",
-                            "type": "tool-result",
-                          },
-                        ],
-                        "role": "tool",
-                      },
-                    ],
+                    "messages": undefined,
                   },
                   "response": {
                     "body": undefined,
@@ -4504,12 +4441,7 @@ describe('generateText', () => {
                   "rawFinishReason": undefined,
                   "request": {
                     "body": undefined,
-                    "messages": [
-                      {
-                        "content": "test-input",
-                        "role": "user",
-                      },
-                    ],
+                    "messages": undefined,
                   },
                   "response": {
                     "body": undefined,
@@ -4610,12 +4542,7 @@ describe('generateText', () => {
                   "rawFinishReason": undefined,
                   "request": {
                     "body": undefined,
-                    "messages": [
-                      {
-                        "content": "test-input",
-                        "role": "user",
-                      },
-                    ],
+                    "messages": undefined,
                   },
                   "response": {
                     "body": undefined,
@@ -8069,12 +7996,7 @@ describe('generateText', () => {
               "rawFinishReason": undefined,
               "request": {
                 "body": undefined,
-                "messages": [
-                  {
-                    "content": "test-input",
-                    "role": "user",
-                  },
-                ],
+                "messages": undefined,
               },
               "response": {
                 "body": undefined,

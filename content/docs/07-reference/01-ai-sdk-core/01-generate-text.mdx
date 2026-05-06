@@ -730,10 +730,10 @@ To see `generateText` in action, check out [these examples](#examples).
     },
     {
       name: 'experimental_include',
-      type: '{ requestBody?: boolean; responseBody?: boolean }',
+      type: '{ requestBody?: boolean; requestMessages?: boolean; responseBody?: boolean }',
       isOptional: true,
       description:
-        'Controls inclusion of request and response bodies in step results. By default, bodies are included. When processing many large payloads (e.g., images), set requestBody and/or responseBody to false to reduce memory usage. Experimental feature.',
+        'Controls inclusion of request bodies, request messages, and response bodies in step results. By default, request and response bodies are included, and request messages are excluded. When processing many large payloads (e.g., images), set requestBody and/or responseBody to false to reduce memory usage. Set requestMessages to true when you need access to the messages sent to the model. Experimental feature.',
       properties: [
         {
           type: 'Object',
@@ -744,6 +744,13 @@ To see `generateText` in action, check out [these examples](#examples).
               isOptional: true,
               description:
                 'Whether to include the request body in step results. The request body can be large when sending images or files. Default: true.',
+            },
+            {
+              name: 'requestMessages',
+              type: 'boolean',
+              isOptional: true,
+              description:
+                'Whether to include the request messages in step results. The request messages can be large when sending images or files. Default: false.',
             },
             {
               name: 'responseBody',
@@ -1066,7 +1073,7 @@ To see `generateText` in action, check out [these examples](#examples).
             },
             {
               name: 'include',
-              type: '{ requestBody?: boolean; responseBody?: boolean } | undefined',
+              type: '{ requestBody?: boolean; requestMessages?: boolean; responseBody?: boolean } | undefined',
               description:
                 'Settings for controlling what data is included in step results.',
             },
@@ -1179,7 +1186,7 @@ To see `generateText` in action, check out [these examples](#examples).
             },
             {
               name: 'include',
-              type: '{ requestBody?: boolean; responseBody?: boolean } | undefined',
+              type: '{ requestBody?: boolean; requestMessages?: boolean; responseBody?: boolean } | undefined',
               description:
                 'Settings for controlling what data is included in step results.',
             },
@@ -1588,8 +1595,9 @@ To see `generateText` in action, check out [these examples](#examples).
                     {
                       name: 'messages',
                       type: 'Array<ModelMessage>',
+                      isOptional: true,
                       description:
-                        'The input messages that were sent to the model for this step.',
+                        'The input messages that were sent to the model for this step. Undefined by default unless requestMessages is set to true.',
                     },
                     {
                       name: 'body',
@@ -2005,8 +2013,9 @@ To see `generateText` in action, check out [these examples](#examples).
                     {
                       name: 'messages',
                       type: 'Array<ModelMessage>',
+                      isOptional: true,
                       description:
-                        'The input messages that were sent to the model for this step.',
+                        'The input messages that were sent to the model for this step. Undefined by default unless requestMessages is set to true.',
                     },
                     {
                       name: 'body',
@@ -2419,8 +2428,9 @@ To see `generateText` in action, check out [these examples](#examples).
             {
               name: 'messages',
               type: 'Array<ModelMessage>',
+              isOptional: true,
               description:
-                'The input messages that were sent to the model for this step.',
+                'The input messages that were sent to the model for this step. Undefined by default unless requestMessages is set to true.',
             },
             {
               name: 'body',
@@ -2791,8 +2801,9 @@ To see `generateText` in action, check out [these examples](#examples).
                     {
                       name: 'messages',
                       type: 'Array<ModelMessage>',
+                      isOptional: true,
                       description:
-                        'The input messages that were sent to the model for this step.',
+                        'The input messages that were sent to the model for this step. Undefined by default unless requestMessages is set to true.',
                     },
                     {
                       name: 'body',

@@ -111,6 +111,28 @@ const originalGenerateCallId = createIdGenerator({
   prefix: 'call',
   size: 24,
 });
+
+export type GenerateTextInclude = {
+  /**
+   * Whether to retain the request body in step results.
+   * The request body can be large when sending images or files.
+   * @default true
+   */
+  requestBody?: boolean;
+
+  /**
+   * Whether to retain the request messages in step results.
+   * The request messages can be large when sending images or files.
+   * @default false
+   */
+  requestMessages?: boolean;
+
+  /**
+   * Whether to retain the response body in step results.
+   * @default true
+   */
+  responseBody?: boolean;
+};
 /**
  * Generate a text and call tools for a given prompt using a language model.
  *
@@ -364,22 +386,10 @@ export async function generateText<
      * Disabling inclusion can help reduce memory usage when processing
      * large payloads like images.
      *
-     * By default, all data is included for backwards compatibility.
+     * By default, request and response bodies are included, and request
+     * messages are excluded.
      */
-    experimental_include?: {
-      /**
-       * Whether to retain the request body in step results.
-       * The request body can be large when sending images or files.
-       * @default true
-       */
-      requestBody?: boolean;
-
-      /**
-       * Whether to retain the response body in step results.
-       * @default true
-       */
-      responseBody?: boolean;
-    };
+    experimental_include?: GenerateTextInclude;
 
     /**
      * Internal. For test use only. May change without notice.
@@ -958,7 +968,10 @@ export async function generateText<
             (include?.requestBody ?? true)
               ? currentModelResponse.request?.body
               : undefined,
-          messages: cloneModelMessages(stepMessages),
+          messages:
+            (include?.requestMessages ?? false)
+              ? cloneModelMessages(stepMessages)
+              : undefined,
         };
 
         const stepResponse = {

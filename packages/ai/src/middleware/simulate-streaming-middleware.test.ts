@@ -86,12 +86,7 @@ describe('simulateStreamingMiddleware', () => {
           {
             "request": {
               "body": undefined,
-              "messages": [
-                {
-                  "content": "Test prompt",
-                  "role": "user",
-                },
-              ],
+              "messages": undefined,
             },
             "type": "start-step",
             "warnings": [],
@@ -200,12 +195,7 @@ describe('simulateStreamingMiddleware', () => {
           {
             "request": {
               "body": undefined,
-              "messages": [
-                {
-                  "content": "Test prompt",
-                  "role": "user",
-                },
-              ],
+              "messages": undefined,
             },
             "type": "start-step",
             "warnings": [],
@@ -341,12 +331,7 @@ describe('simulateStreamingMiddleware', () => {
           {
             "request": {
               "body": undefined,
-              "messages": [
-                {
-                  "content": "Test prompt",
-                  "role": "user",
-                },
-              ],
+              "messages": undefined,
             },
             "type": "start-step",
             "warnings": [],
@@ -513,12 +498,7 @@ describe('simulateStreamingMiddleware', () => {
           {
             "request": {
               "body": undefined,
-              "messages": [
-                {
-                  "content": "Test prompt",
-                  "role": "user",
-                },
-              ],
+              "messages": undefined,
             },
             "type": "start-step",
             "warnings": [],
@@ -685,12 +665,7 @@ describe('simulateStreamingMiddleware', () => {
           {
             "request": {
               "body": undefined,
-              "messages": [
-                {
-                  "content": "Test prompt",
-                  "role": "user",
-                },
-              ],
+              "messages": undefined,
             },
             "type": "start-step",
             "warnings": [],
@@ -815,12 +790,7 @@ describe('simulateStreamingMiddleware', () => {
           {
             "request": {
               "body": undefined,
-              "messages": [
-                {
-                  "content": "Test prompt",
-                  "role": "user",
-                },
-              ],
+              "messages": undefined,
             },
             "type": "start-step",
             "warnings": [],

@@ -294,12 +294,7 @@ describe('extractReasoningMiddleware', () => {
             {
               "request": {
                 "body": undefined,
-                "messages": [
-                  {
-                    "content": "Hello, how can I help?",
-                    "role": "user",
-                  },
-                ],
+                "messages": undefined,
               },
               "type": "start-step",
               "warnings": [],
@@ -444,12 +439,7 @@ describe('extractReasoningMiddleware', () => {
             {
               "request": {
                 "body": undefined,
-                "messages": [
-                  {
-                    "content": "Hello, how can I help?",
-                    "role": "user",
-                  },
-                ],
+                "messages": undefined,
               },
               "type": "start-step",
               "warnings": [],
@@ -602,12 +592,7 @@ describe('extractReasoningMiddleware', () => {
             {
               "request": {
                 "body": undefined,
-                "messages": [
-                  {
-                    "content": "Hello, how can I help?",
-                    "role": "user",
-                  },
-                ],
+                "messages": undefined,
               },
               "type": "start-step",
               "warnings": [],
@@ -750,12 +735,7 @@ describe('extractReasoningMiddleware', () => {
             {
               "request": {
                 "body": undefined,
-                "messages": [
-                  {
-                    "content": "Hello, how can I help?",
-                    "role": "user",
-                  },
-                ],
+                "messages": undefined,
               },
               "type": "start-step",
               "warnings": [],
@@ -857,12 +837,7 @@ describe('extractReasoningMiddleware', () => {
             {
               "request": {
                 "body": undefined,
-                "messages": [
-                  {
-                    "content": "Hello, how can I help?",
-                    "role": "user",
-                  },
-                ],
+                "messages": undefined,
               },
               "type": "start-step",
               "warnings": [],
@@ -995,12 +970,7 @@ describe('extractReasoningMiddleware', () => {
             {
               "request": {
                 "body": undefined,
-                "messages": [
-                  {
-                    "content": "Hello, how can I help?",
-                    "role": "user",
-                  },
-                ],
+                "messages": undefined,
               },
               "type": "start-step",
               "warnings": [],

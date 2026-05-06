@@ -249,7 +249,7 @@ const result = await generateText({
     },
     {
       name: 'include',
-      type: '{ requestBody?: boolean; responseBody?: boolean } | undefined',
+      type: '{ requestBody?: boolean; requestMessages?: boolean; responseBody?: boolean } | undefined',
       description:
         'Settings for controlling what data is included in step results.',
     },
@@ -363,7 +363,7 @@ const result = await generateText({
     },
     {
       name: 'include',
-      type: '{ requestBody?: boolean; responseBody?: boolean } | undefined',
+      type: '{ requestBody?: boolean; requestMessages?: boolean; responseBody?: boolean } | undefined',
       description:
         'Settings for controlling what data is included in step results.',
     },
