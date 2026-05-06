@@ -24,6 +24,7 @@ import type { ServerResponse } from 'node:http';
 import { NoOutputGeneratedError } from '../error';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
+import { cloneModelMessages } from '../prompt/clone-model-message';
 import { createToolModelOutput } from '../prompt/create-tool-model-output';
 import type { LanguageModelCallOptions } from '../prompt/language-model-call-options';
 import { prepareLanguageModelCallOptions } from '../prompt/prepare-language-model-call-options';
@@ -1087,11 +1088,14 @@ class DefaultStreamTextResult<
               warnings: recordedWarnings,
               request: {
                 ...recordedRequest,
-                messages: recordedRequestMessages,
+                messages: cloneModelMessages(recordedRequestMessages),
               },
               response: {
                 ...part.response,
-                messages: [...recordedResponseMessages, ...stepMessages],
+                messages: cloneModelMessages([
+                  ...recordedResponseMessages,
+                  ...stepMessages,
+                ]),
               },
               providerMetadata: part.providerMetadata,
             });
@@ -1645,8 +1649,9 @@ class DefaultStreamTextResult<
           const stepRequest: LanguageModelRequestMetadata = {
             ...request,
             body: (include?.requestBody ?? true) ? request?.body : undefined,
-            messages: structuredClone(stepMessages),
+            messages: cloneModelMessages(stepMessages),
           };
+          recordedRequestMessages = stepRequest.messages;
 
           const stepToolCalls: TypedToolCall<TOOLS>[] = [];
           const stepToolOutputs: ToolOutput<TOOLS>[] = [];

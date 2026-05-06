@@ -19,6 +19,7 @@ import { NoOutputGeneratedError } from '../error';
 import { ToolCallNotFoundForApprovalError } from '../error/tool-call-not-found-for-approval-error';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
+import { cloneModelMessages } from '../prompt/clone-model-message';
 import type { ModelMessage } from '../prompt';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { createToolModelOutput } from '../prompt/create-tool-model-output';
@@ -961,13 +962,13 @@ export async function generateText<
             (include?.requestBody ?? true)
               ? currentModelResponse.request?.body
               : undefined,
-          messages: structuredClone(stepMessages),
+          messages: cloneModelMessages(stepMessages),
         };
 
         const stepResponse = {
           ...currentModelResponse.response,
           // deep clone msgs to avoid mutating past messages in multi-step:
-          messages: structuredClone(responseMessages),
+          messages: cloneModelMessages(responseMessages),
           // Conditionally include response body:
           body:
             (include?.responseBody ?? true)
