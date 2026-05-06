@@ -1,10 +1,26 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { getMCPAppFromToolPart } from './get-mcp-app-from-tool-part';
 import { MCPAppFrame } from './mcp-app-frame';
-import type { MCPAppRendererProps, MCPAppResource } from './mcp-app-types';
+import type {
+  MCPAppMetadata,
+  MCPAppRendererProps,
+  MCPAppResource,
+} from './mcp-app-types';
+
+type LoadedResourceState = {
+  resourceUri: string;
+  resource?: MCPAppResource;
+  error?: Error;
+};
 
 function getToolPartOutput(part: MCPAppRendererProps['part']): unknown {
   return part.state === 'output-available' ? part.output : undefined;
+}
+
+function getToolPartInput(part: MCPAppRendererProps['part']): unknown {
+  return part.state === 'input-available' || part.state === 'output-available'
+    ? part.input
+    : undefined;
 }
 
 export function MCPAppRenderer({
@@ -17,49 +33,64 @@ export function MCPAppRenderer({
   hostContext,
   fallback = null,
 }: MCPAppRendererProps) {
-  const app = useMemo(() => getMCPAppFromToolPart(part), [part]);
-  const [loadedResource, setLoadedResource] = useState<
-    MCPAppResource | undefined
-  >(resourceProp);
-  const [error, setError] = useState<Error | undefined>();
+  const app = getMCPAppFromToolPart(part);
+  const [cachedApp, setCachedApp] = useState<MCPAppMetadata>();
+  const [loadedResource, setLoadedResource] = useState<LoadedResourceState>();
 
   useEffect(() => {
-    setLoadedResource(resourceProp);
-  }, [resourceProp]);
+    if (app != null) {
+      setCachedApp(previous =>
+        previous?.resourceUri === app.resourceUri ? previous : app,
+      );
+    }
+  }, [app?.resourceUri]);
+
+  const appForRender = app ?? cachedApp;
 
   useEffect(() => {
-    if (app == null || resourceProp != null || loadResource == null) {
+    if (appForRender == null || resourceProp != null || loadResource == null) {
       return;
     }
 
     let cancelled = false;
+    const resourceUri = appForRender.resourceUri;
 
-    loadResource(app)
+    loadResource(appForRender)
       .then(resource => {
         if (!cancelled) {
-          setLoadedResource(resource);
+          setLoadedResource({ resourceUri, resource });
         }
       })
       .catch(error => {
         if (!cancelled) {
-          setError(error instanceof Error ? error : new Error(String(error)));
+          setLoadedResource({
+            resourceUri,
+            error: error instanceof Error ? error : new Error(String(error)),
+          });
         }
       });
 
     return () => {
       cancelled = true;
     };
-  }, [app, loadResource, resourceProp]);
+  }, [appForRender?.resourceUri, loadResource, resourceProp]);
 
-  if (app == null || error != null || loadedResource == null) {
+  const loadedResourceForApp =
+    loadedResource?.resourceUri === appForRender?.resourceUri
+      ? loadedResource
+      : undefined;
+  const resource = resourceProp ?? loadedResourceForApp?.resource;
+  const error = resourceProp == null ? loadedResourceForApp?.error : undefined;
+
+  if (appForRender == null || error != null || resource == null) {
     return fallback;
   }
 
   return (
     <MCPAppFrame
-      app={app}
-      resource={loadedResource}
-      input={part.input}
+      app={appForRender}
+      resource={resource}
+      input={getToolPartInput(part)}
       output={getToolPartOutput(part)}
       sandbox={sandbox}
       handlers={handlers}

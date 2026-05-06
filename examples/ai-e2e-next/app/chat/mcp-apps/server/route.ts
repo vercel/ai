@@ -4,6 +4,7 @@ import type { NextRequest } from 'next/server';
 import { z } from 'zod';
 
 const DASHBOARD_RESOURCE_URI = 'ui://ai-sdk-e2e/dashboard';
+const DICE_GAME_RESOURCE_URI = 'ui://ai-sdk-e2e/dice-game';
 const MCP_APP_MIME_TYPE = 'text/html;profile=mcp-app';
 
 function createDashboardHtml() {
@@ -50,6 +51,31 @@ function createDashboardHtml() {
         line-height: 1.5;
       }
 
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+        margin: 16px 0;
+      }
+
+      .metric {
+        border: 1px solid var(--color-border-primary, #d4d4d4);
+        border-radius: var(--border-radius-md, 8px);
+        padding: 10px;
+        background: var(--color-background-primary, #ffffff);
+      }
+
+      .label {
+        color: var(--color-text-secondary, #525252);
+        font-size: 12px;
+      }
+
+      .value {
+        margin-top: 4px;
+        font-size: 18px;
+        font-weight: 600;
+      }
+
       button {
         border: 1px solid var(--color-border-primary, #d4d4d4);
         border-radius: var(--border-radius-md, 8px);
@@ -58,13 +84,6 @@ function createDashboardHtml() {
         color: inherit;
         cursor: pointer;
       }
-
-      pre {
-        overflow: auto;
-        padding: 12px;
-        border-radius: var(--border-radius-md, 8px);
-        background: var(--color-background-tertiary, #f5f5f5);
-      }
     </style>
   </head>
   <body>
@@ -72,26 +91,88 @@ function createDashboardHtml() {
       <p class="eyebrow">MCP App</p>
       <h1>AI SDK dashboard</h1>
       <p>
-        This HTML is served from an MCP <code>ui://</code> resource. Once the
-        host bridge is implemented, tool input and tool result notifications
-        should hydrate this view.
+        This HTML is served from an MCP <code>ui://</code> resource and rendered
+        in a sandboxed iframe.
       </p>
+      <div class="grid" id="cards">
+        <div class="metric">
+          <div class="label">Requests</div>
+          <div class="value">128</div>
+        </div>
+        <div class="metric">
+          <div class="label">Latency</div>
+          <div class="value">42ms</div>
+        </div>
+        <div class="metric">
+          <div class="label">Status</div>
+          <div class="value">Healthy</div>
+        </div>
+      </div>
       <button id="refresh">Call app-only refresh tool</button>
-      <pre id="log">Waiting for host bridge...</pre>
+      <p class="label" id="status">Connecting to host...</p>
     </main>
 
     <script>
-      const log = document.getElementById('log');
+      const cards = document.getElementById('cards');
+      const status = document.getElementById('status');
       let nextId = 1;
+      const pendingRequests = new Map();
 
       function sendRequest(method, params) {
         const id = nextId++;
+        pendingRequests.set(id, method);
         window.parent.postMessage({ jsonrpc: '2.0', id, method, params }, '*');
         return id;
       }
 
+      function sendNotification(method, params) {
+        window.parent.postMessage({ jsonrpc: '2.0', method, params }, '*');
+      }
+
+      function renderCards(result) {
+        const nextCards = result?.structuredContent?.cards;
+        if (!Array.isArray(nextCards)) return;
+
+        cards.textContent = '';
+        for (const card of nextCards) {
+          const metric = document.createElement('div');
+          metric.className = 'metric';
+
+          const label = document.createElement('div');
+          label.className = 'label';
+          label.textContent = String(card.label);
+
+          const value = document.createElement('div');
+          value.className = 'value';
+          value.textContent = String(card.value);
+
+          metric.append(label, value);
+          cards.append(metric);
+        }
+      }
+
       window.addEventListener('message', event => {
-        log.textContent = JSON.stringify(event.data, null, 2);
+        const message = event.data;
+        if (message?.jsonrpc !== '2.0') return;
+
+        if (message.id != null && pendingRequests.has(message.id)) {
+          const method = pendingRequests.get(message.id);
+          pendingRequests.delete(message.id);
+
+          if (method === 'ui/initialize') {
+            status.textContent = 'Connected to host.';
+            sendNotification('ui/notifications/initialized');
+          } else if (method === 'tools/call') {
+            status.textContent = 'Refreshed from app-only tool.';
+            renderCards(message.result);
+          }
+
+          return;
+        }
+
+        if (message.method === 'ui/notifications/tool-result') {
+          renderCards(message.params);
+        }
       });
 
       document.getElementById('refresh').addEventListener('click', () => {
@@ -106,8 +187,147 @@ function createDashboardHtml() {
         appCapabilities: {
           availableDisplayModes: ['inline', 'fullscreen'],
         },
-        clientInfo: {
+        appInfo: {
           name: 'ai-sdk-e2e-mcp-app',
+          version: '1.0.0',
+        },
+      });
+    </script>
+  </body>
+</html>`;
+}
+
+function createDiceGameHtml() {
+  return `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AI SDK MCP Dice Game</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        font-family: var(--font-sans, system-ui, sans-serif);
+        background: #101827;
+        color: #f8fafc;
+      }
+
+      body {
+        margin: 0;
+        padding: 16px;
+      }
+
+      main {
+        border-radius: 16px;
+        padding: 18px;
+        background: linear-gradient(135deg, #1e293b, #312e81);
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 22px;
+      }
+
+      p {
+        color: #cbd5e1;
+        line-height: 1.5;
+      }
+
+      .die {
+        display: grid;
+        place-items: center;
+        width: 96px;
+        height: 96px;
+        margin: 18px 0;
+        border-radius: 20px;
+        background: #f8fafc;
+        color: #111827;
+        font-size: 44px;
+        font-weight: 700;
+      }
+
+      button {
+        border: 0;
+        border-radius: 999px;
+        padding: 10px 16px;
+        background: #a7f3d0;
+        color: #064e3b;
+        cursor: pointer;
+        font-weight: 700;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Roll for points</h1>
+      <p>Roll 12 or higher to score. The button calls an app-only MCP tool.</p>
+      <div class="die" id="die">?</div>
+      <button id="roll">Roll die</button>
+      <p id="status">Connecting...</p>
+    </main>
+
+    <script>
+      const die = document.getElementById('die');
+      const status = document.getElementById('status');
+      let nextId = 1;
+      let score = 0;
+      const pendingRequests = new Map();
+
+      function sendRequest(method, params) {
+        const id = nextId++;
+        pendingRequests.set(id, method);
+        window.parent.postMessage({ jsonrpc: '2.0', id, method, params }, '*');
+      }
+
+      function sendNotification(method, params) {
+        window.parent.postMessage({ jsonrpc: '2.0', method, params }, '*');
+      }
+
+      function updateGame(result) {
+        const game = result?.structuredContent;
+        if (game == null) return;
+        score = Number(game.score) || 0;
+        die.textContent = String(game.roll ?? '?');
+        status.textContent = game.message || 'Score: ' + score;
+      }
+
+      window.addEventListener('message', event => {
+        const message = event.data;
+        if (message?.jsonrpc !== '2.0') return;
+
+        if (message.id != null && pendingRequests.has(message.id)) {
+          const method = pendingRequests.get(message.id);
+          pendingRequests.delete(message.id);
+
+          if (method === 'ui/initialize') {
+            status.textContent = 'Ready. Score: 0';
+            sendNotification('ui/notifications/initialized');
+          } else if (method === 'tools/call') {
+            updateGame(message.result);
+          }
+
+          return;
+        }
+
+        if (message.method === 'ui/notifications/tool-result') {
+          updateGame(message.params);
+        }
+      });
+
+      document.getElementById('roll').addEventListener('click', () => {
+        sendRequest('tools/call', {
+          name: 'showDiceGame',
+          arguments: { roll: true, score },
+        });
+      });
+
+      sendRequest('ui/initialize', {
+        protocolVersion: '2026-01-26',
+        appCapabilities: {
+          availableDisplayModes: ['inline', 'fullscreen'],
+        },
+        appInfo: {
+          name: 'ai-sdk-e2e-dice-game',
           version: '1.0.0',
         },
       });
@@ -163,6 +383,24 @@ function createServer() {
     }),
   );
 
+  server.registerResource(
+    'dice-game-app',
+    DICE_GAME_RESOURCE_URI,
+    {
+      description: 'Playable dice game rendered by an MCP Apps host.',
+      mimeType: MCP_APP_MIME_TYPE,
+    },
+    async () => ({
+      contents: [
+        {
+          uri: DICE_GAME_RESOURCE_URI,
+          mimeType: MCP_APP_MIME_TYPE,
+          text: createDiceGameHtml(),
+        },
+      ],
+    }),
+  );
+
   server.registerTool(
     'showDashboard',
     {
@@ -201,6 +439,81 @@ function createServer() {
         ui: {
           resourceUri: DASHBOARD_RESOURCE_URI,
         },
+      },
+    }),
+  );
+
+  server.registerTool(
+    'showDiceGame',
+    {
+      title: 'Show Dice Game',
+      description: 'Show or play a MCP App dice game.',
+      inputSchema: {
+        roll: z.boolean().optional(),
+        score: z.number().optional(),
+      },
+      _meta: {
+        ui: {
+          resourceUri: DICE_GAME_RESOURCE_URI,
+          visibility: ['model', 'app'],
+        },
+      },
+    },
+    async ({ roll: shouldRoll = false, score = 0 }) => {
+      const roll = shouldRoll ? Math.floor(Math.random() * 20) + 1 : '?';
+      const nextScore =
+        typeof roll === 'number' && roll >= 12 ? score + 1 : score;
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text:
+              typeof roll === 'number'
+                ? `Rolled ${roll}. Score is now ${nextScore}.`
+                : 'Rendered a playable dice game.',
+          },
+        ],
+        structuredContent: {
+          roll,
+          score: nextScore,
+          message:
+            typeof roll === 'number'
+              ? roll >= 12
+                ? `Hit! Score: ${nextScore}`
+                : `Miss. Score: ${nextScore}`
+              : 'Ready. Score: 0',
+        },
+        _meta: {
+          ui: {
+            resourceUri: DICE_GAME_RESOURCE_URI,
+          },
+        },
+      };
+    },
+  );
+
+  server.registerTool(
+    'getWeather',
+    {
+      title: 'Get Weather',
+      description: 'Get the current weather for a city.',
+      inputSchema: {
+        city: z.string().describe('The city to get weather for.'),
+      },
+    },
+    async ({ city }) => ({
+      content: [
+        {
+          type: 'text',
+          text: `The weather in ${city} is sunny and 72F.`,
+        },
+      ],
+      structuredContent: {
+        city,
+        condition: 'sunny',
+        temperature: 72,
+        unit: 'fahrenheit',
       },
     }),
   );

@@ -1,47 +1,19 @@
 import { openai } from '@ai-sdk/openai';
-import { createMCPClient, type ListToolsResult } from '@ai-sdk/mcp';
-import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
+import { splitMCPAppTools } from '@ai-sdk/mcp';
 import { convertToModelMessages, isStepCount, streamText } from 'ai';
-
-function isModelVisibleTool(tool: ListToolsResult['tools'][number]) {
-  const uiMeta = tool._meta?.ui;
-
-  if (uiMeta == null || typeof uiMeta !== 'object' || Array.isArray(uiMeta)) {
-    return true;
-  }
-
-  const visibility = (uiMeta as { visibility?: unknown }).visibility;
-
-  return !Array.isArray(visibility) || visibility.includes('model');
-}
+import { createLocalMCPAppsClient } from '../mcp-client';
 
 export async function POST(req: Request) {
   const requestUrl = new URL(req.url);
-  const url = new URL('/chat/mcp-apps/server', requestUrl.origin);
-  const transport = new StreamableHTTPClientTransport(url);
 
   const [client, { messages }] = await Promise.all([
-    createMCPClient({
-      transport,
-      clientName: 'local-mcp-apps',
-      capabilities: {
-        extensions: {
-          'io.modelcontextprotocol/ui': {
-            mimeTypes: ['text/html;profile=mcp-app'],
-          },
-        },
-      },
-    }),
+    createLocalMCPAppsClient(requestUrl.origin),
     req.json(),
   ]);
 
   try {
-    const toolDefinitions = await client.listTools();
-    const modelToolDefinitions = {
-      ...toolDefinitions,
-      tools: toolDefinitions.tools.filter(isModelVisibleTool),
-    };
-    const tools = client.toolsFromDefinitions(modelToolDefinitions);
+    const { modelVisible } = splitMCPAppTools(await client.listTools());
+    const tools = client.toolsFromDefinitions(modelVisible);
 
     const result = streamText({
       model: openai('gpt-4o-mini'),

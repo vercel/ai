@@ -1,21 +1,81 @@
 'use client';
 
 import ChatInput from '@/components/chat-input';
-import { useChat } from '@ai-sdk/react';
 import {
-  DefaultChatTransport,
-  getToolName,
-  isToolUIPart,
-  type DynamicToolUIPart,
-  type ToolUIPart,
-} from 'ai';
+  MCPAppRenderer,
+  useChat,
+  type MCPAppBridgeHandlers,
+  type MCPAppMetadata,
+  type MCPAppResource,
+  type MCPAppSandboxConfig,
+  type MCPAppToolPart,
+} from '@ai-sdk/react';
+import { DefaultChatTransport, isToolUIPart } from 'ai';
 
-const DASHBOARD_RESOURCE_URI = 'ui://ai-sdk-e2e/dashboard';
+const chatTransport = new DefaultChatTransport({ api: '/chat/mcp-apps/chat' });
+
+const mcpAppSandbox = {
+  url: '/chat/mcp-apps/sandbox',
+  className:
+    'block w-full h-80 overflow-hidden rounded-lg border border-blue-200 bg-white',
+  style: { border: 0 },
+} satisfies MCPAppSandboxConfig;
+
+const mcpAppFallback = (
+  <div className="p-3 text-sm text-gray-500">Loading MCP App...</div>
+);
+
+async function fetchJson(url: string, init?: RequestInit) {
+  const response = await fetch(url, init);
+
+  if (!response.ok) {
+    throw new Error(`Request failed: ${response.status}`);
+  }
+
+  return response.json();
+}
+
+function callMCPAppHost(method: string, params: unknown) {
+  return fetchJson('/chat/mcp-apps/host', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ method, params }),
+  });
+}
+
+function loadMCPAppResource(app: MCPAppMetadata): Promise<MCPAppResource> {
+  return callMCPAppHost('mcp-apps/read-resource', { uri: app.resourceUri });
+}
+
+const mcpAppHandlers: MCPAppBridgeHandlers = {
+  callTool: params => callMCPAppHost('tools/call', params),
+  readResource: params => callMCPAppHost('resources/read', params),
+  openLink: ({ url }) => {
+    window.open(url, '_blank', 'noopener,noreferrer');
+    return {};
+  },
+  onError: error => {
+    console.error(error);
+  },
+};
+
+function MCPAppTool({ part }: { part: MCPAppToolPart }) {
+  return (
+    <MCPAppRenderer
+      part={part}
+      loadResource={loadMCPAppResource}
+      handlers={mcpAppHandlers}
+      sandbox={mcpAppSandbox}
+      fallback={mcpAppFallback}
+    />
+  );
+}
 
 export default function Chat() {
   const { error, status, sendMessage, messages, regenerate, stop } = useChat({
-    transport: new DefaultChatTransport({ api: '/chat/mcp-apps/chat' }),
+    transport: chatTransport,
   });
+  const isBusy = status === 'submitted' || status === 'streaming';
 
   return (
     <div className="flex flex-col py-24 mx-auto w-full max-w-2xl stretch">
@@ -23,8 +83,7 @@ export default function Chat() {
         <h1 className="text-xl font-semibold">MCP Apps chat</h1>
         <p className="mt-2 text-sm text-gray-600">
           Ask for the dashboard. The MCP server advertises an app-backed tool;
-          this page shows the normal tool part until MCP App rendering is wired
-          into the UI message stream.
+          this page renders its UI resource in a sandboxed MCP App frame.
         </p>
       </div>
 
@@ -52,77 +111,7 @@ export default function Chat() {
               }
 
               if (isToolUIPart(part)) {
-                const toolPart = part as ToolUIPart<any> | DynamicToolUIPart;
-                const toolName = getToolName(toolPart);
-                const displayName = toolPart.title || toolName;
-                const isAppTool = toolName === 'showDashboard';
-
-                return (
-                  <div
-                    key={index}
-                    className="p-4 bg-gray-50 rounded-lg border border-gray-300"
-                  >
-                    <div className="mb-3">
-                      <div className="text-sm font-semibold">{displayName}</div>
-                      <div className="text-xs text-gray-500">
-                        Tool ID: {toolName}
-                      </div>
-                    </div>
-
-                    {isAppTool && (
-                      <div className="p-3 mb-3 text-sm bg-white rounded border border-dashed border-blue-300">
-                        <div className="font-medium text-blue-700">
-                          MCP App placeholder
-                        </div>
-                        <div className="mt-1 text-xs text-gray-600">
-                          Resource: {DASHBOARD_RESOURCE_URI}
-                        </div>
-                        <div className="mt-2 text-xs text-gray-500">
-                          This is where the sandboxed app frame should render
-                          once MCP Apps metadata and resource fetching are
-                          plumbed through.
-                        </div>
-                      </div>
-                    )}
-
-                    {toolPart.state === 'input-streaming' && (
-                      <div className="text-sm text-gray-600">
-                        <div className="mb-1">Streaming input...</div>
-                        {toolPart.input && (
-                          <pre className="overflow-x-auto p-2 text-xs bg-white rounded">
-                            {JSON.stringify(toolPart.input, null, 2)}
-                          </pre>
-                        )}
-                      </div>
-                    )}
-
-                    {toolPart.state === 'input-available' && (
-                      <div className="text-sm text-gray-600">
-                        <div className="mb-1">Input:</div>
-                        <pre className="overflow-x-auto p-2 text-xs bg-white rounded">
-                          {JSON.stringify(toolPart.input, null, 2)}
-                        </pre>
-                      </div>
-                    )}
-
-                    {toolPart.state === 'output-available' && (
-                      <div className="text-sm">
-                        <div className="mb-1 text-gray-600">Output:</div>
-                        <pre className="overflow-x-auto p-2 text-xs bg-white rounded">
-                          {typeof toolPart.output === 'string'
-                            ? toolPart.output
-                            : JSON.stringify(toolPart.output, null, 2)}
-                        </pre>
-                      </div>
-                    )}
-
-                    {toolPart.state === 'output-error' && (
-                      <div className="text-sm text-red-600">
-                        Error: {toolPart.errorText}
-                      </div>
-                    )}
-                  </div>
-                );
+                return <MCPAppTool key={part.toolCallId} part={part} />;
               }
 
               return null;
@@ -131,9 +120,9 @@ export default function Chat() {
         </div>
       ))}
 
-      {(status === 'submitted' || status === 'streaming') && (
+      {isBusy ? (
         <div className="mt-4 text-sm text-gray-500">
-          {status === 'submitted' && <div>Loading...</div>}
+          {status === 'submitted' ? <div>Loading...</div> : null}
           <button
             type="button"
             className="px-4 py-2 mt-4 text-sm text-blue-500 rounded-md border border-blue-500 hover:bg-blue-50"
@@ -142,9 +131,9 @@ export default function Chat() {
             Stop
           </button>
         </div>
-      )}
+      ) : null}
 
-      {error && (
+      {error ? (
         <div className="mt-4">
           <div className="text-sm text-red-500">An error occurred.</div>
           <button
@@ -155,7 +144,7 @@ export default function Chat() {
             Retry
           </button>
         </div>
-      )}
+      ) : null}
 
       <ChatInput status={status} onSubmit={text => sendMessage({ text })} />
     </div>

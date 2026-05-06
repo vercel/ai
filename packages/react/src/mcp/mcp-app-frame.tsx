@@ -9,6 +9,28 @@ import {
 import type { MCPAppFrameProps } from './mcp-app-types';
 import { normalizeMCPAppToolResult } from './normalize-mcp-app-tool-result';
 
+function sendToolState({
+  bridge,
+  input,
+  output,
+}: {
+  bridge?: MCPAppBridge;
+  input: unknown;
+  output: unknown;
+}) {
+  if (bridge == null) {
+    return;
+  }
+
+  if (input !== undefined) {
+    bridge.sendToolInput(input);
+  }
+
+  if (output !== undefined) {
+    bridge.sendToolResult(normalizeMCPAppToolResult(output));
+  }
+}
+
 export function MCPAppFrame({
   app,
   resource,
@@ -23,25 +45,27 @@ export function MCPAppFrame({
   const bridgeRef = useRef<MCPAppBridge | undefined>(undefined);
   const inputRef = useRef(input);
   const outputRef = useRef(output);
+  const hostContextRef = useRef(hostContext);
   const initializedRef = useRef(false);
   inputRef.current = input;
   outputRef.current = output;
+  hostContextRef.current = hostContext;
   const targetOrigin = sandbox.targetOrigin ?? '*';
-  const sandboxUrl = useMemo(() => String(sandbox.url), [sandbox.url]);
+  const sandboxUrl = String(sandbox.url);
+  const resourceCSP = getMCPAppCSP(resource.meta?.csp);
+  const resourceAllow = getMCPAppAllowAttribute(resource.meta?.permissions);
+  const innerSandbox = sandbox.innerSandbox ?? MCP_APP_DEFAULT_INNER_SANDBOX;
   const bridgeHandlers = useMemo(
     () => ({
       ...handlers,
       onInitialized: () => {
         initializedRef.current = true;
         handlers?.onInitialized?.();
-        if (inputRef.current !== undefined) {
-          bridgeRef.current?.sendToolInput(inputRef.current);
-        }
-        if (outputRef.current !== undefined) {
-          bridgeRef.current?.sendToolResult(
-            normalizeMCPAppToolResult(outputRef.current),
-          );
-        }
+        sendToolState({
+          bridge: bridgeRef.current,
+          input: inputRef.current,
+          output: outputRef.current,
+        });
       },
     }),
     [handlers],
@@ -63,7 +87,7 @@ export function MCPAppFrame({
       targetOrigin,
       handlers: bridgeHandlersRef.current,
       hostInfo,
-      hostContext,
+      hostContext: hostContextRef.current,
     });
     bridgeRef.current = bridge;
 
@@ -75,10 +99,9 @@ export function MCPAppFrame({
       ) {
         bridge.sendSandboxResourceReady({
           html: resource.html,
-          csp: getMCPAppCSP(resource.meta?.csp),
-          sandbox: sandbox.innerSandbox ?? MCP_APP_DEFAULT_INNER_SANDBOX,
-          allow: getMCPAppAllowAttribute(resource.meta?.permissions),
-          app,
+          csp: resourceCSP,
+          sandbox: innerSandbox,
+          allow: resourceAllow,
         });
         return;
       }
@@ -96,22 +119,14 @@ export function MCPAppFrame({
       bridgeRef.current = undefined;
     };
   }, [
-    app,
-    hostContext,
     hostInfo,
-    resource,
-    sandbox.innerSandbox,
+    innerSandbox,
+    resource.html,
+    resourceAllow,
+    resourceCSP,
     sandboxUrl,
     targetOrigin,
   ]);
-
-  useEffect(() => {
-    inputRef.current = input;
-  }, [input]);
-
-  useEffect(() => {
-    outputRef.current = output;
-  }, [output]);
 
   useEffect(() => {
     bridgeRef.current?.setHandlers(bridgeHandlers);
