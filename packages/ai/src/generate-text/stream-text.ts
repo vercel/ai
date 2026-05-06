@@ -14,6 +14,7 @@ import {
   type Context,
   type IdGenerator,
   type InferToolSetContext,
+  type ModelMessage,
   type ProviderOptions,
   type ToolApprovalResponse,
   type ToolContent,
@@ -877,6 +878,7 @@ class DefaultStreamTextResult<
     let recordedRawFinishReason: string | undefined = undefined;
     let recordedTotalUsage: LanguageModelUsage | undefined = undefined;
     let recordedRequest: LanguageModelRequestMetadata = {};
+    let recordedRequestMessages: Array<ModelMessage> = [];
     let recordedWarnings: Array<CallWarning> = [];
     const recordedSteps: StepResult<TOOLS, RUNTIME_CONTEXT>[] = [];
 
@@ -1083,7 +1085,10 @@ class DefaultStreamTextResult<
               rawFinishReason: part.rawFinishReason,
               usage: part.usage,
               warnings: recordedWarnings,
-              request: recordedRequest,
+              request: {
+                ...recordedRequest,
+                messages: recordedRequestMessages,
+              },
               response: {
                 ...part.response,
                 messages: [...recordedResponseMessages, ...stepMessages],
@@ -1641,6 +1646,11 @@ class DefaultStreamTextResult<
             (include?.requestBody ?? true)
               ? (request ?? {})
               : { ...request, body: undefined };
+          const stepRequestWithMessages = {
+            ...stepRequest,
+            messages: structuredClone(stepMessages),
+          };
+          recordedRequestMessages = stepRequestWithMessages.messages;
           const stepToolCalls: TypedToolCall<TOOLS>[] = [];
           const stepToolOutputs: ToolOutput<TOOLS>[] = [];
           const stepToolApprovalResponses: ToolApprovalResponse[] = [];

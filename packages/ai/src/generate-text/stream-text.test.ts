@@ -5004,6 +5004,7 @@ describe('streamText', () => {
 
       expect(await result.request).toStrictEqual({
         body: 'test body',
+        messages: [{ role: 'user', content: 'test-input' }],
       });
     });
 
@@ -5034,7 +5035,44 @@ describe('streamText', () => {
 
       expect(await result.request).toStrictEqual({
         body: undefined,
+        messages: [{ role: 'user', content: 'test-input' }],
       });
+    });
+
+    it('should resolve with messages from after prepareStep', async () => {
+      const preparedMessages: Array<ModelMessage> = [
+        { role: 'user', content: 'prepared prompt' },
+      ];
+
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'Hello' },
+            { type: 'text-end', id: '1' },
+            {
+              type: 'finish',
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: testUsage,
+            },
+          ]),
+        }),
+        prompt: 'test-input',
+        prepareStep: async () => ({
+          messages: preparedMessages,
+        }),
+      });
+
+      expect((await result.request).messages).toStrictEqual(preparedMessages);
+      expect((await result.steps)[0].request.messages).toStrictEqual(
+        preparedMessages,
+      );
     });
   });
 
@@ -5217,7 +5255,14 @@ describe('streamText', () => {
             },
             "providerMetadata": undefined,
             "rawFinishReason": "stop",
-            "request": {},
+            "request": {
+              "messages": [
+                {
+                  "content": "prompt",
+                  "role": "user",
+                },
+              ],
+            },
             "response": {
               "headers": undefined,
               "id": "id-0",
@@ -5359,7 +5404,14 @@ describe('streamText', () => {
             },
             "providerMetadata": undefined,
             "rawFinishReason": "stop",
-            "request": {},
+            "request": {
+              "messages": [
+                {
+                  "content": "prompt",
+                  "role": "user",
+                },
+              ],
+            },
             "response": {
               "headers": undefined,
               "id": "id-0",
@@ -5446,7 +5498,14 @@ describe('streamText', () => {
             },
             "providerMetadata": undefined,
             "rawFinishReason": "stop",
-            "request": {},
+            "request": {
+              "messages": [
+                {
+                  "content": "prompt",
+                  "role": "user",
+                },
+              ],
+            },
             "response": {
               "headers": undefined,
               "id": "id-0",
@@ -5555,7 +5614,14 @@ describe('streamText', () => {
             },
             "providerMetadata": undefined,
             "rawFinishReason": "stop",
-            "request": {},
+            "request": {
+              "messages": [
+                {
+                  "content": "prompt",
+                  "role": "user",
+                },
+              ],
+            },
             "response": {
               "headers": undefined,
               "id": "id-0",
@@ -7884,7 +7950,14 @@ describe('streamText', () => {
           "rawFinishReason": "stop",
           "reasoning": [],
           "reasoningText": undefined,
-          "request": {},
+          "request": {
+            "messages": [
+              {
+                "content": "prompt",
+                "role": "user",
+              },
+            ],
+          },
           "response": {
             "headers": {
               "call": "2",
@@ -7999,7 +8072,14 @@ describe('streamText', () => {
                 },
               },
               "rawFinishReason": "stop",
-              "request": {},
+              "request": {
+                "messages": [
+                  {
+                    "content": "prompt",
+                    "role": "user",
+                  },
+                ],
+              },
               "response": {
                 "headers": {
                   "call": "2",
@@ -8193,7 +8273,14 @@ describe('streamText', () => {
           "rawFinishReason": "stop",
           "reasoning": [],
           "reasoningText": undefined,
-          "request": {},
+          "request": {
+            "messages": [
+              {
+                "content": "prompt",
+                "role": "user",
+              },
+            ],
+          },
           "response": {
             "headers": undefined,
             "id": "id-0",
@@ -8283,7 +8370,14 @@ describe('streamText', () => {
               },
               "providerMetadata": undefined,
               "rawFinishReason": "stop",
-              "request": {},
+              "request": {
+                "messages": [
+                  {
+                    "content": "prompt",
+                    "role": "user",
+                  },
+                ],
+              },
               "response": {
                 "headers": undefined,
                 "id": "id-0",
@@ -8466,7 +8560,14 @@ describe('streamText', () => {
           "rawFinishReason": "stop",
           "reasoning": [],
           "reasoningText": undefined,
-          "request": {},
+          "request": {
+            "messages": [
+              {
+                "content": "prompt",
+                "role": "user",
+              },
+            ],
+          },
           "response": {
             "headers": undefined,
             "id": "id-0",
@@ -8537,7 +8638,14 @@ describe('streamText', () => {
               },
               "providerMetadata": undefined,
               "rawFinishReason": "stop",
-              "request": {},
+              "request": {
+                "messages": [
+                  {
+                    "content": "prompt",
+                    "role": "user",
+                  },
+                ],
+              },
               "response": {
                 "headers": undefined,
                 "id": "id-0",
@@ -9175,7 +9283,48 @@ describe('streamText', () => {
               "rawFinishReason": "stop",
               "reasoning": [],
               "reasoningText": undefined,
-              "request": {},
+              "request": {
+                "messages": [
+                  {
+                    "content": "test-input",
+                    "role": "user",
+                  },
+                  {
+                    "content": [
+                      {
+                        "providerOptions": undefined,
+                        "text": "thinking",
+                        "type": "reasoning",
+                      },
+                      {
+                        "input": {
+                          "value": "value",
+                        },
+                        "providerExecuted": undefined,
+                        "providerOptions": undefined,
+                        "toolCallId": "call-1",
+                        "toolName": "tool1",
+                        "type": "tool-call",
+                      },
+                    ],
+                    "role": "assistant",
+                  },
+                  {
+                    "content": [
+                      {
+                        "output": {
+                          "type": "text",
+                          "value": "result1",
+                        },
+                        "toolCallId": "call-1",
+                        "toolName": "tool1",
+                        "type": "tool-result",
+                      },
+                    ],
+                    "role": "tool",
+                  },
+                ],
+              },
               "response": {
                 "headers": {
                   "call": "2",
@@ -9273,7 +9422,14 @@ describe('streamText', () => {
                   },
                   "providerMetadata": undefined,
                   "rawFinishReason": undefined,
-                  "request": {},
+                  "request": {
+                    "messages": [
+                      {
+                        "content": "test-input",
+                        "role": "user",
+                      },
+                    ],
+                  },
                   "response": {
                     "headers": {
                       "call": "1",
@@ -9356,7 +9512,48 @@ describe('streamText', () => {
                   },
                   "providerMetadata": undefined,
                   "rawFinishReason": "stop",
-                  "request": {},
+                  "request": {
+                    "messages": [
+                      {
+                        "content": "test-input",
+                        "role": "user",
+                      },
+                      {
+                        "content": [
+                          {
+                            "providerOptions": undefined,
+                            "text": "thinking",
+                            "type": "reasoning",
+                          },
+                          {
+                            "input": {
+                              "value": "value",
+                            },
+                            "providerExecuted": undefined,
+                            "providerOptions": undefined,
+                            "toolCallId": "call-1",
+                            "toolName": "tool1",
+                            "type": "tool-call",
+                          },
+                        ],
+                        "role": "assistant",
+                      },
+                      {
+                        "content": [
+                          {
+                            "output": {
+                              "type": "text",
+                              "value": "result1",
+                            },
+                            "toolCallId": "call-1",
+                            "toolName": "tool1",
+                            "type": "tool-result",
+                          },
+                        ],
+                        "role": "tool",
+                      },
+                    ],
+                  },
                   "response": {
                     "headers": {
                       "call": "2",
@@ -9516,7 +9713,14 @@ describe('streamText', () => {
                 },
                 "providerMetadata": undefined,
                 "rawFinishReason": undefined,
-                "request": {},
+                "request": {
+                  "messages": [
+                    {
+                      "content": "test-input",
+                      "role": "user",
+                    },
+                  ],
+                },
                 "response": {
                   "headers": {
                     "call": "1",
@@ -9599,7 +9803,48 @@ describe('streamText', () => {
                 },
                 "providerMetadata": undefined,
                 "rawFinishReason": "stop",
-                "request": {},
+                "request": {
+                  "messages": [
+                    {
+                      "content": "test-input",
+                      "role": "user",
+                    },
+                    {
+                      "content": [
+                        {
+                          "providerOptions": undefined,
+                          "text": "thinking",
+                          "type": "reasoning",
+                        },
+                        {
+                          "input": {
+                            "value": "value",
+                          },
+                          "providerExecuted": undefined,
+                          "providerOptions": undefined,
+                          "toolCallId": "call-1",
+                          "toolName": "tool1",
+                          "type": "tool-call",
+                        },
+                      ],
+                      "role": "assistant",
+                    },
+                    {
+                      "content": [
+                        {
+                          "output": {
+                            "type": "text",
+                            "value": "result1",
+                          },
+                          "toolCallId": "call-1",
+                          "toolName": "tool1",
+                          "type": "tool-result",
+                        },
+                      ],
+                      "role": "tool",
+                    },
+                  ],
+                },
                 "response": {
                   "headers": {
                     "call": "2",
@@ -9776,7 +10021,14 @@ describe('streamText', () => {
                 },
                 "providerMetadata": undefined,
                 "rawFinishReason": undefined,
-                "request": {},
+                "request": {
+                  "messages": [
+                    {
+                      "content": "test-input",
+                      "role": "user",
+                    },
+                  ],
+                },
                 "response": {
                   "headers": {
                     "call": "1",
@@ -9859,7 +10111,48 @@ describe('streamText', () => {
                 },
                 "providerMetadata": undefined,
                 "rawFinishReason": "stop",
-                "request": {},
+                "request": {
+                  "messages": [
+                    {
+                      "content": "test-input",
+                      "role": "user",
+                    },
+                    {
+                      "content": [
+                        {
+                          "providerOptions": undefined,
+                          "text": "thinking",
+                          "type": "reasoning",
+                        },
+                        {
+                          "input": {
+                            "value": "value",
+                          },
+                          "providerExecuted": undefined,
+                          "providerOptions": undefined,
+                          "toolCallId": "call-1",
+                          "toolName": "tool1",
+                          "type": "tool-call",
+                        },
+                      ],
+                      "role": "assistant",
+                    },
+                    {
+                      "content": [
+                        {
+                          "output": {
+                            "type": "text",
+                            "value": "result1",
+                          },
+                          "toolCallId": "call-1",
+                          "toolName": "tool1",
+                          "type": "tool-result",
+                        },
+                      ],
+                      "role": "tool",
+                    },
+                  ],
+                },
                 "response": {
                   "headers": {
                     "call": "2",
@@ -10372,7 +10665,14 @@ describe('streamText', () => {
                   },
                   "providerMetadata": undefined,
                   "rawFinishReason": undefined,
-                  "request": {},
+                  "request": {
+                    "messages": [
+                      {
+                        "content": "new input from prepareStep",
+                        "role": "user",
+                      },
+                    ],
+                  },
                   "response": {
                     "headers": {
                       "call": "1",
@@ -10452,7 +10752,43 @@ describe('streamText', () => {
                   },
                   "providerMetadata": undefined,
                   "rawFinishReason": "stop",
-                  "request": {},
+                  "request": {
+                    "messages": [
+                      {
+                        "content": "test-input",
+                        "role": "user",
+                      },
+                      {
+                        "content": [
+                          {
+                            "input": {
+                              "value": "value",
+                            },
+                            "providerExecuted": undefined,
+                            "providerOptions": undefined,
+                            "toolCallId": "call-1",
+                            "toolName": "tool1",
+                            "type": "tool-call",
+                          },
+                        ],
+                        "role": "assistant",
+                      },
+                      {
+                        "content": [
+                          {
+                            "output": {
+                              "type": "text",
+                              "value": "result1",
+                            },
+                            "toolCallId": "call-1",
+                            "toolName": "tool1",
+                            "type": "tool-result",
+                          },
+                        ],
+                        "role": "tool",
+                      },
+                    ],
+                  },
                   "response": {
                     "headers": {
                       "call": "2",
@@ -10602,7 +10938,14 @@ describe('streamText', () => {
                   },
                   "providerMetadata": undefined,
                   "rawFinishReason": undefined,
-                  "request": {},
+                  "request": {
+                    "messages": [
+                      {
+                        "content": "new input from prepareStep",
+                        "role": "user",
+                      },
+                    ],
+                  },
                   "response": {
                     "headers": {
                       "call": "1",
@@ -10682,7 +11025,43 @@ describe('streamText', () => {
                   },
                   "providerMetadata": undefined,
                   "rawFinishReason": "stop",
-                  "request": {},
+                  "request": {
+                    "messages": [
+                      {
+                        "content": "test-input",
+                        "role": "user",
+                      },
+                      {
+                        "content": [
+                          {
+                            "input": {
+                              "value": "value",
+                            },
+                            "providerExecuted": undefined,
+                            "providerOptions": undefined,
+                            "toolCallId": "call-1",
+                            "toolName": "tool1",
+                            "type": "tool-call",
+                          },
+                        ],
+                        "role": "assistant",
+                      },
+                      {
+                        "content": [
+                          {
+                            "output": {
+                              "type": "text",
+                              "value": "result1",
+                            },
+                            "toolCallId": "call-1",
+                            "toolName": "tool1",
+                            "type": "tool-result",
+                          },
+                        ],
+                        "role": "tool",
+                      },
+                    ],
+                  },
                   "response": {
                     "headers": {
                       "call": "2",
@@ -11059,7 +11438,48 @@ describe('streamText', () => {
               "rawFinishReason": "stop",
               "reasoning": [],
               "reasoningText": undefined,
-              "request": {},
+              "request": {
+                "messages": [
+                  {
+                    "content": "test-input",
+                    "role": "user",
+                  },
+                  {
+                    "content": [
+                      {
+                        "providerOptions": undefined,
+                        "text": "thinking",
+                        "type": "reasoning",
+                      },
+                      {
+                        "input": {
+                          "value": "value",
+                        },
+                        "providerExecuted": undefined,
+                        "providerOptions": undefined,
+                        "toolCallId": "call-1",
+                        "toolName": "tool1",
+                        "type": "tool-call",
+                      },
+                    ],
+                    "role": "assistant",
+                  },
+                  {
+                    "content": [
+                      {
+                        "output": {
+                          "type": "text",
+                          "value": "RESULT1",
+                        },
+                        "toolCallId": "call-1",
+                        "toolName": "tool1",
+                        "type": "tool-result",
+                      },
+                    ],
+                    "role": "tool",
+                  },
+                ],
+              },
               "response": {
                 "headers": {
                   "call": "2",
@@ -11157,7 +11577,14 @@ describe('streamText', () => {
                   },
                   "providerMetadata": undefined,
                   "rawFinishReason": undefined,
-                  "request": {},
+                  "request": {
+                    "messages": [
+                      {
+                        "content": "test-input",
+                        "role": "user",
+                      },
+                    ],
+                  },
                   "response": {
                     "headers": {
                       "call": "1",
@@ -11240,7 +11667,48 @@ describe('streamText', () => {
                   },
                   "providerMetadata": undefined,
                   "rawFinishReason": "stop",
-                  "request": {},
+                  "request": {
+                    "messages": [
+                      {
+                        "content": "test-input",
+                        "role": "user",
+                      },
+                      {
+                        "content": [
+                          {
+                            "providerOptions": undefined,
+                            "text": "thinking",
+                            "type": "reasoning",
+                          },
+                          {
+                            "input": {
+                              "value": "value",
+                            },
+                            "providerExecuted": undefined,
+                            "providerOptions": undefined,
+                            "toolCallId": "call-1",
+                            "toolName": "tool1",
+                            "type": "tool-call",
+                          },
+                        ],
+                        "role": "assistant",
+                      },
+                      {
+                        "content": [
+                          {
+                            "output": {
+                              "type": "text",
+                              "value": "RESULT1",
+                            },
+                            "toolCallId": "call-1",
+                            "toolName": "tool1",
+                            "type": "tool-result",
+                          },
+                        ],
+                        "role": "tool",
+                      },
+                    ],
+                  },
                   "response": {
                     "headers": {
                       "call": "2",
@@ -11400,7 +11868,14 @@ describe('streamText', () => {
                 },
                 "providerMetadata": undefined,
                 "rawFinishReason": undefined,
-                "request": {},
+                "request": {
+                  "messages": [
+                    {
+                      "content": "test-input",
+                      "role": "user",
+                    },
+                  ],
+                },
                 "response": {
                   "headers": {
                     "call": "1",
@@ -11483,7 +11958,48 @@ describe('streamText', () => {
                 },
                 "providerMetadata": undefined,
                 "rawFinishReason": "stop",
-                "request": {},
+                "request": {
+                  "messages": [
+                    {
+                      "content": "test-input",
+                      "role": "user",
+                    },
+                    {
+                      "content": [
+                        {
+                          "providerOptions": undefined,
+                          "text": "thinking",
+                          "type": "reasoning",
+                        },
+                        {
+                          "input": {
+                            "value": "value",
+                          },
+                          "providerExecuted": undefined,
+                          "providerOptions": undefined,
+                          "toolCallId": "call-1",
+                          "toolName": "tool1",
+                          "type": "tool-call",
+                        },
+                      ],
+                      "role": "assistant",
+                    },
+                    {
+                      "content": [
+                        {
+                          "output": {
+                            "type": "text",
+                            "value": "RESULT1",
+                          },
+                          "toolCallId": "call-1",
+                          "toolName": "tool1",
+                          "type": "tool-result",
+                        },
+                      ],
+                      "role": "tool",
+                    },
+                  ],
+                },
                 "response": {
                   "headers": {
                     "call": "2",
@@ -11656,7 +12172,14 @@ describe('streamText', () => {
                 },
                 "providerMetadata": undefined,
                 "rawFinishReason": undefined,
-                "request": {},
+                "request": {
+                  "messages": [
+                    {
+                      "content": "test-input",
+                      "role": "user",
+                    },
+                  ],
+                },
                 "response": {
                   "headers": {
                     "call": "1",
@@ -11739,7 +12262,48 @@ describe('streamText', () => {
                 },
                 "providerMetadata": undefined,
                 "rawFinishReason": "stop",
-                "request": {},
+                "request": {
+                  "messages": [
+                    {
+                      "content": "test-input",
+                      "role": "user",
+                    },
+                    {
+                      "content": [
+                        {
+                          "providerOptions": undefined,
+                          "text": "thinking",
+                          "type": "reasoning",
+                        },
+                        {
+                          "input": {
+                            "value": "value",
+                          },
+                          "providerExecuted": undefined,
+                          "providerOptions": undefined,
+                          "toolCallId": "call-1",
+                          "toolName": "tool1",
+                          "type": "tool-call",
+                        },
+                      ],
+                      "role": "assistant",
+                    },
+                    {
+                      "content": [
+                        {
+                          "output": {
+                            "type": "text",
+                            "value": "RESULT1",
+                          },
+                          "toolCallId": "call-1",
+                          "toolName": "tool1",
+                          "type": "tool-result",
+                        },
+                      ],
+                      "role": "tool",
+                    },
+                  ],
+                },
                 "response": {
                   "headers": {
                     "call": "2",
@@ -12076,7 +12640,14 @@ describe('streamText', () => {
                   },
                   "providerMetadata": undefined,
                   "rawFinishReason": undefined,
-                  "request": {},
+                  "request": {
+                    "messages": [
+                      {
+                        "content": "test-input",
+                        "role": "user",
+                      },
+                    ],
+                  },
                   "response": {
                     "headers": {
                       "call": "1",
@@ -12185,7 +12756,14 @@ describe('streamText', () => {
                   },
                   "providerMetadata": undefined,
                   "rawFinishReason": undefined,
-                  "request": {},
+                  "request": {
+                    "messages": [
+                      {
+                        "content": "test-input",
+                        "role": "user",
+                      },
+                    ],
+                  },
                   "response": {
                     "headers": {
                       "call": "1",
@@ -14426,7 +15004,14 @@ describe('streamText', () => {
             },
             "providerMetadata": undefined,
             "rawFinishReason": "stop",
-            "request": {},
+            "request": {
+              "messages": [
+                {
+                  "content": "prompt",
+                  "role": "user",
+                },
+              ],
+            },
             "response": {
               "headers": undefined,
               "id": "id-0",
@@ -14930,7 +15515,14 @@ describe('streamText', () => {
               },
               "providerMetadata": undefined,
               "rawFinishReason": "stop",
-              "request": {},
+              "request": {
+                "messages": [
+                  {
+                    "content": "test-input",
+                    "role": "user",
+                  },
+                ],
+              },
               "response": {
                 "headers": undefined,
                 "id": "id-0",
@@ -15026,6 +15618,7 @@ describe('streamText', () => {
 
         expect(await result.request).toStrictEqual({
           body: 'TEST BODY',
+          messages: [{ role: 'user', content: 'test-input' }],
         });
       });
 
@@ -15170,7 +15763,14 @@ describe('streamText', () => {
             "rawFinishReason": "stop",
             "reasoning": [],
             "reasoningText": undefined,
-            "request": {},
+            "request": {
+              "messages": [
+                {
+                  "content": "test-input",
+                  "role": "user",
+                },
+              ],
+            },
             "response": {
               "headers": {
                 "call": "2",
@@ -15285,7 +15885,14 @@ describe('streamText', () => {
                   },
                 },
                 "rawFinishReason": "stop",
-                "request": {},
+                "request": {
+                  "messages": [
+                    {
+                      "content": "test-input",
+                      "role": "user",
+                    },
+                  ],
+                },
                 "response": {
                   "headers": {
                     "call": "2",
@@ -15515,7 +16122,14 @@ describe('streamText', () => {
               },
             },
             "rawFinishReason": "stop",
-            "request": {},
+            "request": {
+              "messages": [
+                {
+                  "content": "test-input",
+                  "role": "user",
+                },
+              ],
+            },
             "response": {
               "headers": {
                 "call": "2",
@@ -15964,7 +16578,14 @@ describe('streamText', () => {
             },
             "providerMetadata": undefined,
             "rawFinishReason": undefined,
-            "request": {},
+            "request": {
+              "messages": [
+                {
+                  "content": "test-input",
+                  "role": "user",
+                },
+              ],
+            },
             "response": {
               "id": "response-id",
               "messages": [
@@ -16455,7 +17076,14 @@ describe('streamText', () => {
             "rawFinishReason": "stop",
             "reasoning": [],
             "reasoningText": undefined,
-            "request": {},
+            "request": {
+              "messages": [
+                {
+                  "content": "prompt",
+                  "role": "user",
+                },
+              ],
+            },
             "response": {
               "headers": undefined,
               "id": "id-0",
@@ -16496,7 +17124,14 @@ describe('streamText', () => {
                 },
                 "providerMetadata": undefined,
                 "rawFinishReason": "stop",
-                "request": {},
+                "request": {
+                  "messages": [
+                    {
+                      "content": "prompt",
+                      "role": "user",
+                    },
+                  ],
+                },
                 "response": {
                   "headers": undefined,
                   "id": "id-0",
@@ -17592,7 +18227,14 @@ describe('streamText', () => {
               },
               "providerMetadata": undefined,
               "rawFinishReason": "stop",
-              "request": {},
+              "request": {
+                "messages": [
+                  {
+                    "content": "test-input",
+                    "role": "user",
+                  },
+                ],
+              },
               "response": {
                 "headers": undefined,
                 "id": "id-0",
@@ -17988,7 +18630,14 @@ describe('streamText', () => {
                   },
                   "providerMetadata": undefined,
                   "rawFinishReason": undefined,
-                  "request": {},
+                  "request": {
+                    "messages": [
+                      {
+                        "content": "prompt",
+                        "role": "user",
+                      },
+                    ],
+                  },
                   "response": {
                     "headers": undefined,
                     "id": "id-0",
@@ -19045,7 +19694,14 @@ describe('streamText', () => {
               },
               "providerMetadata": undefined,
               "rawFinishReason": "stop",
-              "request": {},
+              "request": {
+                "messages": [
+                  {
+                    "content": "test-input",
+                    "role": "user",
+                  },
+                ],
+              },
               "response": {
                 "headers": undefined,
                 "id": "id-0",

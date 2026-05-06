@@ -14,6 +14,7 @@ import type {
 } from '../types';
 import type { Source } from '../types/language-model';
 import type { LanguageModelUsage } from '../types/usage';
+import type { ModelMessage } from '../prompt';
 import type { ContentPart } from './content-part';
 import type { GeneratedFile } from './generated-file';
 import { asReasoningText } from './reasoning';
@@ -154,7 +155,12 @@ export type StepResult<
   /**
    * Additional request information.
    */
-  readonly request: LanguageModelRequestMetadata;
+  readonly request: LanguageModelRequestMetadata & {
+    /**
+     * The input messages that were sent to the model for this step.
+     */
+    readonly messages: Array<ModelMessage>;
+  };
 
   /**
    * Additional response information.

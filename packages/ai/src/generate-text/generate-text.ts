@@ -959,6 +959,10 @@ export async function generateText<
           (include?.requestBody ?? true)
             ? (currentModelResponse.request ?? {})
             : { ...currentModelResponse.request, body: undefined };
+        const stepRequestWithMessages = {
+          ...stepRequest,
+          messages: structuredClone(stepMessages),
+        };
 
         const stepResponse = {
           ...currentModelResponse.response,
@@ -984,7 +988,7 @@ export async function generateText<
             usage: asLanguageModelUsage(currentModelResponse.usage),
             warnings: currentModelResponse.warnings,
             providerMetadata: currentModelResponse.providerMetadata,
-            request: stepRequest,
+            request: stepRequestWithMessages,
             response: stepResponse,
             toolsContext,
           });
