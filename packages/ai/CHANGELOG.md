@@ -1,5 +1,12 @@
 # ai
 
+## 7.0.0-canary.123
+
+### Patch Changes
+
+- 7392266: feat: move includeRawChunks to include.rawChunks
+- 4bb4dbc: feat: introduce include.requestMessage option for step request message storage opt-in
+
 ## 7.0.0-canary.122
 
 ### Patch Changes
