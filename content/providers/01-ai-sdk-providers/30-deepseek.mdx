@@ -91,6 +91,35 @@ const model = deepseek.languageModel('deepseek-chat');
 DeepSeek language models can be used in the `streamText` function
 (see [AI SDK Core](/docs/ai-sdk-core)).
 
+The following optional provider options are available for DeepSeek models:
+
+- `thinking` _object_
+
+  Optional. Controls thinking mode (chain-of-thought reasoning). You can enable thinking mode either by using the `deepseek-reasoner` model or by setting this option.
+
+  - `type`: `'enabled' | 'disabled'` - Enable or disable thinking mode.
+
+- `reasoningEffort` _'high' | 'max'_
+
+  Optional. Controls thinking strength for DeepSeek V4 reasoning models.
+  Ignored when thinking is explicitly disabled.
+
+```ts highlight="7-12"
+import { deepseek, type DeepSeekChatOptions } from '@ai-sdk/deepseek';
+import { generateText } from 'ai';
+
+const { text, reasoning } = await generateText({
+  model: deepseek('deepseek-chat'),
+  prompt: 'How many "r"s are in the word "strawberry"?',
+  providerOptions: {
+    deepseek: {
+      thinking: { type: 'enabled' },
+      reasoningEffort: 'high',
+    } satisfies DeepSeekChatOptions,
+  },
+});
+```
+
 ### Reasoning
 
 DeepSeek has reasoning support for the `deepseek-reasoner` model. The reasoning is exposed through streaming:

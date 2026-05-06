@@ -123,6 +123,53 @@ describe('DeepSeekChatLanguageModel', () => {
       });
     });
 
+    describe('reasoning_effort', () => {
+      beforeEach(() => {
+        prepareJsonFixtureResponse('deepseek-text');
+      });
+
+      it('should pass providerOptions reasoningEffort', async () => {
+        await provider.chat('deepseek-reasoner').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            deepseek: {
+              reasoningEffort: 'max',
+            } satisfies DeepSeekChatOptions,
+          },
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody.reasoning_effort).toBe('max');
+        expect(requestBody.thinking).toBeUndefined();
+      });
+
+      it('should not send reasoning_effort when thinking is disabled', async () => {
+        await provider.chat('deepseek-reasoner').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            deepseek: {
+              thinking: { type: 'disabled' },
+              reasoningEffort: 'high',
+            } satisfies DeepSeekChatOptions,
+          },
+        });
+
+        expect(
+          (await server.calls[0].requestBodyJson).reasoning_effort,
+        ).toBeUndefined();
+      });
+
+      it('should not set reasoning_effort when not specified', async () => {
+        await provider.chat('deepseek-reasoner').doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(
+          (await server.calls[0].requestBodyJson).reasoning_effort,
+        ).toBeUndefined();
+      });
+    });
+
     describe('tool call', () => {
       beforeEach(() => {
         prepareJsonFixtureResponse('deepseek-tool-call');
