@@ -142,36 +142,36 @@ export function isMCPAppTool(tool: MCPAppToolLike): boolean {
 }
 
 /**
- * Checks whether a tool should be exposed to the model.
- * Tools without app visibility metadata remain model-visible.
- */
-export function isMCPAppModelVisibleTool(tool: MCPAppToolLike): boolean {
-  const visibility = getMCPAppToolMeta(tool)?.visibility;
-  return visibility == null || visibility.includes('model');
-}
-
-/**
- * Checks whether a tool can be called by the MCP App iframe through the host.
- */
-export function isMCPAppVisibleTool(tool: MCPAppToolLike): boolean {
-  return getMCPAppToolMeta(tool)?.visibility?.includes('app') === true;
-}
-
-/**
  * Splits tool definitions into model-visible tools and app-visible tools.
  */
 export function splitMCPAppTools(definitions: ListToolsResult): {
   modelVisible: ListToolsResult;
   appVisible: ListToolsResult;
 } {
+  const modelVisibleTools = [];
+  const appVisibleTools = [];
+
+  for (const tool of definitions.tools) {
+    const visibility = getMCPAppToolMeta(tool)?.visibility;
+
+    // Tools without app visibility metadata remain model-visible.
+    if (visibility == null || visibility.includes('model')) {
+      modelVisibleTools.push(tool);
+    }
+
+    if (visibility?.includes('app') === true) {
+      appVisibleTools.push(tool);
+    }
+  }
+
   return {
     modelVisible: {
       ...definitions,
-      tools: definitions.tools.filter(isMCPAppModelVisibleTool),
+      tools: modelVisibleTools,
     },
     appVisible: {
       ...definitions,
-      tools: definitions.tools.filter(isMCPAppVisibleTool),
+      tools: appVisibleTools,
     },
   };
 }

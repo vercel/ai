@@ -7,8 +7,6 @@ import {
   getMCPAppResourceUri,
   getMCPAppResourceUris,
   getMCPAppToolMeta,
-  isMCPAppModelVisibleTool,
-  isMCPAppVisibleTool,
   mcpAppClientCapabilities,
   readMCPAppResource,
   splitMCPAppTools,
@@ -122,8 +120,6 @@ describe('MCP Apps helpers', () => {
         "nextCursor": "next",
       }
     `);
-    expect(isMCPAppModelVisibleTool(appOnlyTool)).toBe(false);
-    expect(isMCPAppVisibleTool(plainTool)).toBe(false);
   });
 
   it('deduplicates app resource URIs', () => {
