@@ -161,7 +161,7 @@ export type StreamTextInclude = {
   /**
    * Whether to retain the request messages in step results.
    * The request messages can be large when sending images or files.
-   * @default true
+   * @default false
    */
   requestMessages?: boolean;
 };
