@@ -25,7 +25,7 @@ run(async () => {
         ],
       },
     ],
-    includeRawChunks: true,
+    includeRawChunks: false,
   });
 
   const reader = result.stream.getReader();
