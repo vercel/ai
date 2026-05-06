@@ -849,5 +849,11 @@
   {
     "type": "text-end",
     "id": "run-019b2889-0b71-7000-8000-0d936dbfc1c4"
+  },
+  {
+    "type": "finish-step"
+  },
+  {
+    "type": "finish"
   }
 ]

@@ -127,6 +127,7 @@ export const AI = createAI<ServerMessage[], ClientMessage[]>({
 'use server';
 
 import { getAIState } from '@ai-sdk/rsc';
+import type { ReactNode } from 'react';
 
 export interface ServerMessage {
   role: 'user' | 'assistant' | 'function';

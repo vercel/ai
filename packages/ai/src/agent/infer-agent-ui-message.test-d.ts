@@ -1,8 +1,10 @@
 import { describe, expectTypeOf, it } from 'vitest';
-import {
+import type {
+  CustomContentUIPart,
   DataUIPart,
   DynamicToolUIPart,
   FileUIPart,
+  ReasoningFileUIPart,
   ReasoningUIPart,
   SourceDocumentUIPart,
   SourceUrlUIPart,
@@ -11,7 +13,7 @@ import {
   UIMessage,
 } from '../ui/ui-messages';
 import { ToolLoopAgent } from './tool-loop-agent';
-import { InferAgentUIMessage } from './infer-agent-ui-message';
+import type { InferAgentUIMessage } from './infer-agent-ui-message';
 
 describe('InferAgentUIMessage', () => {
   it('should not contain arbitrary static tools when no tools are provided', () => {
@@ -28,12 +30,14 @@ describe('InferAgentUIMessage', () => {
 
     expectTypeOf<MessagePart>().toMatchTypeOf<
       | TextUIPart
+      | CustomContentUIPart
       | ReasoningUIPart
       // No static tools, so no ToolUIPart
       | DynamicToolUIPart
       | SourceUrlUIPart
       | SourceDocumentUIPart
       | FileUIPart
+      | ReasoningFileUIPart
       | DataUIPart<never>
       | StepStartUIPart
     >();

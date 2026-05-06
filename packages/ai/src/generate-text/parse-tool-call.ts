@@ -1,28 +1,33 @@
-import { LanguageModelV3ToolCall } from '@ai-sdk/provider';
+import type { LanguageModelV4ToolCall } from '@ai-sdk/provider';
 import {
   asSchema,
-  ModelMessage,
   safeParseJSON,
   safeValidateTypes,
-  SystemModelMessage,
+  type InferToolInput,
+  type ModelMessage,
+  type SystemModelMessage,
+  type ToolSet,
 } from '@ai-sdk/provider-utils';
 import { InvalidToolInputError } from '../error/invalid-tool-input-error';
 import { NoSuchToolError } from '../error/no-such-tool-error';
 import { ToolCallRepairError } from '../error/tool-call-repair-error';
-import { DynamicToolCall, TypedToolCall } from './tool-call';
-import { ToolCallRepairFunction } from './tool-call-repair-function';
-import { ToolSet } from './tool-set';
+import type { ProviderMetadata } from '../types';
+import type { DynamicToolCall, TypedToolCall } from './tool-call';
+import type { ToolCallRepairFunction } from './tool-call-repair-function';
+import type { ToolInputRefinement } from './tool-input-refinement';
 
 export async function parseToolCall<TOOLS extends ToolSet>({
   toolCall,
   tools,
   repairToolCall,
+  refineToolInput,
   system,
   messages,
 }: {
-  toolCall: LanguageModelV3ToolCall;
+  toolCall: LanguageModelV4ToolCall;
   tools: TOOLS | undefined;
   repairToolCall: ToolCallRepairFunction<TOOLS> | undefined;
+  refineToolInput?: ToolInputRefinement<TOOLS> | undefined;
   system: string | SystemModelMessage | Array<SystemModelMessage> | undefined;
   messages: ModelMessage[];
 }): Promise<TypedToolCall<TOOLS>> {
@@ -30,14 +35,20 @@ export async function parseToolCall<TOOLS extends ToolSet>({
     if (tools == null) {
       // provider-executed dynamic tools are not part of our list of tools:
       if (toolCall.providerExecuted && toolCall.dynamic) {
-        return await parseProviderExecutedDynamicToolCall(toolCall);
+        return await refineParsedToolCallInput({
+          toolCall: await parseProviderExecutedDynamicToolCall(toolCall),
+          refineToolInput,
+        });
       }
 
       throw new NoSuchToolError({ toolName: toolCall.toolName });
     }
 
     try {
-      return await doParseToolCall({ toolCall, tools });
+      return await refineParsedToolCallInput({
+        toolCall: await doParseToolCall({ toolCall, tools }),
+        refineToolInput,
+      });
     } catch (error) {
       if (
         repairToolCall == null ||
@@ -49,7 +60,7 @@ export async function parseToolCall<TOOLS extends ToolSet>({
         throw error;
       }
 
-      let repairedToolCall: LanguageModelV3ToolCall | null = null;
+      let repairedToolCall: LanguageModelV4ToolCall | null = null;
 
       try {
         repairedToolCall = await repairToolCall({
@@ -75,7 +86,10 @@ export async function parseToolCall<TOOLS extends ToolSet>({
         throw error;
       }
 
-      return await doParseToolCall({ toolCall: repairedToolCall, tools });
+      return await refineParsedToolCallInput({
+        toolCall: await doParseToolCall({ toolCall: repairedToolCall, tools }),
+        refineToolInput,
+      });
     }
   } catch (error) {
     // use parsed input when possible
@@ -93,13 +107,35 @@ export async function parseToolCall<TOOLS extends ToolSet>({
       error,
       title: tools?.[toolCall.toolName]?.title,
       providerExecuted: toolCall.providerExecuted,
-      providerMetadata: toolCall.providerMetadata,
+      providerMetadata: mergeToolProviderMetadata(
+        tools?.[toolCall.toolName]?.providerMetadata,
+        toolCall.providerMetadata,
+      ),
     };
   }
 }
 
+async function refineParsedToolCallInput<TOOLS extends ToolSet>({
+  toolCall,
+  refineToolInput,
+}: {
+  toolCall: TypedToolCall<TOOLS>;
+  refineToolInput: ToolInputRefinement<TOOLS> | undefined;
+}): Promise<TypedToolCall<TOOLS>> {
+  const refine = refineToolInput?.[toolCall.toolName];
+
+  if (refine == null) {
+    return toolCall;
+  }
+
+  return {
+    ...toolCall,
+    input: await refine(toolCall.input as InferToolInput<TOOLS[keyof TOOLS]>),
+  } as TypedToolCall<TOOLS>;
+}
+
 async function parseProviderExecutedDynamicToolCall(
-  toolCall: LanguageModelV3ToolCall,
+  toolCall: LanguageModelV4ToolCall,
 ): Promise<DynamicToolCall> {
   const parseResult =
     toolCall.input.trim() === ''
@@ -129,7 +165,7 @@ async function doParseToolCall<TOOLS extends ToolSet>({
   toolCall,
   tools,
 }: {
-  toolCall: LanguageModelV3ToolCall;
+  toolCall: LanguageModelV4ToolCall;
   tools: TOOLS;
 }): Promise<TypedToolCall<TOOLS>> {
   const toolName = toolCall.toolName as keyof TOOLS & string;
@@ -165,6 +201,11 @@ async function doParseToolCall<TOOLS extends ToolSet>({
     });
   }
 
+  const mergedProviderMetadata = mergeToolProviderMetadata(
+    tool.providerMetadata,
+    toolCall.providerMetadata,
+  );
+
   return tool.type === 'dynamic'
     ? {
         type: 'tool-call',
@@ -172,7 +213,7 @@ async function doParseToolCall<TOOLS extends ToolSet>({
         toolName: toolCall.toolName,
         input: parseResult.value,
         providerExecuted: toolCall.providerExecuted,
-        providerMetadata: toolCall.providerMetadata,
+        providerMetadata: mergedProviderMetadata,
         dynamic: true,
         title: tool.title,
       }
@@ -182,7 +223,25 @@ async function doParseToolCall<TOOLS extends ToolSet>({
         toolName,
         input: parseResult.value,
         providerExecuted: toolCall.providerExecuted,
-        providerMetadata: toolCall.providerMetadata,
+        providerMetadata: mergedProviderMetadata,
         title: tool.title,
       };
+}
+
+/**
+ * Merge the tool's static `providerMetadata` (e.g. an MCP server name)
+ * with the `providerMetadata` returned by the language model on the tool
+ * call. Model-supplied metadata wins on conflicting top-level namespaces.
+ */
+function mergeToolProviderMetadata(
+  toolMetadata: ProviderMetadata | undefined,
+  callMetadata: ProviderMetadata | undefined,
+): ProviderMetadata | undefined {
+  if (toolMetadata == null) {
+    return callMetadata;
+  }
+  if (callMetadata == null) {
+    return toolMetadata;
+  }
+  return { ...toolMetadata, ...callMetadata };
 }

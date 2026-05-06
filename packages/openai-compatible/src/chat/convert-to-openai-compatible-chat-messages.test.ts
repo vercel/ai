@@ -21,7 +21,10 @@ describe('user messages', () => {
           { type: 'text', text: 'Hello' },
           {
             type: 'file',
-            data: Buffer.from([0, 1, 2, 3]).toString('base64'),
+            data: {
+              type: 'data' as const,
+              data: Buffer.from([0, 1, 2, 3]).toString('base64'),
+            },
             mediaType: 'image/png',
           },
         ],
@@ -50,7 +53,7 @@ describe('user messages', () => {
           { type: 'text', text: 'Hi' },
           {
             type: 'file',
-            data: new Uint8Array([0, 1, 2, 3]),
+            data: { type: 'data' as const, data: new Uint8Array([0, 1, 2, 3]) },
             mediaType: 'image/png',
           },
         ],
@@ -78,7 +81,10 @@ describe('user messages', () => {
         content: [
           {
             type: 'file',
-            data: new URL('https://example.com/image.jpg'),
+            data: {
+              type: 'url' as const,
+              url: new URL('https://example.com/image.jpg'),
+            },
             mediaType: 'image/*',
           },
         ],
@@ -96,6 +102,383 @@ describe('user messages', () => {
         ],
       },
     ]);
+  });
+
+  it('should convert messages with audio/wav parts', async () => {
+    const result = convertToOpenAICompatibleChatMessages([
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Transcribe this audio' },
+          {
+            type: 'file',
+            data: {
+              type: 'data' as const,
+              data: Buffer.from([0, 1, 2, 3]).toString('base64'),
+            },
+            mediaType: 'audio/wav',
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual([
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Transcribe this audio' },
+          {
+            type: 'input_audio',
+            input_audio: { data: 'AAECAw==', format: 'wav' },
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should convert messages with audio/mp3 parts', async () => {
+    const result = convertToOpenAICompatibleChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: { type: 'data' as const, data: new Uint8Array([0, 1, 2, 3]) },
+            mediaType: 'audio/mp3',
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'input_audio',
+            input_audio: { data: 'AAECAw==', format: 'mp3' },
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should convert messages with audio/mpeg parts to mp3 format', async () => {
+    const result = convertToOpenAICompatibleChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: { type: 'data' as const, data: new Uint8Array([0, 1, 2, 3]) },
+            mediaType: 'audio/mpeg',
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'input_audio',
+            input_audio: { data: 'AAECAw==', format: 'mp3' },
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should throw error for audio parts with URLs', async () => {
+    expect(() =>
+      convertToOpenAICompatibleChatMessages([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: {
+                type: 'url' as const,
+                url: new URL('https://example.com/audio.wav'),
+              },
+              mediaType: 'audio/wav',
+            },
+          ],
+        },
+      ]),
+    ).toThrow("'audio file parts with URLs' functionality not supported");
+  });
+
+  it('should throw error for unsupported audio format', async () => {
+    expect(() =>
+      convertToOpenAICompatibleChatMessages([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: {
+                type: 'data' as const,
+                data: new Uint8Array([0, 1, 2, 3]),
+              },
+              mediaType: 'audio/ogg',
+            },
+          ],
+        },
+      ]),
+    ).toThrow("'audio media type audio/ogg' functionality not supported");
+  });
+
+  it('should convert messages with PDF parts', async () => {
+    const result = convertToOpenAICompatibleChatMessages([
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Summarize this PDF' },
+          {
+            type: 'file',
+            data: {
+              type: 'data' as const,
+              data: Buffer.from([0, 1, 2, 3]).toString('base64'),
+            },
+            mediaType: 'application/pdf',
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual([
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Summarize this PDF' },
+          {
+            type: 'file',
+            file: {
+              filename: 'document.pdf',
+              file_data: 'data:application/pdf;base64,AAECAw==',
+            },
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should convert messages with PDF parts using provided filename', async () => {
+    const result = convertToOpenAICompatibleChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: { type: 'data' as const, data: new Uint8Array([0, 1, 2, 3]) },
+            mediaType: 'application/pdf',
+            filename: 'report.pdf',
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            file: {
+              filename: 'report.pdf',
+              file_data: 'data:application/pdf;base64,AAECAw==',
+            },
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should throw error for PDF parts with URLs', async () => {
+    expect(() =>
+      convertToOpenAICompatibleChatMessages([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: {
+                type: 'url' as const,
+                url: new URL('https://example.com/document.pdf'),
+              },
+              mediaType: 'application/pdf',
+            },
+          ],
+        },
+      ]),
+    ).toThrow("'PDF file parts with URLs' functionality not supported");
+  });
+
+  it('should convert messages with base64-encoded text/markdown parts', async () => {
+    const markdownText = '# Hello World\n\nThis is **markdown** content.';
+    const base64Data = btoa(markdownText);
+
+    const result = convertToOpenAICompatibleChatMessages([
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Summarize this document' },
+          {
+            type: 'file',
+            data: { type: 'data' as const, data: base64Data },
+            mediaType: 'text/markdown',
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual([
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Summarize this document' },
+          {
+            type: 'text',
+            text: markdownText,
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should convert messages with text/plain parts from Uint8Array', async () => {
+    const encoder = new TextEncoder();
+    const result = convertToOpenAICompatibleChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: {
+              type: 'data' as const,
+              data: encoder.encode('Plain text content'),
+            },
+            mediaType: 'text/plain',
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'text',
+            text: 'Plain text content',
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should decode base64 string data for text/* file parts', async () => {
+    const result = convertToOpenAICompatibleChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: {
+              type: 'data' as const,
+              data: Buffer.from('Plain text content').toString('base64'),
+            },
+            mediaType: 'text/plain',
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'text',
+            text: 'Plain text content',
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should convert text file URL to string', async () => {
+    const result = convertToOpenAICompatibleChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: {
+              type: 'url' as const,
+              url: new URL('https://example.com/readme.md'),
+            },
+            mediaType: 'text/markdown',
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'text',
+            text: 'https://example.com/readme.md',
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should throw error for unsupported file types', async () => {
+    expect(() =>
+      convertToOpenAICompatibleChatMessages([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: {
+                type: 'data' as const,
+                data: new Uint8Array([0, 1, 2, 3]),
+              },
+              mediaType: 'video/mp4',
+            },
+          ],
+        },
+      ]),
+    ).toThrow("'file part media type video/mp4' functionality not supported");
+  });
+
+  it('should throw error for file parts with provider references', async () => {
+    expect(() =>
+      convertToOpenAICompatibleChatMessages([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: {
+                type: 'reference' as const,
+                reference: { openaiCompatible: 'file-123' },
+              },
+              mediaType: 'image/png',
+            },
+          ],
+        },
+      ]),
+    ).toThrow(
+      "'file parts with provider references' functionality not supported",
+    );
   });
 });
 
@@ -129,7 +512,7 @@ describe('tool calls', () => {
     expect(result).toEqual([
       {
         role: 'assistant',
-        content: '',
+        content: null,
         tool_calls: [
           {
             type: 'function',
@@ -147,6 +530,25 @@ describe('tool calls', () => {
         tool_call_id: 'quux',
       },
     ]);
+  });
+
+  it('should send empty string content for assistant messages with no tool calls', () => {
+    const result = convertToOpenAICompatibleChatMessages([
+      {
+        role: 'assistant',
+        content: [{ type: 'text', text: '' }],
+      },
+    ]);
+
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "content": "",
+          "role": "assistant",
+          "tool_calls": undefined,
+        },
+      ]
+    `);
   });
 
   it('should handle text output type in tool results', () => {
@@ -178,7 +580,7 @@ describe('tool calls', () => {
     expect(result).toEqual([
       {
         role: 'assistant',
-        content: '',
+        content: null,
         tool_calls: [
           {
             type: 'function',
@@ -304,7 +706,7 @@ describe('provider-specific metadata merging', () => {
     expect(result).toEqual([
       {
         role: 'assistant',
-        content: '',
+        content: null,
         tool_calls: [
           {
             id: 'call1',
@@ -328,7 +730,7 @@ describe('provider-specific metadata merging', () => {
         content: [
           {
             type: 'file',
-            data: imageUrl,
+            data: { type: 'url' as const, url: imageUrl },
             mediaType: 'image/*',
             providerOptions: {
               openaiCompatible: {
@@ -390,7 +792,10 @@ describe('provider-specific metadata merging', () => {
           },
           {
             type: 'file',
-            data: Buffer.from([0, 1, 2, 3]).toString('base64'),
+            data: {
+              type: 'data' as const,
+              data: Buffer.from([0, 1, 2, 3]).toString('base64'),
+            },
             mediaType: 'image/png',
             providerOptions: {
               openaiCompatible: { alt_text: 'A sample image' },
@@ -563,7 +968,10 @@ describe('provider-specific metadata merging', () => {
           },
           {
             type: 'file',
-            data: Buffer.from([9, 8, 7, 6]).toString('base64'),
+            data: {
+              type: 'data' as const,
+              data: Buffer.from([9, 8, 7, 6]).toString('base64'),
+            },
             mediaType: 'image/png',
             providerOptions: {
               openaiCompatible: { imagePartLevel: 'image-data' },
@@ -671,7 +1079,7 @@ describe('provider-specific metadata merging', () => {
         role: 'assistant',
         cacheControl: { type: 'default' },
         sharedKey: 'assistantLevel',
-        content: '',
+        content: null,
         tool_calls: [
           {
             id: 'collisionToolCall',
@@ -686,5 +1094,341 @@ describe('provider-specific metadata merging', () => {
         ],
       },
     ]);
+  });
+});
+
+describe('Google Gemini thought signatures (OpenAI compatibility)', () => {
+  it('should serialize thought signature to extra_content for single tool call', () => {
+    const result = convertToOpenAICompatibleChatMessages([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'function-call-1',
+            toolName: 'check_flight',
+            input: { flight: 'AA100' },
+            providerOptions: {
+              google: {
+                thoughtSignature: '<Signature A>',
+              },
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual([
+      {
+        role: 'assistant',
+        content: null,
+        tool_calls: [
+          {
+            id: 'function-call-1',
+            type: 'function',
+            function: {
+              name: 'check_flight',
+              arguments: JSON.stringify({ flight: 'AA100' }),
+            },
+            extra_content: {
+              google: {
+                thought_signature: '<Signature A>',
+              },
+            },
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should handle sequential tool calls with separate signatures (Turn 1 Step 3 scenario)', () => {
+    const result = convertToOpenAICompatibleChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'text',
+            text: 'Check flight status for AA100 and book a taxi 2 hours before if delayed.',
+          },
+        ],
+      },
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'function-call-1',
+            toolName: 'check_flight',
+            input: { flight: 'AA100' },
+            providerOptions: {
+              google: {
+                thoughtSignature: '<Signature A>',
+              },
+            },
+          },
+        ],
+      },
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolCallId: 'function-call-1',
+            toolName: 'check_flight',
+            output: {
+              type: 'json',
+              value: { status: 'delayed', departure_time: '12 PM' },
+            },
+          },
+        ],
+      },
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'function-call-2',
+            toolName: 'book_taxi',
+            input: { time: '10 AM' },
+            providerOptions: {
+              google: {
+                thoughtSignature: '<Signature B>',
+              },
+            },
+          },
+        ],
+      },
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolCallId: 'function-call-2',
+            toolName: 'book_taxi',
+            output: { type: 'json', value: { booking_status: 'success' } },
+          },
+        ],
+      },
+    ]);
+
+    // Verify both signatures are preserved
+    expect(result[1]).toEqual({
+      role: 'assistant',
+      content: null,
+      tool_calls: [
+        {
+          id: 'function-call-1',
+          type: 'function',
+          function: {
+            name: 'check_flight',
+            arguments: JSON.stringify({ flight: 'AA100' }),
+          },
+          extra_content: {
+            google: {
+              thought_signature: '<Signature A>',
+            },
+          },
+        },
+      ],
+    });
+
+    expect(result[3]).toEqual({
+      role: 'assistant',
+      content: null,
+      tool_calls: [
+        {
+          id: 'function-call-2',
+          type: 'function',
+          function: {
+            name: 'book_taxi',
+            arguments: JSON.stringify({ time: '10 AM' }),
+          },
+          extra_content: {
+            google: {
+              thought_signature: '<Signature B>',
+            },
+          },
+        },
+      ],
+    });
+  });
+
+  it('should handle parallel tool calls with signature only on first call', () => {
+    const result = convertToOpenAICompatibleChatMessages([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'function-call-paris',
+            toolName: 'get_current_temperature',
+            input: { location: 'Paris' },
+            providerOptions: {
+              google: {
+                thoughtSignature: '<Signature A>',
+              },
+            },
+          },
+          {
+            type: 'tool-call',
+            toolCallId: 'function-call-london',
+            toolName: 'get_current_temperature',
+            input: { location: 'London' },
+            // No signature on parallel function call
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual([
+      {
+        role: 'assistant',
+        content: null,
+        tool_calls: [
+          {
+            id: 'function-call-paris',
+            type: 'function',
+            function: {
+              name: 'get_current_temperature',
+              arguments: JSON.stringify({ location: 'Paris' }),
+            },
+            extra_content: {
+              google: {
+                thought_signature: '<Signature A>',
+              },
+            },
+          },
+          {
+            id: 'function-call-london',
+            type: 'function',
+            function: {
+              name: 'get_current_temperature',
+              arguments: JSON.stringify({ location: 'London' }),
+            },
+            // No extra_content for second parallel call
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should not include extra_content when no thought signature is present', () => {
+    const result = convertToOpenAICompatibleChatMessages([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'some_tool',
+            input: { param: 'value' },
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual([
+      {
+        role: 'assistant',
+        content: null,
+        tool_calls: [
+          {
+            id: 'call-1',
+            type: 'function',
+            function: {
+              name: 'some_tool',
+              arguments: JSON.stringify({ param: 'value' }),
+            },
+          },
+        ],
+      },
+    ]);
+  });
+});
+
+describe('top-level-only media type resolution', () => {
+  const pngBase64 = 'iVBORw0KGgo=';
+
+  it('passes full image/png through unchanged for inline data', () => {
+    const result = convertToOpenAICompatibleChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            mediaType: 'image/png',
+            data: { type: 'data' as const, data: pngBase64 },
+          },
+        ],
+      },
+    ]);
+
+    expect((result[0].content as unknown[])[0]).toEqual({
+      type: 'image_url',
+      image_url: { url: `data:image/png;base64,${pngBase64}` },
+    });
+  });
+
+  it('detects image subtype from inline bytes for top-level "image"', () => {
+    const result = convertToOpenAICompatibleChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            mediaType: 'image',
+            data: { type: 'data' as const, data: pngBase64 },
+          },
+        ],
+      },
+    ]);
+
+    expect((result[0].content as unknown[])[0]).toEqual({
+      type: 'image_url',
+      image_url: { url: `data:image/png;base64,${pngBase64}` },
+    });
+  });
+
+  it('passes through URL source for top-level-only image (provider accepts raw URL)', () => {
+    const result = convertToOpenAICompatibleChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            mediaType: 'image',
+            data: {
+              type: 'url' as const,
+              url: new URL('https://example.com/x.png'),
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect((result[0].content as unknown[])[0]).toEqual({
+      type: 'image_url',
+      image_url: { url: 'https://example.com/x.png' },
+    });
+  });
+
+  it('normalizes image/* wildcard via detection', () => {
+    const result = convertToOpenAICompatibleChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            mediaType: 'image/*',
+            data: { type: 'data' as const, data: pngBase64 },
+          },
+        ],
+      },
+    ]);
+
+    expect((result[0].content as unknown[])[0]).toEqual({
+      type: 'image_url',
+      image_url: { url: `data:image/png;base64,${pngBase64}` },
+    });
   });
 });

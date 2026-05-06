@@ -1,19 +1,19 @@
 import {
   generateId,
   isAbortError,
+  normalizeHeaders,
   safeValidateTypes,
   type FetchFunction,
+  type FlexibleSchema,
   type InferSchema,
 } from '@ai-sdk/provider-utils';
 import { signal } from '@angular/core';
 import {
-  FlexibleSchema,
   asSchema,
   isDeepEqualData,
   parsePartialJson,
   type DeepPartial,
 } from 'ai';
-
 export type StructuredObjectOptions<
   SCHEMA extends FlexibleSchema,
   RESULT = InferSchema<SCHEMA>,
@@ -138,9 +138,9 @@ export class StructuredObject<
    */
   submit = async (input: INPUT) => {
     try {
-      this.#clearObject();
-
+      this.#object.set(undefined); // reset the data
       this.#loading.set(true);
+      this.#error.set(undefined);
 
       const abortController = new AbortController();
       this.#abortController = abortController;
@@ -150,7 +150,7 @@ export class StructuredObject<
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...this.options.headers,
+          ...normalizeHeaders(this.options.headers),
         },
         credentials: this.options.credentials,
         signal: abortController.signal,
@@ -227,16 +227,5 @@ export class StructuredObject<
       this.#loading.set(false);
       this.#error.set(coalescedError);
     }
-  };
-
-  clear = () => {
-    this.stop();
-    this.#clearObject();
-  };
-
-  #clearObject = () => {
-    this.#object.set(undefined);
-    this.#error.set(undefined);
-    this.#loading.set(false);
   };
 }

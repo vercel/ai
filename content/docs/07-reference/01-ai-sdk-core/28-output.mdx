@@ -217,7 +217,7 @@ import { generateText, Output } from 'ai';
 const { output } = await generateText({
   model: yourModel,
   output: Output.choice({
-    options: ['sunny', 'rainy', 'snowy'],
+    options: ['sunny', 'rainy', 'snowy'] as const,
   }),
   prompt: 'Is the weather sunny, rainy, or snowy today?',
 });

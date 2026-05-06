@@ -18,6 +18,14 @@ The Vercel provider is available in the `@ai-sdk/vercel` module. You can install
 npm i @ai-sdk/vercel
 ```
 
+## Skill for Coding Agents
+
+If you use coding agents such as Claude Code or Cursor, we highly recommend adding the AI SDK skill to your repository:
+
+```shell
+npx skills add vercel/ai
+```
+
 ## Provider Instance
 
 You can import the default provider instance `vercel` from `@ai-sdk/vercel`:

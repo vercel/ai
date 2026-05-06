@@ -50,6 +50,10 @@
   white-space: pre-wrap;
 }
 
+details {
+  margin-bottom: 0.5rem;
+}
+
 .tool-call {
   background-color: #e9ecef;
   border: 1px solid #ced4da;
@@ -91,6 +95,64 @@
 .tool-result-title {
   font-weight: bold;
   font-size: 0.8rem;
+}
+
+.tool-error {
+  margin-top: 0.5rem;
+  color: #b91c1c;
+  font-size: 0.85rem;
+}
+
+.file-part,
+.source-part,
+.data-part {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.file-image {
+  max-width: 100%;
+  border-radius: 6px;
+  margin-bottom: 0.5rem;
+}
+
+.file-link,
+.source-link {
+  color: #0f172a;
+  text-decoration: underline;
+  font-weight: 500;
+}
+
+.file-meta,
+.source-meta {
+  margin-top: 0.35rem;
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+.source-title,
+.data-title {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.data-body {
+  margin-top: 0.35rem;
+  font-size: 0.85rem;
+  font-family: monospace;
+  white-space: pre-wrap;
+}
+
+.step-separator {
+  margin: 0.5rem 0;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
 }
 
 .input-form {

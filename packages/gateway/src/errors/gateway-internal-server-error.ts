@@ -17,12 +17,14 @@ export class GatewayInternalServerError extends GatewayError {
     message = 'Internal server error',
     statusCode = 500,
     cause,
+    generationId,
   }: {
     message?: string;
     statusCode?: number;
     cause?: unknown;
+    generationId?: string;
   } = {}) {
-    super({ message, statusCode, cause });
+    super({ message, statusCode, cause, generationId });
   }
 
   static isInstance(error: unknown): error is GatewayInternalServerError {

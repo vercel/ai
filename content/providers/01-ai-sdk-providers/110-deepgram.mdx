@@ -5,7 +5,7 @@ description: Learn how to use the Deepgram provider for the AI SDK.
 
 # Deepgram Provider
 
-The [Deepgram](https://deepgram.com/) provider contains language model support for the Deepgram transcription API.
+The [Deepgram](https://deepgram.com/) provider contains language model support for the Deepgram transcription and speech generation APIs.
 
 ## Setup
 
@@ -64,6 +64,110 @@ You can use the following optional settings to customize the Deepgram provider i
   You can use it as a middleware to intercept requests,
   or to provide a custom fetch implementation for e.g. testing.
 
+## Speech Models
+
+You can create models that call the [Deepgram text-to-speech API](https://developers.deepgram.com/docs/text-to-speech)
+using the `.speech()` factory method.
+
+The first argument is the model id, which includes the voice. Deepgram embeds the voice directly in the model ID (e.g., `aura-2-helena-en`).
+
+```ts
+const model = deepgram.speech('aura-2-helena-en');
+```
+
+You can use the model with the `generateSpeech` function:
+
+```ts
+import { experimental_generateSpeech as generateSpeech } from 'ai';
+import { deepgram } from '@ai-sdk/deepgram';
+
+const result = await generateSpeech({
+  model: deepgram.speech('aura-2-helena-en'),
+  text: 'Hello, world!',
+});
+```
+
+You can also pass additional provider-specific options using the `providerOptions` argument:
+
+```ts highlight="7-11"
+import { experimental_generateSpeech as generateSpeech } from 'ai';
+import { deepgram, type DeepgramSpeechModelOptions } from '@ai-sdk/deepgram';
+
+const result = await generateSpeech({
+  model: deepgram.speech('aura-2-helena-en'),
+  text: 'Hello, world!',
+  providerOptions: {
+    deepgram: {
+      encoding: 'linear16',
+      sampleRate: 24000,
+    } satisfies DeepgramSpeechModelOptions,
+  },
+});
+```
+
+The following provider options are available:
+
+- **encoding** _string_
+
+  Encoding type for the audio output.
+  Supported values: `'linear16'`, `'mulaw'`, `'alaw'`, `'mp3'`, `'opus'`, `'flac'`, `'aac'`.
+  Optional.
+
+- **container** _string_
+
+  Container format for the output audio.
+  Supported values: `'wav'`, `'ogg'`, `'none'`.
+  Optional.
+
+- **sampleRate** _number_
+
+  Sample rate for the output audio in Hz.
+  Supported values depend on the encoding: `8000`, `16000`, `24000`, `32000`, `48000`.
+  Optional.
+
+- **bitRate** _number | string_
+
+  Bitrate of the audio in bits per second.
+  For `mp3`: `32000` or `48000`.
+  For `opus`: `4000` to `650000`.
+  For `aac`: `4000` to `192000`.
+  Optional.
+
+- **callback** _string_
+
+  URL to which Deepgram will make a callback request with the audio.
+  Optional.
+
+- **callbackMethod** _enum_
+
+  HTTP method for the callback request.
+  Allowed values: `'POST'`, `'PUT'`.
+  Optional.
+
+- **mipOptOut** _boolean_
+
+  Opts out requests from the Deepgram Model Improvement Program.
+  Optional.
+
+- **tag** _string | array of strings_
+
+  Label your requests for identification during usage reporting.
+  Optional.
+
+### Model Capabilities
+
+| Model                                                            |
+| ---------------------------------------------------------------- |
+| `aura-2-asteria-en`                                              |
+| `aura-2-thalia-en`                                               |
+| `aura-2-helena-en`                                               |
+| `aura-2-orpheus-en`                                              |
+| `aura-2-zeus-en`                                                 |
+| `aura-asteria-en`                                                |
+| `aura-luna-en`                                                   |
+| `aura-stella-en`                                                 |
+| [+ more voices](https://developers.deepgram.com/docs/tts-models) |
+
 ## Transcription Models
 
 You can create models that call the [Deepgram transcription API](https://developers.deepgram.com/docs/pre-recorded-audio)
@@ -79,13 +183,20 @@ You can also pass additional provider-specific options using the `providerOption
 
 ```ts highlight="6"
 import { experimental_transcribe as transcribe } from 'ai';
-import { deepgram } from '@ai-sdk/deepgram';
+import {
+  deepgram,
+  type DeepgramTranscriptionModelOptions,
+} from '@ai-sdk/deepgram';
 import { readFile } from 'fs/promises';
 
 const result = await transcribe({
   model: deepgram.transcription('nova-3'),
   audio: await readFile('audio.mp3'),
-  providerOptions: { deepgram: { summarize: true } },
+  providerOptions: {
+    deepgram: {
+      summarize: true,
+    } satisfies DeepgramTranscriptionModelOptions,
+  },
 });
 ```
 
@@ -97,6 +208,12 @@ The following provider options are available:
   Supports numerous ISO-639-1 and ISO-639-3 language codes.
   Optional.
 
+- **detectLanguage** _boolean_
+
+  Whether to enable automatic language detection.
+  When true, Deepgram will detect the language of the audio.
+  Optional.
+
 - **smartFormat** _boolean_
 
   Whether to apply smart formatting to the transcription.
@@ -105,11 +222,6 @@ The following provider options are available:
 - **punctuate** _boolean_
 
   Whether to add punctuation to the transcription.
-  Optional.
-
-- **paragraphs** _boolean_
-
-  Whether to format the transcription into paragraphs.
   Optional.
 
 - **summarize** _enum | boolean_
@@ -123,16 +235,6 @@ The following provider options are available:
   Whether to detect topics in the transcription.
   Optional.
 
-- **intents** _boolean_
-
-  Whether to detect intents in the transcription.
-  Optional.
-
-- **sentiment** _boolean_
-
-  Whether to perform sentiment analysis on the transcription.
-  Optional.
-
 - **detectEntities** _boolean_
 
   Whether to detect entities in the transcription.
@@ -143,19 +245,9 @@ The following provider options are available:
   Specifies what content to redact from the transcription.
   Optional.
 
-- **replace** _string_
-
-  Replacement string for redacted content.
-  Optional.
-
 - **search** _string_
 
   Search term to find in the transcription.
-  Optional.
-
-- **keyterm** _string_
-
-  Key terms to identify in the transcription.
   Optional.
 
 - **diarize** _boolean_

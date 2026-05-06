@@ -8,19 +8,23 @@ export abstract class GatewayError extends Error {
   abstract readonly type: string;
   readonly statusCode: number;
   readonly cause?: unknown;
+  readonly generationId?: string;
 
   constructor({
     message,
     statusCode = 500,
     cause,
+    generationId,
   }: {
     message: string;
     statusCode?: number;
     cause?: unknown;
+    generationId?: string;
   }) {
-    super(message);
+    super(generationId ? `${message} [${generationId}]` : message);
     this.statusCode = statusCode;
     this.cause = cause;
+    this.generationId = generationId;
   }
 
   /**

@@ -1,13 +1,19 @@
 {
   "name": "@ai-sdk/provider",
-  "version": "3.0.2",
+  "version": "4.0.0-canary.16",
+  "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
-  "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
+  "source": "./src/index.ts",
   "files": [
     "dist/**/*",
+    "src",
+    "!src/**/*.test.ts",
+    "!src/**/*.test-d.ts",
+    "!src/**/__snapshots__",
+    "!src/**/__fixtures__",
     "CHANGELOG.md",
     "README.md"
   ],
@@ -15,16 +21,14 @@
     "build": "pnpm clean && tsup --tsconfig tsconfig.build.json",
     "build:watch": "pnpm clean && tsup --watch",
     "clean": "del-cli dist *.tsbuildinfo",
-    "lint": "eslint \"./**/*.ts*\"",
-    "type-check": "tsc --build",
-    "prettier-check": "prettier --check \"./**/*.ts*\""
+    "type-check": "tsc --build"
   },
   "exports": {
     "./package.json": "./package.json",
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.mjs",
-      "require": "./dist/index.js"
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
     }
   },
   "dependencies": {
@@ -41,12 +45,14 @@
     "node": ">=18"
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "provenance": true
   },
   "homepage": "https://ai-sdk.dev/docs",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/vercel/ai.git"
+    "url": "https://github.com/vercel/ai",
+    "directory": "packages/provider"
   },
   "bugs": {
     "url": "https://github.com/vercel/ai/issues"

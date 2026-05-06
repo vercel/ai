@@ -170,7 +170,7 @@ purposes:
 ```tsx filename='app/page.tsx' highlight="6,13-20,24"
 'use client';
 
-import { useObject } from '@ai-sdk/react';
+import { experimental_useObject as useObject } from '@ai-sdk/react';
 
 export default function Page() {
   const { isLoading, object, submit } = useObject({
@@ -207,7 +207,7 @@ The `stop` function can be used to stop the object generation process. This can 
 ```tsx filename='app/page.tsx' highlight="6,14-16"
 'use client';
 
-import { useObject } from '@ai-sdk/react';
+import { experimental_useObject as useObject } from '@ai-sdk/react';
 
 export default function Page() {
   const { isLoading, stop, object, submit } = useObject({
@@ -252,7 +252,7 @@ It can be used to display an error message, or to disable the submit button:
 ```tsx file="app/page.tsx" highlight="6,13"
 'use client';
 
-import { useObject } from '@ai-sdk/react';
+import { experimental_useObject as useObject } from '@ai-sdk/react';
 
 export default function Page() {
   const { error, object, submit } = useObject({

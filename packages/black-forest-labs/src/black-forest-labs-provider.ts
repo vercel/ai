@@ -1,57 +1,61 @@
-import { ImageModelV3, NoSuchModelError, ProviderV3 } from '@ai-sdk/provider';
-import type { FetchFunction } from '@ai-sdk/provider-utils';
+import {
+  NoSuchModelError,
+  type ImageModelV4,
+  type ProviderV4,
+} from '@ai-sdk/provider';
 import {
   loadApiKey,
   withoutTrailingSlash,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { BlackForestLabsImageModel } from './black-forest-labs-image-model';
-import { BlackForestLabsImageModelId } from './black-forest-labs-image-settings';
+import type { BlackForestLabsImageModelId } from './black-forest-labs-image-settings';
 import { VERSION } from './version';
 
 export interface BlackForestLabsProviderSettings {
   /**
-Black Forest Labs API key. Default value is taken from the `BFL_API_KEY` environment variable.
+   * Black Forest Labs API key. Default value is taken from the `BFL_API_KEY` environment variable.
    */
   apiKey?: string;
 
   /**
-Base URL for the API calls. Defaults to `https://api.bfl.ai/v1`.
+   * Base URL for the API calls. Defaults to `https://api.bfl.ai/v1`.
    */
   baseURL?: string;
 
   /**
-Custom headers to include in the requests.
+   * Custom headers to include in the requests.
    */
   headers?: Record<string, string>;
 
   /**
-Custom fetch implementation. You can use it as a middleware to intercept
-requests, or to provide a custom fetch implementation for e.g. testing.
+   * Custom fetch implementation. You can use it as a middleware to intercept
+   * requests, or to provide a custom fetch implementation for e.g. testing.
    */
   fetch?: FetchFunction;
 
   /**
- Poll interval in milliseconds between status checks. Defaults to 500ms.
+   * Poll interval in milliseconds between status checks. Defaults to 500ms.
    */
   pollIntervalMillis?: number;
 
   /**
- Overall timeout in milliseconds for polling before giving up. Defaults to 60s.
+   * Overall timeout in milliseconds for polling before giving up. Defaults to 60s.
    */
   pollTimeoutMillis?: number;
 }
 
-export interface BlackForestLabsProvider extends ProviderV3 {
+export interface BlackForestLabsProvider extends ProviderV4 {
   /**
-Creates a model for image generation.
+   * Creates a model for image generation.
    */
-  image(modelId: BlackForestLabsImageModelId): ImageModelV3;
+  image(modelId: BlackForestLabsImageModelId): ImageModelV4;
 
   /**
-Creates a model for image generation.
+   * Creates a model for image generation.
    */
-  imageModel(modelId: BlackForestLabsImageModelId): ImageModelV3;
+  imageModel(modelId: BlackForestLabsImageModelId): ImageModelV4;
 
   /**
    * @deprecated Use `embeddingModel` instead.
@@ -96,7 +100,7 @@ export function createBlackForestLabs(
   };
 
   return {
-    specificationVersion: 'v3',
+    specificationVersion: 'v4',
     imageModel: createImageModel,
     image: createImageModel,
     languageModel: (modelId: string) => {

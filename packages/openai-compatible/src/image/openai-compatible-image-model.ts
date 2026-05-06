@@ -1,8 +1,13 @@
-import {
-  ImageModelV3,
-  ImageModelV3File,
-  SharedV3Warning,
+import type {
+  ImageModelV4,
+  ImageModelV4File,
+  SharedV4ProviderOptions,
+  SharedV4Warning,
 } from '@ai-sdk/provider';
+import {
+  toCamelCase,
+  warnIfDeprecatedProviderOptionsKey,
+} from '../utils/to-camel-case';
 import {
   combineHeaders,
   convertBase64ToUint8Array,
@@ -10,20 +15,23 @@ import {
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
   downloadBlob,
-  FetchFunction,
   postFormDataToApi,
   postJsonToApi,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import {
   defaultOpenAICompatibleErrorStructure,
-  ProviderErrorStructure,
+  type ProviderErrorStructure,
 } from '../openai-compatible-error';
-import { OpenAICompatibleImageModelId } from './openai-compatible-image-settings';
+import type { OpenAICompatibleImageModelId } from './openai-compatible-image-settings';
 
 export type OpenAICompatibleImageModelConfig = {
   provider: string;
-  headers: () => Record<string, string | undefined>;
+  headers?: () => Record<string, string | undefined>;
   url: (options: { modelId: string; path: string }) => string;
   fetch?: FetchFunction;
   errorStructure?: ProviderErrorStructure<any>;
@@ -32,18 +40,54 @@ export type OpenAICompatibleImageModelConfig = {
   };
 };
 
-export class OpenAICompatibleImageModel implements ImageModelV3 {
-  readonly specificationVersion = 'v3';
+export class OpenAICompatibleImageModel implements ImageModelV4 {
+  readonly specificationVersion = 'v4';
   readonly maxImagesPerCall = 10;
 
   get provider(): string {
     return this.config.provider;
   }
 
+  /**
+   * The provider options key used to extract provider-specific options.
+   */
+  private get providerOptionsKey(): string {
+    return this.config.provider.split('.')[0].trim();
+  }
+
+  static [WORKFLOW_SERIALIZE](model: OpenAICompatibleImageModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: string;
+    config: OpenAICompatibleImageModelConfig;
+  }) {
+    return new OpenAICompatibleImageModel(options.modelId, options.config);
+  }
+
   constructor(
     readonly modelId: OpenAICompatibleImageModelId,
     private readonly config: OpenAICompatibleImageModelConfig,
   ) {}
+
+  private getArgs(
+    providerOptions: SharedV4ProviderOptions,
+    warnings: SharedV4Warning[],
+  ): Record<string, unknown> {
+    warnIfDeprecatedProviderOptionsKey({
+      rawName: this.providerOptionsKey,
+      providerOptions,
+      warnings,
+    });
+    return {
+      ...providerOptions[this.providerOptionsKey],
+      ...providerOptions[toCamelCase(this.providerOptionsKey)],
+    };
+  }
 
   async doGenerate({
     prompt,
@@ -56,10 +100,10 @@ export class OpenAICompatibleImageModel implements ImageModelV3 {
     abortSignal,
     files,
     mask,
-  }: Parameters<ImageModelV3['doGenerate']>[0]): Promise<
-    Awaited<ReturnType<ImageModelV3['doGenerate']>>
+  }: Parameters<ImageModelV4['doGenerate']>[0]): Promise<
+    Awaited<ReturnType<ImageModelV4['doGenerate']>>
   > {
-    const warnings: Array<SharedV3Warning> = [];
+    const warnings: Array<SharedV4Warning> = [];
 
     if (aspectRatio != null) {
       warnings.push({
@@ -76,6 +120,8 @@ export class OpenAICompatibleImageModel implements ImageModelV3 {
 
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
 
+    const args = this.getArgs(providerOptions, warnings);
+
     // Image editing mode - use form data and /images/edits endpoint
     if (files != null && files.length > 0) {
       const { value: response, responseHeaders } = await postFormDataToApi({
@@ -83,7 +129,7 @@ export class OpenAICompatibleImageModel implements ImageModelV3 {
           path: '/images/edits',
           modelId: this.modelId,
         }),
-        headers: combineHeaders(this.config.headers(), headers),
+        headers: combineHeaders(this.config.headers?.(), headers),
         formData: convertToFormData<OpenAICompatibleFormDataInput>({
           model: this.modelId,
           prompt,
@@ -91,7 +137,7 @@ export class OpenAICompatibleImageModel implements ImageModelV3 {
           mask: mask != null ? await fileToBlob(mask) : undefined,
           n,
           size,
-          ...(providerOptions.openai ?? {}),
+          ...args,
         }),
         failedResponseHandler: createJsonErrorResponseHandler(
           this.config.errorStructure ?? defaultOpenAICompatibleErrorStructure,
@@ -120,13 +166,13 @@ export class OpenAICompatibleImageModel implements ImageModelV3 {
         path: '/images/generations',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers(), headers),
+      headers: combineHeaders(this.config.headers?.(), headers),
       body: {
         model: this.modelId,
         prompt,
         n,
         size,
-        ...(providerOptions.openai ?? {}),
+        ...args,
         response_format: 'b64_json',
       },
       failedResponseHandler: createJsonErrorResponseHandler(
@@ -167,7 +213,7 @@ type OpenAICompatibleFormDataInput = {
   [key: string]: unknown;
 };
 
-async function fileToBlob(file: ImageModelV3File): Promise<Blob> {
+async function fileToBlob(file: ImageModelV4File): Promise<Blob> {
   if (file.type === 'url') {
     return downloadBlob(file.url);
   }

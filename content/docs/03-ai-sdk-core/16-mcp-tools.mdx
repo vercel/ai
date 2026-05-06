@@ -42,6 +42,9 @@ const mcpClient = await createMCPClient({
 
     // optional: provide an OAuth client provider for automatic authorization
     authProvider: myOAuthClientProvider,
+
+    // optional: allow redirect responses (default is 'error' to prevent SSRF)
+    redirect: 'follow',
   },
 });
 ```
@@ -77,6 +80,9 @@ const mcpClient = await createMCPClient({
 
     // optional: provide an OAuth client provider for automatic authorization
     authProvider: myOAuthClientProvider,
+
+    // optional: allow redirect responses (default is 'error' to prevent SSRF)
+    redirect: 'follow',
   },
 });
 ```
@@ -147,6 +153,8 @@ const result = await streamText({
 When generating responses without streaming, you can use try/finally or cleanup functions in your framework:
 
 ```typescript
+import { createMCPClient, type MCPClient } from '@ai-sdk/mcp';
+
 let mcpClient: MCPClient | undefined;
 
 try {

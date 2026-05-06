@@ -1,81 +1,18 @@
-import { SpeechModelV3, SharedV3Warning } from '@ai-sdk/provider';
+import type { SpeechModelV4, SharedV4Warning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createBinaryResponseHandler,
   parseProviderOptions,
   postJsonToApi,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
-import { LMNTConfig } from './lmnt-config';
+import type { LMNTConfig } from './lmnt-config';
 import { lmntFailedResponseHandler } from './lmnt-error';
-import { LMNTSpeechModelId } from './lmnt-speech-options';
-import { LMNTSpeechAPITypes } from './lmnt-api-types';
-
-// https://docs.lmnt.com/api-reference/speech/synthesize-speech-bytes
-const lmntSpeechCallOptionsSchema = z.object({
-  /**
-   * The model to use for speech synthesis e.g. 'aurora' or 'blizzard'.
-   * @default 'aurora'
-   */
-  model: z
-    .union([z.enum(['aurora', 'blizzard']), z.string()])
-    .nullish()
-    .default('aurora'),
-
-  /**
-   * The audio format of the output.
-   * @default 'mp3'
-   */
-  format: z
-    .enum(['aac', 'mp3', 'mulaw', 'raw', 'wav'])
-    .nullish()
-    .default('mp3'),
-
-  /**
-   * The sample rate of the output audio in Hz.
-   * @default 24000
-   */
-  sampleRate: z
-    .union([z.literal(8000), z.literal(16000), z.literal(24000)])
-    .nullish()
-    .default(24000),
-
-  /**
-   * The speed of the speech. Range: 0.25 to 2.
-   * @default 1
-   */
-  speed: z.number().min(0.25).max(2).nullish().default(1),
-
-  /**
-   * A seed value for deterministic generation.
-   */
-  seed: z.number().int().nullish(),
-
-  /**
-   * Whether to use a conversational style.
-   * @default false
-   */
-  conversational: z.boolean().nullish().default(false),
-
-  /**
-   * Maximum length of the output in seconds (up to 300).
-   */
-  length: z.number().max(300).nullish(),
-
-  /**
-   * Top-p sampling parameter. Range: 0 to 1.
-   * @default 1
-   */
-  topP: z.number().min(0).max(1).nullish().default(1),
-
-  /**
-   * Temperature for sampling. Higher values increase randomness.
-   * @default 1
-   */
-  temperature: z.number().min(0).nullish().default(1),
-});
-
-export type LMNTSpeechCallOptions = z.infer<typeof lmntSpeechCallOptionsSchema>;
+import { lmntSpeechModelOptionsSchema } from './lmnt-speech-model-options';
+import type { LMNTSpeechModelId } from './lmnt-speech-options';
+import type { LMNTSpeechAPITypes } from './lmnt-api-types';
 
 interface LMNTSpeechModelConfig extends LMNTConfig {
   _internal?: {
@@ -83,11 +20,25 @@ interface LMNTSpeechModelConfig extends LMNTConfig {
   };
 }
 
-export class LMNTSpeechModel implements SpeechModelV3 {
-  readonly specificationVersion = 'v3';
+export class LMNTSpeechModel implements SpeechModelV4 {
+  readonly specificationVersion = 'v4';
 
   get provider(): string {
     return this.config.provider;
+  }
+
+  static [WORKFLOW_SERIALIZE](model: LMNTSpeechModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: LMNTSpeechModelId;
+    config: LMNTSpeechModelConfig;
+  }) {
+    return new LMNTSpeechModel(options.modelId, options.config);
   }
 
   constructor(
@@ -102,14 +53,14 @@ export class LMNTSpeechModel implements SpeechModelV3 {
     speed,
     language,
     providerOptions,
-  }: Parameters<SpeechModelV3['doGenerate']>[0]) {
-    const warnings: SharedV3Warning[] = [];
+  }: Parameters<SpeechModelV4['doGenerate']>[0]) {
+    const warnings: SharedV4Warning[] = [];
 
     // Parse provider options
     const lmntOptions = await parseProviderOptions({
       provider: 'lmnt',
       providerOptions,
-      schema: lmntSpeechCallOptionsSchema,
+      schema: lmntSpeechModelOptionsSchema,
     });
 
     // Create request body
@@ -167,8 +118,8 @@ export class LMNTSpeechModel implements SpeechModelV3 {
   }
 
   async doGenerate(
-    options: Parameters<SpeechModelV3['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<SpeechModelV3['doGenerate']>>> {
+    options: Parameters<SpeechModelV4['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<SpeechModelV4['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { requestBody, warnings } = await this.getArgs(options);
 
@@ -181,7 +132,7 @@ export class LMNTSpeechModel implements SpeechModelV3 {
         path: '/v1/ai/speech/bytes',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body: requestBody,
       failedResponseHandler: lmntFailedResponseHandler,
       successfulResponseHandler: createBinaryResponseHandler(),

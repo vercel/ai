@@ -1,4 +1,14 @@
-import type { LanguageModelV3 } from '@ai-sdk/provider';
+import type { LanguageModelV4 } from '@ai-sdk/provider';
+
+export const KNOWN_MODEL_TYPES = [
+  'embedding',
+  'image',
+  'language',
+  'reranking',
+  'video',
+] as const;
+
+export type KnownModelType = (typeof KNOWN_MODEL_TYPES)[number];
 
 export interface GatewayLanguageModelEntry {
   /**
@@ -49,10 +59,10 @@ export interface GatewayLanguageModelEntry {
   /**
    * Optional field to differentiate between model types.
    */
-  modelType?: 'language' | 'embedding' | 'image' | null;
+  modelType?: KnownModelType | null;
 }
 
 export type GatewayLanguageModelSpecification = Pick<
-  LanguageModelV3,
+  LanguageModelV4,
   'specificationVersion' | 'provider' | 'modelId'
 >;

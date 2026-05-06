@@ -2,7 +2,7 @@ import {
   createTestServer,
   TestResponseController,
 } from '@ai-sdk/test-server/with-vitest';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { HttpMCPTransport } from './mcp-http-transport';
 import { LATEST_PROTOCOL_VERSION } from './types';
 import { MCPClientError } from '../error/mcp-client-error';
@@ -22,7 +22,12 @@ describe('HttpMCPTransport', () => {
   let transport: HttpMCPTransport;
 
   beforeEach(() => {
+    vi.useFakeTimers();
     transport = new HttpMCPTransport({ url: 'http://localhost:4000/mcp' });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it('should POST JSON and receive JSON response', async () => {
@@ -128,6 +133,11 @@ describe('HttpMCPTransport', () => {
       params: {},
     });
 
+    // openInboundSse() is fire-and-forget, so wait for the GET request to appear
+    await vi.waitFor(() => {
+      expect(server.calls[2]).toBeDefined();
+    });
+
     expect(server.calls[2].requestMethod).toBe('GET');
     expect(server.calls[2].requestHeaders.accept).toBe('text/event-stream');
   });
@@ -181,19 +191,11 @@ describe('HttpMCPTransport', () => {
 
     await transport.start();
 
-    await new Promise<void>(resolve => {
-      const check = () => {
-        if (
-          server.calls.length > 0 &&
-          server.calls[0].requestMethod === 'GET'
-        ) {
-          resolve();
-        } else {
-          setTimeout(check, 0);
-        }
-      };
-      check();
-    });
+    while (
+      !(server.calls.length > 0 && server.calls[0].requestMethod === 'GET')
+    ) {
+      await vi.advanceTimersByTimeAsync(0);
+    }
 
     // Now make POST fail
     server.urls['http://localhost:4000/mcp'].response = {
@@ -241,6 +243,33 @@ describe('HttpMCPTransport', () => {
     const error = await errorPromise;
     expect(error).toBeInstanceOf(MCPClientError);
     expect((error as Error).message).toContain('Failed to parse message');
+  });
+
+  it('should handle non-JSON-RPC response for notifications', async () => {
+    server.urls['http://localhost:4000/mcp'].response = ({ callNumber }) => {
+      switch (callNumber) {
+        case 0:
+          return { type: 'error', status: 405 };
+        case 1:
+          return {
+            type: 'json-value',
+            body: { ok: true },
+          };
+        default:
+          return { type: 'empty', status: 200 };
+      }
+    };
+
+    await transport.start();
+
+    // Send a notification (no 'id' field)
+    const notification = {
+      jsonrpc: '2.0' as const,
+      method: 'notifications/initialized',
+    };
+
+    // Should not throw even though server returned non-JSON-RPC response
+    await expect(transport.send(notification)).resolves.toBeUndefined();
   });
 
   it('should send custom headers with all requests', async () => {
@@ -299,5 +328,158 @@ describe('HttpMCPTransport', () => {
       ...customHeaders,
     });
     expect(server.calls[1].requestUserAgent).toContain('ai-sdk/');
+  });
+
+  describe('redirect option', () => {
+    it('should pass redirect: error to POST fetch on send()', async () => {
+      const fetchSpy = vi.spyOn(globalThis, 'fetch');
+
+      transport = new HttpMCPTransport({
+        url: 'http://localhost:4000/mcp',
+        redirect: 'error',
+      });
+
+      server.urls['http://localhost:4000/mcp'].response = ({ callNumber }) => {
+        switch (callNumber) {
+          case 0:
+            return { type: 'error', status: 405 };
+          case 1:
+            return {
+              type: 'json-value',
+              body: { jsonrpc: '2.0', id: 1, result: { ok: true } },
+            };
+          default:
+            return { type: 'empty', status: 200 };
+        }
+      };
+
+      await transport.start();
+      fetchSpy.mockClear();
+
+      await transport.send({
+        jsonrpc: '2.0' as const,
+        method: 'initialize',
+        id: 1,
+        params: {},
+      });
+
+      expect(fetchSpy).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ redirect: 'error' }),
+      );
+
+      fetchSpy.mockRestore();
+    });
+
+    it('should pass redirect: error to GET fetch on start()', async () => {
+      const fetchSpy = vi.spyOn(globalThis, 'fetch');
+
+      transport = new HttpMCPTransport({
+        url: 'http://localhost:4000/mcp',
+        redirect: 'error',
+      });
+
+      server.urls['http://localhost:4000/mcp'].response = {
+        type: 'error',
+        status: 405,
+      };
+
+      await transport.start();
+
+      await vi.waitFor(() => {
+        expect(fetchSpy).toHaveBeenCalled();
+      });
+
+      expect(fetchSpy).toHaveBeenCalledWith(
+        'http://localhost:4000/mcp',
+        expect.objectContaining({ redirect: 'error', method: 'GET' }),
+      );
+
+      fetchSpy.mockRestore();
+    });
+
+    it('should default redirect to error', async () => {
+      const fetchSpy = vi.spyOn(globalThis, 'fetch');
+
+      transport = new HttpMCPTransport({
+        url: 'http://localhost:4000/mcp',
+      });
+
+      server.urls['http://localhost:4000/mcp'].response = {
+        type: 'error',
+        status: 405,
+      };
+
+      await transport.start();
+
+      await vi.waitFor(() => {
+        expect(fetchSpy).toHaveBeenCalled();
+      });
+
+      expect(fetchSpy).toHaveBeenCalledWith(
+        'http://localhost:4000/mcp',
+        expect.objectContaining({ redirect: 'error', method: 'GET' }),
+      );
+
+      fetchSpy.mockRestore();
+    });
+  });
+
+  describe('custom fetch', () => {
+    it('should use provided fetch function instead of globalThis.fetch', async () => {
+      const customFetch = vi.fn(globalThis.fetch);
+
+      transport = new HttpMCPTransport({
+        url: 'http://localhost:4000/mcp',
+        fetch: customFetch,
+      });
+
+      server.urls['http://localhost:4000/mcp'].response = {
+        type: 'error',
+        status: 405,
+      };
+
+      await transport.start();
+
+      await vi.waitFor(() => {
+        expect(customFetch).toHaveBeenCalled();
+      });
+
+      expect(customFetch).toHaveBeenCalledWith(
+        'http://localhost:4000/mcp',
+        expect.objectContaining({ method: 'GET' }),
+      );
+    });
+
+    it('should use provided fetch function for POST send()', async () => {
+      const customFetch = vi.fn(globalThis.fetch);
+
+      transport = new HttpMCPTransport({
+        url: 'http://localhost:4000/mcp',
+        fetch: customFetch,
+      });
+
+      server.urls['http://localhost:4000/mcp'].response = {
+        type: 'json-value',
+        body: { jsonrpc: '2.0', id: 1, result: { ok: true } },
+        headers: { 'mcp-session-id': 'abc123' },
+      };
+
+      await transport.start();
+
+      const message = {
+        jsonrpc: '2.0' as const,
+        method: 'initialize',
+        id: 1,
+        params: {},
+      };
+
+      await transport.send(message);
+
+      expect(customFetch).toHaveBeenCalledWith(
+        'http://localhost:4000/mcp',
+        expect.objectContaining({ method: 'POST' }),
+      );
+    });
   });
 });

@@ -1,51 +1,73 @@
-import {
-  LanguageModelV3,
-  LanguageModelV3CallOptions,
-  LanguageModelV3Content,
-  LanguageModelV3FinishReason,
-  LanguageModelV3GenerateResult,
-  LanguageModelV3StreamPart,
-  LanguageModelV3StreamResult,
-  SharedV3Warning,
+import type {
+  LanguageModelV4,
+  LanguageModelV4CallOptions,
+  LanguageModelV4Content,
+  LanguageModelV4FinishReason,
+  LanguageModelV4GenerateResult,
+  LanguageModelV4StreamPart,
+  LanguageModelV4StreamResult,
+  SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
-  FetchFunction,
   generateId,
   injectJsonInstructionIntoMessages,
+  isCustomReasoning,
+  mapReasoningToProviderEffort,
   parseProviderOptions,
-  ParseResult,
   postJsonToApi,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
+  type FetchFunction,
+  type ParseResult,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import { convertMistralUsage, MistralUsage } from './convert-mistral-usage';
+import {
+  convertMistralUsage,
+  type MistralUsage,
+} from './convert-mistral-usage';
 import { convertToMistralChatMessages } from './convert-to-mistral-chat-messages';
 import { getResponseMetadata } from './get-response-metadata';
 import { mapMistralFinishReason } from './map-mistral-finish-reason';
 import {
-  MistralChatModelId,
-  mistralLanguageModelOptions,
-} from './mistral-chat-options';
+  mistralLanguageModelChatOptions,
+  type MistralChatModelId,
+} from './mistral-chat-language-model-options';
 import { mistralFailedResponseHandler } from './mistral-error';
 import { prepareTools } from './mistral-prepare-tools';
 
 type MistralChatConfig = {
   provider: string;
   baseURL: string;
-  headers: () => Record<string, string | undefined>;
+  headers?: () => Record<string, string | undefined>;
   fetch?: FetchFunction;
   generateId?: () => string;
 };
 
-export class MistralChatLanguageModel implements LanguageModelV3 {
-  readonly specificationVersion = 'v3';
+export class MistralChatLanguageModel implements LanguageModelV4 {
+  readonly specificationVersion = 'v4';
 
   readonly modelId: MistralChatModelId;
 
   private readonly config: MistralChatConfig;
   private readonly generateId: () => string;
+
+  static [WORKFLOW_SERIALIZE](model: MistralChatLanguageModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: MistralChatModelId;
+    config: MistralChatConfig;
+  }) {
+    return new MistralChatLanguageModel(options.modelId, options.config);
+  }
 
   constructor(modelId: MistralChatModelId, config: MistralChatConfig) {
     this.modelId = modelId;
@@ -69,20 +91,21 @@ export class MistralChatLanguageModel implements LanguageModelV3 {
     topK,
     frequencyPenalty,
     presencePenalty,
+    reasoning,
     stopSequences,
     responseFormat,
     seed,
     providerOptions,
     tools,
     toolChoice,
-  }: LanguageModelV3CallOptions) {
-    const warnings: SharedV3Warning[] = [];
+  }: LanguageModelV4CallOptions) {
+    const warnings: SharedV4Warning[] = [];
 
     const options =
       (await parseProviderOptions({
         provider: 'mistral',
         providerOptions,
-        schema: mistralLanguageModelOptions,
+        schema: mistralLanguageModelChatOptions,
       })) ?? {};
 
     if (topK != null) {
@@ -99,6 +122,39 @@ export class MistralChatLanguageModel implements LanguageModelV3 {
 
     if (stopSequences != null) {
       warnings.push({ type: 'unsupported', feature: 'stopSequences' });
+    }
+
+    const supportsReasoningEffort =
+      this.modelId === 'mistral-small-latest' ||
+      this.modelId === 'mistral-small-2603' ||
+      this.modelId === 'mistral-medium-3' ||
+      this.modelId === 'mistral-medium-3.5';
+
+    let resolvedReasoningEffort: string | undefined;
+    if (supportsReasoningEffort) {
+      resolvedReasoningEffort =
+        options.reasoningEffort ??
+        (isCustomReasoning(reasoning)
+          ? reasoning === 'none'
+            ? 'none'
+            : mapReasoningToProviderEffort({
+                reasoning,
+                effortMap: {
+                  minimal: 'high',
+                  low: 'high',
+                  medium: 'high',
+                  high: 'high',
+                  xhigh: 'high',
+                },
+                warnings,
+              })
+          : undefined);
+    } else if (isCustomReasoning(reasoning)) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'reasoning',
+        details: 'This model does not support reasoning configuration.',
+      });
     }
 
     const structuredOutputs = options.structuredOutputs ?? true;
@@ -125,6 +181,7 @@ export class MistralChatLanguageModel implements LanguageModelV3 {
       temperature,
       top_p: topP,
       random_seed: seed,
+      reasoning_effort: resolvedReasoningEffort,
 
       // response format:
       response_format:
@@ -173,8 +230,8 @@ export class MistralChatLanguageModel implements LanguageModelV3 {
   }
 
   async doGenerate(
-    options: LanguageModelV3CallOptions,
-  ): Promise<LanguageModelV3GenerateResult> {
+    options: LanguageModelV4CallOptions,
+  ): Promise<LanguageModelV4GenerateResult> {
     const { args: body, warnings } = await this.getArgs(options);
 
     const {
@@ -183,7 +240,7 @@ export class MistralChatLanguageModel implements LanguageModelV3 {
       rawValue: rawResponse,
     } = await postJsonToApi({
       url: `${this.config.baseURL}/chat/completions`,
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body,
       failedResponseHandler: mistralFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -194,7 +251,7 @@ export class MistralChatLanguageModel implements LanguageModelV3 {
     });
 
     const choice = response.choices[0];
-    const content: Array<LanguageModelV3Content> = [];
+    const content: Array<LanguageModelV4Content> = [];
 
     // process content parts in order to preserve sequence
     if (
@@ -255,14 +312,14 @@ export class MistralChatLanguageModel implements LanguageModelV3 {
   }
 
   async doStream(
-    options: LanguageModelV3CallOptions,
-  ): Promise<LanguageModelV3StreamResult> {
+    options: LanguageModelV4CallOptions,
+  ): Promise<LanguageModelV4StreamResult> {
     const { args, warnings } = await this.getArgs(options);
     const body = { ...args, stream: true };
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/chat/completions`,
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body,
       failedResponseHandler: mistralFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(
@@ -272,7 +329,7 @@ export class MistralChatLanguageModel implements LanguageModelV3 {
       fetch: this.config.fetch,
     });
 
-    let finishReason: LanguageModelV3FinishReason = {
+    let finishReason: LanguageModelV4FinishReason = {
       unified: 'other',
       raw: undefined,
     };
@@ -288,7 +345,7 @@ export class MistralChatLanguageModel implements LanguageModelV3 {
       stream: response.pipeThrough(
         new TransformStream<
           ParseResult<z.infer<typeof mistralChatChunkSchema>>,
-          LanguageModelV3StreamPart
+          LanguageModelV4StreamPart
         >({
           start(controller) {
             controller.enqueue({ type: 'stream-start', warnings });
@@ -522,6 +579,13 @@ const mistralUsageSchema = z.object({
   prompt_tokens: z.number(),
   completion_tokens: z.number(),
   total_tokens: z.number(),
+  num_cached_tokens: z.number().nullish(),
+  prompt_tokens_details: z
+    .object({ cached_tokens: z.number().nullish() })
+    .nullish(),
+  prompt_token_details: z
+    .object({ cached_tokens: z.number().nullish() })
+    .nullish(),
 });
 
 // limited version of the schema, focussed on what is needed for the implementation

@@ -277,292 +277,582 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
   },
   {
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
+    },
     "type": "reasoning-start",
   },
   {
     "delta": "First",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": ",",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " the",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " question",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " is",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": ":",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " "",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": "What",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " is",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " specifically",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " notable",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " about",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " the",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " style",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " of",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " Son",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": "oran",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " food",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": "?"",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " This",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " seems",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " like",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " an",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " open",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": "-ended",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " question",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " about",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " cuisine",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": ".",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " It's",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " not",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " closed",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": "-ended",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " science",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": "/math",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": "/search",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": ",",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " so",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " I",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " should",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " make",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " it",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " maximally",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " informative",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": ",",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " structured",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": ",",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " and",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " easy",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " to",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " parse",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": ".",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " Use",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " sections",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " if",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " appropriate",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": ".
 ",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
@@ -571,16 +861,31 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
 ## Investigating Sonoran Cuisine  
 - The question focuses on what makes Sonoran food's style notable, suggesting an exploration of its unique characteristics.",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": "  
 - This is an open-ended question about cuisine, requiring a structured, informative response to highlight key aspects.",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
+    },
     "type": "reasoning-end",
   },
   {
@@ -3735,28 +4040,6 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "type": "text-delta",
   },
   {
-    "delta": "### Overview of Sonoran Cuisine
-Sonoran cuisine originates from the state of Sonora in northwest Mexico, blending indigenous, Spanish, and American influences due to its proximity to the U.S. border and arid desert environment. It's notably rustic, flavorful, and fusion-oriented, often featuring grilled meats, fresh produce, and bold spices adapted to the region's hot, dry climate. Unlike coastal Mexican cuisines, it emphasizes hearty, protein-heavy dishes with influences from the American Southwest, such as flour tortillas and cheese.
-
-### Key Ingredients and Techniques
-- **Meats and Proteins**: Grilled or roasted meats like beef (carne asada), pork, and chicken are central, often seasoned with simple marinades of lime, garlic, and chili. Machaca (dried, shredded beef) is a hallmark preservation technique for the desert.
-- **Chiles and Spices**: Local chiles (e.g., Sonora's chiltepin, a tiny, potent pepper) add heat, while cumin, oregano, and cilantro provide earthy flavors. Beans (frijoles) and corn are staples, often prepared simply to highlight natural tastes.
-- **Tortillas and Breads**: Flour tortillas dominate, reflecting American influence, unlike corn tortillas in many other Mexican regions. Baking and grilling are common, with an emphasis on fresh, unprocessed ingredients.
-- **Regional Staples**: Desert elements like nopales (cactus pads), nopalitos, and wild herbs are incorporated for texture and nutrition, showcasing indigenous roots.
-
-### Signature Dishes
-- **Carne Asada Tacos**: Thinly sliced, grilled skirt steak served on flour tortillas with salsa, onions, and cilantro—often eaten with beans and rice.
-- **Sonoran Hot Dogs**: A fusion dish where a hot dog is wrapped in bacon, grilled, and topped with pinto beans, onions, tomatoes, mayo, mustard, and cheese in a sliced bolillo roll. This originated in border towns and highlights Mexican-American crossover.
-- **Chimichangas**: Deep-fried burritos filled with meat, cheese, and beans, served with guacamole and sour cream—a nod to Tex-Mex influences.
-- **Ceviche and Seafood**: Coastal Sonoran areas feature fresh ceviche (citrus-marinated fish) and shrimp dishes, contrasting the land-based inland cuisine.
-- **Other Notables**: Guaymas-style tamales (with meat and sauce) and caldillo (a beef stew with potatoes) emphasize slow-cooked comfort foods.
-
-### Cultural and Historical Influences
-Sonora's style emerged from indigenous Yaqui and Mayo tribes, who used desert foraging, combined with Spanish colonial methods like cattle ranching. Post-Mexican-American War migration boosted American elements, creating dishes like flour-based tacos. Today, it's celebrated in cities like Hermosillo and Tucson (Arizona), influencing Southwestern U.S. cuisine. Festivals like the Sonora International Gastronomic Festival highlight its evolution, and it's known for its focus on quality ingredients over elaborate preparations, making it accessible and flavorful for everyday meals. If you're exploring, local markets (tianguis) are the best places to experience authentic flavors.",
-    "id": "text-msg_769f3302-64f9-4c72-2b48-860c87fd9b2a",
-    "type": "text-delta",
-  },
-  {
     "id": "text-msg_769f3302-64f9-4c72-2b48-860c87fd9b2a",
     "type": "text-end",
   },
@@ -3810,312 +4093,622 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
   },
   {
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
+    },
     "type": "reasoning-start",
   },
   {
     "delta": "First",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": ",",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " the",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " question",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " is",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": ":",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " "",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": "What",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " is",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " specifically",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " notable",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " about",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " the",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " style",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " of",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " Son",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": "oran",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " food",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": "?"",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " This",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " is",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " an",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " open",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": "-ended",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " question",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " about",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " food",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " culture",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": ",",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " specifically",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " Son",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": "oran",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " cuisine",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": ".",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " It's",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " not",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " closed",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": "-ended",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " math",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": "/science",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": ",",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " so",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " I",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " need",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " to",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " be",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " maximally",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " informative",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": ",",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " structure",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " it",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " easily",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " pars",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": "able",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": ",",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " perhaps",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " with",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " sections",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " if",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " needed",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": ".
 ",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
@@ -4124,22 +4717,43 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
 ## Investigating Sonoran Cuisine  
 - The question focuses on what makes Sonoran food style notable, indicating an open-ended exploration of its cultural and culinary significance.",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": "  
 - Sonoran cuisine is part of food culture, suggesting a need for a structured, informative response to highlight its unique traits.",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": "  
 - The task isn't math or science, so the approach will prioritize breadth and accessibility, possibly using sections for clarity.",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+        "reasoningEncryptedContent": "WjtnRFdCMihgUoZ7mSMscKCe3dmgPFa5M5kX7HQJj34tLsndn347jFS2T+DK3E4DLLPTW1w51ttWSKNi2Rn/7pJ6foFMHeAbX5Q7+5CaeXto/8EOgaUC1Hn/PLLXOzw6za/AjoSEmPkr0m1KIo90k0mggP0UFLVKAXD2Z4+3rO1MVap2oVjPqVa6KctTSHtTScev9QhDPGGGbuo+YJa87ECGA1/UgKqzoA02/smPm7Ooh4wgR+XZvp1N0jENAwb2CmTNCv+GjxQrlIQ02zL4WHEwLE2HeKJXDKJUEIrTAT2hu0LFsWpAI+DbIIDekViyoQsbwVaGgBfY867CohK+NWpkOtagGIoNcmJBvR1mlqrKoHURBngvjrFW46Ng0bYH1uH8yEhQ7ao9vAve8jfpXa9qhsraY+DXuzjiCRojxpqcLkx7/tMMwGemucyQlmiIyVtIffA401dkp6JiJ//5ow00zNIXYSmT9R8eb530Qaz5dIrsr7tdzhkBOT+bvfTlD/dp8lYUcTuiz5F+L+TatdD2AIRkGC5hnQJanhDF7SQa7yVS8zyT+712VskotdJ6h9sXGMvQwZI95dB1EpUegUszK40NkH/l/srbyO7Itqt4Vbl/r7saky2zq40BVLRfiH6aON/1J1EBFl8t734VhW0ToKrSMOBcSS3/XnztO9r4VZKWl8ezcDI4qb5rIFgR+rZKjVOKH8A+/MAzAUlvdhe8n1FX+Ux1DSvh7E+RRHbt8181DI/98fqzkJ4p2V10HiOiI0QpMkB8Ow5oHfI4AfR8GIQanSLGKJ1B6sR7iGO4j/3ak88jx13glVnRoaAvHytCtGN22ZGx4zKqfnzCPDN7Qp/Zs9DNfHG8i9Ybom7AEsuZcthgwYcnM/OYFi7ecNXlEbnUDET2KxyELqMIUQcPIX6YiLayL6GizvhH/iNXZ8iW0ovzwL6td+qq3pUfdIf2sN/+RTeCvyw7F552pkd92kgl3fpBnekknL/9G0LFEG2odqe8dep3sk6TMUZBLdRKgHb/As0Yl6adefHuLspQQ0cquSgBK0vpxKCVA356axHyYiEtHtK6Zs7411xvwIUiyk7C5+bV7LxZuPQJcy8Dnwees5wK5NgHC/O0jZ010yROx0+6mUogY7tH6DGJ1dz1/LkYAwvcUmkSjGCchqfr1dTFr3VFXKRRxtqI5ngyegEu42xKY/lUoS1coTnu2QTB3a+g4gBlTHNdA+3YW1pm813vnvhuZC2WX/zCluAgUJNoeRS86iKHb/3R2zDi625ODgd7KnSx81ZIg34y3nTjSSAvR0CGhOq99KEP3+e4ckRsbQ6TbxY6XBEEYMOWw0u4/vNaqNlMID6bstszrKgFzk2DPAdMyYh4uiitzWjGefHdbwciVjNXj+PKPQOzvVSHG7zARXv3bJ31jWHO1E2btxjdUutFU8sn5bDFt8qOU9oT8YjkCIel7gDBf4A3U58/DbsWkRGLg1A2CCyzn2oBzG4ogCVnN5q39NUbhf6MTbbMXR1feWK48tajCjEACtbVynBi7ARXvx2Hiurs9zbRMY92zJP9QphFrWQKaRDaNLEhqvKMEeraMOADSWhPWkRkwvO59NcKfjDzb3d2sW1AJOmrjqnyvLmoQI9qVSuFCkwkjnB0T0AU51Hw28c2g5dlVmE9BTEVbG1zrJ0234pag7Iv65RbcrOtfEgrtfQ5uLuP0aSa0/yrz+mjndXaAUM",
+      },
+    },
     "type": "reasoning-end",
   },
   {
@@ -7055,29 +7669,6 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "type": "text-delta",
   },
   {
-    "delta": "### Overview of Sonoran Cuisine
-Sonoran cuisine originates from the Sonora region in northwestern Mexico, characterized by its simplicity, fresh ingredients, and emphasis on grilling and bold flavors. Unlike spicier Mexican cuisines from other regions, it's notably milder, relying on the region's abundant desert produce and livestock. This style blends indigenous influences (e.g., from Yaqui and Mayo peoples) with Spanish colonial elements, resulting in hearty, straightforward dishes that highlight natural tastes over complex preparations.
-
-### Key Ingredients and Flavors
-- **Mild Chilies and Heat**: The signature is the Mexican Sonora chile (a mild, fruity pepper), often used fresh or roasted. Unlike hotter varieties in Yucatán or Oaxaca, Sonoran food avoids excessive spice, focusing on subtle sweetness and smokiness.
-- **Desert and Local Produce**: Staples include nopales (cactus pads), beans, corn, tomatoes, and onions. The arid climate favors grilled or fresh preparations, with minimal sauces.
-- **Proteins**: Beef, especially in carne asada (grilled skirt steak), is dominant, reflecting Sonora's cattle ranching history. Other meats like pork or chicken are common, often seasoned simply with garlic, lime, and herbs.
-- **Influence of the Sea and Land**: Coastal areas incorporate seafood (e.g., shrimp or fish), while inland focuses on ranch-raised meats. Dairy is rare, emphasizing Mexican crema or cheese sparingly.
-
-### Notable Dishes and Preparation Styles
-- **Grilling as a Core Technique**: Many dishes are cooked over open flames or on a comal, imparting a charred, smoky flavor. This is seen in carne asada, served with tortillas, guacamole, and pico de gallo.
-- **Iconic Foods**: 
-  - **Machaca**: Shredded, dried beef slow-cooked with eggs, onions, and chilies— a breakfast staple that's simple yet flavorful.
-  - **Tamales**: Steamed corn masa filled with meat or cheese, often wrapped in corn husks; Sonoran versions are less sauced than those in central Mexico.
-  - **Chimichangas**: Fried burritos, a Sonora-influenced Tex-Mex creation, highlighting the region's border proximity to Arizona.
-- **Beverages**: Agua fresca (fruit waters) from local fruits like watermelon or hibiscus, and horchata, a rice-based drink, complement meals.
-
-### Cultural and Regional Context
-Sonoran's style is practical for its hot, dry climate—dishes are quick to prepare and preserve well. It's less ornate than Yucatecan or Jaliscan cuisines, prioritizing sustenance over elaboration. In the U.S., especially Arizona, Sonoran influences appear in fusion foods like Mexican hot dogs (bacon-wrapped with beans and salsa). This cuisine's notable restraint in spice and focus on grilling make it distinct, emphasizing the desert's bounty for authentic, approachable meals.",
-    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
-    "type": "text-delta",
-  },
-  {
     "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
     "type": "text-end",
   },
@@ -7131,322 +7722,642 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
   },
   {
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
+    },
     "type": "reasoning-start",
   },
   {
     "delta": "First",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": ",",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " the",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " question",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " is",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": ":",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " "",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": "What",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " is",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " specifically",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " notable",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " about",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " the",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " style",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " of",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " Son",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": "oran",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " food",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": "?"",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " This",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " seems",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " like",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " an",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " open",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": "-ended",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " question",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " about",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " cuisine",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": ",",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " not",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " closed",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": "-ended",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " science",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": "/math",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": "/search",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": ".",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " So",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": ",",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " I",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " need",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " to",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " make",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " my",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " response",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " maximally",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " informative",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": ",",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " structured",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": ",",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " and",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " easily",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " pars",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": "able",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": ".",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " Use",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " sections",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " if",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " appropriate",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": ",",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " with",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " descriptive",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": " headers",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": ".
 ",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
@@ -7456,6 +8367,11 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
 - The user's query asks, "What is specifically notable about the style of Sonoran food?"  
 - This is an open-ended question about cuisine, requiring a structured, informative response.",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
@@ -7464,16 +8380,31 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
 ## Planning the Approach  
 - The response should focus on key characteristics of Sonoran food, ensuring it’s easy to read and parse.",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "delta": "  
 - Consider using sections with clear headers to organize notable features systematically.",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
+    },
     "type": "reasoning-delta",
   },
   {
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
+    },
     "type": "reasoning-end",
   },
   {
@@ -10496,26 +11427,6 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "type": "text-delta",
   },
   {
-    "delta": "### Overview of Sonoran Cuisine
-Sonoran food originates from the Sonoran Desert region, spanning parts of northern Mexico (especially Sonora state) and southern Arizona. It's a rustic, resourceful style shaped by the arid environment, blending Indigenous, Spanish, and Mexican influences. Unlike the more complex, mole-heavy cuisines of central Mexico, Sonoran fare emphasizes simplicity, fresh local ingredients, and bold, smoky flavors from grilling and chiles. It's practical for desert living, focusing on sustenance with minimal processing.
-
-### Key Ingredients and Characteristics
-- **Local Produce and Staples**: Heavily reliant on desert-sourced items like nopales (prickly pear cactus pads), which are grilled or sautéed for their tangy, crisp texture. Beans (pinto or black), corn, and chiles (e.g., chili pequin or jalapeños) are ubiquitous, often used fresh or dried. Tomatoes, onions, and herbs like cilantro add freshness.
-- **Proteins**: Beef, pork, and chicken dominate, with grilling (asado) as a core technique, infusing meats with smoky char. Seafood appears in coastal Sonoran areas, like shrimp or fish tacos.
-- **Bold Flavors and Simplicity**: Dishes avoid heavy sauces; instead, they rely on spices, lime, and chiles for heat and acidity. Tortillas (corn or flour) serve as the base, with minimal elaboration—think of it as "desert pragmatism" where food is hearty yet straightforward to prepare in hot climates.
-
-### Signature Dishes
-- **Carne Asada**: Grilled skirt or flank steak marinated in lime, garlic, and cumin, served with tortillas, salsa, and beans. It's the region's barbecue staple, often enjoyed at family gatherings.
-- **Sonoran Hot Dogs**: A fusion delight where a bacon-wrapped hot dog is topped with pinto beans, salsa, onions, and mustard in a bun. Originating in Hermosillo, Mexico, it's a street food icon, blending American and Mexican influences.
-- **Tacos and Tamales**: Tacos are filled with grilled meats, nopales, or cheese, while tamales use corn masa wrapped in corn husks and steamed, often stuffed with pork or chicken.
-- **Chimichangas**: Deep-fried burritos, more associated with Arizona's Mexican-American adaptations, filled with meat, cheese, and beans.
-
-### Cultural and Regional Notes
-Sonoran cuisine reflects Indigenous roots from tribes like the Tohono O'odham and Yaqui, who taught Europeans to use desert plants for survival. Spanish colonialists added wheat flour and livestock. In Mexico's Sonora, it's more traditional and seafood-influenced near the Gulf of California, while in Arizona, it incorporates Tex-Mex elements like flour tortillas and cheese. This style stands out for its resilience and adaptability, making it distinct from coastal Mexican seafood or Yucatecan spice profiles. For authentic experiences, try spots like food trucks in Tucson or markets in Hermosillo.",
-    "id": "text-msg_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
-    "type": "text-delta",
-  },
-  {
     "id": "text-msg_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
     "type": "text-end",
   },
@@ -11929,19 +12840,6 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream w
     "title": "https://x.ai/",
     "type": "source",
     "url": "https://x.ai/",
-  },
-  {
-    "delta": "xAI is an American artificial intelligence company founded by Elon Musk in July 2023. Its mission is to "understand the true nature of the universe" by advancing scientific discovery through AI. The company is based in the San Francisco Bay Area and focuses on developing advanced AI models, including the Grok chatbot (integrated with the X platform, formerly Twitter).
-
-Key points:
-- **Founders and Team**: Led by Elon Musk, with a team of engineers and researchers from companies like OpenAI, Google DeepMind, and Tesla.
-- **Products**: xAI has released Grok-1 (an open-source large language model) and subsequent versions like Grok-1.5 and Grok-2, which power conversational AI tools.
-- **Funding**: Raised significant venture capital, including a $6 billion Series B round in 2024, valuing the company at around $24 billion.
-- **Philosophy**: Emphasizes curiosity-driven AI development, with a focus on truth-seeking and avoiding overly restrictive safety measures compared to competitors.
-
-Note: "XAI" can also refer to "Explainable AI," a field in machine learning that makes AI decisions transparent and interpretable to humans. If that's what you meant, let me know for more details! For the latest updates, check x.ai.",
-    "id": "text-msg_98a8d4aa-fc8b-fd93-e673-d5a8f1c9cee8",
-    "type": "text-delta",
   },
   {
     "id": "id-5",
@@ -20849,56 +21747,6 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream x
     "title": "https://x.com/i/status/1991284818928366015",
     "type": "source",
     "url": "https://x.com/i/status/1991284818928366015",
-  },
-  {
-    "delta": "### Latest Videos and Images from xAI on X (as of December 1, 2025)
-
-xAI's official X account (@xai) frequently shares media related to their AI products like Grok models, APIs, and partnerships. Based on the most recent posts with media (fetched in "Latest" order), here are the top latest videos and images focusing on product announcements and demos. These are primarily from late November 2025, centered around the launch of **Grok 4.1 Fast** (a new tool-calling AI model with a 2M-token context window) and the **Agent Tools API** (enabling autonomous web browsing, X searches, code execution, and more). I've included descriptions based on direct analysis of the media, timestamps, and context from the posts.
-
-#### Latest Video (November 19, 2025)
-- **Post Details**: From the announcement thread introducing Grok 4.1 Fast and Agent Tools API (Post ID: 1991284813727474073, ~2.3M views). This is the most recent video post.
-- **Video Description**: A 14-second demo clip (low-resolution preview at 468x270) showcasing Grok 4.1 Fast in action with the new Agent Tools API. It demonstrates real-time web browsing and research capabilities:
-  - The interface is a dark-themed chat window (similar to Grok's UI) where a user queries about Tesla (e.g., "How many Tesla factories are there?" and follow-ups on production).
-  - Grok autonomously browses websites: Frames show loading web pages (e.g., Tesla's official site), extracting data like factory locations and output gauges, and summarizing results in real-time.
-  - Key features highlighted: Multi-step agentic workflow (search → browse → read documents → respond), with UI elements like loading spinners, document previews, and action buttons (e.g., "Browse web", "Read document").
-  - Visual style: Clean, animated transitions between search results, web tabs, and chat responses. No subtitles, but text overlays show queries and summaries (e.g., "Reading factory output gauges", "Building summary").
-  - **Relevance**: This illustrates the product's enterprise use cases like deep research and customer support. Link to full announcement: [x.ai/news/grok-4-1-fast](https://x.ai/news/grok-4-1-fast).
-- **Direct Video URL** (for viewing on X): https://video.twimg.com/amplify_video/1991284765027364866/vid/avc1/468x270/kRkbodV96jk4PmbG.mp4
-
-#### Latest Images (November 19, 2025)
-These accompany the same Grok 4.1 Fast announcement thread. They are benchmark charts emphasizing the model's performance advantages in tool-calling, agentic tasks, and cost-efficiency compared to competitors (e.g., GPT-5, Claude Sonnet 4.5, Gemini 3 Pro).
-
-1. **Image 1: Multi-Turn Accuracy Benchmarks** (Post ID: 1991284818928366015, ~55K views)
-   - **Description**: A bar chart comparing Grok models on "Multi-Turn Acc" (accuracy in extended conversations) and "Multi-Turn Long Context" (performance over long inputs). Orange bars (Grok 4.1 Fast) lead at 57.2% and 67%, vs. brown (Grok 4 Fast) at 41.6%/52.5%, and gray (Grok 4) at 20.5%/22%. Dark background with xAI branding. Highlights training improvements via long-horizon RL for consistent 2M-token performance.
-   - **URL**: https://pbs.twimg.com/media/G6J2_UxacAQf8u4.jpg
-
-2. **Image 2: Enterprise Use Case Benchmarks (e.g., Customer Support)** (Post ID: 1991284822820720732, ~12K views)
-   - **Description**: A scatter plot titled "τ²-Bench Telecom" (a telecom/customer support workflow benchmark). Points plot score (%) vs. total cost ($). Grok 4.1 Fast (orange dot) tops at ~100% score for ~$105 cost, outperforming GPT-5 high (~80%/$150+), Gemini 3 Pro (~70%/$120), Claude 4.5 Sonnet (~60%/$130), and Grok 4 Fast (~50%/$100). Verified by independent evaluator Artificial Analysis. Emphasizes real-world SOTA (state-of-the-art) for agentic workflows.
-   - **URL**: https://pbs.twimg.com/media/G6J2_mcacAMtO5w.jpg
-
-3. **Image 3: Function Calling Benchmark** (Post ID: 1991284824594870293, ~8K views)
-   - **Description**: A line graph on "Berkeley Function Calling v4 Benchmark" showing overall accuracy (%) vs. total cost ($ up to $400). Grok 4.1 Fast Reasoning (orange line) reaches 72% accuracy at low cost, leading Claude Sonnet 4.5 (gray), GPT-5 (gray dot), Gemini 3 Pro (gray, estimated), and Grok 4 (gray). Dark theme with striped borders; notes pending official results for some models.
-   - **URL**: https://pbs.twimg.com/media/G6J23pzacAApgdm.jpg
-
-4. **Image 4: Agent Tools API Benchmarks** (Post ID: 1991284830420758687, ~8K views)
-   - **Description**: A table comparing Grok 4.1 Fast + Agent Tools API on research/agentic benchmarks (Research-Eval, FRAMES, X Browse*). Grok leads with scores like 63.9/87.6/56.3 at low costs ($0.046–$0.091 per query), vs. GPT-5 (45.5/86.0/24.2 at $0.107–$0.198), Claude Sonnet 4.5 (41.2/85.0/14.6), and Gemini 3 Pro (55.9/90.9/26.5). Focuses on web/X integration for autonomous tasks. *X Browse is an internal xAI benchmark for multi-hop search on X.
-   - **URL**: https://pbs.twimg.com/media/G6J26O_a8AAqhZJ.jpg
-
-#### Other Recent Media (November 17–19, 2025)
-- **Partnership Announcement Image (November 19, 2025)**: Post ID 1991224224313487696 (~115K views). A graphic showing xAI's partnership with Saudi Arabia's HUMAIN AI for deploying Grok nationwide and building GPU data centers. Features flags, AI icons, and text: "Grok goes Global with KSA." (URL: https://pbs.twimg.com/media/G6I_4O8acAAMIWh.jpg)
-- **Grok 4.1 Announcement Images (November 17, 2025)**: Thread (Post ID: 1990530499752980638, ~33M views total) with 5+ charts:
-  - Arena leaderboard (#1 at 1483 Elo).
-  - EQ-Bench (emotional intelligence at 1586).
-  - Creative Writing v3 (1722 Elo, +600 points).
-  - Hallucination reduction (3x less error-prone).
-  - User preference (65% over prior models).
-  These are similar benchmark visuals, emphasizing conversational AI improvements. Available at: https://x.ai/news/grok-4-1
-
-#### Notes on Older Media
-- The next videos are from October 2025, like demos of **Grok Imagine v0.9** (AI video generation with motion, singing, dancing, and audio sync—e.g., a dragon video or Ani character clips). These are product demos but not as recent.
-- xAI posts media sparingly; the November announcements dominate the latest activity. For real-time updates, check @xai directly. If you want details on specific older items or more views, let me know!",
-    "id": "text-msg_b7b464ea-cc85-d44a-0f2f-1f7320e703c3",
-    "type": "text-delta",
   },
   {
     "id": "id-20",

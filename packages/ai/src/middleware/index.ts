@@ -1,5 +1,6 @@
 export { defaultEmbeddingSettingsMiddleware } from './default-embedding-settings-middleware';
 export { defaultSettingsMiddleware } from './default-settings-middleware';
+export { extractJsonMiddleware } from './extract-json-middleware';
 export { extractReasoningMiddleware } from './extract-reasoning-middleware';
 export { simulateStreamingMiddleware } from './simulate-streaming-middleware';
 export { addToolInputExamplesMiddleware } from './add-tool-input-examples-middleware';

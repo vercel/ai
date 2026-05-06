@@ -10,6 +10,14 @@ The Gateway provider is available in the `@ai-sdk/gateway` module. You can insta
 npm i @ai-sdk/gateway
 ```
 
+## Skill for Coding Agents
+
+If you use coding agents such as Claude Code or Cursor, we highly recommend adding the AI SDK skill to your repository:
+
+```shell
+npx skills add vercel/ai
+```
+
 ## Provider Instance
 
 You can import the default provider instance `gateway` from `@ai-sdk/gateway`:

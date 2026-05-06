@@ -1,36 +1,38 @@
-import {
-  LanguageModelV3,
-  LanguageModelV3StreamResult,
-  LanguageModelV3Usage,
-  SharedV3Warning,
+import type {
+  LanguageModelV4,
+  LanguageModelV4StreamResult,
+  LanguageModelV4Usage,
+  SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
-  InferSchema,
-  ProviderOptions,
   safeParseJSON,
+  type InferSchema,
+  type ProviderOptions,
 } from '@ai-sdk/provider-utils';
 import {
-  CallSettings,
-  CallWarning,
-  FinishReason,
   InvalidToolInputError,
-  LanguageModelUsage,
   NoSuchToolError,
-  Prompt,
-  Schema,
-  ToolChoice,
+  type CallWarning,
+  type FinishReason,
+  type LanguageModelUsage,
+  type LanguageModelCallOptions,
+  type Prompt,
+  type RequestOptions,
+  type Schema,
+  type ToolChoice,
 } from 'ai';
 import {
   asLanguageModelUsage,
   convertToLanguageModelPrompt,
-  prepareCallSettings,
+  prepareLanguageModelCallOptions,
   prepareRetries,
-  prepareToolsAndToolChoice,
+  prepareToolChoice,
+  prepareTools,
   standardizePrompt,
 } from 'ai/internal';
-import { ReactNode } from 'react';
-import * as z3 from 'zod/v3';
-import * as z4 from 'zod/v4';
+import type { ReactNode } from 'react';
+import type * as z3 from 'zod/v3';
+import type * as z4 from 'zod/v4';
 import { createStreamableUI } from '../streamable-ui/create-streamable-ui';
 import { createResolvablePromise } from '../util/create-resolvable-promise';
 import { isAsyncGenerator } from '../util/is-async-generator';
@@ -85,7 +87,7 @@ type RenderText = Renderer<
 
 type RenderResult = {
   value: ReactNode;
-} & LanguageModelV3StreamResult;
+} & LanguageModelV4StreamResult;
 
 const defaultTextRenderer: RenderText = ({ content }: { content: string }) =>
   content;
@@ -102,6 +104,7 @@ export async function streamUI<
   system,
   prompt,
   messages,
+  allowSystemInMessages,
   maxRetries,
   abortSignal,
   headers,
@@ -110,12 +113,13 @@ export async function streamUI<
   providerOptions,
   onFinish,
   ...settings
-}: CallSettings &
+}: LanguageModelCallOptions &
+  Omit<RequestOptions, 'timeout'> &
   Prompt & {
     /**
      * The language model to use.
      */
-    model: LanguageModelV3;
+    model: LanguageModelV4;
 
     /**
      * The tools that the model can call. The model needs to support calling tools.
@@ -133,10 +137,10 @@ export async function streamUI<
     initial?: ReactNode;
 
     /**
-Additional provider-specific options. They are passed through
-to the provider from the AI SDK and enable provider-specific
-functionality that can be fully encapsulated in the provider.
- */
+     * Additional provider-specific options. They are passed through
+     * to the provider from the AI SDK and enable provider-specific
+     * functionality that can be fully encapsulated in the provider.
+     */
     providerOptions?: ProviderOptions;
 
     /**
@@ -206,7 +210,7 @@ functionality that can be fully encapsulated in the provider.
 
   let finishEvent: {
     finishReason: FinishReason;
-    usage: LanguageModelV3Usage;
+    usage: LanguageModelV4Usage;
     warnings?: CallWarning[];
     response?: {
       headers?: Record<string, string>;
@@ -269,19 +273,25 @@ functionality that can be fully encapsulated in the provider.
     system,
     prompt,
     messages,
+    allowSystemInMessages,
   } as Prompt);
+  const languageModelTools = await prepareTools({
+    tools: tools,
+  });
+  const languageModelToolChoice = prepareToolChoice({
+    toolChoice,
+  });
+
   const result = await retry(async () =>
     model.doStream({
-      ...prepareCallSettings(settings),
-      ...prepareToolsAndToolChoice({
-        tools: tools as any,
-        toolChoice,
-        activeTools: undefined,
-      }),
+      ...prepareLanguageModelCallOptions(settings),
+      tools: languageModelTools,
+      toolChoice: languageModelToolChoice,
       prompt: await convertToLanguageModelPrompt({
         prompt: validatedPrompt,
         supportedUrls: await model.supportedUrls,
         download: undefined,
+        provider: model.provider.split('.')[0],
       }),
       providerOptions,
       abortSignal,
@@ -296,7 +306,7 @@ functionality that can be fully encapsulated in the provider.
     try {
       let content = '';
       let hasToolCall = false;
-      let warnings: SharedV3Warning[] | undefined;
+      let warnings: SharedV4Warning[] | undefined;
 
       const reader = forkedStream.getReader();
       while (true) {

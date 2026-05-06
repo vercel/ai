@@ -1,11 +1,22 @@
-import { ServerResponse } from 'node:http';
+import type { ServerResponse } from 'node:http';
 import { prepareHeaders } from '../util/prepare-headers';
 import { writeToServerResponse } from '../util/write-to-server-response';
 import { JsonToSseTransformStream } from './json-to-sse-transform-stream';
 import { UI_MESSAGE_STREAM_HEADERS } from './ui-message-stream-headers';
-import { UIMessageChunk } from './ui-message-chunks';
-import { UIMessageStreamResponseInit } from './ui-message-stream-response-init';
+import type { UIMessageChunk } from './ui-message-chunks';
+import type { UIMessageStreamResponseInit } from './ui-message-stream-response-init';
 
+/**
+ * Pipes a UI message stream to a Node.js ServerResponse object.
+ * The stream is transformed to Server-Sent Events (SSE) format.
+ *
+ * @param options.response - The Node.js ServerResponse object to write to.
+ * @param options.status - The HTTP status code for the response.
+ * @param options.statusText - The HTTP status text for the response.
+ * @param options.headers - Additional HTTP headers to include in the response.
+ * @param options.stream - The UI message chunk stream to send.
+ * @param options.consumeSseStream - Optional callback to consume a copy of the SSE stream independently.
+ */
 export function pipeUIMessageStreamToResponse({
   response,
   status,

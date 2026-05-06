@@ -1,43 +1,25 @@
+import { filterNullable } from '@ai-sdk/provider-utils';
+
 /**
- * Merges multiple AbortSignals into a single AbortSignal.
- * The returned signal will abort when any of the input signals abort,
- * with the same reason as the first signal to abort.
+ * Merges multiple abort sources into a single `AbortSignal`.
+ * The returned signal will abort when any input signal aborts or when any
+ * numeric timeout elapses, using the reason from the first source to abort.
  *
- * @param signals - The AbortSignals to merge. Null and undefined values are filtered out.
- * @returns An AbortSignal that aborts when any of the input signals abort,
- *          or undefined if no valid signals are provided.
+ * @param signals - Abort signals or timeout durations in milliseconds.
+ * `null` and `undefined` values are ignored.
+ * @returns An `AbortSignal` that aborts when any valid source aborts,
+ * or `undefined` if no valid sources are provided.
  */
 export function mergeAbortSignals(
-  ...signals: (AbortSignal | null | undefined)[]
+  ...signals: (AbortSignal | null | undefined | number)[]
 ): AbortSignal | undefined {
-  const validSignals = signals.filter(
-    (signal): signal is AbortSignal => signal != null,
+  const validSignals = filterNullable(...signals).map(signal =>
+    signal instanceof AbortSignal ? signal : AbortSignal.timeout(signal),
   );
 
-  if (validSignals.length === 0) {
-    return undefined;
-  }
-
-  if (validSignals.length === 1) {
-    return validSignals[0];
-  }
-
-  const controller = new AbortController();
-
-  for (const signal of validSignals) {
-    if (signal.aborted) {
-      controller.abort(signal.reason);
-      return controller.signal;
-    }
-
-    signal.addEventListener(
-      'abort',
-      () => {
-        controller.abort(signal.reason);
-      },
-      { once: true },
-    );
-  }
-
-  return controller.signal;
+  return validSignals.length === 0
+    ? undefined
+    : validSignals.length === 1
+      ? validSignals[0]
+      : AbortSignal.any(validSignals);
 }

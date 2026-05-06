@@ -24,7 +24,7 @@ and [`streamText`](/docs/reference/ai-sdk-core/stream-text) by passing one or mo
 A tool consists of three properties:
 
 - **`description`**: An optional description of the tool that can influence when the tool is picked.
-- **`inputSchema`**: A [Zod schema](/docs/foundations/tools#schema-specification-and-validation-with-zod) or a [JSON schema](/docs/reference/ai-sdk-core/json-schema) that defines the input required for the tool to run. The schema is consumed by the LLM, and also used to validate the LLM tool calls.
+- **`inputSchema`**: A [Zod schema](/docs/reference/ai-sdk-core/zod-schema) or a [JSON schema](/docs/reference/ai-sdk-core/json-schema) that defines the input required for the tool to run. The schema is consumed by the LLM, and also used to validate the LLM tool calls.
 - **`execute`**: An optional async function that is called with the arguments from the tool call.
 
 <Note>
@@ -38,6 +38,115 @@ The output of the tool calls are returned using tool result objects.
 
 You can automatically pass tool results back to the LLM
 using [multi-step calls](/docs/ai-sdk-core/tools-and-tool-calling#multi-step-calls) with `streamText` and `generateText`.
+
+## Types of Tools
+
+The AI SDK supports four types of tools, each with different trade-offs:
+
+### Function Tools
+
+Function tools are tools you define entirely yourself, including the description, input schema, and optional execute function. They are provider-agnostic and give you full control.
+
+```ts
+import { tool } from 'ai';
+import { z } from 'zod';
+
+const weatherTool = tool({
+  description: 'Get the weather in a location',
+  inputSchema: z.object({
+    location: z.string().describe('The location to get the weather for'),
+  }),
+  execute: async ({ location }) => {
+    // Your implementation
+    return { temperature: 72, conditions: 'sunny' };
+  },
+});
+```
+
+**When to use**: When you need full control, want provider portability, or are implementing application-specific functionality.
+
+### Dynamic Tools
+
+Dynamic tools are function-style tools where the input and output types are not known at development time. They are useful for tools loaded from external sources, such as MCP servers, user-defined functions, or databases.
+
+```ts
+import { dynamicTool } from 'ai';
+import { z } from 'zod';
+
+const runtimeTool = dynamicTool({
+  description: 'Execute a tool loaded at runtime',
+  inputSchema: z.object({}),
+  execute: async input => {
+    // input is typed as unknown
+    return runRuntimeTool(input);
+  },
+});
+```
+
+**When to use**: When tools are discovered or generated at runtime and their exact TypeScript input/output types are not known when you write the code.
+
+### Provider-Defined Tools
+
+Provider-defined tools are tools where the provider specifies the tool's `inputSchema` and `description`, but you provide the `execute` function. These are sometimes called "client tools" because execution happens on your side.
+
+Examples include Anthropic's `bash` and `text_editor` tools. The model has been specifically trained to use these tools effectively, which can result in better performance for supported tasks.
+
+```ts
+import { anthropic } from '@ai-sdk/anthropic';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: anthropic('claude-opus-4-5'),
+  tools: {
+    bash: anthropic.tools.bash_20250124({
+      execute: async ({ command }) => {
+        // Your implementation to run the command
+        return runCommand(command);
+      },
+    }),
+  },
+  prompt: 'List files in the current directory',
+});
+```
+
+**When to use**: When the provider offers a tool the model is trained to use well, and you want better performance for that specific task.
+
+### Provider-Executed Tools
+
+Provider-executed tools are tools that run entirely on the provider's servers. You configure them, but the provider handles execution. These are sometimes called "server-side tools".
+
+Examples include OpenAI's web search and Anthropic's code execution. These provide out-of-the-box functionality without requiring you to set up infrastructure.
+
+```ts
+import { openai } from '@ai-sdk/openai';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: openai('gpt-5.2'),
+  tools: {
+    web_search: openai.tools.webSearch(),
+  },
+  prompt: 'What happened in the news today?',
+});
+```
+
+**When to use**: When you want powerful functionality (like web search or sandboxed code execution) without managing the infrastructure yourself.
+
+### Comparison
+
+| Aspect             | Function Tools           | Dynamic Tools          | Provider-Defined Tools | Provider-Executed Tools |
+| ------------------ | ------------------------ | ---------------------- | ---------------------- | ----------------------- |
+| **Execution**      | Your code                | Your code              | Your code              | Provider's servers      |
+| **Schema**         | You define               | Runtime-defined        | Provider defines       | Provider defines        |
+| **Portability**    | Works with any provider  | Works with any provider | Provider-specific      | Provider-specific       |
+| **Model Training** | General tool use         | General tool use       | Optimized for the tool | Optimized for the tool  |
+| **Setup**          | You implement everything | You load or generate the tool | You implement execute  | Configuration only      |
+
+<Note>
+  Provider-defined and provider-executed tools are documented in each provider's
+  page. See [Anthropic Provider](/providers/ai-sdk-providers/anthropic) and
+  [OpenAI Provider](/providers/ai-sdk-providers/openai) for examples.
+</Note>
 
 ## Schemas
 
@@ -57,6 +166,48 @@ The AI SDK supports the following schemas:
   setting.
 </Note>
 
+## Refining Tool Inputs
+
+Different LLM providers can generate slightly different tool inputs for the same
+tool input type. For example, one provider might produce `null` for an optional
+field while another produces an empty string.
+
+When you do not own the tool, such as with tools from a third-party package, you
+may not be able to change the tool's `inputSchema` to accept both shapes. In
+these cases, you can use the experimental `experimental_refineToolInput` option
+to normalize a parsed tool input before it is executed and before it appears in
+outputs, lifecycle callbacks, and telemetry.
+
+```ts
+import { generateText, tool } from 'ai';
+import { z } from 'zod';
+
+const result = await generateText({
+  model: 'openai/gpt-5-mini',
+  tools: {
+    search: tool({
+      inputSchema: z.object({
+        query: z.string(),
+        category: z.string().nullable(),
+      }),
+      execute: async ({ query, category }) => {
+        return search({ query, category });
+      },
+    }),
+  },
+  experimental_refineToolInput: {
+    search: input => ({
+      ...input,
+      category: input.category === '' ? null : input.category,
+    }),
+  },
+  prompt: 'Search for ski jackets with no category.',
+});
+```
+
+Refinement functions are typed per tool. Each function receives the typed input
+for its tool and must return an input with the same type shape.
+
 ## Tool Packages
 
 Given tools are JavaScript objects, they can be packaged and distributed through npm like any other library. This makes it easy to share reusable tools across projects and with the community.
@@ -72,7 +223,7 @@ pnpm add some-tool-package
 Then pass them directly to `generateText`, `streamText`, or your agent definition:
 
 ```ts highlight="2, 8"
-import { generateText, stepCountIs } from 'ai';
+import { generateText, isStepCount } from 'ai';
 import { searchTool } from 'some-tool-package';
 
 const { text } = await generateText({
@@ -81,7 +232,7 @@ const { text } = await generateText({
   tools: {
     webSearch: searchTool,
   },
-  stopWhen: stepCountIs(10),
+  stopWhen: isStepCount(10),
 });
 ```
 
@@ -89,9 +240,11 @@ const { text } = await generateText({
 
 You can publish your own tool packages to npm for others to use. Simply export your tool objects from your package:
 
-```ts
-// my-tools/index.ts
-export const myTool = {
+```ts filename="my-tools/index.ts"
+import { tool } from 'ai';
+import { z } from 'zod';
+
+export const myTool = tool({
   description: 'A helpful tool',
   inputSchema: z.object({
     query: z.string(),
@@ -100,7 +253,7 @@ export const myTool = {
     // your tool logic
     return result;
   },
-};
+});
 ```
 
 Anyone can then install and use your tools by importing them.
@@ -128,6 +281,7 @@ These packages provide pre-built tools you can install and use immediately:
 - **[JigsawStack](http://www.jigsawstack.com/docs/integration/vercel)** - Over 30+ small custom fine-tuned models available for specific uses.
 - **[AI Tools Registry](https://ai-tools-registry.vercel.app)** - A Shadcn-compatible tool definitions and components registry for the AI SDK.
 - **[Toolhouse](https://docs.toolhouse.ai/toolhouse/toolhouse-sdk/using-vercel-ai)** - AI function-calling in 3 lines of code for over 25 different actions.
+- **[bash-tool](https://www.npmjs.com/package/bash-tool)** - Provides `bash`, `readFile`, and `writeFile` tools for AI agents. Supports [@vercel/sandbox](https://vercel.com/docs/vercel-sandbox) for full VM isolation.
 
 ### MCP Tools
 
@@ -156,4 +310,4 @@ These tutorials and guides help you build your own tools that integrate with spe
 ## Learn more
 
 The AI SDK Core [Tool Calling](/docs/ai-sdk-core/tools-and-tool-calling)
-and [Agents](/docs/foundations/agents) documentation has more information about tools and tool calling.
+and [Agents](/docs/agents) documentation has more information about tools and tool calling.

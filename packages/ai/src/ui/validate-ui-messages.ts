@@ -1,16 +1,15 @@
 import { TypeValidationError } from '@ai-sdk/provider';
 import {
-  FlexibleSchema,
   lazySchema,
-  StandardSchemaV1,
-  Tool,
   validateTypes,
   zodSchema,
+  type FlexibleSchema,
+  type Tool,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { InvalidArgumentError } from '../error';
 import { providerMetadataSchema } from '../types/provider-metadata';
-import {
+import type {
   DataUIPart,
   InferUIMessageData,
   InferUIMessageTools,
@@ -42,6 +41,11 @@ const uiMessagesSchema = lazySchema(() =>
                   providerMetadata: providerMetadataSchema.optional(),
                 }),
                 z.object({
+                  type: z.literal('custom'),
+                  kind: z.string(),
+                  providerMetadata: providerMetadataSchema.optional(),
+                }),
+                z.object({
                   type: z.literal('source-url'),
                   sourceId: z.string(),
                   url: z.string(),
@@ -64,6 +68,12 @@ const uiMessagesSchema = lazySchema(() =>
                   providerMetadata: providerMetadataSchema.optional(),
                 }),
                 z.object({
+                  type: z.literal('reasoning-file'),
+                  mediaType: z.string(),
+                  url: z.string(),
+                  providerMetadata: providerMetadataSchema.optional(),
+                }),
+                z.object({
                   type: z.literal('step-start'),
                 }),
                 z.object({
@@ -78,6 +88,7 @@ const uiMessagesSchema = lazySchema(() =>
                   state: z.literal('input-streaming'),
                   input: z.unknown().optional(),
                   providerExecuted: z.boolean().optional(),
+                  callProviderMetadata: providerMetadataSchema.optional(),
                   output: z.never().optional(),
                   errorText: z.never().optional(),
                   approval: z.never().optional(),
@@ -108,6 +119,7 @@ const uiMessagesSchema = lazySchema(() =>
                     id: z.string(),
                     approved: z.never().optional(),
                     reason: z.never().optional(),
+                    isAutomatic: z.boolean().optional(),
                   }),
                 }),
                 z.object({
@@ -124,6 +136,7 @@ const uiMessagesSchema = lazySchema(() =>
                     id: z.string(),
                     approved: z.boolean(),
                     reason: z.string().optional(),
+                    isAutomatic: z.boolean().optional(),
                   }),
                 }),
                 z.object({
@@ -136,12 +149,14 @@ const uiMessagesSchema = lazySchema(() =>
                   output: z.unknown(),
                   errorText: z.never().optional(),
                   callProviderMetadata: providerMetadataSchema.optional(),
+                  resultProviderMetadata: providerMetadataSchema.optional(),
                   preliminary: z.boolean().optional(),
                   approval: z
                     .object({
                       id: z.string(),
                       approved: z.literal(true),
                       reason: z.string().optional(),
+                      isAutomatic: z.boolean().optional(),
                     })
                     .optional(),
                 }),
@@ -151,15 +166,18 @@ const uiMessagesSchema = lazySchema(() =>
                   toolCallId: z.string(),
                   state: z.literal('output-error'),
                   input: z.unknown(),
+                  rawInput: z.unknown().optional(),
                   providerExecuted: z.boolean().optional(),
                   output: z.never().optional(),
                   errorText: z.string(),
                   callProviderMetadata: providerMetadataSchema.optional(),
+                  resultProviderMetadata: providerMetadataSchema.optional(),
                   approval: z
                     .object({
                       id: z.string(),
                       approved: z.literal(true),
                       reason: z.string().optional(),
+                      isAutomatic: z.boolean().optional(),
                     })
                     .optional(),
                 }),
@@ -177,6 +195,7 @@ const uiMessagesSchema = lazySchema(() =>
                     id: z.string(),
                     approved: z.literal(false),
                     reason: z.string().optional(),
+                    isAutomatic: z.boolean().optional(),
                   }),
                 }),
                 z.object({
@@ -184,6 +203,7 @@ const uiMessagesSchema = lazySchema(() =>
                   toolCallId: z.string(),
                   state: z.literal('input-streaming'),
                   providerExecuted: z.boolean().optional(),
+                  callProviderMetadata: providerMetadataSchema.optional(),
                   input: z.unknown().optional(),
                   output: z.never().optional(),
                   errorText: z.never().optional(),
@@ -213,6 +233,7 @@ const uiMessagesSchema = lazySchema(() =>
                     id: z.string(),
                     approved: z.never().optional(),
                     reason: z.never().optional(),
+                    isAutomatic: z.boolean().optional(),
                   }),
                 }),
                 z.object({
@@ -228,6 +249,7 @@ const uiMessagesSchema = lazySchema(() =>
                     id: z.string(),
                     approved: z.boolean(),
                     reason: z.string().optional(),
+                    isAutomatic: z.boolean().optional(),
                   }),
                 }),
                 z.object({
@@ -239,12 +261,14 @@ const uiMessagesSchema = lazySchema(() =>
                   output: z.unknown(),
                   errorText: z.never().optional(),
                   callProviderMetadata: providerMetadataSchema.optional(),
+                  resultProviderMetadata: providerMetadataSchema.optional(),
                   preliminary: z.boolean().optional(),
                   approval: z
                     .object({
                       id: z.string(),
                       approved: z.literal(true),
                       reason: z.string().optional(),
+                      isAutomatic: z.boolean().optional(),
                     })
                     .optional(),
                 }),
@@ -254,14 +278,17 @@ const uiMessagesSchema = lazySchema(() =>
                   state: z.literal('output-error'),
                   providerExecuted: z.boolean().optional(),
                   input: z.unknown(),
+                  rawInput: z.unknown().optional(),
                   output: z.never().optional(),
                   errorText: z.string(),
                   callProviderMetadata: providerMetadataSchema.optional(),
+                  resultProviderMetadata: providerMetadataSchema.optional(),
                   approval: z
                     .object({
                       id: z.string(),
                       approved: z.literal(true),
                       reason: z.string().optional(),
+                      isAutomatic: z.boolean().optional(),
                     })
                     .optional(),
                 }),
@@ -278,6 +305,7 @@ const uiMessagesSchema = lazySchema(() =>
                     id: z.string(),
                     approved: z.literal(false),
                     reason: z.string().optional(),
+                    isAutomatic: z.boolean().optional(),
                   }),
                 }),
               ]),
@@ -342,79 +370,116 @@ export async function safeValidateUIMessages<UI_MESSAGE extends UIMessage>({
     });
 
     if (metadataSchema) {
-      for (const message of validatedMessages) {
+      for (const [msgIdx, message] of validatedMessages.entries()) {
         await validateTypes({
           value: message.metadata,
           schema: metadataSchema,
+          context: {
+            field: `messages[${msgIdx}].metadata`,
+            entityId: message.id,
+          },
         });
       }
     }
 
-    if (dataSchemas) {
-      for (const message of validatedMessages) {
-        const dataParts = message.parts.filter(part =>
-          part.type.startsWith('data-'),
-        ) as DataUIPart<InferUIMessageData<UI_MESSAGE>>[];
+    if (dataSchemas || tools) {
+      for (const [msgIdx, message] of validatedMessages.entries()) {
+        for (const [partIdx, part] of message.parts.entries()) {
+          // Data part validation
+          if (dataSchemas && part.type.startsWith('data-')) {
+            const dataPart = part as DataUIPart<InferUIMessageData<UI_MESSAGE>>;
+            const dataName = dataPart.type.slice(5);
+            const dataSchema = dataSchemas[dataName];
 
-        for (const dataPart of dataParts) {
-          const dataName = dataPart.type.slice(5);
-          const dataSchema = dataSchemas[dataName];
+            if (!dataSchema) {
+              return {
+                success: false,
+                error: new TypeValidationError({
+                  value: dataPart.data,
+                  cause: `No data schema found for data part ${dataName}`,
+                  context: {
+                    field: `messages[${msgIdx}].parts[${partIdx}].data`,
+                    entityName: dataName,
+                    entityId: dataPart.id,
+                  },
+                }),
+              };
+            }
 
-          if (!dataSchema) {
-            return {
-              success: false,
-              error: new TypeValidationError({
-                value: dataPart.data,
-                cause: `No data schema found for data part ${dataName}`,
-              }),
-            };
+            await validateTypes({
+              value: dataPart.data,
+              schema: dataSchema,
+              context: {
+                field: `messages[${msgIdx}].parts[${partIdx}].data`,
+                entityName: dataName,
+                entityId: dataPart.id,
+              },
+            });
           }
 
-          await validateTypes({
-            value: dataPart.data,
-            schema: dataSchema,
-          });
-        }
-      }
-    }
+          // Tool part validation
+          if (tools && part.type.startsWith('tool-')) {
+            const toolPart = part as ToolUIPart<
+              InferUIMessageTools<UI_MESSAGE>
+            >;
+            const toolName = toolPart.type.slice(5);
+            const tool = tools[toolName];
 
-    if (tools) {
-      for (const message of validatedMessages) {
-        const toolParts = message.parts.filter(part =>
-          part.type.startsWith('tool-'),
-        ) as ToolUIPart<InferUIMessageTools<UI_MESSAGE>>[];
+            if (
+              !tool &&
+              (toolPart.state === 'output-available' ||
+                toolPart.state === 'output-error' ||
+                toolPart.state === 'output-denied')
+            ) {
+              continue;
+            }
 
-        for (const toolPart of toolParts) {
-          const toolName = toolPart.type.slice(5);
-          const tool = tools[toolName];
+            // TODO support dynamic tools
+            if (!tool) {
+              return {
+                success: false,
+                error: new TypeValidationError({
+                  value: toolPart.input,
+                  cause: `No tool schema found for tool part ${toolName}`,
+                  context: {
+                    field: `messages[${msgIdx}].parts[${partIdx}].input`,
+                    entityName: toolName,
+                    entityId: toolPart.toolCallId,
+                  },
+                }),
+              };
+            }
 
-          // TODO support dynamic tools
-          if (!tool) {
-            return {
-              success: false,
-              error: new TypeValidationError({
+            // Tool input validation
+            if (
+              toolPart.state === 'input-available' ||
+              toolPart.state === 'output-available' ||
+              (toolPart.state === 'output-error' &&
+                toolPart.input !== undefined)
+            ) {
+              await validateTypes({
                 value: toolPart.input,
-                cause: `No tool schema found for tool part ${toolName}`,
-              }),
-            };
-          }
+                schema: tool.inputSchema,
+                context: {
+                  field: `messages[${msgIdx}].parts[${partIdx}].input`,
+                  entityName: toolName,
+                  entityId: toolPart.toolCallId,
+                },
+              });
+            }
 
-          if (
-            toolPart.state === 'input-available' ||
-            toolPart.state === 'output-available' ||
-            (toolPart.state === 'output-error' && toolPart.input !== undefined)
-          ) {
-            await validateTypes({
-              value: toolPart.input,
-              schema: tool.inputSchema,
-            });
-          }
-
-          if (toolPart.state === 'output-available' && tool.outputSchema) {
-            await validateTypes({
-              value: toolPart.output,
-              schema: tool.outputSchema,
-            });
+            // Tool output validation
+            if (toolPart.state === 'output-available' && tool.outputSchema) {
+              await validateTypes({
+                value: toolPart.output,
+                schema: tool.outputSchema,
+                context: {
+                  field: `messages[${msgIdx}].parts[${partIdx}].output`,
+                  entityName: toolName,
+                  entityId: toolPart.toolCallId,
+                },
+              });
+            }
           }
         }
       }

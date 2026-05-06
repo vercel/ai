@@ -14,9 +14,7 @@
     "outDir": "./build",
     "composite": true
   },
-  "include": [
-    "src/**/*.ts"
-  ],
+  "include": ["src/**/*.ts"],
   "references": [
     {
       "path": "../../packages/ai"

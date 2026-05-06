@@ -38,7 +38,7 @@ The release of AI SDK 3.1 introduces several new features that improve the way y
 
 Prior to AI SDK Core, you had to use a model provider's SDK to query their models.
 
-In the following Route Handler, you use the OpenAI SDK to query their model. You then pipe that response into the [`OpenAIStream`](/docs/reference/stream-helpers/openai-stream) function which returns a [`ReadableStream`](https://developer.mozilla.org/en-US/docs/Web/API/ReadableStream) that you can pass to the client using a new [`StreamingTextResponse`](/docs/reference/stream-helpers/streaming-text-response).
+In the following Route Handler, you use the OpenAI SDK to query their model. You then pipe that response into the `OpenAIStream` function which returns a [`ReadableStream`](https://developer.mozilla.org/en-US/docs/Web/API/ReadableStream) that you can pass to the client using a new `StreamingTextResponse`.
 
 ```tsx
 import OpenAI from 'openai';

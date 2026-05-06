@@ -37,7 +37,7 @@ It currently does not support accepting notifications from an MCP server, and cu
           parameters: [
             {
               name: 'transport',
-              type: 'TransportConfig = MCPTransport | McpSSEServerConfig',
+              type: 'MCPTransportConfig | MCPTransport',
               description: 'Configuration for the message transport layer.',
               properties: [
                 {
@@ -108,15 +108,36 @@ It currently does not support accepting notifications from an MCP server, and cu
                       description:
                         'Optional OAuth provider for authorization to access protected remote MCP servers.',
                     },
+                    {
+                      name: 'redirect',
+                      type: "'follow' | 'error'",
+                      isOptional: true,
+                      description:
+                        "Controls how HTTP redirects are handled for transport requests. Set to 'follow' to allow redirect responses. Defaults to 'error' to reject any redirect response, preventing servers from redirecting requests to unintended hosts.",
+                    },
                   ],
                 },
               ],
             },
             {
+              name: 'clientName',
+              type: 'string',
+              isOptional: true,
+              description:
+                'Client name. Defaults to "ai-sdk-mcp-client".',
+            },
+            {
               name: 'name',
               type: 'string',
               isOptional: true,
-              description: 'Client name. Defaults to "ai-sdk-mcp-client"',
+              description:
+                'Deprecated. Use `clientName` instead. Defaults to "ai-sdk-mcp-client".',
+            },
+            {
+              name: 'version',
+              type: 'string',
+              isOptional: true,
+              description: 'Client version. Defaults to "1.0.0"',
             },
             {
               name: 'onUncaughtError',
@@ -140,10 +161,23 @@ It currently does not support accepting notifications from an MCP server, and cu
 
 ### Returns
 
-Returns a Promise that resolves to an `MCPClient` with the following methods:
+Returns a Promise that resolves to an `MCPClient` with the following properties and methods:
 
 <PropertiesTable
   content={[
+    {
+      name: 'serverInfo',
+      type: 'Configuration',
+      description:
+        'Information about the connected MCP server (name, version, optional title), as reported during the initialize handshake.',
+    },
+    {
+      name: 'instructions',
+      type: 'string',
+      isOptional: true,
+      description:
+        'Optional instructions provided by the server during the initialize handshake. Describes how to use the server and its features. Useful for inclusion in the LLM system prompt.',
+    },
     {
       name: 'tools',
       type: `async (options?: {
@@ -354,7 +388,7 @@ Returns a Promise that resolves to an `MCPClient` with the following methods:
     },
     {
       name: 'close',
-      type: 'async () => void',
+      type: '() => Promise<void>',
       description:
         'Closes the connection to the MCP server and cleans up resources.',
     },

@@ -1,5 +1,467 @@
 # @ai-sdk/cohere
 
+## 4.0.0-canary.36
+
+### Patch Changes
+
+- Updated dependencies [2427d88]
+  - @ai-sdk/provider-utils@5.0.0-canary.33
+
+## 4.0.0-canary.35
+
+### Patch Changes
+
+- Updated dependencies [5463d0d]
+  - @ai-sdk/provider-utils@5.0.0-canary.32
+  - @ai-sdk/provider@4.0.0-canary.16
+
+## 4.0.0-canary.34
+
+### Patch Changes
+
+- f2919d5: feat(provider/cohere): add support for passing images to Cohere models
+
+## 4.0.0-canary.33
+
+### Patch Changes
+
+- 0c4c275: trigger initial canary release
+- Updated dependencies [0c4c275]
+  - @ai-sdk/provider-utils@5.0.0-canary.31
+  - @ai-sdk/provider@4.0.0-canary.15
+
+## 4.0.0-beta.32
+
+### Major Changes
+
+- 04e9009: chore: make provider implementations code patterns more consistent, including renaming certain exported symbols
+
+  For all externally exported symbols that were renamed, the old names continue to work via deprecated aliases.
+
+### Patch Changes
+
+- Updated dependencies [08d2129]
+  - @ai-sdk/provider-utils@5.0.0-beta.30
+
+## 4.0.0-beta.31
+
+### Patch Changes
+
+- 9bd6512: feat(provider): change file part data property to be tagged with a type and remove the image part type
+- 258c093: chore: ensure consistent import handling and avoid import duplicates or cycles
+- Updated dependencies [9bd6512]
+- Updated dependencies [258c093]
+- Updated dependencies [b6783da]
+  - @ai-sdk/provider-utils@5.0.0-beta.29
+  - @ai-sdk/provider@4.0.0-beta.14
+
+## 4.0.0-beta.30
+
+### Patch Changes
+
+- 9f0e36c: trigger release for all packages after provenance setup
+- Updated dependencies [9f0e36c]
+  - @ai-sdk/provider@4.0.0-beta.13
+  - @ai-sdk/provider-utils@5.0.0-beta.28
+
+## 4.0.0-beta.29
+
+### Patch Changes
+
+- 58a2ad7: fix: more precise default message for tool execution denial
+- Updated dependencies [785fe16]
+- Updated dependencies [67df0a0]
+- Updated dependencies [befb78c]
+- Updated dependencies [0458559]
+- Updated dependencies [5852c0a]
+- Updated dependencies [fc92055]
+  - @ai-sdk/provider-utils@5.0.0-beta.27
+
+## 4.0.0-beta.28
+
+### Patch Changes
+
+- Updated dependencies [2e98477]
+  - @ai-sdk/provider-utils@5.0.0-beta.26
+
+## 4.0.0-beta.27
+
+### Patch Changes
+
+- Updated dependencies [eea8d98]
+  - @ai-sdk/provider-utils@5.0.0-beta.25
+
+## 4.0.0-beta.26
+
+### Patch Changes
+
+- Updated dependencies [f807e45]
+  - @ai-sdk/provider-utils@5.0.0-beta.24
+
+## 4.0.0-beta.25
+
+### Patch Changes
+
+- Updated dependencies [350ea38]
+  - @ai-sdk/provider-utils@5.0.0-beta.23
+
+## 4.0.0-beta.24
+
+### Patch Changes
+
+- Updated dependencies [083947b]
+  - @ai-sdk/provider-utils@5.0.0-beta.22
+
+## 4.0.0-beta.23
+
+### Patch Changes
+
+- Updated dependencies [add1126]
+  - @ai-sdk/provider-utils@5.0.0-beta.21
+
+## 4.0.0-beta.22
+
+### Patch Changes
+
+- b3976a2: Add workflow serialization support to all provider models.
+
+  **`@ai-sdk/provider-utils`:** New `serializeModel()` helper that extracts only serializable properties from a model instance, filtering out functions and objects containing functions. Third-party provider authors can use this to add workflow support to their own models.
+
+  **All providers:** `headers` is now optional in provider config types. This is non-breaking — existing code that passes `headers` continues to work. Custom provider implementations that construct model configs manually can now omit `headers`, which is useful when models are deserialized from a workflow step boundary where auth is provided separately.
+
+  All provider model classes now include `WORKFLOW_SERIALIZE` and `WORKFLOW_DESERIALIZE` static methods, enabling them to cross workflow step boundaries without serialization errors.
+
+- Updated dependencies [b3976a2]
+- Updated dependencies [ff5eba1]
+  - @ai-sdk/provider-utils@5.0.0-beta.20
+  - @ai-sdk/provider@4.0.0-beta.12
+
+## 4.0.0-beta.21
+
+### Major Changes
+
+- ef992f8: Remove CommonJS exports from all packages. All packages are now ESM-only (`"type": "module"`). Consumers using `require()` must switch to ESM `import` syntax.
+
+### Patch Changes
+
+- Updated dependencies [ef992f8]
+  - @ai-sdk/provider@4.0.0-beta.11
+  - @ai-sdk/provider-utils@5.0.0-beta.19
+
+## 4.0.0-beta.20
+
+### Patch Changes
+
+- 90e2d8a: chore: fix unused vars not being flagged by our lint tooling
+- Updated dependencies [90e2d8a]
+  - @ai-sdk/provider-utils@5.0.0-beta.18
+
+## 4.0.0-beta.19
+
+### Patch Changes
+
+- Updated dependencies [3ae1786]
+  - @ai-sdk/provider-utils@5.0.0-beta.17
+
+## 4.0.0-beta.18
+
+### Patch Changes
+
+- Updated dependencies [176466a]
+  - @ai-sdk/provider@4.0.0-beta.10
+  - @ai-sdk/provider-utils@5.0.0-beta.16
+
+## 4.0.0-beta.17
+
+### Patch Changes
+
+- Updated dependencies [e311194]
+  - @ai-sdk/provider@4.0.0-beta.9
+  - @ai-sdk/provider-utils@5.0.0-beta.15
+
+## 4.0.0-beta.16
+
+### Patch Changes
+
+- Updated dependencies [34bd95d]
+- Updated dependencies [008271d]
+  - @ai-sdk/provider@4.0.0-beta.8
+  - @ai-sdk/provider-utils@5.0.0-beta.14
+
+## 4.0.0-beta.15
+
+### Patch Changes
+
+- Updated dependencies [b0c2869]
+- Updated dependencies [7e26e81]
+  - @ai-sdk/provider-utils@5.0.0-beta.13
+
+## 4.0.0-beta.14
+
+### Patch Changes
+
+- Updated dependencies [46d1149]
+  - @ai-sdk/provider-utils@5.0.0-beta.12
+
+## 4.0.0-beta.13
+
+### Patch Changes
+
+- 6fd51c0: fix(provider): preserve error type prefix in getErrorMessage
+- Updated dependencies [6fd51c0]
+  - @ai-sdk/provider-utils@5.0.0-beta.11
+  - @ai-sdk/provider@4.0.0-beta.7
+
+## 4.0.0-beta.12
+
+### Patch Changes
+
+- c29a26f: feat(provider): add support for provider references and uploading files as supported per provider
+- Updated dependencies [c29a26f]
+  - @ai-sdk/provider-utils@5.0.0-beta.10
+  - @ai-sdk/provider@4.0.0-beta.6
+
+## 4.0.0-beta.11
+
+### Patch Changes
+
+- 38fc777: Add AI Gateway hint to provider READMEs
+
+## 4.0.0-beta.10
+
+### Patch Changes
+
+- Updated dependencies [2e17091]
+  - @ai-sdk/provider-utils@5.0.0-beta.9
+
+## 4.0.0-beta.9
+
+### Patch Changes
+
+- Updated dependencies [986c6fd]
+- Updated dependencies [493295c]
+  - @ai-sdk/provider-utils@5.0.0-beta.8
+
+## 4.0.0-beta.8
+
+### Patch Changes
+
+- Updated dependencies [1f509d4]
+  - @ai-sdk/provider-utils@5.0.0-beta.7
+  - @ai-sdk/provider@4.0.0-beta.5
+
+## 4.0.0-beta.7
+
+### Patch Changes
+
+- 74d520f: feat: migrate providers to support new top-level `reasoning` parameter
+
+## 4.0.0-beta.6
+
+### Patch Changes
+
+- Updated dependencies [3887c70]
+  - @ai-sdk/provider-utils@5.0.0-beta.6
+  - @ai-sdk/provider@4.0.0-beta.4
+
+## 4.0.0-beta.5
+
+### Patch Changes
+
+- Updated dependencies [776b617]
+  - @ai-sdk/provider-utils@5.0.0-beta.5
+  - @ai-sdk/provider@4.0.0-beta.3
+
+## 4.0.0-beta.4
+
+### Patch Changes
+
+- Updated dependencies [61753c3]
+  - @ai-sdk/provider-utils@5.0.0-beta.4
+
+## 4.0.0-beta.3
+
+### Patch Changes
+
+- Updated dependencies [f7d4f01]
+  - @ai-sdk/provider-utils@5.0.0-beta.3
+  - @ai-sdk/provider@4.0.0-beta.2
+
+## 4.0.0-beta.2
+
+### Patch Changes
+
+- Updated dependencies [5c2a5a2]
+  - @ai-sdk/provider@4.0.0-beta.1
+  - @ai-sdk/provider-utils@5.0.0-beta.2
+
+## 4.0.0-beta.1
+
+### Patch Changes
+
+- Updated dependencies [531251e]
+  - @ai-sdk/provider-utils@5.0.0-beta.1
+
+## 4.0.0-beta.0
+
+### Major Changes
+
+- 8359612: Start v7 pre-release
+
+### Patch Changes
+
+- Updated dependencies [8359612]
+  - @ai-sdk/provider@4.0.0-beta.0
+  - @ai-sdk/provider-utils@5.0.0-beta.0
+
+## 3.0.25
+
+### Patch Changes
+
+- Updated dependencies [ad4cfc2]
+  - @ai-sdk/provider-utils@4.0.19
+
+## 3.0.24
+
+### Patch Changes
+
+- Updated dependencies [824b295]
+  - @ai-sdk/provider-utils@4.0.18
+
+## 3.0.23
+
+### Patch Changes
+
+- Updated dependencies [08336f1]
+  - @ai-sdk/provider-utils@4.0.17
+
+## 3.0.22
+
+### Patch Changes
+
+- Updated dependencies [58bc42d]
+  - @ai-sdk/provider-utils@4.0.16
+
+## 3.0.21
+
+### Patch Changes
+
+- Updated dependencies [4024a3a]
+  - @ai-sdk/provider-utils@4.0.15
+
+## 3.0.20
+
+### Patch Changes
+
+- 99fbed8: feat: normalize provider specific model options type names and ensure they are exported
+
+## 3.0.19
+
+### Patch Changes
+
+- Updated dependencies [7168375]
+  - @ai-sdk/provider@3.0.8
+  - @ai-sdk/provider-utils@4.0.14
+
+## 3.0.18
+
+### Patch Changes
+
+- Updated dependencies [53f6731]
+  - @ai-sdk/provider@3.0.7
+  - @ai-sdk/provider-utils@4.0.13
+
+## 3.0.17
+
+### Patch Changes
+
+- Updated dependencies [96936e5]
+  - @ai-sdk/provider-utils@4.0.12
+
+## 3.0.16
+
+### Patch Changes
+
+- 0df64d6: Add `outputDimension` option for Cohere embedding models to control the size of the output embedding vector (256, 512, 1024, or 1536).
+
+## 3.0.15
+
+### Patch Changes
+
+- Updated dependencies [2810850]
+  - @ai-sdk/provider-utils@4.0.11
+  - @ai-sdk/provider@3.0.6
+
+## 3.0.14
+
+### Patch Changes
+
+- 1524271: chore: add skill information to README files
+
+## 3.0.13
+
+### Patch Changes
+
+- 3988c08: docs: fix incorrect and outdated provider docs
+
+## 3.0.12
+
+### Patch Changes
+
+- Updated dependencies [462ad00]
+  - @ai-sdk/provider-utils@4.0.10
+
+## 3.0.11
+
+### Patch Changes
+
+- 4de5a1d: chore: excluded tests from src folder in npm package
+- Updated dependencies [4de5a1d]
+  - @ai-sdk/provider@3.0.5
+  - @ai-sdk/provider-utils@4.0.9
+
+## 3.0.10
+
+### Patch Changes
+
+- 2b8369d: chore: add docs to package dist
+
+## 3.0.9
+
+### Patch Changes
+
+- 8dc54db: chore: add src folders to package bundle
+
+## 3.0.8
+
+### Patch Changes
+
+- Updated dependencies [5c090e7]
+  - @ai-sdk/provider@3.0.4
+  - @ai-sdk/provider-utils@4.0.8
+
+## 3.0.7
+
+### Patch Changes
+
+- Updated dependencies [46f46e4]
+  - @ai-sdk/provider-utils@4.0.7
+
+## 3.0.6
+
+### Patch Changes
+
+- Updated dependencies [1b11dcb]
+  - @ai-sdk/provider-utils@4.0.6
+  - @ai-sdk/provider@3.0.3
+
+## 3.0.5
+
+### Patch Changes
+
+- Updated dependencies [34d1c8a]
+  - @ai-sdk/provider-utils@4.0.5
+
 ## 3.0.4
 
 ### Patch Changes
@@ -49,13 +511,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel('my-model-id');
+  model.textEmbeddingModel("my-model-id");
   ```
 
   After
 
   ```ts
-  model.embeddingModel('my-model-id');
+  model.embeddingModel("my-model-id");
   ```
 
 - 2625a04: feat(openai); update spec for mcp approval
@@ -267,13 +729,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel('my-model-id');
+  model.textEmbeddingModel("my-model-id");
   ```
 
   After
 
   ```ts
-  model.embeddingModel('my-model-id');
+  model.embeddingModel("my-model-id");
   ```
 
 - Updated dependencies [8d9e8ad]

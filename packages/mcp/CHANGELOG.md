@@ -1,5 +1,480 @@
 # @ai-sdk/mcp
 
+## 2.0.0-canary.41
+
+### Patch Changes
+
+- b79094c: Add `resource_link` content type to `CallToolResultSchema` and `PromptMessageSchema` per MCP spec. Fixes hard rejection when MCP servers return `resource_link` content parts with zod ≥ 4.4.x.
+- 1451759: feat(mcp): deprecate name and use clientName for MCPClient
+
+## 2.0.0-canary.40
+
+### Patch Changes
+
+- Updated dependencies [2427d88]
+  - @ai-sdk/provider-utils@5.0.0-canary.33
+
+## 2.0.0-canary.39
+
+### Patch Changes
+
+- 5463d0d: feat(provider): align tool result output content file part types with top-level message file part types
+- Updated dependencies [5463d0d]
+  - @ai-sdk/provider-utils@5.0.0-canary.32
+  - @ai-sdk/provider@4.0.0-canary.16
+
+## 2.0.0-canary.38
+
+### Patch Changes
+
+- 0c4c275: trigger initial canary release
+- Updated dependencies [0c4c275]
+  - @ai-sdk/provider-utils@5.0.0-canary.31
+  - @ai-sdk/provider@4.0.0-canary.15
+
+## 2.0.0-beta.37
+
+### Patch Changes
+
+- 08d2129: feat(mcp): propagate the server name through dynamic tool parts
+- Updated dependencies [08d2129]
+  - @ai-sdk/provider-utils@5.0.0-beta.30
+
+## 2.0.0-beta.36
+
+### Patch Changes
+
+- 258c093: chore: ensure consistent import handling and avoid import duplicates or cycles
+- Updated dependencies [9bd6512]
+- Updated dependencies [258c093]
+- Updated dependencies [b6783da]
+  - @ai-sdk/provider-utils@5.0.0-beta.29
+  - @ai-sdk/provider@4.0.0-beta.14
+
+## 2.0.0-beta.35
+
+### Patch Changes
+
+- 9f0e36c: trigger release for all packages after provenance setup
+- Updated dependencies [9f0e36c]
+  - @ai-sdk/provider@4.0.0-beta.13
+  - @ai-sdk/provider-utils@5.0.0-beta.28
+
+## 2.0.0-beta.34
+
+### Patch Changes
+
+- 93afb28: feat(mcp): expose server instructions to be accessible through client
+- 9b0bc8a: fix(mcp): prevent prototype pollution by using secureJsonParse
+- Updated dependencies [785fe16]
+- Updated dependencies [67df0a0]
+- Updated dependencies [befb78c]
+- Updated dependencies [0458559]
+- Updated dependencies [5852c0a]
+- Updated dependencies [fc92055]
+  - @ai-sdk/provider-utils@5.0.0-beta.27
+
+## 2.0.0-beta.33
+
+### Patch Changes
+
+- Updated dependencies [2e98477]
+  - @ai-sdk/provider-utils@5.0.0-beta.26
+
+## 2.0.0-beta.32
+
+### Patch Changes
+
+- Updated dependencies [eea8d98]
+  - @ai-sdk/provider-utils@5.0.0-beta.25
+
+## 2.0.0-beta.31
+
+### Patch Changes
+
+- Updated dependencies [f807e45]
+  - @ai-sdk/provider-utils@5.0.0-beta.24
+
+## 2.0.0-beta.30
+
+### Patch Changes
+
+- Updated dependencies [350ea38]
+  - @ai-sdk/provider-utils@5.0.0-beta.23
+
+## 2.0.0-beta.29
+
+### Patch Changes
+
+- Updated dependencies [083947b]
+  - @ai-sdk/provider-utils@5.0.0-beta.22
+
+## 2.0.0-beta.28
+
+### Patch Changes
+
+- Updated dependencies [add1126]
+  - @ai-sdk/provider-utils@5.0.0-beta.21
+
+## 2.0.0-beta.27
+
+### Patch Changes
+
+- ff5eba1: feat: roll `image-*` tool output types into their equivalent `file-*` types
+- Updated dependencies [b3976a2]
+- Updated dependencies [ff5eba1]
+  - @ai-sdk/provider-utils@5.0.0-beta.20
+  - @ai-sdk/provider@4.0.0-beta.12
+
+## 2.0.0-beta.26
+
+### Major Changes
+
+- ef992f8: Remove CommonJS exports from all packages. All packages are now ESM-only (`"type": "module"`). Consumers using `require()` must switch to ESM `import` syntax.
+
+### Patch Changes
+
+- Updated dependencies [ef992f8]
+  - @ai-sdk/provider@4.0.0-beta.11
+  - @ai-sdk/provider-utils@5.0.0-beta.19
+
+## 2.0.0-beta.25
+
+### Patch Changes
+
+- 90e2d8a: chore: fix unused vars not being flagged by our lint tooling
+- Updated dependencies [90e2d8a]
+  - @ai-sdk/provider-utils@5.0.0-beta.18
+
+## 2.0.0-beta.24
+
+### Patch Changes
+
+- Updated dependencies [3ae1786]
+  - @ai-sdk/provider-utils@5.0.0-beta.17
+
+## 2.0.0-beta.23
+
+### Patch Changes
+
+- a98bf66: feat(mcp): surface 'serverInfo' exposed from the MCP server
+
+## 2.0.0-beta.22
+
+### Patch Changes
+
+- Updated dependencies [176466a]
+  - @ai-sdk/provider@4.0.0-beta.10
+  - @ai-sdk/provider-utils@5.0.0-beta.16
+
+## 2.0.0-beta.21
+
+### Patch Changes
+
+- Updated dependencies [e311194]
+  - @ai-sdk/provider@4.0.0-beta.9
+  - @ai-sdk/provider-utils@5.0.0-beta.15
+
+## 2.0.0-beta.20
+
+### Patch Changes
+
+- Updated dependencies [34bd95d]
+- Updated dependencies [008271d]
+  - @ai-sdk/provider@4.0.0-beta.8
+  - @ai-sdk/provider-utils@5.0.0-beta.14
+
+## 2.0.0-beta.19
+
+### Patch Changes
+
+- Updated dependencies [b0c2869]
+- Updated dependencies [7e26e81]
+  - @ai-sdk/provider-utils@5.0.0-beta.13
+
+## 2.0.0-beta.18
+
+### Patch Changes
+
+- e3ea484: fix(mcp): bypass outputSchema validation when tool returns isError
+
+## 2.0.0-beta.17
+
+### Patch Changes
+
+- a00d1d3: feat(mcp): allow custom fetch for HTTP and SSE transports
+
+## 2.0.0-beta.16
+
+### Patch Changes
+
+- Updated dependencies [46d1149]
+  - @ai-sdk/provider-utils@5.0.0-beta.12
+
+## 2.0.0-beta.15
+
+### Patch Changes
+
+- Updated dependencies [6fd51c0]
+  - @ai-sdk/provider-utils@5.0.0-beta.11
+  - @ai-sdk/provider@4.0.0-beta.7
+
+## 2.0.0-beta.14
+
+### Patch Changes
+
+- 1e89d62: fix(mcp): strip trailing slash from OAuth resource parameter
+- Updated dependencies [c29a26f]
+  - @ai-sdk/provider-utils@5.0.0-beta.10
+  - @ai-sdk/provider@4.0.0-beta.6
+
+## 2.0.0-beta.13
+
+### Patch Changes
+
+- Updated dependencies [2e17091]
+  - @ai-sdk/provider-utils@5.0.0-beta.9
+
+## 2.0.0-beta.12
+
+### Patch Changes
+
+- Updated dependencies [986c6fd]
+- Updated dependencies [493295c]
+  - @ai-sdk/provider-utils@5.0.0-beta.8
+
+## 2.0.0-beta.11
+
+### Patch Changes
+
+- Updated dependencies [1f509d4]
+  - @ai-sdk/provider-utils@5.0.0-beta.7
+  - @ai-sdk/provider@4.0.0-beta.5
+
+## 2.0.0-beta.10
+
+### Patch Changes
+
+- Updated dependencies [3887c70]
+  - @ai-sdk/provider-utils@5.0.0-beta.6
+  - @ai-sdk/provider@4.0.0-beta.4
+
+## 2.0.0-beta.9
+
+### Patch Changes
+
+- Updated dependencies [776b617]
+  - @ai-sdk/provider-utils@5.0.0-beta.5
+  - @ai-sdk/provider@4.0.0-beta.3
+
+## 2.0.0-beta.8
+
+### Patch Changes
+
+- Updated dependencies [61753c3]
+  - @ai-sdk/provider-utils@5.0.0-beta.4
+
+## 2.0.0-beta.7
+
+### Major Changes
+
+- 23fa161: fix(mcp): setting redirect: error for MCP transport
+
+## 2.0.0-beta.6
+
+### Patch Changes
+
+- 58c9eb1: feat(mcp): add `redirect` option to `MCPTransportConfig` for controlling HTTP redirect behavior
+
+## 2.0.0-beta.5
+
+### Patch Changes
+
+- Updated dependencies [f7d4f01]
+  - @ai-sdk/provider-utils@5.0.0-beta.3
+  - @ai-sdk/provider@4.0.0-beta.2
+
+## 2.0.0-beta.4
+
+### Patch Changes
+
+- Updated dependencies [5c2a5a2]
+  - @ai-sdk/provider@4.0.0-beta.1
+  - @ai-sdk/provider-utils@5.0.0-beta.2
+
+## 2.0.0-beta.3
+
+### Patch Changes
+
+- b9b3899: fix(mcp): validate state param in oauth flow
+
+## 2.0.0-beta.2
+
+### Patch Changes
+
+- 9ecd8ae: fix(mcp): add MCP protocol version 2025-11-25 to supported versions
+
+## 2.0.0-beta.1
+
+### Patch Changes
+
+- Updated dependencies [531251e]
+  - @ai-sdk/provider-utils@5.0.0-beta.1
+
+## 2.0.0-beta.0
+
+### Major Changes
+
+- 8359612: Start v7 pre-release
+
+### Patch Changes
+
+- Updated dependencies [8359612]
+  - @ai-sdk/provider@4.0.0-beta.0
+  - @ai-sdk/provider-utils@5.0.0-beta.0
+
+## 1.0.25
+
+### Patch Changes
+
+- Updated dependencies [ad4cfc2]
+  - @ai-sdk/provider-utils@4.0.19
+
+## 1.0.24
+
+### Patch Changes
+
+- Updated dependencies [824b295]
+  - @ai-sdk/provider-utils@4.0.18
+
+## 1.0.23
+
+### Patch Changes
+
+- Updated dependencies [08336f1]
+  - @ai-sdk/provider-utils@4.0.17
+
+## 1.0.22
+
+### Patch Changes
+
+- Updated dependencies [58bc42d]
+  - @ai-sdk/provider-utils@4.0.16
+
+## 1.0.21
+
+### Patch Changes
+
+- Updated dependencies [4024a3a]
+  - @ai-sdk/provider-utils@4.0.15
+
+## 1.0.20
+
+### Patch Changes
+
+- 60ee2df: feat(mcp): expose serializable data from the server tools
+
+## 1.0.19
+
+### Patch Changes
+
+- Updated dependencies [7168375]
+  - @ai-sdk/provider@3.0.8
+  - @ai-sdk/provider-utils@4.0.14
+
+## 1.0.18
+
+### Patch Changes
+
+- Updated dependencies [53f6731]
+  - @ai-sdk/provider@3.0.7
+  - @ai-sdk/provider-utils@4.0.13
+
+## 1.0.17
+
+### Patch Changes
+
+- Updated dependencies [96936e5]
+  - @ai-sdk/provider-utils@4.0.12
+
+## 1.0.16
+
+### Patch Changes
+
+- 8d022fd: fix(mcp): support image returns in tool results
+
+## 1.0.15
+
+### Patch Changes
+
+- Updated dependencies [2810850]
+  - @ai-sdk/provider-utils@4.0.11
+  - @ai-sdk/provider@3.0.6
+
+## 1.0.14
+
+### Patch Changes
+
+- Updated dependencies [462ad00]
+  - @ai-sdk/provider-utils@4.0.10
+
+## 1.0.13
+
+### Patch Changes
+
+- 4de5a1d: chore: excluded tests from src folder in npm package
+- Updated dependencies [4de5a1d]
+  - @ai-sdk/provider@3.0.5
+  - @ai-sdk/provider-utils@4.0.9
+
+## 1.0.12
+
+### Patch Changes
+
+- 8dc54db: chore: add src folders to package bundle
+
+## 1.0.11
+
+### Patch Changes
+
+- d80fc3b: feat(mcp): capture server title from top level
+
+## 1.0.10
+
+### Patch Changes
+
+- Updated dependencies [5c090e7]
+  - @ai-sdk/provider@3.0.4
+  - @ai-sdk/provider-utils@4.0.8
+
+## 1.0.9
+
+### Patch Changes
+
+- ec84ffd: fix(mcp): lenient JSON-RPC parsing for http transport
+
+## 1.0.8
+
+### Patch Changes
+
+- Updated dependencies [46f46e4]
+  - @ai-sdk/provider-utils@4.0.7
+
+## 1.0.7
+
+### Patch Changes
+
+- Updated dependencies [1b11dcb]
+  - @ai-sdk/provider-utils@4.0.6
+  - @ai-sdk/provider@3.0.3
+
+## 1.0.6
+
+### Patch Changes
+
+- Updated dependencies [34d1c8a]
+  - @ai-sdk/provider-utils@4.0.5
+
 ## 1.0.5
 
 ### Patch Changes
@@ -46,15 +521,15 @@
   This change replaces
 
   ```ts
-  import { experimental_createMCPClient } from 'ai';
-  import { Experimental_StdioMCPTransport } from 'ai/mcp-stdio';
+  import { experimental_createMCPClient } from "ai";
+  import { Experimental_StdioMCPTransport } from "ai/mcp-stdio";
   ```
 
   with
 
   ```ts
-  import { experimental_createMCPClient } from '@ai-sdk/mcp';
-  import { Experimental_StdioMCPTransport } from '@ai-sdk/mcp/mcp-stdio';
+  import { experimental_createMCPClient } from "@ai-sdk/mcp";
+  import { Experimental_StdioMCPTransport } from "@ai-sdk/mcp/mcp-stdio";
   ```
 
 ### Patch Changes
@@ -420,13 +895,13 @@
   This change replaces
 
   ```ts
-  import { experimental_createMCPClient } from 'ai';
-  import { Experimental_StdioMCPTransport } from 'ai/mcp-stdio';
+  import { experimental_createMCPClient } from "ai";
+  import { Experimental_StdioMCPTransport } from "ai/mcp-stdio";
   ```
 
   with
 
   ```ts
-  import { experimental_createMCPClient } from '@ai-sdk/mcp';
-  import { Experimental_StdioMCPTransport } from '@ai-sdk/mcp/mcp-stdio';
+  import { experimental_createMCPClient } from "@ai-sdk/mcp";
+  import { Experimental_StdioMCPTransport } from "@ai-sdk/mcp/mcp-stdio";
   ```

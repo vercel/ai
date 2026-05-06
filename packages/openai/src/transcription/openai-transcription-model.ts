@@ -1,7 +1,7 @@
-import {
-  TranscriptionModelV3,
-  TranscriptionModelV3CallOptions,
-  SharedV3Warning,
+import type {
+  TranscriptionModelV4,
+  TranscriptionModelV4CallOptions,
+  SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -10,22 +10,24 @@ import {
   mediaTypeToExtension,
   parseProviderOptions,
   postFormDataToApi,
+  serializeModelOptions,
+  WORKFLOW_DESERIALIZE,
+  WORKFLOW_SERIALIZE,
 } from '@ai-sdk/provider-utils';
-import { OpenAIConfig } from '../openai-config';
+import type { OpenAIConfig } from '../openai-config';
 import { openaiFailedResponseHandler } from '../openai-error';
 import { openaiTranscriptionResponseSchema } from './openai-transcription-api';
 import {
-  OpenAITranscriptionModelId,
-  openAITranscriptionProviderOptions,
-  OpenAITranscriptionProviderOptions,
-} from './openai-transcription-options';
-
+  openAITranscriptionModelOptions,
+  type OpenAITranscriptionModelId,
+  type OpenAITranscriptionModelOptions,
+} from './openai-transcription-model-options';
 export type OpenAITranscriptionCallOptions = Omit<
-  TranscriptionModelV3CallOptions,
+  TranscriptionModelV4CallOptions,
   'providerOptions'
 > & {
   providerOptions?: {
-    openai?: OpenAITranscriptionProviderOptions;
+    openai?: OpenAITranscriptionModelOptions;
   };
 };
 
@@ -96,8 +98,22 @@ const languageMap = {
   welsh: 'cy',
 };
 
-export class OpenAITranscriptionModel implements TranscriptionModelV3 {
-  readonly specificationVersion = 'v3';
+export class OpenAITranscriptionModel implements TranscriptionModelV4 {
+  readonly specificationVersion = 'v4';
+
+  static [WORKFLOW_SERIALIZE](model: OpenAITranscriptionModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: OpenAITranscriptionModelId;
+    config: OpenAITranscriptionModelConfig;
+  }) {
+    return new OpenAITranscriptionModel(options.modelId, options.config);
+  }
 
   get provider(): string {
     return this.config.provider;
@@ -113,13 +129,13 @@ export class OpenAITranscriptionModel implements TranscriptionModelV3 {
     mediaType,
     providerOptions,
   }: OpenAITranscriptionCallOptions) {
-    const warnings: SharedV3Warning[] = [];
+    const warnings: SharedV4Warning[] = [];
 
     // Parse provider options
     const openAIOptions = await parseProviderOptions({
       provider: 'openai',
       providerOptions,
-      schema: openAITranscriptionProviderOptions,
+      schema: openAITranscriptionModelOptions,
     });
 
     // Create form data with base fields
@@ -176,7 +192,7 @@ export class OpenAITranscriptionModel implements TranscriptionModelV3 {
 
   async doGenerate(
     options: OpenAITranscriptionCallOptions,
-  ): Promise<Awaited<ReturnType<TranscriptionModelV3['doGenerate']>>> {
+  ): Promise<Awaited<ReturnType<TranscriptionModelV4['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { formData, warnings } = await this.getArgs(options);
 
@@ -189,7 +205,7 @@ export class OpenAITranscriptionModel implements TranscriptionModelV3 {
         path: '/audio/transcriptions',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       formData,
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(

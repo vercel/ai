@@ -32,11 +32,14 @@ export function File({ url, mediaType }: FileProps) {
 }
 
 /**
- * Ensure base64 string has proper data URI prefix
+ * Ensure image string has proper format
+ * Handles: data URIs and raw base64
  */
-function toDataUri(base64: string, format: string = 'png'): string {
-  if (base64.startsWith('data:image/')) return base64;
-  return `data:image/${format};base64,${base64}`;
+function toImageSrc(input: string, format: string = 'png'): string {
+  // Already a data URI
+  if (input.startsWith('data:image/')) return input;
+  // Raw base64 - add data URI prefix
+  return `data:image/${format};base64,${input}`;
 }
 
 /**
@@ -77,17 +80,17 @@ export function GeneratedImage({
 }) {
   const [showModal, setShowModal] = useState(false);
   /**
-   * If it's already a data URL, use it directly; otherwise convert
+   * Convert to proper image source - handles data URIs and raw base64
    */
-  const src = base64.startsWith('data:') ? base64 : toDataUri(base64, format);
+  const src = toImageSrc(base64, format);
 
   /**
-   * Handle download of the generated image
+   * Handle download of the image
    */
   const handleDownload = () => {
     const link = document.createElement('a');
     link.href = src;
-    link.download = `generated-image-${Date.now()}.${format}`;
+    link.download = `image-${Date.now()}.${format}`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -99,7 +102,7 @@ export function GeneratedImage({
         <div className="relative overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--background-secondary)] w-fit">
           <img
             src={src}
-            alt="AI generated image"
+            alt="Image"
             className="max-w-md rounded-xl cursor-pointer transition-transform hover:scale-[1.02]"
             onClick={() => setShowModal(true)}
           />
@@ -121,9 +124,9 @@ export function GeneratedImage({
             </button>
           </div>
         </div>
-        <div className="flex items-center gap-1.5 mt-2 text-xs text-[var(--foreground-secondary)]">
+        <div className="inline-flex items-center gap-1.5 mt-2 px-2 py-1 text-xs font-medium text-[var(--foreground)] bg-[var(--background-secondary)] rounded-md border border-[var(--border)]">
           <ImageIcon className="w-3.5 h-3.5" />
-          <span>AI Generated Image</span>
+          <span>Image</span>
         </div>
       </div>
       {showModal && (

@@ -1,4 +1,4 @@
-import { convertToModelMessages, streamText, UIMessage } from 'ai';
+import { convertToModelMessages, streamText, type UIMessage } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
 
@@ -6,7 +6,7 @@ export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
 
   const result = streamText({
-    model: openai('gpt-4'),
+    model: openai('gpt-5'),
     system: 'You are a helpful assistant.',
     messages: await convertToModelMessages(messages),
     tools: {

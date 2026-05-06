@@ -1,10 +1,11 @@
 import { z } from 'zod/v4';
-import { JSONObject } from '@ai-sdk/provider';
-import { FlexibleSchema, Tool } from '@ai-sdk/provider-utils';
+import type { JSONObject } from '@ai-sdk/provider';
+import type { FlexibleSchema, Tool } from '@ai-sdk/provider-utils';
 
-export const LATEST_PROTOCOL_VERSION = '2025-06-18';
+export const LATEST_PROTOCOL_VERSION = '2025-11-25';
 export const SUPPORTED_PROTOCOL_VERSIONS = [
   LATEST_PROTOCOL_VERSION,
+  '2025-06-18',
   '2025-03-26',
   '2024-11-05',
 ];
@@ -55,8 +56,10 @@ export type McpToolSet<TOOL_SCHEMAS extends ToolSchemas = 'automatic'> =
 const ClientOrServerImplementationSchema = z.looseObject({
   name: z.string(),
   version: z.string(),
+  title: z.optional(z.string()),
 });
 
+// Maps to `Implementation` in the MCP specification
 export type Configuration = z.infer<typeof ClientOrServerImplementationSchema>;
 
 export const BaseParamsSchema = z.looseObject({
@@ -138,6 +141,10 @@ const PaginatedResultSchema = ResultSchema.extend({
 const ToolSchema = z
   .object({
     name: z.string(),
+    /**
+     * @see https://modelcontextprotocol.io/specification/2025-11-25/server/tools#tool
+     */
+    title: z.optional(z.string()),
     description: z.optional(z.string()),
     inputSchema: z
       .object({
@@ -227,10 +234,24 @@ const EmbeddedResourceSchema = z
     resource: z.union([TextResourceContentsSchema, BlobResourceContentsSchema]),
   })
   .loose();
+const ResourceLinkContentSchema = z
+  .object({
+    type: z.literal('resource_link'),
+    uri: z.string(),
+    name: z.string(),
+    description: z.optional(z.string()),
+    mimeType: z.optional(z.string()),
+  })
+  .loose();
 
 export const CallToolResultSchema = ResultSchema.extend({
   content: z.array(
-    z.union([TextContentSchema, ImageContentSchema, EmbeddedResourceSchema]),
+    z.union([
+      TextContentSchema,
+      ImageContentSchema,
+      EmbeddedResourceSchema,
+      ResourceLinkContentSchema,
+    ]),
   ),
   /**
    * @see https://modelcontextprotocol.io/specification/2025-06-18/server/tools#structured-content
@@ -299,6 +320,7 @@ const PromptMessageSchema = z
       TextContentSchema,
       ImageContentSchema,
       EmbeddedResourceSchema,
+      ResourceLinkContentSchema,
     ]),
   })
   .loose();

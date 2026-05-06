@@ -8,73 +8,72 @@ tags: ['node', 'streaming', 'structured data']
 
 When you're streaming structured data, you may want to record the final object for logging or other purposes.
 
-## `onFinish` Callback
+## `onFinish` and `output`
 
-You can use the `onFinish` callback to record the final object.
-It is called when the stream is finished.
+Use `onFinish` for metadata like token usage and await `result.output` for the final structured object.
 
-The `object` parameter contains the final object, or `undefined` if the type validation fails.
-There is also an `error` parameter that contains error when e.g. the object does not match the schema.
-
-```ts file='index.ts' highlight={"15-23"}
-import { streamObject } from 'ai';
+```ts file='index.ts' highlight={"15-29"}
+import { streamText, Output } from 'ai';
 import { z } from 'zod';
 
-const result = streamObject({
+const result = streamText({
   model: 'openai/gpt-4.1',
-  schema: z.object({
-    recipe: z.object({
-      name: z.string(),
-      ingredients: z.array(z.string()),
-      steps: z.array(z.string()),
+  output: Output.object({
+    schema: z.object({
+      recipe: z.object({
+        name: z.string(),
+        ingredients: z.array(z.string()),
+        steps: z.array(z.string()),
+      }),
     }),
   }),
   prompt: 'Generate a lasagna recipe.',
-  onFinish({ object, error }) {
-    // handle type validation failure (when the object does not match the schema):
-    if (object === undefined) {
-      console.error('Error:', error);
-      return;
-    }
-
-    console.log('Final object:', JSON.stringify(object, null, 2));
+  onFinish({ usage }) {
+    console.log('Token usage:', usage);
   },
 });
+
+for await (const _ of result.partialOutputStream) {
+}
+
+try {
+  const output = await result.output;
+  console.log('Final object:', JSON.stringify(output, null, 2));
+} catch (error) {
+  console.error('Failed to parse output:', error);
+}
 ```
 
-## `object` Promise
+## `output` Promise
 
-The [`streamObject`](/docs/reference/ai-sdk-core/stream-object) result contains an `object` promise that resolves to the final object.
+The `streamText` result contains an `output` promise that resolves to the final object.
 The object is fully typed. When the type validation according to the schema fails, the promise will be rejected with a `TypeValidationError`.
 
 ```ts file='index.ts' highlight={"17-26"}
-import { streamObject } from 'ai';
+import { streamText, Output } from 'ai';
 import { z } from 'zod';
 
-const result = streamObject({
+const result = streamText({
   model: 'openai/gpt-4.1',
-  schema: z.object({
-    recipe: z.object({
-      name: z.string(),
-      ingredients: z.array(z.string()),
-      steps: z.array(z.string()),
+  output: Output.object({
+    schema: z.object({
+      recipe: z.object({
+        name: z.string(),
+        ingredients: z.array(z.string()),
+        steps: z.array(z.string()),
+      }),
     }),
   }),
   prompt: 'Generate a lasagna recipe.',
 });
 
-result.object
-  .then(({ recipe }) => {
-    // do something with the fully typed, final object:
-    console.log('Recipe:', JSON.stringify(recipe, null, 2));
-  })
-  .catch(error => {
-    // handle type validation failure
-    // (when the object does not match the schema):
-    console.error(error);
-  });
+for await (const partialObject of result.partialOutputStream) {
+}
 
-// note: the stream needs to be consumed because of backpressure
-for await (const partialObject of result.partialObjectStream) {
+try {
+  const { recipe } = await result.output;
+  console.log('Recipe:', JSON.stringify(recipe, null, 2));
+} catch (error) {
+  console.error(error);
 }
 ```

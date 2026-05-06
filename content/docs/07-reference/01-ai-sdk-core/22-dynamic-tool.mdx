@@ -59,6 +59,20 @@ export const customTool = dynamicTool({
                 'Information about the purpose of the tool including details on how and when it can be used by the model.'
             },
             {
+              name: 'title',
+              isOptional: true,
+              type: 'string',
+              description:
+                'A human-readable title for the tool.'
+            },
+            {
+              name: 'needsApproval',
+              isOptional: true,
+              type: 'boolean | ((input: unknown, options: { toolCallId: string; messages: ModelMessage[]; context: Context }) => boolean | Promise<boolean>)',
+              description:
+                'Deprecated. For `generateText`, `streamText`, and `ToolLoopAgent`, configure approval with `toolApproval` instead. Existing `needsApproval` usages still work as a compatibility fallback. When used, it can be a boolean or a function that receives the tool input plus execution metadata.'
+            },
+            {
               name: 'inputSchema',
               type: 'FlexibleSchema<unknown>',
               description:
@@ -66,12 +80,12 @@ export const customTool = dynamicTool({
             },
             {
               name: 'execute',
-              type: 'ToolExecuteFunction<unknown, unknown>',
+              type: 'ToolExecuteFunction<unknown, unknown, Context>',
               description:
                 'An async function that is called with the arguments from the tool call. The input is typed as unknown and must be validated/cast at runtime.',
                 properties: [
                   {
-                    type: "ToolExecutionOptions",
+                    type: "ToolExecutionOptions<Context>",
                     parameters: [
                       {
                       name: 'toolCallId',
@@ -88,10 +102,22 @@ export const customTool = dynamicTool({
                         type: "AbortSignal",
                         isOptional: true,
                         description: "An optional abort signal."
+                      },
+                      {
+                        name: "context",
+                        type: "Context",
+                        description: "Tool-specific context passed into tool execution. This value comes from the matching entry in `toolsContext`."
                       }
                     ]
                   }
                 ]
+            },
+            {
+              name: 'outputSchema',
+              isOptional: true,
+              type: 'Zod Schema | JSON Schema',
+              description:
+                'The schema of the output that the tool produces. Used for validation and type inference.'
             },
             {
               name: 'toModelOutput',
@@ -100,10 +126,38 @@ export const customTool = dynamicTool({
               description: 'Optional conversion function that maps the tool result to an output that can be used by the language model.'
             },
             {
+              name: 'onInputStart',
+              isOptional: true,
+              type: '(options: ToolExecutionOptions<Context>) => void | PromiseLike<void>',
+              description:
+                'Optional function that is called when the argument streaming starts. Only called when the tool is used in a streaming context.'
+            },
+            {
+              name: 'onInputDelta',
+              isOptional: true,
+              type: '(options: { inputTextDelta: string } & ToolExecutionOptions<Context>) => void | PromiseLike<void>',
+              description:
+                'Optional function that is called when an argument streaming delta is available. Only called when the tool is used in a streaming context.'
+            },
+            {
+              name: 'onInputAvailable',
+              isOptional: true,
+              type: '(options: { input: unknown } & ToolExecutionOptions<Context>) => void | PromiseLike<void>',
+              description:
+                'Optional function that is called when a tool call can be started, even if the execute function is not provided.'
+            },
+            {
               name: 'providerOptions',
               isOptional: true,
               type: 'ProviderOptions',
               description: 'Additional provider-specific metadata.'
+            },
+            {
+              name: 'providerMetadata',
+              isOptional: true,
+              type: 'ProviderMetadata',
+              description:
+                "Optional metadata about the tool itself (e.g. its source). It is propagated onto the resulting tool call's providerMetadata so consumers can read it from tool call/result parts and UI message parts. Useful for sources of dynamic tools (e.g. an MCP server) to identify themselves."
             }
           ]
         }

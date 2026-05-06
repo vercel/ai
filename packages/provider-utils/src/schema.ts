@@ -1,6 +1,9 @@
-import { JSONSchema7, TypeValidationError } from '@ai-sdk/provider';
-import { StandardSchemaV1, StandardJSONSchemaV1 } from '@standard-schema/spec';
-import * as z3 from 'zod/v3';
+import { TypeValidationError, type JSONSchema7 } from '@ai-sdk/provider';
+import type {
+  StandardSchemaV1,
+  StandardJSONSchemaV1,
+} from '@standard-schema/spec';
+import type * as z3 from 'zod/v3';
 import * as z4 from 'zod/v4';
 import { addAdditionalPropertiesToJsonSchema } from './add-additional-properties-to-json-schema';
 import { zod3ToJsonSchema } from './to-json-schema/zod3-to-json-schema';
@@ -148,9 +151,11 @@ function standardSchema<OBJECT>(
 ): Schema<OBJECT> {
   return jsonSchema(
     () =>
-      standardSchema['~standard'].jsonSchema.input({
-        target: 'draft-07',
-      }),
+      addAdditionalPropertiesToJsonSchema(
+        standardSchema['~standard'].jsonSchema.input({
+          target: 'draft-07',
+        }) as JSONSchema7,
+      ),
     {
       validate: async value => {
         const result = await standardSchema['~standard'].validate(value);

@@ -163,5 +163,11 @@
   {
     "type": "text-end",
     "id": "run-019b259a-78a0-7000-8000-09024ac88660"
+  },
+  {
+    "type": "finish-step"
+  },
+  {
+    "type": "finish"
   }
 ]

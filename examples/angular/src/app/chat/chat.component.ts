@@ -2,12 +2,19 @@ import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   FormBuilder,
-  FormGroup,
   ReactiveFormsModule,
   Validators,
+  type FormGroup,
 } from '@angular/forms';
 import { Chat } from '@ai-sdk/angular';
-
+import {
+  isToolUIPart,
+  type DataUIPart,
+  type ToolUIPart,
+  type UIDataTypes,
+  type UIMessagePart,
+  type UITools,
+} from 'ai';
 @Component({
   selector: 'app-chat',
   standalone: true,
@@ -27,6 +34,18 @@ export class ChatComponent {
     });
   }
 
+  isToolPart(
+    part: UIMessagePart<UIDataTypes, UITools>,
+  ): part is ToolUIPart<UITools> {
+    return isToolUIPart(part);
+  }
+
+  isDataPart(
+    part: UIMessagePart<UIDataTypes, UITools>,
+  ): part is DataUIPart<UIDataTypes> {
+    return part.type.startsWith('data-');
+  }
+
   sendMessage() {
     if (this.chatForm.invalid) {
       return;
@@ -41,7 +60,7 @@ export class ChatComponent {
       },
       {
         body: {
-          selectedModel: 'gpt-4.1',
+          selectedModel: 'openai/gpt-5.4',
         },
       },
     );

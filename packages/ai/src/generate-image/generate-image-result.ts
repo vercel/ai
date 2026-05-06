@@ -1,31 +1,31 @@
-import { GeneratedFile } from '../generate-text';
-import { ImageModelProviderMetadata } from '../types/image-model';
-import { ImageModelResponseMetadata } from '../types/image-model-response-metadata';
-import { ImageModelUsage } from '../types/usage';
-import { Warning } from '../types/warning';
+import type { GeneratedFile } from '../generate-text';
+import type { ImageModelProviderMetadata } from '../types/image-model';
+import type { ImageModelResponseMetadata } from '../types/image-model-response-metadata';
+import type { ImageModelUsage } from '../types/usage';
+import type { Warning } from '../types/warning';
 
 /**
-The result of a `generateImage` call.
-It contains the images and additional information.
+ * The result of a `generateImage` call.
+ * It contains the images and additional information.
  */
 export interface GenerateImageResult {
   /**
-The first image that was generated.
+   * The first image that was generated.
    */
   readonly image: GeneratedFile;
 
   /**
-The images that were generated.
-     */
+   * The images that were generated.
+   */
   readonly images: Array<GeneratedFile>;
 
   /**
-Warnings for the call, e.g. unsupported settings.
-     */
+   * Warnings for the call, e.g. unsupported settings.
+   */
   readonly warnings: Array<Warning>;
 
   /**
-Response metadata from the provider. There may be multiple responses if we made multiple calls to the model.
+   * Response metadata from the provider. There may be multiple responses if we made multiple calls to the model.
    */
   readonly responses: Array<ImageModelResponseMetadata>;
 
@@ -36,7 +36,7 @@ Response metadata from the provider. There may be multiple responses if we made 
   readonly providerMetadata: ImageModelProviderMetadata;
 
   /**
-  Combined token usage across all underlying provider calls for this image generation.
+   * Combined token usage across all underlying provider calls for this image generation.
    */
   readonly usage: ImageModelUsage;
 }

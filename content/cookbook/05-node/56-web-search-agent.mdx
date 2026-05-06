@@ -118,7 +118,7 @@ const safetyRatings = metadata?.safetyRatings;
 
 When using tools for web search, you have two options: use ready-made tools that integrate directly with the AI SDK, or build custom tools tailored to your specific needs.
 
-Unlike the native web search examples where searching is built into the model, using web search tools requires multiple steps. The language model will make two generations - the first to call the relevant web search tool (extracting search queries from the context), and the second to process the results and generate a response. This multi-step process is handled automatically when you set `stopWhen: stepCountIs(n)` to a value greater than 1.
+Unlike the native web search examples where searching is built into the model, using web search tools requires multiple steps. The language model will make two generations - the first to call the relevant web search tool (extracting search queries from the context), and the second to process the results and generate a response. This multi-step process is handled automatically when you set `stopWhen: isStepCount(n)` to a value greater than 1.
 
 <Note>
   By using `stopWhen`, you can automatically send tool results back to the
@@ -147,7 +147,7 @@ pnpm install @exalabs/ai-sdk
 Then, you can import and pass it into `generateText`, `streamText`, or your agent:
 
 ```ts
-import { generateText, stepCountIs } from 'ai';
+import { generateText, isStepCount } from 'ai';
 __PROVIDER_IMPORT__;
 import { webSearch } from '@exalabs/ai-sdk';
 
@@ -157,7 +157,7 @@ const { text } = await generateText({
   tools: {
     webSearch: webSearch(),
   },
-  stopWhen: stepCountIs(3),
+  stopWhen: isStepCount(3),
 });
 
 console.log(text);
@@ -178,7 +178,7 @@ pnpm install @parallel-web/ai-sdk-tools
 Then, you can import and pass the tools into `generateText`, `streamText`, or your agent. Parallel Web provides two tools: `searchTool` for web search and `extractTool` for extracting web page content:
 
 ```ts
-import { generateText, stepCountIs } from 'ai';
+import { generateText, isStepCount } from 'ai';
 __PROVIDER_IMPORT__;
 import { searchTool, extractTool } from '@parallel-web/ai-sdk-tools';
 
@@ -189,7 +189,7 @@ const { text } = await generateText({
     webSearch: searchTool,
     webExtract: extractTool,
   },
-  stopWhen: stepCountIs(3),
+  stopWhen: isStepCount(3),
 });
 
 console.log(text);
@@ -211,7 +211,7 @@ pnpm install @perplexity-ai/ai-sdk
 Then, you can import and pass it into `generateText`, `streamText`, or your agent. Perplexity Search provides real-time web search with advanced filtering options including domain, language, date range, and recency filters:
 
 ```ts
-import { generateText, stepCountIs } from 'ai';
+import { generateText, isStepCount } from 'ai';
 __PROVIDER_IMPORT__;
 import { perplexitySearch } from '@perplexity-ai/ai-sdk';
 
@@ -222,7 +222,7 @@ const { text } = await generateText({
   tools: {
     search: perplexitySearch(),
   },
-  stopWhen: stepCountIs(3),
+  stopWhen: isStepCount(3),
 });
 
 console.log(text);
@@ -245,7 +245,7 @@ pnpm install @tavily/ai-sdk
 Then, you can import and pass it into `generateText`, `streamText`, or your agent:
 
 ```ts
-import { generateText, stepCountIs } from 'ai';
+import { generateText, isStepCount } from 'ai';
 __PROVIDER_IMPORT__;
 import { tavilySearch, tavilyExtract } from '@tavily/ai-sdk';
 
@@ -256,13 +256,48 @@ const { text } = await generateText({
     webSearch: tavilySearch(),
     webExtract: tavilyExtract(),
   },
-  stopWhen: stepCountIs(3),
+  stopWhen: isStepCount(3),
 });
 
 console.log(text);
 ```
 
 For more customization options over your agent's web-access functionality, visit the [Tavily AI SDK Documentation](https://docs.tavily.com/documentation/integrations/vercel).
+
+#### You.com
+
+<Note>
+  Get your API key from the [You.com API Keys page](https://you.com/platform/api-keys).
+</Note>
+
+First, install the You.com AI SDK plugin:
+
+```bash
+pnpm install @youdotcom-oss/ai-sdk-plugin
+```
+
+Then, you can import and pass the tools into `generateText`, `streamText`, or your agent. You.com provides three tools: `youSearch` for real-time web search with advanced filtering, `youResearch` for deep research with cited sources and configurable effort (lite to exhaustive), and `youContents` for extracting webpage content in markdown or HTML:
+
+```ts
+import { generateText, isStepCount } from 'ai';
+__PROVIDER_IMPORT__;
+import { youSearch, youResearch, youContents } from '@youdotcom-oss/ai-sdk-plugin';
+
+const { text } = await generateText({
+  model: __MODEL__,
+  prompt: 'Research the latest developments in quantum computing',
+  tools: {
+    search: youSearch(),
+    research: youResearch(),
+    extract: youContents(),
+  },
+  stopWhen: isStepCount(5),
+});
+
+console.log(text);
+```
+
+For more configuration options and customization, see the [You.com AI SDK Plugin documentation](https://github.com/youdotcom-oss/dx-toolkit/tree/main/packages/ai-sdk-plugin#readme).
 
 ### Build and use custom tools
 
@@ -277,7 +312,7 @@ pnpm install exa-js
 ```
 
 ```ts
-import { generateText, tool, stepCountIs } from 'ai';
+import { generateText, tool, isStepCount } from 'ai';
 __PROVIDER_IMPORT__;
 import { z } from 'zod';
 import Exa from 'exa-js';
@@ -309,7 +344,7 @@ const { text } = await generateText({
   tools: {
     webSearch,
   },
-  stopWhen: stepCountIs(5),
+  stopWhen: isStepCount(5),
 });
 ```
 
@@ -322,7 +357,7 @@ pnpm install @mendable/firecrawl-js
 ```
 
 ```ts
-import { generateText, tool, stepCountIs } from 'ai';
+import { generateText, tool, isStepCount } from 'ai';
 __PROVIDER_IMPORT__;
 import { z } from 'zod';
 import FirecrawlApp from '@mendable/firecrawl-js';
@@ -361,7 +396,7 @@ const main = async () => {
     tools: {
       webSearch,
     },
-    stopWhen: stepCountIs(5),
+    stopWhen: isStepCount(5),
   });
   console.log(text);
 };

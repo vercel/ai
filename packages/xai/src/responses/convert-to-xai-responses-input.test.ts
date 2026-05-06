@@ -29,7 +29,12 @@ describe('convertToXaiResponsesInput', () => {
       expect(result.input).toMatchInlineSnapshot(`
         [
           {
-            "content": "hello",
+            "content": [
+              {
+                "text": "hello",
+                "type": "input_text",
+              },
+            ],
             "role": "user",
           },
         ]
@@ -52,31 +57,201 @@ describe('convertToXaiResponsesInput', () => {
       expect(result.input).toMatchInlineSnapshot(`
         [
           {
-            "content": "hello world",
+            "content": [
+              {
+                "text": "hello ",
+                "type": "input_text",
+              },
+              {
+                "text": "world",
+                "type": "input_text",
+              },
+            ],
             "role": "user",
           },
         ]
       `);
     });
 
-    it('should warn about file parts', async () => {
+    it('should convert image file parts with URL', async () => {
       const result = await convertToXaiResponsesInput({
         prompt: [
           {
             role: 'user',
             content: [
-              { type: 'text', text: 'check this file' },
+              { type: 'text', text: 'what is in this image' },
               {
                 type: 'file',
-                mediaType: 'application/pdf',
-                data: new Uint8Array([1, 2, 3]),
+                mediaType: 'image/jpeg',
+                data: {
+                  type: 'url' as const,
+                  url: new URL('https://example.com/image.jpg'),
+                },
               },
             ],
           },
         ],
       });
 
-      expect(result.inputWarnings).toHaveLength(1);
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "what is in this image",
+                "type": "input_text",
+              },
+              {
+                "image_url": "https://example.com/image.jpg",
+                "type": "input_image",
+              },
+            ],
+            "role": "user",
+          },
+        ]
+      `);
+      expect(result.inputWarnings).toEqual([]);
+    });
+
+    it('should convert image file parts with base64 data', async () => {
+      const result = await convertToXaiResponsesInput({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: 'describe this' },
+              {
+                type: 'file',
+                mediaType: 'image/png',
+                data: {
+                  type: 'data' as const,
+                  data: new Uint8Array([1, 2, 3]),
+                },
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "describe this",
+                "type": "input_text",
+              },
+              {
+                "image_url": "data:image/png;base64,AQID",
+                "type": "input_image",
+              },
+            ],
+            "role": "user",
+          },
+        ]
+      `);
+    });
+
+    it('should convert non-image file parts with URL to input_file with file_url', async () => {
+      const result = await convertToXaiResponsesInput({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: 'summarize this PDF' },
+              {
+                type: 'file',
+                mediaType: 'application/pdf',
+                data: {
+                  type: 'url' as const,
+                  url: new URL('https://example.com/document.pdf'),
+                },
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "summarize this PDF",
+                "type": "input_text",
+              },
+              {
+                "file_url": "https://example.com/document.pdf",
+                "type": "input_file",
+              },
+            ],
+            "role": "user",
+          },
+        ]
+      `);
+      expect(result.inputWarnings).toEqual([]);
+    });
+
+    it('should convert text/* file parts with URL to input_file with file_url', async () => {
+      const result = await convertToXaiResponsesInput({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: 'analyze this CSV' },
+              {
+                type: 'file',
+                mediaType: 'text/csv',
+                data: {
+                  type: 'url' as const,
+                  url: new URL('https://example.com/data.csv'),
+                },
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "analyze this CSV",
+                "type": "input_text",
+              },
+              {
+                "file_url": "https://example.com/data.csv",
+                "type": "input_file",
+              },
+            ],
+            "role": "user",
+          },
+        ]
+      `);
+    });
+
+    it('should throw for non-image file parts provided as inline bytes', async () => {
+      await expect(
+        convertToXaiResponsesInput({
+          prompt: [
+            {
+              role: 'user',
+              content: [
+                { type: 'text', text: 'check this file' },
+                {
+                  type: 'file',
+                  mediaType: 'application/pdf',
+                  data: {
+                    type: 'data' as const,
+                    data: new Uint8Array([1, 2, 3]),
+                  },
+                },
+              ],
+            },
+          ],
+        }),
+      ).rejects.toThrow('file part media type application/pdf');
     });
   });
 
@@ -290,7 +465,12 @@ describe('convertToXaiResponsesInput', () => {
       expect(result.input).toMatchInlineSnapshot(`
         [
           {
-            "content": "whats the weather",
+            "content": [
+              {
+                "text": "whats the weather",
+                "type": "input_text",
+              },
+            ],
             "role": "user",
           },
           {
@@ -351,7 +531,12 @@ describe('convertToXaiResponsesInput', () => {
       expect(result.input).toMatchInlineSnapshot(`
         [
           {
-            "content": "search for ai news",
+            "content": [
+              {
+                "text": "search for ai news",
+                "type": "input_text",
+              },
+            ],
             "role": "user",
           },
           {
@@ -361,6 +546,172 @@ describe('convertToXaiResponsesInput', () => {
           },
         ]
       `);
+    });
+
+    it('should round-trip reasoning with encrypted content in multi-turn', async () => {
+      const result = await convertToXaiResponsesInput({
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'What is the capital of France?' }],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'reasoning',
+                text: 'The user is asking about geography.',
+                providerOptions: {
+                  xai: {
+                    itemId: 'rs_789',
+                    reasoningEncryptedContent: 'encrypted_xyz',
+                  },
+                },
+              },
+              { type: 'text', text: 'The capital of France is Paris.' },
+            ],
+          },
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'And what about Germany?' }],
+          },
+        ],
+      });
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "What is the capital of France?",
+                "type": "input_text",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "encrypted_content": "encrypted_xyz",
+            "id": "rs_789",
+            "status": "completed",
+            "summary": [
+              {
+                "text": "The user is asking about geography.",
+                "type": "summary_text",
+              },
+            ],
+            "type": "reasoning",
+          },
+          {
+            "content": "The capital of France is Paris.",
+            "id": undefined,
+            "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "text": "And what about Germany?",
+                "type": "input_text",
+              },
+            ],
+            "role": "user",
+          },
+        ]
+      `);
+      expect(result.inputWarnings).toEqual([]);
+    });
+  });
+
+  describe('top-level-only media type resolution', () => {
+    const pngBase64 = 'iVBORw0KGgo=';
+
+    it('passes full image/png through unchanged for inline data', async () => {
+      const result = await convertToXaiResponsesInput({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'image/png',
+                data: { type: 'data', data: pngBase64 },
+              },
+            ],
+          },
+        ],
+      });
+
+      expect((result.input[0] as { content: unknown[] }).content[0]).toEqual({
+        type: 'input_image',
+        image_url: `data:image/png;base64,${pngBase64}`,
+      });
+    });
+
+    it('detects image subtype from inline bytes for top-level "image"', async () => {
+      const result = await convertToXaiResponsesInput({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'image',
+                data: { type: 'data', data: pngBase64 },
+              },
+            ],
+          },
+        ],
+      });
+
+      expect((result.input[0] as { content: unknown[] }).content[0]).toEqual({
+        type: 'input_image',
+        image_url: `data:image/png;base64,${pngBase64}`,
+      });
+    });
+
+    it('passes through URL source for top-level-only image', async () => {
+      const result = await convertToXaiResponsesInput({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'image',
+                data: {
+                  type: 'url',
+                  url: new URL('https://example.com/x.png'),
+                },
+              },
+            ],
+          },
+        ],
+      });
+
+      expect((result.input[0] as { content: unknown[] }).content[0]).toEqual({
+        type: 'input_image',
+        image_url: 'https://example.com/x.png',
+      });
+    });
+
+    it('normalizes image/* wildcard via detection', async () => {
+      const result = await convertToXaiResponsesInput({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'image/*',
+                data: { type: 'data', data: pngBase64 },
+              },
+            ],
+          },
+        ],
+      });
+
+      expect((result.input[0] as { content: unknown[] }).content[0]).toEqual({
+        type: 'input_image',
+        image_url: `data:image/png;base64,${pngBase64}`,
+      });
     });
   });
 });

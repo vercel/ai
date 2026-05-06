@@ -1,15 +1,14 @@
 import {
   AbstractChat,
-  ChatInit as BaseChatInit,
-  ChatState,
-  ChatStatus,
-  UIMessage,
+  type ChatInit as BaseChatInit,
+  type ChatState,
+  type ChatStatus,
+  type UIMessage,
 } from 'ai';
-import { Ref, ref } from 'vue';
-
-class VueChatState<UI_MESSAGE extends UIMessage>
-  implements ChatState<UI_MESSAGE>
-{
+import { ref, type Ref } from 'vue';
+class VueChatState<
+  UI_MESSAGE extends UIMessage,
+> implements ChatState<UI_MESSAGE> {
   private messagesRef: Ref<UI_MESSAGE[]>;
   private statusRef = ref<ChatStatus>('ready');
   private errorRef = ref<Error | undefined>(undefined);

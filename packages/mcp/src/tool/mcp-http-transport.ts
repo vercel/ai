@@ -2,16 +2,21 @@ import {
   EventSourceParserStream,
   withUserAgentSuffix,
   getRuntimeEnvironmentUserAgent,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { MCPClientError } from '../error/mcp-client-error';
-import { JSONRPCMessage, JSONRPCMessageSchema } from './json-rpc-message';
-import { MCPTransport } from './mcp-transport';
+import {
+  JSONRPCMessageSchema,
+  parseJSONRPCMessage,
+  type JSONRPCMessage,
+} from './json-rpc-message';
+import type { MCPTransport } from './mcp-transport';
 import { VERSION } from '../version';
 import {
-  OAuthClientProvider,
   extractResourceMetadataUrl,
   UnauthorizedError,
   auth,
+  type OAuthClientProvider,
 } from './oauth';
 import { LATEST_PROTOCOL_VERSION } from './types';
 
@@ -30,6 +35,8 @@ export class HttpMCPTransport implements MCPTransport {
   private resourceMetadataUrl?: URL;
   private sessionId?: string;
   private inboundSseConnection?: { close: () => void };
+  private redirectMode: RequestRedirect;
+  private fetchFn: FetchFunction;
 
   // Inbound SSE resumption and reconnection state
   private lastInboundEventId?: string;
@@ -49,14 +56,20 @@ export class HttpMCPTransport implements MCPTransport {
     url,
     headers,
     authProvider,
+    redirect = 'error',
+    fetch: fetchFn,
   }: {
     url: string;
     headers?: Record<string, string>;
     authProvider?: OAuthClientProvider;
+    redirect?: 'follow' | 'error';
+    fetch?: FetchFunction;
   }) {
     this.url = new URL(url);
     this.headers = headers;
     this.authProvider = authProvider;
+    this.redirectMode = redirect;
+    this.fetchFn = fetchFn ?? globalThis.fetch;
   }
 
   private async commonHeaders(
@@ -107,10 +120,11 @@ export class HttpMCPTransport implements MCPTransport {
         !this.abortController.signal.aborted
       ) {
         const headers = await this.commonHeaders({});
-        await fetch(this.url, {
+        await this.fetchFn(this.url.href, {
           method: 'DELETE',
           headers,
           signal: this.abortController.signal,
+          redirect: this.redirectMode,
         }).catch(() => undefined);
       }
     } catch {}
@@ -132,9 +146,10 @@ export class HttpMCPTransport implements MCPTransport {
           headers,
           body: JSON.stringify(message),
           signal: this.abortController?.signal,
+          redirect: this.redirectMode,
         } satisfies RequestInit;
 
-        const response = await fetch(this.url, init);
+        const response = await this.fetchFn(this.url.href, init);
 
         const sessionId = response.headers.get('mcp-session-id');
         if (sessionId) {
@@ -147,6 +162,7 @@ export class HttpMCPTransport implements MCPTransport {
             const result = await auth(this.authProvider, {
               serverUrl: this.url,
               resourceMetadataUrl: this.resourceMetadataUrl,
+              fetchFn: this.fetchFn,
             });
             if (result !== 'AUTHORIZED') {
               const error = new UnauthorizedError();
@@ -186,6 +202,13 @@ export class HttpMCPTransport implements MCPTransport {
           throw error;
         }
 
+        // Notifications (messages without 'id') don't expect a JSON-RPC response
+        // Some servers return 200 with acknowledgment JSON instead of 202
+        const isNotification = !('id' in message);
+        if (isNotification) {
+          return;
+        }
+
         const contentType = response.headers.get('content-type') || '';
         if (contentType.includes('application/json')) {
           const data = await response.json();
@@ -219,7 +242,7 @@ export class HttpMCPTransport implements MCPTransport {
                 const { event, data } = value;
                 if (event === 'message') {
                   try {
-                    const msg = JSONRPCMessageSchema.parse(JSON.parse(data));
+                    const msg = await parseJSONRPCMessage(data);
                     this.onmessage?.(msg);
                   } catch (error) {
                     const e = new MCPClientError({
@@ -301,10 +324,11 @@ export class HttpMCPTransport implements MCPTransport {
         headers['last-event-id'] = resumeToken;
       }
 
-      const response = await fetch(this.url.href, {
+      const response = await this.fetchFn(this.url.href, {
         method: 'GET',
         headers,
         signal: this.abortController?.signal,
+        redirect: this.redirectMode,
       });
 
       const sessionId = response.headers.get('mcp-session-id');
@@ -318,6 +342,7 @@ export class HttpMCPTransport implements MCPTransport {
           const result = await auth(this.authProvider, {
             serverUrl: this.url,
             resourceMetadataUrl: this.resourceMetadataUrl,
+            fetchFn: this.fetchFn,
           });
           if (result !== 'AUTHORIZED') {
             const error = new UnauthorizedError();
@@ -365,7 +390,7 @@ export class HttpMCPTransport implements MCPTransport {
 
             if (event === 'message') {
               try {
-                const msg = JSONRPCMessageSchema.parse(JSON.parse(data));
+                const msg = await parseJSONRPCMessage(data);
                 this.onmessage?.(msg);
               } catch (error) {
                 const e = new MCPClientError({

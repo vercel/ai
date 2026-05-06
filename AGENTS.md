@@ -24,10 +24,10 @@ This is a **monorepo** using pnpm workspaces and Turborepo.
 | `packages/<provider>`     | AI provider implementations (openai, anthropic, google, azure, amazon-bedrock, etc.) |
 | `packages/<framework>`    | UI framework integrations (react, vue, svelte, angular, rsc)                         |
 | `packages/codemod`        | Automated migrations for major releases                                              |
-| `examples/`               | Example applications (ai-core, next-openai, etc.)                                    |
+| `examples/`               | Example applications (ai-functions, next-openai, etc.)                               |
 | `content/`                | Documentation source files (MDX)                                                     |
 | `contributing/`           | Contributor guides and documentation                                                 |
-| `tools/`                  | Internal tooling (eslint-config, tsconfig)                                           |
+| `tools/`                  | Internal tooling (tsconfig)                                                          |
 
 ### Core Package Dependencies
 
@@ -60,10 +60,9 @@ pnpm build          # Build all packages
 | `pnpm install`           | Install dependencies                                              |
 | `pnpm build`             | Build all packages                                                |
 | `pnpm test`              | Run all tests (excludes examples)                                 |
-| `pnpm lint`              | Run linting                                                       |
-| `pnpm prettier-fix`      | Fix formatting issues                                             |
-| `pnpm prettier-check`    | Check formatting                                                  |
-| `pnpm type-check`        | TypeScript type checking                                          |
+| `pnpm check`             | Run linting (oxlint) and formatting (oxfmt) checks               |
+| `pnpm fix`               | Fix linting and formatting issues                                 |
+| `pnpm type-check:full`   | TypeScript type checking (includes examples)                      |
 | `pnpm changeset`         | Add a changeset for your PR                                       |
 | `pnpm update-references` | Update tsconfig.json references after adding package dependencies |
 
@@ -83,9 +82,16 @@ Run these from within a package directory (e.g., `packages/ai`):
 ### Running Examples
 
 ```bash
-cd examples/ai-core
-pnpm tsx src/stream-text/openai.ts    # Run a specific example
+cd examples/ai-functions
+pnpm tsx src/stream-text/openai/basic.ts    # Run a specific example
 ```
+
+### AI Functions Example Layout
+
+- Place examples under `examples/ai-functions/src/<function>/<provider>/`
+- Use `basic.ts` for the provider entry example file
+- Place all other examples in the same provider folder using descriptive `kebab-case` file names
+- Do not create flat top-level provider files like `src/stream-text/openai.ts`
 
 ## Core APIs
 
@@ -108,17 +114,17 @@ pnpm tsx src/stream-text/openai.ts    # Run a specific example
 | Tool/schema utilities (`tool`, `jsonSchema`)  | `ai`                                          |
 | Provider implementations                      | `@ai-sdk/<provider>` (e.g., `@ai-sdk/openai`) |
 | Error classes                                 | `ai` (re-exports from `@ai-sdk/provider`)     |
-| Provider type interfaces (`LanguageModelV3`)  | `@ai-sdk/provider`                            |
+| Provider type interfaces (`LanguageModelV4`)  | `@ai-sdk/provider`                            |
 | Provider implementation utilities             | `@ai-sdk/provider-utils`                      |
 
 ## Coding Standards
 
 ### Formatting
 
-- **Tool**: Prettier
-- **Config**: Defined in root `package.json`
-- **Settings**: Single quotes, trailing commas, 2-space indentation, no tabs
-- **Run**: `pnpm prettier-fix` before committing
+- **Formatter**: oxfmt (via `pnpm fix` or `ultracite fix`)
+- **Linter**: oxlint (via `pnpm check` or `ultracite check`)
+- **Config**: `.oxfmtrc.jsonc` (formatter) and `.oxlintrc.json` (linter)
+- **Pre-commit hook**: Runs `pnpm install` if `package.json` changes are staged
 
 ### Testing
 
@@ -145,6 +151,16 @@ import * as z4 from 'zod/v4';
 
 Never use `JSON.parse` directly in production code to prevent security risks.
 Instead use `parseJSON` or `safeParseJSON` from `@ai-sdk/provider-utils`.
+
+### Type Checking
+
+Always run type checking after making code changes:
+
+```bash
+pnpm type-check:full    # Run from workspace root
+```
+
+This ensures your changes don't introduce type errors across the codebase, including examples.
 
 ### File Naming Conventions
 
@@ -177,16 +193,33 @@ export class MyError extends AISDKError {
 }
 ```
 
+## Architecture Decision Records (ADRs)
+
+This repo uses ADRs in `contributing/decisions/` to capture important architecture decisions. Before making changes that touch architecture (new dependencies, new patterns, API design, infrastructure), check existing ADRs:
+
+1. Read `contributing/decisions/README.md` for the index of decisions.
+2. Read any accepted ADRs relevant to your area of work. Follow the decisions and implementation patterns they specify.
+3. If you encounter a pattern in the code and wonder "why is it done this way?", check whether an ADR explains it.
+4. If your work would contradict an existing accepted ADR, stop and discuss with the human before proceeding.
+
+To propose or create a new ADR, use the ADR skill.
+
+## Project Philosophies
+
+For an overview of the project's key philosophies that guide decision making, see `contributing/project-philosophies.md`.
+
 ## Architecture
 
 ### Provider Pattern
 
 The SDK uses a layered provider architecture following the adapter pattern:
 
-1. **Specifications** (`@ai-sdk/provider`): Defines interfaces like `LanguageModelV3`
+1. **Specifications** (`@ai-sdk/provider`): Defines interfaces like `LanguageModelV4`
 2. **Utilities** (`@ai-sdk/provider-utils`): Shared code for implementing providers
 3. **Providers** (`@ai-sdk/<provider>`): Concrete implementations for each AI service
 4. **Core** (`ai`): High-level functions like `generateText`, `streamText`, `generateObject`
+
+For a focused conceptual walkthrough of AI functions, model specifications, and provider implementations, see `architecture/provider-abstraction.md`.
 
 ### Provider Development
 
@@ -225,10 +258,50 @@ The SDK uses a layered provider architecture following the adapter pattern:
 - **Command**: `pnpm changeset` in workspace root
 - **Note**: Don't select example packages - they're not published
 
+## Task Completion Guidelines
+
+These guidelines outline typical artifacts for different task types. Use judgment to adapt based on scope and context.
+
+### Bug Fixes
+
+A complete bug fix typically includes:
+
+1. **Reproduction example**: Create/update an example in `examples/` that demonstrates the bug before fixing
+2. **Unit tests**: Add tests that would fail without the fix (regression tests)
+3. **Implementation**: Fix the bug
+4. **Manual verification**: Run the reproduction example to confirm the fix
+5. **Changeset**: Describe what was broken and how it's fixed
+
+### New Features
+
+A complete feature typically includes:
+
+1. **Implementation**: Build the feature
+2. **Examples**: Add usage examples in `examples/` demonstrating the feature
+3. **Unit tests**: Comprehensive test coverage for new functionality
+4. **Documentation**: Update relevant docs in `content/` for public APIs
+5. **Changeset**: Describe the feature for release notes
+
+### Refactoring / Internal Changes
+
+- Unit tests for any changed behavior
+- No documentation needed for internal-only changes
+- Changeset only if it affects published packages
+
+### When to Deviate
+
+These are guidelines, not rigid rules. Adjust based on:
+
+- **Scope**: Trivial fixes (typos, comments) may not need examples
+- **Visibility**: Internal changes may not need documentation
+- **Context**: Some changes span multiple categories
+
+When uncertain about expected artifacts, ask for clarification.
+
 ## Do Not
 
-- Add minor/major changesets without maintainer approval
+- Add minor/major changesets
 - Change public APIs without updating documentation
-- Commit without running `pnpm prettier-fix`
-- Use `require()` for Zod imports
+- Use `require()` for imports
 - Add new dependencies without running `pnpm update-references`
+- Modify `content/docs/08-migration-guides` or `packages/codemod` as part of broader codebase changes

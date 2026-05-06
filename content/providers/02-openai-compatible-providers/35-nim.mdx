@@ -114,12 +114,11 @@ console.log('Token usage:', await result.usage);
 console.log('Finish reason:', await result.finishReason);
 ```
 
-NIM language models can also be used with other AI SDK functions like `generateObject` and `streamObject`.
+NIM language models also support structured data generation with [`Output`](/docs/reference/ai-sdk-core/output).
 
 <Note>
-  Model support for tool calls and structured object generation varies. For
-  example, the
+  Model support for tool calls and structured output varies. For example, the
   [`meta/llama-3.3-70b-instruct`](https://build.nvidia.com/meta/llama-3_3-70b-instruct)
-  model supports object generation capabilities. Check each model's
+  model supports structured output capabilities. Check each model's
   documentation on NVIDIA Build for specific supported features.
 </Note>

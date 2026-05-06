@@ -3,6 +3,29 @@ import { isAbortError } from './is-abort-error';
 
 const FETCH_FAILED_ERROR_MESSAGES = ['fetch failed', 'failed to fetch'];
 
+const BUN_ERROR_CODES = [
+  'ConnectionRefused',
+  'ConnectionClosed',
+  'FailedToOpenSocket',
+  'ECONNRESET',
+  'ECONNREFUSED',
+  'ETIMEDOUT',
+  'EPIPE',
+];
+
+function isBunNetworkError(error: unknown): error is Error & { code?: string } {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  const code = (error as any).code;
+  if (typeof code === 'string' && BUN_ERROR_CODES.includes(code)) {
+    return true;
+  }
+
+  return false;
+}
+
 export function handleFetchError({
   error,
   url,
@@ -33,6 +56,16 @@ export function handleFetchError({
         isRetryable: true, // retry when network error
       });
     }
+  }
+
+  if (isBunNetworkError(error)) {
+    return new APICallError({
+      message: `Cannot connect to API: ${error.message}`,
+      cause: error,
+      url,
+      requestBodyValues,
+      isRetryable: true,
+    });
   }
 
   return error;

@@ -17,12 +17,14 @@ export class GatewayRateLimitError extends GatewayError {
     message = 'Rate limit exceeded',
     statusCode = 429,
     cause,
+    generationId,
   }: {
     message?: string;
     statusCode?: number;
     cause?: unknown;
+    generationId?: string;
   } = {}) {
-    super({ message, statusCode, cause });
+    super({ message, statusCode, cause, generationId });
   }
 
   static isInstance(error: unknown): error is GatewayRateLimitError {

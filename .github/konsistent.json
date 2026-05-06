@@ -1,0 +1,320 @@
+{
+  "$schema": "../node_modules/konsistent/konsistent.schema.json",
+  "version": "v1",
+  "conventions": [
+    {
+      "name": "package-dir-must-have-required-files",
+      "description": "Every package directory must contain a specific minimum set of files.",
+      "paths": ["packages/*", "!packages/test-server"],
+      "must": [
+        {
+          "name": "package-dir-must-have-package-and-docs-files",
+          "description": "Every package directory must contain CHANGELOG, README, package.json and tsconfig.json.",
+          "must": {
+            "haveType": "directory",
+            "haveFiles": [
+              "CHANGELOG.md",
+              "README.md",
+              "package.json",
+              "tsconfig.json"
+            ]
+          },
+          "excludeFiles": ["packages/mcp", "packages/otel", "packages/voyage"]
+        },
+        {
+          "name": "package-dir-must-have-index",
+          "description": "Every package directory must contain src/index.ts.",
+          "must": {
+            "haveFiles": ["src/index.ts"]
+          },
+          "excludeFiles": ["packages/codemod"]
+        },
+        {
+          "name": "package-dir-must-have-tsup-config",
+          "description": "Every package directory must contain tsup.config.ts.",
+          "must": {
+            "haveFiles": ["tsup.config.ts"]
+          },
+          "excludeFiles": ["packages/svelte"]
+        }
+      ]
+    },
+    {
+      "name": "provider-package-must-export-required-symbols",
+      "description": "Every provider package must have specific files that export a specific set of symbols.",
+      "paths": [
+        "packages/{providerId}/src/index.ts",
+        "!packages/ai",
+        "!packages/angular",
+        "!packages/codemod",
+        "!packages/devtools",
+        "!packages/langchain",
+        "!packages/llamaindex",
+        "!packages/mcp",
+        "!packages/otel",
+        "!packages/provider",
+        "!packages/provider-utils",
+        "!packages/react",
+        "!packages/rsc",
+        "!packages/svelte",
+        "!packages/test-server",
+        "!packages/valibot",
+        "!packages/vue",
+        "!packages/workflow"
+      ],
+      "must": [
+        {
+          "name": "provider-package-must-export-provider-creator-and-settings",
+          "description": "Every provider package must export a provider type, creator function, and settings from its index.ts file.",
+          "must": {
+            "export": ["create${providerId.toPascalCase()}", "VERSION"],
+            "exportTypes": [
+              {
+                "name": "${providerId.toPascalCase()}Provider",
+                "from": "./${providerId}-provider"
+              },
+              {
+                "name": "${providerId.toPascalCase()}ProviderSettings",
+                "from": "./${providerId}-provider"
+              }
+            ],
+            "haveFiles": ["${providerId}-provider.ts"]
+          },
+          "excludeFiles": ["packages/azure/src/index.ts"]
+        },
+        {
+          "name": "provider-package-must-export-instance-case-1",
+          "description": "Every provider package must export a provider instance from its index.ts file.",
+          "if": {
+            "placeholderSatisfies": "providerId:matches(^[a-z]+ai$)"
+          },
+          "must": {
+            "export": ["${providerId.toFlatCase()}"]
+          }
+        },
+        {
+          "name": "provider-package-must-export-instance-case-2",
+          "description": "Every provider package must export a provider instance from its index.ts file.",
+          "if": {
+            "placeholderSatisfies": "providerId:matches(^(?!^[a-z]+ai$).*$)"
+          },
+          "must": {
+            "export": ["${providerId.toCamelCase()}"]
+          },
+          "excludeFiles": [
+            "packages/openai-compatible/src/index.ts",
+            "packages/open-responses/src/index.ts"
+          ]
+        },
+        {
+          "name": "provider-file-must-export-provider-class-and-settings-type",
+          "description": "Every provider file must export a provider class and a provider settings type.",
+          "for": {
+            "files": [
+              "${providerId}-provider.ts",
+              "google-vertex-provider-base.ts"
+            ]
+          },
+          "must": {
+            "importTypes": [
+              {
+                "name": "ProviderV4",
+                "from": "@ai-sdk/provider"
+              }
+            ],
+            "exportInterfaces": [
+              {
+                "name": "${providerId.toPascalCase()}Provider",
+                "extend": "ProviderV4"
+              },
+              "${providerId.toPascalCase()}ProviderSettings"
+            ],
+            "exportFunctions": [
+              {
+                "name": "create${providerId.toPascalCase()}",
+                "receiveParamOfType": "${providerId.toPascalCase()}ProviderSettings",
+                "returnValueOfType": "${providerId.toPascalCase()}Provider"
+              }
+            ]
+          },
+          "excludeFiles": [
+            "packages/google-vertex/src/google-vertex-provider.ts"
+          ]
+        },
+        {
+          "name": "provider-file-must-export-provider-instance-case-1",
+          "description": "Every provider file must export a provider instance.",
+          "for": {
+            "files": "${providerId}-provider.ts"
+          },
+          "if": {
+            "placeholderSatisfies": "providerId:matches(^[a-z]+ai$)"
+          },
+          "must": {
+            "exportConstants": ["${providerId.toFlatCase()}"]
+          }
+        },
+        {
+          "name": "provider-file-must-export-provider-instance-case-2",
+          "description": "Every provider file must export a provider instance.",
+          "for": {
+            "files": "${providerId}-provider.ts"
+          },
+          "if": {
+            "placeholderSatisfies": "providerId:matches(^(?!^[a-z]+ai$).*$)"
+          },
+          "must": {
+            "exportConstants": ["${providerId.toCamelCase()}"]
+          },
+          "excludeFiles": [
+            "packages/openai-compatible/src/openai-compatible-provider.ts",
+            "packages/open-responses/src/open-responses-provider.ts"
+          ]
+        },
+        {
+          "name": "provider-model-file-must-export-model-class",
+          "description": "Every provider's model file must export a model class and a model options type.",
+          "for": {
+            "files": [
+              "${providerId}-{modelKind:segments(1)}-model.ts",
+              "*/${providerId}-{modelKind:segments(1)}-model.ts"
+            ]
+          },
+          "must": {
+            "importTypes": [
+              {
+                "name": "${modelKind.toPascalCase()}ModelV4",
+                "from": "@ai-sdk/provider"
+              }
+            ],
+            "exportClasses": [
+              {
+                "name": "${providerId.toPascalCase()}${modelKind.toPascalCase()}Model",
+                "implement": ["${modelKind.toPascalCase()}ModelV4"]
+              }
+            ],
+            "haveFiles": ["${providerId}-${modelKind}-model-options.ts"]
+          },
+          "excludeFiles": [
+            "${providerId}-video-model.ts",
+            "packages/amazon-bedrock/src/amazon-bedrock-image-model.ts",
+            "packages/deepinfra/src/deepinfra-image-model.ts",
+            "packages/fireworks/src/fireworks-image-model.ts",
+            "packages/gateway/src/gateway-embedding-model.ts",
+            "packages/gateway/src/gateway-image-model.ts",
+            "packages/gateway/src/gateway-language-model.ts",
+            "packages/gateway/src/gateway-reranking-model.ts",
+            "packages/mistral/src/mistral-embedding-model.ts",
+            "packages/openai-compatible/src/image/openai-compatible-image-model.ts",
+            "packages/perplexity/src/perplexity-language-model.ts"
+          ]
+        },
+        {
+          "name": "provider-model-file-with-subtype-must-export-model-class",
+          "description": "Every provider's model file with a specific subtype (e.g. chat, responses) must export a model class and a model options type.",
+          "for": {
+            "files": [
+              "${providerId}-{modelKind:segments(2)}-model.ts",
+              "*/${providerId}-{modelKind:segments(2)}-model.ts"
+            ]
+          },
+          "must": {
+            "importTypes": [
+              {
+                "name": "${modelKind.toNthSegmentPascalCase(1)}ModelV4",
+                "from": "@ai-sdk/provider"
+              }
+            ],
+            "exportClasses": [
+              {
+                "name": "${providerId.toPascalCase()}${modelKind.toNthSegmentPascalCase(0)}${modelKind.toNthSegmentPascalCase(1)}Model",
+                "implement": ["${modelKind.toNthSegmentPascalCase(1)}ModelV4"]
+              }
+            ],
+            "haveFiles": ["${providerId}-${modelKind}-model-options.ts"]
+          },
+          "excludeFiles": [
+            "packages/deepinfra/src/deepinfra-chat-language-model.ts",
+            "packages/moonshotai/src/moonshotai-chat-language-model.ts"
+          ]
+        },
+        {
+          "name": "provider-video-model-file-must-export-model-class",
+          "description": "Every provider's video model file must export a model class and a model options type (separated only because VideoModelV4 type is experimental).",
+          "for": {
+            "files": [
+              "${providerId}-video-model.ts",
+              "*/${providerId}-video-model.ts"
+            ]
+          },
+          "must": {
+            "importTypes": [
+              {
+                "name": "Experimental_VideoModelV4",
+                "from": "@ai-sdk/provider"
+              }
+            ],
+            "exportClasses": [
+              {
+                "name": "${providerId.toPascalCase()}VideoModel",
+                "implement": ["Experimental_VideoModelV4"]
+              }
+            ],
+            "haveFiles": ["${providerId}-video-model-options.ts"]
+          },
+          "excludeFiles": [
+            "packages/bytedance/src/bytedance-video-model.ts",
+            "packages/gateway/src/gateway-video-model.ts"
+          ]
+        },
+        {
+          "name": "provider-model-options-file-must-export-model-options-type",
+          "description": "Every provider's model options file must export a model options type.",
+          "for": {
+            "files": [
+              "${providerId}-{modelKind:segments(1)}-model-options.ts",
+              "*/${providerId}-{modelKind:segments(1)}-model-options.ts"
+            ]
+          },
+          "must": {
+            "exportTypes": [
+              "${providerId.toPascalCase()}${modelKind.toPascalCase()}ModelOptions"
+            ]
+          }
+        },
+        {
+          "name": "provider-model-options-file-with-subtype-must-export-model-options-type",
+          "description": "Every provider's model options file must export a model options type.",
+          "for": {
+            "files": [
+              "${providerId}-{modelKind:segments(2)}-model-options.ts",
+              "*/${providerId}-{modelKind:segments(2)}-model-options.ts"
+            ]
+          },
+          "must": {
+            "exportTypes": [
+              "${providerId.toPascalCase()}${modelKind.toNthSegmentPascalCase(1)}Model${modelKind.toNthSegmentPascalCase(0)}Options"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "kebabToPascalMap": {
+    "assemblyai": "AssemblyAI",
+    "bytedance": "ByteDance",
+    "deepinfra": "DeepInfra",
+    "deepseek": "DeepSeek",
+    "elevenlabs": "ElevenLabs",
+    "huggingface": "HuggingFace",
+    "klingai": "KlingAI",
+    "lmnt": "LMNT",
+    "moonshotai": "MoonshotAI",
+    "openai": "OpenAI",
+    "openai-compatible": "OpenAICompatible",
+    "togetherai": "TogetherAI"
+  },
+  "kebabToCamelMap": {
+    "lmnt": "lmnt"
+  }
+}

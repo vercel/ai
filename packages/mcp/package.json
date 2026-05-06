@@ -1,13 +1,18 @@
 {
   "name": "@ai-sdk/mcp",
-  "version": "1.0.5",
+  "version": "2.0.0-canary.41",
+  "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
-  "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "files": [
     "dist/**/*",
+    "src",
+    "!src/**/*.test.ts",
+    "!src/**/*.test-d.ts",
+    "!src/**/__snapshots__",
+    "!src/**/__fixtures__",
     "CHANGELOG.md",
     "README.md",
     "internal.d.ts"
@@ -16,9 +21,7 @@
     "build": "pnpm clean && tsup --tsconfig tsconfig.build.json",
     "build:watch": "pnpm clean && tsup --watch",
     "clean": "rm -rf dist *.tsbuildinfo",
-    "lint": "eslint \"./**/*.ts*\"",
     "type-check": "tsc --build",
-    "prettier-check": "prettier --check \"./**/*.ts*\"",
     "test": "pnpm test:node && pnpm test:edge",
     "test:update": "pnpm test:node -u",
     "test:watch": "vitest --config vitest.node.config.js",
@@ -29,14 +32,13 @@
     "./package.json": "./package.json",
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.mjs",
-      "require": "./dist/index.js"
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
     },
     "./mcp-stdio": {
       "types": "./dist/mcp-stdio/index.d.ts",
-      "import": "./dist/mcp-stdio/index.mjs",
-      "module": "./dist/mcp-stdio/index.mjs",
-      "require": "./dist/mcp-stdio/index.js"
+      "import": "./dist/mcp-stdio/index.js",
+      "default": "./dist/mcp-stdio/index.js"
     }
   },
   "dependencies": {
@@ -50,7 +52,7 @@
     "@vercel/ai-tsconfig": "workspace:*",
     "tsup": "^8",
     "typescript": "5.8.3",
-    "vitest": "2.1.4",
+    "vitest": "^4.1.5",
     "zod": "3.25.76"
   },
   "peerDependencies": {
@@ -60,12 +62,14 @@
     "node": ">=18"
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "provenance": true
   },
   "homepage": "https://ai-sdk.dev/docs",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/vercel/ai.git"
+    "url": "https://github.com/vercel/ai",
+    "directory": "packages/mcp"
   },
   "bugs": {
     "url": "https://github.com/vercel/ai/issues"

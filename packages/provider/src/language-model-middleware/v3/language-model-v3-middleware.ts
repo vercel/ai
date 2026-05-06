@@ -1,7 +1,7 @@
-import { LanguageModelV3 } from '../../language-model/v3/language-model-v3';
-import { LanguageModelV3CallOptions } from '../../language-model/v3/language-model-v3-call-options';
-import { LanguageModelV3GenerateResult } from '../../language-model/v3/language-model-v3-generate-result';
-import { LanguageModelV3StreamResult } from '../../language-model/v3/language-model-v3-stream-result';
+import type { LanguageModelV3 } from '../../language-model/v3/language-model-v3';
+import type { LanguageModelV3CallOptions } from '../../language-model/v3/language-model-v3-call-options';
+import type { LanguageModelV3GenerateResult } from '../../language-model/v3/language-model-v3-generate-result';
+import type { LanguageModelV3StreamResult } from '../../language-model/v3/language-model-v3-stream-result';
 
 /**
  * Experimental middleware for LanguageModelV3.
