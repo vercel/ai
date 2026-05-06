@@ -181,8 +181,10 @@ export type GenerateTextInclude = {
  * Receives step number, messages (in ModelMessage format), tools, and runtimeContext.
  * @param onToolExecutionStart - Callback invoked before each tool execution begins.
  * Receives tool name, call ID, input, and context.
+ * @param experimental_onToolCallStart - Deprecated alias for `onToolExecutionStart`.
  * @param onToolExecutionEnd - Callback invoked after each tool execution completes.
  * Uses a discriminated union: check `success` to determine if `output` or `error` is present.
+ * @param experimental_onToolCallFinish - Deprecated alias for `onToolExecutionEnd`.
  * @param onStepFinish - Callback that is called when each step (LLM call) is finished, including intermediate steps.
  * @param onFinish - Callback that is called when all steps are finished and the response is complete.
  *
@@ -229,6 +231,8 @@ export async function generateText<
   experimental_onLanguageModelCallEnd: onLanguageModelCallEnd,
   onToolExecutionStart,
   onToolExecutionEnd,
+  experimental_onToolCallStart,
+  experimental_onToolCallFinish,
   onStepFinish,
   onFinish,
   ...settings
@@ -361,9 +365,23 @@ export async function generateText<
     onToolExecutionStart?: OnToolExecutionStartCallback<NoInfer<TOOLS>>;
 
     /**
+     * Callback that is called right before a tool's execute function runs.
+     *
+     * @deprecated Use `onToolExecutionStart` instead.
+     */
+    experimental_onToolCallStart?: OnToolExecutionStartCallback<NoInfer<TOOLS>>;
+
+    /**
      * Callback that is called right after a tool's execute function completes (or errors).
      */
     onToolExecutionEnd?: OnToolExecutionEndCallback<NoInfer<TOOLS>>;
+
+    /**
+     * Callback that is called right after a tool's execute function completes (or errors).
+     *
+     * @deprecated Use `onToolExecutionEnd` instead.
+     */
+    experimental_onToolCallFinish?: OnToolExecutionEndCallback<NoInfer<TOOLS>>;
 
     /**
      * Callback that is called when each step (LLM call) is finished, including intermediate steps.
@@ -401,6 +419,10 @@ export async function generateText<
   }): Promise<GenerateTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>> {
   const model = resolveLanguageModel(modelArg);
   const stopConditions = asArray(stopWhen);
+  const resolvedOnToolExecutionStart =
+    onToolExecutionStart ?? experimental_onToolCallStart;
+  const resolvedOnToolExecutionEnd =
+    onToolExecutionEnd ?? experimental_onToolCallFinish;
 
   const totalTimeoutMs = getTotalTimeoutMs(timeout);
   const stepTimeoutMs = getStepTimeoutMs(timeout);
@@ -503,7 +525,7 @@ export async function generateText<
           notify({
             event,
             callbacks: [
-              onToolExecutionStart,
+              resolvedOnToolExecutionStart,
               telemetryDispatcher.onToolExecutionStart,
             ],
           }),
@@ -511,7 +533,7 @@ export async function generateText<
           notify({
             event,
             callbacks: [
-              onToolExecutionEnd,
+              resolvedOnToolExecutionEnd,
               telemetryDispatcher.onToolExecutionEnd,
             ],
           }),
@@ -895,7 +917,7 @@ export async function generateText<
                 notify({
                   event,
                   callbacks: [
-                    onToolExecutionStart,
+                    resolvedOnToolExecutionStart,
                     telemetryDispatcher.onToolExecutionStart,
                   ],
                 }),
@@ -903,7 +925,7 @@ export async function generateText<
                 notify({
                   event,
                   callbacks: [
-                    onToolExecutionEnd,
+                    resolvedOnToolExecutionEnd,
                     telemetryDispatcher.onToolExecutionEnd,
                   ],
                 }),
