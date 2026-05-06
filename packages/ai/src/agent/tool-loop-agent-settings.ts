@@ -201,13 +201,6 @@ export type ToolLoopAgentSettings<
     include?: GenerateTextInclude & StreamTextInclude;
 
     /**
-     * Settings for controlling what data is included in step results.
-     *
-     * @deprecated Use `include` instead.
-     */
-    experimental_include?: GenerateTextInclude & StreamTextInclude;
-
-    /**
      * Internal. For test use only. May change without notice.
      */
     _internal?: {
@@ -262,7 +255,6 @@ export type ToolLoopAgentSettings<
           | 'experimental_download'
           | 'experimental_refineToolInput'
           | 'include'
-          | 'experimental_include'
           | 'runtimeContext'
           | '_internal'
         > & { toolsContext: InferToolSetContext<TOOLS> },
@@ -295,7 +287,6 @@ export type ToolLoopAgentSettings<
         | 'experimental_download'
         | 'experimental_refineToolInput'
         | 'include'
-        | 'experimental_include'
         | 'runtimeContext'
         | '_internal'
       > &

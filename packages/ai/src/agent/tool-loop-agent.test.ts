@@ -391,19 +391,6 @@ describe('ToolLoopAgent', () => {
         ]);
       });
 
-      it('should accept deprecated experimental_include as an alias for include', async () => {
-        const agent = new ToolLoopAgent({
-          model: mockModel,
-          experimental_include: { requestMessages: true },
-        });
-
-        const result = await agent.generate({ prompt: 'test' });
-
-        expect(result.request.messages).toStrictEqual([
-          { role: 'user', content: 'test' },
-        ]);
-      });
-
       it('should honor toolApproval in generate', async () => {
         let modelCallCount = 0;
         const execute = vi.fn(async () => 'tool-result');
