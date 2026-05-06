@@ -279,10 +279,46 @@ This applies to all AI SDK functions and agents that accept telemetry configurat
 
 No behavior changes beyond the rename. You can migrate incrementally — mixed usage of `telemetry` and `experimental_telemetry` in the same codebase is supported during the deprecation window.
 
+### Tool Execution Callbacks: `experimental_onToolCallStart` and `experimental_onToolCallFinish` Renamed
+
+The tool execution callback options for `generateText` and `streamText` have been renamed:
+
+- `experimental_onToolCallStart` is now `onToolExecutionStart`
+- `experimental_onToolCallFinish` is now `onToolExecutionEnd`
+
+The old names continue to work as deprecated aliases in AI SDK 7 and will be removed in a future major release. They are only used as fallbacks when the new callback names are not provided.
+
+```tsx filename="AI SDK 6"
+const result = await generateText({
+  model: yourModel,
+  tools,
+  prompt: 'Hello',
+  experimental_onToolCallStart(event) {
+    console.log('Tool starting:', event.toolCall.toolName);
+  },
+  experimental_onToolCallFinish(event) {
+    console.log('Tool finished:', event.toolCall.toolName);
+  },
+});
+```
+
+```tsx filename="AI SDK 7"
+const result = await generateText({
+  model: yourModel,
+  tools,
+  prompt: 'Hello',
+  onToolExecutionStart(event) {
+    console.log('Tool starting:', event.toolCall.toolName);
+  },
+  onToolExecutionEnd(event) {
+    console.log('Tool finished:', event.toolCall.toolName);
+  },
+});
+```
+
 ### Streaming: Move `includeRawChunks` to `include.rawChunks`
 
-The top-level `includeRawChunks` option on `streamText` is deprecated in AI SDK
-7. Move it into the `include` options object as `rawChunks`.
+The top-level `includeRawChunks` option on `streamText` is deprecated in AI SDK 7. Move it into the `include` options object as `rawChunks`.
 
 ```tsx filename="AI SDK 6"
 const result = streamText({
@@ -302,8 +338,7 @@ const result = streamText({
 });
 ```
 
-The deprecated top-level option continues to work in AI SDK 7, so you can
-migrate incrementally.
+The deprecated top-level option continues to work in AI SDK 7, so you can migrate incrementally.
 
 ### Rename `experimental_include` to `include`
 

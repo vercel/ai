@@ -2293,6 +2293,20 @@ To see `streamText` in action, check out [these examples](#examples).
         },
       ],
     },
+    {
+      name: 'experimental_onToolCallStart',
+      type: '(event: ToolExecutionStartEvent) => PromiseLike<void> | void',
+      isOptional: true,
+      description:
+        'Deprecated. Use `onToolExecutionStart` instead. This alias is only used as a fallback when `onToolExecutionStart` is not provided.',
+    },
+    {
+      name: 'experimental_onToolCallFinish',
+      type: '(event: ToolExecutionEndEvent) => PromiseLike<void> | void',
+      isOptional: true,
+      description:
+        'Deprecated. Use `onToolExecutionEnd` instead. This alias is only used as a fallback when `onToolExecutionEnd` is not provided.',
+    },
   ]}
 />
 
