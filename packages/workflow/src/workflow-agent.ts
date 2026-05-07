@@ -1609,11 +1609,28 @@ export class WorkflowAgent<
             | undefined,
         });
       }
+      await telemetryDispatcher.onToolExecutionStart?.({
+        toolCall: toolCallEvent,
+        stepNumber: currentStepNumber,
+        messages: modelMessages,
+        toolContext: resolvedContext as
+          | InferToolSetContext<TTools>[keyof InferToolSetContext<TTools>]
+          | undefined,
+      });
 
       const startTime = Date.now();
       let result: LanguageModelV4ToolResultPart;
       try {
-        result = await executeTool(toolCall, tools, messages, resolvedContext);
+        const execute = () =>
+          executeTool(toolCall, tools, messages, resolvedContext);
+        result =
+          telemetryDispatcher.executeTool != null
+            ? await telemetryDispatcher.executeTool({
+                callId: 'workflow-agent',
+                toolCallId: toolCall.toolCallId,
+                execute,
+              })
+            : await execute();
       } catch (err) {
         const durationMs = Date.now() - startTime;
         if (mergedOnToolExecutionEnd) {
@@ -1629,6 +1646,17 @@ export class WorkflowAgent<
             error: err,
           });
         }
+        await telemetryDispatcher.onToolExecutionEnd?.({
+          toolCall: toolCallEvent,
+          stepNumber: currentStepNumber,
+          durationMs,
+          messages: modelMessages,
+          toolContext: resolvedContext as
+            | InferToolSetContext<TTools>[keyof InferToolSetContext<TTools>]
+            | undefined,
+          success: false,
+          error: err,
+        });
         throw err;
       }
 
@@ -1668,7 +1696,91 @@ export class WorkflowAgent<
           });
         }
       }
+      if (
+        result.output &&
+        'type' in result.output &&
+        (result.output.type === 'error-text' ||
+          result.output.type === 'error-json')
+      ) {
+        await telemetryDispatcher.onToolExecutionEnd?.({
+          toolCall: toolCallEvent,
+          stepNumber: currentStepNumber,
+          durationMs,
+          messages: modelMessages,
+          toolContext: resolvedContext as
+            | InferToolSetContext<TTools>[keyof InferToolSetContext<TTools>]
+            | undefined,
+          success: false,
+          error: 'value' in result.output ? result.output.value : undefined,
+        });
+      } else {
+        await telemetryDispatcher.onToolExecutionEnd?.({
+          toolCall: toolCallEvent,
+          stepNumber: currentStepNumber,
+          durationMs,
+          messages: modelMessages,
+          toolContext: resolvedContext as
+            | InferToolSetContext<TTools>[keyof InferToolSetContext<TTools>]
+            | undefined,
+          success: true,
+          output:
+            result.output && 'value' in result.output
+              ? result.output.value
+              : undefined,
+        });
+      }
       return result;
+    };
+
+    const recordProviderExecutedToolTelemetry = async (
+      toolCall: { toolCallId: string; toolName: string; input: unknown },
+      result: LanguageModelV4ToolResultPart,
+      messages: LanguageModelV4Prompt,
+      currentStepNumber: number,
+    ) => {
+      const toolCallEvent: ToolCall = {
+        type: 'tool-call',
+        toolCallId: toolCall.toolCallId,
+        toolName: toolCall.toolName,
+        input: toolCall.input,
+      };
+      const modelMessages = getToolCallbackMessages(messages);
+
+      await telemetryDispatcher.onToolExecutionStart?.({
+        toolCall: toolCallEvent,
+        stepNumber: currentStepNumber,
+        messages: modelMessages,
+        toolContext: undefined,
+      });
+
+      const isError =
+        result.output &&
+        'type' in result.output &&
+        (result.output.type === 'error-text' ||
+          result.output.type === 'error-json');
+
+      await telemetryDispatcher.onToolExecutionEnd?.({
+        toolCall: toolCallEvent,
+        stepNumber: currentStepNumber,
+        durationMs: 0,
+        messages: modelMessages,
+        toolContext: undefined,
+        ...(isError
+          ? {
+              success: false as const,
+              error:
+                result.output && 'value' in result.output
+                  ? result.output.value
+                  : undefined,
+            }
+          : {
+              success: true as const,
+              output:
+                result.output && 'value' in result.output
+                  ? result.output.value
+                  : undefined,
+            }),
+      });
     };
 
     // Check for abort before starting
@@ -1829,6 +1941,16 @@ export class WorkflowAgent<
                   providerExecutedToolResults,
                 ),
               );
+            await Promise.all(
+              providerToolCalls.map((toolCall, index) =>
+                recordProviderExecutedToolTelemetry(
+                  toolCall,
+                  providerResults[index],
+                  iterMessages,
+                  currentStepNumber,
+                ),
+              ),
+            );
 
             const continuationInvalidResults = invalidToolCalls.map(
               createInvalidToolResult,
@@ -1945,6 +2067,16 @@ export class WorkflowAgent<
             providerToolCalls.map(toolCall =>
               resolveProviderToolResult(toolCall, providerExecutedToolResults),
             );
+          await Promise.all(
+            providerToolCalls.map((toolCall, index) =>
+              recordProviderExecutedToolTelemetry(
+                toolCall,
+                providerToolResults[index],
+                iterMessages,
+                currentStepNumber,
+              ),
+            ),
+          );
           const continuationInvalidToolResults = invalidToolCalls.map(
             createInvalidToolResult,
           );
