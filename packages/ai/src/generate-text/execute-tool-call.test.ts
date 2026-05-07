@@ -108,6 +108,30 @@ describe('executeToolCall', () => {
         providerMetadata: { custom: { key: 'value' } },
       });
     });
+
+    it('should preserve toolMetadata from toolCall', async () => {
+      const result = await executeToolCall({
+        toolCall: createToolCall({
+          toolMetadata: { clientName: 'MyMCPClient' },
+        }),
+        tools: {
+          testTool: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => `${value}-result`,
+          }),
+        },
+        tracer,
+        telemetry: undefined,
+        messages: [],
+        abortSignal: undefined,
+        experimental_context: undefined,
+      });
+
+      expect(result).toMatchObject({
+        type: 'tool-result',
+        toolMetadata: { clientName: 'MyMCPClient' },
+      });
+    });
   });
 
   describe('when tool execution fails', () => {
@@ -164,6 +188,32 @@ describe('executeToolCall', () => {
       expect(result).toMatchObject({
         type: 'tool-error',
         providerMetadata: { custom: { key: 'value' } },
+      });
+    });
+
+    it('should preserve toolMetadata from toolCall on error', async () => {
+      const result = await executeToolCall({
+        toolCall: createToolCall({
+          toolMetadata: { clientName: 'MyMCPClient' },
+        }),
+        tools: {
+          testTool: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async (): Promise<string> => {
+              throw new Error('execution failed');
+            },
+          }),
+        },
+        tracer,
+        telemetry: undefined,
+        messages: [],
+        abortSignal: undefined,
+        experimental_context: undefined,
+      });
+
+      expect(result).toMatchObject({
+        type: 'tool-error',
+        toolMetadata: { clientName: 'MyMCPClient' },
       });
     });
   });
