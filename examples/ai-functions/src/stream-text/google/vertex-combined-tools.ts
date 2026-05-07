@@ -1,5 +1,5 @@
 import { vertex } from '@ai-sdk/google-vertex';
-import { isStepCount, streamText, tool } from 'ai';
+import { stepCountIs, streamText, tool } from 'ai';
 import { z } from 'zod';
 import { print } from '../../lib/print';
 import { run } from '../../lib/run';
@@ -7,7 +7,7 @@ import { run } from '../../lib/run';
 run(async () => {
   const result = streamText({
     model: vertex('gemini-3.1-pro-preview'),
-    stopWhen: isStepCount(5),
+    stopWhen: stepCountIs(5),
     prompt:
       'Search for current San Francisco news, then call ping with "done".',
     tools: {

@@ -5222,12 +5222,15 @@ describe('doStream', () => {
       ],
     };
 
-    const vertexModel = new GoogleLanguageModel('gemini-3-pro-preview', {
-      provider: 'google.vertex.chat',
-      baseURL: 'https://generativelanguage.googleapis.com/v1beta',
-      headers: { 'x-goog-api-key': 'test-api-key' },
-      generateId: () => 'test-id',
-    });
+    const vertexModel = new GoogleGenerativeAILanguageModel(
+      'gemini-3-pro-preview',
+      {
+        provider: 'google.vertex.chat',
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+        headers: { 'x-goog-api-key': 'test-api-key' },
+        generateId: () => 'test-id',
+      },
+    );
 
     const { stream } = await vertexModel.doStream({
       prompt: TEST_PROMPT,
