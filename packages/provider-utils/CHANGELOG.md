@@ -1,5 +1,12 @@
 # @ai-sdk/provider-utils
 
+## 5.0.0-canary.34
+
+### Patch Changes
+
+- 69254e0: feat(ai): add toolMetadata for tool specific metdata
+- 3015fc3: feat: sandbox shell execution abstraction
+
 ## 5.0.0-canary.33
 
 ### Patch Changes

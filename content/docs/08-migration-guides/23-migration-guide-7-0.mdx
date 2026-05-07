@@ -114,6 +114,32 @@ const result = await generateText({
 
 This applies to AI SDK functions that accept `prompt` or `messages`, including `generateText`, `streamText`, `generateObject`, `streamObject`, and `streamUI`.
 
+### `cachedInputTokens` and `reasoningTokens` Removed from `LanguageModelUsage`
+
+The deprecated top-level `cachedInputTokens` and `reasoningTokens` fields have been removed from `LanguageModelUsage`.
+
+Use `inputTokenDetails.cacheReadTokens` and `outputTokenDetails.reasoningTokens` instead:
+
+```tsx filename="AI SDK 6"
+const result = await generateText({
+  model: yourModel,
+  prompt: 'Hello!',
+});
+
+console.log(result.usage.cachedInputTokens);
+console.log(result.usage.reasoningTokens);
+```
+
+```tsx filename="AI SDK 7"
+const result = await generateText({
+  model: yourModel,
+  prompt: 'Hello!',
+});
+
+console.log(result.usage.inputTokenDetails.cacheReadTokens);
+console.log(result.usage.outputTokenDetails.reasoningTokens);
+```
+
 ### Telemetry: OpenTelemetry Moved to `@ai-sdk/otel` — Explicit Registration Required
 
 OpenTelemetry span collection is no longer built into the `ai` package. To continue receiving OpenTelemetry traces, you must install the new `@ai-sdk/otel` package and register the `OpenTelemetry` instance globally.
@@ -369,6 +395,75 @@ The deprecated `experimental_include` name continues to work for backwards
 compatibility. If both `include` and `experimental_include` are provided,
 `include` takes precedence.
 
+### Request and Response Bodies Are Excluded by Default
+
+In AI SDK 7, `generateText` and `streamText` no longer include request bodies in
+step results by default. `generateText` also no longer includes response bodies
+by default. This reduces memory usage, especially when prompts or provider
+responses contain large payloads such as images or files.
+
+If your application reads `result.request.body`, `step.request.body`,
+`result.response.body`, or `step.response.body`, opt in with `include`.
+
+```tsx filename="AI SDK 7"
+const result = await generateText({
+  model: yourModel,
+  prompt: 'Hello',
+  include: {
+    requestBody: true,
+    responseBody: true,
+  },
+});
+```
+
+For `streamText`, only `requestBody` is available:
+
+```tsx filename="AI SDK 7"
+const result = streamText({
+  model: yourModel,
+  prompt: 'Hello',
+  include: {
+    requestBody: true,
+  },
+});
+```
+
+### Step Response Messages Are No Longer Accumulated
+
+In AI SDK 7, `step.response.messages` on each `StepResult` only contains the
+response messages produced by that particular step.
+
+In AI SDK 6, `step.response.messages` accumulated response messages from all
+previous steps. If your application reads `step.response.messages` from an
+intermediate or final step and expects the full assistant/tool message history,
+use the top-level `result.responseMessages` instead.
+
+```tsx filename="AI SDK 7"
+const result = await generateText({
+  model: yourModel,
+  prompt: 'Use tools if needed',
+  tools,
+  stopWhen: isStepCount(5),
+});
+
+// Accumulated response messages from all steps:
+const responseMessages = result.responseMessages;
+
+// Response messages produced by each individual step:
+const stepMessages = result.steps.map(step => step.response.messages);
+```
+
+If you specifically need to reconstruct response messages from step results,
+flatten the per-step messages:
+
+```tsx filename="AI SDK 7"
+const responseMessages = result.steps.flatMap(step => step.response.messages);
+```
+
+Prefer `result.responseMessages` when you want the full response message history.
+It also includes response messages produced before the first model step, such as
+tool results from approved tool calls in the input messages.
+
 ### Context: `experimental_context` Became Tool `context`, and Shared Runtime Data Moved to `runtimeContext`
 
 In AI SDK 7, the tool callback option previously exposed as `experimental_context` has been renamed to `context` and is now stable.
@@ -589,6 +684,28 @@ const result = await generateText({
     console.log('Preparing step', stepNumber);
     return {
       activeTools: ['weather'],
+    };
+  },
+});
+```
+
+### Core: `prepareStep` Message Overrides Carry Forward
+
+When `prepareStep` returns `messages`, those messages are now used as the base for subsequent steps. The next step receives those messages plus the response messages from the previous step.
+
+In AI SDK 6, a `messages` override only applied to the current step. To keep that behavior, rebuild the current step's messages from `initialMessages` and `responseMessages` inside `prepareStep`:
+
+```tsx filename="AI SDK 7"
+const result = await generateText({
+  model: yourModel,
+  tools: { weather },
+  prepareStep: ({ initialMessages, responseMessages }) => {
+    return {
+      messages: [
+        ...initialMessages,
+        ...responseMessages,
+        // add any one-step-only message changes here
+      ],
     };
   },
 });

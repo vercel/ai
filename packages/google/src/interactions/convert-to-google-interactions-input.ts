@@ -156,6 +156,15 @@ export function convertToGoogleInteractionsInput({
                   ? [{ type: 'text', text: part.text }]
                   : undefined,
             });
+          } else if (part.type === 'file') {
+            const fileBlock = convertFilePartToContent({
+              part,
+              warnings,
+              mediaResolution,
+            });
+            if (fileBlock != null) {
+              content.push(fileBlock);
+            }
           } else if (part.type === 'tool-call') {
             const signature = part.providerOptions?.google?.signature as
               | string

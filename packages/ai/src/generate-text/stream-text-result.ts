@@ -25,6 +25,7 @@ import type {
   InferPartialOutput,
 } from './output-utils';
 import type { ReasoningFileOutput, ReasoningOutput } from './reasoning-output';
+import type { ResponseMessage } from './response-message';
 import type { StepResult } from './step-result';
 import type { ToolApprovalRequestOutput } from './tool-approval-request-output';
 import type { ToolApprovalResponseOutput } from './tool-approval-response-output';
@@ -257,6 +258,13 @@ export interface StreamTextResult<
    * Automatically consumes the stream.
    */
   readonly response: PromiseLike<LanguageModelResponseMetadata>;
+
+  /**
+   * The response messages that were generated during the call.
+   *
+   * Automatically consumes the stream.
+   */
+  readonly responseMessages: PromiseLike<Array<ResponseMessage>>;
 
   /**
    * Additional provider-specific metadata from the last step.

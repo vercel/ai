@@ -68,7 +68,6 @@ run(async () => {
 
     // Get final results
     const content = await result.content;
-    const response = await result.response;
 
     for (const part of content) {
       if (part.type === 'tool-approval-request') {
@@ -84,6 +83,6 @@ run(async () => {
       }
     }
 
-    messages.push(...response.messages);
+    messages.push(...(await result.responseMessages));
   }
 });

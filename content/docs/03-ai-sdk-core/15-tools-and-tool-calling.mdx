@@ -222,7 +222,7 @@ const result = await generateText({
   messages,
 });
 
-messages.push(...result.response.messages);
+messages.push(...result.responseMessages);
 
 for (const part of result.content) {
   if (part.type === 'tool-approval-request' && !part.isAutomatic) {
@@ -476,9 +476,12 @@ It is called with the following parameters:
 - `stopWhen`: The stopping condition that was passed into `generateText`.
 - `stepNumber`: The number of the step that is being executed.
 - `steps`: The steps that have been executed so far.
-- `messages`: The messages that will be sent to the model for the current step.
+- `messages`: The messages that will be sent to the model for the current step. If `prepareStep` returns a `messages` override, those messages carry forward to later steps.
+- `initialMessages`: The messages that were passed into `generateText` or `streamText`.
+- `responseMessages`: The accumulated assistant/tool response messages so far, including any tool results generated before the first model step from approved tool calls in the input messages.
 - `runtimeContext`: The runtime context passed via the `runtimeContext` setting.
 - `toolsContext`: The per-tool context map passed via the `toolsContext` setting.
+- `sandbox`: The sandbox passed via the `sandbox` setting.
 
 You can use it to provide different settings for a step, including modifying the input messages.
 
@@ -506,14 +509,23 @@ const result = await generateText({
 
 #### Message Modification for Longer Agentic Loops
 
-In longer agentic loops, you can use the `messages` parameter to modify the input messages for each step. This is particularly useful for prompt compression:
+In longer agentic loops, you can use the `messages` parameter to modify the input messages for each step. This is particularly useful for prompt compression.
+
+The `messages` parameter contains the messages for the current step. By default, this is `initialMessages` followed by the accumulated `responseMessages`. If a previous `prepareStep` returned `messages`, later steps use those messages plus the response messages from the previous step.
+Use `initialMessages` when you need to preserve the original user-provided prompt and `responseMessages` when you only need the accumulated assistant/tool response messages.
 
 ```tsx
-prepareStep: async ({ stepNumber, steps, messages }) => {
+prepareStep: async ({
+  initialMessages,
+  responseMessages,
+  stepNumber,
+  steps,
+  messages,
+}) => {
   // Compress conversation history for longer loops
   if (messages.length > 20) {
     return {
-      messages: messages.slice(-10),
+      messages: [...initialMessages, ...responseMessages.slice(-10)],
     };
   }
 
@@ -537,11 +549,11 @@ prepareStep: forwardAnthropicContainerIdFromLastStep,
 Adding the generated assistant and tool messages to your conversation history is a common task,
 especially if you are using multi-step tool calls.
 
-Both `generateText` and `streamText` have a `response.messages` property that you can use to
+Both `generateText` and `streamText` have a `responseMessages` property that you can use to
 add the assistant and tool messages to your conversation history.
 It is also available in the `onFinish` callback of `streamText`.
 
-The `response.messages` property contains an array of `ModelMessage` objects that you can add to your conversation history:
+The `responseMessages` property contains the accumulated response messages from the call as an array of `ModelMessage` objects that you can add to your conversation history:
 
 ```ts
 import { generateText, ModelMessage } from 'ai';
@@ -550,13 +562,13 @@ const messages: ModelMessage[] = [
   // ...
 ];
 
-const { response } = await generateText({
+const { responseMessages } = await generateText({
   // ...
   messages,
 });
 
 // add the response messages to your conversation history:
-messages.push(...response.messages); // streamText: ...((await response).messages)
+messages.push(...responseMessages); // streamText: ...(await result.responseMessages)
 ```
 
 ## Dynamic Tools
@@ -795,6 +807,58 @@ const result = await generateText({
   prompt: 'What is the weather in San Francisco?',
 });
 ```
+
+### Sandbox
+
+Pass `sandbox` to `generateText`, `streamText`, or a `ToolLoopAgent` call when a
+tool needs to run commands or code in an execution environment. The sandbox is
+available on the second parameter of the tool's `execute` function.
+
+Passing a sandbox does not sandbox the tool itself. Tool code still runs wherever
+your application runs. Only the operations that your tool explicitly delegates to
+the sandbox, such as `sandbox.executeCommand(...)`, run in the sandbox
+environment.
+
+```ts highlight="7-15,21"
+import { generateText, tool } from 'ai';
+import { z } from 'zod';
+
+const result = await generateText({
+  model: __MODEL__,
+  tools: {
+    shell: tool({
+      inputSchema: z.object({
+        command: z.string(),
+      }),
+      execute: async ({ command }, { sandbox }) => {
+        if (!sandbox) {
+          throw new Error('Sandbox is not available');
+        }
+
+        return sandbox.executeCommand({ command });
+      },
+    }),
+  },
+  sandbox,
+  prompt: 'List the files in the project.',
+});
+```
+
+The sandbox description is not added to the model prompt automatically. If the
+model should know about details such as the root directory, exposed ports, or
+public hostname, include `sandbox.description` in your system prompt,
+instructions, or user-visible context.
+
+The AI SDK forwards your sandbox object but does not create or isolate one for
+you.
+
+The `Sandbox` interface is only a contract. Its isolation guarantees depend on
+your implementation or sandbox provider. A local implementation that uses
+`child_process.exec` with a working directory is not a security boundary because
+commands can still access paths outside that directory. For untrusted commands
+or user-directed coding agents, use a real isolation provider, restrict
+available commands, set command timeouts, and combine sandbox usage with
+[tool approval](#tool-execution-approval) for sensitive actions.
 
 ### Runtime Context
 
