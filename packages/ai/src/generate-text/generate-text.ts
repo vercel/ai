@@ -649,6 +649,8 @@ export async function generateText<
           steps,
           stepNumber: steps.length,
           messages: stepInputMessages,
+          initialMessages,
+          responseMessages,
           runtimeContext,
           toolsContext,
           sandbox,

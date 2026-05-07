@@ -477,6 +477,8 @@ It is called with the following parameters:
 - `stepNumber`: The number of the step that is being executed.
 - `steps`: The steps that have been executed so far.
 - `messages`: The messages that will be sent to the model for the current step.
+- `initialMessages`: The messages that were passed into `generateText` or `streamText`.
+- `responseMessages`: The response messages that have been accumulated from previous steps.
 - `runtimeContext`: The runtime context passed via the `runtimeContext` setting.
 - `toolsContext`: The per-tool context map passed via the `toolsContext` setting.
 - `sandbox`: The sandbox passed via the `sandbox` setting.
@@ -507,7 +509,10 @@ const result = await generateText({
 
 #### Message Modification for Longer Agentic Loops
 
-In longer agentic loops, you can use the `messages` parameter to modify the input messages for each step. This is particularly useful for prompt compression:
+In longer agentic loops, you can use the `messages` parameter to modify the input messages for each step. This is particularly useful for prompt compression.
+
+The `messages` parameter contains `initialMessages` followed by the accumulated `responseMessages`.
+Use `initialMessages` when you need to preserve the original user-provided prompt and `responseMessages` when you only need the assistant/tool messages from previous steps.
 
 ```tsx
 prepareStep: async ({ stepNumber, steps, messages }) => {

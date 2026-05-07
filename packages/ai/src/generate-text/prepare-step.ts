@@ -9,6 +9,7 @@ import type {
 } from '@ai-sdk/provider-utils';
 import type { LanguageModel, ToolChoice } from '../types/language-model';
 import type { ActiveTools } from './active-tools';
+import type { ResponseMessage } from './response-message';
 import type { StepResult } from './step-result';
 
 /**
@@ -19,6 +20,8 @@ import type { StepResult } from './step-result';
  * @param options.stepNumber - The number of the step that is being executed.
  * @param options.model - The model that is being used.
  * @param options.messages - The messages that will be sent to the model for the current step.
+ * @param options.initialMessages - The initial messages that were passed into generateText or streamText.
+ * @param options.responseMessages - The response messages that have been accumulated from previous steps.
  * @param options.runtimeContext - The user-defined runtime context.
  *
  * @returns An object that contains the settings for the step.
@@ -47,6 +50,16 @@ export type PrepareStepFunction<
    * The messages that will be sent to the model for the current step.
    */
   messages: Array<ModelMessage>;
+
+  /**
+   * The initial messages that were passed into generateText or streamText.
+   */
+  initialMessages: Array<ModelMessage>;
+
+  /**
+   * The response messages that have been accumulated from all previous steps.
+   */
+  responseMessages: Array<ResponseMessage>;
 
   /**
    * Tool context.

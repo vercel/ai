@@ -1583,6 +1583,8 @@ class DefaultStreamTextResult<
             steps: recordedSteps,
             stepNumber: recordedSteps.length,
             messages: stepInputMessages,
+            initialMessages,
+            responseMessages,
             toolsContext,
             runtimeContext,
             sandbox,

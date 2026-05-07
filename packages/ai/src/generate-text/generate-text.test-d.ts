@@ -1,9 +1,10 @@
 import type { JSONValue } from '@ai-sdk/provider';
-import { tool, type Context } from '@ai-sdk/provider-utils';
+import { tool, type Context, type ModelMessage } from '@ai-sdk/provider-utils';
 import { describe, expectTypeOf, it } from 'vitest';
 import { z } from 'zod';
 import { generateText, Output } from '../generate-text';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
+import type { ResponseMessage } from './response-message';
 
 describe('generateText types', () => {
   describe('output', () => {
@@ -284,7 +285,16 @@ describe('generateText types', () => {
         generateText({
           model: new MockLanguageModelV4(),
           prompt: 'Hello',
-          prepareStep: ({ runtimeContext, toolsContext }) => {
+          prepareStep: ({
+            initialMessages,
+            responseMessages,
+            runtimeContext,
+            toolsContext,
+          }) => {
+            expectTypeOf(initialMessages).toEqualTypeOf<Array<ModelMessage>>();
+            expectTypeOf(responseMessages).toEqualTypeOf<
+              Array<ResponseMessage>
+            >();
             expectTypeOf(runtimeContext).toEqualTypeOf<Context>();
             expectTypeOf(toolsContext).toEqualTypeOf<{}>();
 

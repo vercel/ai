@@ -148,6 +148,8 @@ const budgetExceeded: StopCondition<typeof tools> = ({ steps }) => {
 
 The `prepareStep` callback runs before each step in the loop and defaults to the initial settings if you don't return any changes. Use it to modify settings, manage context, or implement dynamic behavior based on execution history.
 
+It receives `messages` for the current step, plus `initialMessages` and `responseMessages` when you need to distinguish the original input from assistant/tool messages accumulated in earlier steps.
+
 ### Dynamic Model Selection
 
 Switch models based on step requirements:
@@ -191,13 +193,13 @@ const agent = new ToolLoopAgent({
   tools: {
     // your tools
   },
-  prepareStep: async ({ messages }) => {
+  prepareStep: async ({ initialMessages, responseMessages, messages }) => {
     // Keep only recent messages to stay within context limits
     if (messages.length > 20) {
       return {
         messages: [
-          messages[0], // Keep system instructions
-          ...messages.slice(-10), // Keep last 10 messages
+          ...initialMessages, // Keep the original user-provided prompt
+          ...responseMessages.slice(-10), // Keep recent assistant/tool messages
         ],
       };
     }
