@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 5.0.0-canary.35
+
+### Patch Changes
+
+- f634bac: feat(mcp): add new McpProviderMetadata type
+
 ## 5.0.0-canary.34
 
 ### Patch Changes
