@@ -1,5 +1,13 @@
 # @ai-sdk/react
 
+## 4.0.0-canary.127
+
+### Patch Changes
+
+- 611f621: feat(mcp): feat(mcp): add support for MCP Apps
+- Updated dependencies [611f621]
+  - @ai-sdk/mcp@2.0.0-canary.44
+
 ## 4.0.0-canary.126
 
 ### Patch Changes
