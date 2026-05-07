@@ -156,7 +156,7 @@ export type StreamTextInclude = {
    * Whether to retain the request body in step results.
    * The request body can be large when sending images or files.
    *
-   * @default true
+   * @default false
    */
   requestBody?: boolean;
 
@@ -569,8 +569,7 @@ export function streamText<
      * Disabling inclusion can help reduce memory usage when processing
      * large payloads like images.
      *
-     * By default, request bodies are included and request messages are
-     * excluded.
+     * By default, request bodies and request messages are excluded.
      */
     include?: StreamTextInclude;
 
@@ -654,7 +653,7 @@ export function streamText<
 
     // assign default values to include:
     include: {
-      requestBody: include?.requestBody ?? true,
+      requestBody: include?.requestBody ?? false,
       requestMessages: include?.requestMessages ?? false,
       rawChunks: include?.rawChunks ?? includeRawChunks ?? false,
     },

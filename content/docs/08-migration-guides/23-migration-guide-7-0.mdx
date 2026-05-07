@@ -369,6 +369,39 @@ The deprecated `experimental_include` name continues to work for backwards
 compatibility. If both `include` and `experimental_include` are provided,
 `include` takes precedence.
 
+### Request and Response Bodies Are Excluded by Default
+
+In AI SDK 7, `generateText` and `streamText` no longer include request bodies in
+step results by default. `generateText` also no longer includes response bodies
+by default. This reduces memory usage, especially when prompts or provider
+responses contain large payloads such as images or files.
+
+If your application reads `result.request.body`, `step.request.body`,
+`result.response.body`, or `step.response.body`, opt in with `include`.
+
+```tsx filename="AI SDK 7"
+const result = await generateText({
+  model: yourModel,
+  prompt: 'Hello',
+  include: {
+    requestBody: true,
+    responseBody: true,
+  },
+});
+```
+
+For `streamText`, only `requestBody` is available:
+
+```tsx filename="AI SDK 7"
+const result = streamText({
+  model: yourModel,
+  prompt: 'Hello',
+  include: {
+    requestBody: true,
+  },
+});
+```
+
 ### Context: `experimental_context` Became Tool `context`, and Shared Runtime Data Moved to `runtimeContext`
 
 In AI SDK 7, the tool callback option previously exposed as `experimental_context` has been renamed to `context` and is now stable.
