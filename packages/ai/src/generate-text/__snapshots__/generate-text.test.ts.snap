@@ -72,35 +72,6 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
       {
         "content": [
           {
-            "input": {
-              "value": "value",
-            },
-            "providerExecuted": undefined,
-            "providerOptions": undefined,
-            "toolCallId": "call-1",
-            "toolName": "tool1",
-            "type": "tool-call",
-          },
-        ],
-        "role": "assistant",
-      },
-      {
-        "content": [
-          {
-            "output": {
-              "type": "text",
-              "value": "result1",
-            },
-            "toolCallId": "call-1",
-            "toolName": "tool1",
-            "type": "tool-result",
-          },
-        ],
-        "role": "tool",
-      },
-      {
-        "content": [
-          {
             "providerOptions": undefined,
             "text": "Hello, world!",
             "type": "text",
@@ -281,35 +252,6 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
         },
         "id": "test-id-2-from-model",
         "messages": [
-          {
-            "content": [
-              {
-                "input": {
-                  "value": "value",
-                },
-                "providerExecuted": undefined,
-                "providerOptions": undefined,
-                "toolCallId": "call-1",
-                "toolName": "tool1",
-                "type": "tool-call",
-              },
-            ],
-            "role": "assistant",
-          },
-          {
-            "content": [
-              {
-                "output": {
-                  "type": "text",
-                  "value": "result1",
-                },
-                "toolCallId": "call-1",
-                "toolName": "tool1",
-                "type": "tool-result",
-              },
-            ],
-            "role": "tool",
-          },
           {
             "content": [
               {
@@ -512,35 +454,6 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
       },
       "id": "test-id-2-from-model",
       "messages": [
-        {
-          "content": [
-            {
-              "input": {
-                "value": "value",
-              },
-              "providerExecuted": undefined,
-              "providerOptions": undefined,
-              "toolCallId": "call-1",
-              "toolName": "tool1",
-              "type": "tool-call",
-            },
-          ],
-          "role": "assistant",
-        },
-        {
-          "content": [
-            {
-              "output": {
-                "type": "text",
-                "value": "result1",
-              },
-              "toolCallId": "call-1",
-              "toolName": "tool1",
-              "type": "tool-result",
-            },
-          ],
-          "role": "tool",
-        },
         {
           "content": [
             {
@@ -751,35 +664,6 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > resul
         {
           "content": [
             {
-              "input": {
-                "value": "value",
-              },
-              "providerExecuted": undefined,
-              "providerOptions": undefined,
-              "toolCallId": "call-1",
-              "toolName": "tool1",
-              "type": "tool-call",
-            },
-          ],
-          "role": "assistant",
-        },
-        {
-          "content": [
-            {
-              "output": {
-                "type": "text",
-                "value": "result1",
-              },
-              "toolCallId": "call-1",
-              "toolName": "tool1",
-              "type": "tool-result",
-            },
-          ],
-          "role": "tool",
-        },
-        {
-          "content": [
-            {
               "providerOptions": undefined,
               "text": "Hello, world!",
               "type": "text",
@@ -942,35 +826,6 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
       },
       "id": "test-id-2-from-model",
       "messages": [
-        {
-          "content": [
-            {
-              "input": {
-                "value": "value",
-              },
-              "providerExecuted": undefined,
-              "providerOptions": undefined,
-              "toolCallId": "call-1",
-              "toolName": "tool1",
-              "type": "tool-call",
-            },
-          ],
-          "role": "assistant",
-        },
-        {
-          "content": [
-            {
-              "output": {
-                "type": "text",
-                "value": "result1",
-              },
-              "toolCallId": "call-1",
-              "toolName": "tool1",
-              "type": "tool-result",
-            },
-          ],
-          "role": "tool",
-        },
         {
           "content": [
             {
@@ -1182,35 +1037,6 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
       },
       "id": "test-id-2-from-model",
       "messages": [
-        {
-          "content": [
-            {
-              "input": {
-                "value": "value",
-              },
-              "providerExecuted": undefined,
-              "providerOptions": undefined,
-              "toolCallId": "call-1",
-              "toolName": "tool1",
-              "type": "tool-call",
-            },
-          ],
-          "role": "assistant",
-        },
-        {
-          "content": [
-            {
-              "output": {
-                "type": "text",
-                "value": "result1",
-              },
-              "toolCallId": "call-1",
-              "toolName": "tool1",
-              "type": "tool-result",
-            },
-          ],
-          "role": "tool",
-        },
         {
           "content": [
             {

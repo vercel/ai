@@ -9831,40 +9831,6 @@ describe('streamText', () => {
                     "content": [
                       {
                         "providerOptions": undefined,
-                        "text": "thinking",
-                        "type": "reasoning",
-                      },
-                      {
-                        "input": {
-                          "value": "value",
-                        },
-                        "providerExecuted": undefined,
-                        "providerOptions": undefined,
-                        "toolCallId": "call-1",
-                        "toolName": "tool1",
-                        "type": "tool-call",
-                      },
-                    ],
-                    "role": "assistant",
-                  },
-                  {
-                    "content": [
-                      {
-                        "output": {
-                          "type": "text",
-                          "value": "result1",
-                        },
-                        "toolCallId": "call-1",
-                        "toolName": "tool1",
-                        "type": "tool-result",
-                      },
-                    ],
-                    "role": "tool",
-                  },
-                  {
-                    "content": [
-                      {
-                        "providerOptions": undefined,
                         "text": "Hello, world!",
                         "type": "text",
                       },
@@ -10060,40 +10026,6 @@ describe('streamText', () => {
                     },
                     "id": "id-1",
                     "messages": [
-                      {
-                        "content": [
-                          {
-                            "providerOptions": undefined,
-                            "text": "thinking",
-                            "type": "reasoning",
-                          },
-                          {
-                            "input": {
-                              "value": "value",
-                            },
-                            "providerExecuted": undefined,
-                            "providerOptions": undefined,
-                            "toolCallId": "call-1",
-                            "toolName": "tool1",
-                            "type": "tool-call",
-                          },
-                        ],
-                        "role": "assistant",
-                      },
-                      {
-                        "content": [
-                          {
-                            "output": {
-                              "type": "text",
-                              "value": "result1",
-                            },
-                            "toolCallId": "call-1",
-                            "toolName": "tool1",
-                            "type": "tool-result",
-                          },
-                        ],
-                        "role": "tool",
-                      },
                       {
                         "content": [
                           {
@@ -10309,40 +10241,6 @@ describe('streamText', () => {
                   },
                   "id": "id-1",
                   "messages": [
-                    {
-                      "content": [
-                        {
-                          "providerOptions": undefined,
-                          "text": "thinking",
-                          "type": "reasoning",
-                        },
-                        {
-                          "input": {
-                            "value": "value",
-                          },
-                          "providerExecuted": undefined,
-                          "providerOptions": undefined,
-                          "toolCallId": "call-1",
-                          "toolName": "tool1",
-                          "type": "tool-call",
-                        },
-                      ],
-                      "role": "assistant",
-                    },
-                    {
-                      "content": [
-                        {
-                          "output": {
-                            "type": "text",
-                            "value": "result1",
-                          },
-                          "toolCallId": "call-1",
-                          "toolName": "tool1",
-                          "type": "tool-result",
-                        },
-                      ],
-                      "role": "tool",
-                    },
                     {
                       "content": [
                         {
@@ -10575,40 +10473,6 @@ describe('streamText', () => {
                   },
                   "id": "id-1",
                   "messages": [
-                    {
-                      "content": [
-                        {
-                          "providerOptions": undefined,
-                          "text": "thinking",
-                          "type": "reasoning",
-                        },
-                        {
-                          "input": {
-                            "value": "value",
-                          },
-                          "providerExecuted": undefined,
-                          "providerOptions": undefined,
-                          "toolCallId": "call-1",
-                          "toolName": "tool1",
-                          "type": "tool-call",
-                        },
-                      ],
-                      "role": "assistant",
-                    },
-                    {
-                      "content": [
-                        {
-                          "output": {
-                            "type": "text",
-                            "value": "result1",
-                          },
-                          "toolCallId": "call-1",
-                          "toolName": "tool1",
-                          "type": "tool-result",
-                        },
-                      ],
-                      "role": "tool",
-                    },
                     {
                       "content": [
                         {
@@ -11177,35 +11041,6 @@ describe('streamText', () => {
                       {
                         "content": [
                           {
-                            "input": {
-                              "value": "value",
-                            },
-                            "providerExecuted": undefined,
-                            "providerOptions": undefined,
-                            "toolCallId": "call-1",
-                            "toolName": "tool1",
-                            "type": "tool-call",
-                          },
-                        ],
-                        "role": "assistant",
-                      },
-                      {
-                        "content": [
-                          {
-                            "output": {
-                              "type": "text",
-                              "value": "result1",
-                            },
-                            "toolCallId": "call-1",
-                            "toolName": "tool1",
-                            "type": "tool-result",
-                          },
-                        ],
-                        "role": "tool",
-                      },
-                      {
-                        "content": [
-                          {
                             "providerOptions": undefined,
                             "text": "Hello, world!",
                             "type": "text",
@@ -11410,35 +11245,6 @@ describe('streamText', () => {
                     },
                     "id": "id-1",
                     "messages": [
-                      {
-                        "content": [
-                          {
-                            "input": {
-                              "value": "value",
-                            },
-                            "providerExecuted": undefined,
-                            "providerOptions": undefined,
-                            "toolCallId": "call-1",
-                            "toolName": "tool1",
-                            "type": "tool-call",
-                          },
-                        ],
-                        "role": "assistant",
-                      },
-                      {
-                        "content": [
-                          {
-                            "output": {
-                              "type": "text",
-                              "value": "result1",
-                            },
-                            "toolCallId": "call-1",
-                            "toolName": "tool1",
-                            "type": "tool-result",
-                          },
-                        ],
-                        "role": "tool",
-                      },
                       {
                         "content": [
                           {
@@ -11800,40 +11606,6 @@ describe('streamText', () => {
                     "content": [
                       {
                         "providerOptions": undefined,
-                        "text": "thinking",
-                        "type": "reasoning",
-                      },
-                      {
-                        "input": {
-                          "value": "value",
-                        },
-                        "providerExecuted": undefined,
-                        "providerOptions": undefined,
-                        "toolCallId": "call-1",
-                        "toolName": "tool1",
-                        "type": "tool-call",
-                      },
-                    ],
-                    "role": "assistant",
-                  },
-                  {
-                    "content": [
-                      {
-                        "output": {
-                          "type": "text",
-                          "value": "RESULT1",
-                        },
-                        "toolCallId": "call-1",
-                        "toolName": "tool1",
-                        "type": "tool-result",
-                      },
-                    ],
-                    "role": "tool",
-                  },
-                  {
-                    "content": [
-                      {
-                        "providerOptions": undefined,
                         "text": "Hello, world!",
                         "type": "text",
                       },
@@ -12029,40 +11801,6 @@ describe('streamText', () => {
                     },
                     "id": "id-1",
                     "messages": [
-                      {
-                        "content": [
-                          {
-                            "providerOptions": undefined,
-                            "text": "thinking",
-                            "type": "reasoning",
-                          },
-                          {
-                            "input": {
-                              "value": "value",
-                            },
-                            "providerExecuted": undefined,
-                            "providerOptions": undefined,
-                            "toolCallId": "call-1",
-                            "toolName": "tool1",
-                            "type": "tool-call",
-                          },
-                        ],
-                        "role": "assistant",
-                      },
-                      {
-                        "content": [
-                          {
-                            "output": {
-                              "type": "text",
-                              "value": "RESULT1",
-                            },
-                            "toolCallId": "call-1",
-                            "toolName": "tool1",
-                            "type": "tool-result",
-                          },
-                        ],
-                        "role": "tool",
-                      },
                       {
                         "content": [
                           {
@@ -12278,40 +12016,6 @@ describe('streamText', () => {
                   },
                   "id": "id-1",
                   "messages": [
-                    {
-                      "content": [
-                        {
-                          "providerOptions": undefined,
-                          "text": "thinking",
-                          "type": "reasoning",
-                        },
-                        {
-                          "input": {
-                            "value": "value",
-                          },
-                          "providerExecuted": undefined,
-                          "providerOptions": undefined,
-                          "toolCallId": "call-1",
-                          "toolName": "tool1",
-                          "type": "tool-call",
-                        },
-                      ],
-                      "role": "assistant",
-                    },
-                    {
-                      "content": [
-                        {
-                          "output": {
-                            "type": "text",
-                            "value": "RESULT1",
-                          },
-                          "toolCallId": "call-1",
-                          "toolName": "tool1",
-                          "type": "tool-result",
-                        },
-                      ],
-                      "role": "tool",
-                    },
                     {
                       "content": [
                         {
@@ -12540,40 +12244,6 @@ describe('streamText', () => {
                   },
                   "id": "id-1",
                   "messages": [
-                    {
-                      "content": [
-                        {
-                          "providerOptions": undefined,
-                          "text": "thinking",
-                          "type": "reasoning",
-                        },
-                        {
-                          "input": {
-                            "value": "value",
-                          },
-                          "providerExecuted": undefined,
-                          "providerOptions": undefined,
-                          "toolCallId": "call-1",
-                          "toolName": "tool1",
-                          "type": "tool-call",
-                        },
-                      ],
-                      "role": "assistant",
-                    },
-                    {
-                      "content": [
-                        {
-                          "output": {
-                            "type": "text",
-                            "value": "RESULT1",
-                          },
-                          "toolCallId": "call-1",
-                          "toolName": "tool1",
-                          "type": "tool-result",
-                        },
-                      ],
-                      "role": "tool",
-                    },
                     {
                       "content": [
                         {
@@ -21107,7 +20777,7 @@ describe('streamText', () => {
       });
 
       describe('result.responseMessages', () => {
-        it('should contain all response messages from all steps', async () => {
+        it('should contain response messages from all steps', async () => {
           await result.consumeStream();
           expect(await result.responseMessages).toMatchInlineSnapshot(`
             [
@@ -21606,7 +21276,7 @@ describe('streamText', () => {
           `);
         });
 
-        it('should contain all response messages', async () => {
+        it('should contain response messages from all steps', async () => {
           await result.consumeStream();
           expect(onFinishResult.responseMessages.length).toBe(9);
         });
@@ -23783,6 +23453,100 @@ describe('streamText', () => {
               ],
               "role": "assistant",
             },
+          ]
+        `);
+      });
+
+      it('should pass the initial tool result in responseMessages to prepareStep', async () => {
+        const prepareStepResponseMessages: Array<ModelMessage[]> = [];
+
+        const result = streamText({
+          model: new MockLanguageModelV4({
+            doStream: async () => ({
+              stream: convertArrayToReadableStream([
+                { type: 'stream-start', warnings: [] },
+                { type: 'text-start', id: '1' },
+                {
+                  type: 'text-delta',
+                  id: '1',
+                  delta: 'Hello, world!',
+                },
+                { type: 'text-end', id: '1' },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                  usage: testUsage,
+                },
+              ]),
+            }),
+          }),
+          tools: {
+            tool1: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: () => 'result1',
+            }),
+          },
+          toolApproval: {
+            tool1: 'user-approval',
+          },
+          stopWhen: isStepCount(3),
+          messages: [
+            { role: 'user', content: 'test-input' },
+            {
+              role: 'assistant',
+              content: [
+                {
+                  input: { value: 'value' },
+                  providerExecuted: undefined,
+                  providerOptions: undefined,
+                  toolCallId: 'call-1',
+                  toolName: 'tool1',
+                  type: 'tool-call',
+                },
+                {
+                  approvalId: 'id-1',
+                  toolCallId: 'call-1',
+                  type: 'tool-approval-request',
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  approvalId: 'id-1',
+                  type: 'tool-approval-response',
+                  approved: true,
+                },
+              ],
+            },
+          ],
+          prepareStep: ({ responseMessages }) => {
+            prepareStepResponseMessages.push([...responseMessages]);
+            return undefined;
+          },
+        });
+
+        await result.consumeStream();
+
+        expect(prepareStepResponseMessages).toMatchInlineSnapshot(`
+          [
+            [
+              {
+                "content": [
+                  {
+                    "output": {
+                      "type": "text",
+                      "value": "result1",
+                    },
+                    "toolCallId": "call-1",
+                    "toolName": "tool1",
+                    "type": "tool-result",
+                  },
+                ],
+                "role": "tool",
+              },
+            ],
           ]
         `);
       });

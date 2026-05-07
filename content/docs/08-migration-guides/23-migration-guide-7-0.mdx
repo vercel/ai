@@ -402,6 +402,42 @@ const result = streamText({
 });
 ```
 
+### Step Response Messages Are No Longer Accumulated
+
+In AI SDK 7, `step.response.messages` on each `StepResult` only contains the
+response messages produced by that particular step.
+
+In AI SDK 6, `step.response.messages` accumulated response messages from all
+previous steps. If your application reads `step.response.messages` from an
+intermediate or final step and expects the full assistant/tool message history,
+use the top-level `result.responseMessages` instead.
+
+```tsx filename="AI SDK 7"
+const result = await generateText({
+  model: yourModel,
+  prompt: 'Use tools if needed',
+  tools,
+  stopWhen: isStepCount(5),
+});
+
+// Accumulated response messages from all steps:
+const responseMessages = result.responseMessages;
+
+// Response messages produced by each individual step:
+const stepMessages = result.steps.map(step => step.response.messages);
+```
+
+If you specifically need to reconstruct response messages from step results,
+flatten the per-step messages:
+
+```tsx filename="AI SDK 7"
+const responseMessages = result.steps.flatMap(step => step.response.messages);
+```
+
+Prefer `result.responseMessages` when you want the full response message history.
+It also includes response messages produced before the first model step, such as
+tool results from approved tool calls in the input messages.
+
 ### Context: `experimental_context` Became Tool `context`, and Shared Runtime Data Moved to `runtimeContext`
 
 In AI SDK 7, the tool callback option previously exposed as `experimental_context` has been renamed to `context` and is now stable.

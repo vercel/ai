@@ -783,6 +783,9 @@ class DefaultStreamTextResult<
   private readonly _steps = new DelayedPromise<
     Awaited<StreamTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>['steps']>
   >();
+  private readonly _initialResponseMessages = new DelayedPromise<
+    Array<ResponseMessage>
+  >();
 
   private readonly addStream: (
     stream: ReadableStream<TextStreamPart<TOOLS>>,
@@ -939,7 +942,6 @@ class DefaultStreamTextResult<
     let stepFinish!: DelayedPromise<void>;
 
     let recordedContent: Array<ContentPart<TOOLS>> = [];
-    const recordedResponseMessages: Array<ResponseMessage> = [];
     let recordedFinishReason: FinishReason | undefined = undefined;
     let recordedRawFinishReason: string | undefined = undefined;
     let recordedTotalUsage: LanguageModelUsage | undefined = undefined;
@@ -947,6 +949,7 @@ class DefaultStreamTextResult<
     let recordedRequestMessages: Array<ModelMessage> = [];
     let recordedWarnings: Array<CallWarning> = [];
     const recordedSteps: StepResult<TOOLS, RUNTIME_CONTEXT>[] = [];
+    const initialResponseMessages: Array<ResponseMessage> = [];
 
     // Track provider-executed tool calls that support deferred results
     // (e.g., code_execution in programmatic tool calling scenarios).
@@ -1159,10 +1162,7 @@ class DefaultStreamTextResult<
               },
               response: {
                 ...part.response,
-                messages: cloneModelMessages([
-                  ...recordedResponseMessages,
-                  ...stepMessages,
-                ]),
+                messages: cloneModelMessages(stepMessages),
               },
               providerMetadata: part.providerMetadata,
             });
@@ -1179,8 +1179,6 @@ class DefaultStreamTextResult<
           });
 
           recordedSteps.push(currentStepResult);
-
-          recordedResponseMessages.push(...stepMessages);
 
           // resolve the promise to signal that the step has been fully processed
           // by the event processor:
@@ -1207,6 +1205,7 @@ class DefaultStreamTextResult<
             self._rawFinishReason.reject(error);
             self._totalUsage.reject(error);
             self._steps.reject(error);
+            self._initialResponseMessages.reject(error);
 
             return; // no steps recorded (e.g. in error scenario)
           }
@@ -1252,7 +1251,10 @@ class DefaultStreamTextResult<
               dynamicToolResults: finalStep.dynamicToolResults,
               request: finalStep.request,
               response: finalStep.response,
-              responseMessages: finalStep.response.messages,
+              responseMessages: [
+                ...initialResponseMessages,
+                ...recordedSteps.flatMap(step => step.response.messages),
+              ],
               warnings: finalStep.warnings,
               providerMetadata: finalStep.providerMetadata,
               steps: recordedSteps,
@@ -1404,7 +1406,6 @@ class DefaultStreamTextResult<
       });
 
       const initialMessages = initialPrompt.messages;
-      const initialResponseMessages: Array<ResponseMessage> = [];
 
       const { approvedToolApprovals, deniedToolApprovals } =
         collectToolApprovals<TOOLS>({ messages: initialMessages });
@@ -1527,15 +1528,13 @@ class DefaultStreamTextResult<
         }
       }
 
-      recordedResponseMessages.push(...initialResponseMessages);
+      self._initialResponseMessages.resolve(initialResponseMessages);
 
       async function streamStep({
         currentStep,
-        responseMessages,
         usage,
       }: {
         currentStep: number;
-        responseMessages: Array<ResponseMessage>;
         usage: LanguageModelUsage;
       }) {
         // Set up step timeout if configured
@@ -1576,7 +1575,14 @@ class DefaultStreamTextResult<
         try {
           stepFinish = new DelayedPromise<void>();
 
-          const stepInputMessages = [...initialMessages, ...responseMessages];
+          const accumulatedResponseMessages = [
+            ...initialResponseMessages,
+            ...recordedSteps.flatMap(step => step.response.messages),
+          ];
+          const stepInputMessages = [
+            ...initialMessages,
+            ...accumulatedResponseMessages,
+          ];
 
           const prepareStepResult = await prepareStep?.({
             model,
@@ -1584,7 +1590,7 @@ class DefaultStreamTextResult<
             stepNumber: recordedSteps.length,
             messages: stepInputMessages,
             initialMessages,
-            responseMessages,
+            responseMessages: accumulatedResponseMessages,
             toolsContext,
             runtimeContext,
             sandbox,
@@ -1983,20 +1989,9 @@ class DefaultStreamTextResult<
                       steps: recordedSteps,
                     }))
                   ) {
-                    // append to messages for the next step:
-                    responseMessages.push(
-                      ...(await toResponseMessages({
-                        content:
-                          // use transformed content to create the messages for the next step:
-                          recordedSteps[recordedSteps.length - 1].content,
-                        tools,
-                      })),
-                    );
-
                     try {
                       await streamStep({
                         currentStep: currentStep + 1,
-                        responseMessages,
                         usage: combinedUsage,
                       });
                     } catch (error) {
@@ -2030,11 +2025,11 @@ class DefaultStreamTextResult<
       // add the initial stream to the stitchable stream
       await streamStep({
         currentStep: 0,
-        responseMessages: initialResponseMessages,
         usage: createNullLanguageModelUsage(),
       });
     })().catch(async error => {
       await telemetryDispatcher.onError?.({ callId, error });
+      self._initialResponseMessages.reject(error);
 
       // add an error stream part and close the streams:
       self.addStream(
@@ -2132,7 +2127,13 @@ class DefaultStreamTextResult<
   }
 
   get responseMessages() {
-    return this.finalStep.then(step => step.response.messages);
+    return Promise.all([
+      this._initialResponseMessages.promise,
+      this.steps,
+    ]).then(([initialResponseMessages, steps]) => [
+      ...initialResponseMessages,
+      ...steps.flatMap(step => step.response.messages),
+    ]);
   }
 
   get totalUsage() {

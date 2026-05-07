@@ -478,7 +478,7 @@ It is called with the following parameters:
 - `steps`: The steps that have been executed so far.
 - `messages`: The messages that will be sent to the model for the current step.
 - `initialMessages`: The messages that were passed into `generateText` or `streamText`.
-- `responseMessages`: The response messages that have been accumulated from previous steps.
+- `responseMessages`: The accumulated assistant/tool response messages so far, including any tool results generated before the first model step from approved tool calls in the input messages.
 - `runtimeContext`: The runtime context passed via the `runtimeContext` setting.
 - `toolsContext`: The per-tool context map passed via the `toolsContext` setting.
 - `sandbox`: The sandbox passed via the `sandbox` setting.
@@ -512,7 +512,7 @@ const result = await generateText({
 In longer agentic loops, you can use the `messages` parameter to modify the input messages for each step. This is particularly useful for prompt compression.
 
 The `messages` parameter contains `initialMessages` followed by the accumulated `responseMessages`.
-Use `initialMessages` when you need to preserve the original user-provided prompt and `responseMessages` when you only need the assistant/tool messages from previous steps.
+Use `initialMessages` when you need to preserve the original user-provided prompt and `responseMessages` when you only need the accumulated assistant/tool response messages.
 
 ```tsx
 prepareStep: async ({ stepNumber, steps, messages }) => {
@@ -547,7 +547,7 @@ Both `generateText` and `streamText` have a `responseMessages` property that you
 add the assistant and tool messages to your conversation history.
 It is also available in the `onFinish` callback of `streamText`.
 
-The `responseMessages` property contains an array of `ModelMessage` objects that you can add to your conversation history:
+The `responseMessages` property contains the accumulated response messages from the call as an array of `ModelMessage` objects that you can add to your conversation history:
 
 ```ts
 import { generateText, ModelMessage } from 'ai';

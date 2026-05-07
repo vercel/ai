@@ -525,7 +525,7 @@ export async function generateText<
 
   try {
     const initialMessages = initialPrompt.messages;
-    const responseMessages: Array<ResponseMessage> = [];
+    const initialResponseMessages: Array<ResponseMessage> = [];
 
     const { approvedToolApprovals, deniedToolApprovals } =
       collectToolApprovals<TOOLS>({ messages: initialMessages });
@@ -609,7 +609,7 @@ export async function generateText<
         });
       }
 
-      responseMessages.push({
+      initialResponseMessages.push({
         role: 'tool',
         content: toolContent,
       });
@@ -642,7 +642,14 @@ export async function generateText<
       });
 
       try {
-        const stepInputMessages = [...initialMessages, ...responseMessages];
+        const accumulatedResponseMessages = [
+          ...initialResponseMessages,
+          ...steps.flatMap(step => step.response.messages),
+        ];
+        const stepInputMessages = [
+          ...initialMessages,
+          ...accumulatedResponseMessages,
+        ];
 
         const prepareStepResult = await prepareStep?.({
           model,
@@ -650,7 +657,7 @@ export async function generateText<
           stepNumber: steps.length,
           messages: stepInputMessages,
           initialMessages,
-          responseMessages,
+          responseMessages: accumulatedResponseMessages,
           runtimeContext,
           toolsContext,
           sandbox,
@@ -1005,13 +1012,10 @@ export async function generateText<
           tools,
         });
 
-        // append to messages for potential next step:
-        responseMessages.push(
-          ...(await toResponseMessages({
-            content: stepContent,
-            tools,
-          })),
-        );
+        const stepResponseMessages = await toResponseMessages({
+          content: stepContent,
+          tools,
+        });
 
         // Add step information (after response messages are updated):
         // Conditionally include request.body and response.body based on include settings.
@@ -1028,8 +1032,8 @@ export async function generateText<
 
         const stepResponse = {
           ...currentModelResponse.response,
-          // deep clone msgs to avoid mutating past messages in multi-step:
-          messages: cloneModelMessages(responseMessages),
+          // deep clone msgs to avoid mutating step results in multi-step:
+          messages: cloneModelMessages(stepResponseMessages),
           // Conditionally include response body:
           body: include.responseBody
             ? currentModelResponse.response?.body
@@ -1120,7 +1124,10 @@ export async function generateText<
       dynamicToolResults: lastStep.dynamicToolResults,
       request: lastStep.request,
       response: lastStep.response,
-      responseMessages: lastStep.response.messages,
+      responseMessages: [
+        ...initialResponseMessages,
+        ...steps.flatMap(step => step.response.messages),
+      ],
       warnings: lastStep.warnings,
       providerMetadata: lastStep.providerMetadata,
       steps,
@@ -1148,6 +1155,7 @@ export async function generateText<
     }
 
     return new DefaultGenerateTextResult({
+      initialResponseMessages,
       steps,
       totalUsage,
       output: resolvedOutput,
@@ -1217,14 +1225,18 @@ class DefaultGenerateTextResult<
   private readonly _output: InferCompleteOutput<OUTPUT> | undefined;
 
   constructor(options: {
+    initialResponseMessages: Array<ResponseMessage>;
     steps: GenerateTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>['steps'];
     output: InferCompleteOutput<OUTPUT> | undefined;
     totalUsage: LanguageModelUsage;
   }) {
+    this.initialResponseMessages = options.initialResponseMessages;
     this.steps = options.steps;
     this._output = options.output;
     this.totalUsage = options.totalUsage;
   }
+
+  private readonly initialResponseMessages: Array<ResponseMessage>;
 
   private get finalStep() {
     return this.steps[this.steps.length - 1];
@@ -1299,7 +1311,10 @@ class DefaultGenerateTextResult<
   }
 
   get responseMessages() {
-    return this.finalStep.response.messages;
+    return [
+      ...this.initialResponseMessages,
+      ...this.steps.flatMap(step => step.response.messages),
+    ];
   }
 
   get request() {

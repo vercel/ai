@@ -4156,35 +4156,6 @@ describe('generateText', () => {
                       {
                         "content": [
                           {
-                            "input": {
-                              "value": "value",
-                            },
-                            "providerExecuted": undefined,
-                            "providerOptions": undefined,
-                            "toolCallId": "call-1",
-                            "toolName": "tool1",
-                            "type": "tool-call",
-                          },
-                        ],
-                        "role": "assistant",
-                      },
-                      {
-                        "content": [
-                          {
-                            "output": {
-                              "type": "text",
-                              "value": "result1",
-                            },
-                            "toolCallId": "call-1",
-                            "toolName": "tool1",
-                            "type": "tool-result",
-                          },
-                        ],
-                        "role": "tool",
-                      },
-                      {
-                        "content": [
-                          {
                             "providerOptions": undefined,
                             "text": "Hello, world!",
                             "type": "text",
@@ -4388,35 +4359,6 @@ describe('generateText', () => {
                     },
                     "id": "test-id-2-from-model",
                     "messages": [
-                      {
-                        "content": [
-                          {
-                            "input": {
-                              "value": "value",
-                            },
-                            "providerExecuted": undefined,
-                            "providerOptions": undefined,
-                            "toolCallId": "call-1",
-                            "toolName": "tool1",
-                            "type": "tool-call",
-                          },
-                        ],
-                        "role": "assistant",
-                      },
-                      {
-                        "content": [
-                          {
-                            "output": {
-                              "type": "text",
-                              "value": "result1",
-                            },
-                            "toolCallId": "call-1",
-                            "toolName": "tool1",
-                            "type": "tool-result",
-                          },
-                        ],
-                        "role": "tool",
-                      },
                       {
                         "content": [
                           {
@@ -7100,7 +7042,7 @@ describe('generateText', () => {
       });
 
       describe('result.responseMessages', () => {
-        it('should contain all response messages from all steps', () => {
+        it('should contain response messages from all steps', () => {
           expect(result.responseMessages).toMatchInlineSnapshot(`
             [
               {
@@ -7638,7 +7580,7 @@ describe('generateText', () => {
           `);
         });
 
-        it('should contain all response messages', () => {
+        it('should contain response messages from all steps', () => {
           expect(onFinishResult.responseMessages.length).toBe(9);
         });
       });
@@ -9174,6 +9116,86 @@ describe('generateText', () => {
               ],
               "role": "assistant",
             },
+          ]
+        `);
+      });
+
+      it('should pass the initial tool result in responseMessages to prepareStep', async () => {
+        const prepareStepResponseMessages: Array<ModelMessage[]> = [];
+
+        await generateText({
+          model: new MockLanguageModelV4({
+            doGenerate: async () => ({
+              ...dummyResponseValues,
+              content: [{ type: 'text', text: 'Hello, world!' }],
+              finishReason: { unified: 'stop', raw: 'stop' },
+            }),
+          }),
+          tools: {
+            tool1: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: () => 'result1',
+            }),
+          },
+          toolApproval: {
+            tool1: 'user-approval',
+          },
+          stopWhen: isStepCount(3),
+          messages: [
+            { role: 'user', content: 'test-input' },
+            {
+              role: 'assistant',
+              content: [
+                {
+                  input: { value: 'value' },
+                  providerExecuted: undefined,
+                  providerOptions: undefined,
+                  toolCallId: 'call-1',
+                  toolName: 'tool1',
+                  type: 'tool-call',
+                },
+                {
+                  approvalId: 'id-1',
+                  toolCallId: 'call-1',
+                  type: 'tool-approval-request',
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  approvalId: 'id-1',
+                  type: 'tool-approval-response',
+                  approved: true,
+                },
+              ],
+            },
+          ],
+          prepareStep: ({ responseMessages }) => {
+            prepareStepResponseMessages.push([...responseMessages]);
+            return undefined;
+          },
+        });
+
+        expect(prepareStepResponseMessages).toMatchInlineSnapshot(`
+          [
+            [
+              {
+                "content": [
+                  {
+                    "output": {
+                      "type": "text",
+                      "value": "result1",
+                    },
+                    "toolCallId": "call-1",
+                    "toolName": "tool1",
+                    "type": "tool-result",
+                  },
+                ],
+                "role": "tool",
+              },
+            ],
           ]
         `);
       });

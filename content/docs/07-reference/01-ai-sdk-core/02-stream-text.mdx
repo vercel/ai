@@ -1840,7 +1840,7 @@ To see `streamText` in action, check out [these examples](#examples).
                       name: 'messages',
                       type: 'Array<ResponseMessage>',
                       description:
-                        'The response messages that were generated during the call. It consists of an assistant message, potentially containing tool calls.  When there are tool results, there is an additional tool message with the tool results that are available. If there are tools that do not have execute functions, they are not included in the tool results and need to be added separately.',
+                        'The response messages generated during this step. It consists of an assistant message, potentially containing tool calls. When there are tool results in this step, there is an additional tool message with the available tool results. If there are tools that do not have execute functions, they are not included in the tool results and need to be added separately.',
                     },
                   ],
                 },
@@ -2711,7 +2711,7 @@ To see `streamText` in action, check out [these examples](#examples).
               name: 'messages',
               type: 'Array<ResponseMessage>',
               description:
-                'The response messages that were generated during the call. It consists of an assistant message, potentially containing tool calls.  When there are tool results, there is an additional tool message with the tool results that are available. If there are tools that do not have execute functions, they are not included in the tool results and need to be added separately.',
+                'The response messages generated during the final step. It consists of an assistant message, potentially containing tool calls. When there are tool results in the final step, there is an additional tool message with the available tool results. If there are tools that do not have execute functions, they are not included in the tool results and need to be added separately.',
             },
           ],
         },
@@ -2727,7 +2727,7 @@ To see `streamText` in action, check out [these examples](#examples).
       name: 'responseMessages',
       type: 'Promise<Array<ResponseMessage>>',
       description:
-        'The response messages that were generated during the call.',
+        'The accumulated response messages that were generated during the call.',
     },
     {
       name: 'steps',
@@ -2996,7 +2996,7 @@ To see `streamText` in action, check out [these examples](#examples).
                       name: 'messages',
                       type: 'Array<ResponseMessage>',
                       description:
-                        'The response messages that were generated during the call. It consists of an assistant message, potentially containing tool calls.  When there are tool results, there is an additional tool message with the tool results that are available. If there are tools that do not have execute functions, they are not included in the tool results and need to be added separately.',
+                        'The response messages generated during this step. It consists of an assistant message, potentially containing tool calls. When there are tool results in this step, there is an additional tool message with the available tool results. If there are tools that do not have execute functions, they are not included in the tool results and need to be added separately.',
                     },
                   ],
                 },
