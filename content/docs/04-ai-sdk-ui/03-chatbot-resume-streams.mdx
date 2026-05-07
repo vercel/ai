@@ -8,10 +8,12 @@ description: Learn how to resume chatbot streams after client disconnects.
 `useChat` supports resuming ongoing streams after page reloads. Use this feature to build applications with long-running generations.
 
 <Note type="warning">
-  Stream resumption is not compatible with abort functionality. Closing a tab or
-  refreshing the page triggers an abort signal that will break the resumption
-  mechanism. Do not use `resume: true` if you need abort functionality in your
-  application. See
+  In a resumable stream setup, client-side aborts are treated as disconnects.
+  Closing a tab, refreshing the page, or calling `stop()` only closes the
+  current HTTP connection and should not cancel the underlying generation. To
+  let users stop generation, add a dedicated stop endpoint that persists the
+  partial response, cancels the active work, and clears the active stream. See
+  [Stop an Active Resumable Stream](#stop-an-active-resumable-stream) and
   [troubleshooting](/docs/troubleshooting/abort-breaks-resumable-streams) for
   more details.
 </Note>
@@ -250,9 +252,148 @@ This lets you:
 - Add query parameters or custom paths
 - Integrate with different backend architectures
 
+## Stop an Active Resumable Stream
+
+`useChat` includes a `stop()` function that aborts the current client request. In a resumable stream setup, that abort is a disconnect signal, not a request to stop generation.
+
+Stream resumption lets a client reconnect to an active stream after the original connection closes. To make that possible, the server keeps the stream running even when no client is actively consuming it. If the user refreshes the page, closes the tab, loses their connection, or navigates away, the client can reconnect later with `resumeStream()`.
+
+Because of this, a client-side abort (e.g. closing the page or refreshing) only closes the current HTTP connection. It is not a request to cancel the underlying work. If your stop button only calls `stop()`, the model request, background job, workflow, or stream writer can continue running, and the client can reconnect to the same active stream.
+
+To support an explicit stop button, create a dedicated stop endpoint. The endpoint should accept the current assistant message from the client, persist that partial response, cancel the work that is producing the stream, and clear the active stream record for the chat.
+
+Stream resumption also needs your application to store a reference from the chat to the stream that can be resumed. This guide calls that reference `activeStreamId`. The resume endpoint uses it to find the stream to reconnect to. The stop endpoint uses the same value to find the work to cancel, and to avoid clearing a newer stream that may have started while the stop request was in flight.
+
+### Client-side: send the current assistant message
+
+The chat setup is the same as the resumable stream setup above. To add stop behavior, send the latest partial assistant message to your stop endpoint before stopping the local chat stream.
+
+When the client knows the active stream ID, include it in the request. This lets the server ignore stale stop requests that arrive after a newer stream has already started.
+
+```tsx filename="app/chat/[chatId]/chat.tsx"
+'use client';
+
+import { useChat } from '@ai-sdk/react';
+import { type UIMessage } from 'ai';
+
+export function Chat({
+  chatData,
+  resume = false,
+}: {
+  chatData: {
+    id: string;
+    messages: UIMessage[];
+    activeStreamId?: string | null;
+  };
+  resume?: boolean;
+}) {
+  const chat = useChat({
+    id: chatData.id,
+    messages: chatData.messages,
+    resume,
+  });
+
+  const stop = () => {
+    const lastMessage = chat.messages[chat.messages.length - 1];
+    const assistantMessage =
+      lastMessage?.role === 'assistant' ? lastMessage : undefined;
+
+    void fetch(`/api/chat/${chatData.id}/stop`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(
+        assistantMessage || chatData.activeStreamId
+          ? {
+              assistantMessage,
+              activeStreamId: chatData.activeStreamId,
+            }
+          : {},
+      ),
+    });
+
+    void chat.stop();
+  };
+
+  return <button onClick={stop}>Stop</button>;
+}
+```
+
+The stop request tells your server to cancel the active work. `chat.stop()` stops the local client from reading more chunks.
+
+### Server-side: stop the active work and clear the stream
+
+The stop endpoint should:
+
+1. Load the chat and read its `activeStreamId`
+2. Persist the assistant snapshot if one was sent
+3. Cancel the work that is producing the stream
+4. Clear `activeStreamId` only if it still points to the same stream
+
+```ts filename="app/api/chat/[id]/stop/route.ts"
+import { readChat, saveChat } from '@util/chat-store';
+import { type UIMessage } from 'ai';
+
+type StopRequest = {
+  activeStreamId?: string | null;
+  assistantMessage?: UIMessage;
+};
+
+export async function POST(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const { id } = await params;
+  const chat = await readChat(id);
+
+  if (chat.activeStreamId == null) {
+    return Response.json({ success: true });
+  }
+
+  const activeStreamId = chat.activeStreamId;
+  const body = (await req.json().catch(() => ({}))) as StopRequest;
+
+  if (
+    body.activeStreamId != null &&
+    body.activeStreamId !== activeStreamId
+  ) {
+    return Response.json({ success: true });
+  }
+
+  if (body.assistantMessage) {
+    await saveAssistantSnapshot({
+      chatId: id,
+      message: body.assistantMessage,
+    });
+  }
+
+  await markStreamAsStopped(activeStreamId);
+  await cancelActiveWork(activeStreamId);
+
+  const latestChat = await readChat(id);
+  if (latestChat.activeStreamId === activeStreamId) {
+    await saveChat({ id, activeStreamId: null });
+  }
+
+  return Response.json({ success: true });
+}
+```
+
+`markStreamAsStopped` and `cancelActiveWork` depend on your backend. In a Redis-backed resumable stream setup, you might close the stored stream and abort the model request that is writing to it. In a workflow setup, you might cancel the workflow run that owns the stream. In a job queue setup, you might cancel the job or write a cancellation flag that the job checks.
+
+The `activeStreamId` can identify replay state, producer state, or both. If those are separate in your system, store enough information with the chat to cancel the producer that writes to the stream.
+
+Persist the assistant snapshot as an insert or merge. Avoid overwriting a newer server-written message with an older client snapshot.
+
+### Keep navigation separate from stop
+
+Do not call the stop endpoint from route cleanup code. Route cleanup is a disconnect, not an explicit stop. The active stream should remain resumable when the user refreshes the page or navigates away.
+
+Only call the stop endpoint for an explicit user action, such as pressing a stop button.
+
+After a user stops a stream, avoid automatic reconnect attempts for that chat until the user sends another message or explicitly retries. Otherwise the client can reconnect before cancellation has finished.
+
 ## Important considerations
 
-- **Incompatibility with abort**: Stream resumption is not compatible with abort functionality. Closing a tab or refreshing the page triggers an abort signal that will break the resumption mechanism. Do not use `resume: true` if you need abort functionality in your application
 - **Stream expiration**: Streams in Redis expire after a set time (configurable in the `resumable-stream` package)
 - **Multiple clients**: Multiple clients can connect to the same stream simultaneously
 - **Error handling**: When no active stream exists, the GET handler returns a 204 (No Content) status code
