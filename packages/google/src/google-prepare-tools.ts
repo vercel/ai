@@ -12,16 +12,10 @@ export function prepareTools({
   modelId,
   isVertexProvider = false,
 }: {
-<<<<<<< HEAD
   tools: LanguageModelV3CallOptions['tools'];
   toolChoice?: LanguageModelV3CallOptions['toolChoice'];
   modelId: GoogleGenerativeAIModelId;
-=======
-  tools: LanguageModelV4CallOptions['tools'];
-  toolChoice?: LanguageModelV4CallOptions['toolChoice'];
-  modelId: GoogleModelId;
   isVertexProvider?: boolean;
->>>>>>> 84f36e07d (fix(google): omit passing includeServerSideToolInvocations for Vertex tool_config (#14767))
 }): {
   tools:
     | Array<
