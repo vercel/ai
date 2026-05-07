@@ -7,6 +7,7 @@ import type { Sandbox } from './sandbox';
  */
 export interface ToolExecutionOptions<
   CONTEXT extends Context | unknown | never,
+  REQUIRES_SANDBOX extends boolean | undefined,
 > {
   /**
    * The ID of the tool call. You can use it e.g. when sending tool-call related information with stream data.
@@ -38,9 +39,9 @@ export interface ToolExecutionOptions<
   context: CONTEXT;
 
   /**
-   * The sandbox environment that the tool is operating in.
+   * Whether the tool needs a sandbox environment to be executed.
    */
-  sandbox?: Sandbox;
+  sandbox: REQUIRES_SANDBOX extends true ? Sandbox : never;
 }
 
 /**
@@ -50,7 +51,8 @@ export type ToolExecuteFunction<
   INPUT,
   OUTPUT,
   CONTEXT extends Context | unknown | never,
+  REQUIRES_SANDBOX extends boolean | undefined,
 > = (
   input: INPUT,
-  options: ToolExecutionOptions<CONTEXT>,
+  options: ToolExecutionOptions<CONTEXT, REQUIRES_SANDBOX>,
 ) => AsyncIterable<OUTPUT> | PromiseLike<OUTPUT> | OUTPUT;

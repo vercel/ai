@@ -27,12 +27,24 @@ export async function* executeTool<TOOL extends Tool>({
 }: {
   tool: ExecutableTool<TOOL>;
   input: InferToolInput<TOOL>;
-  options: ToolExecutionOptions<InferToolContext<TOOL>>;
+  options: ToolExecutionOptions<
+    InferToolContext<TOOL>,
+    TOOL['requiresSandbox']
+  >;
 }): AsyncGenerator<
   | { type: 'preliminary'; output: InferToolOutput<TOOL> }
   | { type: 'final'; output: InferToolOutput<TOOL> }
 > {
-  const result = tool.execute(input, options);
+  const sandbox = options.sandbox;
+
+  if (tool.requiresSandbox && !sandbox) {
+    throw new Error('Sandbox options are required for sandbox tools');
+  }
+
+  const result = tool.execute(input, {
+    ...options,
+    sandbox,
+  });
 
   if (isAsyncIterable(result)) {
     let lastOutput: InferToolOutput<TOOL> | undefined;

@@ -4,6 +4,7 @@ import type { FlexibleSchema } from '../schema';
 import type { ToolResultOutput } from './content-part';
 import type { Context } from './context';
 import type { ModelMessage } from './model-message';
+import type { Sandbox } from './sandbox';
 import {
   dynamicTool,
   tool,
@@ -576,6 +577,27 @@ describe('tool helper', () => {
         },
       });
     });
+
+    it('should not pass sandbox to input lifecycle callbacks', () => {
+      tool({
+        inputSchema: z.object({ number: z.number() }),
+        requiresSandbox: true,
+        execute: async (input, options) => {
+          expectTypeOf(input).toEqualTypeOf<{ number: number }>();
+          expectTypeOf(options.sandbox).toEqualTypeOf<Sandbox>();
+          return 'test' as const;
+        },
+        onInputStart: options => {
+          expectTypeOf(options).not.toHaveProperty('sandbox');
+        },
+        onInputDelta: options => {
+          expectTypeOf(options).not.toHaveProperty('sandbox');
+        },
+        onInputAvailable: options => {
+          expectTypeOf(options).not.toHaveProperty('sandbox');
+        },
+      });
+    });
   });
 
   describe('output type', () => {
@@ -592,7 +614,8 @@ describe('tool helper', () => {
         Tool<{ number: number }, 'test', Context>
       >();
       expectTypeOf(aTool.execute).toExtend<
-        ToolExecuteFunction<{ number: number }, 'test', Context> | undefined
+        | ToolExecuteFunction<{ number: number }, 'test', Context, false>
+        | undefined
       >();
       expectTypeOf(aTool.execute).not.toEqualTypeOf<undefined>();
       expectTypeOf(aTool.inputSchema).toEqualTypeOf<
@@ -612,7 +635,8 @@ describe('tool helper', () => {
         Tool<{ number: number }, 'test', Context>
       >();
       expectTypeOf(aTool.execute).toEqualTypeOf<
-        ToolExecuteFunction<{ number: number }, 'test', Context> | undefined
+        | ToolExecuteFunction<{ number: number }, 'test', Context, false>
+        | undefined
       >();
       expectTypeOf(aTool.inputSchema).toEqualTypeOf<
         FlexibleSchema<{ number: number }>

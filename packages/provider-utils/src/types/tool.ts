@@ -28,13 +28,40 @@ type ToolOutputProperties<
       outputSchema?: FlexibleSchema<OUTPUT>;
 
       /**
+       * Whether the tool needs a sandbox environment to be executed.
+       */
+      requiresSandbox: true;
+
+      /**
        * An async function that is called with the arguments from the tool call and produces a result.
        * If not provided, the tool will not be executed automatically.
        *
        * @args is the input of the tool call.
        * @options.abortSignal is a signal that can be used to abort the tool call.
        */
-      execute: ToolExecuteFunction<INPUT, OUTPUT, CONTEXT>;
+      execute: ToolExecuteFunction<INPUT, OUTPUT, CONTEXT, true>;
+    }
+  | {
+      /**
+       * The optional schema of the output that the tool produces.
+       *
+       * If not provided, the output shape will be inferred from the execute function.
+       */
+      outputSchema?: FlexibleSchema<OUTPUT>;
+
+      /**
+       * Whether the tool needs a sandbox environment to be executed.
+       */
+      requiresSandbox?: false | undefined;
+
+      /**
+       * An async function that is called with the arguments from the tool call and produces a result.
+       * If not provided, the tool will not be executed automatically.
+       *
+       * @args is the input of the tool call.
+       * @options.abortSignal is a signal that can be used to abort the tool call.
+       */
+      execute: ToolExecuteFunction<INPUT, OUTPUT, CONTEXT, false>;
     }
   | {
       /**
@@ -45,6 +72,8 @@ type ToolOutputProperties<
       outputSchema: FlexibleSchema<OUTPUT>;
 
       execute?: never;
+
+      requiresSandbox?: never;
     }
 >;
 
@@ -112,7 +141,7 @@ type BaseTool<
    * Only called when the tool is used in a streaming context.
    */
   onInputStart?: (
-    options: ToolExecutionOptions<NoInfer<CONTEXT>>,
+    options: Omit<ToolExecutionOptions<NoInfer<CONTEXT>, false>, 'sandbox'>,
   ) => void | PromiseLike<void>;
 
   /**
@@ -120,8 +149,9 @@ type BaseTool<
    * Only called when the tool is used in a streaming context.
    */
   onInputDelta?: (
-    options: { inputTextDelta: string } & ToolExecutionOptions<
-      NoInfer<CONTEXT>
+    options: { inputTextDelta: string } & Omit<
+      ToolExecutionOptions<NoInfer<CONTEXT>, false>,
+      'sandbox'
     >,
   ) => void | PromiseLike<void>;
 
@@ -132,7 +162,7 @@ type BaseTool<
   onInputAvailable?: (
     options: {
       input: [INPUT] extends [never] ? unknown : INPUT;
-    } & ToolExecutionOptions<NoInfer<CONTEXT>>,
+    } & Omit<ToolExecutionOptions<NoInfer<CONTEXT>, false>, 'sandbox'>,
   ) => void | PromiseLike<void>;
 
   /**
