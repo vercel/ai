@@ -572,7 +572,7 @@ describe('convertToGoogleInteractionsInput', () => {
 
   describe('assistant file parts', () => {
     it('emits an image content block from an assistant inline-data file part (round-trips a generated image)', () => {
-      const prompt: LanguageModelV4Prompt = [
+      const prompt: LanguageModelV3Prompt = [
         {
           role: 'user',
           content: [{ type: 'text', text: 'generate a cat' }],
@@ -583,7 +583,7 @@ describe('convertToGoogleInteractionsInput', () => {
             {
               type: 'file',
               mediaType: 'image/png',
-              data: { type: 'data', data: 'base64data' },
+              data: 'base64data',
             },
           ],
         },
@@ -631,17 +631,14 @@ describe('convertToGoogleInteractionsInput', () => {
     });
 
     it('emits an image content block from an assistant url-data file part', () => {
-      const prompt: LanguageModelV4Prompt = [
+      const prompt: LanguageModelV3Prompt = [
         {
           role: 'assistant',
           content: [
             {
               type: 'file',
               mediaType: 'image/png',
-              data: {
-                type: 'url',
-                url: new URL('https://example.com/cat.png'),
-              },
+              data: new URL('https://example.com/cat.png'),
             },
           ],
         },
