@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/openai",
-  "version": "4.0.0-canary.51",
+  "version": "4.0.0-canary.52",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,

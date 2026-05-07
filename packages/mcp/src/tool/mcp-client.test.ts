@@ -103,6 +103,7 @@ describe('MCPClient', () => {
 
     expect(tools['mock-tool'].metadata).toEqual({
       clientName: 'MyMCPClient',
+      toolName: 'mock-tool',
     });
   });
 
@@ -116,6 +117,7 @@ describe('MCPClient', () => {
 
     expect(tools['mock-tool'].metadata).toEqual({
       clientName: 'DeprecatedMCPServer',
+      toolName: 'mock-tool',
     });
   });
 
@@ -1950,6 +1952,11 @@ describe('MCPClient', () => {
 
       const tools = await client.tools();
       expect(tools['titled-tool'].title).toBe('My Tool Title');
+      expect(tools['titled-tool'].metadata).toEqual({
+        clientName: 'ai-sdk-mcp-client',
+        title: 'My Tool Title',
+        toolName: 'titled-tool',
+      });
     });
 
     it('should fallback to annotations.title for backward compatibility', async () => {
@@ -1975,6 +1982,10 @@ describe('MCPClient', () => {
 
       const tools = await client.tools();
       expect(tools['annotated-tool'].title).toBe('Annotation Title');
+      expect(tools['annotated-tool'].metadata).toMatchObject({
+        title: 'Annotation Title',
+        toolName: 'annotated-tool',
+      });
     });
 
     it('should prefer top-level title over annotations.title when both present', async () => {
@@ -2023,6 +2034,10 @@ describe('MCPClient', () => {
 
       const tools = await client.tools();
       expect(tools['no-title-tool'].title).toBeUndefined();
+      expect(tools['no-title-tool'].metadata).toEqual({
+        clientName: 'ai-sdk-mcp-client',
+        toolName: 'no-title-tool',
+      });
     });
 
     it('should pass title through to typed tools with schemas', async () => {
@@ -2057,6 +2072,11 @@ describe('MCPClient', () => {
       });
 
       expect(tools['typed-titled-tool'].title).toBe('Typed Tool Title');
+      expect(tools['typed-titled-tool'].metadata).toEqual({
+        clientName: 'ai-sdk-mcp-client',
+        title: 'Typed Tool Title',
+        toolName: 'typed-titled-tool',
+      });
     });
   });
 });

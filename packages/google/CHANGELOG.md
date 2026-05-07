@@ -1,5 +1,12 @@
 # @ai-sdk/google
 
+## 4.0.0-canary.56
+
+### Patch Changes
+
+- Updated dependencies [f634bac]
+  - @ai-sdk/provider-utils@5.0.0-canary.35
+
 ## 4.0.0-canary.55
 
 ### Patch Changes
