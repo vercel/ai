@@ -420,8 +420,10 @@ export class LegacyOpenTelemetry implements Telemetry {
         'ai.usage.inputTokens': event.usage.inputTokens,
         'ai.usage.outputTokens': event.usage.outputTokens,
         'ai.usage.totalTokens': event.usage.totalTokens,
-        'ai.usage.reasoningTokens': event.usage.reasoningTokens,
-        'ai.usage.cachedInputTokens': event.usage.cachedInputTokens,
+        'ai.usage.reasoningTokens':
+          event.usage.outputTokenDetails?.reasoningTokens,
+        'ai.usage.cachedInputTokens':
+          event.usage.inputTokenDetails?.cacheReadTokens,
 
         'gen_ai.response.finish_reasons': [event.finishReason],
         'gen_ai.response.id': event.response.id,
@@ -688,8 +690,10 @@ export class LegacyOpenTelemetry implements Telemetry {
         'ai.usage.inputTokens': event.usage.inputTokens,
         'ai.usage.outputTokens': event.usage.outputTokens,
         'ai.usage.totalTokens': event.usage.totalTokens,
-        'ai.usage.reasoningTokens': event.usage.reasoningTokens,
-        'ai.usage.cachedInputTokens': event.usage.cachedInputTokens,
+        'ai.usage.reasoningTokens':
+          event.usage.outputTokenDetails?.reasoningTokens,
+        'ai.usage.cachedInputTokens':
+          event.usage.inputTokenDetails?.cacheReadTokens,
         'ai.usage.inputTokenDetails.noCacheTokens':
           event.usage.inputTokenDetails?.noCacheTokens,
         'ai.usage.inputTokenDetails.cacheReadTokens':
@@ -800,8 +804,10 @@ export class LegacyOpenTelemetry implements Telemetry {
         'ai.usage.inputTokens': event.totalUsage.inputTokens,
         'ai.usage.outputTokens': event.totalUsage.outputTokens,
         'ai.usage.totalTokens': event.totalUsage.totalTokens,
-        'ai.usage.reasoningTokens': event.totalUsage.reasoningTokens,
-        'ai.usage.cachedInputTokens': event.totalUsage.cachedInputTokens,
+        'ai.usage.reasoningTokens':
+          event.totalUsage.outputTokenDetails?.reasoningTokens,
+        'ai.usage.cachedInputTokens':
+          event.totalUsage.inputTokenDetails?.cacheReadTokens,
         'ai.usage.inputTokenDetails.noCacheTokens':
           event.totalUsage.inputTokenDetails?.noCacheTokens,
         'ai.usage.inputTokenDetails.cacheReadTokens':
@@ -841,8 +847,10 @@ export class LegacyOpenTelemetry implements Telemetry {
         'ai.usage.inputTokens': event.usage.inputTokens,
         'ai.usage.outputTokens': event.usage.outputTokens,
         'ai.usage.totalTokens': event.usage.totalTokens,
-        'ai.usage.reasoningTokens': event.usage.reasoningTokens,
-        'ai.usage.cachedInputTokens': event.usage.cachedInputTokens,
+        'ai.usage.reasoningTokens':
+          event.usage.outputTokenDetails?.reasoningTokens,
+        'ai.usage.cachedInputTokens':
+          event.usage.inputTokenDetails?.cacheReadTokens,
       }),
     );
 

@@ -242,8 +242,6 @@ function makeStepFinishEvent(overrides?: Record<string, unknown>) {
       inputTokens: 10,
       outputTokens: 20,
       totalTokens: 30,
-      reasoningTokens: undefined,
-      cachedInputTokens: undefined,
       inputTokenDetails: {
         noCacheTokens: undefined,
         cacheReadTokens: undefined,
@@ -277,8 +275,6 @@ function makeFinishEvent(overrides?: Record<string, unknown>) {
       inputTokens: 10,
       outputTokens: 20,
       totalTokens: 30,
-      reasoningTokens: undefined,
-      cachedInputTokens: undefined,
       inputTokenDetails: {
         noCacheTokens: undefined,
         cacheReadTokens: undefined,
