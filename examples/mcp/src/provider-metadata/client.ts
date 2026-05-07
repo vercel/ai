@@ -30,7 +30,7 @@ async function main() {
     });
 
     for (const toolCall of result.toolCalls) {
-      const mcpMetadata = toolCall.providerMetadata?.mcp as
+      const mcpMetadata = toolCall.toolMetadata as
         | McpProviderMetadata
         | undefined;
 
