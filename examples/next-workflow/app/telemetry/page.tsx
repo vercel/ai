@@ -66,7 +66,7 @@ const scenarios: Array<{
 ];
 
 export default function TelemetryPage() {
-  const [scenario, setScenario] = useState<TelemetryScenario>('happy-path');
+  const [scenario, setScenario] = useState<TelemetryScenario>();
   const [telemetryRunId, setTelemetryRunId] = useState<string>();
   const [workflowRunId, setWorkflowRunId] = useState<string>();
   const [status, setStatus] = useState<TelemetryStatus>();

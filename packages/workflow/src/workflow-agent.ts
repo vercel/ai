@@ -341,10 +341,6 @@ export interface PrepareCallOptions<
   toolChoice?: ToolChoice<TTools>;
   telemetry?: TelemetryOptions<TRuntimeContext, TTools>;
   /**
-   * @deprecated Use `telemetry` instead. This alias will be removed in a future major release.
-   */
-  experimental_telemetry?: TelemetryOptions<TRuntimeContext, TTools>;
-  /**
    * Runtime context that flows through the agent loop.
    * Treat as immutable; return a new `runtimeContext` to update it for the call.
    */
@@ -428,13 +424,6 @@ export type WorkflowAgentOptions<
      * Optional telemetry configuration.
      */
     telemetry?: TelemetryOptions<TRuntimeContext, TTools>;
-
-    /**
-     * Optional telemetry configuration.
-     *
-     * @deprecated Use `telemetry` instead. This alias will be removed in a future major release.
-     */
-    experimental_telemetry?: TelemetryOptions<TRuntimeContext, TTools>;
 
     /**
      * Default runtime context for every stream call on this agent.
@@ -813,13 +802,6 @@ export type WorkflowAgentStreamOptions<
     telemetry?: TelemetryOptions<TRuntimeContext, TTools>;
 
     /**
-     * Optional telemetry configuration.
-     *
-     * @deprecated Use `telemetry` instead. This alias will be removed in a future major release.
-     */
-    experimental_telemetry?: TelemetryOptions<TRuntimeContext, TTools>;
-
-    /**
      * Runtime context that flows through the agent loop.
      *
      * Treat as immutable; return a new `runtimeContext` from `prepareStep`
@@ -1151,7 +1133,7 @@ export class WorkflowAgent<
     // `instructions` takes precedence over deprecated `system`
     this.instructions = options.instructions ?? options.system;
     this.toolChoice = options.toolChoice;
-    this.telemetry = options.telemetry ?? options.experimental_telemetry;
+    this.telemetry = options.telemetry;
     this.runtimeContext = options.runtimeContext;
     this.toolsContext = options.toolsContext;
     this.stopWhen = options.stopWhen;
@@ -1217,8 +1199,7 @@ export class WorkflowAgent<
         Context | undefined
       >;
     let effectiveToolChoiceFromPrepare = options.toolChoice ?? this.toolChoice;
-    let effectiveTelemetryFromPrepare =
-      options.telemetry ?? options.experimental_telemetry ?? this.telemetry;
+    let effectiveTelemetryFromPrepare = options.telemetry ?? this.telemetry;
 
     // Resolve messages for prepareCall: use messages directly, or convert prompt
     const resolvedMessagesForPrepareCall: ModelMessage[] =
@@ -1235,7 +1216,6 @@ export class WorkflowAgent<
         instructions: effectiveInstructions,
         toolChoice: effectiveToolChoiceFromPrepare as ToolChoice<TBaseTools>,
         telemetry: effectiveTelemetryFromPrepare,
-        experimental_telemetry: effectiveTelemetryFromPrepare,
         runtimeContext: effectiveRuntimeContext,
         toolsContext: effectiveToolsContext as InferToolSetContext<TBaseTools>,
         messages: resolvedMessagesForPrepareCall,
@@ -1261,8 +1241,6 @@ export class WorkflowAgent<
           prepared.toolChoice as ToolChoice<TBaseTools>;
       if (prepared.telemetry !== undefined)
         effectiveTelemetryFromPrepare = prepared.telemetry;
-      else if (prepared.experimental_telemetry !== undefined)
-        effectiveTelemetryFromPrepare = prepared.experimental_telemetry;
       if (prepared.maxOutputTokens !== undefined)
         effectiveGenerationSettings.maxOutputTokens = prepared.maxOutputTokens;
       if (prepared.temperature !== undefined)

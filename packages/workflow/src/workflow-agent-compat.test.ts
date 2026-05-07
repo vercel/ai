@@ -1557,7 +1557,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
           onFinish: async () => {
             events.push('agent-onFinish');
           },
-          experimental_telemetry: {
+          telemetry: {
             integrations: {
               onStart: async () => {
                 events.push('integration-onStart');
@@ -1607,7 +1607,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
               ]),
             }),
           }),
-          experimental_telemetry: {
+          telemetry: {
             integrations: {
               onStart: async () => {
                 throw new Error('integration error');
