@@ -37,7 +37,7 @@ run(async () => {
   console.log(turn1.text);
   console.log();
 
-  messages.push(...turn1.response.messages);
+  messages.push(...turn1.responseMessages);
   messages.push({
     role: 'user',
     content:

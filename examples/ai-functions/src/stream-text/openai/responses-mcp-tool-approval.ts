@@ -84,6 +84,6 @@ run(async () => {
       }
     }
 
-    messages.push(...response.messages);
+    messages.push(...responseMessages);
   }
 });

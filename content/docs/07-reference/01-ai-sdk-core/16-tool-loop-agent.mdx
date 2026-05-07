@@ -998,7 +998,7 @@ for (const part of result.content) {
   }
 }
 
-messages.push(...result.response.messages);
+messages.push(...result.responseMessages);
 messages.push({ role: 'tool', content: approvals });
 
 const approvedResult = await agent.generate({ messages });
