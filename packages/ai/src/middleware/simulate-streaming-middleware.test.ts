@@ -84,7 +84,10 @@ describe('simulateStreamingMiddleware', () => {
             "type": "start",
           },
           {
-            "request": {},
+            "request": {
+              "body": undefined,
+              "messages": undefined,
+            },
             "type": "start-step",
             "warnings": [],
           },
@@ -190,7 +193,10 @@ describe('simulateStreamingMiddleware', () => {
             "type": "start",
           },
           {
-            "request": {},
+            "request": {
+              "body": undefined,
+              "messages": undefined,
+            },
             "type": "start-step",
             "warnings": [],
           },
@@ -323,7 +329,10 @@ describe('simulateStreamingMiddleware', () => {
             "type": "start",
           },
           {
-            "request": {},
+            "request": {
+              "body": undefined,
+              "messages": undefined,
+            },
             "type": "start-step",
             "warnings": [],
           },
@@ -487,7 +496,10 @@ describe('simulateStreamingMiddleware', () => {
             "type": "start",
           },
           {
-            "request": {},
+            "request": {
+              "body": undefined,
+              "messages": undefined,
+            },
             "type": "start-step",
             "warnings": [],
           },
@@ -651,7 +663,10 @@ describe('simulateStreamingMiddleware', () => {
             "type": "start",
           },
           {
-            "request": {},
+            "request": {
+              "body": undefined,
+              "messages": undefined,
+            },
             "type": "start-step",
             "warnings": [],
           },
@@ -773,7 +788,10 @@ describe('simulateStreamingMiddleware', () => {
             "type": "start",
           },
           {
-            "request": {},
+            "request": {
+              "body": undefined,
+              "messages": undefined,
+            },
             "type": "start-step",
             "warnings": [],
           },

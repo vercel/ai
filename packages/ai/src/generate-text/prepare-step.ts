@@ -3,6 +3,7 @@ import type {
   InferToolSetContext,
   ModelMessage,
   ProviderOptions,
+  Sandbox,
   SystemModelMessage,
   ToolSet,
 } from '@ai-sdk/provider-utils';
@@ -56,6 +57,11 @@ export type PrepareStepFunction<
    * User-defined runtime context.
    */
   runtimeContext: RUNTIME_CONTEXT;
+
+  /**
+   * The sandbox environment that the step is operating in.
+   */
+  sandbox?: Sandbox;
 }) =>
   | PromiseLike<PrepareStepResult<TOOLS, RUNTIME_CONTEXT>>
   | PrepareStepResult<TOOLS, RUNTIME_CONTEXT>;

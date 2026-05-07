@@ -52,7 +52,7 @@ export interface OutputStrategy<PARTIAL, RESULT, ELEMENT_STREAM> {
     value: JSONValue | undefined,
     context: {
       text: string;
-      response: LanguageModelResponseMetadata;
+      response: Omit<LanguageModelResponseMetadata, 'messages'>;
       usage: LanguageModelUsage;
     },
   ): Promise<ValidationResult<RESULT>>;

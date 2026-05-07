@@ -18,6 +18,7 @@ import {
   tool,
   type ToolSet,
   type ModelMessage,
+  type Sandbox,
   type Tool,
   type ToolExecuteFunction,
 } from '@ai-sdk/provider-utils';
@@ -586,7 +587,10 @@ describe('streamText', () => {
               "type": "start",
             },
             {
-              "request": {},
+              "request": {
+                "body": undefined,
+                "messages": undefined,
+              },
               "type": "start-step",
               "warnings": [],
             },
@@ -683,7 +687,10 @@ describe('streamText', () => {
               "type": "start",
             },
             {
-              "request": {},
+              "request": {
+                "body": undefined,
+                "messages": undefined,
+              },
               "type": "start-step",
               "warnings": [],
             },
@@ -913,7 +920,10 @@ describe('streamText', () => {
               "type": "start",
             },
             {
-              "request": {},
+              "request": {
+                "body": undefined,
+                "messages": undefined,
+              },
               "type": "start-step",
               "warnings": [],
             },
@@ -1022,7 +1032,10 @@ describe('streamText', () => {
               "type": "start",
             },
             {
-              "request": {},
+              "request": {
+                "body": undefined,
+                "messages": undefined,
+              },
               "type": "start-step",
               "warnings": [],
             },
@@ -1116,7 +1129,10 @@ describe('streamText', () => {
               "type": "start",
             },
             {
-              "request": {},
+              "request": {
+                "body": undefined,
+                "messages": undefined,
+              },
               "type": "start-step",
               "warnings": [],
             },
@@ -1260,7 +1276,10 @@ describe('streamText', () => {
               "type": "start",
             },
             {
-              "request": {},
+              "request": {
+                "body": undefined,
+                "messages": undefined,
+              },
               "type": "start-step",
               "warnings": [],
             },
@@ -1412,7 +1431,10 @@ describe('streamText', () => {
               "type": "start",
             },
             {
-              "request": {},
+              "request": {
+                "body": undefined,
+                "messages": undefined,
+              },
               "type": "start-step",
               "warnings": [],
             },
@@ -1608,7 +1630,7 @@ describe('streamText', () => {
         experimental_onLanguageModelCallEnd: event => {
           modelCallEndEvents.push(event);
         },
-        experimental_onToolExecutionStart: event => {
+        onToolExecutionStart: event => {
           toolExecutionStartEvents.push(event);
         },
         prompt: 'test-input',
@@ -1725,7 +1747,10 @@ describe('streamText', () => {
               "type": "start",
             },
             {
-              "request": {},
+              "request": {
+                "body": undefined,
+                "messages": undefined,
+              },
               "type": "start-step",
               "warnings": [],
             },
@@ -2021,7 +2046,10 @@ describe('streamText', () => {
               "type": "start",
             },
             {
-              "request": {},
+              "request": {
+                "body": undefined,
+                "messages": undefined,
+              },
               "type": "start-step",
               "warnings": [],
             },
@@ -2897,6 +2925,54 @@ describe('streamText', () => {
   });
 
   describe('result.toUIMessageStream', () => {
+    it('should include tool metadata in ui message stream chunks', async () => {
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'tool-call',
+              toolCallId: 'call-1',
+              toolName: 'test-tool',
+              input: `{ "value": "value" }`,
+            },
+            {
+              type: 'finish',
+              finishReason: { unified: 'tool-calls', raw: 'tool-calls' },
+              usage: testUsage,
+            },
+          ]),
+        }),
+        tools: {
+          'test-tool': dynamicTool({
+            metadata: { clientName: 'MyMCPClient' },
+            inputSchema: z.object({ value: z.string() }),
+            execute: async () => 'result',
+          }),
+        },
+        prompt: 'test-input',
+      });
+
+      const chunks = await convertReadableStreamToArray(
+        result.toUIMessageStream(),
+      );
+
+      expect(chunks.find(chunk => chunk.type === 'tool-input-available'))
+        .toMatchInlineSnapshot(`
+        {
+          "dynamic": true,
+          "input": {
+            "value": "value",
+          },
+          "toolCallId": "call-1",
+          "toolMetadata": {
+            "clientName": "MyMCPClient",
+          },
+          "toolName": "test-tool",
+          "type": "tool-input-available",
+        }
+      `);
+    });
+
     it('should create a ui message stream', async () => {
       const result = streamText({
         model: createTestModel(),
@@ -4671,7 +4747,10 @@ describe('streamText', () => {
               "type": "start",
             },
             {
-              "request": {},
+              "request": {
+                "body": undefined,
+                "messages": undefined,
+              },
               "type": "start-step",
               "warnings": [],
             },
@@ -4904,14 +4983,14 @@ describe('streamText', () => {
     });
   });
 
-  describe('result.response.messages', () => {
+  describe('result.responseMessages', () => {
     it('should contain reasoning', async () => {
       const result = streamText({
         model: modelWithReasoning,
         ...defaultSettings(),
       });
 
-      expect((await result.response).messages).toMatchInlineSnapshot(`
+      expect(await result.responseMessages).toMatchInlineSnapshot(`
         [
           {
             "content": [
@@ -4978,7 +5057,7 @@ describe('streamText', () => {
   });
 
   describe('result.request', () => {
-    it('should resolve with request information by default', async () => {
+    it('should exclude request body and request messages by default', async () => {
       const result = streamText({
         model: createTestModel({
           stream: convertArrayToReadableStream([
@@ -5000,41 +5079,177 @@ describe('streamText', () => {
           request: { body: 'test body' },
         }),
         prompt: 'test-input',
-      });
-
-      expect(await result.request).toStrictEqual({
-        body: 'test body',
-      });
-    });
-
-    it('should exclude request body when retention.requestBody is false', async () => {
-      const result = streamText({
-        model: createTestModel({
-          stream: convertArrayToReadableStream([
-            {
-              type: 'response-metadata',
-              id: 'id-0',
-              modelId: 'mock-model-id',
-              timestamp: new Date(0),
-            },
-            { type: 'text-start', id: '1' },
-            { type: 'text-delta', id: '1', delta: 'Hello' },
-            { type: 'text-end', id: '1' },
-            {
-              type: 'finish',
-              finishReason: { unified: 'stop', raw: 'stop' },
-              usage: testUsage,
-            },
-          ]),
-          request: { body: 'test body' },
-        }),
-        prompt: 'test-input',
-        experimental_include: { requestBody: false },
       });
 
       expect(await result.request).toStrictEqual({
         body: undefined,
+        messages: undefined,
       });
+    });
+
+    it('should include request body when retention.requestBody is true', async () => {
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'Hello' },
+            { type: 'text-end', id: '1' },
+            {
+              type: 'finish',
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: testUsage,
+            },
+          ]),
+          request: { body: 'test body' },
+        }),
+        prompt: 'test-input',
+        include: { requestBody: true },
+      });
+
+      expect(await result.request).toStrictEqual({
+        body: 'test body',
+        messages: undefined,
+      });
+    });
+
+    it('should accept deprecated experimental_include as an alias for include', async () => {
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'Hello' },
+            { type: 'text-end', id: '1' },
+            {
+              type: 'finish',
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: testUsage,
+            },
+          ]),
+          request: { body: 'test body' },
+        }),
+        prompt: 'test-input',
+        experimental_include: { requestBody: true },
+      });
+
+      expect(await result.request).toStrictEqual({
+        body: 'test body',
+        messages: undefined,
+      });
+    });
+
+    it('should prefer include over deprecated experimental_include', async () => {
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'Hello' },
+            { type: 'text-end', id: '1' },
+            {
+              type: 'finish',
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: testUsage,
+            },
+          ]),
+          request: { body: 'test body' },
+        }),
+        prompt: 'test-input',
+        include: { requestBody: false },
+        experimental_include: { requestBody: true },
+      });
+
+      expect(await result.request).toStrictEqual({
+        body: undefined,
+        messages: undefined,
+      });
+    });
+
+    it('should include request messages when retention.requestMessages is true', async () => {
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'Hello' },
+            { type: 'text-end', id: '1' },
+            {
+              type: 'finish',
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: testUsage,
+            },
+          ]),
+          request: { body: 'test body' },
+        }),
+        prompt: 'test-input',
+        include: { requestBody: true, requestMessages: true },
+      });
+
+      expect(await result.request).toStrictEqual({
+        body: 'test body',
+        messages: [{ role: 'user', content: 'test-input' }],
+      });
+      expect((await result.steps)[0].request.messages).toStrictEqual([
+        { role: 'user', content: 'test-input' },
+      ]);
+    });
+
+    it('should resolve with messages from after prepareStep', async () => {
+      const preparedMessages: Array<ModelMessage> = [
+        { role: 'user', content: 'prepared prompt' },
+      ];
+
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'Hello' },
+            { type: 'text-end', id: '1' },
+            {
+              type: 'finish',
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: testUsage,
+            },
+          ]),
+        }),
+        prompt: 'test-input',
+        prepareStep: async () => ({
+          messages: preparedMessages,
+        }),
+        include: { requestMessages: true },
+      });
+
+      expect((await result.request).messages).toStrictEqual(preparedMessages);
+      expect((await result.steps)[0].request.messages).toStrictEqual(
+        preparedMessages,
+      );
     });
   });
 
@@ -5217,7 +5432,10 @@ describe('streamText', () => {
             },
             "providerMetadata": undefined,
             "rawFinishReason": "stop",
-            "request": {},
+            "request": {
+              "body": undefined,
+              "messages": undefined,
+            },
             "response": {
               "headers": undefined,
               "id": "id-0",
@@ -5359,7 +5577,10 @@ describe('streamText', () => {
             },
             "providerMetadata": undefined,
             "rawFinishReason": "stop",
-            "request": {},
+            "request": {
+              "body": undefined,
+              "messages": undefined,
+            },
             "response": {
               "headers": undefined,
               "id": "id-0",
@@ -5446,7 +5667,10 @@ describe('streamText', () => {
             },
             "providerMetadata": undefined,
             "rawFinishReason": "stop",
-            "request": {},
+            "request": {
+              "body": undefined,
+              "messages": undefined,
+            },
             "response": {
               "headers": undefined,
               "id": "id-0",
@@ -5555,7 +5779,10 @@ describe('streamText', () => {
             },
             "providerMetadata": undefined,
             "rawFinishReason": "stop",
-            "request": {},
+            "request": {
+              "body": undefined,
+              "messages": undefined,
+            },
             "response": {
               "headers": undefined,
               "id": "id-0",
@@ -6581,10 +6808,10 @@ describe('streamText', () => {
           callOrder.push('onLanguageModelCallEnd');
           modelCallEndEvents.push(event);
         },
-        experimental_onToolExecutionStart: async () => {
+        onToolExecutionStart: async () => {
           callOrder.push('onToolExecutionStart');
         },
-        experimental_onToolExecutionEnd: async () => {
+        onToolExecutionEnd: async () => {
           callOrder.push('onToolExecutionEnd');
         },
         onStepFinish: async () => {
@@ -6654,7 +6881,98 @@ describe('streamText', () => {
     });
   });
 
-  describe('options.experimental_onToolExecutionStart', () => {
+  describe('options.onToolExecutionStart', () => {
+    it('should use experimental_onToolCallStart as a fallback', async () => {
+      const callOrder: string[] = [];
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'response-metadata',
+                id: 'id-0',
+                modelId: 'mock-model-id',
+                timestamp: new Date(0),
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                input: '{ "value": "test" }',
+              },
+              {
+                type: 'finish',
+                finishReason: { unified: 'tool-calls', raw: undefined },
+                usage: testUsage,
+              },
+            ]),
+          }),
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => `${value}-result`,
+          }),
+        },
+        experimental_onToolCallStart: async () => {
+          callOrder.push('experimental_onToolCallStart');
+        },
+        ...defaultSettings(),
+      });
+
+      await result.consumeStream();
+
+      expect(callOrder).toEqual(['experimental_onToolCallStart']);
+    });
+
+    it('should prefer onToolExecutionStart over experimental_onToolCallStart', async () => {
+      const callOrder: string[] = [];
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'response-metadata',
+                id: 'id-0',
+                modelId: 'mock-model-id',
+                timestamp: new Date(0),
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                input: '{ "value": "test" }',
+              },
+              {
+                type: 'finish',
+                finishReason: { unified: 'tool-calls', raw: undefined },
+                usage: testUsage,
+              },
+            ]),
+          }),
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => `${value}-result`,
+          }),
+        },
+        experimental_onToolCallStart: async () => {
+          callOrder.push('experimental_onToolCallStart');
+        },
+        onToolExecutionStart: async () => {
+          callOrder.push('onToolExecutionStart');
+        },
+        ...defaultSettings(),
+      });
+
+      await result.consumeStream();
+
+      expect(callOrder).toEqual(['onToolExecutionStart']);
+    });
+
     it('should be called with correct tool name, id, and input', async () => {
       const toolExecutionStartEvents: Parameters<
         OnToolExecutionStartCallback<any>
@@ -6691,7 +7009,7 @@ describe('streamText', () => {
           }),
         },
         prompt: 'test-input',
-        experimental_onToolExecutionStart: async event => {
+        onToolExecutionStart: async event => {
           toolExecutionStartEvents.push(event);
         },
         onError: () => {},
@@ -6772,7 +7090,7 @@ describe('streamText', () => {
           }),
         },
         prompt: 'test-input',
-        experimental_onToolExecutionStart: async event => {
+        onToolExecutionStart: async event => {
           toolExecutionStartEvents.push(event);
         },
         onError: () => {},
@@ -6820,7 +7138,7 @@ describe('streamText', () => {
           }),
         },
         prompt: 'test-input',
-        experimental_onToolExecutionStart: async () => {
+        onToolExecutionStart: async () => {
           callOrder.push('onToolExecutionStart');
         },
         onError: () => {},
@@ -6865,7 +7183,7 @@ describe('streamText', () => {
           }),
         },
         prompt: 'test-input',
-        experimental_onToolExecutionStart: async () => {
+        onToolExecutionStart: async () => {
           throw new Error('callback error');
         },
         onError: () => {},
@@ -6913,7 +7231,7 @@ describe('streamText', () => {
           }),
         },
         prompt: 'test-input',
-        experimental_onToolExecutionStart: async event => {
+        onToolExecutionStart: async event => {
           toolExecutionStartEvents.push(event);
         },
         onError: () => {},
@@ -6961,7 +7279,7 @@ describe('streamText', () => {
           }),
         },
         toolsContext: { tool1: { context: 'test' } },
-        experimental_onToolExecutionStart: async event => {
+        onToolExecutionStart: async event => {
           toolExecutionStartEvents.push(event);
         },
         ...defaultSettings(),
@@ -6999,7 +7317,98 @@ describe('streamText', () => {
     });
   });
 
-  describe('options.experimental_onToolExecutionEnd', () => {
+  describe('options.onToolExecutionEnd', () => {
+    it('should use experimental_onToolCallFinish as a fallback', async () => {
+      const callOrder: string[] = [];
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'response-metadata',
+                id: 'id-0',
+                modelId: 'mock-model-id',
+                timestamp: new Date(0),
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                input: '{ "value": "test" }',
+              },
+              {
+                type: 'finish',
+                finishReason: { unified: 'tool-calls', raw: undefined },
+                usage: testUsage,
+              },
+            ]),
+          }),
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => `${value}-result`,
+          }),
+        },
+        experimental_onToolCallFinish: async () => {
+          callOrder.push('experimental_onToolCallFinish');
+        },
+        ...defaultSettings(),
+      });
+
+      await result.consumeStream();
+
+      expect(callOrder).toEqual(['experimental_onToolCallFinish']);
+    });
+
+    it('should prefer onToolExecutionEnd over experimental_onToolCallFinish', async () => {
+      const callOrder: string[] = [];
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'response-metadata',
+                id: 'id-0',
+                modelId: 'mock-model-id',
+                timestamp: new Date(0),
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                input: '{ "value": "test" }',
+              },
+              {
+                type: 'finish',
+                finishReason: { unified: 'tool-calls', raw: undefined },
+                usage: testUsage,
+              },
+            ]),
+          }),
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => `${value}-result`,
+          }),
+        },
+        experimental_onToolCallFinish: async () => {
+          callOrder.push('experimental_onToolCallFinish');
+        },
+        onToolExecutionEnd: async () => {
+          callOrder.push('onToolExecutionEnd');
+        },
+        ...defaultSettings(),
+      });
+
+      await result.consumeStream();
+
+      expect(callOrder).toEqual(['onToolExecutionEnd']);
+    });
+
     it('should be called with correct data on success', async () => {
       const toolExecutionEndEvents: Parameters<
         OnToolExecutionEndCallback<any>
@@ -7036,7 +7445,7 @@ describe('streamText', () => {
           }),
         },
         prompt: 'test-input',
-        experimental_onToolExecutionEnd: async event => {
+        onToolExecutionEnd: async event => {
           toolExecutionEndEvents.push(event);
         },
         onError: () => {},
@@ -7086,7 +7495,7 @@ describe('streamText', () => {
           }),
         },
         prompt: 'test-input',
-        experimental_onToolExecutionEnd: async event => {
+        onToolExecutionEnd: async event => {
           toolExecutionEndEvents.push(event);
         },
         onError: () => {},
@@ -7140,7 +7549,7 @@ describe('streamText', () => {
           }),
         },
         prompt: 'test-input',
-        experimental_onToolExecutionEnd: async event => {
+        onToolExecutionEnd: async event => {
           toolExecutionEndEvents.push(event);
         },
         onError: () => {},
@@ -7184,7 +7593,7 @@ describe('streamText', () => {
           }),
         },
         prompt: 'test-input',
-        experimental_onToolExecutionEnd: async () => {
+        onToolExecutionEnd: async () => {
           throw new Error('callback error');
         },
         onError: () => {},
@@ -7232,7 +7641,7 @@ describe('streamText', () => {
           }),
         },
         prompt: 'test-input',
-        experimental_onToolExecutionEnd: async event => {
+        onToolExecutionEnd: async event => {
           toolExecutionEndEvents.push(event);
         },
         onError: () => {},
@@ -7280,7 +7689,7 @@ describe('streamText', () => {
           }),
         },
         toolsContext: { tool1: { context: 'test' } },
-        experimental_onToolExecutionEnd: async event => {
+        onToolExecutionEnd: async event => {
           toolExecutionEndEvents.push(event);
         },
         ...defaultSettings(),
@@ -7368,7 +7777,7 @@ describe('streamText', () => {
           }),
         },
         toolsContext: { tool1: { context: 'test' } },
-        experimental_onToolExecutionEnd: async event => {
+        onToolExecutionEnd: async event => {
           toolExecutionEndEvents.push(event);
         },
         ...defaultSettings(),
@@ -7417,7 +7826,7 @@ describe('streamText', () => {
     });
   });
 
-  describe('options.experimental_onToolExecutionStart and experimental_onToolExecutionEnd ordering', () => {
+  describe('options.onToolExecutionStart and onToolExecutionEnd ordering', () => {
     it('should call start before finish', async () => {
       const callOrder: string[] = [];
 
@@ -7452,10 +7861,10 @@ describe('streamText', () => {
           }),
         },
         prompt: 'test-input',
-        experimental_onToolExecutionStart: async () => {
+        onToolExecutionStart: async () => {
           callOrder.push('onToolExecutionStart');
         },
-        experimental_onToolExecutionEnd: async () => {
+        onToolExecutionEnd: async () => {
           callOrder.push('onToolExecutionEnd');
         },
         onError: () => {},
@@ -7554,10 +7963,10 @@ describe('streamText', () => {
         },
         prompt: 'test-input',
         stopWhen: isStepCount(4),
-        experimental_onToolExecutionStart: async event => {
+        onToolExecutionStart: async event => {
           toolExecutionStartEvents.push(event);
         },
-        experimental_onToolExecutionEnd: async event => {
+        onToolExecutionEnd: async event => {
           toolExecutionEndEvents.push(event);
         },
         onError: () => {},
@@ -7884,7 +8293,10 @@ describe('streamText', () => {
           "rawFinishReason": "stop",
           "reasoning": [],
           "reasoningText": undefined,
-          "request": {},
+          "request": {
+            "body": undefined,
+            "messages": undefined,
+          },
           "response": {
             "headers": {
               "call": "2",
@@ -7929,6 +8341,42 @@ describe('streamText', () => {
             "modelId": "mock-model-id",
             "timestamp": 1970-01-01T00:00:00.000Z,
           },
+          "responseMessages": [
+            {
+              "content": [
+                {
+                  "providerOptions": undefined,
+                  "text": "Hello, world!",
+                  "type": "text",
+                },
+                {
+                  "input": {
+                    "value": "value",
+                  },
+                  "providerExecuted": undefined,
+                  "providerOptions": undefined,
+                  "toolCallId": "call-1",
+                  "toolName": "tool1",
+                  "type": "tool-call",
+                },
+              ],
+              "role": "assistant",
+            },
+            {
+              "content": [
+                {
+                  "output": {
+                    "type": "text",
+                    "value": "value-result",
+                  },
+                  "toolCallId": "call-1",
+                  "toolName": "tool1",
+                  "type": "tool-result",
+                },
+              ],
+              "role": "tool",
+            },
+          ],
           "runtimeContext": {},
           "sources": [],
           "staticToolCalls": [
@@ -7999,7 +8447,10 @@ describe('streamText', () => {
                 },
               },
               "rawFinishReason": "stop",
-              "request": {},
+              "request": {
+                "body": undefined,
+                "messages": undefined,
+              },
               "response": {
                 "headers": {
                   "call": "2",
@@ -8193,7 +8644,10 @@ describe('streamText', () => {
           "rawFinishReason": "stop",
           "reasoning": [],
           "reasoningText": undefined,
-          "request": {},
+          "request": {
+            "body": undefined,
+            "messages": undefined,
+          },
           "response": {
             "headers": undefined,
             "id": "id-0",
@@ -8212,6 +8666,18 @@ describe('streamText', () => {
             "modelId": "mock-model-id",
             "timestamp": 1970-01-01T00:00:00.000Z,
           },
+          "responseMessages": [
+            {
+              "content": [
+                {
+                  "providerOptions": undefined,
+                  "text": "Hello!",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          ],
           "runtimeContext": {},
           "sources": [
             {
@@ -8283,7 +8749,10 @@ describe('streamText', () => {
               },
               "providerMetadata": undefined,
               "rawFinishReason": "stop",
-              "request": {},
+              "request": {
+                "body": undefined,
+                "messages": undefined,
+              },
               "response": {
                 "headers": undefined,
                 "id": "id-0",
@@ -8466,7 +8935,10 @@ describe('streamText', () => {
           "rawFinishReason": "stop",
           "reasoning": [],
           "reasoningText": undefined,
-          "request": {},
+          "request": {
+            "body": undefined,
+            "messages": undefined,
+          },
           "response": {
             "headers": undefined,
             "id": "id-0",
@@ -8497,6 +8969,30 @@ describe('streamText', () => {
             "modelId": "mock-model-id",
             "timestamp": 1970-01-01T00:00:00.000Z,
           },
+          "responseMessages": [
+            {
+              "content": [
+                {
+                  "data": "Hello World",
+                  "mediaType": "text/plain",
+                  "providerOptions": undefined,
+                  "type": "file",
+                },
+                {
+                  "providerOptions": undefined,
+                  "text": "Hello!",
+                  "type": "text",
+                },
+                {
+                  "data": "QkFVRw==",
+                  "mediaType": "image/jpeg",
+                  "providerOptions": undefined,
+                  "type": "file",
+                },
+              ],
+              "role": "assistant",
+            },
+          ],
           "runtimeContext": {},
           "sources": [],
           "staticToolCalls": [],
@@ -8537,7 +9033,10 @@ describe('streamText', () => {
               },
               "providerMetadata": undefined,
               "rawFinishReason": "stop",
-              "request": {},
+              "request": {
+                "body": undefined,
+                "messages": undefined,
+              },
               "response": {
                 "headers": undefined,
                 "id": "id-0",
@@ -8678,7 +9177,7 @@ describe('streamText', () => {
         prompt: 'test-input',
       });
 
-      expect((await result.response).messages).toMatchInlineSnapshot(`
+      expect(await result.responseMessages).toMatchInlineSnapshot(`
         [
           {
             "content": [
@@ -8724,7 +9223,7 @@ describe('streamText', () => {
         prompt: 'test-input',
       });
 
-      expect((await result.response).messages).toMatchInlineSnapshot(`
+      expect(await result.responseMessages).toMatchInlineSnapshot(`
         [
           {
             "content": [
@@ -8996,7 +9495,10 @@ describe('streamText', () => {
                 "type": "start",
               },
               {
-                "request": {},
+                "request": {
+                  "body": undefined,
+                  "messages": undefined,
+                },
                 "type": "start-step",
                 "warnings": [],
               },
@@ -9067,7 +9569,10 @@ describe('streamText', () => {
                 },
               },
               {
-                "request": {},
+                "request": {
+                  "body": undefined,
+                  "messages": undefined,
+                },
                 "type": "start-step",
                 "warnings": [],
               },
@@ -9175,7 +9680,10 @@ describe('streamText', () => {
               "rawFinishReason": "stop",
               "reasoning": [],
               "reasoningText": undefined,
-              "request": {},
+              "request": {
+                "body": undefined,
+                "messages": undefined,
+              },
               "response": {
                 "headers": {
                   "call": "2",
@@ -9230,6 +9738,52 @@ describe('streamText', () => {
                 "modelId": "mock-model-id",
                 "timestamp": 1970-01-01T00:00:01.000Z,
               },
+              "responseMessages": [
+                {
+                  "content": [
+                    {
+                      "providerOptions": undefined,
+                      "text": "thinking",
+                      "type": "reasoning",
+                    },
+                    {
+                      "input": {
+                        "value": "value",
+                      },
+                      "providerExecuted": undefined,
+                      "providerOptions": undefined,
+                      "toolCallId": "call-1",
+                      "toolName": "tool1",
+                      "type": "tool-call",
+                    },
+                  ],
+                  "role": "assistant",
+                },
+                {
+                  "content": [
+                    {
+                      "output": {
+                        "type": "text",
+                        "value": "result1",
+                      },
+                      "toolCallId": "call-1",
+                      "toolName": "tool1",
+                      "type": "tool-result",
+                    },
+                  ],
+                  "role": "tool",
+                },
+                {
+                  "content": [
+                    {
+                      "providerOptions": undefined,
+                      "text": "Hello, world!",
+                      "type": "text",
+                    },
+                  ],
+                  "role": "assistant",
+                },
+              ],
               "runtimeContext": {},
               "sources": [],
               "staticToolCalls": [],
@@ -9273,7 +9827,10 @@ describe('streamText', () => {
                   },
                   "providerMetadata": undefined,
                   "rawFinishReason": undefined,
-                  "request": {},
+                  "request": {
+                    "body": undefined,
+                    "messages": undefined,
+                  },
                   "response": {
                     "headers": {
                       "call": "1",
@@ -9356,7 +9913,10 @@ describe('streamText', () => {
                   },
                   "providerMetadata": undefined,
                   "rawFinishReason": "stop",
-                  "request": {},
+                  "request": {
+                    "body": undefined,
+                    "messages": undefined,
+                  },
                   "response": {
                     "headers": {
                       "call": "2",
@@ -9516,7 +10076,10 @@ describe('streamText', () => {
                 },
                 "providerMetadata": undefined,
                 "rawFinishReason": undefined,
-                "request": {},
+                "request": {
+                  "body": undefined,
+                  "messages": undefined,
+                },
                 "response": {
                   "headers": {
                     "call": "1",
@@ -9599,7 +10162,10 @@ describe('streamText', () => {
                 },
                 "providerMetadata": undefined,
                 "rawFinishReason": "stop",
-                "request": {},
+                "request": {
+                  "body": undefined,
+                  "messages": undefined,
+                },
                 "response": {
                   "headers": {
                     "call": "2",
@@ -9776,7 +10342,10 @@ describe('streamText', () => {
                 },
                 "providerMetadata": undefined,
                 "rawFinishReason": undefined,
-                "request": {},
+                "request": {
+                  "body": undefined,
+                  "messages": undefined,
+                },
                 "response": {
                   "headers": {
                     "call": "1",
@@ -9859,7 +10428,10 @@ describe('streamText', () => {
                 },
                 "providerMetadata": undefined,
                 "rawFinishReason": "stop",
-                "request": {},
+                "request": {
+                  "body": undefined,
+                  "messages": undefined,
+                },
                 "response": {
                   "headers": {
                     "call": "2",
@@ -9940,8 +10512,8 @@ describe('streamText', () => {
           `);
         });
 
-        it('result.response.messages should contain response messages from all steps', async () => {
-          expect((await result.response).messages).toMatchInlineSnapshot(`
+        it('result.responseMessages should contain response messages from all steps', async () => {
+          expect(await result.responseMessages).toMatchInlineSnapshot(`
             [
               {
                 "content": [
@@ -10372,7 +10944,10 @@ describe('streamText', () => {
                   },
                   "providerMetadata": undefined,
                   "rawFinishReason": undefined,
-                  "request": {},
+                  "request": {
+                    "body": undefined,
+                    "messages": undefined,
+                  },
                   "response": {
                     "headers": {
                       "call": "1",
@@ -10452,7 +11027,10 @@ describe('streamText', () => {
                   },
                   "providerMetadata": undefined,
                   "rawFinishReason": "stop",
-                  "request": {},
+                  "request": {
+                    "body": undefined,
+                    "messages": undefined,
+                  },
                   "response": {
                     "headers": {
                       "call": "2",
@@ -10602,7 +11180,10 @@ describe('streamText', () => {
                   },
                   "providerMetadata": undefined,
                   "rawFinishReason": undefined,
-                  "request": {},
+                  "request": {
+                    "body": undefined,
+                    "messages": undefined,
+                  },
                   "response": {
                     "headers": {
                       "call": "1",
@@ -10682,7 +11263,10 @@ describe('streamText', () => {
                   },
                   "providerMetadata": undefined,
                   "rawFinishReason": "stop",
-                  "request": {},
+                  "request": {
+                    "body": undefined,
+                    "messages": undefined,
+                  },
                   "response": {
                     "headers": {
                       "call": "2",
@@ -10880,7 +11464,10 @@ describe('streamText', () => {
                 "type": "start",
               },
               {
-                "request": {},
+                "request": {
+                  "body": undefined,
+                  "messages": undefined,
+                },
                 "type": "start-step",
                 "warnings": [],
               },
@@ -10951,7 +11538,10 @@ describe('streamText', () => {
                 },
               },
               {
-                "request": {},
+                "request": {
+                  "body": undefined,
+                  "messages": undefined,
+                },
                 "type": "start-step",
                 "warnings": [],
               },
@@ -11059,7 +11649,10 @@ describe('streamText', () => {
               "rawFinishReason": "stop",
               "reasoning": [],
               "reasoningText": undefined,
-              "request": {},
+              "request": {
+                "body": undefined,
+                "messages": undefined,
+              },
               "response": {
                 "headers": {
                   "call": "2",
@@ -11114,6 +11707,52 @@ describe('streamText', () => {
                 "modelId": "mock-model-id",
                 "timestamp": 1970-01-01T00:00:01.000Z,
               },
+              "responseMessages": [
+                {
+                  "content": [
+                    {
+                      "providerOptions": undefined,
+                      "text": "thinking",
+                      "type": "reasoning",
+                    },
+                    {
+                      "input": {
+                        "value": "value",
+                      },
+                      "providerExecuted": undefined,
+                      "providerOptions": undefined,
+                      "toolCallId": "call-1",
+                      "toolName": "tool1",
+                      "type": "tool-call",
+                    },
+                  ],
+                  "role": "assistant",
+                },
+                {
+                  "content": [
+                    {
+                      "output": {
+                        "type": "text",
+                        "value": "RESULT1",
+                      },
+                      "toolCallId": "call-1",
+                      "toolName": "tool1",
+                      "type": "tool-result",
+                    },
+                  ],
+                  "role": "tool",
+                },
+                {
+                  "content": [
+                    {
+                      "providerOptions": undefined,
+                      "text": "Hello, world!",
+                      "type": "text",
+                    },
+                  ],
+                  "role": "assistant",
+                },
+              ],
               "runtimeContext": {},
               "sources": [],
               "staticToolCalls": [],
@@ -11157,7 +11796,10 @@ describe('streamText', () => {
                   },
                   "providerMetadata": undefined,
                   "rawFinishReason": undefined,
-                  "request": {},
+                  "request": {
+                    "body": undefined,
+                    "messages": undefined,
+                  },
                   "response": {
                     "headers": {
                       "call": "1",
@@ -11240,7 +11882,10 @@ describe('streamText', () => {
                   },
                   "providerMetadata": undefined,
                   "rawFinishReason": "stop",
-                  "request": {},
+                  "request": {
+                    "body": undefined,
+                    "messages": undefined,
+                  },
                   "response": {
                     "headers": {
                       "call": "2",
@@ -11400,7 +12045,10 @@ describe('streamText', () => {
                 },
                 "providerMetadata": undefined,
                 "rawFinishReason": undefined,
-                "request": {},
+                "request": {
+                  "body": undefined,
+                  "messages": undefined,
+                },
                 "response": {
                   "headers": {
                     "call": "1",
@@ -11483,7 +12131,10 @@ describe('streamText', () => {
                 },
                 "providerMetadata": undefined,
                 "rawFinishReason": "stop",
-                "request": {},
+                "request": {
+                  "body": undefined,
+                  "messages": undefined,
+                },
                 "response": {
                   "headers": {
                     "call": "2",
@@ -11656,7 +12307,10 @@ describe('streamText', () => {
                 },
                 "providerMetadata": undefined,
                 "rawFinishReason": undefined,
-                "request": {},
+                "request": {
+                  "body": undefined,
+                  "messages": undefined,
+                },
                 "response": {
                   "headers": {
                     "call": "1",
@@ -11739,7 +12393,10 @@ describe('streamText', () => {
                 },
                 "providerMetadata": undefined,
                 "rawFinishReason": "stop",
-                "request": {},
+                "request": {
+                  "body": undefined,
+                  "messages": undefined,
+                },
                 "response": {
                   "headers": {
                     "call": "2",
@@ -11820,8 +12477,8 @@ describe('streamText', () => {
           `);
         });
 
-        it('result.response.messages should contain response messages from all steps', async () => {
-          expect((await result.response).messages).toMatchInlineSnapshot(`
+        it('result.responseMessages should contain response messages from all steps', async () => {
+          expect(await result.responseMessages).toMatchInlineSnapshot(`
             [
               {
                 "content": [
@@ -12076,7 +12733,10 @@ describe('streamText', () => {
                   },
                   "providerMetadata": undefined,
                   "rawFinishReason": undefined,
-                  "request": {},
+                  "request": {
+                    "body": undefined,
+                    "messages": undefined,
+                  },
                   "response": {
                     "headers": {
                       "call": "1",
@@ -12185,7 +12845,10 @@ describe('streamText', () => {
                   },
                   "providerMetadata": undefined,
                   "rawFinishReason": undefined,
-                  "request": {},
+                  "request": {
+                    "body": undefined,
+                    "messages": undefined,
+                  },
                   "response": {
                     "headers": {
                       "call": "1",
@@ -12520,7 +13183,10 @@ describe('streamText', () => {
                 "type": "start",
               },
               {
-                "request": {},
+                "request": {
+                  "body": undefined,
+                  "messages": undefined,
+                },
                 "type": "start-step",
                 "warnings": [],
               },
@@ -13091,7 +13757,10 @@ describe('streamText', () => {
                 "type": "start",
               },
               {
-                "request": {},
+                "request": {
+                  "body": undefined,
+                  "messages": undefined,
+                },
                 "type": "start-step",
                 "warnings": [],
               },
@@ -14312,7 +14981,10 @@ describe('streamText', () => {
               "type": "start",
             },
             {
-              "request": {},
+              "request": {
+                "body": undefined,
+                "messages": undefined,
+              },
               "type": "start-step",
               "warnings": [],
             },
@@ -14426,7 +15098,10 @@ describe('streamText', () => {
             },
             "providerMetadata": undefined,
             "rawFinishReason": "stop",
-            "request": {},
+            "request": {
+              "body": undefined,
+              "messages": undefined,
+            },
             "response": {
               "headers": undefined,
               "id": "id-0",
@@ -14491,7 +15166,7 @@ describe('streamText', () => {
     });
 
     it('should include error result in response messages', async () => {
-      expect((await result.response).messages).toMatchInlineSnapshot(`
+      expect(await result.responseMessages).toMatchInlineSnapshot(`
         [
           {
             "content": [
@@ -14596,14 +15271,6 @@ describe('streamText', () => {
               };
             }
 
-            if (chunk.type === 'start-step') {
-              if (chunk.request.body != null) {
-                chunk.request.body = (
-                  chunk.request.body as string
-                ).toUpperCase();
-              }
-            }
-
             if (chunk.type === 'finish-step') {
               if (chunk.providerMetadata?.testProvider != null) {
                 chunk.providerMetadata.testProvider = {
@@ -14638,7 +15305,7 @@ describe('streamText', () => {
         expect(await result.text).toStrictEqual('HELLO, WORLD!');
       });
 
-      it('result.response.messages should be transformed', async () => {
+      it('result.responseMessages should be transformed', async () => {
         const result = streamText({
           model: createTestModel(),
           experimental_transform: upperCaseTransform,
@@ -14930,7 +15597,10 @@ describe('streamText', () => {
               },
               "providerMetadata": undefined,
               "rawFinishReason": "stop",
-              "request": {},
+              "request": {
+                "body": undefined,
+                "messages": undefined,
+              },
               "response": {
                 "headers": undefined,
                 "id": "id-0",
@@ -14997,36 +15667,6 @@ describe('streamText', () => {
             },
           ]
         `);
-      });
-
-      it('result.request should be transformed', async () => {
-        const result = streamText({
-          model: createTestModel({
-            stream: convertArrayToReadableStream([
-              {
-                type: 'response-metadata',
-                id: 'id-0',
-                modelId: 'mock-model-id',
-                timestamp: new Date(0),
-              },
-              { type: 'text-start', id: '1' },
-              { type: 'text-delta', id: '1', delta: 'Hello' },
-              { type: 'text-end', id: '1' },
-              {
-                type: 'finish',
-                finishReason: { unified: 'stop', raw: 'stop' },
-                usage: testUsage,
-              },
-            ]),
-            request: { body: 'test body' },
-          }),
-          prompt: 'test-input',
-          experimental_transform: upperCaseTransform,
-        });
-
-        expect(await result.request).toStrictEqual({
-          body: 'TEST BODY',
-        });
       });
 
       it('result.providerMetadata should be transformed', async () => {
@@ -15170,7 +15810,10 @@ describe('streamText', () => {
             "rawFinishReason": "stop",
             "reasoning": [],
             "reasoningText": undefined,
-            "request": {},
+            "request": {
+              "body": undefined,
+              "messages": undefined,
+            },
             "response": {
               "headers": {
                 "call": "2",
@@ -15215,6 +15858,42 @@ describe('streamText', () => {
               "modelId": "mock-model-id",
               "timestamp": 1970-01-01T00:00:00.000Z,
             },
+            "responseMessages": [
+              {
+                "content": [
+                  {
+                    "providerOptions": undefined,
+                    "text": "HELLO, WORLD!",
+                    "type": "text",
+                  },
+                  {
+                    "input": {
+                      "value": "VALUE",
+                    },
+                    "providerExecuted": undefined,
+                    "providerOptions": undefined,
+                    "toolCallId": "call-1",
+                    "toolName": "tool1",
+                    "type": "tool-call",
+                  },
+                ],
+                "role": "assistant",
+              },
+              {
+                "content": [
+                  {
+                    "output": {
+                      "type": "text",
+                      "value": "VALUE-RESULT",
+                    },
+                    "toolCallId": "call-1",
+                    "toolName": "tool1",
+                    "type": "tool-result",
+                  },
+                ],
+                "role": "tool",
+              },
+            ],
             "runtimeContext": {},
             "sources": [],
             "staticToolCalls": [
@@ -15285,7 +15964,10 @@ describe('streamText', () => {
                   },
                 },
                 "rawFinishReason": "stop",
-                "request": {},
+                "request": {
+                  "body": undefined,
+                  "messages": undefined,
+                },
                 "response": {
                   "headers": {
                     "call": "2",
@@ -15515,7 +16197,10 @@ describe('streamText', () => {
               },
             },
             "rawFinishReason": "stop",
-            "request": {},
+            "request": {
+              "body": undefined,
+              "messages": undefined,
+            },
             "response": {
               "headers": {
                 "call": "2",
@@ -15850,7 +16535,10 @@ describe('streamText', () => {
                 "type": "start",
               },
               {
-                "request": {},
+                "request": {
+                  "body": undefined,
+                  "messages": undefined,
+                },
                 "type": "start-step",
                 "warnings": [],
               },
@@ -15964,7 +16652,10 @@ describe('streamText', () => {
             },
             "providerMetadata": undefined,
             "rawFinishReason": undefined,
-            "request": {},
+            "request": {
+              "body": undefined,
+              "messages": undefined,
+            },
             "response": {
               "id": "response-id",
               "messages": [
@@ -16455,7 +17146,10 @@ describe('streamText', () => {
             "rawFinishReason": "stop",
             "reasoning": [],
             "reasoningText": undefined,
-            "request": {},
+            "request": {
+              "body": undefined,
+              "messages": undefined,
+            },
             "response": {
               "headers": undefined,
               "id": "id-0",
@@ -16474,6 +17168,18 @@ describe('streamText', () => {
               "modelId": "mock-model-id",
               "timestamp": 1970-01-01T00:00:00.000Z,
             },
+            "responseMessages": [
+              {
+                "content": [
+                  {
+                    "providerOptions": undefined,
+                    "text": "{ "value": "Hello, world!" }",
+                    "type": "text",
+                  },
+                ],
+                "role": "assistant",
+              },
+            ],
             "runtimeContext": {},
             "sources": [],
             "staticToolCalls": [],
@@ -16496,7 +17202,10 @@ describe('streamText', () => {
                 },
                 "providerMetadata": undefined,
                 "rawFinishReason": "stop",
-                "request": {},
+                "request": {
+                  "body": undefined,
+                  "messages": undefined,
+                },
                 "response": {
                   "headers": undefined,
                   "id": "id-0",
@@ -17054,7 +17763,7 @@ describe('streamText', () => {
   });
 
   describe('raw chunks forwarding', () => {
-    it('should forward raw chunks when includeRawChunks is enabled', async () => {
+    it('should forward raw chunks when include.rawChunks is enabled', async () => {
       const modelWithRawChunks = createTestModel({
         stream: convertArrayToReadableStream([
           { type: 'stream-start', warnings: [] },
@@ -17085,7 +17794,9 @@ describe('streamText', () => {
       const result = streamText({
         model: modelWithRawChunks,
         prompt: 'test prompt',
-        includeRawChunks: true,
+        include: {
+          rawChunks: true,
+        },
       });
 
       const chunks = await convertAsyncIterableToArray(result.fullStream);
@@ -17135,7 +17846,9 @@ describe('streamText', () => {
       const result = streamText({
         model: modelWithRawChunks,
         prompt: 'test prompt',
-        includeRawChunks: false,
+        include: {
+          rawChunks: false,
+        },
       });
 
       const chunks = await convertAsyncIterableToArray(result.fullStream);
@@ -17143,7 +17856,7 @@ describe('streamText', () => {
       expect(chunks.filter(chunk => chunk.type === 'raw')).toHaveLength(0);
     });
 
-    it('should pass through the includeRawChunks flag correctly to the model', async () => {
+    it('should pass through the include.rawChunks flag correctly to the model', async () => {
       let capturedOptions: any;
 
       const model = new MockLanguageModelV4({
@@ -17166,13 +17879,15 @@ describe('streamText', () => {
       await streamText({
         model,
         prompt: 'test prompt',
-        includeRawChunks: true,
+        include: {
+          rawChunks: true,
+        },
       }).consumeStream();
 
       expect(capturedOptions.includeRawChunks).toBe(true);
     });
 
-    it('should call onChunk with raw chunks when includeRawChunks is enabled', async () => {
+    it('should call onChunk with raw chunks when include.rawChunks is enabled', async () => {
       const onChunkCalls: Array<any> = [];
 
       const modelWithRawChunks = createTestModel({
@@ -17222,7 +17937,9 @@ describe('streamText', () => {
       const result = streamText({
         model: modelWithRawChunks,
         prompt: 'test prompt',
-        includeRawChunks: true,
+        include: {
+          rawChunks: true,
+        },
         onChunk({ chunk }) {
           onChunkCalls.push(chunk);
         },
@@ -17309,7 +18026,9 @@ describe('streamText', () => {
       await streamText({
         model,
         prompt: 'test prompt',
-        includeRawChunks: true,
+        include: {
+          rawChunks: true,
+        },
       }).consumeStream();
 
       expect(capturedOptions.includeRawChunks).toBe(true);
@@ -17317,7 +18036,9 @@ describe('streamText', () => {
       await streamText({
         model,
         prompt: 'test prompt',
-        includeRawChunks: false,
+        include: {
+          rawChunks: false,
+        },
       }).consumeStream();
 
       expect(capturedOptions.includeRawChunks).toBe(false);
@@ -17325,6 +18046,128 @@ describe('streamText', () => {
       await streamText({
         model,
         prompt: 'test prompt',
+      }).consumeStream();
+
+      expect(capturedOptions.includeRawChunks).toBe(false);
+    });
+
+    it('should use deprecated includeRawChunks as fallback', async () => {
+      let capturedOptions: any;
+
+      const model = new MockLanguageModelV4({
+        doStream: async options => {
+          capturedOptions = options;
+          return {
+            stream: convertArrayToReadableStream([
+              { type: 'stream-start', warnings: [] },
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: testUsage,
+              },
+            ]),
+          };
+        },
+      });
+
+      await streamText({
+        model,
+        prompt: 'test prompt',
+        includeRawChunks: true,
+      }).consumeStream();
+
+      expect(capturedOptions.includeRawChunks).toBe(true);
+    });
+
+    it('should prefer include.rawChunks over deprecated includeRawChunks', async () => {
+      let capturedOptions: any;
+
+      const model = new MockLanguageModelV4({
+        doStream: async options => {
+          capturedOptions = options;
+          return {
+            stream: convertArrayToReadableStream([
+              { type: 'stream-start', warnings: [] },
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: testUsage,
+              },
+            ]),
+          };
+        },
+      });
+
+      await streamText({
+        model,
+        prompt: 'test prompt',
+        include: {
+          rawChunks: false,
+        },
+        includeRawChunks: true,
+      }).consumeStream();
+
+      expect(capturedOptions.includeRawChunks).toBe(false);
+    });
+
+    it('should accept deprecated experimental_include as an alias for include', async () => {
+      let capturedOptions: any;
+
+      const model = new MockLanguageModelV4({
+        doStream: async options => {
+          capturedOptions = options;
+          return {
+            stream: convertArrayToReadableStream([
+              { type: 'stream-start', warnings: [] },
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: testUsage,
+              },
+            ]),
+          };
+        },
+      });
+
+      await streamText({
+        model,
+        prompt: 'test prompt',
+        experimental_include: {
+          rawChunks: true,
+        },
+      }).consumeStream();
+
+      expect(capturedOptions.includeRawChunks).toBe(true);
+    });
+
+    it('should prefer include.rawChunks over deprecated experimental_include.rawChunks', async () => {
+      let capturedOptions: any;
+
+      const model = new MockLanguageModelV4({
+        doStream: async options => {
+          capturedOptions = options;
+          return {
+            stream: convertArrayToReadableStream([
+              { type: 'stream-start', warnings: [] },
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: testUsage,
+              },
+            ]),
+          };
+        },
+      });
+
+      await streamText({
+        model,
+        prompt: 'test prompt',
+        include: {
+          rawChunks: false,
+        },
+        experimental_include: {
+          rawChunks: true,
+        },
       }).consumeStream();
 
       expect(capturedOptions.includeRawChunks).toBe(false);
@@ -17381,7 +18224,10 @@ describe('streamText', () => {
                 "type": "start",
               },
               {
-                "request": {},
+                "request": {
+                  "body": undefined,
+                  "messages": undefined,
+                },
                 "type": "start-step",
                 "warnings": [],
               },
@@ -17592,7 +18438,10 @@ describe('streamText', () => {
               },
               "providerMetadata": undefined,
               "rawFinishReason": "stop",
-              "request": {},
+              "request": {
+                "body": undefined,
+                "messages": undefined,
+              },
               "response": {
                 "headers": undefined,
                 "id": "id-0",
@@ -17743,7 +18592,10 @@ describe('streamText', () => {
                   "type": "start",
                 },
                 {
-                  "request": {},
+                  "request": {
+                    "body": undefined,
+                    "messages": undefined,
+                  },
                   "type": "start-step",
                   "warnings": [],
                 },
@@ -17988,7 +18840,10 @@ describe('streamText', () => {
                   },
                   "providerMetadata": undefined,
                   "rawFinishReason": undefined,
-                  "request": {},
+                  "request": {
+                    "body": undefined,
+                    "messages": undefined,
+                  },
                   "response": {
                     "headers": undefined,
                     "id": "id-0",
@@ -18062,7 +18917,10 @@ describe('streamText', () => {
                 "type": "start",
               },
               {
-                "request": {},
+                "request": {
+                  "body": undefined,
+                  "messages": undefined,
+                },
                 "type": "start-step",
                 "warnings": [],
               },
@@ -18295,7 +19153,10 @@ describe('streamText', () => {
                 "type": "start",
               },
               {
-                "request": {},
+                "request": {
+                  "body": undefined,
+                  "messages": undefined,
+                },
                 "type": "start-step",
                 "warnings": [],
               },
@@ -18381,6 +19242,51 @@ describe('streamText', () => {
       });
     });
 
+    it('should pass sandbox to tool execution', async () => {
+      const sandbox = {
+        description: 'test sandbox',
+        executeCommand: vi.fn(async () => ({
+          exitCode: 0,
+          stdout: 'ok',
+          stderr: '',
+        })),
+      } satisfies Sandbox;
+      let recordedSandbox: Sandbox | undefined;
+
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'tool-call',
+              toolCallId: 'call-1',
+              toolName: 't1',
+              input: `{ "value": "value" }`,
+            },
+            {
+              type: 'finish',
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: testUsage,
+            },
+          ]),
+        }),
+        tools: {
+          t1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }, { sandbox }) => {
+              recordedSandbox = sandbox;
+              return { value };
+            },
+          }),
+        },
+        sandbox,
+        prompt: 'test-input',
+      });
+
+      await result.consumeStream();
+
+      expect(recordedSandbox).toBe(sandbox);
+    });
+
     it('should pass runtimeContext to prepareStep', async () => {
       let capturedContext: unknown;
 
@@ -18410,6 +19316,46 @@ describe('streamText', () => {
 
       await result.consumeStream();
       expect(capturedContext).toEqual({ myData: 'test-value' });
+    });
+
+    it('should pass sandbox to prepareStep', async () => {
+      const sandbox = {
+        description: 'test sandbox',
+        executeCommand: vi.fn(async () => ({
+          exitCode: 0,
+          stdout: 'ok',
+          stderr: '',
+        })),
+      } satisfies Sandbox;
+      let capturedSandbox: Sandbox | undefined;
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: 'Hello' },
+              { type: 'text-end', id: '1' },
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: testUsage,
+              },
+            ]),
+            response: {},
+          }),
+        }),
+        sandbox,
+        prepareStep: async ({ sandbox }) => {
+          capturedSandbox = sandbox;
+          return undefined;
+        },
+        prompt: 'test',
+      });
+
+      await result.consumeStream();
+
+      expect(capturedSandbox).toBe(sandbox);
     });
 
     it('should send runtimeContext in onFinish callback', async () => {
@@ -18559,7 +19505,10 @@ describe('streamText', () => {
                 "type": "start",
               },
               {
-                "request": {},
+                "request": {
+                  "body": undefined,
+                  "messages": undefined,
+                },
                 "type": "start-step",
                 "warnings": [],
               },
@@ -18801,7 +19750,10 @@ describe('streamText', () => {
                 "type": "start",
               },
               {
-                "request": {},
+                "request": {
+                  "body": undefined,
+                  "messages": undefined,
+                },
                 "type": "start-step",
                 "warnings": [],
               },
@@ -19045,7 +19997,10 @@ describe('streamText', () => {
               },
               "providerMetadata": undefined,
               "rawFinishReason": "stop",
-              "request": {},
+              "request": {
+                "body": undefined,
+                "messages": undefined,
+              },
               "response": {
                 "headers": undefined,
                 "id": "id-0",
@@ -19198,7 +20153,10 @@ describe('streamText', () => {
                 "type": "start",
               },
               {
-                "request": {},
+                "request": {
+                  "body": undefined,
+                  "messages": undefined,
+                },
                 "type": "start-step",
                 "warnings": [],
               },
@@ -20011,10 +20969,10 @@ describe('streamText', () => {
         });
       });
 
-      describe('result.response.messages', () => {
+      describe('result.responseMessages', () => {
         it('should contain all response messages from all steps', async () => {
           await result.consumeStream();
-          expect((await result.response).messages).toMatchInlineSnapshot(`
+          expect(await result.responseMessages).toMatchInlineSnapshot(`
             [
               {
                 "content": [
@@ -20513,7 +21471,7 @@ describe('streamText', () => {
 
         it('should contain all response messages', async () => {
           await result.consumeStream();
-          expect(onFinishResult.response.messages.length).toBe(9);
+          expect(onFinishResult.responseMessages.length).toBe(9);
         });
       });
 
@@ -20526,7 +21484,10 @@ describe('streamText', () => {
                   "type": "start",
                 },
                 {
-                  "request": {},
+                  "request": {
+                    "body": undefined,
+                    "messages": undefined,
+                  },
                   "type": "start-step",
                   "warnings": [],
                 },
@@ -20614,7 +21575,10 @@ describe('streamText', () => {
                   },
                 },
                 {
-                  "request": {},
+                  "request": {
+                    "body": undefined,
+                    "messages": undefined,
+                  },
                   "type": "start-step",
                   "warnings": [],
                 },
@@ -20677,7 +21641,10 @@ describe('streamText', () => {
                   },
                 },
                 {
-                  "request": {},
+                  "request": {
+                    "body": undefined,
+                    "messages": undefined,
+                  },
                   "type": "start-step",
                   "warnings": [],
                 },
@@ -20740,7 +21707,10 @@ describe('streamText', () => {
                   },
                 },
                 {
-                  "request": {},
+                  "request": {
+                    "body": undefined,
+                    "messages": undefined,
+                  },
                   "type": "start-step",
                   "warnings": [],
                 },
@@ -20803,7 +21773,10 @@ describe('streamText', () => {
                   },
                 },
                 {
-                  "request": {},
+                  "request": {
+                    "body": undefined,
+                    "messages": undefined,
+                  },
                   "type": "start-step",
                   "warnings": [],
                 },
@@ -21380,7 +22353,10 @@ describe('streamText', () => {
                 "type": "start",
               },
               {
-                "request": {},
+                "request": {
+                  "body": undefined,
+                  "messages": undefined,
+                },
                 "type": "start-step",
                 "warnings": [],
               },
@@ -21532,7 +22508,7 @@ describe('streamText', () => {
       });
 
       it('should add tool approval requests to the response messages', async () => {
-        expect((await result.response).messages).toMatchInlineSnapshot(`
+        expect(await result.responseMessages).toMatchInlineSnapshot(`
           [
             {
               "content": [
@@ -21708,7 +22684,7 @@ describe('streamText', () => {
       });
 
       it('should produce response messages', async () => {
-        expect((await result.response).messages).toMatchInlineSnapshot(`
+        expect(await result.responseMessages).toMatchInlineSnapshot(`
           [
             {
               "content": [
@@ -21982,7 +22958,7 @@ describe('streamText', () => {
       });
 
       it('should produce response messages with automatic approval metadata', async () => {
-        expect((await result.response).messages).toMatchInlineSnapshot(`
+        expect(await result.responseMessages).toMatchInlineSnapshot(`
           [
             {
               "content": [
@@ -22168,7 +23144,10 @@ describe('streamText', () => {
                 "type": "start",
               },
               {
-                "request": {},
+                "request": {
+                  "body": undefined,
+                  "messages": undefined,
+                },
                 "type": "start-step",
                 "warnings": [],
               },
@@ -22383,7 +23362,7 @@ describe('streamText', () => {
       });
 
       it('should add tool approval requests to the response messages', async () => {
-        expect((await result.response).messages).toMatchInlineSnapshot(`
+        expect(await result.responseMessages).toMatchInlineSnapshot(`
           [
             {
               "content": [
@@ -22480,10 +23459,19 @@ describe('streamText', () => {
       let result: StreamTextResult<any, any, any>;
       let prompts: LanguageModelV4Prompt[];
       let executeFunction: ToolExecuteFunction<any, any, any>;
+      let sandbox: Sandbox;
 
       beforeEach(async () => {
         prompts = [];
         executeFunction = vi.fn().mockReturnValue('result1');
+        sandbox = {
+          description: 'test sandbox',
+          executeCommand: vi.fn(async () => ({
+            exitCode: 0,
+            stdout: 'ok',
+            stderr: '',
+          })),
+        };
         result = streamText({
           model: new MockLanguageModelV4({
             doStream: async ({ prompt }) => {
@@ -22516,6 +23504,7 @@ describe('streamText', () => {
           toolApproval: {
             tool1: 'user-approval',
           },
+          sandbox,
           stopWhen: isStepCount(3),
           _internal: {
             generateId: mockId({ prefix: 'id' }),
@@ -22566,6 +23555,15 @@ describe('streamText', () => {
             abortSignal: undefined,
             toolCallId: 'call-1',
             messages: expect.any(Array),
+          }),
+        );
+      });
+
+      it('should pass sandbox to approved tool execution', async () => {
+        expect(executeFunction).toHaveBeenCalledWith(
+          { value: 'value' },
+          expect.objectContaining({
+            sandbox,
           }),
         );
       });
@@ -22622,7 +23620,7 @@ describe('streamText', () => {
       });
 
       it('should include the tool result in the response messages', async () => {
-        expect((await result.response).messages).toMatchInlineSnapshot(`
+        expect(await result.responseMessages).toMatchInlineSnapshot(`
           [
             {
               "content": [
@@ -22670,7 +23668,10 @@ describe('streamText', () => {
                 "type": "tool-result",
               },
               {
-                "request": {},
+                "request": {
+                  "body": undefined,
+                  "messages": undefined,
+                },
                 "type": "start-step",
                 "warnings": [],
               },
@@ -23043,7 +24044,7 @@ describe('streamText', () => {
       });
 
       it('should include the tool result in the response messages', async () => {
-        expect((await result.response).messages).toMatchInlineSnapshot(`
+        expect(await result.responseMessages).toMatchInlineSnapshot(`
           [
             {
               "content": [
@@ -23115,7 +24116,10 @@ describe('streamText', () => {
                 "type": "tool-result",
               },
               {
-                "request": {},
+                "request": {
+                  "body": undefined,
+                  "messages": undefined,
+                },
                 "type": "start-step",
                 "warnings": [],
               },
@@ -23378,7 +24382,7 @@ describe('streamText', () => {
       });
 
       it('should include the tool error in the response messages', async () => {
-        expect((await result.response).messages).toMatchInlineSnapshot(`
+        expect(await result.responseMessages).toMatchInlineSnapshot(`
           [
             {
               "content": [
@@ -23421,7 +24425,10 @@ describe('streamText', () => {
                 "type": "tool-output-denied",
               },
               {
-                "request": {},
+                "request": {
+                  "body": undefined,
+                  "messages": undefined,
+                },
                 "type": "start-step",
                 "warnings": [],
               },
@@ -23585,7 +24592,10 @@ describe('streamText', () => {
                   "type": "start",
                 },
                 {
-                  "request": {},
+                  "request": {
+                    "body": undefined,
+                    "messages": undefined,
+                  },
                   "type": "start-step",
                   "warnings": [],
                 },
@@ -23738,7 +24748,7 @@ describe('streamText', () => {
         });
 
         it('should add provider-executed tool approval request to response messages', async () => {
-          expect((await result.response).messages).toMatchInlineSnapshot(`
+          expect(await result.responseMessages).toMatchInlineSnapshot(`
             [
               {
                 "content": [
@@ -24576,7 +25586,7 @@ describe('streamText', () => {
       `);
     });
 
-    it('should call integration onChunk with raw chunks when includeRawChunks is enabled', async () => {
+    it('should call integration onChunk with raw chunks when include.rawChunks is enabled', async () => {
       const chunks: Array<Record<string, unknown>> = [];
 
       const result = streamText({
@@ -24605,7 +25615,9 @@ describe('streamText', () => {
           }),
         }),
         prompt: 'test-input',
-        includeRawChunks: true,
+        include: {
+          rawChunks: true,
+        },
         onError: () => {},
         telemetry: {
           integrations: {

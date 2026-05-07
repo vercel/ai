@@ -14,7 +14,9 @@ import {
   type Context,
   type IdGenerator,
   type InferToolSetContext,
+  type ModelMessage,
   type ProviderOptions,
+  type Sandbox,
   type ToolApprovalResponse,
   type ToolContent,
   type ToolSet,
@@ -23,6 +25,7 @@ import type { ServerResponse } from 'node:http';
 import { NoOutputGeneratedError } from '../error';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
+import { cloneModelMessages } from '../prompt/clone-model-message';
 import { createToolModelOutput } from '../prompt/create-tool-model-output';
 import type { LanguageModelCallOptions } from '../prompt/language-model-call-options';
 import { prepareLanguageModelCallOptions } from '../prompt/prepare-language-model-call-options';
@@ -148,6 +151,37 @@ const originalGenerateCallId = createIdGenerator({
   size: 24,
 });
 
+export type StreamTextInclude = {
+  /**
+   * Whether to retain the request body in step results.
+   * The request body can be large when sending images or files.
+   *
+   * @default false
+   */
+  requestBody?: boolean;
+
+  /**
+   * Whether to retain the request messages in step results.
+   * The request messages can be large when sending images or files.
+   *
+   * @default false
+   */
+  requestMessages?: boolean;
+
+  /**
+   * Whether to include raw chunks from the provider in the stream.
+   *
+   * When enabled, you will receive raw chunks with type 'raw' that contain
+   * the unprocessed data from the provider.
+   *
+   * This allows access to cutting-edge provider features not yet wrapped by
+   * the AI SDK.
+   *
+   * @default false
+   */
+  rawChunks?: boolean;
+};
+
 /**
  * A transformation that is applied to the stream.
  *
@@ -245,11 +279,16 @@ export type StreamTextOnAbortCallback<
  * @param timeout - An optional timeout in milliseconds. The call will be aborted if it takes longer than the specified timeout.
  * @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
  *
+ * @param sandbox - The sandbox environment that is passed through to the tool execution.
  * @param runtimeContext - User-defined runtime context that flows through the entire generation lifecycle.
  * @param experimental_refineToolInput - Optional mapping of tool names to functions that refine parsed tool inputs before tools are executed and before outputs, callbacks, and telemetry are recorded.
  *
  * @param onChunk - Callback that is called for each chunk of the stream. The stream processing will pause until the callback promise is resolved.
  * @param onError - Callback that is called when an error occurs during streaming. You can use it to log errors.
+ * @param onToolExecutionStart - Callback invoked before each tool execution begins.
+ * @param experimental_onToolCallStart - Deprecated alias for `onToolExecutionStart`.
+ * @param onToolExecutionEnd - Callback invoked after each tool execution completes.
+ * @param experimental_onToolCallFinish - Deprecated alias for `onToolExecutionEnd`.
  * @param onStepFinish - Callback that is called when each step (LLM call) is finished, including intermediate steps.
  * @param onFinish - Callback that is called when all steps are finished and the response is complete.
  *
@@ -273,6 +312,7 @@ export function streamText<
   timeout,
   headers,
   stopWhen = isStepCount(1),
+  sandbox,
   output,
   toolApproval,
   experimental_telemetry,
@@ -284,7 +324,7 @@ export function streamText<
   experimental_refineToolInput: refineToolInput,
   experimental_transform: transform,
   experimental_download: download,
-  includeRawChunks = false,
+  includeRawChunks,
   onChunk,
   onError = ({ error }) => {
     console.error(error);
@@ -296,11 +336,14 @@ export function streamText<
   experimental_onStepStart: onStepStart,
   experimental_onLanguageModelCallStart: onLanguageModelCallStart,
   experimental_onLanguageModelCallEnd: onLanguageModelCallEnd,
-  experimental_onToolExecutionStart: onToolExecutionStart,
-  experimental_onToolExecutionEnd: onToolExecutionEnd,
+  onToolExecutionStart,
+  onToolExecutionEnd,
+  experimental_onToolCallStart,
+  experimental_onToolCallFinish,
   runtimeContext = {} as RUNTIME_CONTEXT,
   toolsContext = {} as InferToolSetContext<TOOLS>,
-  experimental_include: include,
+  experimental_include,
+  include = experimental_include,
   _internal: {
     now = originalNow,
     generateId = originalGenerateId,
@@ -347,6 +390,11 @@ export function streamText<
      * functionality that can be fully encapsulated in the provider.
      */
     providerOptions?: ProviderOptions;
+
+    /**
+     * The sandbox environment that is passed through to the tool execution.
+     */
+    sandbox?: Sandbox;
 
     /**
      * Runtime context. Treat runtime context as immutable.
@@ -417,6 +465,8 @@ export function streamText<
      * When enabled, you will receive raw chunks with type 'raw' that contain the unprocessed data from the provider.
      * This allows access to cutting-edge provider features not yet wrapped by the AI SDK.
      * Defaults to false.
+     *
+     * @deprecated Use `include.rawChunks` instead.
      */
     includeRawChunks?: boolean;
 
@@ -493,32 +543,42 @@ export function streamText<
     /**
      * Callback that is called right before a tool's execute function runs.
      */
-    experimental_onToolExecutionStart?: OnToolExecutionStartCallback<
-      NoInfer<TOOLS>
-    >;
+    onToolExecutionStart?: OnToolExecutionStartCallback<NoInfer<TOOLS>>;
+
+    /**
+     * Callback that is called right before a tool's execute function runs.
+     *
+     * @deprecated Use `onToolExecutionStart` instead.
+     */
+    experimental_onToolCallStart?: OnToolExecutionStartCallback<NoInfer<TOOLS>>;
 
     /**
      * Callback that is called right after a tool's execute function completes (or errors).
      */
-    experimental_onToolExecutionEnd?: OnToolExecutionEndCallback<
-      NoInfer<TOOLS>
-    >;
+    onToolExecutionEnd?: OnToolExecutionEndCallback<NoInfer<TOOLS>>;
+
+    /**
+     * Callback that is called right after a tool's execute function completes (or errors).
+     *
+     * @deprecated Use `onToolExecutionEnd` instead.
+     */
+    experimental_onToolCallFinish?: OnToolExecutionEndCallback<NoInfer<TOOLS>>;
 
     /**
      * Settings for controlling what data is included in step results.
      * Disabling inclusion can help reduce memory usage when processing
      * large payloads like images.
      *
-     * By default, all data is included for backwards compatibility.
+     * By default, request bodies and request messages are excluded.
      */
-    experimental_include?: {
-      /**
-       * Whether to retain the request body in step results.
-       * The request body can be large when sending images or files.
-       * @default true
-       */
-      requestBody?: boolean;
-    };
+    include?: StreamTextInclude;
+
+    /**
+     * Settings for controlling what data is included in step results.
+     *
+     * @deprecated Use `include` instead.
+     */
+    experimental_include?: StreamTextInclude;
 
     /**
      * Internal. For test use only. May change without notice.
@@ -536,6 +596,10 @@ export function streamText<
     stepTimeoutMs != null ? new AbortController() : undefined;
   const chunkAbortController =
     chunkTimeoutMs != null ? new AbortController() : undefined;
+  const resolvedOnToolExecutionStart =
+    onToolExecutionStart ?? experimental_onToolCallStart;
+  const resolvedOnToolExecutionEnd =
+    onToolExecutionEnd ?? experimental_onToolCallFinish;
   return new DefaultStreamTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>({
     model: resolveLanguageModel(model),
     telemetry,
@@ -556,6 +620,7 @@ export function streamText<
     prompt,
     messages,
     allowSystemInMessages,
+    sandbox,
     tools,
     toolsContext,
     runtimeContext,
@@ -569,7 +634,6 @@ export function streamText<
     toolApproval,
     providerOptions,
     prepareStep,
-    includeRawChunks,
     timeout,
     onChunk,
     onError,
@@ -580,13 +644,19 @@ export function streamText<
     onStepStart,
     onLanguageModelCallStart,
     onLanguageModelCallEnd,
-    onToolExecutionStart,
-    onToolExecutionEnd,
+    onToolExecutionStart: resolvedOnToolExecutionStart,
+    onToolExecutionEnd: resolvedOnToolExecutionEnd,
     now,
     generateId,
     generateCallId,
     download,
-    include,
+
+    // assign default values to include:
+    include: {
+      requestBody: include?.requestBody ?? false,
+      requestMessages: include?.requestMessages ?? false,
+      rawChunks: include?.rawChunks ?? includeRawChunks ?? false,
+    },
   });
 }
 
@@ -726,8 +796,6 @@ class DefaultStreamTextResult<
 
   private outputSpecification: OUTPUT | undefined;
 
-  private includeRawChunks: boolean;
-
   private tools: TOOLS | undefined;
 
   constructor({
@@ -745,6 +813,7 @@ class DefaultStreamTextResult<
     prompt,
     messages,
     allowSystemInMessages,
+    sandbox,
     tools,
     toolChoice,
     transforms,
@@ -756,7 +825,6 @@ class DefaultStreamTextResult<
     toolApproval,
     providerOptions,
     prepareStep,
-    includeRawChunks,
     now,
     generateId,
     generateCallId,
@@ -793,6 +861,7 @@ class DefaultStreamTextResult<
     prompt: Prompt['prompt'];
     messages: Prompt['messages'];
     allowSystemInMessages: Prompt['allowSystemInMessages'];
+    sandbox: Sandbox | undefined;
     tools: TOOLS | undefined;
     toolChoice: ToolChoice<TOOLS> | undefined;
     transforms: Array<StreamTextTransform<TOOLS>>;
@@ -808,13 +877,12 @@ class DefaultStreamTextResult<
     prepareStep:
       | PrepareStepFunction<NoInfer<TOOLS>, NoInfer<RUNTIME_CONTEXT>>
       | undefined;
-    includeRawChunks: boolean;
     now: () => number;
     generateId: () => string;
     generateCallId: () => string;
     timeout: TimeoutConfiguration<TOOLS> | undefined;
     download: DownloadFunction | undefined;
-    include: { requestBody?: boolean } | undefined;
+    include: Required<StreamTextInclude>;
 
     // callbacks:
     onChunk: undefined | StreamTextOnChunkCallback<TOOLS>;
@@ -853,7 +921,6 @@ class DefaultStreamTextResult<
     onToolExecutionEnd: undefined | OnToolExecutionEndCallback<TOOLS>;
   }) {
     this.outputSpecification = output;
-    this.includeRawChunks = includeRawChunks;
     this.tools = tools;
 
     const telemetryDispatcher = createRestrictedTelemetryDispatcher<
@@ -876,7 +943,8 @@ class DefaultStreamTextResult<
     let recordedFinishReason: FinishReason | undefined = undefined;
     let recordedRawFinishReason: string | undefined = undefined;
     let recordedTotalUsage: LanguageModelUsage | undefined = undefined;
-    let recordedRequest: LanguageModelRequestMetadata = {};
+    let recordedRequest: Omit<LanguageModelRequestMetadata, 'messages'> = {};
+    let recordedRequestMessages: Array<ModelMessage> = [];
     let recordedWarnings: Array<CallWarning> = [];
     const recordedSteps: StepResult<TOOLS, RUNTIME_CONTEXT>[] = [];
 
@@ -1083,10 +1151,18 @@ class DefaultStreamTextResult<
               rawFinishReason: part.rawFinishReason,
               usage: part.usage,
               warnings: recordedWarnings,
-              request: recordedRequest,
+              request: {
+                ...recordedRequest,
+                messages: include.requestMessages
+                  ? cloneModelMessages(recordedRequestMessages)
+                  : undefined,
+              },
               response: {
                 ...part.response,
-                messages: [...recordedResponseMessages, ...stepMessages],
+                messages: cloneModelMessages([
+                  ...recordedResponseMessages,
+                  ...stepMessages,
+                ]),
               },
               providerMetadata: part.providerMetadata,
             });
@@ -1176,6 +1252,7 @@ class DefaultStreamTextResult<
               dynamicToolResults: finalStep.dynamicToolResults,
               request: finalStep.request,
               response: finalStep.response,
+              responseMessages: finalStep.response.messages,
               warnings: finalStep.warnings,
               providerMetadata: finalStep.providerMetadata,
               steps: recordedSteps,
@@ -1381,6 +1458,7 @@ class DefaultStreamTextResult<
                 messages: initialMessages,
                 abortSignal,
                 timeout,
+                sandbox,
                 toolsContext,
                 onToolExecutionStart: filterNullable(
                   onToolExecutionStart,
@@ -1460,8 +1538,6 @@ class DefaultStreamTextResult<
         responseMessages: Array<ResponseMessage>;
         usage: LanguageModelUsage;
       }) {
-        const includeRawChunks = self.includeRawChunks;
-
         // Set up step timeout if configured
         const stepTimeoutId = setAbortTimeout({
           abortController: stepAbortController,
@@ -1509,6 +1585,7 @@ class DefaultStreamTextResult<
             messages: stepInputMessages,
             toolsContext,
             runtimeContext,
+            sandbox,
           });
 
           const stepModel = resolveLanguageModel(
@@ -1559,7 +1636,7 @@ class DefaultStreamTextResult<
               refineToolInput,
               abortSignal,
               headers,
-              includeRawChunks,
+              includeRawChunks: include.rawChunks,
               providerOptions: stepProviderOptions,
               download,
               output,
@@ -1619,6 +1696,7 @@ class DefaultStreamTextResult<
               messages: stepInputMessages,
               abortSignal,
               timeout,
+              sandbox,
               toolsContext,
               toolApproval,
               runtimeContext,
@@ -1637,10 +1715,15 @@ class DefaultStreamTextResult<
 
           // Conditionally include request.body based on include settings.
           // Large payloads (e.g., base64-encoded images) can cause memory issues.
-          const stepRequest: LanguageModelRequestMetadata =
-            (include?.requestBody ?? true)
-              ? (request ?? {})
-              : { ...request, body: undefined };
+          const stepRequest: LanguageModelRequestMetadata = {
+            ...request,
+            body: include.requestBody ? request?.body : undefined,
+            messages: include.requestMessages
+              ? cloneModelMessages(stepMessages)
+              : undefined,
+          };
+          recordedRequestMessages = stepRequest.messages ?? [];
+
           const stepToolCalls: TypedToolCall<TOOLS>[] = [];
           const stepToolOutputs: ToolOutput<TOOLS>[] = [];
           const stepToolApprovalResponses: ToolApprovalResponse[] = [];
@@ -1791,7 +1874,7 @@ class DefaultStreamTextResult<
                     }
 
                     case 'raw': {
-                      if (includeRawChunks) {
+                      if (include.rawChunks) {
                         controller.enqueue(chunk);
                       }
                       break;
@@ -2046,6 +2129,10 @@ class DefaultStreamTextResult<
     return this.finalStep.then(step => step.response);
   }
 
+  get responseMessages() {
+    return this.finalStep.then(step => step.response.messages);
+  }
+
   get totalUsage() {
     // when any of the promises are accessed, the stream is consumed
     // so it resolves without needing to consume the stream separately
@@ -2155,7 +2242,9 @@ class DefaultStreamTextResult<
 
     if (transform == null) {
       throw new UnsupportedFunctionalityError({
-        functionality: `element streams in ${this.outputSpecification?.name ?? 'text'} mode`,
+        functionality: `element streams in ${
+          this.outputSpecification?.name ?? 'text'
+        } mode`,
       });
     }
 
@@ -2351,6 +2440,9 @@ class DefaultStreamTextResult<
                 ...(part.providerMetadata != null
                   ? { providerMetadata: part.providerMetadata }
                   : {}),
+                ...(part.toolMetadata != null
+                  ? { toolMetadata: part.toolMetadata }
+                  : {}),
                 ...(dynamic != null ? { dynamic } : {}),
                 ...(part.title != null ? { title: part.title } : {}),
               });
@@ -2381,6 +2473,9 @@ class DefaultStreamTextResult<
                   ...(part.providerMetadata != null
                     ? { providerMetadata: part.providerMetadata }
                     : {}),
+                  ...(part.toolMetadata != null
+                    ? { toolMetadata: part.toolMetadata }
+                    : {}),
                   ...(dynamic != null ? { dynamic } : {}),
                   errorText: onError(part.error),
                   ...(part.title != null ? { title: part.title } : {}),
@@ -2396,6 +2491,9 @@ class DefaultStreamTextResult<
                     : {}),
                   ...(part.providerMetadata != null
                     ? { providerMetadata: part.providerMetadata }
+                    : {}),
+                  ...(part.toolMetadata != null
+                    ? { toolMetadata: part.toolMetadata }
                     : {}),
                   ...(dynamic != null ? { dynamic } : {}),
                   ...(part.title != null ? { title: part.title } : {}),
@@ -2443,6 +2541,9 @@ class DefaultStreamTextResult<
                 ...(part.providerMetadata != null
                   ? { providerMetadata: part.providerMetadata }
                   : {}),
+                ...(part.toolMetadata != null
+                  ? { toolMetadata: part.toolMetadata }
+                  : {}),
                 ...(part.preliminary != null
                   ? { preliminary: part.preliminary }
                   : {}),
@@ -2467,6 +2568,9 @@ class DefaultStreamTextResult<
                   : {}),
                 ...(part.providerMetadata != null
                   ? { providerMetadata: part.providerMetadata }
+                  : {}),
+                ...(part.toolMetadata != null
+                  ? { toolMetadata: part.toolMetadata }
                   : {}),
                 ...(dynamic != null ? { dynamic } : {}),
               });

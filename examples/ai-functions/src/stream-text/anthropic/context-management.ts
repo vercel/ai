@@ -8,7 +8,9 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    includeRawChunks: true,
+    include: {
+      rawChunks: true,
+    },
     onChunk({ chunk }) {
       if (chunk.type === 'raw') {
         const raw = chunk.rawValue as Record<string, unknown>;

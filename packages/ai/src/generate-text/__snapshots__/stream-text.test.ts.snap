@@ -218,7 +218,10 @@ exports[`streamText > result.fullStream > should send delayed asynchronous tool 
     "type": "start",
   },
   {
-    "request": {},
+    "request": {
+      "body": undefined,
+      "messages": undefined,
+    },
     "type": "start-step",
     "warnings": [],
   },
@@ -302,7 +305,10 @@ exports[`streamText > result.fullStream > should send tool calls 1`] = `
     "type": "start",
   },
   {
-    "request": {},
+    "request": {
+      "body": undefined,
+      "messages": undefined,
+    },
     "type": "start-step",
     "warnings": [],
   },
@@ -380,7 +386,10 @@ exports[`streamText > result.fullStream > should send tool results 1`] = `
     "type": "start",
   },
   {
-    "request": {},
+    "request": {
+      "body": undefined,
+      "messages": undefined,
+    },
     "type": "start-step",
     "warnings": [],
   },
@@ -744,7 +753,10 @@ exports[`streamText > tools with custom schema > should send tool calls 1`] = `
     "type": "start",
   },
   {
-    "request": {},
+    "request": {
+      "body": undefined,
+      "messages": undefined,
+    },
     "type": "start-step",
     "warnings": [],
   },

@@ -592,7 +592,7 @@ To see `streamText` in action, check out [these examples](#examples).
       type: 'boolean',
       isOptional: true,
       description:
-        'Whether to include raw chunks from the provider in the stream. When enabled, you will receive raw chunks with type "raw" that contain the unprocessed data from the provider. This allows access to cutting-edge provider features not yet wrapped by the AI SDK. Defaults to false.',
+        'Deprecated. Use include.rawChunks instead. Whether to include raw chunks from the provider in the stream. When enabled, you will receive raw chunks with type "raw" that contain the unprocessed data from the provider. This allows access to cutting-edge provider features not yet wrapped by the AI SDK. Defaults to false.',
     },
     {
       name: 'providerOptions',
@@ -682,6 +682,13 @@ To see `streamText` in action, check out [these examples](#examples).
                       description:
                         'The per-tool context map passed via the `toolsContext` setting.',
                     },
+                    {
+                      name: 'sandbox',
+                      type: 'Sandbox | undefined',
+                      isOptional: true,
+                      description:
+                        'The sandbox environment passed via the `sandbox` setting.',
+                    },
                   ],
                 },
               ],
@@ -766,6 +773,13 @@ To see `streamText` in action, check out [these examples](#examples).
         'Per-tool context map keyed by tool name. Required when at least one tool defines `contextSchema`; not accepted when no tools need context.',
     },
     {
+      name: 'sandbox',
+      type: 'Sandbox',
+      isOptional: true,
+      description:
+        'Sandbox environment that is passed through to `prepareStep` and tool execution. Tools can access it from their execution options.',
+    },
+    {
       name: 'experimental_download',
       type: '(requestedDownloads: Array<{ url: URL; isUrlSupportedByModel: boolean }>) => Promise<Array<null | { data: Uint8Array; mediaType?: string }>>',
       isOptional: true,
@@ -773,11 +787,11 @@ To see `streamText` in action, check out [these examples](#examples).
         'Custom download function to control how URLs are fetched when they appear in prompts. By default, files are downloaded if the model does not support the URL for the given media type. Experimental feature. Return null to pass the URL directly to the model (when supported), or return downloaded content with data and media type.',
     },
     {
-      name: 'experimental_include',
-      type: '{ requestBody?: boolean }',
+      name: 'include',
+      type: '{ requestBody?: boolean; requestMessages?: boolean; rawChunks?: boolean }',
       isOptional: true,
       description:
-        'Controls inclusion of request body in step results. By default, the body is included. When processing many large payloads (e.g., images), set requestBody to false to reduce memory usage. Experimental feature.',
+        'Controls inclusion of request body and request messages in step results, and raw provider chunks in the stream. By default, request body, request messages, and raw chunks are excluded to reduce memory usage. Set requestBody or requestMessages to true when you need access to the data. Set rawChunks to true when you need access to raw provider chunks.',
       properties: [
         {
           type: 'Object',
@@ -787,7 +801,21 @@ To see `streamText` in action, check out [these examples](#examples).
               type: 'boolean',
               isOptional: true,
               description:
-                'Whether to include the request body in step results. The request body can be large when sending images or files. Default: true.',
+                'Whether to include the request body in step results. The request body can be large when sending images or files. Default: false.',
+            },
+            {
+              name: 'requestMessages',
+              type: 'boolean',
+              isOptional: true,
+              description:
+                'Whether to include the request messages in step results. The request messages can be large when sending images or files. Default: false.',
+            },
+            {
+              name: 'rawChunks',
+              type: 'boolean',
+              isOptional: true,
+              description:
+                'Whether to include raw chunks from the provider in the stream. When enabled, raw chunks with type "raw" contain unprocessed provider data. Default: false.',
             },
           ],
         },
@@ -1866,7 +1894,8 @@ To see `streamText` in action, check out [these examples](#examples).
             {
               name: 'provider',
               type: 'string',
-              description: 'The provider identifier (e.g., "openai", "anthropic").',
+              description:
+                'The provider identifier (e.g., "openai", "anthropic").',
             },
             {
               name: 'modelId',
@@ -1973,7 +2002,7 @@ To see `streamText` in action, check out [these examples](#examples).
             },
             {
               name: 'include',
-              type: '{ requestBody?: boolean } | undefined',
+              type: '{ requestBody?: boolean; requestMessages?: boolean } | undefined',
               description:
                 'Settings for controlling what data is included in step results.',
             },
@@ -2011,7 +2040,8 @@ To see `streamText` in action, check out [these examples](#examples).
             {
               name: 'provider',
               type: 'string',
-              description: 'The provider identifier (e.g., "openai", "anthropic").',
+              description:
+                'The provider identifier (e.g., "openai", "anthropic").',
             },
             {
               name: 'modelId',
@@ -2084,7 +2114,7 @@ To see `streamText` in action, check out [these examples](#examples).
             },
             {
               name: 'include',
-              type: '{ requestBody?: boolean } | undefined',
+              type: '{ requestBody?: boolean; requestMessages?: boolean } | undefined',
               description:
                 'Settings for controlling what data is included in step results.',
             },
@@ -2137,7 +2167,8 @@ To see `streamText` in action, check out [these examples](#examples).
             {
               name: 'tools',
               type: 'ReadonlyArray<Record<string, unknown>> | undefined',
-              description: 'Prepared tool definitions for the model call, if any.',
+              description:
+                'Prepared tool definitions for the model call, if any.',
             },
           ],
         },
@@ -2189,7 +2220,7 @@ To see `streamText` in action, check out [these examples](#examples).
       ],
     },
     {
-      name: 'experimental_onToolExecutionStart',
+      name: 'onToolExecutionStart',
       type: '(event: ToolExecutionStartEvent) => PromiseLike<void> | void',
       isOptional: true,
       description:
@@ -2201,7 +2232,8 @@ To see `streamText` in action, check out [these examples](#examples).
             {
               name: 'callId',
               type: 'string',
-              description: 'Unique identifier for this generation call, used to correlate events.',
+              description:
+                'Unique identifier for this generation call, used to correlate events.',
             },
             {
               name: 'toolCall',
@@ -2226,7 +2258,7 @@ To see `streamText` in action, check out [these examples](#examples).
       ],
     },
     {
-      name: 'experimental_onToolExecutionEnd',
+      name: 'onToolExecutionEnd',
       type: '(event: ToolExecutionEndEvent) => PromiseLike<void> | void',
       isOptional: true,
       description:
@@ -2238,7 +2270,8 @@ To see `streamText` in action, check out [these examples](#examples).
             {
               name: 'callId',
               type: 'string',
-              description: 'Unique identifier for this generation call, used to correlate events.',
+              description:
+                'Unique identifier for this generation call, used to correlate events.',
             },
             {
               name: 'toolCall',
@@ -2273,6 +2306,20 @@ To see `streamText` in action, check out [these examples](#examples).
           ],
         },
       ],
+    },
+    {
+      name: 'experimental_onToolCallStart',
+      type: '(event: ToolExecutionStartEvent) => PromiseLike<void> | void',
+      isOptional: true,
+      description:
+        'Deprecated. Use `onToolExecutionStart` instead. This alias is only used as a fallback when `onToolExecutionStart` is not provided.',
+    },
+    {
+      name: 'experimental_onToolCallFinish',
+      type: '(event: ToolExecutionEndEvent) => PromiseLike<void> | void',
+      isOptional: true,
+      description:
+        'Deprecated. Use `onToolExecutionEnd` instead. This alias is only used as a fallback when `onToolExecutionEnd` is not provided.',
     },
   ]}
 />
@@ -2604,10 +2651,18 @@ To see `streamText` in action, check out [these examples](#examples).
           type: 'LanguageModelRequestMetadata',
           parameters: [
             {
-              name: 'body',
-              type: 'string',
+              name: 'messages',
+              type: 'Array<ModelMessage>',
+              isOptional: true,
               description:
-                'Raw request HTTP body that was sent to the provider API as a string (JSON should be stringified).',
+                'The input messages that were sent to the model for this step. Undefined by default unless requestMessages is set to true.',
+            },
+            {
+              name: 'body',
+              type: 'unknown',
+              isOptional: true,
+              description:
+                'Request HTTP body that was sent to the provider API.',
             },
           ],
         },
@@ -2615,7 +2670,7 @@ To see `streamText` in action, check out [these examples](#examples).
     },
     {
       name: 'response',
-      type: 'Promise<LanguageModelResponseMetadata & { messages: Array<ResponseMessage>; }>',
+      type: 'Promise<LanguageModelResponseMetadata>',
       description: 'Additional response information from the last step.',
       properties: [
         {
@@ -2646,6 +2701,13 @@ To see `streamText` in action, check out [these examples](#examples).
               description: 'Optional response headers.',
             },
             {
+              name: 'body',
+              isOptional: true,
+              type: 'unknown',
+              description:
+                'Response body (available only for providers that use HTTP requests).',
+            },
+            {
               name: 'messages',
               type: 'Array<ResponseMessage>',
               description:
@@ -2660,6 +2722,12 @@ To see `streamText` in action, check out [these examples](#examples).
       type: 'Promise<Warning[] | undefined>',
       description:
         'Warnings from the model provider (e.g. unsupported settings) for the first step.',
+    },
+    {
+      name: 'responseMessages',
+      type: 'Promise<Array<ResponseMessage>>',
+      description:
+        'The response messages that were generated during the call.',
     },
     {
       name: 'steps',
@@ -2874,10 +2942,18 @@ To see `streamText` in action, check out [these examples](#examples).
                   type: 'RequestMetadata',
                   parameters: [
                     {
-                      name: 'body',
-                      type: 'string',
+                      name: 'messages',
+                      type: 'Array<ModelMessage>',
+                      isOptional: true,
                       description:
-                        'Raw request HTTP body that was sent to the provider API as a string (JSON should be stringified).',
+                        'The input messages that were sent to the model for this step. Undefined by default unless requestMessages is set to true.',
+                    },
+                    {
+                      name: 'body',
+                      type: 'unknown',
+                      isOptional: true,
+                      description:
+                        'Request HTTP body that was sent to the provider API.',
                     },
                   ],
                 },
@@ -3228,10 +3304,17 @@ To see `streamText` in action, check out [these examples](#examples).
                   type: 'LanguageModelRequestMetadata',
                   parameters: [
                     {
-                      name: 'body',
-                      type: 'string',
+                      name: 'messages',
+                      type: 'Array<ModelMessage>',
                       description:
-                        'Raw request HTTP body that was sent to the provider API as a string.',
+                        'The input messages that were sent to the model for this step.',
+                    },
+                    {
+                      name: 'body',
+                      type: 'unknown',
+                      isOptional: true,
+                      description:
+                        'Request HTTP body that was sent to the provider API.',
                     },
                   ],
                 },
@@ -3256,9 +3339,9 @@ To see `streamText` in action, check out [these examples](#examples).
             },
             {
               name: 'response',
-              type: 'LanguageModelResponseMetadata',
+              type: "Omit<LanguageModelResponseMetadata, 'messages' | 'body'>",
               description:
-                'Response metadata from the language model provider.',
+                'Response metadata from the language model provider. `messages` and `body` are not included on `finish-step` stream parts.',
               properties: [
                 {
                   type: 'LanguageModelResponseMetadata',

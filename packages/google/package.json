@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/google",
-  "version": "4.0.0-canary.53",
+  "version": "4.0.0-canary.54",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,

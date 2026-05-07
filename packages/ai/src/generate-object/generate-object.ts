@@ -11,11 +11,11 @@ import { extractReasoningContent } from '../generate-text/extract-reasoning-cont
 import { extractTextContent } from '../generate-text/extract-text-content';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
+import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import type { LanguageModelCallOptions } from '../prompt/language-model-call-options';
 import { prepareLanguageModelCallOptions } from '../prompt/prepare-language-model-call-options';
-import type { RequestOptions } from '../prompt/request-options';
-import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import type { Prompt } from '../prompt/prompt';
+import type { RequestOptions } from '../prompt/request-options';
 import { standardizePrompt } from '../prompt/standardize-prompt';
 import { wrapGatewayError } from '../prompt/wrap-gateway-error';
 import { createTelemetryDispatcher } from '../telemetry/create-telemetry-dispatcher';
@@ -390,8 +390,10 @@ export async function generateObject<
     const usage = asLanguageModelUsage(generateResult.usage);
     const warnings = generateResult.warnings;
     const resultProviderMetadata = generateResult.providerMetadata;
-    const request: LanguageModelRequestMetadata = generateResult.request ?? {};
-    const response: LanguageModelResponseMetadata = responseData;
+    const request: Omit<LanguageModelRequestMetadata, 'messages'> =
+      generateResult.request ?? {};
+    const response: Omit<LanguageModelResponseMetadata, 'messages'> =
+      responseData;
 
     logWarnings({
       warnings,

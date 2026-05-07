@@ -1,0 +1,33 @@
+{
+  "status": "completed",
+  "outputs": [
+    {
+      "signature": "CpcIAQw51sdGUblv/6NPUsT6+mDCE9PGOfcpOb27otCAMBJVQxDsbkr5hIBLir5E5DQgqXJbGHqeRew0UhXHEbYutE/V4/R+Me0QSiF6gzLi7k7lzKkZQg1kT9Re0cntew7JyvhBnR+/+rcFYhVf5fhNGGt/rADAVkctZ6FfBMEaQDizuBb3qOUglD3JljGFETrn/bXD7Qynul7oot2SkTPa4ZE1Y51YjI+tXu2ZhwD5Z9Vv8K4YqeVG8q+WlQM4UoQY32OxP9AN6QecuIXdx6Y0mOox57CRuiBGZlLFwmeXMSn2IBK+JIHLcnSnctmp2JirjT/FDGm1R/ZjtpKoBjx+T6AUB8h16d3WuoKU5FUNmcrvhkSZ7zQKESnFnhp4BRRxQa7SHIDiXFDlG5Be8KXWopWi+gFA1YIlh88hYL1sjjbJdwOUF3R5+xll8904YHJPPjiGivXZQuq6EsRQTHddo6JnctPCg1Pqu2IWbtTItfjm7Z6gLkite8FDyjgA8fDuejQAARkFcSOa45W65oHsoPOmr9j6i8c0Xk4UkNqhQv1P5kMXXRsYmVBXJcrIIF/sg9iaTD9F2zzwiUwWjU20v9u6XW7LM9RPpaos0bwN4Hx84bYa+C+FPWM+63iSohz7+IvXdFqUW1SKTqaqowx51iRMrnrq0TI9jDOK12Oj0QhiOKSmOMm9GNqIR7bLBVfXq6WysLm/O1Z7QCoaCTmBXt5KsLfXSq1WQnIjh1kGwaHj4gc7458zLpoLCYPOtulJZofXYz2iLGeuO5eMvbPDrvf6zNVPAIj6R/TySYmYPmJmyo4I9eZoRyI7FrqV1s5zknvPKjisE9W/Gqd99px9EdTYmjHtWdG+n5rdWNj4xOAEqKrp4xJzdipRYQ3feYsNhwwRPz8FsogDJiC7xXakLYh0h6eE1xyVXk/X6BT4Vjy1Ouc0tEV3xgjMDUKjsVc5z0k9n87mfUm9rOwsgLrVRcI7OpqAD8yTAtDQWqTfnCcjJR3eoEicVSgXI8peLh21kLpbrLkg/FYJp0jRNcFPifl7Ee+K+IGzHPmSel0LFCWi5k3G6axNTS/xqSlzmc+BC9KdtUaH4X1SbXhmJq7Ljw+JGNQS+tRLFAHQwUKawR+StcuEN7d/0rgw0dtLp4vBbjNbUHJemmm8tz4m818l5QsgSuY4i/GnvGl7FTbPlPgCY5LQNyWM1RHZrx2HKe7KPCzHEpX25SqGFb6+mN4YTFezn8WwiDz1ubLzlj6Qv30IiXFuKlDtevfmtO4stxGOL0yHPnYQZIx9+MvX3IgJrz7R8AB3ztXravpEKMgdvJFGmUEJ5VlbmAR91U41fKKzDalITaZpWFIw/jI7rqrUpvtOdIRyBPxgeT4s75/qmWOWufBYxTbX",
+      "type": "thought"
+    },
+    {
+      "text": "The most famous landmark in Barcelona (the second city) is undoubtedly the **Sagrada Familia**.",
+      "type": "text"
+    }
+  ],
+  "usage": {
+    "total_tokens": 321,
+    "total_input_tokens": 52,
+    "input_tokens_by_modality": [
+      {
+        "modality": "text",
+        "tokens": 52
+      }
+    ],
+    "total_cached_tokens": 0,
+    "total_output_tokens": 19,
+    "total_tool_use_tokens": 0,
+    "total_thought_tokens": 250
+  },
+  "role": "model",
+  "created": "2026-05-04T19:41:01Z",
+  "updated": "2026-05-04T19:41:01Z",
+  "service_tier": "standard",
+  "object": "interaction",
+  "model": "gemini-2.5-flash"
+}

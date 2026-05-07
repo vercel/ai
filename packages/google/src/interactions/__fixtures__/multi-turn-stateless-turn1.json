@@ -1,0 +1,33 @@
+{
+  "status": "completed",
+  "outputs": [
+    {
+      "signature": "CsgEAQw51sdRflYPuWo9QdwdCKHKgaZ97JLNV2g/cwa4l/KzYNRA7WquyXUEznapMZDw+tCY65be+Pk/HvU2bqRfms4iNmabtioxHYYIZKndbNgkcfere4h/SjstUyYk2Mk33O99gsKkZ1PEdZlVn+S7S1Co3ISn8IOAnRSnNaF3Mh2720Q+5TUasRcdOMR51Sb8vpCNKvJIQw8aTnYn2Lu/S/XzEGMCUMCt2hS9GRxRYx7rv8DnQ/TKZq6RswJgA9wm9Zz5tZ8pny2fL6YVPWu9M8pUeMo4fDTsUSztZzIBqY9Z2AEcFmAdRPa9VCDQAS0BpnELohbRWTv4nw905bZgqF2HY+MgWAk/kfF6sRFAqgoCGNfaPxwXN9a+1En2S4s0fuvUQgbOsK2LQ4EZT4uhsCXy6eFuH41lY1JlH5zPjJ431bViZNp6UNCm9KyRZvxz8JHaO4DFtyMspMnhXsmYJxONM8uNhG5NUQBhTv++SXiaGxNJZlhNSpy5b4rDby/XEsNVEui2ojUAfSk/aMmfS1bfpnli+xiM9IoatiS66eTRjK/nAwjmxd3GR0s3hh3lBiHax5uIFCHelaXSMISH9A1Qy34/1ZhFvPYIhTZha0OQrxO4tT1NYViz5Xkyx2spg2BIzA/k8KWwaxcM/jQ3bSML12kXHRV9CXjDXywuGI53NjwNGV1Cvmxl2BZzHZZV25eylDapomqU7bQ6xFubfr9m8zHv/v5KK5ah/9+Ggok6jU7BaNyfxeAlWZNRiKA7Edg+2/SEWIU=",
+      "type": "thought"
+    },
+    {
+      "text": "The three largest cities in Spain are:\n\n1.  **Madrid**\n2.  **Barcelona**\n3.  **Valencia**",
+      "type": "text"
+    }
+  ],
+  "usage": {
+    "total_tokens": 161,
+    "total_input_tokens": 10,
+    "input_tokens_by_modality": [
+      {
+        "modality": "text",
+        "tokens": 10
+      }
+    ],
+    "total_cached_tokens": 0,
+    "total_output_tokens": 29,
+    "total_tool_use_tokens": 0,
+    "total_thought_tokens": 122
+  },
+  "role": "model",
+  "created": "2026-05-04T19:40:59Z",
+  "updated": "2026-05-04T19:40:59Z",
+  "service_tier": "standard",
+  "object": "interaction",
+  "model": "gemini-2.5-flash"
+}

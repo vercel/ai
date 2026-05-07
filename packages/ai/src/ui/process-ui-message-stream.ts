@@ -1,3 +1,4 @@
+import type { JSONObject } from '@ai-sdk/provider';
 import { validateTypes, type FlexibleSchema } from '@ai-sdk/provider-utils';
 import { UIMessageStreamError } from '../error/ui-message-stream-error';
 import type { ProviderMetadata } from '../types';
@@ -41,6 +42,7 @@ export type StreamingUIMessageState<UI_MESSAGE extends UIMessage> = {
       toolName: string;
       dynamic?: boolean;
       title?: string;
+      toolMetadata?: JSONObject;
     }
   >;
   finishReason?: FinishReason;
@@ -143,6 +145,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               toolCallId: string;
               providerExecuted?: boolean;
               title?: string;
+              toolMetadata?: JSONObject;
             } & (
               | {
                   state: 'input-streaming';
@@ -193,6 +196,9 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               if (options.title !== undefined) {
                 anyPart.title = options.title;
               }
+              if (options.toolMetadata !== undefined) {
+                anyPart.toolMetadata = options.toolMetadata;
+              }
               // once providerExecuted is set, it stays for streaming
               anyPart.providerExecuted =
                 anyOptions.providerExecuted ?? part.providerExecuted;
@@ -220,6 +226,9 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 toolCallId: options.toolCallId,
                 state: options.state,
                 title: options.title,
+                ...(options.toolMetadata !== undefined
+                  ? { toolMetadata: options.toolMetadata }
+                  : {}),
                 input: anyOptions.input,
                 output: anyOptions.output,
                 rawInput: anyOptions.rawInput,
@@ -248,6 +257,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               toolCallId: string;
               providerExecuted?: boolean;
               title?: string;
+              toolMetadata?: JSONObject;
             } & (
               | {
                   state: 'input-streaming';
@@ -294,6 +304,9 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               if (options.title !== undefined) {
                 anyPart.title = options.title;
               }
+              if (options.toolMetadata !== undefined) {
+                anyPart.toolMetadata = options.toolMetadata;
+              }
               // once providerExecuted is set, it stays for streaming
               anyPart.providerExecuted =
                 anyOptions.providerExecuted ?? part.providerExecuted;
@@ -327,6 +340,9 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 preliminary: anyOptions.preliminary,
                 providerExecuted: anyOptions.providerExecuted,
                 title: options.title,
+                ...(options.toolMetadata !== undefined
+                  ? { toolMetadata: options.toolMetadata }
+                  : {}),
                 ...(anyOptions.providerMetadata != null &&
                 (options.state === 'output-available' ||
                   options.state === 'output-error')
@@ -532,6 +548,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 index: toolInvocations.length,
                 dynamic: chunk.dynamic,
                 title: chunk.title,
+                toolMetadata: chunk.toolMetadata,
               };
 
               if (chunk.dynamic) {
@@ -542,6 +559,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   input: undefined,
                   providerExecuted: chunk.providerExecuted,
                   title: chunk.title,
+                  toolMetadata: chunk.toolMetadata,
                   providerMetadata: chunk.providerMetadata,
                 });
               } else {
@@ -552,6 +570,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   input: undefined,
                   providerExecuted: chunk.providerExecuted,
                   title: chunk.title,
+                  toolMetadata: chunk.toolMetadata,
                   providerMetadata: chunk.providerMetadata,
                 });
               }
@@ -585,6 +604,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   state: 'input-streaming',
                   input: partialArgs,
                   title: partialToolCall.title,
+                  toolMetadata: partialToolCall.toolMetadata,
                 });
               } else {
                 updateToolPart({
@@ -593,6 +613,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   state: 'input-streaming',
                   input: partialArgs,
                   title: partialToolCall.title,
+                  toolMetadata: partialToolCall.toolMetadata,
                 });
               }
 
@@ -610,6 +631,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   providerExecuted: chunk.providerExecuted,
                   providerMetadata: chunk.providerMetadata,
                   title: chunk.title,
+                  toolMetadata: chunk.toolMetadata,
                 });
               } else {
                 updateToolPart({
@@ -620,6 +642,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   providerExecuted: chunk.providerExecuted,
                   providerMetadata: chunk.providerMetadata,
                   title: chunk.title,
+                  toolMetadata: chunk.toolMetadata,
                 });
               }
 
@@ -658,6 +681,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   errorText: chunk.errorText,
                   providerExecuted: chunk.providerExecuted,
                   providerMetadata: chunk.providerMetadata,
+                  toolMetadata: chunk.toolMetadata,
                 });
               } else {
                 updateToolPart({
@@ -669,6 +693,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   errorText: chunk.errorText,
                   providerExecuted: chunk.providerExecuted,
                   providerMetadata: chunk.providerMetadata,
+                  toolMetadata: chunk.toolMetadata,
                 });
               }
 
@@ -734,6 +759,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   providerExecuted: chunk.providerExecuted,
                   providerMetadata: chunk.providerMetadata,
                   title: toolInvocation.title,
+                  toolMetadata: toolInvocation.toolMetadata,
                 });
               } else {
                 updateToolPart({
@@ -746,6 +772,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   preliminary: chunk.preliminary,
                   providerMetadata: chunk.providerMetadata,
                   title: toolInvocation.title,
+                  toolMetadata: toolInvocation.toolMetadata,
                 });
               }
 
@@ -766,6 +793,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   providerExecuted: chunk.providerExecuted,
                   providerMetadata: chunk.providerMetadata,
                   title: toolInvocation.title,
+                  toolMetadata: toolInvocation.toolMetadata,
                 });
               } else {
                 updateToolPart({
@@ -778,6 +806,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   providerExecuted: chunk.providerExecuted,
                   providerMetadata: chunk.providerMetadata,
                   title: toolInvocation.title,
+                  toolMetadata: toolInvocation.toolMetadata,
                 });
               }
 
