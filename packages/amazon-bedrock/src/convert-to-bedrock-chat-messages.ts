@@ -41,6 +41,16 @@ function getCachePoint(
   return { cachePoint: cachePointConfig };
 }
 
+function pushCachePoint(
+  content: BedrockUserMessage['content'] | BedrockAssistantMessage['content'],
+  providerMetadata: SharedV3ProviderMetadata | undefined,
+) {
+  const cachePoint = getCachePoint(providerMetadata);
+  if (cachePoint) {
+    content.push(cachePoint);
+  }
+}
+
 async function shouldEnableCitations(
   providerMetadata: SharedV3ProviderMetadata | undefined,
 ): Promise<boolean> {
@@ -156,6 +166,8 @@ export async function convertToBedrockChatMessages(
                     break;
                   }
                 }
+
+                pushCachePoint(bedrockContent, part.providerOptions);
               }
 
               break;
@@ -224,6 +236,7 @@ export async function convertToBedrockChatMessages(
                     content: toolResultContent,
                   },
                 });
+                pushCachePoint(bedrockContent, part.providerOptions);
               }
 
               break;
@@ -234,10 +247,7 @@ export async function convertToBedrockChatMessages(
             }
           }
 
-          const cachePoint = getCachePoint(providerOptions);
-          if (cachePoint) {
-            bedrockContent.push(cachePoint);
-          }
+          pushCachePoint(bedrockContent, providerOptions);
         }
 
         messages.push({ role: 'user', content: bedrockContent });
@@ -352,11 +362,10 @@ export async function convertToBedrockChatMessages(
                 break;
               }
             }
+
+            pushCachePoint(bedrockContent, part.providerOptions);
           }
-          const cachePoint = getCachePoint(message.providerOptions);
-          if (cachePoint) {
-            bedrockContent.push(cachePoint);
-          }
+          pushCachePoint(bedrockContent, message.providerOptions);
         }
 
         messages.push({ role: 'assistant', content: bedrockContent });
