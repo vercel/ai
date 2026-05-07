@@ -1,33 +1,15 @@
+import type { MCPAppResource, MCPAppResourceCSP } from '@ai-sdk/mcp';
 import type { DynamicToolUIPart, ToolUIPart, UITools } from 'ai';
 import type { CSSProperties, ReactNode } from 'react';
+
+export type { MCPAppResource, MCPAppResourceCSP };
 
 export type MCPAppDisplayMode = 'inline' | 'fullscreen' | 'pip';
 
 export type MCPAppMetadata = {
   resourceUri: string;
-  mimeType: 'text/html;profile=mcp-app';
+  mimeType: MCPAppResource['mimeType'];
   visibility?: Array<'model' | 'app'>;
-};
-
-export type MCPAppResourceCSP = {
-  connectDomains?: string[];
-  resourceDomains?: string[];
-  frameDomains?: string[];
-  [key: string]: unknown;
-};
-
-export type MCPAppResourceMeta = {
-  prefersBorder?: boolean;
-  csp?: MCPAppResourceCSP;
-  permissions?: Record<string, unknown>;
-  [key: string]: unknown;
-};
-
-export type MCPAppResource = {
-  uri: string;
-  mimeType: 'text/html;profile=mcp-app';
-  html: string;
-  meta?: MCPAppResourceMeta;
 };
 
 export type MCPAppHostContext = {

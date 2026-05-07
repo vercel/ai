@@ -35,6 +35,7 @@
     "README.md"
   ],
   "dependencies": {
+    "@ai-sdk/mcp": "workspace:*",
     "@ai-sdk/provider": "workspace:*",
     "@ai-sdk/provider-utils": "workspace:*",
     "ai": "workspace:*",
