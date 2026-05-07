@@ -815,7 +815,7 @@ describe('generateText', () => {
   });
 
   describe('result.request', () => {
-    it('should contain request body but not request messages by default', async () => {
+    it('should exclude request body and request messages by default', async () => {
       const result = await generateText({
         model: new MockLanguageModelV4({
           doGenerate: async ({}) => ({
@@ -827,31 +827,31 @@ describe('generateText', () => {
           }),
         }),
         prompt: 'prompt',
-      });
-
-      expect(result.request).toStrictEqual({
-        body: 'test body',
-        messages: undefined,
-      });
-    });
-
-    it('should exclude request body when retention.requestBody is false', async () => {
-      const result = await generateText({
-        model: new MockLanguageModelV4({
-          doGenerate: async ({}) => ({
-            ...dummyResponseValues,
-            content: [{ type: 'text', text: 'Hello, world!' }],
-            request: {
-              body: 'test body',
-            },
-          }),
-        }),
-        prompt: 'prompt',
-        include: { requestBody: false },
       });
 
       expect(result.request).toStrictEqual({
         body: undefined,
+        messages: undefined,
+      });
+    });
+
+    it('should include request body when retention.requestBody is true', async () => {
+      const result = await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async ({}) => ({
+            ...dummyResponseValues,
+            content: [{ type: 'text', text: 'Hello, world!' }],
+            request: {
+              body: 'test body',
+            },
+          }),
+        }),
+        prompt: 'prompt',
+        include: { requestBody: true },
+      });
+
+      expect(result.request).toStrictEqual({
+        body: 'test body',
         messages: undefined,
       });
     });
@@ -868,11 +868,11 @@ describe('generateText', () => {
           }),
         }),
         prompt: 'prompt',
-        experimental_include: { requestBody: false },
+        experimental_include: { requestBody: true },
       });
 
       expect(result.request).toStrictEqual({
-        body: undefined,
+        body: 'test body',
         messages: undefined,
       });
     });
@@ -889,12 +889,12 @@ describe('generateText', () => {
           }),
         }),
         prompt: 'prompt',
-        include: { requestBody: true },
-        experimental_include: { requestBody: false },
+        include: { requestBody: false },
+        experimental_include: { requestBody: true },
       });
 
       expect(result.request).toStrictEqual({
-        body: 'test body',
+        body: undefined,
         messages: undefined,
       });
     });
@@ -911,7 +911,7 @@ describe('generateText', () => {
           }),
         }),
         prompt: 'prompt',
-        include: { requestMessages: true },
+        include: { requestBody: true, requestMessages: true },
       });
 
       expect(result.request).toStrictEqual({
@@ -966,6 +966,7 @@ describe('generateText', () => {
           }),
         }),
         prompt: 'prompt',
+        include: { responseBody: true },
       });
 
       expect(result.steps[0].response).toMatchSnapshot();

@@ -117,7 +117,7 @@ export type GenerateTextInclude = {
    * Whether to retain the request body in step results.
    * The request body can be large when sending images or files.
    *
-   * @default true
+   * @default false
    */
   requestBody?: boolean;
 
@@ -132,7 +132,7 @@ export type GenerateTextInclude = {
   /**
    * Whether to retain the response body in step results.
    *
-   * @default true
+   * @default false
    */
   responseBody?: boolean;
 };
@@ -409,8 +409,8 @@ export async function generateText<
      * Disabling inclusion can help reduce memory usage when processing
      * large payloads like images.
      *
-     * By default, request and response bodies are included, and request
-     * messages are excluded.
+     * By default, request bodies, request messages, and response bodies are
+     * excluded.
      */
     include?: GenerateTextInclude;
 
@@ -431,9 +431,9 @@ export async function generateText<
   }): Promise<GenerateTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>> {
   // assign default values to include:
   include = {
-    requestBody: include?.requestBody ?? true,
+    requestBody: include?.requestBody ?? false,
     requestMessages: include?.requestMessages ?? false,
-    responseBody: include?.responseBody ?? true,
+    responseBody: include?.responseBody ?? false,
   };
 
   const model = resolveLanguageModel(modelArg);

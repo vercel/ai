@@ -733,7 +733,7 @@ To see `generateText` in action, check out [these examples](#examples).
       type: '{ requestBody?: boolean; requestMessages?: boolean; responseBody?: boolean }',
       isOptional: true,
       description:
-        'Controls inclusion of request bodies, request messages, and response bodies in step results. By default, request and response bodies are included, and request messages are excluded. When processing many large payloads (e.g., images), set requestBody and/or responseBody to false to reduce memory usage. Set requestMessages to true when you need access to the messages sent to the model.',
+        'Controls inclusion of request bodies, request messages, and response bodies in step results. By default, request bodies, request messages, and response bodies are excluded to reduce memory usage. Set requestBody, requestMessages, and/or responseBody to true when you need access to the data.',
       properties: [
         {
           type: 'Object',
@@ -743,7 +743,7 @@ To see `generateText` in action, check out [these examples](#examples).
               type: 'boolean',
               isOptional: true,
               description:
-                'Whether to include the request body in step results. The request body can be large when sending images or files. Default: true.',
+                'Whether to include the request body in step results. The request body can be large when sending images or files. Default: false.',
             },
             {
               name: 'requestMessages',
@@ -757,7 +757,7 @@ To see `generateText` in action, check out [these examples](#examples).
               type: 'boolean',
               isOptional: true,
               description:
-                'Whether to include the response body in step results. Default: true.',
+                'Whether to include the response body in step results. Default: false.',
             },
           ],
         },

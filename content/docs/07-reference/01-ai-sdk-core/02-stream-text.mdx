@@ -777,7 +777,7 @@ To see `streamText` in action, check out [these examples](#examples).
       type: '{ requestBody?: boolean; requestMessages?: boolean; rawChunks?: boolean }',
       isOptional: true,
       description:
-        'Controls inclusion of request body and request messages in step results, and raw provider chunks in the stream. By default, request body is included, request messages are excluded, and raw chunks are excluded. When processing many large payloads (e.g., images), set requestBody to false to reduce memory usage. Set requestMessages to true when you need access to the messages sent to the model. Set rawChunks to true when you need access to raw provider chunks.',
+        'Controls inclusion of request body and request messages in step results, and raw provider chunks in the stream. By default, request body, request messages, and raw chunks are excluded to reduce memory usage. Set requestBody or requestMessages to true when you need access to the data. Set rawChunks to true when you need access to raw provider chunks.',
       properties: [
         {
           type: 'Object',
@@ -787,7 +787,7 @@ To see `streamText` in action, check out [these examples](#examples).
               type: 'boolean',
               isOptional: true,
               description:
-                'Whether to include the request body in step results. The request body can be large when sending images or files. Default: true.',
+                'Whether to include the request body in step results. The request body can be large when sending images or files. Default: false.',
             },
             {
               name: 'requestMessages',

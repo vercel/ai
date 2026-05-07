@@ -5056,7 +5056,7 @@ describe('streamText', () => {
   });
 
   describe('result.request', () => {
-    it('should resolve with request body but not request messages by default', async () => {
+    it('should exclude request body and request messages by default', async () => {
       const result = streamText({
         model: createTestModel({
           stream: convertArrayToReadableStream([
@@ -5078,41 +5078,41 @@ describe('streamText', () => {
           request: { body: 'test body' },
         }),
         prompt: 'test-input',
-      });
-
-      expect(await result.request).toStrictEqual({
-        body: 'test body',
-        messages: undefined,
-      });
-    });
-
-    it('should exclude request body when retention.requestBody is false', async () => {
-      const result = streamText({
-        model: createTestModel({
-          stream: convertArrayToReadableStream([
-            {
-              type: 'response-metadata',
-              id: 'id-0',
-              modelId: 'mock-model-id',
-              timestamp: new Date(0),
-            },
-            { type: 'text-start', id: '1' },
-            { type: 'text-delta', id: '1', delta: 'Hello' },
-            { type: 'text-end', id: '1' },
-            {
-              type: 'finish',
-              finishReason: { unified: 'stop', raw: 'stop' },
-              usage: testUsage,
-            },
-          ]),
-          request: { body: 'test body' },
-        }),
-        prompt: 'test-input',
-        include: { requestBody: false },
       });
 
       expect(await result.request).toStrictEqual({
         body: undefined,
+        messages: undefined,
+      });
+    });
+
+    it('should include request body when retention.requestBody is true', async () => {
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'Hello' },
+            { type: 'text-end', id: '1' },
+            {
+              type: 'finish',
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: testUsage,
+            },
+          ]),
+          request: { body: 'test body' },
+        }),
+        prompt: 'test-input',
+        include: { requestBody: true },
+      });
+
+      expect(await result.request).toStrictEqual({
+        body: 'test body',
         messages: undefined,
       });
     });
@@ -5139,11 +5139,11 @@ describe('streamText', () => {
           request: { body: 'test body' },
         }),
         prompt: 'test-input',
-        experimental_include: { requestBody: false },
+        experimental_include: { requestBody: true },
       });
 
       expect(await result.request).toStrictEqual({
-        body: undefined,
+        body: 'test body',
         messages: undefined,
       });
     });
@@ -5170,12 +5170,12 @@ describe('streamText', () => {
           request: { body: 'test body' },
         }),
         prompt: 'test-input',
-        include: { requestBody: true },
-        experimental_include: { requestBody: false },
+        include: { requestBody: false },
+        experimental_include: { requestBody: true },
       });
 
       expect(await result.request).toStrictEqual({
-        body: 'test body',
+        body: undefined,
         messages: undefined,
       });
     });
@@ -5202,7 +5202,7 @@ describe('streamText', () => {
           request: { body: 'test body' },
         }),
         prompt: 'test-input',
-        include: { requestMessages: true },
+        include: { requestBody: true, requestMessages: true },
       });
 
       expect(await result.request).toStrictEqual({
