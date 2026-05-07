@@ -11,6 +11,22 @@ on:
       - release-v*
 
 jobs:
+  check-agents-md:
+    name: 'AGENTS.md size limit'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Verify AGENTS.md is under 10KB
+        run: |
+          size=$(wc -c < AGENTS.md)
+          if [ "$size" -gt 10240 ]; then
+            echo "AGENTS.md is ${size} bytes, which exceeds the 10KB (10240 bytes) limit."
+            echo "Please shorten AGENTS.md before merging."
+            exit 1
+          fi
+          echo "AGENTS.md is ${size} bytes (within the 10KB limit)."
+
   check:
     name: 'Lint & Format'
     runs-on: ubuntu-latest
