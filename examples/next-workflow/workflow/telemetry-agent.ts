@@ -2,6 +2,13 @@ import {
   createModelCallToUIChunkTransform,
   WorkflowAgent,
   type ModelCallStreamPart,
+  type TelemetryOptions,
+  type WorkflowAgentOnErrorCallback,
+  type WorkflowAgentOnFinishCallback,
+  type WorkflowAgentOnStartCallback,
+  type WorkflowAgentOnStepStartCallback,
+  type WorkflowAgentOnToolExecutionEndCallback,
+  type WorkflowAgentOnToolExecutionStartCallback,
 } from '@ai-sdk/workflow';
 import {
   convertToModelMessages,
@@ -23,6 +30,14 @@ interface TelemetryRequestContext {
   requestId: string;
   tenantId: string;
   scenario: TelemetryScenario;
+}
+
+interface RuntimeContext {
+  [key: string]: unknown;
+  telemetryRunId: string;
+  requestId: string;
+  tenantId: string;
+  secretToken: string;
 }
 
 function summarizeEvent(event: unknown) {
@@ -210,7 +225,7 @@ function createTelemetryOptions({
 }: {
   functionId: string;
   telemetryRunId: string;
-}) {
+}): TelemetryOptions<RuntimeContext, typeof tools> {
   return {
     functionId,
     includeRuntimeContext: {
@@ -289,32 +304,32 @@ export async function telemetryChat(
     telemetry: createTelemetryOptions({
       functionId: 'workflow-agent-telemetry-constructor',
       telemetryRunId: request.telemetryRunId,
-    }) as any,
+    }),
     experimental_onStart: recordCallback({
       telemetryRunId: request.telemetryRunId,
       source: 'agent-callback',
       name: 'experimental_onStart',
-    }) as any,
+    }) satisfies WorkflowAgentOnStartCallback<typeof tools, RuntimeContext>,
     experimental_onStepStart: recordCallback({
       telemetryRunId: request.telemetryRunId,
       source: 'agent-callback',
       name: 'experimental_onStepStart',
-    }) as any,
+    }) satisfies WorkflowAgentOnStepStartCallback<typeof tools, RuntimeContext>,
     onToolExecutionStart: recordCallback({
       telemetryRunId: request.telemetryRunId,
       source: 'agent-callback',
       name: 'onToolExecutionStart',
-    }) as any,
+    }) satisfies WorkflowAgentOnToolExecutionStartCallback<typeof tools>,
     onToolExecutionEnd: recordCallback({
       telemetryRunId: request.telemetryRunId,
       source: 'agent-callback',
       name: 'onToolExecutionEnd',
-    }) as any,
+    }) satisfies WorkflowAgentOnToolExecutionEndCallback<typeof tools>,
     onFinish: recordCallback({
       telemetryRunId: request.telemetryRunId,
       source: 'agent-callback',
       name: 'onFinish',
-    }) as any,
+    }) satisfies WorkflowAgentOnFinishCallback<typeof tools, RuntimeContext>,
   });
 
   const result = await agent.stream({
@@ -323,12 +338,12 @@ export async function telemetryChat(
     telemetry: createTelemetryOptions({
       functionId: `workflow-agent-telemetry-${request.scenario}`,
       telemetryRunId: request.telemetryRunId,
-    }) as any,
+    }),
     onError: recordCallback({
       telemetryRunId: request.telemetryRunId,
       source: 'agent-callback',
       name: 'onError',
-    }) as any,
+    }) satisfies WorkflowAgentOnErrorCallback,
   });
 
   await recordTelemetryEvent({

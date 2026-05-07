@@ -10,9 +10,22 @@ export type MockResponseDescriptor =
   | { type: 'error'; message: string };
 
 const usage = {
-  inputTokens: { total: 5, noCache: 5 },
-  outputTokens: { total: 10, text: 10 },
+  inputTokens: {
+    total: 5,
+    noCache: 5,
+    cacheRead: undefined,
+    cacheWrite: undefined,
+  },
+  outputTokens: { total: 10, text: 10, reasoning: undefined },
 };
+
+type MockStreamOptions = Parameters<MockLanguageModelV4['doStream']>[0];
+type MockStreamResult = Awaited<ReturnType<MockLanguageModelV4['doStream']>>;
+type MockStreamPart = MockStreamResult extends {
+  stream: ReadableStream<infer PART>;
+}
+  ? PART
+  : never;
 
 class SerializableMockLanguageModel extends MockLanguageModelV4 {
   static [WORKFLOW_SERIALIZE](model: SerializableMockLanguageModel) {
@@ -29,10 +42,9 @@ class SerializableMockLanguageModel extends MockLanguageModelV4 {
     super({
       provider: 'workflow-telemetry-mock',
       modelId: 'workflow-telemetry-model',
-      doStream: async (options: any) => {
+      doStream: async (options: MockStreamOptions) => {
         const index = Math.min(
-          options.prompt.filter((message: any) => message.role === 'assistant')
-            .length,
+          options.prompt.filter(message => message.role === 'assistant').length,
           responses.length - 1,
         );
         const response = responses[index];
@@ -41,7 +53,7 @@ class SerializableMockLanguageModel extends MockLanguageModelV4 {
           throw new Error(response.message);
         }
 
-        const prefix = [
+        const prefix: MockStreamPart[] = [
           { type: 'stream-start', warnings: [] },
           {
             type: 'response-metadata',
@@ -49,41 +61,42 @@ class SerializableMockLanguageModel extends MockLanguageModelV4 {
             modelId: 'workflow-telemetry-model',
             timestamp: new Date('2026-05-06T00:00:00.000Z'),
           },
-        ] as any[];
+        ];
+
+        const streamParts: MockStreamPart[] =
+          response.type === 'text'
+            ? [
+                ...prefix,
+                { type: 'text-start', id: `text-${index}` },
+                {
+                  type: 'text-delta',
+                  id: `text-${index}`,
+                  delta: response.text,
+                },
+                { type: 'text-end', id: `text-${index}` },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                  usage,
+                },
+              ]
+            : [
+                ...prefix,
+                {
+                  type: 'tool-call',
+                  toolCallId: `call-${index + 1}`,
+                  toolName: response.toolName,
+                  input: response.input,
+                },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'tool-calls', raw: undefined },
+                  usage,
+                },
+              ];
 
         return {
-          stream: convertArrayToReadableStream(
-            response.type === 'text'
-              ? ([
-                  ...prefix,
-                  { type: 'text-start', id: `text-${index}` },
-                  {
-                    type: 'text-delta',
-                    id: `text-${index}`,
-                    delta: response.text,
-                  },
-                  { type: 'text-end', id: `text-${index}` },
-                  {
-                    type: 'finish',
-                    finishReason: { unified: 'stop', raw: 'stop' },
-                    usage,
-                  },
-                ] as any[])
-              : ([
-                  ...prefix,
-                  {
-                    type: 'tool-call',
-                    toolCallId: `call-${index + 1}`,
-                    toolName: response.toolName,
-                    input: response.input,
-                  },
-                  {
-                    type: 'finish',
-                    finishReason: { unified: 'tool-calls', raw: undefined },
-                    usage,
-                  },
-                ] as any[]),
-          ) as any,
+          stream: convertArrayToReadableStream(streamParts),
         };
       },
     });

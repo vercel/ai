@@ -21,6 +21,18 @@ type TelemetryStatus = {
   };
 };
 
+type TelemetryToolPart = {
+  type: `tool-${string}`;
+  toolCallId?: string;
+  state?: string;
+  approval?: {
+    id: string;
+    approved?: boolean;
+  };
+  input?: unknown;
+  output?: unknown;
+};
+
 const scenarios: Array<{
   id: TelemetryScenario;
   title: string;
@@ -154,13 +166,16 @@ export default function TelemetryPage() {
     setMessages([]);
 
     const selectedScenario = scenarios.find(item => item.id === nextScenario);
-    sendMessage({ text: selectedScenario?.prompt ?? 'Run telemetry e2e.' }, {
-      body: {
-        scenario: nextScenario,
-        telemetryRunId: nextTelemetryRunId,
-        resetTelemetry: true,
+    sendMessage(
+      { text: selectedScenario?.prompt ?? 'Run telemetry e2e.' },
+      {
+        body: {
+          scenario: nextScenario,
+          telemetryRunId: nextTelemetryRunId,
+          resetTelemetry: true,
+        },
       },
-    } as any);
+    );
   };
 
   const running = chatStatus === 'submitted' || chatStatus === 'streaming';
@@ -296,7 +311,6 @@ export default function TelemetryPage() {
                     </div>
                     <div className="rounded bg-gray-50 p-3 text-sm">
                       {message.parts.map((part, index) => {
-                        const p = part as any;
                         if (part.type === 'text') {
                           return (
                             <div key={index} className="whitespace-pre-wrap">
@@ -304,12 +318,14 @@ export default function TelemetryPage() {
                             </div>
                           );
                         }
-                        if (p.type?.startsWith('tool-')) {
+                        if (part.type.startsWith('tool-')) {
+                          const p = part as TelemetryToolPart;
                           const toolName = p.type.replace('tool-', '');
                           if (
                             p.state === 'approval-requested' &&
                             p.approval?.id
                           ) {
+                            const approvalId = p.approval.id;
                             return (
                               <div
                                 key={index}
@@ -327,7 +343,7 @@ export default function TelemetryPage() {
                                     className="rounded bg-green-600 px-3 py-1 text-xs text-white"
                                     onClick={() =>
                                       addToolApprovalResponse({
-                                        id: p.approval.id,
+                                        id: approvalId,
                                         approved: true,
                                       })
                                     }
@@ -339,7 +355,7 @@ export default function TelemetryPage() {
                                     className="rounded bg-red-600 px-3 py-1 text-xs text-white"
                                     onClick={() =>
                                       addToolApprovalResponse({
-                                        id: p.approval.id,
+                                        id: approvalId,
                                         approved: false,
                                         reason: 'Denied by telemetry e2e page.',
                                       })
