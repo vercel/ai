@@ -1,0 +1,184 @@
+---
+title: acpx
+description: Use any ACP agent (Claude Code, Codex CLI, Gemini CLI, …) with the AI SDK in one install
+---
+
+# acpx
+
+[`acpx-ai-provider`](https://www.npmjs.com/package/acpx-ai-provider) is a Vercel AI SDK provider built on top of [`acpx/runtime`](https://www.npmjs.com/package/acpx). It lets you drive any [ACP](https://agentclientprotocol.com/) agent — Claude Code, Codex CLI, Gemini CLI, Copilot, Cursor, Pi, and others — through the standard AI SDK `generateText` / `streamText` / `generateObject` flows with one install. No agent CLI to install separately, no `{ command, args }` spawn config to write — `acpx` resolves and `npx`-spawns the right adapter on first use, persists sessions on disk, normalizes the event stream, and handles auth via env vars.
+
+The existing [`@mcpc-tech/acp-ai-provider`](/providers/community-providers/acp) bridges the AI SDK directly to the bare `@agentclientprotocol/sdk`. `acpx-ai-provider` is for users who want the runtime to manage agent installation, session persistence, and lifecycle. Pick the lower-level package when you need full control over spawn semantics; pick this one when you want zero setup beyond `bun add acpx-ai-provider acpx ai`.
+
+<Note type="warning">
+  This package is alpha (v0.x). API surface and event-translation
+  semantics may change between minor versions. See [Limitations](#limitations)
+  before adopting in production.
+</Note>
+
+## Version Compatibility
+
+| Provider Version | AI SDK Version | NPM Tag  | Status |
+| ---------------- | -------------- | -------- | ------ |
+| 0.x              | v6             | `latest` | Alpha  |
+
+The provider implements `LanguageModelV2` and runs under AI SDK v6 in compatibility mode. Migration to `LanguageModelV3` is on the roadmap as the underlying runtime widens to model the new tool-approval semantics.
+
+## Setup
+
+The provider lives in the `acpx-ai-provider` module. Install it alongside `acpx` (the runtime) and `ai` (the SDK):
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add acpx-ai-provider acpx ai" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install acpx-ai-provider acpx ai" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add acpx-ai-provider acpx ai" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="bun add acpx-ai-provider acpx ai" dark />
+  </Tab>
+</Tabs>
+
+## Provider Instance
+
+Create a provider with `createAcpxProvider`, picking which agent to drive:
+
+```typescript
+import { createAcpxProvider } from 'acpx-ai-provider';
+
+const provider = createAcpxProvider({
+  agent: 'claude', // or 'codex', 'gemini', 'copilot', 'cursor', 'pi'
+  cwd: process.cwd(),
+});
+```
+
+The first call against any agent will `npx`-spawn the corresponding ACP adapter. No separate install step.
+
+## Examples
+
+### `generateText`
+
+```typescript
+import { createAcpxProvider } from 'acpx-ai-provider';
+import { generateText } from 'ai';
+
+const provider = createAcpxProvider({ agent: 'claude' });
+
+const { text } = await generateText({
+  model: provider.languageModel(),
+  prompt: 'Summarize what acpx does in one sentence.',
+});
+
+console.log(text);
+```
+
+### `streamText`
+
+```typescript
+import { createAcpxProvider } from 'acpx-ai-provider';
+import { streamText } from 'ai';
+
+const provider = createAcpxProvider({ agent: 'codex' });
+
+const result = streamText({
+  model: provider.languageModel(),
+  prompt: 'Walk me through the files in this directory.',
+});
+
+for await (const chunk of result.textStream) {
+  process.stdout.write(chunk);
+}
+```
+
+### `generateObject`
+
+JSON mode works through the runtime's structured-output transform, which strips markdown fences so the SDK's parser sees clean JSON:
+
+```typescript
+import { createAcpxProvider } from 'acpx-ai-provider';
+import { generateObject } from 'ai';
+import { z } from 'zod';
+
+const provider = createAcpxProvider({ agent: 'claude' });
+
+const { object } = await generateObject({
+  model: provider.languageModel(),
+  schema: z.object({
+    name: z.string(),
+    ingredients: z.array(z.string()),
+  }),
+  prompt: 'Give me a recipe for chocolate chip cookies.',
+});
+```
+
+### Persistent multi-turn session
+
+Reuse the same agent process across turns by setting a `sessionKey`. The runtime persists the ACP session on disk so subsequent calls resume in the same conversation:
+
+```typescript
+const provider = createAcpxProvider({
+  agent: 'claude',
+  sessionMode: 'persistent',
+  sessionKey: 'my-app::project-x',
+});
+
+// Two turns, same session, same agent process.
+await generateText({ model: provider.languageModel(), prompt: 'List my open files.' });
+await generateText({ model: provider.languageModel(), prompt: 'Summarize the largest one.' });
+```
+
+### MCP servers
+
+Pass MCP server configs through to the agent — useful for adding tools the agent doesn't bundle:
+
+```typescript
+const provider = createAcpxProvider({
+  agent: 'claude',
+  mcpServers: [
+    {
+      type: 'stdio',
+      name: 'fs',
+      command: 'npx',
+      args: ['-y', '@modelcontextprotocol/server-filesystem', '/tmp'],
+    },
+  ],
+});
+```
+
+## Built-in agents
+
+`acpx` ships agent registry entries for `claude`, `codex`, `gemini`, `copilot`, `cursor`, and `pi` out of the box. Custom adapters can be added via `agentRegistryOverrides`. See the [`acpx` package docs](https://www.npmjs.com/package/acpx) for the canonical list.
+
+## Authentication
+
+Auth is env-var or config-file driven. Each adapter reads its own credentials — typically:
+
+```bash
+ACPX_AUTH_ANTHROPIC_API_KEY=sk-ant-...
+ACPX_AUTH_OPENAI_API_KEY=sk-...
+ACPX_AUTH_GOOGLE_API_KEY=...
+```
+
+For Copilot-style agents that use a host CLI login (e.g., `gh auth login`), run that login flow first; `acpx` reuses the existing credential store.
+
+## Limitations
+
+- **Alpha.** v0.x — API surface may change.
+- **No host-side AI SDK tools.** Tools are MCP-server-driven; the `acpTools()` / TCP-callback story from `@mcpc-tech/acp-ai-provider` is not implemented.
+- **No streaming usage updates.** Only the most recent `usage_update` from the runtime survives onto the `finish` part.
+- **Permissions are mode-based by default.** Pick `approve-all`, `approve-reads`, or `deny-all` up front. Per-call callbacks are landing in a follow-up.
+- **`npx` cold start on first agent use.** Subsequent calls against the same `cwd` reuse the cached binary.
+- **`LanguageModelV2` in v6 compat mode.** V3 migration tracks runtime feature work upstream.
+
+The full limitations list and per-agent quirks live in the [package README](https://github.com/DaniAkash/acpx/tree/main/packages/acpx-ai-provider#known-limitations).
+
+## Additional Resources
+
+- [Source on GitHub](https://github.com/DaniAkash/acpx)
+- [Package on npm](https://www.npmjs.com/package/acpx-ai-provider)
+- [Package README (full docs)](https://github.com/DaniAkash/acpx/tree/main/packages/acpx-ai-provider#readme)
+- [`acpx` runtime on npm](https://www.npmjs.com/package/acpx)
+- [Agent Client Protocol](https://agentclientprotocol.com)
