@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { MCPAppFrame } from './AppFrame';
+import { MCPAppFrame } from './app-frame';
 import type {
   MCPAppMetadata,
   MCPAppRendererProps,

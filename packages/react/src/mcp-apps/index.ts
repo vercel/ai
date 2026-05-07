@@ -1,4 +1,4 @@
-export { MCPAppRenderer } from './AppRenderer';
+export { MCPAppRenderer } from './app-renderer';
 export type {
   MCPAppBridgeHandlers,
   MCPAppMetadata,
