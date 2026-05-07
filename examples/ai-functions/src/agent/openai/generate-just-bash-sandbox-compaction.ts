@@ -1,9 +1,14 @@
-import type { ModelMessage} from 'ai';
-import { generateText, isStepCount, pruneMessages } from 'ai';
+import {
+  type ModelMessage,
+  generateText,
+  isStepCount,
+  pruneMessages,
+} from 'ai';
 import { run } from '../../lib/run';
 import { anthropic } from '@ai-sdk/anthropic';
 import { JustBashSandbox } from '../../sandbox/just-bash-sandbox';
 import { Bash, OverlayFs } from 'just-bash';
+import { openai } from '@ai-sdk/openai';
 
 const overlay = new OverlayFs({
   root: process.cwd(),
@@ -23,7 +28,7 @@ const estimateTokens = (messages: ModelMessage[]) => {
 
 run(async () => {
   const result = await generateText({
-    model: 'anthropic/claude-haiku-4.5',
+    model: openai('gpt-5.5'),
     system: 'You have access to a filesystem. Details: ' + sandbox.description,
     prompt: 'Read every .ts file in this directory',
     sandbox,
