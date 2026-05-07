@@ -406,7 +406,7 @@ while (step < maxSteps) {
     },
   });
 
-  messages.push(...result.response.messages);
+  messages.push(...result.responseMessages);
 
   if (result.text) {
     break; // Stop when model generates text

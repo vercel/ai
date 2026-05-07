@@ -257,19 +257,14 @@ export interface StreamTextResult<
    *
    * Automatically consumes the stream.
    */
-  readonly response: PromiseLike<
-    LanguageModelResponseMetadata & {
-      /**
-       * The response messages that were generated during the call. It consists of an assistant message,
-       * potentially containing tool calls.
-       *
-       * When there are tool results, there is an additional tool message with the tool results that are available.
-       * If there are tools that do not have execute functions, they are not included in the tool results and
-       * need to be added separately.
-       */
-      messages: Array<ResponseMessage>;
-    }
-  >;
+  readonly response: PromiseLike<LanguageModelResponseMetadata>;
+
+  /**
+   * The response messages that were generated during the call.
+   *
+   * Automatically consumes the stream.
+   */
+  readonly responseMessages: PromiseLike<Array<ResponseMessage>>;
 
   /**
    * Additional provider-specific metadata from the last step.
@@ -485,7 +480,7 @@ export type TextStreamStartStepPart = {
 
 export type TextStreamFinishStepPart = {
   type: 'finish-step';
-  response: LanguageModelResponseMetadata;
+  response: Omit<LanguageModelResponseMetadata, 'messages' | 'body'>;
   usage: LanguageModelUsage;
   finishReason: FinishReason;
   rawFinishReason: string | undefined;

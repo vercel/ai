@@ -743,11 +743,11 @@ To see `generateText` in action, check out [these examples](#examples).
         'Custom download function to control how URLs are fetched when they appear in prompts. By default, files are downloaded if the model does not support the URL for the given media type. Experimental feature. Return null to pass the URL directly to the model (when supported), or return downloaded content with data and media type.',
     },
     {
-      name: 'experimental_include',
-      type: '{ requestBody?: boolean; responseBody?: boolean }',
+      name: 'include',
+      type: '{ requestBody?: boolean; requestMessages?: boolean; responseBody?: boolean }',
       isOptional: true,
       description:
-        'Controls inclusion of request and response bodies in step results. By default, bodies are included. When processing many large payloads (e.g., images), set requestBody and/or responseBody to false to reduce memory usage. Experimental feature.',
+        'Controls inclusion of request bodies, request messages, and response bodies in step results. By default, request and response bodies are included, and request messages are excluded. When processing many large payloads (e.g., images), set requestBody and/or responseBody to false to reduce memory usage. Set requestMessages to true when you need access to the messages sent to the model.',
       properties: [
         {
           type: 'Object',
@@ -758,6 +758,13 @@ To see `generateText` in action, check out [these examples](#examples).
               isOptional: true,
               description:
                 'Whether to include the request body in step results. The request body can be large when sending images or files. Default: true.',
+            },
+            {
+              name: 'requestMessages',
+              type: 'boolean',
+              isOptional: true,
+              description:
+                'Whether to include the request messages in step results. The request messages can be large when sending images or files. Default: false.',
             },
             {
               name: 'responseBody',
@@ -1080,7 +1087,7 @@ To see `generateText` in action, check out [these examples](#examples).
             },
             {
               name: 'include',
-              type: '{ requestBody?: boolean; responseBody?: boolean } | undefined',
+              type: '{ requestBody?: boolean; requestMessages?: boolean; responseBody?: boolean } | undefined',
               description:
                 'Settings for controlling what data is included in step results.',
             },
@@ -1193,7 +1200,7 @@ To see `generateText` in action, check out [these examples](#examples).
             },
             {
               name: 'include',
-              type: '{ requestBody?: boolean; responseBody?: boolean } | undefined',
+              type: '{ requestBody?: boolean; requestMessages?: boolean; responseBody?: boolean } | undefined',
               description:
                 'Settings for controlling what data is included in step results.',
             },
@@ -1298,7 +1305,7 @@ To see `generateText` in action, check out [these examples](#examples).
       ],
     },
     {
-      name: 'experimental_onToolExecutionStart',
+      name: 'onToolExecutionStart',
       type: '(event: ToolExecutionStartEvent) => PromiseLike<void> | void',
       isOptional: true,
       description:
@@ -1335,7 +1342,7 @@ To see `generateText` in action, check out [these examples](#examples).
       ],
     },
     {
-      name: 'experimental_onToolExecutionEnd',
+      name: 'onToolExecutionEnd',
       type: '(event: ToolExecutionEndEvent) => PromiseLike<void> | void',
       isOptional: true,
       description:
@@ -1382,6 +1389,20 @@ To see `generateText` in action, check out [these examples](#examples).
           ],
         },
       ],
+    },
+    {
+      name: 'experimental_onToolCallStart',
+      type: '(event: ToolExecutionStartEvent) => PromiseLike<void> | void',
+      isOptional: true,
+      description:
+        'Deprecated. Use `onToolExecutionStart` instead. This alias is only used as a fallback when `onToolExecutionStart` is not provided.',
+    },
+    {
+      name: 'experimental_onToolCallFinish',
+      type: '(event: ToolExecutionEndEvent) => PromiseLike<void> | void',
+      isOptional: true,
+      description:
+        'Deprecated. Use `onToolExecutionEnd` instead. This alias is only used as a fallback when `onToolExecutionEnd` is not provided.',
     },
     {
       name: 'onStepFinish',
@@ -1595,10 +1616,31 @@ To see `generateText` in action, check out [these examples](#examples).
               name: 'request',
               type: 'LanguageModelRequestMetadata',
               description: 'Additional request information.',
+              properties: [
+                {
+                  type: 'LanguageModelRequestMetadata',
+                  parameters: [
+                    {
+                      name: 'messages',
+                      type: 'Array<ModelMessage>',
+                      isOptional: true,
+                      description:
+                        'The input messages that were sent to the model for this step. Undefined by default unless requestMessages is set to true.',
+                    },
+                    {
+                      name: 'body',
+                      type: 'unknown',
+                      isOptional: true,
+                      description:
+                        'Request HTTP body that was sent to the provider API.',
+                    },
+                  ],
+                },
+              ],
             },
             {
               name: 'response',
-              type: 'LanguageModelResponseMetadata & { messages: Array<ResponseMessage>; body?: unknown }',
+              type: 'LanguageModelResponseMetadata',
               description: 'Additional response information.',
               properties: [
                 {
@@ -1650,6 +1692,12 @@ To see `generateText` in action, check out [these examples](#examples).
               isOptional: true,
               description:
                 'Additional provider-specific metadata. They are passed through from the provider to the AI SDK and enable provider-specific results that can be fully encapsulated in the provider.',
+            },
+            {
+              name: 'responseMessages',
+              type: 'Array<ResponseMessage>',
+              description:
+                'The response messages that were generated during the call.',
             },
           ],
         },
@@ -1992,10 +2040,31 @@ To see `generateText` in action, check out [these examples](#examples).
               type: 'LanguageModelRequestMetadata',
               description:
                 'Additional request information from the final step.',
+              properties: [
+                {
+                  type: 'LanguageModelRequestMetadata',
+                  parameters: [
+                    {
+                      name: 'messages',
+                      type: 'Array<ModelMessage>',
+                      isOptional: true,
+                      description:
+                        'The input messages that were sent to the model for this step. Undefined by default unless requestMessages is set to true.',
+                    },
+                    {
+                      name: 'body',
+                      type: 'unknown',
+                      isOptional: true,
+                      description:
+                        'Request HTTP body that was sent to the provider API.',
+                    },
+                  ],
+                },
+              ],
             },
             {
               name: 'response',
-              type: 'LanguageModelResponseMetadata & { messages: Array<ResponseMessage>; body?: unknown }',
+              type: 'LanguageModelResponseMetadata',
               description:
                 'Additional response information from the final step.',
               properties: [
@@ -2027,6 +2096,13 @@ To see `generateText` in action, check out [these examples](#examples).
                       description: 'Optional response headers.',
                     },
                     {
+                      name: 'body',
+                      isOptional: true,
+                      type: 'unknown',
+                      description:
+                        'Response body (available only for providers that use HTTP requests).',
+                    },
+                    {
                       name: 'messages',
                       type: 'Array<ResponseMessage>',
                       description:
@@ -2041,6 +2117,12 @@ To see `generateText` in action, check out [these examples](#examples).
               type: 'Array<StepResult>',
               description:
                 'Response information for every step. You can use this to get information about intermediate steps, such as the tool calls or the response headers.',
+            },
+            {
+              name: 'responseMessages',
+              type: 'Array<ResponseMessage>',
+              description:
+                'The response messages that were generated during the call.',
             },
             {
               name: 'runtimeContext',
@@ -2384,10 +2466,18 @@ To see `generateText` in action, check out [these examples](#examples).
           type: 'LanguageModelRequestMetadata',
           parameters: [
             {
-              name: 'body',
-              type: 'string',
+              name: 'messages',
+              type: 'Array<ModelMessage>',
+              isOptional: true,
               description:
-                'Raw request HTTP body that was sent to the provider API as a string (JSON should be stringified).',
+                'The input messages that were sent to the model for this step. Undefined by default unless requestMessages is set to true.',
+            },
+            {
+              name: 'body',
+              type: 'unknown',
+              isOptional: true,
+              description:
+                'Request HTTP body that was sent to the provider API.',
             },
           ],
         },
@@ -2447,6 +2537,12 @@ To see `generateText` in action, check out [these examples](#examples).
       type: 'Warning[] | undefined',
       description:
         'Warnings from the model provider (e.g. unsupported settings).',
+    },
+    {
+      name: 'responseMessages',
+      type: 'Array<ResponseMessage>',
+      description:
+        'The response messages that were generated during the call.',
     },
     {
       name: 'providerMetadata',
@@ -2749,10 +2845,18 @@ To see `generateText` in action, check out [these examples](#examples).
                   type: 'LanguageModelRequestMetadata',
                   parameters: [
                     {
-                      name: 'body',
-                      type: 'string',
+                      name: 'messages',
+                      type: 'Array<ModelMessage>',
+                      isOptional: true,
                       description:
-                        'Raw request HTTP body that was sent to the provider API as a string (JSON should be stringified).',
+                        'The input messages that were sent to the model for this step. Undefined by default unless requestMessages is set to true.',
+                    },
+                    {
+                      name: 'body',
+                      type: 'unknown',
+                      isOptional: true,
+                      description:
+                        'Request HTTP body that was sent to the provider API.',
                     },
                   ],
                 },

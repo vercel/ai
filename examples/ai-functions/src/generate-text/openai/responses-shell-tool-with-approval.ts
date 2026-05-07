@@ -89,7 +89,7 @@ run(async () => {
 
     process.stdout.write('\n\n');
 
-    messages.push(...result.response.messages);
+    messages.push(...result.responseMessages);
 
     if (approvals.length === 0 && result.finishReason !== 'tool-calls') {
       break;

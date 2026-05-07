@@ -186,7 +186,7 @@ describe('WorkflowAgent integration', { timeout: 120_000 }, () => {
     });
   });
 
-  describe('experimental_onToolExecutionStart (GAP)', () => {
+  describe('onToolExecutionStart (GAP)', () => {
     it('completes but callbacks are not called (GAP)', async () => {
       const run = await start(agentonToolExecutionStartE2e, []);
       const rv = await run.returnValue;
@@ -195,7 +195,7 @@ describe('WorkflowAgent integration', { timeout: 120_000 }, () => {
     });
   });
 
-  describe('experimental_onToolExecutionEnd (GAP)', () => {
+  describe('onToolExecutionEnd (GAP)', () => {
     it('completes but callbacks are not called (GAP)', async () => {
       const run = await start(agentonToolExecutionEndE2e, []);
       const rv = await run.returnValue;

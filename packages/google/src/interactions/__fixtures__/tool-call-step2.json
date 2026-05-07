@@ -1,0 +1,34 @@
+{
+  "id": "v1_ChdsT240YVpfbUdZeWd6N0lQaWRPT3NRWRIXbE9uNGFaX21HWXlnejdJUGlkT09zUVk",
+  "status": "completed",
+  "outputs": [
+    {
+      "signature": "CiRlMjQ4MzBhNy01Y2Q2LTQyZmUtOTk4Yi1lZTUzOWU3MmI5YzM=",
+      "type": "thought"
+    },
+    {
+      "text": "The weather in San Francisco right now is sunny with a temperature of 16 degrees Celsius.",
+      "type": "text"
+    }
+  ],
+  "usage": {
+    "total_tokens": 116,
+    "total_input_tokens": 97,
+    "input_tokens_by_modality": [
+      {
+        "modality": "text",
+        "tokens": 97
+      }
+    ],
+    "total_cached_tokens": 0,
+    "total_output_tokens": 19,
+    "total_tool_use_tokens": 0,
+    "total_thought_tokens": 0
+  },
+  "role": "model",
+  "created": "2026-05-04T18:46:45Z",
+  "updated": "2026-05-04T18:46:45Z",
+  "service_tier": "standard",
+  "object": "interaction",
+  "model": "gemini-2.5-flash"
+}

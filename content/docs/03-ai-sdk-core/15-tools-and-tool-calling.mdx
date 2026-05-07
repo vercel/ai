@@ -222,7 +222,7 @@ const result = await generateText({
   messages,
 });
 
-messages.push(...result.response.messages);
+messages.push(...result.responseMessages);
 
 for (const part of result.content) {
   if (part.type === 'tool-approval-request' && !part.isAutomatic) {
@@ -434,7 +434,7 @@ const result = await generateText({
 
 ### Tool execution lifecycle callbacks
 
-You can use `experimental_onToolExecutionStart` and `experimental_onToolExecutionEnd` to observe tool execution.
+You can use `onToolExecutionStart` and `onToolExecutionEnd` to observe tool execution.
 These callbacks are called right before and after each tool's `execute` function, giving you
 visibility into tool execution timing, inputs, outputs, and errors:
 
@@ -443,13 +443,13 @@ import { generateText } from 'ai';
 
 const result = await generateText({
   // ... model, tools, prompt
-  experimental_onToolExecutionStart({ toolCall }) {
+  onToolExecutionStart({ toolCall }) {
     console.log(`Calling tool: ${toolCall.toolName}`, {
       toolCallId: toolCall.toolCallId,
       input: toolCall.input,
     });
   },
-  experimental_onToolExecutionEnd({ toolCall, durationMs, toolOutput }) {
+  onToolExecutionEnd({ toolCall, durationMs, toolOutput }) {
     if (toolOutput.type === 'tool-error') {
       console.error(
         `Tool ${toolCall.toolName} failed after ${durationMs}ms:`,
@@ -538,11 +538,11 @@ prepareStep: forwardAnthropicContainerIdFromLastStep,
 Adding the generated assistant and tool messages to your conversation history is a common task,
 especially if you are using multi-step tool calls.
 
-Both `generateText` and `streamText` have a `response.messages` property that you can use to
+Both `generateText` and `streamText` have a `responseMessages` property that you can use to
 add the assistant and tool messages to your conversation history.
 It is also available in the `onFinish` callback of `streamText`.
 
-The `response.messages` property contains an array of `ModelMessage` objects that you can add to your conversation history:
+The `responseMessages` property contains an array of `ModelMessage` objects that you can add to your conversation history:
 
 ```ts
 import { generateText, ModelMessage } from 'ai';
@@ -551,13 +551,13 @@ const messages: ModelMessage[] = [
   // ...
 ];
 
-const { response } = await generateText({
+const { responseMessages } = await generateText({
   // ...
   messages,
 });
 
 // add the response messages to your conversation history:
-messages.push(...response.messages); // streamText: ...((await response).messages)
+messages.push(...responseMessages); // streamText: ...(await result.responseMessages)
 ```
 
 ## Dynamic Tools

@@ -1,5 +1,11 @@
 # @ai-sdk/deepseek
 
+## 3.0.0-canary.37
+
+### Patch Changes
+
+- eda4373: feat(provider/deepseek): add DeepSeek V4 reasoning effort support
+
 ## 3.0.0-canary.36
 
 ### Patch Changes
