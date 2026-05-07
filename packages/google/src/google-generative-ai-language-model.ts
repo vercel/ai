@@ -181,6 +181,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
       tools,
       toolChoice,
       modelId: this.modelId,
+      isVertexProvider,
     });
 
     const streamFunctionCallArguments =
