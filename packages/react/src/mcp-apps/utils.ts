@@ -12,7 +12,7 @@ import type { MCPAppMetadata, MCPAppRendererProps } from './types';
  *   toolCallId: 'call-1',
  *   state: 'input-available',
  *   input: { topic: 'usage' },
- *   callProviderMetadata: {
+ *   toolMetadata: {
  *     mcp: {
  *       app: {
  *         resourceUri: 'ui://example/dashboard',
@@ -27,7 +27,10 @@ import type { MCPAppMetadata, MCPAppRendererProps } from './types';
 export function getMCPAppFromToolPart(
   part: MCPAppRendererProps['part'],
 ): MCPAppMetadata | undefined {
-  const rawAppMetadata = part.callProviderMetadata?.mcp?.app;
+  const mcpMetadata = part.toolMetadata?.mcp;
+  const rawAppMetadata = isJSONObject(mcpMetadata)
+    ? mcpMetadata.app
+    : undefined;
   const appMetadata = isJSONObject(rawAppMetadata) ? rawAppMetadata : undefined;
 
   if (

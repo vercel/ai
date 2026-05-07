@@ -86,7 +86,7 @@ export function MessagePart({ part }: { part: unknown }) {
       name: 'part',
       type: 'ToolUIPart<UITools> | DynamicToolUIPart',
       description:
-        'The AI SDK tool UI part. The renderer looks for MCP App metadata in `part.callProviderMetadata.mcp.app`.',
+        'The AI SDK tool UI part. The renderer looks for MCP App metadata in `part.toolMetadata.mcp.app`.',
     },
     {
       name: 'sandbox',

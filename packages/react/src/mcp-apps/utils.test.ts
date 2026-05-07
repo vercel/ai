@@ -3,14 +3,14 @@ import type { MCPAppRendererProps } from './types';
 import { getMCPAppFromToolPart } from './utils';
 
 describe('getMCPAppFromToolPart', () => {
-  it('extracts normalized app metadata from tool call provider metadata', () => {
+  it('extracts normalized app metadata from tool metadata', () => {
     const part = {
       type: 'dynamic-tool',
       toolName: 'showDashboard',
       toolCallId: 'call-1',
       state: 'input-available',
       input: { topic: 'usage' },
-      callProviderMetadata: {
+      toolMetadata: {
         mcp: {
           clientName: 'local-mcp-apps',
           app: {
@@ -41,7 +41,7 @@ describe('getMCPAppFromToolPart', () => {
       toolCallId: 'call-1',
       state: 'input-available',
       input: {},
-      callProviderMetadata: {
+      toolMetadata: {
         mcp: { clientName: 'local-mcp-apps' },
       },
     } satisfies MCPAppRendererProps['part'];
