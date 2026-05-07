@@ -15,3 +15,7 @@ This example demonstrates using the AI SDK's `WorkflowAgent` with the Workflow D
 1. Install dependencies: `pnpm install`
 2. Start the dev server: `pnpm dev`
 3. Open http://localhost:3000
+
+## Telemetry
+
+Open http://localhost:3000/telemetry to run deterministic WorkflowAgent telemetry scenarios. The harness records stable AI SDK telemetry integration events for lifecycle callbacks, model calls, chunks, tool execution, context filtering, approval resume, error handling, and reconnect behavior.
