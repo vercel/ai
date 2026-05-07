@@ -1,5 +1,13 @@
 # @ai-sdk/google
 
+## 3.0.69
+
+### Patch Changes
+
+- bb377ba: fix(google): omit passing includeServerSideToolInvocations for Vertex tool_config
+- Updated dependencies [f591416]
+  - @ai-sdk/provider-utils@4.0.27
+
 ## 3.0.68
 
 ### Patch Changes

@@ -1,5 +1,14 @@
 # ai
 
+## 6.0.176
+
+### Patch Changes
+
+- f591416: feat(ai): add toolMetadata for tool specific metdata
+- Updated dependencies [f591416]
+  - @ai-sdk/provider-utils@4.0.27
+  - @ai-sdk/gateway@3.0.111
+
 ## 6.0.175
 
 ### Patch Changes

@@ -8,8 +8,8 @@
     "type-check": "tsc --build"
   },
   "dependencies": {
-    "@ai-sdk/openai": "3.0.62",
-    "ai": "6.0.175",
+    "@ai-sdk/openai": "3.0.63",
+    "ai": "6.0.176",
     "dotenv": "16.4.5",
     "express": "5.0.1"
   },

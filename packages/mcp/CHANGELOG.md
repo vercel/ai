@@ -1,5 +1,13 @@
 # @ai-sdk/mcp
 
+## 1.0.41
+
+### Patch Changes
+
+- f591416: feat(ai): add toolMetadata for tool specific metdata
+- Updated dependencies [f591416]
+  - @ai-sdk/provider-utils@4.0.27
+
 ## 1.0.40
 
 ### Patch Changes

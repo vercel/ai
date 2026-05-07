@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 4.0.27
+
+### Patch Changes
+
+- f591416: feat(ai): add toolMetadata for tool specific metdata
+
 ## 4.0.26
 
 ### Patch Changes
