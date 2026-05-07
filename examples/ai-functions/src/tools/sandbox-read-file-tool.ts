@@ -13,7 +13,7 @@ export function sandboxReadFileTool() {
       if (!sandbox) {
         throw new Error('Sandbox is not available');
       }
-      return sandbox.readFile({ path });
+      return (await sandbox.readFile({ path })).content;
     },
   });
 }
