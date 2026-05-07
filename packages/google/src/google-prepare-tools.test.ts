@@ -404,6 +404,52 @@ it('should combine function and provider-defined tools on Gemini 3 models', () =
   expect(result.toolWarnings).toEqual([]);
 });
 
+it('should omit server-side tool invocation flag for Vertex Gemini 3', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'function',
+        name: 'testFunction',
+        description: 'A test function',
+        inputSchema: { type: 'object', properties: {} },
+      },
+      {
+        type: 'provider',
+        id: 'google.google_search',
+        name: 'google_search',
+        args: {},
+      },
+    ],
+    modelId: 'gemini-3-flash-preview',
+    isVertexProvider: true,
+  });
+
+  expect(result).toMatchInlineSnapshot(`
+    {
+      "toolConfig": {
+        "functionCallingConfig": {
+          "mode": "VALIDATED",
+        },
+      },
+      "toolWarnings": [],
+      "tools": [
+        {
+          "googleSearch": {},
+        },
+        {
+          "functionDeclarations": [
+            {
+              "description": "A test function",
+              "name": "testFunction",
+              "parameters": undefined,
+            },
+          ],
+        },
+      ],
+    }
+  `);
+});
+
 it('should combine multiple provider tools with function tools on Gemini 3', () => {
   const result = prepareTools({
     tools: [
