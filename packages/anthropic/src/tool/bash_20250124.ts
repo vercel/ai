@@ -1,10 +1,25 @@
 import {
   createProviderDefinedToolFactory,
   lazySchema,
+  type ProviderDefinedTool,
   type Sandbox,
+  type Tool,
+  type ToolExecuteFunction,
   zodSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+
+type Bash20250124Input = {
+  /**
+   * The bash command to run. Required unless the tool is being restarted.
+   */
+  command: string;
+
+  /**
+   * Specifying true will restart this tool. Otherwise, leave this unspecified.
+   */
+  restart?: boolean;
+};
 
 const bash_20250124InputSchema = lazySchema(() =>
   zodSchema(
@@ -16,26 +31,21 @@ const bash_20250124InputSchema = lazySchema(() =>
 );
 
 export const bash_20250124_internal = createProviderDefinedToolFactory<
-  {
-    /**
-     * The bash command to run. Required unless the tool is being restarted.
-     */
-    command: string;
-
-    /**
-     * Specifying true will restart this tool. Otherwise, leave this unspecified.
-     */
-    restart?: boolean;
-  },
+  Bash20250124Input,
   {}
 >({
   id: 'anthropic.bash_20250124',
   inputSchema: bash_20250124InputSchema,
 });
 
-type Bash20250124Options<OUTPUT> = Parameters<
-  typeof bash_20250124_internal<OUTPUT>
->[0];
+type Bash20250124Options<OUTPUT> = {
+  execute?: ToolExecuteFunction<Bash20250124Input, OUTPUT, {}>;
+  needsApproval?: Tool<Bash20250124Input, OUTPUT, {}>['needsApproval'];
+  toModelOutput?: Tool<Bash20250124Input, OUTPUT, {}>['toModelOutput'];
+  onInputStart?: Tool<Bash20250124Input, OUTPUT, {}>['onInputStart'];
+  onInputDelta?: Tool<Bash20250124Input, OUTPUT, {}>['onInputDelta'];
+  onInputAvailable?: Tool<Bash20250124Input, OUTPUT, {}>['onInputAvailable'];
+};
 
 type Bash20250124OptionsWithNullableExecute<OUTPUT> = Omit<
   Bash20250124Options<OUTPUT>,
@@ -50,20 +60,20 @@ export function bash_20250124(
   options?: Omit<Bash20250124Options<Bash20250124DefaultOutput>, 'execute'> & {
     execute?: undefined;
   },
-): ReturnType<typeof bash_20250124_internal<Bash20250124DefaultOutput>>;
+): ProviderDefinedTool<Bash20250124Input, Bash20250124DefaultOutput, {}>;
 export function bash_20250124<OUTPUT = never>(
   options: Omit<Bash20250124Options<OUTPUT>, 'execute'> & {
     execute: null;
   },
-): ReturnType<typeof bash_20250124_internal<OUTPUT>>;
+): ProviderDefinedTool<Bash20250124Input, OUTPUT, {}>;
 export function bash_20250124<OUTPUT>(
   options: Omit<Bash20250124Options<OUTPUT>, 'execute'> & {
     execute: Bash20250124Options<OUTPUT>['execute'];
   },
-): ReturnType<typeof bash_20250124_internal<OUTPUT>>;
+): ProviderDefinedTool<Bash20250124Input, OUTPUT, {}>;
 export function bash_20250124<OUTPUT>(
   options: Bash20250124OptionsWithNullableExecute<OUTPUT> = {},
-): ReturnType<typeof bash_20250124_internal<OUTPUT>> {
+): ProviderDefinedTool<Bash20250124Input, OUTPUT, {}> {
   const { execute, ...rest } = options;
 
   if (execute === undefined) {
