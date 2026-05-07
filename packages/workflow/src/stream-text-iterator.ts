@@ -110,6 +110,11 @@ export async function* streamTextIterator({
   let stepNumber = 0;
   let lastStep: StepResult<any, any> | undefined;
   let lastStepWasToolCalls = false;
+
+  // TODO(#12164): replace this AI-core telemetry bridge with a
+  // WorkflowAgent-specific typed dispatcher. `streamTextIterator` widens
+  // tools/runtime context and emits Workflow-shaped events that are only
+  // approximately compatible with generateText telemetry event types.
   const telemetryDispatcher = createRestrictedTelemetryDispatcher<
     any,
     any,
