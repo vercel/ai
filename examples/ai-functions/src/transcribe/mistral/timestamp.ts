@@ -13,7 +13,7 @@ async function main() {
     audio: await readFile(path.join(__dirname, '../../../data/galileo.mp3')),
     providerOptions: {
       mistral: {
-        timestamp_granularities: 'segment',
+        timestamp_granularities: ['segment'],
       } satisfies MistralTranscriptionModelOptions,
     },
   });

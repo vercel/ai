@@ -24,7 +24,7 @@ export const mistralTranscriptionModelOptions = lazySchema(() =>
       /**
        * The timestamp granularities to include in the transcription response.
        */
-      timestamp_granularities: z.enum(['segment', 'word']).optional(),
+      timestamp_granularities: z.array(z.enum(['word', 'segment'])).optional(),
 
       /**
        * Whether to identify speakers in the transcription.
