@@ -3999,7 +3999,7 @@ describe('generateText', () => {
               execute: async (args, options) => {
                 expect(args).toStrictEqual({ value: 'value' });
                 expect(options.messages).toStrictEqual([
-                  { role: 'user', content: 'test-input' },
+                  { role: 'user', content: 'new input from prepareStep' },
                 ]);
                 return 'result1';
               },
@@ -4242,7 +4242,7 @@ describe('generateText', () => {
             {
               "messages": [
                 {
-                  "content": "test-input",
+                  "content": "new input from prepareStep",
                   "role": "user",
                 },
                 {
@@ -4500,7 +4500,7 @@ describe('generateText', () => {
                 {
                   "content": [
                     {
-                      "text": "test-input",
+                      "text": "new input from prepareStep",
                       "type": "text",
                     },
                   ],
