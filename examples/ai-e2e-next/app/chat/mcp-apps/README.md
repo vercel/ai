@@ -26,6 +26,8 @@ flowchart LR
   Host -.allowed MCP calls.-> Server
 ```
 
+AI SDK mapping: the Host is the app using `useChat` with `DefaultChatTransport`, plus route handlers that create MCP clients with `createMCPClient`. The server connection is wrapped here by `createLocalMCPAppsClient`.
+
 There are four important actors:
 
 - **MCP server**: owns tools and `ui://` resources.
@@ -131,6 +133,8 @@ flowchart TD
   AppTools --> Bridge
 ```
 
+AI SDK mapping: `createMCPClient` with `mcpAppClientCapabilities` initializes MCP Apps support, then `client.listTools()`, `splitMCPAppTools()`, `client.toolsFromDefinitions()`, and `readMCPAppResource()` cover tool discovery, filtering, and resource loading. `MCPAppRenderer` owns the iframe render and bridge.
+
 The host:
 
 1. Connects to the MCP server.
@@ -173,6 +177,8 @@ sequenceDiagram
   S-->>H: HTML resource + _meta.ui security metadata
 ```
 
+AI SDK mapping: `createLocalMCPAppsClient()` wraps `createMCPClient({ capabilities: mcpAppClientCapabilities })`; discovery then uses `client.listTools()` for raw MCP definitions and `readMCPAppResource()` to validate and normalize the `ui://` HTML resource.
+
 At the end of discovery, the host knows:
 
 - which tools the model can call
@@ -201,6 +207,8 @@ sequenceDiagram
   H-->>A: ui/notifications/tool-result(result)
   H-->>U: assistant message with tool part and rendered app
 ```
+
+AI SDK mapping: the chat route uses `convertToModelMessages()`, `streamText({ tools })`, and `result.toUIMessageStreamResponse()` to produce streamed tool UI parts. The page uses `isToolUIPart()` and `MCPAppRenderer` to recognize app-backed tool parts, load their resource, and render the iframe.
 
 The model does not render the app. It only calls a normal tool. The host sees the tool's MCP Apps metadata and renders the app.
 
@@ -254,6 +262,8 @@ The host responds:
 
 After initialization, the host can send app lifecycle and data notifications.
 
+AI SDK mapping: `MCPAppRenderer` creates the underlying `MCPAppBridge`, which answers `ui/initialize` using the component's `hostInfo`, `hostContext`, and configured `handlers`.
+
 ## Tool Data Notifications
 
 The host sends the original tool input to the iframe:
@@ -293,6 +303,8 @@ When the MCP tool result is available, the host sends:
 
 The app can use `structuredContent` for rendering. The `content` array remains the text fallback for the model/user.
 
+AI SDK mapping: `MCPAppRenderer` reads the tool part's `input` and `output`, then the bridge sends `ui/notifications/tool-input` and `ui/notifications/tool-result` after the app initializes.
+
 ## App-Initiated Tool Call Flow
 
 This is the "bidirectional" part.
@@ -311,6 +323,8 @@ sequenceDiagram
   S-->>H: tool result
   H-->>A: JSON-RPC response with result
 ```
+
+AI SDK mapping: `MCPAppRenderer` forwards iframe `tools/call` requests to `handlers.callTool`. The host route checks app visibility with `splitMCPAppTools(await client.listTools())` and proxies allowed calls with `client.callTool()`.
 
 The iframe does not connect directly to the MCP server. It asks the host. The host decides whether the call is allowed.
 
@@ -385,6 +399,8 @@ flowchart TD
   Bridge <--> Sandbox
 ```
 
+AI SDK mapping: `useChat` provides streamed message parts, `isToolUIPart()` identifies tool parts, and `MCPAppRenderer` combines app detection, resource loading, sandbox iframe creation, and JSON-RPC bridge wiring.
+
 ### Chat Message Renderer
 
 Renders normal text, reasoning, files, and tool parts.
@@ -456,6 +472,8 @@ sequenceDiagram
   H-->>P: initialize result
   P-->>A: forward initialize result
 ```
+
+AI SDK mapping: `MCPAppRenderer` renders the outer iframe from its `sandbox` prop, waits for `ui/notifications/sandbox-proxy-ready`, then posts the `MCPAppResource` HTML, CSP, permissions, and inner sandbox settings through the bridge.
 
 The sandbox proxy exists because app HTML is untrusted. It helps enforce:
 
