@@ -25,7 +25,7 @@ run(async () => {
     const userInput = await terminal.question('You: ');
     messages.push({ role: 'user', content: userInput });
 
-    const { content, response } = await generateText({
+    const { content, responseMessages } = await generateText({
       model: anthropic('claude-3-5-sonnet-latest'),
       tools: {
         web_search: anthropic.tools.webSearch_20250305({
@@ -51,6 +51,6 @@ run(async () => {
     console.log();
     console.log();
 
-    messages.push(...response.messages);
+    messages.push(...responseMessages);
   }
 });

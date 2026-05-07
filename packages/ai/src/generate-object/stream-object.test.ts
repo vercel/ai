@@ -360,7 +360,6 @@ describe('streamObject', () => {
 
         expect(await result.usage).toMatchInlineSnapshot(`
           {
-            "cachedInputTokens": undefined,
             "inputTokenDetails": {
               "cacheReadTokens": undefined,
               "cacheWriteTokens": undefined,
@@ -373,7 +372,6 @@ describe('streamObject', () => {
             },
             "outputTokens": 10,
             "raw": undefined,
-            "reasoningTokens": undefined,
             "totalTokens": 13,
           }
         `);

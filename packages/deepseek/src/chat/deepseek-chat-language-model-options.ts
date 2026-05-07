@@ -15,6 +15,11 @@ export const deepseekLanguageModelChatOptions = z.object({
       type: z.enum(['enabled', 'disabled']).optional(),
     })
     .optional(),
+
+  /**
+   * Controls the thinking strength for DeepSeek V4 reasoning models.
+   */
+  reasoningEffort: z.enum(['high', 'max']).optional(),
 });
 
 export type DeepSeekLanguageModelChatOptions = z.infer<

@@ -35,7 +35,7 @@ run(async () => {
   // send a follow-up that depends on turn 1's context. With `store: false`, the
   // server has no prior state to fall back on — the model must reconstruct the
   // context from the messages we re-send.
-  messages.push(...turn1.response.messages);
+  messages.push(...turn1.responseMessages);
   messages.push({
     role: 'user',
     content: 'What is the most famous landmark in the second one?',

@@ -736,6 +736,93 @@ describe('convertToGoogleInteractionsInput', () => {
     });
   });
 
+  describe('assistant file parts', () => {
+    it('emits an image content block from an assistant inline-data file part (round-trips a generated image)', () => {
+      const prompt: LanguageModelV4Prompt = [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'generate a cat' }],
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'file',
+              mediaType: 'image/png',
+              data: { type: 'data', data: 'base64data' },
+            },
+          ],
+        },
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'now make it red' }],
+        },
+      ];
+
+      const result = convertToGoogleInteractionsInput({ prompt });
+
+      expect(result.warnings).toEqual([]);
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "generate a cat",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "content": [
+              {
+                "data": "base64data",
+                "mime_type": "image/png",
+                "type": "image",
+              },
+            ],
+            "role": "model",
+          },
+          {
+            "content": [
+              {
+                "text": "now make it red",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+        ]
+      `);
+    });
+
+    it('emits an image content block from an assistant url-data file part', () => {
+      const prompt: LanguageModelV4Prompt = [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'file',
+              mediaType: 'image/png',
+              data: {
+                type: 'url',
+                url: new URL('https://example.com/cat.png'),
+              },
+            },
+          ],
+        },
+      ];
+
+      const result = convertToGoogleInteractionsInput({ prompt });
+      const turns = result.input as Array<{ content: Array<unknown> }>;
+      expect(turns[0].content[0]).toEqual({
+        type: 'image',
+        uri: 'https://example.com/cat.png',
+        mime_type: 'image/png',
+      });
+    });
+  });
+
   describe('tool-result messages', () => {
     it('maps a text tool result to a function_result block on a user turn', () => {
       const prompt: LanguageModelV4Prompt = [

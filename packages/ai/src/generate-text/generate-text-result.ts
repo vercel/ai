@@ -12,6 +12,7 @@ import type { GeneratedFile } from './generated-file';
 import type { Output } from './output';
 import type { InferCompleteOutput } from './output-utils';
 import type { ReasoningFileOutput, ReasoningOutput } from './reasoning-output';
+import type { ResponseMessage } from './response-message';
 import type { StepResult } from './step-result';
 import type {
   DynamicToolCall,
@@ -130,6 +131,11 @@ export interface GenerateTextResult<
    * Additional response information.
    */
   readonly response: LanguageModelResponseMetadata;
+
+  /**
+   * The response messages that were generated during the call.
+   */
+  readonly responseMessages: Array<ResponseMessage>;
 
   /**
    * Additional provider-specific metadata. They are passed through

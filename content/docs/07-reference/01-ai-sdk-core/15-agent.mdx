@@ -12,7 +12,7 @@ Implementations of the `Agent` interface—such as `ToolLoopAgent`—fulfill the
 ## Interface Definition
 
 ```ts
-import { ModelMessage } from '@ai-sdk/provider-utils';
+import { ModelMessage, Sandbox } from '@ai-sdk/provider-utils';
 import { ToolSet } from '../generate-text/tool-set';
 import { Output } from '../generate-text/output';
 import { GenerateTextResult } from '../generate-text/generate-text-result';
@@ -65,6 +65,10 @@ export type AgentCallParameters<CALL_OPTIONS, TOOLS extends ToolSet = {}> = ([
      * Can be used alongside abortSignal.
      */
     timeout?: number | { totalMs?: number };
+    /**
+     * Sandbox environment that is passed through to tool execution.
+     */
+    sandbox?: Sandbox;
     /**
      * Callback that is called when the agent operation begins, before any LLM calls.
      */
@@ -162,6 +166,7 @@ Both `generate()` and `stream()` accept an `AgentCallParameters<CALL_OPTIONS, TO
 - `options` (optional): Additional call options when `CALL_OPTIONS` is not `never`
 - `abortSignal` (optional): An `AbortSignal` to cancel the operation
 - `timeout` (optional): A timeout in milliseconds. Can be specified as a number or as an object with a `totalMs` property. The call will be aborted if it takes longer than the specified timeout. Can be used alongside `abortSignal`.
+- `sandbox` (optional): A sandbox environment forwarded to tool execution.
 - `experimental_onStart` (optional): Callback invoked when the agent operation begins, before any LLM calls. Experimental.
 - `experimental_onStepStart` (optional): Callback invoked when a step (LLM call) begins, before the provider is called. Experimental.
 - `onToolExecutionStart` (optional): Callback invoked right before a tool's execute function runs.

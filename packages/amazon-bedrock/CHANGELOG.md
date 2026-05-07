@@ -1,5 +1,15 @@
 # @ai-sdk/amazon-bedrock
 
+## 5.0.0-canary.52
+
+### Patch Changes
+
+- Updated dependencies [2610e84]
+- Updated dependencies [69254e0]
+- Updated dependencies [3015fc3]
+  - @ai-sdk/anthropic@4.0.0-canary.47
+  - @ai-sdk/provider-utils@5.0.0-canary.34
+
 ## 5.0.0-canary.51
 
 ### Patch Changes

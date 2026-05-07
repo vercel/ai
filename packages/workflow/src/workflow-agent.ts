@@ -104,7 +104,6 @@ type WorkflowAgentToolsContextParameter<TTools extends ToolSet> =
   HasRequiredKey<InferToolSetContext<TTools>> extends true
     ? { toolsContext: InferToolSetContext<TTools> }
     : { toolsContext?: never };
-
 export type TelemetryOptions<
   TRuntimeContext extends Context = Context,
   TTools extends ToolSet = ToolSet,

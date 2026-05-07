@@ -2,6 +2,7 @@ import type {
   Arrayable,
   Context,
   ModelMessage,
+  Sandbox,
   ToolSet,
 } from '@ai-sdk/provider-utils';
 import type {
@@ -104,6 +105,11 @@ export type AgentCallParameters<
      * Callback that is called when all steps are finished and the response is complete.
      */
     onFinish?: GenerateTextOnFinishCallback<TOOLS, RUNTIME_CONTEXT>;
+
+    /**
+     * The sandbox environment that is passed through to the tool execution.
+     */
+    sandbox?: Sandbox;
   };
 
 /**

@@ -97,10 +97,10 @@ __PROVIDER_IMPORT__;
 const result = await generateText({
   model: __MODEL__,
   prompt: 'Invent a new holiday and describe its traditions.',
-  onFinish({ text, finishReason, usage, response, steps, totalUsage }) {
+  onFinish({ text, finishReason, usage, responseMessages, steps, totalUsage }) {
     // your own logic, e.g. for saving the chat history or recording usage
 
-    const messages = response.messages; // messages that were generated
+    const messages = responseMessages; // messages that were generated
   },
 });
 ```
@@ -305,10 +305,10 @@ __PROVIDER_IMPORT__;
 const result = streamText({
   model: __MODEL__,
   prompt: 'Invent a new holiday and describe its traditions.',
-  onFinish({ text, finishReason, usage, response, steps, totalUsage }) {
+  onFinish({ text, finishReason, usage, responseMessages, steps, totalUsage }) {
     // your own logic, e.g. for saving the chat history or recording usage
 
-    const messages = response.messages; // messages that were generated
+    const messages = responseMessages; // messages that were generated
   },
 });
 ```
