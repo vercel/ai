@@ -42,10 +42,8 @@ function getCachePoint(
 }
 
 function pushCachePoint(
-  content:
-    | AmazonBedrockUserMessage['content']
-    | AmazonBedrockAssistantMessage['content'],
-  providerMetadata: SharedV4ProviderMetadata | undefined,
+  content: BedrockUserMessage['content'] | BedrockAssistantMessage['content'],
+  providerMetadata: SharedV3ProviderMetadata | undefined,
 ) {
   const cachePoint = getCachePoint(providerMetadata);
   if (cachePoint) {
@@ -169,7 +167,7 @@ export async function convertToBedrockChatMessages(
                   }
                 }
 
-                pushCachePoint(amazonBedrockContent, part.providerOptions);
+                pushCachePoint(bedrockContent, part.providerOptions);
               }
 
               break;
@@ -238,7 +236,7 @@ export async function convertToBedrockChatMessages(
                     content: toolResultContent,
                   },
                 });
-                pushCachePoint(amazonBedrockContent, part.providerOptions);
+                pushCachePoint(bedrockContent, part.providerOptions);
               }
 
               break;
@@ -249,14 +247,7 @@ export async function convertToBedrockChatMessages(
             }
           }
 
-<<<<<<< HEAD:packages/amazon-bedrock/src/convert-to-bedrock-chat-messages.ts
-          const cachePoint = getCachePoint(providerOptions);
-          if (cachePoint) {
-            bedrockContent.push(cachePoint);
-          }
-=======
-          pushCachePoint(amazonBedrockContent, providerOptions);
->>>>>>> 9c78e5deb (fix(bedrock): part-level cache points (#14809)):packages/amazon-bedrock/src/convert-to-amazon-bedrock-chat-messages.ts
+          pushCachePoint(bedrockContent, providerOptions);
         }
 
         messages.push({ role: 'user', content: bedrockContent });
@@ -372,16 +363,9 @@ export async function convertToBedrockChatMessages(
               }
             }
 
-            pushCachePoint(amazonBedrockContent, part.providerOptions);
+            pushCachePoint(bedrockContent, part.providerOptions);
           }
-<<<<<<< HEAD:packages/amazon-bedrock/src/convert-to-bedrock-chat-messages.ts
-          const cachePoint = getCachePoint(message.providerOptions);
-          if (cachePoint) {
-            bedrockContent.push(cachePoint);
-          }
-=======
-          pushCachePoint(amazonBedrockContent, message.providerOptions);
->>>>>>> 9c78e5deb (fix(bedrock): part-level cache points (#14809)):packages/amazon-bedrock/src/convert-to-amazon-bedrock-chat-messages.ts
+          pushCachePoint(bedrockContent, message.providerOptions);
         }
 
         messages.push({ role: 'assistant', content: bedrockContent });

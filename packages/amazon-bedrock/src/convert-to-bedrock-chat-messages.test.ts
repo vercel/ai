@@ -396,33 +396,9 @@ describe('user messages', () => {
       system: [],
     });
   });
-<<<<<<< HEAD:packages/amazon-bedrock/src/convert-to-bedrock-chat-messages.test.ts
-=======
-
-  it('should throw for file parts with provider references', async () => {
-    await expect(
-      convertToAmazonBedrockChatMessages([
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'file',
-              data: {
-                type: 'reference' as const,
-                reference: { bedrock: 'file-ref-123' },
-              },
-              mediaType: 'image/png',
-            },
-          ],
-        },
-      ]),
-    ).rejects.toThrow(
-      "'file parts with provider references' functionality not supported",
-    );
-  });
 
   it('should add cache point to user content part when specified', async () => {
-    const result = await convertToAmazonBedrockChatMessages([
+    const result = await convertToBedrockChatMessages([
       {
         role: 'user',
         content: [
@@ -454,7 +430,6 @@ describe('user messages', () => {
       system: [],
     });
   });
->>>>>>> 9c78e5deb (fix(bedrock): part-level cache points (#14809)):packages/amazon-bedrock/src/convert-to-amazon-bedrock-chat-messages.test.ts
 });
 
 describe('assistant messages', () => {
@@ -641,7 +616,7 @@ describe('assistant messages', () => {
   });
 
   it('should add cache point to assistant content part when specified', async () => {
-    const result = await convertToAmazonBedrockChatMessages([
+    const result = await convertToBedrockChatMessages([
       {
         role: 'assistant',
         content: [
