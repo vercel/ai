@@ -14,6 +14,7 @@ export type McpProviderMetadata = {
   clientName?: string;
   title?: string;
   toolName?: string;
+  app?: JSONObject;
 };
 
 /** MCP tool metadata - keys should follow MCP _meta key format specification */
