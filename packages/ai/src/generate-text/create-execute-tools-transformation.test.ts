@@ -101,7 +101,6 @@ describe('createExecuteToolsTransformation', () => {
             "rawFinishReason": "stop",
             "type": "model-call-end",
             "usage": {
-              "cachedInputTokens": undefined,
               "inputTokenDetails": {
                 "cacheReadTokens": undefined,
                 "cacheWriteTokens": undefined,
@@ -114,7 +113,6 @@ describe('createExecuteToolsTransformation', () => {
               },
               "outputTokens": 10,
               "raw": undefined,
-              "reasoningTokens": undefined,
               "totalTokens": 13,
             },
           },
@@ -181,7 +179,6 @@ describe('createExecuteToolsTransformation', () => {
           "rawFinishReason": "stop",
           "type": "model-call-end",
           "usage": {
-            "cachedInputTokens": undefined,
             "inputTokenDetails": {
               "cacheReadTokens": undefined,
               "cacheWriteTokens": undefined,
@@ -194,7 +191,6 @@ describe('createExecuteToolsTransformation', () => {
             },
             "outputTokens": 10,
             "raw": undefined,
-            "reasoningTokens": undefined,
             "totalTokens": 13,
           },
         },
@@ -400,7 +396,6 @@ describe('createExecuteToolsTransformation', () => {
             "rawFinishReason": "stop",
             "type": "model-call-end",
             "usage": {
-              "cachedInputTokens": undefined,
               "inputTokenDetails": {
                 "cacheReadTokens": undefined,
                 "cacheWriteTokens": undefined,
@@ -413,7 +408,6 @@ describe('createExecuteToolsTransformation', () => {
               },
               "outputTokens": 10,
               "raw": undefined,
-              "reasoningTokens": undefined,
               "totalTokens": 13,
             },
           },
@@ -520,7 +514,6 @@ describe('createExecuteToolsTransformation', () => {
             "rawFinishReason": "stop",
             "type": "model-call-end",
             "usage": {
-              "cachedInputTokens": undefined,
               "inputTokenDetails": {
                 "cacheReadTokens": undefined,
                 "cacheWriteTokens": undefined,
@@ -533,7 +526,6 @@ describe('createExecuteToolsTransformation', () => {
               },
               "outputTokens": 10,
               "raw": undefined,
-              "reasoningTokens": undefined,
               "totalTokens": 13,
             },
           },
@@ -1186,7 +1178,6 @@ describe('createExecuteToolsTransformation', () => {
             "rawFinishReason": "stop",
             "type": "model-call-end",
             "usage": {
-              "cachedInputTokens": undefined,
               "inputTokenDetails": {
                 "cacheReadTokens": undefined,
                 "cacheWriteTokens": undefined,
@@ -1199,7 +1190,6 @@ describe('createExecuteToolsTransformation', () => {
               },
               "outputTokens": 10,
               "raw": undefined,
-              "reasoningTokens": undefined,
               "totalTokens": 13,
             },
           },
@@ -1272,7 +1262,6 @@ describe('createExecuteToolsTransformation', () => {
             "rawFinishReason": "stop",
             "type": "model-call-end",
             "usage": {
-              "cachedInputTokens": undefined,
               "inputTokenDetails": {
                 "cacheReadTokens": undefined,
                 "cacheWriteTokens": undefined,
@@ -1285,7 +1274,6 @@ describe('createExecuteToolsTransformation', () => {
               },
               "outputTokens": 10,
               "raw": undefined,
-              "reasoningTokens": undefined,
               "totalTokens": 13,
             },
           },

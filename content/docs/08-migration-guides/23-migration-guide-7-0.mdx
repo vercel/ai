@@ -114,6 +114,32 @@ const result = await generateText({
 
 This applies to AI SDK functions that accept `prompt` or `messages`, including `generateText`, `streamText`, `generateObject`, `streamObject`, and `streamUI`.
 
+### `cachedInputTokens` and `reasoningTokens` Removed from `LanguageModelUsage`
+
+The deprecated top-level `cachedInputTokens` and `reasoningTokens` fields have been removed from `LanguageModelUsage`.
+
+Use `inputTokenDetails.cacheReadTokens` and `outputTokenDetails.reasoningTokens` instead:
+
+```tsx filename="AI SDK 6"
+const result = await generateText({
+  model: yourModel,
+  prompt: 'Hello!',
+});
+
+console.log(result.usage.cachedInputTokens);
+console.log(result.usage.reasoningTokens);
+```
+
+```tsx filename="AI SDK 7"
+const result = await generateText({
+  model: yourModel,
+  prompt: 'Hello!',
+});
+
+console.log(result.usage.inputTokenDetails.cacheReadTokens);
+console.log(result.usage.outputTokenDetails.reasoningTokens);
+```
+
 ### Telemetry: OpenTelemetry Moved to `@ai-sdk/otel` — Explicit Registration Required
 
 OpenTelemetry span collection is no longer built into the `ai` package. To continue receiving OpenTelemetry traces, you must install the new `@ai-sdk/otel` package and register the `OpenTelemetry` instance globally.
