@@ -396,6 +396,65 @@ describe('user messages', () => {
       system: [],
     });
   });
+<<<<<<< HEAD:packages/amazon-bedrock/src/convert-to-bedrock-chat-messages.test.ts
+=======
+
+  it('should throw for file parts with provider references', async () => {
+    await expect(
+      convertToAmazonBedrockChatMessages([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: {
+                type: 'reference' as const,
+                reference: { bedrock: 'file-ref-123' },
+              },
+              mediaType: 'image/png',
+            },
+          ],
+        },
+      ]),
+    ).rejects.toThrow(
+      "'file parts with provider references' functionality not supported",
+    );
+  });
+
+  it('should add cache point to user content part when specified', async () => {
+    const result = await convertToAmazonBedrockChatMessages([
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Hello' },
+          {
+            type: 'text',
+            text: 'cached',
+            providerOptions: {
+              bedrock: { cachePoint: { type: 'default', ttl: '5m' } },
+            },
+          },
+          { type: 'text', text: 'World' },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual({
+      messages: [
+        {
+          role: 'user',
+          content: [
+            { text: 'Hello' },
+            { text: 'cached' },
+            { cachePoint: { type: 'default', ttl: '5m' } },
+            { text: 'World' },
+          ],
+        },
+      ],
+      system: [],
+    });
+  });
+>>>>>>> 9c78e5deb (fix(bedrock): part-level cache points (#14809)):packages/amazon-bedrock/src/convert-to-amazon-bedrock-chat-messages.test.ts
 });
 
 describe('assistant messages', () => {
@@ -574,6 +633,40 @@ describe('assistant messages', () => {
           content: [
             { text: 'Hello' },
             { cachePoint: { type: 'default', ttl: '1h' } },
+          ],
+        },
+      ],
+      system: [],
+    });
+  });
+
+  it('should add cache point to assistant content part when specified', async () => {
+    const result = await convertToAmazonBedrockChatMessages([
+      {
+        role: 'assistant',
+        content: [
+          { type: 'text', text: 'Hello' },
+          {
+            type: 'text',
+            text: 'cached',
+            providerOptions: {
+              bedrock: { cachePoint: { type: 'default', ttl: '1h' } },
+            },
+          },
+          { type: 'text', text: 'World' },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual({
+      messages: [
+        {
+          role: 'assistant',
+          content: [
+            { text: 'Hello' },
+            { text: 'cached' },
+            { cachePoint: { type: 'default', ttl: '1h' } },
+            { text: 'World' },
           ],
         },
       ],
