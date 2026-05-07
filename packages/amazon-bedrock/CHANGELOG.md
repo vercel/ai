@@ -1,5 +1,11 @@
 # @ai-sdk/amazon-bedrock
 
+## 5.0.0-canary.54
+
+### Patch Changes
+
+- 9c78e5d: fix (provider/amazon-bedrock): preserve cache points on message content parts
+
 ## 5.0.0-canary.53
 
 ### Patch Changes
