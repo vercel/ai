@@ -1,5 +1,63 @@
 # @ai-sdk/workflow
 
+## 1.0.0-canary.41
+
+### Patch Changes
+
+- 1d56275: feat(workflow): add `runtimeContext` and `toolsContext` to `WorkflowAgent`.
+
+  `runtimeContext` is shared agent state that flows through `prepareCall`, `prepareStep`, step results, and `onFinish`. `toolsContext` is a per-tool map; each tool receives its own validated entry as `context`, validated against `tool.contextSchema` when defined. The previous `experimental_context` option (and corresponding fields on related callbacks and option types) has been removed — use `runtimeContext` for shared state and `toolsContext` for per-tool values. Context values in `WorkflowAgent` should be serializable because they can cross workflow and step boundaries.
+
+## 1.0.0-canary.40
+
+### Patch Changes
+
+- Updated dependencies [fd4f578]
+- Updated dependencies [31f69de]
+- Updated dependencies [7c71ac6]
+- Updated dependencies [c0c8ca2]
+- Updated dependencies [5faf71c]
+- Updated dependencies [69254e0]
+- Updated dependencies [3015fc3]
+- Updated dependencies [eee1166]
+- Updated dependencies [7dbf992]
+  - ai@7.0.0-canary.125
+  - @ai-sdk/provider-utils@5.0.0-canary.34
+
+## 1.0.0-canary.39
+
+### Patch Changes
+
+- Updated dependencies [69aeb0e]
+- Updated dependencies [48e92f3]
+  - ai@7.0.0-canary.124
+
+## 1.0.0-canary.38
+
+### Patch Changes
+
+- Updated dependencies [7392266]
+- Updated dependencies [4bb4dbc]
+  - ai@7.0.0-canary.123
+
+## 1.0.0-canary.37
+
+### Patch Changes
+
+- Updated dependencies [79b2468]
+- Updated dependencies [c22750c]
+  - ai@7.0.0-canary.122
+
+## 1.0.0-canary.36
+
+### Patch Changes
+
+- Updated dependencies [2427d88]
+- Updated dependencies [5588abd]
+- Updated dependencies [6dd6b83]
+  - @ai-sdk/provider-utils@5.0.0-canary.33
+  - ai@7.0.0-canary.121
+
 ## 1.0.0-canary.35
 
 ### Patch Changes

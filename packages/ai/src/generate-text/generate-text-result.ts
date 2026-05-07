@@ -1,8 +1,11 @@
 import type { Context, ToolSet } from '@ai-sdk/provider-utils';
-import type { CallWarning, FinishReason, ProviderMetadata } from '../types';
+import type {
+  CallWarning,
+  FinishReason,
+  LanguageModelResponseMetadata,
+  ProviderMetadata,
+} from '../types';
 import type { Source } from '../types/language-model';
-import type { LanguageModelRequestMetadata } from '../types/language-model-request-metadata';
-import type { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
 import type { LanguageModelUsage } from '../types/usage';
 import type { ContentPart } from './content-part';
 import type { GeneratedFile } from './generated-file';
@@ -122,27 +125,17 @@ export interface GenerateTextResult<
   /**
    * Additional request information.
    */
-  readonly request: LanguageModelRequestMetadata;
+  readonly request: StepResult<TOOLS, RUNTIME_CONTEXT>['request'];
 
   /**
    * Additional response information.
    */
-  readonly response: LanguageModelResponseMetadata & {
-    /**
-     * The response messages that were generated during the call. It consists of an assistant message,
-     * potentially containing tool calls.
-     *
-     * When there are tool results, there is an additional tool message with the tool results that are available.
-     * If there are tools that do not have execute functions, they are not included in the tool results and
-     * need to be added separately.
-     */
-    messages: Array<ResponseMessage>;
+  readonly response: LanguageModelResponseMetadata;
 
-    /**
-     * Response body (available only for providers that use HTTP requests).
-     */
-    body?: unknown;
-  };
+  /**
+   * The response messages that were generated during the call.
+   */
+  readonly responseMessages: Array<ResponseMessage>;
 
   /**
    * Additional provider-specific metadata. They are passed through

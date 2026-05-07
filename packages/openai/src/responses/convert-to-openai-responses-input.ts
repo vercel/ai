@@ -769,6 +769,9 @@ export async function convertToOpenAIResponsesInput({
                         return { type: 'input_text' as const, text: item.text };
                       case 'file': {
                         const topLevel = getTopLevelMediaType(item.mediaType);
+                        const imageDetail =
+                          item.providerOptions?.[providerOptionsName]
+                            ?.imageDetail;
 
                         if (item.data.type === 'data') {
                           const fullMediaType = resolveFullMediaType({
@@ -778,6 +781,7 @@ export async function convertToOpenAIResponsesInput({
                             return {
                               type: 'input_image' as const,
                               image_url: `data:${fullMediaType};base64,${convertToBase64(item.data.data)}`,
+                              detail: imageDetail,
                             };
                           }
                           return {
@@ -792,6 +796,7 @@ export async function convertToOpenAIResponsesInput({
                             return {
                               type: 'input_image' as const,
                               image_url: item.data.url.toString(),
+                              detail: imageDetail,
                             };
                           }
                           return {
@@ -850,6 +855,9 @@ export async function convertToOpenAIResponsesInput({
 
                     case 'file': {
                       const topLevel = getTopLevelMediaType(item.mediaType);
+                      const imageDetail =
+                        item.providerOptions?.[providerOptionsName]
+                          ?.imageDetail;
 
                       if (item.data.type === 'data') {
                         const fullMediaType = resolveFullMediaType({
@@ -859,6 +867,7 @@ export async function convertToOpenAIResponsesInput({
                           return {
                             type: 'input_image' as const,
                             image_url: `data:${fullMediaType};base64,${convertToBase64(item.data.data)}`,
+                            detail: imageDetail,
                           };
                         }
                         return {
@@ -873,6 +882,7 @@ export async function convertToOpenAIResponsesInput({
                           return {
                             type: 'input_image' as const,
                             image_url: item.data.url.toString(),
+                            detail: imageDetail,
                           };
                         }
                         return {

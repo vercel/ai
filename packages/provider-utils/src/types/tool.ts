@@ -1,10 +1,9 @@
-import type { JSONValue, SharedV4ProviderMetadata } from '@ai-sdk/provider';
+import type { JSONValue, JSONObject } from '@ai-sdk/provider';
 import type { FlexibleSchema } from '../schema';
 import type { ToolResultOutput } from './content-part';
 import type { Context } from './context';
 import type { NeverOptional } from './never-optional';
 import type { ProviderOptions } from './provider-options';
-import type { SensitiveContext } from './sensitive-context';
 import type {
   ToolExecuteFunction,
   ToolExecutionOptions,
@@ -74,11 +73,11 @@ type BaseTool<
    *
    * Unlike `providerOptions`, this metadata is not sent to the language
    * model. Instead, it is propagated onto the resulting tool call's
-   * `providerMetadata` so consumers can read it from tool call / result
-   * parts and UI message parts. This is useful for sources of dynamic
-   * tools (e.g. an MCP server) to identify themselves.
+   * `toolMetadata` so consumers can read it from tool call / result parts
+   * and UI message parts. This is useful for sources of dynamic tools (e.g.
+   * an MCP server) to identify themselves.
    */
-  providerMetadata?: SharedV4ProviderMetadata;
+  metadata?: JSONObject;
 
   /**
    * The schema of the input that the tool expects.
@@ -95,12 +94,6 @@ type BaseTool<
    * The context is passed to execute function as part of the execution options.
    */
   contextSchema?: FlexibleSchema<CONTEXT>;
-
-  /**
-   * Marks top-level context properties that contain sensitive data and should be excluded from telemetry.
-   * Properties marked as `true` are omitted from telemetry integrations.
-   */
-  sensitiveContext?: SensitiveContext<CONTEXT>;
 
   /**
    * Whether the tool needs approval before it can be executed.

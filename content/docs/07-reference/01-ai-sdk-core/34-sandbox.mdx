@@ -1,0 +1,97 @@
+---
+title: Sandbox
+description: API Reference for the Sandbox interface.
+---
+
+# `Sandbox`
+
+The `Sandbox` interface describes an execution environment that tools can use to
+run commands. Pass a sandbox to `generateText`, `streamText`,
+`ToolLoopAgent.generate`, `ToolLoopAgent.stream`, or agent UI stream helpers to
+make it available to tool execution.
+
+Passing a sandbox does not sandbox the tool itself. Tool code still runs in your
+application process unless the tool explicitly delegates work to the sandbox.
+
+## Import
+
+<Snippet text={`import type { Sandbox } from "ai"`} prompt={false} />
+
+## Type Definition
+
+```ts
+type Sandbox = {
+  readonly description: string;
+  readonly executeCommand: (options: {
+    command: string;
+  }) => PromiseLike<{
+    exitCode: number;
+    stdout: string;
+    stderr: string;
+  }>;
+};
+```
+
+## Properties
+
+<PropertiesTable
+  content={[
+    {
+      name: 'description',
+      type: 'string',
+      description:
+        "Description of the sandbox environment. Include this in your prompt or instructions when the model needs to know details such as the root directory, exposed ports, public hostname, or other environment constraints. The AI SDK does not add it to the prompt automatically.",
+    },
+    {
+      name: 'executeCommand',
+      type: '(options: { command: string }) => PromiseLike<{ exitCode: number; stdout: string; stderr: string }>',
+      description:
+        'Executes a command in the sandbox and resolves with the command exit code, standard output, and standard error.',
+      properties: [
+        {
+          type: 'options',
+          parameters: [
+            {
+              name: 'command',
+              type: 'string',
+              description: 'The command to execute in the sandbox.',
+            },
+          ],
+        },
+      ],
+    },
+  ]}
+/>
+
+## Example
+
+```ts
+const result = await generateText({
+  model: __MODEL__,
+  tools: { shell },
+  sandbox,
+  prompt: 'Run the test suite.',
+});
+```
+
+Inside a tool, read the sandbox from the second `execute` argument:
+
+```ts
+const shell = tool({
+  inputSchema: z.object({ command: z.string() }),
+  execute: async ({ command }, { sandbox }) => {
+    if (!sandbox) {
+      throw new Error('Sandbox is not available');
+    }
+
+    return sandbox.executeCommand({ command });
+  },
+});
+```
+
+## See Also
+
+- [Tool Calling: Sandbox](/docs/ai-sdk-core/tools-and-tool-calling#sandbox)
+- [`generateText`](/docs/reference/ai-sdk-core/generate-text)
+- [`streamText`](/docs/reference/ai-sdk-core/stream-text)
+- [`ToolLoopAgent`](/docs/reference/ai-sdk-core/tool-loop-agent)

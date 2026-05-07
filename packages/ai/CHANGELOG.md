@@ -1,5 +1,58 @@
 # ai
 
+## 7.0.0-canary.125
+
+### Major Changes
+
+- 31f69de: fix(ai): carry prepareStep message overrides forward across steps
+- 7c71ac6: fix(ai): limit response messages in StepResult to messages created in that step
+
+### Patch Changes
+
+- fd4f578: fix(ai): exclude request and response bodies from text generation results by default to reduce memory usage.
+- c0c8ca2: fix(ai): remove deprecated LanguageModelUsage properties
+- 5faf71c: feat: introduce responseMessages on GenerateTextResult and StreamTextResult
+- 69254e0: feat(ai): add toolMetadata for tool specific metdata
+- 3015fc3: feat: sandbox shell execution abstraction
+- eee1166: feat(ai): expose initial and response messages in prepareStep
+- 7dbf992: feat(ai): allow prepareStep to override sandbox per step
+- Updated dependencies [69254e0]
+- Updated dependencies [3015fc3]
+  - @ai-sdk/provider-utils@5.0.0-canary.34
+  - @ai-sdk/gateway@4.0.0-canary.72
+
+## 7.0.0-canary.124
+
+### Patch Changes
+
+- 69aeb0e: feat: add deprecated tool call lifecycle callback aliases for AI SDK 6 compatibility.
+- 48e92f3: feat: make include stable
+
+## 7.0.0-canary.123
+
+### Patch Changes
+
+- 7392266: feat: move includeRawChunks to include.rawChunks
+- 4bb4dbc: feat: introduce include.requestMessage option for step request message storage opt-in
+
+## 7.0.0-canary.122
+
+### Patch Changes
+
+- 79b2468: feat: add request.messages to StepResult
+- c22750c: fix(ai): move onToolExecutionStart and onToolExecutionEnd to stable
+
+## 7.0.0-canary.121
+
+### Patch Changes
+
+- 2427d88: feat(ai): change Tool.sensitiveContext to telemetry.includeToolsContext and make it opt-in
+- 5588abd: feat(ai): add experimental_refineToolInput option to ToolLoopAgent, generateText, streamText
+- 6dd6b83: feat(ai): change sensitiveRuntimeContext to telemetry.includeRuntimeContext and make it opt-in
+- Updated dependencies [2427d88]
+  - @ai-sdk/provider-utils@5.0.0-canary.33
+  - @ai-sdk/gateway@4.0.0-canary.71
+
 ## 7.0.0-canary.120
 
 ### Major Changes

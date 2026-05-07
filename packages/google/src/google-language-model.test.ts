@@ -739,6 +739,52 @@ describe('doGenerate', () => {
     });
   });
 
+  describe('no-args tool call (unary)', () => {
+    it('should extract a no-args tool call with thoughtSignature as input "{}"', async () => {
+      server.urls[TEST_URL_GEMINI_PRO].response = {
+        type: 'json-value',
+        body: {
+          candidates: [
+            {
+              content: {
+                role: 'model',
+                parts: [
+                  {
+                    functionCall: { name: 'read_theme' },
+                    thoughtSignature: 'sig-no-args-unary',
+                  },
+                ],
+              },
+              finishReason: 'STOP',
+              index: 0,
+              safetyRatings: SAFETY_RATINGS,
+            },
+          ],
+          usageMetadata: {
+            promptTokenCount: 1,
+            candidatesTokenCount: 2,
+            totalTokenCount: 3,
+          },
+        },
+      };
+
+      const result = await model.doGenerate({ prompt: TEST_PROMPT });
+
+      const toolCalls = result.content.filter(c => c.type === 'tool-call');
+      expect(toolCalls).toEqual([
+        {
+          type: 'tool-call',
+          toolCallId: 'test-id',
+          toolName: 'read_theme',
+          input: '{}',
+          providerMetadata: {
+            google: { thoughtSignature: 'sig-no-args-unary' },
+          },
+        },
+      ]);
+    });
+  });
+
   it('should expose the raw response headers', async () => {
     prepareJsonFixtureResponse('google-text', {
       headers: { 'test-header': 'test-value' },
@@ -4066,6 +4112,104 @@ describe('doStream', () => {
       });
 
       expect(await convertReadableStreamToArray(stream)).toMatchSnapshot();
+    });
+  });
+
+  describe('streaming-no-args-tool-call', () => {
+    beforeEach(() => {
+      prepareChunksFixtureResponse('google-stream-no-args-tool-call');
+    });
+
+    it('should emit no-args function calls and preserve thoughtSignature alongside streamed-args calls', async () => {
+      const vertexModel = new GoogleLanguageModel('gemini-pro', {
+        provider: 'google.vertex.chat',
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+        headers: { 'x-goog-api-key': 'test-api-key' },
+        generateId: () => 'test-id',
+      });
+
+      const { stream } = await vertexModel.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+        tools: [
+          {
+            type: 'function',
+            name: 'read_theme',
+            inputSchema: {
+              type: 'object',
+              properties: {},
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+          {
+            type: 'function',
+            name: 'read_screen',
+            inputSchema: {
+              type: 'object',
+              properties: { id: { type: 'string' } },
+              required: ['id'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        ],
+        providerOptions: {
+          vertex: {
+            streamFunctionCallArguments: true,
+          },
+        },
+      });
+
+      const events = await convertReadableStreamToArray(stream);
+
+      // The fixture is a real Vertex recording where the model picked the
+      // no-args `read_theme` first (carrying the response's only
+      // thoughtSignature), then streamed three parallel `read_screen` calls
+      // for A, B, C. Pre-fix the read_theme call and its signature were
+      // dropped entirely.
+      const toolCalls = events.filter(e => e.type === 'tool-call');
+      expect(
+        toolCalls.map(c => ({ toolName: c.toolName, input: c.input })),
+      ).toEqual([
+        { toolName: 'read_theme', input: '{}' },
+        { toolName: 'read_screen', input: '{"id":"A"}' },
+        { toolName: 'read_screen', input: '{"id":"B"}' },
+        { toolName: 'read_screen', input: '{"id":"C"}' },
+      ]);
+
+      const readThemeCall = toolCalls.find(c => c.toolName === 'read_theme')!;
+      const signature =
+        readThemeCall.providerMetadata?.vertex?.thoughtSignature;
+      expect(typeof signature).toBe('string');
+      expect((signature as string).length).toBeGreaterThan(100);
+      expect(
+        readThemeCall.providerMetadata?.googleVertex?.thoughtSignature,
+      ).toBe(signature);
+
+      // The no-args call must emit start/end framing too, so the signature
+      // is exposed at every stage downstream consumers might inspect.
+      const toolInputStarts = events.filter(e => e.type === 'tool-input-start');
+      const noArgsStart = toolInputStarts.find(
+        e => e.toolName === 'read_theme',
+      );
+      expect(noArgsStart?.providerMetadata?.vertex?.thoughtSignature).toBe(
+        signature,
+      );
+
+      const toolInputEnds = events.filter(e => e.type === 'tool-input-end');
+      const noArgsEnd = toolInputEnds.find(
+        e => e.providerMetadata?.vertex?.thoughtSignature === signature,
+      );
+      expect(noArgsEnd).toBeDefined();
+
+      // The no-args branch must not emit any tool-input-delta events.
+      const deltas = events.filter(e => e.type === 'tool-input-delta');
+      expect(
+        deltas.every(
+          e => e.providerMetadata?.vertex?.thoughtSignature !== signature,
+        ),
+      ).toBe(true);
     });
   });
 

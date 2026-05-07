@@ -227,8 +227,6 @@ function makeLanguageModelCallEndEvent(overrides?: Record<string, unknown>) {
       inputTokens: 10,
       outputTokens: 20,
       totalTokens: 30,
-      reasoningTokens: undefined,
-      cachedInputTokens: undefined,
       inputTokenDetails: {
         noCacheTokens: undefined,
         cacheReadTokens: undefined,
@@ -268,8 +266,6 @@ function makeStepFinishEvent(overrides?: Record<string, unknown>) {
       inputTokens: 10,
       outputTokens: 20,
       totalTokens: 30,
-      reasoningTokens: undefined,
-      cachedInputTokens: undefined,
       inputTokenDetails: {
         noCacheTokens: undefined,
         cacheReadTokens: undefined,
@@ -281,7 +277,7 @@ function makeStepFinishEvent(overrides?: Record<string, unknown>) {
       },
     },
     warnings: undefined,
-    request: { body: undefined },
+    request: { body: undefined, messages: [] },
     response: {
       id: 'resp-1',
       modelId: 'gpt-4-0613',
@@ -299,13 +295,12 @@ function makeStepFinishEvent(overrides?: Record<string, unknown>) {
 function makeFinishEvent(overrides?: Record<string, unknown>) {
   return {
     ...makeStepFinishEvent(),
+    responseMessages: [],
     steps: [],
     totalUsage: {
       inputTokens: 10,
       outputTokens: 20,
       totalTokens: 30,
-      reasoningTokens: undefined,
-      cachedInputTokens: undefined,
       inputTokenDetails: {
         noCacheTokens: undefined,
         cacheReadTokens: undefined,
@@ -669,8 +664,6 @@ describe('OpenTelemetry', () => {
             inputTokens: 100,
             outputTokens: 50,
             totalTokens: 150,
-            reasoningTokens: 10,
-            cachedInputTokens: 30,
             inputTokenDetails: {
               noCacheTokens: 70,
               cacheReadTokens: 20,
@@ -689,8 +682,6 @@ describe('OpenTelemetry', () => {
             inputTokens: 100,
             outputTokens: 50,
             totalTokens: 150,
-            reasoningTokens: 10,
-            cachedInputTokens: 30,
             inputTokenDetails: {
               noCacheTokens: 70,
               cacheReadTokens: 20,
@@ -1115,8 +1106,6 @@ describe('OpenTelemetry', () => {
         inputTokens: 10,
         outputTokens: 20,
         totalTokens: 30,
-        reasoningTokens: 5,
-        cachedInputTokens: 2,
         inputTokenDetails: {
           noCacheTokens: 7,
           cacheReadTokens: 2,

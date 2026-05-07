@@ -1,0 +1,30 @@
+{
+  "id": "v1_ChdLTjM0YWRHQkVKbXNtdGtQOUlQUXNBUhIXS04zNGFkR0JFSm1zbXRrUDlJUFFzQVI",
+  "status": "completed",
+  "outputs": [
+    {
+      "text": "{\"name\":\"Alice Smith\",\"age\":30}",
+      "type": "text"
+    }
+  ],
+  "usage": {
+    "total_tokens": 42,
+    "total_input_tokens": 15,
+    "input_tokens_by_modality": [
+      {
+        "modality": "text",
+        "tokens": 15
+      }
+    ],
+    "total_cached_tokens": 0,
+    "total_output_tokens": 27,
+    "total_tool_use_tokens": 0,
+    "total_thought_tokens": 0
+  },
+  "role": "model",
+  "created": "2026-05-04T17:55:00Z",
+  "updated": "2026-05-04T17:55:00Z",
+  "service_tier": "standard",
+  "object": "interaction",
+  "model": "gemini-2.5-flash"
+}

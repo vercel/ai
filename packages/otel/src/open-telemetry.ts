@@ -470,7 +470,8 @@ export class OpenTelemetry implements Telemetry {
         'gen_ai.response.model': event.response.modelId,
         'gen_ai.usage.input_tokens': event.usage.inputTokens,
         'gen_ai.usage.output_tokens': event.usage.outputTokens,
-        'gen_ai.usage.cache_read.input_tokens': event.usage.cachedInputTokens,
+        'gen_ai.usage.cache_read.input_tokens':
+          event.usage.inputTokenDetails?.cacheReadTokens,
         'gen_ai.output.messages': {
           output: () => {
             try {
@@ -696,8 +697,7 @@ export class OpenTelemetry implements Telemetry {
         'gen_ai.usage.input_tokens': event.usage.inputTokens,
         'gen_ai.usage.output_tokens': event.usage.outputTokens,
         'gen_ai.usage.cache_read.input_tokens':
-          event.usage.inputTokenDetails?.cacheReadTokens ??
-          event.usage.cachedInputTokens,
+          event.usage.inputTokenDetails?.cacheReadTokens,
         'gen_ai.usage.cache_creation.input_tokens':
           event.usage.inputTokenDetails?.cacheWriteTokens,
         'gen_ai.output.messages': {
@@ -872,8 +872,7 @@ export class OpenTelemetry implements Telemetry {
         'gen_ai.usage.input_tokens': event.totalUsage.inputTokens,
         'gen_ai.usage.output_tokens': event.totalUsage.outputTokens,
         'gen_ai.usage.cache_read.input_tokens':
-          event.totalUsage.inputTokenDetails?.cacheReadTokens ??
-          event.totalUsage.cachedInputTokens,
+          event.totalUsage.inputTokenDetails?.cacheReadTokens,
         'gen_ai.usage.cache_creation.input_tokens':
           event.totalUsage.inputTokenDetails?.cacheWriteTokens,
         'gen_ai.output.messages': {
@@ -920,7 +919,8 @@ export class OpenTelemetry implements Telemetry {
         'gen_ai.response.finish_reasons': [event.finishReason],
         'gen_ai.usage.input_tokens': event.usage.inputTokens,
         'gen_ai.usage.output_tokens': event.usage.outputTokens,
-        'gen_ai.usage.cache_read.input_tokens': event.usage.cachedInputTokens,
+        'gen_ai.usage.cache_read.input_tokens':
+          event.usage.inputTokenDetails?.cacheReadTokens,
         'gen_ai.output.messages': {
           output: () =>
             event.object != null

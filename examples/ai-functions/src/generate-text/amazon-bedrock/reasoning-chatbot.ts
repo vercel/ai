@@ -16,7 +16,7 @@ run(async () => {
     const userInput = await terminal.question('You: ');
     messages.push({ role: 'user', content: userInput });
 
-    const { steps, response } = await generateText({
+    const { steps, responseMessages } = await generateText({
       model: amazonBedrock('us.anthropic.claude-sonnet-4-5-20250929-v1:0'),
       tools: { weatherTool },
       system: `You are a helpful, respectful and honest assistant.`,
@@ -47,6 +47,6 @@ run(async () => {
 
     console.log('\n');
 
-    messages.push(...response.messages);
+    messages.push(...responseMessages);
   }
 });

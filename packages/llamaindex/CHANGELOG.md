@@ -1,5 +1,53 @@
 # @ai-sdk/llamaindex
 
+## 3.0.0-canary.125
+
+### Patch Changes
+
+- Updated dependencies [fd4f578]
+- Updated dependencies [31f69de]
+- Updated dependencies [7c71ac6]
+- Updated dependencies [c0c8ca2]
+- Updated dependencies [5faf71c]
+- Updated dependencies [69254e0]
+- Updated dependencies [3015fc3]
+- Updated dependencies [eee1166]
+- Updated dependencies [7dbf992]
+  - ai@7.0.0-canary.125
+
+## 3.0.0-canary.124
+
+### Patch Changes
+
+- Updated dependencies [69aeb0e]
+- Updated dependencies [48e92f3]
+  - ai@7.0.0-canary.124
+
+## 3.0.0-canary.123
+
+### Patch Changes
+
+- Updated dependencies [7392266]
+- Updated dependencies [4bb4dbc]
+  - ai@7.0.0-canary.123
+
+## 3.0.0-canary.122
+
+### Patch Changes
+
+- Updated dependencies [79b2468]
+- Updated dependencies [c22750c]
+  - ai@7.0.0-canary.122
+
+## 3.0.0-canary.121
+
+### Patch Changes
+
+- Updated dependencies [2427d88]
+- Updated dependencies [5588abd]
+- Updated dependencies [6dd6b83]
+  - ai@7.0.0-canary.121
+
 ## 3.0.0-canary.120
 
 ### Patch Changes

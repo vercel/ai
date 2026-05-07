@@ -1,5 +1,27 @@
 # @ai-sdk/openai
 
+## 4.0.0-canary.51
+
+### Patch Changes
+
+- Updated dependencies [69254e0]
+- Updated dependencies [3015fc3]
+  - @ai-sdk/provider-utils@5.0.0-canary.34
+
+## 4.0.0-canary.50
+
+### Patch Changes
+
+- 29e6ac6: feat: add allowedTools provider option for OpenAI Responses
+
+## 4.0.0-canary.49
+
+### Patch Changes
+
+- 7bbc194: feat(provider/openai): forward imageDetail providerOptions on tool-result image content
+- Updated dependencies [2427d88]
+  - @ai-sdk/provider-utils@5.0.0-canary.33
+
 ## 4.0.0-canary.48
 
 ### Patch Changes

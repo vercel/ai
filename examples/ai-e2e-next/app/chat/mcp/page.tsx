@@ -64,11 +64,9 @@ export default function Chat() {
                           </div>
                         )}
                         {part.type === 'dynamic-tool' &&
-                          'callProviderMetadata' in part &&
-                          typeof part.callProviderMetadata?.mcp?.name ===
-                            'string' && (
+                          typeof part.toolMetadata?.clientName === 'string' && (
                             <div className="text-xs text-gray-500">
-                              MCP server: {part.callProviderMetadata.mcp.name}
+                              MCP server: {part.toolMetadata.clientName}
                             </div>
                           )}
                       </div>

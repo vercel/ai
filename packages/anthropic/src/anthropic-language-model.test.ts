@@ -4894,7 +4894,6 @@ describe('AnthropicLanguageModel', () => {
       `);
       expect(await server.calls[0].requestHeaders).toMatchInlineSnapshot(`
         {
-          "anthropic-beta": "effort-2025-11-24",
           "anthropic-version": "2023-06-01",
           "content-type": "application/json",
           "x-api-key": "test-api-key",
