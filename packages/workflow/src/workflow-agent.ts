@@ -34,6 +34,7 @@ import {
   type TelemetryOptions as CoreTelemetryOptions,
 } from 'ai';
 import {
+  createRestrictedTelemetryDispatcher,
   convertToLanguageModelPrompt,
   mergeAbortSignals,
   mergeCallbacks,
@@ -1505,6 +1506,15 @@ export class WorkflowAgent<
 
     // Merge telemetry settings
     const effectiveTelemetry = effectiveTelemetryFromPrepare;
+    const telemetryDispatcher = createRestrictedTelemetryDispatcher<
+      any,
+      any,
+      any
+    >({
+      telemetry: effectiveTelemetry as any,
+      includeRuntimeContext: effectiveTelemetry?.includeRuntimeContext,
+      includeToolsContext: effectiveTelemetry?.includeToolsContext,
+    }) as any;
 
     // Filter tools if activeTools is specified (stream-level overrides constructor default)
     const effectiveActiveTools = options.activeTools ?? this.activeTools;
@@ -1515,6 +1525,7 @@ export class WorkflowAgent<
             activeTools: effectiveActiveTools,
           }) ?? this.tools)
         : this.tools;
+    const effectiveModelInfo = getModelInfo(effectiveModel);
 
     // Initialize context
     let runtimeContext: TRuntimeContext = effectiveRuntimeContext;
@@ -1536,6 +1547,32 @@ export class WorkflowAgent<
         toolsContext: toolsContext as unknown as InferToolSetContext<TTools>,
       });
     }
+    await telemetryDispatcher.onStart?.({
+      callId: 'workflow-agent',
+      operationId: 'ai.workflowAgent.stream',
+      provider: effectiveModelInfo.provider,
+      modelId: effectiveModelInfo.modelId,
+      system: undefined,
+      messages: prompt.messages,
+      tools: effectiveTools,
+      toolChoice: effectiveToolChoice,
+      activeTools: effectiveActiveTools as never,
+      maxOutputTokens: mergedGenerationSettings.maxOutputTokens,
+      temperature: mergedGenerationSettings.temperature,
+      topP: mergedGenerationSettings.topP,
+      topK: mergedGenerationSettings.topK,
+      presencePenalty: mergedGenerationSettings.presencePenalty,
+      frequencyPenalty: mergedGenerationSettings.frequencyPenalty,
+      stopSequences: mergedGenerationSettings.stopSequences,
+      seed: mergedGenerationSettings.seed,
+      maxRetries: mergedGenerationSettings.maxRetries ?? 2,
+      timeout: undefined,
+      headers: mergedGenerationSettings.headers,
+      providerOptions: mergedGenerationSettings.providerOptions,
+      output: (options.output ?? this.output) as never,
+      runtimeContext,
+      toolsContext: toolsContext as unknown as InferToolSetContext<TTools>,
+    });
 
     // Helper to wrap executeTool with onToolExecutionStart/onToolExecutionEnd callbacks
     const executeToolWithCallbacks = async (
@@ -1842,6 +1879,14 @@ export class WorkflowAgent<
                 output: undefined as OUTPUT,
               });
             }
+            if (!wasAborted && steps.length > 0) {
+              const lastStep = steps[steps.length - 1];
+              await telemetryDispatcher.onFinish?.({
+                ...lastStep,
+                steps,
+                totalUsage: aggregateUsage(steps),
+              });
+            }
 
             // Emit tool-approval-request chunks for tools that need approval
             // so useChat can show the approval UI
@@ -1983,6 +2028,7 @@ export class WorkflowAgent<
         // Call onError for non-abort errors (including tool execution errors)
         await options.onError({ error });
       }
+      await telemetryDispatcher.onError?.(error);
       // Don't throw yet - we want to call onFinish first
     }
 
@@ -2030,6 +2076,14 @@ export class WorkflowAgent<
         output: experimentalOutput,
       });
     }
+    if (!wasAborted && steps.length > 0) {
+      const lastStep = steps[steps.length - 1];
+      await telemetryDispatcher.onFinish?.({
+        ...lastStep,
+        steps,
+        totalUsage: aggregateUsage(steps),
+      });
+    }
 
     // Re-throw any error that occurred
     if (encounteredError) {
@@ -2061,6 +2115,15 @@ export class WorkflowAgent<
       output: experimentalOutput,
     };
   }
+}
+
+function getModelInfo(model: LanguageModel): {
+  provider: string;
+  modelId: string;
+} {
+  return typeof model === 'string'
+    ? { provider: model.split('/')[0] ?? 'gateway', modelId: model }
+    : { provider: model.provider, modelId: model.modelId };
 }
 
 /**
