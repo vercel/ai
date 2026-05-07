@@ -10,7 +10,7 @@ export const SUPPORTED_PROTOCOL_VERSIONS = [
   '2024-11-05',
 ];
 
-export type McpProviderMetadata = JSONObject & {
+export type McpProviderMetadata = {
   clientName?: string;
   title?: string;
   toolName?: string;
