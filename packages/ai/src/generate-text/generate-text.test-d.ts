@@ -338,6 +338,23 @@ describe('generateText types', () => {
           },
         });
       });
+
+      it('should accept sandbox overrides', async () => {
+        generateText({
+          model: new MockLanguageModelV4(),
+          prompt: 'Hello',
+          prepareStep: () => ({
+            sandbox: {
+              description: 'test sandbox',
+              executeCommand: async () => ({
+                exitCode: 0,
+                stdout: 'ok',
+                stderr: '',
+              }),
+            },
+          }),
+        });
+      });
     });
 
     it('should pass the runtimeContext type into toolApproval callbacks', async () => {

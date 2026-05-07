@@ -1588,6 +1588,8 @@ class DefaultStreamTextResult<
             sandbox,
           });
 
+          const stepSandbox = prepareStepResult?.sandbox ?? sandbox;
+
           const stepModel = resolveLanguageModel(
             prepareStepResult?.model ?? model,
           );
@@ -1696,7 +1698,7 @@ class DefaultStreamTextResult<
               messages: stepInputMessages,
               abortSignal,
               timeout,
-              sandbox,
+              sandbox: stepSandbox,
               toolsContext,
               toolApproval,
               runtimeContext,

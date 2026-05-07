@@ -310,6 +310,40 @@ const result = await agent.generate({
 });
 ```
 
+### Sandbox Selection
+
+Switch the sandbox used for tool execution in a single step:
+
+```ts
+import { ToolLoopAgent } from 'ai';
+__PROVIDER_IMPORT__;
+
+const agent = new ToolLoopAgent({
+  model: __MODEL__,
+  tools: {
+    runCommand,
+  },
+  sandbox: defaultSandbox,
+  prepareStep: async ({ stepNumber }) => {
+    if (stepNumber === 0) {
+      return {
+        sandbox: setupSandbox,
+      };
+    }
+
+    return {};
+  },
+});
+
+const result = await agent.generate({
+  prompt: '...',
+});
+```
+
+Unlike `runtimeContext` and `toolsContext`, a sandbox returned from `prepareStep`
+only applies to tool execution in that step. Later steps use the top-level
+`sandbox` unless they return their own sandbox override.
+
 ## Access Step Information
 
 Both `stopWhen` and `prepareStep` receive detailed information about the current execution:

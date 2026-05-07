@@ -121,6 +121,13 @@ export type PrepareStepResult<
       runtimeContext?: RUNTIME_CONTEXT;
 
       /**
+       * The sandbox environment that the step is operating in.
+       *
+       * Changing the sandbox will affect tool execution in this step only.
+       */
+      sandbox?: Sandbox;
+
+      /**
        * Additional provider-specific options for this step.
        *
        * Can be used to pass provider-specific configuration such as
