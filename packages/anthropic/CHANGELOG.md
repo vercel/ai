@@ -1,5 +1,14 @@
 # @ai-sdk/anthropic
 
+## 4.0.0-canary.47
+
+### Patch Changes
+
+- 2610e84: feat(provider/anthropic): automatically use sandbox in bash tool
+- Updated dependencies [69254e0]
+- Updated dependencies [3015fc3]
+  - @ai-sdk/provider-utils@5.0.0-canary.34
+
 ## 4.0.0-canary.46
 
 ### Patch Changes
