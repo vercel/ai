@@ -2737,7 +2737,7 @@ describe('WorkflowAgent', () => {
       const TelemetryOptions = {
         isEnabled: true,
         functionId: 'test-agent',
-        metadata: { version: '1.0' },
+        recordInputs: false,
       };
 
       const agent = new WorkflowAgent({

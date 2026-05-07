@@ -2,6 +2,10 @@ import type { TelemetryOptions } from './workflow-agent.js';
 
 // Minimal OTel type shims so we don't depend on @opentelemetry/api at compile time.
 type Attributes = Record<string, unknown>;
+type LegacyTelemetryOptions = TelemetryOptions & {
+  metadata?: Record<string, unknown>;
+  tracer?: unknown;
+};
 
 type Span = {
   setAttributes(attributes: Attributes): void;
@@ -62,7 +66,7 @@ async function ensureOtelApi(): Promise<OtelApi | null> {
  * Returns a no-op–equivalent `null` when telemetry is disabled, so callers
  * don't need a separate init step.
  */
-function getTracer(telemetry?: TelemetryOptions): Tracer | null {
+function getTracer(telemetry?: LegacyTelemetryOptions): Tracer | null {
   if (!telemetry?.isEnabled || !otelApi) return null;
   if (telemetry.tracer) return telemetry.tracer as Tracer;
   return otelApi.trace.getTracer('ai');
@@ -94,7 +98,7 @@ function assembleOperationName(
  */
 function buildAttributes(
   operationId: string,
-  telemetry: TelemetryOptions | undefined,
+  telemetry: LegacyTelemetryOptions | undefined,
   extra?: Attributes,
 ): Attributes {
   if (!telemetry?.isEnabled) return {};
@@ -154,7 +158,7 @@ function recordErrorOnSpan(span: Span, error: unknown): void {
  */
 export async function recordSpan<T>(options: {
   name: string;
-  telemetry?: TelemetryOptions;
+  telemetry?: LegacyTelemetryOptions;
   attributes?: Attributes;
   fn: (span?: Span) => PromiseLike<T> | T;
 }): Promise<T> {

@@ -31,6 +31,7 @@ import {
   type UIMessage,
   type LanguageModel,
   type Prompt,
+  type TelemetryOptions as CoreTelemetryOptions,
 } from 'ai';
 import {
   convertToLanguageModelPrompt,
@@ -103,54 +104,10 @@ type WorkflowAgentToolsContextParameter<TTools extends ToolSet> =
     ? { toolsContext: InferToolSetContext<TTools> }
     : { toolsContext?: never };
 
-/**
- * Telemetry settings for observability.
- */
-export interface TelemetryOptions {
-  /**
-   * Enable or disable telemetry. Defaults to true.
-   */
-  isEnabled?: boolean;
-
-  /**
-   * Identifier for this function. Used to group telemetry data by function.
-   */
-  functionId?: string;
-
-  /**
-   * Additional information to include in the telemetry data.
-   */
-  metadata?: Record<
-    string,
-    | string
-    | number
-    | boolean
-    | Array<string | number | boolean>
-    | null
-    | undefined
-  >;
-
-  /**
-   * Enable or disable input recording. Enabled by default.
-   *
-   * You might want to disable input recording to avoid recording sensitive
-   * information, to reduce data transfers, or to increase performance.
-   */
-  recordInputs?: boolean;
-
-  /**
-   * Enable or disable output recording. Enabled by default.
-   *
-   * You might want to disable output recording to avoid recording sensitive
-   * information, to reduce data transfers, or to increase performance.
-   */
-  recordOutputs?: boolean;
-
-  /**
-   * Custom tracer for the telemetry.
-   */
-  tracer?: unknown;
-}
+export type TelemetryOptions<
+  TRuntimeContext extends Context = Context,
+  TTools extends ToolSet = ToolSet,
+> = CoreTelemetryOptions<TRuntimeContext, TTools>;
 
 /**
  * A transformation that is applied to the stream.
@@ -382,11 +339,11 @@ export interface PrepareCallOptions<
   tools: TTools;
   instructions?: string | SystemModelMessage | Array<SystemModelMessage>;
   toolChoice?: ToolChoice<TTools>;
-  telemetry?: TelemetryOptions;
+  telemetry?: TelemetryOptions<TRuntimeContext, TTools>;
   /**
    * @deprecated Use `telemetry` instead. This alias will be removed in a future major release.
    */
-  experimental_telemetry?: TelemetryOptions;
+  experimental_telemetry?: TelemetryOptions<TRuntimeContext, TTools>;
   /**
    * Runtime context that flows through the agent loop.
    * Treat as immutable; return a new `runtimeContext` to update it for the call.
@@ -470,14 +427,14 @@ export type WorkflowAgentOptions<
     /**
      * Optional telemetry configuration.
      */
-    telemetry?: TelemetryOptions;
+    telemetry?: TelemetryOptions<TRuntimeContext, TTools>;
 
     /**
      * Optional telemetry configuration.
      *
      * @deprecated Use `telemetry` instead. This alias will be removed in a future major release.
      */
-    experimental_telemetry?: TelemetryOptions;
+    experimental_telemetry?: TelemetryOptions<TRuntimeContext, TTools>;
 
     /**
      * Default runtime context for every stream call on this agent.
@@ -853,14 +810,14 @@ export type WorkflowAgentStreamOptions<
     /**
      * Optional telemetry configuration.
      */
-    telemetry?: TelemetryOptions;
+    telemetry?: TelemetryOptions<TRuntimeContext, TTools>;
 
     /**
      * Optional telemetry configuration.
      *
      * @deprecated Use `telemetry` instead. This alias will be removed in a future major release.
      */
-    experimental_telemetry?: TelemetryOptions;
+    experimental_telemetry?: TelemetryOptions<TRuntimeContext, TTools>;
 
     /**
      * Runtime context that flows through the agent loop.
@@ -1156,7 +1113,7 @@ export class WorkflowAgent<
     | Array<SystemModelMessage>;
   private generationSettings: GenerationSettings;
   private toolChoice?: ToolChoice<TBaseTools>;
-  private telemetry?: TelemetryOptions;
+  private telemetry?: TelemetryOptions<TRuntimeContext, TBaseTools>;
   private runtimeContext?: TRuntimeContext;
   private toolsContext?: InferToolSetContext<TBaseTools>;
   private stopWhen?:

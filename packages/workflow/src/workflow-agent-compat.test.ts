@@ -1359,7 +1359,6 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
             }),
           },
           experimental_telemetry: {
-            // @ts-expect-error - not yet implemented on WorkflowAgent
             integrations: {
               onStart: async () => {
                 events.push('onStart');
@@ -1482,7 +1481,6 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
             events.push('agent-onFinish');
           },
           experimental_telemetry: {
-            // @ts-expect-error - not yet implemented on WorkflowAgent
             integrations: {
               onStart: async () => {
                 events.push('integration-onStart');
@@ -1533,7 +1531,6 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
             }),
           }),
           experimental_telemetry: {
-            // @ts-expect-error - not yet implemented on WorkflowAgent
             integrations: {
               onStart: async () => {
                 throw new Error('integration error');

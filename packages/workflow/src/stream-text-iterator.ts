@@ -85,7 +85,7 @@ export async function* streamTextIterator({
   toolChoice?: ToolChoice<ToolSet>;
   runtimeContext?: Context;
   toolsContext?: Record<string, Context | undefined>;
-  telemetry?: TelemetryOptions;
+  telemetry?: TelemetryOptions<Context, ToolSet>;
   includeRawChunks?: boolean;
   repairToolCall?: ToolCallRepairFunction<ToolSet>;
   responseFormat?: LanguageModelV4CallOptions['responseFormat'];
