@@ -14,6 +14,12 @@ export class JustBashSandbox implements Sandbox {
     };
   }
 
+  async readFile({ path }: { path: string }) {
+    return {
+      content: await this.bash.readFile(path),
+    };
+  }
+
   get description() {
     return [
       'just-bash JavaScript bash environment with a virtual filesystem.',

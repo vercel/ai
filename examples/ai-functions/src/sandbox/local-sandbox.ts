@@ -1,4 +1,6 @@
 import { exec } from 'node:child_process';
+import { readFile as fsReadFile } from 'node:fs/promises';
+import path from 'node:path';
 import { promisify } from 'node:util';
 import { type Sandbox } from 'ai';
 
@@ -45,6 +47,17 @@ export class LocalSandbox implements Sandbox {
         stderr: error?.stderr ?? String(error),
       };
     }
+  }
+
+  async readFile({ path: filePath }: { path: string }) {
+    return {
+      content: await fsReadFile(
+        path.isAbsolute(filePath)
+          ? filePath
+          : path.join(this.rootDirectory, filePath),
+        'utf8',
+      ),
+    };
   }
 
   get description() {

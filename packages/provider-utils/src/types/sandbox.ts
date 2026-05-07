@@ -33,4 +33,20 @@ export type Sandbox = {
      */
     stderr: string;
   }>;
+
+  /**
+   * Read a file from the sandbox.
+   */
+  // TODO file not found and error handling
+  readonly readFile: (options: {
+    /**
+     * Path to the file to read.
+     */
+    path: string;
+  }) => PromiseLike<{
+    /**
+     * Content of the file.
+     */
+    content: string;
+  }>;
 };
