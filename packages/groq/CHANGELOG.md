@@ -1,5 +1,13 @@
 # @ai-sdk/groq
 
+## 4.0.0-canary.38
+
+### Patch Changes
+
+- Updated dependencies [69254e0]
+- Updated dependencies [3015fc3]
+  - @ai-sdk/provider-utils@5.0.0-canary.34
+
 ## 4.0.0-canary.37
 
 ### Patch Changes

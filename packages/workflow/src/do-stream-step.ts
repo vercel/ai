@@ -2,6 +2,7 @@ import type {
   LanguageModelV4CallOptions,
   LanguageModelV4Prompt,
 } from '@ai-sdk/provider';
+import type { Context } from '@ai-sdk/provider-utils';
 import {
   experimental_streamLanguageModelCall as streamModelCall,
   gateway,
@@ -56,6 +57,8 @@ export interface DoStreamStepOptions {
   telemetry?: TelemetryOptions;
   repairToolCall?: ToolCallRepairFunction<ToolSet>;
   responseFormat?: LanguageModelV4CallOptions['responseFormat'];
+  runtimeContext?: Context;
+  toolsContext?: Record<string, Context | undefined>;
 }
 
 /**
@@ -241,8 +244,8 @@ export async function doStreamStep(
     },
     functionId: undefined,
     metadata: undefined,
-    runtimeContext: undefined,
-    toolsContext: {},
+    runtimeContext: options?.runtimeContext ?? {},
+    toolsContext: options?.toolsContext ?? {},
     content: [
       ...(text ? [{ type: 'text' as const, text }] : []),
       ...toolCalls

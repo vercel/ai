@@ -1,5 +1,14 @@
 # @ai-sdk/mcp
 
+## 2.0.0-canary.42
+
+### Patch Changes
+
+- 69254e0: feat(ai): add toolMetadata for tool specific metdata
+- Updated dependencies [69254e0]
+- Updated dependencies [3015fc3]
+  - @ai-sdk/provider-utils@5.0.0-canary.34
+
 ## 2.0.0-canary.41
 
 ### Patch Changes

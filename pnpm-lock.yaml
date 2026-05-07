@@ -69,61 +69,61 @@ importers:
   examples/ai-e2e-next:
     dependencies:
       '@ai-sdk/amazon-bedrock':
-        specifier: 5.0.0-canary.51
+        specifier: 5.0.0-canary.52
         version: link:../../packages/amazon-bedrock
       '@ai-sdk/anthropic':
-        specifier: 4.0.0-canary.46
+        specifier: 4.0.0-canary.47
         version: link:../../packages/anthropic
       '@ai-sdk/azure':
-        specifier: 4.0.0-canary.50
+        specifier: 4.0.0-canary.51
         version: link:../../packages/azure
       '@ai-sdk/cohere':
-        specifier: 4.0.0-canary.36
+        specifier: 4.0.0-canary.37
         version: link:../../packages/cohere
       '@ai-sdk/deepseek':
-        specifier: 3.0.0-canary.37
+        specifier: 3.0.0-canary.38
         version: link:../../packages/deepseek
       '@ai-sdk/fireworks':
-        specifier: 3.0.0-canary.40
+        specifier: 3.0.0-canary.41
         version: link:../../packages/fireworks
       '@ai-sdk/google':
-        specifier: 4.0.0-canary.54
+        specifier: 4.0.0-canary.55
         version: link:../../packages/google
       '@ai-sdk/google-vertex':
-        specifier: 5.0.0-canary.73
+        specifier: 5.0.0-canary.74
         version: link:../../packages/google-vertex
       '@ai-sdk/groq':
-        specifier: 4.0.0-canary.37
+        specifier: 4.0.0-canary.38
         version: link:../../packages/groq
       '@ai-sdk/mcp':
-        specifier: 2.0.0-canary.41
+        specifier: 2.0.0-canary.42
         version: link:../../packages/mcp
       '@ai-sdk/mistral':
-        specifier: 4.0.0-canary.38
+        specifier: 4.0.0-canary.39
         version: link:../../packages/mistral
       '@ai-sdk/openai':
-        specifier: 4.0.0-canary.50
+        specifier: 4.0.0-canary.51
         version: link:../../packages/openai
       '@ai-sdk/otel':
-        specifier: 1.0.0-canary.70
+        specifier: 1.0.0-canary.71
         version: link:../../packages/otel
       '@ai-sdk/perplexity':
-        specifier: 4.0.0-canary.37
+        specifier: 4.0.0-canary.38
         version: link:../../packages/perplexity
       '@ai-sdk/provider-utils':
-        specifier: 5.0.0-canary.33
+        specifier: 5.0.0-canary.34
         version: link:../../packages/provider-utils
       '@ai-sdk/react':
-        specifier: 4.0.0-canary.124
+        specifier: 4.0.0-canary.125
         version: link:../../packages/react
       '@ai-sdk/rsc':
-        specifier: 3.0.0-canary.125
+        specifier: 3.0.0-canary.126
         version: link:../../packages/rsc
       '@ai-sdk/valibot':
-        specifier: 3.0.0-canary.33
+        specifier: 3.0.0-canary.34
         version: link:../../packages/valibot
       '@ai-sdk/xai':
-        specifier: 4.0.0-canary.53
+        specifier: 4.0.0-canary.54
         version: link:../../packages/xai
       '@langfuse/otel':
         specifier: ^4.6.1
@@ -153,7 +153,7 @@ importers:
         specifier: ^0.0.21
         version: 0.0.21
       ai:
-        specifier: 7.0.0-canary.124
+        specifier: 7.0.0-canary.125
         version: link:../../packages/ai
       class-variance-authority:
         specifier: ^0.7.1
@@ -431,10 +431,10 @@ importers:
   examples/angular:
     dependencies:
       '@ai-sdk/angular':
-        specifier: 3.0.0-canary.124
+        specifier: 3.0.0-canary.125
         version: link:../../packages/angular
       '@ai-sdk/openai':
-        specifier: 4.0.0-canary.50
+        specifier: 4.0.0-canary.51
         version: link:../../packages/openai
       '@angular/common':
         specifier: ^20.3.2
@@ -458,7 +458,7 @@ importers:
         specifier: ^20.3.2
         version: 20.3.17(@angular/common@20.3.17(@angular/core@20.3.17(@angular/compiler@20.3.17)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2))(@angular/core@20.3.17(@angular/compiler@20.3.17)(rxjs@7.8.2)(zone.js@0.15.1))(@angular/platform-browser@20.3.17(@angular/common@20.3.17(@angular/core@20.3.17(@angular/compiler@20.3.17)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2))(@angular/core@20.3.17(@angular/compiler@20.3.17)(rxjs@7.8.2)(zone.js@0.15.1)))(rxjs@7.8.2)
       ai:
-        specifier: 7.0.0-canary.124
+        specifier: 7.0.0-canary.125
         version: link:../../packages/ai
       dotenv:
         specifier: 16.4.5
@@ -501,10 +501,10 @@ importers:
   examples/express:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 4.0.0-canary.50
+        specifier: 4.0.0-canary.51
         version: link:../../packages/openai
       ai:
-        specifier: 7.0.0-canary.124
+        specifier: 7.0.0-canary.125
         version: link:../../packages/ai
       dotenv:
         specifier: 16.4.5
@@ -529,10 +529,10 @@ importers:
   examples/fastify:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 4.0.0-canary.50
+        specifier: 4.0.0-canary.51
         version: link:../../packages/openai
       ai:
-        specifier: 7.0.0-canary.124
+        specifier: 7.0.0-canary.125
         version: link:../../packages/ai
       dotenv:
         specifier: 16.4.5
@@ -554,13 +554,13 @@ importers:
   examples/hono:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 4.0.0-canary.50
+        specifier: 4.0.0-canary.51
         version: link:../../packages/openai
       '@hono/node-server':
         specifier: 1.13.7
         version: 1.13.7(hono@4.6.9)
       ai:
-        specifier: 7.0.0-canary.124
+        specifier: 7.0.0-canary.125
         version: link:../../packages/ai
       dotenv:
         specifier: 16.4.5
@@ -582,13 +582,13 @@ importers:
   examples/mcp:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 4.0.0-canary.50
+        specifier: 4.0.0-canary.51
         version: link:../../packages/openai
       '@modelcontextprotocol/sdk':
         specifier: ^1.26.0
         version: 1.27.1(@cfworker/json-schema@4.1.1)(zod@3.25.76)
       ai:
-        specifier: 7.0.0-canary.124
+        specifier: 7.0.0-canary.125
         version: link:../../packages/ai
       dotenv:
         specifier: 16.4.5
@@ -619,7 +619,7 @@ importers:
   examples/nest:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 4.0.0-canary.50
+        specifier: 4.0.0-canary.51
         version: link:../../packages/openai
       '@nestjs/common':
         specifier: ^10.4.15
@@ -631,7 +631,7 @@ importers:
         specifier: ^10.4.9
         version: 10.4.22(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@10.4.22)
       ai:
-        specifier: 7.0.0-canary.124
+        specifier: 7.0.0-canary.125
         version: link:../../packages/ai
       reflect-metadata:
         specifier: ^0.2.0
@@ -689,13 +689,13 @@ importers:
   examples/next:
     dependencies:
       '@ai-sdk/react':
-        specifier: 4.0.0-canary.124
+        specifier: 4.0.0-canary.125
         version: link:../../packages/react
       '@vercel/blob':
         specifier: ^0.26.0
         version: 0.26.0
       ai:
-        specifier: 7.0.0-canary.124
+        specifier: 7.0.0-canary.125
         version: link:../../packages/ai
       next:
         specifier: ^15.5.9
@@ -744,16 +744,16 @@ importers:
   examples/next-agent:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 4.0.0-canary.50
+        specifier: 4.0.0-canary.51
         version: link:../../packages/openai
       '@ai-sdk/react':
-        specifier: 4.0.0-canary.124
+        specifier: 4.0.0-canary.125
         version: link:../../packages/react
       '@vercel/blob':
         specifier: ^0.26.0
         version: 0.26.0
       ai:
-        specifier: 7.0.0-canary.124
+        specifier: 7.0.0-canary.125
         version: link:../../packages/ai
       next:
         specifier: ^15.5.9
@@ -799,10 +799,10 @@ importers:
   examples/next-fastapi:
     dependencies:
       '@ai-sdk/react':
-        specifier: 4.0.0-canary.124
+        specifier: 4.0.0-canary.125
         version: link:../../packages/react
       ai:
-        specifier: 7.0.0-canary.124
+        specifier: 7.0.0-canary.125
         version: link:../../packages/ai
       geist:
         specifier: ^1.3.1
@@ -845,10 +845,10 @@ importers:
   examples/next-google-vertex:
     dependencies:
       '@ai-sdk/google-vertex':
-        specifier: 5.0.0-canary.73
+        specifier: 5.0.0-canary.74
         version: link:../../packages/google-vertex
       ai:
-        specifier: 7.0.0-canary.124
+        specifier: 7.0.0-canary.125
         version: link:../../packages/ai
       geist:
         specifier: ^1.3.1
@@ -885,10 +885,10 @@ importers:
   examples/next-langchain:
     dependencies:
       '@ai-sdk/langchain':
-        specifier: 3.0.0-canary.124
+        specifier: 3.0.0-canary.125
         version: link:../../packages/langchain
       '@ai-sdk/react':
-        specifier: 4.0.0-canary.124
+        specifier: 4.0.0-canary.125
         version: link:../../packages/react
       '@langchain/core':
         specifier: ^1.1.5
@@ -903,7 +903,7 @@ importers:
         specifier: ^1.2.0
         version: 1.2.11(@langchain/core@1.1.29(@opentelemetry/api@1.9.1)(@opentelemetry/exporter-trace-otlp-proto@0.211.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.5.1(@opentelemetry/api@1.9.1))(openai@6.25.0(ws@8.18.0)(zod@3.25.76)))(ws@8.18.0)
       ai:
-        specifier: 7.0.0-canary.124
+        specifier: 7.0.0-canary.125
         version: link:../../packages/ai
       langchain:
         specifier: ^1.2.0
@@ -952,16 +952,16 @@ importers:
   examples/next-openai-kasada-bot-protection:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 4.0.0-canary.50
+        specifier: 4.0.0-canary.51
         version: link:../../packages/openai
       '@ai-sdk/react':
-        specifier: 4.0.0-canary.124
+        specifier: 4.0.0-canary.125
         version: link:../../packages/react
       '@vercel/functions':
         specifier: ^3.1.0
         version: 3.4.3(@aws-sdk/credential-provider-web-identity@3.972.13)
       ai:
-        specifier: 7.0.0-canary.124
+        specifier: 7.0.0-canary.125
         version: link:../../packages/ai
       next:
         specifier: ^15.5.9
@@ -1001,13 +1001,13 @@ importers:
   examples/next-openai-pages:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 4.0.0-canary.50
+        specifier: 4.0.0-canary.51
         version: link:../../packages/openai
       '@ai-sdk/react':
-        specifier: 4.0.0-canary.124
+        specifier: 4.0.0-canary.125
         version: link:../../packages/react
       ai:
-        specifier: 7.0.0-canary.124
+        specifier: 7.0.0-canary.125
         version: link:../../packages/ai
       next:
         specifier: ^15.5.9
@@ -1047,10 +1047,10 @@ importers:
   examples/next-openai-telemetry:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 4.0.0-canary.50
+        specifier: 4.0.0-canary.51
         version: link:../../packages/openai
       '@ai-sdk/react':
-        specifier: 4.0.0-canary.124
+        specifier: 4.0.0-canary.125
         version: link:../../packages/react
       '@opentelemetry/api-logs':
         specifier: 0.55.0
@@ -1065,7 +1065,7 @@ importers:
         specifier: 1.10.0
         version: 1.10.0(@opentelemetry/api-logs@0.55.0)(@opentelemetry/api@1.9.1)(@opentelemetry/instrumentation@0.52.1(@opentelemetry/api@1.9.1))(@opentelemetry/resources@2.5.1(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-logs@0.55.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-metrics@2.5.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.5.1(@opentelemetry/api@1.9.1))
       ai:
-        specifier: 7.0.0-canary.124
+        specifier: 7.0.0-canary.125
         version: link:../../packages/ai
       next:
         specifier: ^15.5.9
@@ -1105,10 +1105,10 @@ importers:
   examples/next-openai-telemetry-sentry:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 4.0.0-canary.50
+        specifier: 4.0.0-canary.51
         version: link:../../packages/openai
       '@ai-sdk/react':
-        specifier: 4.0.0-canary.124
+        specifier: 4.0.0-canary.125
         version: link:../../packages/react
       '@opentelemetry/api-logs':
         specifier: 0.55.0
@@ -1129,7 +1129,7 @@ importers:
         specifier: 1.10.0
         version: 1.10.0(@opentelemetry/api-logs@0.55.0)(@opentelemetry/api@1.9.0)(@opentelemetry/instrumentation@0.52.1(@opentelemetry/api@1.9.0))(@opentelemetry/resources@2.5.1(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-logs@0.55.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-metrics@2.5.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.5.1(@opentelemetry/api@1.9.1))
       ai:
-        specifier: 7.0.0-canary.124
+        specifier: 7.0.0-canary.125
         version: link:../../packages/ai
       next:
         specifier: ^15.5.9
@@ -1169,10 +1169,10 @@ importers:
   examples/next-openai-upstash-rate-limits:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 4.0.0-canary.50
+        specifier: 4.0.0-canary.51
         version: link:../../packages/openai
       '@ai-sdk/react':
-        specifier: 4.0.0-canary.124
+        specifier: 4.0.0-canary.125
         version: link:../../packages/react
       '@upstash/ratelimit':
         specifier: ^0.4.3
@@ -1181,7 +1181,7 @@ importers:
         specifier: ^0.2.2
         version: 0.2.4
       ai:
-        specifier: 7.0.0-canary.124
+        specifier: 7.0.0-canary.125
         version: link:../../packages/ai
       next:
         specifier: ^15.5.9
@@ -1242,8 +1242,8 @@ importers:
         specifier: ^18.3.1
         version: 18.3.1(react@18.3.1)
       workflow:
-        specifier: 4.2.0
-        version: 4.2.0(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@10.4.22)(@opentelemetry/api@1.9.1)(@swc/cli@0.8.1(@swc/core@1.15.3)(chokidar@5.0.0))(@swc/core@1.15.3)(magicast@0.3.5)(next@15.5.15(@opentelemetry/api@1.9.1)(@playwright/test@1.58.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0))(typescript@5.8.3)
+        specifier: 4.2.4
+        version: 4.2.4(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@10.4.22)(@opentelemetry/api@1.9.1)(@swc/cli@0.8.1(@swc/core@1.15.3)(chokidar@5.0.0))(@swc/core@1.15.3)(magicast@0.3.5)(next@15.5.15(@opentelemetry/api@1.9.1)(@playwright/test@1.58.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0))(typescript@5.8.3)
       zod:
         specifier: 3.25.76
         version: 3.25.76
@@ -1273,10 +1273,10 @@ importers:
   examples/node-http-server:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 4.0.0-canary.50
+        specifier: 4.0.0-canary.51
         version: link:../../packages/openai
       ai:
-        specifier: 7.0.0-canary.124
+        specifier: 7.0.0-canary.125
         version: link:../../packages/ai
       dotenv:
         specifier: 16.4.5
@@ -1298,13 +1298,13 @@ importers:
   examples/nuxt-openai:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 4.0.0-canary.50
+        specifier: 4.0.0-canary.51
         version: link:../../packages/openai
       '@ai-sdk/vue':
-        specifier: 4.0.0-canary.124
+        specifier: 4.0.0-canary.125
         version: link:../../packages/vue
       ai:
-        specifier: 7.0.0-canary.124
+        specifier: 7.0.0-canary.125
         version: link:../../packages/ai
       zod:
         specifier: 3.25.76
@@ -1353,13 +1353,13 @@ importers:
   examples/sveltekit-openai:
     devDependencies:
       '@ai-sdk/openai':
-        specifier: 4.0.0-canary.50
+        specifier: 4.0.0-canary.51
         version: link:../../packages/openai
       '@ai-sdk/provider-utils':
-        specifier: 5.0.0-canary.33
+        specifier: 5.0.0-canary.34
         version: link:../../packages/provider-utils
       '@ai-sdk/svelte':
-        specifier: 5.0.0-canary.124
+        specifier: 5.0.0-canary.125
         version: link:../../packages/svelte
       '@sveltejs/adapter-vercel':
         specifier: ^6.3.3
@@ -1371,7 +1371,7 @@ importers:
         specifier: ^5.0.0
         version: 5.1.1(svelte@5.53.6)(vite@6.4.1(@types/node@22.7.4)(jiti@2.6.1)(less@4.4.0)(lightningcss@1.31.1)(sass@1.90.0)(terser@5.43.1)(tsx@4.21.0)(yaml@2.8.4))
       ai:
-        specifier: 7.0.0-canary.124
+        specifier: 7.0.0-canary.125
         version: link:../../packages/ai
       autoprefixer:
         specifier: ^10.4.20
@@ -1773,7 +1773,7 @@ importers:
         version: 12.1.0
       debug:
         specifier: ^4.4.3
-        version: 4.4.3
+        version: 4.4.3(supports-color@9.4.0)
       jscodeshift:
         specifier: ^17.1.1
         version: 17.3.0(@babel/preset-env@7.28.3(@babel/core@7.25.2))
@@ -3250,8 +3250,8 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
       workflow:
-        specifier: 4.2.0
-        version: 4.2.0(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@10.4.22)(@opentelemetry/api@1.9.1)(@swc/cli@0.8.1(@swc/core@1.15.3)(chokidar@5.0.0))(@swc/core@1.15.3)(magicast@0.3.5)(next@15.5.15(@opentelemetry/api@1.9.1)(@playwright/test@1.58.2)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(sass@1.90.0))(typescript@5.8.3)
+        specifier: 4.2.4
+        version: 4.2.4(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@10.4.22)(@opentelemetry/api@1.9.1)(@swc/cli@0.8.1(@swc/core@1.15.3)(chokidar@5.0.0))(@swc/core@1.15.3)(magicast@0.3.5)(next@15.5.15(@opentelemetry/api@1.9.1)(@playwright/test@1.58.2)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(sass@1.90.0))(typescript@5.8.3)
       zod:
         specifier: 3.25.76
         version: 3.25.76
@@ -11176,14 +11176,17 @@ packages:
   '@webassemblyjs/wast-printer@1.14.1':
     resolution: {integrity: sha512-kPSSXE6De1XOR820C90RIo2ogvZG+c3KiHzqUoO/F34Y2shGzesfqv7o57xrxovZJH/MetF5UjroJ/R/3isoiw==}
 
-  '@workflow/astro@4.0.0':
-    resolution: {integrity: sha512-yqd0ibUB3L58UZz4jgavL02ugtoqft61M4BK9sJSnl336gb3piTt8rEtUB45r0FhEyeEc4S/5PIZ9P7I6BK+bA==}
+  '@workflow/astro@4.0.4':
+    resolution: {integrity: sha512-TVx1SY4KoYSkHS/nkhXP7wz10rYBKJ0o9oQGahS+kCBkGkD5kyKdAc4QR2IpynG/u/vVg599XJj2Bsh9m2Jsrw==}
 
   '@workflow/builders@4.0.1':
     resolution: {integrity: sha512-IYYb6eNbZ1x+nhvHdCnYTbz0NJAYexYwoIVhm7mYqNmYddli9IkTYmD5AukXUP+ZBHMZyivwuhANYs5g+ayb7Q==}
 
-  '@workflow/cli@4.2.0':
-    resolution: {integrity: sha512-ikpR55/MnEodB5k7D0A14FlQTKE96+893Kj/rSmNJBm1auBefPXkPpVO1NxWov0xowVXZmRoSdPBnLvbVknwNQ==}
+  '@workflow/builders@4.0.5':
+    resolution: {integrity: sha512-UmlZOjkiDqb37NZjxpJ56zwg0MFAdv/XSfRJgU8a0JQOGdTiEhJ1pWdg0pAD96pcoDwNqGphSTBhf/QoRdXgnw==}
+
+  '@workflow/cli@4.2.4':
+    resolution: {integrity: sha512-NtVZNCt9CY2KtpT3FOSpQXIaj/zt8sCFfaNNzOIVCQLwfkGc6Dfi1nFtI6BELY0cWWAmCf3+ZlHOecluEx0Ynw==}
     hasBin: true
 
   '@workflow/core@4.2.0':
@@ -11194,11 +11197,22 @@ packages:
       '@opentelemetry/api':
         optional: true
 
+  '@workflow/core@4.2.4':
+    resolution: {integrity: sha512-uORE+d8KPwf5vTvpq/gcynFl4gmls8m6ESHvsR+AOERlQAXRgEysCBpUAFczCFWU1P16CTEBJvH5S+qpnTWQIA==}
+    peerDependencies:
+      '@opentelemetry/api': '1'
+    peerDependenciesMeta:
+      '@opentelemetry/api':
+        optional: true
+
   '@workflow/errors@4.1.0':
     resolution: {integrity: sha512-MLf82s2hFgRIGaJRI0BQvhrNoCK7mOPSNGIBom42phbnrWbj2O0YSpZTBr1dNNFF7Cd8TgLEmaQrCsHZqlWhJw==}
 
-  '@workflow/nest@0.0.0':
-    resolution: {integrity: sha512-Ji3je93q68yF75a8k2ZKxebuSpiZBPBHftExHi6v2liv8bdbFPyBtCLitKaCmAFNUV4xZV8w/6Xe0YNmy6Iz8g==}
+  '@workflow/errors@4.1.1':
+    resolution: {integrity: sha512-T9x1MNKhoL9uMLP6KJNg2VyNz/Hf3cEB2WUaMU8fCEihDtHdHQ7q8J3sHIzFcHRg1FTnYFmVTk57Ycgfv8lZ5w==}
+
+  '@workflow/nest@0.0.4':
+    resolution: {integrity: sha512-dW2vg3178toaLqPHMtpXJEGQ/EufBPez1Ew0NhMpuo0+IVA7bqNDylK7g0ScMtsCX7CL5GOziW9I2mUVvpYUng==}
     hasBin: true
     peerDependencies:
       '@nestjs/common': '>=10.0.0'
@@ -11206,44 +11220,53 @@ packages:
       '@swc/cli': '>=0.4.0'
       '@swc/core': '>=1.5.0'
 
-  '@workflow/next@4.0.1':
-    resolution: {integrity: sha512-e3u7Zz4QHQVmxfCoyUSXQzVUle6uwbHWdysHT3M/tnRg3k6sk5LRltePKGIcibB57DSjbSwBFk9KExtkGsV7LA==}
+  '@workflow/next@4.0.5':
+    resolution: {integrity: sha512-Nos/vWpVj9uHK0w05AFVEULaWQs8R3AQZoJtGCxvjHCUWAI3Od8iQIzC9IeugKaDuufkkzLcZOeWaGV9p+Ey0w==}
     peerDependencies:
       next: '>13'
     peerDependenciesMeta:
       next:
         optional: true
 
-  '@workflow/nitro@4.0.1':
-    resolution: {integrity: sha512-fUZj8D6Htc1FmaNKqY8QdvExB8VR6pwsEBC/VrVI9cLdjPsaEvQmFvphVDdg0hkQ05sBRDJrHLJmfiqHGWun1A==}
+  '@workflow/nitro@4.0.5':
+    resolution: {integrity: sha512-M/jm+to+QiJI8/8r8tfz/4iayK0/vfsgu1703ec+ifPS8AYY0+LRWLIweb860vnEtydLuZgydIqts5CIgPsZcw==}
 
-  '@workflow/nuxt@4.0.1':
-    resolution: {integrity: sha512-fycbLWbgbTdtXmdaZYPCr6E1LtzadaAz4K8tEf1d3w0KNK2+NfIzyM0KjVByQuu5SSQ55UyFrHote8+fIzqYMw==}
+  '@workflow/nuxt@4.0.5':
+    resolution: {integrity: sha512-Q7fv0VqhZ8NXrgUOhd+YSc3j1ZVlDratVOcJ8Omxd0j2Mn0feC3CGeglFjaYfuvY/B2t7xG9SCcCXBV74CrEdQ==}
 
   '@workflow/rollup@4.0.0':
     resolution: {integrity: sha512-SF57HfxSxYs8tBS2o96pQMj33swVeznz3Wb1+hpL4RKLHvb8MDUwWGedLHU9Bw5CBCHuAqU/X1P9xBkUb7sBZA==}
 
+  '@workflow/rollup@4.0.4':
+    resolution: {integrity: sha512-DqmSp89Y4WVoMkBWkiNll0b5mZ2WA9uwNsRuO4QOU0XHytuCnvTRGMf0ZV6fXAa3KyeXlgS1r0V8SHwt1ZQ7jg==}
+
   '@workflow/serde@4.1.0':
     resolution: {integrity: sha512-pav4F2BoirECWR7Nf1TKt+2eETcBj7jj4cBefQ8VXQCA6NPkaKeLfj/zMgi+3zYV5ZIBT4GuUiphsj0/b9hPQQ==}
 
-  '@workflow/sveltekit@4.0.0':
-    resolution: {integrity: sha512-q3ehMkJE5o2SId5CmoyR2QK3+p7Ptm1zqtyGlvTRk9U+wkb1u74GquX4cLN0C4MJ7aPw7O8+ZDK9DqbmkQr04w==}
+  '@workflow/serde@4.1.1':
+    resolution: {integrity: sha512-191/N2w3WlrapuAvtAT1knONuqJ9auOqM8c7yMMM7c6rqXAZQKkNJrOuuj/j0vp7x43rg0+fy90bqT/xQ5ki4w==}
+
+  '@workflow/sveltekit@4.0.4':
+    resolution: {integrity: sha512-aqBJKSHhBUzZnJ08A0aSmimPXIk9o/ayS6zBpQESt6HgX3vrX7MbpklWKP9x0+3NzUDNN368O+Iahp+mJb5E9A==}
 
   '@workflow/swc-plugin@4.1.0':
     resolution: {integrity: sha512-FcWKJwzkRqf0u08/WCyg2n1H3932JQpFk3g6edE7trXKFW06a8o4F22k/xgPFsbxAq8UpywcIN7f46H0/uH5Tw==}
     peerDependencies:
       '@swc/core': 1.15.3
 
-  '@workflow/typescript-plugin@4.0.1':
-    resolution: {integrity: sha512-n2CYGiywL7QeBxdYXAeKcEXBu+T3DMFoau84OO+h6ugaa6Me++UZEbEoVnG7RvsYua0jLDbmWkIPYy4GJcOMCA==}
+  '@workflow/typescript-plugin@4.0.2':
+    resolution: {integrity: sha512-7bw6aEl+QMZWWZmhJS5bydrSgmxQrG8Kyo5Zhdb7klu+/pBUyNMVTUZmnfe1xRjWborqvOevqYbSDh0a0gwnAw==}
     peerDependencies:
       typescript: '>=5.0.0'
 
   '@workflow/utils@4.1.0':
     resolution: {integrity: sha512-wE7hTfSzR0sEougUluG6fFNR8O98F86v7nz3QGqPwtlNM1ZadW5s65Jhog9b0IA6PcAE4KHDy/iKktEyc23prw==}
 
-  '@workflow/vite@4.0.0':
-    resolution: {integrity: sha512-vhuOlTUozjDL0TcQhSkxoiAD0FsLwvpNa236W4DmPFHXbFrNadvFmPut/aLRcGubGcBAUItnBEy+Nqyi9/qZuA==}
+  '@workflow/utils@4.1.1':
+    resolution: {integrity: sha512-4+yJxzyeOBZsVRG8npvLsafCPt9E4bsFi/oUBBT2yLM5X4v+KUBLMwZOubShwcBix2/VOGau7mumvh12JSKjaA==}
+
+  '@workflow/vite@4.0.4':
+    resolution: {integrity: sha512-dEw5Dg6zdlsBwwEFYYqRIXApZ4kgqN/vMzZEyEbisJEofKNPDIYP1/nAh22DkYW55Nxa0YOKdqnhxQq+kdvX2A==}
 
   '@workflow/vitest@4.0.1':
     resolution: {integrity: sha512-6h8E6uTwPiSLkeKtOt2oABRtZGDODgqX8dgLEzWt8UMxYcSevL9JULmIaucyFpBznQ+YKQM/+NHNIjWNYIN7CQ==}
@@ -11254,11 +11277,19 @@ packages:
       vite:
         optional: true
 
-  '@workflow/web@4.1.0':
-    resolution: {integrity: sha512-iCDzJPBG6gyxNmnQGN55T3Q0bXCFG1ZkjkVbozajR6bfH41OZvmLDLwK6dJlqP+iqu3HjBtBIpPn0p2Wo+7jhw==}
+  '@workflow/web@4.1.5':
+    resolution: {integrity: sha512-VBdRdOBIs/TsS79TxhnjnYcmXKIOwR57gWL+n/0GSvd7aaMHcvKBybmRUTMYOe0q110KXs31eJ4aLjWLYLQxGA==}
 
   '@workflow/world-local@4.1.0':
     resolution: {integrity: sha512-dOi/2M3q0kFMnY6dovgojj4s0ddrAVSxk1MNQOarf3q4XmW4Q9C9+bsA3d/EXthQmb+9eiI6PiDPxQJALcUekw==}
+    peerDependencies:
+      '@opentelemetry/api': '1'
+    peerDependenciesMeta:
+      '@opentelemetry/api':
+        optional: true
+
+  '@workflow/world-local@4.1.1':
+    resolution: {integrity: sha512-qQznGPy15nPD+CO0THxMDwozIrvEOkZuAkpI2S3/+hrvUF07mSHGsGCVp6eVaECSTi3dGseep9rKUXZhU/HGYw==}
     peerDependencies:
       '@opentelemetry/api': '1'
     peerDependenciesMeta:
@@ -11273,8 +11304,21 @@ packages:
       '@opentelemetry/api':
         optional: true
 
+  '@workflow/world-vercel@4.1.2':
+    resolution: {integrity: sha512-GR0l0Hhm8JpILQgHn1gMGKNAlU6ioZEFDtyrM4haxz6JdcUE42JMNRGtw4IeHzsCXcXOZ7+SbVNFnEIVtG5faw==}
+    peerDependencies:
+      '@opentelemetry/api': '1'
+    peerDependenciesMeta:
+      '@opentelemetry/api':
+        optional: true
+
   '@workflow/world@4.1.0':
     resolution: {integrity: sha512-lvJD7vQTjuWn/sxXUnK+oiszVuWrg4YJAccaMojBb42zbp38/V9Lsig0zuSR3pPsKrjfvmiWtGn8ATma8Kp+1Q==}
+    peerDependencies:
+      zod: 4.3.6
+
+  '@workflow/world@4.1.1':
+    resolution: {integrity: sha512-OVfswz2SCt1NKSihAIPlPx/ygGdkA8si69xTAZtAZQACphuhmcg5mm28aNPo0/7oxcUVD/tO/AF1uSUF4BGpRw==}
     peerDependencies:
       zod: 4.3.6
 
@@ -20455,8 +20499,8 @@ packages:
   wordwrap@1.0.0:
     resolution: {integrity: sha512-gvVzJFlPycKc5dZN4yPkP8w7Dc37BtP1yczEneOb4uq34pXZcvrtRTmWV8W+Ume+XCxKgbjM+nevkyFPMybd4Q==}
 
-  workflow@4.2.0:
-    resolution: {integrity: sha512-f7yXNgMsTORmvxDrrxLqDTQC3dw9wdXAJ0IQ6le7DvYSb6gmu+dggyz56mXuec6TwiZkwxzjDLaNf+uP2QXnvQ==}
+  workflow@4.2.4:
+    resolution: {integrity: sha512-F7HT6uXIF0YaERtfK9kdXgebeXOUtSuCvQElIJYh5cjYmUS7JcRLsAsQSUeQ4Dcjvnml4t1efHypTR7gk/2d3g==}
     hasBin: true
     peerDependencies:
       '@opentelemetry/api': '1'
@@ -20773,7 +20817,7 @@ snapshots:
     dependencies:
       '@ampproject/remapping': 2.3.0
       '@angular-devkit/architect': 0.2003.18(chokidar@4.0.3)
-      '@angular-devkit/build-webpack': 0.2003.18(chokidar@4.0.3)(webpack-dev-server@5.2.2(webpack@5.105.0))(webpack@5.105.0(esbuild@0.25.9))
+      '@angular-devkit/build-webpack': 0.2003.18(chokidar@4.0.3)(webpack-dev-server@5.2.2(webpack@5.105.0))(webpack@5.105.0)
       '@angular-devkit/core': 20.3.18(chokidar@4.0.3)
       '@angular/build': 20.3.18(@angular/compiler-cli@20.3.17(@angular/compiler@20.3.17)(typescript@5.8.3))(@angular/compiler@20.3.17)(@angular/core@20.3.17(@angular/compiler@20.3.17)(rxjs@7.8.2)(zone.js@0.15.1))(@angular/platform-browser@20.3.17(@angular/common@20.3.17(@angular/core@20.3.17(@angular/compiler@20.3.17)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2))(@angular/core@20.3.17(@angular/compiler@20.3.17)(rxjs@7.8.2)(zone.js@0.15.1)))(@types/node@20.17.24)(chokidar@4.0.3)(jiti@2.6.1)(less@4.4.0)(lightningcss@1.31.1)(postcss@8.5.6)(tailwindcss@4.2.1)(terser@5.43.1)(tslib@2.8.1)(tsx@4.19.2)(typescript@5.8.3)(vitest@3.2.4(@edge-runtime/vm@5.0.0)(@types/debug@4.1.12)(@types/node@20.17.24)(jiti@2.6.1)(jsdom@26.1.0)(less@4.4.0)(lightningcss@1.31.1)(msw@2.12.10(@types/node@20.17.24)(typescript@5.8.3))(sass@1.90.0)(terser@5.43.1)(tsx@4.19.2)(yaml@2.8.4))(yaml@2.8.4)
       '@angular/compiler-cli': 20.3.17(@angular/compiler@20.3.17)(typescript@5.8.3)
@@ -20787,13 +20831,13 @@ snapshots:
       '@babel/preset-env': 7.28.3(@babel/core@7.28.3)
       '@babel/runtime': 7.28.3
       '@discoveryjs/json-ext': 0.6.3
-      '@ngtools/webpack': 20.3.18(@angular/compiler-cli@20.3.17(@angular/compiler@20.3.17)(typescript@5.8.3))(typescript@5.8.3)(webpack@5.105.0(esbuild@0.25.9))
+      '@ngtools/webpack': 20.3.18(@angular/compiler-cli@20.3.17(@angular/compiler@20.3.17)(typescript@5.8.3))(typescript@5.8.3)(webpack@5.105.0)
       ansi-colors: 4.1.3
       autoprefixer: 10.4.21(postcss@8.5.6)
-      babel-loader: 10.0.0(@babel/core@7.28.3)(webpack@5.105.0(esbuild@0.25.9))
+      babel-loader: 10.0.0(@babel/core@7.28.3)(webpack@5.105.0)
       browserslist: 4.25.1
-      copy-webpack-plugin: 13.0.1(webpack@5.105.0(esbuild@0.25.9))
-      css-loader: 7.1.2(webpack@5.105.0(esbuild@0.25.9))
+      copy-webpack-plugin: 13.0.1(webpack@5.105.0)
+      css-loader: 7.1.2(webpack@5.105.0)
       esbuild-wasm: 0.25.9
       fast-glob: 3.3.3
       http-proxy-middleware: 3.0.5
@@ -20801,22 +20845,22 @@ snapshots:
       jsonc-parser: 3.3.1
       karma-source-map-support: 1.4.0
       less: 4.4.0
-      less-loader: 12.3.0(less@4.4.0)(webpack@5.105.0(esbuild@0.25.9))
-      license-webpack-plugin: 4.0.2(webpack@5.105.0(esbuild@0.25.9))
+      less-loader: 12.3.0(less@4.4.0)(webpack@5.105.0)
+      license-webpack-plugin: 4.0.2(webpack@5.105.0)
       loader-utils: 3.3.1
-      mini-css-extract-plugin: 2.9.4(webpack@5.105.0(esbuild@0.25.9))
+      mini-css-extract-plugin: 2.9.4(webpack@5.105.0)
       open: 10.2.0
       ora: 8.2.0
       picomatch: 4.0.3
       piscina: 5.1.3
       postcss: 8.5.6
-      postcss-loader: 8.1.1(postcss@8.5.6)(typescript@5.8.3)(webpack@5.105.0(esbuild@0.25.9))
+      postcss-loader: 8.1.1(postcss@8.5.6)(typescript@5.8.3)(webpack@5.105.0)
       resolve-url-loader: 5.0.0
       rxjs: 7.8.2
       sass: 1.90.0
-      sass-loader: 16.0.5(sass@1.90.0)(webpack@5.105.0(esbuild@0.25.9))
+      sass-loader: 16.0.5(sass@1.90.0)(webpack@5.105.0)
       semver: 7.7.2
-      source-map-loader: 5.0.0(webpack@5.105.0(esbuild@0.25.9))
+      source-map-loader: 5.0.0(webpack@5.105.0)
       source-map-support: 0.5.21
       terser: 5.43.1
       tree-kill: 1.2.2
@@ -20826,12 +20870,12 @@ snapshots:
       webpack-dev-middleware: 7.4.2(webpack@5.105.0)
       webpack-dev-server: 5.2.2(webpack@5.105.0)
       webpack-merge: 6.0.1
-      webpack-subresource-integrity: 5.1.0(webpack@5.105.0(esbuild@0.25.9))
+      webpack-subresource-integrity: 5.1.0(webpack@5.105.0)
     optionalDependencies:
       '@angular/core': 20.3.17(@angular/compiler@20.3.17)(rxjs@7.8.2)(zone.js@0.15.1)
       '@angular/platform-browser': 20.3.17(@angular/common@20.3.17(@angular/core@20.3.17(@angular/compiler@20.3.17)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2))(@angular/core@20.3.17(@angular/compiler@20.3.17)(rxjs@7.8.2)(zone.js@0.15.1))
       esbuild: 0.25.9
-      jest: 29.7.0(@types/node@20.17.24)
+      jest: 29.7.0(@types/node@20.17.24)(ts-node@10.9.2(@swc/core@1.15.3)(@types/node@20.17.24)(typescript@5.8.3))
       tailwindcss: 4.2.1
     transitivePeerDependencies:
       - '@angular/compiler'
@@ -20856,7 +20900,7 @@ snapshots:
       - webpack-cli
       - yaml
 
-  '@angular-devkit/build-webpack@0.2003.18(chokidar@4.0.3)(webpack-dev-server@5.2.2(webpack@5.105.0))(webpack@5.105.0(esbuild@0.25.9))':
+  '@angular-devkit/build-webpack@0.2003.18(chokidar@4.0.3)(webpack-dev-server@5.2.2(webpack@5.105.0))(webpack@5.105.0)':
     dependencies:
       '@angular-devkit/architect': 0.2003.18(chokidar@4.0.3)
       rxjs: 7.8.2
@@ -20932,7 +20976,7 @@ snapshots:
       beasties: 0.3.5
       browserslist: 4.25.1
       esbuild: 0.25.9
-      https-proxy-agent: 7.0.6
+      https-proxy-agent: 7.0.6(supports-color@9.4.0)
       istanbul-lib-instrument: 6.0.3
       jsonc-parser: 3.3.1
       listr2: 9.0.1
@@ -21139,7 +21183,7 @@ snapshots:
       '@aws-sdk/types': 3.973.7
       '@smithy/property-provider': 4.2.13
       '@smithy/shared-ini-file-loader': 4.4.8
-      '@smithy/types': 4.13.0
+      '@smithy/types': 4.14.0
       tslib: 2.8.1
     transitivePeerDependencies:
       - aws-crt
@@ -21302,7 +21346,7 @@ snapshots:
       '@babel/traverse': 7.29.0
       '@babel/types': 7.29.0
       convert-source-map: 2.0.0
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@9.4.0)
       gensync: 1.0.0-beta.2
       json5: 2.2.3
       semver: 6.3.1
@@ -21322,7 +21366,7 @@ snapshots:
       '@babel/traverse': 7.29.0
       '@babel/types': 7.29.0
       convert-source-map: 2.0.0
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@9.4.0)
       gensync: 1.0.0-beta.2
       json5: 2.2.3
       semver: 6.3.1
@@ -21342,7 +21386,7 @@ snapshots:
       '@babel/types': 7.29.0
       '@jridgewell/remapping': 2.3.5
       convert-source-map: 2.0.0
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@9.4.0)
       gensync: 1.0.0-beta.2
       json5: 2.2.3
       semver: 6.3.1
@@ -21450,7 +21494,7 @@ snapshots:
       '@babel/core': 7.25.2
       '@babel/helper-compilation-targets': 7.28.6
       '@babel/helper-plugin-utils': 7.27.1
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@9.4.0)
       lodash.debounce: 4.0.8
       resolve: 1.22.10
     transitivePeerDependencies:
@@ -21462,7 +21506,7 @@ snapshots:
       '@babel/core': 7.28.3
       '@babel/helper-compilation-targets': 7.28.6
       '@babel/helper-plugin-utils': 7.27.1
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@9.4.0)
       lodash.debounce: 4.0.8
       resolve: 1.22.10
     transitivePeerDependencies:
@@ -22915,7 +22959,7 @@ snapshots:
       '@babel/parser': 7.29.0
       '@babel/template': 7.28.6
       '@babel/types': 7.29.0
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@9.4.0)
     transitivePeerDependencies:
       - supports-color
 
@@ -23872,7 +23916,7 @@ snapshots:
   '@eslint/config-array@0.21.1':
     dependencies:
       '@eslint/object-schema': 2.1.7
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@9.4.0)
       minimatch: 3.1.5
     transitivePeerDependencies:
       - supports-color
@@ -23891,7 +23935,7 @@ snapshots:
   '@eslint/eslintrc@3.3.4':
     dependencies:
       ajv: 6.14.0
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@9.4.0)
       espree: 10.4.0
       globals: 14.0.0
       ignore: 5.3.2
@@ -24035,7 +24079,7 @@ snapshots:
       '@antfu/install-pkg': 1.1.0
       '@antfu/utils': 9.3.0
       '@iconify/types': 2.0.0
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@9.4.0)
       globals: 15.15.0
       kolorist: 1.8.0
       local-pkg: 1.1.2
@@ -24454,42 +24498,6 @@ snapshots:
       jest-message-util: 29.7.0
       jest-util: 29.7.0
       slash: 3.0.0
-
-  '@jest/core@29.7.0':
-    dependencies:
-      '@jest/console': 29.7.0
-      '@jest/reporters': 29.7.0
-      '@jest/test-result': 29.7.0
-      '@jest/transform': 29.7.0
-      '@jest/types': 29.6.3
-      '@types/node': 20.17.24
-      ansi-escapes: 4.3.2
-      chalk: 4.1.2
-      ci-info: 3.9.0
-      exit: 0.1.2
-      graceful-fs: 4.2.11
-      jest-changed-files: 29.7.0
-      jest-config: 29.7.0(@types/node@20.17.24)
-      jest-haste-map: 29.7.0
-      jest-message-util: 29.7.0
-      jest-regex-util: 29.6.3
-      jest-resolve: 29.7.0
-      jest-resolve-dependencies: 29.7.0
-      jest-runner: 29.7.0
-      jest-runtime: 29.7.0
-      jest-snapshot: 29.7.0
-      jest-util: 29.7.0
-      jest-validate: 29.7.0
-      jest-watcher: 29.7.0
-      micromatch: 4.0.8
-      pretty-format: 29.7.0
-      slash: 3.0.0
-      strip-ansi: 6.0.1
-    transitivePeerDependencies:
-      - babel-plugin-macros
-      - supports-color
-      - ts-node
-    optional: true
 
   '@jest/core@29.7.0(ts-node@10.9.2(@swc/core@1.15.3)(@types/node@20.17.24)(typescript@5.8.3))':
     dependencies:
@@ -25218,7 +25226,7 @@ snapshots:
 
   '@koa/router@12.0.1':
     dependencies:
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@9.4.0)
       http-errors: 2.0.1
       koa-compose: 4.1.0
       methods: 1.1.2
@@ -25228,7 +25236,7 @@ snapshots:
 
   '@kwsites/file-exists@1.1.1':
     dependencies:
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@9.4.0)
     transitivePeerDependencies:
       - supports-color
 
@@ -25511,7 +25519,7 @@ snapshots:
     dependencies:
       consola: 3.4.2
       detect-libc: 2.1.2
-      https-proxy-agent: 7.0.6
+      https-proxy-agent: 7.0.6(supports-color@9.4.0)
       node-fetch: 2.7.0(encoding@0.1.13)
       nopt: 8.1.0
       semver: 7.7.4
@@ -25880,7 +25888,7 @@ snapshots:
   '@next/swc-win32-x64-msvc@15.5.7':
     optional: true
 
-  '@ngtools/webpack@20.3.18(@angular/compiler-cli@20.3.17(@angular/compiler@20.3.17)(typescript@5.8.3))(typescript@5.8.3)(webpack@5.105.0(esbuild@0.25.9))':
+  '@ngtools/webpack@20.3.18(@angular/compiler-cli@20.3.17(@angular/compiler@20.3.17)(typescript@5.8.3))(typescript@5.8.3)(webpack@5.105.0)':
     dependencies:
       '@angular/compiler-cli': 20.3.17(@angular/compiler@20.3.17)(typescript@5.8.3)
       typescript: 5.8.3
@@ -25904,7 +25912,7 @@ snapshots:
     dependencies:
       agent-base: 7.1.4
       http-proxy-agent: 7.0.2
-      https-proxy-agent: 7.0.6
+      https-proxy-agent: 7.0.6(supports-color@9.4.0)
       lru-cache: 11.2.6
       socks-proxy-agent: 8.0.5
     transitivePeerDependencies:
@@ -26089,7 +26097,7 @@ snapshots:
     dependencies:
       c12: 3.3.4(magicast@0.3.5)
       consola: 3.4.2
-      defu: 6.1.4
+      defu: 6.1.7
       destr: 2.0.5
       errx: 0.1.0
       exsolve: 1.0.8
@@ -29098,7 +29106,7 @@ snapshots:
   '@sveltejs/vite-plugin-svelte-inspector@4.0.1(@sveltejs/vite-plugin-svelte@5.1.1(svelte@5.53.6)(vite@6.4.1(@types/node@20.17.24)(jiti@2.6.1)(less@4.4.0)(lightningcss@1.31.1)(sass@1.90.0)(terser@5.43.1)(tsx@4.21.0)(yaml@2.8.4)))(svelte@5.53.6)(vite@6.4.1(@types/node@20.17.24)(jiti@2.6.1)(less@4.4.0)(lightningcss@1.31.1)(sass@1.90.0)(terser@5.43.1)(tsx@4.21.0)(yaml@2.8.4))':
     dependencies:
       '@sveltejs/vite-plugin-svelte': 5.1.1(svelte@5.53.6)(vite@6.4.1(@types/node@20.17.24)(jiti@2.6.1)(less@4.4.0)(lightningcss@1.31.1)(sass@1.90.0)(terser@5.43.1)(tsx@4.21.0)(yaml@2.8.4))
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@9.4.0)
       svelte: 5.53.6
       vite: 6.4.1(@types/node@20.17.24)(jiti@2.6.1)(less@4.4.0)(lightningcss@1.31.1)(sass@1.90.0)(terser@5.43.1)(tsx@4.21.0)(yaml@2.8.4)
     transitivePeerDependencies:
@@ -29107,7 +29115,7 @@ snapshots:
   '@sveltejs/vite-plugin-svelte-inspector@4.0.1(@sveltejs/vite-plugin-svelte@5.1.1(svelte@5.53.6)(vite@6.4.1(@types/node@22.7.4)(jiti@2.6.1)(less@4.4.0)(lightningcss@1.31.1)(sass@1.90.0)(terser@5.43.1)(tsx@4.21.0)(yaml@2.8.4)))(svelte@5.53.6)(vite@6.4.1(@types/node@22.7.4)(jiti@2.6.1)(less@4.4.0)(lightningcss@1.31.1)(sass@1.90.0)(terser@5.43.1)(tsx@4.21.0)(yaml@2.8.4))':
     dependencies:
       '@sveltejs/vite-plugin-svelte': 5.1.1(svelte@5.53.6)(vite@6.4.1(@types/node@22.7.4)(jiti@2.6.1)(less@4.4.0)(lightningcss@1.31.1)(sass@1.90.0)(terser@5.43.1)(tsx@4.21.0)(yaml@2.8.4))
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@9.4.0)
       svelte: 5.53.6
       vite: 6.4.1(@types/node@22.7.4)(jiti@2.6.1)(less@4.4.0)(lightningcss@1.31.1)(sass@1.90.0)(terser@5.43.1)(tsx@4.21.0)(yaml@2.8.4)
     transitivePeerDependencies:
@@ -29363,7 +29371,7 @@ snapshots:
 
   '@tokenizer/inflate@0.2.7':
     dependencies:
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@9.4.0)
       fflate: 0.8.2
       token-types: 6.1.2
     transitivePeerDependencies:
@@ -29371,7 +29379,7 @@ snapshots:
 
   '@tokenizer/inflate@0.4.1':
     dependencies:
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@9.4.0)
       token-types: 6.1.2
     transitivePeerDependencies:
       - supports-color
@@ -29841,7 +29849,7 @@ snapshots:
 
   '@typescript/vfs@1.6.4(typescript@5.8.3)':
     dependencies:
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@9.4.0)
       typescript: 5.8.3
     transitivePeerDependencies:
       - supports-color
@@ -30425,13 +30433,13 @@ snapshots:
       '@webassemblyjs/ast': 1.14.1
       '@xtuc/long': 4.2.2
 
-  '@workflow/astro@4.0.0(@opentelemetry/api@1.9.1)':
+  '@workflow/astro@4.0.4(@opentelemetry/api@1.9.1)':
     dependencies:
       '@swc/core': 1.15.3
-      '@workflow/builders': 4.0.1(@opentelemetry/api@1.9.1)
-      '@workflow/rollup': 4.0.0(@opentelemetry/api@1.9.1)
+      '@workflow/builders': 4.0.5(@opentelemetry/api@1.9.1)
+      '@workflow/rollup': 4.0.4(@opentelemetry/api@1.9.1)
       '@workflow/swc-plugin': 4.1.0(@swc/core@1.15.3)
-      '@workflow/vite': 4.0.0(@opentelemetry/api@1.9.1)
+      '@workflow/vite': 4.0.4(@opentelemetry/api@1.9.1)
       exsolve: 1.0.8
       pathe: 2.0.3
     transitivePeerDependencies:
@@ -30460,21 +30468,41 @@ snapshots:
       - aws-crt
       - supports-color
 
-  '@workflow/cli@4.2.0(@opentelemetry/api@1.9.1)':
+  '@workflow/builders@4.0.5(@opentelemetry/api@1.9.1)':
+    dependencies:
+      '@swc/core': 1.15.3
+      '@workflow/core': 4.2.4(@opentelemetry/api@1.9.1)
+      '@workflow/errors': 4.1.1
+      '@workflow/swc-plugin': 4.1.0(@swc/core@1.15.3)
+      '@workflow/utils': 4.1.1
+      builtin-modules: 5.0.0
+      chalk: 5.6.2
+      enhanced-resolve: 5.19.0
+      esbuild: 0.27.3
+      find-up: 7.0.0
+      json5: 2.2.3
+      tinyglobby: 0.2.15
+    transitivePeerDependencies:
+      - '@opentelemetry/api'
+      - '@swc/helpers'
+      - aws-crt
+      - supports-color
+
+  '@workflow/cli@4.2.4(@opentelemetry/api@1.9.1)':
     dependencies:
       '@oclif/core': 4.8.1
       '@oclif/plugin-help': 6.2.37
       '@swc/core': 1.15.3
       '@vercel/cli-auth': 0.0.1
-      '@workflow/builders': 4.0.1(@opentelemetry/api@1.9.1)
-      '@workflow/core': 4.2.0(@opentelemetry/api@1.9.1)
-      '@workflow/errors': 4.1.0
+      '@workflow/builders': 4.0.5(@opentelemetry/api@1.9.1)
+      '@workflow/core': 4.2.4(@opentelemetry/api@1.9.1)
+      '@workflow/errors': 4.1.1
       '@workflow/swc-plugin': 4.1.0(@swc/core@1.15.3)
-      '@workflow/utils': 4.1.0
-      '@workflow/web': 4.1.0
-      '@workflow/world': 4.1.0(zod@4.3.6)
-      '@workflow/world-local': 4.1.0(@opentelemetry/api@1.9.1)
-      '@workflow/world-vercel': 4.1.0(@opentelemetry/api@1.9.1)
+      '@workflow/utils': 4.1.1
+      '@workflow/web': 4.1.5
+      '@workflow/world': 4.1.1(zod@4.3.6)
+      '@workflow/world-local': 4.1.1(@opentelemetry/api@1.9.1)
+      '@workflow/world-vercel': 4.1.2(@opentelemetry/api@1.9.1)
       boxen: 8.0.1
       builtin-modules: 5.0.0
       chalk: 5.6.2
@@ -30511,7 +30539,34 @@ snapshots:
       '@workflow/world': 4.1.0(zod@4.3.6)
       '@workflow/world-local': 4.1.0(@opentelemetry/api@1.9.1)
       '@workflow/world-vercel': 4.1.0(@opentelemetry/api@1.9.1)
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@9.4.0)
+      devalue: 5.6.3
+      ms: 2.1.3
+      nanoid: 5.1.6
+      seedrandom: 3.0.5
+      semver: 7.7.4
+      ulid: 3.0.2
+      zod: 4.3.6
+    optionalDependencies:
+      '@opentelemetry/api': 1.9.1
+    transitivePeerDependencies:
+      - aws-crt
+      - supports-color
+
+  '@workflow/core@4.2.4(@opentelemetry/api@1.9.1)':
+    dependencies:
+      '@aws-sdk/credential-provider-web-identity': 3.972.13
+      '@jridgewell/trace-mapping': 0.3.31
+      '@standard-schema/spec': 1.0.0
+      '@types/ms': 2.1.0
+      '@vercel/functions': 3.4.3(@aws-sdk/credential-provider-web-identity@3.972.13)
+      '@workflow/errors': 4.1.1
+      '@workflow/serde': 4.1.1
+      '@workflow/utils': 4.1.1
+      '@workflow/world': 4.1.1(zod@4.3.6)
+      '@workflow/world-local': 4.1.1(@opentelemetry/api@1.9.1)
+      '@workflow/world-vercel': 4.1.2(@opentelemetry/api@1.9.1)
+      debug: 4.4.3(supports-color@9.4.0)
       devalue: 5.6.3
       ms: 2.1.3
       nanoid: 5.1.6
@@ -30530,13 +30585,18 @@ snapshots:
       '@workflow/utils': 4.1.0
       ms: 2.1.3
 
-  '@workflow/nest@0.0.0(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@10.4.22)(@opentelemetry/api@1.9.1)(@swc/cli@0.8.1(@swc/core@1.15.3)(chokidar@5.0.0))(@swc/core@1.15.3)':
+  '@workflow/errors@4.1.1':
+    dependencies:
+      '@workflow/utils': 4.1.1
+      ms: 2.1.3
+
+  '@workflow/nest@0.0.4(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@10.4.22)(@opentelemetry/api@1.9.1)(@swc/cli@0.8.1(@swc/core@1.15.3)(chokidar@5.0.0))(@swc/core@1.15.3)':
     dependencies:
       '@nestjs/common': 10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2)
       '@nestjs/core': 10.4.22(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/platform-express@10.4.22)(encoding@0.1.13)(reflect-metadata@0.2.2)(rxjs@7.8.2)
       '@swc/cli': 0.8.1(@swc/core@1.15.3)(chokidar@5.0.0)
       '@swc/core': 1.15.3
-      '@workflow/builders': 4.0.1(@opentelemetry/api@1.9.1)
+      '@workflow/builders': 4.0.5(@opentelemetry/api@1.9.1)
       '@workflow/swc-plugin': 4.1.0(@swc/core@1.15.3)
       pathe: 2.0.3
     transitivePeerDependencies:
@@ -30545,11 +30605,11 @@ snapshots:
       - aws-crt
       - supports-color
 
-  '@workflow/next@4.0.1(@opentelemetry/api@1.9.1)(next@15.5.15(@opentelemetry/api@1.9.1)(@playwright/test@1.58.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0))':
+  '@workflow/next@4.0.5(@opentelemetry/api@1.9.1)(next@15.5.15(@opentelemetry/api@1.9.1)(@playwright/test@1.58.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0))':
     dependencies:
       '@swc/core': 1.15.3
-      '@workflow/builders': 4.0.1(@opentelemetry/api@1.9.1)
-      '@workflow/core': 4.2.0(@opentelemetry/api@1.9.1)
+      '@workflow/builders': 4.0.5(@opentelemetry/api@1.9.1)
+      '@workflow/core': 4.2.4(@opentelemetry/api@1.9.1)
       '@workflow/swc-plugin': 4.1.0(@swc/core@1.15.3)
       semver: 7.7.4
       watchpack: 2.5.1
@@ -30561,11 +30621,11 @@ snapshots:
       - aws-crt
       - supports-color
 
-  '@workflow/next@4.0.1(@opentelemetry/api@1.9.1)(next@15.5.15(@opentelemetry/api@1.9.1)(@playwright/test@1.58.2)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(sass@1.90.0))':
+  '@workflow/next@4.0.5(@opentelemetry/api@1.9.1)(next@15.5.15(@opentelemetry/api@1.9.1)(@playwright/test@1.58.2)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(sass@1.90.0))':
     dependencies:
       '@swc/core': 1.15.3
-      '@workflow/builders': 4.0.1(@opentelemetry/api@1.9.1)
-      '@workflow/core': 4.2.0(@opentelemetry/api@1.9.1)
+      '@workflow/builders': 4.0.5(@opentelemetry/api@1.9.1)
+      '@workflow/core': 4.2.4(@opentelemetry/api@1.9.1)
       '@workflow/swc-plugin': 4.1.0(@swc/core@1.15.3)
       semver: 7.7.4
       watchpack: 2.5.1
@@ -30577,14 +30637,14 @@ snapshots:
       - aws-crt
       - supports-color
 
-  '@workflow/nitro@4.0.1(@opentelemetry/api@1.9.1)':
+  '@workflow/nitro@4.0.5(@opentelemetry/api@1.9.1)':
     dependencies:
       '@swc/core': 1.15.3
-      '@workflow/builders': 4.0.1(@opentelemetry/api@1.9.1)
-      '@workflow/core': 4.2.0(@opentelemetry/api@1.9.1)
-      '@workflow/rollup': 4.0.0(@opentelemetry/api@1.9.1)
+      '@workflow/builders': 4.0.5(@opentelemetry/api@1.9.1)
+      '@workflow/core': 4.2.4(@opentelemetry/api@1.9.1)
+      '@workflow/rollup': 4.0.4(@opentelemetry/api@1.9.1)
       '@workflow/swc-plugin': 4.1.0(@swc/core@1.15.3)
-      '@workflow/vite': 4.0.0(@opentelemetry/api@1.9.1)
+      '@workflow/vite': 4.0.4(@opentelemetry/api@1.9.1)
       exsolve: 1.0.8
       pathe: 2.0.3
     transitivePeerDependencies:
@@ -30593,10 +30653,10 @@ snapshots:
       - aws-crt
       - supports-color
 
-  '@workflow/nuxt@4.0.1(@opentelemetry/api@1.9.1)(magicast@0.3.5)':
+  '@workflow/nuxt@4.0.5(@opentelemetry/api@1.9.1)(magicast@0.3.5)':
     dependencies:
       '@nuxt/kit': 4.4.2(magicast@0.3.5)
-      '@workflow/nitro': 4.0.1(@opentelemetry/api@1.9.1)
+      '@workflow/nitro': 4.0.5(@opentelemetry/api@1.9.1)
     transitivePeerDependencies:
       - '@opentelemetry/api'
       - '@swc/helpers'
@@ -30616,15 +30676,29 @@ snapshots:
       - aws-crt
       - supports-color
 
-  '@workflow/serde@4.1.0': {}
-
-  '@workflow/sveltekit@4.0.0(@opentelemetry/api@1.9.1)':
+  '@workflow/rollup@4.0.4(@opentelemetry/api@1.9.1)':
     dependencies:
       '@swc/core': 1.15.3
-      '@workflow/builders': 4.0.1(@opentelemetry/api@1.9.1)
-      '@workflow/rollup': 4.0.0(@opentelemetry/api@1.9.1)
+      '@workflow/builders': 4.0.5(@opentelemetry/api@1.9.1)
       '@workflow/swc-plugin': 4.1.0(@swc/core@1.15.3)
-      '@workflow/vite': 4.0.0(@opentelemetry/api@1.9.1)
+      exsolve: 1.0.7
+    transitivePeerDependencies:
+      - '@opentelemetry/api'
+      - '@swc/helpers'
+      - aws-crt
+      - supports-color
+
+  '@workflow/serde@4.1.0': {}
+
+  '@workflow/serde@4.1.1': {}
+
+  '@workflow/sveltekit@4.0.4(@opentelemetry/api@1.9.1)':
+    dependencies:
+      '@swc/core': 1.15.3
+      '@workflow/builders': 4.0.5(@opentelemetry/api@1.9.1)
+      '@workflow/rollup': 4.0.4(@opentelemetry/api@1.9.1)
+      '@workflow/swc-plugin': 4.1.0(@swc/core@1.15.3)
+      '@workflow/vite': 4.0.4(@opentelemetry/api@1.9.1)
       exsolve: 1.0.8
       fs-extra: 11.3.4
       pathe: 2.0.3
@@ -30638,7 +30712,7 @@ snapshots:
     dependencies:
       '@swc/core': 1.15.3
 
-  '@workflow/typescript-plugin@4.0.1(typescript@5.8.3)':
+  '@workflow/typescript-plugin@4.0.2(typescript@5.8.3)':
     dependencies:
       typescript: 5.8.3
 
@@ -30646,9 +30720,13 @@ snapshots:
     dependencies:
       ms: 2.1.3
 
-  '@workflow/vite@4.0.0(@opentelemetry/api@1.9.1)':
+  '@workflow/utils@4.1.1':
     dependencies:
-      '@workflow/builders': 4.0.1(@opentelemetry/api@1.9.1)
+      ms: 2.1.3
+
+  '@workflow/vite@4.0.4(@opentelemetry/api@1.9.1)':
+    dependencies:
+      '@workflow/builders': 4.0.5(@opentelemetry/api@1.9.1)
     transitivePeerDependencies:
       - '@opentelemetry/api'
       - '@swc/helpers'
@@ -30672,7 +30750,7 @@ snapshots:
       - supports-color
       - zod
 
-  '@workflow/web@4.1.0':
+  '@workflow/web@4.1.5':
     dependencies:
       express: 4.22.1
     transitivePeerDependencies:
@@ -30684,6 +30762,19 @@ snapshots:
       '@workflow/errors': 4.1.0
       '@workflow/utils': 4.1.0
       '@workflow/world': 4.1.0(zod@4.3.6)
+      async-sema: 3.1.1
+      ulid: 3.0.2
+      undici: 7.22.0
+      zod: 4.3.6
+    optionalDependencies:
+      '@opentelemetry/api': 1.9.1
+
+  '@workflow/world-local@4.1.1(@opentelemetry/api@1.9.1)':
+    dependencies:
+      '@vercel/queue': 0.1.4
+      '@workflow/errors': 4.1.1
+      '@workflow/utils': 4.1.1
+      '@workflow/world': 4.1.1(zod@4.3.6)
       async-sema: 3.1.1
       ulid: 3.0.2
       undici: 7.22.0
@@ -30703,12 +30794,29 @@ snapshots:
     optionalDependencies:
       '@opentelemetry/api': 1.9.1
 
+  '@workflow/world-vercel@4.1.2(@opentelemetry/api@1.9.1)':
+    dependencies:
+      '@vercel/oidc': 3.2.0
+      '@vercel/queue': 0.1.4
+      '@workflow/errors': 4.1.1
+      '@workflow/world': 4.1.1(zod@4.3.6)
+      cbor-x: 1.6.0
+      undici: 7.22.0
+      zod: 4.3.6
+    optionalDependencies:
+      '@opentelemetry/api': 1.9.1
+
   '@workflow/world@4.1.0(zod@3.25.76)':
     dependencies:
       ulid: 3.0.2
       zod: 3.25.76
 
   '@workflow/world@4.1.0(zod@4.3.6)':
+    dependencies:
+      ulid: 3.0.2
+      zod: 4.3.6
+
+  '@workflow/world@4.1.1(zod@4.3.6)':
     dependencies:
       ulid: 3.0.2
       zod: 4.3.6
@@ -30870,13 +30978,13 @@ snapshots:
 
   agent-base@6.0.2:
     dependencies:
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@9.4.0)
     transitivePeerDependencies:
       - supports-color
 
   agent-base@7.1.1:
     dependencies:
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@9.4.0)
     transitivePeerDependencies:
       - supports-color
 
@@ -31181,7 +31289,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  babel-loader@10.0.0(@babel/core@7.28.3)(webpack@5.105.0(esbuild@0.25.9)):
+  babel-loader@10.0.0(@babel/core@7.28.3)(webpack@5.105.0):
     dependencies:
       '@babel/core': 7.28.3
       find-up: 5.0.0
@@ -31404,7 +31512,7 @@ snapshots:
     dependencies:
       bytes: 3.1.2
       content-type: 1.0.5
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@9.4.0)
       http-errors: 2.0.0
       iconv-lite: 0.7.0
       on-finished: 2.4.1
@@ -31660,7 +31768,7 @@ snapshots:
 
   centra@2.7.0:
     dependencies:
-      follow-redirects: 1.15.9
+      follow-redirects: 1.15.9(debug@4.4.3)
     transitivePeerDependencies:
       - debug
 
@@ -32051,7 +32159,7 @@ snapshots:
     dependencies:
       is-what: 5.5.0
 
-  copy-webpack-plugin@13.0.1(webpack@5.105.0(esbuild@0.25.9)):
+  copy-webpack-plugin@13.0.1(webpack@5.105.0):
     dependencies:
       glob-parent: 6.0.2
       normalize-path: 3.0.0
@@ -32109,22 +32217,6 @@ snapshots:
       crc-32: 1.2.2
       readable-stream: 4.5.2
 
-  create-jest@29.7.0(@types/node@20.17.24):
-    dependencies:
-      '@jest/types': 29.6.3
-      chalk: 4.1.2
-      exit: 0.1.2
-      graceful-fs: 4.2.11
-      jest-config: 29.7.0(@types/node@20.17.24)
-      jest-util: 29.7.0
-      prompts: 2.4.2
-    transitivePeerDependencies:
-      - '@types/node'
-      - babel-plugin-macros
-      - supports-color
-      - ts-node
-    optional: true
-
   create-jest@29.7.0(@types/node@20.17.24)(ts-node@10.9.2(@swc/core@1.15.3)(@types/node@20.17.24)(typescript@5.8.3)):
     dependencies:
       '@jest/types': 29.6.3
@@ -32174,7 +32266,7 @@ snapshots:
     dependencies:
       postcss: 8.5.9
 
-  css-loader@7.1.2(webpack@5.105.0(esbuild@0.25.9)):
+  css-loader@7.1.2(webpack@5.105.0):
     dependencies:
       icss-utils: 5.1.0(postcss@8.5.9)
       postcss: 8.5.9
@@ -32502,10 +32594,6 @@ snapshots:
       ms: 2.1.3
 
   debug@4.4.1:
-    dependencies:
-      ms: 2.1.3
-
-  debug@4.4.3:
     dependencies:
       ms: 2.1.3
 
@@ -33183,7 +33271,7 @@ snapshots:
       ajv: 6.14.0
       chalk: 4.1.2
       cross-spawn: 7.0.6
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@9.4.0)
       escape-string-regexp: 4.0.0
       eslint-scope: 8.4.0
       eslint-visitor-keys: 4.2.1
@@ -33464,7 +33552,7 @@ snapshots:
       content-type: 1.0.5
       cookie: 0.7.2
       cookie-signature: 1.2.1
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@9.4.0)
       depd: 2.0.0
       encodeurl: 2.0.0
       escape-html: 1.0.3
@@ -33521,7 +33609,7 @@ snapshots:
 
   extract-zip@2.0.1:
     dependencies:
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@9.4.0)
       get-stream: 5.2.0
       yauzl: 2.10.0
     optionalDependencies:
@@ -33754,7 +33842,7 @@ snapshots:
 
   finalhandler@2.1.1:
     dependencies:
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@9.4.0)
       encodeurl: 2.0.0
       escape-html: 1.0.3
       on-finished: 2.4.1
@@ -33823,11 +33911,9 @@ snapshots:
 
   fn.name@1.1.0: {}
 
-  follow-redirects@1.15.9: {}
-
   follow-redirects@1.15.9(debug@4.4.3):
     optionalDependencies:
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@9.4.0)
 
   for-each@0.3.3:
     dependencies:
@@ -33972,7 +34058,7 @@ snapshots:
   gaxios@6.5.0(encoding@0.1.13):
     dependencies:
       extend: 3.0.2
-      https-proxy-agent: 7.0.6
+      https-proxy-agent: 7.0.6(supports-color@9.4.0)
       is-stream: 2.0.1
       node-fetch: 2.7.0(encoding@0.1.13)
       uuid: 9.0.1
@@ -33983,7 +34069,7 @@ snapshots:
   gaxios@7.1.3:
     dependencies:
       extend: 3.0.2
-      https-proxy-agent: 7.0.6
+      https-proxy-agent: 7.0.6(supports-color@9.4.0)
       node-fetch: 3.3.2
       rimraf: 5.0.10
     transitivePeerDependencies:
@@ -34559,14 +34645,14 @@ snapshots:
   http-proxy-agent@7.0.2:
     dependencies:
       agent-base: 7.1.4
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@9.4.0)
     transitivePeerDependencies:
       - supports-color
 
   http-proxy-middleware@2.0.9(@types/express@4.17.25):
     dependencies:
       '@types/http-proxy': 1.17.15
-      http-proxy: 1.18.1
+      http-proxy: 1.18.1(debug@4.4.3)
       is-glob: 4.0.3
       is-plain-obj: 3.0.0
       micromatch: 4.0.8
@@ -34578,21 +34664,13 @@ snapshots:
   http-proxy-middleware@3.0.5:
     dependencies:
       '@types/http-proxy': 1.17.15
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@9.4.0)
       http-proxy: 1.18.1(debug@4.4.3)
       is-glob: 4.0.3
       is-plain-object: 5.0.0
       micromatch: 4.0.8
     transitivePeerDependencies:
       - supports-color
-
-  http-proxy@1.18.1:
-    dependencies:
-      eventemitter3: 4.0.7
-      follow-redirects: 1.15.9
-      requires-port: 1.0.0
-    transitivePeerDependencies:
-      - debug
 
   http-proxy@1.18.1(debug@4.4.3):
     dependencies:
@@ -34612,21 +34690,14 @@ snapshots:
   https-proxy-agent@5.0.1:
     dependencies:
       agent-base: 6.0.2
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@9.4.0)
     transitivePeerDependencies:
       - supports-color
 
   https-proxy-agent@7.0.5:
     dependencies:
       agent-base: 7.1.1
-      debug: 4.4.3
-    transitivePeerDependencies:
-      - supports-color
-
-  https-proxy-agent@7.0.6:
-    dependencies:
-      agent-base: 7.1.3
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@9.4.0)
     transitivePeerDependencies:
       - supports-color
 
@@ -34833,7 +34904,7 @@ snapshots:
     dependencies:
       '@ioredis/commands': 1.2.0
       cluster-key-slot: 1.1.2
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@9.4.0)
       denque: 2.1.0
       lodash.defaults: 4.2.0
       lodash.isarguments: 3.1.0
@@ -35098,7 +35169,7 @@ snapshots:
 
   istanbul-lib-source-maps@4.0.1:
     dependencies:
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@9.4.0)
       istanbul-lib-coverage: 3.2.2
       source-map: 0.6.1
     transitivePeerDependencies:
@@ -35162,26 +35233,6 @@ snapshots:
       - babel-plugin-macros
       - supports-color
 
-  jest-cli@29.7.0(@types/node@20.17.24):
-    dependencies:
-      '@jest/core': 29.7.0
-      '@jest/test-result': 29.7.0
-      '@jest/types': 29.6.3
-      chalk: 4.1.2
-      create-jest: 29.7.0(@types/node@20.17.24)
-      exit: 0.1.2
-      import-local: 3.2.0
-      jest-config: 29.7.0(@types/node@20.17.24)
-      jest-util: 29.7.0
-      jest-validate: 29.7.0
-      yargs: 17.7.2
-    transitivePeerDependencies:
-      - '@types/node'
-      - babel-plugin-macros
-      - supports-color
-      - ts-node
-    optional: true
-
   jest-cli@29.7.0(@types/node@20.17.24)(ts-node@10.9.2(@swc/core@1.15.3)(@types/node@20.17.24)(typescript@5.8.3)):
     dependencies:
       '@jest/core': 29.7.0(ts-node@10.9.2(@swc/core@1.15.3)(@types/node@20.17.24)(typescript@5.8.3))
@@ -35200,37 +35251,6 @@ snapshots:
       - babel-plugin-macros
       - supports-color
       - ts-node
-
-  jest-config@29.7.0(@types/node@20.17.24):
-    dependencies:
-      '@babel/core': 7.29.0
-      '@jest/test-sequencer': 29.7.0
-      '@jest/types': 29.6.3
-      babel-jest: 29.7.0(@babel/core@7.29.0)
-      chalk: 4.1.2
-      ci-info: 3.9.0
-      deepmerge: 4.3.1
-      glob: 7.2.3
-      graceful-fs: 4.2.11
-      jest-circus: 29.7.0
-      jest-environment-node: 29.7.0
-      jest-get-type: 29.6.3
-      jest-regex-util: 29.6.3
-      jest-resolve: 29.7.0
-      jest-runner: 29.7.0
-      jest-util: 29.7.0
-      jest-validate: 29.7.0
-      micromatch: 4.0.8
-      parse-json: 5.2.0
-      pretty-format: 29.7.0
-      slash: 3.0.0
-      strip-json-comments: 3.1.1
-    optionalDependencies:
-      '@types/node': 20.17.24
-    transitivePeerDependencies:
-      - babel-plugin-macros
-      - supports-color
-    optional: true
 
   jest-config@29.7.0(@types/node@20.17.24)(ts-node@10.9.2(@swc/core@1.15.3)(@types/node@20.17.24)(typescript@5.8.3)):
     dependencies:
@@ -35484,19 +35504,6 @@ snapshots:
       merge-stream: 2.0.0
       supports-color: 8.1.1
 
-  jest@29.7.0(@types/node@20.17.24):
-    dependencies:
-      '@jest/core': 29.7.0
-      '@jest/types': 29.6.3
-      import-local: 3.2.0
-      jest-cli: 29.7.0(@types/node@20.17.24)
-    transitivePeerDependencies:
-      - '@types/node'
-      - babel-plugin-macros
-      - supports-color
-      - ts-node
-    optional: true
-
   jest@29.7.0(@types/node@20.17.24)(ts-node@10.9.2(@swc/core@1.15.3)(@types/node@20.17.24)(typescript@5.8.3)):
     dependencies:
       '@jest/core': 29.7.0(ts-node@10.9.2(@swc/core@1.15.3)(@types/node@20.17.24)(typescript@5.8.3))
@@ -35633,7 +35640,7 @@ snapshots:
       decimal.js: 10.6.0
       html-encoding-sniffer: 4.0.0
       http-proxy-agent: 7.0.2
-      https-proxy-agent: 7.0.6
+      https-proxy-agent: 7.0.6(supports-color@9.4.0)
       is-potential-custom-element-name: 1.0.1
       nwsapi: 2.2.18
       parse5: 7.2.1
@@ -35787,7 +35794,7 @@ snapshots:
 
   koa-send@5.0.1:
     dependencies:
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@9.4.0)
       http-errors: 1.8.1
       resolve-path: 1.4.0
     transitivePeerDependencies:
@@ -35807,7 +35814,7 @@ snapshots:
       content-disposition: 0.5.4
       content-type: 1.0.5
       cookies: 0.8.0
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@9.4.0)
       delegates: 1.0.0
       depd: 2.0.0
       destroy: 1.2.0
@@ -35920,7 +35927,7 @@ snapshots:
     dependencies:
       readable-stream: 2.3.8
 
-  less-loader@12.3.0(less@4.4.0)(webpack@5.105.0(esbuild@0.25.9)):
+  less-loader@12.3.0(less@4.4.0)(webpack@5.105.0):
     dependencies:
       less: 4.4.0
     optionalDependencies:
@@ -35948,7 +35955,7 @@ snapshots:
       type-check: 0.4.0
     optional: true
 
-  license-webpack-plugin@4.0.2(webpack@5.105.0(esbuild@0.25.9)):
+  license-webpack-plugin@4.0.2(webpack@5.105.0):
     dependencies:
       webpack-sources: 3.3.3
     optionalDependencies:
@@ -36019,7 +36026,7 @@ snapshots:
     dependencies:
       chalk: 5.6.2
       commander: 13.1.0
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@9.4.0)
       execa: 8.0.1
       lilconfig: 3.1.3
       listr2: 8.3.3
@@ -36959,7 +36966,7 @@ snapshots:
   micromark@4.0.0:
     dependencies:
       '@types/debug': 4.1.12
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@9.4.0)
       decode-named-character-reference: 1.0.2
       devlop: 1.1.0
       micromark-core-commonmark: 2.0.1
@@ -36981,7 +36988,7 @@ snapshots:
   micromark@4.0.2:
     dependencies:
       '@types/debug': 4.1.12
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@9.4.0)
       decode-named-character-reference: 1.3.0
       devlop: 1.1.0
       micromark-core-commonmark: 2.0.3
@@ -37053,7 +37060,7 @@ snapshots:
 
   min-indent@1.0.1: {}
 
-  mini-css-extract-plugin@2.9.4(webpack@5.105.0(esbuild@0.25.9)):
+  mini-css-extract-plugin@2.9.4(webpack@5.105.0):
     dependencies:
       schema-utils: 4.3.2
       tapable: 2.2.1
@@ -38681,7 +38688,7 @@ snapshots:
       tsx: 4.21.0
       yaml: 2.8.4
 
-  postcss-loader@8.1.1(postcss@8.5.6)(typescript@5.8.3)(webpack@5.105.0(esbuild@0.25.9)):
+  postcss-loader@8.1.1(postcss@8.5.6)(typescript@5.8.3)(webpack@5.105.0):
     dependencies:
       cosmiconfig: 9.0.0(typescript@5.8.3)
       jiti: 1.21.7
@@ -39500,7 +39507,7 @@ snapshots:
 
   require-in-the-middle@7.3.0:
     dependencies:
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@9.4.0)
       module-details-from-path: 1.0.3
       resolve: 1.22.10
     transitivePeerDependencies:
@@ -39508,7 +39515,7 @@ snapshots:
 
   require-in-the-middle@8.0.1:
     dependencies:
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@9.4.0)
       module-details-from-path: 1.0.4
     transitivePeerDependencies:
       - supports-color
@@ -39711,7 +39718,7 @@ snapshots:
 
   router@2.2.0:
     dependencies:
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@9.4.0)
       depd: 2.0.0
       is-promise: 4.0.0
       parseurl: 1.3.3
@@ -39766,7 +39773,7 @@ snapshots:
 
   safer-buffer@2.1.2: {}
 
-  sass-loader@16.0.5(sass@1.90.0)(webpack@5.105.0(esbuild@0.25.9)):
+  sass-loader@16.0.5(sass@1.90.0)(webpack@5.105.0):
     dependencies:
       neo-async: 2.6.2
     optionalDependencies:
@@ -39889,7 +39896,7 @@ snapshots:
 
   send@1.1.0:
     dependencies:
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@9.4.0)
       destroy: 1.2.0
       encodeurl: 2.0.0
       escape-html: 1.0.3
@@ -39906,7 +39913,7 @@ snapshots:
 
   send@1.2.1:
     dependencies:
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@9.4.0)
       encodeurl: 2.0.0
       escape-html: 1.0.3
       etag: 1.8.1
@@ -40156,7 +40163,7 @@ snapshots:
     dependencies:
       '@kwsites/file-exists': 1.1.1
       '@kwsites/promise-deferred': 1.1.1
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@9.4.0)
     transitivePeerDependencies:
       - supports-color
 
@@ -40211,7 +40218,7 @@ snapshots:
   socks-proxy-agent@8.0.5:
     dependencies:
       agent-base: 7.1.4
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@9.4.0)
       socks: 2.8.7
     transitivePeerDependencies:
       - supports-color
@@ -40240,7 +40247,7 @@ snapshots:
 
   source-map-js@1.2.1: {}
 
-  source-map-loader@5.0.0(webpack@5.105.0(esbuild@0.25.9)):
+  source-map-loader@5.0.0(webpack@5.105.0):
     dependencies:
       iconv-lite: 0.6.3
       source-map-js: 1.2.1
@@ -40294,7 +40301,7 @@ snapshots:
 
   spdy-transport@3.0.0:
     dependencies:
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@9.4.0)
       detect-node: 2.1.0
       hpack.js: 2.1.6
       obuf: 1.1.2
@@ -40305,7 +40312,7 @@ snapshots:
 
   spdy@4.0.2:
     dependencies:
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@9.4.0)
       handle-thing: 2.0.1
       http-deceiver: 1.2.7
       select-hose: 2.0.0
@@ -40568,7 +40575,7 @@ snapshots:
     dependencies:
       component-emitter: 1.3.1
       cookiejar: 2.1.4
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@9.4.0)
       fast-safe-stringify: 2.1.1
       form-data: 4.0.5
       formidable: 3.5.4
@@ -41348,7 +41355,7 @@ snapshots:
       cac: 6.7.14
       chokidar: 4.0.3
       consola: 3.4.2
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@9.4.0)
       esbuild: 0.27.3
       fix-dts-default-cjs-exports: 1.0.1
       joycon: 3.1.1
@@ -41377,7 +41384,7 @@ snapshots:
       cac: 6.7.14
       chokidar: 4.0.3
       consola: 3.4.2
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@9.4.0)
       esbuild: 0.27.3
       fix-dts-default-cjs-exports: 1.0.1
       joycon: 3.1.1
@@ -41406,7 +41413,7 @@ snapshots:
       cac: 6.7.14
       chokidar: 4.0.3
       consola: 3.4.2
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@9.4.0)
       esbuild: 0.27.3
       fix-dts-default-cjs-exports: 1.0.1
       joycon: 3.1.1
@@ -41446,7 +41453,7 @@ snapshots:
   tuf-js@4.1.0:
     dependencies:
       '@tufjs/models': 4.1.0
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@9.4.0)
       make-fetch-happen: 15.0.4
     transitivePeerDependencies:
       - supports-color
@@ -41832,7 +41839,7 @@ snapshots:
   untyped@2.0.0:
     dependencies:
       citty: 0.1.6
-      defu: 6.1.4
+      defu: 6.1.7
       jiti: 2.6.1
       knitwork: 1.3.0
       scule: 1.3.0
@@ -41975,7 +41982,7 @@ snapshots:
   vite-node@2.1.4(@types/node@20.17.24)(less@4.4.0)(lightningcss@1.31.1)(sass@1.90.0)(terser@5.43.1):
     dependencies:
       cac: 6.7.14
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@9.4.0)
       pathe: 1.1.2
       vite: 5.4.21(@types/node@20.17.24)(less@4.4.0)(lightningcss@1.31.1)(sass@1.90.0)(terser@5.43.1)
     transitivePeerDependencies:
@@ -41992,7 +41999,7 @@ snapshots:
   vite-node@3.2.4(@types/node@20.17.24)(jiti@2.6.1)(less@4.4.0)(lightningcss@1.31.1)(sass@1.90.0)(terser@5.43.1)(tsx@4.19.2)(yaml@2.8.4):
     dependencies:
       cac: 6.7.14
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@9.4.0)
       es-module-lexer: 1.7.0
       pathe: 2.0.3
       vite: 6.4.1(@types/node@20.17.24)(jiti@2.6.1)(less@4.4.0)(lightningcss@1.31.1)(sass@1.90.0)(terser@5.43.1)(tsx@4.19.2)(yaml@2.8.4)
@@ -42019,7 +42026,7 @@ snapshots:
       chokidar: 3.6.0
       commander: 8.3.0
       fast-glob: 3.3.3
-      fs-extra: 11.2.0
+      fs-extra: 11.3.4
       npm-run-path: 4.0.1
       strip-ansi: 6.0.1
       tiny-invariant: 1.3.3
@@ -42037,7 +42044,7 @@ snapshots:
     dependencies:
       '@antfu/utils': 0.7.10
       '@rollup/pluginutils': 5.1.3(rollup@4.59.0)
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@9.4.0)
       error-stack-parser-es: 0.1.5
       fs-extra: 11.2.0
       open: 10.1.0
@@ -42231,7 +42238,7 @@ snapshots:
       '@vitest/spy': 3.2.4
       '@vitest/utils': 3.2.4
       chai: 5.2.0
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@9.4.0)
       expect-type: 1.3.0
       magic-string: 0.30.21
       pathe: 2.0.3
@@ -42648,7 +42655,7 @@ snapshots:
 
   webpack-sources@3.3.4: {}
 
-  webpack-subresource-integrity@5.1.0(webpack@5.105.0(esbuild@0.25.9)):
+  webpack-subresource-integrity@5.1.0(webpack@5.105.0):
     dependencies:
       typed-assert: 1.0.9
       webpack: 5.105.0(esbuild@0.25.9)
@@ -42873,20 +42880,20 @@ snapshots:
 
   wordwrap@1.0.0: {}
 
-  workflow@4.2.0(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@10.4.22)(@opentelemetry/api@1.9.1)(@swc/cli@0.8.1(@swc/core@1.15.3)(chokidar@5.0.0))(@swc/core@1.15.3)(magicast@0.3.5)(next@15.5.15(@opentelemetry/api@1.9.1)(@playwright/test@1.58.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0))(typescript@5.8.3):
+  workflow@4.2.4(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@10.4.22)(@opentelemetry/api@1.9.1)(@swc/cli@0.8.1(@swc/core@1.15.3)(chokidar@5.0.0))(@swc/core@1.15.3)(magicast@0.3.5)(next@15.5.15(@opentelemetry/api@1.9.1)(@playwright/test@1.58.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0))(typescript@5.8.3):
     dependencies:
-      '@workflow/astro': 4.0.0(@opentelemetry/api@1.9.1)
-      '@workflow/cli': 4.2.0(@opentelemetry/api@1.9.1)
-      '@workflow/core': 4.2.0(@opentelemetry/api@1.9.1)
-      '@workflow/errors': 4.1.0
-      '@workflow/nest': 0.0.0(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@10.4.22)(@opentelemetry/api@1.9.1)(@swc/cli@0.8.1(@swc/core@1.15.3)(chokidar@5.0.0))(@swc/core@1.15.3)
-      '@workflow/next': 4.0.1(@opentelemetry/api@1.9.1)(next@15.5.15(@opentelemetry/api@1.9.1)(@playwright/test@1.58.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0))
-      '@workflow/nitro': 4.0.1(@opentelemetry/api@1.9.1)
-      '@workflow/nuxt': 4.0.1(@opentelemetry/api@1.9.1)(magicast@0.3.5)
-      '@workflow/rollup': 4.0.0(@opentelemetry/api@1.9.1)
-      '@workflow/sveltekit': 4.0.0(@opentelemetry/api@1.9.1)
-      '@workflow/typescript-plugin': 4.0.1(typescript@5.8.3)
-      '@workflow/utils': 4.1.0
+      '@workflow/astro': 4.0.4(@opentelemetry/api@1.9.1)
+      '@workflow/cli': 4.2.4(@opentelemetry/api@1.9.1)
+      '@workflow/core': 4.2.4(@opentelemetry/api@1.9.1)
+      '@workflow/errors': 4.1.1
+      '@workflow/nest': 0.0.4(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@10.4.22)(@opentelemetry/api@1.9.1)(@swc/cli@0.8.1(@swc/core@1.15.3)(chokidar@5.0.0))(@swc/core@1.15.3)
+      '@workflow/next': 4.0.5(@opentelemetry/api@1.9.1)(next@15.5.15(@opentelemetry/api@1.9.1)(@playwright/test@1.58.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0))
+      '@workflow/nitro': 4.0.5(@opentelemetry/api@1.9.1)
+      '@workflow/nuxt': 4.0.5(@opentelemetry/api@1.9.1)(magicast@0.3.5)
+      '@workflow/rollup': 4.0.4(@opentelemetry/api@1.9.1)
+      '@workflow/sveltekit': 4.0.4(@opentelemetry/api@1.9.1)
+      '@workflow/typescript-plugin': 4.0.2(typescript@5.8.3)
+      '@workflow/utils': 4.1.1
       ms: 2.1.3
     optionalDependencies:
       '@opentelemetry/api': 1.9.1
@@ -42902,20 +42909,20 @@ snapshots:
       - supports-color
       - typescript
 
-  workflow@4.2.0(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@10.4.22)(@opentelemetry/api@1.9.1)(@swc/cli@0.8.1(@swc/core@1.15.3)(chokidar@5.0.0))(@swc/core@1.15.3)(magicast@0.3.5)(next@15.5.15(@opentelemetry/api@1.9.1)(@playwright/test@1.58.2)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(sass@1.90.0))(typescript@5.8.3):
+  workflow@4.2.4(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@10.4.22)(@opentelemetry/api@1.9.1)(@swc/cli@0.8.1(@swc/core@1.15.3)(chokidar@5.0.0))(@swc/core@1.15.3)(magicast@0.3.5)(next@15.5.15(@opentelemetry/api@1.9.1)(@playwright/test@1.58.2)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(sass@1.90.0))(typescript@5.8.3):
     dependencies:
-      '@workflow/astro': 4.0.0(@opentelemetry/api@1.9.1)
-      '@workflow/cli': 4.2.0(@opentelemetry/api@1.9.1)
-      '@workflow/core': 4.2.0(@opentelemetry/api@1.9.1)
-      '@workflow/errors': 4.1.0
-      '@workflow/nest': 0.0.0(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@10.4.22)(@opentelemetry/api@1.9.1)(@swc/cli@0.8.1(@swc/core@1.15.3)(chokidar@5.0.0))(@swc/core@1.15.3)
-      '@workflow/next': 4.0.1(@opentelemetry/api@1.9.1)(next@15.5.15(@opentelemetry/api@1.9.1)(@playwright/test@1.58.2)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(sass@1.90.0))
-      '@workflow/nitro': 4.0.1(@opentelemetry/api@1.9.1)
-      '@workflow/nuxt': 4.0.1(@opentelemetry/api@1.9.1)(magicast@0.3.5)
-      '@workflow/rollup': 4.0.0(@opentelemetry/api@1.9.1)
-      '@workflow/sveltekit': 4.0.0(@opentelemetry/api@1.9.1)
-      '@workflow/typescript-plugin': 4.0.1(typescript@5.8.3)
-      '@workflow/utils': 4.1.0
+      '@workflow/astro': 4.0.4(@opentelemetry/api@1.9.1)
+      '@workflow/cli': 4.2.4(@opentelemetry/api@1.9.1)
+      '@workflow/core': 4.2.4(@opentelemetry/api@1.9.1)
+      '@workflow/errors': 4.1.1
+      '@workflow/nest': 0.0.4(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@10.4.22)(@opentelemetry/api@1.9.1)(@swc/cli@0.8.1(@swc/core@1.15.3)(chokidar@5.0.0))(@swc/core@1.15.3)
+      '@workflow/next': 4.0.5(@opentelemetry/api@1.9.1)(next@15.5.15(@opentelemetry/api@1.9.1)(@playwright/test@1.58.2)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(sass@1.90.0))
+      '@workflow/nitro': 4.0.5(@opentelemetry/api@1.9.1)
+      '@workflow/nuxt': 4.0.5(@opentelemetry/api@1.9.1)(magicast@0.3.5)
+      '@workflow/rollup': 4.0.4(@opentelemetry/api@1.9.1)
+      '@workflow/sveltekit': 4.0.4(@opentelemetry/api@1.9.1)
+      '@workflow/typescript-plugin': 4.0.2(typescript@5.8.3)
+      '@workflow/utils': 4.1.1
       ms: 2.1.3
     optionalDependencies:
       '@opentelemetry/api': 1.9.1
