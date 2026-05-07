@@ -9,6 +9,7 @@ import {
   type DynamicToolUIPart,
   type ToolUIPart,
 } from 'ai';
+import type { McpProviderMetadata } from '@ai-sdk/mcp';
 export default function Chat() {
   const { error, status, sendMessage, messages, regenerate, stop } = useChat({
     transport: new DefaultChatTransport({ api: '/chat/mcp/chat' }),
@@ -43,15 +44,11 @@ export default function Chat() {
               if (isToolUIPart(part)) {
                 const toolPart = part as ToolUIPart<any> | DynamicToolUIPart;
                 const toolName = getToolName(toolPart);
-                const mcpMetadata = toolPart.toolMetadata;
-                const mcpTitle =
-                  typeof mcpMetadata?.title === 'string'
-                    ? mcpMetadata.title
-                    : undefined;
-                const mcpClientName =
-                  typeof mcpMetadata?.clientName === 'string'
-                    ? mcpMetadata.clientName
-                    : undefined;
+                const mcpMetadata = toolPart.toolMetadata as
+                  | McpProviderMetadata
+                  | undefined;
+                const mcpTitle = mcpMetadata?.title;
+                const mcpClientName = mcpMetadata?.clientName;
 
                 // Display tool title if available, fallback to tool name
                 const displayName = mcpTitle || toolPart.title || toolName;
