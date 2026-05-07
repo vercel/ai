@@ -1,18 +1,23 @@
 ---
-title: MCPAppRenderer
+title: experimental_MCPAppRenderer
 description: API reference for rendering MCP Apps with @ai-sdk/react.
 ---
 
-# `MCPAppRenderer`
+# `experimental_MCPAppRenderer`
 
-`MCPAppRenderer` renders an MCP App for an AI SDK tool UI part. It detects MCP App metadata on the tool part, loads the app resource, renders the app in a sandbox proxy iframe, and bridges MCP Apps JSON-RPC messages between the iframe and your host application.
+<Note type="warning">
+  `experimental_MCPAppRenderer` is experimental and may change in a future
+  release.
+</Note>
+
+`experimental_MCPAppRenderer` renders an MCP App for an AI SDK tool UI part. It detects MCP App metadata on the tool part, loads the app resource, renders the app in a sandbox proxy iframe, and bridges MCP Apps JSON-RPC messages between the iframe and your host application.
 
 For tool parts without MCP App metadata, the component renders the `fallback`.
 
 ## Import
 
 <Snippet
-  text={`import { MCPAppRenderer } from "@ai-sdk/react"`}
+  text={`import { experimental_MCPAppRenderer as MCPAppRenderer } from "@ai-sdk/react"`}
   prompt={false}
 />
 
@@ -22,7 +27,7 @@ For tool parts without MCP App metadata, the component renders the `fallback`.
 'use client';
 
 import {
-  MCPAppRenderer,
+  experimental_MCPAppRenderer as MCPAppRenderer,
   type MCPAppBridgeHandlers,
   type MCPAppMetadata,
   type MCPAppResource,
@@ -193,7 +198,7 @@ export function MessagePart({ part }: { part: unknown }) {
 
 ## Bridge Handlers
 
-`MCPAppRenderer` uses these handlers to respond to iframe requests. In production, server-backed handlers should validate authorization and MCP Apps tool visibility before calling the MCP server.
+`experimental_MCPAppRenderer` uses these handlers to respond to iframe requests. In production, server-backed handlers should validate authorization and MCP Apps tool visibility before calling the MCP server.
 
 <PropertiesTable
   content={[
