@@ -1693,6 +1693,81 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
         expect(result.toolCalls.length).toBe(1);
         expect(result.toolResults.length).toBe(0);
       });
+
+      it('should emit telemetry when an approved tool resumes', async () => {
+        const events: string[] = [];
+
+        const agent = new WorkflowAgent({
+          model: new MockLanguageModelV4({
+            doStream: async () => createSimpleStreamResponse(),
+          }),
+          tools: {
+            testTool: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: async ({ value }: { value: string }) =>
+                `${value}-result`,
+              needsApproval: true,
+            }),
+          },
+          telemetry: {
+            integrations: {
+              onToolExecutionStart: async () => {
+                events.push('onToolExecutionStart');
+              },
+              executeTool: async ({ execute }) => {
+                events.push('executeTool');
+                return execute();
+              },
+              onToolExecutionEnd: async event => {
+                const toolEvent = event as any;
+                events.push(
+                  `onToolExecutionEnd:${toolEvent.success ? 'success' : 'error'}`,
+                );
+              },
+            },
+          },
+        });
+
+        const { writable } = createMockWritable();
+        await agent.stream({
+          messages: [
+            { role: 'user' as const, content: 'test' },
+            {
+              role: 'assistant' as const,
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call-1',
+                  toolName: 'testTool',
+                  input: { value: 'test' },
+                },
+                {
+                  type: 'tool-approval-request',
+                  approvalId: 'approval-call-1',
+                  toolCallId: 'call-1',
+                },
+              ],
+            },
+            {
+              role: 'tool' as const,
+              content: [
+                {
+                  type: 'tool-approval-response',
+                  approvalId: 'approval-call-1',
+                  approved: true,
+                },
+              ],
+            },
+          ] as any,
+          writable,
+        });
+
+        expect(events).toEqual([
+          'onToolExecutionStart',
+          'executeTool',
+          'onToolExecutionEnd:success',
+        ]);
+      });
     });
   });
 });

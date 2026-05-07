@@ -1287,6 +1287,17 @@ export class WorkflowAgent<
         effectiveGenerationSettings.providerOptions = prepared.providerOptions;
     }
 
+    const effectiveTelemetry = effectiveTelemetryFromPrepare;
+    const telemetryDispatcher = createRestrictedTelemetryDispatcher<
+      any,
+      any,
+      any
+    >({
+      telemetry: effectiveTelemetry as any,
+      includeRuntimeContext: effectiveTelemetry?.includeRuntimeContext,
+      includeToolsContext: effectiveTelemetry?.includeToolsContext,
+    }) as any;
+
     const prompt = await standardizePrompt({
       system: effectiveInstructions,
       allowSystemInMessages: true, // TODO: consider exposing this as a parameter
@@ -1325,10 +1336,42 @@ export class WorkflowAgent<
               tool,
               toolsContext: effectiveToolsContext,
             });
-            const toolResult = await execute(approval.input, {
+            const toolCallEvent: ToolCall = {
+              type: 'tool-call',
               toolCallId: approval.toolCallId,
-              messages: [],
-              context: resolvedContext,
+              toolName: approval.toolName,
+              input: approval.input,
+            };
+            const messages = prompt.messages as unknown as ModelMessage[];
+            await telemetryDispatcher.onToolExecutionStart?.({
+              toolCall: toolCallEvent,
+              stepNumber: 0,
+              messages,
+              toolContext: resolvedContext,
+            });
+            const startTime = Date.now();
+            const executeApprovedTool = () =>
+              execute(approval.input, {
+                toolCallId: approval.toolCallId,
+                messages: [],
+                context: resolvedContext,
+              });
+            const toolResult =
+              telemetryDispatcher.executeTool != null
+                ? await telemetryDispatcher.executeTool({
+                    callId: 'workflow-agent',
+                    toolCallId: approval.toolCallId,
+                    execute: executeApprovedTool,
+                  })
+                : await executeApprovedTool();
+            await telemetryDispatcher.onToolExecutionEnd?.({
+              toolCall: toolCallEvent,
+              stepNumber: 0,
+              durationMs: Date.now() - startTime,
+              messages,
+              toolContext: resolvedContext,
+              success: true,
+              output: toolResult,
             });
             toolResultContent.push({
               type: 'tool-result' as const,
@@ -1340,6 +1383,20 @@ export class WorkflowAgent<
                   : { type: 'json' as const, value: toolResult },
             });
           } catch (error) {
+            await telemetryDispatcher.onToolExecutionEnd?.({
+              toolCall: {
+                type: 'tool-call',
+                toolCallId: approval.toolCallId,
+                toolName: approval.toolName,
+                input: approval.input,
+              },
+              stepNumber: 0,
+              durationMs: 0,
+              messages: prompt.messages as unknown as ModelMessage[],
+              toolContext: undefined,
+              success: false,
+              error,
+            });
             toolResultContent.push({
               type: 'tool-result' as const,
               toolCallId: approval.toolCallId,
@@ -1503,18 +1560,6 @@ export class WorkflowAgent<
 
     // Determine effective tool choice
     const effectiveToolChoice = effectiveToolChoiceFromPrepare;
-
-    // Merge telemetry settings
-    const effectiveTelemetry = effectiveTelemetryFromPrepare;
-    const telemetryDispatcher = createRestrictedTelemetryDispatcher<
-      any,
-      any,
-      any
-    >({
-      telemetry: effectiveTelemetry as any,
-      includeRuntimeContext: effectiveTelemetry?.includeRuntimeContext,
-      includeToolsContext: effectiveTelemetry?.includeToolsContext,
-    }) as any;
 
     // Filter tools if activeTools is specified (stream-level overrides constructor default)
     const effectiveActiveTools = options.activeTools ?? this.activeTools;
