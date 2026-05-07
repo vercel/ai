@@ -224,8 +224,8 @@ export async function generateText<
   experimental_download: download,
   runtimeContext = {} as RUNTIME_CONTEXT,
   toolsContext = {} as InferToolSetContext<TOOLS>,
-  include,
-  experimental_include: experimentalInclude,
+  experimental_include,
+  include = experimental_include,
   _internal: {
     generateId = originalGenerateId,
     generateCallId = originalGenerateCallId,
@@ -429,7 +429,12 @@ export async function generateText<
       generateCallId?: IdGenerator;
     };
   }): Promise<GenerateTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>> {
-  include ??= experimentalInclude;
+  // assign default values to include:
+  include = {
+    requestBody: include?.requestBody ?? true,
+    requestMessages: include?.requestMessages ?? false,
+    responseBody: include?.responseBody ?? true,
+  };
 
   const model = resolveLanguageModel(modelArg);
   const stopConditions = asArray(stopWhen);
@@ -1000,14 +1005,12 @@ export async function generateText<
         // Large payloads (e.g., base64-encoded images) can cause memory issues.
         const stepRequest: LanguageModelRequestMetadata = {
           ...currentModelResponse.request,
-          body:
-            (include?.requestBody ?? true)
-              ? currentModelResponse.request?.body
-              : undefined,
-          messages:
-            (include?.requestMessages ?? false)
-              ? cloneModelMessages(stepMessages)
-              : undefined,
+          body: include.requestBody
+            ? currentModelResponse.request?.body
+            : undefined,
+          messages: include.requestMessages
+            ? cloneModelMessages(stepMessages)
+            : undefined,
         };
 
         const stepResponse = {
@@ -1015,10 +1018,9 @@ export async function generateText<
           // deep clone msgs to avoid mutating past messages in multi-step:
           messages: cloneModelMessages(responseMessages),
           // Conditionally include response body:
-          body:
-            (include?.responseBody ?? true)
-              ? currentModelResponse.response?.body
-              : undefined,
+          body: include.responseBody
+            ? currentModelResponse.response?.body
+            : undefined,
         };
 
         const currentStepResult: StepResult<TOOLS, RUNTIME_CONTEXT> =

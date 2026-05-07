@@ -339,8 +339,8 @@ export function streamText<
   experimental_onToolCallFinish,
   runtimeContext = {} as RUNTIME_CONTEXT,
   toolsContext = {} as InferToolSetContext<TOOLS>,
-  include,
-  experimental_include: experimentalInclude,
+  experimental_include,
+  include = experimental_include,
   _internal: {
     now = originalNow,
     generateId = originalGenerateId,
@@ -582,8 +582,6 @@ export function streamText<
       generateCallId?: IdGenerator;
     };
   }): StreamTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT> {
-  include ??= experimentalInclude;
-
   const totalTimeoutMs = getTotalTimeoutMs(timeout);
   const stepTimeoutMs = getStepTimeoutMs(timeout);
   const chunkTimeoutMs = getChunkTimeoutMs(timeout);
@@ -628,7 +626,6 @@ export function streamText<
     toolApproval,
     providerOptions,
     prepareStep,
-    includeRawChunks: include?.rawChunks ?? includeRawChunks ?? false,
     timeout,
     onChunk,
     onError,
@@ -645,7 +642,13 @@ export function streamText<
     generateId,
     generateCallId,
     download,
-    include,
+
+    // assign default values to include:
+    include: {
+      requestBody: include?.requestBody ?? true,
+      requestMessages: include?.requestMessages ?? false,
+      rawChunks: include?.rawChunks ?? includeRawChunks ?? false,
+    },
   });
 }
 
@@ -785,8 +788,6 @@ class DefaultStreamTextResult<
 
   private outputSpecification: OUTPUT | undefined;
 
-  private includeRawChunks: boolean;
-
   private tools: TOOLS | undefined;
 
   constructor({
@@ -815,7 +816,6 @@ class DefaultStreamTextResult<
     toolApproval,
     providerOptions,
     prepareStep,
-    includeRawChunks,
     now,
     generateId,
     generateCallId,
@@ -867,13 +867,12 @@ class DefaultStreamTextResult<
     prepareStep:
       | PrepareStepFunction<NoInfer<TOOLS>, NoInfer<RUNTIME_CONTEXT>>
       | undefined;
-    includeRawChunks: boolean;
     now: () => number;
     generateId: () => string;
     generateCallId: () => string;
     timeout: TimeoutConfiguration<TOOLS> | undefined;
     download: DownloadFunction | undefined;
-    include: StreamTextInclude | undefined;
+    include: Required<StreamTextInclude>;
 
     // callbacks:
     onChunk: undefined | StreamTextOnChunkCallback<TOOLS>;
@@ -912,7 +911,6 @@ class DefaultStreamTextResult<
     onToolExecutionEnd: undefined | OnToolExecutionEndCallback<TOOLS>;
   }) {
     this.outputSpecification = output;
-    this.includeRawChunks = includeRawChunks;
     this.tools = tools;
 
     const telemetryDispatcher = createRestrictedTelemetryDispatcher<
@@ -1145,10 +1143,9 @@ class DefaultStreamTextResult<
               warnings: recordedWarnings,
               request: {
                 ...recordedRequest,
-                messages:
-                  (include?.requestMessages ?? false)
-                    ? cloneModelMessages(recordedRequestMessages)
-                    : undefined,
+                messages: include.requestMessages
+                  ? cloneModelMessages(recordedRequestMessages)
+                  : undefined,
               },
               response: {
                 ...part.response,
@@ -1529,8 +1526,6 @@ class DefaultStreamTextResult<
         responseMessages: Array<ResponseMessage>;
         usage: LanguageModelUsage;
       }) {
-        const includeRawChunks = self.includeRawChunks;
-
         // Set up step timeout if configured
         const stepTimeoutId = setAbortTimeout({
           abortController: stepAbortController,
@@ -1628,7 +1623,7 @@ class DefaultStreamTextResult<
               refineToolInput,
               abortSignal,
               headers,
-              includeRawChunks,
+              includeRawChunks: include.rawChunks,
               providerOptions: stepProviderOptions,
               download,
               output,
@@ -1708,11 +1703,10 @@ class DefaultStreamTextResult<
           // Large payloads (e.g., base64-encoded images) can cause memory issues.
           const stepRequest: LanguageModelRequestMetadata = {
             ...request,
-            body: (include?.requestBody ?? true) ? request?.body : undefined,
-            messages:
-              (include?.requestMessages ?? false)
-                ? cloneModelMessages(stepMessages)
-                : undefined,
+            body: include.requestBody ? request?.body : undefined,
+            messages: include.requestMessages
+              ? cloneModelMessages(stepMessages)
+              : undefined,
           };
           recordedRequestMessages = stepRequest.messages ?? [];
 
@@ -1866,7 +1860,7 @@ class DefaultStreamTextResult<
                     }
 
                     case 'raw': {
-                      if (includeRawChunks) {
+                      if (include.rawChunks) {
                         controller.enqueue(chunk);
                       }
                       break;
