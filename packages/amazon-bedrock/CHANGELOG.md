@@ -1,5 +1,11 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.103
+
+### Patch Changes
+
+- 7342660: fix (provider/amazon-bedrock): preserve cache points on message content parts
+
 ## 4.0.102
 
 ### Patch Changes

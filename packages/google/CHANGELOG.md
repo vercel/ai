@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 3.0.70
+
+### Patch Changes
+
+- 4f3f564: fix(provider/google): fix lack of image consistency when using Interactions API in stateless mode
+
 ## 3.0.69
 
 ### Patch Changes
