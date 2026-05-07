@@ -17,7 +17,7 @@ const sdk = new NodeSDK({
 sdk.start();
 registerTelemetry(
   new OpenTelemetry({
-    enrichSpanAttributes: ({ spanType, operationId, runtimeContext }) => ({
+    enrichSpan: ({ spanType, operationId, runtimeContext }) => ({
       'example.span.type': spanType,
       'example.operation.id': operationId,
       'example.context.something': runtimeContext?.something as

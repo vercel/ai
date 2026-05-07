@@ -7,7 +7,7 @@ import {
   type Tracer,
 } from '@opentelemetry/api';
 import type { Telemetry } from 'ai';
-import { OpenTelemetry, type EnrichSpanAttributes } from './open-telemetry';
+import { OpenTelemetry, type EnrichSpan } from './open-telemetry';
 
 type MockSpan = Span & {
   name: string;
@@ -926,23 +926,21 @@ describe('OpenTelemetry', () => {
     });
   });
 
-  describe('enrichSpanAttributes', () => {
+  describe('enrichSpan', () => {
     it('adds custom attributes to created spans', () => {
-      const enrichSpanAttributes = vi.fn<EnrichSpanAttributes>(
-        ({ spanType, runtimeContext }) => {
-          const userId = runtimeContext?.userId;
+      const enrichSpan = vi.fn<EnrichSpan>(({ spanType, runtimeContext }) => {
+        const userId = runtimeContext?.userId;
 
-          return {
-            'custom.span_type': spanType,
-            ...(typeof userId === 'string' ? { 'custom.user_id': userId } : {}),
-            'gen_ai.operation.name': 'custom_operation',
-          };
-        },
-      );
+        return {
+          'custom.span_type': spanType,
+          ...(typeof userId === 'string' ? { 'custom.user_id': userId } : {}),
+          'gen_ai.operation.name': 'custom_operation',
+        };
+      });
 
       integration = new OpenTelemetry({
         tracer,
-        enrichSpanAttributes,
+        enrichSpan,
       });
 
       integration.onStart!(
@@ -997,7 +995,7 @@ describe('OpenTelemetry', () => {
         ]
       `);
 
-      expect(enrichSpanAttributes.mock.calls.map(([args]) => args)).toEqual([
+      expect(enrichSpan.mock.calls.map(([args]) => args)).toEqual([
         {
           callId,
           operationId: 'ai.generateText',
@@ -1028,7 +1026,7 @@ describe('OpenTelemetry', () => {
     it('ignores enrichment callback errors', () => {
       integration = new OpenTelemetry({
         tracer,
-        enrichSpanAttributes: () => {
+        enrichSpan: () => {
           throw new Error('custom attribute failure');
         },
       });

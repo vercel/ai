@@ -51,14 +51,14 @@ import {
   getRuntimeContextAttributes,
   normalizeSupplementalAttributes,
   selectSupplementalAttributes,
-  type EnrichSpanAttributes,
+  type EnrichSpan,
   type OpenTelemetryOptions,
   type OpenTelemetrySpanType,
   type SupplementalAttributeOptions,
 } from './supplemental-attributes';
 
 export type {
-  EnrichSpanAttributes,
+  EnrichSpan,
   OpenTelemetryOptions,
   OpenTelemetrySpanType,
 } from './supplemental-attributes';
@@ -91,12 +91,12 @@ export class OpenTelemetry implements Telemetry {
 
   private readonly tracer: Tracer;
   private readonly supplementalAttributes: SupplementalAttributeOptions;
-  private readonly enrichSpanAttributes: EnrichSpanAttributes | undefined;
+  private readonly enrichSpan: EnrichSpan | undefined;
 
   constructor(options: OpenTelemetryOptions = {}) {
     this.tracer = options.tracer ?? trace.getTracer('gen_ai');
     this.supplementalAttributes = normalizeSupplementalAttributes(options);
-    this.enrichSpanAttributes = options.enrichSpanAttributes;
+    this.enrichSpan = options.enrichSpan;
   }
 
   private getCallState(callId: string): CallState | undefined {
@@ -123,7 +123,7 @@ export class OpenTelemetry implements Telemetry {
     let customAttributes: Attributes | undefined;
 
     try {
-      customAttributes = this.enrichSpanAttributes?.({
+      customAttributes = this.enrichSpan?.({
         spanType,
         operationId,
         callId,

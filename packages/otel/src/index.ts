@@ -1,6 +1,6 @@
 export { OpenTelemetry } from './open-telemetry';
 export type {
-  EnrichSpanAttributes,
+  EnrichSpan,
   OpenTelemetryOptions,
   OpenTelemetrySpanType,
 } from './open-telemetry';

@@ -515,7 +515,7 @@ Tool call spans (`execute_tool {toolName}`) are nested under the step span and c
 
 ### Custom OpenTelemetry span attributes
 
-Use `enrichSpanAttributes` to add custom attributes to spans created by the
+Use `enrichSpan` to add custom attributes to spans created by the
 `OpenTelemetry` integration. This is useful when an observability backend needs
 vendor-specific attributes that are not AI SDK-owned semantics.
 
@@ -525,7 +525,7 @@ import { OpenTelemetry } from '@ai-sdk/otel';
 
 registerTelemetry(
   new OpenTelemetry({
-    enrichSpanAttributes: ({
+    enrichSpan: ({
       spanType,
       operationId,
       callId,

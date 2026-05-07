@@ -25,7 +25,7 @@ export type OpenTelemetrySpanType =
   | 'embedding'
   | 'reranking';
 
-export type EnrichSpanAttributes = (options: {
+export type EnrichSpan = (options: {
   spanType: OpenTelemetrySpanType;
   operationId: string;
   callId: string;
@@ -42,7 +42,7 @@ export type OpenTelemetryOptions = {
    * Adds custom attributes to spans when they are created. These attributes are
    * not AI SDK-owned semantics and are intended for observability integrations.
    */
-  enrichSpanAttributes?: EnrichSpanAttributes;
+  enrichSpan?: EnrichSpan;
 
   /**
    * Emit AI SDK usage details that are not represented by GenAI SemConv.
