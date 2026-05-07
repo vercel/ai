@@ -1223,6 +1223,9 @@ importers:
       '@ai-sdk/anthropic':
         specifier: workspace:*
         version: link:../../packages/anthropic
+      '@ai-sdk/provider-utils':
+        specifier: workspace:*
+        version: link:../../packages/provider-utils
       '@ai-sdk/react':
         specifier: workspace:*
         version: link:../../packages/react

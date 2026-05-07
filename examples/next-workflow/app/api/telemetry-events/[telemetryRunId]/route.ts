@@ -57,6 +57,8 @@ export async function GET(
       'scenario',
     ) as TelemetryScenario | null) ?? 'happy-path';
   const events = getTelemetryEvents(telemetryRunId);
+  const telemetryEvents = events.filter(event => event.source === 'telemetry');
+  const serializedTelemetryEvents = JSON.stringify(telemetryEvents);
 
   return Response.json({
     telemetryRunId,
@@ -74,15 +76,17 @@ export async function GET(
       };
     }),
     contextFiltering: {
-      includesAllowedRuntimeContext: JSON.stringify(events).includes(
+      includesAllowedRuntimeContext: serializedTelemetryEvents.includes(
         'tenant_telemetry_e2e',
       ),
-      excludesRuntimeSecret: !JSON.stringify(events).includes(
+      excludesRuntimeSecret: !serializedTelemetryEvents.includes(
         'runtime-secret-not-for-telemetry',
       ),
       excludesToolSecret:
-        !JSON.stringify(events).includes('weather-secret-not-for-telemetry') &&
-        !JSON.stringify(events).includes('delete-secret-not-for-telemetry'),
+        !serializedTelemetryEvents.includes(
+          'weather-secret-not-for-telemetry',
+        ) &&
+        !serializedTelemetryEvents.includes('delete-secret-not-for-telemetry'),
     },
   });
 }

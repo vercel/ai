@@ -1,3 +1,4 @@
+import { createUIMessageStreamResponse } from 'ai';
 import type { NextRequest } from 'next/server';
 import { getRun } from 'workflow/api';
 import {
@@ -28,11 +29,9 @@ export async function GET(
   const run = await getRun(runId);
   const readable = toUIMessageStream(run.getReadable({ startIndex }));
 
-  return new Response(readable, {
+  return createUIMessageStreamResponse({
+    stream: readable,
     headers: {
-      'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache',
-      Connection: 'keep-alive',
       'x-workflow-run-id': runId,
     },
   });

@@ -328,7 +328,6 @@ export async function* streamTextIterator({
             ...currentGenerationSettings,
             toolChoice: currentToolChoice,
             includeRawChunks,
-            telemetry,
             repairToolCall,
             responseFormat,
             runtimeContext: currentRuntimeContext,

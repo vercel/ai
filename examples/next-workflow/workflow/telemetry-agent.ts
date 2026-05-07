@@ -5,7 +5,6 @@ import {
 } from '@ai-sdk/workflow';
 import {
   convertToModelMessages,
-  registerTelemetry,
   tool,
   type Telemetry,
   type UIMessage,
@@ -24,15 +23,6 @@ interface TelemetryRequestContext {
   requestId: string;
   tenantId: string;
   scenario: TelemetryScenario;
-}
-
-let activeTelemetryRunId: string | undefined;
-
-function getTelemetryRunId(event: unknown) {
-  const runtimeContext = (
-    event as { runtimeContext?: { telemetryRunId?: string } }
-  )?.runtimeContext;
-  return runtimeContext?.telemetryRunId ?? activeTelemetryRunId;
 }
 
 function summarizeEvent(event: unknown) {
@@ -57,25 +47,10 @@ function summarizeError(error: unknown) {
     : { message: String(error) };
 }
 
-function registerWorkflowTelemetry() {
-  const globalForTelemetry = globalThis as typeof globalThis & {
-    __nextWorkflowTelemetryRegistered?: boolean;
-  };
-
-  if (globalForTelemetry.__nextWorkflowTelemetryRegistered) {
-    return;
-  }
-
-  globalForTelemetry.__nextWorkflowTelemetryRegistered = true;
-
+function createTelemetryIntegration(telemetryRunId: string) {
   const record =
     (name: string) =>
     async (event: unknown): Promise<void> => {
-      const telemetryRunId = getTelemetryRunId(event);
-      if (telemetryRunId == null) {
-        return;
-      }
-
       await recordTelemetryEvent({
         telemetryRunId,
         source: 'telemetry',
@@ -84,7 +59,7 @@ function registerWorkflowTelemetry() {
       });
     };
 
-  registerTelemetry({
+  return {
     onStart: record('onStart'),
     onStepStart: record('onStepStart'),
     onLanguageModelCallStart: record('onLanguageModelCallStart'),
@@ -95,10 +70,6 @@ function registerWorkflowTelemetry() {
     onStepFinish: record('onStepFinish'),
     onFinish: record('onFinish'),
     onError: async error => {
-      const telemetryRunId = getTelemetryRunId(error);
-      if (telemetryRunId == null) {
-        return;
-      }
       await recordTelemetryEvent({
         telemetryRunId,
         source: 'telemetry',
@@ -108,17 +79,15 @@ function registerWorkflowTelemetry() {
     },
     executeTool: async ({ callId, toolCallId, execute }) => {
       await recordTelemetryEvent({
-        telemetryRunId: 'unknown',
+        telemetryRunId,
         source: 'telemetry',
         name: 'executeTool',
         summary: { callId, toolCallId },
       });
       return execute();
     },
-  } satisfies Telemetry);
+  } satisfies Telemetry;
 }
-
-registerWorkflowTelemetry();
 
 async function getWeather(
   input: { city: string },
@@ -235,7 +204,13 @@ function getResponses(scenario: TelemetryScenario): MockResponseDescriptor[] {
   }
 }
 
-function createTelemetryOptions({ functionId }: { functionId: string }) {
+function createTelemetryOptions({
+  functionId,
+  telemetryRunId,
+}: {
+  functionId: string;
+  telemetryRunId: string;
+}) {
   return {
     functionId,
     includeRuntimeContext: {
@@ -252,6 +227,7 @@ function createTelemetryOptions({ functionId }: { functionId: string }) {
         requestId: true,
       },
     },
+    integrations: createTelemetryIntegration(telemetryRunId),
   };
 }
 
@@ -312,6 +288,7 @@ export async function telemetryChat(
     },
     telemetry: createTelemetryOptions({
       functionId: 'workflow-agent-telemetry-constructor',
+      telemetryRunId: request.telemetryRunId,
     }) as any,
     experimental_onStart: recordCallback({
       telemetryRunId: request.telemetryRunId,
@@ -340,25 +317,19 @@ export async function telemetryChat(
     }) as any,
   });
 
-  activeTelemetryRunId = request.telemetryRunId;
-  const result = await (async () => {
-    try {
-      return await agent.stream({
-        messages: await convertToModelMessages(messages),
-        writable: getWritable<ModelCallStreamPart>(),
-        telemetry: createTelemetryOptions({
-          functionId: `workflow-agent-telemetry-${request.scenario}`,
-        }) as any,
-        onError: recordCallback({
-          telemetryRunId: request.telemetryRunId,
-          source: 'agent-callback',
-          name: 'onError',
-        }) as any,
-      });
-    } finally {
-      activeTelemetryRunId = undefined;
-    }
-  })();
+  const result = await agent.stream({
+    messages: await convertToModelMessages(messages),
+    writable: getWritable<ModelCallStreamPart>(),
+    telemetry: createTelemetryOptions({
+      functionId: `workflow-agent-telemetry-${request.scenario}`,
+      telemetryRunId: request.telemetryRunId,
+    }) as any,
+    onError: recordCallback({
+      telemetryRunId: request.telemetryRunId,
+      source: 'agent-callback',
+      name: 'onError',
+    }) as any,
+  });
 
   await recordTelemetryEvent({
     telemetryRunId: request.telemetryRunId,
