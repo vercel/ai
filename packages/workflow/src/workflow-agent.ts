@@ -1758,6 +1758,9 @@ export class WorkflowAgent<
         // Only execute tools if there are tool calls
         if (toolCalls.length > 0) {
           const invalidToolCalls = toolCalls.filter(tc => tc.invalid === true);
+          const dynamicInvalidToolCalls = invalidToolCalls.filter(
+            tc => tc.dynamic === true,
+          );
           const validToolCalls = toolCalls.filter(tc => tc.invalid !== true);
 
           // Separate provider-executed tool calls from client-executed ones
@@ -1836,7 +1839,7 @@ export class WorkflowAgent<
                 ),
               );
 
-            const continuationInvalidResults = invalidToolCalls.map(
+            const continuationInvalidResults = dynamicInvalidToolCalls.map(
               createInvalidToolResult,
             );
             const resolvedResults = [
@@ -1943,7 +1946,7 @@ export class WorkflowAgent<
             providerToolCalls.map(toolCall =>
               resolveProviderToolResult(toolCall, providerExecutedToolResults),
             );
-          const continuationInvalidToolResults = invalidToolCalls.map(
+          const continuationInvalidToolResults = dynamicInvalidToolCalls.map(
             createInvalidToolResult,
           );
 
