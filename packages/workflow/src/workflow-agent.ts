@@ -2002,10 +2002,11 @@ export class WorkflowAgent<
               });
             }
             if (!wasAborted && steps.length > 0) {
-              const lastStep = steps[steps.length - 1];
+              const telemetrySteps = steps.map(normalizeStepForTelemetry);
+              const lastStep = telemetrySteps[telemetrySteps.length - 1];
               await telemetryDispatcher.onFinish?.({
                 ...lastStep,
-                steps,
+                steps: telemetrySteps,
                 totalUsage: aggregateUsage(steps),
               });
             }
@@ -2209,10 +2210,11 @@ export class WorkflowAgent<
       });
     }
     if (!wasAborted && steps.length > 0) {
-      const lastStep = steps[steps.length - 1];
+      const telemetrySteps = steps.map(normalizeStepForTelemetry);
+      const lastStep = telemetrySteps[telemetrySteps.length - 1];
       await telemetryDispatcher.onFinish?.({
         ...lastStep,
-        steps,
+        steps: telemetrySteps,
         totalUsage: aggregateUsage(steps),
       });
     }
@@ -2256,6 +2258,16 @@ function getModelInfo(model: LanguageModel): {
   return typeof model === 'string'
     ? { provider: model.split('/')[0] ?? 'gateway', modelId: model }
     : { provider: model.provider, modelId: model.modelId };
+}
+
+function normalizeStepForTelemetry<
+  TOOLS extends ToolSet,
+  RUNTIME_CONTEXT extends Context,
+>(step: StepResult<TOOLS, RUNTIME_CONTEXT>) {
+  return {
+    ...step,
+    model: step.model ?? { provider: 'unknown', modelId: 'unknown' },
+  };
 }
 
 /**

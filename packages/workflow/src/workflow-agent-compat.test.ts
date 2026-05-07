@@ -1345,10 +1345,9 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
     });
 
     describe('stream', () => {
-      it.fails('should call per-call integration listeners for all lifecycle events', async () => {
+      it('should call per-call integration listeners for all lifecycle events', async () => {
         const events: string[] = [];
 
-        // GAP: WorkflowAgent does not support telemetry integration listeners
         const agent = new WorkflowAgent({
           model: createToolCallStreamMockModel(),
           tools: {
@@ -1358,7 +1357,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
                 `${value}-result`,
             }),
           },
-          experimental_telemetry: {
+          telemetry: {
             integrations: {
               onStart: async () => {
                 events.push('onStart');
@@ -1400,7 +1399,85 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
         ]);
       });
 
-      it.fails('should call globally registered integration listeners', async () => {
+      it('should include only configured runtime and tools context fields', async () => {
+        let startEvent: any;
+        let toolStartEvent: any;
+        let finishEvent: any;
+
+        const agent = new WorkflowAgent({
+          model: createToolCallStreamMockModel(),
+          tools: {
+            testTool: tool({
+              inputSchema: z.object({ value: z.string() }),
+              contextSchema: z.object({
+                requestId: z.string(),
+                secret: z.string(),
+              }),
+              execute: async ({ value }: { value: string }) =>
+                `${value}-result`,
+            }),
+          },
+          runtimeContext: {
+            requestId: 'request-123',
+            secret: 'runtime-secret',
+          },
+          toolsContext: {
+            testTool: {
+              requestId: 'tool-request-123',
+              secret: 'tool-secret',
+            },
+          },
+          telemetry: {
+            includeRuntimeContext: {
+              requestId: true,
+            },
+            includeToolsContext: {
+              testTool: {
+                requestId: true,
+              },
+            },
+            integrations: {
+              onStart: async event => {
+                startEvent = event;
+              },
+              onToolExecutionStart: async event => {
+                toolStartEvent = event;
+              },
+              onFinish: async event => {
+                finishEvent = event;
+              },
+            },
+          },
+        });
+
+        const { writable } = createMockWritable();
+        await agent.stream({
+          messages: [{ role: 'user' as const, content: 'test' }],
+          writable,
+        });
+
+        expect(startEvent.runtimeContext).toEqual({
+          requestId: 'request-123',
+        });
+        expect(startEvent.toolsContext).toEqual({
+          testTool: { requestId: 'tool-request-123' },
+        });
+        expect(toolStartEvent.toolContext).toEqual({
+          requestId: 'tool-request-123',
+        });
+        expect(finishEvent.runtimeContext).toEqual({
+          requestId: 'request-123',
+        });
+        const serializedEvents = JSON.stringify([
+          startEvent,
+          toolStartEvent,
+          finishEvent,
+        ]);
+        expect(serializedEvents).not.toContain('runtime-secret');
+        expect(serializedEvents).not.toContain('tool-secret');
+      });
+
+      it('should call globally registered integration listeners', async () => {
         const events: string[] = [];
 
         (globalThis as any).AI_SDK_TELEMETRY_INTEGRATIONS = [
@@ -1450,7 +1527,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
         ]);
       });
 
-      it.fails('should call integration listeners alongside agent callbacks', async () => {
+      it('should call integration listeners alongside agent callbacks', async () => {
         const events: string[] = [];
 
         const agent = new WorkflowAgent({

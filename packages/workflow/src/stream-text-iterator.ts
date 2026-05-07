@@ -273,7 +273,7 @@ export async function* streamTextIterator({
       tools,
       toolChoice: currentToolChoice,
       activeTools: currentActiveTools as never,
-      steps: [...steps],
+      steps: steps.map(normalizeStepForTelemetry),
       providerOptions: currentGenerationSettings.providerOptions,
       output: undefined,
       runtimeContext: currentRuntimeContext,
@@ -338,8 +338,8 @@ export async function* streamTextIterator({
 
       await telemetryDispatcher.onLanguageModelCallEnd?.({
         callId: step.callId,
-        provider: step.model.provider,
-        modelId: step.model.modelId,
+        provider: step.model?.provider ?? 'unknown',
+        modelId: step.model?.modelId ?? 'unknown',
         finishReason: step.finishReason,
         usage: step.usage,
         content: step.content,
@@ -450,7 +450,7 @@ export async function* streamTextIterator({
       if (onStepFinish) {
         await onStepFinish(step);
       }
-      await telemetryDispatcher.onStepFinish?.(step);
+      await telemetryDispatcher.onStepFinish?.(normalizeStepForTelemetry(step));
     } catch (error) {
       if (onError) {
         await onError({ error });
@@ -480,6 +480,13 @@ function getModelInfo(model: LanguageModel): {
   return typeof model === 'string'
     ? { provider: model.split('/')[0] ?? 'gateway', modelId: model }
     : { provider: model.provider, modelId: model.modelId };
+}
+
+function normalizeStepForTelemetry(step: StepResult<any, any>) {
+  return {
+    ...step,
+    model: step.model ?? { provider: 'unknown', modelId: 'unknown' },
+  };
 }
 
 /**
