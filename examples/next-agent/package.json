@@ -9,10 +9,10 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@ai-sdk/openai": "4.0.0-canary.51",
-    "@ai-sdk/react": "4.0.0-canary.125",
+    "@ai-sdk/openai": "4.0.0-canary.52",
+    "@ai-sdk/react": "4.0.0-canary.126",
     "@vercel/blob": "^0.26.0",
-    "ai": "7.0.0-canary.125",
+    "ai": "7.0.0-canary.126",
     "next": "^15.5.9",
     "react": "^18",
     "react-dom": "^18",

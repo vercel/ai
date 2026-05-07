@@ -10,9 +10,9 @@
     "clean": "del-cli .nuxt"
   },
   "dependencies": {
-    "@ai-sdk/vue": "4.0.0-canary.125",
-    "@ai-sdk/openai": "4.0.0-canary.51",
-    "ai": "7.0.0-canary.125",
+    "@ai-sdk/vue": "4.0.0-canary.126",
+    "@ai-sdk/openai": "4.0.0-canary.52",
+    "ai": "7.0.0-canary.126",
     "zod": "3.25.76"
   },
   "devDependencies": {
