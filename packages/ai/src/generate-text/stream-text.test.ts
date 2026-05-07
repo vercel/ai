@@ -4982,14 +4982,14 @@ describe('streamText', () => {
     });
   });
 
-  describe('result.response.messages', () => {
+  describe('result.responseMessages', () => {
     it('should contain reasoning', async () => {
       const result = streamText({
         model: modelWithReasoning,
         ...defaultSettings(),
       });
 
-      expect((await result.response).messages).toMatchInlineSnapshot(`
+      expect(await result.responseMessages).toMatchInlineSnapshot(`
         [
           {
             "content": [
@@ -8340,6 +8340,42 @@ describe('streamText', () => {
             "modelId": "mock-model-id",
             "timestamp": 1970-01-01T00:00:00.000Z,
           },
+          "responseMessages": [
+            {
+              "content": [
+                {
+                  "providerOptions": undefined,
+                  "text": "Hello, world!",
+                  "type": "text",
+                },
+                {
+                  "input": {
+                    "value": "value",
+                  },
+                  "providerExecuted": undefined,
+                  "providerOptions": undefined,
+                  "toolCallId": "call-1",
+                  "toolName": "tool1",
+                  "type": "tool-call",
+                },
+              ],
+              "role": "assistant",
+            },
+            {
+              "content": [
+                {
+                  "output": {
+                    "type": "text",
+                    "value": "value-result",
+                  },
+                  "toolCallId": "call-1",
+                  "toolName": "tool1",
+                  "type": "tool-result",
+                },
+              ],
+              "role": "tool",
+            },
+          ],
           "runtimeContext": {},
           "sources": [],
           "staticToolCalls": [
@@ -8629,6 +8665,18 @@ describe('streamText', () => {
             "modelId": "mock-model-id",
             "timestamp": 1970-01-01T00:00:00.000Z,
           },
+          "responseMessages": [
+            {
+              "content": [
+                {
+                  "providerOptions": undefined,
+                  "text": "Hello!",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          ],
           "runtimeContext": {},
           "sources": [
             {
@@ -8920,6 +8968,30 @@ describe('streamText', () => {
             "modelId": "mock-model-id",
             "timestamp": 1970-01-01T00:00:00.000Z,
           },
+          "responseMessages": [
+            {
+              "content": [
+                {
+                  "data": "Hello World",
+                  "mediaType": "text/plain",
+                  "providerOptions": undefined,
+                  "type": "file",
+                },
+                {
+                  "providerOptions": undefined,
+                  "text": "Hello!",
+                  "type": "text",
+                },
+                {
+                  "data": "QkFVRw==",
+                  "mediaType": "image/jpeg",
+                  "providerOptions": undefined,
+                  "type": "file",
+                },
+              ],
+              "role": "assistant",
+            },
+          ],
           "runtimeContext": {},
           "sources": [],
           "staticToolCalls": [],
@@ -9104,7 +9176,7 @@ describe('streamText', () => {
         prompt: 'test-input',
       });
 
-      expect((await result.response).messages).toMatchInlineSnapshot(`
+      expect(await result.responseMessages).toMatchInlineSnapshot(`
         [
           {
             "content": [
@@ -9150,7 +9222,7 @@ describe('streamText', () => {
         prompt: 'test-input',
       });
 
-      expect((await result.response).messages).toMatchInlineSnapshot(`
+      expect(await result.responseMessages).toMatchInlineSnapshot(`
         [
           {
             "content": [
@@ -9665,6 +9737,52 @@ describe('streamText', () => {
                 "modelId": "mock-model-id",
                 "timestamp": 1970-01-01T00:00:01.000Z,
               },
+              "responseMessages": [
+                {
+                  "content": [
+                    {
+                      "providerOptions": undefined,
+                      "text": "thinking",
+                      "type": "reasoning",
+                    },
+                    {
+                      "input": {
+                        "value": "value",
+                      },
+                      "providerExecuted": undefined,
+                      "providerOptions": undefined,
+                      "toolCallId": "call-1",
+                      "toolName": "tool1",
+                      "type": "tool-call",
+                    },
+                  ],
+                  "role": "assistant",
+                },
+                {
+                  "content": [
+                    {
+                      "output": {
+                        "type": "text",
+                        "value": "result1",
+                      },
+                      "toolCallId": "call-1",
+                      "toolName": "tool1",
+                      "type": "tool-result",
+                    },
+                  ],
+                  "role": "tool",
+                },
+                {
+                  "content": [
+                    {
+                      "providerOptions": undefined,
+                      "text": "Hello, world!",
+                      "type": "text",
+                    },
+                  ],
+                  "role": "assistant",
+                },
+              ],
               "runtimeContext": {},
               "sources": [],
               "staticToolCalls": [],
@@ -10393,8 +10511,8 @@ describe('streamText', () => {
           `);
         });
 
-        it('result.response.messages should contain response messages from all steps', async () => {
-          expect((await result.response).messages).toMatchInlineSnapshot(`
+        it('result.responseMessages should contain response messages from all steps', async () => {
+          expect(await result.responseMessages).toMatchInlineSnapshot(`
             [
               {
                 "content": [
@@ -11588,6 +11706,52 @@ describe('streamText', () => {
                 "modelId": "mock-model-id",
                 "timestamp": 1970-01-01T00:00:01.000Z,
               },
+              "responseMessages": [
+                {
+                  "content": [
+                    {
+                      "providerOptions": undefined,
+                      "text": "thinking",
+                      "type": "reasoning",
+                    },
+                    {
+                      "input": {
+                        "value": "value",
+                      },
+                      "providerExecuted": undefined,
+                      "providerOptions": undefined,
+                      "toolCallId": "call-1",
+                      "toolName": "tool1",
+                      "type": "tool-call",
+                    },
+                  ],
+                  "role": "assistant",
+                },
+                {
+                  "content": [
+                    {
+                      "output": {
+                        "type": "text",
+                        "value": "RESULT1",
+                      },
+                      "toolCallId": "call-1",
+                      "toolName": "tool1",
+                      "type": "tool-result",
+                    },
+                  ],
+                  "role": "tool",
+                },
+                {
+                  "content": [
+                    {
+                      "providerOptions": undefined,
+                      "text": "Hello, world!",
+                      "type": "text",
+                    },
+                  ],
+                  "role": "assistant",
+                },
+              ],
               "runtimeContext": {},
               "sources": [],
               "staticToolCalls": [],
@@ -12312,8 +12476,8 @@ describe('streamText', () => {
           `);
         });
 
-        it('result.response.messages should contain response messages from all steps', async () => {
-          expect((await result.response).messages).toMatchInlineSnapshot(`
+        it('result.responseMessages should contain response messages from all steps', async () => {
+          expect(await result.responseMessages).toMatchInlineSnapshot(`
             [
               {
                 "content": [
@@ -15001,7 +15165,7 @@ describe('streamText', () => {
     });
 
     it('should include error result in response messages', async () => {
-      expect((await result.response).messages).toMatchInlineSnapshot(`
+      expect(await result.responseMessages).toMatchInlineSnapshot(`
         [
           {
             "content": [
@@ -15140,7 +15304,7 @@ describe('streamText', () => {
         expect(await result.text).toStrictEqual('HELLO, WORLD!');
       });
 
-      it('result.response.messages should be transformed', async () => {
+      it('result.responseMessages should be transformed', async () => {
         const result = streamText({
           model: createTestModel(),
           experimental_transform: upperCaseTransform,
@@ -15693,6 +15857,42 @@ describe('streamText', () => {
               "modelId": "mock-model-id",
               "timestamp": 1970-01-01T00:00:00.000Z,
             },
+            "responseMessages": [
+              {
+                "content": [
+                  {
+                    "providerOptions": undefined,
+                    "text": "HELLO, WORLD!",
+                    "type": "text",
+                  },
+                  {
+                    "input": {
+                      "value": "VALUE",
+                    },
+                    "providerExecuted": undefined,
+                    "providerOptions": undefined,
+                    "toolCallId": "call-1",
+                    "toolName": "tool1",
+                    "type": "tool-call",
+                  },
+                ],
+                "role": "assistant",
+              },
+              {
+                "content": [
+                  {
+                    "output": {
+                      "type": "text",
+                      "value": "VALUE-RESULT",
+                    },
+                    "toolCallId": "call-1",
+                    "toolName": "tool1",
+                    "type": "tool-result",
+                  },
+                ],
+                "role": "tool",
+              },
+            ],
             "runtimeContext": {},
             "sources": [],
             "staticToolCalls": [
@@ -16967,6 +17167,18 @@ describe('streamText', () => {
               "modelId": "mock-model-id",
               "timestamp": 1970-01-01T00:00:00.000Z,
             },
+            "responseMessages": [
+              {
+                "content": [
+                  {
+                    "providerOptions": undefined,
+                    "text": "{ "value": "Hello, world!" }",
+                    "type": "text",
+                  },
+                ],
+                "role": "assistant",
+              },
+            ],
             "runtimeContext": {},
             "sources": [],
             "staticToolCalls": [],
@@ -20671,10 +20883,10 @@ describe('streamText', () => {
         });
       });
 
-      describe('result.response.messages', () => {
+      describe('result.responseMessages', () => {
         it('should contain all response messages from all steps', async () => {
           await result.consumeStream();
-          expect((await result.response).messages).toMatchInlineSnapshot(`
+          expect(await result.responseMessages).toMatchInlineSnapshot(`
             [
               {
                 "content": [
@@ -21173,7 +21385,7 @@ describe('streamText', () => {
 
         it('should contain all response messages', async () => {
           await result.consumeStream();
-          expect(onFinishResult.response.messages.length).toBe(9);
+          expect(onFinishResult.responseMessages.length).toBe(9);
         });
       });
 
@@ -22210,7 +22422,7 @@ describe('streamText', () => {
       });
 
       it('should add tool approval requests to the response messages', async () => {
-        expect((await result.response).messages).toMatchInlineSnapshot(`
+        expect(await result.responseMessages).toMatchInlineSnapshot(`
           [
             {
               "content": [
@@ -22386,7 +22598,7 @@ describe('streamText', () => {
       });
 
       it('should produce response messages', async () => {
-        expect((await result.response).messages).toMatchInlineSnapshot(`
+        expect(await result.responseMessages).toMatchInlineSnapshot(`
           [
             {
               "content": [
@@ -22660,7 +22872,7 @@ describe('streamText', () => {
       });
 
       it('should produce response messages with automatic approval metadata', async () => {
-        expect((await result.response).messages).toMatchInlineSnapshot(`
+        expect(await result.responseMessages).toMatchInlineSnapshot(`
           [
             {
               "content": [
@@ -23064,7 +23276,7 @@ describe('streamText', () => {
       });
 
       it('should add tool approval requests to the response messages', async () => {
-        expect((await result.response).messages).toMatchInlineSnapshot(`
+        expect(await result.responseMessages).toMatchInlineSnapshot(`
           [
             {
               "content": [
@@ -23303,7 +23515,7 @@ describe('streamText', () => {
       });
 
       it('should include the tool result in the response messages', async () => {
-        expect((await result.response).messages).toMatchInlineSnapshot(`
+        expect(await result.responseMessages).toMatchInlineSnapshot(`
           [
             {
               "content": [
@@ -23727,7 +23939,7 @@ describe('streamText', () => {
       });
 
       it('should include the tool result in the response messages', async () => {
-        expect((await result.response).messages).toMatchInlineSnapshot(`
+        expect(await result.responseMessages).toMatchInlineSnapshot(`
           [
             {
               "content": [
@@ -24065,7 +24277,7 @@ describe('streamText', () => {
       });
 
       it('should include the tool error in the response messages', async () => {
-        expect((await result.response).messages).toMatchInlineSnapshot(`
+        expect(await result.responseMessages).toMatchInlineSnapshot(`
           [
             {
               "content": [
@@ -24431,7 +24643,7 @@ describe('streamText', () => {
         });
 
         it('should add provider-executed tool approval request to response messages', async () => {
-          expect((await result.response).messages).toMatchInlineSnapshot(`
+          expect(await result.responseMessages).toMatchInlineSnapshot(`
             [
               {
                 "content": [

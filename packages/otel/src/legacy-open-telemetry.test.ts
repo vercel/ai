@@ -271,6 +271,7 @@ function makeStepFinishEvent(overrides?: Record<string, unknown>) {
 function makeFinishEvent(overrides?: Record<string, unknown>) {
   return {
     ...makeStepFinishEvent(),
+    responseMessages: [],
     steps: [],
     totalUsage: {
       inputTokens: 10,

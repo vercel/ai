@@ -754,7 +754,7 @@ describe('generateText', () => {
     });
   });
 
-  describe('result.response.messages', () => {
+  describe('result.responseMessages', () => {
     it('should contain assistant response message when there are no tool calls', async () => {
       const result = await generateText({
         model: new MockLanguageModelV4({
@@ -766,7 +766,7 @@ describe('generateText', () => {
         prompt: 'test-input',
       });
 
-      expect(result.response.messages).toMatchSnapshot();
+      expect(result.responseMessages).toMatchSnapshot();
     });
 
     it('should contain assistant response message and tool message when there are tool calls with results', async () => {
@@ -801,7 +801,7 @@ describe('generateText', () => {
         prompt: 'test-input',
       });
 
-      expect(result.response.messages).toMatchSnapshot();
+      expect(result.responseMessages).toMatchSnapshot();
     });
 
     it('should contain reasoning', async () => {
@@ -810,7 +810,7 @@ describe('generateText', () => {
         prompt: 'test-input',
       });
 
-      expect(result.response.messages).toMatchSnapshot();
+      expect(result.responseMessages).toMatchSnapshot();
     });
   });
 
@@ -3320,6 +3320,42 @@ describe('generateText', () => {
             "modelId": "mock-model-id",
             "timestamp": 1970-01-01T00:00:00.000Z,
           },
+          "responseMessages": [
+            {
+              "content": [
+                {
+                  "providerOptions": undefined,
+                  "text": "Hello, World!",
+                  "type": "text",
+                },
+                {
+                  "input": {
+                    "value": "value",
+                  },
+                  "providerExecuted": undefined,
+                  "providerOptions": undefined,
+                  "toolCallId": "call-1",
+                  "toolName": "tool1",
+                  "type": "tool-call",
+                },
+              ],
+              "role": "assistant",
+            },
+            {
+              "content": [
+                {
+                  "output": {
+                    "type": "text",
+                    "value": "value-result",
+                  },
+                  "toolCallId": "call-1",
+                  "toolName": "tool1",
+                  "type": "tool-result",
+                },
+              ],
+              "role": "tool",
+            },
+          ],
           "runtimeContext": {},
           "sources": [],
           "staticToolCalls": [
@@ -3659,8 +3695,8 @@ describe('generateText', () => {
         assert.deepStrictEqual(result.toolResults, []);
       });
 
-      it('result.response.messages should contain response messages from all steps', () => {
-        expect(result.response.messages).toMatchSnapshot();
+      it('result.responseMessages should contain response messages from all steps', () => {
+        expect(result.responseMessages).toMatchSnapshot();
       });
 
       it('result.totalUsage should sum token usage', () => {
@@ -4432,8 +4468,8 @@ describe('generateText', () => {
         expect(result.toolResults).toStrictEqual([]);
       });
 
-      it('result.response.messages should contain response messages from all steps', () => {
-        expect(result.response.messages).toMatchSnapshot();
+      it('result.responseMessages should contain response messages from all steps', () => {
+        expect(result.responseMessages).toMatchSnapshot();
       });
 
       it('result.totalUsage should sum token usage', () => {
@@ -6186,7 +6222,7 @@ describe('generateText', () => {
     });
 
     it('should include error result in response messages', async () => {
-      expect(result.response.messages).toMatchInlineSnapshot(`
+      expect(result.responseMessages).toMatchInlineSnapshot(`
         [
           {
             "content": [
@@ -6954,9 +6990,9 @@ describe('generateText', () => {
         });
       });
 
-      describe('result.response.messages', () => {
+      describe('result.responseMessages', () => {
         it('should contain all response messages from all steps', () => {
-          expect(result.response.messages).toMatchInlineSnapshot(`
+          expect(result.responseMessages).toMatchInlineSnapshot(`
             [
               {
                 "content": [
@@ -7494,7 +7530,7 @@ describe('generateText', () => {
         });
 
         it('should contain all response messages', () => {
-          expect(onFinishResult.response.messages.length).toBe(9);
+          expect(onFinishResult.responseMessages.length).toBe(9);
         });
       });
     });
@@ -8003,7 +8039,7 @@ describe('generateText', () => {
       });
 
       it('should include error result in response messages', async () => {
-        expect(result.response.messages).toMatchInlineSnapshot(`
+        expect(result.responseMessages).toMatchInlineSnapshot(`
           [
             {
               "content": [
@@ -8454,7 +8490,7 @@ describe('generateText', () => {
       });
 
       it('should include tool approval request in response messages', async () => {
-        expect(result.response.messages).toMatchInlineSnapshot(`
+        expect(result.responseMessages).toMatchInlineSnapshot(`
           [
             {
               "content": [
@@ -8560,7 +8596,7 @@ describe('generateText', () => {
       });
 
       it('should include tool approval request in response messages', async () => {
-        expect(result.response.messages).toMatchInlineSnapshot(`
+        expect(result.responseMessages).toMatchInlineSnapshot(`
           [
             {
               "content": [
@@ -8703,7 +8739,7 @@ describe('generateText', () => {
       });
 
       it('should include tool approval request in response messages', async () => {
-        expect(result.response.messages).toMatchInlineSnapshot(`
+        expect(result.responseMessages).toMatchInlineSnapshot(`
           [
             {
               "content": [
@@ -8931,7 +8967,7 @@ describe('generateText', () => {
       });
 
       it('should include the tool result in the response messages', async () => {
-        expect(result.response.messages).toMatchInlineSnapshot(`
+        expect(result.responseMessages).toMatchInlineSnapshot(`
           [
             {
               "content": [
@@ -9208,7 +9244,7 @@ describe('generateText', () => {
       });
 
       it('should include the tool error in the response messages', async () => {
-        expect(result.response.messages).toMatchInlineSnapshot(`
+        expect(result.responseMessages).toMatchInlineSnapshot(`
           [
             {
               "content": [
@@ -9374,7 +9410,7 @@ describe('generateText', () => {
       });
 
       it('should produce response messages', async () => {
-        expect(result.response.messages).toMatchInlineSnapshot(`
+        expect(result.responseMessages).toMatchInlineSnapshot(`
           [
             {
               "content": [
@@ -9575,7 +9611,7 @@ describe('generateText', () => {
       });
 
       it('should produce response messages with automatic approval metadata', async () => {
-        expect(result.response.messages).toMatchInlineSnapshot(`
+        expect(result.responseMessages).toMatchInlineSnapshot(`
           [
             {
               "content": [
@@ -9800,7 +9836,7 @@ describe('generateText', () => {
       });
 
       it('should include the tool results in the response messages', async () => {
-        expect(result.response.messages).toMatchInlineSnapshot(`
+        expect(result.responseMessages).toMatchInlineSnapshot(`
           [
             {
               "content": [
@@ -9926,7 +9962,7 @@ describe('generateText', () => {
         });
 
         it('should include tool approval request in response messages', async () => {
-          expect(result.response.messages).toMatchInlineSnapshot(`
+          expect(result.responseMessages).toMatchInlineSnapshot(`
             [
               {
                 "content": [

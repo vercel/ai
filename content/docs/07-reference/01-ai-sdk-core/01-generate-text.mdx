@@ -1679,6 +1679,12 @@ To see `generateText` in action, check out [these examples](#examples).
               description:
                 'Additional provider-specific metadata. They are passed through from the provider to the AI SDK and enable provider-specific results that can be fully encapsulated in the provider.',
             },
+            {
+              name: 'responseMessages',
+              type: 'Array<ResponseMessage>',
+              description:
+                'The response messages that were generated during the call.',
+            },
           ],
         },
       ],
@@ -2099,6 +2105,12 @@ To see `generateText` in action, check out [these examples](#examples).
                 'Response information for every step. You can use this to get information about intermediate steps, such as the tool calls or the response headers.',
             },
             {
+              name: 'responseMessages',
+              type: 'Array<ResponseMessage>',
+              description:
+                'The response messages that were generated during the call.',
+            },
+            {
               name: 'runtimeContext',
               type: 'CONTEXT',
               description:
@@ -2511,6 +2523,12 @@ To see `generateText` in action, check out [these examples](#examples).
       type: 'Warning[] | undefined',
       description:
         'Warnings from the model provider (e.g. unsupported settings).',
+    },
+    {
+      name: 'responseMessages',
+      type: 'Array<ResponseMessage>',
+      description:
+        'The response messages that were generated during the call.',
     },
     {
       name: 'providerMetadata',

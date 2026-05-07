@@ -1107,6 +1107,7 @@ export async function generateText<
       dynamicToolResults: lastStep.dynamicToolResults,
       request: lastStep.request,
       response: lastStep.response,
+      responseMessages: lastStep.response.messages,
       warnings: lastStep.warnings,
       providerMetadata: lastStep.providerMetadata,
       steps,
@@ -1279,6 +1280,10 @@ class DefaultGenerateTextResult<
 
   get response() {
     return this.finalStep.response;
+  }
+
+  get responseMessages() {
+    return this.finalStep.response.messages;
   }
 
   get request() {

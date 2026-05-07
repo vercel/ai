@@ -1241,6 +1241,7 @@ class DefaultStreamTextResult<
               dynamicToolResults: finalStep.dynamicToolResults,
               request: finalStep.request,
               response: finalStep.response,
+              responseMessages: finalStep.response.messages,
               warnings: finalStep.warnings,
               providerMetadata: finalStep.providerMetadata,
               steps: recordedSteps,
@@ -2112,6 +2113,10 @@ class DefaultStreamTextResult<
 
   get response() {
     return this.finalStep.then(step => step.response);
+  }
+
+  get responseMessages() {
+    return this.finalStep.then(step => step.response.messages);
   }
 
   get totalUsage() {

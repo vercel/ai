@@ -493,11 +493,11 @@ export async function POST(request) {
     model: __MODEL__,
     system: 'you are a friendly assistant!',
     messages: coreMessages,
-    onFinish: async ({ response }) => {
+    onFinish: async ({ responseMessages }) => {
       try {
         await saveChat({
           id,
-          messages: [...coreMessages, ...response.messages],
+          messages: [...coreMessages, ...responseMessages],
         });
       } catch (error) {
         console.error('Failed to save chat');
