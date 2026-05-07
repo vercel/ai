@@ -22,7 +22,6 @@ import {
   type ReasoningFileOutput,
   type ReasoningOutput,
 } from './reasoning-output';
-import type { ResponseMessage } from './response-message';
 import type {
   DynamicToolCall,
   StaticToolCall,
@@ -159,19 +158,7 @@ export type StepResult<
   /**
    * Additional response information.
    */
-  readonly response: LanguageModelResponseMetadata & {
-    /**
-     * The response messages that were generated during the call.
-     * Response messages can be either assistant messages or tool messages.
-     * They contain a generated id.
-     */
-    readonly messages: Array<ResponseMessage>;
-
-    /**
-     * Response body (available only for providers that use HTTP requests).
-     */
-    body?: unknown;
-  };
+  readonly response: LanguageModelResponseMetadata;
 
   /**
    * Additional provider-specific metadata. They are passed through

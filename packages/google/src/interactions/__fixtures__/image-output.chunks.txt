@@ -1,0 +1,9 @@
+{"interaction":{"id":"v1_Chd2R2Y1YWZTcE00eld6N0lQNnVhamlBNBIXdkdmNWFmU3BNNHpXejdJUDZ1YWppQTQ","status":"in_progress","object":"interaction","model":"gemini-3-pro-image-preview"},"event_type":"interaction.start"}
+{"interaction_id":"v1_Chd2R2Y1YWZTcE00eld6N0lQNnVhamlBNBIXdkdmNWFmU3BNNHpXejdJUDZ1YWppQTQ","status":"in_progress","event_type":"interaction.status_update"}
+{"index":0,"content":{"type":"thought"},"event_type":"content.start"}
+{"index":0,"delta":{"signature":"__SIGNATURE_TRUNCATED__","type":"thought_signature"},"event_type":"content.delta"}
+{"index":0,"event_type":"content.stop"}
+{"index":1,"content":{"type":"image"},"event_type":"content.start"}
+{"index":1,"delta":{"mime_type":"image/jpeg","data":"__IMAGE_DATA_TRUNCATED__","type":"image"},"event_type":"content.delta"}
+{"index":1,"event_type":"content.stop"}
+{"interaction":{"id":"v1_Chd2R2Y1YWZTcE00eld6N0lQNnVhamlBNBIXdkdmNWFmU3BNNHpXejdJUDZ1YWppQTQ","status":"completed","usage":{"total_tokens":1486,"total_input_tokens":12,"input_tokens_by_modality":[{"modality":"text","tokens":12}],"total_cached_tokens":0,"total_output_tokens":1283,"output_tokens_by_modality":[{"modality":"image","tokens":1120}],"total_tool_use_tokens":0,"total_thought_tokens":191},"role":"model","created":"2026-05-05T03:45:18Z","updated":"2026-05-05T03:45:18Z","service_tier":"standard","object":"interaction","model":"gemini-3-pro-image-preview"},"event_type":"interaction.complete"}

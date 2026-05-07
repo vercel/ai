@@ -93,7 +93,7 @@ describe('MCPClient', () => {
     `);
   });
 
-  it('should expose MCP tool metadata on dynamic tools via providerMetadata', async () => {
+  it('should expose MCP tool metadata on dynamic tools', async () => {
     client = await createMCPClient({
       transport: { type: 'sse', url: 'https://example.com/sse' },
       clientName: 'MyMCPClient',
@@ -101,15 +101,13 @@ describe('MCPClient', () => {
 
     const tools = await client.tools();
 
-    expect(tools['mock-tool'].providerMetadata).toEqual({
-      mcp: {
-        clientName: 'MyMCPClient',
-        toolName: 'mock-tool',
-      },
+    expect(tools['mock-tool'].metadata).toEqual({
+      clientName: 'MyMCPClient',
+      toolName: 'mock-tool',
     });
   });
 
-  it('should support deprecated name for MCP tool providerMetadata', async () => {
+  it('should support deprecated client name for MCP tool metadata', async () => {
     client = await createMCPClient({
       transport: { type: 'sse', url: 'https://example.com/sse' },
       name: 'DeprecatedMCPServer',
@@ -117,11 +115,9 @@ describe('MCPClient', () => {
 
     const tools = await client.tools();
 
-    expect(tools['mock-tool'].providerMetadata).toEqual({
-      mcp: {
-        clientName: 'DeprecatedMCPServer',
-        toolName: 'mock-tool',
-      },
+    expect(tools['mock-tool'].metadata).toEqual({
+      clientName: 'DeprecatedMCPServer',
+      toolName: 'mock-tool',
     });
   });
 
@@ -1956,12 +1952,10 @@ describe('MCPClient', () => {
 
       const tools = await client.tools();
       expect(tools['titled-tool'].title).toBe('My Tool Title');
-      expect(tools['titled-tool'].providerMetadata).toEqual({
-        mcp: {
-          clientName: 'ai-sdk-mcp-client',
-          title: 'My Tool Title',
-          toolName: 'titled-tool',
-        },
+      expect(tools['titled-tool'].metadata).toEqual({
+        clientName: 'ai-sdk-mcp-client',
+        title: 'My Tool Title',
+        toolName: 'titled-tool',
       });
     });
 
@@ -1988,7 +1982,7 @@ describe('MCPClient', () => {
 
       const tools = await client.tools();
       expect(tools['annotated-tool'].title).toBe('Annotation Title');
-      expect(tools['annotated-tool'].providerMetadata?.mcp).toMatchObject({
+      expect(tools['annotated-tool'].metadata).toMatchObject({
         title: 'Annotation Title',
         toolName: 'annotated-tool',
       });
@@ -2040,11 +2034,9 @@ describe('MCPClient', () => {
 
       const tools = await client.tools();
       expect(tools['no-title-tool'].title).toBeUndefined();
-      expect(tools['no-title-tool'].providerMetadata).toEqual({
-        mcp: {
-          clientName: 'ai-sdk-mcp-client',
-          toolName: 'no-title-tool',
-        },
+      expect(tools['no-title-tool'].metadata).toEqual({
+        clientName: 'ai-sdk-mcp-client',
+        toolName: 'no-title-tool',
       });
     });
 
@@ -2080,12 +2072,10 @@ describe('MCPClient', () => {
       });
 
       expect(tools['typed-titled-tool'].title).toBe('Typed Tool Title');
-      expect(tools['typed-titled-tool'].providerMetadata).toEqual({
-        mcp: {
-          clientName: 'ai-sdk-mcp-client',
-          title: 'Typed Tool Title',
-          toolName: 'typed-titled-tool',
-        },
+      expect(tools['typed-titled-tool'].metadata).toEqual({
+        clientName: 'ai-sdk-mcp-client',
+        title: 'Typed Tool Title',
+        toolName: 'typed-titled-tool',
       });
     });
   });

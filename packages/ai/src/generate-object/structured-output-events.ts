@@ -153,12 +153,10 @@ export interface GenerateObjectStepEndEvent {
   readonly warnings: CallWarning[] | undefined;
 
   /** Additional request information. */
-  readonly request: LanguageModelRequestMetadata;
+  readonly request: Omit<LanguageModelRequestMetadata, 'messages'>;
 
   /** Additional response information. */
-  readonly response: LanguageModelResponseMetadata & {
-    body?: unknown;
-  };
+  readonly response: Omit<LanguageModelResponseMetadata, 'messages'>;
 
   /** Additional provider-specific metadata. */
   readonly providerMetadata: ProviderMetadata | undefined;
@@ -207,12 +205,10 @@ export interface GenerateObjectEndEvent<RESULT> {
   readonly warnings: CallWarning[] | undefined;
 
   /** Additional request information. */
-  readonly request: LanguageModelRequestMetadata;
+  readonly request: Omit<LanguageModelRequestMetadata, 'messages'>;
 
   /** Additional response information. */
-  readonly response: LanguageModelResponseMetadata & {
-    body?: unknown;
-  };
+  readonly response: Omit<LanguageModelResponseMetadata, 'messages'>;
 
   /** Additional provider-specific metadata. */
   readonly providerMetadata: ProviderMetadata | undefined;

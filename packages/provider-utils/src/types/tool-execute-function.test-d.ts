@@ -1,6 +1,7 @@
 import { describe, expectTypeOf, it } from 'vitest';
 import type { Context } from './context';
 import type { ModelMessage } from './model-message';
+import type { Sandbox } from './sandbox';
 import type {
   ToolExecuteFunction,
   ToolExecutionOptions,
@@ -13,6 +14,7 @@ describe('tool execute function types', () => {
       messages: ModelMessage[];
       abortSignal?: AbortSignal;
       context: { requestId: string };
+      sandbox?: Sandbox;
     }>();
   });
 

@@ -1,5 +1,26 @@
 # ai
 
+## 7.0.0-canary.124
+
+### Patch Changes
+
+- 69aeb0e: feat: add deprecated tool call lifecycle callback aliases for AI SDK 6 compatibility.
+- 48e92f3: feat: make include stable
+
+## 7.0.0-canary.123
+
+### Patch Changes
+
+- 7392266: feat: move includeRawChunks to include.rawChunks
+- 4bb4dbc: feat: introduce include.requestMessage option for step request message storage opt-in
+
+## 7.0.0-canary.122
+
+### Patch Changes
+
+- 79b2468: feat: add request.messages to StepResult
+- c22750c: fix(ai): move onToolExecutionStart and onToolExecutionEnd to stable
+
 ## 7.0.0-canary.121
 
 ### Patch Changes

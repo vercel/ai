@@ -35,7 +35,7 @@ export interface Output<OUTPUT = any, PARTIAL = any, ELEMENT = any> {
   parseCompleteOutput(
     options: { text: string },
     context: {
-      response: LanguageModelResponseMetadata;
+      response: Omit<LanguageModelResponseMetadata, 'messages' | 'body'>;
       usage: LanguageModelUsage;
       finishReason: FinishReason;
     },

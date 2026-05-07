@@ -1,5 +1,5 @@
 import type { LanguageModelV4CallOptions } from '@ai-sdk/provider';
-import { tool } from '@ai-sdk/provider-utils';
+import { type Sandbox, tool } from '@ai-sdk/provider-utils';
 import {
   convertArrayToReadableStream,
   convertReadableStreamToArray,
@@ -356,5 +356,135 @@ describe('createAgentUIStreamResponse', () => {
       expect(finishMessages).toBeDefined();
       expect(finishMessages!.length).toBe(2);
     });
+  });
+
+  it('should pass sandbox to tool execution', async () => {
+    const sandbox = {
+      description: 'test sandbox',
+      executeCommand: async () => ({
+        exitCode: 0,
+        stdout: 'ok',
+        stderr: '',
+      }),
+    } satisfies Sandbox;
+    let receivedSandbox: Sandbox | undefined;
+    let callCount = 0;
+
+    const agent = new ToolLoopAgent({
+      model: new MockLanguageModelV4({
+        doStream: async () => {
+          callCount++;
+
+          if (callCount === 1) {
+            return {
+              stream: convertArrayToReadableStream([
+                {
+                  type: 'stream-start',
+                  warnings: [],
+                },
+                {
+                  type: 'response-metadata',
+                  id: 'id-0',
+                  modelId: 'mock-model-id',
+                  timestamp: new Date(0),
+                },
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call-1',
+                  toolName: 'testTool',
+                  input: '{ "value": "test" }',
+                },
+                {
+                  type: 'finish',
+                  finishReason: {
+                    unified: 'tool-calls',
+                    raw: 'tool-calls',
+                  },
+                  usage: {
+                    inputTokens: {
+                      total: 5,
+                      noCache: 5,
+                      cacheRead: undefined,
+                      cacheWrite: undefined,
+                    },
+                    outputTokens: {
+                      total: 5,
+                      text: 5,
+                      reasoning: undefined,
+                    },
+                  },
+                  providerMetadata: undefined,
+                },
+              ]),
+            };
+          }
+
+          return {
+            stream: convertArrayToReadableStream([
+              {
+                type: 'stream-start',
+                warnings: [],
+              },
+              {
+                type: 'response-metadata',
+                id: 'id-1',
+                modelId: 'mock-model-id',
+                timestamp: new Date(0),
+              },
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: 'Done' },
+              { type: 'text-end', id: '1' },
+              {
+                type: 'finish',
+                finishReason: {
+                  unified: 'stop',
+                  raw: 'stop',
+                },
+                usage: {
+                  inputTokens: {
+                    total: 5,
+                    noCache: 5,
+                    cacheRead: undefined,
+                    cacheWrite: undefined,
+                  },
+                  outputTokens: {
+                    total: 5,
+                    text: 5,
+                    reasoning: undefined,
+                  },
+                },
+                providerMetadata: undefined,
+              },
+            ]),
+          };
+        },
+      }),
+      tools: {
+        testTool: tool({
+          description: 'Test tool',
+          inputSchema: z.object({ value: z.string() }),
+          execute: async ({ value }, { sandbox }) => {
+            receivedSandbox = sandbox;
+            return `${value}-result`;
+          },
+        }),
+      },
+    });
+
+    const response = await createAgentUIStreamResponse({
+      agent,
+      uiMessages: [
+        {
+          role: 'user',
+          id: 'msg-1',
+          parts: [{ type: 'text' as const, text: 'Run the test tool' }],
+        },
+      ],
+      sandbox,
+    });
+
+    await convertReadableStreamToArray(response.body!);
+
+    expect(receivedSandbox).toBe(sandbox);
   });
 });

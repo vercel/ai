@@ -242,8 +242,6 @@ function makeStepFinishEvent(overrides?: Record<string, unknown>) {
       inputTokens: 10,
       outputTokens: 20,
       totalTokens: 30,
-      reasoningTokens: undefined,
-      cachedInputTokens: undefined,
       inputTokenDetails: {
         noCacheTokens: undefined,
         cacheReadTokens: undefined,
@@ -255,7 +253,7 @@ function makeStepFinishEvent(overrides?: Record<string, unknown>) {
       },
     },
     warnings: undefined,
-    request: { body: undefined },
+    request: { body: undefined, messages: [] },
     response: {
       id: 'resp-1',
       modelId: 'test-model',
@@ -271,13 +269,12 @@ function makeStepFinishEvent(overrides?: Record<string, unknown>) {
 function makeFinishEvent(overrides?: Record<string, unknown>) {
   return {
     ...makeStepFinishEvent(),
+    responseMessages: [],
     steps: [],
     totalUsage: {
       inputTokens: 10,
       outputTokens: 20,
       totalTokens: 30,
-      reasoningTokens: undefined,
-      cachedInputTokens: undefined,
       inputTokenDetails: {
         noCacheTokens: undefined,
         cacheReadTokens: undefined,

@@ -13,12 +13,14 @@ import {
   type IdGenerator,
   type InferToolSetContext,
   type ProviderOptions,
+  type Sandbox,
   type ToolSet,
 } from '@ai-sdk/provider-utils';
 import { NoOutputGeneratedError } from '../error';
 import { ToolCallNotFoundForApprovalError } from '../error/tool-call-not-found-for-approval-error';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
+import { cloneModelMessages } from '../prompt/clone-model-message';
 import type { ModelMessage } from '../prompt';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { createToolModelOutput } from '../prompt/create-tool-model-output';
@@ -110,6 +112,32 @@ const originalGenerateCallId = createIdGenerator({
   prefix: 'call',
   size: 24,
 });
+
+export type GenerateTextInclude = {
+  /**
+   * Whether to retain the request body in step results.
+   * The request body can be large when sending images or files.
+   *
+   * @default false
+   */
+  requestBody?: boolean;
+
+  /**
+   * Whether to retain the request messages in step results.
+   * The request messages can be large when sending images or files.
+   *
+   * @default false
+   */
+  requestMessages?: boolean;
+
+  /**
+   * Whether to retain the response body in step results.
+   *
+   * @default false
+   */
+  responseBody?: boolean;
+};
+
 /**
  * Generate a text and call tools for a given prompt using a language model.
  *
@@ -151,15 +179,18 @@ const originalGenerateCallId = createIdGenerator({
  * @param timeout - An optional timeout in milliseconds. The call will be aborted if it takes longer than the specified timeout.
  * @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
  *
+ * @param sandbox - The sandbox environment that is passed through to the tool execution.
  * @param runtimeContext - User-defined runtime context that flows through the entire generation lifecycle.
  * @param experimental_refineToolInput - Optional mapping of tool names to functions that refine parsed tool inputs before tools are executed and before outputs, callbacks, and telemetry are recorded.
  * @param experimental_onStart - Callback invoked when generation begins, before any LLM calls.
  * @param experimental_onStepStart - Callback invoked when each step begins, before the provider is called.
  * Receives step number, messages (in ModelMessage format), tools, and runtimeContext.
- * @param experimental_onToolExecutionStart - Callback invoked before each tool execution begins.
+ * @param onToolExecutionStart - Callback invoked before each tool execution begins.
  * Receives tool name, call ID, input, and context.
- * @param experimental_onToolExecutionEnd - Callback invoked after each tool execution completes.
+ * @param experimental_onToolCallStart - Deprecated alias for `onToolExecutionStart`.
+ * @param onToolExecutionEnd - Callback invoked after each tool execution completes.
  * Uses a discriminated union: check `success` to determine if `output` or `error` is present.
+ * @param experimental_onToolCallFinish - Deprecated alias for `onToolExecutionEnd`.
  * @param onStepFinish - Callback that is called when each step (LLM call) is finished, including intermediate steps.
  * @param onFinish - Callback that is called when all steps are finished and the response is complete.
  *
@@ -183,6 +214,7 @@ export async function generateText<
   timeout,
   headers,
   stopWhen = isStepCount(1),
+  sandbox,
   output,
   toolApproval,
   experimental_telemetry,
@@ -195,7 +227,8 @@ export async function generateText<
   experimental_download: download,
   runtimeContext = {} as RUNTIME_CONTEXT,
   toolsContext = {} as InferToolSetContext<TOOLS>,
-  experimental_include: include,
+  experimental_include,
+  include = experimental_include,
   _internal: {
     generateId = originalGenerateId,
     generateCallId = originalGenerateCallId,
@@ -204,8 +237,10 @@ export async function generateText<
   experimental_onStepStart: onStepStart,
   experimental_onLanguageModelCallStart: onLanguageModelCallStart,
   experimental_onLanguageModelCallEnd: onLanguageModelCallEnd,
-  experimental_onToolExecutionStart: onToolExecutionStart,
-  experimental_onToolExecutionEnd: onToolExecutionEnd,
+  onToolExecutionStart,
+  onToolExecutionEnd,
+  experimental_onToolCallStart,
+  experimental_onToolCallFinish,
   onStepFinish,
   onFinish,
   ...settings
@@ -249,6 +284,11 @@ export async function generateText<
      * functionality that can be fully encapsulated in the provider.
      */
     providerOptions?: ProviderOptions;
+
+    /**
+     * The sandbox environment that is passed through to the tool execution.
+     */
+    sandbox?: Sandbox;
 
     /**
      * Runtime context. Treat runtime context as immutable.
@@ -335,16 +375,26 @@ export async function generateText<
     /**
      * Callback that is called right before a tool's execute function runs.
      */
-    experimental_onToolExecutionStart?: OnToolExecutionStartCallback<
-      NoInfer<TOOLS>
-    >;
+    onToolExecutionStart?: OnToolExecutionStartCallback<NoInfer<TOOLS>>;
+
+    /**
+     * Callback that is called right before a tool's execute function runs.
+     *
+     * @deprecated Use `onToolExecutionStart` instead.
+     */
+    experimental_onToolCallStart?: OnToolExecutionStartCallback<NoInfer<TOOLS>>;
 
     /**
      * Callback that is called right after a tool's execute function completes (or errors).
      */
-    experimental_onToolExecutionEnd?: OnToolExecutionEndCallback<
-      NoInfer<TOOLS>
-    >;
+    onToolExecutionEnd?: OnToolExecutionEndCallback<NoInfer<TOOLS>>;
+
+    /**
+     * Callback that is called right after a tool's execute function completes (or errors).
+     *
+     * @deprecated Use `onToolExecutionEnd` instead.
+     */
+    experimental_onToolCallFinish?: OnToolExecutionEndCallback<NoInfer<TOOLS>>;
 
     /**
      * Callback that is called when each step (LLM call) is finished, including intermediate steps.
@@ -367,22 +417,17 @@ export async function generateText<
      * Disabling inclusion can help reduce memory usage when processing
      * large payloads like images.
      *
-     * By default, all data is included for backwards compatibility.
+     * By default, request bodies, request messages, and response bodies are
+     * excluded.
      */
-    experimental_include?: {
-      /**
-       * Whether to retain the request body in step results.
-       * The request body can be large when sending images or files.
-       * @default true
-       */
-      requestBody?: boolean;
+    include?: GenerateTextInclude;
 
-      /**
-       * Whether to retain the response body in step results.
-       * @default true
-       */
-      responseBody?: boolean;
-    };
+    /**
+     * Settings for controlling what data is included in step results.
+     *
+     * @deprecated Use `include` instead.
+     */
+    experimental_include?: GenerateTextInclude;
 
     /**
      * Internal. For test use only. May change without notice.
@@ -392,8 +437,19 @@ export async function generateText<
       generateCallId?: IdGenerator;
     };
   }): Promise<GenerateTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>> {
+  // assign default values to include:
+  include = {
+    requestBody: include?.requestBody ?? false,
+    requestMessages: include?.requestMessages ?? false,
+    responseBody: include?.responseBody ?? false,
+  };
+
   const model = resolveLanguageModel(modelArg);
   const stopConditions = asArray(stopWhen);
+  const resolvedOnToolExecutionStart =
+    onToolExecutionStart ?? experimental_onToolCallStart;
+  const resolvedOnToolExecutionEnd =
+    onToolExecutionEnd ?? experimental_onToolCallFinish;
 
   const totalTimeoutMs = getTotalTimeoutMs(timeout);
   const stepTimeoutMs = getStepTimeoutMs(timeout);
@@ -469,7 +525,7 @@ export async function generateText<
 
   try {
     const initialMessages = initialPrompt.messages;
-    const responseMessages: Array<ResponseMessage> = [];
+    const initialResponseMessages: Array<ResponseMessage> = [];
 
     const { approvedToolApprovals, deniedToolApprovals } =
       collectToolApprovals<TOOLS>({ messages: initialMessages });
@@ -491,12 +547,13 @@ export async function generateText<
         messages: initialMessages,
         abortSignal: mergedAbortSignal,
         timeout,
+        sandbox,
         toolsContext,
         onToolExecutionStart: event =>
           notify({
             event,
             callbacks: [
-              onToolExecutionStart,
+              resolvedOnToolExecutionStart,
               telemetryDispatcher.onToolExecutionStart,
             ],
           }),
@@ -504,7 +561,7 @@ export async function generateText<
           notify({
             event,
             callbacks: [
-              onToolExecutionEnd,
+              resolvedOnToolExecutionEnd,
               telemetryDispatcher.onToolExecutionEnd,
             ],
           }),
@@ -552,7 +609,7 @@ export async function generateText<
         });
       }
 
-      responseMessages.push({
+      initialResponseMessages.push({
         role: 'tool',
         content: toolContent,
       });
@@ -570,6 +627,7 @@ export async function generateText<
       [];
     const steps: GenerateTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>['steps'] =
       [];
+    let messagesForNextStep = [...initialMessages, ...initialResponseMessages];
 
     // Track provider-executed tool calls that support deferred results
     // (e.g., code_execution in programmatic tool calling scenarios).
@@ -585,16 +643,25 @@ export async function generateText<
       });
 
       try {
-        const stepInputMessages = [...initialMessages, ...responseMessages];
+        const accumulatedResponseMessages = [
+          ...initialResponseMessages,
+          ...steps.flatMap(step => step.response.messages),
+        ];
+        const stepInputMessages = messagesForNextStep;
 
         const prepareStepResult = await prepareStep?.({
           model,
           steps,
           stepNumber: steps.length,
           messages: stepInputMessages,
+          initialMessages,
+          responseMessages: accumulatedResponseMessages,
           runtimeContext,
           toolsContext,
+          sandbox,
         });
+
+        const stepSandbox = prepareStepResult?.sandbox ?? sandbox;
 
         const stepModel = resolveLanguageModel(
           prepareStepResult?.model ?? model,
@@ -714,7 +781,7 @@ export async function generateText<
                 repairToolCall,
                 refineToolInput,
                 system,
-                messages: stepInputMessages,
+                messages: stepMessages,
               }),
             ),
         );
@@ -773,7 +840,7 @@ export async function generateText<
             await tool.onInputAvailable({
               input: toolCall.input,
               toolCallId: toolCall.toolCallId,
-              messages: stepInputMessages,
+              messages: stepMessages,
               abortSignal: mergedAbortSignal,
               context: runtimeContext,
             });
@@ -783,7 +850,7 @@ export async function generateText<
             tools,
             toolApproval,
             toolCall,
-            messages: stepInputMessages,
+            messages: stepMessages,
             toolsContext,
             runtimeContext,
           });
@@ -880,15 +947,16 @@ export async function generateText<
               ),
               tools,
               callId,
-              messages: stepInputMessages,
+              messages: stepMessages,
               abortSignal: mergedAbortSignal,
               timeout,
+              sandbox: stepSandbox,
               toolsContext,
               onToolExecutionStart: event =>
                 notify({
                   event,
                   callbacks: [
-                    onToolExecutionStart,
+                    resolvedOnToolExecutionStart,
                     telemetryDispatcher.onToolExecutionStart,
                   ],
                 }),
@@ -896,7 +964,7 @@ export async function generateText<
                 notify({
                   event,
                   callbacks: [
-                    onToolExecutionEnd,
+                    resolvedOnToolExecutionEnd,
                     telemetryDispatcher.onToolExecutionEnd,
                   ],
                 }),
@@ -944,31 +1012,32 @@ export async function generateText<
           tools,
         });
 
-        // append to messages for potential next step:
-        responseMessages.push(
-          ...(await toResponseMessages({
-            content: stepContent,
-            tools,
-          })),
-        );
+        const stepResponseMessages = await toResponseMessages({
+          content: stepContent,
+          tools,
+        });
 
         // Add step information (after response messages are updated):
         // Conditionally include request.body and response.body based on include settings.
         // Large payloads (e.g., base64-encoded images) can cause memory issues.
-        const stepRequest: LanguageModelRequestMetadata =
-          (include?.requestBody ?? true)
-            ? (currentModelResponse.request ?? {})
-            : { ...currentModelResponse.request, body: undefined };
+        const stepRequest: LanguageModelRequestMetadata = {
+          ...currentModelResponse.request,
+          body: include.requestBody
+            ? currentModelResponse.request?.body
+            : undefined,
+          messages: include.requestMessages
+            ? cloneModelMessages(stepMessages)
+            : undefined,
+        };
 
         const stepResponse = {
           ...currentModelResponse.response,
-          // deep clone msgs to avoid mutating past messages in multi-step:
-          messages: structuredClone(responseMessages),
+          // deep clone msgs to avoid mutating step results in multi-step:
+          messages: cloneModelMessages(stepResponseMessages),
           // Conditionally include response body:
-          body:
-            (include?.responseBody ?? true)
-              ? currentModelResponse.response?.body
-              : undefined,
+          body: include.responseBody
+            ? currentModelResponse.response?.body
+            : undefined,
         };
 
         const currentStepResult: StepResult<TOOLS, RUNTIME_CONTEXT> =
@@ -996,6 +1065,7 @@ export async function generateText<
         });
 
         steps.push(currentStepResult);
+        messagesForNextStep = [...stepMessages, ...stepResponseMessages];
 
         await notify({
           event: currentStepResult,
@@ -1026,10 +1096,17 @@ export async function generateText<
       },
       {
         inputTokens: undefined,
+        inputTokenDetails: {
+          noCacheTokens: undefined,
+          cacheReadTokens: undefined,
+          cacheWriteTokens: undefined,
+        },
         outputTokens: undefined,
+        outputTokenDetails: {
+          textTokens: undefined,
+          reasoningTokens: undefined,
+        },
         totalTokens: undefined,
-        reasoningTokens: undefined,
-        cachedInputTokens: undefined,
       } as LanguageModelUsage,
     );
 
@@ -1055,6 +1132,10 @@ export async function generateText<
       dynamicToolResults: lastStep.dynamicToolResults,
       request: lastStep.request,
       response: lastStep.response,
+      responseMessages: [
+        ...initialResponseMessages,
+        ...steps.flatMap(step => step.response.messages),
+      ],
       warnings: lastStep.warnings,
       providerMetadata: lastStep.providerMetadata,
       steps,
@@ -1082,6 +1163,7 @@ export async function generateText<
     }
 
     return new DefaultGenerateTextResult({
+      initialResponseMessages,
       steps,
       totalUsage,
       output: resolvedOutput,
@@ -1099,6 +1181,7 @@ async function executeTools<TOOLS extends ToolSet>({
   messages,
   abortSignal,
   timeout,
+  sandbox,
   toolsContext,
   onToolExecutionStart,
   onToolExecutionEnd,
@@ -1110,6 +1193,7 @@ async function executeTools<TOOLS extends ToolSet>({
   messages: ModelMessage[];
   abortSignal: AbortSignal | undefined;
   timeout?: TimeoutConfiguration<TOOLS>;
+  sandbox?: Sandbox;
   toolsContext: InferToolSetContext<TOOLS>;
   onToolExecutionStart?: OnToolExecutionStartCallback<TOOLS>;
   onToolExecutionEnd?: OnToolExecutionEndCallback<TOOLS>;
@@ -1125,6 +1209,7 @@ async function executeTools<TOOLS extends ToolSet>({
           messages,
           abortSignal,
           timeout,
+          sandbox,
           toolsContext,
           onToolExecutionStart,
           onToolExecutionEnd,
@@ -1148,14 +1233,18 @@ class DefaultGenerateTextResult<
   private readonly _output: InferCompleteOutput<OUTPUT> | undefined;
 
   constructor(options: {
+    initialResponseMessages: Array<ResponseMessage>;
     steps: GenerateTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>['steps'];
     output: InferCompleteOutput<OUTPUT> | undefined;
     totalUsage: LanguageModelUsage;
   }) {
+    this.initialResponseMessages = options.initialResponseMessages;
     this.steps = options.steps;
     this._output = options.output;
     this.totalUsage = options.totalUsage;
   }
+
+  private readonly initialResponseMessages: Array<ResponseMessage>;
 
   private get finalStep() {
     return this.steps[this.steps.length - 1];
@@ -1227,6 +1316,13 @@ class DefaultGenerateTextResult<
 
   get response() {
     return this.finalStep.response;
+  }
+
+  get responseMessages() {
+    return [
+      ...this.initialResponseMessages,
+      ...this.steps.flatMap(step => step.response.messages),
+    ];
   }
 
   get request() {
@@ -1335,6 +1431,9 @@ function asContent<TOOLS extends ToolSet>({
               ...(part.providerMetadata != null
                 ? { providerMetadata: part.providerMetadata }
                 : {}),
+              ...(tool?.metadata != null
+                ? { toolMetadata: tool.metadata }
+                : {}),
             } as TypedToolError<TOOLS>);
           } else {
             contentParts.push({
@@ -1347,6 +1446,9 @@ function asContent<TOOLS extends ToolSet>({
               dynamic: part.dynamic,
               ...(part.providerMetadata != null
                 ? { providerMetadata: part.providerMetadata }
+                : {}),
+              ...(tool?.metadata != null
+                ? { toolMetadata: tool.metadata }
                 : {}),
             } as TypedToolResult<TOOLS>);
           }
@@ -1365,6 +1467,9 @@ function asContent<TOOLS extends ToolSet>({
             ...(part.providerMetadata != null
               ? { providerMetadata: part.providerMetadata }
               : {}),
+            ...(toolCall.toolMetadata != null
+              ? { toolMetadata: toolCall.toolMetadata }
+              : {}),
           } as TypedToolError<TOOLS>);
         } else {
           contentParts.push({
@@ -1377,6 +1482,9 @@ function asContent<TOOLS extends ToolSet>({
             dynamic: toolCall.dynamic,
             ...(part.providerMetadata != null
               ? { providerMetadata: part.providerMetadata }
+              : {}),
+            ...(toolCall.toolMetadata != null
+              ? { toolMetadata: toolCall.toolMetadata }
               : {}),
           } as TypedToolResult<TOOLS>);
         }
