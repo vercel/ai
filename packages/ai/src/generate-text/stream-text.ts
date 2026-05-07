@@ -950,6 +950,8 @@ class DefaultStreamTextResult<
     let recordedWarnings: Array<CallWarning> = [];
     const recordedSteps: StepResult<TOOLS, RUNTIME_CONTEXT>[] = [];
     const initialResponseMessages: Array<ResponseMessage> = [];
+    let stepMessagesForNextStep: Array<ModelMessage> | undefined;
+    let currentStepMessages: Array<ModelMessage> = [];
 
     // Track provider-executed tool calls that support deferred results
     // (e.g., code_execution in programmatic tool calling scenarios).
@@ -1135,7 +1137,7 @@ class DefaultStreamTextResult<
         }
 
         if (part.type === 'finish-step') {
-          const stepMessages = await toResponseMessages({
+          const stepResponseMessages = await toResponseMessages({
             content: recordedContent,
             tools,
           });
@@ -1162,7 +1164,7 @@ class DefaultStreamTextResult<
               },
               response: {
                 ...part.response,
-                messages: cloneModelMessages(stepMessages),
+                messages: cloneModelMessages(stepResponseMessages),
               },
               providerMetadata: part.providerMetadata,
             });
@@ -1179,6 +1181,10 @@ class DefaultStreamTextResult<
           });
 
           recordedSteps.push(currentStepResult);
+          stepMessagesForNextStep = [
+            ...currentStepMessages,
+            ...stepResponseMessages,
+          ];
 
           // resolve the promise to signal that the step has been fully processed
           // by the event processor:
@@ -1575,13 +1581,16 @@ class DefaultStreamTextResult<
         try {
           stepFinish = new DelayedPromise<void>();
 
+          const responseMessagesFromPreviousSteps = recordedSteps.flatMap(
+            step => step.response.messages,
+          );
           const accumulatedResponseMessages = [
             ...initialResponseMessages,
-            ...recordedSteps.flatMap(step => step.response.messages),
+            ...responseMessagesFromPreviousSteps,
           ];
-          const stepInputMessages = [
+          const stepInputMessages = stepMessagesForNextStep ?? [
             ...initialMessages,
-            ...accumulatedResponseMessages,
+            ...initialResponseMessages,
           ];
 
           const prepareStepResult = await prepareStep?.({
@@ -1619,6 +1628,7 @@ class DefaultStreamTextResult<
           toolsContext = prepareStepResult?.toolsContext ?? toolsContext;
 
           const stepMessages = prepareStepResult?.messages ?? stepInputMessages;
+          currentStepMessages = stepMessages;
           const stepSystem = prepareStepResult?.system ?? initialPrompt.system;
 
           const stepProviderOptions = mergeObjects(
@@ -1694,7 +1704,7 @@ class DefaultStreamTextResult<
           const stream2 = invokeToolCallbacksFromStream({
             stream: languageModelStream,
             tools,
-            stepInputMessages,
+            stepInputMessages: stepMessages,
             abortSignal,
             runtimeContext,
           });
@@ -1703,7 +1713,7 @@ class DefaultStreamTextResult<
             createExecuteToolsTransformation({
               tools,
               callId,
-              messages: stepInputMessages,
+              messages: stepMessages,
               abortSignal,
               timeout,
               sandbox: stepSandbox,

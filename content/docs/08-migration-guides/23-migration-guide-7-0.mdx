@@ -689,6 +689,28 @@ const result = await generateText({
 });
 ```
 
+### Core: `prepareStep` Message Overrides Carry Forward
+
+When `prepareStep` returns `messages`, those messages are now used as the base for subsequent steps. The next step receives those messages plus the response messages from the previous step.
+
+In AI SDK 6, a `messages` override only applied to the current step. To keep that behavior, rebuild the current step's messages from `initialMessages` and `responseMessages` inside `prepareStep`:
+
+```tsx filename="AI SDK 7"
+const result = await generateText({
+  model: yourModel,
+  tools: { weather },
+  prepareStep: ({ initialMessages, responseMessages }) => {
+    return {
+      messages: [
+        ...initialMessages,
+        ...responseMessages,
+        // add any one-step-only message changes here
+      ],
+    };
+  },
+});
+```
+
 ### Tools: Remove Deprecated `ToolCallOptions` Type
 
 The deprecated `ToolCallOptions` type has been removed in AI SDK 7. Replace all remaining usages with `ToolExecutionOptions`.

@@ -946,6 +946,68 @@ describe('generateText', () => {
       expect(result.request.messages).toStrictEqual(preparedMessages);
       expect(result.steps[0].request.messages).toStrictEqual(preparedMessages);
     });
+
+    it('should carry messages from prepareStep forward to the next step', async () => {
+      const preparedMessages: Array<ModelMessage> = [
+        { role: 'user', content: 'prepared prompt' },
+      ];
+      const prepareStepMessages: Array<Array<ModelMessage>> = [];
+      let responseCount = 0;
+
+      const result = await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => {
+            switch (responseCount++) {
+              case 0:
+                return {
+                  ...dummyResponseValues,
+                  content: [
+                    {
+                      type: 'tool-call',
+                      toolCallType: 'function',
+                      toolCallId: 'call-1',
+                      toolName: 'tool1',
+                      input: '{ "value": "test" }',
+                    },
+                  ],
+                  finishReason: { unified: 'tool-calls', raw: undefined },
+                };
+              case 1:
+              default:
+                return {
+                  ...dummyResponseValues,
+                  content: [{ type: 'text', text: 'Done.' }],
+                };
+            }
+          },
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => `${value}-result`,
+          }),
+        },
+        prompt: 'prompt',
+        stopWhen: isStepCount(3),
+        prepareStep: async ({ messages, stepNumber }) => {
+          prepareStepMessages.push([...messages]);
+
+          if (stepNumber === 0) {
+            return { messages: preparedMessages };
+          }
+        },
+        include: { requestMessages: true },
+      });
+
+      expect(prepareStepMessages[1]).toEqual([
+        ...preparedMessages,
+        ...result.steps[0].response.messages,
+      ]);
+      expect(result.steps[1].request.messages).toEqual([
+        ...preparedMessages,
+        ...result.steps[0].response.messages,
+      ]);
+    });
   });
 
   describe('result.response', () => {

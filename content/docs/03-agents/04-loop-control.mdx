@@ -148,7 +148,7 @@ const budgetExceeded: StopCondition<typeof tools> = ({ steps }) => {
 
 The `prepareStep` callback runs before each step in the loop and defaults to the initial settings if you don't return any changes. Use it to modify settings, manage context, or implement dynamic behavior based on execution history.
 
-It receives `messages` for the current step, plus `initialMessages` and `responseMessages` when you need to distinguish the original input from assistant/tool messages accumulated in earlier steps.
+It receives `messages` for the current step, plus `initialMessages` and `responseMessages` when you need to distinguish the original input from assistant/tool messages accumulated in earlier steps. If you return a `messages` override, those messages carry forward to later steps together with the response messages from each completed step.
 
 ### Dynamic Model Selection
 
@@ -280,7 +280,7 @@ prepareStep: async ({ stepNumber }) => {
 
 ### Message Modification
 
-Transform messages before sending them to the model:
+Transform messages before sending them to the model. Returned messages carry forward to later steps, so later `messages` values include your transformed messages plus the assistant/tool response messages from completed steps:
 
 ```ts
 import { ToolLoopAgent } from 'ai';

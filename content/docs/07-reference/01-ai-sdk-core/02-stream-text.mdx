@@ -667,7 +667,7 @@ To see `streamText` in action, check out [these examples](#examples).
                       name: 'messages',
                       type: 'Array<ModelMessage>',
                       description:
-                        'The messages that will be sent to the model for the current step.',
+                        'The messages that will be sent to the model for the current step. If prepareStep returns a messages override, those messages carry forward to later steps.',
                     },
                     {
                       name: 'runtimeContext',
@@ -2052,7 +2052,7 @@ To see `streamText` in action, check out [these examples](#examples).
               name: 'messages',
               type: 'Array<ModelMessage>',
               description:
-                'The messages that will be sent to the model for this step. Uses the user-facing ModelMessage format. May be overridden by prepareStep.',
+                'The messages that will be sent to the model for this step. Uses the user-facing ModelMessage format. May be overridden by prepareStep. If prepareStep returns a messages override, those messages carry forward to later steps.',
             },
             {
               name: 'tools',

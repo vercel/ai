@@ -5209,6 +5209,84 @@ describe('streamText', () => {
         preparedMessages,
       );
     });
+
+    it('should carry messages from prepareStep forward to the next step', async () => {
+      const preparedMessages: Array<ModelMessage> = [
+        { role: 'user', content: 'prepared prompt' },
+      ];
+      const prepareStepMessages: Array<Array<ModelMessage>> = [];
+      let responseCount = 0;
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream<LanguageModelV4StreamPart>(
+              responseCount++ === 0
+                ? [
+                    {
+                      type: 'stream-start',
+                      warnings: [],
+                    },
+                    {
+                      type: 'tool-call',
+                      toolCallId: 'call-1',
+                      toolName: 'tool1',
+                      input: '{ "value": "test" }',
+                    },
+                    {
+                      type: 'finish',
+                      finishReason: { unified: 'tool-calls', raw: undefined },
+                      usage: testUsage,
+                    },
+                  ]
+                : [
+                    {
+                      type: 'stream-start',
+                      warnings: [],
+                    },
+                    { type: 'text-start', id: '1' },
+                    { type: 'text-delta', id: '1', delta: 'Done.' },
+                    { type: 'text-end', id: '1' },
+                    {
+                      type: 'finish',
+                      finishReason: { unified: 'stop', raw: 'stop' },
+                      usage: testUsage,
+                    },
+                  ],
+            ),
+          }),
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => `${value}-result`,
+          }),
+        },
+        prompt: 'prompt',
+        stopWhen: isStepCount(3),
+        prepareStep: async ({ messages, stepNumber }) => {
+          prepareStepMessages.push([...messages]);
+
+          if (stepNumber === 0) {
+            return { messages: preparedMessages };
+          }
+        },
+        include: { requestMessages: true },
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      const steps = await result.steps;
+      expect(prepareStepMessages[1]).toEqual([
+        ...preparedMessages,
+        ...steps[0].response.messages,
+      ]);
+      expect(steps[1].request.messages).toEqual([
+        ...preparedMessages,
+        ...steps[0].response.messages,
+      ]);
+    });
   });
 
   describe('result.response', () => {

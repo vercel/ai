@@ -627,6 +627,7 @@ export async function generateText<
       [];
     const steps: GenerateTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>['steps'] =
       [];
+    let messagesForNextStep = [...initialMessages, ...initialResponseMessages];
 
     // Track provider-executed tool calls that support deferred results
     // (e.g., code_execution in programmatic tool calling scenarios).
@@ -646,10 +647,7 @@ export async function generateText<
           ...initialResponseMessages,
           ...steps.flatMap(step => step.response.messages),
         ];
-        const stepInputMessages = [
-          ...initialMessages,
-          ...accumulatedResponseMessages,
-        ];
+        const stepInputMessages = messagesForNextStep;
 
         const prepareStepResult = await prepareStep?.({
           model,
@@ -783,7 +781,7 @@ export async function generateText<
                 repairToolCall,
                 refineToolInput,
                 system,
-                messages: stepInputMessages,
+                messages: stepMessages,
               }),
             ),
         );
@@ -842,7 +840,7 @@ export async function generateText<
             await tool.onInputAvailable({
               input: toolCall.input,
               toolCallId: toolCall.toolCallId,
-              messages: stepInputMessages,
+              messages: stepMessages,
               abortSignal: mergedAbortSignal,
               context: runtimeContext,
             });
@@ -852,7 +850,7 @@ export async function generateText<
             tools,
             toolApproval,
             toolCall,
-            messages: stepInputMessages,
+            messages: stepMessages,
             toolsContext,
             runtimeContext,
           });
@@ -949,7 +947,7 @@ export async function generateText<
               ),
               tools,
               callId,
-              messages: stepInputMessages,
+              messages: stepMessages,
               abortSignal: mergedAbortSignal,
               timeout,
               sandbox: stepSandbox,
@@ -1067,6 +1065,7 @@ export async function generateText<
         });
 
         steps.push(currentStepResult);
+        messagesForNextStep = [...stepMessages, ...stepResponseMessages];
 
         await notify({
           event: currentStepResult,
