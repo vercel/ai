@@ -1,8 +1,8 @@
-import type { MCPAppResource, MCPAppResourceCSP } from '@ai-sdk/mcp';
+import type { MCPAppResource } from '@ai-sdk/mcp';
 import type { DynamicToolUIPart, ToolUIPart, UITools } from 'ai';
 import type { CSSProperties, ReactNode } from 'react';
 
-export type { MCPAppResource, MCPAppResourceCSP };
+export type { MCPAppResource };
 
 export type MCPAppDisplayMode = 'inline' | 'fullscreen' | 'pip';
 

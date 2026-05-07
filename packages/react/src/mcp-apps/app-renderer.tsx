@@ -1,10 +1,7 @@
+import type { MCPAppResource } from '@ai-sdk/mcp';
 import { useEffect, useState } from 'react';
 import { MCPAppFrame } from './app-frame';
-import type {
-  MCPAppMetadata,
-  MCPAppRendererProps,
-  MCPAppResource,
-} from './types';
+import type { MCPAppMetadata, MCPAppRendererProps } from './types';
 import { getMCPAppFromToolPart } from './utils';
 
 type LoadedResourceState = {
