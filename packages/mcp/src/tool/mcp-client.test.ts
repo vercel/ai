@@ -92,7 +92,7 @@ describe('MCPClient', () => {
     `);
   });
 
-  it('should expose MCP tool metadata on dynamic tools via providerMetadata', async () => {
+  it('should expose MCP tool metadata on dynamic tools', async () => {
     client = await createMCPClient({
       transport: { type: 'sse', url: 'https://example.com/sse' },
       clientName: 'MyMCPClient',
@@ -100,14 +100,12 @@ describe('MCPClient', () => {
 
     const tools = await client.tools();
 
-    expect(tools['mock-tool'].providerMetadata).toEqual({
-      mcp: {
-        clientName: 'MyMCPClient',
-      },
+    expect(tools['mock-tool'].metadata).toEqual({
+      clientName: 'MyMCPClient',
     });
   });
 
-  it('should support deprecated name for MCP tool providerMetadata', async () => {
+  it('should support deprecated client name for MCP tool metadata', async () => {
     client = await createMCPClient({
       transport: { type: 'sse', url: 'https://example.com/sse' },
       name: 'DeprecatedMCPServer',
@@ -115,10 +113,8 @@ describe('MCPClient', () => {
 
     const tools = await client.tools();
 
-    expect(tools['mock-tool'].providerMetadata).toEqual({
-      mcp: {
-        clientName: 'DeprecatedMCPServer',
-      },
+    expect(tools['mock-tool'].metadata).toEqual({
+      clientName: 'DeprecatedMCPServer',
     });
   });
 

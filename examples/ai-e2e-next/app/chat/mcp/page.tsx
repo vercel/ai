@@ -49,9 +49,8 @@ export default function Chat() {
                 const displayName = toolPart.title || toolName;
                 const mcpServerName =
                   toolPart.type === 'dynamic-tool' &&
-                  typeof toolPart.callProviderMetadata?.mcp?.clientName ===
-                    'string'
-                    ? toolPart.callProviderMetadata.mcp.clientName
+                  typeof toolPart.toolMetadata?.clientName === 'string'
+                    ? toolPart.toolMetadata.clientName
                     : undefined;
 
                 return (

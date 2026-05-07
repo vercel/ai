@@ -295,6 +295,9 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
                 error: getErrorMessage(toolCall.error!),
                 dynamic: true,
                 title: toolCall.title,
+                ...(toolCall.toolMetadata != null
+                  ? { toolMetadata: toolCall.toolMetadata }
+                  : {}),
               });
               break;
             }
@@ -382,6 +385,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
 
         case 'tool-result': {
           const toolName = chunk.toolName as keyof TOOLS & string;
+          const toolCall = toolCallsByToolCallId.get(chunk.toolCallId);
 
           if (chunk.isError) {
             toolResultsStreamController!.enqueue({
@@ -395,6 +399,9 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
               ...(chunk.providerMetadata != null
                 ? { providerMetadata: chunk.providerMetadata }
                 : {}),
+              ...(toolCall?.toolMetadata != null
+                ? { toolMetadata: toolCall.toolMetadata }
+                : {}),
             } as TypedToolError<TOOLS>);
           } else {
             controller.enqueue({
@@ -407,6 +414,9 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
               dynamic: chunk.dynamic,
               ...(chunk.providerMetadata != null
                 ? { providerMetadata: chunk.providerMetadata }
+                : {}),
+              ...(toolCall?.toolMetadata != null
+                ? { toolMetadata: toolCall.toolMetadata }
                 : {}),
             } as TypedToolResult<TOOLS>);
           }

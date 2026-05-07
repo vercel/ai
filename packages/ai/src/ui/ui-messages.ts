@@ -1,3 +1,4 @@
+import type { JSONObject } from '@ai-sdk/provider';
 import type {
   InferToolInput,
   InferToolOutput,
@@ -222,6 +223,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
    */
   toolCallId: string;
   title?: string;
+  toolMetadata?: JSONObject;
 
   /**
    * Whether the tool call was executed by the provider.
@@ -329,6 +331,7 @@ export type DynamicToolUIPart = {
    */
   toolCallId: string;
   title?: string;
+  toolMetadata?: JSONObject;
 
   /**
    * Whether the tool call was executed by the provider.

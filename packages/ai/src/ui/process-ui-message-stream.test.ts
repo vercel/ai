@@ -5682,6 +5682,71 @@ describe('processUIMessageStream', () => {
         testProvider: { itemId: 'result-item' },
       });
     });
+
+    it('should preserve tool metadata on dynamic tool parts', async () => {
+      const stream = createUIMessageStream([
+        { type: 'start', messageId: 'msg-123' },
+        { type: 'start-step' },
+        {
+          type: 'tool-input-available',
+          toolCallId: 'tool-call-1',
+          toolName: 'tool-name',
+          input: { query: 'test' },
+          dynamic: true,
+          toolMetadata: { clientName: 'MyMCPClient' },
+        },
+        {
+          type: 'tool-output-available',
+          toolCallId: 'tool-call-1',
+          output: { result: 'provider-result' },
+          dynamic: true,
+        },
+        { type: 'finish-step' },
+        { type: 'finish' },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+
+      const toolPart = state!.message.parts.find(
+        (part: any) => part.toolCallId === 'tool-call-1',
+      ) as any;
+
+      expect(toolPart).toMatchInlineSnapshot(`
+        {
+          "errorText": undefined,
+          "input": {
+            "query": "test",
+          },
+          "output": {
+            "result": "provider-result",
+          },
+          "preliminary": undefined,
+          "providerExecuted": undefined,
+          "rawInput": undefined,
+          "state": "output-available",
+          "title": undefined,
+          "toolCallId": "tool-call-1",
+          "toolMetadata": {
+            "clientName": "MyMCPClient",
+          },
+          "toolName": "tool-name",
+          "type": "dynamic-tool",
+        }
+      `);
+    });
   });
 
   it('should call onToolCall for client-executed tools', async () => {

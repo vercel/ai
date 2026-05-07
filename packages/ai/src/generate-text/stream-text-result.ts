@@ -1,3 +1,4 @@
+import type { JSONObject } from '@ai-sdk/provider';
 import type { IdGenerator } from '@ai-sdk/provider-utils';
 import type { ServerResponse } from 'node:http';
 import type {
@@ -409,6 +410,7 @@ export type TextStreamPart<TOOLS extends ToolSet> =
       id: string;
       toolName: string;
       providerMetadata?: ProviderMetadata;
+      toolMetadata?: JSONObject;
       providerExecuted?: boolean;
       dynamic?: boolean;
       title?: string;
