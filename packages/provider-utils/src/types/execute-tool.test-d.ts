@@ -1,4 +1,5 @@
 import { describe, expectTypeOf, it } from 'vitest';
+import type { Sandbox } from './sandbox';
 import { z } from 'zod/v4';
 import { executeTool } from './execute-tool';
 import type { ExecutableTool } from './executable-tool';
@@ -31,6 +32,7 @@ describe('executeTool', () => {
         toolCallId: 'tool-call-1',
         messages: [],
         context: { requestId: 'req-1' },
+        sandbox: undefined,
       },
     });
 
@@ -95,6 +97,65 @@ describe('executeTool', () => {
               requestId: string;
               step: 1;
             };
+          }
+      >
+    >();
+  });
+
+  it('requires sandbox options for sandbox tools', () => {
+    const sandboxTool = tool({
+      inputSchema: z.object({
+        city: z.string(),
+      }),
+      requiresSandbox: true,
+      execute: async (input, options) => {
+        expectTypeOf(input).toEqualTypeOf<{ city: string }>();
+        expectTypeOf(options.sandbox).toEqualTypeOf<Sandbox>();
+
+        return {
+          city: input.city,
+          sandboxDescription: options.sandbox.description,
+        };
+      },
+    });
+
+    expectTypeOf(sandboxTool.requiresSandbox).toEqualTypeOf<true>();
+
+    executeTool({
+      tool: sandboxTool as ExecutableTool<typeof sandboxTool>,
+      input: { city: 'Berlin' },
+      options: {
+        toolCallId: 'tool-call-3',
+        messages: [],
+        context: {},
+        // @ts-expect-error sandbox tools require sandbox execution options
+        sandbox: undefined,
+      },
+    });
+
+    const result = executeTool({
+      tool: sandboxTool as ExecutableTool<typeof sandboxTool>,
+      input: { city: 'Berlin' },
+      options: {
+        toolCallId: 'tool-call-4',
+        messages: [],
+        context: {},
+        sandbox: {
+          description: 'test sandbox',
+          executeCommand: async () => ({ stdout: '', stderr: '', exitCode: 0 }),
+        },
+      },
+    });
+
+    expectTypeOf<typeof result>().toEqualTypeOf<
+      AsyncGenerator<
+        | {
+            type: 'preliminary';
+            output: { city: string; sandboxDescription: string };
+          }
+        | {
+            type: 'final';
+            output: { city: string; sandboxDescription: string };
           }
       >
     >();
