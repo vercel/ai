@@ -11,9 +11,9 @@ importers:
 
   .:
     devDependencies:
-      '@ai-sdk/konsistent':
+      '@ai-sdk/konsistent-provider':
         specifier: workspace:*
-        version: link:packages/konsistent
+        version: link:packages/konsistent-provider
       '@changesets/cli':
         specifier: 2.27.10
         version: 2.27.10
@@ -2362,7 +2362,7 @@ importers:
         specifier: 3.25.76
         version: 3.25.76
 
-  packages/konsistent:
+  packages/konsistent-provider:
     dependencies:
       '@konsistent/convention':
         specifier: 0.0.1-alpha.2

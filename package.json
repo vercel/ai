@@ -31,7 +31,7 @@
     ]
   },
   "devDependencies": {
-    "@ai-sdk/konsistent": "workspace:*",
+    "@ai-sdk/konsistent-provider": "workspace:*",
     "@changesets/cli": "2.27.10",
     "@playwright/test": "^1.44.1",
     "del-cli": "^5.1.0",

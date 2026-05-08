@@ -2,7 +2,7 @@
   "$schema": "../node_modules/konsistent/konsistent.schema.json",
   "version": "v1",
   "conventionSources": {
-    "aisdk": "@ai-sdk/konsistent"
+    "aisdk": "@ai-sdk/konsistent-provider"
   },
   "conventions": [
     {
@@ -28,7 +28,7 @@
         },
         {
           "use": "aisdk/package-must-have-tsup-config",
-          "excludeFiles": ["packages/svelte", "packages/konsistent"]
+          "excludeFiles": ["packages/svelte", "packages/konsistent-provider"]
         }
       ]
     },
@@ -41,7 +41,7 @@
         "!packages/angular",
         "!packages/codemod",
         "!packages/devtools",
-        "!packages/konsistent",
+        "!packages/konsistent-provider",
         "!packages/langchain",
         "!packages/llamaindex",
         "!packages/mcp",

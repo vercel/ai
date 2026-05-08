@@ -95,11 +95,11 @@
       "dependsOn": ["^build", "build"]
     },
     "//#konsistent:check": {
-      "dependsOn": ["@ai-sdk/konsistent#build"],
+      "dependsOn": ["@ai-sdk/konsistent-provider#build"],
       "cache": false
     },
     "//#konsistent:validate": {
-      "dependsOn": ["@ai-sdk/konsistent#build"],
+      "dependsOn": ["@ai-sdk/konsistent-provider#build"],
       "cache": false
     }
   }
