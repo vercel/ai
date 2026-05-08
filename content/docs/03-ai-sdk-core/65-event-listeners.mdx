@@ -154,7 +154,7 @@ const result = await generateText({
     },
     {
       name: 'system',
-      type: 'string | SystemModelMessage | Array<SystemModelMessage> | undefined',
+      type: 'Instructions | undefined',
       description: 'The system message(s) provided to the model.',
     },
     {
@@ -302,7 +302,7 @@ const result = await generateText({
     },
     {
       name: 'system',
-      type: 'string | SystemModelMessage | Array<SystemModelMessage> | undefined',
+      type: 'Instructions | undefined',
       description: 'The system message for this step.',
     },
     {

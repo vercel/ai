@@ -1,7 +1,7 @@
 import type { JSONSchema7, LanguageModelV4ToolCall } from '@ai-sdk/provider';
 import type { InvalidToolInputError } from '../error/invalid-tool-input-error';
 import type { NoSuchToolError } from '../error/no-such-tool-error';
-import type { ModelMessage, SystemModelMessage } from '../prompt';
+import type { Instructions, ModelMessage } from '../prompt';
 import type { ToolSet } from '@ai-sdk/provider-utils';
 
 /**
@@ -18,7 +18,7 @@ import type { ToolSet } from '@ai-sdk/provider-utils';
  * @param options.error - The error that occurred while parsing the tool call.
  */
 export type ToolCallRepairFunction<TOOLS extends ToolSet> = (options: {
-  system: string | SystemModelMessage | Array<SystemModelMessage> | undefined;
+  system: Instructions | undefined;
   messages: ModelMessage[];
   toolCall: LanguageModelV4ToolCall;
   tools: TOOLS;

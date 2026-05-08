@@ -57,7 +57,7 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
     },
     {
       name: 'instructions',
-      type: 'string | SystemModelMessage | SystemModelMessage[]',
+      type: 'Instructions',
       isOptional: true,
       description:
         'Instructions for the agent, usually used for system prompt/context.',
@@ -154,7 +154,7 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
             },
             {
               name: 'system',
-              type: 'string | SystemModelMessage | Array<SystemModelMessage> | undefined',
+              type: 'Instructions | undefined',
               description: 'The system message(s) provided to the model.',
             },
             {
@@ -293,7 +293,7 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
             },
             {
               name: 'system',
-              type: 'string | SystemModelMessage | Array<SystemModelMessage> | undefined',
+              type: 'Instructions | undefined',
               description: 'The system message for this step.',
             },
             {

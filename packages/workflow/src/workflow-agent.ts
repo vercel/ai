@@ -23,7 +23,6 @@ import {
   type StepResult,
   type StopCondition,
   type GenerateTextOnStepFinishCallback,
-  type SystemModelMessage,
   type ActiveTools,
   type ToolCallRepairFunction,
   type ToolChoice,
@@ -31,6 +30,7 @@ import {
   type UIMessage,
   type LanguageModel,
   type Prompt,
+  type Instructions,
 } from 'ai';
 import {
   convertToLanguageModelPrompt,
@@ -380,7 +380,7 @@ export interface PrepareCallOptions<
 > extends Partial<GenerationSettings> {
   model: LanguageModel;
   tools: TTools;
-  instructions?: string | SystemModelMessage | Array<SystemModelMessage>;
+  instructions?: Instructions;
   toolChoice?: ToolChoice<TTools>;
   telemetry?: TelemetryOptions;
   /**
@@ -454,7 +454,7 @@ export type WorkflowAgentOptions<
      * Agent instructions. Can be a string, a SystemModelMessage, or an array of SystemModelMessages.
      * Supports provider-specific options (e.g., caching) when using the SystemModelMessage form.
      */
-    instructions?: string | SystemModelMessage | Array<SystemModelMessage>;
+    instructions?: Instructions;
 
     /**
      * Optional system prompt to guide the agent's behavior.
@@ -1150,10 +1150,7 @@ export class WorkflowAgent<
    * The tool set configured for this agent.
    */
   public readonly tools: TBaseTools;
-  private instructions?:
-    | string
-    | SystemModelMessage
-    | Array<SystemModelMessage>;
+  private instructions?: Instructions;
   private generationSettings: GenerationSettings;
   private toolChoice?: ToolChoice<TBaseTools>;
   private telemetry?: TelemetryOptions;

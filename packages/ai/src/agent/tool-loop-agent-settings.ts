@@ -6,7 +6,6 @@ import type {
   InferToolSetContext,
   MaybePromiseLike,
   ProviderOptions,
-  SystemModelMessage,
   ToolSet,
 } from '@ai-sdk/provider-utils';
 import type { ActiveTools } from '../generate-text/active-tools';
@@ -30,7 +29,7 @@ import type {
 import type { ToolInputRefinement } from '../generate-text/tool-input-refinement';
 import type { ToolsContextParameter } from '../generate-text/tools-context-parameter';
 import type { LanguageModelCallOptions } from '../prompt/language-model-call-options';
-import type { Prompt } from '../prompt/prompt';
+import type { Instructions, Prompt } from '../prompt/prompt';
 import type { RequestOptions } from '../prompt/request-options';
 import type { TelemetryOptions } from '../telemetry/telemetry-options';
 import type { LanguageModel, ToolChoice } from '../types/language-model';
@@ -58,7 +57,7 @@ export type ToolLoopAgentSettings<
      *
      * It can be a string, or, if you need to pass additional provider options (e.g. for caching), a `SystemModelMessage`.
      */
-    instructions?: string | SystemModelMessage | Array<SystemModelMessage>;
+    instructions?: Instructions;
 
     /**
      * The language model to use.

@@ -1,6 +1,14 @@
 import type { ModelMessage, SystemModelMessage } from '@ai-sdk/provider-utils';
 
 /**
+ * Instructions to include in the prompt. Can be used with `prompt` or `messages`.
+ */
+export type Instructions =
+  | string
+  | SystemModelMessage
+  | Array<SystemModelMessage>;
+
+/**
  * Prompt part of the AI function options.
  * It contains instructions, a simple text prompt, or a list of messages.
  */
@@ -8,14 +16,14 @@ export type Prompt = {
   /**
    * Instructions to include in the prompt. Can be used with `prompt` or `messages`.
    */
-  instructions?: string | SystemModelMessage | Array<SystemModelMessage>;
+  instructions?: Instructions;
 
   /**
    * Instructions to include in the prompt. Can be used with `prompt` or `messages`.
    *
    * @deprecated Use `instructions` instead.
    */
-  system?: string | SystemModelMessage | Array<SystemModelMessage>;
+  system?: Instructions;
 
   /**
    * Whether system messages are allowed in the `prompt` or `messages` fields.

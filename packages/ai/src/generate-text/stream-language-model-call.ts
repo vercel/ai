@@ -10,12 +10,11 @@ import {
   type IdGenerator,
   type ModelMessage,
   type ProviderOptions,
-  type SystemModelMessage,
   type ToolSet,
 } from '@ai-sdk/provider-utils';
 import { ToolCallNotFoundForApprovalError } from '../error/tool-call-not-found-for-approval-error';
 import { resolveLanguageModel } from '../model/resolve-model';
-import type { Prompt } from '../prompt';
+import type { Instructions, Prompt } from '../prompt';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import type { LanguageModelCallOptions } from '../prompt/language-model-call-options';
 import { prepareToolChoice } from '../prompt/prepare-tool-choice';
@@ -350,7 +349,7 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
   onLanguageModelCallEnd,
 }: {
   tools: TOOLS | undefined;
-  system: string | SystemModelMessage | Array<SystemModelMessage> | undefined;
+  system: Instructions | undefined;
   messages: ModelMessage[];
   repairToolCall: ToolCallRepairFunction<TOOLS> | undefined;
   refineToolInput: ToolInputRefinement<TOOLS> | undefined;

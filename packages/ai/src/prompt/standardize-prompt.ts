@@ -3,17 +3,16 @@ import {
   asArray,
   safeValidateTypes,
   type ModelMessage,
-  type SystemModelMessage,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { modelMessageSchema } from './message';
-import type { Prompt } from './prompt';
+import type { Instructions, Prompt } from './prompt';
 
 export type StandardizedPrompt = {
   /**
    * System message.
    */
-  system?: string | SystemModelMessage | Array<SystemModelMessage>;
+  system?: Instructions;
 
   /**
    * Messages.

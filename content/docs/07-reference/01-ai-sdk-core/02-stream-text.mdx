@@ -46,7 +46,7 @@ To see `streamText` in action, check out [these examples](#examples).
     },
     {
       name: 'instructions',
-      type: 'string | SystemModelMessage | SystemModelMessage[]',
+      type: 'Instructions',
       description:
         'Instructions to use that specify the behavior of the model.'
     },
@@ -723,7 +723,7 @@ To see `streamText` in action, check out [these examples](#examples).
             },
             {
               name: 'instructions',
-              type: 'string | SystemModelMessage | SystemModelMessage[]',
+              type: 'Instructions',
               isOptional: true,
               description:
                 'Optionally override the instructions sent to the model for this step.'
@@ -840,7 +840,7 @@ To see `streamText` in action, check out [these examples](#examples).
           parameters: [
             {
               name: 'system',
-              type: 'string | SystemModelMessage | SystemModelMessage[] | undefined',
+              type: 'Instructions | undefined',
               description: 'The system prompt.',
             },
             {
@@ -1899,7 +1899,7 @@ To see `streamText` in action, check out [these examples](#examples).
             },
             {
               name: 'system',
-              type: 'string | SystemModelMessage | Array<SystemModelMessage> | undefined',
+              type: 'Instructions | undefined',
               description: 'The system message(s) provided to the model.',
             },
             {
@@ -2045,7 +2045,7 @@ To see `streamText` in action, check out [these examples](#examples).
             },
             {
               name: 'system',
-              type: 'string | SystemModelMessage | Array<SystemModelMessage> | undefined',
+              type: 'Instructions | undefined',
               description: 'The system message for this step.',
             },
             {
