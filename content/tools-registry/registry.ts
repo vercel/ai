@@ -551,4 +551,46 @@ console.log(text);`,
     websiteUrl: 'https://you.com',
     npmUrl: 'https://www.npmjs.com/package/@youdotcom-oss/ai-sdk-plugin',
   },
+  {
+    slug: 'mercadopago-agent-toolkit',
+    name: 'Mercado Pago Agent Toolkit',
+    description:
+      'Mercado Pago billing for AI agents. 89 typed tools across the agent-relevant Mercado Pago API surface (Subscriptions, Payments, Refunds, Checkout Pro, Marketplace OAuth, Order Management, Customers, Cards, Cuotas, QR, 3DS, Point devices, Stores+POS, Account/Balance/Settlements, Webhooks, Disputes, Lookups, Bank Accounts). Edge-Runtime safe. Idempotency-by-default for state mutations, webhook signature verification with replay protection, circuit breaker, deterministic retry budget, and OpenTelemetry instrumentation. Vercel KV adapters via subpath for distributed state.',
+    packageName: '@ar-agents/mercadopago',
+    tags: ['payments', 'billing', 'subscriptions', 'mercadopago', 'argentina'],
+    apiKeyEnvName: 'MP_ACCESS_TOKEN',
+    installCommand: {
+      pnpm: 'pnpm add @ar-agents/mercadopago',
+      npm: 'npm install @ar-agents/mercadopago',
+      yarn: 'yarn add @ar-agents/mercadopago',
+      bun: 'bun add @ar-agents/mercadopago',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import {
+  MercadoPagoClient,
+  mercadoPagoTools,
+  InMemoryStateAdapter,
+} from '@ar-agents/mercadopago';
+
+const client = new MercadoPagoClient({
+  accessToken: process.env.MP_ACCESS_TOKEN!,
+});
+
+const { text } = await generateText({
+  model: 'anthropic/claude-sonnet-4-5-20250929',
+  prompt: "Cobrale $25.000 mensual a juan@example.com con razón 'Plan Pro'.",
+  tools: mercadoPagoTools(client, {
+    state: new InMemoryStateAdapter(),
+    backUrl: 'https://example.com/done',
+  }),
+  stopWhen: isStepCount(8),
+});
+
+console.log(text);`,
+    docsUrl:
+      'https://github.com/ar-agents/ar-agents/blob/main/packages/mercadopago/README.md',
+    apiKeyUrl: 'https://www.mercadopago.com.ar/developers/panel/app',
+    websiteUrl: 'https://ar-agents.vercel.app',
+    npmUrl: 'https://www.npmjs.com/package/@ar-agents/mercadopago',
+  },
 ];
