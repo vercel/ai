@@ -106,7 +106,14 @@ export type PrepareStepResult<
       activeTools?: ActiveTools<NoInfer<TOOLS>>;
 
       /**
-       * Optionally override the system message(s) sent to the model for this step.
+       * Optionally override the instructions sent to the model for this step.
+       */
+      instructions?: string | SystemModelMessage | Array<SystemModelMessage>;
+
+      /**
+       * Optionally override the instructions sent to the model for this step.
+       *
+       * @deprecated Use `instructions` instead.
        */
       system?: string | SystemModelMessage | Array<SystemModelMessage>;
 

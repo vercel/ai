@@ -148,7 +148,7 @@ const budgetExceeded: StopCondition<typeof tools> = ({ steps }) => {
 
 The `prepareStep` callback runs before each step in the loop and defaults to the initial settings if you don't return any changes. Use it to modify settings, manage context, or implement dynamic behavior based on execution history.
 
-It receives `messages` for the current step, plus `initialMessages` and `responseMessages` when you need to distinguish the original input from assistant/tool messages accumulated in earlier steps. If you return a `messages` override, those messages carry forward to later steps together with the response messages from each completed step.
+It receives `messages` for the current step, plus `initialMessages` and `responseMessages` when you need to distinguish the original input from assistant/tool messages accumulated in earlier steps. Treat `messages` as the loop's current message state: if you return a `messages` override, that override persists as the base for later steps, together with the response messages from each completed step.
 
 ### Dynamic Model Selection
 
@@ -182,28 +182,38 @@ const result = await agent.generate({
 
 ### Context Management
 
-Manage growing conversation history in long-running loops:
+Long-running agents can accumulate large tool results, reasoning parts, and assistant messages. Use `prepareStep` to mutate the message state that will be used by later steps. This is useful for compaction, and you decide when compaction should happen.
+
+The `messages` value contains the messages that will be sent for the current step. When you return a `messages` override from `prepareStep`, that changed list becomes the base for later steps. New assistant and tool response messages are appended to it as the loop continues. If you need to rebuild a step from the discrete pieces instead of the persisted message state, use `initialMessages` for the original input and `responseMessages` for the model/tool response messages accumulated so far.
+
+The `pruneMessages` helper provides a built-in way to remove selected messages. You can use it inside `prepareStep` when you want a simple compaction strategy.
 
 ```ts
-import { ToolLoopAgent } from 'ai';
+import { ToolLoopAgent, pruneMessages, type ModelMessage } from 'ai';
 __PROVIDER_IMPORT__;
+
+const COMPACTION_THRESHOLD = 100_000;
+
+const estimateTokens = (messages: ModelMessage[]) => {
+  return JSON.stringify(messages).length / 4;
+};
 
 const agent = new ToolLoopAgent({
   model: __MODEL__,
   tools: {
     // your tools
   },
-  prepareStep: async ({ initialMessages, responseMessages, messages }) => {
-    // Keep only recent messages to stay within context limits
-    if (messages.length > 20) {
+  prepareStep: async ({ messages }) => {
+    if (estimateTokens(messages) > COMPACTION_THRESHOLD) {
       return {
-        messages: [
-          ...initialMessages, // Keep the original user-provided prompt
-          ...responseMessages.slice(-10), // Keep recent assistant/tool messages
-        ],
+        messages: pruneMessages({
+          messages,
+          reasoning: 'all',
+          toolCalls: 'before-last-3-messages',
+          emptyMessages: 'remove',
+        }),
       };
     }
-    return {};
   },
 });
 
@@ -211,6 +221,8 @@ const result = await agent.generate({
   prompt: '...',
 });
 ```
+
+The token estimator above is intentionally simple and only demonstrates one way to decide when to compact. The main point is that `prepareStep` can return a new `messages` array, and that array becomes the message state for following steps. The same pattern also works with `generateText` and `streamText`.
 
 ### Tool Selection
 

@@ -24,7 +24,7 @@ run(async () => {
       await generateText({
         model: anthropic('claude-3-5-sonnet-20240620'),
         tools: { weatherTool },
-        system: `You are a helpful, respectful and honest assistant.`,
+        instructions: `You are a helpful, respectful and honest assistant.`,
         messages,
       });
 

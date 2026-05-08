@@ -182,6 +182,7 @@ export async function streamLanguageModelCall<
   output,
   toolChoice,
   prompt,
+  instructions,
   system,
   messages,
   allowSystemInMessages,
@@ -252,6 +253,7 @@ export async function streamLanguageModelCall<
   const effectiveCallId = callId ?? generateCallId();
 
   const standardizedPrompt = await standardizePrompt({
+    instructions,
     system,
     prompt,
     messages,

@@ -303,6 +303,7 @@ export function streamText<
   model,
   tools,
   toolChoice,
+  instructions,
   system,
   prompt,
   messages,
@@ -616,6 +617,7 @@ export function streamText<
     stepAbortController,
     chunkTimeoutMs,
     chunkAbortController,
+    instructions,
     system,
     prompt,
     messages,
@@ -812,6 +814,7 @@ class DefaultStreamTextResult<
     stepAbortController,
     chunkTimeoutMs,
     chunkAbortController,
+    instructions,
     system,
     prompt,
     messages,
@@ -860,6 +863,7 @@ class DefaultStreamTextResult<
     chunkAbortController: AbortController | undefined;
     toolsContext: InferToolSetContext<TOOLS>;
     runtimeContext: RUNTIME_CONTEXT;
+    instructions: Prompt['instructions'];
     system: Prompt['system'];
     prompt: Prompt['prompt'];
     messages: Prompt['messages'];
@@ -1374,6 +1378,7 @@ class DefaultStreamTextResult<
 
     (async () => {
       const initialPrompt = await standardizePrompt({
+        instructions,
         system,
         prompt,
         messages,
@@ -1386,7 +1391,7 @@ class DefaultStreamTextResult<
           operationId: 'ai.streamText',
           provider: model.provider,
           modelId: model.modelId,
-          system,
+          system: initialPrompt.system,
           messages: initialPrompt.messages,
           tools,
           toolChoice,
@@ -1629,7 +1634,10 @@ class DefaultStreamTextResult<
 
           const stepMessages = prepareStepResult?.messages ?? stepInputMessages;
           currentStepMessages = stepMessages;
-          const stepSystem = prepareStepResult?.system ?? initialPrompt.system;
+          const stepSystem =
+            prepareStepResult?.instructions ??
+            prepareStepResult?.system ??
+            initialPrompt.system;
 
           const stepProviderOptions = mergeObjects(
             providerOptions,

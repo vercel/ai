@@ -1129,7 +1129,7 @@ describe('generateText', () => {
             ...dummyResponseValues,
           }),
         }),
-        system: 'you are a helpful assistant',
+        instructions: 'you are a helpful assistant',
         messages: [{ role: 'user', content: 'test-message' }],
         maxOutputTokens: 100,
         temperature: 0.5,
@@ -2005,7 +2005,7 @@ describe('generateText', () => {
             execute: async ({ value }) => `${value}-result`,
           }),
         },
-        system: 'test-system',
+        instructions: 'test-system',
         prompt: 'test-input',
         maxOutputTokens: 128,
         temperature: 0.7,
@@ -4039,7 +4039,7 @@ describe('generateText', () => {
                   type: 'tool',
                   toolName: 'tool1' as const,
                 },
-                system: 'system-message-0',
+                instructions: 'system-message-0',
                 messages: [
                   {
                     role: 'user',
@@ -4055,7 +4055,7 @@ describe('generateText', () => {
               return {
                 model: trueModel,
                 activeTools: [],
-                system: 'system-message-1',
+                instructions: 'system-message-1',
                 runtimeContext: { context: 'state3' },
               };
             }

@@ -27,17 +27,20 @@ export type StandardizedPrompt = {
  *
  * @param prompt - The prompt definition to standardize.
  * Set `allowSystemInMessages` to true to allow system messages in the
- * `prompt` or `messages` fields. System messages in the `system` option are
- * always allowed.
+ * `prompt` or `messages` fields. System messages in the `instructions`
+ * option are always allowed.
  * @returns The standardized prompt.
  * @throws {InvalidPromptError} When the prompt is invalid.
  */
 export async function standardizePrompt({
   allowSystemInMessages = false,
+  instructions,
   system,
   prompt,
   messages,
 }: Prompt): Promise<StandardizedPrompt> {
+  const resolvedInstructions = instructions ?? system;
+
   if (prompt == null && messages == null) {
     throw new InvalidPromptError({
       prompt,
@@ -52,15 +55,15 @@ export async function standardizePrompt({
     });
   }
 
-  // validate that system is a string or a SystemModelMessage
+  // validate that instructions is a string or a SystemModelMessage
   if (
-    typeof system !== 'string' &&
-    !asArray(system).every(message => message.role === 'system')
+    typeof resolvedInstructions !== 'string' &&
+    !asArray(resolvedInstructions).every(message => message.role === 'system')
   ) {
     throw new InvalidPromptError({
       prompt,
       message:
-        'system must be a string, SystemModelMessage, or array of SystemModelMessage',
+        'instructions must be a string, SystemModelMessage, or array of SystemModelMessage',
     });
   }
 
@@ -89,7 +92,7 @@ export async function standardizePrompt({
     throw new InvalidPromptError({
       prompt,
       message:
-        'System messages are not allowed in the prompt or messages fields. Use the system option instead.',
+        'System messages are not allowed in the prompt or messages fields. Use the instructions option instead.',
     });
   }
 
@@ -106,5 +109,5 @@ export async function standardizePrompt({
     });
   }
 
-  return { messages, system };
+  return { messages, system: resolvedInstructions };
 }

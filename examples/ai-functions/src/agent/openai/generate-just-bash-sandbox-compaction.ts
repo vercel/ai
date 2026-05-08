@@ -29,7 +29,8 @@ const estimateTokens = (messages: ModelMessage[]) => {
 run(async () => {
   const result = await generateText({
     model: openai('gpt-5.5'),
-    system: 'You have access to a filesystem. Details: ' + sandbox.description,
+    instructions:
+      'You have access to a filesystem. Details: ' + sandbox.description,
     prompt: 'Read every .ts file in this directory',
     sandbox,
     tools: {

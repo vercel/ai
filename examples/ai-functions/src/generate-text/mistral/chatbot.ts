@@ -24,7 +24,7 @@ run(async () => {
       await generateText({
         model: mistral('mistral-large-latest'),
         tools: { weatherTool },
-        system: `You are a helpful, respectful and honest assistant.`,
+        instructions: `You are a helpful, respectful and honest assistant.`,
         messages,
       });
 
