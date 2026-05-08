@@ -1,5 +1,6 @@
 import { google } from '@ai-sdk/google';
 import { streamText } from 'ai';
+import { cancelOnSigint } from '../../lib/cancel-on-sigint';
 import { run } from '../../lib/run';
 
 /*
@@ -11,6 +12,11 @@ import { run } from '../../lib/run';
  * once at the end.
  */
 run(async () => {
+  // Ctrl+C aborts the stream, which fires `POST /interactions/{id}/cancel`
+  // on Google's side so the agent stops billing instead of running to
+  // completion in the background.
+  const ac = cancelOnSigint();
+
   const result = streamText({
     model: google.interactions({
       agent: 'deep-research-pro-preview-12-2025',
@@ -25,6 +31,7 @@ run(async () => {
     },
     prompt:
       'Briefly summarize the most-cited papers on retrieval-augmented generation since 2024 (2-3 sentences).',
+    abortSignal: ac.signal,
   });
 
   for await (const part of result.fullStream) {
