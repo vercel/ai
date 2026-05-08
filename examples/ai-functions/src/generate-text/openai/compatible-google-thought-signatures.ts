@@ -64,8 +64,7 @@ run(async () => {
 
       if (toolResults) {
         toolResults.forEach(result => {
-          const sig =
-            result.finalStep.providerMetadata?.google?.thoughtSignature;
+          const sig = result.providerMetadata?.google?.thoughtSignature;
           console.log(
             `    Tool result ${result.toolName}: ${
               sig && typeof sig === 'string'
