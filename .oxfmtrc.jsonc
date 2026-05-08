@@ -8,6 +8,8 @@
   "endOfLine": "lf",
   "ignorePatterns": [
     ".changeset/**",
+    "CHANGELOG.md",
+    "**/CHANGELOG.md",
     "**/*.html",
     "**/*.mjs",
     "**/__fixtures__/**",
