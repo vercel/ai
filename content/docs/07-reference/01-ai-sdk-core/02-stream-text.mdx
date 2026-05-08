@@ -1848,6 +1848,12 @@ To see `streamText` in action, check out [these examples](#examples).
                 'Response information for every step. You can use this to get information about intermediate steps, such as the tool calls or the response headers.',
             },
             {
+              name: 'finalStep',
+              type: 'StepResult',
+              description:
+                'The final step. This is a shortcut for `steps.at(-1)`.',
+            },
+            {
               name: 'runtimeContext',
               type: 'CONTEXT',
               description:
@@ -3013,6 +3019,12 @@ To see `streamText` in action, check out [these examples](#examples).
       type: 'AsyncIterableStream<string>',
       description:
         'A text stream that returns only the generated text deltas. You can use it as either an AsyncIterable or a ReadableStream. When an error occurs, the stream will throw the error.',
+    },
+    {
+      name: 'finalStep',
+      type: 'Promise<StepResult>',
+      description:
+        'The final step. This is a shortcut for `steps.at(-1)`. Automatically consumes the stream.',
     },
     {
       name: 'fullStream',

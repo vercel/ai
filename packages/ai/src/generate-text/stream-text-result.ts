@@ -246,6 +246,13 @@ export interface StreamTextResult<
   readonly steps: PromiseLike<Array<StepResult<TOOLS, RUNTIME_CONTEXT>>>;
 
   /**
+   * The final step. This is a shortcut for `steps.at(-1)`.
+   *
+   * Automatically consumes the stream.
+   */
+  readonly finalStep: PromiseLike<StepResult<TOOLS, RUNTIME_CONTEXT>>;
+
+  /**
    * Additional request information from the last step.
    *
    * Automatically consumes the stream.

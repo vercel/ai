@@ -2126,6 +2126,12 @@ To see `generateText` in action, check out [these examples](#examples).
                 'Response information for every step. You can use this to get information about intermediate steps, such as the tool calls or the response headers.',
             },
             {
+              name: 'finalStep',
+              type: 'StepResult',
+              description:
+                'The final step. This is a shortcut for `steps.at(-1)`.',
+            },
+            {
               name: 'responseMessages',
               type: 'Array<ResponseMessage>',
               description:
@@ -2915,6 +2921,12 @@ To see `generateText` in action, check out [these examples](#examples).
           ],
         },
       ],
+    },
+    {
+      name: 'finalStep',
+      type: 'StepResult<TOOLS>',
+      description:
+        'The final step. This is a shortcut for `steps.at(-1)`.',
     },
   ]}
 />

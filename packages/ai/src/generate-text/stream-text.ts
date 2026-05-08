@@ -2064,8 +2064,8 @@ class DefaultStreamTextResult<
     return this._steps.promise;
   }
 
-  private get finalStep() {
-    return this.steps.then(steps => steps[steps.length - 1]);
+  get finalStep() {
+    return this.steps.then(steps => steps.at(-1)!);
   }
 
   get content() {
