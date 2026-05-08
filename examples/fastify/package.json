@@ -4,7 +4,7 @@
   "private": true,
   "dependencies": {
     "@ai-sdk/openai": "4.0.0-canary.54",
-    "ai": "7.0.0-canary.128",
+    "ai": "7.0.0-canary.129",
     "dotenv": "16.4.5",
     "fastify": "5.1.0"
   },
