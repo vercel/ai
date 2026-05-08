@@ -944,6 +944,56 @@ console.log(result.usage); // all steps
 
 `totalUsage` is deprecated. Replace `result.totalUsage` with `result.usage`.
 
+### Final-Step Result Properties Moved to `finalStep`
+
+The top-level `reasoning`, `reasoningText`, `request`, `response`, and `providerMetadata` result properties on `generateText` and `streamText` are deprecated in AI SDK 7.
+
+Use `result.finalStep` when you need final-step reasoning or final-step metadata:
+
+```tsx filename="AI SDK 6"
+const result = await generateText({
+  model: yourModel,
+  prompt: 'Write a haiku, then revise it.',
+  stopWhen: stepCountIs(2),
+});
+
+console.log(result.reasoningText);
+console.log(result.request.body);
+console.log(result.response.headers);
+console.log(result.providerMetadata?.anthropic);
+```
+
+```tsx filename="AI SDK 7"
+const result = await generateText({
+  model: yourModel,
+  prompt: 'Write a haiku, then revise it.',
+  stopWhen: isStepCount(2),
+});
+
+console.log(result.finalStep.reasoningText);
+console.log(result.finalStep.request.body);
+console.log(result.finalStep.response.headers);
+console.log(result.finalStep.providerMetadata?.anthropic);
+```
+
+For `streamText`, await `finalStep` first:
+
+```tsx filename="AI SDK 7"
+const result = streamText({
+  model: yourModel,
+  prompt: 'Write a haiku, then revise it.',
+  stopWhen: isStepCount(2),
+});
+
+const finalStep = await result.finalStep;
+
+console.log(finalStep.reasoningText);
+console.log(finalStep.request.body);
+console.log(finalStep.response.headers);
+```
+
+The deprecated top-level aliases continue to work in AI SDK 7 so you can migrate incrementally.
+
 ### Stop Condition Helper Rename: `stepCountIs` -> `isStepCount`
 
 Rename imports and usage in tool-loop stop conditions:
@@ -1019,7 +1069,7 @@ const result = await generateText({
 console.log(result.usage.inputTokenDetails.cacheWriteTokens);
 ```
 
-If you need the raw Anthropic-shaped usage payload (including `cache_creation_input_tokens`, `cache_read_input_tokens`, `cache_creation`, `service_tier`, etc.), it is still available unchanged at `result.providerMetadata?.anthropic?.usage`.
+If you need the raw Anthropic-shaped usage payload (including `cache_creation_input_tokens`, `cache_read_input_tokens`, `cache_creation`, `service_tier`, etc.), it is still available unchanged at `result.finalStep.providerMetadata?.anthropic?.usage`.
 
 ## Google Provider
 

@@ -27,6 +27,6 @@ run(async () => {
 
   console.log(
     'Interaction id:',
-    result.providerMetadata?.google?.interactionId,
+    result.finalStep.providerMetadata?.google?.interactionId,
   );
 });

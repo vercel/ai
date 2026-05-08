@@ -18,6 +18,14 @@ describe('tool execute function types', () => {
     }>();
   });
 
+  it('should include abort signal in sandbox command options', () => {
+    expectTypeOf<Parameters<Sandbox['executeCommand']>[0]>().toEqualTypeOf<{
+      command: string;
+      workingDirectory?: string;
+      abortSignal?: AbortSignal;
+    }>();
+  });
+
   it('should type the input, output, and execution options', () => {
     expectTypeOf<
       ToolExecuteFunction<{ city: string }, { temperature: number }, Context>

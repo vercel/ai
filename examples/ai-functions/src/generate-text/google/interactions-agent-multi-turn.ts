@@ -22,9 +22,8 @@ run(async () => {
     abortSignal: ac.signal,
   });
 
-  const interactionId = turn1.providerMetadata?.google?.interactionId as
-    | string
-    | undefined;
+  const interactionId = turn1.finalStep.providerMetadata?.google
+    ?.interactionId as string | undefined;
 
   console.log(turn1.text);
   console.log();
@@ -55,6 +54,6 @@ run(async () => {
   console.log();
   console.log(
     'Interaction id (turn 2):',
-    turn2.providerMetadata?.google?.interactionId,
+    turn2.finalStep.providerMetadata?.google?.interactionId,
   );
 });
