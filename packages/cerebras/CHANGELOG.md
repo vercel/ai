@@ -711,17 +711,16 @@
   Before
 
   ```ts
-  model.textEmbeddingModel("my-model-id");
+  model.textEmbeddingModel('my-model-id');
   ```
 
   After
 
   ```ts
-  model.embeddingModel("my-model-id");
+  model.embeddingModel('my-model-id');
   ```
 
 - 42e9f64: Add support for 5 new Cerebras models:
-
   - gpt-oss-120b (120B parameters)
   - qwen-3-235b-a22b-instruct-2507 (235B instruction-tuned)
   - qwen-3-235b-a22b-thinking-2507 (235B enhanced reasoning)
@@ -950,13 +949,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel("my-model-id");
+  model.textEmbeddingModel('my-model-id');
   ```
 
   After
 
   ```ts
-  model.embeddingModel("my-model-id");
+  model.embeddingModel('my-model-id');
   ```
 
 - Updated dependencies [8d9e8ad]
@@ -1196,7 +1195,6 @@
 ### Patch Changes
 
 - 42e9f64: Add support for 5 new Cerebras models:
-
   - gpt-oss-120b (120B parameters)
   - qwen-3-235b-a22b-instruct-2507 (235B instruction-tuned)
   - qwen-3-235b-a22b-thinking-2507 (235B enhanced reasoning)
