@@ -7,10 +7,14 @@ export class JustBashSandbox implements Sandbox {
   async executeCommand({
     command,
     workingDirectory,
+    abortSignal,
   }: {
     command: string;
     workingDirectory?: string;
+    abortSignal?: AbortSignal;
   }) {
+    abortSignal?.throwIfAborted();
+
     const result = await this.bash.exec(command, { cwd: workingDirectory });
 
     return {

@@ -27,15 +27,18 @@ export class LocalSandbox implements Sandbox {
   async executeCommand({
     command,
     workingDirectory,
+    abortSignal,
   }: {
     command: string;
     workingDirectory?: string;
+    abortSignal?: AbortSignal;
   }) {
     try {
       const { stdout, stderr } = await execAsync(command, {
         cwd: workingDirectory ?? this.rootDirectory,
         timeout: 60_000,
         maxBuffer: 10 * 1024 * 1024,
+        signal: abortSignal,
       });
 
       return {

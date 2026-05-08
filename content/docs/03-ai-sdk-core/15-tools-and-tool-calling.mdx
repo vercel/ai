@@ -861,12 +861,19 @@ const result = await generateText({
         command: z.string(),
         workingDirectory: z.string().optional(),
       }),
-      execute: async ({ command, workingDirectory }, { sandbox }) => {
+      execute: async (
+        { command, workingDirectory },
+        { abortSignal, sandbox },
+      ) => {
         if (!sandbox) {
           throw new Error('Sandbox is not available');
         }
 
-        return sandbox.executeCommand({ command, workingDirectory });
+        return sandbox.executeCommand({
+          command,
+          workingDirectory,
+          abortSignal,
+        });
       },
     }),
   },
@@ -880,9 +887,11 @@ model should know about details such as the root directory, exposed ports, or
 public hostname, include `sandbox.description` in your system prompt,
 instructions, or user-visible context.
 
-`executeCommand` also accepts an optional `workingDirectory`. Use it when a tool
-needs to run a command from a directory other than the sandbox implementation's
-default working directory.
+`executeCommand` also accepts an optional `workingDirectory` and `abortSignal`.
+Use `workingDirectory` when a tool needs to run a command from a directory other
+than the sandbox implementation's default working directory. Forward
+`abortSignal` from the tool execution options so the sandbox can cancel the
+command if the overall operation is aborted or times out.
 
 The AI SDK forwards your sandbox object but does not create or isolate one for
 you.

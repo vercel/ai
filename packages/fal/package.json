@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/fal",
-  "version": "3.0.0-canary.37",
+  "version": "3.0.0-canary.38",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,

@@ -150,12 +150,19 @@ const agent = new ToolLoopAgent({
         command: z.string(),
         workingDirectory: z.string().optional(),
       }),
-      execute: async ({ command, workingDirectory }, { sandbox }) => {
+      execute: async (
+        { command, workingDirectory },
+        { abortSignal, sandbox },
+      ) => {
         if (!sandbox) {
           throw new Error('Sandbox is not available');
         }
 
-        return sandbox.executeCommand({ command, workingDirectory });
+        return sandbox.executeCommand({
+          command,
+          workingDirectory,
+          abortSignal,
+        });
       },
     }),
   },
