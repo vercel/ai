@@ -11,7 +11,8 @@
     "!src/**/*.test.ts",
     "!src/**/*.test-d.ts",
     "CHANGELOG.md",
-    "README.md"
+    "README.md",
+    "konsistent.json"
   ],
   "exports": {
     "./konsistent": "./dist/conventions.json",
