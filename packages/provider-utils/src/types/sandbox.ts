@@ -37,7 +37,6 @@ export type Sandbox = {
   /**
    * Read a file from the sandbox.
    */
-  // TODO file not found and error handling
   readonly readFile: (options: {
     /**
      * Path to the file to read.

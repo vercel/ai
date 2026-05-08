@@ -9,7 +9,6 @@ export function sandboxReadFileTool() {
     }),
 
     execute: async ({ path }, { sandbox }) => {
-      // TODO figure out type inference to turn the runtime error into a type error
       if (!sandbox) {
         throw new Error('Sandbox is not available');
       }
