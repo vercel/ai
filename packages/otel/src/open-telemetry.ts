@@ -200,10 +200,10 @@ export class OpenTelemetry implements Telemetry {
       'gen_ai.request.top_p': event.topP,
       'gen_ai.request.stop_sequences': event.stopSequences,
       'gen_ai.request.seed': event.seed,
-      'gen_ai.system_instructions': event.system
+      'gen_ai.system_instructions': event.instructions
         ? {
             input: () =>
-              JSON.stringify(formatSystemInstructions(event.system!)),
+              JSON.stringify(formatSystemInstructions(event.instructions!)),
           }
         : undefined,
       'gen_ai.input.messages': {

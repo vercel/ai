@@ -10,7 +10,8 @@ import type { ToolSet } from '@ai-sdk/provider-utils';
  * It receives the error and the context as arguments and returns the repair
  * tool call JSON as text.
  *
- * @param options.system - The system prompt.
+ * @param options.instructions - The instructions provided to the model.
+ * @param options.system - The instructions provided to the model.
  * @param options.messages - The messages in the current generation step.
  * @param options.toolCall - The tool call that failed to parse.
  * @param options.tools - The tools that are available.
@@ -18,6 +19,10 @@ import type { ToolSet } from '@ai-sdk/provider-utils';
  * @param options.error - The error that occurred while parsing the tool call.
  */
 export type ToolCallRepairFunction<TOOLS extends ToolSet> = (options: {
+  instructions: Instructions | undefined;
+  /**
+   * @deprecated Use `instructions` instead.
+   */
   system: Instructions | undefined;
   messages: ModelMessage[];
   toolCall: LanguageModelV4ToolCall;

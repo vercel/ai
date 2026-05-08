@@ -46,6 +46,7 @@ describe('standardizePrompt', () => {
 
     expect(result).toMatchInlineSnapshot(`
       {
+        "instructions": undefined,
         "messages": [
           {
             "content": "INSTRUCTIONS",
@@ -56,7 +57,6 @@ describe('standardizePrompt', () => {
             "role": "user",
           },
         ],
-        "system": undefined,
       }
     `);
   });
@@ -78,6 +78,7 @@ describe('standardizePrompt', () => {
 
     expect(result).toMatchInlineSnapshot(`
       {
+        "instructions": undefined,
         "messages": [
           {
             "content": "INSTRUCTIONS",
@@ -88,7 +89,6 @@ describe('standardizePrompt', () => {
             "role": "user",
           },
         ],
-        "system": undefined,
       }
     `);
   });
@@ -126,16 +126,16 @@ describe('standardizePrompt', () => {
 
     expect(result).toMatchInlineSnapshot(`
       {
+        "instructions": {
+          "content": "INSTRUCTIONS",
+          "role": "system",
+        },
         "messages": [
           {
             "content": "Hello, world!",
             "role": "user",
           },
         ],
-        "system": {
-          "content": "INSTRUCTIONS",
-          "role": "system",
-        },
       }
     `);
   });
@@ -151,13 +151,7 @@ describe('standardizePrompt', () => {
 
     expect(result).toMatchInlineSnapshot(`
       {
-        "messages": [
-          {
-            "content": "Hello, world!",
-            "role": "user",
-          },
-        ],
-        "system": [
+        "instructions": [
           {
             "content": "INSTRUCTIONS",
             "role": "system",
@@ -165,6 +159,12 @@ describe('standardizePrompt', () => {
           {
             "content": "INSTRUCTIONS 2",
             "role": "system",
+          },
+        ],
+        "messages": [
+          {
+            "content": "Hello, world!",
+            "role": "user",
           },
         ],
       }
@@ -179,13 +179,13 @@ describe('standardizePrompt', () => {
 
     expect(result).toMatchInlineSnapshot(`
       {
+        "instructions": "SYSTEM",
         "messages": [
           {
             "content": "Hello, world!",
             "role": "user",
           },
         ],
-        "system": "SYSTEM",
       }
     `);
   });
@@ -199,13 +199,13 @@ describe('standardizePrompt', () => {
 
     expect(result).toMatchInlineSnapshot(`
       {
+        "instructions": "INSTRUCTIONS",
         "messages": [
           {
             "content": "Hello, world!",
             "role": "user",
           },
         ],
-        "system": "INSTRUCTIONS",
       }
     `);
   });

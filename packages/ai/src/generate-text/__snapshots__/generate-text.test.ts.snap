@@ -8,6 +8,7 @@ exports[`generateText > options.experimental_onStart > should send correct infor
   "headers": {
     "user-agent": "ai/0.0.0-test",
   },
+  "instructions": undefined,
   "maxOutputTokens": undefined,
   "maxRetries": 2,
   "messages": [
@@ -26,7 +27,6 @@ exports[`generateText > options.experimental_onStart > should send correct infor
   "runtimeContext": {},
   "seed": undefined,
   "stopSequences": undefined,
-  "system": undefined,
   "temperature": undefined,
   "timeout": undefined,
   "toolChoice": undefined,
