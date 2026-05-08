@@ -97,6 +97,10 @@
     "//#konsistent:check": {
       "dependsOn": ["@ai-sdk/konsistent#build"],
       "cache": false
+    },
+    "//#konsistent:validate": {
+      "dependsOn": ["@ai-sdk/konsistent#build"],
+      "cache": false
     }
   }
 }
