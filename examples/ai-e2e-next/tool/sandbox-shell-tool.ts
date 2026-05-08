@@ -9,12 +9,15 @@ export function sandboxShellTool() {
       workingDirectory: z.string().optional(),
     }),
 
-    execute: async ({ command, workingDirectory }, { sandbox }) => {
+    execute: async (
+      { command, workingDirectory },
+      { abortSignal, sandbox },
+    ) => {
       // TODO figure out type inference to turn the runtime error into a type error
       if (!sandbox) {
         throw new Error('Sandbox is not available');
       }
-      return sandbox.executeCommand({ command, workingDirectory });
+      return sandbox.executeCommand({ command, workingDirectory, abortSignal });
     },
   });
 }

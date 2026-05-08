@@ -25,6 +25,7 @@ type Sandbox = {
   readonly executeCommand: (options: {
     command: string;
     workingDirectory?: string;
+    abortSignal?: AbortSignal;
   }) => PromiseLike<{
     exitCode: number;
     stdout: string;
@@ -45,7 +46,7 @@ type Sandbox = {
     },
     {
       name: 'executeCommand',
-      type: '(options: { command: string; workingDirectory?: string }) => PromiseLike<{ exitCode: number; stdout: string; stderr: string }>',
+      type: '(options: { command: string; workingDirectory?: string; abortSignal?: AbortSignal }) => PromiseLike<{ exitCode: number; stdout: string; stderr: string }>',
       description:
         'Executes a command in the sandbox and resolves with the command exit code, standard output, and standard error.',
       properties: [
@@ -62,6 +63,12 @@ type Sandbox = {
               type: 'string | undefined',
               description:
                 'Optional working directory to execute the command in. If omitted, the sandbox implementation uses its default working directory.',
+            },
+            {
+              name: 'abortSignal',
+              type: 'AbortSignal | undefined',
+              description:
+                'Optional abort signal that the sandbox implementation can use to cancel the command.',
             },
           ],
         },
@@ -89,12 +96,12 @@ const shell = tool({
     command: z.string(),
     workingDirectory: z.string().optional(),
   }),
-  execute: async ({ command, workingDirectory }, { sandbox }) => {
+  execute: async ({ command, workingDirectory }, { abortSignal, sandbox }) => {
     if (!sandbox) {
       throw new Error('Sandbox is not available');
     }
 
-    return sandbox.executeCommand({ command, workingDirectory });
+    return sandbox.executeCommand({ command, workingDirectory, abortSignal });
   },
 });
 ```
