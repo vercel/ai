@@ -2191,7 +2191,7 @@ To see `generateText` in action, check out [these examples](#examples).
       name: 'reasoning',
       type: 'Array<ReasoningOutput | ReasoningFileOutput>',
       description:
-        'The full reasoning that the model has generated in the last step.',
+        'Deprecated. Use `finalStep.reasoning` instead. The full reasoning that the model has generated in the final step.',
       properties: [
         {
           type: 'ReasoningOutput',
@@ -2241,7 +2241,7 @@ To see `generateText` in action, check out [these examples](#examples).
       name: 'reasoningText',
       type: 'string | undefined',
       description:
-        'The reasoning text that the model has generated in the last step. Can be undefined if the model has only generated text.',
+        'Deprecated. Use `finalStep.reasoningText` instead. The reasoning text that the model has generated in the final step. Can be undefined if the model has only generated text.',
     },
     {
       name: 'sources',
@@ -2479,7 +2479,8 @@ To see `generateText` in action, check out [these examples](#examples).
       name: 'request',
       type: 'LanguageModelRequestMetadata',
       isOptional: true,
-      description: 'Request metadata.',
+      description:
+        'Deprecated. Use `finalStep.request` instead. Request metadata from the final step.',
       properties: [
         {
           type: 'LanguageModelRequestMetadata',
@@ -2506,7 +2507,8 @@ To see `generateText` in action, check out [these examples](#examples).
       name: 'response',
       type: 'LanguageModelResponseMetadata',
       isOptional: true,
-      description: 'Response metadata.',
+      description:
+        'Deprecated. Use `finalStep.response` instead. Response metadata from the final step.',
       properties: [
         {
           type: 'LanguageModelResponseMetadata',
@@ -2561,13 +2563,13 @@ To see `generateText` in action, check out [these examples](#examples).
       name: 'responseMessages',
       type: 'Array<ResponseMessage>',
       description:
-        'The accumulated response messages that were generated during the call.',
+        'The accumulated response messages of all steps that were generated during the call.',
     },
     {
       name: 'providerMetadata',
       type: 'ProviderMetadata | undefined',
       description:
-        'Optional metadata from the provider. The outer key is the provider name. The inner values are the metadata. Details depend on the provider.',
+        'Deprecated. Use `finalStep.providerMetadata` instead. Optional metadata from the provider for the final step. The outer key is the provider name. The inner values are the metadata. Details depend on the provider.',
     },
     {
       name: 'output',

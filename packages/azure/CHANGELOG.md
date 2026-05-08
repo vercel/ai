@@ -1,5 +1,13 @@
 # @ai-sdk/azure
 
+## 4.0.0-canary.54
+
+### Patch Changes
+
+- Updated dependencies [d848405]
+  - @ai-sdk/provider-utils@5.0.0-canary.37
+  - @ai-sdk/openai@4.0.0-canary.54
+
 ## 4.0.0-canary.53
 
 ### Patch Changes
@@ -645,7 +653,6 @@
 ### Patch Changes
 
 - 04c89b1: Provide Responses API providerMetadata types at the message / reasoning level.
-
   - Export the following types for use in client code:
     - `OpenaiResponsesProviderMetadata`
     - `OpenaiResponsesReasoningProviderMetadata`
@@ -741,7 +748,6 @@
 ### Patch Changes
 
 - 330bd92: Fix Responses `code_interpreter` annotations and add typed providerMetadata
-
   - Align Responses API `code_interpreter` annotation types with the official spec.
   - Add tests to ensure the overlapping parts of the Zod schemas used by `doGenerate` and `doStream` stay in sync.
   - Export the following types for use in client code:
@@ -829,13 +835,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel("my-model-id");
+  model.textEmbeddingModel('my-model-id');
   ```
 
   After
 
   ```ts
-  model.embeddingModel("my-model-id");
+  model.embeddingModel('my-model-id');
   ```
 
 - d64ece9: enables image_generation capabilities in the Azure provider through the Responses API.
@@ -1222,13 +1228,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel("my-model-id");
+  model.textEmbeddingModel('my-model-id');
   ```
 
   After
 
   ```ts
-  model.embeddingModel("my-model-id");
+  model.embeddingModel('my-model-id');
   ```
 
 - Updated dependencies [8d9e8ad]
@@ -1964,7 +1970,6 @@
 ### Patch Changes
 
 - 097b452: feat(openai, azure): add configurable file ID prefixes for Responses API
-
   - Added `fileIdPrefixes` option to OpenAI Responses API configuration
   - Azure OpenAI now supports `assistant-` prefixed file IDs (replacing previous `file-` prefix support)
   - OpenAI maintains backward compatibility with default `file-` prefix
@@ -2059,7 +2064,7 @@
 
   ```js
   await generateImage({
-    model: luma.image("photon-flash-1", {
+    model: luma.image('photon-flash-1', {
       maxImagesPerCall: 5,
       pollIntervalMillis: 500,
     }),
@@ -2072,7 +2077,7 @@
 
   ```js
   await generateImage({
-    model: luma.image("photon-flash-1"),
+    model: luma.image('photon-flash-1'),
     prompt,
     n: 10,
     maxImagesPerCall: 5,
@@ -2386,7 +2391,7 @@
 
   ```js
   await generateImage({
-    model: luma.image("photon-flash-1", {
+    model: luma.image('photon-flash-1', {
       maxImagesPerCall: 5,
       pollIntervalMillis: 500,
     }),
@@ -2399,7 +2404,7 @@
 
   ```js
   await generateImage({
-    model: luma.image("photon-flash-1"),
+    model: luma.image('photon-flash-1'),
     prompt,
     n: 10,
     maxImagesPerCall: 5,

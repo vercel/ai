@@ -32,5 +32,5 @@ run(async () => {
   console.log();
   console.log('Finish reason:', await result.finishReason);
   console.log('Usage:', await result.usage);
-  console.log('Provider metadata:', await result.providerMetadata);
+  console.log('Provider metadata:', (await result.finalStep).providerMetadata);
 });

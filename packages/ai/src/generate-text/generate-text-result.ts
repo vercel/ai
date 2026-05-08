@@ -40,18 +40,22 @@ export interface GenerateTextResult<
   readonly content: Array<ContentPart<TOOLS>>;
 
   /**
-   * The text that was generated in the last step.
+   * The text that was generated in the final step.
    */
   readonly text: string;
 
   /**
    * The full reasoning that the model has generated in the last step.
+   *
+   * @deprecated Use `finalStep.reasoning` instead.
    */
   readonly reasoning: Array<ReasoningOutput | ReasoningFileOutput>;
 
   /**
    * The reasoning text that the model has generated in the last step. Can be undefined if the model
    * has only generated text.
+   *
+   * @deprecated Use `finalStep.reasoningText` instead.
    */
   readonly reasoningText: string | undefined;
 
@@ -126,24 +130,30 @@ export interface GenerateTextResult<
   readonly warnings: CallWarning[] | undefined;
 
   /**
-   * Additional request information.
+   * Additional request information from the last step.
+   *
+   * @deprecated Use `finalStep.request` instead.
    */
   readonly request: StepResult<TOOLS, RUNTIME_CONTEXT>['request'];
 
   /**
-   * Additional response information.
+   * Additional response information from the last step.
+   *
+   * @deprecated Use `finalStep.response` instead.
    */
   readonly response: LanguageModelResponseMetadata;
 
   /**
-   * The response messages that were generated during the call.
+   * The accumulated response messages of all steps that were generated during the call.
    */
   readonly responseMessages: Array<ResponseMessage>;
 
   /**
-   * Additional provider-specific metadata. They are passed through
-   * from the provider to the AI SDK and enable provider-specific
+   * Additional provider-specific metadata from the final step. They are passed
+   * through from the provider to the AI SDK and enable provider-specific
    * results that can be fully encapsulated in the provider.
+   *
+   * @deprecated Use `finalStep.providerMetadata` instead.
    */
   readonly providerMetadata: ProviderMetadata | undefined;
 

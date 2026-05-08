@@ -17,6 +17,7 @@ run(async () => {
   console.log('Token usage:', await result.usage);
   console.log('Finish reason:', await result.finishReason);
 
-  const usageMetadata = (await result.providerMetadata)?.google?.usageMetadata;
+  const usageMetadata = (await result.finalStep).providerMetadata?.google
+    ?.usageMetadata;
   console.log('Usage meta data:', usageMetadata);
 });

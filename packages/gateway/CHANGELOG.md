@@ -1,5 +1,12 @@
 # @ai-sdk/gateway
 
+## 4.0.0-canary.75
+
+### Patch Changes
+
+- Updated dependencies [d848405]
+  - @ai-sdk/provider-utils@5.0.0-canary.37
+
 ## 4.0.0-canary.74
 
 ### Patch Changes
@@ -1007,13 +1014,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel("my-model-id");
+  model.textEmbeddingModel('my-model-id');
   ```
 
   After
 
   ```ts
-  model.embeddingModel("my-model-id");
+  model.embeddingModel('my-model-id');
   ```
 
 - aaf5ebf: feat(provider/gateway): Add new Qwen models to Gateway model string autocomplete
@@ -1295,13 +1302,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel("my-model-id");
+  model.textEmbeddingModel('my-model-id');
   ```
 
   After
 
   ```ts
-  model.embeddingModel("my-model-id");
+  model.embeddingModel('my-model-id');
   ```
 
 - Updated dependencies [8d9e8ad]

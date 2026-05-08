@@ -2479,7 +2479,7 @@ To see `streamText` in action, check out [these examples](#examples).
       name: 'providerMetadata',
       type: 'Promise<ProviderMetadata | undefined>',
       description:
-        'Additional provider-specific metadata from the last step. Metadata is passed through from the provider to the AI SDK and enables provider-specific results that can be fully encapsulated in the provider.',
+        'Deprecated. Use `finalStep.providerMetadata` instead. Additional provider-specific metadata from the final step. Metadata is passed through from the provider to the AI SDK and enables provider-specific results that can be fully encapsulated in the provider.',
     },
     {
       name: 'text',
@@ -2491,7 +2491,7 @@ To see `streamText` in action, check out [these examples](#examples).
       name: 'reasoning',
       type: 'Promise<Array<ReasoningOutput | ReasoningFileOutput>>',
       description:
-        'The full reasoning that the model has generated in the last step. Automatically consumes the stream.',
+        'Deprecated. Use `finalStep.reasoning` instead. The full reasoning that the model has generated in the final step. Automatically consumes the stream.',
       properties: [
         {
           type: 'ReasoningOutput',
@@ -2541,7 +2541,7 @@ To see `streamText` in action, check out [these examples](#examples).
       name: 'reasoningText',
       type: 'Promise<string | undefined>',
       description:
-        'The reasoning text that the model has generated in the last step. Can be undefined if the model has only generated text. Automatically consumes the stream.',
+        'Deprecated. Use `finalStep.reasoningText` instead. The reasoning text that the model has generated in the final step. Can be undefined if the model has only generated text. Automatically consumes the stream.',
     },
     {
       name: 'sources',
@@ -2647,7 +2647,8 @@ To see `streamText` in action, check out [these examples](#examples).
     {
       name: 'request',
       type: 'Promise<LanguageModelRequestMetadata>',
-      description: 'Additional request information from the last step.',
+      description:
+        'Deprecated. Use `finalStep.request` instead. Additional request information from the final step. Automatically consumes the stream.',
       properties: [
         {
           type: 'LanguageModelRequestMetadata',
@@ -2673,7 +2674,8 @@ To see `streamText` in action, check out [these examples](#examples).
     {
       name: 'response',
       type: 'Promise<LanguageModelResponseMetadata>',
-      description: 'Additional response information from the last step.',
+      description:
+        'Deprecated. Use `finalStep.response` instead. Additional response information from the final step. Automatically consumes the stream.',
       properties: [
         {
           type: 'LanguageModelResponseMetadata',
@@ -2729,7 +2731,7 @@ To see `streamText` in action, check out [these examples](#examples).
       name: 'responseMessages',
       type: 'Promise<Array<ResponseMessage>>',
       description:
-        'The accumulated response messages that were generated during the call.',
+        'The accumulated response messages of all steps that were generated during the call.',
     },
     {
       name: 'steps',

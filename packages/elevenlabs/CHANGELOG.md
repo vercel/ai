@@ -1,5 +1,12 @@
 # @ai-sdk/elevenlabs
 
+## 3.0.0-canary.38
+
+### Patch Changes
+
+- Updated dependencies [d848405]
+  - @ai-sdk/provider-utils@5.0.0-canary.37
+
 ## 3.0.0-canary.37
 
 ### Patch Changes
@@ -511,13 +518,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel("my-model-id");
+  model.textEmbeddingModel('my-model-id');
   ```
 
   After
 
   ```ts
-  model.embeddingModel("my-model-id");
+  model.embeddingModel('my-model-id');
   ```
 
 - 95f65c2: chore: use import \* from zod/v4
@@ -717,13 +724,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel("my-model-id");
+  model.textEmbeddingModel('my-model-id');
   ```
 
   After
 
   ```ts
-  model.embeddingModel("my-model-id");
+  model.embeddingModel('my-model-id');
   ```
 
 - Updated dependencies [8d9e8ad]

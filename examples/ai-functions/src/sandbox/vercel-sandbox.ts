@@ -13,21 +13,37 @@ export class VercelSandbox implements AISandbox {
   async executeCommand({
     command,
     workingDirectory,
+    abortSignal,
   }: {
     command: string;
     workingDirectory?: string;
+    abortSignal?: AbortSignal;
   }) {
-    const result = await this.sandbox.runCommand({
+    const sandboxCommand = await this.sandbox.runCommand({
       cmd: 'bash',
       args: ['-c', command],
       cwd: workingDirectory ?? rootDirectory,
+      detached: true,
     });
 
-    return {
-      exitCode: result.exitCode,
-      stdout: await result.stdout(),
-      stderr: await result.stderr(),
-    };
+    const abortCommand = () => void sandboxCommand.kill('SIGTERM');
+    if (abortSignal?.aborted) {
+      abortCommand();
+    } else {
+      abortSignal?.addEventListener('abort', abortCommand, { once: true });
+    }
+
+    try {
+      const result = await sandboxCommand.wait();
+
+      return {
+        exitCode: result.exitCode,
+        stdout: await result.stdout(),
+        stderr: await result.stderr(),
+      };
+    } finally {
+      abortSignal?.removeEventListener('abort', abortCommand);
+    }
   }
 
   async stop() {
