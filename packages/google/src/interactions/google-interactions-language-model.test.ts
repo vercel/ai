@@ -1493,7 +1493,7 @@ describe('GoogleInteractionsLanguageModel agent polling (TASK-10)', () => {
     expect(getCallCount).toBe(2);
   });
 
-  it('polls GET /interactions/{id} then synthesizes a stream when POST returns a non-terminal status', async () => {
+  it('opens GET /interactions/{id}?stream=true and pipes SSE events through when POST is non-terminal', async () => {
     pollServer.urls[POST_URL].response = {
       type: 'json-value',
       body: {
@@ -1501,28 +1501,49 @@ describe('GoogleInteractionsLanguageModel agent polling (TASK-10)', () => {
         status: 'in_progress',
       },
     };
-    let getCallCount = 0;
-    pollServer.urls[POLL_URL].response = () => {
-      const idx = getCallCount++;
-      if (idx === 0) {
-        return {
-          type: 'json-value',
-          body: { id: 'v1_poll-test', status: 'in_progress' },
-        };
-      }
-      return {
-        type: 'json-value',
-        body: {
-          id: 'v1_poll-test',
-          status: 'completed',
-          outputs: [{ type: 'text', text: 'streamed agent answer' }],
-          usage: {
-            total_input_tokens: 5,
-            total_output_tokens: 3,
-            total_tokens: 8,
+    pollServer.urls[POLL_URL].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          event_type: 'interaction.start',
+          event_id: 'evt-1',
+          interaction: {
+            id: 'v1_poll-test',
+            status: 'in_progress',
+            model: 'deep-research-pro-preview-12-2025',
           },
-        },
-      };
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          event_type: 'content.start',
+          event_id: 'evt-2',
+          index: 0,
+          content: { type: 'text' },
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          event_type: 'content.delta',
+          event_id: 'evt-3',
+          index: 0,
+          delta: { type: 'text', text: 'streamed agent answer' },
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          event_type: 'content.stop',
+          event_id: 'evt-4',
+          index: 0,
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          event_type: 'interaction.complete',
+          event_id: 'evt-5',
+          interaction: {
+            id: 'v1_poll-test',
+            status: 'completed',
+            usage: {
+              total_input_tokens: 5,
+              total_output_tokens: 3,
+              total_tokens: 8,
+            },
+          },
+        })}\n\n`,
+      ],
     };
 
     const fastProvider = createGoogle({
@@ -1549,8 +1570,106 @@ describe('GoogleInteractionsLanguageModel agent polling (TASK-10)', () => {
     const calls = pollServer.calls;
     expect(calls[0].requestMethod).toBe('POST');
     expect(calls[1].requestMethod).toBe('GET');
+    expect(new URL(calls[1].requestUrl).searchParams.get('stream')).toBe(
+      'true',
+    );
+    expect(
+      new URL(calls[1].requestUrl).searchParams.get('last_event_id'),
+    ).toBeNull();
+  });
+
+  it('reconnects to GET stream with last_event_id when the SSE connection drops', async () => {
+    pollServer.urls[POST_URL].response = {
+      type: 'json-value',
+      body: { id: 'v1_poll-test', status: 'in_progress' },
+    };
+    let getCallCount = 0;
+    pollServer.urls[POLL_URL].response = () => {
+      const idx = getCallCount++;
+      if (idx === 0) {
+        return {
+          type: 'stream-chunks',
+          chunks: [
+            `data: ${JSON.stringify({
+              event_type: 'interaction.start',
+              event_id: 'evt-1',
+              interaction: {
+                id: 'v1_poll-test',
+                status: 'in_progress',
+                model: 'deep-research-pro-preview-12-2025',
+              },
+            })}\n\n`,
+            `data: ${JSON.stringify({
+              event_type: 'content.start',
+              event_id: 'evt-2',
+              index: 0,
+              content: { type: 'text' },
+            })}\n\n`,
+            `data: ${JSON.stringify({
+              event_type: 'content.delta',
+              event_id: 'evt-3',
+              index: 0,
+              delta: { type: 'text', text: 'first half ' },
+            })}\n\n`,
+          ],
+        };
+      }
+      return {
+        type: 'stream-chunks',
+        chunks: [
+          `data: ${JSON.stringify({
+            event_type: 'content.delta',
+            event_id: 'evt-4',
+            index: 0,
+            delta: { type: 'text', text: 'second half' },
+          })}\n\n`,
+          `data: ${JSON.stringify({
+            event_type: 'content.stop',
+            event_id: 'evt-5',
+            index: 0,
+          })}\n\n`,
+          `data: ${JSON.stringify({
+            event_type: 'interaction.complete',
+            event_id: 'evt-6',
+            interaction: {
+              id: 'v1_poll-test',
+              status: 'completed',
+              usage: {
+                total_input_tokens: 5,
+                total_output_tokens: 3,
+                total_tokens: 8,
+              },
+            },
+          })}\n\n`,
+        ],
+      };
+    };
+
+    const fastProvider = createGoogle({
+      apiKey: 'test-api-key',
+      generateId: () => 'test-id',
+    });
+    const agentModel = fastProvider.interactions({ agent: AGENT_NAME });
+    const { stream } = await agentModel.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+    const parts = await convertReadableStreamToArray(stream);
+    const textDeltas = parts
+      .filter(p => p.type === 'text-delta')
+      .map(p => (p as { delta: string }).delta);
+    expect(textDeltas).toEqual(['first half ', 'second half']);
+
+    const calls = pollServer.calls;
+    expect(calls[0].requestMethod).toBe('POST');
+    expect(calls[1].requestMethod).toBe('GET');
     expect(calls[2].requestMethod).toBe('GET');
-    expect(new URL(calls[1].requestUrl).searchParams.get('stream')).toBeNull();
+    expect(
+      new URL(calls[1].requestUrl).searchParams.get('last_event_id'),
+    ).toBeNull();
+    expect(new URL(calls[2].requestUrl).searchParams.get('last_event_id')).toBe(
+      'evt-3',
+    );
     expect(getCallCount).toBe(2);
   });
 
