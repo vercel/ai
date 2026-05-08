@@ -9,7 +9,7 @@ run(async () => {
   const result = streamText({
     // supported: o4-mini, o3, o3-mini and o1
     model: openai.responses('o3-mini'),
-    system: 'You are a helpful assistant.',
+    instructions: 'You are a helpful assistant.',
     prompt:
       'Tell me about the debate over Taqueria La Cumbre and El Farolito and who created the San Francisco Mission-style burrito.',
     providerOptions: {

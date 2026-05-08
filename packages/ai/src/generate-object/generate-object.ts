@@ -230,6 +230,7 @@ export async function generateObject<
   const {
     model: modelArg,
     output = 'object',
+    instructions,
     system,
     prompt,
     messages,
@@ -301,7 +302,7 @@ export async function generateObject<
       operationId: 'ai.generateObject' as const,
       provider: model.provider,
       modelId: model.modelId,
-      system,
+      system: instructions ?? system,
       prompt,
       messages,
       maxOutputTokens: callSettings.maxOutputTokens,
@@ -324,6 +325,7 @@ export async function generateObject<
 
   try {
     const standardizedPrompt = await standardizePrompt({
+      instructions,
       system,
       prompt,
       messages,

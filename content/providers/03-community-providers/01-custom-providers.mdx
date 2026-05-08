@@ -282,7 +282,6 @@ The optional `content` field enables rich tool results including images, providi
 The streaming system uses typed events for different stages:
 
 1. **Stream Lifecycle Events**:
-
    - `stream-start`: Initial event with any warnings about unsupported features
    - `response-metadata`: Model information and response headers
    - `finish`: Final event with usage statistics and finish reason
@@ -831,7 +830,9 @@ headers: combineHeaders(this.config.headers?.(), options.headers),
 ```
 
 <Note>
-  The deserialized model will not have auth headers. In a workflow context, authentication is typically handled through environment variables or request-level options available in the step execution environment.
+  The deserialized model will not have auth headers. In a workflow context,
+  authentication is typically handled through environment variables or
+  request-level options available in the step execution environment.
 </Note>
 
 ## Next Steps

@@ -314,6 +314,7 @@ export function streamObject<
   const {
     model,
     output = 'object',
+    instructions,
     system,
     prompt,
     messages,
@@ -372,6 +373,7 @@ export function streamObject<
     maxRetries,
     abortSignal,
     outputStrategy,
+    instructions,
     system,
     prompt,
     messages,
@@ -427,6 +429,7 @@ class DefaultStreamObjectResult<
     maxRetries: maxRetriesArg,
     abortSignal,
     outputStrategy,
+    instructions,
     system,
     prompt,
     messages,
@@ -452,6 +455,7 @@ class DefaultStreamObjectResult<
     maxRetries: number | undefined;
     abortSignal: AbortSignal | undefined;
     outputStrategy: OutputStrategy<PARTIAL, RESULT, ELEMENT_STREAM>;
+    instructions: Prompt['instructions'];
     system: Prompt['system'];
     prompt: Prompt['prompt'];
     messages: Prompt['messages'];
@@ -514,7 +518,7 @@ class DefaultStreamObjectResult<
           operationId: 'ai.streamObject' as const,
           provider: model.provider,
           modelId: model.modelId,
-          system,
+          system: instructions ?? system,
           prompt,
           messages,
           maxOutputTokens: callSettings.maxOutputTokens,
@@ -540,6 +544,7 @@ class DefaultStreamObjectResult<
       });
 
       const standardizedPrompt = await standardizePrompt({
+        instructions,
         system,
         prompt,
         messages,

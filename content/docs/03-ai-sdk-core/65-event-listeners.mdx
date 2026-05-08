@@ -153,9 +153,9 @@ const result = await generateText({
       description: 'The specific model identifier (e.g., "gpt-4o").',
     },
     {
-      name: 'system',
-      type: 'string | SystemModelMessage | Array<SystemModelMessage> | undefined',
-      description: 'The system message(s) provided to the model.',
+      name: 'instructions',
+      type: 'Instructions | undefined',
+      description: 'The instructions provided to the model.',
     },
     {
       name: 'messages',
@@ -301,9 +301,9 @@ const result = await generateText({
       description: 'The specific model identifier (e.g., "gpt-4o").',
     },
     {
-      name: 'system',
-      type: 'string | SystemModelMessage | Array<SystemModelMessage> | undefined',
-      description: 'The system message for this step.',
+      name: 'instructions',
+      type: 'Instructions | undefined',
+      description: 'The instructions provided to the model for this step.',
     },
     {
       name: 'messages',
@@ -417,6 +417,11 @@ const result = await generateText({
       description: 'The specific model identifier for this model call.',
     },
     {
+      name: 'instructions',
+      type: 'Instructions | undefined',
+      description: 'The instructions that will be sent to the model.',
+    },
+    {
       name: 'messages',
       type: 'Array<ModelMessage>',
       description: 'The messages that will be sent to the model.',
@@ -502,7 +507,8 @@ const result = await generateText({
     {
       name: 'callId',
       type: 'string',
-      description: 'Unique identifier for this generation call, used to correlate events.',
+      description:
+        'Unique identifier for this generation call, used to correlate events.',
     },
     {
       name: 'toolCall',
@@ -578,7 +584,8 @@ const result = await generateText({
     {
       name: 'callId',
       type: 'string',
-      description: 'Unique identifier for this generation call, used to correlate events.',
+      description:
+        'Unique identifier for this generation call, used to correlate events.',
     },
     {
       name: 'toolCall',
@@ -764,8 +771,7 @@ const result = await generateText({
     {
       name: 'toolsContext',
       type: 'InferToolSetContext<TOOLS>',
-      description:
-        'Per-tool context map for the generation step.',
+      description: 'Per-tool context map for the generation step.',
     },
     {
       name: 'providerMetadata',

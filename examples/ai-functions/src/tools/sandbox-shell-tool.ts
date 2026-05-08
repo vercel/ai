@@ -6,14 +6,15 @@ export function sandboxShellTool() {
     description: 'Run a shell command',
     inputSchema: z.object({
       command: z.string(),
+      workingDirectory: z.string().optional(),
     }),
 
-    execute: async ({ command }, { sandbox }) => {
+    execute: async ({ command, workingDirectory }, { sandbox }) => {
       // TODO figure out type inference to turn the runtime error into a type error
       if (!sandbox) {
         throw new Error('Sandbox is not available');
       }
-      return sandbox.executeCommand({ command });
+      return sandbox.executeCommand({ command, workingDirectory });
     },
   });
 }

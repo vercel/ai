@@ -215,7 +215,8 @@ export interface StreamTextResult<
   readonly rawFinishReason: PromiseLike<string | undefined>;
 
   /**
-   * The token usage of the last step.
+   * The total token usage of the generated response.
+   * When there are multiple steps, the usage is the sum of all step usages.
    *
    * Automatically consumes the stream.
    */
@@ -226,6 +227,8 @@ export interface StreamTextResult<
    * When there are multiple steps, the usage is the sum of all step usages.
    *
    * Automatically consumes the stream.
+   *
+   * @deprecated Use `usage` instead.
    */
   readonly totalUsage: PromiseLike<LanguageModelUsage>;
 
@@ -244,6 +247,13 @@ export interface StreamTextResult<
    * Automatically consumes the stream.
    */
   readonly steps: PromiseLike<Array<StepResult<TOOLS, RUNTIME_CONTEXT>>>;
+
+  /**
+   * The final step. This is a shortcut for `steps.at(-1)`.
+   *
+   * Automatically consumes the stream.
+   */
+  readonly finalStep: PromiseLike<StepResult<TOOLS, RUNTIME_CONTEXT>>;
 
   /**
    * Additional request information from the last step.

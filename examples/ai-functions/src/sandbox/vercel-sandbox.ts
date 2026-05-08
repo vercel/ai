@@ -10,10 +10,17 @@ export class VercelSandbox implements AISandbox {
     >,
   ) {}
 
-  async executeCommand({ command }: { command: string }) {
+  async executeCommand({
+    command,
+    workingDirectory,
+  }: {
+    command: string;
+    workingDirectory?: string;
+  }) {
     const result = await this.sandbox.runCommand({
       cmd: 'bash',
-      args: ['-c', `cd "${rootDirectory}" && ${command}`],
+      args: ['-c', command],
+      cwd: workingDirectory ?? rootDirectory,
     });
 
     return {

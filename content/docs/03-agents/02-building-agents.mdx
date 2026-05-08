@@ -146,13 +146,16 @@ const agent = new ToolLoopAgent({
   tools: {
     shell: tool({
       description: 'Execute shell commands in the sandbox.',
-      inputSchema: z.object({ command: z.string() }),
-      execute: async ({ command }, { sandbox }) => {
+      inputSchema: z.object({
+        command: z.string(),
+        workingDirectory: z.string().optional(),
+      }),
+      execute: async ({ command, workingDirectory }, { sandbox }) => {
         if (!sandbox) {
           throw new Error('Sandbox is not available');
         }
 
-        return sandbox.executeCommand({ command });
+        return sandbox.executeCommand({ command, workingDirectory });
       },
     }),
   },

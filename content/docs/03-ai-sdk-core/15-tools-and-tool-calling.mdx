@@ -161,7 +161,13 @@ type parameter; it defaults to `Context`). It may return `undefined` for the sam
 const result = await generateText({
   model: __MODEL__,
   tools: { runCommand },
-  toolApproval: ({ toolCall, tools, toolsContext, messages, runtimeContext }) => {
+  toolApproval: ({
+    toolCall,
+    tools,
+    toolsContext,
+    messages,
+    runtimeContext,
+  }) => {
     if (toolCall.toolName === 'runCommand' && !toolCall.dynamic) {
       // Inspect toolCall.input, cross-tool state, messages, or runtimeContext for policy.
       return 'user-approval';
@@ -271,9 +277,9 @@ prompting the user again.
 </Note>
 
 <Note>
-  Provider-executed tools are executed provider-side without considering the tool
-  approval setting. `toolApproval` (and the deprecated `needsApproval`) only
-  control tools that the AI SDK executes locally.
+  Provider-executed tools are executed provider-side without considering the
+  tool approval setting. `toolApproval` (and the deprecated `needsApproval`)
+  only control tools that the AI SDK executes locally.
 </Note>
 
 ### Dynamic Approval
@@ -476,7 +482,7 @@ It is called with the following parameters:
 - `stopWhen`: The stopping condition that was passed into `generateText`.
 - `stepNumber`: The number of the step that is being executed.
 - `steps`: The steps that have been executed so far.
-- `messages`: The messages that will be sent to the model for the current step. If `prepareStep` returns a `messages` override, those messages carry forward to later steps.
+- `messages`: The messages that will be sent to the model for the current step. Treat this as the loop's current message state. If `prepareStep` returns a `messages` override, those messages carry forward as the base for later steps.
 - `initialMessages`: The messages that were passed into `generateText` or `streamText`.
 - `responseMessages`: The accumulated assistant/tool response messages so far, including any tool results generated before the first model step from approved tool calls in the input messages.
 - `runtimeContext`: The runtime context passed via the `runtimeContext` setting.
@@ -509,27 +515,51 @@ const result = await generateText({
 
 #### Message Modification for Longer Agentic Loops
 
-In longer agentic loops, you can use the `messages` parameter to modify the input messages for each step. This is particularly useful for prompt compression.
+In longer agentic loops, you can use the `messages` parameter to mutate the message state that will be used by later steps. This is particularly useful for context compaction, and you decide when compaction should happen.
 
-The `messages` parameter contains the messages for the current step. By default, this is `initialMessages` followed by the accumulated `responseMessages`. If a previous `prepareStep` returned `messages`, later steps use those messages plus the response messages from the previous step.
-Use `initialMessages` when you need to preserve the original user-provided prompt and `responseMessages` when you only need the accumulated assistant/tool response messages.
+The `messages` parameter contains the messages for the current step. By default, this is `initialMessages` followed by the accumulated `responseMessages`. If a previous `prepareStep` returned `messages`, later steps use those persisted messages plus the response messages from the previous step.
+
+Use `initialMessages` when you need the original input messages and `responseMessages` when you need the discrete assistant/tool response messages from the model so far.
+
+The `pruneMessages` helper provides a built-in way to remove selected messages or message parts. You can use it inside `prepareStep` when you want a simple compaction strategy.
 
 ```tsx
-prepareStep: async ({
-  initialMessages,
-  responseMessages,
-  stepNumber,
-  steps,
-  messages,
-}) => {
-  // Compress conversation history for longer loops
-  if (messages.length > 20) {
+import { generateText, pruneMessages, type ModelMessage } from 'ai';
+
+const COMPACTION_THRESHOLD = 100_000;
+
+const estimateTokens = (messages: ModelMessage[]) => {
+  return JSON.stringify(messages).length / 4;
+};
+
+const result = await generateText({
+  // ...
+  prepareStep: ({ messages }) => {
+    if (estimateTokens(messages) > COMPACTION_THRESHOLD) {
+      return {
+        messages: pruneMessages({
+          messages,
+          reasoning: 'all',
+          toolCalls: 'before-last-3-messages',
+          emptyMessages: 'remove',
+        }),
+      };
+    }
+  },
+});
+```
+
+This example uses an estimated token threshold, but you can use any trigger. The key behavior is that returning `messages` mutates the message state for later steps.
+
+Returned message changes persist across steps. If you want to derive each step's messages from the original input plus the discrete response messages instead of the persisted message state, rebuild them from `initialMessages` and `responseMessages` each time:
+
+```tsx
+prepareStep: ({ initialMessages, responseMessages, stepNumber }) => {
+  if (stepNumber > 0) {
     return {
       messages: [...initialMessages, ...responseMessages.slice(-10)],
     };
   }
-
-  return {};
 },
 ```
 
@@ -829,13 +859,14 @@ const result = await generateText({
     shell: tool({
       inputSchema: z.object({
         command: z.string(),
+        workingDirectory: z.string().optional(),
       }),
-      execute: async ({ command }, { sandbox }) => {
+      execute: async ({ command, workingDirectory }, { sandbox }) => {
         if (!sandbox) {
           throw new Error('Sandbox is not available');
         }
 
-        return sandbox.executeCommand({ command });
+        return sandbox.executeCommand({ command, workingDirectory });
       },
     }),
   },
@@ -848,6 +879,10 @@ The sandbox description is not added to the model prompt automatically. If the
 model should know about details such as the root directory, exposed ports, or
 public hostname, include `sandbox.description` in your system prompt,
 instructions, or user-visible context.
+
+`executeCommand` also accepts an optional `workingDirectory`. Use it when a tool
+needs to run a command from a directory other than the sandbox implementation's
+default working directory.
 
 The AI SDK forwards your sandbox object but does not create or isolate one for
 you.
@@ -1117,7 +1152,7 @@ with a custom function.
 You can use different strategies to repair the tool call:
 
 - Use a model with structured outputs to generate the inputs.
-- Send the messages, system prompt, and tool schema to a stronger model to generate the inputs.
+- Send the messages, instructions, and tool schema to a stronger model to generate the inputs.
 - Provide more specific repair instructions based on which tool was called.
 
 ### Example: Use a model with structured outputs for repair
@@ -1151,7 +1186,7 @@ const result = await generateText({
           ` with the following inputs:`,
         JSON.stringify(toolCall.input),
         `The tool accepts the following schema:`,
-        JSON.stringify(inputSchema(toolCall)),
+        JSON.stringify(await inputSchema({ toolName: toolCall.toolName })),
         'Please fix the inputs.',
       ].join('\n'),
     });
@@ -1177,11 +1212,11 @@ const result = await generateText({
     tools,
     error,
     messages,
-    system,
+    instructions,
   }) => {
     const result = await generateText({
       model,
-      system,
+      instructions,
       messages: [
         ...messages,
         {

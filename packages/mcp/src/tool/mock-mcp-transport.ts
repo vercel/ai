@@ -120,6 +120,7 @@ export class MockMCPTransport implements MCPTransport {
         name?: string;
         title?: string;
         mimeType?: string;
+        _meta?: Record<string, unknown>;
       } & ({ text: string } | { blob: string })
     >;
     failOnInvalidToolParams?: boolean;

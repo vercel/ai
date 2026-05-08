@@ -1,5 +1,21 @@
 # @ai-sdk/react
 
+## 4.0.0-canary.127
+
+### Patch Changes
+
+- 611f621: feat(mcp): feat(mcp): add support for MCP Apps
+- Updated dependencies [611f621]
+  - @ai-sdk/mcp@2.0.0-canary.44
+
+## 4.0.0-canary.126
+
+### Patch Changes
+
+- Updated dependencies [f634bac]
+  - @ai-sdk/provider-utils@5.0.0-canary.35
+  - ai@7.0.0-canary.126
+
 ## 4.0.0-canary.125
 
 ### Patch Changes
@@ -1598,7 +1614,6 @@
 - 000a0a6: Fix: ensure `useChat` uses the latest `onToolCall` (and other callbacks) to avoid stale closures.
 
   Changes:
-
   - Update `useChat` to use intermediary proxy callbacks that forward to refs, ensuring the latest callbacks are always used without recreating the chat instance.
   - Add a regression test verifying the latest `onToolCall` is invoked after a prop change.
 

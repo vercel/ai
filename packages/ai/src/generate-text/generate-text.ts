@@ -205,6 +205,7 @@ export async function generateText<
   model: modelArg,
   tools,
   toolChoice,
+  instructions,
   system,
   prompt,
   messages,
@@ -474,6 +475,7 @@ export async function generateText<
   );
 
   const initialPrompt = await standardizePrompt({
+    instructions,
     system,
     prompt,
     messages,
@@ -498,7 +500,7 @@ export async function generateText<
       operationId: 'ai.generateText',
       provider: model.provider,
       modelId: model.modelId,
-      system,
+      instructions: initialPrompt.instructions,
       messages: initialPrompt.messages,
       tools,
       toolChoice,
@@ -667,9 +669,14 @@ export async function generateText<
           prepareStepResult?.model ?? model,
         );
 
+        const stepInstructions =
+          prepareStepResult?.instructions ??
+          prepareStepResult?.system ??
+          initialPrompt.instructions;
+
         const promptMessages = await convertToLanguageModelPrompt({
           prompt: {
-            system: prepareStepResult?.system ?? initialPrompt.system,
+            instructions: stepInstructions,
             messages: prepareStepResult?.messages ?? stepInputMessages,
           },
           supportedUrls: await stepModel.supportedUrls,
@@ -695,8 +702,6 @@ export async function generateText<
 
         const stepMessages = prepareStepResult?.messages ?? stepInputMessages;
 
-        const stepSystem = prepareStepResult?.system ?? initialPrompt.system;
-
         const stepProviderOptions = mergeObjects(
           providerOptions,
           prepareStepResult?.providerOptions,
@@ -709,7 +714,7 @@ export async function generateText<
             provider: stepModel.provider,
             modelId: stepModel.modelId,
             stepNumber,
-            system: stepSystem,
+            instructions: stepInstructions,
             messages: stepMessages,
             tools,
             toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
@@ -731,7 +736,7 @@ export async function generateText<
             callId,
             provider: stepModel.provider,
             modelId: stepModel.modelId,
-            system: stepSystem,
+            instructions: stepInstructions,
             messages: stepMessages,
             tools: stepTools,
             ...callSettings,
@@ -780,7 +785,7 @@ export async function generateText<
                 tools,
                 repairToolCall,
                 refineToolInput,
-                system,
+                instructions: stepInstructions,
                 messages: stepMessages,
               }),
             ),
@@ -1246,8 +1251,8 @@ class DefaultGenerateTextResult<
 
   private readonly initialResponseMessages: Array<ResponseMessage>;
 
-  private get finalStep() {
-    return this.steps[this.steps.length - 1];
+  get finalStep() {
+    return this.steps.at(-1)!;
   }
 
   get content() {
@@ -1330,7 +1335,7 @@ class DefaultGenerateTextResult<
   }
 
   get usage() {
-    return this.finalStep.usage;
+    return this.totalUsage;
   }
 
   get output() {

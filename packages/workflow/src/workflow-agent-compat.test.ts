@@ -323,7 +323,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
 
     it('should pass string instructions', async () => {
       // GAP: WorkflowAgent uses `system` (string only) instead of `instructions`
-      // (which can be string | SystemModelMessage | SystemModelMessage[])
+      // (which can be Instructions)
       const agent = new WorkflowAgent({
         model: mockModel,
         instructions: 'INSTRUCTIONS',
