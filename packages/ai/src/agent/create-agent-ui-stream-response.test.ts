@@ -366,6 +366,9 @@ describe('createAgentUIStreamResponse', () => {
         stdout: 'ok',
         stderr: '',
       }),
+      readFile: async () => ({
+        content: 'ok',
+      }),
     } satisfies Sandbox;
     let receivedSandbox: Sandbox | undefined;
     let callCount = 0;

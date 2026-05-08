@@ -216,6 +216,9 @@ describe('createExecuteToolsTransformation', () => {
         stdout: 'ok',
         stderr: '',
       })),
+      readFile: vi.fn(async () => ({
+        content: 'ok',
+      })),
     } satisfies Sandbox;
     let receivedSandbox: Sandbox | undefined;
 

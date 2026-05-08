@@ -18968,6 +18968,9 @@ describe('streamText', () => {
           stdout: 'ok',
           stderr: '',
         })),
+        readFile: vi.fn(async () => ({
+          content: 'ok',
+        })),
       } satisfies Sandbox;
       let recordedSandbox: Sandbox | undefined;
 
@@ -19044,6 +19047,9 @@ describe('streamText', () => {
           stdout: 'ok',
           stderr: '',
         })),
+        readFile: vi.fn(async () => ({
+          content: 'ok',
+        })),
       } satisfies Sandbox;
       let capturedSandbox: Sandbox | undefined;
 
@@ -19084,6 +19090,9 @@ describe('streamText', () => {
           stdout: 'ok',
           stderr: '',
         })),
+        readFile: vi.fn(async () => ({
+          content: 'ok',
+        })),
       } satisfies Sandbox;
       const stepSandbox = {
         description: 'step sandbox',
@@ -19091,6 +19100,9 @@ describe('streamText', () => {
           exitCode: 0,
           stdout: 'ok',
           stderr: '',
+        })),
+        readFile: vi.fn(async () => ({
+          content: 'ok',
         })),
       } satisfies Sandbox;
       const recordedSandboxes: Array<Sandbox | undefined> = [];
@@ -23243,6 +23255,9 @@ describe('streamText', () => {
             exitCode: 0,
             stdout: 'ok',
             stderr: '',
+          })),
+          readFile: vi.fn(async () => ({
+            content: 'ok',
           })),
         };
         result = streamText({
