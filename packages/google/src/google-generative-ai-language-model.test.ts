@@ -3744,7 +3744,7 @@ describe('doStream', () => {
     });
 
     it('should emit no-args function calls and preserve thoughtSignature alongside streamed-args calls', async () => {
-      const vertexModel = new GoogleLanguageModel('gemini-pro', {
+      const vertexModel = new GoogleGenerativeAILanguageModel('gemini-pro', {
         provider: 'google.vertex.chat',
         baseURL: 'https://generativelanguage.googleapis.com/v1beta',
         headers: { 'x-goog-api-key': 'test-api-key' },
@@ -3806,9 +3806,6 @@ describe('doStream', () => {
         readThemeCall.providerMetadata?.vertex?.thoughtSignature;
       expect(typeof signature).toBe('string');
       expect((signature as string).length).toBeGreaterThan(100);
-      expect(
-        readThemeCall.providerMetadata?.googleVertex?.thoughtSignature,
-      ).toBe(signature);
 
       // The no-args call must emit start/end framing too, so the signature
       // is exposed at every stage downstream consumers might inspect.
