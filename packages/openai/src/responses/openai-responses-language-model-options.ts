@@ -51,6 +51,8 @@ export const openaiResponsesReasoningModelIds = [
   'gpt-5.4-nano-2026-03-17',
   'gpt-5.4-pro',
   'gpt-5.4-pro-2026-03-05',
+  'gpt-5.5',
+  'gpt-5.5-2026-04-23',
 ] as const;
 
 export const openaiResponsesModelIds = [
@@ -117,6 +119,8 @@ export type OpenAIResponsesModelId =
   | 'gpt-5.4-nano-2026-03-17'
   | 'gpt-5.4-pro'
   | 'gpt-5.4-pro-2026-03-05'
+  | 'gpt-5.5'
+  | 'gpt-5.5-2026-04-23'
   | 'gpt-5-2025-08-07'
   | 'gpt-5-chat-latest'
   | 'gpt-5-codex'
@@ -324,6 +328,23 @@ export const openaiLanguageModelResponsesOptionsSchema = lazySchema(() =>
           }),
         )
         .nullish(),
+
+      /**
+       * Restrict the callable tools to a subset while keeping the full tools
+       * list intact, so prompt caching is preserved across requests with
+       * different allowlists.
+       *
+       * When set, this overrides the request-level `toolChoice` and emits
+       * `tool_choice: { type: "allowed_tools", mode, tools }` on the wire.
+       *
+       * @see https://developers.openai.com/api/reference/resources/responses/methods/create#(resource)%20responses%20%3E%20(model)%20tool_choice_allowed%20%3E%20(schema)
+       */
+      allowedTools: z
+        .object({
+          toolNames: z.array(z.string()).min(1),
+          mode: z.enum(['auto', 'required']).optional(),
+        })
+        .optional(),
     }),
   ),
 );

@@ -1,5 +1,43 @@
 # @ai-sdk/anthropic
 
+## 4.0.0-canary.48
+
+### Patch Changes
+
+- Updated dependencies [f634bac]
+  - @ai-sdk/provider-utils@5.0.0-canary.35
+
+## 4.0.0-canary.47
+
+### Patch Changes
+
+- 2610e84: feat(provider/anthropic): automatically use sandbox in bash tool
+- Updated dependencies [69254e0]
+- Updated dependencies [3015fc3]
+  - @ai-sdk/provider-utils@5.0.0-canary.34
+
+## 4.0.0-canary.46
+
+### Patch Changes
+
+- e5c4f40: Remove stale `effort-2025-11-24` beta header — the extended thinking effort parameter is GA and no longer requires the beta flag. Vertex AI's strict validator was actively rejecting requests with this header.
+
+## 4.0.0-canary.45
+
+### Patch Changes
+
+- Updated dependencies [2427d88]
+  - @ai-sdk/provider-utils@5.0.0-canary.33
+
+## 4.0.0-canary.44
+
+### Patch Changes
+
+- 5463d0d: feat(provider): align tool result output content file part types with top-level message file part types
+- Updated dependencies [5463d0d]
+  - @ai-sdk/provider-utils@5.0.0-canary.32
+  - @ai-sdk/provider@4.0.0-canary.16
+
 ## 4.0.0-canary.43
 
 ### Patch Changes

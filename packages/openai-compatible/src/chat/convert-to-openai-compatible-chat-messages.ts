@@ -223,7 +223,7 @@ export function convertToOpenAICompatibleChatMessages(
 
         messages.push({
           role: 'assistant',
-          content: text || null,
+          content: toolCalls.length > 0 ? text || null : text,
           ...(reasoning.length > 0 ? { reasoning_content: reasoning } : {}),
           tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
           ...metadata,

@@ -16,6 +16,13 @@ For the full model of `runtimeContext`, `toolsContext`, tool `context`, and
 sensitive context filtering, see [Runtime and Tool
 Context](/docs/ai-sdk-core/runtime-and-tool-context).
 
+The `Tool` type is a union of four tool kinds:
+
+- `FunctionTool`: a user-defined function-style tool with known input and output types.
+- `DynamicTool`: a function-style tool defined at runtime, with `unknown` input and output types.
+- `ProviderDefinedTool`: a provider-defined tool that your code executes.
+- `ProviderExecutedTool`: a provider-defined tool that the provider executes.
+
 ```ts highlight={"1,4,9,10"}
 import { tool } from 'ai';
 import { z } from 'zod';
@@ -62,7 +69,8 @@ export const weatherTool = tool({
               name: 'title',
               isOptional: true,
               type: 'string',
-              description: 'A human-readable title for the tool.',
+              description:
+                'Deprecated. Use `providerMetadata` for source-specific tool display metadata.',
             },
             {
               name: 'needsApproval',
@@ -90,13 +98,6 @@ export const weatherTool = tool({
               type: 'Zod Schema | JSON Schema',
               description:
                 'An optional schema that describes the tool-specific context expected by the tool. When provided, the `context` type in `execute`, `needsApproval`, and the input lifecycle callbacks is inferred from this schema. The value is supplied via the tool\'s entry in `toolsContext`.',
-            },
-            {
-              name: 'sensitiveContext',
-              isOptional: true,
-              type: 'SensitiveContext<CONTEXT>',
-              description:
-                'Top-level context properties that contain sensitive data and should be excluded from telemetry. Properties marked as `true` are omitted from telemetry integrations. Tool execution, lifecycle callbacks, and returned results still receive the full tool context.',
             },
             {
               name: 'strict',
@@ -139,6 +140,13 @@ export const weatherTool = tool({
                       type: 'CONTEXT',
                       description:
                         'Tool-specific context passed into tool execution. When `contextSchema` is provided, this type is inferred from that schema and supplied from the matching entry in `toolsContext`.',
+                    },
+                    {
+                      name: 'sandbox',
+                      type: 'Sandbox',
+                      isOptional: true,
+                      description:
+                        'Optional sandbox environment passed from the generation or agent call. Use it when a tool needs to execute commands or code in a sandbox.',
                     },
                   ],
                 },
@@ -187,39 +195,46 @@ export const weatherTool = tool({
                 'Additional provider-specific metadata. They are passed through to the provider from the AI SDK and enable provider-specific functionality that can be fully encapsulated in the provider.',
             },
             {
-              name: 'providerMetadata',
+              name: 'metadata',
               isOptional: true,
-              type: 'ProviderMetadata',
+              type: 'JSONObject',
               description:
-                "Optional metadata about the tool itself (e.g. its source). It is propagated onto the resulting tool call's providerMetadata so consumers can read it from tool call/result parts and UI message parts. Useful for sources of dynamic tools (e.g. an MCP server) to identify themselves.",
+                "Optional metadata about the tool itself (e.g. its source). It is propagated onto the resulting tool call's toolMetadata so consumers can read it from tool call/result parts and UI message parts. Useful for sources of dynamic tools (e.g. an MCP server) to identify themselves.",
             },
             {
               name: 'type',
               isOptional: true,
-              type: "'function' | 'provider-defined'",
+              type: "'function' | 'dynamic' | 'provider'",
               description:
-                'The type of the tool. Defaults to "function" for regular tools. Use "provider-defined" for provider-specific tools.',
+                'The type of the tool. Defaults to "function" for regular tools. Use "dynamic" for tools defined at runtime and "provider" for provider-specific tools.',
             },
             {
               name: 'id',
               isOptional: true,
-              type: 'string',
+              type: '`${string}.${string}`',
               description:
-                'The ID of the tool for provider-defined tools. Should follow the format `<provider-name>.<unique-tool-name>`. Required when type is "provider-defined".',
+                'The ID of a provider tool. Must follow the format `<provider-name>.<unique-tool-name>`. Required when type is "provider".',
             },
             {
-              name: 'name',
+              name: 'isProviderExecuted',
               isOptional: true,
-              type: 'string',
+              type: 'boolean',
               description:
-                'The name of the tool that the user must use in the tool set. Required when type is "provider-defined".',
+                'Whether a provider tool is executed by the provider. Set to `false` for `ProviderDefinedTool` and `true` for `ProviderExecutedTool`. Required when type is "provider".',
             },
             {
               name: 'args',
               isOptional: true,
               type: 'Record<string, unknown>',
               description:
-                'The arguments for configuring the tool. Must match the expected arguments defined by the provider for this tool. Required when type is "provider-defined".',
+                'The arguments for configuring a provider tool. Must match the expected arguments defined by the provider for this tool. Required when type is "provider".',
+            },
+            {
+              name: 'supportsDeferredResults',
+              isOptional: true,
+              type: 'boolean',
+              description:
+                'Whether a provider-executed tool supports results that arrive without a matching tool call in the current response. Only available for `ProviderExecutedTool`.',
             },
           ],
         },

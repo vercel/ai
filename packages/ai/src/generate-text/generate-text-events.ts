@@ -12,6 +12,7 @@ import type { LanguageModelUsage } from '../types/usage';
 import type { Callback } from '../util/callback';
 import type { ActiveTools } from './active-tools';
 import type { Output } from './output';
+import type { ResponseMessage } from './response-message';
 import type { StepResult } from './step-result';
 import type { TextStreamPart } from './stream-text-result';
 
@@ -168,6 +169,9 @@ export type GenerateTextEndEvent<
   TOOLS extends ToolSet = ToolSet,
   RUNTIME_CONTEXT extends Context = Context,
 > = StepResult<TOOLS, RUNTIME_CONTEXT> & {
+  /** The response messages that were generated during the call. */
+  readonly responseMessages: ResponseMessage[];
+
   /** Array containing results from all steps in the generation. */
   readonly steps: StepResult<TOOLS, RUNTIME_CONTEXT>[];
 

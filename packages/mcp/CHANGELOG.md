@@ -1,5 +1,51 @@
 # @ai-sdk/mcp
 
+## 2.0.0-canary.44
+
+### Patch Changes
+
+- 611f621: feat(mcp): feat(mcp): add support for MCP Apps
+
+## 2.0.0-canary.43
+
+### Patch Changes
+
+- f634bac: feat(mcp): add new McpProviderMetadata type
+- Updated dependencies [f634bac]
+  - @ai-sdk/provider-utils@5.0.0-canary.35
+
+## 2.0.0-canary.42
+
+### Patch Changes
+
+- 69254e0: feat(ai): add toolMetadata for tool specific metdata
+- Updated dependencies [69254e0]
+- Updated dependencies [3015fc3]
+  - @ai-sdk/provider-utils@5.0.0-canary.34
+
+## 2.0.0-canary.41
+
+### Patch Changes
+
+- b79094c: Add `resource_link` content type to `CallToolResultSchema` and `PromptMessageSchema` per MCP spec. Fixes hard rejection when MCP servers return `resource_link` content parts with zod ≥ 4.4.x.
+- 1451759: feat(mcp): deprecate name and use clientName for MCPClient
+
+## 2.0.0-canary.40
+
+### Patch Changes
+
+- Updated dependencies [2427d88]
+  - @ai-sdk/provider-utils@5.0.0-canary.33
+
+## 2.0.0-canary.39
+
+### Patch Changes
+
+- 5463d0d: feat(provider): align tool result output content file part types with top-level message file part types
+- Updated dependencies [5463d0d]
+  - @ai-sdk/provider-utils@5.0.0-canary.32
+  - @ai-sdk/provider@4.0.0-canary.16
+
 ## 2.0.0-canary.38
 
 ### Patch Changes

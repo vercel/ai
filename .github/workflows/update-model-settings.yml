@@ -1,3 +1,14 @@
+# Update Gateway Model Settings
+#
+# Regenerates the gateway model settings files
+# (packages/gateway/src/gateway-*-model-settings.ts) from the upstream
+# gateway model list and opens a PR for review on each release branch
+# (main, release-v6.0, release-v5.0).
+#
+# The generated PRs are how new models become available in
+# `@ai-sdk/gateway`. They surface as IDE autocomplete
+# suggestions when users type a model string.
+
 name: Update Gateway Model Settings
 
 on:
@@ -181,13 +192,24 @@ jobs:
             PR_TITLE="chore(provider/gateway): update gateway model settings files"
           fi
 
+          WORKFLOW_FILE_URL="${{ github.server_url }}/${{ github.repository }}/blob/main/.github/workflows/update-model-settings.yml"
+          WORKFLOW_RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+          PR_BODY=$(cat <<EOF
+          Automated update of the gateway model settings files.
+
+          Regenerated from the upstream gateway model list by [\`update-model-settings.yml\`]($WORKFLOW_FILE_URL) ([this run]($WORKFLOW_RUN_URL)). Merging this PR is what surfaces newly-released gateway models as IDE autocomplete suggestions when users type a model string with \`@ai-sdk/gateway\`.
+
+          See the workflow file for details on cadence and scope.
+          EOF
+          )
+
           PR_URL=$(gh pr create \
             --title "$PR_TITLE" \
-            --body "This is an automated update of the gateway model settings files." \
+            --body "$PR_BODY" \
             --base "${{ matrix.target-branch }}" \
             --head "${{ steps.create-branch.outputs.branch-name }}" \
-            --reviewer R-Taneja \
-            --reviewer sylviezhang37)
+            --reviewer R-Taneja)
 
           PR_NUMBER=$(echo "$PR_URL" | grep -oE '[0-9]+$')
           echo "pr-url=$PR_URL" >> "$GITHUB_OUTPUT"

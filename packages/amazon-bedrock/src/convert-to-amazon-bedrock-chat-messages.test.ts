@@ -439,6 +439,40 @@ describe('user messages', () => {
       "'file parts with provider references' functionality not supported",
     );
   });
+
+  it('should add cache point to user content part when specified', async () => {
+    const result = await convertToAmazonBedrockChatMessages([
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Hello' },
+          {
+            type: 'text',
+            text: 'cached',
+            providerOptions: {
+              bedrock: { cachePoint: { type: 'default', ttl: '5m' } },
+            },
+          },
+          { type: 'text', text: 'World' },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual({
+      messages: [
+        {
+          role: 'user',
+          content: [
+            { text: 'Hello' },
+            { text: 'cached' },
+            { cachePoint: { type: 'default', ttl: '5m' } },
+            { text: 'World' },
+          ],
+        },
+      ],
+      system: [],
+    });
+  });
 });
 
 describe('assistant messages', () => {
@@ -617,6 +651,40 @@ describe('assistant messages', () => {
           content: [
             { text: 'Hello' },
             { cachePoint: { type: 'default', ttl: '1h' } },
+          ],
+        },
+      ],
+      system: [],
+    });
+  });
+
+  it('should add cache point to assistant content part when specified', async () => {
+    const result = await convertToAmazonBedrockChatMessages([
+      {
+        role: 'assistant',
+        content: [
+          { type: 'text', text: 'Hello' },
+          {
+            type: 'text',
+            text: 'cached',
+            providerOptions: {
+              bedrock: { cachePoint: { type: 'default', ttl: '1h' } },
+            },
+          },
+          { type: 'text', text: 'World' },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual({
+      messages: [
+        {
+          role: 'assistant',
+          content: [
+            { text: 'Hello' },
+            { text: 'cached' },
+            { cachePoint: { type: 'default', ttl: '1h' } },
+            { text: 'World' },
           ],
         },
       ],
@@ -1273,8 +1341,8 @@ describe('tool messages', () => {
               type: 'content',
               value: [
                 {
-                  type: 'file-data',
-                  data: 'base64data',
+                  type: 'file',
+                  data: { type: 'data', data: 'base64data' },
                   mediaType: 'image/jpeg',
                 },
               ],
@@ -1318,8 +1386,8 @@ describe('tool messages', () => {
                 type: 'content',
                 value: [
                   {
-                    type: 'file-data',
-                    data: 'base64data',
+                    type: 'file',
+                    data: { type: 'data', data: 'base64data' },
                     mediaType: 'image/avif', // unsupported format
                   },
                 ],
@@ -1347,8 +1415,8 @@ describe('tool messages', () => {
                 type: 'content',
                 value: [
                   {
-                    type: 'file-data',
-                    data: 'base64data',
+                    type: 'file',
+                    data: { type: 'data', data: 'base64data' },
                     mediaType: 'unsupported/mime-type',
                   },
                 ],

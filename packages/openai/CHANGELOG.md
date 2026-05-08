@@ -1,5 +1,55 @@
 # @ai-sdk/openai
 
+## 4.0.0-canary.52
+
+### Patch Changes
+
+- Updated dependencies [f634bac]
+  - @ai-sdk/provider-utils@5.0.0-canary.35
+
+## 4.0.0-canary.51
+
+### Patch Changes
+
+- Updated dependencies [69254e0]
+- Updated dependencies [3015fc3]
+  - @ai-sdk/provider-utils@5.0.0-canary.34
+
+## 4.0.0-canary.50
+
+### Patch Changes
+
+- 29e6ac6: feat: add allowedTools provider option for OpenAI Responses
+
+## 4.0.0-canary.49
+
+### Patch Changes
+
+- 7bbc194: feat(provider/openai): forward imageDetail providerOptions on tool-result image content
+- Updated dependencies [2427d88]
+  - @ai-sdk/provider-utils@5.0.0-canary.33
+
+## 4.0.0-canary.48
+
+### Patch Changes
+
+- d6c79e3: feat(openai): add GPT-5.5 chat model IDs
+
+## 4.0.0-canary.47
+
+### Patch Changes
+
+- 5463d0d: feat(provider): align tool result output content file part types with top-level message file part types
+- Updated dependencies [5463d0d]
+  - @ai-sdk/provider-utils@5.0.0-canary.32
+  - @ai-sdk/provider@4.0.0-canary.16
+
+## 4.0.0-canary.46
+
+### Patch Changes
+
+- cd9c311: fix(openai, openai-compatible): only send null content for assistant messages with tool calls
+
 ## 4.0.0-canary.45
 
 ### Patch Changes

@@ -15,11 +15,25 @@ import {
 } from '@ai-sdk/anthropic/internal';
 import type { GoogleVertexAnthropicModelId } from './google-vertex-anthropic-options';
 
+type GoogleVertexAnthropicTools = Pick<
+  typeof anthropicTools,
+  | 'bash_20241022'
+  | 'bash_20250124'
+  | 'textEditor_20241022'
+  | 'textEditor_20250124'
+  | 'textEditor_20250429'
+  | 'textEditor_20250728'
+  | 'computer_20241022'
+  | 'webSearch_20250305'
+  | 'toolSearchRegex_20251119'
+  | 'toolSearchBm25_20251119'
+>;
+
 /**
  * Tools supported by Google Vertex Anthropic.
  * This is a subset of the full Anthropic tools - only these are recognized by the Vertex API.
  */
-export const googleVertexAnthropicTools = {
+export const googleVertexAnthropicTools: GoogleVertexAnthropicTools = {
   /**
    * The bash tool enables Claude to execute shell commands in a persistent bash session,
    * allowing system operations, script execution, and command-line automation.

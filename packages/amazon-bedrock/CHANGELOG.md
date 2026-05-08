@@ -1,5 +1,55 @@
 # @ai-sdk/amazon-bedrock
 
+## 5.0.0-canary.54
+
+### Patch Changes
+
+- 9c78e5d: fix (provider/amazon-bedrock): preserve cache points on message content parts
+
+## 5.0.0-canary.53
+
+### Patch Changes
+
+- Updated dependencies [f634bac]
+  - @ai-sdk/provider-utils@5.0.0-canary.35
+  - @ai-sdk/anthropic@4.0.0-canary.48
+
+## 5.0.0-canary.52
+
+### Patch Changes
+
+- Updated dependencies [2610e84]
+- Updated dependencies [69254e0]
+- Updated dependencies [3015fc3]
+  - @ai-sdk/anthropic@4.0.0-canary.47
+  - @ai-sdk/provider-utils@5.0.0-canary.34
+
+## 5.0.0-canary.51
+
+### Patch Changes
+
+- Updated dependencies [e5c4f40]
+  - @ai-sdk/anthropic@4.0.0-canary.46
+
+## 5.0.0-canary.50
+
+### Patch Changes
+
+- 68c5081: fix(provider/amazon-bedrock): mark `input` optional on tool-use schema so streaming `contentBlockStart` events parse under Zod >= 4.4.0
+- Updated dependencies [2427d88]
+  - @ai-sdk/provider-utils@5.0.0-canary.33
+  - @ai-sdk/anthropic@4.0.0-canary.45
+
+## 5.0.0-canary.49
+
+### Patch Changes
+
+- 5463d0d: feat(provider): align tool result output content file part types with top-level message file part types
+- Updated dependencies [5463d0d]
+  - @ai-sdk/provider-utils@5.0.0-canary.32
+  - @ai-sdk/provider@4.0.0-canary.16
+  - @ai-sdk/anthropic@4.0.0-canary.44
+
 ## 5.0.0-canary.48
 
 ### Patch Changes

@@ -36,6 +36,7 @@ export async function POST(request: Request) {
     agent,
     uiMessages: messages,
     abortSignal: abortController.signal, // optional
+    // sandbox, // optional: passed through to tool execution
     // ...other UIMessageStreamOptions like sendSources, experimental_transform, etc.
   });
 }
@@ -72,6 +73,13 @@ export async function POST(request: Request) {
       isRequired: false,
       description:
         'Timeout in milliseconds. Can be specified as a number or as an object with a totalMs property. The call will be aborted if it takes longer than the specified timeout. Can be used alongside abortSignal.',
+    },
+    {
+      name: 'sandbox',
+      type: 'Sandbox',
+      isRequired: false,
+      description:
+        'Optional sandbox environment that is passed through to tool execution. Tools can access it from their execution context.',
     },
     {
       name: 'options',
@@ -145,6 +153,7 @@ export async function POST(request: Request) {
   return createAgentUIStreamResponse({
     agent: MyCustomAgent,
     uiMessages: messages,
+    // sandbox, // optional
     sendSources: true, // (optional)
     // headers, status, abortSignal, and other UIMessageStreamOptions also supported
   });
@@ -155,13 +164,14 @@ export async function POST(request: Request) {
 
 - 1. **UI Message Validation:** Validates the incoming `uiMessages` array according to the agent's specified tools and requirements.
 - 2. **Model Message Conversion:** Converts validated UI messages into the internal model message format for the agent.
-- 3. **Streaming Agent Output:** Invokes the agent’s `.stream({ prompt, ... })` to get a stream of chunks (steps/UI messages).
+- 3. **Streaming Agent Output:** Invokes the agent’s `.stream({ prompt, ... })` to get a stream of chunks (steps/UI messages), passing through options such as `sandbox`.
 - 4. **HTTP Response Creation:** Wraps the output stream as a readable HTTP `Response` object that streams UI message chunks to the client.
 
 ## Notes
 
 - Your agent **must** implement `.stream({ prompt, ... })` and define a `tools` property (even if it's just `{}`) to work with this function.
 - **Server Only:** This API should only be called in backend/server-side contexts (API routes, edge/serverless/server route handlers, etc.). Not for browser use.
+- Pass `sandbox` when your agent tools need a sandbox environment during execution.
 - Additional options (`headers`, `status`, UI stream options, transforms, etc.) are available for advanced scenarios.
 - This leverages [ReadableStream](https://developer.mozilla.org/en-US/docs/Web/API/ReadableStream) so your platform/client must support HTTP streaming consumption.
 

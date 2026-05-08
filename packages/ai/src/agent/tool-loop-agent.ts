@@ -2,6 +2,7 @@ import {
   validateTypes,
   type Context,
   type ModelMessage,
+  type Sandbox,
   type ToolSet,
 } from '@ai-sdk/provider-utils';
 import { generateText } from '../generate-text/generate-text';
@@ -78,6 +79,7 @@ export class ToolLoopAgent<
     prompt?: string | Array<ModelMessage>;
     messages?: Array<ModelMessage>;
     options?: CALL_OPTIONS;
+    sandbox?: Sandbox;
   }): Promise<
     Omit<
       ToolLoopAgentSettings<CALL_OPTIONS, TOOLS, RUNTIME_CONTEXT, OUTPUT>,
@@ -85,8 +87,8 @@ export class ToolLoopAgent<
       | 'instructions'
       | 'experimental_onStart'
       | 'experimental_onStepStart'
-      | 'experimental_onToolExecutionStart'
-      | 'experimental_onToolExecutionEnd'
+      | 'onToolExecutionStart'
+      | 'onToolExecutionEnd'
       | 'onStepFinish'
       | 'onFinish'
     > &
@@ -107,8 +109,8 @@ export class ToolLoopAgent<
     const {
       experimental_onStart: _settingsOnStart,
       experimental_onStepStart: _settingsOnStepStart,
-      experimental_onToolExecutionStart: _settingsOnToolExecutionStart,
-      experimental_onToolExecutionEnd: _settingsOnToolExecutionEnd,
+      onToolExecutionStart: _settingsOnToolExecutionStart,
+      onToolExecutionEnd: _settingsOnToolExecutionEnd,
       onStepFinish: _settingsOnStepFinish,
       onFinish: _settingsOnFinish,
       ...settingsWithoutCallbacks
@@ -159,10 +161,11 @@ export class ToolLoopAgent<
   async generate({
     abortSignal,
     timeout,
+    sandbox,
     experimental_onStart,
     experimental_onStepStart,
-    experimental_onToolExecutionStart,
-    experimental_onToolExecutionEnd,
+    onToolExecutionStart,
+    onToolExecutionEnd,
     onStepFinish,
     onFinish,
     ...options
@@ -170,10 +173,11 @@ export class ToolLoopAgent<
     GenerateTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>
   > {
     const generate = generateText<TOOLS, RUNTIME_CONTEXT, OUTPUT>;
-    const preparedCall = await this.prepareCall(options);
+    const preparedCall = await this.prepareCall({ ...options, sandbox });
     const callbackArgs = {
       abortSignal,
       timeout,
+      sandbox,
       experimental_onStart: mergeCallbacks(
         this.settings.experimental_onStart,
         experimental_onStart as
@@ -186,13 +190,13 @@ export class ToolLoopAgent<
           | GenerateTextOnStepStartCallback<TOOLS, RUNTIME_CONTEXT, OUTPUT>
           | undefined,
       ),
-      experimental_onToolExecutionStart: mergeCallbacks(
-        this.settings.experimental_onToolExecutionStart,
-        experimental_onToolExecutionStart,
+      onToolExecutionStart: mergeCallbacks(
+        this.settings.onToolExecutionStart,
+        onToolExecutionStart,
       ),
-      experimental_onToolExecutionEnd: mergeCallbacks(
-        this.settings.experimental_onToolExecutionEnd,
-        experimental_onToolExecutionEnd,
+      onToolExecutionEnd: mergeCallbacks(
+        this.settings.onToolExecutionEnd,
+        onToolExecutionEnd,
       ),
       onStepFinish: mergeCallbacks(this.settings.onStepFinish, onStepFinish),
       onFinish: mergeCallbacks(this.settings.onFinish, onFinish),
@@ -210,11 +214,12 @@ export class ToolLoopAgent<
   async stream({
     abortSignal,
     timeout,
+    sandbox,
     experimental_transform,
     experimental_onStart,
     experimental_onStepStart,
-    experimental_onToolExecutionStart,
-    experimental_onToolExecutionEnd,
+    onToolExecutionStart,
+    onToolExecutionEnd,
     onStepFinish,
     onFinish,
     ...options
@@ -222,10 +227,11 @@ export class ToolLoopAgent<
     StreamTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>
   > {
     const stream = streamText<TOOLS, RUNTIME_CONTEXT, OUTPUT>;
-    const preparedCall = await this.prepareCall(options);
+    const preparedCall = await this.prepareCall({ ...options, sandbox });
     const callbackArgs = {
       abortSignal,
       timeout,
+      sandbox,
       experimental_transform,
       experimental_onStart: mergeCallbacks(
         this.settings.experimental_onStart,
@@ -239,13 +245,13 @@ export class ToolLoopAgent<
           | GenerateTextOnStepStartCallback<TOOLS, RUNTIME_CONTEXT, OUTPUT>
           | undefined,
       ),
-      experimental_onToolExecutionStart: mergeCallbacks(
-        this.settings.experimental_onToolExecutionStart,
-        experimental_onToolExecutionStart,
+      onToolExecutionStart: mergeCallbacks(
+        this.settings.onToolExecutionStart,
+        onToolExecutionStart,
       ),
-      experimental_onToolExecutionEnd: mergeCallbacks(
-        this.settings.experimental_onToolExecutionEnd,
-        experimental_onToolExecutionEnd,
+      onToolExecutionEnd: mergeCallbacks(
+        this.settings.onToolExecutionEnd,
+        onToolExecutionEnd,
       ),
       onStepFinish: mergeCallbacks(this.settings.onStepFinish, onStepFinish),
       onFinish: mergeCallbacks(this.settings.onFinish, onFinish),

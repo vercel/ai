@@ -1,5 +1,41 @@
 # @ai-sdk/gateway
 
+## 4.0.0-canary.73
+
+### Patch Changes
+
+- Updated dependencies [f634bac]
+  - @ai-sdk/provider-utils@5.0.0-canary.35
+
+## 4.0.0-canary.72
+
+### Patch Changes
+
+- Updated dependencies [69254e0]
+- Updated dependencies [3015fc3]
+  - @ai-sdk/provider-utils@5.0.0-canary.34
+
+## 4.0.0-canary.71
+
+### Patch Changes
+
+- Updated dependencies [2427d88]
+  - @ai-sdk/provider-utils@5.0.0-canary.33
+
+## 4.0.0-canary.70
+
+### Patch Changes
+
+- Updated dependencies [5463d0d]
+  - @ai-sdk/provider-utils@5.0.0-canary.32
+  - @ai-sdk/provider@4.0.0-canary.16
+
+## 4.0.0-canary.69
+
+### Patch Changes
+
+- 8e53eb7: chore(provider/gateway): update gateway model settings files
+
 ## 4.0.0-canary.68
 
 ### Patch Changes

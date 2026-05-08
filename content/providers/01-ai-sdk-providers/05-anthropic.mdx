@@ -723,14 +723,31 @@ For more on prompt caching with Anthropic, see [Anthropic's Cache Control docume
 
 ### Bash Tool
 
-The Bash Tool allows running bash commands. Here's how to create and use it:
+The Bash Tool allows running bash commands. By default, the tool executes
+commands through the `sandbox` that you pass to `generateText` or `streamText`:
 
 ```ts
-const bashTool = anthropic.tools.bash_20250124({
-  execute: async ({ command, restart }) => {
-    // Implement your bash command execution logic here
-    // Return the result of the command execution
+import { anthropic } from '@ai-sdk/anthropic';
+import { generateText, isStepCount } from 'ai';
+
+const result = await generateText({
+  model: anthropic('claude-opus-4-7'),
+  tools: {
+    bash: anthropic.tools.bash_20250124(),
   },
+  sandbox: {
+    description: 'A sandboxed shell environment.',
+    executeCommand: async ({ command }) => {
+      // Run the command in your sandbox and return the result.
+      return {
+        exitCode: 0,
+        stdout: `Executed: ${command}`,
+        stderr: '',
+      };
+    },
+  },
+  stopWhen: isStepCount(2),
+  prompt: 'List the files in the current directory.',
 });
 ```
 
@@ -743,6 +760,9 @@ Parameters:
   Two versions are available: `bash_20250124` (recommended) and `bash_20241022`.
   Only certain Claude versions are supported.
 </Note>
+
+You can also provide a custom `execute` function when you want to handle bash
+execution directly instead of using the request sandbox.
 
 ### Memory Tool
 

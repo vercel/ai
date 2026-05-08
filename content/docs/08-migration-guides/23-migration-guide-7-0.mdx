@@ -114,6 +114,32 @@ const result = await generateText({
 
 This applies to AI SDK functions that accept `prompt` or `messages`, including `generateText`, `streamText`, `generateObject`, `streamObject`, and `streamUI`.
 
+### `cachedInputTokens` and `reasoningTokens` Removed from `LanguageModelUsage`
+
+The deprecated top-level `cachedInputTokens` and `reasoningTokens` fields have been removed from `LanguageModelUsage`.
+
+Use `inputTokenDetails.cacheReadTokens` and `outputTokenDetails.reasoningTokens` instead:
+
+```tsx filename="AI SDK 6"
+const result = await generateText({
+  model: yourModel,
+  prompt: 'Hello!',
+});
+
+console.log(result.usage.cachedInputTokens);
+console.log(result.usage.reasoningTokens);
+```
+
+```tsx filename="AI SDK 7"
+const result = await generateText({
+  model: yourModel,
+  prompt: 'Hello!',
+});
+
+console.log(result.usage.inputTokenDetails.cacheReadTokens);
+console.log(result.usage.outputTokenDetails.reasoningTokens);
+```
+
 ### Telemetry: OpenTelemetry Moved to `@ai-sdk/otel` — Explicit Registration Required
 
 OpenTelemetry span collection is no longer built into the `ai` package. To continue receiving OpenTelemetry traces, you must install the new `@ai-sdk/otel` package and register the `OpenTelemetry` instance globally.
@@ -278,6 +304,165 @@ const result = await generateText({
 This applies to all AI SDK functions and agents that accept telemetry configuration, including `generateText`, `streamText`, `generateObject`, `streamObject`, `embed`, `embedMany`, `rerank`, `ToolLoopAgent`, and `WorkflowAgent`.
 
 No behavior changes beyond the rename. You can migrate incrementally — mixed usage of `telemetry` and `experimental_telemetry` in the same codebase is supported during the deprecation window.
+
+### Tool Execution Callbacks: `experimental_onToolCallStart` and `experimental_onToolCallFinish` Renamed
+
+The tool execution callback options for `generateText` and `streamText` have been renamed:
+
+- `experimental_onToolCallStart` is now `onToolExecutionStart`
+- `experimental_onToolCallFinish` is now `onToolExecutionEnd`
+
+The old names continue to work as deprecated aliases in AI SDK 7 and will be removed in a future major release. They are only used as fallbacks when the new callback names are not provided.
+
+```tsx filename="AI SDK 6"
+const result = await generateText({
+  model: yourModel,
+  tools,
+  prompt: 'Hello',
+  experimental_onToolCallStart(event) {
+    console.log('Tool starting:', event.toolCall.toolName);
+  },
+  experimental_onToolCallFinish(event) {
+    console.log('Tool finished:', event.toolCall.toolName);
+  },
+});
+```
+
+```tsx filename="AI SDK 7"
+const result = await generateText({
+  model: yourModel,
+  tools,
+  prompt: 'Hello',
+  onToolExecutionStart(event) {
+    console.log('Tool starting:', event.toolCall.toolName);
+  },
+  onToolExecutionEnd(event) {
+    console.log('Tool finished:', event.toolCall.toolName);
+  },
+});
+```
+
+### Streaming: Move `includeRawChunks` to `include.rawChunks`
+
+The top-level `includeRawChunks` option on `streamText` is deprecated in AI SDK 7. Move it into the `include` options object as `rawChunks`.
+
+```tsx filename="AI SDK 6"
+const result = streamText({
+  model: yourModel,
+  prompt: 'Hello',
+  includeRawChunks: true,
+});
+```
+
+```tsx filename="AI SDK 7"
+const result = streamText({
+  model: yourModel,
+  prompt: 'Hello',
+  include: {
+    rawChunks: true,
+  },
+});
+```
+
+The deprecated top-level option continues to work in AI SDK 7, so you can migrate incrementally.
+
+### Rename `experimental_include` to `include`
+
+The `experimental_include` option for `generateText`, `streamText`, and
+`ToolLoopAgent` is now stable and has been renamed to `include`.
+
+```tsx filename="AI SDK 6"
+const result = await generateText({
+  model: yourModel,
+  prompt: 'Hello',
+  experimental_include: {
+    requestBody: false,
+  },
+});
+```
+
+```tsx filename="AI SDK 7"
+const result = await generateText({
+  model: yourModel,
+  prompt: 'Hello',
+  include: {
+    requestBody: false,
+  },
+});
+```
+
+The deprecated `experimental_include` name continues to work for backwards
+compatibility. If both `include` and `experimental_include` are provided,
+`include` takes precedence.
+
+### Request and Response Bodies Are Excluded by Default
+
+In AI SDK 7, `generateText` and `streamText` no longer include request bodies in
+step results by default. `generateText` also no longer includes response bodies
+by default. This reduces memory usage, especially when prompts or provider
+responses contain large payloads such as images or files.
+
+If your application reads `result.request.body`, `step.request.body`,
+`result.response.body`, or `step.response.body`, opt in with `include`.
+
+```tsx filename="AI SDK 7"
+const result = await generateText({
+  model: yourModel,
+  prompt: 'Hello',
+  include: {
+    requestBody: true,
+    responseBody: true,
+  },
+});
+```
+
+For `streamText`, only `requestBody` is available:
+
+```tsx filename="AI SDK 7"
+const result = streamText({
+  model: yourModel,
+  prompt: 'Hello',
+  include: {
+    requestBody: true,
+  },
+});
+```
+
+### Step Response Messages Are No Longer Accumulated
+
+In AI SDK 7, `step.response.messages` on each `StepResult` only contains the
+response messages produced by that particular step.
+
+In AI SDK 6, `step.response.messages` accumulated response messages from all
+previous steps. If your application reads `step.response.messages` from an
+intermediate or final step and expects the full assistant/tool message history,
+use the top-level `result.responseMessages` instead.
+
+```tsx filename="AI SDK 7"
+const result = await generateText({
+  model: yourModel,
+  prompt: 'Use tools if needed',
+  tools,
+  stopWhen: isStepCount(5),
+});
+
+// Accumulated response messages from all steps:
+const responseMessages = result.responseMessages;
+
+// Response messages produced by each individual step:
+const stepMessages = result.steps.map(step => step.response.messages);
+```
+
+If you specifically need to reconstruct response messages from step results,
+flatten the per-step messages:
+
+```tsx filename="AI SDK 7"
+const responseMessages = result.steps.flatMap(step => step.response.messages);
+```
+
+Prefer `result.responseMessages` when you want the full response message history.
+It also includes response messages produced before the first model step, such as
+tool results from approved tool calls in the input messages.
 
 ### Context: `experimental_context` Became Tool `context`, and Shared Runtime Data Moved to `runtimeContext`
 
@@ -504,6 +689,28 @@ const result = await generateText({
 });
 ```
 
+### Core: `prepareStep` Message Overrides Carry Forward
+
+When `prepareStep` returns `messages`, those messages are now used as the base for subsequent steps. The next step receives those messages plus the response messages from the previous step.
+
+In AI SDK 6, a `messages` override only applied to the current step. To keep that behavior, rebuild the current step's messages from `initialMessages` and `responseMessages` inside `prepareStep`:
+
+```tsx filename="AI SDK 7"
+const result = await generateText({
+  model: yourModel,
+  tools: { weather },
+  prepareStep: ({ initialMessages, responseMessages }) => {
+    return {
+      messages: [
+        ...initialMessages,
+        ...responseMessages,
+        // add any one-step-only message changes here
+      ],
+    };
+  },
+});
+```
+
 ### Tools: Remove Deprecated `ToolCallOptions` Type
 
 The deprecated `ToolCallOptions` type has been removed in AI SDK 7. Replace all remaining usages with `ToolExecutionOptions`.
@@ -554,26 +761,28 @@ The deprecated tool result content part of `{ type: 'media' }` has been removed 
 
 Use `{ type: 'file-data' }` for all inline file content, including images.
 
-### Tool Result Content: Migrate Away From `image-*` and `*-id` Variants
+### Tool Result Content: Migrate Away From `image-*` and `file-*` variants to `file`
 
-The `image-*` content part types and the `file-id` / `image-file-id` types are deprecated in AI SDK 7. Auto-migration is applied at runtime, so existing tool outputs continue to work without code changes. However, updating to the new types is recommended.
+All `image-*` and legacy `file-*` content part types for `toModelOutput` results are deprecated in AI SDK 7 in favor of a single canonical `file` variant that mirrors the top-level `FilePart` shape. Auto-migration is applied at runtime, so existing tool outputs continue to work without code changes. However, updating to the new shape is recommended.
 
-Images are just files with an image media type, so the general `file-*` types cover all cases:
+The new shape carries a tagged `data` discriminated union, and it always has `mediaType`:
 
-- `{ type: 'image-data', data, mediaType }` → `{ type: 'file-data', data, mediaType }` (same fields)
-- `{ type: 'image-url', url }` → `{ type: 'file-url', url, mediaType: 'image/jpeg' }` (add the appropriate `mediaType`)
-- `{ type: 'image-file-reference', providerReference }` → `{ type: 'file-reference', providerReference }`
+- `{ type: 'file-data', data, mediaType, filename? }` → `{ type: 'file', mediaType, filename, data: { type: 'data', data } }`
+- `{ type: 'file-url', url, mediaType }` → `{ type: 'file', mediaType, data: { type: 'url', url: new URL(url) } }`
+- `{ type: 'file-reference', providerReference }` → `{ type: 'file', mediaType, data: { type: 'reference', reference: providerReference } }`
 
-`ProviderReference` is a provider-to-file-ID map (for example `{ openai: 'file_123', anthropic: 'file_abc' }`) that lets the same logical file be reused across providers. Where supported, upload files to the provider first and reference them for inference. The `file-id` / `image-file-id` types, which held a single ID, are replaced by `file-reference`:
+Images are just files with an image media type, so the `image-*` aliases collapse into the same shape — pass `mediaType: 'image'` (or a more specific `image/*` subtype) instead:
 
-- `{ type: 'file-id', fileId }` → `{ type: 'file-reference', providerReference }`
-- `{ type: 'image-file-id', fileId }` → `{ type: 'file-reference', providerReference }` (skip the intermediate step)
+- `{ type: 'image-data', data, mediaType }` → `{ type: 'file', mediaType, data: { type: 'data', data } }`
+- `{ type: 'image-url', url }` → `{ type: 'file', mediaType: 'image', data: { type: 'url', url: new URL(url) } }`
+- `{ type: 'image-file-reference', providerReference }` → `{ type: 'file', mediaType: 'image', data: { type: 'reference', reference: providerReference } }`
 
-Note that `file-url` now requires a `mediaType` field so providers can correctly determine how to handle the file. Update parsing/validation and discriminated unions to use the replacement types:
+The `-id` content part types (`file-id` and `image-file-id`) are also generally deprecated in favor of the `reference` data shape, which carries a full `ProviderReference` (a provider-to-file-ID map like `{ openai: 'file_123', anthropic: 'file_abc' }`) that lets the same logical file be reused across providers. The single-ID `-id` variants required the runtime to know which provider the ID belonged to; the explicit reference shape removes that ambiguity:
 
-- `file-data` (replaces `image-data`)
-- `file-url` (replaces `image-url`) — now requires `mediaType`
-- `file-reference` (replaces `image-file-reference`, `file-id`, `image-file-id`)
+- `{ type: 'file-id', fileId }` → `{ type: 'file', mediaType, data: { type: 'reference', reference: { [provider]: fileId } } }`
+- `{ type: 'image-file-id', fileId }` → `{ type: 'file', mediaType: 'image', data: { type: 'reference', reference: { [provider]: fileId } } }`
+
+`mediaType` on the new `file` variant accepts either a full IANA type (e.g. `'image/png'`) or just a top-level segment (e.g. `'image'`, `'audio'`, `'video'`, `'text'`). When only a top-level segment is provided, the subtype is auto-detected from inline bytes where possible. Update parsing/validation and discriminated unions to handle the single canonical `file` variant.
 
 ### Message Parts: Migrate Away From Deprecated `image` Part
 

@@ -2630,6 +2630,84 @@ describe('OpenAIResponsesLanguageModel', () => {
             ?.namespace,
         ).toBeUndefined();
       });
+
+      it('should send full tools list and allowed_tools tool_choice when allowedTools provider option is set', async () => {
+        await createModel('gpt-4o').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: TEST_TOOLS,
+          providerOptions: {
+            openai: {
+              allowedTools: { toolNames: ['weather'], mode: 'auto' },
+            },
+          },
+        });
+
+        const body = (await server.calls[0].requestBodyJson) as {
+          tools: Array<{ type: string; name: string }>;
+          tool_choice: unknown;
+        };
+
+        expect(body.tools.map(t => t.name)).toEqual([
+          'weather',
+          'cityAttractions',
+        ]);
+        expect(body.tool_choice).toEqual({
+          type: 'allowed_tools',
+          mode: 'auto',
+          tools: [{ type: 'function', name: 'weather' }],
+        });
+      });
+
+      it('should send allowed_tools with required mode when allowedTools.mode is required', async () => {
+        await createModel('gpt-4o').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: TEST_TOOLS,
+          providerOptions: {
+            openai: {
+              allowedTools: {
+                toolNames: ['weather', 'cityAttractions'],
+                mode: 'required',
+              },
+            },
+          },
+        });
+
+        const body = (await server.calls[0].requestBodyJson) as {
+          tool_choice: unknown;
+        };
+
+        expect(body.tool_choice).toEqual({
+          type: 'allowed_tools',
+          mode: 'required',
+          tools: [
+            { type: 'function', name: 'weather' },
+            { type: 'function', name: 'cityAttractions' },
+          ],
+        });
+      });
+
+      it('should override request-level toolChoice when allowedTools is set', async () => {
+        await createModel('gpt-4o').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: TEST_TOOLS,
+          toolChoice: { type: 'required' },
+          providerOptions: {
+            openai: {
+              allowedTools: { toolNames: ['weather'] },
+            },
+          },
+        });
+
+        const body = (await server.calls[0].requestBodyJson) as {
+          tool_choice: unknown;
+        };
+
+        expect(body.tool_choice).toEqual({
+          type: 'allowed_tools',
+          mode: 'auto',
+          tools: [{ type: 'function', name: 'weather' }],
+        });
+      });
     });
 
     describe('code interpreter tool', () => {

@@ -280,7 +280,7 @@ run(async () => {
     if (hasCompaction) {
       console.log('\n[Compaction detected - response paused]');
 
-      messages.push(...result.response.messages);
+      messages.push(...result.responseMessages);
       console.log('Continuing with compacted context...\n');
 
       result = await generateText({

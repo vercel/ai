@@ -1,11 +1,12 @@
 import type { JSONValue } from '@ai-sdk/provider';
-import { tool, type Context } from '@ai-sdk/provider-utils';
+import { tool, type Context, type ModelMessage } from '@ai-sdk/provider-utils';
 import { describe, expectTypeOf, it } from 'vitest';
 import { z } from 'zod';
 import { Output, streamText } from '../generate-text';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import type { AsyncIterableStream } from '../util';
 import type { DeepPartial } from '../util/deep-partial';
+import type { ResponseMessage } from './response-message';
 
 describe('streamText types', () => {
   describe('output', () => {
@@ -237,6 +238,55 @@ describe('streamText types', () => {
     }),
   };
 
+  describe('experimental_refineToolInput', () => {
+    it('should infer input and return types for each tool', async () => {
+      streamText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+        tools: mixedTools,
+        toolsContext: { weather: { weatherApiKey: 'key' } },
+        experimental_refineToolInput: {
+          weather: input => {
+            expectTypeOf(input).toEqualTypeOf<{ location: string }>();
+            return { location: input.location.trim() };
+          },
+          calculator: input => {
+            expectTypeOf(input).toEqualTypeOf<{ expression: string }>();
+            return { expression: input.expression.trim() };
+          },
+        },
+      });
+    });
+
+    it('should reject refinements that return a different shape', async () => {
+      streamText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+        tools: mixedTools,
+        toolsContext: { weather: { weatherApiKey: 'key' } },
+        experimental_refineToolInput: {
+          // @ts-expect-error refinement must return the same tool input type
+          weather: _input => ({
+            location: 123,
+          }),
+        },
+      });
+    });
+
+    it('should reject refinements for unknown tools', async () => {
+      streamText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+        tools: mixedTools,
+        toolsContext: { weather: { weatherApiKey: 'key' } },
+        experimental_refineToolInput: {
+          // @ts-expect-error unknown tool names are not accepted
+          unknown: input => input,
+        },
+      });
+    });
+  });
+
   describe('runtimeContext', () => {
     it('should accept no runtimeContext', async () => {
       streamText({
@@ -261,14 +311,54 @@ describe('streamText types', () => {
       });
     });
 
-    it('should accept sensitiveRuntimeContext for runtimeContext keys', async () => {
+    it('should accept includeRuntimeContext for runtimeContext keys', async () => {
       streamText({
         model: new MockLanguageModelV4(),
         prompt: 'Hello',
         runtimeContext: { userId: 'user-123', requestId: 'request-123' },
-        sensitiveRuntimeContext: {
-          userId: true,
-          requestId: false,
+        telemetry: {
+          includeRuntimeContext: {
+            userId: true,
+            requestId: false,
+          },
+        },
+      });
+    });
+
+    it('should accept includeToolsContext for toolsContext keys', async () => {
+      streamText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+        tools: twoToolsWithContext,
+        toolsContext: {
+          weather: { weatherApiKey: 'key' },
+          db: { dbUrl: 'url' },
+        },
+        telemetry: {
+          includeToolsContext: {
+            weather: { weatherApiKey: true },
+            db: { dbUrl: false },
+          },
+        },
+      });
+    });
+
+    it('should reject unknown includeToolsContext keys', async () => {
+      streamText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+        tools: twoToolsWithContext,
+        toolsContext: {
+          weather: { weatherApiKey: 'key' },
+          db: { dbUrl: 'url' },
+        },
+        telemetry: {
+          includeToolsContext: {
+            weather: {
+              // @ts-expect-error includeToolsContext only supports tool context properties
+              unknown: true,
+            },
+          },
         },
       });
     });
@@ -278,7 +368,9 @@ describe('streamText types', () => {
         model: new MockLanguageModelV4(),
         prompt: 'Hello',
         runtimeContext: { userId: 'user-123', requestId: 'request-123' },
-        sensitiveRuntimeContext: { userId: true },
+        telemetry: {
+          includeRuntimeContext: { userId: true },
+        },
         experimental_onStart: ({ runtimeContext }) => {
           expectTypeOf(runtimeContext).toEqualTypeOf<{
             userId: string;
@@ -306,14 +398,16 @@ describe('streamText types', () => {
       });
     });
 
-    it('should reject unknown sensitiveRuntimeContext keys', async () => {
+    it('should reject unknown includeRuntimeContext keys', async () => {
       streamText({
         model: new MockLanguageModelV4(),
         prompt: 'Hello',
         runtimeContext: { userId: 'user-123' },
-        sensitiveRuntimeContext: {
-          // @ts-expect-error sensitiveRuntimeContext only supports runtimeContext properties
-          unknown: true,
+        telemetry: {
+          includeRuntimeContext: {
+            // @ts-expect-error includeRuntimeContext only supports runtimeContext properties
+            unknown: true,
+          },
         },
       });
     });
@@ -323,7 +417,16 @@ describe('streamText types', () => {
         streamText({
           model: new MockLanguageModelV4(),
           prompt: 'Hello',
-          prepareStep: ({ runtimeContext, toolsContext }) => {
+          prepareStep: ({
+            initialMessages,
+            responseMessages,
+            runtimeContext,
+            toolsContext,
+          }) => {
+            expectTypeOf(initialMessages).toEqualTypeOf<Array<ModelMessage>>();
+            expectTypeOf(responseMessages).toEqualTypeOf<
+              Array<ResponseMessage>
+            >();
             expectTypeOf(runtimeContext).toEqualTypeOf<Context>();
             expectTypeOf(toolsContext).toEqualTypeOf<{}>();
 
@@ -375,6 +478,23 @@ describe('streamText types', () => {
 
             return {};
           },
+        });
+      });
+
+      it('should accept sandbox overrides', async () => {
+        streamText({
+          model: new MockLanguageModelV4(),
+          prompt: 'Hello',
+          prepareStep: () => ({
+            sandbox: {
+              description: 'test sandbox',
+              executeCommand: async () => ({
+                exitCode: 0,
+                stdout: 'ok',
+                stderr: '',
+              }),
+            },
+          }),
         });
       });
     });

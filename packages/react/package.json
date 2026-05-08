@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/react",
-  "version": "4.0.0-canary.117",
+  "version": "4.0.0-canary.127",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -35,6 +35,8 @@
     "README.md"
   ],
   "dependencies": {
+    "@ai-sdk/mcp": "workspace:*",
+    "@ai-sdk/provider": "workspace:*",
     "@ai-sdk/provider-utils": "workspace:*",
     "ai": "workspace:*",
     "swr": "^2.2.5",

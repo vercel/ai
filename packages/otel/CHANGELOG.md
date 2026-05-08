@@ -1,5 +1,80 @@
 # @ai-sdk/otel
 
+## 1.0.0-canary.72
+
+### Patch Changes
+
+- ai@7.0.0-canary.126
+
+## 1.0.0-canary.71
+
+### Patch Changes
+
+- Updated dependencies [fd4f578]
+- Updated dependencies [31f69de]
+- Updated dependencies [7c71ac6]
+- Updated dependencies [c0c8ca2]
+- Updated dependencies [5faf71c]
+- Updated dependencies [69254e0]
+- Updated dependencies [3015fc3]
+- Updated dependencies [eee1166]
+- Updated dependencies [7dbf992]
+  - ai@7.0.0-canary.125
+
+## 1.0.0-canary.70
+
+### Patch Changes
+
+- Updated dependencies [69aeb0e]
+- Updated dependencies [48e92f3]
+  - ai@7.0.0-canary.124
+
+## 1.0.0-canary.69
+
+### Patch Changes
+
+- Updated dependencies [7392266]
+- Updated dependencies [4bb4dbc]
+  - ai@7.0.0-canary.123
+
+## 1.0.0-canary.68
+
+### Patch Changes
+
+- Updated dependencies [79b2468]
+- Updated dependencies [c22750c]
+  - ai@7.0.0-canary.122
+
+## 1.0.0-canary.67
+
+### Patch Changes
+
+- Updated dependencies [2427d88]
+- Updated dependencies [5588abd]
+- Updated dependencies [6dd6b83]
+  - ai@7.0.0-canary.121
+
+## 1.0.0-canary.66
+
+### Patch Changes
+
+- Updated dependencies [5463d0d]
+  - @ai-sdk/provider@4.0.0-canary.16
+  - ai@7.0.0-canary.120
+
+## 1.0.0-canary.65
+
+### Patch Changes
+
+- ai@7.0.0-canary.119
+
+## 1.0.0-canary.64
+
+### Patch Changes
+
+- Updated dependencies [47e65d6]
+  - ai@7.0.0-canary.118
+
 ## 1.0.0-canary.63
 
 ### Patch Changes

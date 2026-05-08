@@ -1,5 +1,55 @@
 # @ai-sdk/google
 
+## 4.0.0-canary.56
+
+### Patch Changes
+
+- Updated dependencies [f634bac]
+  - @ai-sdk/provider-utils@5.0.0-canary.35
+
+## 4.0.0-canary.55
+
+### Patch Changes
+
+- ebbb0f2: fix(provider/google): fix lack of image consistency when using Interactions API in stateless mode
+- Updated dependencies [69254e0]
+- Updated dependencies [3015fc3]
+  - @ai-sdk/provider-utils@5.0.0-canary.34
+
+## 4.0.0-canary.54
+
+### Patch Changes
+
+- b04e23e: feat(provider/google): add support for the Gemini Interactions API
+
+## 4.0.0-canary.53
+
+### Patch Changes
+
+- Updated dependencies [2427d88]
+  - @ai-sdk/provider-utils@5.0.0-canary.33
+
+## 4.0.0-canary.52
+
+### Patch Changes
+
+- cfca634: fix(google): emit Vertex no-args streaming tool calls and preserve thoughtSignature
+
+  Vertex emits a no-args function call as a single chunk shaped `{ functionCall: { name: 'X' } }` with no `args`, no `partialArgs`, and no `willContinue`. The streaming parser had no branch for this shape, so the call was dropped along with any `thoughtSignature` it carried. For Gemini 3 thinking models this caused the next multi-turn step to 400 with `missing thought_signature`. The unary (`doGenerate`) path had the same drop.
+
+  Both paths now emit the call as a complete tool call with `'{}'` input and propagate `thoughtSignature` provider metadata.
+
+  Fixes #14847.
+
+## 4.0.0-canary.51
+
+### Patch Changes
+
+- 5463d0d: feat(provider): align tool result output content file part types with top-level message file part types
+- Updated dependencies [5463d0d]
+  - @ai-sdk/provider-utils@5.0.0-canary.32
+  - @ai-sdk/provider@4.0.0-canary.16
+
 ## 4.0.0-canary.50
 
 ### Patch Changes

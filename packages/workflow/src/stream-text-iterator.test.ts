@@ -723,4 +723,46 @@ describe('streamTextIterator', () => {
       });
     });
   });
+
+  describe('runtimeContext and toolsContext', () => {
+    it('should pass current contexts to doStreamStep and yielded steps', async () => {
+      const runtimeContext = { tenantId: 'tenant_123' };
+      const toolsContext = { weather: { unit: 'celsius' } };
+      const step = createMockStepResult();
+
+      vi.mocked(doStreamStep).mockResolvedValueOnce({
+        toolCalls: [],
+        finish: createMockFinish('stop'),
+        step,
+        providerExecutedToolResults: new Map(),
+      });
+
+      const iterator = streamTextIterator({
+        prompt: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
+        tools: {} as ToolSet,
+        writable: createMockWritable(),
+        model: vi.fn() as any,
+        runtimeContext,
+        toolsContext,
+      });
+
+      const result = await iterator.next();
+
+      expect(doStreamStep).toHaveBeenCalledWith(
+        expect.any(Array),
+        expect.any(Function),
+        expect.any(WritableStream),
+        expect.any(Object),
+        expect.objectContaining({
+          runtimeContext,
+          toolsContext,
+        }),
+      );
+      expect(result.value).toMatchObject({
+        step,
+        runtimeContext,
+        toolsContext,
+      });
+    });
+  });
 });

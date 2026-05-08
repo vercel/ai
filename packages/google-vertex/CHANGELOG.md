@@ -1,5 +1,77 @@
 # @ai-sdk/google-vertex
 
+## 5.0.0-canary.75
+
+### Patch Changes
+
+- Updated dependencies [f634bac]
+  - @ai-sdk/provider-utils@5.0.0-canary.35
+  - @ai-sdk/anthropic@4.0.0-canary.48
+  - @ai-sdk/google@4.0.0-canary.56
+  - @ai-sdk/openai-compatible@3.0.0-canary.42
+
+## 5.0.0-canary.74
+
+### Patch Changes
+
+- Updated dependencies [2610e84]
+- Updated dependencies [ebbb0f2]
+- Updated dependencies [69254e0]
+- Updated dependencies [3015fc3]
+  - @ai-sdk/anthropic@4.0.0-canary.47
+  - @ai-sdk/google@4.0.0-canary.55
+  - @ai-sdk/provider-utils@5.0.0-canary.34
+  - @ai-sdk/openai-compatible@3.0.0-canary.41
+
+## 5.0.0-canary.73
+
+### Patch Changes
+
+- Updated dependencies [b04e23e]
+  - @ai-sdk/google@4.0.0-canary.54
+
+## 5.0.0-canary.72
+
+### Patch Changes
+
+- Updated dependencies [e5c4f40]
+  - @ai-sdk/anthropic@4.0.0-canary.46
+
+## 5.0.0-canary.71
+
+### Patch Changes
+
+- Updated dependencies [2427d88]
+  - @ai-sdk/provider-utils@5.0.0-canary.33
+  - @ai-sdk/anthropic@4.0.0-canary.45
+  - @ai-sdk/google@4.0.0-canary.53
+  - @ai-sdk/openai-compatible@3.0.0-canary.40
+
+## 5.0.0-canary.70
+
+### Patch Changes
+
+- Updated dependencies [cfca634]
+  - @ai-sdk/google@4.0.0-canary.52
+
+## 5.0.0-canary.69
+
+### Patch Changes
+
+- Updated dependencies [5463d0d]
+  - @ai-sdk/provider-utils@5.0.0-canary.32
+  - @ai-sdk/provider@4.0.0-canary.16
+  - @ai-sdk/anthropic@4.0.0-canary.44
+  - @ai-sdk/google@4.0.0-canary.51
+  - @ai-sdk/openai-compatible@3.0.0-canary.39
+
+## 5.0.0-canary.68
+
+### Patch Changes
+
+- Updated dependencies [cd9c311]
+  - @ai-sdk/openai-compatible@3.0.0-canary.38
+
 ## 5.0.0-canary.67
 
 ### Patch Changes

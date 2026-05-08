@@ -60,7 +60,6 @@ exports[`streamObject > output = "object" > options.onFinish > should be called 
     "timestamp": 1970-01-01T00:00:00.000Z,
   },
   "usage": {
-    "cachedInputTokens": undefined,
     "inputTokenDetails": {
       "cacheReadTokens": undefined,
       "cacheWriteTokens": undefined,
@@ -73,7 +72,6 @@ exports[`streamObject > output = "object" > options.onFinish > should be called 
     },
     "outputTokens": 10,
     "raw": undefined,
-    "reasoningTokens": undefined,
     "totalTokens": 13,
   },
   "warnings": undefined,
@@ -96,7 +94,6 @@ exports[`streamObject > output = "object" > options.onFinish > should be called 
     "timestamp": 1970-01-01T00:00:00.000Z,
   },
   "usage": {
-    "cachedInputTokens": undefined,
     "inputTokenDetails": {
       "cacheReadTokens": undefined,
       "cacheWriteTokens": undefined,
@@ -109,7 +106,6 @@ exports[`streamObject > output = "object" > options.onFinish > should be called 
     },
     "outputTokens": 10,
     "raw": undefined,
-    "reasoningTokens": undefined,
     "totalTokens": 13,
   },
   "warnings": undefined,
@@ -174,7 +170,6 @@ exports[`streamObject > output = "object" > result.fullStream > should send full
     },
     "type": "finish",
     "usage": {
-      "cachedInputTokens": undefined,
       "inputTokenDetails": {
         "cacheReadTokens": undefined,
         "cacheWriteTokens": undefined,
@@ -187,7 +182,6 @@ exports[`streamObject > output = "object" > result.fullStream > should send full
       },
       "outputTokens": 10,
       "raw": undefined,
-      "reasoningTokens": undefined,
       "totalTokens": 13,
     },
   },

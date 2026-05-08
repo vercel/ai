@@ -1,5 +1,92 @@
 # @ai-sdk/react
 
+## 4.0.0-canary.127
+
+### Patch Changes
+
+- 611f621: feat(mcp): feat(mcp): add support for MCP Apps
+- Updated dependencies [611f621]
+  - @ai-sdk/mcp@2.0.0-canary.44
+
+## 4.0.0-canary.126
+
+### Patch Changes
+
+- Updated dependencies [f634bac]
+  - @ai-sdk/provider-utils@5.0.0-canary.35
+  - ai@7.0.0-canary.126
+
+## 4.0.0-canary.125
+
+### Patch Changes
+
+- Updated dependencies [fd4f578]
+- Updated dependencies [31f69de]
+- Updated dependencies [7c71ac6]
+- Updated dependencies [c0c8ca2]
+- Updated dependencies [5faf71c]
+- Updated dependencies [69254e0]
+- Updated dependencies [3015fc3]
+- Updated dependencies [eee1166]
+- Updated dependencies [7dbf992]
+  - ai@7.0.0-canary.125
+  - @ai-sdk/provider-utils@5.0.0-canary.34
+
+## 4.0.0-canary.124
+
+### Patch Changes
+
+- Updated dependencies [69aeb0e]
+- Updated dependencies [48e92f3]
+  - ai@7.0.0-canary.124
+
+## 4.0.0-canary.123
+
+### Patch Changes
+
+- Updated dependencies [7392266]
+- Updated dependencies [4bb4dbc]
+  - ai@7.0.0-canary.123
+
+## 4.0.0-canary.122
+
+### Patch Changes
+
+- Updated dependencies [79b2468]
+- Updated dependencies [c22750c]
+  - ai@7.0.0-canary.122
+
+## 4.0.0-canary.121
+
+### Patch Changes
+
+- Updated dependencies [2427d88]
+- Updated dependencies [5588abd]
+- Updated dependencies [6dd6b83]
+  - @ai-sdk/provider-utils@5.0.0-canary.33
+  - ai@7.0.0-canary.121
+
+## 4.0.0-canary.120
+
+### Patch Changes
+
+- Updated dependencies [5463d0d]
+  - @ai-sdk/provider-utils@5.0.0-canary.32
+  - ai@7.0.0-canary.120
+
+## 4.0.0-canary.119
+
+### Patch Changes
+
+- ai@7.0.0-canary.119
+
+## 4.0.0-canary.118
+
+### Patch Changes
+
+- Updated dependencies [47e65d6]
+  - ai@7.0.0-canary.118
+
 ## 4.0.0-canary.117
 
 ### Patch Changes
