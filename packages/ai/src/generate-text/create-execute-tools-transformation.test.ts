@@ -1,4 +1,4 @@
-import { delay, tool } from '@ai-sdk/provider-utils';
+import { delay, tool, type Sandbox } from '@ai-sdk/provider-utils';
 import {
   convertArrayToReadableStream,
   convertReadableStreamToArray,
@@ -101,7 +101,6 @@ describe('createExecuteToolsTransformation', () => {
             "rawFinishReason": "stop",
             "type": "model-call-end",
             "usage": {
-              "cachedInputTokens": undefined,
               "inputTokenDetails": {
                 "cacheReadTokens": undefined,
                 "cacheWriteTokens": undefined,
@@ -114,7 +113,6 @@ describe('createExecuteToolsTransformation', () => {
               },
               "outputTokens": 10,
               "raw": undefined,
-              "reasoningTokens": undefined,
               "totalTokens": 13,
             },
           },
@@ -181,7 +179,6 @@ describe('createExecuteToolsTransformation', () => {
           "rawFinishReason": "stop",
           "type": "model-call-end",
           "usage": {
-            "cachedInputTokens": undefined,
             "inputTokenDetails": {
               "cacheReadTokens": undefined,
               "cacheWriteTokens": undefined,
@@ -194,7 +191,6 @@ describe('createExecuteToolsTransformation', () => {
             },
             "outputTokens": 10,
             "raw": undefined,
-            "reasoningTokens": undefined,
             "totalTokens": 13,
           },
         },
@@ -210,6 +206,57 @@ describe('createExecuteToolsTransformation', () => {
         },
       ]
     `);
+  });
+
+  it('should pass sandbox to tool execution', async () => {
+    const sandbox = {
+      description: 'test sandbox',
+      executeCommand: vi.fn(async () => ({
+        exitCode: 0,
+        stdout: 'ok',
+        stderr: '',
+      })),
+    } satisfies Sandbox;
+    let receivedSandbox: Sandbox | undefined;
+
+    const tools = {
+      sandboxTool: tool({
+        inputSchema: z.object({ value: z.string() }),
+        execute: async ({ value }, { sandbox }) => {
+          receivedSandbox = sandbox;
+          return `${value}-sandbox-result`;
+        },
+      }),
+    };
+
+    const inputStream: ReadableStream<LanguageModelStreamPart<typeof tools>> =
+      convertArrayToReadableStream([
+        {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'sandboxTool',
+          input: { value: 'test' },
+        },
+        finishChunk,
+      ]);
+
+    await convertReadableStreamToArray(
+      inputStream.pipeThrough(
+        createExecuteToolsTransformation({
+          generateId: mockId({ prefix: 'id' }),
+          tools,
+          callId: 'test-telemetry-call-id',
+          messages: [],
+          abortSignal: undefined,
+          timeout: undefined,
+          sandbox,
+          toolsContext: {},
+          runtimeContext: {},
+        }),
+      ),
+    );
+
+    expect(receivedSandbox).toBe(sandbox);
   });
 
   it('should not call execute for provider-executed tool calls', async () => {
@@ -349,7 +396,6 @@ describe('createExecuteToolsTransformation', () => {
             "rawFinishReason": "stop",
             "type": "model-call-end",
             "usage": {
-              "cachedInputTokens": undefined,
               "inputTokenDetails": {
                 "cacheReadTokens": undefined,
                 "cacheWriteTokens": undefined,
@@ -362,7 +408,6 @@ describe('createExecuteToolsTransformation', () => {
               },
               "outputTokens": 10,
               "raw": undefined,
-              "reasoningTokens": undefined,
               "totalTokens": 13,
             },
           },
@@ -469,7 +514,6 @@ describe('createExecuteToolsTransformation', () => {
             "rawFinishReason": "stop",
             "type": "model-call-end",
             "usage": {
-              "cachedInputTokens": undefined,
               "inputTokenDetails": {
                 "cacheReadTokens": undefined,
                 "cacheWriteTokens": undefined,
@@ -482,7 +526,6 @@ describe('createExecuteToolsTransformation', () => {
               },
               "outputTokens": 10,
               "raw": undefined,
-              "reasoningTokens": undefined,
               "totalTokens": 13,
             },
           },
@@ -1135,7 +1178,6 @@ describe('createExecuteToolsTransformation', () => {
             "rawFinishReason": "stop",
             "type": "model-call-end",
             "usage": {
-              "cachedInputTokens": undefined,
               "inputTokenDetails": {
                 "cacheReadTokens": undefined,
                 "cacheWriteTokens": undefined,
@@ -1148,7 +1190,6 @@ describe('createExecuteToolsTransformation', () => {
               },
               "outputTokens": 10,
               "raw": undefined,
-              "reasoningTokens": undefined,
               "totalTokens": 13,
             },
           },
@@ -1221,7 +1262,6 @@ describe('createExecuteToolsTransformation', () => {
             "rawFinishReason": "stop",
             "type": "model-call-end",
             "usage": {
-              "cachedInputTokens": undefined,
               "inputTokenDetails": {
                 "cacheReadTokens": undefined,
                 "cacheWriteTokens": undefined,
@@ -1234,7 +1274,6 @@ describe('createExecuteToolsTransformation', () => {
               },
               "outputTokens": 10,
               "raw": undefined,
-              "reasoningTokens": undefined,
               "totalTokens": 13,
             },
           },

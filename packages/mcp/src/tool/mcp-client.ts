@@ -1,4 +1,4 @@
-import type { JSONSchema7, JSONValue } from '@ai-sdk/provider';
+import type { JSONObject, JSONSchema7, JSONValue } from '@ai-sdk/provider';
 import {
   asSchema,
   dynamicTool,
@@ -25,6 +25,7 @@ import {
   type MCPTransport,
   type MCPTransportConfig,
 } from './mcp-transport';
+import { getMCPAppToolMeta, MCP_APP_MIME_TYPE } from './mcp-apps';
 import {
   CallToolResultSchema,
   ElicitationRequestSchema,
@@ -58,6 +59,7 @@ import {
   type ServerCapabilities,
   type ToolSchemas,
   type ToolMeta,
+  type McpProviderMetadata,
 } from './types';
 const CLIENT_VERSION = '1.0.0';
 
@@ -152,6 +154,15 @@ export interface MCPClient {
     params?: PaginatedRequest['params'];
     options?: RequestOptions;
   }): Promise<ListToolsResult>;
+
+  /**
+   * Calls a tool on the MCP server.
+   */
+  callTool(args: {
+    name: string;
+    arguments?: Record<string, unknown>;
+    options?: RequestOptions;
+  }): Promise<CallToolResult>;
 
   /**
    * Creates AI SDK tools from tool definitions.
@@ -448,22 +459,20 @@ class DefaultMCPClient implements MCPClient {
     });
   }
 
-  private async callTool({
+  async callTool({
     name,
-    args,
+    arguments: args = {},
     options,
   }: {
     name: string;
-    args: Record<string, unknown>;
-    options?: ToolExecutionOptions<{}>;
+    arguments?: Record<string, unknown>;
+    options?: RequestOptions;
   }): Promise<CallToolResult> {
     try {
       return this.request({
         request: { method: 'tools/call', params: { name, arguments: args } },
         resultSchema: CallToolResultSchema,
-        options: {
-          signal: options?.abortSignal,
-        },
+        options,
       });
     } catch (error) {
       throw error;
@@ -611,13 +620,31 @@ class DefaultMCPClient implements MCPClient {
       const self = this;
       const outputSchema =
         schemas !== 'automatic' ? schemas[name]?.outputSchema : undefined;
+      const appMeta = getMCPAppToolMeta({ _meta });
+      const metadata = {
+        clientName: this.clientInfo.name,
+        toolName: name,
+        ...(resolvedTitle != null ? { title: resolvedTitle } : {}),
+        ...(appMeta?.resourceUri != null
+          ? {
+              app: {
+                ...appMeta,
+                mimeType: MCP_APP_MIME_TYPE,
+              } as JSONObject,
+            }
+          : {}),
+      } satisfies McpProviderMetadata;
 
       const execute = async (
         args: any,
         options: ToolExecutionOptions<{}>,
       ): Promise<unknown> => {
         options?.abortSignal?.throwIfAborted();
-        const result = await self.callTool({ name, args, options });
+        const result = await self.callTool({
+          name,
+          arguments: args,
+          options: { signal: options?.abortSignal },
+        });
 
         if (result.isError) {
           return result;
@@ -635,9 +662,7 @@ class DefaultMCPClient implements MCPClient {
           ? dynamicTool({
               description,
               title: resolvedTitle,
-              providerMetadata: {
-                mcp: { clientName: this.clientInfo.name },
-              },
+              metadata,
               inputSchema: jsonSchema({
                 ...inputSchema,
                 properties: inputSchema.properties ?? {},
@@ -649,9 +674,7 @@ class DefaultMCPClient implements MCPClient {
           : tool({
               description,
               title: resolvedTitle,
-              providerMetadata: {
-                mcp: { clientName: this.clientInfo.name },
-              },
+              metadata,
               inputSchema: schemas[name].inputSchema,
               ...(outputSchema != null ? { outputSchema } : {}),
               execute,

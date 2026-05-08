@@ -1,5 +1,26 @@
 # @ai-sdk/deepseek
 
+## 3.0.0-canary.39
+
+### Patch Changes
+
+- Updated dependencies [f634bac]
+  - @ai-sdk/provider-utils@5.0.0-canary.35
+
+## 3.0.0-canary.38
+
+### Patch Changes
+
+- Updated dependencies [69254e0]
+- Updated dependencies [3015fc3]
+  - @ai-sdk/provider-utils@5.0.0-canary.34
+
+## 3.0.0-canary.37
+
+### Patch Changes
+
+- eda4373: feat(provider/deepseek): add DeepSeek V4 reasoning effort support
+
 ## 3.0.0-canary.36
 
 ### Patch Changes

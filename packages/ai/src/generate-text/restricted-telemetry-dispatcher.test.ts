@@ -60,7 +60,7 @@ function createStepResult({
     rawFinishReason: 'stop',
     usage: createNullLanguageModelUsage(),
     warnings: [],
-    request: {},
+    request: { messages: [] },
     response: {
       id: 'response-1',
       timestamp: new Date(0),

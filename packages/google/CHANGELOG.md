@@ -1,5 +1,27 @@
 # @ai-sdk/google
 
+## 4.0.0-canary.56
+
+### Patch Changes
+
+- Updated dependencies [f634bac]
+  - @ai-sdk/provider-utils@5.0.0-canary.35
+
+## 4.0.0-canary.55
+
+### Patch Changes
+
+- ebbb0f2: fix(provider/google): fix lack of image consistency when using Interactions API in stateless mode
+- Updated dependencies [69254e0]
+- Updated dependencies [3015fc3]
+  - @ai-sdk/provider-utils@5.0.0-canary.34
+
+## 4.0.0-canary.54
+
+### Patch Changes
+
+- b04e23e: feat(provider/google): add support for the Gemini Interactions API
+
 ## 4.0.0-canary.53
 
 ### Patch Changes
