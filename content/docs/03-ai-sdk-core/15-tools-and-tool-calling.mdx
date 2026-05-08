@@ -543,7 +543,7 @@ const result = await generateText({
 });
 ```
 
-This example uses an estimated token threshold, but that is only one way to decide when to compact. The important part is that returning `messages` mutates the message state for later steps.
+This example uses an estimated token threshold, but you can use any trigger. The key behavior is that returning `messages` mutates the message state for later steps.
 
 Returned message changes persist across steps. If you want to derive each step's messages from the original input plus the discrete response messages instead of the persisted message state, rebuild them from `initialMessages` and `responseMessages` each time:
 
