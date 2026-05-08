@@ -72,61 +72,64 @@ importers:
   examples/ai-e2e-next:
     dependencies:
       '@ai-sdk/amazon-bedrock':
-        specifier: 5.0.0-canary.51
+        specifier: 5.0.0-canary.54
         version: link:../../packages/amazon-bedrock
       '@ai-sdk/anthropic':
-        specifier: 4.0.0-canary.46
+        specifier: 4.0.0-canary.48
         version: link:../../packages/anthropic
       '@ai-sdk/azure':
-        specifier: 4.0.0-canary.50
+        specifier: 4.0.0-canary.52
         version: link:../../packages/azure
       '@ai-sdk/cohere':
-        specifier: 4.0.0-canary.36
+        specifier: 4.0.0-canary.38
         version: link:../../packages/cohere
       '@ai-sdk/deepseek':
-        specifier: 3.0.0-canary.37
+        specifier: 3.0.0-canary.39
         version: link:../../packages/deepseek
       '@ai-sdk/fireworks':
-        specifier: 3.0.0-canary.40
+        specifier: 3.0.0-canary.42
         version: link:../../packages/fireworks
       '@ai-sdk/google':
-        specifier: 4.0.0-canary.54
+        specifier: 4.0.0-canary.56
         version: link:../../packages/google
       '@ai-sdk/google-vertex':
-        specifier: 5.0.0-canary.73
+        specifier: 5.0.0-canary.75
         version: link:../../packages/google-vertex
       '@ai-sdk/groq':
-        specifier: 4.0.0-canary.37
+        specifier: 4.0.0-canary.39
         version: link:../../packages/groq
       '@ai-sdk/mcp':
-        specifier: 2.0.0-canary.41
+        specifier: 2.0.0-canary.44
         version: link:../../packages/mcp
       '@ai-sdk/mistral':
-        specifier: 4.0.0-canary.38
+        specifier: 4.0.0-canary.40
         version: link:../../packages/mistral
       '@ai-sdk/openai':
-        specifier: 4.0.0-canary.50
+        specifier: 4.0.0-canary.52
         version: link:../../packages/openai
       '@ai-sdk/otel':
-        specifier: 1.0.0-canary.70
+        specifier: 1.0.0-canary.72
         version: link:../../packages/otel
       '@ai-sdk/perplexity':
-        specifier: 4.0.0-canary.37
+        specifier: 4.0.0-canary.39
         version: link:../../packages/perplexity
+      '@ai-sdk/provider':
+        specifier: 4.0.0-canary.16
+        version: link:../../packages/provider
       '@ai-sdk/provider-utils':
-        specifier: 5.0.0-canary.33
+        specifier: 5.0.0-canary.35
         version: link:../../packages/provider-utils
       '@ai-sdk/react':
-        specifier: 4.0.0-canary.124
+        specifier: 4.0.0-canary.127
         version: link:../../packages/react
       '@ai-sdk/rsc':
-        specifier: 3.0.0-canary.125
+        specifier: 3.0.0-canary.127
         version: link:../../packages/rsc
       '@ai-sdk/valibot':
-        specifier: 3.0.0-canary.33
+        specifier: 3.0.0-canary.35
         version: link:../../packages/valibot
       '@ai-sdk/xai':
-        specifier: 4.0.0-canary.53
+        specifier: 4.0.0-canary.55
         version: link:../../packages/xai
       '@langfuse/otel':
         specifier: ^4.6.1
@@ -156,7 +159,7 @@ importers:
         specifier: ^0.0.21
         version: 0.0.21
       ai:
-        specifier: 7.0.0-canary.124
+        specifier: 7.0.0-canary.126
         version: link:../../packages/ai
       class-variance-authority:
         specifier: ^0.7.1
@@ -434,10 +437,10 @@ importers:
   examples/angular:
     dependencies:
       '@ai-sdk/angular':
-        specifier: 3.0.0-canary.124
+        specifier: 3.0.0-canary.126
         version: link:../../packages/angular
       '@ai-sdk/openai':
-        specifier: 4.0.0-canary.50
+        specifier: 4.0.0-canary.52
         version: link:../../packages/openai
       '@angular/common':
         specifier: ^20.3.2
@@ -461,7 +464,7 @@ importers:
         specifier: ^20.3.2
         version: 20.3.17(@angular/common@20.3.17(@angular/core@20.3.17(@angular/compiler@20.3.17)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2))(@angular/core@20.3.17(@angular/compiler@20.3.17)(rxjs@7.8.2)(zone.js@0.15.1))(@angular/platform-browser@20.3.17(@angular/common@20.3.17(@angular/core@20.3.17(@angular/compiler@20.3.17)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2))(@angular/core@20.3.17(@angular/compiler@20.3.17)(rxjs@7.8.2)(zone.js@0.15.1)))(rxjs@7.8.2)
       ai:
-        specifier: 7.0.0-canary.124
+        specifier: 7.0.0-canary.126
         version: link:../../packages/ai
       dotenv:
         specifier: 16.4.5
@@ -504,10 +507,10 @@ importers:
   examples/express:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 4.0.0-canary.50
+        specifier: 4.0.0-canary.52
         version: link:../../packages/openai
       ai:
-        specifier: 7.0.0-canary.124
+        specifier: 7.0.0-canary.126
         version: link:../../packages/ai
       dotenv:
         specifier: 16.4.5
@@ -532,10 +535,10 @@ importers:
   examples/fastify:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 4.0.0-canary.50
+        specifier: 4.0.0-canary.52
         version: link:../../packages/openai
       ai:
-        specifier: 7.0.0-canary.124
+        specifier: 7.0.0-canary.126
         version: link:../../packages/ai
       dotenv:
         specifier: 16.4.5
@@ -557,13 +560,13 @@ importers:
   examples/hono:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 4.0.0-canary.50
+        specifier: 4.0.0-canary.52
         version: link:../../packages/openai
       '@hono/node-server':
         specifier: 1.13.7
         version: 1.13.7(hono@4.6.9)
       ai:
-        specifier: 7.0.0-canary.124
+        specifier: 7.0.0-canary.126
         version: link:../../packages/ai
       dotenv:
         specifier: 16.4.5
@@ -585,13 +588,13 @@ importers:
   examples/mcp:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 4.0.0-canary.50
+        specifier: 4.0.0-canary.52
         version: link:../../packages/openai
       '@modelcontextprotocol/sdk':
         specifier: ^1.26.0
         version: 1.27.1(@cfworker/json-schema@4.1.1)(zod@3.25.76)
       ai:
-        specifier: 7.0.0-canary.124
+        specifier: 7.0.0-canary.126
         version: link:../../packages/ai
       dotenv:
         specifier: 16.4.5
@@ -622,7 +625,7 @@ importers:
   examples/nest:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 4.0.0-canary.50
+        specifier: 4.0.0-canary.52
         version: link:../../packages/openai
       '@nestjs/common':
         specifier: ^10.4.15
@@ -634,7 +637,7 @@ importers:
         specifier: ^10.4.9
         version: 10.4.22(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@10.4.22)
       ai:
-        specifier: 7.0.0-canary.124
+        specifier: 7.0.0-canary.126
         version: link:../../packages/ai
       reflect-metadata:
         specifier: ^0.2.0
@@ -692,13 +695,13 @@ importers:
   examples/next:
     dependencies:
       '@ai-sdk/react':
-        specifier: 4.0.0-canary.124
+        specifier: 4.0.0-canary.127
         version: link:../../packages/react
       '@vercel/blob':
         specifier: ^0.26.0
         version: 0.26.0
       ai:
-        specifier: 7.0.0-canary.124
+        specifier: 7.0.0-canary.126
         version: link:../../packages/ai
       next:
         specifier: ^15.5.9
@@ -747,16 +750,16 @@ importers:
   examples/next-agent:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 4.0.0-canary.50
+        specifier: 4.0.0-canary.52
         version: link:../../packages/openai
       '@ai-sdk/react':
-        specifier: 4.0.0-canary.124
+        specifier: 4.0.0-canary.127
         version: link:../../packages/react
       '@vercel/blob':
         specifier: ^0.26.0
         version: 0.26.0
       ai:
-        specifier: 7.0.0-canary.124
+        specifier: 7.0.0-canary.126
         version: link:../../packages/ai
       next:
         specifier: ^15.5.9
@@ -802,10 +805,10 @@ importers:
   examples/next-fastapi:
     dependencies:
       '@ai-sdk/react':
-        specifier: 4.0.0-canary.124
+        specifier: 4.0.0-canary.127
         version: link:../../packages/react
       ai:
-        specifier: 7.0.0-canary.124
+        specifier: 7.0.0-canary.126
         version: link:../../packages/ai
       geist:
         specifier: ^1.3.1
@@ -848,10 +851,10 @@ importers:
   examples/next-google-vertex:
     dependencies:
       '@ai-sdk/google-vertex':
-        specifier: 5.0.0-canary.73
+        specifier: 5.0.0-canary.75
         version: link:../../packages/google-vertex
       ai:
-        specifier: 7.0.0-canary.124
+        specifier: 7.0.0-canary.126
         version: link:../../packages/ai
       geist:
         specifier: ^1.3.1
@@ -888,10 +891,10 @@ importers:
   examples/next-langchain:
     dependencies:
       '@ai-sdk/langchain':
-        specifier: 3.0.0-canary.124
+        specifier: 3.0.0-canary.126
         version: link:../../packages/langchain
       '@ai-sdk/react':
-        specifier: 4.0.0-canary.124
+        specifier: 4.0.0-canary.127
         version: link:../../packages/react
       '@langchain/core':
         specifier: ^1.1.5
@@ -906,7 +909,7 @@ importers:
         specifier: ^1.2.0
         version: 1.2.11(@langchain/core@1.1.29(@opentelemetry/api@1.9.1)(@opentelemetry/exporter-trace-otlp-proto@0.211.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.5.1(@opentelemetry/api@1.9.1))(openai@6.25.0(ws@8.18.0)(zod@3.25.76)))(ws@8.18.0)
       ai:
-        specifier: 7.0.0-canary.124
+        specifier: 7.0.0-canary.126
         version: link:../../packages/ai
       langchain:
         specifier: ^1.2.0
@@ -955,16 +958,16 @@ importers:
   examples/next-openai-kasada-bot-protection:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 4.0.0-canary.50
+        specifier: 4.0.0-canary.52
         version: link:../../packages/openai
       '@ai-sdk/react':
-        specifier: 4.0.0-canary.124
+        specifier: 4.0.0-canary.127
         version: link:../../packages/react
       '@vercel/functions':
         specifier: ^3.1.0
         version: 3.4.3(@aws-sdk/credential-provider-web-identity@3.972.13)
       ai:
-        specifier: 7.0.0-canary.124
+        specifier: 7.0.0-canary.126
         version: link:../../packages/ai
       next:
         specifier: ^15.5.9
@@ -1004,13 +1007,13 @@ importers:
   examples/next-openai-pages:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 4.0.0-canary.50
+        specifier: 4.0.0-canary.52
         version: link:../../packages/openai
       '@ai-sdk/react':
-        specifier: 4.0.0-canary.124
+        specifier: 4.0.0-canary.127
         version: link:../../packages/react
       ai:
-        specifier: 7.0.0-canary.124
+        specifier: 7.0.0-canary.126
         version: link:../../packages/ai
       next:
         specifier: ^15.5.9
@@ -1050,10 +1053,10 @@ importers:
   examples/next-openai-telemetry:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 4.0.0-canary.50
+        specifier: 4.0.0-canary.52
         version: link:../../packages/openai
       '@ai-sdk/react':
-        specifier: 4.0.0-canary.124
+        specifier: 4.0.0-canary.127
         version: link:../../packages/react
       '@opentelemetry/api-logs':
         specifier: 0.55.0
@@ -1068,7 +1071,7 @@ importers:
         specifier: 1.10.0
         version: 1.10.0(@opentelemetry/api-logs@0.55.0)(@opentelemetry/api@1.9.1)(@opentelemetry/instrumentation@0.52.1(@opentelemetry/api@1.9.1))(@opentelemetry/resources@2.5.1(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-logs@0.55.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-metrics@2.5.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.5.1(@opentelemetry/api@1.9.1))
       ai:
-        specifier: 7.0.0-canary.124
+        specifier: 7.0.0-canary.126
         version: link:../../packages/ai
       next:
         specifier: ^15.5.9
@@ -1108,10 +1111,10 @@ importers:
   examples/next-openai-telemetry-sentry:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 4.0.0-canary.50
+        specifier: 4.0.0-canary.52
         version: link:../../packages/openai
       '@ai-sdk/react':
-        specifier: 4.0.0-canary.124
+        specifier: 4.0.0-canary.127
         version: link:../../packages/react
       '@opentelemetry/api-logs':
         specifier: 0.55.0
@@ -1132,7 +1135,7 @@ importers:
         specifier: 1.10.0
         version: 1.10.0(@opentelemetry/api-logs@0.55.0)(@opentelemetry/api@1.9.0)(@opentelemetry/instrumentation@0.52.1(@opentelemetry/api@1.9.0))(@opentelemetry/resources@2.5.1(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-logs@0.55.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-metrics@2.5.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.5.1(@opentelemetry/api@1.9.1))
       ai:
-        specifier: 7.0.0-canary.124
+        specifier: 7.0.0-canary.126
         version: link:../../packages/ai
       next:
         specifier: ^15.5.9
@@ -1172,10 +1175,10 @@ importers:
   examples/next-openai-upstash-rate-limits:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 4.0.0-canary.50
+        specifier: 4.0.0-canary.52
         version: link:../../packages/openai
       '@ai-sdk/react':
-        specifier: 4.0.0-canary.124
+        specifier: 4.0.0-canary.127
         version: link:../../packages/react
       '@upstash/ratelimit':
         specifier: ^0.4.3
@@ -1184,7 +1187,7 @@ importers:
         specifier: ^0.2.2
         version: 0.2.4
       ai:
-        specifier: 7.0.0-canary.124
+        specifier: 7.0.0-canary.126
         version: link:../../packages/ai
       next:
         specifier: ^15.5.9
@@ -1245,8 +1248,8 @@ importers:
         specifier: ^18.3.1
         version: 18.3.1(react@18.3.1)
       workflow:
-        specifier: 4.2.0
-        version: 4.2.0(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@10.4.22)(@opentelemetry/api@1.9.1)(@swc/cli@0.8.1(@swc/core@1.15.3)(chokidar@5.0.0))(@swc/core@1.15.3)(magicast@0.3.5)(next@15.5.15(@opentelemetry/api@1.9.1)(@playwright/test@1.58.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0))(typescript@5.8.3)
+        specifier: 4.2.4
+        version: 4.2.4(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@10.4.22)(@opentelemetry/api@1.9.1)(@swc/cli@0.8.1(@swc/core@1.15.3)(chokidar@5.0.0))(@swc/core@1.15.3)(magicast@0.3.5)(next@15.5.15(@opentelemetry/api@1.9.1)(@playwright/test@1.58.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0))(typescript@5.8.3)
       zod:
         specifier: 3.25.76
         version: 3.25.76
@@ -1276,10 +1279,10 @@ importers:
   examples/node-http-server:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 4.0.0-canary.50
+        specifier: 4.0.0-canary.52
         version: link:../../packages/openai
       ai:
-        specifier: 7.0.0-canary.124
+        specifier: 7.0.0-canary.126
         version: link:../../packages/ai
       dotenv:
         specifier: 16.4.5
@@ -1301,13 +1304,13 @@ importers:
   examples/nuxt-openai:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 4.0.0-canary.50
+        specifier: 4.0.0-canary.52
         version: link:../../packages/openai
       '@ai-sdk/vue':
-        specifier: 4.0.0-canary.124
+        specifier: 4.0.0-canary.126
         version: link:../../packages/vue
       ai:
-        specifier: 7.0.0-canary.124
+        specifier: 7.0.0-canary.126
         version: link:../../packages/ai
       zod:
         specifier: 3.25.76
@@ -1356,13 +1359,13 @@ importers:
   examples/sveltekit-openai:
     devDependencies:
       '@ai-sdk/openai':
-        specifier: 4.0.0-canary.50
+        specifier: 4.0.0-canary.52
         version: link:../../packages/openai
       '@ai-sdk/provider-utils':
-        specifier: 5.0.0-canary.33
+        specifier: 5.0.0-canary.35
         version: link:../../packages/provider-utils
       '@ai-sdk/svelte':
-        specifier: 5.0.0-canary.124
+        specifier: 5.0.0-canary.126
         version: link:../../packages/svelte
       '@sveltejs/adapter-vercel':
         specifier: ^6.3.3
@@ -1374,7 +1377,7 @@ importers:
         specifier: ^5.0.0
         version: 5.1.1(svelte@5.53.6)(vite@6.4.1(@types/node@22.7.4)(jiti@2.6.1)(less@4.4.0)(lightningcss@1.31.1)(sass@1.90.0)(terser@5.43.1)(tsx@4.21.0)(yaml@2.8.4))
       ai:
-        specifier: 7.0.0-canary.124
+        specifier: 7.0.0-canary.126
         version: link:../../packages/ai
       autoprefixer:
         specifier: ^10.4.20
@@ -2803,6 +2806,12 @@ importers:
 
   packages/react:
     dependencies:
+      '@ai-sdk/mcp':
+        specifier: workspace:*
+        version: link:../mcp
+      '@ai-sdk/provider':
+        specifier: workspace:*
+        version: link:../provider
       '@ai-sdk/provider-utils':
         specifier: workspace:*
         version: link:../provider-utils
@@ -3272,8 +3281,8 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
       workflow:
-        specifier: 4.2.0
-        version: 4.2.0(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@10.4.22)(@opentelemetry/api@1.9.1)(@swc/cli@0.8.1(@swc/core@1.15.3)(chokidar@5.0.0))(@swc/core@1.15.3)(magicast@0.3.5)(next@15.5.15(@opentelemetry/api@1.9.1)(@playwright/test@1.58.2)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(sass@1.90.0))(typescript@5.8.3)
+        specifier: 4.2.4
+        version: 4.2.4(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@10.4.22)(@opentelemetry/api@1.9.1)(@swc/cli@0.8.1(@swc/core@1.15.3)(chokidar@5.0.0))(@swc/core@1.15.3)(magicast@0.3.5)(next@15.5.15(@opentelemetry/api@1.9.1)(@playwright/test@1.58.2)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(sass@1.90.0))(typescript@5.8.3)
       zod:
         specifier: 3.25.76
         version: 3.25.76
@@ -11204,14 +11213,17 @@ packages:
   '@webassemblyjs/wast-printer@1.14.1':
     resolution: {integrity: sha512-kPSSXE6De1XOR820C90RIo2ogvZG+c3KiHzqUoO/F34Y2shGzesfqv7o57xrxovZJH/MetF5UjroJ/R/3isoiw==}
 
-  '@workflow/astro@4.0.0':
-    resolution: {integrity: sha512-yqd0ibUB3L58UZz4jgavL02ugtoqft61M4BK9sJSnl336gb3piTt8rEtUB45r0FhEyeEc4S/5PIZ9P7I6BK+bA==}
+  '@workflow/astro@4.0.4':
+    resolution: {integrity: sha512-TVx1SY4KoYSkHS/nkhXP7wz10rYBKJ0o9oQGahS+kCBkGkD5kyKdAc4QR2IpynG/u/vVg599XJj2Bsh9m2Jsrw==}
 
   '@workflow/builders@4.0.1':
     resolution: {integrity: sha512-IYYb6eNbZ1x+nhvHdCnYTbz0NJAYexYwoIVhm7mYqNmYddli9IkTYmD5AukXUP+ZBHMZyivwuhANYs5g+ayb7Q==}
 
-  '@workflow/cli@4.2.0':
-    resolution: {integrity: sha512-ikpR55/MnEodB5k7D0A14FlQTKE96+893Kj/rSmNJBm1auBefPXkPpVO1NxWov0xowVXZmRoSdPBnLvbVknwNQ==}
+  '@workflow/builders@4.0.5':
+    resolution: {integrity: sha512-UmlZOjkiDqb37NZjxpJ56zwg0MFAdv/XSfRJgU8a0JQOGdTiEhJ1pWdg0pAD96pcoDwNqGphSTBhf/QoRdXgnw==}
+
+  '@workflow/cli@4.2.4':
+    resolution: {integrity: sha512-NtVZNCt9CY2KtpT3FOSpQXIaj/zt8sCFfaNNzOIVCQLwfkGc6Dfi1nFtI6BELY0cWWAmCf3+ZlHOecluEx0Ynw==}
     hasBin: true
 
   '@workflow/core@4.2.0':
@@ -11222,11 +11234,22 @@ packages:
       '@opentelemetry/api':
         optional: true
 
+  '@workflow/core@4.2.4':
+    resolution: {integrity: sha512-uORE+d8KPwf5vTvpq/gcynFl4gmls8m6ESHvsR+AOERlQAXRgEysCBpUAFczCFWU1P16CTEBJvH5S+qpnTWQIA==}
+    peerDependencies:
+      '@opentelemetry/api': '1'
+    peerDependenciesMeta:
+      '@opentelemetry/api':
+        optional: true
+
   '@workflow/errors@4.1.0':
     resolution: {integrity: sha512-MLf82s2hFgRIGaJRI0BQvhrNoCK7mOPSNGIBom42phbnrWbj2O0YSpZTBr1dNNFF7Cd8TgLEmaQrCsHZqlWhJw==}
 
-  '@workflow/nest@0.0.0':
-    resolution: {integrity: sha512-Ji3je93q68yF75a8k2ZKxebuSpiZBPBHftExHi6v2liv8bdbFPyBtCLitKaCmAFNUV4xZV8w/6Xe0YNmy6Iz8g==}
+  '@workflow/errors@4.1.1':
+    resolution: {integrity: sha512-T9x1MNKhoL9uMLP6KJNg2VyNz/Hf3cEB2WUaMU8fCEihDtHdHQ7q8J3sHIzFcHRg1FTnYFmVTk57Ycgfv8lZ5w==}
+
+  '@workflow/nest@0.0.4':
+    resolution: {integrity: sha512-dW2vg3178toaLqPHMtpXJEGQ/EufBPez1Ew0NhMpuo0+IVA7bqNDylK7g0ScMtsCX7CL5GOziW9I2mUVvpYUng==}
     hasBin: true
     peerDependencies:
       '@nestjs/common': '>=10.0.0'
@@ -11234,44 +11257,53 @@ packages:
       '@swc/cli': '>=0.4.0'
       '@swc/core': '>=1.5.0'
 
-  '@workflow/next@4.0.1':
-    resolution: {integrity: sha512-e3u7Zz4QHQVmxfCoyUSXQzVUle6uwbHWdysHT3M/tnRg3k6sk5LRltePKGIcibB57DSjbSwBFk9KExtkGsV7LA==}
+  '@workflow/next@4.0.5':
+    resolution: {integrity: sha512-Nos/vWpVj9uHK0w05AFVEULaWQs8R3AQZoJtGCxvjHCUWAI3Od8iQIzC9IeugKaDuufkkzLcZOeWaGV9p+Ey0w==}
     peerDependencies:
       next: '>13'
     peerDependenciesMeta:
       next:
         optional: true
 
-  '@workflow/nitro@4.0.1':
-    resolution: {integrity: sha512-fUZj8D6Htc1FmaNKqY8QdvExB8VR6pwsEBC/VrVI9cLdjPsaEvQmFvphVDdg0hkQ05sBRDJrHLJmfiqHGWun1A==}
+  '@workflow/nitro@4.0.5':
+    resolution: {integrity: sha512-M/jm+to+QiJI8/8r8tfz/4iayK0/vfsgu1703ec+ifPS8AYY0+LRWLIweb860vnEtydLuZgydIqts5CIgPsZcw==}
 
-  '@workflow/nuxt@4.0.1':
-    resolution: {integrity: sha512-fycbLWbgbTdtXmdaZYPCr6E1LtzadaAz4K8tEf1d3w0KNK2+NfIzyM0KjVByQuu5SSQ55UyFrHote8+fIzqYMw==}
+  '@workflow/nuxt@4.0.5':
+    resolution: {integrity: sha512-Q7fv0VqhZ8NXrgUOhd+YSc3j1ZVlDratVOcJ8Omxd0j2Mn0feC3CGeglFjaYfuvY/B2t7xG9SCcCXBV74CrEdQ==}
 
   '@workflow/rollup@4.0.0':
     resolution: {integrity: sha512-SF57HfxSxYs8tBS2o96pQMj33swVeznz3Wb1+hpL4RKLHvb8MDUwWGedLHU9Bw5CBCHuAqU/X1P9xBkUb7sBZA==}
 
+  '@workflow/rollup@4.0.4':
+    resolution: {integrity: sha512-DqmSp89Y4WVoMkBWkiNll0b5mZ2WA9uwNsRuO4QOU0XHytuCnvTRGMf0ZV6fXAa3KyeXlgS1r0V8SHwt1ZQ7jg==}
+
   '@workflow/serde@4.1.0':
     resolution: {integrity: sha512-pav4F2BoirECWR7Nf1TKt+2eETcBj7jj4cBefQ8VXQCA6NPkaKeLfj/zMgi+3zYV5ZIBT4GuUiphsj0/b9hPQQ==}
 
-  '@workflow/sveltekit@4.0.0':
-    resolution: {integrity: sha512-q3ehMkJE5o2SId5CmoyR2QK3+p7Ptm1zqtyGlvTRk9U+wkb1u74GquX4cLN0C4MJ7aPw7O8+ZDK9DqbmkQr04w==}
+  '@workflow/serde@4.1.1':
+    resolution: {integrity: sha512-191/N2w3WlrapuAvtAT1knONuqJ9auOqM8c7yMMM7c6rqXAZQKkNJrOuuj/j0vp7x43rg0+fy90bqT/xQ5ki4w==}
+
+  '@workflow/sveltekit@4.0.4':
+    resolution: {integrity: sha512-aqBJKSHhBUzZnJ08A0aSmimPXIk9o/ayS6zBpQESt6HgX3vrX7MbpklWKP9x0+3NzUDNN368O+Iahp+mJb5E9A==}
 
   '@workflow/swc-plugin@4.1.0':
     resolution: {integrity: sha512-FcWKJwzkRqf0u08/WCyg2n1H3932JQpFk3g6edE7trXKFW06a8o4F22k/xgPFsbxAq8UpywcIN7f46H0/uH5Tw==}
     peerDependencies:
       '@swc/core': 1.15.3
 
-  '@workflow/typescript-plugin@4.0.1':
-    resolution: {integrity: sha512-n2CYGiywL7QeBxdYXAeKcEXBu+T3DMFoau84OO+h6ugaa6Me++UZEbEoVnG7RvsYua0jLDbmWkIPYy4GJcOMCA==}
+  '@workflow/typescript-plugin@4.0.2':
+    resolution: {integrity: sha512-7bw6aEl+QMZWWZmhJS5bydrSgmxQrG8Kyo5Zhdb7klu+/pBUyNMVTUZmnfe1xRjWborqvOevqYbSDh0a0gwnAw==}
     peerDependencies:
       typescript: '>=5.0.0'
 
   '@workflow/utils@4.1.0':
     resolution: {integrity: sha512-wE7hTfSzR0sEougUluG6fFNR8O98F86v7nz3QGqPwtlNM1ZadW5s65Jhog9b0IA6PcAE4KHDy/iKktEyc23prw==}
 
-  '@workflow/vite@4.0.0':
-    resolution: {integrity: sha512-vhuOlTUozjDL0TcQhSkxoiAD0FsLwvpNa236W4DmPFHXbFrNadvFmPut/aLRcGubGcBAUItnBEy+Nqyi9/qZuA==}
+  '@workflow/utils@4.1.1':
+    resolution: {integrity: sha512-4+yJxzyeOBZsVRG8npvLsafCPt9E4bsFi/oUBBT2yLM5X4v+KUBLMwZOubShwcBix2/VOGau7mumvh12JSKjaA==}
+
+  '@workflow/vite@4.0.4':
+    resolution: {integrity: sha512-dEw5Dg6zdlsBwwEFYYqRIXApZ4kgqN/vMzZEyEbisJEofKNPDIYP1/nAh22DkYW55Nxa0YOKdqnhxQq+kdvX2A==}
 
   '@workflow/vitest@4.0.1':
     resolution: {integrity: sha512-6h8E6uTwPiSLkeKtOt2oABRtZGDODgqX8dgLEzWt8UMxYcSevL9JULmIaucyFpBznQ+YKQM/+NHNIjWNYIN7CQ==}
@@ -11282,11 +11314,19 @@ packages:
       vite:
         optional: true
 
-  '@workflow/web@4.1.0':
-    resolution: {integrity: sha512-iCDzJPBG6gyxNmnQGN55T3Q0bXCFG1ZkjkVbozajR6bfH41OZvmLDLwK6dJlqP+iqu3HjBtBIpPn0p2Wo+7jhw==}
+  '@workflow/web@4.1.5':
+    resolution: {integrity: sha512-VBdRdOBIs/TsS79TxhnjnYcmXKIOwR57gWL+n/0GSvd7aaMHcvKBybmRUTMYOe0q110KXs31eJ4aLjWLYLQxGA==}
 
   '@workflow/world-local@4.1.0':
     resolution: {integrity: sha512-dOi/2M3q0kFMnY6dovgojj4s0ddrAVSxk1MNQOarf3q4XmW4Q9C9+bsA3d/EXthQmb+9eiI6PiDPxQJALcUekw==}
+    peerDependencies:
+      '@opentelemetry/api': '1'
+    peerDependenciesMeta:
+      '@opentelemetry/api':
+        optional: true
+
+  '@workflow/world-local@4.1.1':
+    resolution: {integrity: sha512-qQznGPy15nPD+CO0THxMDwozIrvEOkZuAkpI2S3/+hrvUF07mSHGsGCVp6eVaECSTi3dGseep9rKUXZhU/HGYw==}
     peerDependencies:
       '@opentelemetry/api': '1'
     peerDependenciesMeta:
@@ -11301,8 +11341,21 @@ packages:
       '@opentelemetry/api':
         optional: true
 
+  '@workflow/world-vercel@4.1.2':
+    resolution: {integrity: sha512-GR0l0Hhm8JpILQgHn1gMGKNAlU6ioZEFDtyrM4haxz6JdcUE42JMNRGtw4IeHzsCXcXOZ7+SbVNFnEIVtG5faw==}
+    peerDependencies:
+      '@opentelemetry/api': '1'
+    peerDependenciesMeta:
+      '@opentelemetry/api':
+        optional: true
+
   '@workflow/world@4.1.0':
     resolution: {integrity: sha512-lvJD7vQTjuWn/sxXUnK+oiszVuWrg4YJAccaMojBb42zbp38/V9Lsig0zuSR3pPsKrjfvmiWtGn8ATma8Kp+1Q==}
+    peerDependencies:
+      zod: 4.3.6
+
+  '@workflow/world@4.1.1':
+    resolution: {integrity: sha512-OVfswz2SCt1NKSihAIPlPx/ygGdkA8si69xTAZtAZQACphuhmcg5mm28aNPo0/7oxcUVD/tO/AF1uSUF4BGpRw==}
     peerDependencies:
       zod: 4.3.6
 
@@ -20483,8 +20536,8 @@ packages:
   wordwrap@1.0.0:
     resolution: {integrity: sha512-gvVzJFlPycKc5dZN4yPkP8w7Dc37BtP1yczEneOb4uq34pXZcvrtRTmWV8W+Ume+XCxKgbjM+nevkyFPMybd4Q==}
 
-  workflow@4.2.0:
-    resolution: {integrity: sha512-f7yXNgMsTORmvxDrrxLqDTQC3dw9wdXAJ0IQ6le7DvYSb6gmu+dggyz56mXuec6TwiZkwxzjDLaNf+uP2QXnvQ==}
+  workflow@4.2.4:
+    resolution: {integrity: sha512-F7HT6uXIF0YaERtfK9kdXgebeXOUtSuCvQElIJYh5cjYmUS7JcRLsAsQSUeQ4Dcjvnml4t1efHypTR7gk/2d3g==}
     hasBin: true
     peerDependencies:
       '@opentelemetry/api': '1'
@@ -21167,7 +21220,7 @@ snapshots:
       '@aws-sdk/types': 3.973.7
       '@smithy/property-provider': 4.2.13
       '@smithy/shared-ini-file-loader': 4.4.8
-      '@smithy/types': 4.13.0
+      '@smithy/types': 4.14.0
       tslib: 2.8.1
     transitivePeerDependencies:
       - aws-crt
@@ -26087,7 +26140,7 @@ snapshots:
     dependencies:
       c12: 3.3.4(magicast@0.3.5)
       consola: 3.4.2
-      defu: 6.1.4
+      defu: 6.1.7
       destr: 2.0.5
       errx: 0.1.0
       exsolve: 1.0.8
@@ -30423,13 +30476,13 @@ snapshots:
       '@webassemblyjs/ast': 1.14.1
       '@xtuc/long': 4.2.2
 
-  '@workflow/astro@4.0.0(@opentelemetry/api@1.9.1)':
+  '@workflow/astro@4.0.4(@opentelemetry/api@1.9.1)':
     dependencies:
       '@swc/core': 1.15.3
-      '@workflow/builders': 4.0.1(@opentelemetry/api@1.9.1)
-      '@workflow/rollup': 4.0.0(@opentelemetry/api@1.9.1)
+      '@workflow/builders': 4.0.5(@opentelemetry/api@1.9.1)
+      '@workflow/rollup': 4.0.4(@opentelemetry/api@1.9.1)
       '@workflow/swc-plugin': 4.1.0(@swc/core@1.15.3)
-      '@workflow/vite': 4.0.0(@opentelemetry/api@1.9.1)
+      '@workflow/vite': 4.0.4(@opentelemetry/api@1.9.1)
       exsolve: 1.0.8
       pathe: 2.0.3
     transitivePeerDependencies:
@@ -30458,21 +30511,41 @@ snapshots:
       - aws-crt
       - supports-color
 
-  '@workflow/cli@4.2.0(@opentelemetry/api@1.9.1)':
+  '@workflow/builders@4.0.5(@opentelemetry/api@1.9.1)':
+    dependencies:
+      '@swc/core': 1.15.3
+      '@workflow/core': 4.2.4(@opentelemetry/api@1.9.1)
+      '@workflow/errors': 4.1.1
+      '@workflow/swc-plugin': 4.1.0(@swc/core@1.15.3)
+      '@workflow/utils': 4.1.1
+      builtin-modules: 5.0.0
+      chalk: 5.6.2
+      enhanced-resolve: 5.19.0
+      esbuild: 0.27.3
+      find-up: 7.0.0
+      json5: 2.2.3
+      tinyglobby: 0.2.15
+    transitivePeerDependencies:
+      - '@opentelemetry/api'
+      - '@swc/helpers'
+      - aws-crt
+      - supports-color
+
+  '@workflow/cli@4.2.4(@opentelemetry/api@1.9.1)':
     dependencies:
       '@oclif/core': 4.8.1
       '@oclif/plugin-help': 6.2.37
       '@swc/core': 1.15.3
       '@vercel/cli-auth': 0.0.1
-      '@workflow/builders': 4.0.1(@opentelemetry/api@1.9.1)
-      '@workflow/core': 4.2.0(@opentelemetry/api@1.9.1)
-      '@workflow/errors': 4.1.0
+      '@workflow/builders': 4.0.5(@opentelemetry/api@1.9.1)
+      '@workflow/core': 4.2.4(@opentelemetry/api@1.9.1)
+      '@workflow/errors': 4.1.1
       '@workflow/swc-plugin': 4.1.0(@swc/core@1.15.3)
-      '@workflow/utils': 4.1.0
-      '@workflow/web': 4.1.0
-      '@workflow/world': 4.1.0(zod@4.3.6)
-      '@workflow/world-local': 4.1.0(@opentelemetry/api@1.9.1)
-      '@workflow/world-vercel': 4.1.0(@opentelemetry/api@1.9.1)
+      '@workflow/utils': 4.1.1
+      '@workflow/web': 4.1.5
+      '@workflow/world': 4.1.1(zod@4.3.6)
+      '@workflow/world-local': 4.1.1(@opentelemetry/api@1.9.1)
+      '@workflow/world-vercel': 4.1.2(@opentelemetry/api@1.9.1)
       boxen: 8.0.1
       builtin-modules: 5.0.0
       chalk: 5.6.2
@@ -30523,18 +30596,50 @@ snapshots:
       - aws-crt
       - supports-color
 
+  '@workflow/core@4.2.4(@opentelemetry/api@1.9.1)':
+    dependencies:
+      '@aws-sdk/credential-provider-web-identity': 3.972.13
+      '@jridgewell/trace-mapping': 0.3.31
+      '@standard-schema/spec': 1.0.0
+      '@types/ms': 2.1.0
+      '@vercel/functions': 3.4.3(@aws-sdk/credential-provider-web-identity@3.972.13)
+      '@workflow/errors': 4.1.1
+      '@workflow/serde': 4.1.1
+      '@workflow/utils': 4.1.1
+      '@workflow/world': 4.1.1(zod@4.3.6)
+      '@workflow/world-local': 4.1.1(@opentelemetry/api@1.9.1)
+      '@workflow/world-vercel': 4.1.2(@opentelemetry/api@1.9.1)
+      debug: 4.4.3(supports-color@9.4.0)
+      devalue: 5.6.3
+      ms: 2.1.3
+      nanoid: 5.1.6
+      seedrandom: 3.0.5
+      semver: 7.7.4
+      ulid: 3.0.2
+      zod: 4.3.6
+    optionalDependencies:
+      '@opentelemetry/api': 1.9.1
+    transitivePeerDependencies:
+      - aws-crt
+      - supports-color
+
   '@workflow/errors@4.1.0':
     dependencies:
       '@workflow/utils': 4.1.0
       ms: 2.1.3
 
-  '@workflow/nest@0.0.0(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@10.4.22)(@opentelemetry/api@1.9.1)(@swc/cli@0.8.1(@swc/core@1.15.3)(chokidar@5.0.0))(@swc/core@1.15.3)':
+  '@workflow/errors@4.1.1':
+    dependencies:
+      '@workflow/utils': 4.1.1
+      ms: 2.1.3
+
+  '@workflow/nest@0.0.4(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@10.4.22)(@opentelemetry/api@1.9.1)(@swc/cli@0.8.1(@swc/core@1.15.3)(chokidar@5.0.0))(@swc/core@1.15.3)':
     dependencies:
       '@nestjs/common': 10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2)
       '@nestjs/core': 10.4.22(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/platform-express@10.4.22)(encoding@0.1.13)(reflect-metadata@0.2.2)(rxjs@7.8.2)
       '@swc/cli': 0.8.1(@swc/core@1.15.3)(chokidar@5.0.0)
       '@swc/core': 1.15.3
-      '@workflow/builders': 4.0.1(@opentelemetry/api@1.9.1)
+      '@workflow/builders': 4.0.5(@opentelemetry/api@1.9.1)
       '@workflow/swc-plugin': 4.1.0(@swc/core@1.15.3)
       pathe: 2.0.3
     transitivePeerDependencies:
@@ -30543,11 +30648,11 @@ snapshots:
       - aws-crt
       - supports-color
 
-  '@workflow/next@4.0.1(@opentelemetry/api@1.9.1)(next@15.5.15(@opentelemetry/api@1.9.1)(@playwright/test@1.58.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0))':
+  '@workflow/next@4.0.5(@opentelemetry/api@1.9.1)(next@15.5.15(@opentelemetry/api@1.9.1)(@playwright/test@1.58.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0))':
     dependencies:
       '@swc/core': 1.15.3
-      '@workflow/builders': 4.0.1(@opentelemetry/api@1.9.1)
-      '@workflow/core': 4.2.0(@opentelemetry/api@1.9.1)
+      '@workflow/builders': 4.0.5(@opentelemetry/api@1.9.1)
+      '@workflow/core': 4.2.4(@opentelemetry/api@1.9.1)
       '@workflow/swc-plugin': 4.1.0(@swc/core@1.15.3)
       semver: 7.7.4
       watchpack: 2.5.1
@@ -30559,11 +30664,11 @@ snapshots:
       - aws-crt
       - supports-color
 
-  '@workflow/next@4.0.1(@opentelemetry/api@1.9.1)(next@15.5.15(@opentelemetry/api@1.9.1)(@playwright/test@1.58.2)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(sass@1.90.0))':
+  '@workflow/next@4.0.5(@opentelemetry/api@1.9.1)(next@15.5.15(@opentelemetry/api@1.9.1)(@playwright/test@1.58.2)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(sass@1.90.0))':
     dependencies:
       '@swc/core': 1.15.3
-      '@workflow/builders': 4.0.1(@opentelemetry/api@1.9.1)
-      '@workflow/core': 4.2.0(@opentelemetry/api@1.9.1)
+      '@workflow/builders': 4.0.5(@opentelemetry/api@1.9.1)
+      '@workflow/core': 4.2.4(@opentelemetry/api@1.9.1)
       '@workflow/swc-plugin': 4.1.0(@swc/core@1.15.3)
       semver: 7.7.4
       watchpack: 2.5.1
@@ -30575,14 +30680,14 @@ snapshots:
       - aws-crt
       - supports-color
 
-  '@workflow/nitro@4.0.1(@opentelemetry/api@1.9.1)':
+  '@workflow/nitro@4.0.5(@opentelemetry/api@1.9.1)':
     dependencies:
       '@swc/core': 1.15.3
-      '@workflow/builders': 4.0.1(@opentelemetry/api@1.9.1)
-      '@workflow/core': 4.2.0(@opentelemetry/api@1.9.1)
-      '@workflow/rollup': 4.0.0(@opentelemetry/api@1.9.1)
+      '@workflow/builders': 4.0.5(@opentelemetry/api@1.9.1)
+      '@workflow/core': 4.2.4(@opentelemetry/api@1.9.1)
+      '@workflow/rollup': 4.0.4(@opentelemetry/api@1.9.1)
       '@workflow/swc-plugin': 4.1.0(@swc/core@1.15.3)
-      '@workflow/vite': 4.0.0(@opentelemetry/api@1.9.1)
+      '@workflow/vite': 4.0.4(@opentelemetry/api@1.9.1)
       exsolve: 1.0.8
       pathe: 2.0.3
     transitivePeerDependencies:
@@ -30591,10 +30696,10 @@ snapshots:
       - aws-crt
       - supports-color
 
-  '@workflow/nuxt@4.0.1(@opentelemetry/api@1.9.1)(magicast@0.3.5)':
+  '@workflow/nuxt@4.0.5(@opentelemetry/api@1.9.1)(magicast@0.3.5)':
     dependencies:
       '@nuxt/kit': 4.4.2(magicast@0.3.5)
-      '@workflow/nitro': 4.0.1(@opentelemetry/api@1.9.1)
+      '@workflow/nitro': 4.0.5(@opentelemetry/api@1.9.1)
     transitivePeerDependencies:
       - '@opentelemetry/api'
       - '@swc/helpers'
@@ -30614,15 +30719,29 @@ snapshots:
       - aws-crt
       - supports-color
 
-  '@workflow/serde@4.1.0': {}
-
-  '@workflow/sveltekit@4.0.0(@opentelemetry/api@1.9.1)':
+  '@workflow/rollup@4.0.4(@opentelemetry/api@1.9.1)':
     dependencies:
       '@swc/core': 1.15.3
-      '@workflow/builders': 4.0.1(@opentelemetry/api@1.9.1)
-      '@workflow/rollup': 4.0.0(@opentelemetry/api@1.9.1)
+      '@workflow/builders': 4.0.5(@opentelemetry/api@1.9.1)
       '@workflow/swc-plugin': 4.1.0(@swc/core@1.15.3)
-      '@workflow/vite': 4.0.0(@opentelemetry/api@1.9.1)
+      exsolve: 1.0.7
+    transitivePeerDependencies:
+      - '@opentelemetry/api'
+      - '@swc/helpers'
+      - aws-crt
+      - supports-color
+
+  '@workflow/serde@4.1.0': {}
+
+  '@workflow/serde@4.1.1': {}
+
+  '@workflow/sveltekit@4.0.4(@opentelemetry/api@1.9.1)':
+    dependencies:
+      '@swc/core': 1.15.3
+      '@workflow/builders': 4.0.5(@opentelemetry/api@1.9.1)
+      '@workflow/rollup': 4.0.4(@opentelemetry/api@1.9.1)
+      '@workflow/swc-plugin': 4.1.0(@swc/core@1.15.3)
+      '@workflow/vite': 4.0.4(@opentelemetry/api@1.9.1)
       exsolve: 1.0.8
       fs-extra: 11.3.4
       pathe: 2.0.3
@@ -30636,7 +30755,7 @@ snapshots:
     dependencies:
       '@swc/core': 1.15.3
 
-  '@workflow/typescript-plugin@4.0.1(typescript@5.8.3)':
+  '@workflow/typescript-plugin@4.0.2(typescript@5.8.3)':
     dependencies:
       typescript: 5.8.3
 
@@ -30644,9 +30763,13 @@ snapshots:
     dependencies:
       ms: 2.1.3
 
-  '@workflow/vite@4.0.0(@opentelemetry/api@1.9.1)':
+  '@workflow/utils@4.1.1':
     dependencies:
-      '@workflow/builders': 4.0.1(@opentelemetry/api@1.9.1)
+      ms: 2.1.3
+
+  '@workflow/vite@4.0.4(@opentelemetry/api@1.9.1)':
+    dependencies:
+      '@workflow/builders': 4.0.5(@opentelemetry/api@1.9.1)
     transitivePeerDependencies:
       - '@opentelemetry/api'
       - '@swc/helpers'
@@ -30670,7 +30793,7 @@ snapshots:
       - supports-color
       - zod
 
-  '@workflow/web@4.1.0':
+  '@workflow/web@4.1.5':
     dependencies:
       express: 4.22.1
     transitivePeerDependencies:
@@ -30682,6 +30805,19 @@ snapshots:
       '@workflow/errors': 4.1.0
       '@workflow/utils': 4.1.0
       '@workflow/world': 4.1.0(zod@4.3.6)
+      async-sema: 3.1.1
+      ulid: 3.0.2
+      undici: 7.22.0
+      zod: 4.3.6
+    optionalDependencies:
+      '@opentelemetry/api': 1.9.1
+
+  '@workflow/world-local@4.1.1(@opentelemetry/api@1.9.1)':
+    dependencies:
+      '@vercel/queue': 0.1.4
+      '@workflow/errors': 4.1.1
+      '@workflow/utils': 4.1.1
+      '@workflow/world': 4.1.1(zod@4.3.6)
       async-sema: 3.1.1
       ulid: 3.0.2
       undici: 7.22.0
@@ -30701,12 +30837,29 @@ snapshots:
     optionalDependencies:
       '@opentelemetry/api': 1.9.1
 
+  '@workflow/world-vercel@4.1.2(@opentelemetry/api@1.9.1)':
+    dependencies:
+      '@vercel/oidc': 3.2.0
+      '@vercel/queue': 0.1.4
+      '@workflow/errors': 4.1.1
+      '@workflow/world': 4.1.1(zod@4.3.6)
+      cbor-x: 1.6.0
+      undici: 7.22.0
+      zod: 4.3.6
+    optionalDependencies:
+      '@opentelemetry/api': 1.9.1
+
   '@workflow/world@4.1.0(zod@3.25.76)':
     dependencies:
       ulid: 3.0.2
       zod: 3.25.76
 
   '@workflow/world@4.1.0(zod@4.3.6)':
+    dependencies:
+      ulid: 3.0.2
+      zod: 4.3.6
+
+  '@workflow/world@4.1.1(zod@4.3.6)':
     dependencies:
       ulid: 3.0.2
       zod: 4.3.6
@@ -41731,7 +41884,7 @@ snapshots:
   untyped@2.0.0:
     dependencies:
       citty: 0.1.6
-      defu: 6.1.4
+      defu: 6.1.7
       jiti: 2.6.1
       knitwork: 1.3.0
       scule: 1.3.0
@@ -41918,7 +42071,7 @@ snapshots:
       chokidar: 3.6.0
       commander: 8.3.0
       fast-glob: 3.3.3
-      fs-extra: 11.2.0
+      fs-extra: 11.3.4
       npm-run-path: 4.0.1
       strip-ansi: 6.0.1
       tiny-invariant: 1.3.3
@@ -42772,20 +42925,20 @@ snapshots:
 
   wordwrap@1.0.0: {}
 
-  workflow@4.2.0(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@10.4.22)(@opentelemetry/api@1.9.1)(@swc/cli@0.8.1(@swc/core@1.15.3)(chokidar@5.0.0))(@swc/core@1.15.3)(magicast@0.3.5)(next@15.5.15(@opentelemetry/api@1.9.1)(@playwright/test@1.58.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0))(typescript@5.8.3):
+  workflow@4.2.4(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@10.4.22)(@opentelemetry/api@1.9.1)(@swc/cli@0.8.1(@swc/core@1.15.3)(chokidar@5.0.0))(@swc/core@1.15.3)(magicast@0.3.5)(next@15.5.15(@opentelemetry/api@1.9.1)(@playwright/test@1.58.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0))(typescript@5.8.3):
     dependencies:
-      '@workflow/astro': 4.0.0(@opentelemetry/api@1.9.1)
-      '@workflow/cli': 4.2.0(@opentelemetry/api@1.9.1)
-      '@workflow/core': 4.2.0(@opentelemetry/api@1.9.1)
-      '@workflow/errors': 4.1.0
-      '@workflow/nest': 0.0.0(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@10.4.22)(@opentelemetry/api@1.9.1)(@swc/cli@0.8.1(@swc/core@1.15.3)(chokidar@5.0.0))(@swc/core@1.15.3)
-      '@workflow/next': 4.0.1(@opentelemetry/api@1.9.1)(next@15.5.15(@opentelemetry/api@1.9.1)(@playwright/test@1.58.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0))
-      '@workflow/nitro': 4.0.1(@opentelemetry/api@1.9.1)
-      '@workflow/nuxt': 4.0.1(@opentelemetry/api@1.9.1)(magicast@0.3.5)
-      '@workflow/rollup': 4.0.0(@opentelemetry/api@1.9.1)
-      '@workflow/sveltekit': 4.0.0(@opentelemetry/api@1.9.1)
-      '@workflow/typescript-plugin': 4.0.1(typescript@5.8.3)
-      '@workflow/utils': 4.1.0
+      '@workflow/astro': 4.0.4(@opentelemetry/api@1.9.1)
+      '@workflow/cli': 4.2.4(@opentelemetry/api@1.9.1)
+      '@workflow/core': 4.2.4(@opentelemetry/api@1.9.1)
+      '@workflow/errors': 4.1.1
+      '@workflow/nest': 0.0.4(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@10.4.22)(@opentelemetry/api@1.9.1)(@swc/cli@0.8.1(@swc/core@1.15.3)(chokidar@5.0.0))(@swc/core@1.15.3)
+      '@workflow/next': 4.0.5(@opentelemetry/api@1.9.1)(next@15.5.15(@opentelemetry/api@1.9.1)(@playwright/test@1.58.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0))
+      '@workflow/nitro': 4.0.5(@opentelemetry/api@1.9.1)
+      '@workflow/nuxt': 4.0.5(@opentelemetry/api@1.9.1)(magicast@0.3.5)
+      '@workflow/rollup': 4.0.4(@opentelemetry/api@1.9.1)
+      '@workflow/sveltekit': 4.0.4(@opentelemetry/api@1.9.1)
+      '@workflow/typescript-plugin': 4.0.2(typescript@5.8.3)
+      '@workflow/utils': 4.1.1
       ms: 2.1.3
     optionalDependencies:
       '@opentelemetry/api': 1.9.1
@@ -42801,20 +42954,20 @@ snapshots:
       - supports-color
       - typescript
 
-  workflow@4.2.0(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@10.4.22)(@opentelemetry/api@1.9.1)(@swc/cli@0.8.1(@swc/core@1.15.3)(chokidar@5.0.0))(@swc/core@1.15.3)(magicast@0.3.5)(next@15.5.15(@opentelemetry/api@1.9.1)(@playwright/test@1.58.2)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(sass@1.90.0))(typescript@5.8.3):
+  workflow@4.2.4(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@10.4.22)(@opentelemetry/api@1.9.1)(@swc/cli@0.8.1(@swc/core@1.15.3)(chokidar@5.0.0))(@swc/core@1.15.3)(magicast@0.3.5)(next@15.5.15(@opentelemetry/api@1.9.1)(@playwright/test@1.58.2)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(sass@1.90.0))(typescript@5.8.3):
     dependencies:
-      '@workflow/astro': 4.0.0(@opentelemetry/api@1.9.1)
-      '@workflow/cli': 4.2.0(@opentelemetry/api@1.9.1)
-      '@workflow/core': 4.2.0(@opentelemetry/api@1.9.1)
-      '@workflow/errors': 4.1.0
-      '@workflow/nest': 0.0.0(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@10.4.22)(@opentelemetry/api@1.9.1)(@swc/cli@0.8.1(@swc/core@1.15.3)(chokidar@5.0.0))(@swc/core@1.15.3)
-      '@workflow/next': 4.0.1(@opentelemetry/api@1.9.1)(next@15.5.15(@opentelemetry/api@1.9.1)(@playwright/test@1.58.2)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(sass@1.90.0))
-      '@workflow/nitro': 4.0.1(@opentelemetry/api@1.9.1)
-      '@workflow/nuxt': 4.0.1(@opentelemetry/api@1.9.1)(magicast@0.3.5)
-      '@workflow/rollup': 4.0.0(@opentelemetry/api@1.9.1)
-      '@workflow/sveltekit': 4.0.0(@opentelemetry/api@1.9.1)
-      '@workflow/typescript-plugin': 4.0.1(typescript@5.8.3)
-      '@workflow/utils': 4.1.0
+      '@workflow/astro': 4.0.4(@opentelemetry/api@1.9.1)
+      '@workflow/cli': 4.2.4(@opentelemetry/api@1.9.1)
+      '@workflow/core': 4.2.4(@opentelemetry/api@1.9.1)
+      '@workflow/errors': 4.1.1
+      '@workflow/nest': 0.0.4(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@10.4.22)(@opentelemetry/api@1.9.1)(@swc/cli@0.8.1(@swc/core@1.15.3)(chokidar@5.0.0))(@swc/core@1.15.3)
+      '@workflow/next': 4.0.5(@opentelemetry/api@1.9.1)(next@15.5.15(@opentelemetry/api@1.9.1)(@playwright/test@1.58.2)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(sass@1.90.0))
+      '@workflow/nitro': 4.0.5(@opentelemetry/api@1.9.1)
+      '@workflow/nuxt': 4.0.5(@opentelemetry/api@1.9.1)(magicast@0.3.5)
+      '@workflow/rollup': 4.0.4(@opentelemetry/api@1.9.1)
+      '@workflow/sveltekit': 4.0.4(@opentelemetry/api@1.9.1)
+      '@workflow/typescript-plugin': 4.0.2(typescript@5.8.3)
+      '@workflow/utils': 4.1.1
       ms: 2.1.3
     optionalDependencies:
       '@opentelemetry/api': 1.9.1
