@@ -27,8 +27,8 @@ importers:
         specifier: ^9.1.7
         version: 9.1.7
       konsistent:
-        specifier: 0.0.1-alpha.19
-        version: 0.0.1-alpha.19
+        specifier: 0.0.1-alpha.20
+        version: 0.0.1-alpha.20
       lint-staged:
         specifier: ^15.5.1
         version: 15.5.2
@@ -15343,8 +15343,8 @@ packages:
   kolorist@1.8.0:
     resolution: {integrity: sha512-Y+60/zizpJ3HRH8DCss+q95yr6145JXZo46OTpFvDZWLfRCE4qChOyk1b26nMaNpfHHgxagk9dXT5OP0Tfe+dQ==}
 
-  konsistent@0.0.1-alpha.19:
-    resolution: {integrity: sha512-9y4GAd7xgiqoZyhpwcUWPwzePbk81a6H4x+DmKz9CaUQW1EPYiD9Bxtb+ApdaGYgPNXzvAkJi6Rzz0YdQPg9fA==}
+  konsistent@0.0.1-alpha.20:
+    resolution: {integrity: sha512-JsKjtfWSg9v0QjAQDcjYlfcZ08N7MIdMHdo2ynbjWK+UVSVxavPHAIdn/FOwvIiWDSlw2hkULeMpRFulwklxig==}
     hasBin: true
 
   kuler@2.0.0:
@@ -35727,7 +35727,7 @@ snapshots:
 
   kolorist@1.8.0: {}
 
-  konsistent@0.0.1-alpha.19:
+  konsistent@0.0.1-alpha.20:
     dependencies:
       '@konsistent/convention': 0.0.1-alpha.2(zod@4.3.6)
       citty: 0.2.1
