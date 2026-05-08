@@ -24,10 +24,16 @@ export class LocalSandbox implements Sandbox {
     this.rootDirectory = rootDirectory;
   }
 
-  async executeCommand({ command }: { command: string }) {
+  async executeCommand({
+    command,
+    workingDirectory,
+  }: {
+    command: string;
+    workingDirectory?: string;
+  }) {
     try {
       const { stdout, stderr } = await execAsync(command, {
-        cwd: this.rootDirectory,
+        cwd: workingDirectory ?? this.rootDirectory,
         timeout: 60_000,
         maxBuffer: 10 * 1024 * 1024,
       });

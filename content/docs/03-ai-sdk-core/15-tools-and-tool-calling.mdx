@@ -859,13 +859,14 @@ const result = await generateText({
     shell: tool({
       inputSchema: z.object({
         command: z.string(),
+        workingDirectory: z.string().optional(),
       }),
-      execute: async ({ command }, { sandbox }) => {
+      execute: async ({ command, workingDirectory }, { sandbox }) => {
         if (!sandbox) {
           throw new Error('Sandbox is not available');
         }
 
-        return sandbox.executeCommand({ command });
+        return sandbox.executeCommand({ command, workingDirectory });
       },
     }),
   },
@@ -878,6 +879,10 @@ The sandbox description is not added to the model prompt automatically. If the
 model should know about details such as the root directory, exposed ports, or
 public hostname, include `sandbox.description` in your system prompt,
 instructions, or user-visible context.
+
+`executeCommand` also accepts an optional `workingDirectory`. Use it when a tool
+needs to run a command from a directory other than the sandbox implementation's
+default working directory.
 
 The AI SDK forwards your sandbox object but does not create or isolate one for
 you.
