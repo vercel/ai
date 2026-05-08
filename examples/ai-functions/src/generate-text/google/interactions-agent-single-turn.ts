@@ -19,6 +19,6 @@ run(async () => {
   console.log('Finish reason:', result.finishReason);
   console.log(
     'Interaction id:',
-    result.providerMetadata?.google?.interactionId,
+    result.finalStep.providerMetadata?.google?.interactionId,
   );
 });

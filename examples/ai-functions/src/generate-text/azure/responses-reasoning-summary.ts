@@ -24,5 +24,5 @@ run(async () => {
   console.log('reasoning:', result.reasoningText);
   console.log('Finish reason:', result.finishReason);
   console.log('Usage:', result.usage);
-  console.log('Provider metadata:', result.providerMetadata);
+  console.log('Provider metadata:', result.finalStep.providerMetadata);
 });

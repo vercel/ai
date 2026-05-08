@@ -15,9 +15,8 @@ run(async () => {
       'List three foundational concepts behind transformer-based language models (one sentence each).',
   });
 
-  const interactionId = turn1.providerMetadata?.google?.interactionId as
-    | string
-    | undefined;
+  const interactionId = turn1.finalStep.providerMetadata?.google
+    ?.interactionId as string | undefined;
 
   console.log(turn1.text);
   console.log();
@@ -47,6 +46,6 @@ run(async () => {
   console.log();
   console.log(
     'Interaction id (turn 2):',
-    turn2.providerMetadata?.google?.interactionId,
+    turn2.finalStep.providerMetadata?.google?.interactionId,
   );
 });

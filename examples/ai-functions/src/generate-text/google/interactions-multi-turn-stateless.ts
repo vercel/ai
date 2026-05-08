@@ -27,7 +27,7 @@ run(async () => {
   console.log();
   console.log(
     'Interaction id (turn 1):',
-    turn1.providerMetadata?.google?.interactionId,
+    turn1.finalStep.providerMetadata?.google?.interactionId,
   );
   console.log();
 
@@ -54,6 +54,6 @@ run(async () => {
   console.log();
   console.log(
     'Interaction id (turn 2):',
-    turn2.providerMetadata?.google?.interactionId,
+    turn2.finalStep.providerMetadata?.google?.interactionId,
   );
 });

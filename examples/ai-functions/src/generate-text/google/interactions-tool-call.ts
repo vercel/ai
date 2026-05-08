@@ -11,7 +11,7 @@ run(async () => {
     prompt: 'What is the weather in San Francisco right now?',
   });
 
-  const googleMetadata = result.providerMetadata?.google;
+  const googleMetadata = result.finalStep.providerMetadata?.google;
 
   console.log('Final text:');
   console.log(result.text);
