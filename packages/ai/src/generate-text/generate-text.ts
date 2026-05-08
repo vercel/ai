@@ -1251,8 +1251,8 @@ class DefaultGenerateTextResult<
 
   private readonly initialResponseMessages: Array<ResponseMessage>;
 
-  private get finalStep() {
-    return this.steps[this.steps.length - 1];
+  get finalStep() {
+    return this.steps.at(-1)!;
   }
 
   get content() {

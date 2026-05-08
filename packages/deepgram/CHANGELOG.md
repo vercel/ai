@@ -503,13 +503,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel("my-model-id");
+  model.textEmbeddingModel('my-model-id');
   ```
 
   After
 
   ```ts
-  model.embeddingModel("my-model-id");
+  model.embeddingModel('my-model-id');
   ```
 
 - 7f91f36: feat(deepgram): add language detection support
@@ -725,13 +725,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel("my-model-id");
+  model.textEmbeddingModel('my-model-id');
   ```
 
   After
 
   ```ts
-  model.embeddingModel("my-model-id");
+  model.embeddingModel('my-model-id');
   ```
 
 - Updated dependencies [8d9e8ad]

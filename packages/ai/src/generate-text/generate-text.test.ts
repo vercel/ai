@@ -495,6 +495,20 @@ describe('generateText', () => {
 
       expect(result.steps).toMatchSnapshot();
     });
+
+    it('should expose the final step', async () => {
+      const result = await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            content: [{ type: 'text', text: 'Hello!' }],
+          }),
+        }),
+        prompt: 'test-input',
+      });
+
+      expect(result.finalStep).toBe(result.steps.at(-1));
+    });
   });
 
   describe('result.toolCalls', () => {

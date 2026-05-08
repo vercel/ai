@@ -136,7 +136,10 @@ const result = await generateText({
   },
 
   experimental_onLanguageModelCallStart({ modelId, messages }) {
-    console.log('Model call starting', { modelId, messageCount: messages.length });
+    console.log('Model call starting', {
+      modelId,
+      messageCount: messages.length,
+    });
   },
 
   experimental_onLanguageModelCallEnd({ modelId, finishReason, content }) {
@@ -344,7 +347,10 @@ const result = streamText({
   },
 
   experimental_onLanguageModelCallStart({ modelId, messages }) {
-    console.log('Model call starting', { modelId, messageCount: messages.length });
+    console.log('Model call starting', {
+      modelId,
+      messageCount: messages.length,
+    });
   },
 
   experimental_onLanguageModelCallEnd({ modelId, finishReason, content }) {

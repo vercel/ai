@@ -5875,6 +5875,17 @@ describe('streamText', () => {
         ]
       `);
     });
+
+    it('should expose the final step', async () => {
+      const result = streamText({
+        model: createTestModel(),
+        ...defaultSettings(),
+      });
+
+      const steps = await result.steps;
+
+      await expect(result.finalStep).resolves.toBe(steps.at(-1));
+    });
   });
 
   describe('result.toolCalls', () => {

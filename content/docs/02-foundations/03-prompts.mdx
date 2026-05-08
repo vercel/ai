@@ -285,8 +285,8 @@ const result = await generateText({
 
 <Note type="warning">
   Only a few providers and models currently support file parts: [Google
-  Generative AI](/providers/ai-sdk-providers/google), [Google
-  Vertex AI](/providers/ai-sdk-providers/google-vertex),
+  Generative AI](/providers/ai-sdk-providers/google), [Google Vertex
+  AI](/providers/ai-sdk-providers/google-vertex),
   [OpenAI](/providers/ai-sdk-providers/openai) (for `wav` and `mp3` audio with
   `gpt-4o-audio-preview`), [Anthropic](/providers/ai-sdk-providers/anthropic),
   [OpenAI](/providers/ai-sdk-providers/openai) (for `pdf`).
@@ -504,7 +504,11 @@ const result = await generateText({
           type: 'text',
           text: 'How many calories are in this block of cheese?',
         },
-        { type: 'file', mediaType: 'image', data: fs.readFileSync('./data/roquefort.jpg') },
+        {
+          type: 'file',
+          mediaType: 'image',
+          data: fs.readFileSync('./data/roquefort.jpg'),
+        },
       ],
     },
     {

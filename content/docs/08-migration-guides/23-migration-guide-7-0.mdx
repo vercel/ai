@@ -43,8 +43,7 @@ If your `package.json` does not already include `"type": "module"`, add it or re
 
 ### Provider Management: Remove Deprecated `experimental_customProvider`
 
-The deprecated `experimental_customProvider` export has been removed in AI SDK
-7. Replace it with `customProvider`.
+The deprecated `experimental_customProvider` export has been removed in AI SDK 7. Replace it with `customProvider`.
 
 ```tsx filename="AI SDK 6"
 import { experimental_customProvider } from 'ai';
@@ -534,10 +533,7 @@ const weather = tool({
   inputSchema: z.object({
     location: z.string(),
   }),
-  execute: async (
-    { location },
-    { experimental_context },
-  ) => {
+  execute: async ({ location }, { experimental_context }) => {
     const { weatherApiKey } = experimental_context as {
       weatherApiKey: string;
     };
@@ -557,10 +553,7 @@ const weather = tool({
   contextSchema: z.object({
     apiKey: z.string(),
   }),
-  execute: async (
-    { location },
-    { context: { apiKey } },
-  ) => {
+  execute: async ({ location }, { context: { apiKey } }) => {
     return getWeather(location, apiKey);
   },
 });

@@ -46,7 +46,7 @@ To see `generateText` in action, check out [these examples](#examples).
       name: 'instructions',
       type: 'Instructions',
       description:
-        'Instructions to use that specify the behavior of the model.'
+        'Instructions to use that specify the behavior of the model.',
     },
     {
       name: 'prompt',
@@ -682,7 +682,7 @@ To see `generateText` in action, check out [these examples](#examples).
               type: 'Instructions',
               isOptional: true,
               description:
-                'Optionally override the instructions sent to the model for this step.'
+                'Optionally override the instructions sent to the model for this step.',
             },
             {
               name: 'messages',
@@ -987,7 +987,8 @@ To see `generateText` in action, check out [these examples](#examples).
             {
               name: 'provider',
               type: 'string',
-              description: 'The provider identifier (e.g., "openai", "anthropic").',
+              description:
+                'The provider identifier (e.g., "openai", "anthropic").',
             },
             {
               name: 'modelId',
@@ -1132,7 +1133,8 @@ To see `generateText` in action, check out [these examples](#examples).
             {
               name: 'provider',
               type: 'string',
-              description: 'The provider identifier (e.g., "openai", "anthropic").',
+              description:
+                'The provider identifier (e.g., "openai", "anthropic").',
             },
             {
               name: 'modelId',
@@ -1260,7 +1262,8 @@ To see `generateText` in action, check out [these examples](#examples).
             {
               name: 'tools',
               type: 'ReadonlyArray<Record<string, unknown>> | undefined',
-              description: 'Prepared tool definitions for the model call, if any.',
+              description:
+                'Prepared tool definitions for the model call, if any.',
             },
           ],
         },
@@ -1324,7 +1327,8 @@ To see `generateText` in action, check out [these examples](#examples).
             {
               name: 'callId',
               type: 'string',
-              description: 'Unique identifier for this generation call, used to correlate events.',
+              description:
+                'Unique identifier for this generation call, used to correlate events.',
             },
             {
               name: 'toolCall',
@@ -1361,7 +1365,8 @@ To see `generateText` in action, check out [these examples](#examples).
             {
               name: 'callId',
               type: 'string',
-              description: 'Unique identifier for this generation call, used to correlate events.',
+              description:
+                'Unique identifier for this generation call, used to correlate events.',
             },
             {
               name: 'toolCall',
@@ -1441,8 +1446,7 @@ To see `generateText` in action, check out [these examples](#examples).
             {
               name: 'toolsContext',
               type: 'InferToolSetContext<TOOLS>',
-              description:
-                'Per-tool context map for the generation step.',
+              description: 'Per-tool context map for the generation step.',
             },
             {
               name: 'content',
@@ -2126,6 +2130,12 @@ To see `generateText` in action, check out [these examples](#examples).
                 'Response information for every step. You can use this to get information about intermediate steps, such as the tool calls or the response headers.',
             },
             {
+              name: 'finalStep',
+              type: 'StepResult',
+              description:
+                'The final step. This is a shortcut for `steps.at(-1)`.',
+            },
+            {
               name: 'responseMessages',
               type: 'Array<ResponseMessage>',
               description:
@@ -2549,7 +2559,8 @@ To see `generateText` in action, check out [these examples](#examples).
       name: 'output',
       type: 'Output',
       isOptional: true,
-      description: 'The generated structured output. It uses the `output` specification.',
+      description:
+        'The generated structured output. It uses the `output` specification.',
     },
     {
       name: 'steps',
@@ -2915,6 +2926,12 @@ To see `generateText` in action, check out [these examples](#examples).
           ],
         },
       ],
+    },
+    {
+      name: 'finalStep',
+      type: 'StepResult<TOOLS>',
+      description:
+        'The final step. This is a shortcut for `steps.at(-1)`.',
     },
   ]}
 />
