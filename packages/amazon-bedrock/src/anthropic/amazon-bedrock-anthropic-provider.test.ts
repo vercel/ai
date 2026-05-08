@@ -276,7 +276,7 @@ describe('amazon-bedrock-anthropic-provider', () => {
     expect(transformedBody).toHaveProperty('anthropic_version');
   });
 
-  it('should strip disable_parallel_tool_use from tool_choice', () => {
+  it('should forward disable_parallel_tool_use through tool_choice', () => {
     const provider = createAmazonBedrockAnthropic({
       region: 'us-east-1',
       accessKeyId: 'test-key',
@@ -302,13 +302,42 @@ describe('amazon-bedrock-anthropic-provider', () => {
       new Set(),
     );
 
+    expect(transformedBody?.tool_choice).toEqual({
+      type: 'auto',
+      disable_parallel_tool_use: true,
+    });
+  });
+
+  it('should omit disable_parallel_tool_use when not set on tool_choice', () => {
+    const provider = createAmazonBedrockAnthropic({
+      region: 'us-east-1',
+      accessKeyId: 'test-key',
+      secretAccessKey: 'test-secret',
+    });
+    provider('test-model-id');
+
+    const constructorCall = vi.mocked(AnthropicLanguageModel).mock.calls[
+      vi.mocked(AnthropicLanguageModel).mock.calls.length - 1
+    ];
+    const config = constructorCall[1];
+
+    const transformedBody = config.transformRequestBody?.(
+      {
+        model: 'test-model-id',
+        messages: [{ role: 'user', content: 'Hello' }],
+        max_tokens: 1024,
+        tool_choice: { type: 'auto' },
+      },
+      new Set(),
+    );
+
     expect(transformedBody?.tool_choice).toEqual({ type: 'auto' });
     expect(transformedBody?.tool_choice).not.toHaveProperty(
       'disable_parallel_tool_use',
     );
   });
 
-  it('should preserve tool_choice name when present', () => {
+  it('should preserve tool_choice name and disable_parallel_tool_use when present', () => {
     const provider = createAmazonBedrockAnthropic({
       region: 'us-east-1',
       accessKeyId: 'test-key',
@@ -338,6 +367,7 @@ describe('amazon-bedrock-anthropic-provider', () => {
     expect(transformedBody?.tool_choice).toEqual({
       type: 'tool',
       name: 'my_tool',
+      disable_parallel_tool_use: true,
     });
   });
 
