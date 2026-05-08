@@ -1,5 +1,19 @@
 # @ai-sdk/react
 
+## 4.0.0-canary.128
+
+### Patch Changes
+
+- Updated dependencies [e95e38d]
+- Updated dependencies [016e877]
+- Updated dependencies [ca99fea]
+- Updated dependencies [ca39020]
+- Updated dependencies [d775a57]
+- Updated dependencies [538c12b]
+  - ai@7.0.0-canary.127
+  - @ai-sdk/provider-utils@5.0.0-canary.36
+  - @ai-sdk/mcp@2.0.0-canary.45
+
 ## 4.0.0-canary.127
 
 ### Patch Changes
@@ -1614,6 +1628,7 @@
 - 000a0a6: Fix: ensure `useChat` uses the latest `onToolCall` (and other callbacks) to avoid stale closures.
 
   Changes:
+
   - Update `useChat` to use intermediary proxy callbacks that forward to refs, ensuring the latest callbacks are always used without recreating the chat instance.
   - Add a regression test verifying the latest `onToolCall` is invoked after a prop change.
 

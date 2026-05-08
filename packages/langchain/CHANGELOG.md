@@ -1,5 +1,16 @@
 # @ai-sdk/langchain
 
+## 3.0.0-canary.127
+
+### Patch Changes
+
+- Updated dependencies [e95e38d]
+- Updated dependencies [016e877]
+- Updated dependencies [ca99fea]
+- Updated dependencies [d775a57]
+- Updated dependencies [538c12b]
+  - ai@7.0.0-canary.127
+
 ## 3.0.0-canary.126
 
 ### Patch Changes
@@ -1139,6 +1150,7 @@
 ### Patch Changes
 
 - 2b29f7a: Add `onFinish`, `onError`, and `onAbort` callbacks to `StreamCallbacks` for `toUIMessageStream`.
+
   - `onFinish(state)`: Called on successful completion with final LangGraph state (or `undefined` for other stream types)
   - `onError(error)`: Called when stream encounters an error
   - `onAbort()`: Called when stream is aborted

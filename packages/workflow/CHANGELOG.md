@@ -1,5 +1,20 @@
 # @ai-sdk/workflow
 
+## 1.0.0-canary.43
+
+### Patch Changes
+
+- d775a57: feat: introduce Instructions type
+- 39dad72: feat(workflow): add stable telemetry integration support to `WorkflowAgent` and remove legacy telemetry options.
+- Updated dependencies [e95e38d]
+- Updated dependencies [016e877]
+- Updated dependencies [ca99fea]
+- Updated dependencies [ca39020]
+- Updated dependencies [d775a57]
+- Updated dependencies [538c12b]
+  - ai@7.0.0-canary.127
+  - @ai-sdk/provider-utils@5.0.0-canary.36
+
 ## 1.0.0-canary.42
 
 ### Patch Changes

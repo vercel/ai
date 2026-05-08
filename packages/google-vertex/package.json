@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/google-vertex",
-  "version": "5.0.0-canary.75",
+  "version": "5.0.0-canary.76",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,

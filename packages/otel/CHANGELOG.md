@@ -1,5 +1,17 @@
 # @ai-sdk/otel
 
+## 1.0.0-canary.73
+
+### Patch Changes
+
+- c025d60: feat(otel): add option for custom span attributes
+- Updated dependencies [e95e38d]
+- Updated dependencies [016e877]
+- Updated dependencies [ca99fea]
+- Updated dependencies [d775a57]
+- Updated dependencies [538c12b]
+  - ai@7.0.0-canary.127
+
 ## 1.0.0-canary.72
 
 ### Patch Changes

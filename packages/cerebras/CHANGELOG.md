@@ -1,5 +1,13 @@
 # @ai-sdk/cerebras
 
+## 3.0.0-canary.43
+
+### Patch Changes
+
+- Updated dependencies [ca39020]
+  - @ai-sdk/provider-utils@5.0.0-canary.36
+  - @ai-sdk/openai-compatible@3.0.0-canary.43
+
 ## 3.0.0-canary.42
 
 ### Patch Changes
@@ -703,16 +711,17 @@
   Before
 
   ```ts
-  model.textEmbeddingModel('my-model-id');
+  model.textEmbeddingModel("my-model-id");
   ```
 
   After
 
   ```ts
-  model.embeddingModel('my-model-id');
+  model.embeddingModel("my-model-id");
   ```
 
 - 42e9f64: Add support for 5 new Cerebras models:
+
   - gpt-oss-120b (120B parameters)
   - qwen-3-235b-a22b-instruct-2507 (235B instruction-tuned)
   - qwen-3-235b-a22b-thinking-2507 (235B enhanced reasoning)
@@ -941,13 +950,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel('my-model-id');
+  model.textEmbeddingModel("my-model-id");
   ```
 
   After
 
   ```ts
-  model.embeddingModel('my-model-id');
+  model.embeddingModel("my-model-id");
   ```
 
 - Updated dependencies [8d9e8ad]
@@ -1187,6 +1196,7 @@
 ### Patch Changes
 
 - 42e9f64: Add support for 5 new Cerebras models:
+
   - gpt-oss-120b (120B parameters)
   - qwen-3-235b-a22b-instruct-2507 (235B instruction-tuned)
   - qwen-3-235b-a22b-thinking-2507 (235B enhanced reasoning)

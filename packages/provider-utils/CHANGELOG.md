@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 5.0.0-canary.36
+
+### Patch Changes
+
+- ca39020: Add an optional `workingDirectory` parameter to sandbox command execution.
+
 ## 5.0.0-canary.35
 
 ### Patch Changes
@@ -286,18 +292,18 @@
   const toolNameMapping = createToolNameMapping({
     tools,
     providerToolNames: {
-      'openai.code_interpreter': 'code_interpreter',
-      'openai.file_search': 'file_search',
-      'openai.image_generation': 'image_generation',
-      'openai.local_shell': 'local_shell',
-      'openai.shell': 'shell',
-      'openai.web_search': 'web_search',
-      'openai.web_search_preview': 'web_search_preview',
-      'openai.mcp': 'mcp',
-      'openai.apply_patch': 'apply_patch',
+      "openai.code_interpreter": "code_interpreter",
+      "openai.file_search": "file_search",
+      "openai.image_generation": "image_generation",
+      "openai.local_shell": "local_shell",
+      "openai.shell": "shell",
+      "openai.web_search": "web_search",
+      "openai.web_search_preview": "web_search_preview",
+      "openai.mcp": "mcp",
+      "openai.apply_patch": "apply_patch",
     },
-    resolveProviderToolName: tool =>
-      tool.id === 'openai.custom'
+    resolveProviderToolName: (tool) =>
+      tool.id === "openai.custom"
         ? (tool.args as { name?: string }).name
         : undefined,
   });
@@ -1027,6 +1033,7 @@
 - 4fef487: feat: support for zod v4 for schema validation
 
   All these methods now accept both a zod v4 and zod v3 schemas for validation:
+
   - `generateObject()`
   - `streamObject()`
   - `generateText()`
@@ -1186,6 +1193,7 @@
 - 4fef487: feat: support for zod v4 for schema validation
 
   All these methods now accept both a zod v4 and zod v3 schemas for validation:
+
   - `generateObject()`
   - `streamObject()`
   - `generateText()`

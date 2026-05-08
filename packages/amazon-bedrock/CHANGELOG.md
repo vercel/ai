@@ -1,5 +1,13 @@
 # @ai-sdk/amazon-bedrock
 
+## 5.0.0-canary.55
+
+### Patch Changes
+
+- Updated dependencies [ca39020]
+  - @ai-sdk/provider-utils@5.0.0-canary.36
+  - @ai-sdk/anthropic@4.0.0-canary.49
+
 ## 5.0.0-canary.54
 
 ### Patch Changes
@@ -1071,6 +1079,7 @@
 - 9ab6ebe: feat(provider/amazon-bedrock): expose stop_sequence in provider metadata
 
   The Bedrock provider now exposes the specific stop sequence that triggered generation to halt via `providerMetadata.bedrock.stopSequence`. This is implemented by:
+
   - Requesting `/stop_sequence` via `additionalModelResponseFieldPaths` in the API call
   - Parsing the value from `additionalModelResponseFields.stop_sequence` in both generate and stream responses
   - Exposing it as `stopSequence` in the provider metadata (returns `null` when no stop sequence was matched)
@@ -1081,13 +1090,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel('my-model-id');
+  model.textEmbeddingModel("my-model-id");
   ```
 
   After
 
   ```ts
-  model.embeddingModel('my-model-id');
+  model.embeddingModel("my-model-id");
   ```
 
 - 2625a04: feat(openai); update spec for mcp approval
@@ -1118,6 +1127,7 @@
   Added support for combining tool calling with structured outputs in both Amazon Bedrock and Google Vertex Anthropic providers. This allows developers to use tools (like weather lookups, web search, etc.) alongside structured JSON output schemas, enabling multi-step agentic workflows with structured final outputs.
 
   **Amazon Bedrock Changes:**
+
   - Removed incorrect warning that prevented using tools with JSON response format
   - Updated tool choice to use `{ type: 'required' }` instead of specific tool selection when using structured outputs
   - Added `isJsonResponseFromTool` parameter to finish reason mapping
@@ -1126,6 +1136,7 @@
   - Added example files demonstrating the feature
 
   **Google Vertex Anthropic Changes:**
+
   - Inherits support from underlying Anthropic provider implementation
   - Added test coverage to verify the feature works correctly
   - Added example files demonstrating the feature
@@ -1216,6 +1227,7 @@
 - 9ab6ebe: feat(provider/amazon-bedrock): expose stop_sequence in provider metadata
 
   The Bedrock provider now exposes the specific stop sequence that triggered generation to halt via `providerMetadata.bedrock.stopSequence`. This is implemented by:
+
   - Requesting `/stop_sequence` via `additionalModelResponseFieldPaths` in the API call
   - Parsing the value from `additionalModelResponseFields.stop_sequence` in both generate and stream responses
   - Exposing it as `stopSequence` in the provider metadata (returns `null` when no stop sequence was matched)
@@ -1476,13 +1488,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel('my-model-id');
+  model.textEmbeddingModel("my-model-id");
   ```
 
   After
 
   ```ts
-  model.embeddingModel('my-model-id');
+  model.embeddingModel("my-model-id");
   ```
 
 - Updated dependencies [8d9e8ad]
@@ -1552,6 +1564,7 @@
   Added support for combining tool calling with structured outputs in both Amazon Bedrock and Google Vertex Anthropic providers. This allows developers to use tools (like weather lookups, web search, etc.) alongside structured JSON output schemas, enabling multi-step agentic workflows with structured final outputs.
 
   **Amazon Bedrock Changes:**
+
   - Removed incorrect warning that prevented using tools with JSON response format
   - Updated tool choice to use `{ type: 'required' }` instead of specific tool selection when using structured outputs
   - Added `isJsonResponseFromTool` parameter to finish reason mapping
@@ -1560,6 +1573,7 @@
   - Added example files demonstrating the feature
 
   **Google Vertex Anthropic Changes:**
+
   - Inherits support from underlying Anthropic provider implementation
   - Added test coverage to verify the feature works correctly
   - Added example files demonstrating the feature
