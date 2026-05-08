@@ -2135,7 +2135,7 @@ class DefaultStreamTextResult<
   }
 
   get usage() {
-    return this.finalStep.then(step => step.usage);
+    return this.totalUsage;
   }
 
   get request() {

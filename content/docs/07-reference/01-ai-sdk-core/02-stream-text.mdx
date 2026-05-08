@@ -2350,7 +2350,7 @@ To see `streamText` in action, check out [these examples](#examples).
       name: 'usage',
       type: 'Promise<LanguageModelUsage>',
       description:
-        'The token usage of the last step. Automatically consumes the stream.',
+        'The total token usage of the generated response. When there are multiple steps, the usage is the sum of all step usages. Automatically consumes the stream.',
       properties: [
         {
           type: 'LanguageModelUsage',
@@ -2378,7 +2378,7 @@ To see `streamText` in action, check out [these examples](#examples).
     {
       name: 'totalUsage',
       type: 'Promise<LanguageModelUsage>',
-      description: 'The total token usage of the generated response. When there are multiple steps, the usage is the sum of all step usages. Automatically consumes the stream.',
+      description: 'Deprecated. Use usage instead. The total token usage of the generated response. When there are multiple steps, the usage is the sum of all step usages. Automatically consumes the stream.',
       properties: [
                   {
                   type: 'LanguageModelUsage',

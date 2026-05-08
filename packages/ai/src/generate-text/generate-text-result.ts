@@ -107,13 +107,16 @@ export interface GenerateTextResult<
   readonly rawFinishReason: string | undefined;
 
   /**
-   * The token usage of the last step.
+   * The total token usage of all steps.
+   * When there are multiple steps, the usage is the sum of all step usages.
    */
   readonly usage: LanguageModelUsage;
 
   /**
    * The total token usage of all steps.
    * When there are multiple steps, the usage is the sum of all step usages.
+   *
+   * @deprecated Use `usage` instead.
    */
   readonly totalUsage: LanguageModelUsage;
 

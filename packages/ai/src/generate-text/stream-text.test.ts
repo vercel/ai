@@ -4885,7 +4885,6 @@ describe('streamText', () => {
             "textTokens": 10,
           },
           "outputTokens": 10,
-          "raw": undefined,
           "totalTokens": 13,
         }
       `);
@@ -10307,8 +10306,8 @@ describe('streamText', () => {
           `);
         });
 
-        it('result.usage should contain token usage from final step', async () => {
-          expect(await result.totalUsage).toMatchInlineSnapshot(`
+        it('result.usage should contain total token usage', async () => {
+          expect(await result.usage).toMatchInlineSnapshot(`
             {
               "inputTokenDetails": {
                 "cacheReadTokens": 0,
@@ -10322,6 +10321,26 @@ describe('streamText', () => {
               },
               "outputTokens": 20,
               "totalTokens": 26,
+            }
+          `);
+        });
+
+        it('result.finalStep.usage should contain token usage from final step', async () => {
+          expect((await result.finalStep).usage).toMatchInlineSnapshot(`
+            {
+              "inputTokenDetails": {
+                "cacheReadTokens": 0,
+                "cacheWriteTokens": 0,
+                "noCacheTokens": 3,
+              },
+              "inputTokens": 3,
+              "outputTokenDetails": {
+                "reasoningTokens": 10,
+                "textTokens": 10,
+              },
+              "outputTokens": 10,
+              "raw": undefined,
+              "totalTokens": 13,
             }
           `);
         });
@@ -12044,8 +12063,8 @@ describe('streamText', () => {
           `);
         });
 
-        it('result.usage should contain token usage from final step', async () => {
-          expect(await result.totalUsage).toMatchInlineSnapshot(`
+        it('result.usage should contain total token usage', async () => {
+          expect(await result.usage).toMatchInlineSnapshot(`
             {
               "inputTokenDetails": {
                 "cacheReadTokens": 0,
@@ -12059,6 +12078,26 @@ describe('streamText', () => {
               },
               "outputTokens": 20,
               "totalTokens": 26,
+            }
+          `);
+        });
+
+        it('result.finalStep.usage should contain token usage from final step', async () => {
+          expect((await result.finalStep).usage).toMatchInlineSnapshot(`
+            {
+              "inputTokenDetails": {
+                "cacheReadTokens": 0,
+                "cacheWriteTokens": 0,
+                "noCacheTokens": 3,
+              },
+              "inputTokens": 3,
+              "outputTokenDetails": {
+                "reasoningTokens": 10,
+                "textTokens": 10,
+              },
+              "outputTokens": 10,
+              "raw": undefined,
+              "totalTokens": 13,
             }
           `);
         });

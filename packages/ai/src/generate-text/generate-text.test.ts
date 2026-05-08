@@ -3895,8 +3895,27 @@ describe('generateText', () => {
         `);
       });
 
-      it('result.usage should contain token usage from final step', async () => {
+      it('result.usage should sum token usage', async () => {
         expect(result.usage).toMatchInlineSnapshot(`
+          {
+            "inputTokenDetails": {
+              "cacheReadTokens": undefined,
+              "cacheWriteTokens": undefined,
+              "noCacheTokens": 13,
+            },
+            "inputTokens": 13,
+            "outputTokenDetails": {
+              "reasoningTokens": undefined,
+              "textTokens": 15,
+            },
+            "outputTokens": 15,
+            "totalTokens": 28,
+          }
+        `);
+      });
+
+      it('result.finalStep.usage should contain token usage from final step', async () => {
+        expect(result.finalStep.usage).toMatchInlineSnapshot(`
           {
             "inputTokenDetails": {
               "cacheReadTokens": undefined,
@@ -4598,8 +4617,27 @@ describe('generateText', () => {
         `);
       });
 
-      it('result.usage should contain token usage from final step', async () => {
+      it('result.usage should sum token usage', async () => {
         expect(result.usage).toMatchInlineSnapshot(`
+          {
+            "inputTokenDetails": {
+              "cacheReadTokens": undefined,
+              "cacheWriteTokens": undefined,
+              "noCacheTokens": 13,
+            },
+            "inputTokens": 13,
+            "outputTokenDetails": {
+              "reasoningTokens": undefined,
+              "textTokens": 15,
+            },
+            "outputTokens": 15,
+            "totalTokens": 28,
+          }
+        `);
+      });
+
+      it('result.finalStep.usage should contain token usage from final step', async () => {
+        expect(result.finalStep.usage).toMatchInlineSnapshot(`
           {
             "inputTokenDetails": {
               "cacheReadTokens": undefined,

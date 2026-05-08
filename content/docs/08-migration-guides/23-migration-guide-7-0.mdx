@@ -866,6 +866,36 @@ If both are present, provider-specific reasoning settings in `providerOptions` t
 
 Both deprecated names remain available in AI SDK 7.
 
+### `generateText` and `streamText` `usage` Now Includes All Steps
+
+The `usage` property on `generateText` and `streamText` results now returns the total token usage across all steps. This matches what `totalUsage` previously represented.
+
+Use `finalStep.usage` to read the previous `usage` behavior, which only returned token usage from the final step:
+
+```tsx filename="AI SDK 6"
+const result = await generateText({
+  model: yourModel,
+  prompt: 'Write a haiku, then revise it.',
+  stopWhen: stepCountIs(2),
+});
+
+console.log(result.usage);
+console.log(result.totalUsage);
+```
+
+```tsx filename="AI SDK 7"
+const result = await generateText({
+  model: yourModel,
+  prompt: 'Write a haiku, then revise it.',
+  stopWhen: isStepCount(2),
+});
+
+console.log(result.finalStep.usage); // final step only
+console.log(result.usage); // all steps
+```
+
+`totalUsage` is deprecated. Replace `result.totalUsage` with `result.usage`.
+
 ### Stop Condition Helper Rename: `stepCountIs` -> `isStepCount`
 
 Rename imports and usage in tool-loop stop conditions:

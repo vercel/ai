@@ -1335,7 +1335,7 @@ class DefaultGenerateTextResult<
   }
 
   get usage() {
-    return this.finalStep.usage;
+    return this.totalUsage;
   }
 
   get output() {
