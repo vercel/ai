@@ -37,6 +37,7 @@ export class HttpMCPTransport implements MCPTransport {
   private inboundSseConnection?: { close: () => void };
   private redirectMode: RequestRedirect;
   private fetchFn: FetchFunction;
+  private negotiatedProtocolVersion?: string;
 
   // Inbound SSE resumption and reconnection state
   private lastInboundEventId?: string;
@@ -72,13 +73,28 @@ export class HttpMCPTransport implements MCPTransport {
     this.fetchFn = fetchFn ?? globalThis.fetch;
   }
 
+  private captureNegotiatedVersion(msg: JSONRPCMessage): void {
+    if (
+      'result' in msg &&
+      msg.result !== null &&
+      typeof msg.result === 'object' &&
+      'protocolVersion' in msg.result &&
+      typeof (msg.result as Record<string, unknown>).protocolVersion === 'string'
+    ) {
+      this.negotiatedProtocolVersion = (
+        msg.result as Record<string, unknown>
+      ).protocolVersion as string;
+    }
+  }
+
   private async commonHeaders(
     base: Record<string, string>,
   ): Promise<Record<string, string>> {
     const headers: Record<string, string> = {
       ...this.headers,
       ...base,
-      'mcp-protocol-version': LATEST_PROTOCOL_VERSION,
+      'mcp-protocol-version':
+        this.negotiatedProtocolVersion ?? LATEST_PROTOCOL_VERSION,
     };
 
     if (this.sessionId) {
@@ -215,7 +231,10 @@ export class HttpMCPTransport implements MCPTransport {
           const messages: JSONRPCMessage[] = Array.isArray(data)
             ? data.map((m: unknown) => JSONRPCMessageSchema.parse(m))
             : [JSONRPCMessageSchema.parse(data)];
-          for (const m of messages) this.onmessage?.(m);
+          for (const m of messages) {
+            this.captureNegotiatedVersion(m);
+            this.onmessage?.(m);
+          }
           return;
         }
 
@@ -243,6 +262,7 @@ export class HttpMCPTransport implements MCPTransport {
                 if (event === 'message') {
                   try {
                     const msg = await parseJSONRPCMessage(data);
+                    this.captureNegotiatedVersion(msg);
                     this.onmessage?.(msg);
                   } catch (error) {
                     const e = new MCPClientError({
@@ -391,6 +411,7 @@ export class HttpMCPTransport implements MCPTransport {
             if (event === 'message') {
               try {
                 const msg = await parseJSONRPCMessage(data);
+                this.captureNegotiatedVersion(msg);
                 this.onmessage?.(msg);
               } catch (error) {
                 const e = new MCPClientError({
