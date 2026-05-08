@@ -69,9 +69,59 @@ export const myProvider = customProvider({
 This is only an import and symbol rename. The `customProvider` options and
 behavior are unchanged.
 
+### Prompt Instructions: `system` Renamed to `instructions`
+
+The top-level prompt option for system instructions has been renamed from
+`system` to `instructions`.
+
+```tsx filename="AI SDK 6"
+const result = await generateText({
+  model: yourModel,
+  system: 'You are a helpful assistant.',
+  prompt: 'Hello!',
+});
+```
+
+```tsx filename="AI SDK 7"
+const result = await generateText({
+  model: yourModel,
+  instructions: 'You are a helpful assistant.',
+  prompt: 'Hello!',
+});
+```
+
+This applies to AI SDK functions that accept `prompt` or `messages`, including
+`generateText`, `streamText`, `generateObject`, `streamObject`, and `streamUI`.
+
+The same rename applies to `prepareStep` results for `generateText` and
+`streamText`:
+
+```tsx filename="AI SDK 6"
+const result = streamText({
+  model: yourModel,
+  prompt: 'Hello!',
+  prepareStep: () => ({
+    system: 'Use concise answers for this step.',
+  }),
+});
+```
+
+```tsx filename="AI SDK 7"
+const result = streamText({
+  model: yourModel,
+  prompt: 'Hello!',
+  prepareStep: () => ({
+    instructions: 'Use concise answers for this step.',
+  }),
+});
+```
+
+The `system` option is still accepted as a deprecated fallback. When both
+`instructions` and `system` are provided, `instructions` takes precedence.
+
 ### Prompt Messages: System Messages in `prompt` or `messages` Are Rejected by Default
 
-AI SDK 7 rejects system messages in the `prompt` or `messages` fields by default. System instructions should usually be passed with the top-level `system` option.
+AI SDK 7 rejects system messages in the `prompt` or `messages` fields by default. System instructions should usually be passed with the top-level `instructions` option.
 
 This can break older persisted chats or custom prompt arrays that include `{ role: 'system' }` messages:
 
@@ -85,12 +135,12 @@ const result = await generateText({
 });
 ```
 
-Move system instructions to the `system` option when possible:
+Move system instructions to the `instructions` option when possible:
 
 ```tsx filename="AI SDK 7"
 const result = await generateText({
   model: yourModel,
-  system: 'You are a helpful assistant.',
+  instructions: 'You are a helpful assistant.',
   messages: [{ role: 'user', content: 'Hello!' }],
 });
 ```
@@ -101,7 +151,7 @@ If you need to keep existing chat histories that already contain system messages
   Only use `allowSystemInMessages` for trusted messages. If users can submit or
   edit these messages, they could inject a system message that overrides or sets
   the system prompt. In most cases, system instructions should only be set by
-  trusted server-side code through the `system` or `instructions` property.
+  trusted server-side code through the `instructions` property.
 </Note>
 
 ```tsx filename="AI SDK 7"
