@@ -152,7 +152,7 @@ function makeOnStartEvent(overrides?: Record<string, unknown>) {
     operationId: 'ai.generateText',
     provider: model.provider,
     modelId: model.modelId,
-    system: undefined,
+    instructions: undefined,
     messages: [{ role: 'user', content: 'Hello' }],
     tools: undefined,
     toolChoice: undefined,
@@ -186,7 +186,7 @@ function makeStepStartEvent(overrides?: Record<string, unknown>) {
     provider: model.provider,
     modelId: model.modelId,
     stepNumber: 0,
-    system: undefined,
+    instructions: undefined,
     messages: [],
     tools: undefined,
     toolChoice: undefined,
@@ -211,6 +211,7 @@ function makeLanguageModelCallStartEvent(overrides?: Record<string, unknown>) {
     callId,
     provider: model.provider,
     modelId: model.modelId,
+    instructions: undefined,
     messages: [],
     tools: undefined,
     ...overrides,
@@ -412,8 +413,10 @@ describe('OpenTelemetry', () => {
       `);
     });
 
-    it('sets system_instructions when system is provided', () => {
-      integration.onStart!(makeOnStartEvent({ system: 'You are helpful' }));
+    it('sets system_instructions when instructions are provided', () => {
+      integration.onStart!(
+        makeOnStartEvent({ instructions: 'You are helpful' }),
+      );
 
       const attrs = getStartSpanAttributes(tracer, 0);
       expect(parseJsonAttributes(attrs, 'gen_ai.system_instructions'))

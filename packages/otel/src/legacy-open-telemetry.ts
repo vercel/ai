@@ -249,7 +249,7 @@ export class LegacyOpenTelemetry implements Telemetry {
       'ai.prompt': {
         input: () =>
           JSON.stringify({
-            system: event.system,
+            system: event.instructions,
             messages: event.messages,
           }),
       },
