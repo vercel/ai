@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 5.0.0-canary.37
+
+### Patch Changes
+
+- d848405: feat: add optional `abortSignal` parameters to sandbox command execution
+
 ## 5.0.0-canary.36
 
 ### Patch Changes
