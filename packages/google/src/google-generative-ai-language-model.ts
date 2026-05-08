@@ -346,16 +346,12 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
             providerMetadata: thoughtSignatureMetadata,
           });
         }
-      } else if (
-        'functionCall' in part &&
-        part.functionCall.name != null &&
-        part.functionCall.args != null
-      ) {
+      } else if ('functionCall' in part && part.functionCall.name != null) {
         content.push({
           type: 'tool-call' as const,
           toolCallId: this.config.generateId(),
           toolName: part.functionCall.name,
-          input: JSON.stringify(part.functionCall.args),
+          input: JSON.stringify(part.functionCall.args ?? {}),
           providerMetadata: part.thoughtSignature
             ? {
                 [providerOptionsName]: {
@@ -819,6 +815,13 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
                   part.functionCall.name != null &&
                   part.functionCall.args != null &&
                   part.functionCall.partialArgs == null;
+                // Single-chunk no-args call: `{ name: 'X' }` with no `args`,
+                // `partialArgs`, or `willContinue`. Carries `thoughtSignature`.
+                const isNoArgsCompleteCall =
+                  part.functionCall.name != null &&
+                  part.functionCall.args == null &&
+                  part.functionCall.partialArgs == null &&
+                  part.functionCall.willContinue !== true;
 
                 if (isStreamingChunk) {
                   if (
@@ -939,6 +942,32 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
                     toolCallId,
                     toolName,
                     input: args,
+                    providerMetadata: providerMeta,
+                  });
+
+                  hasToolCalls = true;
+                } else if (isNoArgsCompleteCall) {
+                  const toolCallId = generateId();
+                  const toolName = part.functionCall.name!;
+
+                  controller.enqueue({
+                    type: 'tool-input-start',
+                    id: toolCallId,
+                    toolName,
+                    providerMetadata: providerMeta,
+                  });
+
+                  controller.enqueue({
+                    type: 'tool-input-end',
+                    id: toolCallId,
+                    providerMetadata: providerMeta,
+                  });
+
+                  controller.enqueue({
+                    type: 'tool-call',
+                    toolCallId,
+                    toolName,
+                    input: '{}',
                     providerMetadata: providerMeta,
                   });
 
