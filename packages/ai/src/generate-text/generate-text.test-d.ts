@@ -378,6 +378,9 @@ describe('generateText types', () => {
                 stdout: 'ok',
                 stderr: '',
               }),
+              readFile: async () => ({
+                content: 'ok',
+              }),
             },
           }),
         });

@@ -6,7 +6,7 @@ description: API Reference for the Sandbox interface.
 # `Sandbox`
 
 The `Sandbox` interface describes an execution environment that tools can use to
-run commands. Pass a sandbox to `generateText`, `streamText`,
+run commands and read files. Pass a sandbox to `generateText`, `streamText`,
 `ToolLoopAgent.generate`, `ToolLoopAgent.stream`, or agent UI stream helpers to
 make it available to tool execution.
 
@@ -26,6 +26,9 @@ type Sandbox = {
     exitCode: number;
     stdout: string;
     stderr: string;
+  }>;
+  readonly readFile: (options: { path: string }) => PromiseLike<{
+    content: string;
   }>;
 };
 ```
@@ -58,6 +61,24 @@ type Sandbox = {
         },
       ],
     },
+    {
+      name: 'readFile',
+      type: '(options: { path: string }) => PromiseLike<{ content: string }>',
+      description:
+        'Reads a file from the sandbox and resolves with its contents.',
+      properties: [
+        {
+          type: 'options',
+          parameters: [
+            {
+              name: 'path',
+              type: 'string',
+              description: 'The path of the file to read in the sandbox.',
+            },
+          ],
+        },
+      ],
+    },
   ]}
 />
 
@@ -66,9 +87,9 @@ type Sandbox = {
 ```ts
 const result = await generateText({
   model: __MODEL__,
-  tools: { shell },
+  tools: { shell, readFile },
   sandbox,
-  prompt: 'Run the test suite.',
+  prompt: 'Read package.json and run the test suite.',
 });
 ```
 
@@ -83,6 +104,17 @@ const shell = tool({
     }
 
     return sandbox.executeCommand({ command });
+  },
+});
+
+const readFile = tool({
+  inputSchema: z.object({ path: z.string() }),
+  execute: async ({ path }, { sandbox }) => {
+    if (!sandbox) {
+      throw new Error('Sandbox is not available');
+    }
+
+    return (await sandbox.readFile({ path })).content;
   },
 });
 ```

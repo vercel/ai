@@ -33,4 +33,19 @@ export type Sandbox = {
      */
     stderr: string;
   }>;
+
+  /**
+   * Read a file from the sandbox.
+   */
+  readonly readFile: (options: {
+    /**
+     * Path to the file to read.
+     */
+    path: string;
+  }) => PromiseLike<{
+    /**
+     * Binary content of the file.
+     */
+    binaryContent: Uint8Array;
+  }>;
 };

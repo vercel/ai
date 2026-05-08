@@ -493,6 +493,9 @@ describe('streamText types', () => {
                 stdout: 'ok',
                 stderr: '',
               }),
+              readFile: async () => ({
+                content: 'ok',
+              }),
             },
           }),
         });
