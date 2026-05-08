@@ -96,7 +96,6 @@ The following optional provider options are available for DeepSeek models:
 - `thinking` _object_
 
   Optional. Controls thinking mode (chain-of-thought reasoning). You can enable thinking mode either by using the `deepseek-reasoner` model or by setting this option.
-
   - `type`: `'enabled' | 'disabled'` - Enable or disable thinking mode.
 
 - `reasoningEffort` _'high' | 'max'_
@@ -106,7 +105,10 @@ The following optional provider options are available for DeepSeek models:
   as `high`, while `xhigh` is sent as `max`.
 
 ```ts highlight="7-12"
-import { deepSeek, type DeepSeekLanguageModelChatOptions } from '@ai-sdk/deepseek';
+import {
+  deepSeek,
+  type DeepSeekLanguageModelChatOptions,
+} from '@ai-sdk/deepseek';
 import { generateText } from 'ai';
 
 const { text, reasoning } = await generateText({

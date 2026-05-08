@@ -115,9 +115,9 @@ const result = await generateText({
 In this example, telemetry integrations receive `runtimeContext` as `{ requestId: 'req_abc' }`. Properties set to `false` or omitted are excluded. If `telemetry.includeRuntimeContext` is omitted, no runtime context properties are included. `telemetry.includeRuntimeContext` is supported by `generateText`, `streamText`, and `ToolLoopAgent`.
 
 <Note>
-  `telemetry.includeRuntimeContext` only filters telemetry integrations, including
-  OpenTelemetry integrations. Lifecycle callbacks and returned results still
-  receive the full `runtimeContext`.
+  `telemetry.includeRuntimeContext` only filters telemetry integrations,
+  including OpenTelemetry integrations. Lifecycle callbacks and returned results
+  still receive the full `runtimeContext`.
 </Note>
 
 ### Tool context
@@ -209,10 +209,7 @@ import { registerTelemetryIntegration } from 'ai';
 import { OpenTelemetry } from '@ai-sdk/otel';
 import { DevToolsTelemetry } from '@ai-sdk/devtools';
 
-registerTelemetryIntegration(
-  new OpenTelemetry(),
-  DevToolsTelemetry(),
-);
+registerTelemetryIntegration(new OpenTelemetry(), DevToolsTelemetry());
 ```
 
 ### Per-call integrations
@@ -573,7 +570,6 @@ This is the legacy format. Consider migrating to the `OpenTelemetry` for better 
 
 - `ai.generateText` (span): the full length of the generateText call. It contains 1 or more `ai.generateText.doGenerate` spans.
   It contains the [basic LLM span information](#basic-llm-span-information) and the following attributes:
-
   - `operation.name`: `ai.generateText` and the functionId that was set through `telemetry.functionId`
   - `ai.operationId`: `"ai.generateText"`
   - `ai.prompt`: the prompt that was used when calling `generateText`
@@ -584,7 +580,6 @@ This is the legacy format. Consider migrating to the `OpenTelemetry` for better 
 
 - `ai.generateText.doGenerate` (span): a provider doGenerate call. It can contain `ai.toolCall` spans.
   It contains the [call LLM span information](#call-llm-span-information) and the following attributes:
-
   - `operation.name`: `ai.generateText.doGenerate` and the functionId that was set through `telemetry.functionId`
   - `ai.operationId`: `"ai.generateText.doGenerate"`
   - `ai.prompt.messages`: the messages that were passed into the provider
@@ -605,7 +600,6 @@ This is the legacy format. Consider migrating to the `OpenTelemetry` for better 
 
 - `ai.streamText` (span): the full length of the streamText call. It contains a `ai.streamText.doStream` span.
   It contains the [basic LLM span information](#basic-llm-span-information) and the following attributes:
-
   - `operation.name`: `ai.streamText` and the functionId that was set through `telemetry.functionId`
   - `ai.operationId`: `"ai.streamText"`
   - `ai.prompt`: the prompt that was used when calling `streamText`
@@ -617,7 +611,6 @@ This is the legacy format. Consider migrating to the `OpenTelemetry` for better 
 - `ai.streamText.doStream` (span): a provider doStream call.
   This span contains an `ai.stream.firstChunk` event and `ai.toolCall` spans.
   It contains the [call LLM span information](#call-llm-span-information) and the following attributes:
-
   - `operation.name`: `ai.streamText.doStream` and the functionId that was set through `telemetry.functionId`
   - `ai.operationId`: `"ai.streamText.doStream"`
   - `ai.prompt.messages`: the messages that were passed into the provider
@@ -636,7 +629,6 @@ This is the legacy format. Consider migrating to the `OpenTelemetry` for better 
 - `ai.toolCall` (span): a tool call that is made as part of the streamText call. See [Legacy tool call spans](#legacy-tool-call-spans) for more details.
 
 - `ai.stream.firstChunk` (event): an event that is emitted when the first chunk of the stream is received.
-
   - `ai.response.msToFirstChunk`: the time it took to receive the first chunk
 
 - `ai.stream.finish` (event): an event that is emitted when the finish part of the LLM stream is received.
@@ -663,7 +655,6 @@ object-specific attributes such as `ai.schema.*`, `ai.response.object`, and
 
 - `ai.embed` (span): the full length of the embed call. It contains 1 `ai.embed.doEmbed` spans.
   It contains the [basic embedding span information](#basic-embedding-span-information) and the following attributes:
-
   - `operation.name`: `ai.embed` and the functionId that was set through `telemetry.functionId`
   - `ai.operationId`: `"ai.embed"`
   - `ai.value`: the value that was passed into the `embed` function
@@ -671,7 +662,6 @@ object-specific attributes such as `ai.schema.*`, `ai.response.object`, and
 
 - `ai.embed.doEmbed` (span): a provider doEmbed call.
   It contains the [basic embedding span information](#basic-embedding-span-information) and the following attributes:
-
   - `operation.name`: `ai.embed.doEmbed` and the functionId that was set through `telemetry.functionId`
   - `ai.operationId`: `"ai.embed.doEmbed"`
   - `ai.values`: the values that were passed into the provider (array)
@@ -683,7 +673,6 @@ object-specific attributes such as `ai.schema.*`, `ai.response.object`, and
 
 - `ai.embedMany` (span): the full length of the embedMany call. It contains 1 or more `ai.embedMany.doEmbed` spans.
   It contains the [basic embedding span information](#basic-embedding-span-information) and the following attributes:
-
   - `operation.name`: `ai.embedMany` and the functionId that was set through `telemetry.functionId`
   - `ai.operationId`: `"ai.embedMany"`
   - `ai.values`: the values that were passed into the `embedMany` function
@@ -691,7 +680,6 @@ object-specific attributes such as `ai.schema.*`, `ai.response.object`, and
 
 - `ai.embedMany.doEmbed` (span): a provider doEmbed call.
   It contains the [basic embedding span information](#basic-embedding-span-information) and the following attributes:
-
   - `operation.name`: `ai.embedMany.doEmbed` and the functionId that was set through `telemetry.functionId`
   - `ai.operationId`: `"ai.embedMany.doEmbed"`
   - `ai.values`: the values that were sent to the provider

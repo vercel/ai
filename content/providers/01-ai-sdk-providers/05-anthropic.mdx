@@ -149,7 +149,6 @@ The following optional provider options are available for Anthropic models:
 - `structuredOutputMode` _"outputFormat" | "jsonTool" | "auto"_
 
   Determines how structured outputs are generated. Optional.
-
   - `"outputFormat"`: Use the `output_format` parameter to specify the structured output format.
   - `"jsonTool"`: Use a special `"json"` tool to specify the structured output format.
   - `"auto"`: Use `"outputFormat"` when supported, otherwise fall back to `"jsonTool"` (default).
@@ -157,7 +156,6 @@ The following optional provider options are available for Anthropic models:
 - `metadata` _object_
 
   Optional. Metadata to include with the request. See the [Anthropic API documentation](https://platform.claude.com/docs/en/api/messages/create) for details.
-
   - `userId` _string_ - An external identifier for the end-user. Should be a UUID, hash, or other opaque identifier. Must not contain PII.
 
 ### Structured Outputs and Tool Input Streaming
@@ -356,9 +354,9 @@ console.log(text);
 ```
 
 <Note>
-  If you stream reasoning to users with `claude-opus-4-7`, the default `"omitted"` display will
-  cause a long pause before output begins. Set `display: "summarized"` to restore visible
-  progress during thinking.
+  If you stream reasoning to users with `claude-opus-4-7`, the default
+  `"omitted"` display will cause a long pause before output begins. Set
+  `display: "summarized"` to restore visible progress during thinking.
 </Note>
 
 #### Budget-Based Thinking
@@ -616,7 +614,10 @@ const result = await generateText({
 });
 
 console.log(result.text);
-console.log('Cache read tokens:', result.usage.inputTokenDetails.cacheReadTokens);
+console.log(
+  'Cache read tokens:',
+  result.usage.inputTokenDetails.cacheReadTokens,
+);
 console.log(
   'Cache write tokens:',
   result.usage.inputTokenDetails.cacheWriteTokens,

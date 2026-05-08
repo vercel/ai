@@ -132,7 +132,6 @@ tokens](https://vercel.com/docs/oidc) without API Keys.
 #### How OIDC Authentication Works
 
 1. **In Production/Preview Deployments**:
-
    - OIDC authentication is automatically handled
    - No manual configuration needed
    - Tokens are automatically obtained and refreshed
@@ -586,7 +585,6 @@ The Parallel Search tool supports the following optional configuration options:
 - **mode** _'one-shot' | 'agentic'_
 
   Mode preset for different use cases:
-
   - `'one-shot'` - Comprehensive results with longer excerpts for single-response answers (default)
   - `'agentic'` - Concise, token-efficient results optimized for multi-step agentic workflows
 
@@ -597,7 +595,6 @@ The Parallel Search tool supports the following optional configuration options:
 - **sourcePolicy** _object_
 
   Source policy for controlling which domains to include/exclude:
-
   - `includeDomains` - List of domains to include in search results
   - `excludeDomains` - List of domains to exclude from search results
   - `afterDate` - Only include results published after this date (ISO 8601 format)
@@ -605,14 +602,12 @@ The Parallel Search tool supports the following optional configuration options:
 - **excerpts** _object_
 
   Excerpt configuration for controlling result length:
-
   - `maxCharsPerResult` - Maximum characters per result
   - `maxCharsTotal` - Maximum total characters across all results
 
 - **fetchPolicy** _object_
 
   Fetch policy for controlling content freshness:
-
   - `maxAgeSeconds` - Maximum age in seconds for cached content (set to 0 for always fresh)
 
 The tool works with both `generateText` and `streamText`:
@@ -783,7 +778,6 @@ The following gateway provider options are available:
 - **sort** _'cost' | 'ttft' | 'tps'_
 
   Sorts available providers by a performance or cost metric before routing. The gateway will try the best-scoring provider first and fall back through the rest in sorted order. If unspecified, providers are ordered using the gateway's default system ranking.
-
   - `'cost'` — lowest cost first
   - `'ttft'` — lowest time-to-first-token first
   - `'tps'` — highest tokens-per-second first
@@ -821,7 +815,6 @@ The following gateway provider options are available:
   Each credential can optionally include a `modelMappings` array to map AI Gateway model slugs to your deployment names (for example, custom Azure deployment names). If a BYOK request fails, the gateway falls back to system credentials using the default model name.
 
   Examples:
-
   - Single provider: `byok: { 'anthropic': [{ apiKey: 'sk-ant-...' }] }`
   - Multiple credentials: `byok: { 'vertex': [{ project: 'proj-1', googleCredentials: { privateKey: '...', clientEmail: '...' } }, { project: 'proj-2', googleCredentials: { privateKey: '...', clientEmail: '...' } }] }`
   - Multiple providers: `byok: { 'anthropic': [{ apiKey: '...' }], 'bedrock': [{ accessKeyId: '...', secretAccessKey: '...' }] }`

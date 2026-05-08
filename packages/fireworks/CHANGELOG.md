@@ -719,13 +719,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel("my-model-id");
+  model.textEmbeddingModel('my-model-id');
   ```
 
   After
 
   ```ts
-  model.embeddingModel("my-model-id");
+  model.embeddingModel('my-model-id');
   ```
 
 - 95f65c2: chore: use import \* from zod/v4
@@ -953,13 +953,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel("my-model-id");
+  model.textEmbeddingModel('my-model-id');
   ```
 
   After
 
   ```ts
-  model.embeddingModel("my-model-id");
+  model.embeddingModel('my-model-id');
   ```
 
 - Updated dependencies [8d9e8ad]
@@ -1447,7 +1447,7 @@
 
   ```js
   await generateImage({
-    model: luma.image("photon-flash-1", {
+    model: luma.image('photon-flash-1', {
       maxImagesPerCall: 5,
       pollIntervalMillis: 500,
     }),
@@ -1460,7 +1460,7 @@
 
   ```js
   await generateImage({
-    model: luma.image("photon-flash-1"),
+    model: luma.image('photon-flash-1'),
     prompt,
     n: 10,
     maxImagesPerCall: 5,
@@ -1748,7 +1748,7 @@
 
   ```js
   await generateImage({
-    model: luma.image("photon-flash-1", {
+    model: luma.image('photon-flash-1', {
       maxImagesPerCall: 5,
       pollIntervalMillis: 500,
     }),
@@ -1761,7 +1761,7 @@
 
   ```js
   await generateImage({
-    model: luma.image("photon-flash-1"),
+    model: luma.image('photon-flash-1'),
     prompt,
     n: 10,
     maxImagesPerCall: 5,

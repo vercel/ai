@@ -123,9 +123,7 @@ const { text, sources, providerMetadata } = await generateText({
 
 // access the grounding metadata. Casting to the provider metadata type
 // is optional but provides autocomplete and type safety.
-const metadata = providerMetadata?.google as
-  | GoogleProviderMetadata
-  | undefined;
+const metadata = providerMetadata?.google as GoogleProviderMetadata | undefined;
 const groundingMetadata = metadata?.groundingMetadata;
 const safetyRatings = metadata?.safetyRatings;
 

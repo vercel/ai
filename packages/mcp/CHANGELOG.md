@@ -544,15 +544,15 @@
   This change replaces
 
   ```ts
-  import { experimental_createMCPClient } from "ai";
-  import { Experimental_StdioMCPTransport } from "ai/mcp-stdio";
+  import { experimental_createMCPClient } from 'ai';
+  import { Experimental_StdioMCPTransport } from 'ai/mcp-stdio';
   ```
 
   with
 
   ```ts
-  import { experimental_createMCPClient } from "@ai-sdk/mcp";
-  import { Experimental_StdioMCPTransport } from "@ai-sdk/mcp/mcp-stdio";
+  import { experimental_createMCPClient } from '@ai-sdk/mcp';
+  import { Experimental_StdioMCPTransport } from '@ai-sdk/mcp/mcp-stdio';
   ```
 
 ### Patch Changes
@@ -918,13 +918,13 @@
   This change replaces
 
   ```ts
-  import { experimental_createMCPClient } from "ai";
-  import { Experimental_StdioMCPTransport } from "ai/mcp-stdio";
+  import { experimental_createMCPClient } from 'ai';
+  import { Experimental_StdioMCPTransport } from 'ai/mcp-stdio';
   ```
 
   with
 
   ```ts
-  import { experimental_createMCPClient } from "@ai-sdk/mcp";
-  import { Experimental_StdioMCPTransport } from "@ai-sdk/mcp/mcp-stdio";
+  import { experimental_createMCPClient } from '@ai-sdk/mcp';
+  import { Experimental_StdioMCPTransport } from '@ai-sdk/mcp/mcp-stdio';
   ```

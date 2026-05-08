@@ -34,7 +34,12 @@ const agent = new WorkflowAgent({
 });
 
 const result = await agent.stream({
-  messages: [{ role: 'user', content: [{ type: 'text', text: 'What is the weather in NYC?' }] }],
+  messages: [
+    {
+      role: 'user',
+      content: [{ type: 'text', text: 'What is the weather in NYC?' }],
+    },
+  ],
 });
 
 console.log(result.messages);
@@ -44,7 +49,10 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
 
 ## Import
 
-<Snippet text={`import { WorkflowAgent } from "@ai-sdk/workflow"`} prompt={false} />
+<Snippet
+  text={`import { WorkflowAgent } from "@ai-sdk/workflow"`}
+  prompt={false}
+/>
 
 ## Constructor
 
@@ -63,7 +71,7 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
       type: 'LanguageModel',
       isRequired: true,
       description:
-        'The language model to use. A string compatible with the Vercel AI Gateway (e.g., \'anthropic/claude-sonnet-4-6\') or a provider instance (e.g., `openai(\'gpt-4o\')`).',
+        "The language model to use. A string compatible with the Vercel AI Gateway (e.g., 'anthropic/claude-sonnet-4-6') or a provider instance (e.g., `openai('gpt-4o')`).",
     },
     {
       name: 'instructions',
@@ -90,31 +98,36 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
       name: 'stopWhen',
       type: 'StopCondition | StopCondition[]',
       isOptional: true,
-      description: 'Default stop condition for the agent loop. Per-stream values override this default. Use `isLoopFinished()` to let the agent run until all tool calls have completed, but beware of potential runaway loops. See https://ai-sdk.dev/v7/docs/reference/ai-sdk-core/loop-finished#isloopfinished.',
+      description:
+        'Default stop condition for the agent loop. Per-stream values override this default. Use `isLoopFinished()` to let the agent run until all tool calls have completed, but beware of potential runaway loops. See https://ai-sdk.dev/v7/docs/reference/ai-sdk-core/loop-finished#isloopfinished.',
     },
     {
       name: 'activeTools',
       type: 'ActiveTools<TTools>',
       isOptional: true,
-      description: 'Default set of active tools. Limits which tools the model can call without changing tool call and result types. Per-stream values override this default.',
+      description:
+        'Default set of active tools. Limits which tools the model can call without changing tool call and result types. Per-stream values override this default.',
     },
     {
       name: 'output',
       type: 'OutputSpecification',
       isOptional: true,
-      description: 'Default structured output specification. Per-stream values override this default.',
+      description:
+        'Default structured output specification. Per-stream values override this default.',
     },
     {
       name: 'experimental_repairToolCall',
       type: 'ToolCallRepairFunction',
       isOptional: true,
-      description: 'Default function to repair tool calls that fail to parse. Per-stream values override this default.',
+      description:
+        'Default function to repair tool calls that fail to parse. Per-stream values override this default.',
     },
     {
       name: 'experimental_download',
       type: 'DownloadFunction',
       isOptional: true,
-      description: 'Default custom download function for URLs. Per-stream values override this default.',
+      description:
+        'Default custom download function for URLs. Per-stream values override this default.',
     },
     {
       name: 'prepareStep',
@@ -203,7 +216,8 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
             {
               name: 'messages',
               type: 'Array<ModelMessage>',
-              description: 'The messages that will be sent to the model for this step.',
+              description:
+                'The messages that will be sent to the model for this step.',
             },
             {
               name: 'steps',
@@ -237,7 +251,8 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
             {
               name: 'callId',
               type: 'string',
-              description: 'Unique identifier for this generation call, used to correlate events.',
+              description:
+                'Unique identifier for this generation call, used to correlate events.',
             },
             {
               name: 'toolCall',
@@ -247,12 +262,14 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
             {
               name: 'messages',
               type: 'Array<ModelMessage>',
-              description: 'Messages that were sent to the language model to initiate the response that contained the tool call.',
+              description:
+                'Messages that were sent to the language model to initiate the response that contained the tool call.',
             },
             {
               name: 'toolContext',
               type: 'InferToolContext<TOOLS[toolName]>',
-              description: 'Tool-specific context object for the tool call that is about to execute. Narrowed to the context type of the individual tool, not the entire tool set.',
+              description:
+                'Tool-specific context object for the tool call that is about to execute. Narrowed to the context type of the individual tool, not the entire tool set.',
             },
           ],
         },
@@ -271,7 +288,8 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
             {
               name: 'callId',
               type: 'string',
-              description: 'Unique identifier for this generation call, used to correlate events.',
+              description:
+                'Unique identifier for this generation call, used to correlate events.',
             },
             {
               name: 'toolCall',
@@ -286,17 +304,20 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
             {
               name: 'messages',
               type: 'Array<ModelMessage>',
-              description: 'Messages that were sent to the language model to initiate the response that contained the tool call.',
+              description:
+                'Messages that were sent to the language model to initiate the response that contained the tool call.',
             },
             {
               name: 'toolContext',
               type: 'InferToolContext<TOOLS[toolName]>',
-              description: 'Tool-specific context object for the tool call that just completed. Narrowed to the context type of the individual tool, not the entire tool set.',
+              description:
+                'Tool-specific context object for the tool call that just completed. Narrowed to the context type of the individual tool, not the entire tool set.',
             },
             {
               name: 'toolOutput',
               type: 'ToolOutput<TOOLS>',
-              description: "Discriminated union representing the tool execution result. When `type` is `'tool-result'`, the `output` field contains the tool's return value. When `type` is `'tool-error'`, the `error` field contains the error.",
+              description:
+                "Discriminated union representing the tool execution result. When `type` is `'tool-result'`, the `output` field contains the tool's return value. When `type` is `'tool-error'`, the `error` field contains the error.",
             },
           ],
         },
@@ -374,7 +395,8 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
       name: 'headers',
       type: 'Record<string, string | undefined>',
       isOptional: true,
-      description: 'Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.',
+      description:
+        'Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.',
     },
     {
       name: 'providerOptions',
@@ -392,7 +414,8 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
     {
       name: 'id',
       type: 'string | undefined',
-      description: 'The id of the agent. Used for telemetry identification. Read-only.',
+      description:
+        'The id of the agent. Used for telemetry identification. Read-only.',
     },
     {
       name: 'tools',
@@ -587,7 +610,8 @@ const result = await agent.stream({
       isOptional: true,
       description: 'Callback invoked when the operation is aborted. Receives all previously finished steps.',
     },
-  ]}
+
+]}
 />
 
 #### Returns
@@ -609,17 +633,20 @@ Returns a `Promise<WorkflowAgentStreamResult>` with the following properties:
     {
       name: 'toolCalls',
       type: 'Array<ToolCall>',
-      description: 'Tool calls from the last step, including unexecuted calls (e.g., tools requiring approval).',
+      description:
+        'Tool calls from the last step, including unexecuted calls (e.g., tools requiring approval).',
     },
     {
       name: 'toolResults',
       type: 'Array<ToolResult>',
-      description: 'Tool results from the last step. Only includes results for tools that were executed.',
+      description:
+        'Tool results from the last step. Only includes results for tools that were executed.',
     },
     {
       name: 'output',
       type: 'OUTPUT',
-      description: 'The structured output if an `output` specification was provided.',
+      description:
+        'The structured output if an `output` specification was provided.',
     },
   ]}
 />
@@ -714,7 +741,10 @@ const agent = new WorkflowAgent({
 
 const result = await agent.stream({
   messages: [
-    { role: 'user', content: [{ type: 'text', text: 'What is the weather in NYC?' }] },
+    {
+      role: 'user',
+      content: [{ type: 'text', text: 'What is the weather in NYC?' }],
+    },
   ],
 });
 
@@ -799,7 +829,15 @@ const analysisAgent = new WorkflowAgent({
 
 const result = await analysisAgent.stream({
   messages: [
-    { role: 'user', content: [{ type: 'text', text: 'Analyze: "The product exceeded my expectations!"' }] },
+    {
+      role: 'user',
+      content: [
+        {
+          type: 'text',
+          text: 'Analyze: "The product exceeded my expectations!"',
+        },
+      ],
+    },
   ],
   output: Output.object({
     schema: z.object({
@@ -865,7 +903,9 @@ const result = await agent.stream({
   },
 
   onFinish({ steps, totalUsage }) {
-    console.log(`Done in ${steps.length} steps, ${totalUsage.totalTokens} tokens`);
+    console.log(
+      `Done in ${steps.length} steps, ${totalUsage.totalTokens} tokens`,
+    );
   },
 });
 ```

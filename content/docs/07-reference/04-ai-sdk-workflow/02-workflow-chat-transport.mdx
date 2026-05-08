@@ -30,7 +30,10 @@ export default function Chat() {
 
 ## Import
 
-<Snippet text={`import { WorkflowChatTransport } from "@ai-sdk/workflow"`} prompt={false} />
+<Snippet
+  text={`import { WorkflowChatTransport } from "@ai-sdk/workflow"`}
+  prompt={false}
+/>
 
 ## Constructor
 
@@ -124,8 +127,7 @@ const stream = await transport.sendMessages({
     {
       name: 'trigger',
       type: "'submit-message' | 'regenerate-message'",
-      description:
-        'The type of message submission.',
+      description: 'The type of message submission.',
     },
     {
       name: 'messageId',
@@ -142,7 +144,8 @@ const stream = await transport.sendMessages({
     {
       name: 'abortSignal',
       type: 'AbortSignal | undefined',
-      description: 'Signal to abort the request. Propagated to both the initial POST and any reconnection GET requests.',
+      description:
+        'Signal to abort the request. Propagated to both the initial POST and any reconnection GET requests.',
     },
   ]}
 />
@@ -167,7 +170,8 @@ const stream = await transport.reconnectToStream({
     {
       name: 'chatId',
       type: 'string',
-      description: 'The chat ID to reconnect to. Used to construct the reconnection URL.',
+      description:
+        'The chat ID to reconnect to. Used to construct the reconnection URL.',
     },
     {
       name: 'abortSignal',
@@ -178,7 +182,8 @@ const stream = await transport.reconnectToStream({
       name: 'startIndex',
       type: 'number',
       isOptional: true,
-      description: "Override the start index for this reconnection. Negative values read from the end of the stream. When omitted, falls back to the constructor's initialStartIndex.",
+      description:
+        "Override the start index for this reconnection. Negative values read from the end of the stream. When omitted, falls back to the constructor's initialStartIndex.",
     },
   ]}
 />
@@ -273,7 +278,7 @@ export default function Chat() {
         api: '/api/chat',
         maxConsecutiveErrors: 5,
         initialStartIndex: -50, // Resume from last 50 chunks on page refresh
-        onChatSendMessage: (response) => {
+        onChatSendMessage: response => {
           const runId = response.headers.get('x-workflow-run-id');
           console.log('Workflow run started:', runId);
         },

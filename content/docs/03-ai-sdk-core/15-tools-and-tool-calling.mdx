@@ -161,7 +161,13 @@ type parameter; it defaults to `Context`). It may return `undefined` for the sam
 const result = await generateText({
   model: __MODEL__,
   tools: { runCommand },
-  toolApproval: ({ toolCall, tools, toolsContext, messages, runtimeContext }) => {
+  toolApproval: ({
+    toolCall,
+    tools,
+    toolsContext,
+    messages,
+    runtimeContext,
+  }) => {
     if (toolCall.toolName === 'runCommand' && !toolCall.dynamic) {
       // Inspect toolCall.input, cross-tool state, messages, or runtimeContext for policy.
       return 'user-approval';
@@ -271,9 +277,9 @@ prompting the user again.
 </Note>
 
 <Note>
-  Provider-executed tools are executed provider-side without considering the tool
-  approval setting. `toolApproval` (and the deprecated `needsApproval`) only
-  control tools that the AI SDK executes locally.
+  Provider-executed tools are executed provider-side without considering the
+  tool approval setting. `toolApproval` (and the deprecated `needsApproval`)
+  only control tools that the AI SDK executes locally.
 </Note>
 
 ### Dynamic Approval

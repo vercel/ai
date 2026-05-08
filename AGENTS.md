@@ -60,7 +60,7 @@ pnpm build          # Build all packages
 | `pnpm install`           | Install dependencies                                              |
 | `pnpm build`             | Build all packages                                                |
 | `pnpm test`              | Run all tests (excludes examples)                                 |
-| `pnpm check`             | Run linting (oxlint) and formatting (oxfmt) checks               |
+| `pnpm check`             | Run linting (oxlint) and formatting (oxfmt) checks                |
 | `pnpm fix`               | Fix linting and formatting issues                                 |
 | `pnpm type-check:full`   | TypeScript type checking (includes examples)                      |
 | `pnpm changeset`         | Add a changeset for your PR                                       |
