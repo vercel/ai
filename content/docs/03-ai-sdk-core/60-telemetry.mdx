@@ -522,12 +522,7 @@ import { OpenTelemetry } from '@ai-sdk/otel';
 
 registerTelemetry(
   new OpenTelemetry({
-    enrichSpan: ({
-      spanType,
-      operationId,
-      callId,
-      runtimeContext,
-    }) => {
+    enrichSpan: ({ spanType, operationId, callId, runtimeContext }) => {
       return {
         ...getCustomAttributes(runtimeContext, spanType),
         'my_app.operation_id': operationId,
