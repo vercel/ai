@@ -1240,13 +1240,14 @@ describe('ToolLoopAgent', () => {
         expect({
           provider: startEvent.provider,
           modelId: startEvent.modelId,
-          system: startEvent.system,
+          instructions: startEvent.instructions,
           messages: startEvent.messages,
           temperature: startEvent.temperature,
           maxOutputTokens: startEvent.maxOutputTokens,
           runtimeContext: startEvent.runtimeContext,
         }).toMatchInlineSnapshot(`
           {
+            "instructions": "You are a helpful assistant",
             "maxOutputTokens": 500,
             "messages": [
               {
@@ -1259,7 +1260,6 @@ describe('ToolLoopAgent', () => {
             "runtimeContext": {
               "userId": "test-user",
             },
-            "system": "You are a helpful assistant",
             "temperature": 0.7,
           }
         `);
@@ -1427,13 +1427,14 @@ describe('ToolLoopAgent', () => {
         expect({
           provider: startEvent.provider,
           modelId: startEvent.modelId,
-          system: startEvent.system,
+          instructions: startEvent.instructions,
           messages: startEvent.messages,
           temperature: startEvent.temperature,
           maxOutputTokens: startEvent.maxOutputTokens,
           runtimeContext: startEvent.runtimeContext,
         }).toMatchInlineSnapshot(`
           {
+            "instructions": "You are a helpful assistant",
             "maxOutputTokens": 500,
             "messages": [
               {
@@ -1446,7 +1447,6 @@ describe('ToolLoopAgent', () => {
             "runtimeContext": {
               "userId": "test-user",
             },
-            "system": "You are a helpful assistant",
             "temperature": 0.7,
           }
         `);
@@ -1633,12 +1633,13 @@ describe('ToolLoopAgent', () => {
           stepNumber: stepStartEvent.steps.length,
           provider: stepStartEvent.provider,
           modelId: stepStartEvent.modelId,
-          system: stepStartEvent.system,
+          instructions: stepStartEvent.instructions,
           messagesLength: stepStartEvent.messages.length,
           steps: stepStartEvent.steps,
           runtimeContext: stepStartEvent.runtimeContext,
         }).toMatchInlineSnapshot(`
           {
+            "instructions": "You are a helpful assistant",
             "messagesLength": 1,
             "modelId": "mock-model-id",
             "provider": "mock-provider",
@@ -1647,7 +1648,6 @@ describe('ToolLoopAgent', () => {
             },
             "stepNumber": 0,
             "steps": [],
-            "system": "You are a helpful assistant",
           }
         `);
       });
@@ -1789,12 +1789,13 @@ describe('ToolLoopAgent', () => {
           stepNumber: stepStartEvent.steps.length,
           provider: stepStartEvent.provider,
           modelId: stepStartEvent.modelId,
-          system: stepStartEvent.system,
+          instructions: stepStartEvent.instructions,
           messagesLength: stepStartEvent.messages.length,
           steps: stepStartEvent.steps,
           runtimeContext: stepStartEvent.runtimeContext,
         }).toMatchInlineSnapshot(`
           {
+            "instructions": "You are a helpful assistant",
             "messagesLength": 1,
             "modelId": "mock-model-id",
             "provider": "mock-provider",
@@ -1803,7 +1804,6 @@ describe('ToolLoopAgent', () => {
             },
             "stepNumber": 0,
             "steps": [],
-            "system": "You are a helpful assistant",
           }
         `);
       });

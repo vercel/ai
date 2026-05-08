@@ -154,9 +154,9 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
               description: 'The specific model identifier (e.g., "gpt-4o").',
             },
             {
-              name: 'system',
+              name: 'instructions',
               type: 'Instructions | undefined',
-              description: 'The system message(s) provided to the model.',
+              description: 'The instructions provided to the model.',
             },
             {
               name: 'messages',
@@ -294,9 +294,10 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
               description: 'The specific model identifier (e.g., "gpt-4o").',
             },
             {
-              name: 'system',
+              name: 'instructions',
               type: 'Instructions | undefined',
-              description: 'The system message for this step.',
+              description:
+                'The instructions provided to the model for this step.',
             },
             {
               name: 'messages',

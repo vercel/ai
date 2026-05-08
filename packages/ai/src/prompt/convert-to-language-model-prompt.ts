@@ -84,10 +84,10 @@ export async function convertToLanguageModelPrompt({
   }
 
   const messages = [
-    ...(prompt.system != null
-      ? typeof prompt.system === 'string'
-        ? [{ role: 'system' as const, content: prompt.system }]
-        : asArray(prompt.system).map(message => ({
+    ...(prompt.instructions != null
+      ? typeof prompt.instructions === 'string'
+        ? [{ role: 'system' as const, content: prompt.instructions }]
+        : asArray(prompt.instructions).map(message => ({
             role: 'system' as const,
             content: message.content,
             providerOptions: message.providerOptions,

@@ -181,8 +181,8 @@ export async function streamLanguageModelCall<
   output,
   toolChoice,
   prompt,
-  instructions,
   system,
+  instructions,
   messages,
   allowSystemInMessages,
   download,
@@ -261,7 +261,7 @@ export async function streamLanguageModelCall<
 
   const promptMessages = await convertToLanguageModelPrompt({
     prompt: {
-      system: standardizedPrompt.system,
+      instructions: standardizedPrompt.instructions,
       messages: standardizedPrompt.messages,
     },
     supportedUrls: await resolvedModel.supportedUrls,
@@ -287,7 +287,7 @@ export async function streamLanguageModelCall<
       callId: effectiveCallId,
       provider: resolvedModel.provider,
       modelId: resolvedModel.modelId,
-      system: standardizedPrompt.system,
+      instructions: standardizedPrompt.instructions,
       messages: standardizedPrompt.messages,
       tools: stepTools,
       ...callSettings,
@@ -314,7 +314,7 @@ export async function streamLanguageModelCall<
   const standardizedStream = languageModelStream.pipeThrough(
     createLanguageModelV4StreamPartToLanguageModelStreamPartTransform({
       tools,
-      system: standardizedPrompt.system,
+      instructions: standardizedPrompt.instructions,
       messages: standardizedPrompt.messages,
       repairToolCall,
       refineToolInput,
@@ -338,7 +338,7 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
   TOOLS extends ToolSet,
 >({
   tools,
-  system,
+  instructions,
   messages,
   repairToolCall,
   refineToolInput,
@@ -349,7 +349,7 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
   onLanguageModelCallEnd,
 }: {
   tools: TOOLS | undefined;
-  system: Instructions | undefined;
+  instructions: Instructions | undefined;
   messages: ModelMessage[];
   repairToolCall: ToolCallRepairFunction<TOOLS> | undefined;
   refineToolInput: ToolInputRefinement<TOOLS> | undefined;
@@ -512,7 +512,7 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
               tools,
               repairToolCall,
               refineToolInput,
-              system,
+              instructions,
               messages,
             });
 
