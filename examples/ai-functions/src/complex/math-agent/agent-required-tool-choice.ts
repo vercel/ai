@@ -35,7 +35,7 @@ run(async () => {
     onStepFinish: async ({ toolResults }) => {
       console.log(`STEP RESULTS: ${JSON.stringify(toolResults, null, 2)}`);
     },
-    system:
+    instructions:
       'You are solving math problems. ' +
       'Reason step by step. ' +
       'Use the calculator when necessary. ' +

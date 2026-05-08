@@ -5875,6 +5875,17 @@ describe('streamText', () => {
         ]
       `);
     });
+
+    it('should expose the final step', async () => {
+      const result = streamText({
+        model: createTestModel(),
+        ...defaultSettings(),
+      });
+
+      const steps = await result.steps;
+
+      await expect(result.finalStep).resolves.toBe(steps.at(-1));
+    });
   });
 
   describe('result.toolCalls', () => {
@@ -6223,7 +6234,7 @@ describe('streamText', () => {
 
       const result = streamText({
         model: createTestModel(),
-        system: 'you are a helpful assistant',
+        instructions: 'you are a helpful assistant',
         messages: [{ role: 'user', content: 'test-message' }],
         maxOutputTokens: 100,
         temperature: 0.5,
@@ -10723,7 +10734,7 @@ describe('streamText', () => {
                   type: 'tool',
                   toolName: 'tool1' as const,
                 },
-                system: 'system-message-0',
+                instructions: 'system-message-0',
                 messages: [
                   {
                     role: 'user',
@@ -10737,7 +10748,7 @@ describe('streamText', () => {
             if (stepNumber === 1) {
               return {
                 activeTools: [],
-                system: 'system-message-1',
+                instructions: 'system-message-1',
                 runtimeContext: { context: 'state3' },
               };
             }

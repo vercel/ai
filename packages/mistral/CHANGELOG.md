@@ -1,5 +1,20 @@
 # @ai-sdk/mistral
 
+## 4.0.0-canary.40
+
+### Patch Changes
+
+- Updated dependencies [f634bac]
+  - @ai-sdk/provider-utils@5.0.0-canary.35
+
+## 4.0.0-canary.39
+
+### Patch Changes
+
+- Updated dependencies [69254e0]
+- Updated dependencies [3015fc3]
+  - @ai-sdk/provider-utils@5.0.0-canary.34
+
 ## 4.0.0-canary.38
 
 ### Patch Changes
@@ -517,13 +532,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel("my-model-id");
+  model.textEmbeddingModel('my-model-id');
   ```
 
   After
 
   ```ts
-  model.embeddingModel("my-model-id");
+  model.embeddingModel('my-model-id');
   ```
 
 - 2625a04: feat(openai); update spec for mcp approval
@@ -738,13 +753,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel("my-model-id");
+  model.textEmbeddingModel('my-model-id');
   ```
 
   After
 
   ```ts
-  model.embeddingModel("my-model-id");
+  model.embeddingModel('my-model-id');
   ```
 
 - Updated dependencies [8d9e8ad]
@@ -1094,12 +1109,12 @@
 - 3429644: feat(provider/mistral): `MistralLanguageModelOptions` type
 
   ```ts
-  import { mistral, type MistralLanguageModelOptions } from "@ai-sdk/mistral";
-  import { generateText } from "ai";
+  import { mistral, type MistralLanguageModelOptions } from '@ai-sdk/mistral';
+  import { generateText } from 'ai';
 
   await generateText({
-    model: mistral("open-mistral-7b"),
-    prompt: "Invent a new holiday and describe its traditions.",
+    model: mistral('open-mistral-7b'),
+    prompt: 'Invent a new holiday and describe its traditions.',
     providerOptions: {
       mistral: {
         safePrompt: true,

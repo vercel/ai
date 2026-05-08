@@ -45,10 +45,10 @@ To see `streamText` in action, check out [these examples](#examples).
       description: "The language model to use. Example: openai('gpt-4.1')",
     },
     {
-      name: 'system',
-      type: 'string | SystemModelMessage | SystemModelMessage[]',
+      name: 'instructions',
+      type: 'Instructions',
       description:
-        'The system prompt to use that specifies the behavior of the model.',
+        'Instructions to use that specify the behavior of the model.',
     },
     {
       name: 'prompt',
@@ -332,7 +332,7 @@ To see `streamText` in action, check out [these examples](#examples).
       type: 'boolean',
       isOptional: true,
       description:
-        'Whether system messages are allowed in the `prompt` or `messages` fields. Defaults to false. System messages in the `system` option are always allowed. Enabling this for user-controlled messages can create a prompt injection risk.',
+        'Whether system messages are allowed in the `prompt` or `messages` fields. Defaults to false. System messages in the `instructions` option are always allowed. Enabling this for user-controlled messages can create a prompt injection risk.',
     },
     {
       name: 'tools',
@@ -634,7 +634,7 @@ To see `streamText` in action, check out [these examples](#examples).
       type: '(options: PrepareStepOptions) => PrepareStepResult<TOOLS> | Promise<PrepareStepResult<TOOLS>>',
       isOptional: true,
       description:
-        'Optional function that you can use to provide different settings for a step. You can modify the model, tool choices, active tools, system prompt, input messages, and sandbox for each step.',
+        'Optional function that you can use to provide different settings for a step. You can modify the model, tool choices, active tools, instructions, input messages, and sandbox for each step.',
       properties: [
         {
           type: 'PrepareStepFunction<TOOLS>',
@@ -722,11 +722,11 @@ To see `streamText` in action, check out [these examples](#examples).
                 'If provided, only these tools are enabled/available for this step.',
             },
             {
-              name: 'system',
-              type: 'string | SystemModelMessage | SystemModelMessage[]',
+              name: 'instructions',
+              type: 'Instructions',
               isOptional: true,
               description:
-                'Optionally override the system message(s) sent to the model for this step.',
+                'Optionally override the instructions sent to the model for this step.',
             },
             {
               name: 'messages',
@@ -840,7 +840,7 @@ To see `streamText` in action, check out [these examples](#examples).
           parameters: [
             {
               name: 'system',
-              type: 'string | SystemModelMessage | SystemModelMessage[] | undefined',
+              type: 'Instructions | undefined',
               description: 'The system prompt.',
             },
             {
@@ -1848,6 +1848,12 @@ To see `streamText` in action, check out [these examples](#examples).
                 'Response information for every step. You can use this to get information about intermediate steps, such as the tool calls or the response headers.',
             },
             {
+              name: 'finalStep',
+              type: 'StepResult',
+              description:
+                'The final step. This is a shortcut for `steps.at(-1)`.',
+            },
+            {
               name: 'runtimeContext',
               type: 'CONTEXT',
               description:
@@ -1899,7 +1905,7 @@ To see `streamText` in action, check out [these examples](#examples).
             },
             {
               name: 'system',
-              type: 'string | SystemModelMessage | Array<SystemModelMessage> | undefined',
+              type: 'Instructions | undefined',
               description: 'The system message(s) provided to the model.',
             },
             {
@@ -2045,7 +2051,7 @@ To see `streamText` in action, check out [these examples](#examples).
             },
             {
               name: 'system',
-              type: 'string | SystemModelMessage | Array<SystemModelMessage> | undefined',
+              type: 'Instructions | undefined',
               description: 'The system message for this step.',
             },
             {
@@ -3013,6 +3019,12 @@ To see `streamText` in action, check out [these examples](#examples).
       type: 'AsyncIterableStream<string>',
       description:
         'A text stream that returns only the generated text deltas. You can use it as either an AsyncIterable or a ReadableStream. When an error occurs, the stream will throw the error.',
+    },
+    {
+      name: 'finalStep',
+      type: 'Promise<StepResult>',
+      description:
+        'The final step. This is a shortcut for `steps.at(-1)`. Automatically consumes the stream.',
     },
     {
       name: 'fullStream',

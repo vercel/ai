@@ -45,6 +45,18 @@ function getCachePoint(
   return { cachePoint: cachePointConfig };
 }
 
+function pushCachePoint(
+  content:
+    | AmazonBedrockUserMessage['content']
+    | AmazonBedrockAssistantMessage['content'],
+  providerMetadata: SharedV4ProviderMetadata | undefined,
+) {
+  const cachePoint = getCachePoint(providerMetadata);
+  if (cachePoint) {
+    content.push(cachePoint);
+  }
+}
+
 async function shouldEnableCitations(
   providerMetadata: SharedV4ProviderMetadata | undefined,
 ): Promise<boolean> {
@@ -201,6 +213,8 @@ export async function convertToAmazonBedrockChatMessages(
                     break;
                   }
                 }
+
+                pushCachePoint(amazonBedrockContent, part.providerOptions);
               }
 
               break;
@@ -283,6 +297,7 @@ export async function convertToAmazonBedrockChatMessages(
                     content: toolResultContent,
                   },
                 });
+                pushCachePoint(amazonBedrockContent, part.providerOptions);
               }
 
               break;
@@ -293,10 +308,7 @@ export async function convertToAmazonBedrockChatMessages(
             }
           }
 
-          const cachePoint = getCachePoint(providerOptions);
-          if (cachePoint) {
-            amazonBedrockContent.push(cachePoint);
-          }
+          pushCachePoint(amazonBedrockContent, providerOptions);
         }
 
         messages.push({ role: 'user', content: amazonBedrockContent });
@@ -418,11 +430,10 @@ export async function convertToAmazonBedrockChatMessages(
                 break;
               }
             }
+
+            pushCachePoint(amazonBedrockContent, part.providerOptions);
           }
-          const cachePoint = getCachePoint(message.providerOptions);
-          if (cachePoint) {
-            amazonBedrockContent.push(cachePoint);
-          }
+          pushCachePoint(amazonBedrockContent, message.providerOptions);
         }
 
         messages.push({ role: 'assistant', content: amazonBedrockContent });

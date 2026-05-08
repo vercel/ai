@@ -115,9 +115,9 @@ describe('standardizePrompt', () => {
     }).rejects.toThrow(InvalidPromptError);
   });
 
-  it('should support SystemModelMessage system message', async () => {
+  it('should support SystemModelMessage instructions', async () => {
     const result = await standardizePrompt({
-      system: {
+      instructions: {
         role: 'system',
         content: 'INSTRUCTIONS',
       },
@@ -140,9 +140,9 @@ describe('standardizePrompt', () => {
     `);
   });
 
-  it('should support array of SystemModelMessage system messages', async () => {
+  it('should support array of SystemModelMessage instructions', async () => {
     const result = await standardizePrompt({
-      system: [
+      instructions: [
         { role: 'system', content: 'INSTRUCTIONS' },
         { role: 'system', content: 'INSTRUCTIONS 2' },
       ],
@@ -167,6 +167,45 @@ describe('standardizePrompt', () => {
             "role": "system",
           },
         ],
+      }
+    `);
+  });
+
+  it('should fall back to system when instructions is not defined', async () => {
+    const result = await standardizePrompt({
+      system: 'SYSTEM',
+      prompt: 'Hello, world!',
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": "Hello, world!",
+            "role": "user",
+          },
+        ],
+        "system": "SYSTEM",
+      }
+    `);
+  });
+
+  it('should prefer instructions over system', async () => {
+    const result = await standardizePrompt({
+      instructions: 'INSTRUCTIONS',
+      system: 'SYSTEM',
+      prompt: 'Hello, world!',
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": "Hello, world!",
+            "role": "user",
+          },
+        ],
+        "system": "INSTRUCTIONS",
       }
     `);
   });

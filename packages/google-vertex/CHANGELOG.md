@@ -1,5 +1,28 @@
 # @ai-sdk/google-vertex
 
+## 5.0.0-canary.75
+
+### Patch Changes
+
+- Updated dependencies [f634bac]
+  - @ai-sdk/provider-utils@5.0.0-canary.35
+  - @ai-sdk/anthropic@4.0.0-canary.48
+  - @ai-sdk/google@4.0.0-canary.56
+  - @ai-sdk/openai-compatible@3.0.0-canary.42
+
+## 5.0.0-canary.74
+
+### Patch Changes
+
+- Updated dependencies [2610e84]
+- Updated dependencies [ebbb0f2]
+- Updated dependencies [69254e0]
+- Updated dependencies [3015fc3]
+  - @ai-sdk/anthropic@4.0.0-canary.47
+  - @ai-sdk/google@4.0.0-canary.55
+  - @ai-sdk/provider-utils@5.0.0-canary.34
+  - @ai-sdk/openai-compatible@3.0.0-canary.41
+
 ## 5.0.0-canary.73
 
 ### Patch Changes
@@ -1336,13 +1359,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel("my-model-id");
+  model.textEmbeddingModel('my-model-id');
   ```
 
   After
 
   ```ts
-  model.embeddingModel("my-model-id");
+  model.embeddingModel('my-model-id');
   ```
 
 - 32a6c13: Add Google Maps grounding tool support for location-aware Gemini responses
@@ -1374,7 +1397,6 @@
   Added support for combining tool calling with structured outputs in both Amazon Bedrock and Google Vertex Anthropic providers. This allows developers to use tools (like weather lookups, web search, etc.) alongside structured JSON output schemas, enabling multi-step agentic workflows with structured final outputs.
 
   **Amazon Bedrock Changes:**
-
   - Removed incorrect warning that prevented using tools with JSON response format
   - Updated tool choice to use `{ type: 'required' }` instead of specific tool selection when using structured outputs
   - Added `isJsonResponseFromTool` parameter to finish reason mapping
@@ -1383,7 +1405,6 @@
   - Added example files demonstrating the feature
 
   **Google Vertex Anthropic Changes:**
-
   - Inherits support from underlying Anthropic provider implementation
   - Added test coverage to verify the feature works correctly
   - Added example files demonstrating the feature
@@ -1826,13 +1847,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel("my-model-id");
+  model.textEmbeddingModel('my-model-id');
   ```
 
   After
 
   ```ts
-  model.embeddingModel("my-model-id");
+  model.embeddingModel('my-model-id');
   ```
 
 - Updated dependencies [8d9e8ad]
@@ -1919,7 +1940,6 @@
   Added support for combining tool calling with structured outputs in both Amazon Bedrock and Google Vertex Anthropic providers. This allows developers to use tools (like weather lookups, web search, etc.) alongside structured JSON output schemas, enabling multi-step agentic workflows with structured final outputs.
 
   **Amazon Bedrock Changes:**
-
   - Removed incorrect warning that prevented using tools with JSON response format
   - Updated tool choice to use `{ type: 'required' }` instead of specific tool selection when using structured outputs
   - Added `isJsonResponseFromTool` parameter to finish reason mapping
@@ -1928,7 +1948,6 @@
   - Added example files demonstrating the feature
 
   **Google Vertex Anthropic Changes:**
-
   - Inherits support from underlying Anthropic provider implementation
   - Added test coverage to verify the feature works correctly
   - Added example files demonstrating the feature
@@ -2787,7 +2806,7 @@
 
   ```js
   await generateImage({
-    model: luma.image("photon-flash-1", {
+    model: luma.image('photon-flash-1', {
       maxImagesPerCall: 5,
       pollIntervalMillis: 500,
     }),
@@ -2800,7 +2819,7 @@
 
   ```js
   await generateImage({
-    model: luma.image("photon-flash-1"),
+    model: luma.image('photon-flash-1'),
     prompt,
     n: 10,
     maxImagesPerCall: 5,
@@ -3190,7 +3209,7 @@
 
   ```js
   await generateImage({
-    model: luma.image("photon-flash-1", {
+    model: luma.image('photon-flash-1', {
       maxImagesPerCall: 5,
       pollIntervalMillis: 500,
     }),
@@ -3203,7 +3222,7 @@
 
   ```js
   await generateImage({
-    model: luma.image("photon-flash-1"),
+    model: luma.image('photon-flash-1'),
     prompt,
     n: 10,
     maxImagesPerCall: 5,

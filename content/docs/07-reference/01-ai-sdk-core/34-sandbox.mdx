@@ -22,9 +22,7 @@ application process unless the tool explicitly delegates work to the sandbox.
 ```ts
 type Sandbox = {
   readonly description: string;
-  readonly executeCommand: (options: {
-    command: string;
-  }) => PromiseLike<{
+  readonly executeCommand: (options: { command: string }) => PromiseLike<{
     exitCode: number;
     stdout: string;
     stderr: string;
@@ -40,7 +38,7 @@ type Sandbox = {
       name: 'description',
       type: 'string',
       description:
-        "Description of the sandbox environment. Include this in your prompt or instructions when the model needs to know details such as the root directory, exposed ports, public hostname, or other environment constraints. The AI SDK does not add it to the prompt automatically.",
+        'Description of the sandbox environment. Include this in your prompt or instructions when the model needs to know details such as the root directory, exposed ports, public hostname, or other environment constraints. The AI SDK does not add it to the prompt automatically.',
     },
     {
       name: 'executeCommand',

@@ -62,7 +62,6 @@ Before submitting your tool, ensure you have:
 3. **Provide a working code example**
 
    Your `codeExample` should:
-
    - Be a complete, working example
    - Show realistic usage of your tool
    - Use the latest AI SDK patterns

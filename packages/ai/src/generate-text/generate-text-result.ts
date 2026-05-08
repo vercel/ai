@@ -152,6 +152,11 @@ export interface GenerateTextResult<
   readonly steps: Array<StepResult<TOOLS, RUNTIME_CONTEXT>>;
 
   /**
+   * The final step. This is a shortcut for `steps.at(-1)`.
+   */
+  readonly finalStep: StepResult<TOOLS, RUNTIME_CONTEXT>;
+
+  /**
    * The generated structured output. It uses the `output` specification.
    *
    */
