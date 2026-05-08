@@ -476,14 +476,9 @@ It is called with the following parameters:
 - `stopWhen`: The stopping condition that was passed into `generateText`.
 - `stepNumber`: The number of the step that is being executed.
 - `steps`: The steps that have been executed so far.
-- `messages`: The messages that will be sent to the model for the current step.
-  Treat this as the loop's current message state. If `prepareStep` returns a
-  `messages` override, those messages carry forward as the base for later steps.
-- `initialMessages`: The messages that were passed into `generateText` or
-  `streamText`.
-- `responseMessages`: The accumulated assistant/tool response messages so far,
-  including any tool results generated before the first model step from approved
-  tool calls in the input messages.
+- `messages`: The messages that will be sent to the model for the current step. Treat this as the loop's current message state. If `prepareStep` returns a `messages` override, those messages carry forward as the base for later steps.
+- `initialMessages`: The messages that were passed into `generateText` or `streamText`.
+- `responseMessages`: The accumulated assistant/tool response messages so far, including any tool results generated before the first model step from approved tool calls in the input messages.
 - `runtimeContext`: The runtime context passed via the `runtimeContext` setting.
 - `toolsContext`: The per-tool context map passed via the `toolsContext` setting.
 - `sandbox`: The sandbox passed via the `sandbox` setting.
@@ -514,22 +509,13 @@ const result = await generateText({
 
 #### Message Modification for Longer Agentic Loops
 
-In longer agentic loops, you can use the `messages` parameter to mutate the
-message state that will be used by later steps. This is particularly useful for
-context compaction, and you decide when compaction should happen.
+In longer agentic loops, you can use the `messages` parameter to mutate the message state that will be used by later steps. This is particularly useful for context compaction, and you decide when compaction should happen.
 
-The `messages` parameter contains the messages for the current step. By default,
-this is `initialMessages` followed by the accumulated `responseMessages`. If a
-previous `prepareStep` returned `messages`, later steps use those persisted
-messages plus the response messages from the previous step.
+The `messages` parameter contains the messages for the current step. By default, this is `initialMessages` followed by the accumulated `responseMessages`. If a previous `prepareStep` returned `messages`, later steps use those persisted messages plus the response messages from the previous step.
 
-Use `initialMessages` when you need the original input messages and
-`responseMessages` when you need the discrete assistant/tool response messages
-from the model so far.
+Use `initialMessages` when you need the original input messages and `responseMessages` when you need the discrete assistant/tool response messages from the model so far.
 
-The `pruneMessages` helper provides a built-in way to remove selected messages
-or message parts. You can use it inside `prepareStep` when you want a simple
-compaction strategy.
+The `pruneMessages` helper provides a built-in way to remove selected messages or message parts. You can use it inside `prepareStep` when you want a simple compaction strategy.
 
 ```tsx
 import { generateText, pruneMessages, type ModelMessage } from 'ai';
@@ -557,14 +543,9 @@ const result = await generateText({
 });
 ```
 
-This example uses an estimated token threshold, but that is only one way to
-decide when to compact. The important part is that returning `messages` mutates
-the message state for later steps.
+This example uses an estimated token threshold, but that is only one way to decide when to compact. The important part is that returning `messages` mutates the message state for later steps.
 
-Returned message changes persist across steps. If you want to derive each step's
-messages from the original input plus the discrete response messages instead of
-the persisted message state, rebuild them from `initialMessages` and
-`responseMessages` each time:
+Returned message changes persist across steps. If you want to derive each step's messages from the original input plus the discrete response messages instead of the persisted message state, rebuild them from `initialMessages` and `responseMessages` each time:
 
 ```tsx
 prepareStep: ({ initialMessages, responseMessages, stepNumber }) => {
