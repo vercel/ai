@@ -10,18 +10,32 @@ run(async () => {
   const ac = cancelOnSigint();
 
   // The deep-research agent runs a multi-step research workflow on the
-  // server. Expect this call to take a while (often a minute or more).
+  // server. Expect this call to take a while (often a minute or more). With
+  // `thinkingSummaries: 'auto'` the agent emits intermediate reasoning
+  // events as it works -- printed dimmed below alongside the final answer.
   const result = streamText({
     model: google.interactions({
       agent: 'deep-research-pro-preview-12-2025',
     }),
+    providerOptions: {
+      google: {
+        agentConfig: {
+          type: 'deep-research',
+          thinkingSummaries: 'auto',
+        },
+      },
+    },
     prompt:
       'Briefly summarize the most-cited papers on retrieval-augmented generation since 2024 (2-3 sentences).',
     abortSignal: ac.signal,
   });
 
-  for await (const textPart of result.textStream) {
-    process.stdout.write(textPart);
+  for await (const part of result.fullStream) {
+    if (part.type === 'reasoning-delta') {
+      process.stdout.write(`\x1b[2m${part.text}\x1b[0m`);
+    } else if (part.type === 'text-delta') {
+      process.stdout.write(part.text);
+    }
   }
   console.log();
 
