@@ -24,7 +24,7 @@ run(async () => {
       await generateText({
         model: cohere('command-r-plus'),
         tools: { weatherTool },
-        system: `You are a helpful, respectful and honest assistant. If the weather is requested use the `,
+        instructions: `You are a helpful, respectful and honest assistant. If the weather is requested use the `,
         messages,
       });
 

@@ -1634,7 +1634,10 @@ class DefaultStreamTextResult<
 
           const stepMessages = prepareStepResult?.messages ?? stepInputMessages;
           currentStepMessages = stepMessages;
-          const stepSystem = prepareStepResult?.system ?? initialPrompt.system;
+          const stepSystem =
+            prepareStepResult?.instructions ??
+            prepareStepResult?.system ??
+            initialPrompt.system;
 
           const stepProviderOptions = mergeObjects(
             providerOptions,

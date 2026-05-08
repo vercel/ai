@@ -669,9 +669,14 @@ export async function generateText<
           prepareStepResult?.model ?? model,
         );
 
+        const stepSystem =
+          prepareStepResult?.instructions ??
+          prepareStepResult?.system ??
+          initialPrompt.system;
+
         const promptMessages = await convertToLanguageModelPrompt({
           prompt: {
-            system: prepareStepResult?.system ?? initialPrompt.system,
+            system: stepSystem,
             messages: prepareStepResult?.messages ?? stepInputMessages,
           },
           supportedUrls: await stepModel.supportedUrls,
@@ -696,8 +701,6 @@ export async function generateText<
         });
 
         const stepMessages = prepareStepResult?.messages ?? stepInputMessages;
-
-        const stepSystem = prepareStepResult?.system ?? initialPrompt.system;
 
         const stepProviderOptions = mergeObjects(
           providerOptions,
