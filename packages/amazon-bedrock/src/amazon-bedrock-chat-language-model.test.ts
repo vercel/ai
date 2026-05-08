@@ -5162,7 +5162,7 @@ describe('doGenerate', () => {
     `);
   });
 
-  it('should omit toolConfig and filter tool content when conversation has tool calls but no active tools', async () => {
+  it('should omit toolConfig and filter tool content and signed reasoning when conversation has tool calls but no active tools', async () => {
     prepareJsonFixtureResponse('amazon-bedrock-text');
 
     const conversationWithToolCalls: LanguageModelV4Prompt = [
@@ -5173,6 +5173,24 @@ describe('doGenerate', () => {
       {
         role: 'assistant',
         content: [
+          {
+            type: 'reasoning',
+            text: 'Let me check the weather tool.',
+            providerOptions: {
+              bedrock: {
+                signature: 'signed-thinking',
+              },
+            },
+          },
+          {
+            type: 'reasoning',
+            text: '',
+            providerOptions: {
+              bedrock: {
+                redactedData: 'redacted-thinking',
+              },
+            },
+          },
           {
             type: 'tool-call',
             toolCallId: 'tool-call-1',
@@ -5232,6 +5250,121 @@ describe('doGenerate', () => {
           "details": "Tool calls and results removed from conversation because Bedrock does not support tool content without active tools.",
           "feature": "toolContent",
           "type": "unsupported",
+        },
+      ]
+    `);
+  });
+
+  it('should preserve signed reasoning for non-Anthropic models when filtering tool content', async () => {
+    server.urls[novaGenerateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: { content: [{ text: 'Hello' }], role: 'assistant' },
+        },
+        stopReason: 'stop_sequence',
+        usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+      },
+    };
+
+    await novaModel.doGenerate({
+      prompt: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'What is the weather in Toronto?' }],
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'reasoning',
+              text: 'Let me check the weather tool.',
+              providerOptions: {
+                bedrock: {
+                  signature: 'signed-thinking',
+                },
+              },
+            },
+            {
+              type: 'reasoning',
+              text: '',
+              providerOptions: {
+                bedrock: {
+                  redactedData: 'redacted-thinking',
+                },
+              },
+            },
+            {
+              type: 'tool-call',
+              toolCallId: 'tool-call-1',
+              toolName: 'weather',
+              input: { city: 'Toronto' },
+            },
+          ],
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'tool-call-1',
+              toolName: 'weather',
+              output: {
+                type: 'text',
+                value: 'The weather in Toronto is 20°C.',
+              },
+            },
+          ],
+        },
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Now give me a summary.' }],
+        },
+      ],
+      tools: [],
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    expect(requestBody.toolConfig).toMatchInlineSnapshot(`undefined`);
+
+    expect(requestBody.messages).toMatchInlineSnapshot(`
+      [
+        {
+          "content": [
+            {
+              "text": "What is the weather in Toronto?",
+            },
+          ],
+          "role": "user",
+        },
+        {
+          "content": [
+            {
+              "reasoningContent": {
+                "reasoningText": {
+                  "signature": "signed-thinking",
+                  "text": "Let me check the weather tool.",
+                },
+              },
+            },
+            {
+              "reasoningContent": {
+                "redactedReasoning": {
+                  "data": "redacted-thinking",
+                },
+              },
+            },
+          ],
+          "role": "assistant",
+        },
+        {
+          "content": [
+            {
+              "text": "Now give me a summary.",
+            },
+          ],
+          "role": "user",
         },
       ]
     `);

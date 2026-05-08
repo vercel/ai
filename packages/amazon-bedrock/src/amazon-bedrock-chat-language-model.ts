@@ -60,6 +60,13 @@ type AmazonBedrockChatConfig = {
   generateId: () => string;
 };
 
+function hasProtectedReasoningMetadata(
+  providerOptions: SharedV4ProviderMetadata | undefined,
+) {
+  const metadata = providerOptions?.amazonBedrock ?? providerOptions?.bedrock;
+  return metadata?.signature != null || metadata?.redactedData != null;
+}
+
 export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
   readonly specificationVersion = 'v4';
   readonly provider = 'amazon-bedrock';
@@ -399,6 +406,28 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
           .filter(
             message => message.role === 'system' || message.content.length > 0,
           ) as typeof prompt;
+
+        if (isAnthropicModel) {
+          // Tool filtering rewrites the transcript. Signed Anthropic reasoning must
+          // be replayed exactly, so remove it from the rewritten prompt as well.
+          filteredPrompt = filteredPrompt
+            .map(message =>
+              message.role === 'system'
+                ? message
+                : {
+                    ...message,
+                    content: message.content.filter(
+                      part =>
+                        part.type !== 'reasoning' ||
+                        !hasProtectedReasoningMetadata(part.providerOptions),
+                    ),
+                  },
+            )
+            .filter(
+              message =>
+                message.role === 'system' || message.content.length > 0,
+            ) as typeof prompt;
+        }
 
         warnings.push({
           type: 'unsupported',
