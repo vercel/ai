@@ -841,7 +841,7 @@ const result = await generateText({
 ### Sandbox
 
 Pass `sandbox` to `generateText`, `streamText`, or a `ToolLoopAgent` call when a
-tool needs to run commands or code in an execution environment. The sandbox is
+tool needs to interact with an execution environment. The sandbox is
 available on the second parameter of the tool's `execute` function.
 
 Passing a sandbox does not sandbox the tool itself. Tool code still runs wherever
@@ -849,7 +849,7 @@ your application runs. Only the operations that your tool explicitly delegates t
 the sandbox, such as `sandbox.executeCommand(...)`, run in the sandbox
 environment.
 
-```ts highlight="7-15,21"
+```ts highlight="7-25,31"
 import { generateText, tool } from 'ai';
 import { z } from 'zod';
 
@@ -868,11 +868,26 @@ const result = await generateText({
         return sandbox.executeCommand({ command });
       },
     }),
+    readFile: tool({
+      inputSchema: z.object({
+        path: z.string(),
+      }),
+      execute: async ({ path }, { sandbox }) => {
+        if (!sandbox) {
+          throw new Error('Sandbox is not available');
+        }
+
+        return (await sandbox.readFile({ path })).content;
+      },
+    }),
   },
   sandbox,
-  prompt: 'List the files in the project.',
+  prompt: 'List the files in the project and read package.json.',
 });
 ```
+
+The `Sandbox` interface includes `executeCommand({ command })` for running shell
+commands and `readFile({ path })` for reading file contents from the sandbox.
 
 The sandbox description is not added to the model prompt automatically. If the
 model should know about details such as the root directory, exposed ports, or
