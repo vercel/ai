@@ -10,9 +10,9 @@ import type { Instructions, Prompt } from './prompt';
 
 export type StandardizedPrompt = {
   /**
-   * System message.
+   * Instructions.
    */
-  system?: Instructions;
+  instructions: Instructions | undefined;
 
   /**
    * Messages.
@@ -33,13 +33,11 @@ export type StandardizedPrompt = {
  */
 export async function standardizePrompt({
   allowSystemInMessages = false,
-  instructions,
   system,
+  instructions = system,
   prompt,
   messages,
 }: Prompt): Promise<StandardizedPrompt> {
-  const resolvedInstructions = instructions ?? system;
-
   if (prompt == null && messages == null) {
     throw new InvalidPromptError({
       prompt,
@@ -56,8 +54,8 @@ export async function standardizePrompt({
 
   // validate that instructions is a string or a SystemModelMessage
   if (
-    typeof resolvedInstructions !== 'string' &&
-    !asArray(resolvedInstructions).every(message => message.role === 'system')
+    typeof instructions !== 'string' &&
+    !asArray(instructions).every(message => message.role === 'system')
   ) {
     throw new InvalidPromptError({
       prompt,
@@ -108,5 +106,5 @@ export async function standardizePrompt({
     });
   }
 
-  return { messages, system: resolvedInstructions };
+  return { messages, instructions };
 }

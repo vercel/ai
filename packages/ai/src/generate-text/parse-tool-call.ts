@@ -20,14 +20,14 @@ export async function parseToolCall<TOOLS extends ToolSet>({
   tools,
   repairToolCall,
   refineToolInput,
-  system,
   messages,
+  instructions,
 }: {
   toolCall: LanguageModelV4ToolCall;
   tools: TOOLS | undefined;
   repairToolCall: ToolCallRepairFunction<TOOLS> | undefined;
   refineToolInput?: ToolInputRefinement<TOOLS> | undefined;
-  system: Instructions | undefined;
+  instructions: Instructions | undefined;
   messages: ModelMessage[];
 }): Promise<TypedToolCall<TOOLS>> {
   try {
@@ -69,7 +69,8 @@ export async function parseToolCall<TOOLS extends ToolSet>({
             const { inputSchema } = tools[toolName];
             return await asSchema(inputSchema).jsonSchema;
           },
-          system,
+          instructions,
+          system: instructions,
           messages,
           error,
         });

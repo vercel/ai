@@ -153,9 +153,9 @@ const result = await generateText({
       description: 'The specific model identifier (e.g., "gpt-4o").',
     },
     {
-      name: 'system',
+      name: 'instructions',
       type: 'Instructions | undefined',
-      description: 'The system message(s) provided to the model.',
+      description: 'The instructions provided to the model.',
     },
     {
       name: 'messages',
@@ -301,9 +301,9 @@ const result = await generateText({
       description: 'The specific model identifier (e.g., "gpt-4o").',
     },
     {
-      name: 'system',
+      name: 'instructions',
       type: 'Instructions | undefined',
-      description: 'The system message for this step.',
+      description: 'The instructions provided to the model for this step.',
     },
     {
       name: 'messages',
@@ -415,6 +415,11 @@ const result = await generateText({
       name: 'modelId',
       type: 'string',
       description: 'The specific model identifier for this model call.',
+    },
+    {
+      name: 'instructions',
+      type: 'Instructions | undefined',
+      description: 'The instructions that will be sent to the model.',
     },
     {
       name: 'messages',

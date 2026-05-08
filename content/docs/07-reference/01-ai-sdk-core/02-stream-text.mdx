@@ -839,9 +839,16 @@ To see `streamText` in action, check out [these examples](#examples).
           type: 'ToolCallRepairOptions',
           parameters: [
             {
+              name: 'instructions',
+              type: 'Instructions | undefined',
+              description: 'The instructions provided to the model.',
+            },
+            {
               name: 'system',
               type: 'Instructions | undefined',
-              description: 'The system prompt.',
+              isOptional: true,
+              description:
+                'The instructions provided to the model. Deprecated: use `instructions` instead.',
             },
             {
               name: 'messages',
@@ -859,7 +866,7 @@ To see `streamText` in action, check out [these examples](#examples).
               description: 'The tools that are available.',
             },
             {
-              name: 'parameterSchema',
+              name: 'inputSchema',
               type: '(options: { toolName: string }) => JSONSchema7',
               description:
                 'A function that returns the JSON Schema for a tool.',
@@ -1904,9 +1911,9 @@ To see `streamText` in action, check out [these examples](#examples).
               description: 'The specific model identifier (e.g., "gpt-4o").',
             },
             {
-              name: 'system',
+              name: 'instructions',
               type: 'Instructions | undefined',
-              description: 'The system message(s) provided to the model.',
+              description: 'The instructions provided to the model.',
             },
             {
               name: 'messages',
@@ -2050,9 +2057,9 @@ To see `streamText` in action, check out [these examples](#examples).
               description: 'The specific model identifier (e.g., "gpt-4o").',
             },
             {
-              name: 'system',
+              name: 'instructions',
               type: 'Instructions | undefined',
-              description: 'The system message for this step.',
+              description: 'The instructions provided to the model for this step.',
             },
             {
               name: 'messages',
@@ -2159,6 +2166,11 @@ To see `streamText` in action, check out [these examples](#examples).
               name: 'modelId',
               type: 'string',
               description: 'The specific model identifier for this model call.',
+            },
+            {
+              name: 'instructions',
+              type: 'Instructions | undefined',
+              description: 'The instructions that will be sent to the model.',
             },
             {
               name: 'messages',

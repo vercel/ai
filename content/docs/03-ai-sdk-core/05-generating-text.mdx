@@ -338,7 +338,7 @@ const result = streamText({
     // ... your tools
   },
 
-  experimental_onStart({ modelId, system, messages }) {
+  experimental_onStart({ modelId, instructions, messages }) {
     console.log('Streaming started', { modelId });
   },
 

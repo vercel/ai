@@ -1154,7 +1154,7 @@ describe('generateText', () => {
 
       expect(startEvent.provider).toBe('mock-provider');
       expect(startEvent.modelId).toBe('mock-model-id');
-      expect(startEvent.system).toBe('you are a helpful assistant');
+      expect(startEvent.instructions).toBe('you are a helpful assistant');
       expect(startEvent.messages).toEqual([
         { role: 'user', content: 'test-message' },
       ]);
@@ -2066,6 +2066,7 @@ describe('generateText', () => {
         {
           "callId": "test-telemetry-call-id",
           "frequencyPenalty": 0.1,
+          "instructions": "test-system",
           "maxOutputTokens": 128,
           "messages": [
             {
@@ -2081,7 +2082,6 @@ describe('generateText', () => {
           "stopSequences": [
             "stop",
           ],
-          "system": "test-system",
           "temperature": 0.7,
           "tools": [
             {

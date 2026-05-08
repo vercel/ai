@@ -1147,7 +1147,7 @@ with a custom function.
 You can use different strategies to repair the tool call:
 
 - Use a model with structured outputs to generate the inputs.
-- Send the messages, system prompt, and tool schema to a stronger model to generate the inputs.
+- Send the messages, instructions, and tool schema to a stronger model to generate the inputs.
 - Provide more specific repair instructions based on which tool was called.
 
 ### Example: Use a model with structured outputs for repair
@@ -1181,7 +1181,7 @@ const result = await generateText({
           ` with the following inputs:`,
         JSON.stringify(toolCall.input),
         `The tool accepts the following schema:`,
-        JSON.stringify(inputSchema(toolCall)),
+        JSON.stringify(await inputSchema({ toolName: toolCall.toolName })),
         'Please fix the inputs.',
       ].join('\n'),
     });
@@ -1207,11 +1207,11 @@ const result = await generateText({
     tools,
     error,
     messages,
-    system,
+    instructions,
   }) => {
     const result = await generateText({
       model,
-      system,
+      instructions,
       messages: [
         ...messages,
         {

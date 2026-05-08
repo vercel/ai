@@ -500,7 +500,7 @@ export async function generateText<
       operationId: 'ai.generateText',
       provider: model.provider,
       modelId: model.modelId,
-      system: initialPrompt.system,
+      instructions: initialPrompt.instructions,
       messages: initialPrompt.messages,
       tools,
       toolChoice,
@@ -669,14 +669,14 @@ export async function generateText<
           prepareStepResult?.model ?? model,
         );
 
-        const stepSystem =
+        const stepInstructions =
           prepareStepResult?.instructions ??
           prepareStepResult?.system ??
-          initialPrompt.system;
+          initialPrompt.instructions;
 
         const promptMessages = await convertToLanguageModelPrompt({
           prompt: {
-            system: stepSystem,
+            instructions: stepInstructions,
             messages: prepareStepResult?.messages ?? stepInputMessages,
           },
           supportedUrls: await stepModel.supportedUrls,
@@ -714,7 +714,7 @@ export async function generateText<
             provider: stepModel.provider,
             modelId: stepModel.modelId,
             stepNumber,
-            system: stepSystem,
+            instructions: stepInstructions,
             messages: stepMessages,
             tools,
             toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
@@ -736,7 +736,7 @@ export async function generateText<
             callId,
             provider: stepModel.provider,
             modelId: stepModel.modelId,
-            system: stepSystem,
+            instructions: stepInstructions,
             messages: stepMessages,
             tools: stepTools,
             ...callSettings,
@@ -785,7 +785,7 @@ export async function generateText<
                 tools,
                 repairToolCall,
                 refineToolInput,
-                system,
+                instructions: stepInstructions,
                 messages: stepMessages,
               }),
             ),

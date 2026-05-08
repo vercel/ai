@@ -6248,7 +6248,7 @@ describe('streamText', () => {
 
       expect(startEvent.provider).toBe('mock-provider');
       expect(startEvent.modelId).toBe('mock-model-id');
-      expect(startEvent.system).toBe('you are a helpful assistant');
+      expect(startEvent.instructions).toBe('you are a helpful assistant');
       // expect(startEvent.prompt).toBeUndefined();
       expect(startEvent.messages).toEqual([
         { role: 'user', content: 'test-message' },

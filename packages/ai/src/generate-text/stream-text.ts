@@ -1391,7 +1391,7 @@ class DefaultStreamTextResult<
           operationId: 'ai.streamText',
           provider: model.provider,
           modelId: model.modelId,
-          system: initialPrompt.system,
+          instructions: initialPrompt.instructions,
           messages: initialPrompt.messages,
           tools,
           toolChoice,
@@ -1634,10 +1634,10 @@ class DefaultStreamTextResult<
 
           const stepMessages = prepareStepResult?.messages ?? stepInputMessages;
           currentStepMessages = stepMessages;
-          const stepSystem =
+          const stepInstructions =
             prepareStepResult?.instructions ??
             prepareStepResult?.system ??
-            initialPrompt.system;
+            initialPrompt.instructions;
 
           const stepProviderOptions = mergeObjects(
             providerOptions,
@@ -1657,7 +1657,7 @@ class DefaultStreamTextResult<
               model: prepareStepResult?.model ?? model,
               tools: stepActiveTools,
               toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
-              system: stepSystem,
+              instructions: stepInstructions,
               messages: stepMessages,
               allowSystemInMessages,
               repairToolCall,
@@ -1688,7 +1688,7 @@ class DefaultStreamTextResult<
                     provider: stepModel.provider,
                     modelId: stepModel.modelId,
                     stepNumber: recordedSteps.length,
-                    system: stepSystem,
+                    instructions: stepInstructions,
                     messages: stepMessages,
                     tools,
                     toolChoice: prepareStepResult?.toolChoice ?? toolChoice,

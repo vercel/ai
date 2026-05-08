@@ -93,7 +93,7 @@ This applies to AI SDK functions that accept `prompt` or `messages`, including
 `generateText`, `streamText`, `generateObject`, `streamObject`, and `streamUI`.
 
 The same rename applies to `prepareStep` results for `generateText` and
-`streamText`:
+`streamText`, and to the options passed into `experimental_repairToolCall`:
 
 ```tsx filename="AI SDK 6"
 const result = streamText({
@@ -117,6 +117,54 @@ const result = streamText({
 
 The `system` option is still accepted as a deprecated fallback. When both
 `instructions` and `system` are provided, `instructions` takes precedence.
+
+If your tool call repair function forwards the current system instructions to
+another model call, read and pass `instructions` instead of `system`:
+
+```tsx filename="AI SDK 6"
+const result = await generateText({
+  model: yourModel,
+  tools,
+  prompt: 'Hello!',
+  experimental_repairToolCall: async ({ system, messages }) => {
+    return repairWithModel({ system, messages });
+  },
+});
+```
+
+```tsx filename="AI SDK 7"
+const result = await generateText({
+  model: yourModel,
+  tools,
+  prompt: 'Hello!',
+  experimental_repairToolCall: async ({ instructions, messages }) => {
+    return repairWithModel({ instructions, messages });
+  },
+});
+```
+
+Lifecycle callback events for `generateText`, `streamText`, and agents also use
+`instructions` instead of `system`:
+
+```tsx filename="AI SDK 6"
+const result = await generateText({
+  model: yourModel,
+  prompt: 'Hello!',
+  experimental_onStart: ({ system }) => {
+    console.log(system);
+  },
+});
+```
+
+```tsx filename="AI SDK 7"
+const result = await generateText({
+  model: yourModel,
+  prompt: 'Hello!',
+  experimental_onStart: ({ instructions }) => {
+    console.log(instructions);
+  },
+});
+```
 
 ### Prompt Messages: System Messages in `prompt` or `messages` Are Rejected by Default
 
