@@ -24,7 +24,7 @@
     "worktree:setup": "bash tools/worktree-setup.sh"
   },
   "lint-staged": {
-    "*.{js,jsx,ts,tsx,mjs,cjs}": [
+    "*.{js,jsx,ts,tsx}": [
       "ultracite fix"
     ]
   },

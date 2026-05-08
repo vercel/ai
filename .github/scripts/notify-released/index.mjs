@@ -132,9 +132,12 @@ const commitAliases = [...commitHashes]
     hash => `
     c_${hash}: object(expression: "${hash}") {
       ... on Commit {
-        associatedPullRequests(first: 5) {
+        oid
+        associatedPullRequests(first: 10) {
           nodes {
             number
+            state
+            mergeCommit { oid }
             repository { nameWithOwner }
             closingIssuesReferences(first: 50) {
               nodes {
@@ -167,11 +170,19 @@ for (const hash of commitHashes) {
   const commitData = graphqlResult.repository[`c_${hash}`];
   if (!commitData?.associatedPullRequests?.nodes) continue;
 
+  const commitOid = commitData.oid;
+
   for (const prNode of commitData.associatedPullRequests.nodes) {
     // Skip PRs from other repositories
     if (prNode.repository.nameWithOwner !== repoFullName) continue;
     // Skip the release PR itself
     if (prNode.number === pullRequestNumber) continue;
+    // Only consider the PR that actually introduced this commit. GitHub's
+    // associatedPullRequests also returns open PRs whose head branch happens
+    // to contain the commit via base-branch ancestry (e.g. sibling backport
+    // PRs branched off the same release branch after the commit landed).
+    if (prNode.state !== 'MERGED') continue;
+    if (prNode.mergeCommit?.oid !== commitOid) continue;
 
     prNumbers.add(prNode.number);
 
