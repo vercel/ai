@@ -205,6 +205,7 @@ export async function generateText<
   model: modelArg,
   tools,
   toolChoice,
+  instructions,
   system,
   prompt,
   messages,
@@ -474,6 +475,7 @@ export async function generateText<
   );
 
   const initialPrompt = await standardizePrompt({
+    instructions,
     system,
     prompt,
     messages,
@@ -498,7 +500,7 @@ export async function generateText<
       operationId: 'ai.generateText',
       provider: model.provider,
       modelId: model.modelId,
-      system,
+      system: initialPrompt.system,
       messages: initialPrompt.messages,
       tools,
       toolChoice,
