@@ -72,35 +72,6 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
       {
         "content": [
           {
-            "input": {
-              "value": "value",
-            },
-            "providerExecuted": undefined,
-            "providerOptions": undefined,
-            "toolCallId": "call-1",
-            "toolName": "tool1",
-            "type": "tool-call",
-          },
-        ],
-        "role": "assistant",
-      },
-      {
-        "content": [
-          {
-            "output": {
-              "type": "text",
-              "value": "result1",
-            },
-            "toolCallId": "call-1",
-            "toolName": "tool1",
-            "type": "tool-result",
-          },
-        ],
-        "role": "tool",
-      },
-      {
-        "content": [
-          {
             "providerOptions": undefined,
             "text": "Hello, world!",
             "type": "text",
@@ -237,7 +208,6 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
       "stepNumber": 0,
       "toolsContext": {},
       "usage": {
-        "cachedInputTokens": undefined,
         "inputTokenDetails": {
           "cacheReadTokens": undefined,
           "cacheWriteTokens": undefined,
@@ -250,7 +220,6 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
         },
         "outputTokens": 5,
         "raw": undefined,
-        "reasoningTokens": undefined,
         "totalTokens": 15,
       },
       "warnings": [],
@@ -284,35 +253,6 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
           {
             "content": [
               {
-                "input": {
-                  "value": "value",
-                },
-                "providerExecuted": undefined,
-                "providerOptions": undefined,
-                "toolCallId": "call-1",
-                "toolName": "tool1",
-                "type": "tool-call",
-              },
-            ],
-            "role": "assistant",
-          },
-          {
-            "content": [
-              {
-                "output": {
-                  "type": "text",
-                  "value": "result1",
-                },
-                "toolCallId": "call-1",
-                "toolName": "tool1",
-                "type": "tool-result",
-              },
-            ],
-            "role": "tool",
-          },
-          {
-            "content": [
-              {
                 "providerOptions": undefined,
                 "text": "Hello, world!",
                 "type": "text",
@@ -328,7 +268,6 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
       "stepNumber": 1,
       "toolsContext": {},
       "usage": {
-        "cachedInputTokens": undefined,
         "inputTokenDetails": {
           "cacheReadTokens": undefined,
           "cacheWriteTokens": undefined,
@@ -341,7 +280,6 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
         },
         "outputTokens": 10,
         "raw": undefined,
-        "reasoningTokens": undefined,
         "totalTokens": 13,
       },
       "warnings": [],
@@ -352,7 +290,6 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
   "toolResults": [],
   "toolsContext": {},
   "totalUsage": {
-    "cachedInputTokens": undefined,
     "inputTokenDetails": {
       "cacheReadTokens": undefined,
       "cacheWriteTokens": undefined,
@@ -364,11 +301,9 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
       "textTokens": 15,
     },
     "outputTokens": 15,
-    "reasoningTokens": undefined,
     "totalTokens": 28,
   },
   "usage": {
-    "cachedInputTokens": undefined,
     "inputTokenDetails": {
       "cacheReadTokens": undefined,
       "cacheWriteTokens": undefined,
@@ -381,7 +316,6 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
     },
     "outputTokens": 10,
     "raw": undefined,
-    "reasoningTokens": undefined,
     "totalTokens": 13,
   },
   "warnings": [],
@@ -468,7 +402,6 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
     "stepNumber": 0,
     "toolsContext": {},
     "usage": {
-      "cachedInputTokens": undefined,
       "inputTokenDetails": {
         "cacheReadTokens": undefined,
         "cacheWriteTokens": undefined,
@@ -481,7 +414,6 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
       },
       "outputTokens": 5,
       "raw": undefined,
-      "reasoningTokens": undefined,
       "totalTokens": 15,
     },
     "warnings": [],
@@ -515,35 +447,6 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
         {
           "content": [
             {
-              "input": {
-                "value": "value",
-              },
-              "providerExecuted": undefined,
-              "providerOptions": undefined,
-              "toolCallId": "call-1",
-              "toolName": "tool1",
-              "type": "tool-call",
-            },
-          ],
-          "role": "assistant",
-        },
-        {
-          "content": [
-            {
-              "output": {
-                "type": "text",
-                "value": "result1",
-              },
-              "toolCallId": "call-1",
-              "toolName": "tool1",
-              "type": "tool-result",
-            },
-          ],
-          "role": "tool",
-        },
-        {
-          "content": [
-            {
               "providerOptions": undefined,
               "text": "Hello, world!",
               "type": "text",
@@ -559,7 +462,6 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
     "stepNumber": 1,
     "toolsContext": {},
     "usage": {
-      "cachedInputTokens": undefined,
       "inputTokenDetails": {
         "cacheReadTokens": undefined,
         "cacheWriteTokens": undefined,
@@ -572,7 +474,6 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
       },
       "outputTokens": 10,
       "raw": undefined,
-      "reasoningTokens": undefined,
       "totalTokens": 13,
     },
     "warnings": [],
@@ -704,7 +605,6 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > resul
     "stepNumber": 0,
     "toolsContext": {},
     "usage": {
-      "cachedInputTokens": undefined,
       "inputTokenDetails": {
         "cacheReadTokens": undefined,
         "cacheWriteTokens": undefined,
@@ -717,7 +617,6 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > resul
       },
       "outputTokens": 5,
       "raw": undefined,
-      "reasoningTokens": undefined,
       "totalTokens": 15,
     },
     "warnings": [],
@@ -751,35 +650,6 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > resul
         {
           "content": [
             {
-              "input": {
-                "value": "value",
-              },
-              "providerExecuted": undefined,
-              "providerOptions": undefined,
-              "toolCallId": "call-1",
-              "toolName": "tool1",
-              "type": "tool-call",
-            },
-          ],
-          "role": "assistant",
-        },
-        {
-          "content": [
-            {
-              "output": {
-                "type": "text",
-                "value": "result1",
-              },
-              "toolCallId": "call-1",
-              "toolName": "tool1",
-              "type": "tool-result",
-            },
-          ],
-          "role": "tool",
-        },
-        {
-          "content": [
-            {
               "providerOptions": undefined,
               "text": "Hello, world!",
               "type": "text",
@@ -795,7 +665,6 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > resul
     "stepNumber": 1,
     "toolsContext": {},
     "usage": {
-      "cachedInputTokens": undefined,
       "inputTokenDetails": {
         "cacheReadTokens": undefined,
         "cacheWriteTokens": undefined,
@@ -808,7 +677,6 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > resul
       },
       "outputTokens": 10,
       "raw": undefined,
-      "reasoningTokens": undefined,
       "totalTokens": 13,
     },
     "warnings": [],
@@ -898,7 +766,6 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
     "stepNumber": 0,
     "toolsContext": {},
     "usage": {
-      "cachedInputTokens": undefined,
       "inputTokenDetails": {
         "cacheReadTokens": undefined,
         "cacheWriteTokens": undefined,
@@ -911,7 +778,6 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
       },
       "outputTokens": 5,
       "raw": undefined,
-      "reasoningTokens": undefined,
       "totalTokens": 15,
     },
     "warnings": [],
@@ -945,35 +811,6 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
         {
           "content": [
             {
-              "input": {
-                "value": "value",
-              },
-              "providerExecuted": undefined,
-              "providerOptions": undefined,
-              "toolCallId": "call-1",
-              "toolName": "tool1",
-              "type": "tool-call",
-            },
-          ],
-          "role": "assistant",
-        },
-        {
-          "content": [
-            {
-              "output": {
-                "type": "text",
-                "value": "result1",
-              },
-              "toolCallId": "call-1",
-              "toolName": "tool1",
-              "type": "tool-result",
-            },
-          ],
-          "role": "tool",
-        },
-        {
-          "content": [
-            {
               "providerOptions": undefined,
               "text": "Hello, world!",
               "type": "text",
@@ -991,7 +828,6 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
     "stepNumber": 1,
     "toolsContext": {},
     "usage": {
-      "cachedInputTokens": undefined,
       "inputTokenDetails": {
         "cacheReadTokens": undefined,
         "cacheWriteTokens": undefined,
@@ -1004,7 +840,6 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
       },
       "outputTokens": 10,
       "raw": undefined,
-      "reasoningTokens": undefined,
       "totalTokens": 13,
     },
     "warnings": [],
@@ -1138,7 +973,6 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
     "stepNumber": 0,
     "toolsContext": {},
     "usage": {
-      "cachedInputTokens": undefined,
       "inputTokenDetails": {
         "cacheReadTokens": undefined,
         "cacheWriteTokens": undefined,
@@ -1151,7 +985,6 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
       },
       "outputTokens": 5,
       "raw": undefined,
-      "reasoningTokens": undefined,
       "totalTokens": 15,
     },
     "warnings": [],
@@ -1185,35 +1018,6 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
         {
           "content": [
             {
-              "input": {
-                "value": "value",
-              },
-              "providerExecuted": undefined,
-              "providerOptions": undefined,
-              "toolCallId": "call-1",
-              "toolName": "tool1",
-              "type": "tool-call",
-            },
-          ],
-          "role": "assistant",
-        },
-        {
-          "content": [
-            {
-              "output": {
-                "type": "text",
-                "value": "result1",
-              },
-              "toolCallId": "call-1",
-              "toolName": "tool1",
-              "type": "tool-result",
-            },
-          ],
-          "role": "tool",
-        },
-        {
-          "content": [
-            {
               "providerOptions": undefined,
               "text": "Hello, world!",
               "type": "text",
@@ -1231,7 +1035,6 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
     "stepNumber": 1,
     "toolsContext": {},
     "usage": {
-      "cachedInputTokens": undefined,
       "inputTokenDetails": {
         "cacheReadTokens": undefined,
         "cacheWriteTokens": undefined,
@@ -1244,7 +1047,6 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
       },
       "outputTokens": 10,
       "raw": undefined,
-      "reasoningTokens": undefined,
       "totalTokens": 13,
     },
     "warnings": [],
@@ -1753,7 +1555,6 @@ exports[`generateText > result.steps > should add the reasoning from the model r
     "stepNumber": 0,
     "toolsContext": {},
     "usage": {
-      "cachedInputTokens": undefined,
       "inputTokenDetails": {
         "cacheReadTokens": undefined,
         "cacheWriteTokens": undefined,
@@ -1766,7 +1567,6 @@ exports[`generateText > result.steps > should add the reasoning from the model r
       },
       "outputTokens": 10,
       "raw": undefined,
-      "reasoningTokens": undefined,
       "totalTokens": 13,
     },
     "warnings": [],
@@ -1850,7 +1650,6 @@ exports[`generateText > result.steps > should contain files 1`] = `
     "stepNumber": 0,
     "toolsContext": {},
     "usage": {
-      "cachedInputTokens": undefined,
       "inputTokenDetails": {
         "cacheReadTokens": undefined,
         "cacheWriteTokens": undefined,
@@ -1863,7 +1662,6 @@ exports[`generateText > result.steps > should contain files 1`] = `
       },
       "outputTokens": 10,
       "raw": undefined,
-      "reasoningTokens": undefined,
       "totalTokens": 13,
     },
     "warnings": [],
@@ -1939,7 +1737,6 @@ exports[`generateText > result.steps > should contain sources 1`] = `
     "stepNumber": 0,
     "toolsContext": {},
     "usage": {
-      "cachedInputTokens": undefined,
       "inputTokenDetails": {
         "cacheReadTokens": undefined,
         "cacheWriteTokens": undefined,
@@ -1952,7 +1749,6 @@ exports[`generateText > result.steps > should contain sources 1`] = `
       },
       "outputTokens": 10,
       "raw": undefined,
-      "reasoningTokens": undefined,
       "totalTokens": 13,
     },
     "warnings": [],

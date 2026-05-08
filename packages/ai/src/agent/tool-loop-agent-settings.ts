@@ -217,6 +217,16 @@ export type ToolLoopAgentSettings<
      * Prepare the parameters for the generateText or streamText call.
      *
      * You can use this to have templates based on call options.
+     *
+     * The design requires you to pass call parameters as follows to
+     * allow for the removal of parameters from the original settings
+     * by setting them to `undefined`:
+     *
+     * ```
+     *   prepareCall: ({ options, ...rest }) => ({
+     *     ...rest,
+     *   }),
+     * ```
      */
     prepareCall?: (
       options: Omit<

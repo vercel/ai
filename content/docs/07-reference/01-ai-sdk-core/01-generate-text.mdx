@@ -590,7 +590,7 @@ To see `generateText` in action, check out [these examples](#examples).
       type: '(options: PrepareStepOptions) => PrepareStepResult<TOOLS> | Promise<PrepareStepResult<TOOLS>>',
       isOptional: true,
       description:
-        'Optional function that you can use to provide different settings for a step. You can modify the model, tool choices, active tools, system prompt, and input messages for each step.',
+        'Optional function that you can use to provide different settings for a step. You can modify the model, tool choices, active tools, system prompt, input messages, and sandbox for each step.',
       properties: [
         {
           type: 'PrepareStepFunction<TOOLS>',
@@ -623,7 +623,7 @@ To see `generateText` in action, check out [these examples](#examples).
                       name: 'messages',
                       type: 'Array<ModelMessage>',
                       description:
-                        'The messages that will be sent to the model for the current step.',
+                        'The messages that will be sent to the model for the current step. If prepareStep returns a messages override, those messages carry forward to later steps.',
                     },
                     {
                       name: 'runtimeContext',
@@ -703,6 +703,13 @@ To see `generateText` in action, check out [these examples](#examples).
               type: 'InferToolSetContext<TOOLS>',
               description:
                 'Per-tool context map. Changing it will affect tool-specific context in this step and all subsequent steps.',
+            },
+            {
+              name: 'sandbox',
+              type: 'Sandbox',
+              isOptional: true,
+              description:
+                'Sandbox environment for this step. Changing it will affect tool execution in this step only.',
             },
             {
               name: 'providerOptions',
@@ -1141,7 +1148,7 @@ To see `generateText` in action, check out [these examples](#examples).
               name: 'messages',
               type: 'Array<ModelMessage>',
               description:
-                'The messages that will be sent to the model for this step. Uses the user-facing ModelMessage format. May be overridden by prepareStep.',
+                'The messages that will be sent to the model for this step. Uses the user-facing ModelMessage format. May be overridden by prepareStep. If prepareStep returns a messages override, those messages carry forward to later steps.',
             },
             {
               name: 'tools',
@@ -1673,7 +1680,7 @@ To see `generateText` in action, check out [these examples](#examples).
                       name: 'messages',
                       type: 'Array<ResponseMessage>',
                       description:
-                        'The response messages that were generated during the call.',
+                        'The response messages generated during this step.',
                     },
                     {
                       name: 'body',
@@ -1697,7 +1704,7 @@ To see `generateText` in action, check out [these examples](#examples).
               name: 'responseMessages',
               type: 'Array<ResponseMessage>',
               description:
-                'The response messages that were generated during the call.',
+                'The accumulated response messages that were generated during the call.',
             },
           ],
         },
@@ -2106,7 +2113,7 @@ To see `generateText` in action, check out [these examples](#examples).
                       name: 'messages',
                       type: 'Array<ResponseMessage>',
                       description:
-                        'The response messages that were generated during the call. It consists of an assistant message, potentially containing tool calls.  When there are tool results, there is an additional tool message with the tool results that are available. If there are tools that do not have execute functions, they are not included in the tool results and need to be added separately.',
+                        'The response messages generated during this step. It consists of an assistant message, potentially containing tool calls. When there are tool results in this step, there is an additional tool message with the available tool results. If there are tools that do not have execute functions, they are not included in the tool results and need to be added separately.',
                     },
                   ],
                 },
@@ -2122,7 +2129,7 @@ To see `generateText` in action, check out [these examples](#examples).
               name: 'responseMessages',
               type: 'Array<ResponseMessage>',
               description:
-                'The response messages that were generated during the call.',
+                'The accumulated response messages that were generated during the call.',
             },
             {
               name: 'runtimeContext',
@@ -2440,18 +2447,6 @@ To see `generateText` in action, check out [these examples](#examples).
               description:
                 'The total number of tokens as reported by the provider. This number might be different from the sum of inputTokens and outputTokens and e.g. include reasoning tokens or other overhead.',
             },
-            {
-              name: 'reasoningTokens',
-              type: 'number | undefined',
-              isOptional: true,
-              description: 'The number of reasoning tokens used.',
-            },
-            {
-              name: 'cachedInputTokens',
-              type: 'number | undefined',
-              isOptional: true,
-              description: 'The number of cached input tokens.',
-            },
           ],
         },
       ],
@@ -2526,7 +2521,7 @@ To see `generateText` in action, check out [these examples](#examples).
               name: 'messages',
               type: 'Array<ResponseMessage>',
               description:
-                'The response messages that were generated during the call. It consists of an assistant message, potentially containing tool calls.  When there are tool results, there is an additional tool message with the tool results that are available. If there are tools that do not have execute functions, they are not included in the tool results and need to be added separately.',
+                'The response messages generated during the final step. It consists of an assistant message, potentially containing tool calls. When there are tool results in the final step, there is an additional tool message with the available tool results. If there are tools that do not have execute functions, they are not included in the tool results and need to be added separately.',
             },
           ],
         },
@@ -2542,7 +2537,7 @@ To see `generateText` in action, check out [these examples](#examples).
       name: 'responseMessages',
       type: 'Array<ResponseMessage>',
       description:
-        'The response messages that were generated during the call.',
+        'The accumulated response messages that were generated during the call.',
     },
     {
       name: 'providerMetadata',
@@ -2905,7 +2900,7 @@ To see `generateText` in action, check out [these examples](#examples).
                       name: 'messages',
                       type: 'Array<ResponseMessage>',
                       description:
-                        'The response messages that were generated during the call. Response messages can be either assistant messages or tool messages. They contain a generated id.',
+                        'The response messages generated during this step. Response messages can be either assistant messages or tool messages. They contain a generated id.',
                     },
                   ],
                 },

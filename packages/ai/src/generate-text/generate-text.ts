@@ -525,7 +525,7 @@ export async function generateText<
 
   try {
     const initialMessages = initialPrompt.messages;
-    const responseMessages: Array<ResponseMessage> = [];
+    const initialResponseMessages: Array<ResponseMessage> = [];
 
     const { approvedToolApprovals, deniedToolApprovals } =
       collectToolApprovals<TOOLS>({ messages: initialMessages });
@@ -609,7 +609,7 @@ export async function generateText<
         });
       }
 
-      responseMessages.push({
+      initialResponseMessages.push({
         role: 'tool',
         content: toolContent,
       });
@@ -627,6 +627,7 @@ export async function generateText<
       [];
     const steps: GenerateTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>['steps'] =
       [];
+    let messagesForNextStep = [...initialMessages, ...initialResponseMessages];
 
     // Track provider-executed tool calls that support deferred results
     // (e.g., code_execution in programmatic tool calling scenarios).
@@ -642,17 +643,25 @@ export async function generateText<
       });
 
       try {
-        const stepInputMessages = [...initialMessages, ...responseMessages];
+        const accumulatedResponseMessages = [
+          ...initialResponseMessages,
+          ...steps.flatMap(step => step.response.messages),
+        ];
+        const stepInputMessages = messagesForNextStep;
 
         const prepareStepResult = await prepareStep?.({
           model,
           steps,
           stepNumber: steps.length,
           messages: stepInputMessages,
+          initialMessages,
+          responseMessages: accumulatedResponseMessages,
           runtimeContext,
           toolsContext,
           sandbox,
         });
+
+        const stepSandbox = prepareStepResult?.sandbox ?? sandbox;
 
         const stepModel = resolveLanguageModel(
           prepareStepResult?.model ?? model,
@@ -772,7 +781,7 @@ export async function generateText<
                 repairToolCall,
                 refineToolInput,
                 system,
-                messages: stepInputMessages,
+                messages: stepMessages,
               }),
             ),
         );
@@ -831,7 +840,7 @@ export async function generateText<
             await tool.onInputAvailable({
               input: toolCall.input,
               toolCallId: toolCall.toolCallId,
-              messages: stepInputMessages,
+              messages: stepMessages,
               abortSignal: mergedAbortSignal,
               context: runtimeContext,
             });
@@ -841,7 +850,7 @@ export async function generateText<
             tools,
             toolApproval,
             toolCall,
-            messages: stepInputMessages,
+            messages: stepMessages,
             toolsContext,
             runtimeContext,
           });
@@ -938,10 +947,10 @@ export async function generateText<
               ),
               tools,
               callId,
-              messages: stepInputMessages,
+              messages: stepMessages,
               abortSignal: mergedAbortSignal,
               timeout,
-              sandbox,
+              sandbox: stepSandbox,
               toolsContext,
               onToolExecutionStart: event =>
                 notify({
@@ -1003,13 +1012,10 @@ export async function generateText<
           tools,
         });
 
-        // append to messages for potential next step:
-        responseMessages.push(
-          ...(await toResponseMessages({
-            content: stepContent,
-            tools,
-          })),
-        );
+        const stepResponseMessages = await toResponseMessages({
+          content: stepContent,
+          tools,
+        });
 
         // Add step information (after response messages are updated):
         // Conditionally include request.body and response.body based on include settings.
@@ -1026,8 +1032,8 @@ export async function generateText<
 
         const stepResponse = {
           ...currentModelResponse.response,
-          // deep clone msgs to avoid mutating past messages in multi-step:
-          messages: cloneModelMessages(responseMessages),
+          // deep clone msgs to avoid mutating step results in multi-step:
+          messages: cloneModelMessages(stepResponseMessages),
           // Conditionally include response body:
           body: include.responseBody
             ? currentModelResponse.response?.body
@@ -1059,6 +1065,7 @@ export async function generateText<
         });
 
         steps.push(currentStepResult);
+        messagesForNextStep = [...stepMessages, ...stepResponseMessages];
 
         await notify({
           event: currentStepResult,
@@ -1089,10 +1096,17 @@ export async function generateText<
       },
       {
         inputTokens: undefined,
+        inputTokenDetails: {
+          noCacheTokens: undefined,
+          cacheReadTokens: undefined,
+          cacheWriteTokens: undefined,
+        },
         outputTokens: undefined,
+        outputTokenDetails: {
+          textTokens: undefined,
+          reasoningTokens: undefined,
+        },
         totalTokens: undefined,
-        reasoningTokens: undefined,
-        cachedInputTokens: undefined,
       } as LanguageModelUsage,
     );
 
@@ -1118,7 +1132,10 @@ export async function generateText<
       dynamicToolResults: lastStep.dynamicToolResults,
       request: lastStep.request,
       response: lastStep.response,
-      responseMessages: lastStep.response.messages,
+      responseMessages: [
+        ...initialResponseMessages,
+        ...steps.flatMap(step => step.response.messages),
+      ],
       warnings: lastStep.warnings,
       providerMetadata: lastStep.providerMetadata,
       steps,
@@ -1146,6 +1163,7 @@ export async function generateText<
     }
 
     return new DefaultGenerateTextResult({
+      initialResponseMessages,
       steps,
       totalUsage,
       output: resolvedOutput,
@@ -1215,14 +1233,18 @@ class DefaultGenerateTextResult<
   private readonly _output: InferCompleteOutput<OUTPUT> | undefined;
 
   constructor(options: {
+    initialResponseMessages: Array<ResponseMessage>;
     steps: GenerateTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>['steps'];
     output: InferCompleteOutput<OUTPUT> | undefined;
     totalUsage: LanguageModelUsage;
   }) {
+    this.initialResponseMessages = options.initialResponseMessages;
     this.steps = options.steps;
     this._output = options.output;
     this.totalUsage = options.totalUsage;
   }
+
+  private readonly initialResponseMessages: Array<ResponseMessage>;
 
   private get finalStep() {
     return this.steps[this.steps.length - 1];
@@ -1297,7 +1319,10 @@ class DefaultGenerateTextResult<
   }
 
   get responseMessages() {
-    return this.finalStep.response.messages;
+    return [
+      ...this.initialResponseMessages,
+      ...this.steps.flatMap(step => step.response.messages),
+    ];
   }
 
   get request() {

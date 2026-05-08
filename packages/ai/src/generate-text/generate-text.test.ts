@@ -946,6 +946,68 @@ describe('generateText', () => {
       expect(result.request.messages).toStrictEqual(preparedMessages);
       expect(result.steps[0].request.messages).toStrictEqual(preparedMessages);
     });
+
+    it('should carry messages from prepareStep forward to the next step', async () => {
+      const preparedMessages: Array<ModelMessage> = [
+        { role: 'user', content: 'prepared prompt' },
+      ];
+      const prepareStepMessages: Array<Array<ModelMessage>> = [];
+      let responseCount = 0;
+
+      const result = await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => {
+            switch (responseCount++) {
+              case 0:
+                return {
+                  ...dummyResponseValues,
+                  content: [
+                    {
+                      type: 'tool-call',
+                      toolCallType: 'function',
+                      toolCallId: 'call-1',
+                      toolName: 'tool1',
+                      input: '{ "value": "test" }',
+                    },
+                  ],
+                  finishReason: { unified: 'tool-calls', raw: undefined },
+                };
+              case 1:
+              default:
+                return {
+                  ...dummyResponseValues,
+                  content: [{ type: 'text', text: 'Done.' }],
+                };
+            }
+          },
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => `${value}-result`,
+          }),
+        },
+        prompt: 'prompt',
+        stopWhen: isStepCount(3),
+        prepareStep: async ({ messages, stepNumber }) => {
+          prepareStepMessages.push([...messages]);
+
+          if (stepNumber === 0) {
+            return { messages: preparedMessages };
+          }
+        },
+        include: { requestMessages: true },
+      });
+
+      expect(prepareStepMessages[1]).toEqual([
+        ...preparedMessages,
+        ...result.steps[0].response.messages,
+      ]);
+      expect(result.steps[1].request.messages).toEqual([
+        ...preparedMessages,
+        ...result.steps[0].response.messages,
+      ]);
+    });
   });
 
   describe('result.response', () => {
@@ -1593,6 +1655,114 @@ describe('generateText', () => {
       });
     });
 
+    it('should pass initialMessages and responseMessages to prepareStep', async () => {
+      const prepareStepCalls: Array<{
+        initialMessages: Array<ModelMessage>;
+        responseMessages: Array<ModelMessage>;
+        messages: Array<ModelMessage>;
+      }> = [];
+      let responseCount = 0;
+
+      await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => {
+            switch (responseCount++) {
+              case 0:
+                return {
+                  ...dummyResponseValues,
+                  content: [
+                    {
+                      type: 'tool-call',
+                      toolCallType: 'function',
+                      toolCallId: 'call-1',
+                      toolName: 'tool1',
+                      input: '{ "value": "test" }',
+                    },
+                  ],
+                  finishReason: { unified: 'tool-calls', raw: undefined },
+                };
+              case 1:
+              default:
+                return {
+                  ...dummyResponseValues,
+                  content: [{ type: 'text', text: 'Done.' }],
+                };
+            }
+          },
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => `${value}-result`,
+          }),
+        },
+        messages: [{ role: 'user', content: 'test-input' }],
+        stopWhen: isStepCount(3),
+        prepareStep: async ({
+          initialMessages,
+          responseMessages,
+          messages,
+        }) => {
+          prepareStepCalls.push({
+            initialMessages: [...initialMessages],
+            responseMessages: [...responseMessages],
+            messages: [...messages],
+          });
+          return undefined;
+        },
+      });
+
+      expect(prepareStepCalls).toHaveLength(2);
+      expect(prepareStepCalls[0].initialMessages).toEqual([
+        { role: 'user', content: 'test-input' },
+      ]);
+      expect(prepareStepCalls[0].responseMessages).toEqual([]);
+      expect(prepareStepCalls[0].messages).toEqual([
+        { role: 'user', content: 'test-input' },
+      ]);
+
+      expect(prepareStepCalls[1].initialMessages).toEqual([
+        { role: 'user', content: 'test-input' },
+      ]);
+      expect(prepareStepCalls[1].responseMessages).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "input": {
+                  "value": "test",
+                },
+                "providerExecuted": undefined,
+                "providerOptions": undefined,
+                "toolCallId": "call-1",
+                "toolName": "tool1",
+                "type": "tool-call",
+              },
+            ],
+            "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "output": {
+                  "type": "text",
+                  "value": "test-result",
+                },
+                "toolCallId": "call-1",
+                "toolName": "tool1",
+                "type": "tool-result",
+              },
+            ],
+            "role": "tool",
+          },
+        ]
+      `);
+      expect(prepareStepCalls[1].messages).toEqual([
+        ...prepareStepCalls[1].initialMessages,
+        ...prepareStepCalls[1].responseMessages,
+      ]);
+    });
+
     it('should pass updated toolsContext from prepareStep', async () => {
       const prepareStepToolsContexts: Array<unknown> = [];
       const stepStartEvents: Parameters<
@@ -1990,7 +2160,6 @@ describe('generateText', () => {
             "provider": "mock-provider",
             "responseId": "response-1",
             "usage": {
-              "cachedInputTokens": undefined,
               "inputTokenDetails": {
                 "cacheReadTokens": undefined,
                 "cacheWriteTokens": undefined,
@@ -2003,7 +2172,6 @@ describe('generateText', () => {
               },
               "outputTokens": 10,
               "raw": undefined,
-              "reasoningTokens": undefined,
               "totalTokens": 13,
             },
           },
@@ -3475,7 +3643,6 @@ describe('generateText', () => {
               "stepNumber": 0,
               "toolsContext": {},
               "usage": {
-                "cachedInputTokens": undefined,
                 "inputTokenDetails": {
                   "cacheReadTokens": undefined,
                   "cacheWriteTokens": undefined,
@@ -3488,7 +3655,6 @@ describe('generateText', () => {
                 },
                 "outputTokens": 10,
                 "raw": undefined,
-                "reasoningTokens": undefined,
                 "totalTokens": 13,
               },
               "warnings": [],
@@ -3522,7 +3688,6 @@ describe('generateText', () => {
           ],
           "toolsContext": {},
           "totalUsage": {
-            "cachedInputTokens": undefined,
             "inputTokenDetails": {
               "cacheReadTokens": undefined,
               "cacheWriteTokens": undefined,
@@ -3534,11 +3699,9 @@ describe('generateText', () => {
               "textTokens": 10,
             },
             "outputTokens": 10,
-            "reasoningTokens": undefined,
             "totalTokens": 13,
           },
           "usage": {
-            "cachedInputTokens": undefined,
             "inputTokenDetails": {
               "cacheReadTokens": undefined,
               "cacheWriteTokens": undefined,
@@ -3551,7 +3714,6 @@ describe('generateText', () => {
             },
             "outputTokens": 10,
             "raw": undefined,
-            "reasoningTokens": undefined,
             "totalTokens": 13,
           },
           "warnings": [],
@@ -3703,7 +3865,6 @@ describe('generateText', () => {
       it('result.totalUsage should sum token usage', () => {
         expect(result.totalUsage).toMatchInlineSnapshot(`
           {
-            "cachedInputTokens": undefined,
             "inputTokenDetails": {
               "cacheReadTokens": undefined,
               "cacheWriteTokens": undefined,
@@ -3715,7 +3876,6 @@ describe('generateText', () => {
               "textTokens": 15,
             },
             "outputTokens": 15,
-            "reasoningTokens": undefined,
             "totalTokens": 28,
           }
         `);
@@ -3724,7 +3884,6 @@ describe('generateText', () => {
       it('result.usage should contain token usage from final step', async () => {
         expect(result.usage).toMatchInlineSnapshot(`
           {
-            "cachedInputTokens": undefined,
             "inputTokenDetails": {
               "cacheReadTokens": undefined,
               "cacheWriteTokens": undefined,
@@ -3737,7 +3896,6 @@ describe('generateText', () => {
             },
             "outputTokens": 10,
             "raw": undefined,
-            "reasoningTokens": undefined,
             "totalTokens": 13,
           }
         `);
@@ -3841,7 +3999,7 @@ describe('generateText', () => {
               execute: async (args, options) => {
                 expect(args).toStrictEqual({ value: 'value' });
                 expect(options.messages).toStrictEqual([
-                  { role: 'user', content: 'test-input' },
+                  { role: 'user', content: 'new input from prepareStep' },
                 ]);
                 return 'result1';
               },
@@ -4001,7 +4159,6 @@ describe('generateText', () => {
                   "stepNumber": 0,
                   "toolsContext": {},
                   "usage": {
-                    "cachedInputTokens": undefined,
                     "inputTokenDetails": {
                       "cacheReadTokens": undefined,
                       "cacheWriteTokens": undefined,
@@ -4014,7 +4171,6 @@ describe('generateText', () => {
                     },
                     "outputTokens": 5,
                     "raw": undefined,
-                    "reasoningTokens": undefined,
                     "totalTokens": 15,
                   },
                   "warnings": [],
@@ -4048,35 +4204,6 @@ describe('generateText', () => {
                       {
                         "content": [
                           {
-                            "input": {
-                              "value": "value",
-                            },
-                            "providerExecuted": undefined,
-                            "providerOptions": undefined,
-                            "toolCallId": "call-1",
-                            "toolName": "tool1",
-                            "type": "tool-call",
-                          },
-                        ],
-                        "role": "assistant",
-                      },
-                      {
-                        "content": [
-                          {
-                            "output": {
-                              "type": "text",
-                              "value": "result1",
-                            },
-                            "toolCallId": "call-1",
-                            "toolName": "tool1",
-                            "type": "tool-result",
-                          },
-                        ],
-                        "role": "tool",
-                      },
-                      {
-                        "content": [
-                          {
                             "providerOptions": undefined,
                             "text": "Hello, world!",
                             "type": "text",
@@ -4094,7 +4221,6 @@ describe('generateText', () => {
                   "stepNumber": 1,
                   "toolsContext": {},
                   "usage": {
-                    "cachedInputTokens": undefined,
                     "inputTokenDetails": {
                       "cacheReadTokens": undefined,
                       "cacheWriteTokens": undefined,
@@ -4107,7 +4233,6 @@ describe('generateText', () => {
                     },
                     "outputTokens": 10,
                     "raw": undefined,
-                    "reasoningTokens": undefined,
                     "totalTokens": 13,
                   },
                   "warnings": [],
@@ -4117,7 +4242,7 @@ describe('generateText', () => {
             {
               "messages": [
                 {
-                  "content": "test-input",
+                  "content": "new input from prepareStep",
                   "role": "user",
                 },
                 {
@@ -4236,7 +4361,6 @@ describe('generateText', () => {
                   "stepNumber": 0,
                   "toolsContext": {},
                   "usage": {
-                    "cachedInputTokens": undefined,
                     "inputTokenDetails": {
                       "cacheReadTokens": undefined,
                       "cacheWriteTokens": undefined,
@@ -4249,7 +4373,6 @@ describe('generateText', () => {
                     },
                     "outputTokens": 5,
                     "raw": undefined,
-                    "reasoningTokens": undefined,
                     "totalTokens": 15,
                   },
                   "warnings": [],
@@ -4283,35 +4406,6 @@ describe('generateText', () => {
                       {
                         "content": [
                           {
-                            "input": {
-                              "value": "value",
-                            },
-                            "providerExecuted": undefined,
-                            "providerOptions": undefined,
-                            "toolCallId": "call-1",
-                            "toolName": "tool1",
-                            "type": "tool-call",
-                          },
-                        ],
-                        "role": "assistant",
-                      },
-                      {
-                        "content": [
-                          {
-                            "output": {
-                              "type": "text",
-                              "value": "result1",
-                            },
-                            "toolCallId": "call-1",
-                            "toolName": "tool1",
-                            "type": "tool-result",
-                          },
-                        ],
-                        "role": "tool",
-                      },
-                      {
-                        "content": [
-                          {
                             "providerOptions": undefined,
                             "text": "Hello, world!",
                             "type": "text",
@@ -4329,7 +4423,6 @@ describe('generateText', () => {
                   "stepNumber": 1,
                   "toolsContext": {},
                   "usage": {
-                    "cachedInputTokens": undefined,
                     "inputTokenDetails": {
                       "cacheReadTokens": undefined,
                       "cacheWriteTokens": undefined,
@@ -4342,7 +4435,6 @@ describe('generateText', () => {
                     },
                     "outputTokens": 10,
                     "raw": undefined,
-                    "reasoningTokens": undefined,
                     "totalTokens": 13,
                   },
                   "warnings": [],
@@ -4408,7 +4500,7 @@ describe('generateText', () => {
                 {
                   "content": [
                     {
-                      "text": "test-input",
+                      "text": "new input from prepareStep",
                       "type": "text",
                     },
                   ],
@@ -4476,7 +4568,6 @@ describe('generateText', () => {
       it('result.totalUsage should sum token usage', () => {
         expect(result.totalUsage).toMatchInlineSnapshot(`
           {
-            "cachedInputTokens": undefined,
             "inputTokenDetails": {
               "cacheReadTokens": undefined,
               "cacheWriteTokens": undefined,
@@ -4488,7 +4579,6 @@ describe('generateText', () => {
               "textTokens": 15,
             },
             "outputTokens": 15,
-            "reasoningTokens": undefined,
             "totalTokens": 28,
           }
         `);
@@ -4497,7 +4587,6 @@ describe('generateText', () => {
       it('result.usage should contain token usage from final step', async () => {
         expect(result.usage).toMatchInlineSnapshot(`
           {
-            "cachedInputTokens": undefined,
             "inputTokenDetails": {
               "cacheReadTokens": undefined,
               "cacheWriteTokens": undefined,
@@ -4510,7 +4599,6 @@ describe('generateText', () => {
             },
             "outputTokens": 10,
             "raw": undefined,
-            "reasoningTokens": undefined,
             "totalTokens": 13,
           }
         `);
@@ -4708,7 +4796,6 @@ describe('generateText', () => {
                   "stepNumber": 0,
                   "toolsContext": {},
                   "usage": {
-                    "cachedInputTokens": undefined,
                     "inputTokenDetails": {
                       "cacheReadTokens": undefined,
                       "cacheWriteTokens": undefined,
@@ -4721,7 +4808,6 @@ describe('generateText', () => {
                     },
                     "outputTokens": 5,
                     "raw": undefined,
-                    "reasoningTokens": undefined,
                     "totalTokens": 15,
                   },
                   "warnings": [],
@@ -4809,7 +4895,6 @@ describe('generateText', () => {
                   "stepNumber": 0,
                   "toolsContext": {},
                   "usage": {
-                    "cachedInputTokens": undefined,
                     "inputTokenDetails": {
                       "cacheReadTokens": undefined,
                       "cacheWriteTokens": undefined,
@@ -4822,7 +4907,6 @@ describe('generateText', () => {
                     },
                     "outputTokens": 5,
                     "raw": undefined,
-                    "reasoningTokens": undefined,
                     "totalTokens": 15,
                   },
                   "warnings": [],
@@ -6992,7 +7076,7 @@ describe('generateText', () => {
       });
 
       describe('result.responseMessages', () => {
-        it('should contain all response messages from all steps', () => {
+        it('should contain response messages from all steps', () => {
           expect(result.responseMessages).toMatchInlineSnapshot(`
             [
               {
@@ -7401,7 +7485,6 @@ describe('generateText', () => {
         it('should sum token usage across all steps', () => {
           expect(result.totalUsage).toMatchInlineSnapshot(`
             {
-              "cachedInputTokens": undefined,
               "inputTokenDetails": {
                 "cacheReadTokens": undefined,
                 "cacheWriteTokens": undefined,
@@ -7413,7 +7496,6 @@ describe('generateText', () => {
                 "textTokens": 806,
               },
               "outputTokens": 806,
-              "reasoningTokens": undefined,
               "totalTokens": 8418,
             }
           `);
@@ -7512,7 +7594,6 @@ describe('generateText', () => {
         it('should contain correct totalUsage', () => {
           expect(onFinishResult.totalUsage).toMatchInlineSnapshot(`
             {
-              "cachedInputTokens": undefined,
               "inputTokenDetails": {
                 "cacheReadTokens": undefined,
                 "cacheWriteTokens": undefined,
@@ -7524,13 +7605,12 @@ describe('generateText', () => {
                 "textTokens": 806,
               },
               "outputTokens": 806,
-              "reasoningTokens": undefined,
               "totalTokens": 8418,
             }
           `);
         });
 
-        it('should contain all response messages', () => {
+        it('should contain response messages from all steps', () => {
           expect(onFinishResult.responseMessages.length).toBe(9);
         });
       });
@@ -7737,6 +7817,85 @@ describe('generateText', () => {
       });
 
       expect(capturedSandbox).toBe(sandbox);
+    });
+
+    it('should use sandbox returned from prepareStep for that step only', async () => {
+      const sandbox = {
+        description: 'default sandbox',
+        executeCommand: vi.fn(async () => ({
+          exitCode: 0,
+          stdout: 'ok',
+          stderr: '',
+        })),
+      } satisfies Sandbox;
+      const stepSandbox = {
+        description: 'step sandbox',
+        executeCommand: vi.fn(async () => ({
+          exitCode: 0,
+          stdout: 'ok',
+          stderr: '',
+        })),
+      } satisfies Sandbox;
+      const recordedSandboxes: Array<Sandbox | undefined> = [];
+      let responseCount = 0;
+
+      await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => {
+            switch (responseCount++) {
+              case 0:
+                return {
+                  ...dummyResponseValues,
+                  content: [
+                    {
+                      type: 'tool-call',
+                      toolCallType: 'function',
+                      toolCallId: 'call-1',
+                      toolName: 't1',
+                      input: `{ "value": "first" }`,
+                    },
+                  ],
+                  finishReason: { unified: 'tool-calls', raw: undefined },
+                };
+              case 1:
+                return {
+                  ...dummyResponseValues,
+                  content: [
+                    {
+                      type: 'tool-call',
+                      toolCallType: 'function',
+                      toolCallId: 'call-2',
+                      toolName: 't1',
+                      input: `{ "value": "second" }`,
+                    },
+                  ],
+                  finishReason: { unified: 'tool-calls', raw: undefined },
+                };
+              default:
+                return {
+                  ...dummyResponseValues,
+                  content: [{ type: 'text', text: 'done' }],
+                };
+            }
+          },
+        }),
+        tools: {
+          t1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }, { sandbox }) => {
+              recordedSandboxes.push(sandbox);
+              return { value };
+            },
+          }),
+        },
+        sandbox,
+        prepareStep: async ({ stepNumber }) =>
+          stepNumber === 0 ? { sandbox: stepSandbox } : {},
+        prompt: 'test-input',
+        stopWhen: isStepCount(3),
+      });
+
+      expect(recordedSandboxes).toEqual([stepSandbox, sandbox]);
     });
 
     it('should send runtimeContext in onFinish callback', async () => {
@@ -8339,7 +8498,6 @@ describe('generateText', () => {
               "stepNumber": 0,
               "toolsContext": {},
               "usage": {
-                "cachedInputTokens": undefined,
                 "inputTokenDetails": {
                   "cacheReadTokens": undefined,
                   "cacheWriteTokens": undefined,
@@ -8352,7 +8510,6 @@ describe('generateText', () => {
                 },
                 "outputTokens": 20,
                 "raw": undefined,
-                "reasoningTokens": undefined,
                 "totalTokens": 30,
               },
               "warnings": [],
@@ -9066,6 +9223,86 @@ describe('generateText', () => {
               ],
               "role": "assistant",
             },
+          ]
+        `);
+      });
+
+      it('should pass the initial tool result in responseMessages to prepareStep', async () => {
+        const prepareStepResponseMessages: Array<ModelMessage[]> = [];
+
+        await generateText({
+          model: new MockLanguageModelV4({
+            doGenerate: async () => ({
+              ...dummyResponseValues,
+              content: [{ type: 'text', text: 'Hello, world!' }],
+              finishReason: { unified: 'stop', raw: 'stop' },
+            }),
+          }),
+          tools: {
+            tool1: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: () => 'result1',
+            }),
+          },
+          toolApproval: {
+            tool1: 'user-approval',
+          },
+          stopWhen: isStepCount(3),
+          messages: [
+            { role: 'user', content: 'test-input' },
+            {
+              role: 'assistant',
+              content: [
+                {
+                  input: { value: 'value' },
+                  providerExecuted: undefined,
+                  providerOptions: undefined,
+                  toolCallId: 'call-1',
+                  toolName: 'tool1',
+                  type: 'tool-call',
+                },
+                {
+                  approvalId: 'id-1',
+                  toolCallId: 'call-1',
+                  type: 'tool-approval-request',
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  approvalId: 'id-1',
+                  type: 'tool-approval-response',
+                  approved: true,
+                },
+              ],
+            },
+          ],
+          prepareStep: ({ responseMessages }) => {
+            prepareStepResponseMessages.push([...responseMessages]);
+            return undefined;
+          },
+        });
+
+        expect(prepareStepResponseMessages).toMatchInlineSnapshot(`
+          [
+            [
+              {
+                "content": [
+                  {
+                    "output": {
+                      "type": "text",
+                      "value": "result1",
+                    },
+                    "toolCallId": "call-1",
+                    "toolName": "tool1",
+                    "type": "tool-result",
+                  },
+                ],
+                "role": "tool",
+              },
+            ],
           ]
         `);
       });
