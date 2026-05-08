@@ -1,0 +1,56 @@
+{
+  "name": "@ai-sdk/konsistent",
+  "version": "0.0.1",
+  "description": "Reusable konsistent conventions for the AI SDK monorepo. Authored in TypeScript via @konsistent/convention, shipped as a JSON artifact via the \"./konsistent\" exports condition.",
+  "type": "module",
+  "license": "Apache-2.0",
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "src",
+    "!src/**/*.test.ts",
+    "!src/**/*.test-d.ts",
+    "CHANGELOG.md",
+    "README.md"
+  ],
+  "exports": {
+    "./konsistent": "./dist/conventions.json",
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "konsistent-convention emit",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@konsistent/convention": "0.0.1-alpha.2"
+  },
+  "peerDependencies": {
+    "zod": "^4"
+  },
+  "devDependencies": {
+    "@types/node": "20.17.24",
+    "@vercel/ai-tsconfig": "workspace:*",
+    "typescript": "5.8.3",
+    "zod": "^4.1.8"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "homepage": "https://ai-sdk.dev/docs",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vercel/ai",
+    "directory": "packages/konsistent"
+  },
+  "bugs": {
+    "url": "https://github.com/vercel/ai/issues"
+  },
+  "keywords": [
+    "ai",
+    "konsistent"
+  ]
+}

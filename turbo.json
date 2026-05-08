@@ -93,6 +93,10 @@
     },
     "integration-test": {
       "dependsOn": ["^build", "build"]
+    },
+    "//#konsistent:check": {
+      "dependsOn": ["@ai-sdk/konsistent#build"],
+      "cache": false
     }
   }
 }
