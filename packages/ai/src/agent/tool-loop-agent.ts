@@ -139,7 +139,7 @@ export class ToolLoopAgent<
     const { instructions, messages, prompt, runtimeContext, ...callArgs } =
       preparedCallArgs;
 
-    const promptArgs = { system: instructions, messages, prompt } as Prompt;
+    const promptArgs = { instructions, messages, prompt } as Prompt;
 
     if (runtimeContext === undefined) {
       return {

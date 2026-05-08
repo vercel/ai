@@ -31,7 +31,7 @@ run(async () => {
     const { steps, responseMessages } = await generateText({
       model: anthropic('claude-sonnet-4-5-20250929'),
       tools: { weatherTool },
-      system: `You are a helpful, respectful and honest assistant.`,
+      instructions: `You are a helpful, respectful and honest assistant.`,
       messages,
       stopWhen: isStepCount(5),
       reasoning: 'medium',

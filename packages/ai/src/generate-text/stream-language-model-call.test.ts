@@ -111,6 +111,7 @@ describe('streamLanguageModelCall', () => {
         {
           "callId": "test-telemetry-call-id",
           "frequencyPenalty": 0.1,
+          "instructions": undefined,
           "maxOutputTokens": 128,
           "messages": [
             {
@@ -126,7 +127,6 @@ describe('streamLanguageModelCall', () => {
           "stopSequences": [
             "stop",
           ],
-          "system": undefined,
           "temperature": 0.7,
           "tools": [
             {
@@ -218,6 +218,7 @@ describe('streamLanguageModelCall', () => {
           },
           "startEvent": {
             "callId": "call-generated-call-id",
+            "instructions": undefined,
             "messages": [
               {
                 "content": "test prompt",
@@ -226,7 +227,6 @@ describe('streamLanguageModelCall', () => {
             ],
             "modelId": "mock-model-id",
             "provider": "mock-provider",
-            "system": undefined,
             "tools": undefined,
           },
         }

@@ -7,9 +7,8 @@
   "bracketSpacing": true,
   "endOfLine": "lf",
   "ignorePatterns": [
+    ".changeset/**",
     "**/*.html",
-    "**/*.md",
-    "**/*.mdx",
     "**/*.mjs",
     "**/__fixtures__/**",
     "**/__snapshots__/**",

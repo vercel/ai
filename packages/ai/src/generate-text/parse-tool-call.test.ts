@@ -23,7 +23,7 @@ describe('parseToolCall', () => {
       } as const,
       repairToolCall: undefined,
       messages: [],
-      system: undefined,
+      instructions: undefined,
     });
 
     expect(result).toMatchInlineSnapshot(`
@@ -62,7 +62,7 @@ describe('parseToolCall', () => {
         testTool: input => ({ value: input.value.trim() }),
       },
       messages: [],
-      system: undefined,
+      instructions: undefined,
     });
 
     expect(result).toMatchInlineSnapshot(`
@@ -98,7 +98,7 @@ describe('parseToolCall', () => {
       tools: {} as const,
       repairToolCall: undefined,
       messages: [],
-      system: undefined,
+      instructions: undefined,
     });
 
     expect(result).toMatchInlineSnapshot(`
@@ -144,7 +144,7 @@ describe('parseToolCall', () => {
       } as const,
       repairToolCall: undefined,
       messages: [],
-      system: undefined,
+      instructions: undefined,
     });
 
     expect(result).toMatchInlineSnapshot(`
@@ -182,7 +182,7 @@ describe('parseToolCall', () => {
       } as const,
       repairToolCall: undefined,
       messages: [],
-      system: undefined,
+      instructions: undefined,
     });
 
     expect(result).toMatchInlineSnapshot(`
@@ -213,7 +213,7 @@ describe('parseToolCall', () => {
       } as const,
       repairToolCall: undefined,
       messages: [],
-      system: undefined,
+      instructions: undefined,
     });
 
     expect(result).toMatchInlineSnapshot(`
@@ -240,7 +240,7 @@ describe('parseToolCall', () => {
       tools: undefined,
       repairToolCall: undefined,
       messages: [],
-      system: undefined,
+      instructions: undefined,
     });
 
     expect(result).toMatchInlineSnapshot(`
@@ -277,7 +277,7 @@ describe('parseToolCall', () => {
       } as const,
       repairToolCall: undefined,
       messages: [],
-      system: undefined,
+      instructions: undefined,
     });
 
     expect(result).toMatchInlineSnapshot(`
@@ -314,7 +314,7 @@ describe('parseToolCall', () => {
       } as const,
       repairToolCall: undefined,
       messages: [],
-      system: undefined,
+      instructions: undefined,
     });
 
     expect(result).toMatchInlineSnapshot(`
@@ -371,7 +371,7 @@ describe('parseToolCall', () => {
         } as const,
         repairToolCall,
         messages: [{ role: 'user', content: 'test message' }],
-        system: 'test system',
+        instructions: 'test instructions',
       });
 
       // Verify repair function was called
@@ -384,7 +384,8 @@ describe('parseToolCall', () => {
         tools: expect.any(Object),
         inputSchema: expect.any(Function),
         messages: [{ role: 'user', content: 'test message' }],
-        system: 'test system',
+        instructions: 'test instructions',
+        system: 'test instructions',
         error: expect.any(InvalidToolInputError),
       });
 
@@ -403,6 +404,43 @@ describe('parseToolCall', () => {
           "type": "tool-call",
         }
       `);
+    });
+
+    it('should pass instructions to repairToolCall', async () => {
+      const repairToolCall = vi.fn().mockResolvedValue({
+        type: 'tool-call',
+        toolName: 'testTool',
+        toolCallId: '123',
+        input: '{"param1": "test", "param2": 42}',
+      });
+
+      const result = await parseToolCall({
+        toolCall: {
+          type: 'tool-call',
+          toolName: 'testTool',
+          toolCallId: '123',
+          input: 'invalid json',
+        },
+        tools: {
+          testTool: tool({
+            inputSchema: z.object({
+              param1: z.string(),
+              param2: z.number(),
+            }),
+          }),
+        } as const,
+        repairToolCall,
+        messages: [],
+        instructions: 'test instructions',
+      });
+
+      expect(repairToolCall).toHaveBeenCalledWith(
+        expect.objectContaining({
+          instructions: 'test instructions',
+          system: 'test instructions',
+        }),
+      );
+      expect(result.input).toStrictEqual({ param1: 'test', param2: 42 });
     });
 
     it('should re-throw error if tool call repair returns null', async () => {
@@ -425,7 +463,7 @@ describe('parseToolCall', () => {
         } as const,
         repairToolCall,
         messages: [],
-        system: undefined,
+        instructions: undefined,
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -465,7 +503,7 @@ describe('parseToolCall', () => {
         } as const,
         repairToolCall,
         messages: [],
-        system: undefined,
+        instructions: undefined,
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -504,7 +542,7 @@ describe('parseToolCall', () => {
       } as const,
       repairToolCall: undefined,
       messages: [],
-      system: undefined,
+      instructions: undefined,
     });
 
     expect(result).toMatchInlineSnapshot(`
@@ -547,7 +585,7 @@ describe('parseToolCall', () => {
           },
         },
         repairToolCall: undefined,
-        system: undefined,
+        instructions: undefined,
         messages: [],
       });
 
@@ -572,7 +610,7 @@ describe('parseToolCall', () => {
           },
         },
         repairToolCall: undefined,
-        system: undefined,
+        instructions: undefined,
         messages: [],
       });
 
@@ -597,7 +635,7 @@ describe('parseToolCall', () => {
           },
         },
         repairToolCall: undefined,
-        system: undefined,
+        instructions: undefined,
         messages: [],
       });
 
@@ -628,7 +666,7 @@ describe('parseToolCall', () => {
           }),
         },
         repairToolCall: undefined,
-        system: undefined,
+        instructions: undefined,
         messages: [],
       });
 
@@ -668,7 +706,7 @@ describe('parseToolCall', () => {
           }),
         },
         repairToolCall: undefined,
-        system: undefined,
+        instructions: undefined,
         messages: [],
       });
 
@@ -715,7 +753,7 @@ describe('parseToolCall', () => {
           }),
         },
         repairToolCall: undefined,
-        system: undefined,
+        instructions: undefined,
         messages: [],
       });
 
@@ -760,7 +798,7 @@ describe('parseToolCall', () => {
           }),
         },
         repairToolCall: undefined,
-        system: undefined,
+        instructions: undefined,
         messages: [],
       });
 

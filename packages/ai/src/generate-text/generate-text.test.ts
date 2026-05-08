@@ -495,6 +495,20 @@ describe('generateText', () => {
 
       expect(result.steps).toMatchSnapshot();
     });
+
+    it('should expose the final step', async () => {
+      const result = await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            content: [{ type: 'text', text: 'Hello!' }],
+          }),
+        }),
+        prompt: 'test-input',
+      });
+
+      expect(result.finalStep).toBe(result.steps.at(-1));
+    });
   });
 
   describe('result.toolCalls', () => {
@@ -1129,7 +1143,7 @@ describe('generateText', () => {
             ...dummyResponseValues,
           }),
         }),
-        system: 'you are a helpful assistant',
+        instructions: 'you are a helpful assistant',
         messages: [{ role: 'user', content: 'test-message' }],
         maxOutputTokens: 100,
         temperature: 0.5,
@@ -1140,7 +1154,7 @@ describe('generateText', () => {
 
       expect(startEvent.provider).toBe('mock-provider');
       expect(startEvent.modelId).toBe('mock-model-id');
-      expect(startEvent.system).toBe('you are a helpful assistant');
+      expect(startEvent.instructions).toBe('you are a helpful assistant');
       expect(startEvent.messages).toEqual([
         { role: 'user', content: 'test-message' },
       ]);
@@ -2005,7 +2019,7 @@ describe('generateText', () => {
             execute: async ({ value }) => `${value}-result`,
           }),
         },
-        system: 'test-system',
+        instructions: 'test-system',
         prompt: 'test-input',
         maxOutputTokens: 128,
         temperature: 0.7,
@@ -2052,6 +2066,7 @@ describe('generateText', () => {
         {
           "callId": "test-telemetry-call-id",
           "frequencyPenalty": 0.1,
+          "instructions": "test-system",
           "maxOutputTokens": 128,
           "messages": [
             {
@@ -2067,7 +2082,6 @@ describe('generateText', () => {
           "stopSequences": [
             "stop",
           ],
-          "system": "test-system",
           "temperature": 0.7,
           "tools": [
             {
@@ -3881,8 +3895,27 @@ describe('generateText', () => {
         `);
       });
 
-      it('result.usage should contain token usage from final step', async () => {
+      it('result.usage should sum token usage', async () => {
         expect(result.usage).toMatchInlineSnapshot(`
+          {
+            "inputTokenDetails": {
+              "cacheReadTokens": undefined,
+              "cacheWriteTokens": undefined,
+              "noCacheTokens": 13,
+            },
+            "inputTokens": 13,
+            "outputTokenDetails": {
+              "reasoningTokens": undefined,
+              "textTokens": 15,
+            },
+            "outputTokens": 15,
+            "totalTokens": 28,
+          }
+        `);
+      });
+
+      it('result.finalStep.usage should contain token usage from final step', async () => {
+        expect(result.finalStep.usage).toMatchInlineSnapshot(`
           {
             "inputTokenDetails": {
               "cacheReadTokens": undefined,
@@ -4039,7 +4072,7 @@ describe('generateText', () => {
                   type: 'tool',
                   toolName: 'tool1' as const,
                 },
-                system: 'system-message-0',
+                instructions: 'system-message-0',
                 messages: [
                   {
                     role: 'user',
@@ -4055,7 +4088,7 @@ describe('generateText', () => {
               return {
                 model: trueModel,
                 activeTools: [],
-                system: 'system-message-1',
+                instructions: 'system-message-1',
                 runtimeContext: { context: 'state3' },
               };
             }
@@ -4584,8 +4617,27 @@ describe('generateText', () => {
         `);
       });
 
-      it('result.usage should contain token usage from final step', async () => {
+      it('result.usage should sum token usage', async () => {
         expect(result.usage).toMatchInlineSnapshot(`
+          {
+            "inputTokenDetails": {
+              "cacheReadTokens": undefined,
+              "cacheWriteTokens": undefined,
+              "noCacheTokens": 13,
+            },
+            "inputTokens": 13,
+            "outputTokenDetails": {
+              "reasoningTokens": undefined,
+              "textTokens": 15,
+            },
+            "outputTokens": 15,
+            "totalTokens": 28,
+          }
+        `);
+      });
+
+      it('result.finalStep.usage should contain token usage from final step', async () => {
+        expect(result.finalStep.usage).toMatchInlineSnapshot(`
           {
             "inputTokenDetails": {
               "cacheReadTokens": undefined,

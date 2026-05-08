@@ -747,7 +747,6 @@
 - 2231e84: fix(anthropic): implement temperature/topP mutual exclusivity
 
   Resolves the Anthropic API breaking change where sampling parameters must use only `temperature` OR `top_p`, not both. When both parameters are provided:
-
   - Temperature takes priority and topP is ignored
   - A warning is added to inform users: "topP is not supported when temperature is set. topP is ignored."
   - The validation only runs when thinking mode is not enabled (thinking mode has its own parameter validation)
@@ -813,13 +812,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel("my-model-id");
+  model.textEmbeddingModel('my-model-id');
   ```
 
   After
 
   ```ts
-  model.embeddingModel("my-model-id");
+  model.embeddingModel('my-model-id');
   ```
 
 - f33a018: chore: add model ID for Haiku 4.5
@@ -1159,13 +1158,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel("my-model-id");
+  model.textEmbeddingModel('my-model-id');
   ```
 
   After
 
   ```ts
-  model.embeddingModel("my-model-id");
+  model.embeddingModel('my-model-id');
   ```
 
 - Updated dependencies [8d9e8ad]

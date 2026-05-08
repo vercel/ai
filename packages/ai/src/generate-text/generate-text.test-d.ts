@@ -1,12 +1,29 @@
 import type { JSONValue } from '@ai-sdk/provider';
-import { tool, type Context, type ModelMessage } from '@ai-sdk/provider-utils';
+import {
+  tool,
+  type Context,
+  type ModelMessage,
+  type SystemModelMessage,
+} from '@ai-sdk/provider-utils';
 import { describe, expectTypeOf, it } from 'vitest';
 import { z } from 'zod';
 import { generateText, Output } from '../generate-text';
+import type { Instructions, Prompt } from '../prompt';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import type { ResponseMessage } from './response-message';
 
 describe('generateText types', () => {
+  describe('instructions', () => {
+    it('should use the Instructions type for prompt instructions', () => {
+      expectTypeOf<Prompt['instructions']>().toEqualTypeOf<
+        Instructions | undefined
+      >();
+      expectTypeOf<Instructions>().toEqualTypeOf<
+        string | SystemModelMessage | Array<SystemModelMessage>
+      >();
+    });
+  });
+
   describe('output', () => {
     it('should infer text output type (default)', async () => {
       const result = await generateText({

@@ -689,7 +689,6 @@
 ### Patch Changes
 
 - 05f3f36: Add native `file_search` server-side tool support:
-
   - Add `xai.tools.fileSearch()` for vector store search with `vectorStoreIds` and `maxNumResults` parameters
   - Add `include` option supporting `file_search_call.results` to get inline search results
   - Add `file_search_call` handling in language model for both `doGenerate` and `doStream`
@@ -989,13 +988,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel("my-model-id");
+  model.textEmbeddingModel('my-model-id');
   ```
 
   After
 
   ```ts
-  model.embeddingModel("my-model-id");
+  model.embeddingModel('my-model-id');
   ```
 
 - 2625a04: feat(openai); update spec for mcp approval
@@ -1253,13 +1252,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel("my-model-id");
+  model.textEmbeddingModel('my-model-id');
   ```
 
   After
 
   ```ts
-  model.embeddingModel("my-model-id");
+  model.embeddingModel('my-model-id');
   ```
 
 - 8514146: add grok-4-1 model IDs
@@ -1802,7 +1801,7 @@
 
   ```js
   await generateImage({
-    model: luma.image("photon-flash-1", {
+    model: luma.image('photon-flash-1', {
       maxImagesPerCall: 5,
       pollIntervalMillis: 500,
     }),
@@ -1815,7 +1814,7 @@
 
   ```js
   await generateImage({
-    model: luma.image("photon-flash-1"),
+    model: luma.image('photon-flash-1'),
     prompt,
     n: 10,
     maxImagesPerCall: 5,
@@ -2131,7 +2130,7 @@
 
   ```js
   await generateImage({
-    model: luma.image("photon-flash-1", {
+    model: luma.image('photon-flash-1', {
       maxImagesPerCall: 5,
       pollIntervalMillis: 500,
     }),
@@ -2144,7 +2143,7 @@
 
   ```js
   await generateImage({
-    model: luma.image("photon-flash-1"),
+    model: luma.image('photon-flash-1'),
     prompt,
     n: 10,
     maxImagesPerCall: 5,

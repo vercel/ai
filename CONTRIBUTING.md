@@ -82,7 +82,6 @@ We greatly appreciate your pull requests. Here are the steps to submit them:
 
 1. **Create a New Branch**: Initiate your changes in a fresh branch. It's recommended to name the branch in a manner that signifies the changes you're implementing.
 2. **Add a patch changeset**: If you're updating any packages and want to ensure they're released, add a **patch** changeset to your branch by running `pnpm changeset` in the workspace root.
-
    - **Please do not use minor or major changesets**, we'll let you know when you need to use a different changeset type than patch.
    - You don't need to select any of the `examples/*` packages, as they are not released.
 
@@ -92,7 +91,6 @@ We greatly appreciate your pull requests. Here are the steps to submit them:
 6. **Pre-commit hooks**: A pre-commit hook automatically formats your staged files using `lint-staged` when you commit. If you stage any `package.json` changes, `pnpm install` runs automatically to keep the lockfile in sync. If you need to skip these hooks (e.g., for work-in-progress commits), set `ARTISANAL_MODE=1` before committing: `ARTISANAL_MODE=1 git commit -m "message"`.
 7. **Push the Changes to Your GitHub Repository**: After committing your changes, push them to your GitHub repository.
 8. **Open a Pull Request**: Propose your changes for review. Furnish a lucid title and description of your contributions. Make sure to link any relevant issues your PR resolves. We use the following PR title format:
-
    - `fix(package-name): description` or
    - `feat(package-name): description` or
    - `chore(package-name): description` etc.
