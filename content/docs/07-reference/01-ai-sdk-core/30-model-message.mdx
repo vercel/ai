@@ -26,8 +26,8 @@ type SystemModelMessage = {
 You can access the Zod schema for `SystemModelMessage` with the `systemModelMessageSchema` export.
 
 <Note>
-  Use the top-level `system` property instead of a system message for system
-  instructions. AI SDK functions reject system messages in `prompt` or
+  Use the top-level `instructions` property instead of a system message for
+  system instructions. AI SDK functions reject system messages in `prompt` or
   `messages` by default unless `allowSystemInMessages` is set to `true`.
   Opting in can create a prompt injection risk if users can inject system
   messages.

@@ -37,7 +37,7 @@ __PROVIDER_IMPORT__;
 
 const { text } = await generateText({
   model: __MODEL__,
-  system:
+  instructions:
     'You are a professional writer. ' +
     'You write simple, clear, and concise content.',
   prompt: `Summarize the following article in 3-5 sentences: ${article}`,

@@ -43,21 +43,21 @@ const result = await generateText({
 ## System Prompts
 
 System prompts are the initial set of instructions given to models that help guide and constrain the models' behaviors and responses.
-You can set system prompts using the `system` property.
+You can set system prompts using the `instructions` property.
 System prompts work with both the `prompt` and the `messages` properties.
-System messages in `prompt` or `messages` are rejected by default; use the `system` property for system instructions, or set `allowSystemInMessages: true` when you need to send existing message histories that contain system messages.
+System messages in `prompt` or `messages` are rejected by default; use the `instructions` property for system instructions, or set `allowSystemInMessages: true` when you need to send existing message histories that contain system messages.
 
 <Note type="warning">
   Opting in with `allowSystemInMessages` can create a prompt injection risk
   where users can override or set the system prompt by injecting system
   messages. In most cases, only trusted server-side code should set system
-  instructions via the `system` or `instructions` property.
+  instructions via the `instructions` property.
 </Note>
 
 ```ts highlight="3-6"
 const result = await generateText({
   model: __MODEL__,
-  system:
+  instructions:
     `You help planning travel itineraries. ` +
     `Respond to the users' request with a list ` +
     `of the best stops to make in their destination.`,
@@ -123,7 +123,7 @@ For granular control over applying provider options at the message level, you ca
 ```ts
 const result = await generateText({
   model: __MODEL__,
-  system: {
+  instructions: {
     role: 'system',
     content: 'Cached system message',
     providerOptions: {
@@ -604,7 +604,7 @@ const result = await generateText({
 ### System Messages
 
 System messages are messages that are sent to the model before the user messages to guide the assistant's behavior.
-You can alternatively use the `system` property.
+You can alternatively use the `instructions` property.
 
 ```ts highlight="4"
 const result = await generateText({
