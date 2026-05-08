@@ -1,5 +1,22 @@
 # @ai-sdk/vercel
 
+## 3.0.0-canary.42
+
+### Patch Changes
+
+- Updated dependencies [f634bac]
+  - @ai-sdk/provider-utils@5.0.0-canary.35
+  - @ai-sdk/openai-compatible@3.0.0-canary.42
+
+## 3.0.0-canary.41
+
+### Patch Changes
+
+- Updated dependencies [69254e0]
+- Updated dependencies [3015fc3]
+  - @ai-sdk/provider-utils@5.0.0-canary.34
+  - @ai-sdk/openai-compatible@3.0.0-canary.41
+
 ## 3.0.0-canary.40
 
 ### Patch Changes

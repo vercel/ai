@@ -389,6 +389,61 @@ console.log(result.output); // { sentiment: 'positive', summary: '...' }
 
 `WorkflowAgent` accepts the same generation settings as `ToolLoopAgent` (`temperature`, `maxOutputTokens`, `topP`, etc.) plus workflow-specific options.
 
+### runtimeContext and toolsContext
+
+Pass server-side state through the agent loop without putting it into the prompt. Use these instead of the previous `experimental_context` option.
+
+- `runtimeContext` is shared agent state that flows through `prepareStep`, lifecycle callbacks, and `onFinish`. Treat it as immutable; return a new value from `prepareStep` to update it for the current and subsequent steps.
+- `toolsContext` is a per-tool map keyed by tool name. Each tool's `execute` only sees its own validated entry as `context`. Tools that declare a `contextSchema` validate their entry against the schema before execution.
+
+```ts filename="workflow/agent-chat.ts"
+import { WorkflowAgent } from "@ai-sdk/workflow";
+import { tool } from "ai";
+import { z } from "zod";
+
+const agent = new WorkflowAgent({
+  model: "anthropic/claude-sonnet-4-6",
+  tools: {
+    weather: tool({
+      description: "Get the weather for a city.",
+      inputSchema: z.object({ city: z.string() }),
+      contextSchema: z.object({
+        defaultUnit: z.enum(["celsius", "fahrenheit"]),
+      }),
+      execute: async ({ city }, { context }) => ({
+        city,
+        unit: context.defaultUnit,
+      }),
+    }),
+  },
+
+  // Shared agent state — available in `prepareStep`, lifecycle callbacks, and `onFinish`.
+  runtimeContext: {
+    tenantId: "tenant_123",
+    requestId: "req_abc",
+    plan: "enterprise",
+  },
+
+  // Per-tool context — each tool sees only its own validated entry.
+  toolsContext: {
+    weather: { defaultUnit: "celsius" },
+  },
+
+  prepareStep: ({ runtimeContext }) => {
+    if (runtimeContext.plan === "enterprise") {
+      return { temperature: 0.2 };
+    }
+    return {};
+  },
+});
+```
+
+`runtimeContext` and `toolsContext` can also be passed per-call to `stream()`, where they override the constructor-level defaults.
+
+Because `WorkflowAgent` runs inside the Workflow runtime, context values may be persisted and replayed across workflow and step boundaries. Keep `runtimeContext`, `toolsContext`, and any context values returned from `prepareStep` serializable. Use plain data such as strings, numbers, booleans, arrays, plain objects, dates, URLs, maps, sets, and other Workflow-supported structured data. Do not put functions, class instances, symbols, `WeakMap`, `WeakSet`, database clients, or SDK clients in context. Pass identifiers or configuration data instead, and recreate non-serializable resources inside step functions.
+
+This differs from `ToolLoopAgent`, which runs in memory and can carry richer JavaScript values for the lifetime of a single process. With `WorkflowAgent`, treating context as durable data keeps workflow replay and step execution reliable.
+
 ### prepareCall
 
 Called once before the agent loop starts. Use it to transform model, instructions, or other settings based on runtime context:
@@ -589,9 +644,23 @@ whether approval is required (see [Tool Approval](#tool-approval) above).
 
 `WorkflowAgent` only exposes `stream()`. If you were calling `agent.generate()`, switch to `stream()` and read `result.messages` / `result.output` once the promise resolves.
 
+### Replace `experimental_context` with `runtimeContext` and `toolsContext`
+
+`WorkflowAgent` no longer accepts `experimental_context`. Split the value into shared agent state (`runtimeContext`) and per-tool state (`toolsContext`); each tool's `execute` then receives only its own validated entry as `context`. See [runtimeContext and toolsContext](#runtimecontext-and-toolscontext) for the full shape.
+
+```diff
+  const agent = new WorkflowAgent({
+    model: 'anthropic/claude-sonnet-4-6',
+    tools: { weather: weatherTool },
+-   experimental_context: { tenantId: 'tenant_123', apiKey: 'sk-...' },
++   runtimeContext: { tenantId: 'tenant_123' },
++   toolsContext: { weather: { apiKey: 'sk-...' } },
+  });
+```
+
 ### Everything else
 
-Other options carry over with the same names: `prepareStep`, `onStepFinish`, `onFinish`, `onError`, `toolChoice`, `activeTools`, `timeout`, `experimental_context`, `experimental_repairToolCall`, and the usual generation settings (`temperature`, `maxOutputTokens`, `topP`, …). `WorkflowAgent` additionally adds `prepareCall` (runs once before the loop) and the `experimental_onStart` / `experimental_onStepStart` / `onToolExecutionStart` / `onToolExecutionEnd` lifecycle callbacks documented above.
+Other options carry over with the same names: `prepareStep`, `onStepFinish`, `onFinish`, `onError`, `toolChoice`, `activeTools`, `timeout`, `experimental_repairToolCall`, and the usual generation settings (`temperature`, `maxOutputTokens`, `topP`, …). `WorkflowAgent` additionally adds `prepareCall` (runs once before the loop) and the `experimental_onStart` / `experimental_onStepStart` / `onToolExecutionStart` / `onToolExecutionEnd` lifecycle callbacks documented above.
 
 ## Next Steps
 

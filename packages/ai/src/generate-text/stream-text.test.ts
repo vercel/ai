@@ -632,7 +632,6 @@ describe('streamText', () => {
               },
               "type": "finish-step",
               "usage": {
-                "cachedInputTokens": undefined,
                 "inputTokenDetails": {
                   "cacheReadTokens": undefined,
                   "cacheWriteTokens": undefined,
@@ -645,7 +644,6 @@ describe('streamText', () => {
                 },
                 "outputTokens": 10,
                 "raw": undefined,
-                "reasoningTokens": undefined,
                 "totalTokens": 13,
               },
             },
@@ -653,7 +651,6 @@ describe('streamText', () => {
               "finishReason": "stop",
               "rawFinishReason": "stop",
               "totalUsage": {
-                "cachedInputTokens": undefined,
                 "inputTokenDetails": {
                   "cacheReadTokens": undefined,
                   "cacheWriteTokens": undefined,
@@ -665,7 +662,6 @@ describe('streamText', () => {
                   "textTokens": 10,
                 },
                 "outputTokens": 10,
-                "reasoningTokens": undefined,
                 "totalTokens": 13,
               },
               "type": "finish",
@@ -865,7 +861,6 @@ describe('streamText', () => {
               },
               "type": "finish-step",
               "usage": {
-                "cachedInputTokens": undefined,
                 "inputTokenDetails": {
                   "cacheReadTokens": undefined,
                   "cacheWriteTokens": undefined,
@@ -878,7 +873,6 @@ describe('streamText', () => {
                 },
                 "outputTokens": 10,
                 "raw": undefined,
-                "reasoningTokens": undefined,
                 "totalTokens": 13,
               },
             },
@@ -886,7 +880,6 @@ describe('streamText', () => {
               "finishReason": "stop",
               "rawFinishReason": "stop",
               "totalUsage": {
-                "cachedInputTokens": undefined,
                 "inputTokenDetails": {
                   "cacheReadTokens": undefined,
                   "cacheWriteTokens": undefined,
@@ -898,7 +891,6 @@ describe('streamText', () => {
                   "textTokens": 10,
                 },
                 "outputTokens": 10,
-                "reasoningTokens": undefined,
                 "totalTokens": 13,
               },
               "type": "finish",
@@ -977,7 +969,6 @@ describe('streamText', () => {
               },
               "type": "finish-step",
               "usage": {
-                "cachedInputTokens": undefined,
                 "inputTokenDetails": {
                   "cacheReadTokens": undefined,
                   "cacheWriteTokens": undefined,
@@ -990,7 +981,6 @@ describe('streamText', () => {
                 },
                 "outputTokens": 10,
                 "raw": undefined,
-                "reasoningTokens": undefined,
                 "totalTokens": 13,
               },
             },
@@ -998,7 +988,6 @@ describe('streamText', () => {
               "finishReason": "stop",
               "rawFinishReason": "stop",
               "totalUsage": {
-                "cachedInputTokens": undefined,
                 "inputTokenDetails": {
                   "cacheReadTokens": undefined,
                   "cacheWriteTokens": undefined,
@@ -1010,7 +999,6 @@ describe('streamText', () => {
                   "textTokens": 10,
                 },
                 "outputTokens": 10,
-                "reasoningTokens": undefined,
                 "totalTokens": 13,
               },
               "type": "finish",
@@ -1074,7 +1062,6 @@ describe('streamText', () => {
               },
               "type": "finish-step",
               "usage": {
-                "cachedInputTokens": undefined,
                 "inputTokenDetails": {
                   "cacheReadTokens": undefined,
                   "cacheWriteTokens": undefined,
@@ -1087,7 +1074,6 @@ describe('streamText', () => {
                 },
                 "outputTokens": 10,
                 "raw": undefined,
-                "reasoningTokens": undefined,
                 "totalTokens": 13,
               },
             },
@@ -1095,7 +1081,6 @@ describe('streamText', () => {
               "finishReason": "stop",
               "rawFinishReason": "stop",
               "totalUsage": {
-                "cachedInputTokens": undefined,
                 "inputTokenDetails": {
                   "cacheReadTokens": undefined,
                   "cacheWriteTokens": undefined,
@@ -1107,7 +1092,6 @@ describe('streamText', () => {
                   "textTokens": 10,
                 },
                 "outputTokens": 10,
-                "reasoningTokens": undefined,
                 "totalTokens": 13,
               },
               "type": "finish",
@@ -1182,7 +1166,6 @@ describe('streamText', () => {
               },
               "type": "finish-step",
               "usage": {
-                "cachedInputTokens": undefined,
                 "inputTokenDetails": {
                   "cacheReadTokens": undefined,
                   "cacheWriteTokens": undefined,
@@ -1195,7 +1178,6 @@ describe('streamText', () => {
                 },
                 "outputTokens": 10,
                 "raw": undefined,
-                "reasoningTokens": undefined,
                 "totalTokens": 13,
               },
             },
@@ -1203,7 +1185,6 @@ describe('streamText', () => {
               "finishReason": "stop",
               "rawFinishReason": "stop",
               "totalUsage": {
-                "cachedInputTokens": undefined,
                 "inputTokenDetails": {
                   "cacheReadTokens": undefined,
                   "cacheWriteTokens": undefined,
@@ -1215,7 +1196,6 @@ describe('streamText', () => {
                   "textTokens": 10,
                 },
                 "outputTokens": 10,
-                "reasoningTokens": undefined,
                 "totalTokens": 13,
               },
               "type": "finish",
@@ -1347,7 +1327,6 @@ describe('streamText', () => {
               },
               "type": "finish-step",
               "usage": {
-                "cachedInputTokens": undefined,
                 "inputTokenDetails": {
                   "cacheReadTokens": undefined,
                   "cacheWriteTokens": undefined,
@@ -1360,7 +1339,6 @@ describe('streamText', () => {
                 },
                 "outputTokens": 10,
                 "raw": undefined,
-                "reasoningTokens": undefined,
                 "totalTokens": 13,
               },
             },
@@ -1368,7 +1346,6 @@ describe('streamText', () => {
               "finishReason": "stop",
               "rawFinishReason": "stop",
               "totalUsage": {
-                "cachedInputTokens": undefined,
                 "inputTokenDetails": {
                   "cacheReadTokens": undefined,
                   "cacheWriteTokens": undefined,
@@ -1380,7 +1357,6 @@ describe('streamText', () => {
                   "textTokens": 10,
                 },
                 "outputTokens": 10,
-                "reasoningTokens": undefined,
                 "totalTokens": 13,
               },
               "type": "finish",
@@ -1476,7 +1452,6 @@ describe('streamText', () => {
               },
               "type": "finish-step",
               "usage": {
-                "cachedInputTokens": undefined,
                 "inputTokenDetails": {
                   "cacheReadTokens": undefined,
                   "cacheWriteTokens": undefined,
@@ -1489,7 +1464,6 @@ describe('streamText', () => {
                 },
                 "outputTokens": 10,
                 "raw": undefined,
-                "reasoningTokens": undefined,
                 "totalTokens": 13,
               },
             },
@@ -1497,7 +1471,6 @@ describe('streamText', () => {
               "finishReason": "stop",
               "rawFinishReason": "stop",
               "totalUsage": {
-                "cachedInputTokens": undefined,
                 "inputTokenDetails": {
                   "cacheReadTokens": undefined,
                   "cacheWriteTokens": undefined,
@@ -1509,7 +1482,6 @@ describe('streamText', () => {
                   "textTokens": 10,
                 },
                 "outputTokens": 10,
-                "reasoningTokens": undefined,
                 "totalTokens": 13,
               },
               "type": "finish",
@@ -1823,7 +1795,6 @@ describe('streamText', () => {
               },
               "type": "finish-step",
               "usage": {
-                "cachedInputTokens": 0,
                 "inputTokenDetails": {
                   "cacheReadTokens": 0,
                   "cacheWriteTokens": 0,
@@ -1836,7 +1807,6 @@ describe('streamText', () => {
                 },
                 "outputTokens": 10,
                 "raw": undefined,
-                "reasoningTokens": 10,
                 "totalTokens": 13,
               },
             },
@@ -1844,7 +1814,6 @@ describe('streamText', () => {
               "finishReason": "tool-calls",
               "rawFinishReason": undefined,
               "totalUsage": {
-                "cachedInputTokens": 0,
                 "inputTokenDetails": {
                   "cacheReadTokens": 0,
                   "cacheWriteTokens": 0,
@@ -1856,7 +1825,6 @@ describe('streamText', () => {
                   "textTokens": 10,
                 },
                 "outputTokens": 10,
-                "reasoningTokens": 10,
                 "totalTokens": 13,
               },
               "type": "finish",
@@ -2091,7 +2059,6 @@ describe('streamText', () => {
               },
               "type": "finish-step",
               "usage": {
-                "cachedInputTokens": undefined,
                 "inputTokenDetails": {
                   "cacheReadTokens": undefined,
                   "cacheWriteTokens": undefined,
@@ -2104,7 +2071,6 @@ describe('streamText', () => {
                 },
                 "outputTokens": 10,
                 "raw": undefined,
-                "reasoningTokens": undefined,
                 "totalTokens": 13,
               },
             },
@@ -2112,7 +2078,6 @@ describe('streamText', () => {
               "finishReason": "stop",
               "rawFinishReason": "stop",
               "totalUsage": {
-                "cachedInputTokens": undefined,
                 "inputTokenDetails": {
                   "cacheReadTokens": undefined,
                   "cacheWriteTokens": undefined,
@@ -2124,7 +2089,6 @@ describe('streamText', () => {
                   "textTokens": 10,
                 },
                 "outputTokens": 10,
-                "reasoningTokens": undefined,
                 "totalTokens": 13,
               },
               "type": "finish",
@@ -4792,7 +4756,6 @@ describe('streamText', () => {
               },
               "type": "finish-step",
               "usage": {
-                "cachedInputTokens": undefined,
                 "inputTokenDetails": {
                   "cacheReadTokens": undefined,
                   "cacheWriteTokens": undefined,
@@ -4805,7 +4768,6 @@ describe('streamText', () => {
                 },
                 "outputTokens": 10,
                 "raw": undefined,
-                "reasoningTokens": undefined,
                 "totalTokens": 13,
               },
             },
@@ -4813,7 +4775,6 @@ describe('streamText', () => {
               "finishReason": "stop",
               "rawFinishReason": "stop",
               "totalUsage": {
-                "cachedInputTokens": undefined,
                 "inputTokenDetails": {
                   "cacheReadTokens": undefined,
                   "cacheWriteTokens": undefined,
@@ -4825,7 +4786,6 @@ describe('streamText', () => {
                   "textTokens": 10,
                 },
                 "outputTokens": 10,
-                "reasoningTokens": undefined,
                 "totalTokens": 13,
               },
               "type": "finish",
@@ -4914,7 +4874,6 @@ describe('streamText', () => {
 
       expect(await result.usage).toMatchInlineSnapshot(`
         {
-          "cachedInputTokens": undefined,
           "inputTokenDetails": {
             "cacheReadTokens": undefined,
             "cacheWriteTokens": undefined,
@@ -4927,7 +4886,6 @@ describe('streamText', () => {
           },
           "outputTokens": 10,
           "raw": undefined,
-          "reasoningTokens": undefined,
           "totalTokens": 13,
         }
       `);
@@ -5251,6 +5209,84 @@ describe('streamText', () => {
         preparedMessages,
       );
     });
+
+    it('should carry messages from prepareStep forward to the next step', async () => {
+      const preparedMessages: Array<ModelMessage> = [
+        { role: 'user', content: 'prepared prompt' },
+      ];
+      const prepareStepMessages: Array<Array<ModelMessage>> = [];
+      let responseCount = 0;
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream<LanguageModelV4StreamPart>(
+              responseCount++ === 0
+                ? [
+                    {
+                      type: 'stream-start',
+                      warnings: [],
+                    },
+                    {
+                      type: 'tool-call',
+                      toolCallId: 'call-1',
+                      toolName: 'tool1',
+                      input: '{ "value": "test" }',
+                    },
+                    {
+                      type: 'finish',
+                      finishReason: { unified: 'tool-calls', raw: undefined },
+                      usage: testUsage,
+                    },
+                  ]
+                : [
+                    {
+                      type: 'stream-start',
+                      warnings: [],
+                    },
+                    { type: 'text-start', id: '1' },
+                    { type: 'text-delta', id: '1', delta: 'Done.' },
+                    { type: 'text-end', id: '1' },
+                    {
+                      type: 'finish',
+                      finishReason: { unified: 'stop', raw: 'stop' },
+                      usage: testUsage,
+                    },
+                  ],
+            ),
+          }),
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => `${value}-result`,
+          }),
+        },
+        prompt: 'prompt',
+        stopWhen: isStepCount(3),
+        prepareStep: async ({ messages, stepNumber }) => {
+          prepareStepMessages.push([...messages]);
+
+          if (stepNumber === 0) {
+            return { messages: preparedMessages };
+          }
+        },
+        include: { requestMessages: true },
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      const steps = await result.steps;
+      expect(prepareStepMessages[1]).toEqual([
+        ...preparedMessages,
+        ...steps[0].response.messages,
+      ]);
+      expect(steps[1].request.messages).toEqual([
+        ...preparedMessages,
+        ...steps[0].response.messages,
+      ]);
+    });
   });
 
   describe('result.response', () => {
@@ -5507,7 +5543,6 @@ describe('streamText', () => {
             "stepNumber": 0,
             "toolsContext": {},
             "usage": {
-              "cachedInputTokens": undefined,
               "inputTokenDetails": {
                 "cacheReadTokens": undefined,
                 "cacheWriteTokens": undefined,
@@ -5520,7 +5555,6 @@ describe('streamText', () => {
               },
               "outputTokens": 10,
               "raw": undefined,
-              "reasoningTokens": undefined,
               "totalTokens": 13,
             },
             "warnings": [],
@@ -5603,7 +5637,6 @@ describe('streamText', () => {
             "stepNumber": 0,
             "toolsContext": {},
             "usage": {
-              "cachedInputTokens": undefined,
               "inputTokenDetails": {
                 "cacheReadTokens": undefined,
                 "cacheWriteTokens": undefined,
@@ -5616,7 +5649,6 @@ describe('streamText', () => {
               },
               "outputTokens": 10,
               "raw": undefined,
-              "reasoningTokens": undefined,
               "totalTokens": 13,
             },
             "warnings": [],
@@ -5705,7 +5737,6 @@ describe('streamText', () => {
             "stepNumber": 0,
             "toolsContext": {},
             "usage": {
-              "cachedInputTokens": undefined,
               "inputTokenDetails": {
                 "cacheReadTokens": undefined,
                 "cacheWriteTokens": undefined,
@@ -5718,7 +5749,6 @@ describe('streamText', () => {
               },
               "outputTokens": 10,
               "raw": undefined,
-              "reasoningTokens": undefined,
               "totalTokens": 13,
             },
             "warnings": [],
@@ -5826,7 +5856,6 @@ describe('streamText', () => {
             "stepNumber": 0,
             "toolsContext": {},
             "usage": {
-              "cachedInputTokens": undefined,
               "inputTokenDetails": {
                 "cacheReadTokens": undefined,
                 "cacheWriteTokens": undefined,
@@ -5839,7 +5868,6 @@ describe('streamText', () => {
               },
               "outputTokens": 10,
               "raw": undefined,
-              "reasoningTokens": undefined,
               "totalTokens": 13,
             },
             "warnings": [],
@@ -6650,6 +6678,143 @@ describe('streamText', () => {
       expect(stepStartEvent).not.toHaveProperty('functionId');
     });
 
+    it('should pass initialMessages and responseMessages to prepareStep', async () => {
+      const prepareStepCalls: Array<{
+        initialMessages: Array<ModelMessage>;
+        responseMessages: Array<ModelMessage>;
+        messages: Array<ModelMessage>;
+      }> = [];
+      let responseCount = 0;
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => {
+            switch (responseCount++) {
+              case 0:
+                return {
+                  stream: convertArrayToReadableStream([
+                    {
+                      type: 'response-metadata' as const,
+                      id: 'id-0',
+                      modelId: 'mock-model-id',
+                      timestamp: new Date(0),
+                    },
+                    {
+                      type: 'tool-call' as const,
+                      id: 'call-1',
+                      toolCallId: 'call-1',
+                      toolName: 'tool1',
+                      input: '{ "value": "test" }',
+                    },
+                    {
+                      type: 'finish' as const,
+                      finishReason: {
+                        unified: 'tool-calls' as const,
+                        raw: undefined,
+                      },
+                      usage: testUsage,
+                    },
+                  ]),
+                };
+              case 1:
+              default:
+                return {
+                  stream: convertArrayToReadableStream([
+                    {
+                      type: 'response-metadata' as const,
+                      id: 'id-1',
+                      modelId: 'mock-model-id',
+                      timestamp: new Date(1000),
+                    },
+                    { type: 'text-start' as const, id: '1' },
+                    { type: 'text-delta' as const, id: '1', delta: 'Done.' },
+                    { type: 'text-end' as const, id: '1' },
+                    {
+                      type: 'finish' as const,
+                      finishReason: { unified: 'stop' as const, raw: 'stop' },
+                      usage: testUsage,
+                    },
+                  ]),
+                };
+            }
+          },
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => `${value}-result`,
+          }),
+        },
+        messages: [{ role: 'user', content: 'test-input' }],
+        stopWhen: isStepCount(3),
+        prepareStep: async ({
+          initialMessages,
+          responseMessages,
+          messages,
+        }) => {
+          prepareStepCalls.push({
+            initialMessages: [...initialMessages],
+            responseMessages: [...responseMessages],
+            messages: [...messages],
+          });
+          return undefined;
+        },
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      expect(prepareStepCalls).toHaveLength(2);
+      expect(prepareStepCalls[0].initialMessages).toEqual([
+        { role: 'user', content: 'test-input' },
+      ]);
+      expect(prepareStepCalls[0].responseMessages).toEqual([]);
+      expect(prepareStepCalls[0].messages).toEqual([
+        { role: 'user', content: 'test-input' },
+      ]);
+
+      expect(prepareStepCalls[1].initialMessages).toEqual([
+        { role: 'user', content: 'test-input' },
+      ]);
+      expect(prepareStepCalls[1].responseMessages).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "input": {
+                  "value": "test",
+                },
+                "providerExecuted": undefined,
+                "providerOptions": undefined,
+                "toolCallId": "call-1",
+                "toolName": "tool1",
+                "type": "tool-call",
+              },
+            ],
+            "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "output": {
+                  "type": "text",
+                  "value": "test-result",
+                },
+                "toolCallId": "call-1",
+                "toolName": "tool1",
+                "type": "tool-result",
+              },
+            ],
+            "role": "tool",
+          },
+        ]
+      `);
+      expect(prepareStepCalls[1].messages).toEqual([
+        ...prepareStepCalls[1].initialMessages,
+        ...prepareStepCalls[1].responseMessages,
+      ]);
+    });
+
     it('should pass updated toolsContext from prepareStep', async () => {
       const prepareStepToolsContexts: Array<unknown> = [];
       const stepStartEvents: Parameters<
@@ -6859,7 +7024,6 @@ describe('streamText', () => {
             "provider": "mock-provider",
             "responseId": "response-1",
             "usage": {
-              "cachedInputTokens": undefined,
               "inputTokenDetails": {
                 "cacheReadTokens": undefined,
                 "cacheWriteTokens": undefined,
@@ -6872,7 +7036,6 @@ describe('streamText', () => {
               },
               "outputTokens": 10,
               "raw": undefined,
-              "reasoningTokens": undefined,
               "totalTokens": 13,
             },
           },
@@ -8499,7 +8662,6 @@ describe('streamText', () => {
               "stepNumber": 0,
               "toolsContext": {},
               "usage": {
-                "cachedInputTokens": undefined,
                 "inputTokenDetails": {
                   "cacheReadTokens": undefined,
                   "cacheWriteTokens": undefined,
@@ -8512,7 +8674,6 @@ describe('streamText', () => {
                 },
                 "outputTokens": 10,
                 "raw": undefined,
-                "reasoningTokens": undefined,
                 "totalTokens": 13,
               },
               "warnings": [],
@@ -8546,7 +8707,6 @@ describe('streamText', () => {
           ],
           "toolsContext": {},
           "totalUsage": {
-            "cachedInputTokens": undefined,
             "inputTokenDetails": {
               "cacheReadTokens": undefined,
               "cacheWriteTokens": undefined,
@@ -8558,11 +8718,9 @@ describe('streamText', () => {
               "textTokens": 10,
             },
             "outputTokens": 10,
-            "reasoningTokens": undefined,
             "totalTokens": 13,
           },
           "usage": {
-            "cachedInputTokens": undefined,
             "inputTokenDetails": {
               "cacheReadTokens": undefined,
               "cacheWriteTokens": undefined,
@@ -8575,7 +8733,6 @@ describe('streamText', () => {
             },
             "outputTokens": 10,
             "raw": undefined,
-            "reasoningTokens": undefined,
             "totalTokens": 13,
           },
           "warnings": [],
@@ -8775,7 +8932,6 @@ describe('streamText', () => {
               "stepNumber": 0,
               "toolsContext": {},
               "usage": {
-                "cachedInputTokens": undefined,
                 "inputTokenDetails": {
                   "cacheReadTokens": undefined,
                   "cacheWriteTokens": undefined,
@@ -8788,7 +8944,6 @@ describe('streamText', () => {
                 },
                 "outputTokens": 10,
                 "raw": undefined,
-                "reasoningTokens": undefined,
                 "totalTokens": 13,
               },
               "warnings": [],
@@ -8799,7 +8954,6 @@ describe('streamText', () => {
           "toolResults": [],
           "toolsContext": {},
           "totalUsage": {
-            "cachedInputTokens": undefined,
             "inputTokenDetails": {
               "cacheReadTokens": undefined,
               "cacheWriteTokens": undefined,
@@ -8811,11 +8965,9 @@ describe('streamText', () => {
               "textTokens": 10,
             },
             "outputTokens": 10,
-            "reasoningTokens": undefined,
             "totalTokens": 13,
           },
           "usage": {
-            "cachedInputTokens": undefined,
             "inputTokenDetails": {
               "cacheReadTokens": undefined,
               "cacheWriteTokens": undefined,
@@ -8828,7 +8980,6 @@ describe('streamText', () => {
             },
             "outputTokens": 10,
             "raw": undefined,
-            "reasoningTokens": undefined,
             "totalTokens": 13,
           },
           "warnings": [],
@@ -9071,7 +9222,6 @@ describe('streamText', () => {
               "stepNumber": 0,
               "toolsContext": {},
               "usage": {
-                "cachedInputTokens": undefined,
                 "inputTokenDetails": {
                   "cacheReadTokens": undefined,
                   "cacheWriteTokens": undefined,
@@ -9084,7 +9234,6 @@ describe('streamText', () => {
                 },
                 "outputTokens": 10,
                 "raw": undefined,
-                "reasoningTokens": undefined,
                 "totalTokens": 13,
               },
               "warnings": [],
@@ -9095,7 +9244,6 @@ describe('streamText', () => {
           "toolResults": [],
           "toolsContext": {},
           "totalUsage": {
-            "cachedInputTokens": undefined,
             "inputTokenDetails": {
               "cacheReadTokens": undefined,
               "cacheWriteTokens": undefined,
@@ -9107,11 +9255,9 @@ describe('streamText', () => {
               "textTokens": 10,
             },
             "outputTokens": 10,
-            "reasoningTokens": undefined,
             "totalTokens": 13,
           },
           "usage": {
-            "cachedInputTokens": undefined,
             "inputTokenDetails": {
               "cacheReadTokens": undefined,
               "cacheWriteTokens": undefined,
@@ -9124,7 +9270,6 @@ describe('streamText', () => {
             },
             "outputTokens": 10,
             "raw": undefined,
-            "reasoningTokens": undefined,
             "totalTokens": 13,
           },
           "warnings": [],
@@ -9551,7 +9696,6 @@ describe('streamText', () => {
                 },
                 "type": "finish-step",
                 "usage": {
-                  "cachedInputTokens": undefined,
                   "inputTokenDetails": {
                     "cacheReadTokens": undefined,
                     "cacheWriteTokens": undefined,
@@ -9564,7 +9708,6 @@ describe('streamText', () => {
                   },
                   "outputTokens": 10,
                   "raw": undefined,
-                  "reasoningTokens": undefined,
                   "totalTokens": 13,
                 },
               },
@@ -9610,7 +9753,6 @@ describe('streamText', () => {
                 },
                 "type": "finish-step",
                 "usage": {
-                  "cachedInputTokens": 0,
                   "inputTokenDetails": {
                     "cacheReadTokens": 0,
                     "cacheWriteTokens": 0,
@@ -9623,7 +9765,6 @@ describe('streamText', () => {
                   },
                   "outputTokens": 10,
                   "raw": undefined,
-                  "reasoningTokens": 10,
                   "totalTokens": 13,
                 },
               },
@@ -9631,7 +9772,6 @@ describe('streamText', () => {
                 "finishReason": "stop",
                 "rawFinishReason": "stop",
                 "totalUsage": {
-                  "cachedInputTokens": 0,
                   "inputTokenDetails": {
                     "cacheReadTokens": 0,
                     "cacheWriteTokens": 0,
@@ -9643,7 +9783,6 @@ describe('streamText', () => {
                     "textTokens": 20,
                   },
                   "outputTokens": 20,
-                  "reasoningTokens": 10,
                   "totalTokens": 26,
                 },
                 "type": "finish",
@@ -9690,40 +9829,6 @@ describe('streamText', () => {
                 },
                 "id": "id-1",
                 "messages": [
-                  {
-                    "content": [
-                      {
-                        "providerOptions": undefined,
-                        "text": "thinking",
-                        "type": "reasoning",
-                      },
-                      {
-                        "input": {
-                          "value": "value",
-                        },
-                        "providerExecuted": undefined,
-                        "providerOptions": undefined,
-                        "toolCallId": "call-1",
-                        "toolName": "tool1",
-                        "type": "tool-call",
-                      },
-                    ],
-                    "role": "assistant",
-                  },
-                  {
-                    "content": [
-                      {
-                        "output": {
-                          "type": "text",
-                          "value": "result1",
-                        },
-                        "toolCallId": "call-1",
-                        "toolName": "tool1",
-                        "type": "tool-result",
-                      },
-                    ],
-                    "role": "tool",
-                  },
                   {
                     "content": [
                       {
@@ -9879,7 +9984,6 @@ describe('streamText', () => {
                   "stepNumber": 0,
                   "toolsContext": {},
                   "usage": {
-                    "cachedInputTokens": undefined,
                     "inputTokenDetails": {
                       "cacheReadTokens": undefined,
                       "cacheWriteTokens": undefined,
@@ -9892,7 +9996,6 @@ describe('streamText', () => {
                     },
                     "outputTokens": 10,
                     "raw": undefined,
-                    "reasoningTokens": undefined,
                     "totalTokens": 13,
                   },
                   "warnings": [],
@@ -9927,40 +10030,6 @@ describe('streamText', () => {
                         "content": [
                           {
                             "providerOptions": undefined,
-                            "text": "thinking",
-                            "type": "reasoning",
-                          },
-                          {
-                            "input": {
-                              "value": "value",
-                            },
-                            "providerExecuted": undefined,
-                            "providerOptions": undefined,
-                            "toolCallId": "call-1",
-                            "toolName": "tool1",
-                            "type": "tool-call",
-                          },
-                        ],
-                        "role": "assistant",
-                      },
-                      {
-                        "content": [
-                          {
-                            "output": {
-                              "type": "text",
-                              "value": "result1",
-                            },
-                            "toolCallId": "call-1",
-                            "toolName": "tool1",
-                            "type": "tool-result",
-                          },
-                        ],
-                        "role": "tool",
-                      },
-                      {
-                        "content": [
-                          {
-                            "providerOptions": undefined,
                             "text": "Hello, world!",
                             "type": "text",
                           },
@@ -9975,7 +10044,6 @@ describe('streamText', () => {
                   "stepNumber": 1,
                   "toolsContext": {},
                   "usage": {
-                    "cachedInputTokens": 0,
                     "inputTokenDetails": {
                       "cacheReadTokens": 0,
                       "cacheWriteTokens": 0,
@@ -9988,7 +10056,6 @@ describe('streamText', () => {
                     },
                     "outputTokens": 10,
                     "raw": undefined,
-                    "reasoningTokens": 10,
                     "totalTokens": 13,
                   },
                   "warnings": [],
@@ -9999,7 +10066,6 @@ describe('streamText', () => {
               "toolResults": [],
               "toolsContext": {},
               "totalUsage": {
-                "cachedInputTokens": 0,
                 "inputTokenDetails": {
                   "cacheReadTokens": 0,
                   "cacheWriteTokens": 0,
@@ -10011,11 +10077,9 @@ describe('streamText', () => {
                   "textTokens": 20,
                 },
                 "outputTokens": 20,
-                "reasoningTokens": 10,
                 "totalTokens": 26,
               },
               "usage": {
-                "cachedInputTokens": 0,
                 "inputTokenDetails": {
                   "cacheReadTokens": 0,
                   "cacheWriteTokens": 0,
@@ -10028,7 +10092,6 @@ describe('streamText', () => {
                 },
                 "outputTokens": 10,
                 "raw": undefined,
-                "reasoningTokens": 10,
                 "totalTokens": 13,
               },
               "warnings": [],
@@ -10128,7 +10191,6 @@ describe('streamText', () => {
                 "stepNumber": 0,
                 "toolsContext": {},
                 "usage": {
-                  "cachedInputTokens": undefined,
                   "inputTokenDetails": {
                     "cacheReadTokens": undefined,
                     "cacheWriteTokens": undefined,
@@ -10141,7 +10203,6 @@ describe('streamText', () => {
                   },
                   "outputTokens": 10,
                   "raw": undefined,
-                  "reasoningTokens": undefined,
                   "totalTokens": 13,
                 },
                 "warnings": [],
@@ -10176,40 +10237,6 @@ describe('streamText', () => {
                       "content": [
                         {
                           "providerOptions": undefined,
-                          "text": "thinking",
-                          "type": "reasoning",
-                        },
-                        {
-                          "input": {
-                            "value": "value",
-                          },
-                          "providerExecuted": undefined,
-                          "providerOptions": undefined,
-                          "toolCallId": "call-1",
-                          "toolName": "tool1",
-                          "type": "tool-call",
-                        },
-                      ],
-                      "role": "assistant",
-                    },
-                    {
-                      "content": [
-                        {
-                          "output": {
-                            "type": "text",
-                            "value": "result1",
-                          },
-                          "toolCallId": "call-1",
-                          "toolName": "tool1",
-                          "type": "tool-result",
-                        },
-                      ],
-                      "role": "tool",
-                    },
-                    {
-                      "content": [
-                        {
-                          "providerOptions": undefined,
                           "text": "Hello, world!",
                           "type": "text",
                         },
@@ -10224,7 +10251,6 @@ describe('streamText', () => {
                 "stepNumber": 1,
                 "toolsContext": {},
                 "usage": {
-                  "cachedInputTokens": 0,
                   "inputTokenDetails": {
                     "cacheReadTokens": 0,
                     "cacheWriteTokens": 0,
@@ -10237,7 +10263,6 @@ describe('streamText', () => {
                   },
                   "outputTokens": 10,
                   "raw": undefined,
-                  "reasoningTokens": 10,
                   "totalTokens": 13,
                 },
                 "warnings": [],
@@ -10255,7 +10280,6 @@ describe('streamText', () => {
         it('result.totalUsage should contain total token usage', async () => {
           expect(await result.totalUsage).toMatchInlineSnapshot(`
             {
-              "cachedInputTokens": 0,
               "inputTokenDetails": {
                 "cacheReadTokens": 0,
                 "cacheWriteTokens": 0,
@@ -10267,7 +10291,6 @@ describe('streamText', () => {
                 "textTokens": 20,
               },
               "outputTokens": 20,
-              "reasoningTokens": 10,
               "totalTokens": 26,
             }
           `);
@@ -10276,7 +10299,6 @@ describe('streamText', () => {
         it('result.usage should contain token usage from final step', async () => {
           expect(await result.totalUsage).toMatchInlineSnapshot(`
             {
-              "cachedInputTokens": 0,
               "inputTokenDetails": {
                 "cacheReadTokens": 0,
                 "cacheWriteTokens": 0,
@@ -10288,7 +10310,6 @@ describe('streamText', () => {
                 "textTokens": 20,
               },
               "outputTokens": 20,
-              "reasoningTokens": 10,
               "totalTokens": 26,
             }
           `);
@@ -10394,7 +10415,6 @@ describe('streamText', () => {
                 "stepNumber": 0,
                 "toolsContext": {},
                 "usage": {
-                  "cachedInputTokens": undefined,
                   "inputTokenDetails": {
                     "cacheReadTokens": undefined,
                     "cacheWriteTokens": undefined,
@@ -10407,7 +10427,6 @@ describe('streamText', () => {
                   },
                   "outputTokens": 10,
                   "raw": undefined,
-                  "reasoningTokens": undefined,
                   "totalTokens": 13,
                 },
                 "warnings": [],
@@ -10442,40 +10461,6 @@ describe('streamText', () => {
                       "content": [
                         {
                           "providerOptions": undefined,
-                          "text": "thinking",
-                          "type": "reasoning",
-                        },
-                        {
-                          "input": {
-                            "value": "value",
-                          },
-                          "providerExecuted": undefined,
-                          "providerOptions": undefined,
-                          "toolCallId": "call-1",
-                          "toolName": "tool1",
-                          "type": "tool-call",
-                        },
-                      ],
-                      "role": "assistant",
-                    },
-                    {
-                      "content": [
-                        {
-                          "output": {
-                            "type": "text",
-                            "value": "result1",
-                          },
-                          "toolCallId": "call-1",
-                          "toolName": "tool1",
-                          "type": "tool-result",
-                        },
-                      ],
-                      "role": "tool",
-                    },
-                    {
-                      "content": [
-                        {
-                          "providerOptions": undefined,
                           "text": "Hello, world!",
                           "type": "text",
                         },
@@ -10490,7 +10475,6 @@ describe('streamText', () => {
                 "stepNumber": 1,
                 "toolsContext": {},
                 "usage": {
-                  "cachedInputTokens": 0,
                   "inputTokenDetails": {
                     "cacheReadTokens": 0,
                     "cacheWriteTokens": 0,
@@ -10503,7 +10487,6 @@ describe('streamText', () => {
                   },
                   "outputTokens": 10,
                   "raw": undefined,
-                  "reasoningTokens": 10,
                   "totalTokens": 13,
                 },
                 "warnings": [],
@@ -10838,7 +10821,7 @@ describe('streamText', () => {
                 {
                   "content": [
                     {
-                      "text": "test-input",
+                      "text": "new input from prepareStep",
                       "type": "text",
                     },
                   ],
@@ -10993,7 +10976,6 @@ describe('streamText', () => {
                   "stepNumber": 0,
                   "toolsContext": {},
                   "usage": {
-                    "cachedInputTokens": undefined,
                     "inputTokenDetails": {
                       "cacheReadTokens": undefined,
                       "cacheWriteTokens": undefined,
@@ -11006,7 +10988,6 @@ describe('streamText', () => {
                     },
                     "outputTokens": 10,
                     "raw": undefined,
-                    "reasoningTokens": undefined,
                     "totalTokens": 13,
                   },
                   "warnings": [],
@@ -11040,35 +11021,6 @@ describe('streamText', () => {
                       {
                         "content": [
                           {
-                            "input": {
-                              "value": "value",
-                            },
-                            "providerExecuted": undefined,
-                            "providerOptions": undefined,
-                            "toolCallId": "call-1",
-                            "toolName": "tool1",
-                            "type": "tool-call",
-                          },
-                        ],
-                        "role": "assistant",
-                      },
-                      {
-                        "content": [
-                          {
-                            "output": {
-                              "type": "text",
-                              "value": "result1",
-                            },
-                            "toolCallId": "call-1",
-                            "toolName": "tool1",
-                            "type": "tool-result",
-                          },
-                        ],
-                        "role": "tool",
-                      },
-                      {
-                        "content": [
-                          {
                             "providerOptions": undefined,
                             "text": "Hello, world!",
                             "type": "text",
@@ -11086,7 +11038,6 @@ describe('streamText', () => {
                   "stepNumber": 1,
                   "toolsContext": {},
                   "usage": {
-                    "cachedInputTokens": 0,
                     "inputTokenDetails": {
                       "cacheReadTokens": 0,
                       "cacheWriteTokens": 0,
@@ -11099,7 +11050,6 @@ describe('streamText', () => {
                     },
                     "outputTokens": 10,
                     "raw": undefined,
-                    "reasoningTokens": 10,
                     "totalTokens": 13,
                   },
                   "warnings": [],
@@ -11109,7 +11059,7 @@ describe('streamText', () => {
             {
               "messages": [
                 {
-                  "content": "test-input",
+                  "content": "new input from prepareStep",
                   "role": "user",
                 },
                 {
@@ -11229,7 +11179,6 @@ describe('streamText', () => {
                   "stepNumber": 0,
                   "toolsContext": {},
                   "usage": {
-                    "cachedInputTokens": undefined,
                     "inputTokenDetails": {
                       "cacheReadTokens": undefined,
                       "cacheWriteTokens": undefined,
@@ -11242,7 +11191,6 @@ describe('streamText', () => {
                     },
                     "outputTokens": 10,
                     "raw": undefined,
-                    "reasoningTokens": undefined,
                     "totalTokens": 13,
                   },
                   "warnings": [],
@@ -11276,35 +11224,6 @@ describe('streamText', () => {
                       {
                         "content": [
                           {
-                            "input": {
-                              "value": "value",
-                            },
-                            "providerExecuted": undefined,
-                            "providerOptions": undefined,
-                            "toolCallId": "call-1",
-                            "toolName": "tool1",
-                            "type": "tool-call",
-                          },
-                        ],
-                        "role": "assistant",
-                      },
-                      {
-                        "content": [
-                          {
-                            "output": {
-                              "type": "text",
-                              "value": "result1",
-                            },
-                            "toolCallId": "call-1",
-                            "toolName": "tool1",
-                            "type": "tool-result",
-                          },
-                        ],
-                        "role": "tool",
-                      },
-                      {
-                        "content": [
-                          {
                             "providerOptions": undefined,
                             "text": "Hello, world!",
                             "type": "text",
@@ -11322,7 +11241,6 @@ describe('streamText', () => {
                   "stepNumber": 1,
                   "toolsContext": {},
                   "usage": {
-                    "cachedInputTokens": 0,
                     "inputTokenDetails": {
                       "cacheReadTokens": 0,
                       "cacheWriteTokens": 0,
@@ -11335,7 +11253,6 @@ describe('streamText', () => {
                     },
                     "outputTokens": 10,
                     "raw": undefined,
-                    "reasoningTokens": 10,
                     "totalTokens": 13,
                   },
                   "warnings": [],
@@ -11520,7 +11437,6 @@ describe('streamText', () => {
                 },
                 "type": "finish-step",
                 "usage": {
-                  "cachedInputTokens": undefined,
                   "inputTokenDetails": {
                     "cacheReadTokens": undefined,
                     "cacheWriteTokens": undefined,
@@ -11533,7 +11449,6 @@ describe('streamText', () => {
                   },
                   "outputTokens": 10,
                   "raw": undefined,
-                  "reasoningTokens": undefined,
                   "totalTokens": 13,
                 },
               },
@@ -11579,7 +11494,6 @@ describe('streamText', () => {
                 },
                 "type": "finish-step",
                 "usage": {
-                  "cachedInputTokens": 0,
                   "inputTokenDetails": {
                     "cacheReadTokens": 0,
                     "cacheWriteTokens": 0,
@@ -11592,7 +11506,6 @@ describe('streamText', () => {
                   },
                   "outputTokens": 10,
                   "raw": undefined,
-                  "reasoningTokens": 10,
                   "totalTokens": 13,
                 },
               },
@@ -11600,7 +11513,6 @@ describe('streamText', () => {
                 "finishReason": "stop",
                 "rawFinishReason": "stop",
                 "totalUsage": {
-                  "cachedInputTokens": 0,
                   "inputTokenDetails": {
                     "cacheReadTokens": 0,
                     "cacheWriteTokens": 0,
@@ -11612,7 +11524,6 @@ describe('streamText', () => {
                     "textTokens": 20,
                   },
                   "outputTokens": 20,
-                  "reasoningTokens": 10,
                   "totalTokens": 26,
                 },
                 "type": "finish",
@@ -11659,40 +11570,6 @@ describe('streamText', () => {
                 },
                 "id": "id-1",
                 "messages": [
-                  {
-                    "content": [
-                      {
-                        "providerOptions": undefined,
-                        "text": "thinking",
-                        "type": "reasoning",
-                      },
-                      {
-                        "input": {
-                          "value": "value",
-                        },
-                        "providerExecuted": undefined,
-                        "providerOptions": undefined,
-                        "toolCallId": "call-1",
-                        "toolName": "tool1",
-                        "type": "tool-call",
-                      },
-                    ],
-                    "role": "assistant",
-                  },
-                  {
-                    "content": [
-                      {
-                        "output": {
-                          "type": "text",
-                          "value": "RESULT1",
-                        },
-                        "toolCallId": "call-1",
-                        "toolName": "tool1",
-                        "type": "tool-result",
-                      },
-                    ],
-                    "role": "tool",
-                  },
                   {
                     "content": [
                       {
@@ -11848,7 +11725,6 @@ describe('streamText', () => {
                   "stepNumber": 0,
                   "toolsContext": {},
                   "usage": {
-                    "cachedInputTokens": undefined,
                     "inputTokenDetails": {
                       "cacheReadTokens": undefined,
                       "cacheWriteTokens": undefined,
@@ -11861,7 +11737,6 @@ describe('streamText', () => {
                     },
                     "outputTokens": 10,
                     "raw": undefined,
-                    "reasoningTokens": undefined,
                     "totalTokens": 13,
                   },
                   "warnings": [],
@@ -11896,40 +11771,6 @@ describe('streamText', () => {
                         "content": [
                           {
                             "providerOptions": undefined,
-                            "text": "thinking",
-                            "type": "reasoning",
-                          },
-                          {
-                            "input": {
-                              "value": "value",
-                            },
-                            "providerExecuted": undefined,
-                            "providerOptions": undefined,
-                            "toolCallId": "call-1",
-                            "toolName": "tool1",
-                            "type": "tool-call",
-                          },
-                        ],
-                        "role": "assistant",
-                      },
-                      {
-                        "content": [
-                          {
-                            "output": {
-                              "type": "text",
-                              "value": "RESULT1",
-                            },
-                            "toolCallId": "call-1",
-                            "toolName": "tool1",
-                            "type": "tool-result",
-                          },
-                        ],
-                        "role": "tool",
-                      },
-                      {
-                        "content": [
-                          {
-                            "providerOptions": undefined,
                             "text": "Hello, world!",
                             "type": "text",
                           },
@@ -11944,7 +11785,6 @@ describe('streamText', () => {
                   "stepNumber": 1,
                   "toolsContext": {},
                   "usage": {
-                    "cachedInputTokens": 0,
                     "inputTokenDetails": {
                       "cacheReadTokens": 0,
                       "cacheWriteTokens": 0,
@@ -11957,7 +11797,6 @@ describe('streamText', () => {
                     },
                     "outputTokens": 10,
                     "raw": undefined,
-                    "reasoningTokens": 10,
                     "totalTokens": 13,
                   },
                   "warnings": [],
@@ -11968,7 +11807,6 @@ describe('streamText', () => {
               "toolResults": [],
               "toolsContext": {},
               "totalUsage": {
-                "cachedInputTokens": 0,
                 "inputTokenDetails": {
                   "cacheReadTokens": 0,
                   "cacheWriteTokens": 0,
@@ -11980,11 +11818,9 @@ describe('streamText', () => {
                   "textTokens": 20,
                 },
                 "outputTokens": 20,
-                "reasoningTokens": 10,
                 "totalTokens": 26,
               },
               "usage": {
-                "cachedInputTokens": 0,
                 "inputTokenDetails": {
                   "cacheReadTokens": 0,
                   "cacheWriteTokens": 0,
@@ -11997,7 +11833,6 @@ describe('streamText', () => {
                 },
                 "outputTokens": 10,
                 "raw": undefined,
-                "reasoningTokens": 10,
                 "totalTokens": 13,
               },
               "warnings": [],
@@ -12097,7 +11932,6 @@ describe('streamText', () => {
                 "stepNumber": 0,
                 "toolsContext": {},
                 "usage": {
-                  "cachedInputTokens": undefined,
                   "inputTokenDetails": {
                     "cacheReadTokens": undefined,
                     "cacheWriteTokens": undefined,
@@ -12110,7 +11944,6 @@ describe('streamText', () => {
                   },
                   "outputTokens": 10,
                   "raw": undefined,
-                  "reasoningTokens": undefined,
                   "totalTokens": 13,
                 },
                 "warnings": [],
@@ -12145,40 +11978,6 @@ describe('streamText', () => {
                       "content": [
                         {
                           "providerOptions": undefined,
-                          "text": "thinking",
-                          "type": "reasoning",
-                        },
-                        {
-                          "input": {
-                            "value": "value",
-                          },
-                          "providerExecuted": undefined,
-                          "providerOptions": undefined,
-                          "toolCallId": "call-1",
-                          "toolName": "tool1",
-                          "type": "tool-call",
-                        },
-                      ],
-                      "role": "assistant",
-                    },
-                    {
-                      "content": [
-                        {
-                          "output": {
-                            "type": "text",
-                            "value": "RESULT1",
-                          },
-                          "toolCallId": "call-1",
-                          "toolName": "tool1",
-                          "type": "tool-result",
-                        },
-                      ],
-                      "role": "tool",
-                    },
-                    {
-                      "content": [
-                        {
-                          "providerOptions": undefined,
                           "text": "Hello, world!",
                           "type": "text",
                         },
@@ -12193,7 +11992,6 @@ describe('streamText', () => {
                 "stepNumber": 1,
                 "toolsContext": {},
                 "usage": {
-                  "cachedInputTokens": 0,
                   "inputTokenDetails": {
                     "cacheReadTokens": 0,
                     "cacheWriteTokens": 0,
@@ -12206,7 +12004,6 @@ describe('streamText', () => {
                   },
                   "outputTokens": 10,
                   "raw": undefined,
-                  "reasoningTokens": 10,
                   "totalTokens": 13,
                 },
                 "warnings": [],
@@ -12220,7 +12017,6 @@ describe('streamText', () => {
         it('result.totalUsage should contain total token usage', async () => {
           expect(await result.totalUsage).toMatchInlineSnapshot(`
             {
-              "cachedInputTokens": 0,
               "inputTokenDetails": {
                 "cacheReadTokens": 0,
                 "cacheWriteTokens": 0,
@@ -12232,7 +12028,6 @@ describe('streamText', () => {
                 "textTokens": 20,
               },
               "outputTokens": 20,
-              "reasoningTokens": 10,
               "totalTokens": 26,
             }
           `);
@@ -12241,7 +12036,6 @@ describe('streamText', () => {
         it('result.usage should contain token usage from final step', async () => {
           expect(await result.totalUsage).toMatchInlineSnapshot(`
             {
-              "cachedInputTokens": 0,
               "inputTokenDetails": {
                 "cacheReadTokens": 0,
                 "cacheWriteTokens": 0,
@@ -12253,7 +12047,6 @@ describe('streamText', () => {
                 "textTokens": 20,
               },
               "outputTokens": 20,
-              "reasoningTokens": 10,
               "totalTokens": 26,
             }
           `);
@@ -12359,7 +12152,6 @@ describe('streamText', () => {
                 "stepNumber": 0,
                 "toolsContext": {},
                 "usage": {
-                  "cachedInputTokens": undefined,
                   "inputTokenDetails": {
                     "cacheReadTokens": undefined,
                     "cacheWriteTokens": undefined,
@@ -12372,7 +12164,6 @@ describe('streamText', () => {
                   },
                   "outputTokens": 10,
                   "raw": undefined,
-                  "reasoningTokens": undefined,
                   "totalTokens": 13,
                 },
                 "warnings": [],
@@ -12407,40 +12198,6 @@ describe('streamText', () => {
                       "content": [
                         {
                           "providerOptions": undefined,
-                          "text": "thinking",
-                          "type": "reasoning",
-                        },
-                        {
-                          "input": {
-                            "value": "value",
-                          },
-                          "providerExecuted": undefined,
-                          "providerOptions": undefined,
-                          "toolCallId": "call-1",
-                          "toolName": "tool1",
-                          "type": "tool-call",
-                        },
-                      ],
-                      "role": "assistant",
-                    },
-                    {
-                      "content": [
-                        {
-                          "output": {
-                            "type": "text",
-                            "value": "RESULT1",
-                          },
-                          "toolCallId": "call-1",
-                          "toolName": "tool1",
-                          "type": "tool-result",
-                        },
-                      ],
-                      "role": "tool",
-                    },
-                    {
-                      "content": [
-                        {
-                          "providerOptions": undefined,
                           "text": "Hello, world!",
                           "type": "text",
                         },
@@ -12455,7 +12212,6 @@ describe('streamText', () => {
                 "stepNumber": 1,
                 "toolsContext": {},
                 "usage": {
-                  "cachedInputTokens": 0,
                   "inputTokenDetails": {
                     "cacheReadTokens": 0,
                     "cacheWriteTokens": 0,
@@ -12468,7 +12224,6 @@ describe('streamText', () => {
                   },
                   "outputTokens": 10,
                   "raw": undefined,
-                  "reasoningTokens": 10,
                   "totalTokens": 13,
                 },
                 "warnings": [],
@@ -12785,7 +12540,6 @@ describe('streamText', () => {
                   "stepNumber": 0,
                   "toolsContext": {},
                   "usage": {
-                    "cachedInputTokens": undefined,
                     "inputTokenDetails": {
                       "cacheReadTokens": undefined,
                       "cacheWriteTokens": undefined,
@@ -12798,7 +12552,6 @@ describe('streamText', () => {
                     },
                     "outputTokens": 10,
                     "raw": undefined,
-                    "reasoningTokens": undefined,
                     "totalTokens": 13,
                   },
                   "warnings": [],
@@ -12897,7 +12650,6 @@ describe('streamText', () => {
                   "stepNumber": 0,
                   "toolsContext": {},
                   "usage": {
-                    "cachedInputTokens": undefined,
                     "inputTokenDetails": {
                       "cacheReadTokens": undefined,
                       "cacheWriteTokens": undefined,
@@ -12910,7 +12662,6 @@ describe('streamText', () => {
                     },
                     "outputTokens": 10,
                     "raw": undefined,
-                    "reasoningTokens": undefined,
                     "totalTokens": 13,
                   },
                   "warnings": [],
@@ -13273,7 +13024,6 @@ describe('streamText', () => {
                 },
                 "type": "finish-step",
                 "usage": {
-                  "cachedInputTokens": undefined,
                   "inputTokenDetails": {
                     "cacheReadTokens": undefined,
                     "cacheWriteTokens": undefined,
@@ -13286,7 +13036,6 @@ describe('streamText', () => {
                   },
                   "outputTokens": 10,
                   "raw": undefined,
-                  "reasoningTokens": undefined,
                   "totalTokens": 13,
                 },
               },
@@ -13294,7 +13043,6 @@ describe('streamText', () => {
                 "finishReason": "stop",
                 "rawFinishReason": "stop",
                 "totalUsage": {
-                  "cachedInputTokens": undefined,
                   "inputTokenDetails": {
                     "cacheReadTokens": undefined,
                     "cacheWriteTokens": undefined,
@@ -13306,7 +13054,6 @@ describe('streamText', () => {
                     "textTokens": 10,
                   },
                   "outputTokens": 10,
-                  "reasoningTokens": undefined,
                   "totalTokens": 13,
                 },
                 "type": "finish",
@@ -13816,7 +13563,6 @@ describe('streamText', () => {
                 },
                 "type": "finish-step",
                 "usage": {
-                  "cachedInputTokens": undefined,
                   "inputTokenDetails": {
                     "cacheReadTokens": undefined,
                     "cacheWriteTokens": undefined,
@@ -13829,7 +13575,6 @@ describe('streamText', () => {
                   },
                   "outputTokens": 10,
                   "raw": undefined,
-                  "reasoningTokens": undefined,
                   "totalTokens": 13,
                 },
               },
@@ -13837,7 +13582,6 @@ describe('streamText', () => {
                 "finishReason": "tool-calls",
                 "rawFinishReason": undefined,
                 "totalUsage": {
-                  "cachedInputTokens": undefined,
                   "inputTokenDetails": {
                     "cacheReadTokens": undefined,
                     "cacheWriteTokens": undefined,
@@ -13849,7 +13593,6 @@ describe('streamText', () => {
                     "textTokens": 10,
                   },
                   "outputTokens": 10,
-                  "reasoningTokens": undefined,
                   "totalTokens": 13,
                 },
                 "type": "finish",
@@ -15021,7 +14764,6 @@ describe('streamText', () => {
               },
               "type": "finish-step",
               "usage": {
-                "cachedInputTokens": undefined,
                 "inputTokenDetails": {
                   "cacheReadTokens": undefined,
                   "cacheWriteTokens": undefined,
@@ -15034,7 +14776,6 @@ describe('streamText', () => {
                 },
                 "outputTokens": 10,
                 "raw": undefined,
-                "reasoningTokens": undefined,
                 "totalTokens": 13,
               },
             },
@@ -15042,7 +14783,6 @@ describe('streamText', () => {
               "finishReason": "stop",
               "rawFinishReason": "stop",
               "totalUsage": {
-                "cachedInputTokens": undefined,
                 "inputTokenDetails": {
                   "cacheReadTokens": undefined,
                   "cacheWriteTokens": undefined,
@@ -15054,7 +14794,6 @@ describe('streamText', () => {
                   "textTokens": 10,
                 },
                 "outputTokens": 10,
-                "reasoningTokens": undefined,
                 "totalTokens": 13,
               },
               "type": "finish",
@@ -15143,7 +14882,6 @@ describe('streamText', () => {
             "stepNumber": 0,
             "toolsContext": {},
             "usage": {
-              "cachedInputTokens": undefined,
               "inputTokenDetails": {
                 "cacheReadTokens": undefined,
                 "cacheWriteTokens": undefined,
@@ -15156,7 +14894,6 @@ describe('streamText', () => {
               },
               "outputTokens": 10,
               "raw": undefined,
-              "reasoningTokens": undefined,
               "totalTokens": 13,
             },
             "warnings": [],
@@ -15363,8 +15100,6 @@ describe('streamText', () => {
                       textTokens: 300,
                     },
                     totalTokens: undefined,
-                    reasoningTokens: undefined,
-                    cachedInputTokens: undefined,
                   };
                 }
                 controller.enqueue(chunk);
@@ -15375,7 +15110,6 @@ describe('streamText', () => {
 
         expect(await result.totalUsage).toMatchInlineSnapshot(`
           {
-            "cachedInputTokens": undefined,
             "inputTokenDetails": {
               "cacheReadTokens": undefined,
               "cacheWriteTokens": undefined,
@@ -15387,7 +15121,6 @@ describe('streamText', () => {
               "textTokens": 300,
             },
             "outputTokens": 300,
-            "reasoningTokens": undefined,
             "totalTokens": undefined,
           }
         `);
@@ -15647,7 +15380,6 @@ describe('streamText', () => {
               "stepNumber": 0,
               "toolsContext": {},
               "usage": {
-                "cachedInputTokens": undefined,
                 "inputTokenDetails": {
                   "cacheReadTokens": undefined,
                   "cacheWriteTokens": undefined,
@@ -15660,7 +15392,6 @@ describe('streamText', () => {
                 },
                 "outputTokens": 10,
                 "raw": undefined,
-                "reasoningTokens": undefined,
                 "totalTokens": 13,
               },
               "warnings": [],
@@ -16016,7 +15747,6 @@ describe('streamText', () => {
                 "stepNumber": 0,
                 "toolsContext": {},
                 "usage": {
-                  "cachedInputTokens": undefined,
                   "inputTokenDetails": {
                     "cacheReadTokens": undefined,
                     "cacheWriteTokens": undefined,
@@ -16029,7 +15759,6 @@ describe('streamText', () => {
                   },
                   "outputTokens": 10,
                   "raw": undefined,
-                  "reasoningTokens": undefined,
                   "totalTokens": 13,
                 },
                 "warnings": [],
@@ -16063,7 +15792,6 @@ describe('streamText', () => {
             ],
             "toolsContext": {},
             "totalUsage": {
-              "cachedInputTokens": undefined,
               "inputTokenDetails": {
                 "cacheReadTokens": undefined,
                 "cacheWriteTokens": undefined,
@@ -16075,11 +15803,9 @@ describe('streamText', () => {
                 "textTokens": 10,
               },
               "outputTokens": 10,
-              "reasoningTokens": undefined,
               "totalTokens": 13,
             },
             "usage": {
-              "cachedInputTokens": undefined,
               "inputTokenDetails": {
                 "cacheReadTokens": undefined,
                 "cacheWriteTokens": undefined,
@@ -16092,7 +15818,6 @@ describe('streamText', () => {
               },
               "outputTokens": 10,
               "raw": undefined,
-              "reasoningTokens": undefined,
               "totalTokens": 13,
             },
             "warnings": [],
@@ -16249,7 +15974,6 @@ describe('streamText', () => {
             "stepNumber": 0,
             "toolsContext": {},
             "usage": {
-              "cachedInputTokens": undefined,
               "inputTokenDetails": {
                 "cacheReadTokens": undefined,
                 "cacheWriteTokens": undefined,
@@ -16262,7 +15986,6 @@ describe('streamText', () => {
               },
               "outputTokens": 10,
               "raw": undefined,
-              "reasoningTokens": undefined,
               "totalTokens": 13,
             },
             "warnings": [],
@@ -17228,7 +16951,6 @@ describe('streamText', () => {
                 "stepNumber": 0,
                 "toolsContext": {},
                 "usage": {
-                  "cachedInputTokens": undefined,
                   "inputTokenDetails": {
                     "cacheReadTokens": undefined,
                     "cacheWriteTokens": undefined,
@@ -17241,7 +16963,6 @@ describe('streamText', () => {
                   },
                   "outputTokens": 10,
                   "raw": undefined,
-                  "reasoningTokens": undefined,
                   "totalTokens": 13,
                 },
                 "warnings": [],
@@ -17252,7 +16973,6 @@ describe('streamText', () => {
             "toolResults": [],
             "toolsContext": {},
             "totalUsage": {
-              "cachedInputTokens": undefined,
               "inputTokenDetails": {
                 "cacheReadTokens": undefined,
                 "cacheWriteTokens": undefined,
@@ -17264,11 +16984,9 @@ describe('streamText', () => {
                 "textTokens": 10,
               },
               "outputTokens": 10,
-              "reasoningTokens": undefined,
               "totalTokens": 13,
             },
             "usage": {
-              "cachedInputTokens": undefined,
               "inputTokenDetails": {
                 "cacheReadTokens": undefined,
                 "cacheWriteTokens": undefined,
@@ -17281,7 +16999,6 @@ describe('streamText', () => {
               },
               "outputTokens": 10,
               "raw": undefined,
-              "reasoningTokens": undefined,
               "totalTokens": 13,
             },
             "warnings": [],
@@ -18335,7 +18052,6 @@ describe('streamText', () => {
                 },
                 "type": "finish-step",
                 "usage": {
-                  "cachedInputTokens": undefined,
                   "inputTokenDetails": {
                     "cacheReadTokens": undefined,
                     "cacheWriteTokens": undefined,
@@ -18348,7 +18064,6 @@ describe('streamText', () => {
                   },
                   "outputTokens": 10,
                   "raw": undefined,
-                  "reasoningTokens": undefined,
                   "totalTokens": 13,
                 },
               },
@@ -18356,7 +18071,6 @@ describe('streamText', () => {
                 "finishReason": "stop",
                 "rawFinishReason": "stop",
                 "totalUsage": {
-                  "cachedInputTokens": undefined,
                   "inputTokenDetails": {
                     "cacheReadTokens": undefined,
                     "cacheWriteTokens": undefined,
@@ -18368,7 +18082,6 @@ describe('streamText', () => {
                     "textTokens": 10,
                   },
                   "outputTokens": 10,
-                  "reasoningTokens": undefined,
                   "totalTokens": 13,
                 },
                 "type": "finish",
@@ -18479,7 +18192,6 @@ describe('streamText', () => {
               "stepNumber": 0,
               "toolsContext": {},
               "usage": {
-                "cachedInputTokens": undefined,
                 "inputTokenDetails": {
                   "cacheReadTokens": undefined,
                   "cacheWriteTokens": undefined,
@@ -18492,7 +18204,6 @@ describe('streamText', () => {
                 },
                 "outputTokens": 10,
                 "raw": undefined,
-                "reasoningTokens": undefined,
                 "totalTokens": 13,
               },
               "warnings": [],
@@ -18885,7 +18596,6 @@ describe('streamText', () => {
                   "stepNumber": 0,
                   "toolsContext": {},
                   "usage": {
-                    "cachedInputTokens": undefined,
                     "inputTokenDetails": {
                       "cacheReadTokens": undefined,
                       "cacheWriteTokens": undefined,
@@ -18898,7 +18608,6 @@ describe('streamText', () => {
                     },
                     "outputTokens": 10,
                     "raw": undefined,
-                    "reasoningTokens": undefined,
                     "totalTokens": 13,
                   },
                   "warnings": [],
@@ -18957,7 +18666,6 @@ describe('streamText', () => {
                 },
                 "type": "finish-step",
                 "usage": {
-                  "cachedInputTokens": undefined,
                   "inputTokenDetails": {
                     "cacheReadTokens": undefined,
                     "cacheWriteTokens": undefined,
@@ -18970,7 +18678,6 @@ describe('streamText', () => {
                   },
                   "outputTokens": 10,
                   "raw": undefined,
-                  "reasoningTokens": undefined,
                   "totalTokens": 13,
                 },
               },
@@ -19358,6 +19065,99 @@ describe('streamText', () => {
       expect(capturedSandbox).toBe(sandbox);
     });
 
+    it('should use sandbox returned from prepareStep for that step only', async () => {
+      const sandbox = {
+        description: 'default sandbox',
+        executeCommand: vi.fn(async () => ({
+          exitCode: 0,
+          stdout: 'ok',
+          stderr: '',
+        })),
+      } satisfies Sandbox;
+      const stepSandbox = {
+        description: 'step sandbox',
+        executeCommand: vi.fn(async () => ({
+          exitCode: 0,
+          stdout: 'ok',
+          stderr: '',
+        })),
+      } satisfies Sandbox;
+      const recordedSandboxes: Array<Sandbox | undefined> = [];
+      let responseCount = 0;
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => {
+            switch (responseCount++) {
+              case 0:
+                return {
+                  stream: convertArrayToReadableStream([
+                    {
+                      type: 'tool-call',
+                      toolCallId: 'call-1',
+                      toolName: 't1',
+                      input: `{ "value": "first" }`,
+                    },
+                    {
+                      type: 'finish',
+                      finishReason: { unified: 'tool-calls', raw: undefined },
+                      usage: testUsage,
+                    },
+                  ]),
+                };
+              case 1:
+                return {
+                  stream: convertArrayToReadableStream([
+                    {
+                      type: 'tool-call',
+                      toolCallId: 'call-2',
+                      toolName: 't1',
+                      input: `{ "value": "second" }`,
+                    },
+                    {
+                      type: 'finish',
+                      finishReason: { unified: 'tool-calls', raw: undefined },
+                      usage: testUsage,
+                    },
+                  ]),
+                };
+              default:
+                return {
+                  stream: convertArrayToReadableStream([
+                    { type: 'text-start', id: '1' },
+                    { type: 'text-delta', id: '1', delta: 'done' },
+                    { type: 'text-end', id: '1' },
+                    {
+                      type: 'finish',
+                      finishReason: { unified: 'stop', raw: 'stop' },
+                      usage: testUsage,
+                    },
+                  ]),
+                };
+            }
+          },
+        }),
+        tools: {
+          t1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }, { sandbox }) => {
+              recordedSandboxes.push(sandbox);
+              return { value };
+            },
+          }),
+        },
+        sandbox,
+        prepareStep: async ({ stepNumber }) =>
+          stepNumber === 0 ? { sandbox: stepSandbox } : {},
+        prompt: 'test-input',
+        stopWhen: isStepCount(3),
+      });
+
+      await result.consumeStream();
+
+      expect(recordedSandboxes).toEqual([stepSandbox, sandbox]);
+    });
+
     it('should send runtimeContext in onFinish callback', async () => {
       let recordedContext: unknown | undefined;
 
@@ -19585,7 +19385,6 @@ describe('streamText', () => {
                 },
                 "type": "finish-step",
                 "usage": {
-                  "cachedInputTokens": undefined,
                   "inputTokenDetails": {
                     "cacheReadTokens": undefined,
                     "cacheWriteTokens": undefined,
@@ -19598,7 +19397,6 @@ describe('streamText', () => {
                   },
                   "outputTokens": 10,
                   "raw": undefined,
-                  "reasoningTokens": undefined,
                   "totalTokens": 13,
                 },
               },
@@ -19606,7 +19404,6 @@ describe('streamText', () => {
                 "finishReason": "stop",
                 "rawFinishReason": "stop",
                 "totalUsage": {
-                  "cachedInputTokens": undefined,
                   "inputTokenDetails": {
                     "cacheReadTokens": undefined,
                     "cacheWriteTokens": undefined,
@@ -19618,7 +19415,6 @@ describe('streamText', () => {
                     "textTokens": 10,
                   },
                   "outputTokens": 10,
-                  "reasoningTokens": undefined,
                   "totalTokens": 13,
                 },
                 "type": "finish",
@@ -19827,7 +19623,6 @@ describe('streamText', () => {
                 },
                 "type": "finish-step",
                 "usage": {
-                  "cachedInputTokens": undefined,
                   "inputTokenDetails": {
                     "cacheReadTokens": undefined,
                     "cacheWriteTokens": undefined,
@@ -19840,7 +19635,6 @@ describe('streamText', () => {
                   },
                   "outputTokens": 10,
                   "raw": undefined,
-                  "reasoningTokens": undefined,
                   "totalTokens": 13,
                 },
               },
@@ -19848,7 +19642,6 @@ describe('streamText', () => {
                 "finishReason": "stop",
                 "rawFinishReason": "stop",
                 "totalUsage": {
-                  "cachedInputTokens": undefined,
                   "inputTokenDetails": {
                     "cacheReadTokens": undefined,
                     "cacheWriteTokens": undefined,
@@ -19860,7 +19653,6 @@ describe('streamText', () => {
                     "textTokens": 10,
                   },
                   "outputTokens": 10,
-                  "reasoningTokens": undefined,
                   "totalTokens": 13,
                 },
                 "type": "finish",
@@ -20046,7 +19838,6 @@ describe('streamText', () => {
               "stepNumber": 0,
               "toolsContext": {},
               "usage": {
-                "cachedInputTokens": undefined,
                 "inputTokenDetails": {
                   "cacheReadTokens": undefined,
                   "cacheWriteTokens": undefined,
@@ -20059,7 +19850,6 @@ describe('streamText', () => {
                 },
                 "outputTokens": 10,
                 "raw": undefined,
-                "reasoningTokens": undefined,
                 "totalTokens": 13,
               },
               "warnings": [],
@@ -20228,7 +20018,6 @@ describe('streamText', () => {
                 },
                 "type": "finish-step",
                 "usage": {
-                  "cachedInputTokens": undefined,
                   "inputTokenDetails": {
                     "cacheReadTokens": undefined,
                     "cacheWriteTokens": undefined,
@@ -20241,7 +20030,6 @@ describe('streamText', () => {
                   },
                   "outputTokens": 10,
                   "raw": undefined,
-                  "reasoningTokens": undefined,
                   "totalTokens": 13,
                 },
               },
@@ -20249,7 +20037,6 @@ describe('streamText', () => {
                 "finishReason": "stop",
                 "rawFinishReason": "stop",
                 "totalUsage": {
-                  "cachedInputTokens": undefined,
                   "inputTokenDetails": {
                     "cacheReadTokens": undefined,
                     "cacheWriteTokens": undefined,
@@ -20261,7 +20048,6 @@ describe('streamText', () => {
                     "textTokens": 10,
                   },
                   "outputTokens": 10,
-                  "reasoningTokens": undefined,
                   "totalTokens": 13,
                 },
                 "type": "finish",
@@ -20970,7 +20756,7 @@ describe('streamText', () => {
       });
 
       describe('result.responseMessages', () => {
-        it('should contain all response messages from all steps', async () => {
+        it('should contain response messages from all steps', async () => {
           await result.consumeStream();
           expect(await result.responseMessages).toMatchInlineSnapshot(`
             [
@@ -21329,7 +21115,6 @@ describe('streamText', () => {
           await result.consumeStream();
           expect(await result.totalUsage).toMatchInlineSnapshot(`
             {
-              "cachedInputTokens": undefined,
               "inputTokenDetails": {
                 "cacheReadTokens": undefined,
                 "cacheWriteTokens": undefined,
@@ -21341,7 +21126,6 @@ describe('streamText', () => {
                 "textTokens": 922,
               },
               "outputTokens": 922,
-              "reasoningTokens": undefined,
               "totalTokens": 8842,
             }
           `);
@@ -21451,7 +21235,6 @@ describe('streamText', () => {
           await result.consumeStream();
           expect(onFinishResult.totalUsage).toMatchInlineSnapshot(`
             {
-              "cachedInputTokens": undefined,
               "inputTokenDetails": {
                 "cacheReadTokens": undefined,
                 "cacheWriteTokens": undefined,
@@ -21463,13 +21246,12 @@ describe('streamText', () => {
                 "textTokens": 922,
               },
               "outputTokens": 922,
-              "reasoningTokens": undefined,
               "totalTokens": 8842,
             }
           `);
         });
 
-        it('should contain all response messages', async () => {
+        it('should contain response messages from all steps', async () => {
           await result.consumeStream();
           expect(onFinishResult.responseMessages.length).toBe(9);
         });
@@ -21557,7 +21339,6 @@ describe('streamText', () => {
                   },
                   "type": "finish-step",
                   "usage": {
-                    "cachedInputTokens": undefined,
                     "inputTokenDetails": {
                       "cacheReadTokens": undefined,
                       "cacheWriteTokens": undefined,
@@ -21570,7 +21351,6 @@ describe('streamText', () => {
                     },
                     "outputTokens": 725,
                     "raw": undefined,
-                    "reasoningTokens": undefined,
                     "totalTokens": 4094,
                   },
                 },
@@ -21623,7 +21403,6 @@ describe('streamText', () => {
                   },
                   "type": "finish-step",
                   "usage": {
-                    "cachedInputTokens": undefined,
                     "inputTokenDetails": {
                       "cacheReadTokens": undefined,
                       "cacheWriteTokens": undefined,
@@ -21636,7 +21415,6 @@ describe('streamText', () => {
                     },
                     "outputTokens": 0,
                     "raw": undefined,
-                    "reasoningTokens": undefined,
                     "totalTokens": 0,
                   },
                 },
@@ -21689,7 +21467,6 @@ describe('streamText', () => {
                   },
                   "type": "finish-step",
                   "usage": {
-                    "cachedInputTokens": undefined,
                     "inputTokenDetails": {
                       "cacheReadTokens": undefined,
                       "cacheWriteTokens": undefined,
@@ -21702,7 +21479,6 @@ describe('streamText', () => {
                     },
                     "outputTokens": 0,
                     "raw": undefined,
-                    "reasoningTokens": undefined,
                     "totalTokens": 0,
                   },
                 },
@@ -21755,7 +21531,6 @@ describe('streamText', () => {
                   },
                   "type": "finish-step",
                   "usage": {
-                    "cachedInputTokens": undefined,
                     "inputTokenDetails": {
                       "cacheReadTokens": undefined,
                       "cacheWriteTokens": undefined,
@@ -21768,7 +21543,6 @@ describe('streamText', () => {
                     },
                     "outputTokens": 0,
                     "raw": undefined,
-                    "reasoningTokens": undefined,
                     "totalTokens": 0,
                   },
                 },
@@ -21883,7 +21657,6 @@ describe('streamText', () => {
                   },
                   "type": "finish-step",
                   "usage": {
-                    "cachedInputTokens": undefined,
                     "inputTokenDetails": {
                       "cacheReadTokens": undefined,
                       "cacheWriteTokens": undefined,
@@ -21896,7 +21669,6 @@ describe('streamText', () => {
                     },
                     "outputTokens": 197,
                     "raw": undefined,
-                    "reasoningTokens": undefined,
                     "totalTokens": 4748,
                   },
                 },
@@ -21904,7 +21676,6 @@ describe('streamText', () => {
                   "finishReason": "stop",
                   "rawFinishReason": "stop",
                   "totalUsage": {
-                    "cachedInputTokens": undefined,
                     "inputTokenDetails": {
                       "cacheReadTokens": undefined,
                       "cacheWriteTokens": undefined,
@@ -21916,7 +21687,6 @@ describe('streamText', () => {
                       "textTokens": 922,
                     },
                     "outputTokens": 922,
-                    "reasoningTokens": undefined,
                     "totalTokens": 8842,
                   },
                   "type": "finish",
@@ -22398,7 +22168,6 @@ describe('streamText', () => {
                 },
                 "type": "finish-step",
                 "usage": {
-                  "cachedInputTokens": undefined,
                   "inputTokenDetails": {
                     "cacheReadTokens": undefined,
                     "cacheWriteTokens": undefined,
@@ -22411,7 +22180,6 @@ describe('streamText', () => {
                   },
                   "outputTokens": 10,
                   "raw": undefined,
-                  "reasoningTokens": undefined,
                   "totalTokens": 13,
                 },
               },
@@ -22419,7 +22187,6 @@ describe('streamText', () => {
                 "finishReason": "tool-calls",
                 "rawFinishReason": undefined,
                 "totalUsage": {
-                  "cachedInputTokens": undefined,
                   "inputTokenDetails": {
                     "cacheReadTokens": undefined,
                     "cacheWriteTokens": undefined,
@@ -22431,7 +22198,6 @@ describe('streamText', () => {
                     "textTokens": 10,
                   },
                   "outputTokens": 10,
-                  "reasoningTokens": undefined,
                   "totalTokens": 13,
                 },
                 "type": "finish",
@@ -23210,7 +22976,6 @@ describe('streamText', () => {
                 },
                 "type": "finish-step",
                 "usage": {
-                  "cachedInputTokens": undefined,
                   "inputTokenDetails": {
                     "cacheReadTokens": undefined,
                     "cacheWriteTokens": undefined,
@@ -23223,7 +22988,6 @@ describe('streamText', () => {
                   },
                   "outputTokens": 10,
                   "raw": undefined,
-                  "reasoningTokens": undefined,
                   "totalTokens": 13,
                 },
               },
@@ -23231,7 +22995,6 @@ describe('streamText', () => {
                 "finishReason": "tool-calls",
                 "rawFinishReason": undefined,
                 "totalUsage": {
-                  "cachedInputTokens": undefined,
                   "inputTokenDetails": {
                     "cacheReadTokens": undefined,
                     "cacheWriteTokens": undefined,
@@ -23243,7 +23006,6 @@ describe('streamText', () => {
                     "textTokens": 10,
                   },
                   "outputTokens": 10,
-                  "reasoningTokens": undefined,
                   "totalTokens": 13,
                 },
                 "type": "finish",
@@ -23650,6 +23412,100 @@ describe('streamText', () => {
         `);
       });
 
+      it('should pass the initial tool result in responseMessages to prepareStep', async () => {
+        const prepareStepResponseMessages: Array<ModelMessage[]> = [];
+
+        const result = streamText({
+          model: new MockLanguageModelV4({
+            doStream: async () => ({
+              stream: convertArrayToReadableStream([
+                { type: 'stream-start', warnings: [] },
+                { type: 'text-start', id: '1' },
+                {
+                  type: 'text-delta',
+                  id: '1',
+                  delta: 'Hello, world!',
+                },
+                { type: 'text-end', id: '1' },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                  usage: testUsage,
+                },
+              ]),
+            }),
+          }),
+          tools: {
+            tool1: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: () => 'result1',
+            }),
+          },
+          toolApproval: {
+            tool1: 'user-approval',
+          },
+          stopWhen: isStepCount(3),
+          messages: [
+            { role: 'user', content: 'test-input' },
+            {
+              role: 'assistant',
+              content: [
+                {
+                  input: { value: 'value' },
+                  providerExecuted: undefined,
+                  providerOptions: undefined,
+                  toolCallId: 'call-1',
+                  toolName: 'tool1',
+                  type: 'tool-call',
+                },
+                {
+                  approvalId: 'id-1',
+                  toolCallId: 'call-1',
+                  type: 'tool-approval-request',
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  approvalId: 'id-1',
+                  type: 'tool-approval-response',
+                  approved: true,
+                },
+              ],
+            },
+          ],
+          prepareStep: ({ responseMessages }) => {
+            prepareStepResponseMessages.push([...responseMessages]);
+            return undefined;
+          },
+        });
+
+        await result.consumeStream();
+
+        expect(prepareStepResponseMessages).toMatchInlineSnapshot(`
+          [
+            [
+              {
+                "content": [
+                  {
+                    "output": {
+                      "type": "text",
+                      "value": "result1",
+                    },
+                    "toolCallId": "call-1",
+                    "toolName": "tool1",
+                    "type": "tool-result",
+                  },
+                ],
+                "role": "tool",
+              },
+            ],
+          ]
+        `);
+      });
+
       it('should include the tool result in the full stream', async () => {
         expect(await convertAsyncIterableToArray(result.fullStream))
           .toMatchInlineSnapshot(`
@@ -23701,7 +23557,6 @@ describe('streamText', () => {
                 },
                 "type": "finish-step",
                 "usage": {
-                  "cachedInputTokens": undefined,
                   "inputTokenDetails": {
                     "cacheReadTokens": undefined,
                     "cacheWriteTokens": undefined,
@@ -23714,7 +23569,6 @@ describe('streamText', () => {
                   },
                   "outputTokens": 10,
                   "raw": undefined,
-                  "reasoningTokens": undefined,
                   "totalTokens": 13,
                 },
               },
@@ -23722,7 +23576,6 @@ describe('streamText', () => {
                 "finishReason": "stop",
                 "rawFinishReason": "stop",
                 "totalUsage": {
-                  "cachedInputTokens": undefined,
                   "inputTokenDetails": {
                     "cacheReadTokens": undefined,
                     "cacheWriteTokens": undefined,
@@ -23734,7 +23587,6 @@ describe('streamText', () => {
                     "textTokens": 10,
                   },
                   "outputTokens": 10,
-                  "reasoningTokens": undefined,
                   "totalTokens": 13,
                 },
                 "type": "finish",
@@ -24149,7 +24001,6 @@ describe('streamText', () => {
                 },
                 "type": "finish-step",
                 "usage": {
-                  "cachedInputTokens": undefined,
                   "inputTokenDetails": {
                     "cacheReadTokens": undefined,
                     "cacheWriteTokens": undefined,
@@ -24162,7 +24013,6 @@ describe('streamText', () => {
                   },
                   "outputTokens": 10,
                   "raw": undefined,
-                  "reasoningTokens": undefined,
                   "totalTokens": 13,
                 },
               },
@@ -24170,7 +24020,6 @@ describe('streamText', () => {
                 "finishReason": "stop",
                 "rawFinishReason": "stop",
                 "totalUsage": {
-                  "cachedInputTokens": undefined,
                   "inputTokenDetails": {
                     "cacheReadTokens": undefined,
                     "cacheWriteTokens": undefined,
@@ -24182,7 +24031,6 @@ describe('streamText', () => {
                     "textTokens": 10,
                   },
                   "outputTokens": 10,
-                  "reasoningTokens": undefined,
                   "totalTokens": 13,
                 },
                 "type": "finish",
@@ -24458,7 +24306,6 @@ describe('streamText', () => {
                 },
                 "type": "finish-step",
                 "usage": {
-                  "cachedInputTokens": undefined,
                   "inputTokenDetails": {
                     "cacheReadTokens": undefined,
                     "cacheWriteTokens": undefined,
@@ -24471,7 +24318,6 @@ describe('streamText', () => {
                   },
                   "outputTokens": 10,
                   "raw": undefined,
-                  "reasoningTokens": undefined,
                   "totalTokens": 13,
                 },
               },
@@ -24479,7 +24325,6 @@ describe('streamText', () => {
                 "finishReason": "stop",
                 "rawFinishReason": "stop",
                 "totalUsage": {
-                  "cachedInputTokens": undefined,
                   "inputTokenDetails": {
                     "cacheReadTokens": undefined,
                     "cacheWriteTokens": undefined,
@@ -24491,7 +24336,6 @@ describe('streamText', () => {
                     "textTokens": 10,
                   },
                   "outputTokens": 10,
-                  "reasoningTokens": undefined,
                   "totalTokens": 13,
                 },
                 "type": "finish",
@@ -24637,7 +24481,6 @@ describe('streamText', () => {
                   },
                   "type": "finish-step",
                   "usage": {
-                    "cachedInputTokens": undefined,
                     "inputTokenDetails": {
                       "cacheReadTokens": undefined,
                       "cacheWriteTokens": undefined,
@@ -24650,7 +24493,6 @@ describe('streamText', () => {
                     },
                     "outputTokens": 10,
                     "raw": undefined,
-                    "reasoningTokens": undefined,
                     "totalTokens": 13,
                   },
                 },
@@ -24658,7 +24500,6 @@ describe('streamText', () => {
                   "finishReason": "tool-calls",
                   "rawFinishReason": undefined,
                   "totalUsage": {
-                    "cachedInputTokens": undefined,
                     "inputTokenDetails": {
                       "cacheReadTokens": undefined,
                       "cacheWriteTokens": undefined,
@@ -24670,7 +24511,6 @@ describe('streamText', () => {
                       "textTokens": 10,
                     },
                     "outputTokens": 10,
-                    "reasoningTokens": undefined,
                     "totalTokens": 13,
                   },
                   "type": "finish",
