@@ -17,9 +17,9 @@ Agents that call tools can build up large message histories. Each tool call and 
 This example uses a tool that returns long results:
 
 ```ts
-import { openai } from '@ai-sdk/openai';
 import { ToolLoopAgent, isStepCount, tool } from 'ai';
 import { z } from 'zod';
+__PROVIDER_IMPORT__;
 
 const readDocument = tool({
   description: 'Read a document by name',
@@ -35,7 +35,7 @@ const readDocument = tool({
 });
 
 const agent = new ToolLoopAgent({
-  model: openai('gpt-5.5'),
+  model: __MODEL__,
   tools: {
     readDocument,
   },
@@ -74,7 +74,6 @@ Use a real tokenizer or provider usage data if you need tighter accounting. The 
 When you return a new `messages` array, the SDK uses it for the current step and as the base for following steps.
 
 ```ts
-import { openai } from '@ai-sdk/openai';
 import {
   ToolLoopAgent,
   isStepCount,
@@ -83,6 +82,7 @@ import {
   type ModelMessage,
 } from 'ai';
 import { z } from 'zod';
+__PROVIDER_IMPORT__;
 
 const COMPACT_AFTER_TOKENS = 100_000;
 
@@ -104,7 +104,7 @@ const readDocument = tool({
 });
 
 const agent = new ToolLoopAgent({
-  model: openai('gpt-5.5'),
+  model: __MODEL__,
   tools: {
     readDocument,
   },
@@ -154,10 +154,10 @@ The same `prepareStep` behavior works with `generateText` and `streamText`:
 
 ```ts
 import { generateText, isStepCount, pruneMessages } from 'ai';
-import { openai } from '@ai-sdk/openai';
+__PROVIDER_IMPORT__;
 
 const result = await generateText({
-  model: openai('gpt-5.5'),
+  model: __MODEL__,
   prompt: 'Read the project documents and summarize the migration plan.',
   tools: {
     readDocument,
