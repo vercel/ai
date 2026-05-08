@@ -44,8 +44,8 @@ export type Sandbox = {
     path: string;
   }) => PromiseLike<{
     /**
-     * Content of the file.
+     * Binary content of the file.
      */
-    content: string;
+    binaryContent: Uint8Array;
   }>;
 };
