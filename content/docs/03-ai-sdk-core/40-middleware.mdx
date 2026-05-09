@@ -451,6 +451,49 @@ export const yourGuardrailMiddleware: LanguageModelV4Middleware = {
 };
 ```
 
+### Prompt Injection Detection
+
+This example shows how to add a fast pre-flight regex check on incoming prompts using `transformParams`. Pattern-based detection runs in microseconds before the model call, complementing slower model-based moderation. The patterns below are inspired by published prompt-injection corpora (instruction overrides, role hijacks, system-prompt extraction, jailbreak frames) and can be extended or replaced with rules from an open detection standard such as Agent Threat Rules at https://github.com/Agent-Threat-Rule/agent-threat-rules (Apache-2.0).
+
+```ts
+import type { LanguageModelV4Middleware } from '@ai-sdk/provider';
+
+const INJECTION_PATTERNS: { id: string; pattern: RegExp }[] = [
+  { id: 'instruction-override', pattern: /\b(ignore|disregard|forget)\b[^.]{0,40}\b(previous|prior|above|all)\b[^.]{0,40}\b(instructions?|prompts?|rules?)\b/i },
+  { id: 'role-hijack', pattern: /\byou\s+are\s+now\b[^.]{0,60}\b(?:dan|jailbroken|developer\s+mode|admin|root)\b/i },
+  { id: 'system-prompt-extraction', pattern: /\b(repeat|print|reveal|show|output)\b[^.]{0,40}\b(system\s+prompt|initial\s+prompt|original\s+instructions)\b/i },
+  { id: 'jailbreak-frame', pattern: /\b(developer\s+mode|do\s+anything\s+now|unrestricted\s+mode)\s+(enabled|on|activated)\b/i },
+  { id: 'delimiter-injection', pattern: /<\|im_(start|end)\|>|<\/?(system|assistant|user)>|\[\/?INST\]/i },
+  { id: 'tool-exfil', pattern: /\b(send|post|fetch|exfiltrate)\b[^.]{0,60}\b(api[_-]?key|secret|token|credential)s?\b/i },
+];
+
+export class PromptInjectionDetectedError extends Error {
+  constructor(public ruleId: string, public excerpt: string) {
+    super(`Prompt injection detected (${ruleId})`);
+  }
+}
+
+export const promptInjectionMiddleware: LanguageModelV4Middleware = {
+  transformParams: async ({ params }) => {
+    for (const part of params.prompt) {
+      if (part.role !== 'user') continue;
+      const text = typeof part.content === 'string'
+        ? part.content
+        : part.content.map(p => (p.type === 'text' ? p.text : '')).join(' ');
+      for (const rule of INJECTION_PATTERNS) {
+        const match = text.match(rule.pattern);
+        if (match) {
+          throw new PromptInjectionDetectedError(rule.id, match[0]);
+        }
+      }
+    }
+    return params;
+  },
+};
+```
+
+To audit suspicious input without blocking, log the rule id via `providerMetadata` instead of throwing. Combine pattern detection with a model-based moderation layer for defense in depth.
+
 ## Configuring Per Request Custom Metadata
 
 To send and access custom metadata in Middleware, you can use `providerOptions`. This is useful when building logging middleware where you want to pass additional context like user IDs, timestamps, or other contextual data that can help with tracking and debugging.
