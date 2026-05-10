@@ -64,6 +64,7 @@ export async function convertToOpenAIResponsesInput({
   hasShellTool = false,
   hasApplyPatchTool = false,
   customProviderToolNames,
+  passThroughUnsupportedFiles = false,
 }: {
   prompt: LanguageModelV4Prompt;
   toolNameMapping: ToolNameMapping;
@@ -77,6 +78,7 @@ export async function convertToOpenAIResponsesInput({
   hasShellTool?: boolean;
   hasApplyPatchTool?: boolean;
   customProviderToolNames?: Set<string>;
+  passThroughUnsupportedFiles?: boolean;
 }): Promise<{
   input: OpenAIResponsesInput;
   warnings: Array<SharedV4Warning>;
@@ -178,7 +180,10 @@ export async function convertToOpenAIResponsesInput({
                       }
 
                       const fullMediaType = resolveFullMediaType({ part });
-                      if (fullMediaType !== 'application/pdf') {
+                      if (
+                        fullMediaType !== 'application/pdf' &&
+                        !passThroughUnsupportedFiles
+                      ) {
                         throw new UnsupportedFunctionalityError({
                           functionality: `file part media type ${fullMediaType}`,
                         });
@@ -190,8 +195,12 @@ export async function convertToOpenAIResponsesInput({
                         isFileId(part.data.data, fileIdPrefixes)
                           ? { file_id: part.data.data }
                           : {
-                              filename: part.filename ?? `part-${index}.pdf`,
-                              file_data: `data:application/pdf;base64,${convertToBase64(part.data.data)}`,
+                              filename:
+                                part.filename ??
+                                (fullMediaType === 'application/pdf'
+                                  ? `part-${index}.pdf`
+                                  : `part-${index}`),
+                              file_data: `data:${fullMediaType};base64,${convertToBase64(part.data.data)}`,
                             }),
                       };
                     }

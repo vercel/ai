@@ -592,6 +592,82 @@ describe('convertToOpenAIResponsesInput', () => {
       ).rejects.toThrow('file part media type text/plain');
     });
 
+    it('should pass through unsupported file types when explicitly enabled', async () => {
+      const base64Data = Buffer.from('hello').toString('base64');
+
+      const result = await convertToOpenAIResponsesInput({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'text/plain',
+                data: { type: 'data' as const, data: base64Data },
+                filename: 'notes.txt',
+              },
+            ],
+          },
+        ],
+        toolNameMapping: testToolNameMapping,
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        passThroughUnsupportedFiles: true,
+      });
+
+      expect(result.input).toEqual([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'input_file',
+              filename: 'notes.txt',
+              file_data: 'data:text/plain;base64,aGVsbG8=',
+            },
+          ],
+        },
+      ]);
+    });
+
+    it('should pass through arbitrary unsupported file types when explicitly enabled', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'application/json',
+                data: {
+                  type: 'data' as const,
+                  data: Buffer.from('{}').toString('base64'),
+                },
+              },
+            ],
+          },
+        ],
+        toolNameMapping: testToolNameMapping,
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        passThroughUnsupportedFiles: true,
+      });
+
+      expect(result.input).toEqual([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'input_file',
+              filename: 'part-0',
+              file_data: 'data:application/json;base64,e30=',
+            },
+          ],
+        },
+      ]);
+    });
+
     it('should convert PDF file parts with URL to input_file with file_url', async () => {
       const result = await convertToOpenAIResponsesInput({
         prompt: [

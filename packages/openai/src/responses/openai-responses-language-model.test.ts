@@ -411,6 +411,47 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(warnings).toStrictEqual([]);
       });
 
+      it('should pass through unsupported files when enabled through provider options', async () => {
+        await createModel('gpt-4o').doGenerate({
+          prompt: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'file',
+                  mediaType: 'text/plain',
+                  data: {
+                    type: 'data',
+                    data: Buffer.from('hello').toString('base64'),
+                  },
+                  filename: 'notes.txt',
+                },
+              ],
+            },
+          ],
+          providerOptions: {
+            openai: {
+              passThroughUnsupportedFiles: true,
+            } satisfies OpenAILanguageModelResponsesOptions,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          input: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'input_file',
+                  filename: 'notes.txt',
+                  file_data: 'data:text/plain;base64,aGVsbG8=',
+                },
+              ],
+            },
+          ],
+        });
+      });
+
       it('should keep temperature and topP for gpt-5.1 models when reasoning effort is none', async () => {
         const { warnings } = await createModel('gpt-5.1').doGenerate({
           prompt: TEST_PROMPT,

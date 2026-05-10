@@ -206,6 +206,15 @@ export const openaiLanguageModelResponsesOptionsSchema = lazySchema(() =>
       metadata: z.any().nullish(),
 
       /**
+       * Forward unsupported non-image file media types as `input_file` parts
+       * instead of rejecting them in the SDK conversion layer.
+       *
+       * Defaults to `false`, preserving the existing `application/pdf`-only
+       * validation for non-image inline files.
+       */
+      passThroughUnsupportedFiles: z.boolean().nullish(),
+
+      /**
        * Whether to use parallel tool calls. Defaults to `true`.
        */
       parallelToolCalls: z.boolean().nullish(),

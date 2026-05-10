@@ -21,8 +21,10 @@ import type {
 
 export async function convertToOpenResponsesInput({
   prompt,
+  passThroughUnsupportedFiles = false,
 }: {
   prompt: LanguageModelV4Prompt;
+  passThroughUnsupportedFiles?: boolean;
 }): Promise<{
   input: OpenResponsesRequestBody['input'];
   instructions: string | undefined;
@@ -65,6 +67,19 @@ export async function convertToOpenResponsesInput({
                 case 'url':
                 case 'data': {
                   if (getTopLevelMediaType(part.mediaType) !== 'image') {
+                    if (passThroughUnsupportedFiles) {
+                      userContent.push({
+                        type: 'input_file',
+                        ...(part.data.type === 'url'
+                          ? { file_url: part.data.url.toString() }
+                          : {
+                              filename: part.filename,
+                              file_data: `data:${resolveFullMediaType({ part })};base64,${convertToBase64(part.data.data)}`,
+                            }),
+                      });
+                      break;
+                    }
+
                     warnings.push({
                       type: 'other',
                       message: `unsupported file content type: ${part.mediaType}`,

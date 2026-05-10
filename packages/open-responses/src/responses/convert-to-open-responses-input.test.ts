@@ -228,6 +228,54 @@ describe('convertToOpenResponsesInput', () => {
         },
       ]);
     });
+
+    it('should pass through non-image file parts when explicitly enabled', async () => {
+      const result = await convertToOpenResponsesInput({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                data: { type: 'data' as const, data: 'aGVsbG8=' },
+                mediaType: 'text/plain',
+                filename: 'notes.txt',
+              },
+              {
+                type: 'file',
+                data: {
+                  type: 'url' as const,
+                  url: new URL('https://example.com/data.csv'),
+                },
+                mediaType: 'text/csv',
+              },
+            ],
+          },
+        ],
+        passThroughUnsupportedFiles: true,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "file_data": "data:text/plain;base64,aGVsbG8=",
+                "filename": "notes.txt",
+                "type": "input_file",
+              },
+              {
+                "file_url": "https://example.com/data.csv",
+                "type": "input_file",
+              },
+            ],
+            "role": "user",
+            "type": "message",
+          },
+        ]
+      `);
+      expect(result.warnings).toEqual([]);
+    });
   });
 
   describe('assistant messages', () => {

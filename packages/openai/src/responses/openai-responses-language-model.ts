@@ -258,6 +258,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
           customProviderToolNames.size > 0
             ? customProviderToolNames
             : undefined,
+        passThroughUnsupportedFiles:
+          openaiOptions?.passThroughUnsupportedFiles ?? undefined,
       });
 
     warnings.push(...inputWarnings);

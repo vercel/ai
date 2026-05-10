@@ -105,12 +105,20 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
       warnings.push({ type: 'unsupported', feature: 'seed' });
     }
 
+    const openResponsesOptions = await parseProviderOptions({
+      provider: this.config.providerOptionsName,
+      providerOptions,
+      schema: openResponsesLanguageModelOptions,
+    });
+
     const {
       input,
       instructions,
       warnings: inputWarnings,
     } = await convertToOpenResponsesInput({
       prompt,
+      passThroughUnsupportedFiles:
+        openResponsesOptions?.passThroughUnsupportedFiles ?? undefined,
     });
 
     warnings.push(...inputWarnings);
@@ -148,12 +156,6 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
               : {}),
           }
         : undefined;
-
-    const openResponsesOptions = await parseProviderOptions({
-      provider: this.config.providerOptionsName,
-      providerOptions,
-      schema: openResponsesLanguageModelOptions,
-    });
 
     const resolvedReasoningEffort = isCustomReasoning(reasoning)
       ? reasoning === 'none'
