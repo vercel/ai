@@ -58,6 +58,11 @@ export interface DoStreamStepOptions {
   responseFormat?: LanguageModelV4CallOptions['responseFormat'];
   runtimeContext?: Context;
   toolsContext?: Record<string, Context | undefined>;
+  /**
+   * The step number for the returned StepResult. Defaults to 0 for direct
+   * callers; stream iterators pass their current index. See #15151.
+   */
+  stepNumber?: number;
 }
 
 /**
@@ -251,7 +256,7 @@ export async function doStreamStep(
 
   const step: StepResult<ToolSet, any> = {
     callId: 'workflow-agent',
-    stepNumber: 0,
+    stepNumber: options?.stepNumber ?? 0,
     model: {
       provider: responseMetadata?.modelId?.split(':')[0] ?? 'unknown',
       modelId: responseMetadata?.modelId ?? 'unknown',

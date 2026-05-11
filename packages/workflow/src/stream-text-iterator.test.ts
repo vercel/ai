@@ -756,6 +756,7 @@ describe('streamTextIterator', () => {
         expect.objectContaining({
           runtimeContext,
           toolsContext,
+          stepNumber: 0,
         }),
       );
       expect(result.value).toMatchObject({

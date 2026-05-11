@@ -429,6 +429,7 @@
     "workflow-agent-enrich-callbacks",
     "workflow-agent-model-type",
     "workflow-agent-telemetry",
+    "workflow-do-stream-step-number",
     "workflow-runtime-tools-context",
     "workflow-serde-support",
     "workflow-use-filter-active-tools",

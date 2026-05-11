@@ -1,5 +1,11 @@
 # @ai-sdk/workflow
 
+## 1.0.0-canary.48
+
+### Patch Changes
+
+- c3a6524: Add a `stepNumber` option to `doStreamStep` so callers can create `StepResult` objects with the correct step number.
+
 ## 1.0.0-canary.47
 
 ### Patch Changes
