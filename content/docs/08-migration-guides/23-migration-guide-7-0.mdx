@@ -118,6 +118,37 @@ const result = streamText({
 The `system` option is still accepted as a deprecated fallback. When both
 `instructions` and `system` are provided, `instructions` takes precedence.
 
+#### `prepareStep` Instructions Carry Forward
+
+In AI SDK 7, instructions returned from `prepareStep` are used in future steps
+until `prepareStep` returns another `instructions` or `system` override. This
+matches how `messages` returned from `prepareStep` carry forward.
+
+In AI SDK 6, `prepareStep` instruction overrides only applied to the current
+step. Later steps fell back to the top-level `system` instructions unless they
+returned their own override.
+
+If your `prepareStep` logic depends on one-step-only instruction overrides,
+return the desired instructions for each step explicitly:
+
+```tsx filename="AI SDK 7"
+const result = streamText({
+  model: yourModel,
+  instructions: 'Use the default behavior.',
+  prompt: 'Hello!',
+  prepareStep: ({ stepNumber, initialInstructions }) => ({
+    instructions:
+      stepNumber === 0
+        ? 'Use special instructions for the first step.'
+        : initialInstructions,
+  }),
+});
+```
+
+The `prepareStep` callback receives both `instructions`, which is the current
+instruction state for the step, and `initialInstructions`, which is the
+top-level instruction value from the original call.
+
 If your tool call repair function forwards the current system instructions to
 another model call, read and pass `instructions` instead of `system`:
 
