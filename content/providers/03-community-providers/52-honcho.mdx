@@ -14,7 +14,6 @@ Features include:
 - **Automatic Context Injection**: Middleware injects user context before generation and persists messages after
 - **Six Memory Tools**: `honcho_chat`, `honcho_context`, `honcho_search`, `honcho_search_conclusions`, `honcho_get_representation`, `honcho_save_conclusion`
 - **Multi-User Isolation**: Each user is a peer scoped to your workspace; sessions group conversations between peers
-- **Free API Credits**: Get started with free credits
 
 Learn more in the [Honcho Documentation](https://docs.honcho.dev)
 
@@ -121,12 +120,10 @@ Pass the same `userId` and `sessionId` to `honcho.tools()` so tool calls bind to
 
 ```typescript
 import { createHoncho } from '@honcho-ai/vercel-ai-sdk';
-import { wrapLanguageModel, streamText } from 'ai';
+import { convertToModelMessages, streamText, wrapLanguageModel } from 'ai';
 import { anthropic } from '@ai-sdk/anthropic';
 
-const honcho = createHoncho({
-  workspaceId: process.env.HONCHO_WORKSPACE_ID!,
-});
+const honcho = createHoncho();
 
 export async function POST(req: Request) {
   const { messages, sessionId, userId } = await req.json();
@@ -143,10 +140,10 @@ export async function POST(req: Request) {
   const result = streamText({
     model,
     tools: honcho.tools({ userId, sessionId, assistantId: 'my-app' }),
-    messages,
+    messages: convertToModelMessages(messages),
   });
 
-  return result.toDataStreamResponse();
+  return result.toUIMessageStreamResponse();
 }
 ```
 
@@ -185,32 +182,9 @@ const honcho = createHoncho({
 
 ## Additional Modules
 
-| Module   | Import                              | Description                                                   |
-| -------- | ----------------------------------- | ------------------------------------------------------------- |
-| OpenAI   | `@honcho-ai/vercel-ai-sdk/openai`   | Direct OpenAI SDK integration (without AI SDK tool wrappers). |
-| Identity | `@honcho-ai/vercel-ai-sdk/identity` | Live identity documents backed by Honcho peer cards.          |
-
-### OpenAI (`@honcho-ai/vercel-ai-sdk/openai`)
-
-Use this when you're integrating with the OpenAI SDK directly (without AI SDK tool wrappers).
-
-```typescript
-import OpenAI from 'openai';
-import { createHoncho } from '@honcho-ai/vercel-ai-sdk';
-import { honchoOpenAITools } from '@honcho-ai/vercel-ai-sdk/openai';
-
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-const honcho = createHoncho();
-
-const honchoTools = honchoOpenAITools({
-  client: honcho.client,
-  defaultPeerId: 'user-abc',
-  defaultObserverPeerId: 'assistant-xyz',
-  defaultSessionId: 'session-123',
-});
-```
-
-Pass `honchoTools.definitions` to OpenAI tool calling, then execute each call with `honchoTools.execute(name, args)`.
+| Module   | Import                              | Description                                          |
+| -------- | ----------------------------------- | ---------------------------------------------------- |
+| Identity | `@honcho-ai/vercel-ai-sdk/identity` | Live identity documents backed by Honcho peer cards. |
 
 ## Additional Resources
 
