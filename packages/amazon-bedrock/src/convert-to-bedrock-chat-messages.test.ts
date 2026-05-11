@@ -870,7 +870,7 @@ describe('assistant messages', () => {
       }
     `);
   });
-  
+
   it('should omit reasoning content without signature', async () => {
     const result = await convertToBedrockChatMessages([
       {
