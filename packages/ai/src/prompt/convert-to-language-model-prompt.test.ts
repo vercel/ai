@@ -4,6 +4,7 @@ import {
   convertToLanguageModelMessage,
   convertToLanguageModelPrompt,
 } from './convert-to-language-model-prompt';
+import type { ModelMessage } from '@ai-sdk/provider-utils';
 
 describe('convertToLanguageModelPrompt', () => {
   describe('system message', () => {
@@ -156,6 +157,86 @@ describe('convertToLanguageModelPrompt', () => {
             ],
           },
         ]);
+      });
+
+      it('should download image files in tool result content when model does not support image URLs', async () => {
+        const prompt: ModelMessage[] = [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'tool-call-id',
+                toolName: 'test-tool',
+                output: {
+                  type: 'content',
+                  value: [
+                    {
+                      type: 'file',
+                      data: {
+                        type: 'url',
+                        url: new URL('https://example.com/image.png'),
+                      },
+                      mediaType: 'image/png',
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ];
+
+        const result = await convertToLanguageModelPrompt({
+          prompt: {
+            instructions: undefined,
+            messages: prompt,
+          },
+          supportedUrls: {},
+          download: createDefaultDownloadFunction(async ({ url }) => {
+            expect(url).toEqual(new URL('https://example.com/image.png'));
+
+            return {
+              data: new Uint8Array([1, 2, 3]),
+              mediaType: 'image/png',
+            };
+          }),
+        });
+
+        expect(result).toMatchInlineSnapshot(`
+    [
+      {
+        "content": [
+          {
+            "output": {
+              "type": "content",
+              "value": [
+                {
+                  "data": {
+                    "data": Uint8Array [
+                      1,
+                      2,
+                      3,
+                    ],
+                    "type": "data",
+                  },
+                  "filename": undefined,
+                  "mediaType": "image/png",
+                  "providerOptions": undefined,
+                  "type": "file",
+                },
+              ],
+            },
+            "providerOptions": undefined,
+            "toolCallId": "tool-call-id",
+            "toolName": "test-tool",
+            "type": "tool-result",
+          },
+        ],
+        "providerOptions": undefined,
+        "role": "tool",
+      },
+    ]
+  `);
       });
 
       it('should download images for user image parts with string URLs when model does not support image URLs', async () => {
