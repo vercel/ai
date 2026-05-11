@@ -683,7 +683,7 @@ const result = await agent.generate({
       type: 'Sandbox',
       isOptional: true,
       description:
-        'Sandbox environment that is passed through to `prepareStep` and tool execution. Tools can access it from their execution options.',
+        'Sandbox environment that is passed through to `prepareStep`, tool description functions, and tool execution. Tools can access it from their description function options and execution options.',
     },
     {
       name: 'options',
@@ -786,7 +786,7 @@ for await (const chunk of stream.textStream) {
       type: 'Sandbox',
       isOptional: true,
       description:
-        'Sandbox environment that is passed through to `prepareStep` and tool execution. Tools can access it from their execution options.',
+        'Sandbox environment that is passed through to `prepareStep`, tool description functions, and tool execution. Tools can access it from their description function options and execution options.',
     },
     {
       name: 'options',

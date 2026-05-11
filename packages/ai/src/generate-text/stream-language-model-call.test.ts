@@ -130,7 +130,6 @@ describe('streamLanguageModelCall', () => {
           "temperature": 0.7,
           "tools": [
             {
-              "description": undefined,
               "inputSchema": {
                 "$schema": "http://json-schema.org/draft-07/schema#",
                 "additionalProperties": false,
@@ -145,7 +144,6 @@ describe('streamLanguageModelCall', () => {
                 "type": "object",
               },
               "name": "testTool",
-              "providerOptions": undefined,
               "type": "function",
             },
           ],

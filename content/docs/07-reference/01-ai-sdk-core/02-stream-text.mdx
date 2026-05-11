@@ -346,9 +346,9 @@ To see `streamText` in action, check out [these examples](#examples).
             {
               name: 'description',
               isOptional: true,
-              type: 'string',
+              type: 'string | ((options: { context: CONTEXT; sandbox?: Sandbox }) => string)',
               description:
-                'Information about the purpose of the tool including details on how and when it can be used by the model.',
+                'Information about the purpose of the tool including details on how and when it can be used by the model. Provide a string for a fixed description, or a function to derive the description from the tool-specific context and optional sandbox before each model call.',
             },
             {
               name: 'inputSchema',
@@ -664,6 +664,18 @@ To see `streamText` in action, check out [these examples](#examples).
                       description: 'The model that is being used.',
                     },
                     {
+                      name: 'instructions',
+                      type: 'Instructions | undefined',
+                      description:
+                        'The instructions that will be sent to the model for the current step. If prepareStep returns an instructions override, those instructions carry forward to later steps.',
+                    },
+                    {
+                      name: 'initialInstructions',
+                      type: 'Instructions | undefined',
+                      description:
+                        'The initial instructions that were passed into generateText or streamText.',
+                    },
+                    {
                       name: 'messages',
                       type: 'Array<ModelMessage>',
                       description:
@@ -726,7 +738,7 @@ To see `streamText` in action, check out [these examples](#examples).
               type: 'Instructions',
               isOptional: true,
               description:
-                'Optionally override the instructions sent to the model for this step.',
+                'Optionally override the instructions sent to the model for this step. The override carries forward to later steps until prepareStep returns another instructions or system override.',
             },
             {
               name: 'messages',
@@ -784,7 +796,7 @@ To see `streamText` in action, check out [these examples](#examples).
       type: 'Sandbox',
       isOptional: true,
       description:
-        'Sandbox environment that is passed through to `prepareStep` and tool execution. Tools can access it from their execution options.',
+        'Sandbox environment that is passed through to `prepareStep`, tool description functions, and tool execution. Tools can access it from their description function options and execution options.',
     },
     {
       name: 'experimental_download',
@@ -1380,8 +1392,7 @@ To see `streamText` in action, check out [these examples](#examples).
             {
               name: 'sources',
               type: 'Array<Source>',
-              description:
-                'Sources that have been used as input to generate the response. For multi-step generation, the sources are accumulated from all steps.',
+              description: 'Sources that have been used in the final step.',
               properties: [
                 {
                   type: 'Source',
@@ -1723,8 +1734,7 @@ To see `streamText` in action, check out [these examples](#examples).
             {
               name: 'sources',
               type: 'Array<Source>',
-              description:
-                'Sources that have been used as input to generate the response. For multi-step generation, the sources are accumulated from all steps.',
+              description: 'Sources that have been used in the final step.',
               properties: [
                 {
                   type: 'Source',
@@ -1765,7 +1775,7 @@ To see `streamText` in action, check out [these examples](#examples).
             {
               name: 'files',
               type: 'Array<GeneratedFile>',
-              description: 'Files that were generated in the final step.',
+              description: 'Files that were generated in all steps.',
               properties: [
                 {
                   type: 'GeneratedFile',
@@ -2345,7 +2355,8 @@ To see `streamText` in action, check out [these examples](#examples).
     {
       name: 'content',
       type: 'Promise<Array<ContentPart<TOOLS>>>',
-      description: 'The content that was generated in the last step. Automatically consumes the stream.',
+      description:
+        'The content that was generated in all steps. Automatically consumes the stream.',
     },
     {
       name: 'finishReason',
@@ -2588,7 +2599,7 @@ To see `streamText` in action, check out [these examples](#examples).
       name: 'files',
       type: 'Promise<Array<GeneratedFile>>',
       description:
-        'Files that were generated in the final step. Automatically consumes the stream.',
+        'Files that were generated in all steps. Automatically consumes the stream.',
       properties: [
         {
           type: 'GeneratedFile',
@@ -2616,33 +2627,33 @@ To see `streamText` in action, check out [these examples](#examples).
       name: 'toolCalls',
       type: 'Promise<TypedToolCall<TOOLS>[]>',
       description:
-        'The tool calls that have been executed. Automatically consumes the stream.',
+        'The tool calls that have been executed in all steps. Automatically consumes the stream.',
     },
     {
       name: 'toolResults',
       type: 'Promise<TypedToolResult<TOOLS>[]>',
       description:
-        'The tool results that have been generated. Resolved when the all tool executions are finished.',
+        'The tool results that have been generated in all steps. Resolved when all tool executions are finished.',
     },
     {
       name: 'staticToolCalls',
       type: 'PromiseLike<Array<StaticToolCall<TOOLS>>>',
-      description: 'The static tool calls that have been executed in the last step.',
+      description: 'The static tool calls that have been executed in all steps.',
     },
     {
       name: 'dynamicToolCalls',
       type: 'PromiseLike<Array<DynamicToolCall>>',
-      description: 'The dynamic tool calls that have been executed in the last step.',
+      description: 'The dynamic tool calls that have been executed in all steps.',
     },
     {
       name: 'staticToolResults',
       type: 'PromiseLike<Array<StaticToolResult<TOOLS>>>',
-      description: 'The static tool results that have been generated in the last step.',
+      description: 'The static tool results that have been generated in all steps.',
     },
     {
       name: 'dynamicToolResults',
       type: 'PromiseLike<Array<DynamicToolResult>>',
-      description: 'The dynamic tool results that have been generated in the last step.',
+      description: 'The dynamic tool results that have been generated in all steps.',
     },
     {
       name: 'request',
@@ -2725,7 +2736,7 @@ To see `streamText` in action, check out [these examples](#examples).
       name: 'warnings',
       type: 'Promise<Warning[] | undefined>',
       description:
-        'Warnings from the model provider (e.g. unsupported settings) for the first step.',
+        'Warnings from the model provider (e.g. unsupported settings) in all steps.',
     },
     {
       name: 'responseMessages',
