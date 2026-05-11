@@ -29,9 +29,13 @@ import { GatewayEmbeddingModel } from './gateway-embedding-model';
 import { GatewayImageModel } from './gateway-image-model';
 import { GatewayVideoModel } from './gateway-video-model';
 import { GatewayRerankingModel } from './gateway-reranking-model';
+import { GatewaySpeechModel } from './gateway-speech-model';
+import { GatewayTranscriptionModel } from './gateway-transcription-model';
 import type { GatewayEmbeddingModelId } from './gateway-embedding-model-settings';
 import type { GatewayImageModelId } from './gateway-image-model-settings';
 import type { GatewayRerankingModelId } from './gateway-reranking-model-settings';
+import type { GatewaySpeechModelId } from './gateway-speech-model-settings';
+import type { GatewayTranscriptionModelId } from './gateway-transcription-model-settings';
 import type { GatewayVideoModelId } from './gateway-video-model-settings';
 import { gatewayTools } from './gateway-tools';
 import { getVercelOidcToken, getVercelRequestId } from './vercel-environment';
@@ -41,6 +45,8 @@ import type {
   EmbeddingModelV4,
   ImageModelV4,
   RerankingModelV4,
+  SpeechModelV4,
+  TranscriptionModelV4,
   Experimental_VideoModelV4,
   ProviderV4,
 } from '@ai-sdk/provider';
@@ -129,6 +135,28 @@ export interface GatewayProvider extends ProviderV4 {
    * Creates a model for reranking documents.
    */
   rerankingModel(modelId: GatewayRerankingModelId): RerankingModelV4;
+
+  /**
+   * Creates a model for text-to-speech generation.
+   */
+  speech(modelId: GatewaySpeechModelId): SpeechModelV4;
+
+  /**
+   * Creates a model for text-to-speech generation.
+   */
+  speechModel(modelId: GatewaySpeechModelId): SpeechModelV4;
+
+  /**
+   * Creates a model for audio transcription.
+   */
+  transcription(modelId: GatewayTranscriptionModelId): TranscriptionModelV4;
+
+  /**
+   * Creates a model for audio transcription.
+   */
+  transcriptionModel(
+    modelId: GatewayTranscriptionModelId,
+  ): TranscriptionModelV4;
 
   /**
    * Gateway-specific tools executed server-side.
@@ -378,6 +406,28 @@ export function createGateway(
   };
   provider.rerankingModel = createRerankingModel;
   provider.reranking = createRerankingModel;
+  const createSpeechModel = (modelId: GatewaySpeechModelId) => {
+    return new GatewaySpeechModel(modelId, {
+      provider: 'gateway',
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+      o11yHeaders: createO11yHeaders(),
+    });
+  };
+  provider.speechModel = createSpeechModel;
+  provider.speech = createSpeechModel;
+  const createTranscriptionModel = (modelId: GatewayTranscriptionModelId) => {
+    return new GatewayTranscriptionModel(modelId, {
+      provider: 'gateway',
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+      o11yHeaders: createO11yHeaders(),
+    });
+  };
+  provider.transcriptionModel = createTranscriptionModel;
+  provider.transcription = createTranscriptionModel;
   provider.chat = provider.languageModel;
   provider.embedding = provider.embeddingModel;
   provider.image = provider.imageModel;

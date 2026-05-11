@@ -5,6 +5,8 @@ export const KNOWN_MODEL_TYPES = [
   'image',
   'language',
   'reranking',
+  'speech',
+  'transcription',
   'video',
 ] as const;
 
