@@ -9,4 +9,5 @@ export type {
   /** @deprecated Use `MoonshotAILanguageModelOptions` instead. */
   MoonshotAILanguageModelOptions as MoonshotAIProviderOptions,
 } from './moonshotai-chat-options';
+export type { MoonshotAILanguageModelChatOptions } from './moonshotai-chat-language-model-options';
 export { VERSION } from './version';

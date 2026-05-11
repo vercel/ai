@@ -6,6 +6,7 @@ import {
   WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
 import type {
+  LanguageModelV4,
   LanguageModelV4CallOptions,
   LanguageModelV4GenerateResult,
   LanguageModelV4StreamPart,
@@ -14,7 +15,10 @@ import type {
 import { convertMoonshotAIChatUsage } from './convert-moonshotai-chat-usage';
 import type { MoonshotAIChatModelId } from './moonshotai-chat-options';
 
-export class MoonshotAIChatLanguageModel extends OpenAICompatibleChatLanguageModel {
+export class MoonshotAIChatLanguageModel
+  extends OpenAICompatibleChatLanguageModel
+  implements LanguageModelV4
+{
   static [WORKFLOW_SERIALIZE](model: MoonshotAIChatLanguageModel) {
     return serializeModelOptions({
       modelId: model.modelId,

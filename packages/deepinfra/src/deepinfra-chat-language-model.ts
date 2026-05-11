@@ -1,4 +1,5 @@
 import type {
+  LanguageModelV4,
   LanguageModelV4CallOptions,
   LanguageModelV4GenerateResult,
   LanguageModelV4StreamResult,
@@ -17,7 +18,10 @@ type DeepInfraChatConfig = {
   fetch?: FetchFunction;
 };
 
-export class DeepInfraChatLanguageModel extends OpenAICompatibleChatLanguageModel {
+export class DeepInfraChatLanguageModel
+  extends OpenAICompatibleChatLanguageModel
+  implements LanguageModelV4
+{
   static [WORKFLOW_SERIALIZE](model: DeepInfraChatLanguageModel) {
     return serializeModelOptions({
       modelId: model.modelId,
