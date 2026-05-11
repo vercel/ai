@@ -1498,7 +1498,6 @@ describe('streamText', () => {
               {
                 type: 'function',
                 name: 'tool1',
-                description: undefined,
                 inputSchema: {
                   $schema: 'http://json-schema.org/draft-07/schema#',
                   additionalProperties: false,
@@ -1506,7 +1505,6 @@ describe('streamText', () => {
                   required: ['value'],
                   type: 'object',
                 },
-                providerOptions: undefined,
               },
             ]);
 
@@ -9543,7 +9541,6 @@ describe('streamText', () => {
               },
               "tools": [
                 {
-                  "description": undefined,
                   "inputSchema": {
                     "$schema": "http://json-schema.org/draft-07/schema#",
                     "additionalProperties": false,
@@ -9558,7 +9555,6 @@ describe('streamText', () => {
                     "type": "object",
                   },
                   "name": "tool1",
-                  "providerOptions": undefined,
                   "type": "function",
                 },
               ],
@@ -9618,7 +9614,6 @@ describe('streamText', () => {
               },
               "tools": [
                 {
-                  "description": undefined,
                   "inputSchema": {
                     "$schema": "http://json-schema.org/draft-07/schema#",
                     "additionalProperties": false,
@@ -9633,7 +9628,6 @@ describe('streamText', () => {
                     "type": "object",
                   },
                   "name": "tool1",
-                  "providerOptions": undefined,
                   "type": "function",
                 },
               ],
@@ -10814,7 +10808,6 @@ describe('streamText', () => {
               },
               "tools": [
                 {
-                  "description": undefined,
                   "inputSchema": {
                     "$schema": "http://json-schema.org/draft-07/schema#",
                     "additionalProperties": false,
@@ -10829,7 +10822,6 @@ describe('streamText', () => {
                     "type": "object",
                   },
                   "name": "tool1",
-                  "providerOptions": undefined,
                   "type": "function",
                 },
               ],
@@ -14614,14 +14606,12 @@ describe('streamText', () => {
               {
                 type: 'function',
                 name: 'tool1',
-                description: undefined,
                 inputSchema: {
                   additionalProperties: false,
                   properties: { value: { type: 'string' } },
                   required: ['value'],
                   type: 'object',
                 },
-                providerOptions: undefined,
               },
             ]);
             expect(toolChoice).toStrictEqual({ type: 'required' });
@@ -17506,7 +17496,6 @@ describe('streamText', () => {
       expect(tools).toMatchInlineSnapshot(`
         [
           {
-            "description": undefined,
             "inputSchema": {
               "$schema": "http://json-schema.org/draft-07/schema#",
               "additionalProperties": false,
@@ -17521,7 +17510,6 @@ describe('streamText', () => {
               "type": "object",
             },
             "name": "tool1",
-            "providerOptions": undefined,
             "type": "function",
           },
         ]

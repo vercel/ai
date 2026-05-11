@@ -20,8 +20,8 @@ import { NoOutputGeneratedError } from '../error';
 import { ToolCallNotFoundForApprovalError } from '../error/tool-call-not-found-for-approval-error';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
-import { cloneModelMessages } from '../prompt/clone-model-message';
 import type { ModelMessage } from '../prompt';
+import { cloneModelMessages } from '../prompt/clone-model-message';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { createToolModelOutput } from '../prompt/create-tool-model-output';
 import type { LanguageModelCallOptions } from '../prompt/language-model-call-options';
@@ -60,7 +60,10 @@ import type { ActiveTools } from './active-tools';
 import { collectToolApprovals } from './collect-tool-approvals';
 import type { ContentPart } from './content-part';
 import { executeToolCall } from './execute-tool-call';
-import { filterActiveTools } from './filter-active-tools';
+import {
+  filterActiveTools,
+  type ActiveToolSubset,
+} from './filter-active-tools';
 import type {
   GenerateTextOnFinishCallback,
   GenerateTextOnStartCallback,
@@ -694,6 +697,11 @@ export async function generateText<
 
         const stepTools = await prepareTools({
           tools: stepActiveTools,
+          // active tools context is a subset of the tools context, so we can cast to the unknown type
+          toolsContext: toolsContext as unknown as InferToolSetContext<
+            ActiveToolSubset<TOOLS, ActiveTools<NoInfer<TOOLS>>>
+          >,
+          sandbox: stepSandbox,
         });
 
         const stepToolChoice = prepareToolChoice({

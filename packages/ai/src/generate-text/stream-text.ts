@@ -90,7 +90,10 @@ import { collectToolApprovals } from './collect-tool-approvals';
 import type { ContentPart } from './content-part';
 import { createExecuteToolsTransformation } from './create-execute-tools-transformation';
 import { executeToolCall } from './execute-tool-call';
-import { filterActiveTools } from './filter-active-tools';
+import {
+  filterActiveTools,
+  type ActiveToolSubset,
+} from './filter-active-tools';
 import type {
   GenerateTextOnFinishCallback,
   GenerateTextOnStartCallback,
@@ -1612,6 +1615,9 @@ class DefaultStreamTextResult<
 
           const stepSandbox = prepareStepResult?.sandbox ?? sandbox;
 
+          runtimeContext = prepareStepResult?.runtimeContext ?? runtimeContext;
+          toolsContext = prepareStepResult?.toolsContext ?? toolsContext;
+
           const stepModel = resolveLanguageModel(
             prepareStepResult?.model ?? model,
           );
@@ -1623,14 +1629,16 @@ class DefaultStreamTextResult<
 
           const stepTools = await prepareTools({
             tools: stepActiveTools,
+            // active tools context is a subset of the tools context, so we can cast to the unknown type
+            toolsContext: toolsContext as unknown as InferToolSetContext<
+              ActiveToolSubset<TOOLS, ActiveTools<NoInfer<TOOLS>>>
+            >,
+            sandbox: stepSandbox,
           });
 
           const stepToolChoice = prepareToolChoice({
             toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
           });
-
-          runtimeContext = prepareStepResult?.runtimeContext ?? runtimeContext;
-          toolsContext = prepareStepResult?.toolsContext ?? toolsContext;
 
           const stepMessages = prepareStepResult?.messages ?? stepInputMessages;
           currentStepMessages = stepMessages;
@@ -1669,6 +1677,8 @@ class DefaultStreamTextResult<
               download,
               output,
               callId,
+              toolsContext,
+              sandbox: stepSandbox,
               onLanguageModelCallStart: filterNullable(
                 onLanguageModelCallStart,
                 telemetryDispatcher.onLanguageModelCallStart as

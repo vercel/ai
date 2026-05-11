@@ -520,7 +520,6 @@ describe('generateText', () => {
               {
                 type: 'function',
                 name: 'tool1',
-                description: undefined,
                 inputSchema: {
                   $schema: 'http://json-schema.org/draft-07/schema#',
                   additionalProperties: false,
@@ -528,12 +527,10 @@ describe('generateText', () => {
                   required: ['value'],
                   type: 'object',
                 },
-                providerOptions: undefined,
               },
               {
                 type: 'function',
                 name: 'tool2',
-                description: undefined,
                 inputSchema: {
                   $schema: 'http://json-schema.org/draft-07/schema#',
                   additionalProperties: false,
@@ -541,7 +538,6 @@ describe('generateText', () => {
                   required: ['somethingElse'],
                   type: 'object',
                 },
-                providerOptions: undefined,
               },
             ]);
 
@@ -669,7 +665,6 @@ describe('generateText', () => {
               {
                 type: 'function',
                 name: 'tool1',
-                description: undefined,
                 inputSchema: {
                   $schema: 'http://json-schema.org/draft-07/schema#',
                   additionalProperties: false,
@@ -677,7 +672,6 @@ describe('generateText', () => {
                   required: ['value'],
                   type: 'object',
                 },
-                providerOptions: undefined,
               },
             ]);
 
@@ -2085,7 +2079,6 @@ describe('generateText', () => {
           "temperature": 0.7,
           "tools": [
             {
-              "description": undefined,
               "inputSchema": {
                 "$schema": "http://json-schema.org/draft-07/schema#",
                 "additionalProperties": false,
@@ -2100,7 +2093,6 @@ describe('generateText', () => {
                 "type": "object",
               },
               "name": "tool1",
-              "providerOptions": undefined,
               "type": "function",
             },
           ],
@@ -3759,7 +3751,6 @@ describe('generateText', () => {
                     {
                       type: 'function',
                       name: 'tool1',
-                      description: undefined,
                       inputSchema: {
                         $schema: 'http://json-schema.org/draft-07/schema#',
                         additionalProperties: false,
@@ -3767,7 +3758,6 @@ describe('generateText', () => {
                         required: ['value'],
                         type: 'object',
                       },
-                      providerOptions: undefined,
                     },
                   ]);
 
@@ -4504,7 +4494,6 @@ describe('generateText', () => {
               },
               "tools": [
                 {
-                  "description": undefined,
                   "inputSchema": {
                     "$schema": "http://json-schema.org/draft-07/schema#",
                     "additionalProperties": false,
@@ -4519,7 +4508,6 @@ describe('generateText', () => {
                     "type": "object",
                   },
                   "name": "tool1",
-                  "providerOptions": undefined,
                   "type": "function",
                 },
               ],
@@ -5502,28 +5490,26 @@ describe('generateText', () => {
       });
 
       expect(tools).toMatchInlineSnapshot(`
-      [
-        {
-          "description": undefined,
-          "inputSchema": {
-            "$schema": "http://json-schema.org/draft-07/schema#",
-            "additionalProperties": false,
-            "properties": {
-              "value": {
-                "type": "string",
+        [
+          {
+            "inputSchema": {
+              "$schema": "http://json-schema.org/draft-07/schema#",
+              "additionalProperties": false,
+              "properties": {
+                "value": {
+                  "type": "string",
+                },
               },
+              "required": [
+                "value",
+              ],
+              "type": "object",
             },
-            "required": [
-              "value",
-            ],
-            "type": "object",
+            "name": "tool1",
+            "type": "function",
           },
-          "name": "tool1",
-          "providerOptions": undefined,
-          "type": "function",
-        },
-      ]
-    `);
+        ]
+      `);
     });
   });
 
@@ -5604,26 +5590,22 @@ describe('generateText', () => {
               {
                 type: 'function',
                 name: 'tool1',
-                description: undefined,
                 inputSchema: {
                   additionalProperties: false,
                   properties: { value: { type: 'string' } },
                   required: ['value'],
                   type: 'object',
                 },
-                providerOptions: undefined,
               },
               {
                 type: 'function',
                 name: 'tool2',
-                description: undefined,
                 inputSchema: {
                   additionalProperties: false,
                   properties: { somethingElse: { type: 'string' } },
                   required: ['somethingElse'],
                   type: 'object',
                 },
-                providerOptions: undefined,
               },
             ]);
 
