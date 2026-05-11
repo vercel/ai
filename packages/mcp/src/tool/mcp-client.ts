@@ -297,11 +297,7 @@ class DefaultMCPClient implements MCPClient {
 
       this.serverCapabilities = result.capabilities;
       this._serverInfo = result.serverInfo;
-<<<<<<< HEAD
-=======
       this.transport.protocolVersion = result.protocolVersion;
-      this._serverInstructions = result.instructions;
->>>>>>> 2655da88a (fix(mcp): use negotiated protocol version in transport request headers (#15128))
 
       // Complete initialization handshake:
       await this.notification({
