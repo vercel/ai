@@ -117,7 +117,7 @@ export interface StreamTextResult<
   OUTPUT extends Output,
 > {
   /**
-   * The content that was generated in the last step.
+   * The content that was generated in all steps.
    *
    * Automatically consumes the stream.
    */

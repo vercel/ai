@@ -2077,7 +2077,7 @@ class DefaultStreamTextResult<
   }
 
   get content() {
-    return this.finalStep.then(step => step.content);
+    return this.steps.then(steps => steps.flatMap(step => step.content));
   }
 
   get warnings() {

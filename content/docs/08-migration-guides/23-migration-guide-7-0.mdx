@@ -237,6 +237,38 @@ console.log(result.usage.inputTokenDetails.cacheReadTokens);
 console.log(result.usage.outputTokenDetails.reasoningTokens);
 ```
 
+### `result.content` Contains Content from All Steps
+
+For `generateText` and `streamText`, `result.content` now contains content
+parts from all steps, including files generated before the final step. In AI SDK
+6, it only contained content from the final step.
+
+If you need the previous final-step-only behavior, use `result.finalStep.content`.
+If you only need the files from the final step, use `result.finalStep.files`.
+
+```tsx filename="AI SDK 6"
+const result = await generateText({
+  model: yourModel,
+  tools,
+  prompt: 'Create an artifact, then summarize it.',
+});
+
+const finalStepContent = result.content;
+const finalStepFiles = result.files;
+```
+
+```tsx filename="AI SDK 7"
+const result = await generateText({
+  model: yourModel,
+  tools,
+  prompt: 'Create an artifact, then summarize it.',
+});
+
+const allContent = result.content;
+const finalStepContent = result.finalStep.content;
+const finalStepFiles = result.finalStep.files;
+```
+
 ### Telemetry: OpenTelemetry Moved to `@ai-sdk/otel` — Explicit Registration Required
 
 OpenTelemetry span collection is no longer built into the `ai` package. To continue receiving OpenTelemetry traces, you must install the new `@ai-sdk/otel` package and register the `OpenTelemetry` instance globally.

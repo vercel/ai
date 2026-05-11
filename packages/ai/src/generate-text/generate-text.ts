@@ -1256,7 +1256,7 @@ class DefaultGenerateTextResult<
   }
 
   get content() {
-    return this.finalStep.content;
+    return this.steps.flatMap(step => step.content);
   }
 
   get text() {

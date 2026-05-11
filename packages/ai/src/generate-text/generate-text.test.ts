@@ -608,6 +608,75 @@ describe('generateText', () => {
         })),
       ).toEqual([{ base64: 'c3RlcC0x', mediaType: 'text/plain' }]);
     });
+
+    it('should contain file content parts from all steps in result.content', async () => {
+      let responseCount = 0;
+
+      const result = await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => {
+            switch (responseCount++) {
+              case 0:
+                return {
+                  ...dummyResponseValues,
+                  content: [
+                    {
+                      type: 'file',
+                      data: { type: 'data', data: 'c3RlcC0w' },
+                      mediaType: 'text/plain',
+                    },
+                    {
+                      type: 'tool-call',
+                      toolCallType: 'function',
+                      toolCallId: 'call-1',
+                      toolName: 'tool1',
+                      input: '{}',
+                    },
+                  ],
+                  finishReason: { unified: 'tool-calls', raw: undefined },
+                };
+              case 1:
+                return {
+                  ...dummyResponseValues,
+                  content: [
+                    {
+                      type: 'file',
+                      data: { type: 'data', data: 'c3RlcC0x' },
+                      mediaType: 'text/plain',
+                    },
+                  ],
+                };
+              default:
+                throw new Error(`Unexpected response count: ${responseCount}`);
+            }
+          },
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({}),
+            execute: async () => 'result1',
+          }),
+        },
+        prompt: 'prompt',
+        stopWhen: isStepCount(3),
+      });
+
+      const fileParts = result.content.filter(part => part.type === 'file');
+
+      expect(
+        fileParts.map(part => ({
+          base64: part.file.base64,
+          mediaType: part.file.mediaType,
+        })),
+      ).toEqual([
+        { base64: 'c3RlcC0w', mediaType: 'text/plain' },
+        { base64: 'c3RlcC0x', mediaType: 'text/plain' },
+      ]);
+
+      expect(
+        result.finalStep.content.filter(part => part.type === 'file'),
+      ).toHaveLength(1);
+    });
   });
 
   describe('result.steps', () => {
@@ -4842,8 +4911,40 @@ describe('generateText', () => {
         expect(onStepFinishResults).toMatchSnapshot();
       });
 
-      it('content should contain content from the last step', () => {
+      it('result.content should contain content from all steps', () => {
         expect(result.content).toMatchInlineSnapshot(`
+        [
+          {
+            "input": {
+              "value": "value",
+            },
+            "providerExecuted": undefined,
+            "providerMetadata": undefined,
+            "title": undefined,
+            "toolCallId": "call-1",
+            "toolName": "tool1",
+            "type": "tool-call",
+          },
+          {
+            "dynamic": false,
+            "input": {
+              "value": "value",
+            },
+            "output": "result1",
+            "toolCallId": "call-1",
+            "toolName": "tool1",
+            "type": "tool-result",
+          },
+          {
+            "text": "Hello, world!",
+            "type": "text",
+          },
+        ]
+      `);
+      });
+
+      it('result.finalStep.content should contain content from the final step', () => {
+        expect(result.finalStep.content).toMatchInlineSnapshot(`
         [
           {
             "text": "Hello, world!",
