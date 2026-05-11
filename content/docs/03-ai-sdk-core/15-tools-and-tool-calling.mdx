@@ -482,6 +482,8 @@ It is called with the following parameters:
 - `stopWhen`: The stopping condition that was passed into `generateText`.
 - `stepNumber`: The number of the step that is being executed.
 - `steps`: The steps that have been executed so far.
+- `instructions`: The instructions that will be sent to the model for the current step. If `prepareStep` returns an `instructions` override, those instructions carry forward as the default for later steps.
+- `initialInstructions`: The instructions that were passed into `generateText` or `streamText`.
 - `messages`: The messages that will be sent to the model for the current step. Treat this as the loop's current message state. If `prepareStep` returns a `messages` override, those messages carry forward as the base for later steps.
 - `initialMessages`: The messages that were passed into `generateText` or `streamText`.
 - `responseMessages`: The accumulated assistant/tool response messages so far, including any tool results generated before the first model step from approved tool calls in the input messages.
@@ -512,6 +514,8 @@ const result = await generateText({
   },
 });
 ```
+
+If you return `instructions`, those instructions carry forward to later steps until `prepareStep` returns another `instructions` or `system` override. Use `initialInstructions` when you need to restore or compare against the top-level instructions from the original call.
 
 #### Message Modification for Longer Agentic Loops
 
