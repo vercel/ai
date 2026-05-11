@@ -146,15 +146,44 @@ export function asSchema<OBJECT>(
         : schema();
 }
 
+function resolveTopLevelRef(schema: JSONSchema7): JSONSchema7 {
+  const ref = schema.$ref;
+  if (typeof ref !== 'string') return schema;
+
+  const defsMatch = ref.match(/^#\/(\$defs|definitions)\/(.+)$/);
+  if (!defsMatch) return schema;
+
+  const [, defsKey, defName] = defsMatch;
+  const defs = (schema as any)[defsKey] as
+    | Record<string, JSONSchema7>
+    | undefined;
+  if (defs == null || !(defName in defs)) return schema;
+
+  const { $ref: _, $schema: __, [defsKey]: _defs, ...rest } = schema as any;
+  const definition = defs[defName];
+  const remainingDefs = { ...defs };
+  delete remainingDefs[defName];
+
+  return {
+    ...rest,
+    ...definition,
+    ...(Object.keys(remainingDefs).length > 0
+      ? { [defsKey]: remainingDefs }
+      : {}),
+  };
+}
+
 function standardSchema<OBJECT>(
   standardSchema: StandardSchema<OBJECT>,
 ): Schema<OBJECT> {
   return jsonSchema(
     () =>
-      addAdditionalPropertiesToJsonSchema(
-        standardSchema['~standard'].jsonSchema.input({
-          target: 'draft-07',
-        }) as JSONSchema7,
+      resolveTopLevelRef(
+        addAdditionalPropertiesToJsonSchema(
+          standardSchema['~standard'].jsonSchema.input({
+            target: 'draft-07',
+          }) as JSONSchema7,
+        ),
       ),
     {
       validate: async value => {

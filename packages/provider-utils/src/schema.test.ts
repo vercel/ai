@@ -252,6 +252,43 @@ describe('StandardSchema (StandardJSONSchemaV1)', () => {
       });
     });
 
+    it('should resolve top-level $ref with $defs to inline schema', async () => {
+      const standardSchema = createStandardSchema<{
+        rating: number;
+        summary: string;
+      }>({
+        jsonSchema: {
+          $schema: 'http://json-schema.org/draft-07/schema#',
+          $defs: {
+            ReviewResult: {
+              type: 'object',
+              required: ['rating', 'summary'],
+              properties: {
+                rating: { type: 'number' },
+                summary: { type: 'string' },
+              },
+            },
+          },
+          $ref: '#/$defs/ReviewResult',
+        },
+        validate: async value => ({
+          value: value as { rating: number; summary: string },
+        }),
+      });
+
+      const schema = asSchema(standardSchema);
+
+      expect(await schema.jsonSchema).toStrictEqual({
+        type: 'object',
+        additionalProperties: false,
+        required: ['rating', 'summary'],
+        properties: {
+          rating: { type: 'number' },
+          summary: { type: 'string' },
+        },
+      });
+    });
+
     it('should pass target draft-07 to jsonSchema.input()', async () => {
       let capturedTarget: string | undefined;
 

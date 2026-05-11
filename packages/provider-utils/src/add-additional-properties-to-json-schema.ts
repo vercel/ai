@@ -44,6 +44,15 @@ export function addAdditionalPropertiesToJsonSchema(
     }
   }
 
+  const $defs = (jsonSchema as Record<string, any>)['$defs'] as
+    | Record<string, JSONSchema7Definition>
+    | undefined;
+  if ($defs != null) {
+    for (const key of Object.keys($defs)) {
+      $defs[key] = visit($defs[key]);
+    }
+  }
+
   return jsonSchema;
 }
 

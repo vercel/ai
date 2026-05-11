@@ -246,6 +246,42 @@ describe('addAdditionalPropertiesToJsonSchema', () => {
     });
   });
 
+  it('adds additionalProperties: false to object schemas inside $defs (refs)', () => {
+    const schema: JSONSchema7 = {
+      type: 'object',
+      properties: {
+        node: { $ref: '#/$defs/Node' },
+      },
+      $defs: {
+        Node: {
+          type: 'object',
+          properties: {
+            value: { type: 'string' },
+            next: { $ref: '#/$defs/Node' },
+          },
+        },
+      },
+    } as JSONSchema7;
+
+    expect(addAdditionalPropertiesToJsonSchema(schema)).toEqual({
+      type: 'object',
+      additionalProperties: false,
+      properties: {
+        node: { $ref: '#/$defs/Node' },
+      },
+      $defs: {
+        Node: {
+          type: 'object',
+          additionalProperties: false,
+          properties: {
+            value: { type: 'string' },
+            next: { $ref: '#/$defs/Node' },
+          },
+        },
+      },
+    });
+  });
+
   it('overwrites existing additionalProperties flags', () => {
     const schema: JSONSchema7 = {
       type: 'object',
