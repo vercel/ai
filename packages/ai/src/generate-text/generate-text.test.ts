@@ -1680,33 +1680,35 @@ describe('generateText', () => {
       }> = [];
       let responseCount = 0;
 
+      const model = new MockLanguageModelV4({
+        doGenerate: async () => {
+          switch (responseCount++) {
+            case 0:
+              return {
+                ...dummyResponseValues,
+                content: [
+                  {
+                    type: 'tool-call',
+                    toolCallType: 'function',
+                    toolCallId: 'call-1',
+                    toolName: 'tool1',
+                    input: '{ "value": "test" }',
+                  },
+                ],
+                finishReason: { unified: 'tool-calls', raw: undefined },
+              };
+            case 1:
+            default:
+              return {
+                ...dummyResponseValues,
+                content: [{ type: 'text', text: 'Done.' }],
+              };
+          }
+        },
+      });
+
       await generateText({
-        model: new MockLanguageModelV4({
-          doGenerate: async () => {
-            switch (responseCount++) {
-              case 0:
-                return {
-                  ...dummyResponseValues,
-                  content: [
-                    {
-                      type: 'tool-call',
-                      toolCallType: 'function',
-                      toolCallId: 'call-1',
-                      toolName: 'tool1',
-                      input: '{ "value": "test" }',
-                    },
-                  ],
-                  finishReason: { unified: 'tool-calls', raw: undefined },
-                };
-              case 1:
-              default:
-                return {
-                  ...dummyResponseValues,
-                  content: [{ type: 'text', text: 'Done.' }],
-                };
-            }
-          },
-        }),
+        model,
         tools: {
           tool1: tool({
             inputSchema: z.object({ value: z.string() }),
@@ -1722,6 +1724,7 @@ describe('generateText', () => {
           initialMessages,
           responseMessages,
           messages,
+          stepNumber,
         }) => {
           prepareStepCalls.push({
             instructions,
@@ -1730,7 +1733,10 @@ describe('generateText', () => {
             responseMessages: [...responseMessages],
             messages: [...messages],
           });
-          return undefined;
+
+          return stepNumber === 0
+            ? { instructions: 'prepared instructions' }
+            : undefined;
         },
       });
 
@@ -1745,7 +1751,7 @@ describe('generateText', () => {
         { role: 'user', content: 'test-input' },
       ]);
 
-      expect(prepareStepCalls[1].instructions).toBe('test instructions');
+      expect(prepareStepCalls[1].instructions).toBe('prepared instructions');
       expect(prepareStepCalls[1].initialInstructions).toBe('test instructions');
       expect(prepareStepCalls[1].initialMessages).toEqual([
         { role: 'user', content: 'test-input' },
@@ -1787,6 +1793,10 @@ describe('generateText', () => {
         ...prepareStepCalls[1].initialMessages,
         ...prepareStepCalls[1].responseMessages,
       ]);
+      expect(model.doGenerateCalls[1].prompt[0]).toEqual({
+        role: 'system',
+        content: 'prepared instructions',
+      });
     });
 
     it('should pass updated toolsContext from prepareStep', async () => {

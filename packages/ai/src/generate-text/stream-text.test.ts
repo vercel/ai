@@ -6699,59 +6699,61 @@ describe('streamText', () => {
       }> = [];
       let responseCount = 0;
 
+      const model = new MockLanguageModelV4({
+        doStream: async () => {
+          switch (responseCount++) {
+            case 0:
+              return {
+                stream: convertArrayToReadableStream([
+                  {
+                    type: 'response-metadata' as const,
+                    id: 'id-0',
+                    modelId: 'mock-model-id',
+                    timestamp: new Date(0),
+                  },
+                  {
+                    type: 'tool-call' as const,
+                    id: 'call-1',
+                    toolCallId: 'call-1',
+                    toolName: 'tool1',
+                    input: '{ "value": "test" }',
+                  },
+                  {
+                    type: 'finish' as const,
+                    finishReason: {
+                      unified: 'tool-calls' as const,
+                      raw: undefined,
+                    },
+                    usage: testUsage,
+                  },
+                ]),
+              };
+            case 1:
+            default:
+              return {
+                stream: convertArrayToReadableStream([
+                  {
+                    type: 'response-metadata' as const,
+                    id: 'id-1',
+                    modelId: 'mock-model-id',
+                    timestamp: new Date(1000),
+                  },
+                  { type: 'text-start' as const, id: '1' },
+                  { type: 'text-delta' as const, id: '1', delta: 'Done.' },
+                  { type: 'text-end' as const, id: '1' },
+                  {
+                    type: 'finish' as const,
+                    finishReason: { unified: 'stop' as const, raw: 'stop' },
+                    usage: testUsage,
+                  },
+                ]),
+              };
+          }
+        },
+      });
+
       const result = streamText({
-        model: new MockLanguageModelV4({
-          doStream: async () => {
-            switch (responseCount++) {
-              case 0:
-                return {
-                  stream: convertArrayToReadableStream([
-                    {
-                      type: 'response-metadata' as const,
-                      id: 'id-0',
-                      modelId: 'mock-model-id',
-                      timestamp: new Date(0),
-                    },
-                    {
-                      type: 'tool-call' as const,
-                      id: 'call-1',
-                      toolCallId: 'call-1',
-                      toolName: 'tool1',
-                      input: '{ "value": "test" }',
-                    },
-                    {
-                      type: 'finish' as const,
-                      finishReason: {
-                        unified: 'tool-calls' as const,
-                        raw: undefined,
-                      },
-                      usage: testUsage,
-                    },
-                  ]),
-                };
-              case 1:
-              default:
-                return {
-                  stream: convertArrayToReadableStream([
-                    {
-                      type: 'response-metadata' as const,
-                      id: 'id-1',
-                      modelId: 'mock-model-id',
-                      timestamp: new Date(1000),
-                    },
-                    { type: 'text-start' as const, id: '1' },
-                    { type: 'text-delta' as const, id: '1', delta: 'Done.' },
-                    { type: 'text-end' as const, id: '1' },
-                    {
-                      type: 'finish' as const,
-                      finishReason: { unified: 'stop' as const, raw: 'stop' },
-                      usage: testUsage,
-                    },
-                  ]),
-                };
-            }
-          },
-        }),
+        model,
         tools: {
           tool1: tool({
             inputSchema: z.object({ value: z.string() }),
@@ -6767,6 +6769,7 @@ describe('streamText', () => {
           initialMessages,
           responseMessages,
           messages,
+          stepNumber,
         }) => {
           prepareStepCalls.push({
             instructions,
@@ -6775,7 +6778,10 @@ describe('streamText', () => {
             responseMessages: [...responseMessages],
             messages: [...messages],
           });
-          return undefined;
+
+          return stepNumber === 0
+            ? { instructions: 'prepared instructions' }
+            : undefined;
         },
         onError: () => {},
       });
@@ -6793,7 +6799,7 @@ describe('streamText', () => {
         { role: 'user', content: 'test-input' },
       ]);
 
-      expect(prepareStepCalls[1].instructions).toBe('test instructions');
+      expect(prepareStepCalls[1].instructions).toBe('prepared instructions');
       expect(prepareStepCalls[1].initialInstructions).toBe('test instructions');
       expect(prepareStepCalls[1].initialMessages).toEqual([
         { role: 'user', content: 'test-input' },
@@ -6835,6 +6841,10 @@ describe('streamText', () => {
         ...prepareStepCalls[1].initialMessages,
         ...prepareStepCalls[1].responseMessages,
       ]);
+      expect(model.doStreamCalls[1].prompt[0]).toEqual({
+        role: 'system',
+        content: 'prepared instructions',
+      });
     });
 
     it('should pass updated toolsContext from prepareStep', async () => {
