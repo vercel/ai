@@ -31,7 +31,34 @@ jobs:
       release-branch: ${{ steps.find-target.outputs.release-branch }}
 
     steps:
+      # actions/checkout retries the underlying git fetch internally, but its
+      # built-in backoff (~30s total) is shorter than typical transient GitHub
+      # outages. We add two explicit retries with longer waits on top of that.
       - name: Checkout Repository
+        id: checkout
+        uses: actions/checkout@v6
+        continue-on-error: true
+        with:
+          fetch-depth: 0
+
+      - name: Wait before checkout retry 1
+        if: steps.checkout.outcome == 'failure'
+        run: sleep 60
+
+      - name: Checkout Repository (retry 1)
+        id: checkout-retry-1
+        if: steps.checkout.outcome == 'failure'
+        uses: actions/checkout@v6
+        continue-on-error: true
+        with:
+          fetch-depth: 0
+
+      - name: Wait before checkout retry 2
+        if: steps.checkout.outcome == 'failure' && steps.checkout-retry-1.outcome == 'failure'
+        run: sleep 180
+
+      - name: Checkout Repository (retry 2)
+        if: steps.checkout.outcome == 'failure' && steps.checkout-retry-1.outcome == 'failure'
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
@@ -39,7 +66,21 @@ jobs:
       - name: Find target release branch
         id: find-target
         run: |
-          git fetch --all
+          # Retry git fetch on transient remote failures (e.g. 5xx from the
+          # GitHub git server) with linear backoff up to ~5 minutes total.
+          ATTEMPTS=5
+          for attempt in $(seq 1 "$ATTEMPTS"); do
+            if git fetch --all; then
+              break
+            fi
+            if [ "$attempt" -eq "$ATTEMPTS" ]; then
+              echo "::error::git fetch failed after $ATTEMPTS attempts"
+              exit 1
+            fi
+            WAIT=$((attempt * 30))
+            echo "Attempt $attempt failed, retrying in ${WAIT}s..."
+            sleep "$WAIT"
+          done
 
           BASE_REF="${{ github.event.pull_request.base.ref }}"
           RELEASE_BRANCHES=$(git branch -r | grep -E 'origin/release-v[0-9]+\.[0-9]+$' | sed 's/.*origin\///' | sort -V)
