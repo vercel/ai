@@ -319,6 +319,7 @@ export async function convertToBedrockChatMessages(
                       },
                     },
                   });
+<<<<<<< HEAD:packages/amazon-bedrock/src/convert-to-bedrock-chat-messages.ts
                 } else if (
                   part.providerOptions == null ||
                   Object.keys(part.providerOptions).every(
@@ -346,8 +347,13 @@ export async function convertToBedrockChatMessages(
                       },
                     },
                   });
+=======
+>>>>>>> bcbaae644 (fix(bedrock): skip passing unsigned reasoning content (#15181)):packages/amazon-bedrock/src/convert-to-amazon-bedrock-chat-messages.ts
                 }
-
+                // Unsigned reasoning is intentionally not replayed. Some
+                // Bedrock models (for example OpenAI gpt-oss) return reasoning
+                // without a signature; sending it back in multi-turn tool use
+                // can leak raw reasoning into the visible response.
                 break;
               }
 
