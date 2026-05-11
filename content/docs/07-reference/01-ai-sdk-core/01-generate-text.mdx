@@ -345,9 +345,9 @@ To see `generateText` in action, check out [these examples](#examples).
             {
               name: 'description',
               isOptional: true,
-              type: 'string',
+              type: 'string | ((options: { context: CONTEXT; sandbox?: Sandbox }) => string)',
               description:
-                'Information about the purpose of the tool including details on how and when it can be used by the model.',
+                'Information about the purpose of the tool including details on how and when it can be used by the model. Provide a string for a fixed description, or a function to derive the description from the tool-specific context and optional sandbox before each model call.',
             },
             {
               name: 'inputSchema',
@@ -740,7 +740,7 @@ To see `generateText` in action, check out [these examples](#examples).
       type: 'Sandbox',
       isOptional: true,
       description:
-        'Sandbox environment that is passed through to `prepareStep` and tool execution. Tools can access it from their execution options.',
+        'Sandbox environment that is passed through to `prepareStep`, tool description functions, and tool execution. Tools can access it from their description function options and execution options.',
     },
     {
       name: 'experimental_download',
