@@ -1645,7 +1645,7 @@ describe('GoogleInteractionsLanguageModel agent polling (TASK-10)', () => {
       };
     };
 
-    const fastProvider = createGoogle({
+    const fastProvider = createGoogleGenerativeAI({
       apiKey: 'test-api-key',
       generateId: () => 'test-id',
     });

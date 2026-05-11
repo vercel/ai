@@ -1,4 +1,4 @@
-import { createGoogle } from '@ai-sdk/google';
+import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { generateText } from 'ai';
 import { run } from '../../lib/run';
 
@@ -46,7 +46,7 @@ run(async () => {
     return response;
   };
 
-  const provider = createGoogle({
+  const provider = createGoogleGenerativeAI({
     apiKey,
     baseURL,
     fetch: capturingFetch,
