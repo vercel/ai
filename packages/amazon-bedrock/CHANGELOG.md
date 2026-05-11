@@ -1,5 +1,11 @@
 # @ai-sdk/amazon-bedrock
 
+## 5.0.0-canary.58
+
+### Patch Changes
+
+- bcbaae6: fix(bedrock): skip passing unsigned reasoning content
+
 ## 5.0.0-canary.57
 
 ### Patch Changes
