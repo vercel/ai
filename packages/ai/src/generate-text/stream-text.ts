@@ -2103,7 +2103,7 @@ class DefaultStreamTextResult<
   }
 
   get sources() {
-    return this.finalStep.then(step => step.sources);
+    return this.steps.then(steps => steps.flatMap(step => step.sources));
   }
 
   get files() {

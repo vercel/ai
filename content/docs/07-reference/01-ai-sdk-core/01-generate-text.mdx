@@ -1492,7 +1492,7 @@ To see `generateText` in action, check out [these examples](#examples).
             {
               name: 'sources',
               type: 'Array<Source>',
-              description: 'The sources that were used to generate the text.',
+              description: 'The sources that were used in this step.',
             },
             {
               name: 'toolCalls',
@@ -1953,7 +1953,7 @@ To see `generateText` in action, check out [these examples](#examples).
               name: 'sources',
               type: 'Array<Source>',
               description:
-                'Sources that have been used as input to generate the response. For multi-step generation, the sources are accumulated from all steps.',
+                'Sources that have been used in the final step.',
               properties: [
                 {
                   type: 'Source',
@@ -2701,7 +2701,7 @@ To see `generateText` in action, check out [these examples](#examples).
             {
               name: 'sources',
               type: 'Array<Source>',
-              description: 'The sources that were used to generate the text.',
+              description: 'Sources that have been used in this step.',
               properties: [
                 {
                   type: 'Source',

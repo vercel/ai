@@ -944,11 +944,11 @@ console.log(result.usage); // all steps
 
 `totalUsage` is deprecated. Replace `result.totalUsage` with `result.usage`.
 
-### `generateText` and `streamText` `files` Now Includes All Steps
+### `generateText` and `streamText` `files` and `sources` Now Include All Steps
 
-The `files` property on `generateText` and `streamText` results now returns all files generated across every step.
+The `files` and `sources` properties on `generateText` and `streamText` results now return all files and sources generated across every step.
 
-Use `finalStep.files` to read the previous `files` behavior, which only returned files from the final step:
+Use `finalStep.files` and `finalStep.sources` to read the previous behavior, which only returned files and sources from the final step:
 
 ```tsx filename="AI SDK 6"
 const result = await generateText({
@@ -958,6 +958,7 @@ const result = await generateText({
 });
 
 console.log(result.files);
+console.log(result.sources);
 ```
 
 ```tsx filename="AI SDK 7"
@@ -968,10 +969,12 @@ const result = await generateText({
 });
 
 console.log(result.finalStep.files); // final step only
+console.log(result.finalStep.sources); // final step only
 console.log(result.files); // all steps
+console.log(result.sources); // all steps
 ```
 
-For `streamText`, await `finalStep` first when you need final-step-only files:
+For `streamText`, await `finalStep` first when you need final-step-only files or sources:
 
 ```tsx filename="AI SDK 7"
 const result = streamText({
@@ -983,7 +986,9 @@ const result = streamText({
 const finalStep = await result.finalStep;
 
 console.log(finalStep.files); // final step only
+console.log(finalStep.sources); // final step only
 console.log(await result.files); // all steps
+console.log(await result.sources); // all steps
 ```
 
 ### Final-Step Result Properties Moved to `finalStep`

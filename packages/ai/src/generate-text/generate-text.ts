@@ -1300,7 +1300,7 @@ class DefaultGenerateTextResult<
   }
 
   get sources() {
-    return this.finalStep.sources;
+    return this.steps.flatMap(step => step.sources);
   }
 
   get finishReason() {

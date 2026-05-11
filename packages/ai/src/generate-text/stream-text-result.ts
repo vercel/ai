@@ -156,7 +156,7 @@ export interface StreamTextResult<
   readonly files: PromiseLike<GeneratedFile[]>;
 
   /**
-   * Sources that have been used as references in the last step.
+   * Sources that have been used as references in all steps.
    *
    * Automatically consumes the stream.
    */

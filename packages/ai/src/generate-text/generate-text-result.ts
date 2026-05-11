@@ -66,7 +66,7 @@ export interface GenerateTextResult<
   readonly files: Array<GeneratedFile>;
 
   /**
-   * Sources that have been used as references in the last step.
+   * Sources that have been used as references in all steps.
    */
   readonly sources: Array<Source>;
 
