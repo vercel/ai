@@ -1058,6 +1058,14 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
               input: JSON.stringify(part.input),
               providerExecuted: true,
             });
+          } else if (part.name === 'advisor') {
+            content.push({
+              type: 'tool-call',
+              toolCallId: part.id,
+              toolName: toolNameMapping.toCustomToolName('advisor'),
+              input: JSON.stringify(part.input),
+              providerExecuted: true,
+            });
           }
 
           break;
@@ -1348,25 +1356,33 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                       model: iter.model,
                       inputTokens: iter.input_tokens,
                       outputTokens: iter.output_tokens,
-                      ...(iter.cache_creation_input_tokens != null && {
-                        cacheCreationInputTokens:
-                          iter.cache_creation_input_tokens,
-                      }),
-                      ...(iter.cache_read_input_tokens != null && {
-                        cacheReadInputTokens: iter.cache_read_input_tokens,
-                      }),
+                      ...(iter.cache_creation_input_tokens
+                        ? {
+                            cacheCreationInputTokens:
+                              iter.cache_creation_input_tokens,
+                          }
+                        : {}),
+                      ...(iter.cache_read_input_tokens
+                        ? {
+                            cacheReadInputTokens: iter.cache_read_input_tokens,
+                          }
+                        : {}),
                     } satisfies AnthropicUsageIteration)
                   : ({
                       type: iter.type,
                       inputTokens: iter.input_tokens,
                       outputTokens: iter.output_tokens,
-                      ...(iter.cache_creation_input_tokens != null && {
-                        cacheCreationInputTokens:
-                          iter.cache_creation_input_tokens,
-                      }),
-                      ...(iter.cache_read_input_tokens != null && {
-                        cacheReadInputTokens: iter.cache_read_input_tokens,
-                      }),
+                      ...(iter.cache_creation_input_tokens
+                        ? {
+                            cacheCreationInputTokens:
+                              iter.cache_creation_input_tokens,
+                          }
+                        : {}),
+                      ...(iter.cache_read_input_tokens
+                        ? {
+                            cacheReadInputTokens: iter.cache_read_input_tokens,
+                          }
+                        : {}),
                     } satisfies AnthropicUsageIteration),
               )
             : null,
@@ -1722,10 +1738,6 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                       providerExecuted: true,
                     });
                   } else if (part.name === 'advisor') {
-                    // advisor server_tool_use: input is always {} and the
-                    // advisor_tool_result block follows in a single
-                    // content_block_start (no deltas).
-                    serverToolCalls[part.id] = part.name;
                     const customToolName =
                       toolNameMapping.toCustomToolName('advisor');
 
@@ -2415,27 +2427,35 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                             model: iter.model,
                             inputTokens: iter.input_tokens,
                             outputTokens: iter.output_tokens,
-                            ...(iter.cache_creation_input_tokens != null && {
-                              cacheCreationInputTokens:
-                                iter.cache_creation_input_tokens,
-                            }),
-                            ...(iter.cache_read_input_tokens != null && {
-                              cacheReadInputTokens:
-                                iter.cache_read_input_tokens,
-                            }),
+                            ...(iter.cache_creation_input_tokens
+                              ? {
+                                  cacheCreationInputTokens:
+                                    iter.cache_creation_input_tokens,
+                                }
+                              : {}),
+                            ...(iter.cache_read_input_tokens
+                              ? {
+                                  cacheReadInputTokens:
+                                    iter.cache_read_input_tokens,
+                                }
+                              : {}),
                           } satisfies AnthropicUsageIteration)
                         : ({
                             type: iter.type,
                             inputTokens: iter.input_tokens,
                             outputTokens: iter.output_tokens,
-                            ...(iter.cache_creation_input_tokens != null && {
-                              cacheCreationInputTokens:
-                                iter.cache_creation_input_tokens,
-                            }),
-                            ...(iter.cache_read_input_tokens != null && {
-                              cacheReadInputTokens:
-                                iter.cache_read_input_tokens,
-                            }),
+                            ...(iter.cache_creation_input_tokens
+                              ? {
+                                  cacheCreationInputTokens:
+                                    iter.cache_creation_input_tokens,
+                                }
+                              : {}),
+                            ...(iter.cache_read_input_tokens
+                              ? {
+                                  cacheReadInputTokens:
+                                    iter.cache_read_input_tokens,
+                                }
+                              : {}),
                           } satisfies AnthropicUsageIteration),
                     )
                   : null,

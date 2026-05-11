@@ -3856,6 +3856,79 @@ describe('AnthropicLanguageModel', () => {
       });
     });
 
+    describe('advisor tool', () => {
+      it('should emit a tool-call for the advisor server_tool_use so it round-trips on follow-up turns', async () => {
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'json-value',
+          body: {
+            type: 'message',
+            id: 'msg_advisor',
+            model: 'claude-sonnet-4-6',
+            role: 'assistant',
+            content: [
+              {
+                type: 'server_tool_use',
+                id: 'srvtoolu_advisor_1',
+                name: 'advisor',
+                input: {},
+              },
+              {
+                type: 'advisor_tool_result',
+                tool_use_id: 'srvtoolu_advisor_1',
+                content: {
+                  type: 'advisor_result',
+                  text: 'Outline the design first; pick Submit semantics upfront.',
+                },
+              },
+              {
+                type: 'text',
+                text: 'Here is the design outline...',
+              },
+            ],
+            stop_reason: 'end_turn',
+            usage: { input_tokens: 10, output_tokens: 20 },
+          },
+        };
+
+        const result = await provider('claude-sonnet-4-6').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'anthropic.advisor_20260301',
+              name: 'advisor',
+              args: { model: 'claude-opus-4-7' },
+            },
+          ],
+        });
+
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "input": "{}",
+              "providerExecuted": true,
+              "toolCallId": "srvtoolu_advisor_1",
+              "toolName": "advisor",
+              "type": "tool-call",
+            },
+            {
+              "result": {
+                "text": "Outline the design first; pick Submit semantics upfront.",
+                "type": "advisor_result",
+              },
+              "toolCallId": "srvtoolu_advisor_1",
+              "toolName": "advisor",
+              "type": "tool-result",
+            },
+            {
+              "text": "Here is the design outline...",
+              "type": "text",
+            },
+          ]
+        `);
+      });
+    });
+
     describe('mcp servers', () => {
       it('should send request body with include and tool', async () => {
         prepareJsonFixtureResponse('anthropic-mcp.1');
