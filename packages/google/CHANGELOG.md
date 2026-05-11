@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 3.0.72
+
+### Patch Changes
+
+- b3642fe: feat(provider/google): support cancelling long-running Interactions API agents via AbortSignal, and process their intermittent stream
+
 ## 3.0.71
 
 ### Patch Changes
