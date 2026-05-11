@@ -701,8 +701,6 @@ export async function convertToAnthropicPrompt({
                       });
                     } else if (providerToolName === 'advisor') {
                       // The advisor server_tool_use.input is always {}.
-                      // The server constructs the advisor's view from the
-                      // full transcript automatically.
                       anthropicContent.push({
                         type: 'server_tool_use',
                         id: part.toolCallId,
@@ -1097,11 +1095,6 @@ export async function convertToAnthropicPrompt({
                 }
 
                 if (providerToolName === 'advisor') {
-                  // Round-trip the advisor_tool_result block verbatim.
-                  // Per the API spec, omitting the advisor tool while the
-                  // message history still contains advisor_tool_result
-                  // blocks returns a 400 invalid_request_error; that
-                  // contract is the caller's responsibility.
                   const output = part.output;
 
                   if (output.type !== 'json' && output.type !== 'error-json') {

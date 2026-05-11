@@ -40,9 +40,7 @@ export type AnthropicUsageIteration =
       type: 'advisor_message';
 
       /**
-       * The advisor model that produced this iteration, e.g.
-       * `"claude-opus-4-7"`. This iteration is billed at the advisor
-       * model's rates.
+       * The advisor model that produced this iteration.
        */
       model: string;
 
@@ -52,8 +50,7 @@ export type AnthropicUsageIteration =
       inputTokens: number;
 
       /**
-       * Number of output tokens generated in this iteration (typically
-       * 400-700 text tokens, 1,400-1,800 including thinking).
+       * Number of output tokens generated in this iteration.
        */
       outputTokens: number;
 
