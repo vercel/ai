@@ -1,5 +1,12 @@
 # @ai-sdk/mcp
 
+## 1.0.42
+
+### Patch Changes
+
+- 725f2ed: feat(mcp): expose server instructions to be accessible through client
+- 7281592: fix(mcp): use negotiated protocol version in transport request headers
+
 ## 1.0.41
 
 ### Patch Changes

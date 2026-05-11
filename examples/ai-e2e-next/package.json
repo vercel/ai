@@ -17,7 +17,7 @@
     "@ai-sdk/google": "3.0.71",
     "@ai-sdk/google-vertex": "4.0.125",
     "@ai-sdk/groq": "3.0.39",
-    "@ai-sdk/mcp": "1.0.41",
+    "@ai-sdk/mcp": "1.0.42",
     "@ai-sdk/mistral": "3.0.36",
     "@ai-sdk/openai": "3.0.63",
     "@ai-sdk/perplexity": "3.0.33",
