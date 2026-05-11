@@ -470,6 +470,16 @@ describe('StandardSchema (StandardJSONSchemaV1)', () => {
   });
 
   describe('asSchema detection', () => {
+    it('should create an object schema when no schema is provided', async () => {
+      const schema = asSchema(undefined);
+
+      expect(await schema.jsonSchema).toStrictEqual({
+        type: 'object',
+        properties: {},
+        additionalProperties: false,
+      });
+    });
+
     it('should detect non-zod standard schema by vendor', async () => {
       const standardSchema: StandardSchema<{ text: string }> = {
         '~standard': {
