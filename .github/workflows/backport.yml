@@ -325,9 +325,10 @@ jobs:
       - name: Remove backport label from original PR
         if: '!steps.check-existing.outputs.existing-pr && steps.create-pr.outputs.backport-pr-url'
         run: |
-          # Remove the backport label from the original PR
-          gh pr edit ${{ github.event.pull_request.number }} --remove-label backport
-          echo "Removed backport label from original PR #${{ github.event.pull_request.number }}"
+          # The backport PR has already been created at this point, so a
+          # transient GitHub API failure here must not fail the job.
+          gh pr edit ${{ github.event.pull_request.number }} --remove-label backport \
+            || echo "::warning::Failed to remove backport label from PR #${{ github.event.pull_request.number }} (non-fatal)"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
