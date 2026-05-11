@@ -1602,6 +1602,8 @@ class DefaultStreamTextResult<
             model,
             steps: recordedSteps,
             stepNumber: recordedSteps.length,
+            instructions: initialPrompt.instructions,
+            initialInstructions: initialPrompt.instructions,
             messages: stepInputMessages,
             initialMessages,
             responseMessages: accumulatedResponseMessages,

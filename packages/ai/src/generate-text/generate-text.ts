@@ -655,6 +655,8 @@ export async function generateText<
           model,
           steps,
           stepNumber: steps.length,
+          instructions: initialPrompt.instructions,
+          initialInstructions: initialPrompt.instructions,
           messages: stepInputMessages,
           initialMessages,
           responseMessages: accumulatedResponseMessages,

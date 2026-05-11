@@ -43,6 +43,7 @@ import {
 import { z } from 'zod/v4';
 import { Output, type LanguageModelCallEndEvent } from '..';
 import * as logWarningsModule from '../logger/log-warnings';
+import type { Instructions } from '../prompt';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import { createMockServerResponse } from '../test/mock-server-response';
 import { mockValues } from '../test/mock-values';
@@ -6688,8 +6689,10 @@ describe('streamText', () => {
       expect(stepStartEvent).not.toHaveProperty('functionId');
     });
 
-    it('should pass initialMessages and responseMessages to prepareStep', async () => {
+    it('should pass initialInstructions, initialMessages, and responseMessages to prepareStep', async () => {
       const prepareStepCalls: Array<{
+        instructions: Instructions | undefined;
+        initialInstructions: Instructions | undefined;
         initialMessages: Array<ModelMessage>;
         responseMessages: Array<ModelMessage>;
         messages: Array<ModelMessage>;
@@ -6755,14 +6758,19 @@ describe('streamText', () => {
             execute: async ({ value }) => `${value}-result`,
           }),
         },
+        instructions: 'test instructions',
         messages: [{ role: 'user', content: 'test-input' }],
         stopWhen: isStepCount(3),
         prepareStep: async ({
+          instructions,
+          initialInstructions,
           initialMessages,
           responseMessages,
           messages,
         }) => {
           prepareStepCalls.push({
+            instructions,
+            initialInstructions,
             initialMessages: [...initialMessages],
             responseMessages: [...responseMessages],
             messages: [...messages],
@@ -6775,6 +6783,8 @@ describe('streamText', () => {
       await result.consumeStream();
 
       expect(prepareStepCalls).toHaveLength(2);
+      expect(prepareStepCalls[0].instructions).toBe('test instructions');
+      expect(prepareStepCalls[0].initialInstructions).toBe('test instructions');
       expect(prepareStepCalls[0].initialMessages).toEqual([
         { role: 'user', content: 'test-input' },
       ]);
@@ -6783,6 +6793,8 @@ describe('streamText', () => {
         { role: 'user', content: 'test-input' },
       ]);
 
+      expect(prepareStepCalls[1].instructions).toBe('test instructions');
+      expect(prepareStepCalls[1].initialInstructions).toBe('test instructions');
       expect(prepareStepCalls[1].initialMessages).toEqual([
         { role: 'user', content: 'test-input' },
       ]);
