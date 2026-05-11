@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/perplexity",
-  "version": "4.0.0-canary.41",
+  "version": "4.0.0-canary.42",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,

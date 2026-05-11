@@ -1,5 +1,16 @@
 # @ai-sdk/workflow
 
+## 1.0.0-canary.47
+
+### Patch Changes
+
+- ca446f8: feat: flexible tool descriptions
+- Updated dependencies [b67525f]
+- Updated dependencies [ca446f8]
+- Updated dependencies [bcacd48]
+  - ai@7.0.0-canary.131
+  - @ai-sdk/provider-utils@5.0.0-canary.38
+
 ## 1.0.0-canary.46
 
 ### Patch Changes

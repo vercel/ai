@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/cohere",
-  "version": "4.0.0-canary.40",
+  "version": "4.0.0-canary.41",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
