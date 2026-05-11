@@ -237,38 +237,6 @@ console.log(result.usage.inputTokenDetails.cacheReadTokens);
 console.log(result.usage.outputTokenDetails.reasoningTokens);
 ```
 
-### `result.content` Contains Content from All Steps
-
-For `generateText` and `streamText`, `result.content` now contains content
-parts from all steps, including files generated before the final step. In AI SDK
-6, it only contained content from the final step.
-
-If you need the previous final-step-only behavior, use `result.finalStep.content`.
-If you only need the files from the final step, use `result.finalStep.files`.
-
-```tsx filename="AI SDK 6"
-const result = await generateText({
-  model: yourModel,
-  tools,
-  prompt: 'Create an artifact, then summarize it.',
-});
-
-const finalStepContent = result.content;
-const finalStepFiles = result.files;
-```
-
-```tsx filename="AI SDK 7"
-const result = await generateText({
-  model: yourModel,
-  tools,
-  prompt: 'Create an artifact, then summarize it.',
-});
-
-const allContent = result.content;
-const finalStepContent = result.finalStep.content;
-const finalStepFiles = result.finalStep.files;
-```
-
 ### Telemetry: OpenTelemetry Moved to `@ai-sdk/otel` — Explicit Registration Required
 
 OpenTelemetry span collection is no longer built into the `ai` package. To continue receiving OpenTelemetry traces, you must install the new `@ai-sdk/otel` package and register the `OpenTelemetry` instance globally.
@@ -976,11 +944,15 @@ console.log(result.usage); // all steps
 
 `totalUsage` is deprecated. Replace `result.totalUsage` with `result.usage`.
 
-### `generateText` and `streamText` Tool Calls, Tool Results, Files, Sources, and Warnings Now Include All Steps
+### `generateText` and `streamText` Result Properties Now Include All Steps
 
-The `toolCalls`, `staticToolCalls`, `dynamicToolCalls`, `toolResults`, `staticToolResults`, `dynamicToolResults`, `files`, `sources`, and `warnings` properties on `generateText` and `streamText` results now return values accumulated across every step.
+The top-level `content`, `toolCalls`, `staticToolCalls`, `dynamicToolCalls`,
+`toolResults`, `staticToolResults`, `dynamicToolResults`, `files`, `sources`,
+and `warnings` properties on `generateText` and `streamText` results now return
+values accumulated across every step.
 
-Use `finalStep` to read the previous behavior, which only returned values from the final step:
+In AI SDK 6, these properties only returned values from the final step. Use
+`finalStep` to read the previous behavior:
 
 ```tsx filename="AI SDK 6"
 const result = await generateText({
@@ -994,6 +966,7 @@ console.log(result.toolResults);
 console.log(result.files);
 console.log(result.sources);
 console.log(result.warnings);
+console.log(result.content);
 ```
 
 ```tsx filename="AI SDK 7"
@@ -1008,11 +981,13 @@ console.log(result.finalStep.toolResults); // final step only
 console.log(result.finalStep.files); // final step only
 console.log(result.finalStep.sources); // final step only
 console.log(result.finalStep.warnings); // final step only
+console.log(result.finalStep.content); // final step only
 console.log(result.toolCalls); // all steps
 console.log(result.toolResults); // all steps
 console.log(result.files); // all steps
 console.log(result.sources); // all steps
 console.log(result.warnings); // all steps
+console.log(result.content); // all steps
 ```
 
 For `streamText`, await `finalStep` first when you need final-step-only values:
@@ -1031,11 +1006,13 @@ console.log(finalStep.toolResults); // final step only
 console.log(finalStep.files); // final step only
 console.log(finalStep.sources); // final step only
 console.log(finalStep.warnings); // final step only
+console.log(finalStep.content); // final step only
 console.log(await result.toolCalls); // all steps
 console.log(await result.toolResults); // all steps
 console.log(await result.files); // all steps
 console.log(await result.sources); // all steps
 console.log(await result.warnings); // all steps
+console.log(await result.content); // all steps
 ```
 
 ### Final-Step Result Properties Moved to `finalStep`
