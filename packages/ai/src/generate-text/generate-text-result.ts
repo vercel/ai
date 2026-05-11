@@ -60,7 +60,7 @@ export interface GenerateTextResult<
   readonly reasoningText: string | undefined;
 
   /**
-   * The files that were generated in the last step.
+   * The files that were generated in all steps.
    * Empty array if no files were generated.
    */
   readonly files: Array<GeneratedFile>;

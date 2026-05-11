@@ -2107,7 +2107,7 @@ class DefaultStreamTextResult<
   }
 
   get files() {
-    return this.finalStep.then(step => step.files);
+    return this.steps.then(steps => steps.flatMap(step => step.files));
   }
 
   get toolCalls() {

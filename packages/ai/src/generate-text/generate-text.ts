@@ -1264,7 +1264,7 @@ class DefaultGenerateTextResult<
   }
 
   get files() {
-    return this.finalStep.files;
+    return this.steps.flatMap(step => step.files);
   }
 
   get reasoningText() {
