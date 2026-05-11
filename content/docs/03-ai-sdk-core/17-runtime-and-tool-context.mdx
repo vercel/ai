@@ -16,14 +16,14 @@ should affect execution.
 
 ## Context Types
 
-| Concept                           | Where you define it                                                | Where you read it                                                   | Use it for                                                    |
-| --------------------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------------- | ------------------------------------------------------------- |
-| `runtimeContext`                  | `generateText`, `streamText`, or `ToolLoopAgent` calls             | `prepareStep`, lifecycle callbacks, step results, and telemetry     | Shared generation or agent state                              |
-| `toolsContext`                    | `generateText`, `streamText`, or `ToolLoopAgent` calls             | `prepareStep`, approval callbacks, tool context resolution, and tool description functions | A map of per-tool context values keyed by tool name           |
+| Concept                           | Where you define it                                                | Where you read it                                                                               | Use it for                                                    |
+| --------------------------------- | ------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| `runtimeContext`                  | `generateText`, `streamText`, or `ToolLoopAgent` calls             | `prepareStep`, lifecycle callbacks, step results, and telemetry                                 | Shared generation or agent state                              |
+| `toolsContext`                    | `generateText`, `streamText`, or `ToolLoopAgent` calls             | `prepareStep`, approval callbacks, tool context resolution, and tool description functions      | A map of per-tool context values keyed by tool name           |
 | tool `context`                    | Each tool's `toolsContext` entry, validated by its `contextSchema` | Tool description functions, tool `execute`, `needsApproval`, and tool input lifecycle callbacks | Values needed by one tool                                     |
-| `toolContext`                     | Derived from one tool's context                                    | Tool approval callbacks and tool execution events                   | The event/callback name for one tool's context                |
-| `telemetry.includeRuntimeContext` | The generation or agent call                                       | Telemetry filtering                                                 | Top-level `runtimeContext` properties to include in telemetry |
-| `telemetry.includeToolsContext`   | The generation or agent call                                       | Telemetry filtering                                                 | Top-level tool context properties to include in telemetry     |
+| `toolContext`                     | Derived from one tool's context                                    | Tool approval callbacks and tool execution events                                               | The event/callback name for one tool's context                |
+| `telemetry.includeRuntimeContext` | The generation or agent call                                       | Telemetry filtering                                                                             | Top-level `runtimeContext` properties to include in telemetry |
+| `telemetry.includeToolsContext`   | The generation or agent call                                       | Telemetry filtering                                                                             | Top-level tool context properties to include in telemetry     |
 
 In agents, `runtimeContext` is the agent's shared runtime state. It flows
 through the loop and can be read or updated in `prepareStep` between model
