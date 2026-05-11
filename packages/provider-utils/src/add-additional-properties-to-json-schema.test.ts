@@ -1,4 +1,4 @@
-import type { JSONSchema7 } from '@ai-sdk/provider';
+import { JSONSchema7 } from '@ai-sdk/provider';
 import { describe, expect, it } from 'vitest';
 import { addAdditionalPropertiesToJsonSchema } from './add-additional-properties-to-json-schema';
 
@@ -240,6 +240,42 @@ describe('addAdditionalPropertiesToJsonSchema', () => {
           properties: {
             value: { type: 'string' },
             next: { $ref: '#/definitions/Node' },
+          },
+        },
+      },
+    });
+  });
+
+  it('adds additionalProperties: false to object schemas inside $defs (refs)', () => {
+    const schema: JSONSchema7 = {
+      type: 'object',
+      properties: {
+        node: { $ref: '#/$defs/Node' },
+      },
+      $defs: {
+        Node: {
+          type: 'object',
+          properties: {
+            value: { type: 'string' },
+            next: { $ref: '#/$defs/Node' },
+          },
+        },
+      },
+    } as JSONSchema7;
+
+    expect(addAdditionalPropertiesToJsonSchema(schema)).toEqual({
+      type: 'object',
+      additionalProperties: false,
+      properties: {
+        node: { $ref: '#/$defs/Node' },
+      },
+      $defs: {
+        Node: {
+          type: 'object',
+          additionalProperties: false,
+          properties: {
+            value: { type: 'string' },
+            next: { $ref: '#/$defs/Node' },
           },
         },
       },

@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import * as z4 from 'zod/v4';
 import { safeParseJSON } from './parse-json';
-import { asSchema, zodSchema, type StandardSchema } from './schema';
+import { asSchema, StandardSchema, zodSchema } from './schema';
+
 describe('zodSchema', () => {
   describe('zod/v4', () => {
     describe('json schema conversion', () => {
@@ -249,6 +250,43 @@ describe('StandardSchema (StandardJSONSchemaV1)', () => {
           age: { type: 'number' },
         },
         required: ['name', 'age'],
+      });
+    });
+
+    it('should resolve top-level $ref with $defs to inline schema', async () => {
+      const standardSchema = createStandardSchema<{
+        rating: number;
+        summary: string;
+      }>({
+        jsonSchema: {
+          $schema: 'http://json-schema.org/draft-07/schema#',
+          $defs: {
+            ReviewResult: {
+              type: 'object',
+              required: ['rating', 'summary'],
+              properties: {
+                rating: { type: 'number' },
+                summary: { type: 'string' },
+              },
+            },
+          },
+          $ref: '#/$defs/ReviewResult',
+        },
+        validate: async value => ({
+          value: value as { rating: number; summary: string },
+        }),
+      });
+
+      const schema = asSchema(standardSchema);
+
+      expect(await schema.jsonSchema).toStrictEqual({
+        type: 'object',
+        additionalProperties: false,
+        required: ['rating', 'summary'],
+        properties: {
+          rating: { type: 'number' },
+          summary: { type: 'string' },
+        },
       });
     });
 

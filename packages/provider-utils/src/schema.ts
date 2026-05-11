@@ -1,9 +1,6 @@
-import { TypeValidationError, type JSONSchema7 } from '@ai-sdk/provider';
-import type {
-  StandardSchemaV1,
-  StandardJSONSchemaV1,
-} from '@standard-schema/spec';
-import type * as z3 from 'zod/v3';
+import { JSONSchema7, TypeValidationError } from '@ai-sdk/provider';
+import { StandardSchemaV1, StandardJSONSchemaV1 } from '@standard-schema/spec';
+import * as z3 from 'zod/v3';
 import * as z4 from 'zod/v4';
 import { addAdditionalPropertiesToJsonSchema } from './add-additional-properties-to-json-schema';
 import { zod3ToJsonSchema } from './to-json-schema/zod3-to-json-schema';
@@ -146,15 +143,44 @@ export function asSchema<OBJECT>(
         : schema();
 }
 
+function resolveTopLevelRef(schema: JSONSchema7): JSONSchema7 {
+  const ref = schema.$ref;
+  if (typeof ref !== 'string') return schema;
+
+  const defsMatch = ref.match(/^#\/(\$defs|definitions)\/(.+)$/);
+  if (!defsMatch) return schema;
+
+  const [, defsKey, defName] = defsMatch;
+  const defs = (schema as any)[defsKey] as
+    | Record<string, JSONSchema7>
+    | undefined;
+  if (defs == null || !(defName in defs)) return schema;
+
+  const { $ref: _, $schema: __, [defsKey]: _defs, ...rest } = schema as any;
+  const definition = defs[defName];
+  const remainingDefs = { ...defs };
+  delete remainingDefs[defName];
+
+  return {
+    ...rest,
+    ...definition,
+    ...(Object.keys(remainingDefs).length > 0
+      ? { [defsKey]: remainingDefs }
+      : {}),
+  };
+}
+
 function standardSchema<OBJECT>(
   standardSchema: StandardSchema<OBJECT>,
 ): Schema<OBJECT> {
   return jsonSchema(
     () =>
-      addAdditionalPropertiesToJsonSchema(
-        standardSchema['~standard'].jsonSchema.input({
-          target: 'draft-07',
-        }) as JSONSchema7,
+      resolveTopLevelRef(
+        addAdditionalPropertiesToJsonSchema(
+          standardSchema['~standard'].jsonSchema.input({
+            target: 'draft-07',
+          }) as JSONSchema7,
+        ),
       ),
     {
       validate: async value => {

@@ -1,4 +1,4 @@
-import type { JSONSchema7, JSONSchema7Definition } from '@ai-sdk/provider';
+import { JSONSchema7, JSONSchema7Definition } from '@ai-sdk/provider';
 
 /**
  * Recursively adds additionalProperties: false to the JSON schema. This is necessary because some providers (e.g. OpenAI) do not support additionalProperties: true.
@@ -41,6 +41,15 @@ export function addAdditionalPropertiesToJsonSchema(
   if (definitions != null) {
     for (const key of Object.keys(definitions)) {
       definitions[key] = visit(definitions[key]);
+    }
+  }
+
+  const $defs = (jsonSchema as Record<string, any>)['$defs'] as
+    | Record<string, JSONSchema7Definition>
+    | undefined;
+  if ($defs != null) {
+    for (const key of Object.keys($defs)) {
+      $defs[key] = visit($defs[key]);
     }
   }
 
