@@ -852,6 +852,26 @@ describe('GatewayLanguageModel', () => {
       }
     });
 
+    it('should normalize malformed stream chunk errors', async () => {
+      server.urls['https://api.test.com/language-model'].response = {
+        type: 'stream-chunks',
+        chunks: ['data: {invalid-json\n\n'],
+      };
+
+      try {
+        const { stream } = await createTestModel().doStream({
+          prompt: TEST_PROMPT,
+          includeRawChunks: false,
+        });
+        await convertReadableStreamToArray(stream);
+        expect.fail('Should have thrown an error');
+      } catch (error) {
+        expect(GatewayResponseError.isInstance(error)).toBe(true);
+        const responseError = error as GatewayResponseError;
+        expect(responseError.message).toContain('Gateway request failed');
+      }
+    });
+
     describe('Image part encoding', () => {
       it('should not modify prompt without image parts', async () => {
         prepareStreamResponse({ content: ['response'] });
