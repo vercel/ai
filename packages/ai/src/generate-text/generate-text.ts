@@ -1115,6 +1115,9 @@ export async function generateText<
       } as LanguageModelUsage,
     );
 
+    const files = steps.flatMap(step => step.files);
+    const warnings = steps.flatMap(step => step.warnings ?? []);
+
     const onFinishEvent = {
       callId,
       stepNumber: lastStep.stepNumber,
@@ -1127,7 +1130,7 @@ export async function generateText<
       text: lastStep.text,
       reasoningText: lastStep.reasoningText,
       reasoning: lastStep.reasoning,
-      files: lastStep.files,
+      files,
       sources: lastStep.sources,
       toolCalls: lastStep.toolCalls,
       staticToolCalls: lastStep.staticToolCalls,
@@ -1141,7 +1144,7 @@ export async function generateText<
         ...initialResponseMessages,
         ...steps.flatMap(step => step.response.messages),
       ],
-      warnings: lastStep.warnings,
+      warnings,
       providerMetadata: lastStep.providerMetadata,
       steps,
       totalUsage,
@@ -1312,7 +1315,7 @@ class DefaultGenerateTextResult<
   }
 
   get warnings() {
-    return this.finalStep.warnings;
+    return this.steps.flatMap(step => step.warnings ?? []);
   }
 
   get providerMetadata() {

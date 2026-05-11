@@ -237,7 +237,7 @@ export interface StreamTextResult<
   readonly totalUsage: PromiseLike<LanguageModelUsage>;
 
   /**
-   * Warnings from the model provider (e.g. unsupported settings) for the first step.
+   * Warnings from the model provider (e.g. unsupported settings) in all steps.
    *
    * Automatically consumes the stream.
    */

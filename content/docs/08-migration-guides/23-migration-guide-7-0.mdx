@@ -976,9 +976,9 @@ console.log(result.usage); // all steps
 
 `totalUsage` is deprecated. Replace `result.totalUsage` with `result.usage`.
 
-### `generateText` and `streamText` Tool Calls, Tool Results, Files, and Sources Now Include All Steps
+### `generateText` and `streamText` Tool Calls, Tool Results, Files, Sources, and Warnings Now Include All Steps
 
-The `toolCalls`, `staticToolCalls`, `dynamicToolCalls`, `toolResults`, `staticToolResults`, `dynamicToolResults`, `files`, and `sources` properties on `generateText` and `streamText` results now return values accumulated across every step.
+The `toolCalls`, `staticToolCalls`, `dynamicToolCalls`, `toolResults`, `staticToolResults`, `dynamicToolResults`, `files`, `sources`, and `warnings` properties on `generateText` and `streamText` results now return values accumulated across every step.
 
 Use `finalStep` to read the previous behavior, which only returned values from the final step:
 
@@ -993,6 +993,7 @@ console.log(result.toolCalls);
 console.log(result.toolResults);
 console.log(result.files);
 console.log(result.sources);
+console.log(result.warnings);
 ```
 
 ```tsx filename="AI SDK 7"
@@ -1006,10 +1007,12 @@ console.log(result.finalStep.toolCalls); // final step only
 console.log(result.finalStep.toolResults); // final step only
 console.log(result.finalStep.files); // final step only
 console.log(result.finalStep.sources); // final step only
+console.log(result.finalStep.warnings); // final step only
 console.log(result.toolCalls); // all steps
 console.log(result.toolResults); // all steps
 console.log(result.files); // all steps
 console.log(result.sources); // all steps
+console.log(result.warnings); // all steps
 ```
 
 For `streamText`, await `finalStep` first when you need final-step-only values:
@@ -1027,10 +1030,12 @@ console.log(finalStep.toolCalls); // final step only
 console.log(finalStep.toolResults); // final step only
 console.log(finalStep.files); // final step only
 console.log(finalStep.sources); // final step only
+console.log(finalStep.warnings); // final step only
 console.log(await result.toolCalls); // all steps
 console.log(await result.toolResults); // all steps
 console.log(await result.files); // all steps
 console.log(await result.sources); // all steps
+console.log(await result.warnings); // all steps
 ```
 
 ### Final-Step Result Properties Moved to `finalStep`

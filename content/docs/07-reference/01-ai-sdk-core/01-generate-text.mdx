@@ -1993,7 +1993,7 @@ To see `generateText` in action, check out [these examples](#examples).
             {
               name: 'files',
               type: 'Array<GeneratedFile>',
-              description: 'Files that were generated in the final step.',
+              description: 'Files that were generated in all steps.',
               properties: [
                 {
                   type: 'GeneratedFile',
@@ -2056,7 +2056,7 @@ To see `generateText` in action, check out [these examples](#examples).
               name: 'warnings',
               type: 'CallWarning[] | undefined',
               description:
-                'Warnings from the model provider (e.g. unsupported settings).',
+                'Warnings from the model provider (e.g. unsupported settings) in all steps.',
             },
             {
               name: 'request',
@@ -2556,7 +2556,7 @@ To see `generateText` in action, check out [these examples](#examples).
       name: 'warnings',
       type: 'Warning[] | undefined',
       description:
-        'Warnings from the model provider (e.g. unsupported settings).',
+        'Warnings from the model provider (e.g. unsupported settings) in all steps.',
     },
     {
       name: 'responseMessages',

@@ -55,7 +55,7 @@ The result object of `generateText` contains the generated output and metadata:
 - `result.finishReason`: The reason the model finished generating text.
 - `result.rawFinishReason`: The raw reason why the generation finished (from the provider).
 - `result.usage`: The total usage across all steps (for multi-step generations).
-- `result.warnings`: Warnings from the model provider (e.g. unsupported settings).
+- `result.warnings`: Warnings from the model provider in all steps (e.g. unsupported settings).
 - `result.steps`: Details for all steps, useful for getting information about intermediate steps.
 - `result.finalStep`: Details for the final step.
 - `result.output`: The generated structured output using the `output` specification.
@@ -231,7 +231,7 @@ It also provides several promises that resolve when the stream is finished:
 - `result.rawFinishReason`: The raw reason why the generation finished (from the provider).
 - `result.usage`: The total usage across all steps (for multi-step generations).
 - `result.totalUsage`: Deprecated. Use `result.usage` instead.
-- `result.warnings`: Warnings from the model provider (e.g. unsupported settings).
+- `result.warnings`: Warnings from the model provider in all steps (e.g. unsupported settings).
 - `result.steps`: Details for all steps, useful for getting information about intermediate steps.
 
 ### `onError` callback

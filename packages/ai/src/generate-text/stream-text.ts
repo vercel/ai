@@ -1235,6 +1235,8 @@ class DefaultStreamTextResult<
 
           // call onFinish callback:
           const finalStep = recordedSteps[recordedSteps.length - 1];
+          const files = recordedSteps.flatMap(step => step.files);
+          const warnings = recordedSteps.flatMap(step => step.warnings ?? []);
 
           await notify({
             event: {
@@ -1251,7 +1253,7 @@ class DefaultStreamTextResult<
               text: finalStep.text,
               reasoningText: finalStep.reasoningText,
               reasoning: finalStep.reasoning,
-              files: finalStep.files,
+              files,
               sources: finalStep.sources,
               toolCalls: finalStep.toolCalls,
               staticToolCalls: finalStep.staticToolCalls,
@@ -1265,7 +1267,7 @@ class DefaultStreamTextResult<
                 ...initialResponseMessages,
                 ...recordedSteps.flatMap(step => step.response.messages),
               ],
-              warnings: finalStep.warnings,
+              warnings,
               providerMetadata: finalStep.providerMetadata,
               steps: recordedSteps,
             },
@@ -2081,7 +2083,7 @@ class DefaultStreamTextResult<
   }
 
   get warnings() {
-    return this.finalStep.then(step => step.warnings);
+    return this.steps.then(steps => steps.flatMap(step => step.warnings ?? []));
   }
 
   get providerMetadata() {

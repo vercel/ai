@@ -125,7 +125,7 @@ export interface GenerateTextResult<
   readonly totalUsage: LanguageModelUsage;
 
   /**
-   * Warnings from the model provider (e.g. unsupported settings)
+   * Warnings from the model provider (e.g. unsupported settings) in all steps.
    */
   readonly warnings: CallWarning[] | undefined;
 
