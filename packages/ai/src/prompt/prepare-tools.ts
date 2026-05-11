@@ -2,13 +2,23 @@ import type {
   LanguageModelV4FunctionTool,
   LanguageModelV4ProviderTool,
 } from '@ai-sdk/provider';
-import { asSchema, type ToolSet } from '@ai-sdk/provider-utils';
+import {
+  asSchema,
+  type InferToolSetContext,
+  type Sandbox,
+  type Tool,
+  type ToolSet,
+} from '@ai-sdk/provider-utils';
 import { isNonEmptyObject } from '../util/is-non-empty-object';
 
 export async function prepareTools<TOOLS extends ToolSet>({
   tools,
+  toolsContext = {} as InferToolSetContext<TOOLS>,
+  sandbox,
 }: {
   tools: TOOLS | undefined;
+  toolsContext?: InferToolSetContext<TOOLS>;
+  sandbox?: Sandbox;
 }): Promise<
   Array<LanguageModelV4FunctionTool | LanguageModelV4ProviderTool> | undefined
 > {
@@ -25,20 +35,29 @@ export async function prepareTools<TOOLS extends ToolSet>({
     switch (toolType) {
       case undefined:
       case 'dynamic':
-      case 'function':
+      case 'function': {
+        const description = resolveToolDescription({
+          tool,
+          toolName: name,
+          toolsContext,
+          sandbox,
+        });
+        const providerOptions = tool.providerOptions;
+        const inputExamples = tool.inputExamples;
+        const strict = tool.strict;
+
         languageModelTools.push({
           type: 'function' as const,
           name,
-          description: tool.description,
           inputSchema: await asSchema(tool.inputSchema).jsonSchema,
-          ...(tool.inputExamples != null
-            ? { inputExamples: tool.inputExamples }
-            : {}),
-          providerOptions: tool.providerOptions,
-          ...(tool.strict != null ? { strict: tool.strict } : {}),
+          ...(description != null ? { description } : {}),
+          ...(inputExamples != null ? { inputExamples } : {}),
+          ...(providerOptions != null ? { providerOptions } : {}),
+          ...(strict != null ? { strict } : {}),
         });
         break;
-      case 'provider':
+      }
+      case 'provider': {
         languageModelTools.push({
           type: 'provider' as const,
           name,
@@ -46,6 +65,7 @@ export async function prepareTools<TOOLS extends ToolSet>({
           args: tool.args,
         });
         break;
+      }
       default: {
         const exhaustiveCheck: never = toolType as never;
         throw new Error(`Unsupported tool type: ${exhaustiveCheck}`);
@@ -54,4 +74,25 @@ export async function prepareTools<TOOLS extends ToolSet>({
   }
 
   return languageModelTools;
+}
+
+function resolveToolDescription<TOOLS extends ToolSet>({
+  tool,
+  toolName,
+  toolsContext,
+  sandbox,
+}: {
+  tool: Tool;
+  toolName: string;
+  toolsContext: InferToolSetContext<TOOLS>;
+  sandbox?: Sandbox;
+}): string | undefined {
+  return tool.description === undefined
+    ? undefined
+    : typeof tool.description === 'string'
+      ? tool.description
+      : tool.description({
+          context: toolsContext[toolName as keyof InferToolSetContext<TOOLS>],
+          sandbox,
+        });
 }

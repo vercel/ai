@@ -345,9 +345,9 @@ To see `generateText` in action, check out [these examples](#examples).
             {
               name: 'description',
               isOptional: true,
-              type: 'string',
+              type: 'string | ((options: { context: CONTEXT; sandbox?: Sandbox }) => string)',
               description:
-                'Information about the purpose of the tool including details on how and when it can be used by the model.',
+                'Information about the purpose of the tool including details on how and when it can be used by the model. Provide a string for a fixed description, or a function to derive the description from the tool-specific context and optional sandbox before each model call.',
             },
             {
               name: 'inputSchema',
@@ -620,6 +620,18 @@ To see `generateText` in action, check out [these examples](#examples).
                       description: 'The model that is being used.',
                     },
                     {
+                      name: 'instructions',
+                      type: 'Instructions | undefined',
+                      description:
+                        'The instructions that will be sent to the model for the current step. If prepareStep returns an instructions override, those instructions carry forward to later steps.',
+                    },
+                    {
+                      name: 'initialInstructions',
+                      type: 'Instructions | undefined',
+                      description:
+                        'The initial instructions that were passed into generateText or streamText.',
+                    },
+                    {
                       name: 'messages',
                       type: 'Array<ModelMessage>',
                       description:
@@ -682,7 +694,7 @@ To see `generateText` in action, check out [these examples](#examples).
               type: 'Instructions',
               isOptional: true,
               description:
-                'Optionally override the instructions sent to the model for this step.',
+                'Optionally override the instructions sent to the model for this step. The override carries forward to later steps until prepareStep returns another instructions or system override.',
             },
             {
               name: 'messages',
@@ -740,7 +752,7 @@ To see `generateText` in action, check out [these examples](#examples).
       type: 'Sandbox',
       isOptional: true,
       description:
-        'Sandbox environment that is passed through to `prepareStep` and tool execution. Tools can access it from their execution options.',
+        'Sandbox environment that is passed through to `prepareStep`, tool description functions, and tool execution. Tools can access it from their description function options and execution options.',
     },
     {
       name: 'experimental_download',
@@ -1492,7 +1504,7 @@ To see `generateText` in action, check out [these examples](#examples).
             {
               name: 'sources',
               type: 'Array<Source>',
-              description: 'The sources that were used to generate the text.',
+              description: 'The sources that were used in this step.',
             },
             {
               name: 'toolCalls',
@@ -1885,7 +1897,7 @@ To see `generateText` in action, check out [these examples](#examples).
             {
               name: 'content',
               type: 'Array<ContentPart<TOOLS>>',
-              description: 'The content that was generated in the final step.',
+              description: 'The content that was generated in all steps.',
             },
             {
               name: 'providerMetadata',
@@ -1952,8 +1964,7 @@ To see `generateText` in action, check out [these examples](#examples).
             {
               name: 'sources',
               type: 'Array<Source>',
-              description:
-                'Sources that have been used as input to generate the response. For multi-step generation, the sources are accumulated from all steps.',
+              description: 'Sources that have been used in the final step.',
               properties: [
                 {
                   type: 'Source',
@@ -1994,7 +2005,7 @@ To see `generateText` in action, check out [these examples](#examples).
             {
               name: 'files',
               type: 'Array<GeneratedFile>',
-              description: 'Files that were generated in the final step.',
+              description: 'Files that were generated in all steps.',
               properties: [
                 {
                   type: 'GeneratedFile',
@@ -2057,7 +2068,7 @@ To see `generateText` in action, check out [these examples](#examples).
               name: 'warnings',
               type: 'CallWarning[] | undefined',
               description:
-                'Warnings from the model provider (e.g. unsupported settings).',
+                'Warnings from the model provider (e.g. unsupported settings) in all steps.',
             },
             {
               name: 'request',
@@ -2180,7 +2191,7 @@ To see `generateText` in action, check out [these examples](#examples).
     {
       name: 'content',
       type: 'Array<ContentPart<TOOLS>>',
-      description: 'The content that was generated in the last step.',
+      description: 'The content that was generated in all steps.',
     },
     {
       name: 'text',
@@ -2287,7 +2298,7 @@ To see `generateText` in action, check out [these examples](#examples).
     {
       name: 'files',
       type: 'Array<GeneratedFile>',
-      description: 'Files that were generated in the final step.',
+      description: 'Files that were generated in all steps.',
       properties: [
         {
           type: 'GeneratedFile',
@@ -2314,36 +2325,36 @@ To see `generateText` in action, check out [these examples](#examples).
     {
       name: 'toolCalls',
       type: 'ToolCallArray<TOOLS>',
-      description: 'The tool calls that were made in the last step.',
+      description: 'The tool calls that were made in all steps.',
     },
     {
       name: 'toolResults',
       type: 'ToolResultArray<TOOLS>',
-      description: 'The results of the tool calls from the last step.',
+      description: 'The results of the tool calls from all steps.',
     },
     {
       name: 'staticToolCalls',
       type: 'Array<StaticToolCall<TOOLS>>',
       description:
-        'The static tool calls that have been executed in the last step.',
+        'The static tool calls that have been executed in all steps.',
     },
     {
       name: 'dynamicToolCalls',
       type: 'Array<DynamicToolCall>',
       description:
-        'The dynamic tool calls that have been executed in the last step.',
+        'The dynamic tool calls that have been executed in all steps.',
     },
     {
       name: 'staticToolResults',
       type: 'Array<StaticToolResult<TOOLS>>',
       description:
-        'The static tool results that have been generated in the last step.',
+        'The static tool results that have been generated in all steps.',
     },
     {
       name: 'dynamicToolResults',
       type: 'Array<DynamicToolResult>',
       description:
-        'The dynamic tool results that have been generated in the last step.',
+        'The dynamic tool results that have been generated in all steps.',
     },
     {
       name: 'finishReason',
@@ -2557,7 +2568,7 @@ To see `generateText` in action, check out [these examples](#examples).
       name: 'warnings',
       type: 'Warning[] | undefined',
       description:
-        'Warnings from the model provider (e.g. unsupported settings).',
+        'Warnings from the model provider (e.g. unsupported settings) in all steps.',
     },
     {
       name: 'responseMessages',
@@ -2613,7 +2624,7 @@ To see `generateText` in action, check out [these examples](#examples).
             {
               name: 'content',
               type: 'Array<ContentPart<TOOLS>>',
-              description: 'The content that was generated in the last step.',
+              description: 'The content that was generated in the final step.',
             },
             {
               name: 'text',
@@ -2701,7 +2712,7 @@ To see `generateText` in action, check out [these examples](#examples).
             {
               name: 'sources',
               type: 'Array<Source>',
-              description: 'The sources that were used to generate the text.',
+              description: 'Sources that have been used in this step.',
               properties: [
                 {
                   type: 'Source',

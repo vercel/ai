@@ -47,6 +47,7 @@ import {
   pollGoogleInteractionUntilTerminal,
 } from './poll-google-interactions';
 import { prepareGoogleInteractionsTools } from './prepare-google-interactions-tools';
+import { streamGoogleInteractionEvents } from './stream-google-interactions';
 import { synthesizeGoogleInteractionsAgentStream } from './synthesize-google-interactions-agent-stream';
 
 export type GoogleInteractionsConfig = {
@@ -302,12 +303,14 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
      * Agent calls require `background: true` on the wire — otherwise the API
      * rejects them with `background=true is required for agent interactions.`
      * The server returns a non-terminal status (`in_progress`/`requires_action`)
-     * and the final outputs must be polled via `GET /interactions/{id}`. This
-     * is handled internally in `doGenerate` / `doStream` so the user-facing
-     * surface stays identical to model-id calls.
+     * and the final outputs are streamed via `GET /interactions/{id}?stream=true`
+     * (or polled via `GET /interactions/{id}`). This is handled internally in
+     * `doGenerate` / `doStream` so the user-facing surface stays identical to
+     * model-id calls.
      *
      * Model-id calls retain their original synchronous behavior — no
-     * `background` field is sent.
+     * `background` field is sent. (No documented model accepts `background:
+     * true` today; revisit when one does.)
      */
     const args: GoogleInteractionsRequestBody = pruneUndefined({
       ...(isAgent ? { agent: this.agent } : { model: this.modelId }),
@@ -484,14 +487,13 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
 
     /*
      * Agent calls require `background: true`, which is incompatible with
-     * `stream: true` on POST. We drive the agent flow exactly like
-     * `doGenerate` (POST background -> poll GET) and synthesize a stream
-     * from the final polled outputs. The user-facing stream surface stays
-     * identical -- text-start / text-delta / text-end / finish parts are
-     * emitted in the same order as a true SSE response.
+     * `stream: true` on POST. Drive these via POST background -> GET stream
+     * (with terminal-status short-circuit). The user-facing stream surface
+     * stays identical -- text-start / text-delta / text-end / finish parts
+     * are emitted in the same order as a true SSE response.
      */
     if (isAgent) {
-      return this.doStreamAgent({
+      return this.doStreamBackground({
         args,
         warnings,
         url,
@@ -539,26 +541,24 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
   }
 
   /*
-   * Drive the streaming surface for agent calls. Agent calls require
+   * Drive the streaming surface for agent calls. Agents require
    * `background: true`, which is incompatible with `stream: true` on POST.
    *
-   * In principle the API also exposes `GET /interactions/{id}?stream=true`
-   * to replay events as the agent runs. In practice the connection is
-   * idle for long stretches while the agent thinks (deep-research can run
-   * for a minute or more between SSE events), and undici's default body
-   * timeout terminates the request mid-flight with `UND_ERR_BODY_TIMEOUT`.
-   * Tuning the timeout per-call would require the caller to thread an
-   * `undici.Agent` through `fetch`, which contradicts the AI SDK's
-   * pluggable-fetch contract.
+   * Approach:
+   *   1. POST `/interactions` with `background: true`. The response includes
+   *      the interaction id and an initial (usually non-terminal) status.
+   *   2. If the POST status is already terminal (rare), synthesize a stream
+   *      from the polled outputs and we're done.
+   *   3. Otherwise open `GET /interactions/{id}?stream=true` and pipe the
+   *      SSE events through `buildGoogleInteractionsStreamTransform` so the
+   *      consumer receives text deltas / thinking summaries / tool events as
+   *      they happen instead of all at once at the end.
    *
-   * We therefore drive `doStream` exactly like `doGenerate` for agents:
-   * POST with `background: true`, poll `GET /interactions/{id}` until
-   * terminal, then synthesize the stream from the final outputs. The
-   * user-facing surface stays identical -- text-start / text-delta /
-   * text-end / finish parts arrive in the same order as a true SSE
-   * response, just buffered until the agent completes.
+   * The SSE connection can drop while the agent idles between events
+   * (`UND_ERR_BODY_TIMEOUT`); `streamGoogleInteractionEvents` handles the
+   * reconnect-with-`last_event_id` loop transparently.
    */
-  private async doStreamAgent({
+  private async doStreamBackground({
     args,
     warnings,
     url,
@@ -585,38 +585,64 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
       fetch: this.config.fetch,
     });
 
-    let { responseHeaders: postHeaders, value: postResponse } = postResult;
+    const { responseHeaders: postHeaders, value: postResponse } = postResult;
     const interactionId = postResponse.id;
 
     if (interactionId == null || interactionId.length === 0) {
       throw new Error(
-        'google.interactions: agent POST response did not include an interaction id; cannot poll for the agent result.',
+        'google.interactions: background POST response did not include an interaction id; cannot stream the result.',
       );
     }
 
-    if (!isTerminalStatus(postResponse.status)) {
-      const polled = await pollGoogleInteractionUntilTerminal({
-        baseURL: this.config.baseURL,
-        interactionId,
-        headers: mergedHeaders,
-        fetch: this.config.fetch,
-        abortSignal: options.abortSignal,
-        timeoutMs: pollingTimeoutMs,
+    const headerServiceTier = postHeaders?.['x-gemini-service-tier'];
+
+    /*
+     * If the POST already returned a terminal status (e.g. cached, immediate
+     * failure, or `incomplete`), there is nothing to stream from the GET --
+     * synthesize directly from the response so the caller still gets a
+     * complete stream.
+     */
+    if (isTerminalStatus(postResponse.status)) {
+      const synthesized = synthesizeGoogleInteractionsAgentStream({
+        response: postResponse,
+        warnings,
+        generateId: this.config.generateId ?? defaultGenerateId,
+        includeRawChunks: options.includeRawChunks,
+        headerServiceTier,
       });
-      postResponse = polled.response;
-      postHeaders = polled.responseHeaders ?? postHeaders;
+      return {
+        stream: synthesized,
+        request: { body: args },
+        response: { headers: postHeaders },
+      };
     }
 
-    const stream = synthesizeGoogleInteractionsAgentStream({
-      response: postResponse,
+    /*
+     * `pollingTimeoutMs` is unused on the live-SSE path -- there's no poll
+     * loop to time out -- but we surface it as the per-attempt timeout for
+     * the AbortSignal-driven cancel that the caller already controls. Future
+     * iterations may use it as a backstop if the SSE+resume loop spins
+     * indefinitely.
+     */
+    void pollingTimeoutMs;
+
+    const events = streamGoogleInteractionEvents({
+      baseURL: this.config.baseURL,
+      interactionId,
+      headers: mergedHeaders,
+      fetch: this.config.fetch,
+      abortSignal: options.abortSignal,
+    });
+
+    const transform = buildGoogleInteractionsStreamTransform({
       warnings,
       generateId: this.config.generateId ?? defaultGenerateId,
       includeRawChunks: options.includeRawChunks,
-      headerServiceTier: postHeaders?.['x-gemini-service-tier'],
+      serviceTier: headerServiceTier,
     });
 
     return {
-      stream,
+      stream: events.pipeThrough(transform),
       request: { body: args },
       response: { headers: postHeaders },
     };
