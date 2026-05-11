@@ -1,5 +1,12 @@
 # @ai-sdk/open-responses
 
+## 2.0.0-canary.41
+
+### Patch Changes
+
+- Updated dependencies [ca446f8]
+  - @ai-sdk/provider-utils@5.0.0-canary.38
+
 ## 2.0.0-canary.40
 
 ### Patch Changes

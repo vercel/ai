@@ -1,5 +1,12 @@
 # @ai-sdk/lmnt
 
+## 3.0.0-canary.39
+
+### Patch Changes
+
+- Updated dependencies [ca446f8]
+  - @ai-sdk/provider-utils@5.0.0-canary.38
+
 ## 3.0.0-canary.38
 
 ### Patch Changes
