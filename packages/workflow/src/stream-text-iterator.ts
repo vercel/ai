@@ -341,12 +341,6 @@ export async function* streamTextIterator({
           },
         );
 
-      // doStreamStep hard-codes stepNumber to 0; the iterator owns the actual
-      // index across multi-step runs. Without this, telemetry integrations
-      // that key per-step state on stepNumber (e.g. devtools) collapse all
-      // steps onto step 0.
-      (step as { stepNumber: number }).stepNumber = stepNumber;
-
       await telemetryDispatcher.onLanguageModelCallEnd?.({
         callId: step.callId,
         provider: step.model?.provider ?? 'unknown',
