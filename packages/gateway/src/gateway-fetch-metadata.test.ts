@@ -254,6 +254,51 @@ describe('GatewayFetchMetadata', () => {
       }
     });
 
+    it('should accept non-language pricing metadata from newer gateway responses', async () => {
+      server.urls['https://api.example.com/*'].response = {
+        type: 'json-value',
+        body: {
+          models: [
+            {
+              id: 'video-model',
+              name: 'Video Model',
+              modelType: 'video',
+              tags: ['video'],
+              input_tiers: [],
+              output_tiers: [],
+              input_cache_read_tiers: [],
+              input_cache_write_tiers: [],
+              video_duration_pricing: {},
+              pricing: {
+                image: '0.00001',
+              },
+              specification: {
+                specificationVersion: 'v4' as const,
+                provider: 'test-provider',
+                modelId: 'video-model',
+              },
+            },
+          ],
+        },
+      };
+
+      const metadata = createBasicMetadataFetcher();
+      const result = await metadata.getAvailableModels();
+
+      expect(result.models).toHaveLength(1);
+      expect(result.models[0]).toMatchObject({
+        id: 'video-model',
+        name: 'Video Model',
+        modelType: 'video',
+        specification: {
+          specificationVersion: 'v4',
+          provider: 'test-provider',
+          modelId: 'video-model',
+        },
+      });
+      expect(result.models[0].pricing).toBeUndefined();
+    });
+
     it('should keep known models and filter unknown from mixed response', async () => {
       server.urls['https://api.example.com/*'].response = {
         type: 'json-value',

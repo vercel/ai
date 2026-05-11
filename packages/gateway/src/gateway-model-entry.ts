@@ -34,11 +34,11 @@ export interface GatewayLanguageModelEntry {
     /**
      * Cost per input token in USD.
      */
-    input: string;
+    input?: string;
     /**
      * Cost per output token in USD.
      */
-    output: string;
+    output?: string;
     /**
      * Cost per cached input token in USD.
      * Only present for providers/models that support prompt caching.
