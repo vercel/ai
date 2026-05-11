@@ -61,9 +61,9 @@ export const weatherTool = tool({
             {
               name: 'description',
               isOptional: true,
-              type: 'string',
+              type: 'string | ((options: { context: CONTEXT; sandbox?: Sandbox }) => string)',
               description:
-                'Information about the purpose of the tool including details on how and when it can be used by the model.',
+                'Information about the purpose of the tool including details on how and when it can be used by the model. Provide a string for a fixed description, or a function to derive the description from the tool-specific context and optional sandbox before each model call.',
             },
             {
               name: 'title',

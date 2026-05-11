@@ -1,5 +1,13 @@
 # @ai-sdk/moonshotai
 
+## 3.0.0-canary.45
+
+### Patch Changes
+
+- Updated dependencies [ca446f8]
+  - @ai-sdk/provider-utils@5.0.0-canary.38
+  - @ai-sdk/openai-compatible@3.0.0-canary.45
+
 ## 3.0.0-canary.44
 
 ### Patch Changes

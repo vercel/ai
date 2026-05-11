@@ -16,14 +16,14 @@ should affect execution.
 
 ## Context Types
 
-| Concept                           | Where you define it                                                | Where you read it                                                   | Use it for                                                    |
-| --------------------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------------- | ------------------------------------------------------------- |
-| `runtimeContext`                  | `generateText`, `streamText`, or `ToolLoopAgent` calls             | `prepareStep`, lifecycle callbacks, step results, and telemetry     | Shared generation or agent state                              |
-| `toolsContext`                    | `generateText`, `streamText`, or `ToolLoopAgent` calls             | `prepareStep`, approval callbacks, and tool context resolution      | A map of per-tool context values keyed by tool name           |
-| tool `context`                    | Each tool's `toolsContext` entry, validated by its `contextSchema` | Tool `execute`, `needsApproval`, and tool input lifecycle callbacks | Values needed by one tool                                     |
-| `toolContext`                     | Derived from one tool's context                                    | Tool approval callbacks and tool execution events                   | The event/callback name for one tool's context                |
-| `telemetry.includeRuntimeContext` | The generation or agent call                                       | Telemetry filtering                                                 | Top-level `runtimeContext` properties to include in telemetry |
-| `telemetry.includeToolsContext`   | The generation or agent call                                       | Telemetry filtering                                                 | Top-level tool context properties to include in telemetry     |
+| Concept                           | Where you define it                                                | Where you read it                                                                               | Use it for                                                    |
+| --------------------------------- | ------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| `runtimeContext`                  | `generateText`, `streamText`, or `ToolLoopAgent` calls             | `prepareStep`, lifecycle callbacks, step results, and telemetry                                 | Shared generation or agent state                              |
+| `toolsContext`                    | `generateText`, `streamText`, or `ToolLoopAgent` calls             | `prepareStep`, approval callbacks, tool context resolution, and tool description functions      | A map of per-tool context values keyed by tool name           |
+| tool `context`                    | Each tool's `toolsContext` entry, validated by its `contextSchema` | Tool description functions, tool `execute`, `needsApproval`, and tool input lifecycle callbacks | Values needed by one tool                                     |
+| `toolContext`                     | Derived from one tool's context                                    | Tool approval callbacks and tool execution events                                               | The event/callback name for one tool's context                |
+| `telemetry.includeRuntimeContext` | The generation or agent call                                       | Telemetry filtering                                                                             | Top-level `runtimeContext` properties to include in telemetry |
+| `telemetry.includeToolsContext`   | The generation or agent call                                       | Telemetry filtering                                                                             | Top-level tool context properties to include in telemetry     |
 
 In agents, `runtimeContext` is the agent's shared runtime state. It flows
 through the loop and can be read or updated in `prepareStep` between model
@@ -115,7 +115,9 @@ const result = await generateText({
 
 When at least one tool declares `contextSchema`, `toolsContext` is required for
 the tools that need context. A tool receives only its own context, not the full
-`toolsContext` map.
+`toolsContext` map. Tool description functions receive the same typed `context`
+before each model call, so descriptions can change with the current tool
+context.
 
 Treat tool context as immutable inside tools. If you need to change tool context
 between steps, inspect the previous step in `prepareStep` and return an updated
@@ -203,6 +205,7 @@ properties are sent.
 | Location                          | `runtimeContext`                              | `toolsContext`                              | Tool `context` / `toolContext`                           |
 | --------------------------------- | --------------------------------------------- | ------------------------------------------- | -------------------------------------------------------- |
 | `prepareStep`                     | Read and update                               | Read and update                             | Not directly                                             |
+| Tool description functions        | Not passed directly                           | Not passed directly                         | Read one tool's validated `context`                      |
 | Tool `execute`                    | Not passed directly                           | Not passed directly                         | Read one tool's validated `context`                      |
 | Tool approval                     | Read in generic and per-tool callbacks        | Read in generic callbacks                   | Read as `toolContext` in per-tool callbacks              |
 | Tool execution events             | Not included                                  | Not included                                | Read as `toolContext`                                    |

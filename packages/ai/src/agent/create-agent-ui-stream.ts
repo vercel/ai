@@ -2,6 +2,7 @@ import type {
   Arrayable,
   Context,
   Sandbox,
+  Tool,
   ToolSet,
 } from '@ai-sdk/provider-utils';
 import type { GenerateTextOnStepFinishCallback } from '../generate-text/generate-text-events';
@@ -11,7 +12,11 @@ import type { UIMessageStreamOptions } from '../generate-text/stream-text-result
 import type { TimeoutConfiguration } from '../prompt/request-options';
 import type { InferUIMessageChunk } from '../ui-message-stream';
 import { convertToModelMessages } from '../ui/convert-to-model-messages';
-import type { InferUITools, UIMessage } from '../ui/ui-messages';
+import type {
+  InferUIMessageTools,
+  InferUITools,
+  UIMessage,
+} from '../ui/ui-messages';
 import { validateUIMessages } from '../ui/validate-ui-messages';
 import type { AsyncIterableStream } from '../util/async-iterable-stream';
 import type { Agent } from './agent';
@@ -67,7 +72,21 @@ export async function createAgentUIStream<
     UIMessage<MESSAGE_METADATA, never, InferUITools<TOOLS>>
   >({
     messages: uiMessages,
-    tools: agent.tools,
+    // tools are compatible; the casting is required because the context param is
+    // not available in ui messages
+    tools: agent.tools as unknown as {
+      [NAME in keyof InferUIMessageTools<
+        UIMessage<MESSAGE_METADATA, never, InferUITools<TOOLS>>
+      > &
+        string]?: Tool<
+        InferUIMessageTools<
+          UIMessage<MESSAGE_METADATA, never, InferUITools<TOOLS>>
+        >[NAME]['input'],
+        InferUIMessageTools<
+          UIMessage<MESSAGE_METADATA, never, InferUITools<TOOLS>>
+        >[NAME]['output']
+      >;
+    },
   });
 
   const modelMessages = await convertToModelMessages(validatedMessages, {

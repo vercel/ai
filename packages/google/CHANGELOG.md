@@ -1,5 +1,13 @@
 # @ai-sdk/google
 
+## 4.0.0-canary.59
+
+### Patch Changes
+
+- db394ab: feat(provider/google): support cancelling long-running Interactions API agents via AbortSignal, and process their intermittent stream
+- Updated dependencies [ca446f8]
+  - @ai-sdk/provider-utils@5.0.0-canary.38
+
 ## 4.0.0-canary.58
 
 ### Patch Changes
@@ -786,13 +794,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel('my-model-id');
+  model.textEmbeddingModel("my-model-id");
   ```
 
   After
 
   ```ts
-  model.embeddingModel('my-model-id');
+  model.embeddingModel("my-model-id");
   ```
 
 - 2625a04: feat(openai); update spec for mcp approval
@@ -1101,13 +1109,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel('my-model-id');
+  model.textEmbeddingModel("my-model-id");
   ```
 
   After
 
   ```ts
-  model.embeddingModel('my-model-id');
+  model.embeddingModel("my-model-id");
   ```
 
 - Updated dependencies [8d9e8ad]
@@ -1684,6 +1692,7 @@
 - 779d916: feat: add provider option schemas for vertex imagegen and google genai
 - 581a9be: fix (provider/google): prevent error when thinking signature is used
 - 2e06f14: feat (provider/google): Change to provider defined tools
+
   - Change the google search tool to be a provider defined tool
   - Added new URL context tool as a provider defined tool
 
