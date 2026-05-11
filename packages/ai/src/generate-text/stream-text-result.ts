@@ -163,42 +163,42 @@ export interface StreamTextResult<
   readonly sources: PromiseLike<Source[]>;
 
   /**
-   * The tool calls that have been executed in the last step.
+   * The tool calls that have been executed in all steps.
    *
    * Automatically consumes the stream.
    */
   readonly toolCalls: PromiseLike<TypedToolCall<TOOLS>[]>;
 
   /**
-   * The static tool calls that have been executed in the last step.
+   * The static tool calls that have been executed in all steps.
    *
    * Automatically consumes the stream.
    */
   readonly staticToolCalls: PromiseLike<StaticToolCall<TOOLS>[]>;
 
   /**
-   * The dynamic tool calls that have been executed in the last step.
+   * The dynamic tool calls that have been executed in all steps.
    *
    * Automatically consumes the stream.
    */
   readonly dynamicToolCalls: PromiseLike<DynamicToolCall[]>;
 
   /**
-   * The static tool results that have been generated in the last step.
+   * The static tool results that have been generated in all steps.
    *
    * Automatically consumes the stream.
    */
   readonly staticToolResults: PromiseLike<StaticToolResult<TOOLS>[]>;
 
   /**
-   * The dynamic tool results that have been generated in the last step.
+   * The dynamic tool results that have been generated in all steps.
    *
    * Automatically consumes the stream.
    */
   readonly dynamicToolResults: PromiseLike<DynamicToolResult[]>;
 
   /**
-   * The tool results that have been generated in the last step.
+   * The tool results that have been generated in all steps.
    *
    * Automatically consumes the stream.
    */

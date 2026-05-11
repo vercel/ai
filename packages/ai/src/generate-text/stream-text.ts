@@ -2111,27 +2111,35 @@ class DefaultStreamTextResult<
   }
 
   get toolCalls() {
-    return this.finalStep.then(step => step.toolCalls);
+    return this.steps.then(steps => steps.flatMap(step => step.toolCalls));
   }
 
   get staticToolCalls() {
-    return this.finalStep.then(step => step.staticToolCalls);
+    return this.steps.then(steps =>
+      steps.flatMap(step => step.staticToolCalls),
+    );
   }
 
   get dynamicToolCalls() {
-    return this.finalStep.then(step => step.dynamicToolCalls);
+    return this.steps.then(steps =>
+      steps.flatMap(step => step.dynamicToolCalls),
+    );
   }
 
   get toolResults() {
-    return this.finalStep.then(step => step.toolResults);
+    return this.steps.then(steps => steps.flatMap(step => step.toolResults));
   }
 
   get staticToolResults() {
-    return this.finalStep.then(step => step.staticToolResults);
+    return this.steps.then(steps =>
+      steps.flatMap(step => step.staticToolResults),
+    );
   }
 
   get dynamicToolResults() {
-    return this.finalStep.then(step => step.dynamicToolResults);
+    return this.steps.then(steps =>
+      steps.flatMap(step => step.dynamicToolResults),
+    );
   }
 
   get usage() {

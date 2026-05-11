@@ -1276,27 +1276,27 @@ class DefaultGenerateTextResult<
   }
 
   get toolCalls() {
-    return this.finalStep.toolCalls;
+    return this.steps.flatMap(step => step.toolCalls);
   }
 
   get staticToolCalls() {
-    return this.finalStep.staticToolCalls;
+    return this.steps.flatMap(step => step.staticToolCalls);
   }
 
   get dynamicToolCalls() {
-    return this.finalStep.dynamicToolCalls;
+    return this.steps.flatMap(step => step.dynamicToolCalls);
   }
 
   get toolResults() {
-    return this.finalStep.toolResults;
+    return this.steps.flatMap(step => step.toolResults);
   }
 
   get staticToolResults() {
-    return this.finalStep.staticToolResults;
+    return this.steps.flatMap(step => step.staticToolResults);
   }
 
   get dynamicToolResults() {
-    return this.finalStep.dynamicToolResults;
+    return this.steps.flatMap(step => step.dynamicToolResults);
   }
 
   get sources() {

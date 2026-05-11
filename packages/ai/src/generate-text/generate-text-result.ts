@@ -71,32 +71,32 @@ export interface GenerateTextResult<
   readonly sources: Array<Source>;
 
   /**
-   * The tool calls that were made in the last step.
+   * The tool calls that were made in all steps.
    */
   readonly toolCalls: Array<TypedToolCall<TOOLS>>;
 
   /**
-   * The static tool calls that were made in the last step.
+   * The static tool calls that were made in all steps.
    */
   readonly staticToolCalls: Array<StaticToolCall<TOOLS>>;
 
   /**
-   * The dynamic tool calls that were made in the last step.
+   * The dynamic tool calls that were made in all steps.
    */
   readonly dynamicToolCalls: Array<DynamicToolCall>;
 
   /**
-   * The results of the tool calls from the last step.
+   * The results of the tool calls from all steps.
    */
   readonly toolResults: Array<TypedToolResult<TOOLS>>;
 
   /**
-   * The static tool results that were made in the last step.
+   * The static tool results that were made in all steps.
    */
   readonly staticToolResults: Array<StaticToolResult<TOOLS>>;
 
   /**
-   * The dynamic tool results that were made in the last step.
+   * The dynamic tool results that were made in all steps.
    */
   readonly dynamicToolResults: Array<DynamicToolResult>;
 

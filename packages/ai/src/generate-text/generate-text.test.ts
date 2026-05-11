@@ -4018,12 +4018,24 @@ describe('generateText', () => {
         assert.deepStrictEqual(result.text, 'Hello, world!');
       });
 
-      it('result.toolCalls should return empty tool calls from last step', async () => {
-        assert.deepStrictEqual(result.toolCalls, []);
+      it('result.toolCalls should contain tool calls from all steps', async () => {
+        expect(result.toolCalls.map(toolCall => toolCall.toolCallId)).toEqual([
+          'call-1',
+        ]);
       });
 
-      it('result.toolResults should return empty tool results from last step', async () => {
-        assert.deepStrictEqual(result.toolResults, []);
+      it('result.finalStep.toolCalls should return empty tool calls from last step', async () => {
+        assert.deepStrictEqual(result.finalStep.toolCalls, []);
+      });
+
+      it('result.toolResults should contain tool results from all steps', async () => {
+        expect(
+          result.toolResults.map(toolResult => toolResult.toolCallId),
+        ).toEqual(['call-1']);
+      });
+
+      it('result.finalStep.toolResults should return empty tool results from last step', async () => {
+        assert.deepStrictEqual(result.finalStep.toolResults, []);
       });
 
       it('result.responseMessages should contain response messages from all steps', () => {
@@ -4740,12 +4752,24 @@ describe('generateText', () => {
         expect(result.text).toStrictEqual('Hello, world!');
       });
 
-      it('result.toolCalls should return empty tool calls from last step', async () => {
-        expect(result.toolCalls).toStrictEqual([]);
+      it('result.toolCalls should contain tool calls from all steps', async () => {
+        expect(result.toolCalls.map(toolCall => toolCall.toolCallId)).toEqual([
+          'call-1',
+        ]);
       });
 
-      it('result.toolResults should return empty tool results from last step', async () => {
-        expect(result.toolResults).toStrictEqual([]);
+      it('result.finalStep.toolCalls should return empty tool calls from last step', async () => {
+        expect(result.finalStep.toolCalls).toStrictEqual([]);
+      });
+
+      it('result.toolResults should contain tool results from all steps', async () => {
+        expect(
+          result.toolResults.map(toolResult => toolResult.toolCallId),
+        ).toEqual(['call-1']);
+      });
+
+      it('result.finalStep.toolResults should return empty tool results from last step', async () => {
+        expect(result.finalStep.toolResults).toStrictEqual([]);
       });
 
       it('result.responseMessages should contain response messages from all steps', () => {
@@ -7567,13 +7591,46 @@ describe('generateText', () => {
       });
 
       describe('result.toolCalls and result.toolResults', () => {
-        it('should return empty toolCalls from final step (no tool calls in step 5)', () => {
-          expect(result.toolCalls).toMatchInlineSnapshot(`[]`);
+        it('should return toolCalls from all steps', () => {
+          expect(result.toolCalls.map(toolCall => toolCall.toolCallId))
+            .toMatchInlineSnapshot(`
+              [
+                "srvtoolu_01CberhXc9TgYXrCZU8bQoks",
+                "toolu_01PMcE1JBKCeLjn83cgUCvR5",
+                "toolu_01MZf5QJ1EQyd2yGyeLzBxAS",
+                "toolu_01UvVQ2xwA6preZppeajCkYK",
+                "toolu_01BghspNownQFtRgv8jVicr3",
+                "toolu_01T7Upuuv8C71nq7DZ9ZPNQW",
+                "toolu_016Da1tDet9Bf7dAdYTkF5Ar",
+                "toolu_01DiUBRds64sNajVPTZRrDSM",
+                "toolu_01XQa3r3y1Fe8rnkGSncq626",
+              ]
+            `);
         });
 
-        it('should return empty toolResults from final step (deferred result only)', () => {
-          // The final step has a deferred tool result but no client-executed tool results
-          expect(result.toolResults).toMatchInlineSnapshot(`
+        it('should return empty finalStep.toolCalls when final step has no tool calls', () => {
+          expect(result.finalStep.toolCalls).toMatchInlineSnapshot(`[]`);
+        });
+
+        it('should return toolResults from all steps', () => {
+          expect(result.toolResults.map(toolResult => toolResult.toolCallId))
+            .toMatchInlineSnapshot(`
+              [
+                "toolu_01PMcE1JBKCeLjn83cgUCvR5",
+                "toolu_01MZf5QJ1EQyd2yGyeLzBxAS",
+                "toolu_01UvVQ2xwA6preZppeajCkYK",
+                "toolu_01BghspNownQFtRgv8jVicr3",
+                "toolu_01T7Upuuv8C71nq7DZ9ZPNQW",
+                "toolu_016Da1tDet9Bf7dAdYTkF5Ar",
+                "toolu_01DiUBRds64sNajVPTZRrDSM",
+                "toolu_01XQa3r3y1Fe8rnkGSncq626",
+                "srvtoolu_01CberhXc9TgYXrCZU8bQoks",
+              ]
+            `);
+        });
+
+        it('should return final step toolResults from finalStep', () => {
+          expect(result.finalStep.toolResults).toMatchInlineSnapshot(`
             [
               {
                 "dynamic": undefined,

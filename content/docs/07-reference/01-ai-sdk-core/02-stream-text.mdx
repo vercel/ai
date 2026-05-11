@@ -1380,8 +1380,7 @@ To see `streamText` in action, check out [these examples](#examples).
             {
               name: 'sources',
               type: 'Array<Source>',
-              description:
-                'Sources that have been used in the final step.',
+              description: 'Sources that have been used in the final step.',
               properties: [
                 {
                   type: 'Source',
@@ -1723,8 +1722,7 @@ To see `streamText` in action, check out [these examples](#examples).
             {
               name: 'sources',
               type: 'Array<Source>',
-              description:
-                'Sources that have been used in the final step.',
+              description: 'Sources that have been used in the final step.',
               properties: [
                 {
                   type: 'Source',
@@ -2616,33 +2614,33 @@ To see `streamText` in action, check out [these examples](#examples).
       name: 'toolCalls',
       type: 'Promise<TypedToolCall<TOOLS>[]>',
       description:
-        'The tool calls that have been executed. Automatically consumes the stream.',
+        'The tool calls that have been executed in all steps. Automatically consumes the stream.',
     },
     {
       name: 'toolResults',
       type: 'Promise<TypedToolResult<TOOLS>[]>',
       description:
-        'The tool results that have been generated. Resolved when the all tool executions are finished.',
+        'The tool results that have been generated in all steps. Resolved when all tool executions are finished.',
     },
     {
       name: 'staticToolCalls',
       type: 'PromiseLike<Array<StaticToolCall<TOOLS>>>',
-      description: 'The static tool calls that have been executed in the last step.',
+      description: 'The static tool calls that have been executed in all steps.',
     },
     {
       name: 'dynamicToolCalls',
       type: 'PromiseLike<Array<DynamicToolCall>>',
-      description: 'The dynamic tool calls that have been executed in the last step.',
+      description: 'The dynamic tool calls that have been executed in all steps.',
     },
     {
       name: 'staticToolResults',
       type: 'PromiseLike<Array<StaticToolResult<TOOLS>>>',
-      description: 'The static tool results that have been generated in the last step.',
+      description: 'The static tool results that have been generated in all steps.',
     },
     {
       name: 'dynamicToolResults',
       type: 'PromiseLike<Array<DynamicToolResult>>',
-      description: 'The dynamic tool results that have been generated in the last step.',
+      description: 'The dynamic tool results that have been generated in all steps.',
     },
     {
       name: 'request',

@@ -1952,8 +1952,7 @@ To see `generateText` in action, check out [these examples](#examples).
             {
               name: 'sources',
               type: 'Array<Source>',
-              description:
-                'Sources that have been used in the final step.',
+              description: 'Sources that have been used in the final step.',
               properties: [
                 {
                   type: 'Source',
@@ -2314,36 +2313,36 @@ To see `generateText` in action, check out [these examples](#examples).
     {
       name: 'toolCalls',
       type: 'ToolCallArray<TOOLS>',
-      description: 'The tool calls that were made in the last step.',
+      description: 'The tool calls that were made in all steps.',
     },
     {
       name: 'toolResults',
       type: 'ToolResultArray<TOOLS>',
-      description: 'The results of the tool calls from the last step.',
+      description: 'The results of the tool calls from all steps.',
     },
     {
       name: 'staticToolCalls',
       type: 'Array<StaticToolCall<TOOLS>>',
       description:
-        'The static tool calls that have been executed in the last step.',
+        'The static tool calls that have been executed in all steps.',
     },
     {
       name: 'dynamicToolCalls',
       type: 'Array<DynamicToolCall>',
       description:
-        'The dynamic tool calls that have been executed in the last step.',
+        'The dynamic tool calls that have been executed in all steps.',
     },
     {
       name: 'staticToolResults',
       type: 'Array<StaticToolResult<TOOLS>>',
       description:
-        'The static tool results that have been generated in the last step.',
+        'The static tool results that have been generated in all steps.',
     },
     {
       name: 'dynamicToolResults',
       type: 'Array<DynamicToolResult>',
       description:
-        'The dynamic tool results that have been generated in the last step.',
+        'The dynamic tool results that have been generated in all steps.',
     },
     {
       name: 'finishReason',
