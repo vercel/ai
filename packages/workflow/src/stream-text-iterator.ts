@@ -14,6 +14,7 @@ import {
   type ToolChoice,
   type ToolSet,
 } from 'ai';
+import { createRestrictedTelemetryDispatcher } from 'ai/internal';
 import {
   doStreamStep,
   type ModelStopCondition,
@@ -85,7 +86,7 @@ export async function* streamTextIterator({
   toolChoice?: ToolChoice<ToolSet>;
   runtimeContext?: Context;
   toolsContext?: Record<string, Context | undefined>;
-  telemetry?: TelemetryOptions;
+  telemetry?: TelemetryOptions<Context, ToolSet>;
   includeRawChunks?: boolean;
   repairToolCall?: ToolCallRepairFunction<ToolSet>;
   responseFormat?: LanguageModelV4CallOptions['responseFormat'];
@@ -109,6 +110,20 @@ export async function* streamTextIterator({
   let stepNumber = 0;
   let lastStep: StepResult<any, any> | undefined;
   let lastStepWasToolCalls = false;
+
+  // TODO(#12164): replace this AI-core telemetry bridge with a
+  // WorkflowAgent-specific typed dispatcher. `streamTextIterator` widens
+  // tools/runtime context and emits Workflow-shaped events that are only
+  // approximately compatible with generateText telemetry event types.
+  const telemetryDispatcher = createRestrictedTelemetryDispatcher<
+    any,
+    any,
+    any
+  >({
+    telemetry: telemetry as any,
+    includeRuntimeContext: telemetry?.includeRuntimeContext,
+    includeToolsContext: telemetry?.includeToolsContext,
+  }) as any;
 
   while (!done) {
     // Check for abort signal
@@ -252,6 +267,24 @@ export async function* streamTextIterator({
       });
     }
 
+    const stepStartModelInfo = getModelInfo(currentModel);
+    await telemetryDispatcher.onStepStart?.({
+      callId: 'workflow-agent',
+      provider: stepStartModelInfo.provider,
+      modelId: stepStartModelInfo.modelId,
+      stepNumber,
+      system: undefined,
+      messages: conversationPrompt as unknown as ModelMessage[],
+      tools,
+      toolChoice: currentToolChoice,
+      activeTools: currentActiveTools as never,
+      steps: steps.map(normalizeStepForTelemetry),
+      providerOptions: currentGenerationSettings.providerOptions,
+      output: undefined,
+      runtimeContext: currentRuntimeContext,
+      toolsContext: currentToolsContext as never,
+    });
+
     try {
       // Filter tools if activeTools is specified
       const effectiveTools =
@@ -266,8 +299,31 @@ export async function* streamTextIterator({
       // contain functions that can't be serialized by the workflow runtime.
       // Tools are reconstructed with Ajv validation inside doStreamStep.
       const serializedTools = serializeToolSet(effectiveTools);
+      const modelCallInfo = getModelInfo(currentModel);
 
-      const { toolCalls, finish, step, providerExecutedToolResults } =
+      await telemetryDispatcher.onLanguageModelCallStart?.({
+        callId: 'workflow-agent',
+        provider: modelCallInfo.provider,
+        modelId: modelCallInfo.modelId,
+        system: undefined,
+        messages: conversationPrompt as unknown as ModelMessage[],
+        tools:
+          serializedTools == null
+            ? undefined
+            : Object.values(serializedTools).map(tool => ({ ...tool })),
+        maxOutputTokens: currentGenerationSettings.maxOutputTokens,
+        temperature: currentGenerationSettings.temperature,
+        topP: currentGenerationSettings.topP,
+        topK: currentGenerationSettings.topK,
+        presencePenalty: currentGenerationSettings.presencePenalty,
+        frequencyPenalty: currentGenerationSettings.frequencyPenalty,
+        stopSequences: currentGenerationSettings.stopSequences,
+        seed: currentGenerationSettings.seed,
+        providerOptions: currentGenerationSettings.providerOptions,
+        headers: currentGenerationSettings.headers,
+      } as never);
+
+      const { toolCalls, finish, step, chunks, providerExecutedToolResults } =
         await doStreamStep(
           conversationPrompt,
           currentModel,
@@ -277,13 +333,26 @@ export async function* streamTextIterator({
             ...currentGenerationSettings,
             toolChoice: currentToolChoice,
             includeRawChunks,
-            telemetry,
             repairToolCall,
             responseFormat,
             runtimeContext: currentRuntimeContext,
             toolsContext: currentToolsContext,
           },
         );
+
+      await telemetryDispatcher.onLanguageModelCallEnd?.({
+        callId: step.callId,
+        provider: step.model?.provider ?? 'unknown',
+        modelId: step.model?.modelId ?? 'unknown',
+        finishReason: step.finishReason,
+        usage: step.usage,
+        content: step.content,
+        responseId: step.response.id,
+      });
+
+      for (const chunk of chunks ?? []) {
+        await telemetryDispatcher.onChunk?.({ chunk: chunk as never });
+      }
 
       _isFirstIteration = false;
       stepNumber++;
@@ -385,6 +454,7 @@ export async function* streamTextIterator({
       if (onStepFinish) {
         await onStepFinish(step);
       }
+      await telemetryDispatcher.onStepFinish?.(normalizeStepForTelemetry(step));
     } catch (error) {
       if (onError) {
         await onError({ error });
@@ -405,6 +475,22 @@ export async function* streamTextIterator({
   }
 
   return conversationPrompt;
+}
+
+function getModelInfo(model: LanguageModel): {
+  provider: string;
+  modelId: string;
+} {
+  return typeof model === 'string'
+    ? { provider: model.split('/')[0] ?? 'gateway', modelId: model }
+    : { provider: model.provider, modelId: model.modelId };
+}
+
+function normalizeStepForTelemetry(step: StepResult<any, any>) {
+  return {
+    ...step,
+    model: step.model ?? { provider: 'unknown', modelId: 'unknown' },
+  };
 }
 
 /**

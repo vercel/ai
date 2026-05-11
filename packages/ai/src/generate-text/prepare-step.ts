@@ -4,9 +4,9 @@ import type {
   ModelMessage,
   ProviderOptions,
   Sandbox,
-  SystemModelMessage,
   ToolSet,
 } from '@ai-sdk/provider-utils';
+import type { Instructions } from '../prompt';
 import type { LanguageModel, ToolChoice } from '../types/language-model';
 import type { ActiveTools } from './active-tools';
 import type { ResponseMessage } from './response-message';
@@ -106,9 +106,16 @@ export type PrepareStepResult<
       activeTools?: ActiveTools<NoInfer<TOOLS>>;
 
       /**
-       * Optionally override the system message(s) sent to the model for this step.
+       * Optionally override the instructions sent to the model for this step.
        */
-      system?: string | SystemModelMessage | Array<SystemModelMessage>;
+      instructions?: Instructions;
+
+      /**
+       * Optionally override the instructions sent to the model for this step.
+       *
+       * @deprecated Use `instructions` instead.
+       */
+      system?: Instructions;
 
       /**
        * Optionally override the full set of messages sent to the model

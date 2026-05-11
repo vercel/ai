@@ -13,7 +13,7 @@ run(async () => {
       'Include the date for each item you mention.',
   });
 
-  const googleMetadata = result.providerMetadata?.google;
+  const googleMetadata = result.finalStep.providerMetadata?.google;
 
   console.log(result.text);
   console.log();

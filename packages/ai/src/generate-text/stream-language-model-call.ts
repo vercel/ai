@@ -10,12 +10,11 @@ import {
   type IdGenerator,
   type ModelMessage,
   type ProviderOptions,
-  type SystemModelMessage,
   type ToolSet,
 } from '@ai-sdk/provider-utils';
 import { ToolCallNotFoundForApprovalError } from '../error/tool-call-not-found-for-approval-error';
 import { resolveLanguageModel } from '../model/resolve-model';
-import type { Prompt } from '../prompt';
+import type { Instructions, Prompt } from '../prompt';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import type { LanguageModelCallOptions } from '../prompt/language-model-call-options';
 import { prepareToolChoice } from '../prompt/prepare-tool-choice';
@@ -183,6 +182,7 @@ export async function streamLanguageModelCall<
   toolChoice,
   prompt,
   system,
+  instructions,
   messages,
   allowSystemInMessages,
   download,
@@ -252,6 +252,7 @@ export async function streamLanguageModelCall<
   const effectiveCallId = callId ?? generateCallId();
 
   const standardizedPrompt = await standardizePrompt({
+    instructions,
     system,
     prompt,
     messages,
@@ -260,7 +261,7 @@ export async function streamLanguageModelCall<
 
   const promptMessages = await convertToLanguageModelPrompt({
     prompt: {
-      system: standardizedPrompt.system,
+      instructions: standardizedPrompt.instructions,
       messages: standardizedPrompt.messages,
     },
     supportedUrls: await resolvedModel.supportedUrls,
@@ -286,7 +287,7 @@ export async function streamLanguageModelCall<
       callId: effectiveCallId,
       provider: resolvedModel.provider,
       modelId: resolvedModel.modelId,
-      system: standardizedPrompt.system,
+      instructions: standardizedPrompt.instructions,
       messages: standardizedPrompt.messages,
       tools: stepTools,
       ...callSettings,
@@ -313,7 +314,7 @@ export async function streamLanguageModelCall<
   const standardizedStream = languageModelStream.pipeThrough(
     createLanguageModelV4StreamPartToLanguageModelStreamPartTransform({
       tools,
-      system: standardizedPrompt.system,
+      instructions: standardizedPrompt.instructions,
       messages: standardizedPrompt.messages,
       repairToolCall,
       refineToolInput,
@@ -337,7 +338,7 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
   TOOLS extends ToolSet,
 >({
   tools,
-  system,
+  instructions,
   messages,
   repairToolCall,
   refineToolInput,
@@ -348,7 +349,7 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
   onLanguageModelCallEnd,
 }: {
   tools: TOOLS | undefined;
-  system: string | SystemModelMessage | Array<SystemModelMessage> | undefined;
+  instructions: Instructions | undefined;
   messages: ModelMessage[];
   repairToolCall: ToolCallRepairFunction<TOOLS> | undefined;
   refineToolInput: ToolInputRefinement<TOOLS> | undefined;
@@ -511,7 +512,7 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
               tools,
               repairToolCall,
               refineToolInput,
-              system,
+              instructions,
               messages,
             });
 

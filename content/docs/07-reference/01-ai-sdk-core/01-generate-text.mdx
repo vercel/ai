@@ -43,10 +43,10 @@ To see `generateText` in action, check out [these examples](#examples).
       description: "The language model to use. Example: openai('gpt-4o')",
     },
     {
-      name: 'system',
-      type: 'string | SystemModelMessage | SystemModelMessage[]',
+      name: 'instructions',
+      type: 'Instructions',
       description:
-        'The system prompt to use that specifies the behavior of the model.',
+        'Instructions to use that specify the behavior of the model.',
     },
     {
       name: 'prompt',
@@ -331,7 +331,7 @@ To see `generateText` in action, check out [these examples](#examples).
       type: 'boolean',
       isOptional: true,
       description:
-        'Whether system messages are allowed in the `prompt` or `messages` fields. Defaults to false. System messages in the `system` option are always allowed. Enabling this for user-controlled messages can create a prompt injection risk.',
+        'Whether system messages are allowed in the `prompt` or `messages` fields. Defaults to false. System messages in the `instructions` option are always allowed. Enabling this for user-controlled messages can create a prompt injection risk.',
     },
     {
       name: 'tools',
@@ -590,7 +590,7 @@ To see `generateText` in action, check out [these examples](#examples).
       type: '(options: PrepareStepOptions) => PrepareStepResult<TOOLS> | Promise<PrepareStepResult<TOOLS>>',
       isOptional: true,
       description:
-        'Optional function that you can use to provide different settings for a step. You can modify the model, tool choices, active tools, system prompt, input messages, and sandbox for each step.',
+        'Optional function that you can use to provide different settings for a step. You can modify the model, tool choices, active tools, instructions, input messages, and sandbox for each step.',
       properties: [
         {
           type: 'PrepareStepFunction<TOOLS>',
@@ -678,11 +678,11 @@ To see `generateText` in action, check out [these examples](#examples).
                 'If provided, only these tools are enabled/available for this step.',
             },
             {
-              name: 'system',
-              type: 'string | SystemModelMessage | SystemModelMessage[]',
+              name: 'instructions',
+              type: 'Instructions',
               isOptional: true,
               description:
-                'Optionally override the system message(s) sent to the model for this step.',
+                'Optionally override the instructions sent to the model for this step.',
             },
             {
               name: 'messages',
@@ -795,9 +795,16 @@ To see `generateText` in action, check out [these examples](#examples).
           type: 'ToolCallRepairOptions',
           parameters: [
             {
+              name: 'instructions',
+              type: 'Instructions | undefined',
+              description: 'The instructions provided to the model.',
+            },
+            {
               name: 'system',
-              type: 'string | SystemModelMessage | SystemModelMessage[] | undefined',
-              description: 'The system prompt.',
+              type: 'Instructions | undefined',
+              isOptional: true,
+              description:
+                'The instructions provided to the model. Deprecated: use `instructions` instead.',
             },
             {
               name: 'messages',
@@ -815,7 +822,7 @@ To see `generateText` in action, check out [these examples](#examples).
               description: 'The tools that are available.',
             },
             {
-              name: 'parameterSchema',
+              name: 'inputSchema',
               type: '(options: { toolName: string }) => JSONSchema7',
               description:
                 'A function that returns the JSON Schema for a tool.',
@@ -987,7 +994,8 @@ To see `generateText` in action, check out [these examples](#examples).
             {
               name: 'provider',
               type: 'string',
-              description: 'The provider identifier (e.g., "openai", "anthropic").',
+              description:
+                'The provider identifier (e.g., "openai", "anthropic").',
             },
             {
               name: 'modelId',
@@ -995,9 +1003,9 @@ To see `generateText` in action, check out [these examples](#examples).
               description: 'The specific model identifier (e.g., "gpt-4o").',
             },
             {
-              name: 'system',
-              type: 'string | SystemModelMessage | Array<SystemModelMessage> | undefined',
-              description: 'The system message(s) provided to the model.',
+              name: 'instructions',
+              type: 'Instructions | undefined',
+              description: 'The instructions provided to the model.',
             },
             {
               name: 'messages',
@@ -1132,7 +1140,8 @@ To see `generateText` in action, check out [these examples](#examples).
             {
               name: 'provider',
               type: 'string',
-              description: 'The provider identifier (e.g., "openai", "anthropic").',
+              description:
+                'The provider identifier (e.g., "openai", "anthropic").',
             },
             {
               name: 'modelId',
@@ -1140,9 +1149,10 @@ To see `generateText` in action, check out [these examples](#examples).
               description: 'The specific model identifier (e.g., "gpt-4o").',
             },
             {
-              name: 'system',
-              type: 'string | SystemModelMessage | Array<SystemModelMessage> | undefined',
-              description: 'The system message for this step.',
+              name: 'instructions',
+              type: 'Instructions | undefined',
+              description:
+                'The instructions provided to the model for this step.',
             },
             {
               name: 'messages',
@@ -1253,6 +1263,11 @@ To see `generateText` in action, check out [these examples](#examples).
               description: 'The specific model identifier for this model call.',
             },
             {
+              name: 'instructions',
+              type: 'Instructions | undefined',
+              description: 'The instructions that will be sent to the model.',
+            },
+            {
               name: 'messages',
               type: 'Array<ModelMessage>',
               description: 'The messages that will be sent to the model.',
@@ -1260,7 +1275,8 @@ To see `generateText` in action, check out [these examples](#examples).
             {
               name: 'tools',
               type: 'ReadonlyArray<Record<string, unknown>> | undefined',
-              description: 'Prepared tool definitions for the model call, if any.',
+              description:
+                'Prepared tool definitions for the model call, if any.',
             },
           ],
         },
@@ -1324,7 +1340,8 @@ To see `generateText` in action, check out [these examples](#examples).
             {
               name: 'callId',
               type: 'string',
-              description: 'Unique identifier for this generation call, used to correlate events.',
+              description:
+                'Unique identifier for this generation call, used to correlate events.',
             },
             {
               name: 'toolCall',
@@ -1361,7 +1378,8 @@ To see `generateText` in action, check out [these examples](#examples).
             {
               name: 'callId',
               type: 'string',
-              description: 'Unique identifier for this generation call, used to correlate events.',
+              description:
+                'Unique identifier for this generation call, used to correlate events.',
             },
             {
               name: 'toolCall',
@@ -1441,8 +1459,7 @@ To see `generateText` in action, check out [these examples](#examples).
             {
               name: 'toolsContext',
               type: 'InferToolSetContext<TOOLS>',
-              description:
-                'Per-tool context map for the generation step.',
+              description: 'Per-tool context map for the generation step.',
             },
             {
               name: 'content',
@@ -2126,6 +2143,12 @@ To see `generateText` in action, check out [these examples](#examples).
                 'Response information for every step. You can use this to get information about intermediate steps, such as the tool calls or the response headers.',
             },
             {
+              name: 'finalStep',
+              type: 'StepResult',
+              description:
+                'The final step. This is a shortcut for `steps.at(-1)`.',
+            },
+            {
               name: 'responseMessages',
               type: 'Array<ResponseMessage>',
               description:
@@ -2168,7 +2191,7 @@ To see `generateText` in action, check out [these examples](#examples).
       name: 'reasoning',
       type: 'Array<ReasoningOutput | ReasoningFileOutput>',
       description:
-        'The full reasoning that the model has generated in the last step.',
+        'Deprecated. Use `finalStep.reasoning` instead. The full reasoning that the model has generated in the final step.',
       properties: [
         {
           type: 'ReasoningOutput',
@@ -2218,7 +2241,7 @@ To see `generateText` in action, check out [these examples](#examples).
       name: 'reasoningText',
       type: 'string | undefined',
       description:
-        'The reasoning text that the model has generated in the last step. Can be undefined if the model has only generated text.',
+        'Deprecated. Use `finalStep.reasoningText` instead. The reasoning text that the model has generated in the final step. Can be undefined if the model has only generated text.',
     },
     {
       name: 'sources',
@@ -2336,7 +2359,8 @@ To see `generateText` in action, check out [these examples](#examples).
     {
       name: 'usage',
       type: 'LanguageModelUsage',
-      description: 'The token usage of the last step.',
+      description:
+        'The total token usage of all steps. When there are multiple steps, the usage is the sum of all step usages.',
       properties: [
         {
           type: 'LanguageModelUsage',
@@ -2426,7 +2450,7 @@ To see `generateText` in action, check out [these examples](#examples).
       name: 'totalUsage',
       type: 'LanguageModelUsage',
       description:
-        'The total token usage of all steps. When there are multiple steps, the usage is the sum of all step usages.',
+        'Deprecated. Use usage instead. The total token usage of all steps. When there are multiple steps, the usage is the sum of all step usages.',
       properties: [
         {
           type: 'LanguageModelUsage',
@@ -2455,7 +2479,8 @@ To see `generateText` in action, check out [these examples](#examples).
       name: 'request',
       type: 'LanguageModelRequestMetadata',
       isOptional: true,
-      description: 'Request metadata.',
+      description:
+        'Deprecated. Use `finalStep.request` instead. Request metadata from the final step.',
       properties: [
         {
           type: 'LanguageModelRequestMetadata',
@@ -2482,7 +2507,8 @@ To see `generateText` in action, check out [these examples](#examples).
       name: 'response',
       type: 'LanguageModelResponseMetadata',
       isOptional: true,
-      description: 'Response metadata.',
+      description:
+        'Deprecated. Use `finalStep.response` instead. Response metadata from the final step.',
       properties: [
         {
           type: 'LanguageModelResponseMetadata',
@@ -2537,19 +2563,20 @@ To see `generateText` in action, check out [these examples](#examples).
       name: 'responseMessages',
       type: 'Array<ResponseMessage>',
       description:
-        'The accumulated response messages that were generated during the call.',
+        'The accumulated response messages of all steps that were generated during the call.',
     },
     {
       name: 'providerMetadata',
       type: 'ProviderMetadata | undefined',
       description:
-        'Optional metadata from the provider. The outer key is the provider name. The inner values are the metadata. Details depend on the provider.',
+        'Deprecated. Use `finalStep.providerMetadata` instead. Optional metadata from the provider for the final step. The outer key is the provider name. The inner values are the metadata. Details depend on the provider.',
     },
     {
       name: 'output',
       type: 'Output',
       isOptional: true,
-      description: 'The generated structured output. It uses the `output` specification.',
+      description:
+        'The generated structured output. It uses the `output` specification.',
     },
     {
       name: 'steps',
@@ -2915,6 +2942,11 @@ To see `generateText` in action, check out [these examples](#examples).
           ],
         },
       ],
+    },
+    {
+      name: 'finalStep',
+      type: 'StepResult<TOOLS>',
+      description: 'The final step. This is a shortcut for `steps.at(-1)`.',
     },
   ]}
 />

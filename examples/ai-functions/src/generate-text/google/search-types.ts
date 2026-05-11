@@ -3,7 +3,7 @@ import { generateText } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
-  const { text, sources, providerMetadata } = await generateText({
+  const result = await generateText({
     model: google('gemini-2.5-flash'),
     tools: {
       google_search: google.tools.googleSearch({
@@ -19,6 +19,8 @@ run(async () => {
       'You must include the date of each article.',
   });
 
+  const { text, sources } = result;
+  const providerMetadata = result.finalStep.providerMetadata;
   const metadata = providerMetadata?.google as
     | GoogleProviderMetadata
     | undefined;

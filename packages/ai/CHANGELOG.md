@@ -1,5 +1,39 @@
 # ai
 
+## 7.0.0-canary.130
+
+### Patch Changes
+
+- Updated dependencies [5f380c0]
+  - @ai-sdk/gateway@4.0.0-canary.76
+
+## 7.0.0-canary.129
+
+### Patch Changes
+
+- d1b3786: fix(ai): deprecate properties on result that have moved to finalStep
+
+## 7.0.0-canary.128
+
+### Patch Changes
+
+- Updated dependencies [d848405]
+  - @ai-sdk/provider-utils@5.0.0-canary.37
+  - @ai-sdk/gateway@4.0.0-canary.75
+
+## 7.0.0-canary.127
+
+### Patch Changes
+
+- e95e38d: fix: Make `generateText` and `streamText` result `usage` report total usage across all steps and deprecate `totalUsage`.
+- 016e877: feat(ai): add `instructions` as the primary prompt option and deprecate `system`
+- ca99fea: feat: expose `finalStep` on text generation results
+- d775a57: feat: introduce Instructions type
+- 538c12b: feat: use instructions on ToolCallRepairFunction, parseToolCall, and events
+- Updated dependencies [ca39020]
+  - @ai-sdk/provider-utils@5.0.0-canary.36
+  - @ai-sdk/gateway@4.0.0-canary.74
+
 ## 7.0.0-canary.126
 
 ### Patch Changes
@@ -1585,7 +1619,6 @@
 ### Patch Changes
 
 - 2dc9bfa: fix(ai): handle provider-executed tools and tool-approval-response in validation
-
   - Skip validation for tool calls with `providerExecuted: true` (deferred results)
   - Map approvalId to toolCallId for proper tool-approval-response handling
   - Filter out empty tool messages after content filtering

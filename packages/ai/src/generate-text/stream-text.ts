@@ -303,6 +303,7 @@ export function streamText<
   model,
   tools,
   toolChoice,
+  instructions,
   system,
   prompt,
   messages,
@@ -616,6 +617,7 @@ export function streamText<
     stepAbortController,
     chunkTimeoutMs,
     chunkAbortController,
+    instructions,
     system,
     prompt,
     messages,
@@ -812,6 +814,7 @@ class DefaultStreamTextResult<
     stepAbortController,
     chunkTimeoutMs,
     chunkAbortController,
+    instructions,
     system,
     prompt,
     messages,
@@ -860,6 +863,7 @@ class DefaultStreamTextResult<
     chunkAbortController: AbortController | undefined;
     toolsContext: InferToolSetContext<TOOLS>;
     runtimeContext: RUNTIME_CONTEXT;
+    instructions: Prompt['instructions'];
     system: Prompt['system'];
     prompt: Prompt['prompt'];
     messages: Prompt['messages'];
@@ -1374,6 +1378,7 @@ class DefaultStreamTextResult<
 
     (async () => {
       const initialPrompt = await standardizePrompt({
+        instructions,
         system,
         prompt,
         messages,
@@ -1386,7 +1391,7 @@ class DefaultStreamTextResult<
           operationId: 'ai.streamText',
           provider: model.provider,
           modelId: model.modelId,
-          system,
+          instructions: initialPrompt.instructions,
           messages: initialPrompt.messages,
           tools,
           toolChoice,
@@ -1629,7 +1634,10 @@ class DefaultStreamTextResult<
 
           const stepMessages = prepareStepResult?.messages ?? stepInputMessages;
           currentStepMessages = stepMessages;
-          const stepSystem = prepareStepResult?.system ?? initialPrompt.system;
+          const stepInstructions =
+            prepareStepResult?.instructions ??
+            prepareStepResult?.system ??
+            initialPrompt.instructions;
 
           const stepProviderOptions = mergeObjects(
             providerOptions,
@@ -1649,7 +1657,7 @@ class DefaultStreamTextResult<
               model: prepareStepResult?.model ?? model,
               tools: stepActiveTools,
               toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
-              system: stepSystem,
+              instructions: stepInstructions,
               messages: stepMessages,
               allowSystemInMessages,
               repairToolCall,
@@ -1680,7 +1688,7 @@ class DefaultStreamTextResult<
                     provider: stepModel.provider,
                     modelId: stepModel.modelId,
                     stepNumber: recordedSteps.length,
-                    system: stepSystem,
+                    instructions: stepInstructions,
                     messages: stepMessages,
                     tools,
                     toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
@@ -2064,8 +2072,8 @@ class DefaultStreamTextResult<
     return this._steps.promise;
   }
 
-  private get finalStep() {
-    return this.steps.then(steps => steps[steps.length - 1]);
+  get finalStep() {
+    return this.steps.then(steps => steps.at(-1)!);
   }
 
   get content() {
@@ -2127,7 +2135,7 @@ class DefaultStreamTextResult<
   }
 
   get usage() {
-    return this.finalStep.then(step => step.usage);
+    return this.totalUsage;
   }
 
   get request() {

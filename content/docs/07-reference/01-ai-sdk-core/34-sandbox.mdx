@@ -24,6 +24,8 @@ type Sandbox = {
   readonly description: string;
   readonly executeCommand: (options: {
     command: string;
+    workingDirectory?: string;
+    abortSignal?: AbortSignal;
   }) => PromiseLike<{
     exitCode: number;
     stdout: string;
@@ -40,11 +42,11 @@ type Sandbox = {
       name: 'description',
       type: 'string',
       description:
-        "Description of the sandbox environment. Include this in your prompt or instructions when the model needs to know details such as the root directory, exposed ports, public hostname, or other environment constraints. The AI SDK does not add it to the prompt automatically.",
+        'Description of the sandbox environment. Include this in your prompt or instructions when the model needs to know details such as the root directory, exposed ports, public hostname, or other environment constraints. The AI SDK does not add it to the prompt automatically.',
     },
     {
       name: 'executeCommand',
-      type: '(options: { command: string }) => PromiseLike<{ exitCode: number; stdout: string; stderr: string }>',
+      type: '(options: { command: string; workingDirectory?: string; abortSignal?: AbortSignal }) => PromiseLike<{ exitCode: number; stdout: string; stderr: string }>',
       description:
         'Executes a command in the sandbox and resolves with the command exit code, standard output, and standard error.',
       properties: [
@@ -55,6 +57,18 @@ type Sandbox = {
               name: 'command',
               type: 'string',
               description: 'The command to execute in the sandbox.',
+            },
+            {
+              name: 'workingDirectory',
+              type: 'string | undefined',
+              description:
+                'Optional working directory to execute the command in. If omitted, the sandbox implementation uses its default working directory.',
+            },
+            {
+              name: 'abortSignal',
+              type: 'AbortSignal | undefined',
+              description:
+                'Optional abort signal that the sandbox implementation can use to cancel the command.',
             },
           ],
         },
@@ -78,13 +92,16 @@ Inside a tool, read the sandbox from the second `execute` argument:
 
 ```ts
 const shell = tool({
-  inputSchema: z.object({ command: z.string() }),
-  execute: async ({ command }, { sandbox }) => {
+  inputSchema: z.object({
+    command: z.string(),
+    workingDirectory: z.string().optional(),
+  }),
+  execute: async ({ command, workingDirectory }, { abortSignal, sandbox }) => {
     if (!sandbox) {
       throw new Error('Sandbox is not available');
     }
 
-    return sandbox.executeCommand({ command });
+    return sandbox.executeCommand({ command, workingDirectory, abortSignal });
   },
 });
 ```

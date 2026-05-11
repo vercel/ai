@@ -8,6 +8,7 @@ exports[`streamText > options.experimental_onStart > should send correct informa
   "callId": "test-telemetry-call-id",
   "frequencyPenalty": undefined,
   "headers": undefined,
+  "instructions": undefined,
   "maxOutputTokens": undefined,
   "maxRetries": 2,
   "messages": [
@@ -26,7 +27,6 @@ exports[`streamText > options.experimental_onStart > should send correct informa
   "runtimeContext": {},
   "seed": undefined,
   "stopSequences": undefined,
-  "system": undefined,
   "temperature": undefined,
   "timeout": undefined,
   "toolChoice": undefined,
