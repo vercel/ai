@@ -872,7 +872,7 @@ describe('assistant messages', () => {
   });
   
   it('should omit reasoning content without signature', async () => {
-    const result = await convertToAmazonBedrockChatMessages([
+    const result = await convertToBedrockChatMessages([
       {
         role: 'user',
         content: [{ type: 'text', text: 'Explain your reasoning' }],
@@ -915,7 +915,7 @@ describe('assistant messages', () => {
   });
 
   it('should omit multiple reasoning parts without signatures', async () => {
-    const result = await convertToAmazonBedrockChatMessages([
+    const result = await convertToBedrockChatMessages([
       {
         role: 'user',
         content: [{ type: 'text', text: 'Explain your reasoning' }],
@@ -962,7 +962,7 @@ describe('assistant messages', () => {
   });
 
   it('should omit unsigned reasoning while preserving tool calls in multi-turn tool use', async () => {
-    const result = await convertToAmazonBedrockChatMessages([
+    const result = await convertToBedrockChatMessages([
       {
         role: 'user',
         content: [{ type: 'text', text: 'What is the weather?' }],
