@@ -7,6 +7,7 @@ import {
   type ParseResult,
 } from '@ai-sdk/provider-utils';
 import { googleFailedResponseHandler } from '../google-error';
+import { cancelGoogleInteraction } from './cancel-google-interaction';
 import {
   googleInteractionsEventSchema,
   type GoogleInteractionsEvent,
@@ -210,6 +211,22 @@ export function streamGoogleInteractionEvents({
         }
         currentReader?.cancel().catch(() => {});
         currentReader = undefined;
+
+        /*
+         * If we're exiting because the caller aborted (or the consumer
+         * cancelled the stream) before the agent finished, fire
+         * `POST /interactions/{id}/cancel` so the run stops billing on
+         * Google's side. Skipped when `complete` is set -- the agent already
+         * reported terminal status via `interaction.complete` / `error`.
+         */
+        if (effectiveSignal.aborted && !complete) {
+          await cancelGoogleInteraction({
+            baseURL,
+            interactionId,
+            headers,
+            fetch,
+          });
+        }
       }
     },
 
