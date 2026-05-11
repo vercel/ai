@@ -870,14 +870,9 @@ describe('assistant messages', () => {
       }
     `);
   });
-
-<<<<<<< HEAD:packages/amazon-bedrock/src/convert-to-bedrock-chat-messages.test.ts
-  it('should trim trailing whitespace from reasoning content without signature when it is the last part', async () => {
-    const result = await convertToBedrockChatMessages([
-=======
+  
   it('should omit reasoning content without signature', async () => {
     const result = await convertToAmazonBedrockChatMessages([
->>>>>>> bcbaae644 (fix(bedrock): skip passing unsigned reasoning content (#15181)):packages/amazon-bedrock/src/convert-to-amazon-bedrock-chat-messages.test.ts
       {
         role: 'user',
         content: [{ type: 'text', text: 'Explain your reasoning' }],
@@ -919,13 +914,8 @@ describe('assistant messages', () => {
     `);
   });
 
-<<<<<<< HEAD:packages/amazon-bedrock/src/convert-to-bedrock-chat-messages.test.ts
-  it('should only trim last reasoning part when multiple reasoning parts have trailing spaces', async () => {
-    const result = await convertToBedrockChatMessages([
-=======
   it('should omit multiple reasoning parts without signatures', async () => {
     const result = await convertToAmazonBedrockChatMessages([
->>>>>>> bcbaae644 (fix(bedrock): skip passing unsigned reasoning content (#15181)):packages/amazon-bedrock/src/convert-to-amazon-bedrock-chat-messages.test.ts
       {
         role: 'user',
         content: [{ type: 'text', text: 'Explain your reasoning' }],
