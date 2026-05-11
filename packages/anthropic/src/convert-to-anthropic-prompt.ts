@@ -26,6 +26,7 @@ import {
 } from './anthropic-api';
 import { anthropicFilePartProviderOptions } from './anthropic-language-model-options';
 import { CacheControlValidator } from './get-cache-control';
+import { advisor_20260301OutputSchema } from './tool/advisor_20260301';
 import { codeExecution_20250522OutputSchema } from './tool/code-execution_20250522';
 import { codeExecution_20250825OutputSchema } from './tool/code-execution_20250825';
 import { codeExecution_20260120OutputSchema } from './tool/code-execution_20260120';
@@ -698,6 +699,17 @@ export async function convertToAnthropicPrompt({
                         input: part.input,
                         cache_control: cacheControl,
                       });
+                    } else if (providerToolName === 'advisor') {
+                      // The advisor server_tool_use.input is always {}.
+                      // The server constructs the advisor's view from the
+                      // full transcript automatically.
+                      anthropicContent.push({
+                        type: 'server_tool_use',
+                        id: part.toolCallId,
+                        name: 'advisor',
+                        input: {},
+                        cache_control: cacheControl,
+                      });
                     } else {
                       warnings.push({
                         type: 'other',
@@ -1080,6 +1092,63 @@ export async function convertToAnthropicPrompt({
                     },
                     cache_control: cacheControl,
                   });
+
+                  break;
+                }
+
+                if (providerToolName === 'advisor') {
+                  // Round-trip the advisor_tool_result block verbatim.
+                  // Per the API spec, omitting the advisor tool while the
+                  // message history still contains advisor_tool_result
+                  // blocks returns a 400 invalid_request_error; that
+                  // contract is the caller's responsibility.
+                  const output = part.output;
+
+                  if (output.type !== 'json' && output.type !== 'error-json') {
+                    warnings.push({
+                      type: 'other',
+                      message: `provider executed tool result output type ${output.type} for tool ${part.toolName} is not supported`,
+                    });
+
+                    break;
+                  }
+
+                  const advisorOutput = await validateTypes({
+                    value: output.value,
+                    schema: advisor_20260301OutputSchema,
+                  });
+
+                  if (advisorOutput.type === 'advisor_result') {
+                    anthropicContent.push({
+                      type: 'advisor_tool_result',
+                      tool_use_id: part.toolCallId,
+                      content: {
+                        type: 'advisor_result',
+                        text: advisorOutput.text,
+                      },
+                      cache_control: cacheControl,
+                    });
+                  } else if (advisorOutput.type === 'advisor_redacted_result') {
+                    anthropicContent.push({
+                      type: 'advisor_tool_result',
+                      tool_use_id: part.toolCallId,
+                      content: {
+                        type: 'advisor_redacted_result',
+                        encrypted_content: advisorOutput.encryptedContent,
+                      },
+                      cache_control: cacheControl,
+                    });
+                  } else {
+                    anthropicContent.push({
+                      type: 'advisor_tool_result',
+                      tool_use_id: part.toolCallId,
+                      content: {
+                        type: 'advisor_tool_result_error',
+                        error_code: advisorOutput.errorCode,
+                      },
+                      cache_control: cacheControl,
+                    });
+                  }
 
                   break;
                 }
