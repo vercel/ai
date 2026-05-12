@@ -375,6 +375,41 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      # GITHUB_TOKEN cannot create commits that modify files under
+      # .github/workflows/ — it lacks the `workflows` permission, which
+      # cannot be granted via the workflow's permissions: block. This is
+      # a hard GitHub restriction to prevent a workflow from rewriting
+      # itself via its own token. Detect this case early and fail with a
+      # clear message rather than blowing up later in
+      # createCommitOnBranch with an opaque "Resource not accessible by
+      # integration" error.
+      - name: Reject PRs that modify workflow files
+        if: '!steps.check-existing.outputs.existing-pr'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ needs.resolve-pr.outputs.pr-number }}
+          RELEASE_BRANCH: ${{ needs.find-branch.outputs.release-branch }}
+        run: |
+          set -euo pipefail
+
+          WORKFLOW_FILES=$(gh api --paginate "repos/${REPO}/pulls/${PR_NUMBER}/files" \
+            --jq '[.[] | select(.filename | startswith(".github/workflows/")) | .filename] | join(", ")')
+
+          if [ -z "$WORKFLOW_FILES" ]; then
+            exit 0
+          fi
+
+          echo "::error::PR #${PR_NUMBER} modifies workflow files (${WORKFLOW_FILES}) and cannot be backported automatically. GITHUB_TOKEN lacks the 'workflows' permission required to commit changes under .github/workflows/, and that permission cannot be granted to the default workflow token. Backport this change manually."
+
+          gh pr comment "$PR_NUMBER" --body "❌ Backport to \`${RELEASE_BRANCH}\` skipped: this PR modifies workflow files under \`.github/workflows/\` (\`${WORKFLOW_FILES}\`), which cannot be backported automatically. \`GITHUB_TOKEN\` lacks the \`workflows\` permission required to commit changes to those paths, and that permission cannot be granted to the default workflow token. Please backport this change manually." \
+            || echo "::warning::Failed to comment on PR #${PR_NUMBER} (non-fatal)"
+
+          gh pr edit "$PR_NUMBER" --remove-label backport \
+            || echo "::warning::Failed to remove backport label from PR #${PR_NUMBER} (non-fatal)"
+
+          exit 1
+
       - name: Checkout Repository
         if: '!steps.check-existing.outputs.existing-pr'
         uses: actions/checkout@v6
