@@ -16,7 +16,7 @@ const createTestModel = (
     GatewayConfig & { o11yHeaders?: Record<string, string> }
   > = {},
 ) =>
-  new GatewaySpeechModel('openai/gpt-4o-mini-tts', {
+  new GatewaySpeechModel('openai/tts-1', {
     provider: 'gateway',
     baseURL: 'https://api.test.com',
     headers: () => ({
@@ -56,7 +56,7 @@ describe('GatewaySpeechModel', () => {
         authorization: 'Bearer test-token',
         'custom-header': 'test-value',
         'ai-speech-model-specification-version': '4',
-        'ai-model-id': 'openai/gpt-4o-mini-tts',
+        'ai-model-id': 'openai/tts-1',
       });
     });
 
@@ -133,7 +133,7 @@ describe('GatewaySpeechModel', () => {
         gateway: { cost: '0.002' },
       });
       expect(result.response.headers?.['x-request-id']).toBe('req-123');
-      expect(result.response.modelId).toBe('openai/gpt-4o-mini-tts');
+      expect(result.response.modelId).toBe('openai/tts-1');
     });
   });
 
