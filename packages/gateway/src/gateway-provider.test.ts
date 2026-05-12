@@ -456,7 +456,7 @@ describe('GatewayProvider', () => {
         apiKey: 'test-api-key',
       });
 
-      const model = provider.speechModel('openai/gpt-4o-mini-tts');
+      const model = provider.speechModel('openai/tts-1');
 
       if (!(model instanceof GatewaySpeechModel)) {
         fail('Expected GatewaySpeechModel to be created');
@@ -473,7 +473,7 @@ describe('GatewayProvider', () => {
         apiKey: 'test-api-key',
       });
 
-      const model = provider.speech('openai/gpt-4o-mini-tts');
+      const model = provider.speech('openai/tts-1');
 
       if (!(model instanceof GatewaySpeechModel)) {
         fail('Expected GatewaySpeechModel to be created');
@@ -489,7 +489,7 @@ describe('GatewayProvider', () => {
         fetch: customFetch,
       });
 
-      const model = provider.speechModel('openai/gpt-4o-mini-tts');
+      const model = provider.speechModel('openai/tts-1');
 
       if (!(model instanceof GatewaySpeechModel)) {
         fail('Expected GatewaySpeechModel to be created');
@@ -792,7 +792,7 @@ describe('GatewayProvider', () => {
 
     it('should expose speechModel on the default provider and construct model', () => {
       expect(typeof gateway.speechModel).toBe('function');
-      const model = gateway.speechModel('openai/gpt-4o-mini-tts');
+      const model = gateway.speechModel('openai/tts-1');
 
       if (!(model instanceof GatewaySpeechModel)) {
         fail('Expected GatewaySpeechModel to be created by default provider');
