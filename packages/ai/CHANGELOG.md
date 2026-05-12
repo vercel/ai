@@ -1,5 +1,12 @@
 # ai
 
+## 7.0.0-canary.132
+
+### Patch Changes
+
+- eaf849f: Rename rerank telemetry finish callback to `onRerankEnd`.
+- 8565dcb: fix: rename onEmbedFinish to onEmbedEnd
+
 ## 7.0.0-canary.131
 
 ### Patch Changes
