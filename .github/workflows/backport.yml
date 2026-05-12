@@ -178,7 +178,21 @@ jobs:
 
           HEAD_REPO=$(echo "$PR" | jq -r '.head.repo.full_name // empty')
           if [ "$EVENT_NAME" = "pull_request" ] && [ "$HEAD_REPO" != "$REPO" ]; then
-            skip "PR #${PR_NUMBER} is from a fork and must be backported with workflow_dispatch. You can do it [here](https://github.com/vercel/ai/actions/workflows/backport.yml) or run `gh workflow run backport.yml --repo vercel/ai -f pull_request_number=${PR_NUMBER}`"
+            {
+              echo 'This pull request was opened from a fork and must be backported with a workflow_dispatch event.'
+              echo
+              echo 'Please trigger the Backport workflow manually:'
+              echo 'https://github.com/vercel/ai/actions/workflows/backport.yml'
+              echo
+              echo 'From the terminal, run:'
+              echo
+              echo '```sh'
+              echo "gh workflow run backport.yml --repo vercel/ai -f pull_request_number=${PR_NUMBER}"
+              echo '```'
+            } > comment.md
+
+            gh pr comment "$PR_NUMBER" --repo "$REPO" --body-file comment.md
+            skip "PR #${PR_NUMBER} is from a fork and must be backported with workflow_dispatch"
           fi
 
           BASE_REF=$(echo "$PR" | jq -r '.base.ref')
