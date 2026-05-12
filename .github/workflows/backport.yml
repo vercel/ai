@@ -6,7 +6,7 @@
 name: Backport
 
 on:
-  issues:
+  pull_request:
     types: [labeled]
   push:
     branches:
