@@ -18,6 +18,12 @@ const googleEmbeddingContentPartSchema = z.union([
       data: z.string(),
     }),
   }),
+  z.object({
+    fileData: z.object({
+      fileUri: z.string(),
+      mimeType: z.string(),
+    }),
+  }),
 ]);
 
 export const googleEmbeddingModelOptions = lazySchema(() =>
