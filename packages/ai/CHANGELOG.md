@@ -1,5 +1,11 @@
 # ai
 
+## 5.0.188
+
+### Patch Changes
+
+- 1760d76: fix URL of hero animation in README
+
 ## 5.0.187
 
 ### Patch Changes
