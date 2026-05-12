@@ -37,16 +37,17 @@ export interface AnthropicAwsProvider extends ProviderV4 {
 
 export interface AnthropicAwsProviderSettings {
   /**
-   * AWS region for the Claude Platform on AWS endpoint. Defaults to the
-   * `AWS_REGION` environment variable. Region is required; the constructor
-   * throws if neither this setting nor the environment variable is set.
+   * AWS region for the Claude Platform on AWS endpoint. Reads from the
+   * `AWS_REGION` environment variable if omitted. No fallback default —
+   * the constructor throws if it can't be resolved from either source.
    */
   region?: string;
 
   /**
    * Anthropic workspace ID for this AWS account. Sent on every request via the
-   * `anthropic-workspace-id` header. Defaults to the
-   * `ANTHROPIC_AWS_WORKSPACE_ID` environment variable.
+   * `anthropic-workspace-id` header. Reads from the `ANTHROPIC_AWS_WORKSPACE_ID`
+   * environment variable if omitted. The constructor throws if it can't be
+   * resolved from either source.
    */
   workspaceId?: string;
 
