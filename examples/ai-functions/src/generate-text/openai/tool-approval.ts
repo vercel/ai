@@ -43,7 +43,7 @@ run(async () => {
       model: openai('gpt-5.4-mini'),
       // context engineering required to make sure the model does not retry
       // the tool execution if it is not approved for a particular tool call:
-      system:
+      instructions:
         'When a tool call was not approved by the user, ' +
         'do not retry the tool call with the same input.' +
         'Just say that the tool execution was not approved.' +

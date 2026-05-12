@@ -118,7 +118,6 @@ const result = await generateSpeech({
 
 - **voiceSettings** _object or null_  
   Optional. Voice settings that override stored settings for the given voice. These are applied only to the current request.
-
   - **stability** _double or null_  
     Optional. Determines how stable the voice is and the randomness between each generation. Lower values introduce broader emotional range; higher values result in a more monotonous voice.
   - **useSpeakerBoost** _boolean or null_  
@@ -131,7 +130,6 @@ const result = await generateSpeech({
 - **pronunciationDictionaryLocators** _array of objects or null_  
   Optional. A list of pronunciation dictionary locators to apply to the text, in order. Up to 3 locators per request.  
   Each locator object:
-
   - **pronunciationDictionaryId** _string_ (required)  
     The ID of the pronunciation dictionary.
   - **versionId** _string or null_ (optional)  
@@ -155,7 +153,6 @@ const result = await generateSpeech({
 - **applyTextNormalization** _enum_  
   Optional. Controls text normalization.  
   Allowed values: `'auto'` (default), `'on'`, `'off'`.
-
   - `'auto'`: System decides whether to apply normalization (e.g., spelling out numbers).
   - `'on'`: Always apply normalization.
   - `'off'`: Never apply normalization.  

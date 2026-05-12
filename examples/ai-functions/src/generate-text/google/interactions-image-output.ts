@@ -18,7 +18,7 @@ run(async () => {
   console.log();
   console.log(
     'Interaction id:',
-    result.providerMetadata?.google?.interactionId,
+    result.finalStep.providerMetadata?.google?.interactionId,
   );
   console.log('Files:', result.files.length);
 

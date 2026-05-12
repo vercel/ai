@@ -56,6 +56,7 @@ export type StepResult<
   readonly model: {
     /** The provider of the model. */
     readonly provider: string;
+
     /** The ID of the model. */
     readonly modelId: string;
   };
@@ -66,7 +67,7 @@ export type StepResult<
   readonly toolsContext: InferToolSetContext<TOOLS>;
 
   /**
-   * Runtime context.
+   * The runtime context that was used as input for the step.
    */
   readonly runtimeContext: RUNTIME_CONTEXT;
 
@@ -76,7 +77,7 @@ export type StepResult<
   readonly content: Array<ContentPart<TOOLS>>;
 
   /**
-   * The generated text.
+   * The generated text. Can be an empty string if the model has not generated any text.
    */
   readonly text: string;
 
@@ -87,6 +88,9 @@ export type StepResult<
 
   /**
    * The reasoning text that was generated during the generation.
+   *
+   * It is a concatenation of all reasoning parts (but excluding reasoning file parts).
+   * Can be undefined if the model has only generated text.
    */
   readonly reasoningText: string | undefined;
 

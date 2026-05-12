@@ -1,5 +1,26 @@
 # @ai-sdk/openai
 
+## 4.0.0-canary.55
+
+### Patch Changes
+
+- Updated dependencies [ca446f8]
+  - @ai-sdk/provider-utils@5.0.0-canary.38
+
+## 4.0.0-canary.54
+
+### Patch Changes
+
+- Updated dependencies [d848405]
+  - @ai-sdk/provider-utils@5.0.0-canary.37
+
+## 4.0.0-canary.53
+
+### Patch Changes
+
+- Updated dependencies [ca39020]
+  - @ai-sdk/provider-utils@5.0.0-canary.36
+
 ## 4.0.0-canary.52
 
 ### Patch Changes
@@ -671,7 +692,6 @@
 ### Patch Changes
 
 - 04c89b1: Provide Responses API providerMetadata types at the message / reasoning level.
-
   - Export the following types for use in client code:
     - `OpenaiResponsesProviderMetadata`
     - `OpenaiResponsesReasoningProviderMetadata`
@@ -752,7 +772,6 @@
 ### Patch Changes
 
 - 330bd92: Fix Responses `code_interpreter` annotations and add typed providerMetadata
-
   - Align Responses API `code_interpreter` annotation types with the official spec.
   - Add tests to ensure the overlapping parts of the Zod schemas used by `doGenerate` and `doStream` stay in sync.
   - Export the following types for use in client code:

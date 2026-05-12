@@ -1,5 +1,10 @@
 import { z } from 'zod/v4';
-import { tool, type Tool } from '@ai-sdk/provider-utils';
+import {
+  tool,
+  type Sandbox,
+  type Tool,
+  type ToolSet,
+} from '@ai-sdk/provider-utils';
 import { describe, expect, it } from 'vitest';
 import { prepareTools } from './prepare-tools';
 
@@ -48,7 +53,6 @@ describe('prepareTools', () => {
             "type": "object",
           },
           "name": "tool1",
-          "providerOptions": undefined,
           "type": "function",
         },
         {
@@ -67,7 +71,6 @@ describe('prepareTools', () => {
             "type": "object",
           },
           "name": "tool2",
-          "providerOptions": undefined,
           "type": "function",
         },
       ]
@@ -88,7 +91,6 @@ describe('prepareTools', () => {
             "type": "object",
           },
           "name": "tool1",
-          "providerOptions": undefined,
           "type": "function",
         },
         {
@@ -107,7 +109,6 @@ describe('prepareTools', () => {
             "type": "object",
           },
           "name": "tool2",
-          "providerOptions": undefined,
           "type": "function",
         },
         {
@@ -181,7 +182,6 @@ describe('prepareTools', () => {
             "type": "object",
           },
           "name": "tool1",
-          "providerOptions": undefined,
           "strict": true,
           "type": "function",
         },
@@ -227,10 +227,52 @@ describe('prepareTools', () => {
             "type": "object",
           },
           "name": "tool1",
-          "providerOptions": undefined,
           "type": "function",
         },
       ]
     `);
+  });
+
+  it('resolves function descriptions from toolsContext and sandbox', async () => {
+    const sandbox: Sandbox = {
+      description: 'test-sandbox',
+      executeCommand: async () => ({
+        exitCode: 0,
+        stdout: '',
+        stderr: '',
+      }),
+    };
+
+    const result = await prepareTools({
+      tools: {
+        contextual: {
+          type: 'dynamic' as const,
+          description: ({ context }: { context: Record<string, unknown> }) =>
+            `User is ${String(context.userName)}`,
+          inputSchema: z.object({}),
+          execute: async () => {},
+        },
+        withSandbox: {
+          type: 'dynamic' as const,
+          description: ({ sandbox: sb }: { sandbox?: Sandbox }) =>
+            `Env: ${sb?.description ?? 'none'}`,
+          inputSchema: z.object({}),
+          execute: async () => {},
+        },
+      } as unknown as ToolSet,
+      toolsContext: { contextual: { userName: 'Ada' } },
+      sandbox,
+    });
+
+    expect(result).toEqual([
+      expect.objectContaining({
+        name: 'contextual',
+        description: 'User is Ada',
+      }),
+      expect.objectContaining({
+        name: 'withSandbox',
+        description: 'Env: test-sandbox',
+      }),
+    ]);
   });
 });

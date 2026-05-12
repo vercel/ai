@@ -47,7 +47,7 @@ run(async () => {
       },
       messages,
       stopWhen: isStepCount(5),
-      system:
+      instructions:
         'You have access to a shell tool that can execute commands on the local filesystem. ' +
         'Use the shell tool when you need to perform file operations or run commands. ' +
         'When a tool execution is not approved by the user, do not retry it. ' +

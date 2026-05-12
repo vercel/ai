@@ -1,5 +1,29 @@
 # @ai-sdk/xai
 
+## 4.0.0-canary.58
+
+### Patch Changes
+
+- Updated dependencies [ca446f8]
+  - @ai-sdk/provider-utils@5.0.0-canary.38
+  - @ai-sdk/openai-compatible@3.0.0-canary.45
+
+## 4.0.0-canary.57
+
+### Patch Changes
+
+- Updated dependencies [d848405]
+  - @ai-sdk/provider-utils@5.0.0-canary.37
+  - @ai-sdk/openai-compatible@3.0.0-canary.44
+
+## 4.0.0-canary.56
+
+### Patch Changes
+
+- Updated dependencies [ca39020]
+  - @ai-sdk/provider-utils@5.0.0-canary.36
+  - @ai-sdk/openai-compatible@3.0.0-canary.43
+
 ## 4.0.0-canary.55
 
 ### Patch Changes
@@ -689,7 +713,6 @@
 ### Patch Changes
 
 - 05f3f36: Add native `file_search` server-side tool support:
-
   - Add `xai.tools.fileSearch()` for vector store search with `vectorStoreIds` and `maxNumResults` parameters
   - Add `include` option supporting `file_search_call.results` to get inline search results
   - Add `file_search_call` handling in language model for both `doGenerate` and `doStream`

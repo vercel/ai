@@ -352,10 +352,7 @@ export async function POST(
   const activeStreamId = chat.activeStreamId;
   const body = (await req.json().catch(() => ({}))) as StopRequest;
 
-  if (
-    body.activeStreamId != null &&
-    body.activeStreamId !== activeStreamId
-  ) {
+  if (body.activeStreamId != null && body.activeStreamId !== activeStreamId) {
     return Response.json({ success: true });
   }
 

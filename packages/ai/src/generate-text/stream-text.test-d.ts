@@ -3,6 +3,7 @@ import { tool, type Context, type ModelMessage } from '@ai-sdk/provider-utils';
 import { describe, expectTypeOf, it } from 'vitest';
 import { z } from 'zod';
 import { Output, streamText } from '../generate-text';
+import type { Instructions } from '../prompt';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import type { AsyncIterableStream } from '../util';
 import type { DeepPartial } from '../util/deep-partial';
@@ -418,11 +419,19 @@ describe('streamText types', () => {
           model: new MockLanguageModelV4(),
           prompt: 'Hello',
           prepareStep: ({
+            instructions,
+            initialInstructions,
             initialMessages,
             responseMessages,
             runtimeContext,
             toolsContext,
           }) => {
+            expectTypeOf(instructions).toEqualTypeOf<
+              Instructions | undefined
+            >();
+            expectTypeOf(initialInstructions).toEqualTypeOf<
+              Instructions | undefined
+            >();
             expectTypeOf(initialMessages).toEqualTypeOf<Array<ModelMessage>>();
             expectTypeOf(responseMessages).toEqualTypeOf<
               Array<ResponseMessage>

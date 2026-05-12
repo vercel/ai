@@ -14,5 +14,8 @@ run(async () => {
   });
 
   console.log(result.text);
-  console.log('serviceTier:', result.providerMetadata?.google?.serviceTier);
+  console.log(
+    'serviceTier:',
+    result.finalStep.providerMetadata?.google?.serviceTier,
+  );
 });

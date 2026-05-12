@@ -94,7 +94,7 @@ For multi-step text generations that use tools, the callback order is typically
         'Called when the embedding operation begins, before the embedding model is called.',
     },
     {
-      name: 'experimental_onFinish',
+      name: 'experimental_onEnd',
       type: '(event: EmbedEndEvent) => void | Promise<void>',
       description:
         'Called when the embedding operation completes, after the embedding model returns.',
@@ -113,7 +113,7 @@ For multi-step text generations that use tools, the callback order is typically
         'Called when the reranking operation begins, before the reranking model is called.',
     },
     {
-      name: 'experimental_onFinish',
+      name: 'experimental_onEnd',
       type: '(event: RerankEndEvent) => void | Promise<void>',
       description:
         'Called when the reranking operation completes, after the reranking model returns.',
@@ -153,9 +153,9 @@ const result = await generateText({
       description: 'The specific model identifier (e.g., "gpt-4o").',
     },
     {
-      name: 'system',
-      type: 'string | SystemModelMessage | Array<SystemModelMessage> | undefined',
-      description: 'The system message(s) provided to the model.',
+      name: 'instructions',
+      type: 'Instructions | undefined',
+      description: 'The instructions provided to the model.',
     },
     {
       name: 'messages',
@@ -301,9 +301,9 @@ const result = await generateText({
       description: 'The specific model identifier (e.g., "gpt-4o").',
     },
     {
-      name: 'system',
-      type: 'string | SystemModelMessage | Array<SystemModelMessage> | undefined',
-      description: 'The system message for this step.',
+      name: 'instructions',
+      type: 'Instructions | undefined',
+      description: 'The instructions provided to the model for this step.',
     },
     {
       name: 'messages',
@@ -417,6 +417,11 @@ const result = await generateText({
       description: 'The specific model identifier for this model call.',
     },
     {
+      name: 'instructions',
+      type: 'Instructions | undefined',
+      description: 'The instructions that will be sent to the model.',
+    },
+    {
       name: 'messages',
       type: 'Array<ModelMessage>',
       description: 'The messages that will be sent to the model.',
@@ -502,7 +507,8 @@ const result = await generateText({
     {
       name: 'callId',
       type: 'string',
-      description: 'Unique identifier for this generation call, used to correlate events.',
+      description:
+        'Unique identifier for this generation call, used to correlate events.',
     },
     {
       name: 'toolCall',
@@ -578,7 +584,8 @@ const result = await generateText({
     {
       name: 'callId',
       type: 'string',
-      description: 'Unique identifier for this generation call, used to correlate events.',
+      description:
+        'Unique identifier for this generation call, used to correlate events.',
     },
     {
       name: 'toolCall',
@@ -764,8 +771,7 @@ const result = await generateText({
     {
       name: 'toolsContext',
       type: 'InferToolSetContext<TOOLS>',
-      description:
-        'Per-tool context map for the generation step.',
+      description: 'Per-tool context map for the generation step.',
     },
     {
       name: 'providerMetadata',
@@ -991,7 +997,7 @@ const result = await embed({
   ]}
 />
 
-#### `experimental_onFinish`
+#### `experimental_onEnd`
 
 Called when the embedding operation completes. For `embed`, `embedding` is a single vector and `response` is a single response object. For `embedMany`, `embedding` is an array of vectors and `response` is an array of response objects (one per chunk).
 
@@ -1001,7 +1007,7 @@ import { embedMany } from 'ai';
 const result = await embedMany({
   model: openai.embedding('text-embedding-3-small'),
   values: ['sunny day at the beach', 'rainy afternoon in the city'],
-  experimental_onFinish: event => {
+  experimental_onEnd: event => {
     console.log('Operation:', event.operationId);
     console.log('Usage:', event.usage);
   },
@@ -1136,7 +1142,7 @@ const result = await rerank({
   ]}
 />
 
-#### `experimental_onFinish`
+#### `experimental_onEnd`
 
 Called when the reranking operation completes, after the reranking model returns.
 
@@ -1147,7 +1153,7 @@ const result = await rerank({
   model: cohere.reranking('rerank-v3.5'),
   documents: ['sunny day at the beach', 'rainy afternoon in the city'],
   query: 'talk about rain',
-  experimental_onFinish: event => {
+  experimental_onEnd: event => {
     console.log('Operation:', event.operationId);
     console.log('Rankings:', event.ranking.length);
   },
@@ -1280,7 +1286,7 @@ const result = await embedMany({
       valueCount: Array.isArray(event.value) ? event.value.length : 1,
     });
   },
-  experimental_onFinish: event => {
+  experimental_onEnd: event => {
     console.log(`Embedding complete (${event.operationId})`, {
       tokens: event.usage.tokens,
     });

@@ -10,9 +10,8 @@ run(async () => {
     prompt: 'What are the three largest cities in Spain?',
   });
 
-  const interactionId = turn1.providerMetadata?.google?.interactionId as
-    | string
-    | undefined;
+  const interactionId = turn1.finalStep.providerMetadata?.google
+    ?.interactionId as string | undefined;
 
   console.log('--- Turn 1 ---');
   console.log(turn1.text);
@@ -40,6 +39,6 @@ run(async () => {
   console.log();
   console.log(
     'Interaction id (turn 2):',
-    turn2.providerMetadata?.google?.interactionId,
+    turn2.finalStep.providerMetadata?.google?.interactionId,
   );
 });

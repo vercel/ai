@@ -22,7 +22,7 @@ run(async () => {
       onError(error) {
         console.error(error);
       },
-      system: `You are a helpful, respectful and honest assistant.`,
+      instructions: `You are a helpful, respectful and honest assistant.`,
       tools: {
         weather: tool({
           description: 'Get the weather in a location',
