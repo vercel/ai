@@ -32,7 +32,7 @@ describe('createTelemetryDispatcher', () => {
     expect(telemetry.onEmbedStart).toBeDefined();
     expect(telemetry.onEmbedFinish).toBeDefined();
     expect(telemetry.onRerankStart).toBeDefined();
-    expect(telemetry.onRerankFinish).toBeDefined();
+    expect(telemetry.onRerankEnd).toBeDefined();
     expect(telemetry.onFinish).toBeDefined();
     expect(telemetry.onError).toBeDefined();
     expect(telemetry.executeTool).toBeUndefined();
@@ -152,7 +152,7 @@ describe('createTelemetryDispatcher', () => {
       onEmbedStart: vi.fn(),
       onEmbedFinish: vi.fn(),
       onRerankStart: vi.fn(),
-      onRerankFinish: vi.fn(),
+      onRerankEnd: vi.fn(),
       onFinish: vi.fn(),
       onError: vi.fn(),
     };
@@ -174,7 +174,7 @@ describe('createTelemetryDispatcher', () => {
     await telemetry.onEmbedStart!(dummyEvent);
     await telemetry.onEmbedFinish!(dummyEvent);
     await telemetry.onRerankStart!(dummyEvent);
-    await telemetry.onRerankFinish!(dummyEvent);
+    await telemetry.onRerankEnd!(dummyEvent);
     await telemetry.onFinish!(dummyEvent);
     await telemetry.onError!(dummyEvent);
 
@@ -191,7 +191,7 @@ describe('createTelemetryDispatcher', () => {
     expect(integration.onEmbedStart).toHaveBeenCalledOnce();
     expect(integration.onEmbedFinish).toHaveBeenCalledOnce();
     expect(integration.onRerankStart).toHaveBeenCalledOnce();
-    expect(integration.onRerankFinish).toHaveBeenCalledOnce();
+    expect(integration.onRerankEnd).toHaveBeenCalledOnce();
     expect(integration.onFinish).toHaveBeenCalledOnce();
     expect(integration.onError).toHaveBeenCalledOnce();
   });
@@ -221,7 +221,7 @@ describe('createTelemetryDispatcher', () => {
         onEmbedStart: vi.fn(),
         onEmbedFinish: vi.fn(),
         onRerankStart: vi.fn(),
-        onRerankFinish: vi.fn(),
+        onRerankEnd: vi.fn(),
         onFinish: vi.fn(),
         onError: vi.fn(),
       };
@@ -241,7 +241,7 @@ describe('createTelemetryDispatcher', () => {
       expect(telemetry.onEmbedStart).toBeUndefined();
       expect(telemetry.onEmbedFinish).toBeUndefined();
       expect(telemetry.onRerankStart).toBeUndefined();
-      expect(telemetry.onRerankFinish).toBeUndefined();
+      expect(telemetry.onRerankEnd).toBeUndefined();
       expect(telemetry.onFinish).toBeUndefined();
       expect(telemetry.onError).toBeUndefined();
       expect(telemetry.executeTool).toBeUndefined();

@@ -470,6 +470,60 @@ const result = await generateText({
 });
 ```
 
+### Telemetry Rerank Callback: `onRerankFinish` Renamed to `onRerankEnd`
+
+The telemetry integration callback for individual reranking model calls has been renamed from `onRerankFinish` to `onRerankEnd`.
+
+This also applies to the `type` field published on `AI_SDK_TELEMETRY_DIAGNOSTIC_CHANNEL`: diagnostic-channel subscribers now receive `onRerankEnd` instead of `onRerankFinish`.
+
+Update telemetry integrations and diagnostic-channel subscribers to use `onRerankEnd`.
+
+```tsx filename="AI SDK 6"
+import type { Telemetry } from 'ai';
+
+const telemetry: Telemetry = {
+  onRerankFinish(event) {
+    console.log('Rerank finished:', event.ranking.length);
+  },
+};
+```
+
+```tsx filename="AI SDK 7"
+import type { Telemetry } from 'ai';
+
+const telemetry: Telemetry = {
+  onRerankEnd(event) {
+    console.log('Rerank ended:', event.ranking.length);
+  },
+};
+```
+
+### Rerank Callback: `experimental_onFinish` Renamed to `experimental_onEnd`
+
+The per-call callback option for completed `rerank` operations has been renamed from `experimental_onFinish` to `experimental_onEnd`.
+
+```tsx filename="AI SDK 6"
+const result = await rerank({
+  model: yourRerankingModel,
+  documents,
+  query,
+  experimental_onFinish(event) {
+    console.log('Rerank finished:', event.ranking.length);
+  },
+});
+```
+
+```tsx filename="AI SDK 7"
+const result = await rerank({
+  model: yourRerankingModel,
+  documents,
+  query,
+  experimental_onEnd(event) {
+    console.log('Rerank ended:', event.ranking.length);
+  },
+});
+```
+
 ### Streaming: Move `includeRawChunks` to `include.rawChunks`
 
 The top-level `includeRawChunks` option on `streamText` is deprecated in AI SDK 7. Move it into the `include` options object as `rawChunks`.

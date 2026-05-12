@@ -113,7 +113,7 @@ For multi-step text generations that use tools, the callback order is typically
         'Called when the reranking operation begins, before the reranking model is called.',
     },
     {
-      name: 'experimental_onFinish',
+      name: 'experimental_onEnd',
       type: '(event: RerankEndEvent) => void | Promise<void>',
       description:
         'Called when the reranking operation completes, after the reranking model returns.',
@@ -1142,7 +1142,7 @@ const result = await rerank({
   ]}
 />
 
-#### `experimental_onFinish`
+#### `experimental_onEnd`
 
 Called when the reranking operation completes, after the reranking model returns.
 
@@ -1153,7 +1153,7 @@ const result = await rerank({
   model: cohere.reranking('rerank-v3.5'),
   documents: ['sunny day at the beach', 'rainy afternoon in the city'],
   query: 'talk about rain',
-  experimental_onFinish: event => {
+  experimental_onEnd: event => {
     console.log('Operation:', event.operationId);
     console.log('Rankings:', event.ranking.length);
   },
