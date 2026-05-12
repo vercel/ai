@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.178
+
+### Patch Changes
+
+- ac6f27e: fix(ai): update opentelemetry pinned version
+
 ## 6.0.177
 
 ### Patch Changes
