@@ -281,6 +281,14 @@ jobs:
     if: |
       github.repository_owner == 'vercel' &&
       needs.resolve-pr.outputs.should-backport == 'true'
+    # Serialize across all events (pull_request labeled, push) targeting the
+    # same PR+release branch. The workflow-level concurrency key differs by
+    # event_name, so two events for the same merge would otherwise race on
+    # creating the backport branch and PR. Serializing here lets the second
+    # run hit the "Check for existing backport PR" step and exit cleanly.
+    concurrency:
+      group: backport-${{ needs.resolve-pr.outputs.pr-number }}-${{ needs.find-branch.outputs.release-branch }}
+      cancel-in-progress: false
 
     steps:
       - name: Configure Git
