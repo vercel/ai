@@ -14,6 +14,7 @@ import {
   withUserAgentSuffix,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
+import { createSigV4FetchFunction } from '@ai-sdk/provider-utils/aws';
 import { AmazonBedrockChatLanguageModel } from './amazon-bedrock-chat-language-model';
 import type { AmazonBedrockChatModelId } from './amazon-bedrock-chat-language-model-options';
 import { AmazonBedrockEmbeddingModel } from './amazon-bedrock-embedding-model';
@@ -21,8 +22,8 @@ import type { AmazonBedrockEmbeddingModelId } from './amazon-bedrock-embedding-m
 import { AmazonBedrockImageModel } from './amazon-bedrock-image-model';
 import type { AmazonBedrockImageModelId } from './amazon-bedrock-image-settings';
 import {
+  BEDROCK_USER_AGENT_SUFFIX,
   createApiKeyFetchFunction,
-  createSigV4FetchFunction,
   type AmazonBedrockCredentials,
 } from './amazon-bedrock-sigv4-fetch';
 import { AmazonBedrockRerankingModel } from './reranking/amazon-bedrock-reranking-model';
@@ -182,88 +183,95 @@ export function createAmazonBedrock(
   // Use API key authentication if available, otherwise fall back to SigV4
   const fetchFunction = apiKey
     ? createApiKeyFetchFunction(apiKey, options.fetch)
-    : createSigV4FetchFunction(async () => {
-        const region = loadSetting({
-          settingValue: options.region,
-          settingName: 'region',
-          environmentVariableName: 'AWS_REGION',
-          description: 'AWS region',
-        });
+    : createSigV4FetchFunction(
+        async () => {
+          const region = loadSetting({
+            settingValue: options.region,
+            settingName: 'region',
+            environmentVariableName: 'AWS_REGION',
+            description: 'AWS region',
+          });
 
-        // If a credential provider is provided, use it to get the credentials.
-        if (options.credentialProvider) {
+          // If a credential provider is provided, use it to get the credentials.
+          if (options.credentialProvider) {
+            try {
+              return {
+                ...(await options.credentialProvider()),
+                region,
+              };
+            } catch (error) {
+              // Error handling for credential provider failures
+              const errorMessage =
+                error instanceof Error ? error.message : String(error);
+              throw new Error(
+                `AWS credential provider failed: ${errorMessage}. ` +
+                  'Please ensure your credential provider returns valid AWS credentials ' +
+                  'with accessKeyId and secretAccessKey properties.',
+              );
+            }
+          }
+
+          // Enhanced error handling for SigV4 credential loading
           try {
             return {
-              ...(await options.credentialProvider()),
               region,
+              accessKeyId: loadSetting({
+                settingValue: options.accessKeyId,
+                settingName: 'accessKeyId',
+                environmentVariableName: 'AWS_ACCESS_KEY_ID',
+                description: 'AWS access key ID',
+              }),
+              secretAccessKey: loadSetting({
+                settingValue: options.secretAccessKey,
+                settingName: 'secretAccessKey',
+                environmentVariableName: 'AWS_SECRET_ACCESS_KEY',
+                description: 'AWS secret access key',
+              }),
+              sessionToken:
+                options.accessKeyId != null && options.secretAccessKey != null
+                  ? options.sessionToken
+                  : loadOptionalSetting({
+                      settingValue: options.sessionToken,
+                      environmentVariableName: 'AWS_SESSION_TOKEN',
+                    }),
             };
           } catch (error) {
-            // Error handling for credential provider failures
+            // Provide helpful error message for missing AWS credentials
             const errorMessage =
               error instanceof Error ? error.message : String(error);
-            throw new Error(
-              `AWS credential provider failed: ${errorMessage}. ` +
-                'Please ensure your credential provider returns valid AWS credentials ' +
-                'with accessKeyId and secretAccessKey properties.',
-            );
+            if (
+              errorMessage.includes('AWS_ACCESS_KEY_ID') ||
+              errorMessage.includes('accessKeyId')
+            ) {
+              throw new Error(
+                'AWS SigV4 authentication requires AWS credentials. Please provide either:\n' +
+                  '1. Set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY environment variables\n' +
+                  '2. Provide accessKeyId and secretAccessKey in options\n' +
+                  '3. Use a credentialProvider function\n' +
+                  '4. Use API key authentication with AWS_BEARER_TOKEN_BEDROCK or apiKey option\n' +
+                  `Original error: ${errorMessage}`,
+              );
+            }
+            if (
+              errorMessage.includes('AWS_SECRET_ACCESS_KEY') ||
+              errorMessage.includes('secretAccessKey')
+            ) {
+              throw new Error(
+                'AWS SigV4 authentication requires both AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY. ' +
+                  'Please ensure both credentials are provided.\n' +
+                  `Original error: ${errorMessage}`,
+              );
+            }
+            // Re-throw other errors as-is
+            throw error;
           }
-        }
-
-        // Enhanced error handling for SigV4 credential loading
-        try {
-          return {
-            region,
-            accessKeyId: loadSetting({
-              settingValue: options.accessKeyId,
-              settingName: 'accessKeyId',
-              environmentVariableName: 'AWS_ACCESS_KEY_ID',
-              description: 'AWS access key ID',
-            }),
-            secretAccessKey: loadSetting({
-              settingValue: options.secretAccessKey,
-              settingName: 'secretAccessKey',
-              environmentVariableName: 'AWS_SECRET_ACCESS_KEY',
-              description: 'AWS secret access key',
-            }),
-            sessionToken:
-              options.accessKeyId != null && options.secretAccessKey != null
-                ? options.sessionToken
-                : loadOptionalSetting({
-                    settingValue: options.sessionToken,
-                    environmentVariableName: 'AWS_SESSION_TOKEN',
-                  }),
-          };
-        } catch (error) {
-          // Provide helpful error message for missing AWS credentials
-          const errorMessage =
-            error instanceof Error ? error.message : String(error);
-          if (
-            errorMessage.includes('AWS_ACCESS_KEY_ID') ||
-            errorMessage.includes('accessKeyId')
-          ) {
-            throw new Error(
-              'AWS SigV4 authentication requires AWS credentials. Please provide either:\n' +
-                '1. Set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY environment variables\n' +
-                '2. Provide accessKeyId and secretAccessKey in options\n' +
-                '3. Use a credentialProvider function\n' +
-                '4. Use API key authentication with AWS_BEARER_TOKEN_BEDROCK or apiKey option\n' +
-                `Original error: ${errorMessage}`,
-            );
-          }
-          if (
-            errorMessage.includes('AWS_SECRET_ACCESS_KEY') ||
-            errorMessage.includes('secretAccessKey')
-          ) {
-            throw new Error(
-              'AWS SigV4 authentication requires both AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY. ' +
-                'Please ensure both credentials are provided.\n' +
-                `Original error: ${errorMessage}`,
-            );
-          }
-          // Re-throw other errors as-is
-          throw error;
-        }
-      }, options.fetch);
+        },
+        {
+          service: 'bedrock',
+          userAgentSuffix: BEDROCK_USER_AGENT_SUFFIX,
+          fetch: options.fetch,
+        },
+      );
 
   const getHeaders = () => {
     const baseHeaders = options.headers ?? {};

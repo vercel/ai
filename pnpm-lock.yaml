@@ -1520,9 +1520,6 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
-      aws4fetch:
-        specifier: ^1.0.20
-        version: 1.0.20
       tsup:
         specifier: ^8.3.0
         version: 8.5.1(@swc/core@1.15.3)(jiti@2.6.1)(postcss@8.5.9)(tsx@4.21.0)(typescript@5.8.3)(yaml@2.8.4)

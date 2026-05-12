@@ -1,8 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import {
-  createApiKeyFetchFunction,
-  createSigV4FetchFunction,
-} from './amazon-bedrock-sigv4-fetch';
+import { createApiKeyFetchFunction } from './amazon-bedrock-sigv4-fetch';
 
 vi.mock('./version', () => ({
   VERSION: '0.0.0-test',
@@ -14,66 +11,6 @@ vi.mock('@ai-sdk/provider-utils', async () => {
     ...actual,
     getRuntimeEnvironmentUserAgent: vi.fn(() => 'runtime/testenv'),
   };
-});
-
-vi.mock('aws4fetch', () => {
-  class MockAwsV4Signer {
-    options: Record<string, unknown>;
-    constructor(options: Record<string, unknown>) {
-      this.options = options;
-    }
-    async sign() {
-      const headers = new Headers();
-      headers.set('x-amz-date', '20240315T000000Z');
-      headers.set('authorization', 'AWS4-HMAC-SHA256 Credential=test');
-      if (this.options.sessionToken) {
-        headers.set(
-          'x-amz-security-token',
-          this.options.sessionToken as string,
-        );
-      }
-      return { headers };
-    }
-  }
-  return { AwsV4Signer: MockAwsV4Signer };
-});
-
-describe('createSigV4FetchFunction', () => {
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
-  it('signs requests with the bedrock service and bedrock user-agent', async () => {
-    const { AwsV4Signer } = await import('aws4fetch');
-    const signerSpy = vi.spyOn(AwsV4Signer.prototype, 'sign');
-    const dummyFetch = vi.fn().mockResolvedValue(new Response('OK'));
-    const fetchFn = createSigV4FetchFunction(
-      () => ({
-        region: 'us-west-2',
-        accessKeyId: 'akid',
-        secretAccessKey: 'secret',
-      }),
-      dummyFetch,
-    );
-
-    await fetchFn('https://bedrock-runtime.us-west-2.amazonaws.com/x', {
-      method: 'POST',
-      body: '{"hi":1}',
-    });
-
-    const signerInstance = signerSpy.mock.instances[0] as {
-      options: { service: string };
-    };
-    expect(signerInstance.options.service).toBe('bedrock');
-
-    const calledHeaders = dummyFetch.mock.calls[0]![1]!.headers as Record<
-      string,
-      string
-    >;
-    expect(calledHeaders['user-agent']).toContain(
-      'ai-sdk/amazon-bedrock/0.0.0-test',
-    );
-  });
 });
 
 describe('createApiKeyFetchFunction', () => {
