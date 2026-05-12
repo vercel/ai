@@ -69,7 +69,7 @@ jobs:
 
           PR_NUMBER=""
 
-          if [ "$EVENT_NAME" = "issues" ]; then
+          if [ "$EVENT_NAME" = "pull_request" ]; then
             [ "$ISSUE_LABEL" = "backport" ] || skip "Ignoring non-backport label: $ISSUE_LABEL"
 
             ISSUE=$(gh api "repos/${REPO}/issues/${ISSUE_NUMBER}")
