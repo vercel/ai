@@ -18,6 +18,7 @@ import {
 } from 'ai';
 import { getWritable } from 'workflow';
 import { z } from 'zod';
+import { devToolsTelemetry } from '../lib/devtools-bridge';
 import {
   recordTelemetryEvent,
   type TelemetryEventSource,
@@ -242,7 +243,10 @@ function createTelemetryOptions({
         requestId: true,
       },
     },
-    integrations: createTelemetryIntegration(telemetryRunId),
+    integrations: [
+      createTelemetryIntegration(telemetryRunId),
+      devToolsTelemetry,
+    ],
   };
 }
 
