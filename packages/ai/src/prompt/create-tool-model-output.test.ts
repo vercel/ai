@@ -374,6 +374,41 @@ describe('createToolModelOutput', () => {
         }
       `);
     });
+
+    it('should sanitize non-JSON class instances with methods', async () => {
+      class ToolResultWithMethods {
+        text = 'Nested result is safe for serialization.';
+        label = 'tool-result';
+        metadata = { id: 123, nestedMethod: () => 'metadata' };
+
+        method() {
+          return this.label;
+        }
+      }
+
+      const result = await createToolModelOutput({
+        toolCallId: '123',
+        input: {},
+        output: new ToolResultWithMethods(),
+        tool: undefined,
+        errorMode: 'none',
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "type": "json",
+          "value": {
+            "label": "tool-result",
+            "metadata": {
+              "id": 123,
+            },
+            "text": "Nested result is safe for serialization.",
+          },
+        }
+      `);
+
+      expect(() => structuredClone(result)).not.toThrow();
+    });
   });
 
   describe('edge cases', () => {
