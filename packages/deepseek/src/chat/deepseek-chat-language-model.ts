@@ -122,29 +122,7 @@ export class DeepSeekChatLanguageModel implements LanguageModelV3 {
     const thinking =
       deepseekOptions.thinking?.type != null
         ? { type: deepseekOptions.thinking.type }
-<<<<<<< HEAD
         : undefined;
-=======
-        : isCustomReasoning(reasoning)
-          ? { type: reasoning === 'none' ? 'disabled' : 'enabled' }
-          : undefined;
-
-    const reasoningEffort =
-      deepseekOptions.reasoningEffort ??
-      (isCustomReasoning(reasoning) && reasoning !== 'none'
-        ? mapReasoningToProviderEffort({
-            reasoning,
-            effortMap: {
-              minimal: 'low',
-              low: 'low',
-              medium: 'medium',
-              high: 'high',
-              xhigh: 'max',
-            },
-            warnings: allWarnings,
-          })
-        : undefined);
->>>>>>> 87280a6f4 (feat: accept adaptive thinking and full reasoning_effort enum for deepseek provider (#15235))
 
     return {
       args: {
