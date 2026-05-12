@@ -178,7 +178,7 @@ jobs:
 
           HEAD_REPO=$(echo "$PR" | jq -r '.head.repo.full_name // empty')
           if [ "$EVENT_NAME" = "pull_request" ] && [ "$HEAD_REPO" != "$REPO" ]; then
-            skip "PR #${PR_NUMBER} is from a fork and must be backported with workflow_dispatch"
+            skip "PR #${PR_NUMBER} is from a fork and must be backported with workflow_dispatch. You can do it [here](https://github.com/vercel/ai/actions/workflows/backport.yml) or run `gh workflow run backport.yml --repo vercel/ai -f pull_request_number=${PR_NUMBER}`"
           fi
 
           BASE_REF=$(echo "$PR" | jq -r '.base.ref')
