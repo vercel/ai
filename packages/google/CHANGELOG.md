@@ -1,5 +1,27 @@
 # @ai-sdk/google
 
+## 4.0.0-canary.59
+
+### Patch Changes
+
+- db394ab: feat(provider/google): support cancelling long-running Interactions API agents via AbortSignal, and process their intermittent stream
+- Updated dependencies [ca446f8]
+  - @ai-sdk/provider-utils@5.0.0-canary.38
+
+## 4.0.0-canary.58
+
+### Patch Changes
+
+- Updated dependencies [d848405]
+  - @ai-sdk/provider-utils@5.0.0-canary.37
+
+## 4.0.0-canary.57
+
+### Patch Changes
+
+- Updated dependencies [ca39020]
+  - @ai-sdk/provider-utils@5.0.0-canary.36
+
 ## 4.0.0-canary.56
 
 ### Patch Changes
@@ -1788,7 +1810,6 @@
 ### Patch Changes
 
 - 2e06f14: feat (provider/google): Change to provider defined tools
-
   - Change the google search tool to be a provider defined tool
   - Added new URL context tool as a provider defined tool
 

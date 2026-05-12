@@ -1,5 +1,27 @@
 # @ai-sdk/mcp
 
+## 2.0.0-canary.47
+
+### Patch Changes
+
+- 2655da8: fix(mcp): use negotiated protocol version in transport request headers
+- Updated dependencies [ca446f8]
+  - @ai-sdk/provider-utils@5.0.0-canary.38
+
+## 2.0.0-canary.46
+
+### Patch Changes
+
+- Updated dependencies [d848405]
+  - @ai-sdk/provider-utils@5.0.0-canary.37
+
+## 2.0.0-canary.45
+
+### Patch Changes
+
+- Updated dependencies [ca39020]
+  - @ai-sdk/provider-utils@5.0.0-canary.36
+
 ## 2.0.0-canary.44
 
 ### Patch Changes

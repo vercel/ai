@@ -79,12 +79,12 @@ export function bash_20241022<OUTPUT>(
   if (execute === undefined) {
     return bash_20241022_internal({
       ...rest,
-      execute: async ({ command }, { sandbox }) => {
+      execute: async ({ command }, { abortSignal, sandbox }) => {
         if (!sandbox) {
           throw new Error('Sandbox is not available');
         }
 
-        return await sandbox.executeCommand({ command });
+        return await sandbox.executeCommand({ command, abortSignal });
       },
     } as Bash20241022Options<Bash20241022DefaultOutput>) as ReturnType<
       typeof bash_20241022_internal<OUTPUT>

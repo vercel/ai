@@ -387,35 +387,11 @@ export async function convertToAmazonBedrockChatMessages(
                       },
                     },
                   });
-                } else if (
-                  part.providerOptions == null ||
-                  Object.keys(part.providerOptions).every(
-                    k => k === 'bedrock' || k === 'amazonBedrock',
-                  )
-                ) {
-                  // No foreign-provider metadata — preserve text. This covers
-                  // the prefill case where the caller hand-crafts a reasoning
-                  // block without a signature. Forwarding reasoning that was
-                  // signed by a different provider (e.g. anthropic) would
-                  // cause Bedrock to reject with
-                  // `thinking.signature: Field required`, so we drop those.
-                  // trim the last text part if it's the last message in the
-                  // block because Bedrock does not allow trailing whitespace
-                  // in pre-filled assistant responses
-                  amazonBedrockContent.push({
-                    reasoningContent: {
-                      reasoningText: {
-                        text: trimIfLast(
-                          isLastBlock,
-                          isLastMessage,
-                          isLastContentPart,
-                          part.text,
-                        ),
-                      },
-                    },
-                  });
                 }
-
+                // Unsigned reasoning is intentionally not replayed. Some
+                // Bedrock models (for example OpenAI gpt-oss) return reasoning
+                // without a signature; sending it back in multi-turn tool use
+                // can leak raw reasoning into the visible response.
                 break;
               }
 

@@ -132,7 +132,11 @@ const { text } = await generateText({
       role: 'user',
       content: [
         { type: 'text', text: 'What do you see in this image?' },
-        { type: 'file', mediaType: 'image', data: fs.readFileSync('./image.png') },
+        {
+          type: 'file',
+          mediaType: 'image',
+          data: fs.readFileSync('./image.png'),
+        },
       ],
     },
   ],
@@ -352,8 +356,8 @@ const result = streamText({
   Include file search results in the response. When set to `['file_search_call.results']`, the response will contain the actual search results with file content and scores.
 
 <Note>
-  File search requires grok-4 family models (including grok-4.20) and the Responses API. Vector stores
-  can be created using the [xAI
+  File search requires grok-4 family models (including grok-4.20) and the
+  Responses API. Vector stores can be created using the [xAI
   API](https://docs.x.ai/docs/guides/using-collections/api).
 </Note>
 
@@ -587,10 +591,10 @@ const { images } = await generateImage({
 
 ### Image Model Capabilities
 
-| Model                    | Resolution   | Aspect Ratios                                                                                               | Image Editing       |
-| ------------------------ | ------------ | ----------------------------------------------------------------------------------------------------------- | ------------------- |
-| `grok-imagine-image-pro` | `1k`, `2k`   | `1:1`, `16:9`, `9:16`, `4:3`, `3:4`, `3:2`, `2:3`, `2:1`, `1:2`, `19.5:9`, `9:19.5`, `20:9`, `9:20`, `auto` | <Check size={18} /> |
-| `grok-imagine-image`     | `1k`         | `1:1`, `16:9`, `9:16`, `4:3`, `3:4`, `3:2`, `2:3`, `2:1`, `1:2`, `19.5:9`, `9:19.5`, `20:9`, `9:20`, `auto` | <Check size={18} /> |
+| Model                    | Resolution | Aspect Ratios                                                                                               | Image Editing       |
+| ------------------------ | ---------- | ----------------------------------------------------------------------------------------------------------- | ------------------- |
+| `grok-imagine-image-pro` | `1k`, `2k` | `1:1`, `16:9`, `9:16`, `4:3`, `3:4`, `3:2`, `2:3`, `2:1`, `1:2`, `19.5:9`, `9:19.5`, `20:9`, `9:20`, `auto` | <Check size={18} /> |
+| `grok-imagine-image`     | `1k`       | `1:1`, `16:9`, `9:16`, `4:3`, `3:4`, `3:2`, `2:3`, `2:1`, `1:2`, `19.5:9`, `9:19.5`, `20:9`, `9:20`, `auto` | <Check size={18} /> |
 
 ## Video Models
 
@@ -704,14 +708,22 @@ const [withSunglasses, withScarf] = await Promise.all([
     model: xai.video('grok-imagine-video'),
     prompt: 'Add sunglasses',
     providerOptions: {
-      xai: { mode: 'edit-video', videoUrl: step1VideoUrl, pollTimeoutMs: 600000 },
+      xai: {
+        mode: 'edit-video',
+        videoUrl: step1VideoUrl,
+        pollTimeoutMs: 600000,
+      },
     },
   }),
   generateVideo({
     model: xai.video('grok-imagine-video'),
     prompt: 'Add a scarf',
     providerOptions: {
-      xai: { mode: 'edit-video', videoUrl: step1VideoUrl, pollTimeoutMs: 600000 },
+      xai: {
+        mode: 'edit-video',
+        videoUrl: step1VideoUrl,
+        pollTimeoutMs: 600000,
+      },
     },
   }),
 ]);

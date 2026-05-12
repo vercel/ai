@@ -5,12 +5,12 @@ import {
   safeValidateTypes,
   type InferToolInput,
   type ModelMessage,
-  type SystemModelMessage,
   type ToolSet,
 } from '@ai-sdk/provider-utils';
 import { InvalidToolInputError } from '../error/invalid-tool-input-error';
 import { NoSuchToolError } from '../error/no-such-tool-error';
 import { ToolCallRepairError } from '../error/tool-call-repair-error';
+import type { Instructions } from '../prompt';
 import type { DynamicToolCall, TypedToolCall } from './tool-call';
 import type { ToolCallRepairFunction } from './tool-call-repair-function';
 import type { ToolInputRefinement } from './tool-input-refinement';
@@ -20,14 +20,14 @@ export async function parseToolCall<TOOLS extends ToolSet>({
   tools,
   repairToolCall,
   refineToolInput,
-  system,
   messages,
+  instructions,
 }: {
   toolCall: LanguageModelV4ToolCall;
   tools: TOOLS | undefined;
   repairToolCall: ToolCallRepairFunction<TOOLS> | undefined;
   refineToolInput?: ToolInputRefinement<TOOLS> | undefined;
-  system: string | SystemModelMessage | Array<SystemModelMessage> | undefined;
+  instructions: Instructions | undefined;
   messages: ModelMessage[];
 }): Promise<TypedToolCall<TOOLS>> {
   try {
@@ -69,7 +69,8 @@ export async function parseToolCall<TOOLS extends ToolSet>({
             const { inputSchema } = tools[toolName];
             return await asSchema(inputSchema).jsonSchema;
           },
-          system,
+          instructions,
+          system: instructions,
           messages,
           error,
         });

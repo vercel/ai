@@ -69,7 +69,7 @@ export interface TelemetryDispatcher {
   onEmbedStart?: Callback<EmbeddingModelCallStartEvent>;
   onEmbedFinish?: Callback<EmbeddingModelCallEndEvent>;
   onRerankStart?: Callback<RerankingModelCallStartEvent>;
-  onRerankFinish?: Callback<RerankingModelCallEndEvent>;
+  onRerankEnd?: Callback<RerankingModelCallEndEvent>;
   onFinish?: Callback<OperationFinishEvent>;
   onError?: Callback<unknown>;
   executeTool?: Telemetry['executeTool'];
@@ -189,7 +189,7 @@ export interface Telemetry {
    * Called when an individual reranking model call (doRerank) completes.
    * Contains the ranking results from the model response.
    */
-  onRerankFinish?: Callback<InferTelemetryEvent<RerankingModelCallEndEvent>>;
+  onRerankEnd?: Callback<InferTelemetryEvent<RerankingModelCallEndEvent>>;
 
   /**
    * Called when an operation completes. Fired for text generation

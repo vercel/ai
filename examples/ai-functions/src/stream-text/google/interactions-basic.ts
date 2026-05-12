@@ -12,7 +12,7 @@ run(async () => {
     process.stdout.write(textPart);
   }
 
-  const googleMetadata = (await result.providerMetadata)?.google;
+  const googleMetadata = (await result.finalStep).providerMetadata?.google;
 
   console.log();
   console.log('Token usage:', await result.usage);

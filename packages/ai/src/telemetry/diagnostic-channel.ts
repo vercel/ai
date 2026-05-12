@@ -14,7 +14,7 @@ export type TelemetryDiagnosticEventType =
   | 'onEmbedStart'
   | 'onEmbedFinish'
   | 'onRerankStart'
-  | 'onRerankFinish'
+  | 'onRerankEnd'
   | 'onFinish'
   | 'onError';
 

@@ -1,5 +1,58 @@
 # @ai-sdk/workflow
 
+## 1.0.0-canary.48
+
+### Patch Changes
+
+- c3a6524: Add a `stepNumber` option to `doStreamStep` so callers can create `StepResult` objects with the correct step number.
+
+## 1.0.0-canary.47
+
+### Patch Changes
+
+- ca446f8: feat: flexible tool descriptions
+- Updated dependencies [b67525f]
+- Updated dependencies [ca446f8]
+- Updated dependencies [bcacd48]
+  - ai@7.0.0-canary.131
+  - @ai-sdk/provider-utils@5.0.0-canary.38
+
+## 1.0.0-canary.46
+
+### Patch Changes
+
+- ai@7.0.0-canary.130
+
+## 1.0.0-canary.45
+
+### Patch Changes
+
+- Updated dependencies [d1b3786]
+  - ai@7.0.0-canary.129
+
+## 1.0.0-canary.44
+
+### Patch Changes
+
+- Updated dependencies [d848405]
+  - @ai-sdk/provider-utils@5.0.0-canary.37
+  - ai@7.0.0-canary.128
+
+## 1.0.0-canary.43
+
+### Patch Changes
+
+- d775a57: feat: introduce Instructions type
+- 39dad72: feat(workflow): add stable telemetry integration support to `WorkflowAgent` and remove legacy telemetry options.
+- Updated dependencies [e95e38d]
+- Updated dependencies [016e877]
+- Updated dependencies [ca99fea]
+- Updated dependencies [ca39020]
+- Updated dependencies [d775a57]
+- Updated dependencies [538c12b]
+  - ai@7.0.0-canary.127
+  - @ai-sdk/provider-utils@5.0.0-canary.36
+
 ## 1.0.0-canary.42
 
 ### Patch Changes

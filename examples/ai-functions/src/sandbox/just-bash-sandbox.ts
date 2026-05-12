@@ -4,8 +4,18 @@ import { type Bash } from 'just-bash';
 export class JustBashSandbox implements Sandbox {
   constructor(private readonly bash: Bash) {}
 
-  async executeCommand({ command }: { command: string }) {
-    const result = await this.bash.exec(command);
+  async executeCommand({
+    command,
+    workingDirectory,
+    abortSignal,
+  }: {
+    command: string;
+    workingDirectory?: string;
+    abortSignal?: AbortSignal;
+  }) {
+    abortSignal?.throwIfAborted();
+
+    const result = await this.bash.exec(command, { cwd: workingDirectory });
 
     return {
       exitCode: result.exitCode,

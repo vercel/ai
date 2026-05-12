@@ -57,7 +57,7 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
     },
     {
       name: 'instructions',
-      type: 'string | SystemModelMessage | SystemModelMessage[]',
+      type: 'Instructions',
       isOptional: true,
       description:
         'Instructions for the agent, usually used for system prompt/context.',
@@ -145,7 +145,8 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
             {
               name: 'provider',
               type: 'string',
-              description: 'The provider identifier (e.g., "openai", "anthropic").',
+              description:
+                'The provider identifier (e.g., "openai", "anthropic").',
             },
             {
               name: 'modelId',
@@ -153,9 +154,9 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
               description: 'The specific model identifier (e.g., "gpt-4o").',
             },
             {
-              name: 'system',
-              type: 'string | SystemModelMessage | Array<SystemModelMessage> | undefined',
-              description: 'The system message(s) provided to the model.',
+              name: 'instructions',
+              type: 'Instructions | undefined',
+              description: 'The instructions provided to the model.',
             },
             {
               name: 'messages',
@@ -284,7 +285,8 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
             {
               name: 'provider',
               type: 'string',
-              description: 'The provider identifier (e.g., "openai", "anthropic").',
+              description:
+                'The provider identifier (e.g., "openai", "anthropic").',
             },
             {
               name: 'modelId',
@@ -292,9 +294,10 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
               description: 'The specific model identifier (e.g., "gpt-4o").',
             },
             {
-              name: 'system',
-              type: 'string | SystemModelMessage | Array<SystemModelMessage> | undefined',
-              description: 'The system message for this step.',
+              name: 'instructions',
+              type: 'Instructions | undefined',
+              description:
+                'The instructions provided to the model for this step.',
             },
             {
               name: 'messages',
@@ -390,7 +393,8 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
             {
               name: 'callId',
               type: 'string',
-              description: 'Unique identifier for this generation call, used to correlate events.',
+              description:
+                'Unique identifier for this generation call, used to correlate events.',
             },
             {
               name: 'toolCall',
@@ -427,7 +431,8 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
             {
               name: 'callId',
               type: 'string',
-              description: 'Unique identifier for this generation call, used to correlate events.',
+              description:
+                'Unique identifier for this generation call, used to correlate events.',
             },
             {
               name: 'toolCall',
@@ -629,7 +634,8 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
     {
       name: 'id',
       type: 'string | undefined',
-      description: 'The agent identifier, if one was provided in the constructor.',
+      description:
+        'The agent identifier, if one was provided in the constructor.',
     },
   ]}
 />
@@ -677,7 +683,7 @@ const result = await agent.generate({
       type: 'Sandbox',
       isOptional: true,
       description:
-        'Sandbox environment that is passed through to `prepareStep` and tool execution. Tools can access it from their execution options.',
+        'Sandbox environment that is passed through to `prepareStep`, tool description functions, and tool execution. Tools can access it from their description function options and execution options.',
     },
     {
       name: 'options',
@@ -780,7 +786,7 @@ for await (const chunk of stream.textStream) {
       type: 'Sandbox',
       isOptional: true,
       description:
-        'Sandbox environment that is passed through to `prepareStep` and tool execution. Tools can access it from their execution options.',
+        'Sandbox environment that is passed through to `prepareStep`, tool description functions, and tool execution. Tools can access it from their description function options and execution options.',
     },
     {
       name: 'options',

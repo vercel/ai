@@ -149,11 +149,9 @@ The following optional provider options are available for Google models:
 - **safetySettings** _Array\<\{ category: string; threshold: string \}\>_
 
   Optional. Safety settings for the model.
-
   - **category** _string_
 
     The category of the safety setting. Can be one of the following:
-
     - `HARM_CATEGORY_UNSPECIFIED`
     - `HARM_CATEGORY_HATE_SPEECH`
     - `HARM_CATEGORY_DANGEROUS_CONTENT`
@@ -164,7 +162,6 @@ The following optional provider options are available for Google models:
   - **threshold** _string_
 
     The threshold of the safety setting. Can be one of the following:
-
     - `HARM_BLOCK_THRESHOLD_UNSPECIFIED`
     - `BLOCK_LOW_AND_ABOVE`
     - `BLOCK_MEDIUM_AND_ABOVE`
@@ -178,7 +175,6 @@ The following optional provider options are available for Google models:
 - **thinkingConfig** _\{ thinkingLevel?: 'minimal' | 'low' | 'medium' | 'high'; thinkingBudget?: number; includeThoughts?: boolean \}_
 
   Optional. Configuration for the model's thinking process. Only supported by specific [Google models](https://ai.google.dev/gemini-api/docs/thinking).
-
   - **thinkingLevel** _'minimal' | 'low' | 'medium' | 'high'_
 
     Optional. Controls the thinking depth for Gemini 3 models. Gemini 3.1 Pro supports 'low', 'medium', and 'high', Gemini 3 Pro supports 'low' and 'high', while Gemini 3 Flash supports all four levels: 'minimal', 'low', 'medium', and 'high'. Only supported by Gemini 3 models.
@@ -200,11 +196,9 @@ The following optional provider options are available for Google models:
 - **imageConfig** _\{ aspectRatio?: string, imageSize?: string \}_
 
   Optional. Configuration for the models image generation. Only supported by specific [Google models](https://ai.google.dev/gemini-api/docs/image-generation).
-
   - **aspectRatio** _string_
 
     Model defaults to generate 1:1 squares, or to matching the output image size to that of your input image. Can be one of the following:
-
     - 1:1
     - 2:3
     - 3:2
@@ -219,7 +213,6 @@ The following optional provider options are available for Google models:
   - **imageSize** _string_
 
     Controls the output image resolution. Defaults to 1K. Can be one of the following:
-
     - 1K
     - 2K
     - 4K
@@ -232,7 +225,6 @@ The following optional provider options are available for Google models:
 - **mediaResolution** _string_
 
   Optional. If specified, the media resolution specified will be used. Can be one of the following:
-
   - `MEDIA_RESOLUTION_UNSPECIFIED`
   - `MEDIA_RESOLUTION_LOW`
   - `MEDIA_RESOLUTION_MEDIUM`
@@ -531,9 +523,7 @@ const { text, sources, providerMetadata } = await generateText({
 
 // access the grounding metadata. Casting to the provider metadata type
 // is optional but provides autocomplete and type safety.
-const metadata = providerMetadata?.google as
-  | GoogleProviderMetadata
-  | undefined;
+const metadata = providerMetadata?.google as GoogleProviderMetadata | undefined;
 const groundingMetadata = metadata?.groundingMetadata;
 const safetyRatings = metadata?.safetyRatings;
 ```
@@ -543,14 +533,12 @@ The `googleSearch` tool accepts the following optional configuration options:
 - **searchTypes** _object_
 
   Enables specific search types. Both can be combined.
-
   - `webSearch`: Enable web search grounding (pass `{}` to enable). This is the default.
   - `imageSearch`: Enable [image search grounding](https://ai.google.dev/gemini-api/docs/image-generation#image-search) (pass `{}` to enable).
 
 - **timeRangeFilter** _object_
 
   Restricts search results to a specific time range. Both `startTime` and `endTime` are required.
-
   - `startTime`: Start time in ISO 8601 format (e.g. `'2025-01-01T00:00:00Z'`).
   - `endTime`: End time in ISO 8601 format (e.g. `'2025-12-31T23:59:59Z'`).
 
@@ -569,12 +557,10 @@ When Google Search grounding is enabled, the model will include sources in the r
 Additionally, the grounding metadata includes detailed information about how search results were used to ground the model's response. Here are the available fields:
 
 - **`webSearchQueries`** (`string[] | null`)
-
   - Array of search queries used to retrieve information
   - Example: `["What's the weather in Chicago this weekend?"]`
 
 - **`searchEntryPoint`** (`{ renderedContent: string } | null`)
-
   - Contains the main search result content used as an entry point
   - The `renderedContent` field contains the formatted content
 
@@ -692,9 +678,7 @@ const { text, sources, providerMetadata } = await generateText({
   },
 });
 
-const metadata = providerMetadata?.google as
-  | GoogleProviderMetadata
-  | undefined;
+const metadata = providerMetadata?.google as GoogleProviderMetadata | undefined;
 const groundingMetadata = metadata?.groundingMetadata;
 const urlContextMetadata = metadata?.urlContextMetadata;
 ```
@@ -702,7 +686,6 @@ const urlContextMetadata = metadata?.urlContextMetadata;
 The URL context metadata includes detailed information about how the model used the URL context to generate the response. Here are the available fields:
 
 - **`urlMetadata`** (`{ retrievedUrl: string; urlRetrievalStatus: string; }[] | null`)
-
   - Array of URL context metadata
   - Each object includes:
     - **`retrievedUrl`**: The URL of the context
@@ -774,9 +757,7 @@ const { text, sources, providerMetadata } = await generateText({
   },
 });
 
-const metadata = providerMetadata?.google as
-  | GoogleProviderMetadata
-  | undefined;
+const metadata = providerMetadata?.google as GoogleProviderMetadata | undefined;
 const groundingMetadata = metadata?.groundingMetadata;
 const urlContextMetadata = metadata?.urlContextMetadata;
 ```
@@ -807,9 +788,7 @@ const { text, sources, providerMetadata } = await generateText({
     'What are the best Italian restaurants within a 15-minute walk from here?',
 });
 
-const metadata = providerMetadata?.google as
-  | GoogleProviderMetadata
-  | undefined;
+const metadata = providerMetadata?.google as GoogleProviderMetadata | undefined;
 const groundingMetadata = metadata?.groundingMetadata;
 ```
 
@@ -872,9 +851,7 @@ const { text, sources, providerMetadata } = await generateText({
 
 // access the grounding metadata. Casting to the provider metadata type
 // is optional but provides autocomplete and type safety.
-const metadata = providerMetadata?.google as
-  | GoogleProviderMetadata
-  | undefined;
+const metadata = providerMetadata?.google as GoogleProviderMetadata | undefined;
 const groundingMetadata = metadata?.groundingMetadata;
 const safetyRatings = metadata?.safetyRatings;
 ```
@@ -884,7 +861,6 @@ When RAG Engine Grounding is enabled, the model will include sources from your R
 Additionally, the grounding metadata includes detailed information about how RAG results were used to ground the model's response. Here are the available fields:
 
 - **`groundingChunks`** (Array of chunk objects | null)
-
   - Contains the retrieved context chunks from your RAG corpus
   - Each chunk includes:
     - **`retrievedContext`**: Information about the retrieved context
@@ -893,7 +869,6 @@ Additionally, the grounding metadata includes detailed information about how RAG
       - `text`: The actual text content of the chunk
 
 - **`groundingSupports`** (Array of support objects | null)
-
   - Contains details about how specific response parts are supported by RAG results
   - Each support object includes:
     - **`segment`**: Information about the grounded text segment
@@ -937,12 +912,10 @@ Example response:
 The `vertexRagStore` tool accepts the following configuration options:
 
 - **`ragCorpus`** (`string`, required)
-
   - The RagCorpus resource name in the format: `projects/{project}/locations/{location}/ragCorpora/{rag_corpus}`
   - This identifies your specific RAG corpus to search against
 
 - **`topK`** (`number`, optional)
-
   - The number of top contexts to retrieve from your RAG corpus
   - Defaults to the corpus configuration if not specified
 
@@ -1110,9 +1083,9 @@ a Gemini [agent preset](#agent-presets). The returned model can be passed to
 
 <Note>
   Use `google(...)` for the standard `:generateContent` /
-  `:streamGenerateContent` endpoints, and `google.interactions(...)` for the
-  new Interactions endpoint. Pick one per model instance — they target
-  different request bodies and SSE event vocabularies.
+  `:streamGenerateContent` endpoints, and `google.interactions(...)` for the new
+  Interactions endpoint. Pick one per model instance — they target different
+  request bodies and SSE event vocabularies.
 </Note>
 
 ### Provider Options
@@ -1158,10 +1131,12 @@ The following optional provider options are available:
 
   Name of a Gemini agent preset (e.g. `'deep-research-pro-preview-12-2025'`).
 
-  <Note>
-    Prefer the factory form `google.interactions({ agent: '...' })` over
-    setting `agent` in provider options — the factory is type-checked
-    against the supported agent names.
+      <Note>
+
+  Prefer the factory form `google.interactions({ agent: '...' })` over
+  setting `agent` in provider options — the factory is type-checked
+  against the supported agent names.
+
   </Note>
 
 - **agentConfig** _object_
@@ -1293,16 +1268,16 @@ const turn2 = await generateText({
 The Interactions API ships a built-in tool catalog. The provider-defined
 tools under `google.tools.*` map onto Interactions tool descriptors:
 
-| AI SDK tool                    | Interactions tool type | Notes                                                                       |
-| ------------------------------ | ---------------------- | --------------------------------------------------------------------------- |
-| `google.tools.googleSearch`    | `google_search`        | Web / image search grounding.                                               |
-| `google.tools.codeExecution`   | `code_execution`       | Server-side Python execution.                                               |
-| `google.tools.urlContext`      | `url_context`          | Fetch URLs referenced in the prompt.                                        |
-| `google.tools.fileSearch`      | `file_search`          | Retrieval from File Search stores.                                          |
-| `google.tools.googleMaps`      | `google_maps`          | Maps grounding for nearby-places queries.                                   |
-| _provider tool_ `google.computer_use` | `computer_use`         | Computer use (browser environment).                                  |
-| _provider tool_ `google.mcp_server`   | `mcp_server`           | Remote MCP server passthrough.                                       |
-| _provider tool_ `google.retrieval`    | `retrieval`            | Vertex AI Search retrieval.                                          |
+| AI SDK tool                           | Interactions tool type | Notes                                     |
+| ------------------------------------- | ---------------------- | ----------------------------------------- |
+| `google.tools.googleSearch`           | `google_search`        | Web / image search grounding.             |
+| `google.tools.codeExecution`          | `code_execution`       | Server-side Python execution.             |
+| `google.tools.urlContext`             | `url_context`          | Fetch URLs referenced in the prompt.      |
+| `google.tools.fileSearch`             | `file_search`          | Retrieval from File Search stores.        |
+| `google.tools.googleMaps`             | `google_maps`          | Maps grounding for nearby-places queries. |
+| _provider tool_ `google.computer_use` | `computer_use`         | Computer use (browser environment).       |
+| _provider tool_ `google.mcp_server`   | `mcp_server`           | Remote MCP server passthrough.            |
+| _provider tool_ `google.retrieval`    | `retrieval`            | Vertex AI Search retrieval.               |
 
 Function tools (`type: 'function'`) defined with the AI SDK `tool(...)`
 helper are translated to Interactions `function` tool descriptors. Other
@@ -1569,7 +1544,6 @@ The following optional provider options are available for Google embedding model
 - **taskType**: _string_
 
   Optional. Specifies the task type for generating embeddings. Supported task types include:
-
   - `SEMANTIC_SIMILARITY`: Optimized for text similarity.
   - `CLASSIFICATION`: Optimized for text classification.
   - `CLUSTERING`: Optimized for clustering texts based on similarity.

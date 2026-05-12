@@ -17,6 +17,16 @@ export type Sandbox = {
      * Command to execute in the sandbox.
      */
     command: string;
+
+    /**
+     * Working directory to execute the command in.
+     */
+    workingDirectory?: string;
+
+    /**
+     * Signal that can be used to abort the command.
+     */
+    abortSignal?: AbortSignal;
   }) => PromiseLike<{
     /**
      * Exit code returned by the command.

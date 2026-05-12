@@ -323,7 +323,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
 
     it('should pass string instructions', async () => {
       // GAP: WorkflowAgent uses `system` (string only) instead of `instructions`
-      // (which can be string | SystemModelMessage | SystemModelMessage[])
+      // (which can be Instructions)
       const agent = new WorkflowAgent({
         model: mockModel,
         instructions: 'INSTRUCTIONS',
@@ -1345,10 +1345,9 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
     });
 
     describe('stream', () => {
-      it.fails('should call per-call integration listeners for all lifecycle events', async () => {
+      it('should call per-call integration listeners for all lifecycle events', async () => {
         const events: string[] = [];
 
-        // GAP: WorkflowAgent does not support telemetry integration listeners
         const agent = new WorkflowAgent({
           model: createToolCallStreamMockModel(),
           tools: {
@@ -1358,8 +1357,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
                 `${value}-result`,
             }),
           },
-          experimental_telemetry: {
-            // @ts-expect-error - not yet implemented on WorkflowAgent
+          telemetry: {
             integrations: {
               onStart: async () => {
                 events.push('onStart');
@@ -1401,7 +1399,85 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
         ]);
       });
 
-      it.fails('should call globally registered integration listeners', async () => {
+      it('should include only configured runtime and tools context fields', async () => {
+        let startEvent: any;
+        let toolStartEvent: any;
+        let finishEvent: any;
+
+        const agent = new WorkflowAgent({
+          model: createToolCallStreamMockModel(),
+          tools: {
+            testTool: tool({
+              inputSchema: z.object({ value: z.string() }),
+              contextSchema: z.object({
+                requestId: z.string(),
+                secret: z.string(),
+              }),
+              execute: async ({ value }: { value: string }) =>
+                `${value}-result`,
+            }),
+          },
+          runtimeContext: {
+            requestId: 'request-123',
+            secret: 'runtime-secret',
+          },
+          toolsContext: {
+            testTool: {
+              requestId: 'tool-request-123',
+              secret: 'tool-secret',
+            },
+          },
+          telemetry: {
+            includeRuntimeContext: {
+              requestId: true,
+            },
+            includeToolsContext: {
+              testTool: {
+                requestId: true,
+              },
+            },
+            integrations: {
+              onStart: async event => {
+                startEvent = event;
+              },
+              onToolExecutionStart: async event => {
+                toolStartEvent = event;
+              },
+              onFinish: async event => {
+                finishEvent = event;
+              },
+            },
+          },
+        });
+
+        const { writable } = createMockWritable();
+        await agent.stream({
+          messages: [{ role: 'user' as const, content: 'test' }],
+          writable,
+        });
+
+        expect(startEvent.runtimeContext).toEqual({
+          requestId: 'request-123',
+        });
+        expect(startEvent.toolsContext).toEqual({
+          testTool: { requestId: 'tool-request-123' },
+        });
+        expect(toolStartEvent.toolContext).toEqual({
+          requestId: 'tool-request-123',
+        });
+        expect(finishEvent.runtimeContext).toEqual({
+          requestId: 'request-123',
+        });
+        const serializedEvents = JSON.stringify([
+          startEvent,
+          toolStartEvent,
+          finishEvent,
+        ]);
+        expect(serializedEvents).not.toContain('runtime-secret');
+        expect(serializedEvents).not.toContain('tool-secret');
+      });
+
+      it('should call globally registered integration listeners', async () => {
         const events: string[] = [];
 
         (globalThis as any).AI_SDK_TELEMETRY_INTEGRATIONS = [
@@ -1451,7 +1527,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
         ]);
       });
 
-      it.fails('should call integration listeners alongside agent callbacks', async () => {
+      it('should call integration listeners alongside agent callbacks', async () => {
         const events: string[] = [];
 
         const agent = new WorkflowAgent({
@@ -1481,8 +1557,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
           onFinish: async () => {
             events.push('agent-onFinish');
           },
-          experimental_telemetry: {
-            // @ts-expect-error - not yet implemented on WorkflowAgent
+          telemetry: {
             integrations: {
               onStart: async () => {
                 events.push('integration-onStart');
@@ -1532,8 +1607,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
               ]),
             }),
           }),
-          experimental_telemetry: {
-            // @ts-expect-error - not yet implemented on WorkflowAgent
+          telemetry: {
             integrations: {
               onStart: async () => {
                 throw new Error('integration error');
@@ -1618,6 +1692,81 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
         // Agent should pause waiting for approval
         expect(result.toolCalls.length).toBe(1);
         expect(result.toolResults.length).toBe(0);
+      });
+
+      it('should emit telemetry when an approved tool resumes', async () => {
+        const events: string[] = [];
+
+        const agent = new WorkflowAgent({
+          model: new MockLanguageModelV4({
+            doStream: async () => createSimpleStreamResponse(),
+          }),
+          tools: {
+            testTool: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: async ({ value }: { value: string }) =>
+                `${value}-result`,
+              needsApproval: true,
+            }),
+          },
+          telemetry: {
+            integrations: {
+              onToolExecutionStart: async () => {
+                events.push('onToolExecutionStart');
+              },
+              executeTool: async ({ execute }) => {
+                events.push('executeTool');
+                return execute();
+              },
+              onToolExecutionEnd: async event => {
+                const toolEvent = event as any;
+                events.push(
+                  `onToolExecutionEnd:${toolEvent.success ? 'success' : 'error'}`,
+                );
+              },
+            },
+          },
+        });
+
+        const { writable } = createMockWritable();
+        await agent.stream({
+          messages: [
+            { role: 'user' as const, content: 'test' },
+            {
+              role: 'assistant' as const,
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call-1',
+                  toolName: 'testTool',
+                  input: { value: 'test' },
+                },
+                {
+                  type: 'tool-approval-request',
+                  approvalId: 'approval-call-1',
+                  toolCallId: 'call-1',
+                },
+              ],
+            },
+            {
+              role: 'tool' as const,
+              content: [
+                {
+                  type: 'tool-approval-response',
+                  approvalId: 'approval-call-1',
+                  approved: true,
+                },
+              ],
+            },
+          ] as any,
+          writable,
+        });
+
+        expect(events).toEqual([
+          'onToolExecutionStart',
+          'executeTool',
+          'onToolExecutionEnd:success',
+        ]);
       });
     });
   });

@@ -8,7 +8,7 @@ run(async () => {
     prompt: 'Hello, how are you?',
   });
 
-  const googleMetadata = result.providerMetadata?.google;
+  const googleMetadata = result.finalStep.providerMetadata?.google;
 
   console.log(result.text);
   console.log();
