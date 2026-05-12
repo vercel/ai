@@ -306,7 +306,7 @@ describe('GatewayLanguageModel', () => {
         expect(requestBody.prompt).toEqual(TEST_PROMPT);
       });
 
-      it('should encode Uint8Array image part to base64 data URL with default mime type', async () => {
+      it('should encode Uint8Array image part to inline base64 data with default mime type', async () => {
         prepareJsonResponse({ content: { type: 'text', text: 'response' } });
         const imageBytes = new Uint8Array([1, 2, 3, 4]);
         const expectedBase64 = Buffer.from(imageBytes).toString('base64');
@@ -315,7 +315,11 @@ describe('GatewayLanguageModel', () => {
             role: 'user',
             content: [
               { type: 'text', text: 'Describe this image:' },
-              { type: 'file', data: imageBytes, mediaType: 'image/jpeg' },
+              {
+                type: 'file',
+                data: { type: 'data' as const, data: imageBytes },
+                mediaType: 'image/jpeg',
+              },
             ],
           },
         ];
@@ -329,11 +333,14 @@ describe('GatewayLanguageModel', () => {
           .content[1] as LanguageModelV4FilePart;
 
         expect(imagePart.type).toBe('file');
-        expect(imagePart.data).toBe(`data:image/jpeg;base64,${expectedBase64}`);
+        expect(imagePart.data).toEqual({
+          type: 'data',
+          data: expectedBase64,
+        });
         expect(imagePart.mediaType).toBe('image/jpeg');
       });
 
-      it('should encode Uint8Array image part to base64 data URL with specified mime type', async () => {
+      it('should encode Uint8Array image part to inline base64 data with specified mime type', async () => {
         prepareJsonResponse({ content: { type: 'text', text: 'response' } });
         const imageBytes = new Uint8Array([5, 6, 7, 8]);
         const expectedBase64 = Buffer.from(imageBytes).toString('base64');
@@ -341,7 +348,13 @@ describe('GatewayLanguageModel', () => {
         const imagePrompt: LanguageModelV4Prompt = [
           {
             role: 'user',
-            content: [{ type: 'file', data: imageBytes, mediaType: mimeType }],
+            content: [
+              {
+                type: 'file',
+                data: { type: 'data' as const, data: imageBytes },
+                mediaType: mimeType,
+              },
+            ],
           },
         ];
 
@@ -354,9 +367,10 @@ describe('GatewayLanguageModel', () => {
           .content[0] as LanguageModelV4FilePart;
 
         expect(imagePart.type).toBe('file');
-        expect(imagePart.data).toBe(
-          `data:${mimeType};base64,${expectedBase64}`,
-        );
+        expect(imagePart.data).toEqual({
+          type: 'data',
+          data: expectedBase64,
+        });
         expect(imagePart.mediaType).toBe(mimeType);
       });
 
@@ -368,7 +382,11 @@ describe('GatewayLanguageModel', () => {
             role: 'user',
             content: [
               { type: 'text', text: 'Image URL:' },
-              { type: 'file', data: imageUrl, mediaType: 'image/jpeg' },
+              {
+                type: 'file',
+                data: { type: 'url' as const, url: imageUrl },
+                mediaType: 'image/jpeg',
+              },
             ],
           },
         ];
@@ -382,7 +400,10 @@ describe('GatewayLanguageModel', () => {
           .content[1] as LanguageModelV4FilePart;
 
         expect(imagePart.type).toBe('file');
-        expect(imagePart.data).toBe(imageUrl.toString());
+        expect(imagePart.data).toEqual({
+          type: 'url',
+          url: imageUrl.toString(),
+        });
       });
 
       it('should handle mixed content types correctly', async () => {
@@ -395,9 +416,17 @@ describe('GatewayLanguageModel', () => {
             role: 'user',
             content: [
               { type: 'text', text: 'First text.' },
-              { type: 'file', data: imageBytes, mediaType: 'image/gif' },
+              {
+                type: 'file',
+                data: { type: 'data' as const, data: imageBytes },
+                mediaType: 'image/gif',
+              },
               { type: 'text', text: 'Second text.' },
-              { type: 'file', data: imageUrl, mediaType: 'image/png' },
+              {
+                type: 'file',
+                data: { type: 'url' as const, url: imageUrl },
+                mediaType: 'image/png',
+              },
             ],
           },
         ];
@@ -412,13 +441,13 @@ describe('GatewayLanguageModel', () => {
         expect(content[0]).toEqual({ type: 'text', text: 'First text.' });
         expect(content[1]).toEqual({
           type: 'file',
-          data: `data:image/gif;base64,${expectedBase64}`,
+          data: { type: 'data', data: expectedBase64 },
           mediaType: 'image/gif',
         });
         expect(content[2]).toEqual({ type: 'text', text: 'Second text.' });
         expect(content[3]).toEqual({
           type: 'file',
-          data: imageUrl.toString(),
+          data: { type: 'url', url: imageUrl.toString() },
           mediaType: 'image/png',
         });
       });
@@ -833,7 +862,7 @@ describe('GatewayLanguageModel', () => {
         expect(requestBody.prompt).toEqual(TEST_PROMPT);
       });
 
-      it('should encode Uint8Array image part to base64 data URL with default mime type', async () => {
+      it('should encode Uint8Array image part to inline base64 data with default mime type', async () => {
         prepareStreamResponse({ content: ['response'] });
         const imageBytes = new Uint8Array([1, 2, 3, 4]);
         const expectedBase64 = Buffer.from(imageBytes).toString('base64');
@@ -842,7 +871,11 @@ describe('GatewayLanguageModel', () => {
             role: 'user',
             content: [
               { type: 'text', text: 'Describe:' },
-              { type: 'file', data: imageBytes, mediaType: 'image/jpeg' },
+              {
+                type: 'file',
+                data: { type: 'data' as const, data: imageBytes },
+                mediaType: 'image/jpeg',
+              },
             ],
           },
         ];
@@ -857,11 +890,14 @@ describe('GatewayLanguageModel', () => {
           .content[1] as LanguageModelV4FilePart;
 
         expect(imagePart.type).toBe('file');
-        expect(imagePart.data).toBe(`data:image/jpeg;base64,${expectedBase64}`);
+        expect(imagePart.data).toEqual({
+          type: 'data',
+          data: expectedBase64,
+        });
         expect(imagePart.mediaType).toBe('image/jpeg');
       });
 
-      it('should encode Uint8Array image part to base64 data URL with specified mime type', async () => {
+      it('should encode Uint8Array image part to inline base64 data with specified mime type', async () => {
         prepareStreamResponse({ content: ['response'] });
         const imageBytes = new Uint8Array([5, 6, 7, 8]);
         const expectedBase64 = Buffer.from(imageBytes).toString('base64');
@@ -871,7 +907,11 @@ describe('GatewayLanguageModel', () => {
             role: 'user',
             content: [
               { type: 'text', text: 'Describe:' },
-              { type: 'file', data: imageBytes, mediaType: mimeType },
+              {
+                type: 'file',
+                data: { type: 'data' as const, data: imageBytes },
+                mediaType: mimeType,
+              },
             ],
           },
         ];
@@ -886,9 +926,10 @@ describe('GatewayLanguageModel', () => {
           .content[1] as LanguageModelV4FilePart;
 
         expect(imagePart.type).toBe('file');
-        expect(imagePart.data).toBe(
-          `data:${mimeType};base64,${expectedBase64}`,
-        );
+        expect(imagePart.data).toEqual({
+          type: 'data',
+          data: expectedBase64,
+        });
         expect(imagePart.mediaType).toBe(mimeType);
       });
 
@@ -900,7 +941,11 @@ describe('GatewayLanguageModel', () => {
             role: 'user',
             content: [
               { type: 'text', text: 'URL:' },
-              { type: 'file', data: imageUrl, mediaType: 'image/jpeg' },
+              {
+                type: 'file',
+                data: { type: 'url' as const, url: imageUrl },
+                mediaType: 'image/jpeg',
+              },
             ],
           },
         ];
@@ -915,7 +960,10 @@ describe('GatewayLanguageModel', () => {
           .content[1] as LanguageModelV4FilePart;
 
         expect(imagePart.type).toBe('file');
-        expect(imagePart.data).toBe(imageUrl.toString());
+        expect(imagePart.data).toEqual({
+          type: 'url',
+          url: imageUrl.toString(),
+        });
         expect(imagePart.mediaType).toBe('image/jpeg');
       });
 
@@ -929,9 +977,17 @@ describe('GatewayLanguageModel', () => {
             role: 'user',
             content: [
               { type: 'text', text: 'First text.' },
-              { type: 'file', data: imageBytes, mediaType: 'image/gif' },
+              {
+                type: 'file',
+                data: { type: 'data' as const, data: imageBytes },
+                mediaType: 'image/gif',
+              },
               { type: 'text', text: 'Second text.' },
-              { type: 'file', data: imageUrl, mediaType: 'image/png' },
+              {
+                type: 'file',
+                data: { type: 'url' as const, url: imageUrl },
+                mediaType: 'image/png',
+              },
             ],
           },
         ];
@@ -947,13 +1003,13 @@ describe('GatewayLanguageModel', () => {
         expect(content[0]).toEqual({ type: 'text', text: 'First text.' });
         expect(content[1]).toEqual({
           type: 'file',
-          data: `data:image/gif;base64,${expectedBase64}`,
+          data: { type: 'data', data: expectedBase64 },
           mediaType: 'image/gif',
         });
         expect(content[2]).toEqual({ type: 'text', text: 'Second text.' });
         expect(content[3]).toEqual({
           type: 'file',
-          data: imageUrl.toString(),
+          data: { type: 'url', url: imageUrl.toString() },
           mediaType: 'image/png',
         });
       });

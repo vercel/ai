@@ -2,9 +2,11 @@ import type {
   LanguageModelV4CallOptions,
   LanguageModelV4Prompt,
 } from '@ai-sdk/provider';
+import type { Context } from '@ai-sdk/provider-utils';
 import {
-  type Experimental_LanguageModelStreamPart as ModelCallStreamPart,
   experimental_streamLanguageModelCall as streamModelCall,
+  gateway,
+  type Experimental_LanguageModelStreamPart as ModelCallStreamPart,
   type FinishReason,
   type LanguageModel,
   type LanguageModelUsage,
@@ -15,14 +17,11 @@ import {
   type ToolChoice,
   type ToolSet,
 } from 'ai';
-import { gateway } from 'ai';
-import type { ProviderOptions, TelemetrySettings } from './workflow-agent.js';
+import type { ProviderOptions } from './workflow-agent.js';
 import {
   resolveSerializableTools,
   type SerializableToolDef,
 } from './serializable-schema.js';
-import type { CompatibleLanguageModel } from './types.js';
-
 export type { Experimental_LanguageModelStreamPart as ModelCallStreamPart } from 'ai';
 
 export type ModelStopCondition = StopCondition<NoInfer<ToolSet>, any>;
@@ -55,9 +54,15 @@ export interface DoStreamStepOptions {
   providerOptions?: ProviderOptions;
   toolChoice?: ToolChoice<ToolSet>;
   includeRawChunks?: boolean;
-  experimental_telemetry?: TelemetrySettings;
   repairToolCall?: ToolCallRepairFunction<ToolSet>;
   responseFormat?: LanguageModelV4CallOptions['responseFormat'];
+  runtimeContext?: Context;
+  toolsContext?: Record<string, Context | undefined>;
+  /**
+   * The step number for the returned StepResult. Defaults to 0 for direct
+   * callers; stream iterators pass their current index. See #15151.
+   */
+  stepNumber?: number;
 }
 
 /**
@@ -87,33 +92,24 @@ export interface StreamFinish {
 
 export async function doStreamStep(
   conversationPrompt: LanguageModelV4Prompt,
-  modelInit:
-    | string
-    | CompatibleLanguageModel
-    | (() => Promise<CompatibleLanguageModel>),
+  modelInit: LanguageModel,
   writable?: WritableStream<ModelCallStreamPart<ToolSet>>,
   serializedTools?: Record<string, SerializableToolDef>,
   options?: DoStreamStepOptions,
-) {
+): Promise<{
+  toolCalls: ParsedToolCall[];
+  finish: StreamFinish | undefined;
+  step: StepResult<ToolSet, any>;
+  chunks?: unknown[];
+  providerExecutedToolResults: Map<string, ProviderExecutedToolResult>;
+}> {
   'use step';
 
   // Resolve model inside step (must happen here for serialization boundary)
-  let model: CompatibleLanguageModel;
-  if (typeof modelInit === 'string') {
-    model = gateway.languageModel(modelInit) as CompatibleLanguageModel;
-  } else if (typeof modelInit === 'function') {
-    model = await modelInit();
-  } else if (
-    typeof modelInit === 'object' &&
-    modelInit !== null &&
-    'modelId' in modelInit
-  ) {
-    model = modelInit;
-  } else {
-    throw new Error(
-      'Invalid "model initialization" argument. Must be a string, a LanguageModel instance, or a function that returns a LanguageModel instance.',
-    );
-  }
+  const model: LanguageModel =
+    typeof modelInit === 'string'
+      ? gateway.languageModel(modelInit)
+      : modelInit;
 
   // Reconstruct tools from serializable definitions with Ajv validation.
   // Tools are serialized before crossing the step boundary because zod schemas
@@ -126,11 +122,12 @@ export async function doStreamStep(
   // model.doStream(), retry logic, and stream part transformation
   // (tool call parsing, finish reason mapping, file wrapping).
   const { stream: modelStream } = await streamModelCall({
-    model: model as LanguageModel,
+    model,
     // streamModelCall expects Prompt (ModelMessage[]) but we pass the
     // pre-converted LanguageModelV4Prompt. standardizePrompt inside
     // streamModelCall handles both formats.
     messages: conversationPrompt as unknown as ModelMessage[],
+    allowSystemInMessages: true,
     tools,
     toolChoice: options?.toolChoice,
     includeRawChunks: options?.includeRawChunks,
@@ -159,6 +156,7 @@ export async function doStreamStep(
   // Aggregation for StepResult
   let text = '';
   const reasoningParts: Array<{ text: string }> = [];
+  const chunks: unknown[] = [];
   let responseMetadata:
     | { id?: string; timestamp?: Date; modelId?: string }
     | undefined;
@@ -169,6 +167,14 @@ export async function doStreamStep(
 
   try {
     for await (const part of modelStream) {
+      if (
+        part.type !== 'model-call-start' &&
+        part.type !== 'model-call-end' &&
+        part.type !== 'model-call-response-metadata'
+      ) {
+        chunks.push(part);
+      }
+
       switch (part.type) {
         case 'text-delta':
           text += part.text;
@@ -250,14 +256,15 @@ export async function doStreamStep(
 
   const step: StepResult<ToolSet, any> = {
     callId: 'workflow-agent',
-    stepNumber: 0,
+    stepNumber: options?.stepNumber ?? 0,
     model: {
       provider: responseMetadata?.modelId?.split(':')[0] ?? 'unknown',
       modelId: responseMetadata?.modelId ?? 'unknown',
     },
     functionId: undefined,
     metadata: undefined,
-    context: undefined,
+    runtimeContext: options?.runtimeContext ?? {},
+    toolsContext: options?.toolsContext ?? {},
     content: [
       ...(text ? [{ type: 'text' as const, text }] : []),
       ...toolCalls
@@ -318,8 +325,21 @@ export async function doStreamStep(
         },
         totalTokens: 0,
       } as LanguageModelUsage),
+    performance: {
+      effectiveOutputTokensPerSecond: 0,
+      outputTokensPerSecond: undefined,
+      inputTokensPerSecond: undefined,
+      effectiveTotalTokensPerSecond: 0,
+      stepTimeMs: 0,
+      responseTimeMs: 0,
+      toolExecutionMs: {},
+      timeToFirstOutputTokenMs: undefined,
+    },
     warnings,
-    request: { body: '' },
+    request: {
+      body: '',
+      messages: [], // TODO implement step request messages
+    },
     response: {
       id: responseMetadata?.id ?? 'unknown',
       timestamp: responseMetadata?.timestamp ?? new Date(),
@@ -333,6 +353,7 @@ export async function doStreamStep(
     toolCalls,
     finish,
     step,
+    chunks,
     providerExecutedToolResults,
   };
 }

@@ -51,6 +51,7 @@
     { "path": "packages/togetherai" },
     { "path": "packages/valibot" },
     { "path": "packages/vercel" },
+    { "path": "packages/voyage" },
     { "path": "packages/vue" },
     { "path": "packages/xai" }
   ],

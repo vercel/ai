@@ -1,5 +1,10 @@
 import { z } from 'zod/v4';
-import { Tool, tool } from '@ai-sdk/provider-utils';
+import {
+  tool,
+  type Experimental_Sandbox as Sandbox,
+  type Tool,
+  type ToolSet,
+} from '@ai-sdk/provider-utils';
 import { describe, expect, it } from 'vitest';
 import { prepareTools } from './prepare-tools';
 
@@ -14,16 +19,17 @@ const mockTools = {
   }),
 };
 
-const mockProviderTool: Tool = {
+const mockProviderDefinedTool: Tool = {
   type: 'provider',
   id: 'provider.tool-id',
+  isProviderExecuted: false,
   args: { key: 'value' },
   inputSchema: z.object({}),
 };
 
 const mockToolsWithProviderDefined = {
   ...mockTools,
-  providerTool: mockProviderTool,
+  providerTool: mockProviderDefinedTool,
 };
 
 describe('prepareTools', () => {
@@ -47,7 +53,6 @@ describe('prepareTools', () => {
             "type": "object",
           },
           "name": "tool1",
-          "providerOptions": undefined,
           "type": "function",
         },
         {
@@ -66,7 +71,6 @@ describe('prepareTools', () => {
             "type": "object",
           },
           "name": "tool2",
-          "providerOptions": undefined,
           "type": "function",
         },
       ]
@@ -87,7 +91,6 @@ describe('prepareTools', () => {
             "type": "object",
           },
           "name": "tool1",
-          "providerOptions": undefined,
           "type": "function",
         },
         {
@@ -106,7 +109,6 @@ describe('prepareTools', () => {
             "type": "object",
           },
           "name": "tool2",
-          "providerOptions": undefined,
           "type": "function",
         },
         {
@@ -180,7 +182,6 @@ describe('prepareTools', () => {
             "type": "object",
           },
           "name": "tool1",
-          "providerOptions": undefined,
           "strict": true,
           "type": "function",
         },
@@ -226,10 +227,55 @@ describe('prepareTools', () => {
             "type": "object",
           },
           "name": "tool1",
-          "providerOptions": undefined,
           "type": "function",
         },
       ]
     `);
+  });
+
+  it('resolves function descriptions from toolsContext and sandbox', async () => {
+    const sandbox: Sandbox = {
+      description: 'test-sandbox',
+      runCommand: async () => ({
+        exitCode: 0,
+        stdout: '',
+        stderr: '',
+      }),
+    };
+
+    const result = await prepareTools({
+      tools: {
+        contextual: {
+          type: 'dynamic' as const,
+          description: ({ context }: { context: Record<string, unknown> }) =>
+            `User is ${String(context.userName)}`,
+          inputSchema: z.object({}),
+          execute: async () => {},
+        },
+        withSandbox: {
+          type: 'dynamic' as const,
+          description: ({
+            experimental_sandbox: sandbox,
+          }: {
+            experimental_sandbox?: Sandbox;
+          }) => `Env: ${sandbox?.description ?? 'none'}`,
+          inputSchema: z.object({}),
+          execute: async () => {},
+        },
+      } as unknown as ToolSet,
+      toolsContext: { contextual: { userName: 'Ada' } },
+      experimental_sandbox: sandbox,
+    });
+
+    expect(result).toEqual([
+      expect.objectContaining({
+        name: 'contextual',
+        description: 'User is Ada',
+      }),
+      expect.objectContaining({
+        name: 'withSandbox',
+        description: 'Env: test-sandbox',
+      }),
+    ]);
   });
 });

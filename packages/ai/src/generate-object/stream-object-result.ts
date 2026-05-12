@@ -1,13 +1,13 @@
-import { ServerResponse } from 'http';
-import { AsyncIterableStream } from '../util/async-iterable-stream';
-import {
+import type { ServerResponse } from 'http';
+import type { AsyncIterableStream } from '../util/async-iterable-stream';
+import type {
   CallWarning,
   FinishReason,
   LanguageModelRequestMetadata,
   LanguageModelResponseMetadata,
   ProviderMetadata,
 } from '../types';
-import { LanguageModelUsage } from '../types/usage';
+import type { LanguageModelUsage } from '../types/usage';
 
 /**
  * The result of a `streamObject` call that contains the partial object stream and additional information.
@@ -33,12 +33,12 @@ export interface StreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM> {
   /**
    * Additional request information from the last step.
    */
-  readonly request: Promise<LanguageModelRequestMetadata>;
+  readonly request: Promise<Omit<LanguageModelRequestMetadata, 'messages'>>;
 
   /**
    * Additional response information.
    */
-  readonly response: Promise<LanguageModelResponseMetadata>;
+  readonly response: Promise<Omit<LanguageModelResponseMetadata, 'messages'>>;
 
   /**
    * The reason why the generation finished. Taken from the last step.
@@ -115,6 +115,6 @@ export type ObjectStreamPart<PARTIAL> =
       type: 'finish';
       finishReason: FinishReason;
       usage: LanguageModelUsage;
-      response: LanguageModelResponseMetadata;
+      response: Omit<LanguageModelResponseMetadata, 'messages'>;
       providerMetadata?: ProviderMetadata;
     };

@@ -1,7 +1,7 @@
 import {
   openai,
-  OpenAILanguageModelResponsesOptions,
-  OpenaiResponsesReasoningProviderMetadata,
+  type OpenAILanguageModelResponsesOptions,
+  type OpenaiResponsesReasoningProviderMetadata,
 } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 import { run } from '../../lib/run';

@@ -46,7 +46,9 @@ run(async () => {
     process.stdout.write(textPart);
   }
 
-  console.log('=== providerMetadata Promise ===');
-  console.log((await result.providerMetadata)?.anthropic);
-  // e.g. { cacheCreationInputTokens: 2118, cacheReadInputTokens: 0 }
+  const usage = await result.usage;
+  console.log();
+  console.log('=== usage ===');
+  console.log('Cache read tokens:', usage.inputTokenDetails.cacheReadTokens);
+  console.log('Cache write tokens:', usage.inputTokenDetails.cacheWriteTokens);
 });

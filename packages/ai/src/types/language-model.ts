@@ -1,5 +1,5 @@
-import { GatewayModelId } from '@ai-sdk/gateway';
-import {
+import type { GatewayModelId } from '@ai-sdk/gateway';
+import type {
   LanguageModelV2,
   LanguageModelV3,
   LanguageModelV4,

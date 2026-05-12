@@ -1,6 +1,6 @@
 import { vertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
 import { Output, isStepCount, streamText } from 'ai';
-import z from 'zod';
+import { z } from 'zod';
 import { run } from '../../lib/run';
 import { weatherTool } from '../../tools/weather-tool';
 

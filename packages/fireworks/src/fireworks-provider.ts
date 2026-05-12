@@ -2,26 +2,26 @@ import {
   OpenAICompatibleChatLanguageModel,
   OpenAICompatibleCompletionLanguageModel,
   OpenAICompatibleEmbeddingModel,
-  ProviderErrorStructure,
+  type ProviderErrorStructure,
 } from '@ai-sdk/openai-compatible';
-import {
+import type {
   EmbeddingModelV4,
   ImageModelV4,
   LanguageModelV4,
   ProviderV4,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
   loadApiKey,
   withoutTrailingSlash,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import { FireworksChatModelId } from './fireworks-chat-options';
-import { FireworksCompletionModelId } from './fireworks-completion-options';
-import { FireworksEmbeddingModelId } from './fireworks-embedding-options';
+import type { FireworksChatModelId } from './fireworks-chat-options';
+import type { FireworksCompletionModelId } from './fireworks-completion-options';
+import type { FireworksEmbeddingModelId } from './fireworks-embedding-options';
 import { FireworksImageModel } from './fireworks-image-model';
-import { FireworksImageModelId } from './fireworks-image-options';
+import type { FireworksImageModelId } from './fireworks-image-options';
 import { VERSION } from './version';
 
 export type FireworksErrorData = z.infer<typeof fireworksErrorSchema>;

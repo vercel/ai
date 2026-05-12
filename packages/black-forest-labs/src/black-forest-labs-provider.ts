@@ -1,12 +1,16 @@
-import { ImageModelV4, NoSuchModelError, ProviderV4 } from '@ai-sdk/provider';
-import type { FetchFunction } from '@ai-sdk/provider-utils';
+import {
+  NoSuchModelError,
+  type ImageModelV4,
+  type ProviderV4,
+} from '@ai-sdk/provider';
 import {
   loadApiKey,
   withoutTrailingSlash,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { BlackForestLabsImageModel } from './black-forest-labs-image-model';
-import { BlackForestLabsImageModelId } from './black-forest-labs-image-settings';
+import type { BlackForestLabsImageModelId } from './black-forest-labs-image-settings';
 import { VERSION } from './version';
 
 export interface BlackForestLabsProviderSettings {

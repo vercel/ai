@@ -71,7 +71,7 @@ run(async () => {
     }
   }
 
-  const metadata = (await result.providerMetadata)?.anthropic;
+  const metadata = (await result.finalStep).providerMetadata?.anthropic;
   const iterations = metadata?.iterations as
     | Array<{
         type: string;

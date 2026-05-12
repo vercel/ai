@@ -1,12 +1,48 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`streamObject > callbacks > experimental_onStart > should send correct information with text prompt 1`] = `
+{
+  "callId": "test-call-id",
+  "frequencyPenalty": undefined,
+  "headers": undefined,
+  "maxOutputTokens": 100,
+  "maxRetries": 2,
+  "messages": undefined,
+  "modelId": "test-model",
+  "operationId": "ai.streamObject",
+  "output": "object",
+  "presencePenalty": undefined,
+  "prompt": "test-prompt",
+  "provider": "test-provider",
+  "providerOptions": undefined,
+  "schema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "additionalProperties": false,
+    "properties": {
+      "content": {
+        "type": "string",
+      },
+    },
+    "required": [
+      "content",
+    ],
+    "type": "object",
+  },
+  "schemaDescription": "A test schema",
+  "schemaName": "test-schema",
+  "seed": undefined,
+  "system": undefined,
+  "temperature": 0.5,
+  "topK": undefined,
+  "topP": undefined,
+}
+`;
+
 exports[`streamObject > output = "object" > options.onFinish > should be called when a valid object is generated 1`] = `
 {
   "callId": "test-id",
   "error": undefined,
   "finishReason": "stop",
-  "functionId": undefined,
-  "metadata": undefined,
   "object": {
     "content": "Hello, world!",
   },
@@ -24,7 +60,6 @@ exports[`streamObject > output = "object" > options.onFinish > should be called 
     "timestamp": 1970-01-01T00:00:00.000Z,
   },
   "usage": {
-    "cachedInputTokens": undefined,
     "inputTokenDetails": {
       "cacheReadTokens": undefined,
       "cacheWriteTokens": undefined,
@@ -37,7 +72,6 @@ exports[`streamObject > output = "object" > options.onFinish > should be called 
     },
     "outputTokens": 10,
     "raw": undefined,
-    "reasoningTokens": undefined,
     "totalTokens": 13,
   },
   "warnings": undefined,
@@ -49,8 +83,6 @@ exports[`streamObject > output = "object" > options.onFinish > should be called 
   "callId": "test-id",
   "error": [AI_NoObjectGeneratedError: No object generated: response did not match schema.],
   "finishReason": "stop",
-  "functionId": undefined,
-  "metadata": undefined,
   "object": undefined,
   "providerMetadata": undefined,
   "reasoning": undefined,
@@ -62,7 +94,6 @@ exports[`streamObject > output = "object" > options.onFinish > should be called 
     "timestamp": 1970-01-01T00:00:00.000Z,
   },
   "usage": {
-    "cachedInputTokens": undefined,
     "inputTokenDetails": {
       "cacheReadTokens": undefined,
       "cacheWriteTokens": undefined,
@@ -75,7 +106,6 @@ exports[`streamObject > output = "object" > options.onFinish > should be called 
     },
     "outputTokens": 10,
     "raw": undefined,
-    "reasoningTokens": undefined,
     "totalTokens": 13,
   },
   "warnings": undefined,
@@ -140,7 +170,6 @@ exports[`streamObject > output = "object" > result.fullStream > should send full
     },
     "type": "finish",
     "usage": {
-      "cachedInputTokens": undefined,
       "inputTokenDetails": {
         "cacheReadTokens": undefined,
         "cacheWriteTokens": undefined,
@@ -153,7 +182,6 @@ exports[`streamObject > output = "object" > result.fullStream > should send full
       },
       "outputTokens": 10,
       "raw": undefined,
-      "reasoningTokens": undefined,
       "totalTokens": 13,
     },
   },

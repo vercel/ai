@@ -1,5 +1,5 @@
 import {
-  createProviderToolFactoryWithOutputSchema,
+  createProviderExecutedToolFactory,
   lazySchema,
   zodSchema,
 } from '@ai-sdk/provider-utils';
@@ -117,7 +117,7 @@ export const codeExecution_20260120InputSchema = lazySchema(() =>
   ),
 );
 
-const factory = createProviderToolFactoryWithOutputSchema<
+const factory = createProviderExecutedToolFactory<
   | {
       type: 'programmatic-tool-call';
       /**

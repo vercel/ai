@@ -18,10 +18,11 @@ import {
   agentOnStartE2e,
   agentOnStepFinishE2e,
   agentOnStepStartE2e,
-  agentOnToolCallFinishE2e,
-  agentOnToolCallStartE2e,
+  agentonToolExecutionEndE2e,
+  agentonToolExecutionStartE2e,
   agentPrepareCallE2e,
   agentRepairToolCallE2e,
+  agentRuntimeAndToolsContextE2e,
   agentTimeoutE2e,
   agentToolApprovalE2e,
   agentToolCallE2e,
@@ -186,18 +187,18 @@ describe('WorkflowAgent integration', { timeout: 120_000 }, () => {
     });
   });
 
-  describe('experimental_onToolCallStart (GAP)', () => {
+  describe('onToolExecutionStart (GAP)', () => {
     it('completes but callbacks are not called (GAP)', async () => {
-      const run = await start(agentOnToolCallStartE2e, []);
+      const run = await start(agentonToolExecutionStartE2e, []);
       const rv = await run.returnValue;
       // GAP: when implemented, should be ['constructor', 'method']
       expect(rv.calls).toEqual([]);
     });
   });
 
-  describe('experimental_onToolCallFinish (GAP)', () => {
+  describe('onToolExecutionEnd (GAP)', () => {
     it('completes but callbacks are not called (GAP)', async () => {
-      const run = await start(agentOnToolCallFinishE2e, []);
+      const run = await start(agentonToolExecutionEndE2e, []);
       const rv = await run.returnValue;
       // GAP: when implemented, should be ['constructor', 'method']
       expect(rv.calls).toEqual([]);
@@ -222,6 +223,33 @@ describe('WorkflowAgent integration', { timeout: 120_000 }, () => {
       // with toolCallsCount=1 and toolResultsCount=0 (awaiting approval).
       // Currently needsApproval is ignored, so the tool executes immediately.
       expect(rv.stepCount).toBe(2);
+    });
+  });
+
+  describe('runtimeContext + toolsContext', () => {
+    it('flows through prepareStep, tool execute, and onFinish', async () => {
+      const run = await start(agentRuntimeAndToolsContextE2e, []);
+      const rv = await run.returnValue;
+
+      expect(rv.stepCount).toBe(2);
+      expect(rv.lastStepText).toBe('Customer cust_123 is eligible.');
+
+      // Tool received only its own validated context entry, not the
+      // full runtimeContext or toolsContext map.
+      expect(rv.toolReceivedContext).toEqual({
+        apiKey: 'sk-test-key',
+        region: 'us',
+      });
+
+      // prepareStep updated runtimeContext between steps; onFinish saw it.
+      expect(rv.onFinishRuntimeContext).toMatchObject({
+        tenantId: 'tenant_123',
+        requestId: 'req_abc',
+        lastStep: expect.any(Number),
+      });
+      expect(rv.onFinishToolsContext).toEqual({
+        lookupCustomer: { apiKey: 'sk-test-key', region: 'us' },
+      });
     });
   });
 });

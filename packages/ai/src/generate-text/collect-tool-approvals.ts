@@ -1,13 +1,13 @@
-import {
+import type {
   ModelMessage,
   ToolApprovalRequest,
   ToolApprovalResponse,
+  ToolSet,
 } from '@ai-sdk/provider-utils';
 import { InvalidToolApprovalError } from '../error/invalid-tool-approval-error';
 import { ToolCallNotFoundForApprovalError } from '../error/tool-call-not-found-for-approval-error';
-import { TypedToolCall } from './tool-call';
-import { TypedToolResult } from './tool-result';
-import type { ToolSet } from '@ai-sdk/provider-utils';
+import type { TypedToolCall } from './tool-call';
+import type { TypedToolResult } from './tool-result';
 
 export type CollectedToolApprovals<TOOLS extends ToolSet> = {
   approvalRequest: ToolApprovalRequest;

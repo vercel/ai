@@ -45,6 +45,12 @@ To set up the repository on your local machine, follow these steps:
 5. **Install Dependencies**: Navigate to the project directory and run `pnpm install` to install all necessary dependencies. This also sets up Git hooks via Husky.
 6. **Build the Project**: Run `pnpm build` in the root to build all packages.
 
+### Using Git Worktrees
+
+If you work on multiple branches in parallel using [git worktrees](https://git-scm.com/docs/git-worktree), run `pnpm worktree:setup` from the root of a newly created worktree. This symlinks the `.env` files (root, `examples/ai-functions`, and `examples/ai-e2e-next`) from your main worktree into the new one and runs `pnpm install`.
+
+Tip: consider automating this so you don't have to remember it on every new worktree — for example, by wrapping `git worktree add` in a shell alias/function that `cd`s into the new directory and runs `pnpm worktree:setup`, or by invoking it from a `post-checkout` hook (which fires on `git worktree add`).
+
 ### Running the Examples
 
 1. `cd examples/ai-functions` (for AI SDK Core, or another example folder)
@@ -76,21 +82,20 @@ We greatly appreciate your pull requests. Here are the steps to submit them:
 
 1. **Create a New Branch**: Initiate your changes in a fresh branch. It's recommended to name the branch in a manner that signifies the changes you're implementing.
 2. **Add a patch changeset**: If you're updating any packages and want to ensure they're released, add a **patch** changeset to your branch by running `pnpm changeset` in the workspace root.
-
    - **Please do not use minor or major changesets**, we'll let you know when you need to use a different changeset type than patch.
    - You don't need to select any of the `examples/*` packages, as they are not released.
 
 3. **Add a codemod**: If the change introduces a deprecation or a breaking change, add a codemod if possible. See [how to contribute codemods](contributing/codemods.md)
 4. **Commit Your Changes**: Ensure your commits are succinct and clear, detailing what modifications have been made and the reasons behind them. We don't require a specific commit message format, but please be descriptive.
-5. **Pre-commit hooks**: A pre-commit hook automatically formats your staged files using `lint-staged` when you commit. If you stage any `package.json` changes, `pnpm install` runs automatically to keep the lockfile in sync. If you need to skip these hooks (e.g., for work-in-progress commits), set `ARTISANAL_MODE=1` before committing: `ARTISANAL_MODE=1 git commit -m "message"`.
-6. **Push the Changes to Your GitHub Repository**: After committing your changes, push them to your GitHub repository.
-7. **Open a Pull Request**: Propose your changes for review. Furnish a lucid title and description of your contributions. Make sure to link any relevant issues your PR resolves. We use the following PR title format:
-
+5. **Sign Your Commits**: All commits must be [signed](https://docs.github.com/en/authentication/managing-commit-signature-verification/signing-commits). Pull requests with unsigned commits cannot be merged.
+6. **Pre-commit hooks**: A pre-commit hook automatically formats your staged files using `lint-staged` when you commit. If you stage any `package.json` changes, `pnpm install` runs automatically to keep the lockfile in sync. If you need to skip these hooks (e.g., for work-in-progress commits), set `ARTISANAL_MODE=1` before committing: `ARTISANAL_MODE=1 git commit -m "message"`.
+7. **Push the Changes to Your GitHub Repository**: After committing your changes, push them to your GitHub repository.
+8. **Open a Pull Request**: Propose your changes for review. Furnish a lucid title and description of your contributions. Make sure to link any relevant issues your PR resolves. We use the following PR title format:
    - `fix(package-name): description` or
    - `feat(package-name): description` or
    - `chore(package-name): description` etc.
 
-8. **Respond to Feedback**: Stay receptive to and address any feedback or alteration requests from the project maintainers.
+9. **Respond to Feedback**: Stay receptive to and address any feedback or alteration requests from the project maintainers.
 
 Thank you for contributing to the AI SDK! Your efforts help us improve the project for everyone.
 

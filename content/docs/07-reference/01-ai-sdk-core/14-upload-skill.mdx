@@ -75,19 +75,22 @@ const { providerReference } = await uploadSkill({
       name: 'displayTitle',
       type: 'string',
       isOptional: true,
-      description: 'Human-readable title returned by the provider (if supported).',
+      description:
+        'Human-readable title returned by the provider (if supported).',
     },
     {
       name: 'name',
       type: 'string',
       isOptional: true,
-      description: 'Skill name inferred by the provider from the uploaded files.',
+      description:
+        'Skill name inferred by the provider from the uploaded files.',
     },
     {
       name: 'description',
       type: 'string',
       isOptional: true,
-      description: 'Skill description inferred by the provider from the uploaded files.',
+      description:
+        'Skill description inferred by the provider from the uploaded files.',
     },
     {
       name: 'latestVersion',
@@ -99,7 +102,8 @@ const { providerReference } = await uploadSkill({
       name: 'providerMetadata',
       type: 'ProviderMetadata',
       isOptional: true,
-      description: 'Additional provider-specific metadata returned from the upload.',
+      description:
+        'Additional provider-specific metadata returned from the upload.',
     },
     {
       name: 'warnings',

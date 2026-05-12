@@ -41,6 +41,7 @@ describe('serializeToolSet', () => {
       webSearch: tool({
         type: 'provider' as const,
         id: 'anthropic.web_search_20250305' as const,
+        isProviderExecuted: true,
         args: {
           maxUses: 5,
           allowedDomains: ['vercel.com', 'nextjs.org'],

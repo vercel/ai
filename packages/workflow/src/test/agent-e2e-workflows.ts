@@ -5,7 +5,7 @@ import { tool } from 'ai';
 import { WorkflowAgent } from '../workflow-agent.js';
 import { mockTextModel, mockSequenceModel } from '../providers/mock.js';
 import { FatalError, getWritable } from 'workflow';
-import z from 'zod';
+import { z } from 'zod';
 
 // ============================================================================
 // Tool step functions
@@ -334,10 +334,10 @@ export async function agentOnStepStartE2e() {
 }
 
 // ============================================================================
-// GAP tests — experimental_onToolCallStart
+// GAP tests — onToolExecutionStart
 // ============================================================================
 
-export async function agentOnToolCallStartE2e() {
+export async function agentonToolExecutionStartE2e() {
   'use workflow';
   const calls: string[] = [];
   const agent = new WorkflowAgent({
@@ -356,14 +356,14 @@ export async function agentOnToolCallStartE2e() {
         execute: echoStep,
       },
     },
-    experimental_onToolCallStart: async () => {
+    onToolExecutionStart: async () => {
       calls.push('constructor');
     },
   } as any);
   await agent.stream({
     messages: [{ role: 'user', content: 'test' }],
     writable: getWritable(),
-    experimental_onToolCallStart: async () => {
+    onToolExecutionStart: async () => {
       calls.push('method');
     },
   } as any);
@@ -371,10 +371,10 @@ export async function agentOnToolCallStartE2e() {
 }
 
 // ============================================================================
-// GAP tests — experimental_onToolCallFinish
+// GAP tests — onToolExecutionEnd
 // ============================================================================
 
-export async function agentOnToolCallFinishE2e() {
+export async function agentonToolExecutionEndE2e() {
   'use workflow';
   const calls: string[] = [];
   let capturedEvent: any = null;
@@ -394,14 +394,14 @@ export async function agentOnToolCallFinishE2e() {
         execute: addNumbers,
       },
     },
-    experimental_onToolCallFinish: async () => {
+    onToolExecutionEnd: async () => {
       calls.push('constructor');
     },
   } as any);
   await agent.stream({
     messages: [{ role: 'user', content: 'test' }],
     writable: getWritable(),
-    experimental_onToolCallFinish: async (event: any) => {
+    onToolExecutionEnd: async (event: any) => {
       calls.push('method');
       capturedEvent = {
         toolName: event?.toolCall?.toolName,
@@ -503,5 +503,85 @@ export async function agentToolInputSchemaE2e(a: number, b: number) {
   return {
     stepCount: result.steps.length,
     lastStepText: result.steps[result.steps.length - 1]?.text,
+  };
+}
+
+// ============================================================================
+// runtimeContext + toolsContext (end-to-end)
+// ============================================================================
+
+/**
+ * Demonstrates the full context flow:
+ *
+ * - `runtimeContext` holds shared agent state (`tenantId`, `requestId`).
+ *   `prepareStep` reads it and tags it with the current step number;
+ *   `onFinish` receives the final value.
+ * - `toolsContext` holds per-tool, schema-validated context. The
+ *   `lookupCustomer` tool declares `contextSchema`, so its entry is
+ *   validated and the tool's `execute` only sees its own context.
+ */
+export async function agentRuntimeAndToolsContextE2e() {
+  'use workflow';
+
+  let onFinishRuntimeContext: Record<string, unknown> | undefined;
+  let onFinishToolsContext: Record<string, unknown> | undefined;
+  let toolReceivedContext: unknown;
+
+  const agent = new WorkflowAgent({
+    model: mockSequenceModel([
+      {
+        type: 'tool-call',
+        toolName: 'lookupCustomer',
+        input: JSON.stringify({ customerId: 'cust_123' }),
+      },
+      { type: 'text', text: 'Customer cust_123 is eligible.' },
+    ]),
+    tools: {
+      lookupCustomer: tool({
+        description: 'Look up customer account details.',
+        inputSchema: z.object({ customerId: z.string() }),
+        contextSchema: z.object({
+          apiKey: z.string(),
+          region: z.enum(['us', 'eu']),
+        }),
+        execute: async (input, { context }) => {
+          toolReceivedContext = context;
+          return { customerId: input.customerId, eligible: true };
+        },
+      }),
+    },
+    instructions: 'You look up customers.',
+    runtimeContext: {
+      tenantId: 'tenant_123',
+      requestId: 'req_abc',
+    },
+    toolsContext: {
+      lookupCustomer: {
+        apiKey: 'sk-test-key',
+        region: 'us',
+      },
+    },
+    prepareStep: ({ stepNumber, runtimeContext }) => ({
+      runtimeContext: { ...runtimeContext, lastStep: stepNumber },
+    }),
+    onFinish: ({ runtimeContext, toolsContext }) => {
+      onFinishRuntimeContext = runtimeContext;
+      onFinishToolsContext = toolsContext;
+    },
+  });
+
+  const result = await agent.stream({
+    messages: [
+      { role: 'user', content: 'Is customer cust_123 eligible for support?' },
+    ],
+    writable: getWritable(),
+  });
+
+  return {
+    stepCount: result.steps.length,
+    lastStepText: result.steps[result.steps.length - 1]?.text,
+    toolReceivedContext,
+    onFinishRuntimeContext,
+    onFinishToolsContext,
   };
 }

@@ -1,6 +1,6 @@
 import {
-  EmbeddingModelV4,
   TooManyEmbeddingValuesForCallError,
+  type EmbeddingModelV4,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -15,10 +15,10 @@ import {
 import { z } from 'zod/v4';
 import { googleVertexFailedResponseHandler } from './google-vertex-error';
 import {
-  GoogleVertexEmbeddingModelId,
   googleVertexEmbeddingModelOptions,
-} from './google-vertex-embedding-options';
-import { GoogleVertexConfig } from './google-vertex-config';
+  type GoogleVertexEmbeddingModelId,
+} from './google-vertex-embedding-model-options';
+import type { GoogleVertexConfig } from './google-vertex-config';
 
 export class GoogleVertexEmbeddingModel implements EmbeddingModelV4 {
   readonly specificationVersion = 'v4';
@@ -63,10 +63,18 @@ export class GoogleVertexEmbeddingModel implements EmbeddingModelV4 {
     Awaited<ReturnType<EmbeddingModelV4['doEmbed']>>
   > {
     let googleOptions = await parseProviderOptions({
-      provider: 'vertex',
+      provider: 'googleVertex',
       providerOptions,
       schema: googleVertexEmbeddingModelOptions,
     });
+
+    if (googleOptions == null) {
+      googleOptions = await parseProviderOptions({
+        provider: 'vertex',
+        providerOptions,
+        schema: googleVertexEmbeddingModelOptions,
+      });
+    }
 
     if (googleOptions == null) {
       googleOptions = await parseProviderOptions({

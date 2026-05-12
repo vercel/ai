@@ -1,12 +1,11 @@
 import type {
-  OnStartEvent,
-  OnStepStartEvent,
-  OnStepFinishEvent,
-  OnChunkEvent,
-  ObjectOnStartEvent,
-  ObjectOnStepStartEvent,
-  ObjectOnStepFinishEvent,
-  TelemetryIntegration,
+  GenerateTextStartEvent,
+  GenerateTextStepStartEvent,
+  GenerateTextStepEndEvent,
+  GenerateObjectStartEvent,
+  GenerateObjectStepStartEvent,
+  GenerateObjectStepEndEvent,
+  Telemetry,
   ToolSet,
 } from 'ai';
 import {
@@ -21,8 +20,6 @@ type OperationType = 'generate' | 'stream';
 interface StepState {
   stepId: string;
   startTime: number;
-  streamChunks: unknown[];
-  rawStreamChunks: unknown[];
 }
 
 interface CallState {
@@ -93,22 +90,16 @@ function getOperationType(operationId: string): OperationType {
  *
  * Usage:
  * ```ts
- * import { registerTelemetryIntegration } from 'ai';
+ * import { registerTelemetry } from 'ai';
  * import { DevToolsTelemetry } from '@ai-sdk/devtools';
  *
- * registerTelemetryIntegration(DevToolsTelemetry());
+ * registerTelemetry(DevToolsTelemetry());
  * ```
  *
- * Then enable telemetry on your AI SDK calls:
- * ```ts
- * const result = await generateText({
- *   model: openai('gpt-4o'),
- *   prompt: 'Hello!',
- *   experimental_telemetry: { isEnabled: true },
- * });
- * ```
+ * Telemetry is enabled by default — no need to set `telemetry`
+ * unless you want to configure `functionId`, `recordInputs`, or `recordOutputs`.
  */
-export function DevToolsTelemetry(): TelemetryIntegration {
+export function DevToolsTelemetry(): Telemetry {
   if (process.env.NODE_ENV === 'production') {
     throw new Error(
       '@ai-sdk/devtools should not be used in production. ' +
@@ -193,7 +184,7 @@ export function DevToolsTelemetry(): TelemetryIntegration {
     return state;
   }
 
-  const integration: TelemetryIntegration = {
+  const integration: Telemetry = {
     onStart: async event => {
       const operationId = (event as { operationId: string }).operationId;
 
@@ -205,7 +196,12 @@ export function DevToolsTelemetry(): TelemetryIntegration {
         return;
       }
 
-      const startEvent = event as OnStartEvent<ToolSet> | ObjectOnStartEvent;
+      const startEvent = event as (
+        | GenerateTextStartEvent<ToolSet>
+        | GenerateObjectStartEvent
+      ) & {
+        functionId?: string | undefined;
+      };
 
       const parentInfo = resolveParentInfo();
 
@@ -219,7 +215,7 @@ export function DevToolsTelemetry(): TelemetryIntegration {
     },
 
     onStepStart: async event => {
-      const stepStartEvent = event as OnStepStartEvent<ToolSet> & {
+      const stepStartEvent = event as GenerateTextStepStartEvent<ToolSet> & {
         promptMessages?: unknown[];
       };
 
@@ -232,10 +228,9 @@ export function DevToolsTelemetry(): TelemetryIntegration {
       const stepState: StepState = {
         stepId,
         startTime,
-        streamChunks: [],
-        rawStreamChunks: [],
       };
-      state.stepStates.set(stepStartEvent.stepNumber, stepState);
+      const stepNumber = stepStartEvent.steps.length;
+      state.stepStates.set(stepNumber, stepState);
       activeSteps.set(stepId, stepState);
 
       const prompt = stepStartEvent.promptMessages ?? stepStartEvent.messages;
@@ -243,7 +238,7 @@ export function DevToolsTelemetry(): TelemetryIntegration {
       await createStep({
         id: stepId,
         run_id: state.runId,
-        step_number: stepStartEvent.stepNumber + 1,
+        step_number: stepNumber + 1,
         type: state.operationType,
         model_id: stepStartEvent.modelId,
         provider: stepStartEvent.provider ?? null,
@@ -273,7 +268,7 @@ export function DevToolsTelemetry(): TelemetryIntegration {
     },
 
     onObjectStepStart: async event => {
-      const stepStartEvent = event as ObjectOnStepStartEvent & {
+      const stepStartEvent = event as GenerateObjectStepStartEvent & {
         promptMessages?: unknown[];
       };
 
@@ -286,8 +281,6 @@ export function DevToolsTelemetry(): TelemetryIntegration {
       const stepState: StepState = {
         stepId,
         startTime,
-        streamChunks: [],
-        rawStreamChunks: [],
       };
       state.stepStates.set(stepStartEvent.stepNumber, stepState);
       activeSteps.set(stepId, stepState);
@@ -316,56 +309,8 @@ export function DevToolsTelemetry(): TelemetryIntegration {
       });
     },
 
-    onChunk: async event => {
-      const { chunk } = event as OnChunkEvent;
-
-      if (chunk.type === 'raw') {
-        const rawValue = (chunk as { rawValue: unknown }).rawValue;
-        for (const [, state] of callStates) {
-          let latestStepState: StepState | undefined;
-          let latestStepNumber = -1;
-          for (const [stepNumber, ss] of state.stepStates) {
-            if (stepNumber > latestStepNumber) {
-              latestStepNumber = stepNumber;
-              latestStepState = ss;
-            }
-          }
-          if (latestStepState) {
-            latestStepState.rawStreamChunks.push(rawValue);
-            return;
-          }
-        }
-        return;
-      }
-
-      if ('callId' in chunk && 'stepNumber' in chunk) {
-        const typed = chunk as { callId: string; stepNumber: number };
-        const state = callStates.get(typed.callId);
-        if (!state) return;
-        const stepState = state.stepStates.get(typed.stepNumber);
-        if (!stepState) return;
-        stepState.streamChunks.push(chunk);
-        return;
-      }
-
-      for (const [, state] of callStates) {
-        let latestStepState: StepState | undefined;
-        let latestStepNumber = -1;
-        for (const [stepNumber, ss] of state.stepStates) {
-          if (stepNumber > latestStepNumber) {
-            latestStepNumber = stepNumber;
-            latestStepState = ss;
-          }
-        }
-        if (latestStepState) {
-          latestStepState.streamChunks.push(chunk);
-          return;
-        }
-      }
-    },
-
     onStepFinish: async event => {
-      const stepResult = event as OnStepFinishEvent<ToolSet>;
+      const stepResult = event as GenerateTextStepEndEvent<ToolSet>;
 
       const state = callStates.get(stepResult.callId);
       if (!state) return;
@@ -388,9 +333,6 @@ export function DevToolsTelemetry(): TelemetryIntegration {
         },
       };
 
-      const hasStreamChunks = stepState.streamChunks.length > 0;
-      const hasRawStreamChunks = stepState.rawStreamChunks.length > 0;
-
       await updateStepResult(stepState.stepId, {
         duration_ms: durationMs,
         output: JSON.stringify(output),
@@ -401,19 +343,15 @@ export function DevToolsTelemetry(): TelemetryIntegration {
           : null,
         raw_response: stepResult.response?.body
           ? JSON.stringify(stepResult.response.body)
-          : hasStreamChunks
-            ? JSON.stringify(stepState.streamChunks)
-            : null,
-        raw_chunks: hasRawStreamChunks
-          ? JSON.stringify(stepState.rawStreamChunks)
           : null,
+        raw_chunks: null,
       });
 
       state.stepStates.delete(stepResult.stepNumber);
     },
 
     onObjectStepFinish: async event => {
-      const stepResult = event as ObjectOnStepFinishEvent;
+      const stepResult = event as GenerateObjectStepEndEvent;
 
       const state = callStates.get(stepResult.callId);
       if (!state) return;
@@ -451,9 +389,9 @@ export function DevToolsTelemetry(): TelemetryIntegration {
       state.stepStates.delete(stepResult.stepNumber);
     },
 
-    onFinish: async event => {
-      const finishEvent = event as { callId: string };
-      callStates.delete(finishEvent.callId);
+    onEnd: async event => {
+      const endEvent = event as { callId: string };
+      callStates.delete(endEvent.callId);
     },
 
     onError: async error => {

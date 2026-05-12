@@ -1,10 +1,10 @@
-import { vertex } from '@ai-sdk/google-vertex';
+import { googleVertex } from '@ai-sdk/google-vertex';
 import { jsonSchema, streamText, tool } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: vertex('gemini-2.5-pro'),
+    model: googleVertex('gemini-2.5-pro'),
     messages: [
       {
         role: 'system',
@@ -47,7 +47,8 @@ run(async () => {
     process.stdout.write(textPart);
   }
 
-  const finishMessage = (await result.providerMetadata)?.vertex?.finishMessage;
+  const finishMessage = (await result.finalStep).providerMetadata?.vertex
+    ?.finishMessage;
 
   console.log();
   console.log('Finish Reason:', await result.rawFinishReason); // expect MALFORMED_FUNCTION_CALL; no response will be generated

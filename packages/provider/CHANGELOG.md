@@ -1,5 +1,33 @@
 # @ai-sdk/provider
 
+## 4.0.0-canary.16
+
+### Major Changes
+
+- 5463d0d: feat(provider): align tool result output content file part types with top-level message file part types
+
+## 4.0.0-canary.15
+
+### Patch Changes
+
+- 0c4c275: trigger initial canary release
+
+## 4.0.0-beta.14
+
+### Major Changes
+
+- 9bd6512: feat(provider): change file part data property to be tagged with a type and remove the image part type
+
+### Patch Changes
+
+- 258c093: chore: ensure consistent import handling and avoid import duplicates or cycles
+
+## 4.0.0-beta.13
+
+### Patch Changes
+
+- 9f0e36c: trigger release for all packages after provenance setup
+
 ## 4.0.0-beta.12
 
 ### Patch Changes
@@ -148,13 +176,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel("my-model-id");
+  model.textEmbeddingModel('my-model-id');
   ```
 
   After
 
   ```ts
-  model.embeddingModel("my-model-id");
+  model.embeddingModel('my-model-id');
   ```
 
 - dce03c4: feat: tool input examples
@@ -274,13 +302,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel("my-model-id");
+  model.textEmbeddingModel('my-model-id');
   ```
 
   After
 
   ```ts
-  model.embeddingModel("my-model-id");
+  model.embeddingModel('my-model-id');
   ```
 
 ## 3.0.0-beta.18
@@ -467,13 +495,13 @@
   Before
 
   ```ts
-  import { convertUint8ArrayToBase64 } from "@ai-sdk/provider-utils";
+  import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
 
   // Had to manually convert binary data to base64
   const fileData = new Uint8Array([0, 1, 2, 3]);
   const filePart = {
-    type: "file",
-    mediaType: "application/pdf",
+    type: 'file',
+    mediaType: 'application/pdf',
     data: convertUint8ArrayToBase64(fileData), // Required conversion
   };
   ```
@@ -484,8 +512,8 @@
   // Can use binary data directly
   const fileData = new Uint8Array([0, 1, 2, 3]);
   const filePart = {
-    type: "file",
-    mediaType: "application/pdf",
+    type: 'file',
+    mediaType: 'application/pdf',
     data: fileData, // Direct Uint8Array support
   };
   ```
@@ -501,10 +529,10 @@
   The `experimental_generateImage` method from the `ai` package now returnes revised prompts for OpenAI's image models.
 
   ```js
-  const prompt = "Santa Claus driving a Cadillac";
+  const prompt = 'Santa Claus driving a Cadillac';
 
   const { providerMetadata } = await experimental_generateImage({
-    model: openai.image("dall-e-3"),
+    model: openai.image('dall-e-3'),
     prompt,
   });
 
@@ -663,10 +691,10 @@
   The `experimental_generateImage` method from the `ai` package now returnes revised prompts for OpenAI's image models.
 
   ```js
-  const prompt = "Santa Claus driving a Cadillac";
+  const prompt = 'Santa Claus driving a Cadillac';
 
   const { providerMetadata } = await experimental_generateImage({
-    model: openai.image("dall-e-3"),
+    model: openai.image('dall-e-3'),
     prompt,
   });
 

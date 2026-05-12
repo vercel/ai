@@ -2,7 +2,7 @@ import { generateId } from 'ai';
 import { existsSync, mkdirSync } from 'fs';
 import { readdir, readFile, writeFile } from 'fs/promises';
 import path from 'path';
-import { ChatData, MyUIMessage } from './chat-schema';
+import type { ChatData, MyUIMessage } from './chat-schema';
 
 // example implementation for demo purposes
 // in a real app, you would save the chat to a database

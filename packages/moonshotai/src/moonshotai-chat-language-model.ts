@@ -1,18 +1,18 @@
 import { OpenAICompatibleChatLanguageModel } from '@ai-sdk/openai-compatible';
-import { OpenAICompatibleChatConfig } from '@ai-sdk/openai-compatible/internal';
+import type { OpenAICompatibleChatConfig } from '@ai-sdk/openai-compatible/internal';
 import {
   serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
-import {
+import type {
   LanguageModelV4CallOptions,
   LanguageModelV4GenerateResult,
   LanguageModelV4StreamPart,
   LanguageModelV4StreamResult,
 } from '@ai-sdk/provider';
 import { convertMoonshotAIChatUsage } from './convert-moonshotai-chat-usage';
-import { MoonshotAIChatModelId } from './moonshotai-chat-options';
+import type { MoonshotAIChatModelId } from './moonshotai-chat-options';
 
 export class MoonshotAIChatLanguageModel extends OpenAICompatibleChatLanguageModel {
   static [WORKFLOW_SERIALIZE](model: MoonshotAIChatLanguageModel) {

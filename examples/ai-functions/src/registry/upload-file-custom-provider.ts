@@ -28,7 +28,7 @@ run(async () => {
         role: 'user',
         content: [
           { type: 'text', text: 'Describe what you see in this image.' },
-          { type: 'image', image: providerReference },
+          { type: 'file', mediaType: 'image', data: providerReference },
         ],
       },
     ],

@@ -11,6 +11,7 @@ export async function POST(req: Request) {
   const [client, { messages }] = await Promise.all([
     createMCPClient({
       transport,
+      clientName: 'local-calculator-mcp',
     }),
     req.json(),
   ]);
@@ -25,7 +26,8 @@ export async function POST(req: Request) {
       onStepFinish: async ({ toolResults }) => {
         console.log(`STEP RESULTS: ${JSON.stringify(toolResults, null, 2)}`);
       },
-      system: 'You are a helpful chatbot capable of basic arithmetic problems',
+      instructions:
+        'You are a helpful chatbot capable of basic arithmetic problems',
       messages: await convertToModelMessages(messages),
       onFinish: async () => {
         await client.close();

@@ -1,7 +1,7 @@
 import {
   google,
-  GoogleLanguageModelOptions,
-  GoogleGenerativeAIProviderMetadata,
+  type GoogleLanguageModelOptions,
+  type GoogleProviderMetadata,
 } from '@ai-sdk/google';
 import { streamText } from 'ai';
 import { presentImages } from '../../lib/present-image';
@@ -51,8 +51,8 @@ run(async () => {
     }
   }
 
-  const metadata = (await result.providerMetadata)?.google as
-    | GoogleGenerativeAIProviderMetadata
+  const metadata = (await result.finalStep).providerMetadata?.google as
+    | GoogleProviderMetadata
     | undefined;
   const groundingMetadata = metadata?.groundingMetadata;
 

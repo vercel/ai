@@ -1,4 +1,4 @@
-import { google, GoogleGenerativeAIProviderMetadata } from '@ai-sdk/google';
+import { google, type GoogleProviderMetadata } from '@ai-sdk/google';
 import { streamText } from 'ai';
 import { run } from '../../lib/run';
 
@@ -33,8 +33,8 @@ run(async () => {
     }
   }
 
-  const metadata = (await result.providerMetadata)?.google as
-    | GoogleGenerativeAIProviderMetadata
+  const metadata = (await result.finalStep).providerMetadata?.google as
+    | GoogleProviderMetadata
     | undefined;
   const groundingMetadata = metadata?.groundingMetadata;
 

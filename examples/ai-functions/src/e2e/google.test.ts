@@ -1,5 +1,5 @@
-import { GoogleErrorData, google as provider } from '@ai-sdk/google';
-import {
+import { google as provider, type GoogleErrorData } from '@ai-sdk/google';
+import type {
   APICallError,
   LanguageModelV3,
   LanguageModelV4,
@@ -7,15 +7,14 @@ import {
 import 'dotenv/config';
 import { expect } from 'vitest';
 import {
-  ModelWithCapabilities,
   createEmbeddingModelWithCapabilities,
   createFeatureTestSuite,
   createLanguageModelWithCapabilities,
   createImageModelWithCapabilities,
   defaultChatModelCapabilities,
+  type ModelWithCapabilities,
 } from './feature-test-suite';
-import { wrapLanguageModel } from 'ai';
-import { defaultSettingsMiddleware } from 'ai';
+import { defaultSettingsMiddleware, wrapLanguageModel } from 'ai';
 
 const createChatModel = (modelId: string) =>
   createLanguageModelWithCapabilities(provider.chat(modelId));
@@ -48,7 +47,7 @@ const createSearchGroundedModel = (
 };
 
 createFeatureTestSuite({
-  name: 'Google Generative AI',
+  name: 'Google',
   models: {
     invalidModel: provider.chat('no-such-model'),
     languageModels: [

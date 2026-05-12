@@ -1,4 +1,4 @@
-import { SpeechModelV4, SharedV4Warning } from '@ai-sdk/provider';
+import type { SpeechModelV4, SharedV4Warning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createBinaryResponseHandler,
@@ -12,29 +12,10 @@ import {
   WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import { FalConfig } from './fal-config';
+import type { FalConfig } from './fal-config';
 import { falFailedResponseHandler } from './fal-error';
-import { FAL_EMOTIONS, FAL_LANGUAGE_BOOSTS } from './fal-api-types';
-import { FalSpeechModelId } from './fal-speech-settings';
-
-const falSpeechModelOptionsSchema = z.looseObject({
-  voice_setting: z
-    .object({
-      speed: z.number().nullish(),
-      vol: z.number().nullish(),
-      voice_id: z.string().nullish(),
-      pitch: z.number().nullish(),
-      english_normalization: z.boolean().nullish(),
-      emotion: z.enum(FAL_EMOTIONS).nullish(),
-    })
-    .partial()
-    .nullish(),
-  audio_setting: z.record(z.string(), z.unknown()).nullish(),
-  language_boost: z.enum(FAL_LANGUAGE_BOOSTS).nullish(),
-  pronunciation_dict: z.record(z.string(), z.string()).nullish(),
-});
-
-export type FalSpeechModelOptions = z.infer<typeof falSpeechModelOptionsSchema>;
+import { falSpeechModelOptionsSchema } from './fal-speech-model-options';
+import type { FalSpeechModelId } from './fal-speech-settings';
 
 interface FalSpeechModelConfig extends FalConfig {
   _internal?: {

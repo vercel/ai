@@ -1,13 +1,13 @@
 import {
-  LanguageModelV4CallOptions,
-  SharedV4ProviderReference,
-  SharedV4Warning,
   UnsupportedFunctionalityError,
+  type LanguageModelV4CallOptions,
+  type SharedV4ProviderReference,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   resolveProviderReference,
-  ToolNameMapping,
   validateTypes,
+  type ToolNameMapping,
 } from '@ai-sdk/provider-utils';
 import { codeInterpreterArgsSchema } from '../tool/code-interpreter';
 import { fileSearchArgsSchema } from '../tool/file-search';
@@ -18,16 +18,21 @@ import { shellArgsSchema } from '../tool/shell';
 import { toolSearchArgsSchema } from '../tool/tool-search';
 import { webSearchArgsSchema } from '../tool/web-search';
 import { webSearchPreviewArgsSchema } from '../tool/web-search-preview';
-import { OpenAIResponsesTool } from './openai-responses-api';
+import type { OpenAIResponsesTool } from './openai-responses-api';
 
 export async function prepareResponsesTools({
   tools,
   toolChoice,
+  allowedTools,
   toolNameMapping,
   customProviderToolNames,
 }: {
   tools: LanguageModelV4CallOptions['tools'];
   toolChoice: LanguageModelV4CallOptions['toolChoice'] | undefined;
+  allowedTools?: {
+    toolNames: string[];
+    mode?: 'auto' | 'required';
+  };
   toolNameMapping?: ToolNameMapping;
   customProviderToolNames?: Set<string>;
 }): Promise<{
@@ -44,7 +49,12 @@ export async function prepareResponsesTools({
     | { type: 'code_interpreter' }
     | { type: 'mcp' }
     | { type: 'image_generation' }
-    | { type: 'apply_patch' };
+    | { type: 'apply_patch' }
+    | {
+        type: 'allowed_tools';
+        mode: 'auto' | 'required';
+        tools: Array<{ type: 'function'; name: string }>;
+      };
   toolWarnings: SharedV4Warning[];
 }> {
   // when the tools array is empty, change it to undefined to prevent errors:
@@ -288,6 +298,21 @@ export async function prepareResponsesTools({
         });
         break;
     }
+  }
+
+  if (allowedTools != null) {
+    return {
+      tools: openaiTools,
+      toolChoice: {
+        type: 'allowed_tools',
+        mode: allowedTools.mode ?? 'auto',
+        tools: allowedTools.toolNames.map(name => ({
+          type: 'function',
+          name: toolNameMapping?.toProviderToolName(name) ?? name,
+        })),
+      },
+      toolWarnings,
+    };
   }
 
   if (toolChoice == null) {

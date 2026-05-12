@@ -17,16 +17,17 @@ export {
   type PrepareStepInfo,
   type PrepareStepResult,
   type ProviderOptions,
-  type StreamTextOnAbortCallback,
-  type StreamTextOnErrorCallback,
-  type StreamTextOnFinishCallback,
+  type WorkflowAgentOnAbortCallback,
+  type WorkflowAgentOnErrorCallback,
+  type WorkflowAgentOnFinishCallback,
+  type WorkflowAgentOnStepFinishCallback,
   type StreamTextTransform,
-  type TelemetrySettings,
+  type TelemetryOptions,
   type ToolCallRepairFunction,
   type WorkflowAgentOnStartCallback,
   type WorkflowAgentOnStepStartCallback,
-  type WorkflowAgentOnToolCallStartCallback,
-  type WorkflowAgentOnToolCallFinishCallback,
+  type WorkflowAgentOnToolExecutionStartCallback,
+  type WorkflowAgentOnToolExecutionEndCallback,
 } from './workflow-agent.js';
 
 export {

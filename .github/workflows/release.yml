@@ -9,10 +9,21 @@ on:
       - '.changeset/**'
       - '.github/workflows/release.yml'
   workflow_dispatch:
+    inputs:
+      snapshot:
+        description: 'Publish a snapshot release instead of a normal release'
+        type: boolean
+        default: false
 
 concurrency:
   group: 'release'
   cancel-in-progress: false
+
+permissions:
+  id-token: write
+  contents: write
+  pull-requests: write
+  issues: write
 
 jobs:
   release:
@@ -21,69 +32,87 @@ jobs:
     # do not attempt running in forks
     if: github.repository_owner == 'vercel'
     steps:
-      - name: Create access token for GitHub App
-        uses: actions/create-github-app-token@v2
-        id: app-token
-        with:
-          app-id: ${{ vars.VERCEL_AI_SDK_GITHUB_APP_CLIENT_ID }}
-          private-key: ${{ secrets.VERCEL_AI_SDK_GITHUB_APP_PRIVATE_KEY_PKCS8 }}
-
-      - name: Get GitHub App User ID
-        id: app-user-id
-        run: echo "user-id=$(gh api "/users/${{ steps.app-token.outputs.app-slug }}[bot]" --jq .id)" >> "$GITHUB_OUTPUT"
-        env:
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
-
-      - name: Configure git user for GitHub App
+      - name: Configure Git
         run: |
-          git config --global user.name '${{ steps.app-token.outputs.app-slug }}[bot]'
-          git config --global user.email '${{ steps.app-user-id.outputs.user-id }}+${{ steps.app-token.outputs.app-slug }}[bot]@users.noreply.github.com'
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
 
       - name: Checkout Repo
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
-          token: ${{ steps.app-token.outputs.token }}
           persist-credentials: false
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v5
         with:
           version: 10.11.0
 
-      - name: Setup Node.js 22
-        uses: actions/setup-node@v5
+      - name: Setup Node.js 24
+        uses: actions/setup-node@v6
         with:
-          node-version: 22
+          node-version: 24
 
       - name: Install Dependencies
         run: pnpm i
 
+      # Normal release path
       - name: Create Release Pull Request or Publish to npm
+        if: inputs.snapshot != true
         id: changesets
         uses: changesets/action@v1
         with:
           version: pnpm ci:version
           publish: pnpm ci:release
           setupGitUser: false
+          # When using "github-api", all commits and tags are GPG-signed and attributed to the user or app who owns the GITHUB_TOKEN
+          commitMode: 'github-api'
         env:
-          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN_ELEVATED }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Find release PR number
-        if: steps.changesets.outputs.published == 'true'
+        if: inputs.snapshot != true && steps.changesets.outputs.published == 'true'
         id: release-pr
         run: echo "number=$(gh api repos/${{ github.repository }}/commits/${{ github.sha }}/pulls --jq '.[0].number')" >> "$GITHUB_OUTPUT"
         env:
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Notify released PRs and issues
-        if: steps.changesets.outputs.published == 'true'
+        if: inputs.snapshot != true && steps.changesets.outputs.published == 'true'
         run: |
           cd .github/scripts/notify-released
           npm install --no-save
           node index.mjs
         env:
-          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PUBLISHED_PACKAGES: ${{ steps.changesets.outputs.publishedPackages }}
           PULL_REQUEST_NUMBER: ${{ steps.release-pr.outputs.number }}
+
+      # Snapshot release path
+      - name: Add SHORT_SHA env property with commit short sha
+        if: inputs.snapshot == true
+        run: echo "SHORT_SHA=`echo ${{ github.sha }} | cut -c1-8`" >> $GITHUB_ENV
+
+      - name: Delete pre.json if it exists
+        if: inputs.snapshot == true
+        run: rm -f .changeset/pre.json
+
+      - name: Version Packages (snapshot)
+        if: inputs.snapshot == true
+        run: pnpm changeset version --snapshot ${SHORT_SHA}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Clean Examples
+        if: inputs.snapshot == true
+        run: pnpm clean-examples
+
+      - name: Build
+        if: inputs.snapshot == true
+        run: pnpm clean && pnpm build
+
+      - name: Publish Snapshot Release
+        if: inputs.snapshot == true
+        run: pnpm changeset publish --no-git-tag --tag snapshot
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

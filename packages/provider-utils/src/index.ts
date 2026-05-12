@@ -1,5 +1,8 @@
+export { asArray } from './as-array';
+export type { Arrayable } from './as-array';
 export * from './combine-headers';
 export { convertAsyncIteratorToReadableStream } from './convert-async-iterator-to-readable-stream';
+export { convertInlineFileDataToUint8Array } from './convert-inline-file-data-to-uint8-array';
 export { convertImageModelFileToDataUri } from './convert-image-model-file-to-data-uri';
 export { convertToFormData } from './convert-to-form-data';
 export {
@@ -8,10 +11,16 @@ export {
 } from './create-tool-name-mapping';
 export * from './delay';
 export { DelayedPromise } from './delayed-promise';
+export {
+  detectMediaType,
+  getTopLevelMediaType,
+  isFullMediaType,
+} from './detect-media-type';
 export { downloadBlob } from './download-blob';
 export { DownloadError } from './download-error';
 export * from './extract-response-headers';
 export * from './fetch-function';
+export { filterNullable } from './filter-nullable';
 export { createIdGenerator, generateId, type IdGenerator } from './generate-id';
 export * from './get-error-message';
 export * from './get-from-api';
@@ -19,6 +28,7 @@ export { getRuntimeEnvironmentUserAgent } from './get-runtime-environment-user-a
 export type { HasRequiredKey } from './has-required-key';
 export { injectJsonInstructionIntoMessages } from './inject-json-instruction';
 export * from './is-abort-error';
+export { isBuffer } from './is-buffer';
 export { isNonNullable } from './is-non-nullable';
 export { isProviderReference } from './is-provider-reference';
 export { isUrlSupported } from './is-url-supported';
@@ -38,17 +48,22 @@ export { parseJsonEventStream } from './parse-json-event-stream';
 export { parseProviderOptions } from './parse-provider-options';
 export * from './post-to-api';
 export {
-  createProviderToolFactory,
-  createProviderToolFactoryWithOutputSchema,
-  type ProviderToolFactory,
-  type ProviderToolFactoryWithOutputSchema,
-} from './provider-tool-factory';
+  createProviderDefinedToolFactory,
+  createProviderDefinedToolFactoryWithOutputSchema,
+  type ProviderDefinedToolFactory,
+  type ProviderDefinedToolFactoryWithOutputSchema,
+} from './provider-defined-tool-factory';
+export {
+  createProviderExecutedToolFactory,
+  type ProviderExecutedToolFactory,
+} from './provider-executed-tool-factory';
 export {
   DEFAULT_MAX_DOWNLOAD_SIZE,
   readResponseWithSizeLimit,
 } from './read-response-with-size-limit';
 export * from './remove-undefined-entries';
 export * from './resolve';
+export { resolveFullMediaType } from './resolve-full-media-type';
 export { resolveProviderReference } from './resolve-provider-reference';
 export * from './response-handler';
 export {
@@ -63,6 +78,11 @@ export {
   type ValidationResult,
 } from './schema';
 export { serializeModelOptions } from './serialize-model-options';
+export {
+  StreamingToolCallTracker,
+  type StreamingToolCallDelta,
+  type StreamingToolCallTrackerOptions,
+} from './streaming-tool-call-tracker';
 export { stripFileExtension } from './strip-file-extension';
 export * from './uint8-utils';
 export { validateDownloadUrl } from './validate-download-url';

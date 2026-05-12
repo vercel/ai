@@ -2,7 +2,7 @@ import {
   createTestServer,
   TestResponseController,
 } from '@ai-sdk/test-server/with-vitest';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { HttpMCPTransport } from './mcp-http-transport';
 import { LATEST_PROTOCOL_VERSION } from './types';
 import { MCPClientError } from '../error/mcp-client-error';
@@ -22,7 +22,12 @@ describe('HttpMCPTransport', () => {
   let transport: HttpMCPTransport;
 
   beforeEach(() => {
+    vi.useFakeTimers();
     transport = new HttpMCPTransport({ url: 'http://localhost:4000/mcp' });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it('should POST JSON and receive JSON response', async () => {
@@ -186,19 +191,11 @@ describe('HttpMCPTransport', () => {
 
     await transport.start();
 
-    await new Promise<void>(resolve => {
-      const check = () => {
-        if (
-          server.calls.length > 0 &&
-          server.calls[0].requestMethod === 'GET'
-        ) {
-          resolve();
-        } else {
-          setTimeout(check, 0);
-        }
-      };
-      check();
-    });
+    while (
+      !(server.calls.length > 0 && server.calls[0].requestMethod === 'GET')
+    ) {
+      await vi.advanceTimersByTimeAsync(0);
+    }
 
     // Now make POST fail
     server.urls['http://localhost:4000/mcp'].response = {
@@ -482,6 +479,65 @@ describe('HttpMCPTransport', () => {
       expect(customFetch).toHaveBeenCalledWith(
         'http://localhost:4000/mcp',
         expect.objectContaining({ method: 'POST' }),
+      );
+    });
+  });
+
+  describe('protocol version downgrade', () => {
+    it('should use LATEST_PROTOCOL_VERSION by default', async () => {
+      await transport.start();
+
+      const message = {
+        jsonrpc: '2.0' as const,
+        method: 'initialize',
+        id: 1,
+        params: {},
+      };
+
+      await transport.send(message);
+
+      expect(server.calls[1].requestHeaders['mcp-protocol-version']).toBe(
+        LATEST_PROTOCOL_VERSION,
+      );
+    });
+
+    it('should use negotiated protocolVersion in headers after it is set', async () => {
+      const negotiatedVersion = '2025-06-18';
+
+      server.urls['http://localhost:4000/mcp'].response = {
+        type: 'json-value',
+        body: { jsonrpc: '2.0', id: 2, result: { ok: true } },
+        headers: { 'mcp-session-id': 'abc123' },
+      };
+
+      await transport.start();
+
+      // Simulate the client setting the negotiated version after initialize
+      transport.protocolVersion = negotiatedVersion;
+
+      const message = {
+        jsonrpc: '2.0' as const,
+        method: 'tools/list',
+        id: 2,
+        params: {},
+      };
+
+      const messagePromise = new Promise(resolve => {
+        transport.onmessage = msg => resolve(msg);
+      });
+
+      await transport.send(message);
+
+      await messagePromise;
+
+      // The POST for tools/list should use the negotiated version
+      const postCall = server.calls.find(
+        c =>
+          c.requestMethod === 'POST' &&
+          c.requestBodyJson.then(body => body.method === 'tools/list'),
+      );
+      expect(postCall?.requestHeaders['mcp-protocol-version']).toBe(
+        negotiatedVersion,
       );
     });
   });
