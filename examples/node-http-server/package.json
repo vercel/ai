@@ -4,7 +4,7 @@
   "private": true,
   "dependencies": {
     "@ai-sdk/openai": "3.0.63",
-    "ai": "6.0.177",
+    "ai": "6.0.178",
     "dotenv": "16.4.5",
     "zod": "3.25.76"
   },

@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 3.0.77
+
+### Patch Changes
+
+- d53314d: feat(anthropic): add the new advisor tool
+
 ## 3.0.76
 
 ### Patch Changes
