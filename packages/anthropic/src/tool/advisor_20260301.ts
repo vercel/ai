@@ -1,5 +1,5 @@
 import {
-  createProviderExecutedToolFactory,
+  createProviderToolFactoryWithOutputSchema,
   lazySchema,
   zodSchema,
 } from '@ai-sdk/provider-utils';
@@ -43,7 +43,7 @@ const advisor_20260301InputSchema = lazySchema(() =>
   zodSchema(z.object({}).strict()),
 );
 
-const factory = createProviderExecutedToolFactory<
+const factory = createProviderToolFactoryWithOutputSchema<
   // Input is always empty: the executor emits server_tool_use with empty input
   // and the server constructs the advisor's view from the full transcript.
   {},

@@ -1664,8 +1664,8 @@ describe('assistant messages', () => {
 
   describe('advisor 20260301 multi-turn round-trip', () => {
     it('should convert advisor server_tool_use + advisor_result back to the API shape', async () => {
-      const warnings: SharedV4Warning[] = [];
-      const result = await convertToAnthropicPrompt({
+      const warnings: SharedV3Warning[] = [];
+      const result = await convertToAnthropicMessagesPrompt({
         prompt: [
           {
             role: 'assistant',
@@ -1732,8 +1732,8 @@ describe('assistant messages', () => {
     });
 
     it('should round-trip advisor_redacted_result verbatim across turns', async () => {
-      const warnings: SharedV4Warning[] = [];
-      const result = await convertToAnthropicPrompt({
+      const warnings: SharedV3Warning[] = [];
+      const result = await convertToAnthropicMessagesPrompt({
         prompt: [
           {
             role: 'assistant',
@@ -1782,8 +1782,8 @@ describe('assistant messages', () => {
     });
 
     it('should convert advisor_tool_result_error back to the API shape', async () => {
-      const warnings: SharedV4Warning[] = [];
-      const result = await convertToAnthropicPrompt({
+      const warnings: SharedV3Warning[] = [];
+      const result = await convertToAnthropicMessagesPrompt({
         prompt: [
           {
             role: 'assistant',
@@ -1830,8 +1830,8 @@ describe('assistant messages', () => {
     });
 
     it('should preserve multiple advisor turns interleaved with text', async () => {
-      const warnings: SharedV4Warning[] = [];
-      const result = await convertToAnthropicPrompt({
+      const warnings: SharedV3Warning[] = [];
+      const result = await convertToAnthropicMessagesPrompt({
         prompt: [
           {
             role: 'user',
@@ -1942,8 +1942,8 @@ describe('assistant messages', () => {
     });
 
     it('should warn (and not emit a result block) when output type is unsupported', async () => {
-      const warnings: SharedV4Warning[] = [];
-      const result = await convertToAnthropicPrompt({
+      const warnings: SharedV3Warning[] = [];
+      const result = await convertToAnthropicMessagesPrompt({
         prompt: [
           {
             role: 'assistant',

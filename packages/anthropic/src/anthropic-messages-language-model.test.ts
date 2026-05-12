@@ -3497,7 +3497,7 @@ describe('AnthropicMessagesLanguageModel', () => {
 
     describe('advisor tool', () => {
       describe('with fixture', () => {
-        let result: LanguageModelV4GenerateResult;
+        let result: LanguageModelV3GenerateResult;
 
         beforeEach(async () => {
           prepareJsonFixtureResponse('anthropic-advisor-20260301.1');
@@ -8638,8 +8638,8 @@ describe('AnthropicMessagesLanguageModel', () => {
     });
 
     describe('advisor tool', () => {
-      let result: LanguageModelV4StreamResult;
-      let parts: LanguageModelV4StreamPart[];
+      let result: LanguageModelV3StreamResult;
+      let parts: LanguageModelV3StreamPart[];
 
       beforeEach(async () => {
         prepareChunksFixtureResponse('anthropic-advisor-20250301.1');
