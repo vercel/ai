@@ -1,8 +1,8 @@
 import {
   combineHeaders,
-  getRuntimeEnvironmentUserAgent,
   normalizeHeaders,
   withUserAgentSuffix,
+  getRuntimeEnvironmentUserAgent,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { AwsV4Signer } from 'aws4fetch';
@@ -33,6 +33,7 @@ export function createSigV4FetchFunction(
     input: RequestInfo | URL,
     init?: RequestInit,
   ): Promise<Response> => {
+    // avoid caching globalThis.fetch in case it is patched by other libraries
     const effectiveFetch = fetch ?? globalThis.fetch;
     const request = input instanceof Request ? input : undefined;
     const originalHeaders = combineHeaders(
@@ -84,6 +85,8 @@ export function createSigV4FetchFunction(
 
     const signingResult = await signer.sign();
     const signedHeaders = normalizeHeaders(signingResult.headers);
+
+    // Use the combined headers directly as HeadersInit
     const combinedHeaders = combineHeaders(headersWithUserAgent, signedHeaders);
 
     return effectiveFetch(input, {
@@ -92,6 +95,18 @@ export function createSigV4FetchFunction(
       headers: combinedHeaders as HeadersInit,
     });
   };
+}
+
+function prepareBodyString(body: BodyInit | undefined): string {
+  if (typeof body === 'string') {
+    return body;
+  } else if (body instanceof Uint8Array) {
+    return new TextDecoder().decode(body);
+  } else if (body instanceof ArrayBuffer) {
+    return new TextDecoder().decode(new Uint8Array(body));
+  } else {
+    return JSON.stringify(body);
+  }
 }
 
 /**
@@ -109,6 +124,7 @@ export function createApiKeyFetchFunction(
     input: RequestInfo | URL,
     init?: RequestInit,
   ): Promise<Response> => {
+    // avoid caching globalThis.fetch in case it is patched by other libraries
     const effectiveFetch = fetch ?? globalThis.fetch;
     const originalHeaders = normalizeHeaders(init?.headers);
     const headersWithUserAgent = withUserAgentSuffix(
@@ -116,6 +132,7 @@ export function createApiKeyFetchFunction(
       `ai-sdk/anthropic-aws/${VERSION}`,
       getRuntimeEnvironmentUserAgent(),
     );
+
     const finalHeaders = combineHeaders(headersWithUserAgent, {
       'x-api-key': apiKey,
     });
@@ -125,16 +142,4 @@ export function createApiKeyFetchFunction(
       headers: finalHeaders as HeadersInit,
     });
   };
-}
-
-function prepareBodyString(body: BodyInit | undefined): string {
-  if (typeof body === 'string') {
-    return body;
-  } else if (body instanceof Uint8Array) {
-    return new TextDecoder().decode(body);
-  } else if (body instanceof ArrayBuffer) {
-    return new TextDecoder().decode(new Uint8Array(body));
-  } else {
-    return JSON.stringify(body);
-  }
 }

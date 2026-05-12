@@ -16,7 +16,7 @@ vi.mock('aws4fetch', () => {
       const headers = new Headers();
       headers.set('x-amz-date', '20240315T000000Z');
       headers.set('authorization', 'AWS4-HMAC-SHA256 Credential=test');
-      return { headers, options: this.options };
+      return { headers };
     }
   }
   return { AwsV4Signer: MockAwsV4Signer };
@@ -37,195 +37,348 @@ const createSuccessfulResponse = () =>
       stop_sequence: null,
       usage: { input_tokens: 1, output_tokens: 1 },
     }),
-    { status: 200, headers: { 'Content-Type': 'application/json' } },
+    {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    },
   );
 
+const createFetchMock = () =>
+  vi.fn().mockResolvedValue(createSuccessfulResponse());
+
+const stubDefaultEnv = () => {
+  vi.stubEnv('AWS_REGION', 'us-west-2');
+  vi.stubEnv('ANTHROPIC_AWS_WORKSPACE_ID', 'wrkspc_default');
+  vi.stubEnv('ANTHROPIC_AWS_API_KEY', undefined);
+  vi.stubEnv('AWS_ACCESS_KEY_ID', undefined);
+  vi.stubEnv('AWS_SECRET_ACCESS_KEY', undefined);
+  vi.stubEnv('AWS_SESSION_TOKEN', undefined);
+};
+
 describe('createAnthropicAws', () => {
+  describe('baseURL configuration', () => {
+    beforeEach(() => {
+      vi.restoreAllMocks();
+      stubDefaultEnv();
+    });
+
+    afterEach(() => {
+      vi.unstubAllEnvs();
+    });
+
+    it('uses the default Claude Platform on AWS base URL with region templating', async () => {
+      const fetchMock = createFetchMock();
+      const provider = createAnthropicAws({
+        region: 'us-east-1',
+        workspaceId: 'wrkspc_test',
+        apiKey: 'test-api-key',
+        fetch: fetchMock,
+      });
+
+      await provider('claude-sonnet-4-6').doGenerate({ prompt: TEST_PROMPT });
+
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      const [requestUrl] = fetchMock.mock.calls[0]!;
+      expect(requestUrl).toBe(
+        'https://aws-external-anthropic.us-east-1.api.aws/v1/messages',
+      );
+    });
+
+    it('reads AWS_REGION from the environment when region option is omitted', async () => {
+      vi.stubEnv('AWS_REGION', 'eu-west-1');
+      const fetchMock = createFetchMock();
+      const provider = createAnthropicAws({
+        workspaceId: 'wrkspc_test',
+        apiKey: 'test-api-key',
+        fetch: fetchMock,
+      });
+
+      await provider('claude-sonnet-4-6').doGenerate({ prompt: TEST_PROMPT });
+
+      const [requestUrl] = fetchMock.mock.calls[0]!;
+      expect(requestUrl).toBe(
+        'https://aws-external-anthropic.eu-west-1.api.aws/v1/messages',
+      );
+    });
+
+    it('prefers the baseURL option over the default template', async () => {
+      const fetchMock = createFetchMock();
+      const provider = createAnthropicAws({
+        region: 'us-west-2',
+        workspaceId: 'wrkspc_test',
+        apiKey: 'test-api-key',
+        baseURL: 'https://proxy.example.com/v1/',
+        fetch: fetchMock,
+      });
+
+      await provider('claude-sonnet-4-6').doGenerate({ prompt: TEST_PROMPT });
+
+      const [requestUrl] = fetchMock.mock.calls[0]!;
+      expect(requestUrl).toBe('https://proxy.example.com/v1/messages');
+    });
+  });
+});
+
+describe('anthropicAws provider - authentication', () => {
   beforeEach(() => {
-    vi.stubEnv('AWS_REGION', 'us-west-2');
-    vi.stubEnv('ANTHROPIC_AWS_WORKSPACE_ID', 'wrkspc_default');
-    vi.stubEnv('ANTHROPIC_AWS_API_KEY', undefined);
-    vi.stubEnv('AWS_ACCESS_KEY_ID', undefined);
-    vi.stubEnv('AWS_SECRET_ACCESS_KEY', undefined);
-    vi.stubEnv('AWS_SESSION_TOKEN', undefined);
+    vi.restoreAllMocks();
+    stubDefaultEnv();
   });
 
   afterEach(() => {
     vi.unstubAllEnvs();
-    vi.restoreAllMocks();
   });
 
-  it('templates the base URL from the region', async () => {
-    const fetchMock = vi.fn().mockResolvedValue(createSuccessfulResponse());
-    const provider = createAnthropicAws({
-      region: 'us-east-1',
-      workspaceId: 'wrkspc_test',
-      apiKey: 'sk-aws-test',
-      fetch: fetchMock,
+  describe('apiKey option', () => {
+    it('sends x-api-key header when apiKey is provided', async () => {
+      const fetchMock = createFetchMock();
+      const provider = createAnthropicAws({
+        region: 'us-west-2',
+        workspaceId: 'wrkspc_test',
+        apiKey: 'sk-aws-platform-key',
+        fetch: fetchMock,
+      });
+
+      await provider('claude-sonnet-4-6').doGenerate({ prompt: TEST_PROMPT });
+
+      const [, requestOptions] = fetchMock.mock.calls[0]!;
+      expect(requestOptions.headers['x-api-key']).toBe('sk-aws-platform-key');
+      expect(requestOptions.headers.authorization).toBeUndefined();
     });
 
-    await provider('claude-sonnet-4-6').doGenerate({ prompt: TEST_PROMPT });
+    it('reads apiKey from ANTHROPIC_AWS_API_KEY when option is omitted', async () => {
+      vi.stubEnv('ANTHROPIC_AWS_API_KEY', 'sk-from-env');
+      const fetchMock = createFetchMock();
+      const provider = createAnthropicAws({
+        region: 'us-west-2',
+        workspaceId: 'wrkspc_test',
+        fetch: fetchMock,
+      });
 
-    const [url] = fetchMock.mock.calls[0]!;
-    expect(url).toBe(
-      'https://aws-external-anthropic.us-east-1.api.aws/v1/messages',
-    );
+      await provider('claude-sonnet-4-6').doGenerate({ prompt: TEST_PROMPT });
+
+      const [, requestOptions] = fetchMock.mock.calls[0]!;
+      expect(requestOptions.headers['x-api-key']).toBe('sk-from-env');
+    });
+  });
+
+  describe('SigV4 path', () => {
+    it('signs requests with SigV4 when apiKey is not provided', async () => {
+      const fetchMock = createFetchMock();
+      const provider = createAnthropicAws({
+        region: 'us-west-2',
+        workspaceId: 'wrkspc_test',
+        accessKeyId: 'akid',
+        secretAccessKey: 'secret',
+        fetch: fetchMock,
+      });
+
+      await provider('claude-sonnet-4-6').doGenerate({ prompt: TEST_PROMPT });
+
+      const [, requestOptions] = fetchMock.mock.calls[0]!;
+      expect(requestOptions.headers.authorization).toBe(
+        'AWS4-HMAC-SHA256 Credential=test',
+      );
+      expect(requestOptions.headers['x-amz-date']).toBe('20240315T000000Z');
+      expect(requestOptions.headers['x-api-key']).toBeUndefined();
+    });
+
+    it('honors a credentialProvider for dynamic SigV4 credentials', async () => {
+      const fetchMock = createFetchMock();
+      const credentialProvider = vi.fn().mockResolvedValue({
+        accessKeyId: 'dynamic-akid',
+        secretAccessKey: 'dynamic-secret',
+        sessionToken: 'dynamic-session',
+      });
+      const provider = createAnthropicAws({
+        region: 'us-west-2',
+        workspaceId: 'wrkspc_test',
+        credentialProvider,
+        fetch: fetchMock,
+      });
+
+      await provider('claude-sonnet-4-6').doGenerate({ prompt: TEST_PROMPT });
+
+      expect(credentialProvider).toHaveBeenCalled();
+    });
+
+    it('throws a guided error when SigV4 credentials are missing', async () => {
+      const provider = createAnthropicAws({
+        region: 'us-west-2',
+        workspaceId: 'wrkspc_test',
+      });
+
+      await expect(
+        provider('claude-sonnet-4-6').doGenerate({ prompt: TEST_PROMPT }),
+      ).rejects.toThrow(/AWS SigV4 authentication requires AWS credentials/);
+    });
+
+    it('wraps credentialProvider rejections with a guided message', async () => {
+      const provider = createAnthropicAws({
+        region: 'us-west-2',
+        workspaceId: 'wrkspc_test',
+        credentialProvider: async () => {
+          throw new Error('STS denied');
+        },
+      });
+
+      await expect(
+        provider('claude-sonnet-4-6').doGenerate({ prompt: TEST_PROMPT }),
+      ).rejects.toThrow(/AWS credential provider failed: STS denied/);
+    });
+  });
+});
+
+describe('anthropicAws provider - workspaceId', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    stubDefaultEnv();
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
   });
 
   it('sends the anthropic-workspace-id header on every request', async () => {
-    const fetchMock = vi.fn().mockResolvedValue(createSuccessfulResponse());
+    const fetchMock = createFetchMock();
     const provider = createAnthropicAws({
       region: 'us-west-2',
       workspaceId: 'wrkspc_unique',
-      apiKey: 'sk-aws-test',
+      apiKey: 'test-api-key',
       fetch: fetchMock,
     });
 
     await provider('claude-sonnet-4-6').doGenerate({ prompt: TEST_PROMPT });
 
-    const headers = fetchMock.mock.calls[0]![1]!.headers as Record<
-      string,
-      string
-    >;
-    expect(headers['anthropic-workspace-id']).toBe('wrkspc_unique');
+    const [, requestOptions] = fetchMock.mock.calls[0]!;
+    expect(requestOptions.headers['anthropic-workspace-id']).toBe(
+      'wrkspc_unique',
+    );
   });
 
-  it('uses x-api-key authentication when apiKey is provided', async () => {
-    const fetchMock = vi.fn().mockResolvedValue(createSuccessfulResponse());
+  it('reads workspaceId from ANTHROPIC_AWS_WORKSPACE_ID when option is omitted', async () => {
+    vi.stubEnv('ANTHROPIC_AWS_WORKSPACE_ID', 'wrkspc_from_env');
+    const fetchMock = createFetchMock();
     const provider = createAnthropicAws({
       region: 'us-west-2',
-      workspaceId: 'wrkspc_test',
-      apiKey: 'sk-aws-platform-key',
+      apiKey: 'test-api-key',
       fetch: fetchMock,
     });
 
     await provider('claude-sonnet-4-6').doGenerate({ prompt: TEST_PROMPT });
 
-    const headers = fetchMock.mock.calls[0]![1]!.headers as Record<
-      string,
-      string
-    >;
-    expect(headers['x-api-key']).toBe('sk-aws-platform-key');
-    expect(headers['authorization']).toBeUndefined();
+    const [, requestOptions] = fetchMock.mock.calls[0]!;
+    expect(requestOptions.headers['anthropic-workspace-id']).toBe(
+      'wrkspc_from_env',
+    );
   });
 
-  it('uses SigV4 authentication when apiKey is not provided', async () => {
-    const fetchMock = vi.fn().mockResolvedValue(createSuccessfulResponse());
-    const provider = createAnthropicAws({
-      region: 'us-west-2',
-      workspaceId: 'wrkspc_test',
-      accessKeyId: 'akid',
-      secretAccessKey: 'secret',
-      fetch: fetchMock,
-    });
-
-    await provider('claude-sonnet-4-6').doGenerate({ prompt: TEST_PROMPT });
-
-    const headers = fetchMock.mock.calls[0]![1]!.headers as Record<
-      string,
-      string
-    >;
-    expect(headers['authorization']).toBe('AWS4-HMAC-SHA256 Credential=test');
-    expect(headers['x-amz-date']).toBe('20240315T000000Z');
-    expect(headers['x-api-key']).toBeUndefined();
-  });
-
-  it('throws when region is not set anywhere', () => {
-    vi.stubEnv('AWS_REGION', undefined);
-    const provider = createAnthropicAws({
-      workspaceId: 'wrkspc_test',
-      apiKey: 'k',
-    });
-    expect(() => provider('claude-sonnet-4-6')).toThrow(/region/i);
-  });
-
-  it('throws when workspaceId is not set anywhere', async () => {
+  it('throws when workspaceId is not resolvable at request time', async () => {
     vi.stubEnv('ANTHROPIC_AWS_WORKSPACE_ID', undefined);
-    const fetchMock = vi.fn().mockResolvedValue(createSuccessfulResponse());
+    const fetchMock = createFetchMock();
     const provider = createAnthropicAws({
       region: 'us-west-2',
-      apiKey: 'k',
+      apiKey: 'test-api-key',
       fetch: fetchMock,
     });
+
     await expect(
       provider('claude-sonnet-4-6').doGenerate({ prompt: TEST_PROMPT }),
     ).rejects.toThrow(/workspace/i);
   });
+});
 
-  it('reads region and workspaceId from environment variables', async () => {
-    vi.stubEnv('AWS_REGION', 'eu-west-1');
-    vi.stubEnv('ANTHROPIC_AWS_WORKSPACE_ID', 'wrkspc_from_env');
-    const fetchMock = vi.fn().mockResolvedValue(createSuccessfulResponse());
-    const provider = createAnthropicAws({
-      apiKey: 'sk-aws-test',
-      fetch: fetchMock,
-    });
-
-    await provider('claude-sonnet-4-6').doGenerate({ prompt: TEST_PROMPT });
-
-    const [url] = fetchMock.mock.calls[0]!;
-    expect(url).toBe(
-      'https://aws-external-anthropic.eu-west-1.api.aws/v1/messages',
-    );
-    const headers = fetchMock.mock.calls[0]![1]!.headers as Record<
-      string,
-      string
-    >;
-    expect(headers['anthropic-workspace-id']).toBe('wrkspc_from_env');
+describe('anthropicAws provider - region', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    stubDefaultEnv();
   });
 
-  it('honors a credentialProvider for dynamic SigV4 credentials', async () => {
-    const fetchMock = vi.fn().mockResolvedValue(createSuccessfulResponse());
-    const credentialProvider = vi.fn().mockResolvedValue({
-      accessKeyId: 'dynamic-akid',
-      secretAccessKey: 'dynamic-secret',
-      sessionToken: 'dynamic-session',
-    });
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('throws when region is not resolvable at model creation time', () => {
+    vi.stubEnv('AWS_REGION', undefined);
     const provider = createAnthropicAws({
-      region: 'us-west-2',
       workspaceId: 'wrkspc_test',
-      credentialProvider,
-      fetch: fetchMock,
+      apiKey: 'test-api-key',
     });
+    expect(() => provider('claude-sonnet-4-6')).toThrow(/region/i);
+  });
+});
 
-    await provider('claude-sonnet-4-6').doGenerate({ prompt: TEST_PROMPT });
+describe('anthropicAws provider - headers', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    stubDefaultEnv();
+  });
 
-    expect(credentialProvider).toHaveBeenCalled();
+  afterEach(() => {
+    vi.unstubAllEnvs();
   });
 
   it('merges custom headers with the workspace-id header', async () => {
-    const fetchMock = vi.fn().mockResolvedValue(createSuccessfulResponse());
+    const fetchMock = createFetchMock();
     const provider = createAnthropicAws({
       region: 'us-west-2',
       workspaceId: 'wrkspc_test',
-      apiKey: 'sk-aws-test',
+      apiKey: 'test-api-key',
       headers: { 'x-custom': 'value' },
       fetch: fetchMock,
     });
 
     await provider('claude-sonnet-4-6').doGenerate({ prompt: TEST_PROMPT });
 
-    const headers = fetchMock.mock.calls[0]![1]!.headers as Record<
-      string,
-      string
-    >;
-    expect(headers['anthropic-workspace-id']).toBe('wrkspc_test');
-    expect(headers['x-custom']).toBe('value');
+    const [, requestOptions] = fetchMock.mock.calls[0]!;
+    expect(requestOptions.headers['anthropic-workspace-id']).toBe(
+      'wrkspc_test',
+    );
+    expect(requestOptions.headers['x-custom']).toBe('value');
+  });
+});
+
+describe('anthropicAws provider - supportedUrls', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    stubDefaultEnv();
   });
 
-  it('honors a baseURL override', async () => {
-    const fetchMock = vi.fn().mockResolvedValue(createSuccessfulResponse());
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('should support image/* URLs', async () => {
     const provider = createAnthropicAws({
       region: 'us-west-2',
       workspaceId: 'wrkspc_test',
-      apiKey: 'sk-aws-test',
-      baseURL: 'https://proxy.example.com/v1',
-      fetch: fetchMock,
+      apiKey: 'test-api-key',
     });
 
-    await provider('claude-sonnet-4-6').doGenerate({ prompt: TEST_PROMPT });
+    const model = provider('claude-sonnet-4-6');
+    const supportedUrls = await model.supportedUrls;
 
-    const [url] = fetchMock.mock.calls[0]!;
-    expect(url).toBe('https://proxy.example.com/v1/messages');
+    expect(supportedUrls['image/*']).toBeDefined();
+    expect(
+      supportedUrls['image/*']![0]!.test('https://example.com/image.png'),
+    ).toBe(true);
+  });
+
+  it('should support application/pdf URLs', async () => {
+    const provider = createAnthropicAws({
+      region: 'us-west-2',
+      workspaceId: 'wrkspc_test',
+      apiKey: 'test-api-key',
+    });
+
+    const model = provider('claude-sonnet-4-6');
+    const supportedUrls = await model.supportedUrls;
+
+    expect(supportedUrls['application/pdf']).toBeDefined();
+    expect(
+      supportedUrls['application/pdf']![0]!.test(
+        'https://arxiv.org/pdf/2401.00001',
+      ),
+    ).toBe(true);
   });
 });

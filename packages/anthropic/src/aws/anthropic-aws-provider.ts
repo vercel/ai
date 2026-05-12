@@ -253,3 +253,8 @@ export function createAnthropicAws(
 
   return provider;
 }
+
+/**
+ * Default Claude Platform on AWS provider instance.
+ */
+export const anthropicAws = createAnthropicAws();

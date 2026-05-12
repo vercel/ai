@@ -1,4 +1,4 @@
-export { createAnthropicAws } from './anthropic-aws-provider';
+export { anthropicAws, createAnthropicAws } from './anthropic-aws-provider';
 export type {
   AnthropicAwsProvider,
   AnthropicAwsProviderSettings,
