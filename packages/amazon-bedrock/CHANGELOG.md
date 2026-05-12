@@ -1,5 +1,11 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.104
+
+### Patch Changes
+
+- 1f7f3f5: fix(bedrock): skip passing unsigned reasoning content
+
 ## 4.0.103
 
 ### Patch Changes
