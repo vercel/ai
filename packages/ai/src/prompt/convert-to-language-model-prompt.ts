@@ -375,10 +375,7 @@ export function convertToLanguageModelMessage({
                   type: 'tool-result' as const,
                   toolCallId: part.toolCallId,
                   toolName: part.toolName,
-                  output: replaceToolResultOutputUrls(
-                    output,
-                    downloadedAssets,
-                  ),
+                  output: replaceToolResultOutputUrls(output, downloadedAssets),
                   providerOptions: part.providerOptions,
                 };
               }

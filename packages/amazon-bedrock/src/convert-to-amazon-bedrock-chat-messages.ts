@@ -256,9 +256,7 @@ export async function convertToAmazonBedrockChatMessages(
                                   contentPart.data.url.toString(),
                                 );
                                 bytes = convertToBase64(
-                                  new Uint8Array(
-                                    await blob.arrayBuffer(),
-                                  ),
+                                  new Uint8Array(await blob.arrayBuffer()),
                                 );
                                 break;
                               }
