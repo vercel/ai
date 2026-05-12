@@ -52,13 +52,13 @@
     "@ai-sdk/provider": "workspace:*",
     "@ai-sdk/provider-utils": "workspace:*",
     "@smithy/eventstream-codec": "^4.0.1",
-    "@smithy/util-utf8": "^4.0.0",
-    "aws4fetch": "^1.0.20"
+    "@smithy/util-utf8": "^4.0.0"
   },
   "devDependencies": {
     "@ai-sdk/test-server": "workspace:*",
     "@types/node": "20.17.24",
     "@vercel/ai-tsconfig": "workspace:*",
+    "aws4fetch": "^1.0.20",
     "tsup": "^8.3.0",
     "typescript": "5.8.3",
     "zod": "3.25.76"

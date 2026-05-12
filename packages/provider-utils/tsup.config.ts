@@ -17,6 +17,21 @@ export default defineConfig([
     },
   },
   {
+    entry: ['src/aws/index.ts'],
+    outDir: 'dist/aws',
+    format: ['esm'],
+    dts: true,
+    sourcemap: true,
+    target: 'es2018',
+    platform: 'node',
+    define: {
+      __PACKAGE_VERSION__: JSON.stringify(
+        (await import('./package.json', { with: { type: 'json' } })).default
+          .version,
+      ),
+    },
+  },
+  {
     entry: ['src/test/index.ts'],
     outDir: 'dist/test',
     format: ['esm'],

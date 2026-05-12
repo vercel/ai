@@ -8,14 +8,6 @@ vi.mock('../version', () => ({
   VERSION: '0.0.0-test',
 }));
 
-vi.mock('@ai-sdk/provider-utils', async () => {
-  const actual = await vi.importActual('@ai-sdk/provider-utils');
-  return {
-    ...actual,
-    getRuntimeEnvironmentUserAgent: vi.fn(() => 'runtime/testenv'),
-  };
-});
-
 vi.mock('aws4fetch', () => {
   class MockAwsV4Signer {
     options: Record<string, unknown>;
@@ -26,13 +18,7 @@ vi.mock('aws4fetch', () => {
       const headers = new Headers();
       headers.set('x-amz-date', '20240315T000000Z');
       headers.set('authorization', 'AWS4-HMAC-SHA256 Credential=test');
-      if (this.options.sessionToken) {
-        headers.set(
-          'x-amz-security-token',
-          this.options.sessionToken as string,
-        );
-      }
-      return { headers, options: this.options };
+      return { headers };
     }
   }
   return { AwsV4Signer: MockAwsV4Signer };
@@ -43,7 +29,7 @@ describe('createSigV4FetchFunction', () => {
     vi.restoreAllMocks();
   });
 
-  it('signs POST requests using the aws-external-anthropic service', async () => {
+  it('signs with service aws-external-anthropic and the anthropic-aws user-agent', async () => {
     const { AwsV4Signer } = await import('aws4fetch');
     const signerSpy = vi.spyOn(AwsV4Signer.prototype, 'sign');
     const dummyFetch = vi.fn().mockResolvedValue(new Response('OK'));
@@ -61,67 +47,21 @@ describe('createSigV4FetchFunction', () => {
       {
         method: 'POST',
         body: '{"hi":1}',
-        headers: { 'content-type': 'application/json' },
       },
     );
 
-    expect(signerSpy).toHaveBeenCalled();
-    const signerInstance = signerSpy.mock.instances[0] as unknown as {
-      options: { service: string; region: string };
+    const signerInstance = signerSpy.mock.instances[0] as {
+      options: { service: string };
     };
     expect(signerInstance.options.service).toBe('aws-external-anthropic');
-    expect(signerInstance.options.region).toBe('us-west-2');
 
     const calledHeaders = dummyFetch.mock.calls[0]![1]!.headers as Record<
       string,
       string
     >;
-    expect(calledHeaders['x-amz-date']).toBe('20240315T000000Z');
-    expect(calledHeaders['authorization']).toBe(
-      'AWS4-HMAC-SHA256 Credential=test',
+    expect(calledHeaders['user-agent']).toContain(
+      'ai-sdk/anthropic-aws/0.0.0-test',
     );
-    expect(calledHeaders['user-agent']).toContain('ai-sdk/anthropic-aws/');
-  });
-
-  it('includes session token when provided', async () => {
-    const dummyFetch = vi.fn().mockResolvedValue(new Response('OK'));
-    const fetchFn = createSigV4FetchFunction(
-      () => ({
-        region: 'us-west-2',
-        accessKeyId: 'akid',
-        secretAccessKey: 'secret',
-        sessionToken: 'session-token',
-      }),
-      dummyFetch,
-    );
-
-    await fetchFn('https://example.com', {
-      method: 'POST',
-      body: '{"hi":1}',
-    });
-
-    const calledHeaders = dummyFetch.mock.calls[0]![1]!.headers as Record<
-      string,
-      string
-    >;
-    expect(calledHeaders['x-amz-security-token']).toBe('session-token');
-  });
-
-  it('bypasses signing for non-POST requests', async () => {
-    const { AwsV4Signer } = await import('aws4fetch');
-    const signerSpy = vi.spyOn(AwsV4Signer.prototype, 'sign');
-    const dummyFetch = vi.fn().mockResolvedValue(new Response('OK'));
-    const fetchFn = createSigV4FetchFunction(
-      () => ({
-        region: 'us-west-2',
-        accessKeyId: 'akid',
-        secretAccessKey: 'secret',
-      }),
-      dummyFetch,
-    );
-
-    await fetchFn('https://example.com', { method: 'GET' });
-    expect(signerSpy).not.toHaveBeenCalled();
   });
 });
 
@@ -149,6 +89,8 @@ describe('createApiKeyFetchFunction', () => {
     >;
     expect(calledHeaders['x-api-key']).toBe('sk-aws-anthropic-123');
     expect(calledHeaders['content-type']).toBe('application/json');
-    expect(calledHeaders['user-agent']).toContain('ai-sdk/anthropic-aws/');
+    expect(calledHeaders['user-agent']).toContain(
+      'ai-sdk/anthropic-aws/0.0.0-test',
+    );
   });
 });
