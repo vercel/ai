@@ -5,7 +5,7 @@ import { run } from '../../lib/run';
 run(async () => {
   const { embedding, usage, warnings } = await embed({
     model: google.embeddingModel('gemini-embedding-2-preview'),
-    value: 'describe this video',
+    value: 'a dummy PDF file',
     providerOptions: {
       google: {
         content: [
@@ -24,7 +24,7 @@ run(async () => {
   });
 
   console.log('embedding length:', embedding.length);
-  console.log('first 5:', embedding.slice(0, 5));
-  console.log('usage:', usage);
-  console.log('warnings:', warnings);
+  console.log(embedding);
+  console.log(usage);
+  console.log(warnings);
 });
