@@ -1,32 +1,140 @@
-# Backport pull requests to the next-older release branch by adding
-# a "backport" label. Works on PRs against `main` (targets the latest
-# release-v* branch) and on PRs against `release-v*` branches
-# (targets the next-older release-v* branch).
+# Backport pull requests to the next-older release branch by adding a
+# "backport" label. Labeling an already-merged PR triggers the workflow
+# through the issues event. Labeling before merge is picked up by the
+# push event after the merge commit lands on `main` or `release-v*`.
 
 name: Backport
 
 on:
-  pull_request_target:
-    types: [closed, labeled]
+  issues:
+    types: [labeled]
+  push:
     branches:
       - main
       - release-v*
 
-concurrency: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+concurrency: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.issue.number || github.sha }}
 
 permissions:
   contents: write
+  issues: write
   pull-requests: write
 
 jobs:
+  resolve-pr:
+    name: Resolve backport PR
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: github.repository_owner == 'vercel'
+    outputs:
+      should-backport: ${{ steps.resolve.outputs.should-backport }}
+      pr-number: ${{ steps.resolve.outputs.pr-number }}
+      pr-title: ${{ steps.resolve.outputs.pr-title }}
+      pr-author-login: ${{ steps.resolve.outputs.pr-author-login }}
+      pr-author-type: ${{ steps.resolve.outputs.pr-author-type }}
+      merged-by-login: ${{ steps.resolve.outputs.merged-by-login }}
+      merged-by-type: ${{ steps.resolve.outputs.merged-by-type }}
+      merge-commit-sha: ${{ steps.resolve.outputs.merge-commit-sha }}
+      base-ref: ${{ steps.resolve.outputs.base-ref }}
+
+    steps:
+      - name: Resolve PR from trusted event
+        id: resolve
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EVENT_NAME: ${{ github.event_name }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          ISSUE_LABEL: ${{ github.event.label.name }}
+          REPO: ${{ github.repository }}
+          PUSH_REF: ${{ github.ref_name }}
+          PUSH_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+
+          set_output() {
+            local name="$1"
+            local value="$2"
+            {
+              echo "${name}<<EOF"
+              echo "${value}"
+              echo "EOF"
+            } >> "$GITHUB_OUTPUT"
+          }
+
+          skip() {
+            echo "$1"
+            set_output "should-backport" "false"
+            exit 0
+          }
+
+          PR_NUMBER=""
+
+          if [ "$EVENT_NAME" = "issues" ]; then
+            [ "$ISSUE_LABEL" = "backport" ] || skip "Ignoring non-backport label: $ISSUE_LABEL"
+
+            ISSUE=$(gh api "repos/${REPO}/issues/${ISSUE_NUMBER}")
+            IS_PR=$(echo "$ISSUE" | jq -r 'has("pull_request")')
+            [ "$IS_PR" = "true" ] || skip "Issue #${ISSUE_NUMBER} is not a pull request"
+
+            PR_NUMBER="$ISSUE_NUMBER"
+          elif [ "$EVENT_NAME" = "push" ]; then
+            if [ "$PUSH_SHA" = "0000000000000000000000000000000000000000" ]; then
+              skip "Ignoring branch deletion push for ${PUSH_REF}"
+            fi
+
+            for SHA in "$PUSH_SHA"; do
+              PULLS=$(gh api \
+                -H "Accept: application/vnd.github+json" \
+                "repos/${REPO}/commits/${SHA}/pulls")
+              PR_NUMBER=$(echo "$PULLS" | jq -r --arg base "$PUSH_REF" \
+                '[.[] | select(.base.ref == $base)] | .[0].number // empty')
+
+              if [ -n "$PR_NUMBER" ]; then
+                break
+              fi
+            done
+
+            [ -n "$PR_NUMBER" ] || skip "No pull request found for pushed commit ${PUSH_SHA}"
+          else
+            skip "Unsupported event: $EVENT_NAME"
+          fi
+
+          PR=$(gh api "repos/${REPO}/pulls/${PR_NUMBER}")
+          MERGED=$(echo "$PR" | jq -r '.merged')
+          [ "$MERGED" = "true" ] || skip "PR #${PR_NUMBER} is not merged"
+
+          BASE_REF=$(echo "$PR" | jq -r '.base.ref')
+          case "$BASE_REF" in
+            main|release-v*) ;;
+            *) skip "PR #${PR_NUMBER} targets unsupported base branch: ${BASE_REF}" ;;
+          esac
+
+          if [ "$EVENT_NAME" = "push" ] && [ "$BASE_REF" != "$PUSH_REF" ]; then
+            skip "PR #${PR_NUMBER} base ${BASE_REF} does not match pushed branch ${PUSH_REF}"
+          fi
+
+          HAS_BACKPORT_LABEL=$(gh api "repos/${REPO}/issues/${PR_NUMBER}/labels" \
+            --jq 'any(.[]; .name == "backport")')
+          [ "$HAS_BACKPORT_LABEL" = "true" ] || skip "PR #${PR_NUMBER} does not have the backport label"
+
+          set_output "should-backport" "true"
+          set_output "pr-number" "$PR_NUMBER"
+          set_output "pr-title" "$(echo "$PR" | jq -r '.title')"
+          set_output "pr-author-login" "$(echo "$PR" | jq -r '.user.login')"
+          set_output "pr-author-type" "$(echo "$PR" | jq -r '.user.type')"
+          set_output "merged-by-login" "$(echo "$PR" | jq -r '.merged_by.login // empty')"
+          set_output "merged-by-type" "$(echo "$PR" | jq -r '.merged_by.type // empty')"
+          set_output "merge-commit-sha" "$(echo "$PR" | jq -r '.merge_commit_sha')"
+          set_output "base-ref" "$BASE_REF"
+
   find-branch:
     name: Find target release branch
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    needs: resolve-pr
     if: |
       github.repository_owner == 'vercel' &&
-      github.event.pull_request.merged == true &&
-      contains(github.event.pull_request.labels.*.name, 'backport')
+      needs.resolve-pr.outputs.should-backport == 'true'
     outputs:
       release-branch: ${{ steps.find-target.outputs.release-branch }}
 
@@ -82,7 +190,7 @@ jobs:
             sleep "$WAIT"
           done
 
-          BASE_REF="${{ github.event.pull_request.base.ref }}"
+          BASE_REF="${{ needs.resolve-pr.outputs.base-ref }}"
           RELEASE_BRANCHES=$(git branch -r | grep -E 'origin/release-v[0-9]+\.[0-9]+$' | sed 's/.*origin\///' | sort -V)
 
           if [ -z "$RELEASE_BRANCHES" ]; then
@@ -109,11 +217,10 @@ jobs:
     name: Backport to ${{ needs.find-branch.outputs.release-branch }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    needs: find-branch
+    needs: [resolve-pr, find-branch]
     if: |
       github.repository_owner == 'vercel' &&
-      github.event.pull_request.merged == true &&
-      contains(github.event.pull_request.labels.*.name, 'backport')
+      needs.resolve-pr.outputs.should-backport == 'true'
 
     steps:
       - name: Configure Git
@@ -124,7 +231,7 @@ jobs:
       - name: Check for existing backport PR
         id: check-existing
         run: |
-          BACKPORT_BRANCH="backport-pr-${{ github.event.pull_request.number }}-to-${{ needs.find-branch.outputs.release-branch }}"
+          BACKPORT_BRANCH="backport-pr-${{ needs.resolve-pr.outputs.pr-number }}-to-${{ needs.find-branch.outputs.release-branch }}"
           EXISTING_PR=$(gh api "repos/${{ github.repository }}/pulls?head=${{ github.repository_owner }}:${BACKPORT_BRANCH}&state=open" --jq '.[0].html_url // empty')
           if [ -n "$EXISTING_PR" ]; then
             echo "Backport PR already exists: $EXISTING_PR — skipping."
@@ -136,7 +243,7 @@ jobs:
       - name: Remove backport label (already backported)
         if: steps.check-existing.outputs.existing-pr
         run: |
-          gh pr edit ${{ github.event.pull_request.number }} --remove-label backport || true
+          gh pr edit ${{ needs.resolve-pr.outputs.pr-number }} --remove-label backport || true
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -151,14 +258,14 @@ jobs:
         if: '!steps.check-existing.outputs.existing-pr'
         run: |
           # Create a new branch from the latest release branch for the backport
-          git checkout -b backport-pr-${{ github.event.pull_request.number }}-to-${{ needs.find-branch.outputs.release-branch }} origin/${{ needs.find-branch.outputs.release-branch }}
+          git checkout -b backport-pr-${{ needs.resolve-pr.outputs.pr-number }}-to-${{ needs.find-branch.outputs.release-branch }} origin/${{ needs.find-branch.outputs.release-branch }}
 
       - name: Cherry-pick commits
         if: '!steps.check-existing.outputs.existing-pr'
         id: cherry-pick
         run: |
           # Get the merge commit hash
-          MERGE_COMMIT="${{ github.event.pull_request.merge_commit_sha }}"
+          MERGE_COMMIT="${{ needs.resolve-pr.outputs.merge-commit-sha }}"
 
           # Cherry-pick the merge commit and capture output
           CHERRY_PICK_OUTPUT=$(git cherry-pick -m 1 "$MERGE_COMMIT" 2>&1) || CHERRY_PICK_EXIT_CODE=$?
@@ -207,14 +314,14 @@ jobs:
         run: |
           # In case of failure, commit the conflicts to allow inspection
           git add .
-          git commit -m "Backport conflicts for PR #${{ github.event.pull_request.number }} to ${{ needs.find-branch.outputs.release-branch }}"
+          git commit -m "Backport conflicts for PR #${{ needs.resolve-pr.outputs.pr-number }} to ${{ needs.find-branch.outputs.release-branch }}"
       - name: Push backport branch as signed commit
         if: '!steps.check-existing.outputs.existing-pr'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
           BASE_BRANCH: ${{ needs.find-branch.outputs.release-branch }}
-          BACKPORT_BRANCH: backport-pr-${{ github.event.pull_request.number }}-to-${{ needs.find-branch.outputs.release-branch }}
+          BACKPORT_BRANCH: backport-pr-${{ needs.resolve-pr.outputs.pr-number }}-to-${{ needs.find-branch.outputs.release-branch }}
         run: |
           # Commits made via the GitHub API with GITHUB_TOKEN are signed by
           # GitHub automatically. We build the file additions/deletions from
@@ -305,7 +412,7 @@ jobs:
           elif [ "$PR_AUTHOR_TYPE" = "User" ]; then
             echo "login=$PR_AUTHOR_LOGIN" >> "$GITHUB_OUTPUT"
           else
-            REVIEWER=$(gh api "repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/reviews" \
+            REVIEWER=$(gh api "repos/${{ github.repository }}/pulls/${{ needs.resolve-pr.outputs.pr-number }}/reviews" \
               --jq '[.[] | select(.user.type == "User")] | last | .user.login // empty')
             if [ -n "$REVIEWER" ]; then
               echo "login=$REVIEWER" >> "$GITHUB_OUTPUT"
@@ -313,10 +420,10 @@ jobs:
           fi
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          MERGED_BY_TYPE: ${{ github.event.pull_request.merged_by.type }}
-          MERGED_BY_LOGIN: ${{ github.event.pull_request.merged_by.login }}
-          PR_AUTHOR_TYPE: ${{ github.event.pull_request.user.type }}
-          PR_AUTHOR_LOGIN: ${{ github.event.pull_request.user.login }}
+          MERGED_BY_TYPE: ${{ needs.resolve-pr.outputs.merged-by-type }}
+          MERGED_BY_LOGIN: ${{ needs.resolve-pr.outputs.merged-by-login }}
+          PR_AUTHOR_TYPE: ${{ needs.resolve-pr.outputs.pr-author-type }}
+          PR_AUTHOR_LOGIN: ${{ needs.resolve-pr.outputs.pr-author-login }}
 
       - name: Create backport pull request
         if: '!steps.check-existing.outputs.existing-pr'
@@ -333,7 +440,7 @@ jobs:
               --title "$PR_TITLE" \
               --body "$PR_BODY_CONFLICTS" \
               --base ${{ needs.find-branch.outputs.release-branch }} \
-              --head backport-pr-${{ github.event.pull_request.number }}-to-${{ needs.find-branch.outputs.release-branch }} \
+              --head backport-pr-${{ needs.resolve-pr.outputs.pr-number }}-to-${{ needs.find-branch.outputs.release-branch }} \
               $ASSIGNEE_FLAG \
               --draft)
           else
@@ -341,7 +448,7 @@ jobs:
               --title "$PR_TITLE" \
               --body "$PR_BODY_NO_CONFLICTS" \
               --base ${{ needs.find-branch.outputs.release-branch }} \
-              --head backport-pr-${{ github.event.pull_request.number }}-to-${{ needs.find-branch.outputs.release-branch }} \
+              --head backport-pr-${{ needs.resolve-pr.outputs.pr-number }}-to-${{ needs.find-branch.outputs.release-branch }} \
               $ASSIGNEE_FLAG)
           fi
           echo "backport-pr-url=$PR_URL" >> "$GITHUB_OUTPUT"
@@ -350,11 +457,11 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ASSIGNEE_LOGIN: ${{ steps.assignee.outputs.login }}
-          PR_TITLE: 'Backport: ${{ github.event.pull_request.title }}'
-          PR_BODY_NO_CONFLICTS: 'This is an automated backport of #${{ github.event.pull_request.number }} to the ${{ needs.find-branch.outputs.release-branch }} branch. FYI @${{ github.event.pull_request.user.login }}'
+          PR_TITLE: 'Backport: ${{ needs.resolve-pr.outputs.pr-title }}'
+          PR_BODY_NO_CONFLICTS: 'This is an automated backport of #${{ needs.resolve-pr.outputs.pr-number }} to the ${{ needs.find-branch.outputs.release-branch }} branch. FYI @${{ needs.resolve-pr.outputs.pr-author-login }}'
           PR_BODY_CONFLICTS: |
 
-            This is an automated backport of #${{ github.event.pull_request.number }} to the ${{ needs.find-branch.outputs.release-branch }} branch. FYI @${{ github.event.pull_request.user.login }}
+            This is an automated backport of #${{ needs.resolve-pr.outputs.pr-number }} to the ${{ needs.find-branch.outputs.release-branch }} branch. FYI @${{ needs.resolve-pr.outputs.pr-author-login }}
             This backport has conflicts that need to be resolved manually.
 
             ### `git cherry-pick` output
@@ -368,28 +475,28 @@ jobs:
         run: |
           # The backport PR has already been created at this point, so a
           # transient GitHub API failure here must not fail the job.
-          gh pr edit ${{ github.event.pull_request.number }} --remove-label backport \
-            || echo "::warning::Failed to remove backport label from PR #${{ github.event.pull_request.number }} (non-fatal)"
+          gh pr edit ${{ needs.resolve-pr.outputs.pr-number }} --remove-label backport \
+            || echo "::warning::Failed to remove backport label from PR #${{ needs.resolve-pr.outputs.pr-number }} (non-fatal)"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Success Comment on original PR
         if: "!steps.check-existing.outputs.existing-pr && steps.cherry-pick.outputs.has-conflicts == 'false' && steps.create-pr.outputs.backport-pr-url"
         run: |
-          gh pr comment ${{ github.event.pull_request.number }} --body "✅ Backport PR created: ${{ steps.create-pr.outputs.backport-pr-url }}"
+          gh pr comment ${{ needs.resolve-pr.outputs.pr-number }} --body "✅ Backport PR created: ${{ steps.create-pr.outputs.backport-pr-url }}"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Error Comment on original PR
         if: "!steps.check-existing.outputs.existing-pr && steps.cherry-pick.outputs.has-conflicts == 'true' && steps.create-pr.outputs.backport-pr-url"
         run: |
-          gh pr comment ${{ github.event.pull_request.number }} --body "⚠️ Backport to ${{ needs.find-branch.outputs.release-branch }} created but has conflicts: ${{ steps.create-pr.outputs.backport-pr-url }}"
+          gh pr comment ${{ needs.resolve-pr.outputs.pr-number }} --body "⚠️ Backport to ${{ needs.find-branch.outputs.release-branch }} created but has conflicts: ${{ steps.create-pr.outputs.backport-pr-url }}"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Pull request failure Comment on original PR
         if: "!steps.check-existing.outputs.existing-pr && steps.cherry-pick.outputs.has-conflicts == 'true' && !steps.create-pr.outputs.backport-pr-url"
         run: |
-          gh pr comment ${{ github.event.pull_request.number }} --body "❌ Backport to ${{ needs.find-branch.outputs.release-branch }} failed. This backport requires manual intervention. [View workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
+          gh pr comment ${{ needs.resolve-pr.outputs.pr-number }} --body "❌ Backport to ${{ needs.find-branch.outputs.release-branch }} failed. This backport requires manual intervention. [View workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
