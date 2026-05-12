@@ -153,9 +153,9 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
         ? mapReasoningToProviderEffort({
             reasoning,
             effortMap: {
-              minimal: 'high',
-              low: 'high',
-              medium: 'high',
+              minimal: 'low',
+              low: 'low',
+              medium: 'medium',
               high: 'high',
               xhigh: 'max',
             },

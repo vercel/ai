@@ -12,8 +12,14 @@ on:
     branches:
       - main
       - release-v*
+  workflow_dispatch:
+    inputs:
+      pull_request_number:
+        description: Pull request number to backport
+        required: true
+        type: number
 
-concurrency: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.sha }}
+concurrency: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.event.inputs.pull_request_number || github.sha }}
 
 permissions:
   contents: write
@@ -105,7 +111,9 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           EVENT_NAME: ${{ github.event_name }}
           PR_EVENT_NUMBER: ${{ github.event.pull_request.number }}
+          DISPATCH_PR_NUMBER: ${{ github.event.inputs.pull_request_number }}
           ISSUE_LABEL: ${{ github.event.label.name }}
+          LABELER_LOGIN: ${{ github.event.sender.login }}
           REPO: ${{ github.repository }}
           PUSH_REF: ${{ github.ref_name }}
           PUSH_SHA: ${{ github.sha }}
@@ -137,6 +145,12 @@ jobs:
               exit 1
             }
             PR_NUMBER="$PR_EVENT_NUMBER"
+          elif [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            [ -n "$DISPATCH_PR_NUMBER" ] || {
+              echo "::error::workflow_dispatch event did not include pull_request_number"
+              exit 1
+            }
+            PR_NUMBER="$DISPATCH_PR_NUMBER"
           elif [ "$EVENT_NAME" = "push" ]; then
             if [ "$PUSH_SHA" = "0000000000000000000000000000000000000000" ]; then
               skip "Ignoring branch deletion push for ${PUSH_REF}"
@@ -162,6 +176,25 @@ jobs:
           PR=$(gh api "repos/${REPO}/pulls/${PR_NUMBER}")
           MERGED=$(echo "$PR" | jq -r '.merged')
           [ "$MERGED" = "true" ] || skip "PR #${PR_NUMBER} is not merged"
+
+          HEAD_REPO=$(echo "$PR" | jq -r '.head.repo.full_name // empty')
+          if [ "$EVENT_NAME" = "pull_request" ] && [ "$HEAD_REPO" != "$REPO" ]; then
+            {
+              echo "@${LABELER_LOGIN} this pull request was opened from a fork and must be backported with a workflow_dispatch event."
+              echo
+              echo 'Please trigger the Backport workflow manually:'
+              echo 'https://github.com/vercel/ai/actions/workflows/backport.yml'
+              echo
+              echo 'From the terminal, run:'
+              echo
+              echo '```sh'
+              echo "gh workflow run backport.yml --repo vercel/ai -f pull_request_number=${PR_NUMBER}"
+              echo '```'
+            } > comment.md
+
+            gh pr comment "$PR_NUMBER" --repo "$REPO" --body-file comment.md
+            skip "PR #${PR_NUMBER} is from a fork and must be backported with workflow_dispatch"
+          fi
 
           BASE_REF=$(echo "$PR" | jq -r '.base.ref')
           case "$BASE_REF" in
@@ -281,6 +314,14 @@ jobs:
     if: |
       github.repository_owner == 'vercel' &&
       needs.resolve-pr.outputs.should-backport == 'true'
+    # Serialize across all events (pull_request labeled, push) targeting the
+    # same PR+release branch. The workflow-level concurrency key differs by
+    # event_name, so two events for the same merge would otherwise race on
+    # creating the backport branch and PR. Serializing here lets the second
+    # run hit the "Check for existing backport PR" step and exit cleanly.
+    concurrency:
+      group: backport-${{ needs.resolve-pr.outputs.pr-number }}-${{ needs.find-branch.outputs.release-branch }}
+      cancel-in-progress: false
 
     steps:
       - name: Configure Git
@@ -366,6 +407,41 @@ jobs:
           gh pr edit ${{ needs.resolve-pr.outputs.pr-number }} --remove-label backport || true
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # GITHUB_TOKEN cannot create commits that modify files under
+      # .github/workflows/ — it lacks the `workflows` permission, which
+      # cannot be granted via the workflow's permissions: block. This is
+      # a hard GitHub restriction to prevent a workflow from rewriting
+      # itself via its own token. Detect this case early and fail with a
+      # clear message rather than blowing up later in
+      # createCommitOnBranch with an opaque "Resource not accessible by
+      # integration" error.
+      - name: Reject PRs that modify workflow files
+        if: '!steps.check-existing.outputs.existing-pr'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ needs.resolve-pr.outputs.pr-number }}
+          RELEASE_BRANCH: ${{ needs.find-branch.outputs.release-branch }}
+        run: |
+          set -euo pipefail
+
+          WORKFLOW_FILES=$(gh api --paginate "repos/${REPO}/pulls/${PR_NUMBER}/files" \
+            --jq '[.[] | select(.filename | startswith(".github/workflows/")) | .filename] | join(", ")')
+
+          if [ -z "$WORKFLOW_FILES" ]; then
+            exit 0
+          fi
+
+          echo "::error::PR #${PR_NUMBER} modifies workflow files (${WORKFLOW_FILES}) and cannot be backported automatically. GITHUB_TOKEN lacks the 'workflows' permission required to commit changes under .github/workflows/, and that permission cannot be granted to the default workflow token. Backport this change manually."
+
+          gh pr comment "$PR_NUMBER" --body "❌ Backport to \`${RELEASE_BRANCH}\` skipped: this PR modifies workflow files under \`.github/workflows/\` (\`${WORKFLOW_FILES}\`), which cannot be backported automatically. \`GITHUB_TOKEN\` lacks the \`workflows\` permission required to commit changes to those paths, and that permission cannot be granted to the default workflow token. Please backport this change manually." \
+            || echo "::warning::Failed to comment on PR #${PR_NUMBER} (non-fatal)"
+
+          gh pr edit "$PR_NUMBER" --remove-label backport \
+            || echo "::warning::Failed to remove backport label from PR #${PR_NUMBER} (non-fatal)"
+
+          exit 1
 
       - name: Checkout Repository
         if: '!steps.check-existing.outputs.existing-pr'
