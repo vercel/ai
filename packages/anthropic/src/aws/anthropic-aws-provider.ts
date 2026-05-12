@@ -29,12 +29,12 @@ export interface AnthropicAwsProvider extends ProviderV4 {
    */
   languageModel(modelId: AnthropicModelId): LanguageModelV4;
 
+  tools: typeof anthropicTools;
+
   /**
    * @deprecated Use `embeddingModel` instead.
    */
   textEmbeddingModel(modelId: string): never;
-
-  tools: typeof anthropicTools;
 }
 
 export interface AnthropicAwsProviderSettings {
@@ -77,15 +77,6 @@ export interface AnthropicAwsProviderSettings {
   sessionToken?: string;
 
   /**
-   * The AWS credential provider to use to get dynamic credentials similar to the
-   * AWS SDK. Setting a provider here will cause its credential values to be used
-   * instead of the `accessKeyId`, `secretAccessKey`, and `sessionToken` settings.
-   */
-  credentialProvider?: () => PromiseLike<
-    Omit<AnthropicAwsCredentials, 'region'>
-  >;
-
-  /**
    * Base URL for the Claude Platform on AWS API calls. Defaults to
    * `https://aws-external-anthropic.{region}.api.aws/v1`.
    */
@@ -102,6 +93,15 @@ export interface AnthropicAwsProviderSettings {
    */
   fetch?: FetchFunction;
 
+  /**
+   * The AWS credential provider to use to get dynamic credentials similar to the
+   * AWS SDK. Setting a provider here will cause its credential values to be used
+   * instead of the `accessKeyId`, `secretAccessKey`, and `sessionToken` settings.
+   */
+  credentialProvider?: () => PromiseLike<
+    Omit<AnthropicAwsCredentials, 'region'>
+  >;
+
   generateId?: () => string;
 }
 
@@ -113,35 +113,25 @@ export interface AnthropicAwsProviderSettings {
 export function createAnthropicAws(
   options: AnthropicAwsProviderSettings = {},
 ): AnthropicAwsProvider {
-  const region = loadSetting({
-    settingValue: options.region,
-    settingName: 'region',
-    environmentVariableName: 'AWS_REGION',
-    description: 'AWS region',
-  });
-
-  const workspaceId = loadSetting({
-    settingValue: options.workspaceId,
-    settingName: 'workspaceId',
-    environmentVariableName: 'ANTHROPIC_AWS_WORKSPACE_ID',
-    description: 'Anthropic AWS workspace ID',
-  });
-
   const apiKey = loadOptionalSetting({
     settingValue: options.apiKey,
     environmentVariableName: 'ANTHROPIC_AWS_API_KEY',
   });
 
-  const baseURL =
-    withoutTrailingSlash(options.baseURL) ??
-    `https://aws-external-anthropic.${region}.api.aws/v1`;
-
   const fetchFunction = apiKey
     ? createApiKeyFetchFunction(apiKey, options.fetch)
     : createSigV4FetchFunction(async () => {
+        const region = loadSetting({
+          settingValue: options.region,
+          settingName: 'region',
+          environmentVariableName: 'AWS_REGION',
+          description: 'AWS region',
+        });
+
         if (options.credentialProvider) {
           return { ...(await options.credentialProvider()), region };
         }
+
         return {
           region,
           accessKeyId: loadSetting({
@@ -163,15 +153,29 @@ export function createAnthropicAws(
         };
       }, options.fetch);
 
+  const getBaseURL = (): string =>
+    withoutTrailingSlash(options.baseURL) ??
+    `https://aws-external-anthropic.${loadSetting({
+      settingValue: options.region,
+      settingName: 'region',
+      environmentVariableName: 'AWS_REGION',
+      description: 'AWS region',
+    })}.api.aws/v1`;
+
   const getHeaders = (): Record<string, string | undefined> => ({
-    'anthropic-workspace-id': workspaceId,
+    'anthropic-workspace-id': loadSetting({
+      settingValue: options.workspaceId,
+      settingName: 'workspaceId',
+      environmentVariableName: 'ANTHROPIC_AWS_WORKSPACE_ID',
+      description: 'Anthropic AWS workspace ID',
+    }),
     ...options.headers,
   });
 
   const createChatModel = (modelId: AnthropicModelId) =>
     new AnthropicLanguageModel(modelId, {
       provider: 'anthropic-aws.messages',
-      baseURL,
+      baseURL: getBaseURL(),
       headers: getHeaders,
       fetch: fetchFunction,
       generateId: options.generateId,

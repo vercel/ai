@@ -132,16 +132,24 @@ describe('createAnthropicAws', () => {
 
   it('throws when region is not set anywhere', () => {
     vi.stubEnv('AWS_REGION', undefined);
-    expect(() =>
-      createAnthropicAws({ workspaceId: 'wrkspc_test', apiKey: 'k' }),
-    ).toThrow(/region/i);
+    const provider = createAnthropicAws({
+      workspaceId: 'wrkspc_test',
+      apiKey: 'k',
+    });
+    expect(() => provider('claude-sonnet-4-6')).toThrow(/region/i);
   });
 
-  it('throws when workspaceId is not set anywhere', () => {
+  it('throws when workspaceId is not set anywhere', async () => {
     vi.stubEnv('ANTHROPIC_AWS_WORKSPACE_ID', undefined);
-    expect(() =>
-      createAnthropicAws({ region: 'us-west-2', apiKey: 'k' }),
-    ).toThrow(/workspace/i);
+    const fetchMock = vi.fn().mockResolvedValue(createSuccessfulResponse());
+    const provider = createAnthropicAws({
+      region: 'us-west-2',
+      apiKey: 'k',
+      fetch: fetchMock,
+    });
+    await expect(
+      provider('claude-sonnet-4-6').doGenerate({ prompt: TEST_PROMPT }),
+    ).rejects.toThrow(/workspace/i);
   });
 
   it('reads region and workspaceId from environment variables', async () => {
