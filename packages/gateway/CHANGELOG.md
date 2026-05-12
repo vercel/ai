@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 3.0.114
+
+### Patch Changes
+
+- 253bd5a: fix(gateway): enable retry support for gateway errors
+
 ## 3.0.113
 
 ### Patch Changes

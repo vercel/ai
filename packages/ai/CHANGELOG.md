@@ -1,5 +1,14 @@
 # ai
 
+## 6.0.180
+
+### Patch Changes
+
+- 253bd5a: fix(gateway): enable retry support for gateway errors
+- 57ec10f: fix URL of hero animation in README
+- Updated dependencies [253bd5a]
+  - @ai-sdk/gateway@3.0.114
+
 ## 6.0.179
 
 ### Patch Changes
