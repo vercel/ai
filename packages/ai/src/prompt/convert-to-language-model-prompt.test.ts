@@ -1139,6 +1139,189 @@ describe('convertToLanguageModelPrompt', () => {
       ]);
     });
   });
+
+  describe('tool message download', () => {
+    it('should download URL file parts in tool-result content', async () => {
+      const result = await convertToLanguageModelPrompt({
+        prompt: {
+          instructions: undefined,
+          messages: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'tc1',
+                  toolName: 'screenshot',
+                  input: {},
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolCallId: 'tc1',
+                  toolName: 'screenshot',
+                  output: {
+                    type: 'content',
+                    value: [
+                      {
+                        type: 'file',
+                        data: {
+                          type: 'url',
+                          url: new URL('https://example.com/image.png'),
+                        },
+                        mediaType: 'image/png',
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          ],
+        },
+        supportedUrls: {},
+        download: createDefaultDownloadFunction(async ({ url }) => {
+          expect(url).toEqual(new URL('https://example.com/image.png'));
+          return {
+            data: new Uint8Array([0, 1, 2, 3]),
+            mediaType: 'image/png',
+          };
+        }),
+      });
+
+      const toolMsg = result.find(m => m.role === 'tool')!;
+      expect(toolMsg).toBeDefined();
+      const toolResult = (toolMsg as any).content[0];
+      expect(toolResult.output).toEqual({
+        type: 'content',
+        value: [
+          {
+            type: 'file',
+            data: { type: 'data', data: new Uint8Array([0, 1, 2, 3]) },
+            mediaType: 'image/png',
+            filename: undefined,
+            providerOptions: undefined,
+          },
+        ],
+      });
+    });
+
+    it('should download image-url parts in tool-result content', async () => {
+      const result = await convertToLanguageModelPrompt({
+        prompt: {
+          instructions: undefined,
+          messages: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'tc1',
+                  toolName: 'screenshot',
+                  input: {},
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolCallId: 'tc1',
+                  toolName: 'screenshot',
+                  output: {
+                    type: 'content',
+                    value: [
+                      {
+                        type: 'image-url',
+                        url: 'https://example.com/photo.jpg',
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          ],
+        },
+        supportedUrls: {},
+        download: createDefaultDownloadFunction(async ({ url }) => {
+          return {
+            data: new Uint8Array([4, 5, 6]),
+            mediaType: 'image/jpeg',
+          };
+        }),
+      });
+
+      const toolMsg = result.find(m => m.role === 'tool')!;
+      const toolResult = (toolMsg as any).content[0];
+      expect(toolResult.output.value[0]).toEqual({
+        type: 'file',
+        data: { type: 'data', data: new Uint8Array([4, 5, 6]) },
+        mediaType: 'image/jpeg',
+        providerOptions: undefined,
+      });
+    });
+
+    it('should download file-url parts in tool-result content', async () => {
+      const result = await convertToLanguageModelPrompt({
+        prompt: {
+          instructions: undefined,
+          messages: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'tc1',
+                  toolName: 'fetch',
+                  input: {},
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolCallId: 'tc1',
+                  toolName: 'fetch',
+                  output: {
+                    type: 'content',
+                    value: [
+                      {
+                        type: 'file-url',
+                        url: 'https://example.com/doc.pdf',
+                        mediaType: 'application/pdf',
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          ],
+        },
+        supportedUrls: {},
+        download: createDefaultDownloadFunction(async ({ url }) => {
+          return {
+            data: new Uint8Array([7, 8, 9]),
+            mediaType: 'application/pdf',
+          };
+        }),
+      });
+
+      const toolMsg = result.find(m => m.role === 'tool')!;
+      const toolResult = (toolMsg as any).content[0];
+      expect(toolResult.output.value[0]).toEqual({
+        type: 'file',
+        data: { type: 'data', data: new Uint8Array([7, 8, 9]) },
+        mediaType: 'application/pdf',
+        providerOptions: undefined,
+      });
+    });
+  });
 });
 
 describe('convertToLanguageModelMessage', () => {
@@ -2927,6 +3110,54 @@ describe('convertToLanguageModelMessage', () => {
           "role": "tool",
         }
       `);
+    });
+
+    it('should replace URL file data with downloaded assets in tool-result content', () => {
+      const result = convertToLanguageModelMessage({
+        message: {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'tc1',
+              toolName: 'screenshot',
+              output: {
+                type: 'content',
+                value: [
+                  {
+                    type: 'file',
+                    data: {
+                      type: 'url',
+                      url: new URL('https://example.com/image.png'),
+                    },
+                    mediaType: 'image/png',
+                  },
+                ],
+              },
+            },
+          ],
+        },
+        downloadedAssets: {
+          'https://example.com/image.png': {
+            data: new Uint8Array([0, 1, 2, 3]),
+            mediaType: 'image/png',
+          },
+        },
+      });
+
+      const toolResult = (result as any).content[0];
+      expect(toolResult.output).toEqual({
+        type: 'content',
+        value: [
+          {
+            type: 'file',
+            data: { type: 'data', data: new Uint8Array([0, 1, 2, 3]) },
+            mediaType: 'image/png',
+            filename: undefined,
+            providerOptions: undefined,
+          },
+        ],
+      });
     });
   });
 });

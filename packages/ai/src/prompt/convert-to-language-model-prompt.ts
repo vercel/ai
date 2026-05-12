@@ -333,11 +333,14 @@ export function convertToLanguageModelMessage({
                   type: 'tool-result' as const,
                   toolCallId: part.toolCallId,
                   toolName: part.toolName,
-                  output: mapToolResultOutput({
-                    output: part.output,
-                    provider,
-                    warnings,
-                  }),
+                  output: replaceToolResultOutputUrls(
+                    mapToolResultOutput({
+                      output: part.output,
+                      provider,
+                      warnings,
+                    }),
+                    downloadedAssets,
+                  ),
                   providerOptions,
                 };
               }
@@ -363,15 +366,19 @@ export function convertToLanguageModelMessage({
           .map(part => {
             switch (part.type) {
               case 'tool-result': {
+                const output = mapToolResultOutput({
+                  output: part.output,
+                  provider,
+                  warnings,
+                });
                 return {
                   type: 'tool-result' as const,
                   toolCallId: part.toolCallId,
                   toolName: part.toolName,
-                  output: mapToolResultOutput({
-                    output: part.output,
-                    provider,
-                    warnings,
-                  }),
+                  output: replaceToolResultOutputUrls(
+                    output,
+                    downloadedAssets,
+                  ),
                   providerOptions: part.providerOptions,
                 };
               }
@@ -440,7 +447,8 @@ async function downloadAssets(
     data: { type: 'url'; url: URL };
   };
 
-  const plannedDownloads = messages
+  // Extract URL files from user messages
+  const userFileUrls = messages
     .filter(message => message.role === 'user')
     .map(message => message.content)
     .filter((content): content is Array<TextPart | ImagePart | FilePart> =>
@@ -453,7 +461,36 @@ async function downloadAssets(
       const mediaType = part.mediaType;
       const { data } = convertToLanguageModelV4FilePart(part.data);
       return { mediaType, data };
-    })
+    });
+
+  // Extract URL files from tool-result content in tool and assistant messages
+  const toolFileUrls: ConvertedFile[] = [];
+  for (const message of messages) {
+    if (message.role !== 'tool' && message.role !== 'assistant') continue;
+    if (!Array.isArray(message.content)) continue;
+    for (const part of message.content) {
+      if (part.type !== 'tool-result') continue;
+      if (part.output.type !== 'content') continue;
+      for (const item of part.output.value) {
+        if (item.type === 'file') {
+          const { data } = convertToLanguageModelV4FilePart(item.data);
+          toolFileUrls.push({ mediaType: item.mediaType, data });
+        } else if (item.type === 'file-url') {
+          toolFileUrls.push({
+            mediaType: item.mediaType ?? getMediaTypeFromUrl(item.url),
+            data: { type: 'url', url: new URL(item.url) },
+          });
+        } else if (item.type === 'image-url') {
+          toolFileUrls.push({
+            mediaType: 'image',
+            data: { type: 'url', url: new URL(item.url) },
+          });
+        }
+      }
+    }
+  }
+
+  const plannedDownloads = [...userFileUrls, ...toolFileUrls]
     .filter((part): part is UrlTaggedFile => part.data.type === 'url')
     .map(part => ({
       url: part.data.url,
@@ -719,6 +756,45 @@ function mapToolResultOutput({
         default:
           return item;
       }
+    }),
+  };
+}
+
+/**
+ * Replaces URL file data in tool result output with downloaded assets.
+ */
+function replaceToolResultOutputUrls(
+  output: LanguageModelV4ToolResultOutput,
+  downloadedAssets: Record<
+    string,
+    { mediaType: string | undefined; data: Uint8Array }
+  >,
+): LanguageModelV4ToolResultOutput {
+  if (output.type !== 'content') {
+    return output;
+  }
+
+  return {
+    type: 'content',
+    value: output.value.map(item => {
+      if (item.type !== 'file' || item.data.type !== 'url') {
+        return item;
+      }
+
+      const downloadedFile = downloadedAssets[item.data.url.toString()];
+      if (!downloadedFile) {
+        return item;
+      }
+
+      return {
+        ...item,
+        data: { type: 'data' as const, data: downloadedFile.data },
+        mediaType:
+          downloadedFile.mediaType != null &&
+          (item.mediaType == null || !isFullMediaType(item.mediaType))
+            ? downloadedFile.mediaType
+            : item.mediaType,
+      };
     }),
   };
 }

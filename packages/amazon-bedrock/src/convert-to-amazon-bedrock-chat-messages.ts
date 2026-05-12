@@ -7,6 +7,7 @@ import {
 } from '@ai-sdk/provider';
 import {
   convertToBase64,
+  downloadBlob,
   getTopLevelMediaType,
   isFullMediaType,
   parseProviderOptions,
@@ -229,48 +230,66 @@ export async function convertToAmazonBedrockChatMessages(
                 const output = part.output;
                 switch (output.type) {
                   case 'content': {
-                    toolResultContent = output.value.map(contentPart => {
-                      switch (contentPart.type) {
-                        case 'text':
-                          return { text: contentPart.text };
-                        case 'file': {
-                          if (
-                            getTopLevelMediaType(contentPart.mediaType) !==
-                            'image'
-                          ) {
-                            throw new UnsupportedFunctionalityError({
-                              functionality: `media type: ${contentPart.mediaType}`,
+                    toolResultContent = await Promise.all(
+                      output.value.map(async contentPart => {
+                        switch (contentPart.type) {
+                          case 'text':
+                            return { text: contentPart.text };
+                          case 'file': {
+                            if (
+                              getTopLevelMediaType(contentPart.mediaType) !==
+                              'image'
+                            ) {
+                              throw new UnsupportedFunctionalityError({
+                                functionality: `media type: ${contentPart.mediaType}`,
+                              });
+                            }
+
+                            let bytes: string;
+                            switch (contentPart.data.type) {
+                              case 'data': {
+                                bytes = convertToBase64(contentPart.data.data);
+                                break;
+                              }
+                              case 'url': {
+                                const blob = await downloadBlob(
+                                  contentPart.data.url.toString(),
+                                );
+                                bytes = convertToBase64(
+                                  new Uint8Array(
+                                    await blob.arrayBuffer(),
+                                  ),
+                                );
+                                break;
+                              }
+                              default: {
+                                throw new UnsupportedFunctionalityError({
+                                  functionality: `tool result file data of type "${contentPart.data.type}"`,
+                                });
+                              }
+                            }
+
+                            const fullMediaType = resolveFullMediaType({
+                              part: contentPart,
                             });
-                          }
+                            const format =
+                              getAmazonBedrockImageFormat(fullMediaType);
 
-                          if (contentPart.data.type !== 'data') {
-                            throw new UnsupportedFunctionalityError({
-                              functionality: `tool result file data of type "${contentPart.data.type}"`,
-                            });
-                          }
-
-                          const fullMediaType = resolveFullMediaType({
-                            part: contentPart,
-                          });
-                          const format =
-                            getAmazonBedrockImageFormat(fullMediaType);
-
-                          return {
-                            image: {
-                              format,
-                              source: {
-                                bytes: convertToBase64(contentPart.data.data),
+                            return {
+                              image: {
+                                format,
+                                source: { bytes },
                               },
-                            },
-                          };
+                            };
+                          }
+                          default: {
+                            throw new UnsupportedFunctionalityError({
+                              functionality: `unsupported tool content part type: ${contentPart.type}`,
+                            });
+                          }
                         }
-                        default: {
-                          throw new UnsupportedFunctionalityError({
-                            functionality: `unsupported tool content part type: ${contentPart.type}`,
-                          });
-                        }
-                      }
-                    });
+                      }),
+                    );
                     break;
                   }
                   case 'text':
