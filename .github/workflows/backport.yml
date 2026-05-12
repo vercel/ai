@@ -6,7 +6,7 @@
 name: Backport
 
 on:
-  issues:
+  pull_request:
     types: [labeled]
   push:
     branches:
@@ -248,20 +248,20 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Checkout Repository
-        if: '!steps.check-existing.outputs.existing-pr'
+        if: "!steps.check-existing.outputs.existing-pr"
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
           ref: ${{ needs.find-branch.outputs.release-branch }}
 
       - name: Create backport branch
-        if: '!steps.check-existing.outputs.existing-pr'
+        if: "!steps.check-existing.outputs.existing-pr"
         run: |
           # Create a new branch from the latest release branch for the backport
           git checkout -b backport-pr-${{ needs.resolve-pr.outputs.pr-number }}-to-${{ needs.find-branch.outputs.release-branch }} origin/${{ needs.find-branch.outputs.release-branch }}
 
       - name: Cherry-pick commits
-        if: '!steps.check-existing.outputs.existing-pr'
+        if: "!steps.check-existing.outputs.existing-pr"
         id: cherry-pick
         run: |
           # Get the merge commit hash
@@ -316,7 +316,7 @@ jobs:
           git add .
           git commit -m "Backport conflicts for PR #${{ needs.resolve-pr.outputs.pr-number }} to ${{ needs.find-branch.outputs.release-branch }}"
       - name: Push backport branch as signed commit
-        if: '!steps.check-existing.outputs.existing-pr'
+        if: "!steps.check-existing.outputs.existing-pr"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
@@ -404,7 +404,7 @@ jobs:
           gh api graphql --input "$PAYLOAD"
 
       - name: Determine PR assignee
-        if: '!steps.check-existing.outputs.existing-pr'
+        if: "!steps.check-existing.outputs.existing-pr"
         id: assignee
         run: |
           if [ "$MERGED_BY_TYPE" = "User" ]; then
@@ -426,7 +426,7 @@ jobs:
           PR_AUTHOR_LOGIN: ${{ needs.resolve-pr.outputs.pr-author-login }}
 
       - name: Create backport pull request
-        if: '!steps.check-existing.outputs.existing-pr'
+        if: "!steps.check-existing.outputs.existing-pr"
         id: create-pr
         run: |
           ASSIGNEE_FLAG=""
@@ -457,8 +457,8 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ASSIGNEE_LOGIN: ${{ steps.assignee.outputs.login }}
-          PR_TITLE: 'Backport: ${{ needs.resolve-pr.outputs.pr-title }}'
-          PR_BODY_NO_CONFLICTS: 'This is an automated backport of #${{ needs.resolve-pr.outputs.pr-number }} to the ${{ needs.find-branch.outputs.release-branch }} branch. FYI @${{ needs.resolve-pr.outputs.pr-author-login }}'
+          PR_TITLE: "Backport: ${{ needs.resolve-pr.outputs.pr-title }}"
+          PR_BODY_NO_CONFLICTS: "This is an automated backport of #${{ needs.resolve-pr.outputs.pr-number }} to the ${{ needs.find-branch.outputs.release-branch }} branch. FYI @${{ needs.resolve-pr.outputs.pr-author-login }}"
           PR_BODY_CONFLICTS: |
 
             This is an automated backport of #${{ needs.resolve-pr.outputs.pr-number }} to the ${{ needs.find-branch.outputs.release-branch }} branch. FYI @${{ needs.resolve-pr.outputs.pr-author-login }}
@@ -471,7 +471,7 @@ jobs:
             ```
 
       - name: Remove backport label from original PR
-        if: '!steps.check-existing.outputs.existing-pr && steps.create-pr.outputs.backport-pr-url'
+        if: "!steps.check-existing.outputs.existing-pr && steps.create-pr.outputs.backport-pr-url"
         run: |
           # The backport PR has already been created at this point, so a
           # transient GitHub API failure here must not fail the job.
