@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 3.0.73
+
+### Patch Changes
+
+- bb1eb98: feat(google): add `fileData` support to embedding model
+
 ## 3.0.72
 
 ### Patch Changes
