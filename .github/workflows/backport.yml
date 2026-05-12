@@ -113,6 +113,7 @@ jobs:
           PR_EVENT_NUMBER: ${{ github.event.pull_request.number }}
           DISPATCH_PR_NUMBER: ${{ github.event.inputs.pull_request_number }}
           ISSUE_LABEL: ${{ github.event.label.name }}
+          LABELER_LOGIN: ${{ github.event.sender.login }}
           REPO: ${{ github.repository }}
           PUSH_REF: ${{ github.ref_name }}
           PUSH_SHA: ${{ github.sha }}
@@ -179,7 +180,7 @@ jobs:
           HEAD_REPO=$(echo "$PR" | jq -r '.head.repo.full_name // empty')
           if [ "$EVENT_NAME" = "pull_request" ] && [ "$HEAD_REPO" != "$REPO" ]; then
             {
-              echo 'This pull request was opened from a fork and must be backported with a workflow_dispatch event.'
+              echo "@${LABELER_LOGIN} this pull request was opened from a fork and must be backported with a workflow_dispatch event."
               echo
               echo 'Please trigger the Backport workflow manually:'
               echo 'https://github.com/vercel/ai/actions/workflows/backport.yml'
