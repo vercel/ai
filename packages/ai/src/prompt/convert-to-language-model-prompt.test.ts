@@ -1138,6 +1138,112 @@ describe('convertToLanguageModelPrompt', () => {
         },
       ]);
     });
+
+    it('should download URL content in tool results', async () => {
+      const mockDownload = vi.fn().mockResolvedValue([
+        {
+          url: new URL('https://example.com/image.png'),
+          data: new Uint8Array([0, 1, 2, 3]),
+          mediaType: 'image/png',
+        },
+      ]);
+
+      const result = await convertToLanguageModelPrompt({
+        prompt: {
+          instructions: undefined,
+          messages: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'toolCallId',
+                  toolName: 'toolName',
+                  input: {},
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolName: 'toolName',
+                  toolCallId: 'toolCallId',
+                  output: {
+                    type: 'content',
+                    value: [
+                      {
+                        type: 'file',
+                        mediaType: 'image/png',
+                        data: {
+                          type: 'url',
+                          url: new URL('https://example.com/image.png'),
+                        },
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          ],
+        },
+        supportedUrls: {},
+        download: mockDownload,
+      });
+
+      expect(mockDownload).toHaveBeenCalledOnce();
+      expect(mockDownload).toHaveBeenCalledWith([
+        {
+          url: new URL('https://example.com/image.png'),
+          isUrlSupportedByModel: false,
+        },
+      ]);
+
+      expect(result).toEqual([
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'toolCallId',
+              toolName: 'toolName',
+              input: {},
+              providerExecuted: undefined,
+              providerOptions: undefined,
+            },
+          ],
+          providerOptions: undefined,
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'toolCallId',
+              toolName: 'toolName',
+              output: {
+                type: 'content',
+                value: [
+                  {
+                    type: 'file',
+                    mediaType: 'image/png',
+                    data: {
+                      type: 'data',
+                      data: new Uint8Array([0, 1, 2, 3]),
+                    },
+                    filename: undefined,
+                    providerOptions: undefined,
+                  },
+                ],
+              },
+              providerOptions: undefined,
+            },
+          ],
+          providerOptions: undefined,
+        },
+      ]);
+    });
   });
 });
 
