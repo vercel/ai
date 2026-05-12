@@ -12,8 +12,14 @@ on:
     branches:
       - main
       - release-v*
+  workflow_dispatch:
+    inputs:
+      pull_request_number:
+        description: Pull request number to backport
+        required: true
+        type: number
 
-concurrency: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.sha }}
+concurrency: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.event.inputs.pull_request_number || github.sha }}
 
 permissions:
   contents: write
@@ -105,7 +111,9 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           EVENT_NAME: ${{ github.event_name }}
           PR_EVENT_NUMBER: ${{ github.event.pull_request.number }}
+          DISPATCH_PR_NUMBER: ${{ github.event.inputs.pull_request_number }}
           ISSUE_LABEL: ${{ github.event.label.name }}
+          LABELER_LOGIN: ${{ github.event.sender.login }}
           REPO: ${{ github.repository }}
           PUSH_REF: ${{ github.ref_name }}
           PUSH_SHA: ${{ github.sha }}
@@ -137,6 +145,12 @@ jobs:
               exit 1
             }
             PR_NUMBER="$PR_EVENT_NUMBER"
+          elif [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            [ -n "$DISPATCH_PR_NUMBER" ] || {
+              echo "::error::workflow_dispatch event did not include pull_request_number"
+              exit 1
+            }
+            PR_NUMBER="$DISPATCH_PR_NUMBER"
           elif [ "$EVENT_NAME" = "push" ]; then
             if [ "$PUSH_SHA" = "0000000000000000000000000000000000000000" ]; then
               skip "Ignoring branch deletion push for ${PUSH_REF}"
@@ -162,6 +176,25 @@ jobs:
           PR=$(gh api "repos/${REPO}/pulls/${PR_NUMBER}")
           MERGED=$(echo "$PR" | jq -r '.merged')
           [ "$MERGED" = "true" ] || skip "PR #${PR_NUMBER} is not merged"
+
+          HEAD_REPO=$(echo "$PR" | jq -r '.head.repo.full_name // empty')
+          if [ "$EVENT_NAME" = "pull_request" ] && [ "$HEAD_REPO" != "$REPO" ]; then
+            {
+              echo "@${LABELER_LOGIN} this pull request was opened from a fork and must be backported with a workflow_dispatch event."
+              echo
+              echo 'Please trigger the Backport workflow manually:'
+              echo 'https://github.com/vercel/ai/actions/workflows/backport.yml'
+              echo
+              echo 'From the terminal, run:'
+              echo
+              echo '```sh'
+              echo "gh workflow run backport.yml --repo vercel/ai -f pull_request_number=${PR_NUMBER}"
+              echo '```'
+            } > comment.md
+
+            gh pr comment "$PR_NUMBER" --repo "$REPO" --body-file comment.md
+            skip "PR #${PR_NUMBER} is from a fork and must be backported with workflow_dispatch"
+          fi
 
           BASE_REF=$(echo "$PR" | jq -r '.base.ref')
           case "$BASE_REF" in
