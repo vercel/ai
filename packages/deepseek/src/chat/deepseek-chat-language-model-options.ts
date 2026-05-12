@@ -22,11 +22,11 @@ export const deepseekLanguageModelChatOptions = z.object({
   /**
    * Controls the thinking strength for DeepSeek V4 reasoning models.
    *
-   * DeepSeek's API accepts `high`, `low`, `medium`, `max`, and `xhigh`.
+   * DeepSeek's API accepts `low`, `medium`, `high`, `xhigh`, and `max`.
    * Per their docs, `low` and `medium` are mapped to `high`, and `xhigh`
    * is mapped to `max` server-side for compatibility with other providers.
    */
-  reasoningEffort: z.enum(['high', 'low', 'medium', 'max', 'xhigh']).optional(),
+  reasoningEffort: z.enum(['low', 'medium', 'high', 'xhigh', 'max']).optional(),
 });
 
 export type DeepSeekLanguageModelChatOptions = z.infer<
