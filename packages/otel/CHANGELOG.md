@@ -1,5 +1,23 @@
 # @ai-sdk/otel
 
+## 1.0.0-canary.79
+
+### Patch Changes
+
+- Updated dependencies [38ca8dc]
+- Updated dependencies [6d76710]
+  - ai@7.0.0-canary.133
+
+## 1.0.0-canary.78
+
+### Patch Changes
+
+- eaf849f: Rename rerank telemetry finish callback to `onRerankEnd`.
+- 8565dcb: fix: rename onEmbedFinish to onEmbedEnd
+- Updated dependencies [eaf849f]
+- Updated dependencies [8565dcb]
+  - ai@7.0.0-canary.132
+
 ## 1.0.0-canary.77
 
 ### Patch Changes

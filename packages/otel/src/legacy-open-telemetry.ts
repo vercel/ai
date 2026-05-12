@@ -917,7 +917,7 @@ export class LegacyOpenTelemetry implements Telemetry {
     });
   }
 
-  onEmbedFinish(event: EmbeddingModelCallEndEvent): void {
+  onEmbedEnd(event: EmbeddingModelCallEndEvent): void {
     const state = this.getCallState(event.callId);
     if (!state) return;
 
@@ -1025,7 +1025,7 @@ export class LegacyOpenTelemetry implements Telemetry {
     state.rerankSpan = { span: rerankSpan, context: rerankContext };
   }
 
-  onRerankFinish(event: RerankingModelCallEndEvent): void {
+  onRerankEnd(event: RerankingModelCallEndEvent): void {
     const state = this.getCallState(event.callId);
     if (!state?.rerankSpan) return;
 

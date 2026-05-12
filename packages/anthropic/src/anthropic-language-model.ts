@@ -37,7 +37,10 @@ import {
   type Resolvable,
 } from '@ai-sdk/provider-utils';
 import { anthropicFailedResponseHandler } from './anthropic-error';
-import type { AnthropicMessageMetadata } from './anthropic-message-metadata';
+import type {
+  AnthropicMessageMetadata,
+  AnthropicUsageIteration,
+} from './anthropic-message-metadata';
 import {
   anthropicChunkSchema,
   anthropicResponseSchema,
@@ -377,6 +380,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
         'anthropic.web_fetch_20260209': 'web_fetch',
         'anthropic.tool_search_regex_20251119': 'tool_search_tool_regex',
         'anthropic.tool_search_bm25_20251119': 'tool_search_tool_bm25',
+        'anthropic.advisor_20260301': 'advisor',
       },
     });
 
@@ -1054,6 +1058,14 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
               input: JSON.stringify(part.input),
               providerExecuted: true,
             });
+          } else if (part.name === 'advisor') {
+            content.push({
+              type: 'tool-call',
+              toolCallId: part.id,
+              toolName: toolNameMapping.toCustomToolName('advisor'),
+              input: JSON.stringify(part.input),
+              providerExecuted: true,
+            });
           }
 
           break;
@@ -1272,6 +1284,44 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
           }
           break;
         }
+
+        // advisor results for advisor_20260301:
+        case 'advisor_tool_result': {
+          const advisorToolName = toolNameMapping.toCustomToolName('advisor');
+          if (part.content.type === 'advisor_result') {
+            content.push({
+              type: 'tool-result',
+              toolCallId: part.tool_use_id,
+              toolName: advisorToolName,
+              result: {
+                type: 'advisor_result',
+                text: part.content.text,
+              },
+            });
+          } else if (part.content.type === 'advisor_redacted_result') {
+            content.push({
+              type: 'tool-result',
+              toolCallId: part.tool_use_id,
+              toolName: advisorToolName,
+              result: {
+                type: 'advisor_redacted_result',
+                encryptedContent: part.content.encrypted_content,
+              },
+            });
+          } else {
+            content.push({
+              type: 'tool-result',
+              toolCallId: part.tool_use_id,
+              toolName: advisorToolName,
+              isError: true,
+              result: {
+                type: 'advisor_tool_result_error',
+                errorCode: part.content.error_code,
+              },
+            });
+          }
+          break;
+        }
       }
     }
 
@@ -1299,11 +1349,42 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
           stopSequence: response.stop_sequence ?? null,
 
           iterations: response.usage.iterations
-            ? response.usage.iterations.map(iter => ({
-                type: iter.type,
-                inputTokens: iter.input_tokens,
-                outputTokens: iter.output_tokens,
-              }))
+            ? response.usage.iterations.map(iter =>
+                iter.type === 'advisor_message'
+                  ? ({
+                      type: iter.type,
+                      model: iter.model,
+                      inputTokens: iter.input_tokens,
+                      outputTokens: iter.output_tokens,
+                      ...(iter.cache_creation_input_tokens
+                        ? {
+                            cacheCreationInputTokens:
+                              iter.cache_creation_input_tokens,
+                          }
+                        : {}),
+                      ...(iter.cache_read_input_tokens
+                        ? {
+                            cacheReadInputTokens: iter.cache_read_input_tokens,
+                          }
+                        : {}),
+                    } satisfies AnthropicUsageIteration)
+                  : ({
+                      type: iter.type,
+                      inputTokens: iter.input_tokens,
+                      outputTokens: iter.output_tokens,
+                      ...(iter.cache_creation_input_tokens
+                        ? {
+                            cacheCreationInputTokens:
+                              iter.cache_creation_input_tokens,
+                          }
+                        : {}),
+                      ...(iter.cache_read_input_tokens
+                        ? {
+                            cacheReadInputTokens: iter.cache_read_input_tokens,
+                          }
+                        : {}),
+                    } satisfies AnthropicUsageIteration),
+              )
             : null,
           container: response.container
             ? {
@@ -1431,6 +1512,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       | 'text_editor_code_execution_tool_result'
       | 'bash_code_execution_tool_result'
       | 'tool_search_tool_result'
+      | 'advisor_tool_result'
       | 'mcp_tool_use'
       | 'mcp_tool_result'
       | 'compaction'
@@ -1655,6 +1737,26 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                       toolName: customToolName,
                       providerExecuted: true,
                     });
+                  } else if (part.name === 'advisor') {
+                    const customToolName =
+                      toolNameMapping.toCustomToolName('advisor');
+
+                    contentBlocks[value.index] = {
+                      type: 'tool-call',
+                      toolCallId: part.id,
+                      toolName: customToolName,
+                      input: '{}',
+                      providerExecuted: true,
+                      firstDelta: true,
+                      providerToolName: part.name,
+                    };
+
+                    controller.enqueue({
+                      type: 'tool-input-start',
+                      id: part.id,
+                      toolName: customToolName,
+                      providerExecuted: true,
+                    });
                   }
 
                   return;
@@ -1853,6 +1955,46 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                       isError: true,
                       result: {
                         type: 'tool_search_tool_result_error',
+                        errorCode: part.content.error_code,
+                      },
+                    });
+                  }
+                  return;
+                }
+
+                // advisor results for advisor_20260301:
+                // arrives fully formed in a single content_block_start (no deltas).
+                case 'advisor_tool_result': {
+                  const advisorToolName =
+                    toolNameMapping.toCustomToolName('advisor');
+                  if (part.content.type === 'advisor_result') {
+                    controller.enqueue({
+                      type: 'tool-result',
+                      toolCallId: part.tool_use_id,
+                      toolName: advisorToolName,
+                      result: {
+                        type: 'advisor_result',
+                        text: part.content.text,
+                      },
+                    });
+                  } else if (part.content.type === 'advisor_redacted_result') {
+                    controller.enqueue({
+                      type: 'tool-result',
+                      toolCallId: part.tool_use_id,
+                      toolName: advisorToolName,
+                      result: {
+                        type: 'advisor_redacted_result',
+                        encryptedContent: part.content.encrypted_content,
+                      },
+                    });
+                  } else {
+                    controller.enqueue({
+                      type: 'tool-result',
+                      toolCallId: part.tool_use_id,
+                      toolName: advisorToolName,
+                      isError: true,
+                      result: {
+                        type: 'advisor_tool_result_error',
                         errorCode: part.content.error_code,
                       },
                     });
@@ -2278,11 +2420,44 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                 usage: (rawUsage as JSONObject) ?? null,
                 stopSequence,
                 iterations: usage.iterations
-                  ? usage.iterations.map(iter => ({
-                      type: iter.type,
-                      inputTokens: iter.input_tokens,
-                      outputTokens: iter.output_tokens,
-                    }))
+                  ? usage.iterations.map(iter =>
+                      iter.type === 'advisor_message'
+                        ? ({
+                            type: iter.type,
+                            model: iter.model,
+                            inputTokens: iter.input_tokens,
+                            outputTokens: iter.output_tokens,
+                            ...(iter.cache_creation_input_tokens
+                              ? {
+                                  cacheCreationInputTokens:
+                                    iter.cache_creation_input_tokens,
+                                }
+                              : {}),
+                            ...(iter.cache_read_input_tokens
+                              ? {
+                                  cacheReadInputTokens:
+                                    iter.cache_read_input_tokens,
+                                }
+                              : {}),
+                          } satisfies AnthropicUsageIteration)
+                        : ({
+                            type: iter.type,
+                            inputTokens: iter.input_tokens,
+                            outputTokens: iter.output_tokens,
+                            ...(iter.cache_creation_input_tokens
+                              ? {
+                                  cacheCreationInputTokens:
+                                    iter.cache_creation_input_tokens,
+                                }
+                              : {}),
+                            ...(iter.cache_read_input_tokens
+                              ? {
+                                  cacheReadInputTokens:
+                                    iter.cache_read_input_tokens,
+                                }
+                              : {}),
+                          } satisfies AnthropicUsageIteration),
+                    )
                   : null,
                 container,
                 contextManagement,

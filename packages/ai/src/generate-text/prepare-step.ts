@@ -119,6 +119,7 @@ export type PrepareStepResult<
 
       /**
        * Optionally override the instructions sent to the model for this step.
+       * The override carries forward to later steps.
        */
       instructions?: Instructions;
 
