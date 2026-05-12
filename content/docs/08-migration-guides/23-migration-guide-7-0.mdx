@@ -43,8 +43,7 @@ If your `package.json` does not already include `"type": "module"`, add it or re
 
 ### Provider Management: Remove Deprecated `experimental_customProvider`
 
-The deprecated `experimental_customProvider` export has been removed in AI SDK
-7. Replace it with `customProvider`.
+The deprecated `experimental_customProvider` export has been removed in AI SDK 7. Replace it with `customProvider`.
 
 ```tsx filename="AI SDK 6"
 import { experimental_customProvider } from 'ai';
@@ -69,9 +68,138 @@ export const myProvider = customProvider({
 This is only an import and symbol rename. The `customProvider` options and
 behavior are unchanged.
 
+### Prompt Instructions: `system` Renamed to `instructions`
+
+The top-level prompt option for system instructions has been renamed from
+`system` to `instructions`.
+
+```tsx filename="AI SDK 6"
+const result = await generateText({
+  model: yourModel,
+  system: 'You are a helpful assistant.',
+  prompt: 'Hello!',
+});
+```
+
+```tsx filename="AI SDK 7"
+const result = await generateText({
+  model: yourModel,
+  instructions: 'You are a helpful assistant.',
+  prompt: 'Hello!',
+});
+```
+
+This applies to AI SDK functions that accept `prompt` or `messages`, including
+`generateText`, `streamText`, `generateObject`, `streamObject`, and `streamUI`.
+
+The same rename applies to `prepareStep` results for `generateText` and
+`streamText`, and to the options passed into `experimental_repairToolCall`:
+
+```tsx filename="AI SDK 6"
+const result = streamText({
+  model: yourModel,
+  prompt: 'Hello!',
+  prepareStep: () => ({
+    system: 'Use concise answers for this step.',
+  }),
+});
+```
+
+```tsx filename="AI SDK 7"
+const result = streamText({
+  model: yourModel,
+  prompt: 'Hello!',
+  prepareStep: () => ({
+    instructions: 'Use concise answers for this step.',
+  }),
+});
+```
+
+The `system` option is still accepted as a deprecated fallback. When both
+`instructions` and `system` are provided, `instructions` takes precedence.
+
+#### `prepareStep` Instructions Carry Forward
+
+In AI SDK 7, instructions returned from `prepareStep` are used in future steps
+until `prepareStep` returns another `instructions` or `system` override. This
+matches how `messages` returned from `prepareStep` carry forward.
+
+In AI SDK 6, `prepareStep` instruction overrides only applied to the current
+step. Later steps fell back to the top-level `system` instructions unless they
+returned their own override.
+
+If your `prepareStep` logic depends on one-step-only instruction overrides,
+return the desired instructions for each step explicitly:
+
+```tsx filename="AI SDK 7"
+const result = streamText({
+  model: yourModel,
+  instructions: 'Use the default behavior.',
+  prompt: 'Hello!',
+  prepareStep: ({ stepNumber, initialInstructions }) => ({
+    instructions:
+      stepNumber === 0
+        ? 'Use special instructions for the first step.'
+        : initialInstructions,
+  }),
+});
+```
+
+The `prepareStep` callback receives both `instructions`, which is the current
+instruction state for the step, and `initialInstructions`, which is the
+top-level instruction value from the original call.
+
+If your tool call repair function forwards the current system instructions to
+another model call, read and pass `instructions` instead of `system`:
+
+```tsx filename="AI SDK 6"
+const result = await generateText({
+  model: yourModel,
+  tools,
+  prompt: 'Hello!',
+  experimental_repairToolCall: async ({ system, messages }) => {
+    return repairWithModel({ system, messages });
+  },
+});
+```
+
+```tsx filename="AI SDK 7"
+const result = await generateText({
+  model: yourModel,
+  tools,
+  prompt: 'Hello!',
+  experimental_repairToolCall: async ({ instructions, messages }) => {
+    return repairWithModel({ instructions, messages });
+  },
+});
+```
+
+Lifecycle callback events for `generateText`, `streamText`, and agents also use
+`instructions` instead of `system`:
+
+```tsx filename="AI SDK 6"
+const result = await generateText({
+  model: yourModel,
+  prompt: 'Hello!',
+  experimental_onStart: ({ system }) => {
+    console.log(system);
+  },
+});
+```
+
+```tsx filename="AI SDK 7"
+const result = await generateText({
+  model: yourModel,
+  prompt: 'Hello!',
+  experimental_onStart: ({ instructions }) => {
+    console.log(instructions);
+  },
+});
+```
+
 ### Prompt Messages: System Messages in `prompt` or `messages` Are Rejected by Default
 
-AI SDK 7 rejects system messages in the `prompt` or `messages` fields by default. System instructions should usually be passed with the top-level `system` option.
+AI SDK 7 rejects system messages in the `prompt` or `messages` fields by default. System instructions should usually be passed with the top-level `instructions` option.
 
 This can break older persisted chats or custom prompt arrays that include `{ role: 'system' }` messages:
 
@@ -85,12 +213,12 @@ const result = await generateText({
 });
 ```
 
-Move system instructions to the `system` option when possible:
+Move system instructions to the `instructions` option when possible:
 
 ```tsx filename="AI SDK 7"
 const result = await generateText({
   model: yourModel,
-  system: 'You are a helpful assistant.',
+  instructions: 'You are a helpful assistant.',
   messages: [{ role: 'user', content: 'Hello!' }],
 });
 ```
@@ -101,7 +229,7 @@ If you need to keep existing chat histories that already contain system messages
   Only use `allowSystemInMessages` for trusted messages. If users can submit or
   edit these messages, they could inject a system message that overrides or sets
   the system prompt. In most cases, system instructions should only be set by
-  trusted server-side code through the `system` or `instructions` property.
+  trusted server-side code through the `instructions` property.
 </Note>
 
 ```tsx filename="AI SDK 7"
@@ -484,10 +612,7 @@ const weather = tool({
   inputSchema: z.object({
     location: z.string(),
   }),
-  execute: async (
-    { location },
-    { experimental_context },
-  ) => {
+  execute: async ({ location }, { experimental_context }) => {
     const { weatherApiKey } = experimental_context as {
       weatherApiKey: string;
     };
@@ -507,10 +632,7 @@ const weather = tool({
   contextSchema: z.object({
     apiKey: z.string(),
   }),
-  execute: async (
-    { location },
-    { context: { apiKey } },
-  ) => {
+  execute: async ({ location }, { context: { apiKey } }) => {
     return getWeather(location, apiKey);
   },
 });
@@ -823,6 +945,157 @@ If both are present, provider-specific reasoning settings in `providerOptions` t
 
 Both deprecated names remain available in AI SDK 7.
 
+### `generateText` and `streamText` `usage` Now Includes All Steps
+
+The `usage` property on `generateText` and `streamText` results now returns the total token usage across all steps. This matches what `totalUsage` previously represented.
+
+Use `finalStep.usage` to read the previous `usage` behavior, which only returned token usage from the final step:
+
+```tsx filename="AI SDK 6"
+const result = await generateText({
+  model: yourModel,
+  prompt: 'Write a haiku, then revise it.',
+  stopWhen: stepCountIs(2),
+});
+
+console.log(result.usage);
+console.log(result.totalUsage);
+```
+
+```tsx filename="AI SDK 7"
+const result = await generateText({
+  model: yourModel,
+  prompt: 'Write a haiku, then revise it.',
+  stopWhen: isStepCount(2),
+});
+
+console.log(result.finalStep.usage); // final step only
+console.log(result.usage); // all steps
+```
+
+`totalUsage` is deprecated. Replace `result.totalUsage` with `result.usage`.
+
+### `generateText` and `streamText` Result Properties Now Include All Steps
+
+The top-level `content`, `toolCalls`, `staticToolCalls`, `dynamicToolCalls`,
+`toolResults`, `staticToolResults`, `dynamicToolResults`, `files`, `sources`,
+and `warnings` properties on `generateText` and `streamText` results now return
+values accumulated across every step.
+
+In AI SDK 6, these properties only returned values from the final step. Use
+`finalStep` to read the previous behavior:
+
+```tsx filename="AI SDK 6"
+const result = await generateText({
+  model: yourModel,
+  prompt: 'Use a tool, then summarize the result.',
+  stopWhen: stepCountIs(2),
+});
+
+console.log(result.toolCalls);
+console.log(result.toolResults);
+console.log(result.files);
+console.log(result.sources);
+console.log(result.warnings);
+console.log(result.content);
+```
+
+```tsx filename="AI SDK 7"
+const result = await generateText({
+  model: yourModel,
+  prompt: 'Use a tool, then summarize the result.',
+  stopWhen: isStepCount(2),
+});
+
+console.log(result.finalStep.toolCalls); // final step only
+console.log(result.finalStep.toolResults); // final step only
+console.log(result.finalStep.files); // final step only
+console.log(result.finalStep.sources); // final step only
+console.log(result.finalStep.warnings); // final step only
+console.log(result.finalStep.content); // final step only
+console.log(result.toolCalls); // all steps
+console.log(result.toolResults); // all steps
+console.log(result.files); // all steps
+console.log(result.sources); // all steps
+console.log(result.warnings); // all steps
+console.log(result.content); // all steps
+```
+
+For `streamText`, await `finalStep` first when you need final-step-only values:
+
+```tsx filename="AI SDK 7"
+const result = streamText({
+  model: yourModel,
+  prompt: 'Use a tool, then summarize the result.',
+  stopWhen: isStepCount(2),
+});
+
+const finalStep = await result.finalStep;
+
+console.log(finalStep.toolCalls); // final step only
+console.log(finalStep.toolResults); // final step only
+console.log(finalStep.files); // final step only
+console.log(finalStep.sources); // final step only
+console.log(finalStep.warnings); // final step only
+console.log(finalStep.content); // final step only
+console.log(await result.toolCalls); // all steps
+console.log(await result.toolResults); // all steps
+console.log(await result.files); // all steps
+console.log(await result.sources); // all steps
+console.log(await result.warnings); // all steps
+console.log(await result.content); // all steps
+```
+
+### Final-Step Result Properties Moved to `finalStep`
+
+The top-level `reasoning`, `reasoningText`, `request`, `response`, and `providerMetadata` result properties on `generateText` and `streamText` are deprecated in AI SDK 7.
+
+Use `result.finalStep` when you need final-step reasoning or final-step metadata:
+
+```tsx filename="AI SDK 6"
+const result = await generateText({
+  model: yourModel,
+  prompt: 'Write a haiku, then revise it.',
+  stopWhen: stepCountIs(2),
+});
+
+console.log(result.reasoningText);
+console.log(result.request.body);
+console.log(result.response.headers);
+console.log(result.providerMetadata?.anthropic);
+```
+
+```tsx filename="AI SDK 7"
+const result = await generateText({
+  model: yourModel,
+  prompt: 'Write a haiku, then revise it.',
+  stopWhen: isStepCount(2),
+});
+
+console.log(result.finalStep.reasoningText);
+console.log(result.finalStep.request.body);
+console.log(result.finalStep.response.headers);
+console.log(result.finalStep.providerMetadata?.anthropic);
+```
+
+For `streamText`, await `finalStep` first:
+
+```tsx filename="AI SDK 7"
+const result = streamText({
+  model: yourModel,
+  prompt: 'Write a haiku, then revise it.',
+  stopWhen: isStepCount(2),
+});
+
+const finalStep = await result.finalStep;
+
+console.log(finalStep.reasoningText);
+console.log(finalStep.request.body);
+console.log(finalStep.response.headers);
+```
+
+The deprecated top-level aliases continue to work in AI SDK 7 so you can migrate incrementally.
+
 ### Stop Condition Helper Rename: `stepCountIs` -> `isStepCount`
 
 Rename imports and usage in tool-loop stop conditions:
@@ -898,7 +1171,7 @@ const result = await generateText({
 console.log(result.usage.inputTokenDetails.cacheWriteTokens);
 ```
 
-If you need the raw Anthropic-shaped usage payload (including `cache_creation_input_tokens`, `cache_read_input_tokens`, `cache_creation`, `service_tier`, etc.), it is still available unchanged at `result.providerMetadata?.anthropic?.usage`.
+If you need the raw Anthropic-shaped usage payload (including `cache_creation_input_tokens`, `cache_read_input_tokens`, `cache_creation`, `service_tier`, etc.), it is still available unchanged at `result.finalStep.providerMetadata?.anthropic?.usage`.
 
 ## Google Provider
 

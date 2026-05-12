@@ -111,6 +111,7 @@ describe('streamLanguageModelCall', () => {
         {
           "callId": "test-telemetry-call-id",
           "frequencyPenalty": 0.1,
+          "instructions": undefined,
           "maxOutputTokens": 128,
           "messages": [
             {
@@ -126,11 +127,9 @@ describe('streamLanguageModelCall', () => {
           "stopSequences": [
             "stop",
           ],
-          "system": undefined,
           "temperature": 0.7,
           "tools": [
             {
-              "description": undefined,
               "inputSchema": {
                 "$schema": "http://json-schema.org/draft-07/schema#",
                 "additionalProperties": false,
@@ -145,7 +144,6 @@ describe('streamLanguageModelCall', () => {
                 "type": "object",
               },
               "name": "testTool",
-              "providerOptions": undefined,
               "type": "function",
             },
           ],
@@ -218,6 +216,7 @@ describe('streamLanguageModelCall', () => {
           },
           "startEvent": {
             "callId": "call-generated-call-id",
+            "instructions": undefined,
             "messages": [
               {
                 "content": "test prompt",
@@ -226,7 +225,6 @@ describe('streamLanguageModelCall', () => {
             ],
             "modelId": "mock-model-id",
             "provider": "mock-provider",
-            "system": undefined,
             "tools": undefined,
           },
         }

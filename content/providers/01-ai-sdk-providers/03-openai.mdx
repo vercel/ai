@@ -238,7 +238,6 @@ The following provider options are available:
 
 - **truncation** _string_
   The truncation strategy to use for the model response.
-
   - Auto: If the input to this Response exceeds the model's context window size, the model will truncate the response to fit the context window by dropping items from the beginning of the conversation.
   - disabled (default): If the input size will exceed the context window size for a model, the request will fail with a 400 error.
 
@@ -701,7 +700,6 @@ The MCP tool can be configured with:
 - **allowedTools** _string[] | object_ (optional)
 
   Controls which tools from the MCP server are available. Can be:
-
   - An array of tool names: `['tool1', 'tool2']`
   - An object with filters:
     ```ts
@@ -722,7 +720,6 @@ The MCP tool can be configured with:
 - **requireApproval** _'always' | 'never' | object_ (optional)
 
   Controls which MCP tool calls require user approval before execution. Can be:
-
   - `'always'`: All MCP tool calls require approval
   - `'never'`: No MCP tool calls require approval (default)
   - An object with filters:
@@ -1324,7 +1321,6 @@ This metadata includes the following fields:
   If no annotations are present, this property itself may be omitted (`undefined`).
 
   Each element in `annotations` is a discriminated union with a required `type` field. Supported types include, for example:
-
   - `url_citation`
   - `file_citation`
   - `container_file_citation`
@@ -1777,7 +1773,6 @@ Reasoning models currently only generate text, have several limitations, and are
 They support additional settings and response metadata:
 
 - You can use `providerOptions` to set
-
   - the `reasoningEffort` option (or alternatively the `reasoningEffort` model setting), which determines the amount of reasoning the model performs.
 
 - You can use response `providerMetadata` to access the number of reasoning tokens that the model generated.
@@ -1809,7 +1804,6 @@ console.log('Usage:', {
 </Note>
 
 - You can control how system messages are handled by providerOptions `systemMessageMode`:
-
   - `developer`: treat the prompt as a developer message (default for reasoning models).
   - `system`: keep the system message as a system-level instruction.
   - `remove`: remove the system message from the messages.
@@ -2501,10 +2495,7 @@ const { images } = await generateImage({
 You can pass optional `providerOptions` to the image model. These are prone to change by OpenAI and are model dependent. For example, the `gpt-image-1` model supports the `quality` option:
 
 ```ts
-import {
-  openai,
-  type OpenAIImageModelGenerationOptions,
-} from '@ai-sdk/openai';
+import { openai, type OpenAIImageModelGenerationOptions } from '@ai-sdk/openai';
 import { generateImage } from 'ai';
 
 const { image, providerMetadata } = await generateImage({
@@ -2525,7 +2516,6 @@ is available:
 - **images** _Array&lt;object&gt;_
 
   Array of image-specific metadata. Each image object may contain:
-
   - `revisedPrompt` _string_ - The revised prompt that was actually used to generate the image (OpenAI may modify your prompt for safety or clarity)
   - `created` _number_ - The Unix timestamp (in seconds) of when the image was created
   - `size` _string_ - The size of the generated image. One of `1024x1024`, `1024x1536`, or `1536x1024`

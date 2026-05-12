@@ -212,7 +212,7 @@ async function main() {
         });
       }
     },
-    system: 'You are a helpful assistant with access to protected tools.',
+    instructions: 'You are a helpful assistant with access to protected tools.',
     prompt:
       'List the tools available for me to call. Arrange them in alphabetical order.',
   });

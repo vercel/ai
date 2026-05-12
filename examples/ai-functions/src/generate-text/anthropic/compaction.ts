@@ -268,5 +268,5 @@ run(async () => {
   console.dir(result.response.body, { depth: Infinity });
 
   console.log('\n=== Provider Metadata ===');
-  console.log(JSON.stringify(result.providerMetadata, null, 2));
+  console.log(JSON.stringify(result.finalStep.providerMetadata, null, 2));
 });

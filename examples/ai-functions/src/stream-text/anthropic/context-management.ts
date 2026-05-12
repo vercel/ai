@@ -276,7 +276,7 @@ run(async () => {
 
   console.log('\n');
 
-  const providerMetadata = await result.providerMetadata;
+  const providerMetadata = (await result.finalStep).providerMetadata;
   console.log('providerMetadata:', JSON.stringify(providerMetadata, null, 2));
   console.log(
     'contextManagement:',

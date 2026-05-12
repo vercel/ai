@@ -25,7 +25,7 @@ run(async () => {
     const result = streamText({
       model: lmstudio('zai-org/glm-4.7-flash'),
       tools: { weather: weatherTool },
-      system: `You are a helpful, respectful and honest assistant.`,
+      instructions: `You are a helpful, respectful and honest assistant.`,
       stopWhen: isStepCount(5),
       messages,
       onError: ({ error }) => {

@@ -1,5 +1,23 @@
 # @ai-sdk/provider-utils
 
+## 5.0.0-canary.38
+
+### Patch Changes
+
+- ca446f8: feat: flexible tool descriptions
+
+## 5.0.0-canary.37
+
+### Patch Changes
+
+- d848405: feat: add optional `abortSignal` parameters to sandbox command execution
+
+## 5.0.0-canary.36
+
+### Patch Changes
+
+- ca39020: Add an optional `workingDirectory` parameter to sandbox command execution.
+
 ## 5.0.0-canary.35
 
 ### Patch Changes

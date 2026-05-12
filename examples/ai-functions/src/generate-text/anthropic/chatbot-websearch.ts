@@ -34,7 +34,7 @@ run(async () => {
           },
         }),
       },
-      system: `You are a helpful, respectful and honest assistant.`,
+      instructions: `You are a helpful, respectful and honest assistant.`,
       messages,
       stopWhen: isStepCount(3),
     });

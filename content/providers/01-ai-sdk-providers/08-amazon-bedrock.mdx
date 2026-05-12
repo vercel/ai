@@ -135,8 +135,8 @@ const amazonBedrock = createAmazonBedrock({
 <Note>
   Omitted options use the environment variables below. When **both**
   `accessKeyId` and `secretAccessKey` are strings, SigV4 uses a **`sessionToken`
-  only if you pass one** - not `AWS_SESSION_TOKEN` from the environment - so static
-  keys are not mixed with workload tokens (e.g. EKS IRSA).
+  only if you pass one** - not `AWS_SESSION_TOKEN` from the environment - so
+  static keys are not mixed with workload tokens (e.g. EKS IRSA).
 </Note>
 
 You can use the following optional settings to customize the Amazon Bedrock provider instance:
@@ -1420,7 +1420,6 @@ The following optional provider options are available for Bedrock Anthropic mode
 - `metadata` _object_
 
   Optional. Metadata to include with the request. See the [Anthropic API documentation](https://platform.claude.com/docs/en/api/messages/create) for details.
-
   - `userId` _string_ - An external identifier for the end-user.
 
 ### Cache Control

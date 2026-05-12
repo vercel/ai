@@ -48,7 +48,7 @@ export async function sendMessage(message: string) {
 
   const { value: stream } = await streamUI({
     model: openai('gpt-4o'),
-    system: 'you are a friendly assistant!',
+    instructions: 'you are a friendly assistant!',
     messages: messages.get(),
     text: async function* ({ content, done }) {
       // process text
@@ -110,7 +110,7 @@ export async function POST(request) {
 
   const result = streamText({
     model: __MODEL__,
-    system: 'you are a friendly assistant!',
+    instructions: 'you are a friendly assistant!',
     messages,
     tools: {
       // tool definitions
@@ -182,7 +182,7 @@ import { Weather } from '@/components/weather';
 
 const { value: stream } = await streamUI({
   model: openai('gpt-4o'),
-  system: 'you are a friendly assistant!',
+  instructions: 'you are a friendly assistant!',
   messages,
   text: async function* ({ content, done }) {
     // process text
@@ -223,7 +223,7 @@ export async function POST(request) {
 
   const result = streamText({
     model: __MODEL__,
-    system: 'you are a friendly assistant!',
+    instructions: 'you are a friendly assistant!',
     messages,
     tools: {
       displayWeather: {
@@ -388,7 +388,7 @@ import { streamUI } from '@ai-sdk/rsc';
 
 const { value: stream } = await streamUI({
   model: openai('gpt-4o'),
-  system: 'you are a friendly assistant!',
+  instructions: 'you are a friendly assistant!',
   messages,
   initial: <div>Loading...</div>,
   text: async function* ({ content, done }) {
@@ -491,7 +491,7 @@ export async function POST(request) {
 
   const result = streamText({
     model: __MODEL__,
-    system: 'you are a friendly assistant!',
+    instructions: 'you are a friendly assistant!',
     messages: coreMessages,
     onFinish: async ({ responseMessages }) => {
       try {
@@ -615,7 +615,7 @@ export async function generateSampleNotifications() {
   (async () => {
     const { partialOutputStream } = streamText({
       model: __MODEL__,
-      system: 'generate sample ios messages for testing',
+      instructions: 'generate sample ios messages for testing',
       prompt: 'messages from a family group chat during diwali, max 4',
       output: Output.object({ schema: notificationsSchema }),
     });

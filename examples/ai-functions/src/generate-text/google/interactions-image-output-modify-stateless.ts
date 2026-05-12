@@ -32,7 +32,7 @@ run(async () => {
   console.log('Turn 1 text:', turn1.text);
   console.log(
     'Turn 1 interaction id:',
-    turn1.providerMetadata?.google?.interactionId,
+    turn1.finalStep.providerMetadata?.google?.interactionId,
   );
   console.log('Turn 1 files:', turn1.files.length);
   const turn1Images = turn1.files.filter(file =>
@@ -64,7 +64,7 @@ run(async () => {
   console.log('Turn 2 text:', turn2.text);
   console.log(
     'Turn 2 interaction id:',
-    turn2.providerMetadata?.google?.interactionId,
+    turn2.finalStep.providerMetadata?.google?.interactionId,
   );
   console.log('Turn 2 files:', turn2.files.length);
   const turn2Images = turn2.files.filter(file =>

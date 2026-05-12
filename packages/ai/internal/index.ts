@@ -20,3 +20,4 @@ export { asLanguageModelUsage } from '../src/types/usage';
 export { resolveLanguageModel } from '../src/model/resolve-model';
 export { mergeAbortSignals } from '../src/util/merge-abort-signals';
 export { mergeCallbacks } from '../src/util/merge-callbacks';
+export { createRestrictedTelemetryDispatcher } from '../src/generate-text/restricted-telemetry-dispatcher';
