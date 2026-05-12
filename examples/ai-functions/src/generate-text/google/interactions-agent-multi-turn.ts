@@ -1,8 +1,14 @@
 import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
+import { cancelOnSigint } from '../../lib/cancel-on-sigint';
 import { run } from '../../lib/run';
 
 run(async () => {
+  // Ctrl+C aborts the in-flight call, which fires
+  // `POST /interactions/{id}/cancel` on Google's side so the agent stops
+  // billing instead of running to completion in the background.
+  const ac = cancelOnSigint();
+
   // Turn 1: ask the deep-research agent to identify key topics. Default
   // `store: true` keeps server-side context so we can chain via
   // `previousInteractionId`. Note: agent calls can be slow.
@@ -13,6 +19,7 @@ run(async () => {
     }),
     prompt:
       'List three foundational concepts behind transformer-based language models (one sentence each).',
+    abortSignal: ac.signal,
   });
 
   const interactionId = turn1.finalStep.providerMetadata?.google
@@ -40,6 +47,7 @@ run(async () => {
     providerOptions: {
       google: { previousInteractionId: interactionId },
     },
+    abortSignal: ac.signal,
   });
 
   console.log(turn2.text);

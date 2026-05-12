@@ -20,8 +20,8 @@ import { NoOutputGeneratedError } from '../error';
 import { ToolCallNotFoundForApprovalError } from '../error/tool-call-not-found-for-approval-error';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
-import { cloneModelMessages } from '../prompt/clone-model-message';
 import type { ModelMessage } from '../prompt';
+import { cloneModelMessages } from '../prompt/clone-model-message';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { createToolModelOutput } from '../prompt/create-tool-model-output';
 import type { LanguageModelCallOptions } from '../prompt/language-model-call-options';
@@ -60,7 +60,10 @@ import type { ActiveTools } from './active-tools';
 import { collectToolApprovals } from './collect-tool-approvals';
 import type { ContentPart } from './content-part';
 import { executeToolCall } from './execute-tool-call';
-import { filterActiveTools } from './filter-active-tools';
+import {
+  filterActiveTools,
+  type ActiveToolSubset,
+} from './filter-active-tools';
 import type {
   GenerateTextOnFinishCallback,
   GenerateTextOnStartCallback,
@@ -629,6 +632,7 @@ export async function generateText<
       [];
     const steps: GenerateTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>['steps'] =
       [];
+    let instructionsForNextStep = initialPrompt.instructions;
     let messagesForNextStep = [...initialMessages, ...initialResponseMessages];
 
     // Track provider-executed tool calls that support deferred results
@@ -655,6 +659,8 @@ export async function generateText<
           model,
           steps,
           stepNumber: steps.length,
+          instructions: instructionsForNextStep,
+          initialInstructions: initialPrompt.instructions,
           messages: stepInputMessages,
           initialMessages,
           responseMessages: accumulatedResponseMessages,
@@ -672,7 +678,7 @@ export async function generateText<
         const stepInstructions =
           prepareStepResult?.instructions ??
           prepareStepResult?.system ??
-          initialPrompt.instructions;
+          instructionsForNextStep;
 
         const promptMessages = await convertToLanguageModelPrompt({
           prompt: {
@@ -694,6 +700,11 @@ export async function generateText<
 
         const stepTools = await prepareTools({
           tools: stepActiveTools,
+          // active tools context is a subset of the tools context, so we can cast to the unknown type
+          toolsContext: toolsContext as unknown as InferToolSetContext<
+            ActiveToolSubset<TOOLS, ActiveTools<NoInfer<TOOLS>>>
+          >,
+          sandbox: stepSandbox,
         });
 
         const stepToolChoice = prepareToolChoice({
@@ -1070,6 +1081,7 @@ export async function generateText<
         });
 
         steps.push(currentStepResult);
+        instructionsForNextStep = stepInstructions;
         messagesForNextStep = [...stepMessages, ...stepResponseMessages];
 
         await notify({
@@ -1115,6 +1127,9 @@ export async function generateText<
       } as LanguageModelUsage,
     );
 
+    const files = steps.flatMap(step => step.files);
+    const warnings = steps.flatMap(step => step.warnings ?? []);
+
     const onFinishEvent = {
       callId,
       stepNumber: lastStep.stepNumber,
@@ -1127,7 +1142,7 @@ export async function generateText<
       text: lastStep.text,
       reasoningText: lastStep.reasoningText,
       reasoning: lastStep.reasoning,
-      files: lastStep.files,
+      files,
       sources: lastStep.sources,
       toolCalls: lastStep.toolCalls,
       staticToolCalls: lastStep.staticToolCalls,
@@ -1141,7 +1156,7 @@ export async function generateText<
         ...initialResponseMessages,
         ...steps.flatMap(step => step.response.messages),
       ],
-      warnings: lastStep.warnings,
+      warnings,
       providerMetadata: lastStep.providerMetadata,
       steps,
       totalUsage,
@@ -1256,7 +1271,7 @@ class DefaultGenerateTextResult<
   }
 
   get content() {
-    return this.finalStep.content;
+    return this.steps.flatMap(step => step.content);
   }
 
   get text() {
@@ -1264,7 +1279,7 @@ class DefaultGenerateTextResult<
   }
 
   get files() {
-    return this.finalStep.files;
+    return this.steps.flatMap(step => step.files);
   }
 
   get reasoningText() {
@@ -1276,31 +1291,31 @@ class DefaultGenerateTextResult<
   }
 
   get toolCalls() {
-    return this.finalStep.toolCalls;
+    return this.steps.flatMap(step => step.toolCalls);
   }
 
   get staticToolCalls() {
-    return this.finalStep.staticToolCalls;
+    return this.steps.flatMap(step => step.staticToolCalls);
   }
 
   get dynamicToolCalls() {
-    return this.finalStep.dynamicToolCalls;
+    return this.steps.flatMap(step => step.dynamicToolCalls);
   }
 
   get toolResults() {
-    return this.finalStep.toolResults;
+    return this.steps.flatMap(step => step.toolResults);
   }
 
   get staticToolResults() {
-    return this.finalStep.staticToolResults;
+    return this.steps.flatMap(step => step.staticToolResults);
   }
 
   get dynamicToolResults() {
-    return this.finalStep.dynamicToolResults;
+    return this.steps.flatMap(step => step.dynamicToolResults);
   }
 
   get sources() {
-    return this.finalStep.sources;
+    return this.steps.flatMap(step => step.sources);
   }
 
   get finishReason() {
@@ -1312,7 +1327,7 @@ class DefaultGenerateTextResult<
   }
 
   get warnings() {
-    return this.finalStep.warnings;
+    return this.steps.flatMap(step => step.warnings ?? []);
   }
 
   get providerMetadata() {

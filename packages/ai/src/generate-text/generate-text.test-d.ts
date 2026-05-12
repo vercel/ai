@@ -303,11 +303,19 @@ describe('generateText types', () => {
           model: new MockLanguageModelV4(),
           prompt: 'Hello',
           prepareStep: ({
+            instructions,
+            initialInstructions,
             initialMessages,
             responseMessages,
             runtimeContext,
             toolsContext,
           }) => {
+            expectTypeOf(instructions).toEqualTypeOf<
+              Instructions | undefined
+            >();
+            expectTypeOf(initialInstructions).toEqualTypeOf<
+              Instructions | undefined
+            >();
             expectTypeOf(initialMessages).toEqualTypeOf<Array<ModelMessage>>();
             expectTypeOf(responseMessages).toEqualTypeOf<
               Array<ResponseMessage>

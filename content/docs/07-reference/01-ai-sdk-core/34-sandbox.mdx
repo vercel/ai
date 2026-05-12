@@ -8,7 +8,7 @@ description: API Reference for the Sandbox interface.
 The `Sandbox` interface describes an execution environment that tools can use to
 run commands. Pass a sandbox to `generateText`, `streamText`,
 `ToolLoopAgent.generate`, `ToolLoopAgent.stream`, or agent UI stream helpers to
-make it available to tool execution.
+make it available to tool description functions and tool execution.
 
 Passing a sandbox does not sandbox the tool itself. Tool code still runs in your
 application process unless the tool explicitly delegates work to the sandbox.

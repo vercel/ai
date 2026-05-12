@@ -208,7 +208,6 @@ describe('createAgentUIStreamResponse', () => {
                   "type": "object",
                 },
                 "name": "example",
-                "providerOptions": undefined,
                 "type": "function",
               },
             ],

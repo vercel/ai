@@ -337,6 +337,7 @@ export async function* streamTextIterator({
             responseFormat,
             runtimeContext: currentRuntimeContext,
             toolsContext: currentToolsContext,
+            stepNumber,
           },
         );
 

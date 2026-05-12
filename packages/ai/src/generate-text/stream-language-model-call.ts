@@ -8,8 +8,10 @@ import {
   createIdGenerator,
   type Arrayable,
   type IdGenerator,
+  type InferToolSetContext,
   type ModelMessage,
   type ProviderOptions,
+  type Sandbox,
   type ToolSet,
 } from '@ai-sdk/provider-utils';
 import { ToolCallNotFoundForApprovalError } from '../error/tool-call-not-found-for-approval-error';
@@ -193,6 +195,8 @@ export async function streamLanguageModelCall<
   repairToolCall,
   refineToolInput,
   callId,
+  toolsContext,
+  sandbox,
   _internal: {
     generateId = originalGenerateId,
     generateCallId = originalGenerateCallId,
@@ -214,6 +218,15 @@ export async function streamLanguageModelCall<
   repairToolCall?: ToolCallRepairFunction<TOOLS> | undefined;
   refineToolInput?: ToolInputRefinement<TOOLS> | undefined;
   callId?: string;
+  /**
+   * Tool context used to resolve per-call tool metadata such as function
+   * descriptions before sending tools to the model.
+   */
+  toolsContext?: InferToolSetContext<TOOLS>;
+  /**
+   * Sandbox passed through for resolving tool descriptions that depend on it.
+   */
+  sandbox?: Sandbox;
   _internal?: {
     generateId?: IdGenerator;
     generateCallId?: IdGenerator;
@@ -269,9 +282,7 @@ export async function streamLanguageModelCall<
     provider: resolvedModel.provider.split('.')[0],
   });
 
-  const stepTools = await prepareTools({
-    tools,
-  });
+  const stepTools = await prepareTools({ tools, toolsContext, sandbox });
 
   const stepToolChoice = prepareToolChoice({
     toolChoice,
