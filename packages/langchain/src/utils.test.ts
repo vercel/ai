@@ -781,6 +781,15 @@ describe('isAIMessageChunk', () => {
     expect(isAIMessageChunk(plainObj)).toBe(true);
   });
 
+  it('should return true for plain objects with type: AIMessageChunk (Python langchain-core RemoteGraph)', () => {
+    const plainObj = {
+      type: 'AIMessageChunk',
+      content: 'Hello',
+      id: 'msg-1',
+    };
+    expect(isAIMessageChunk(plainObj)).toBe(true);
+  });
+
   it('should return false for AIMessage instances (not chunks)', () => {
     const msg = new AIMessage({ content: 'Hello' });
     // AIMessage is not AIMessageChunk, but it extends BaseMessage
@@ -1184,6 +1193,31 @@ describe('processLangGraphEvent', () => {
     });
   });
 
+  it('should handle plain AI message objects with type: AIMessageChunk from Python RemoteGraph', () => {
+    const state = createMockState();
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    /**
+     * Python langchain-core serializes streaming chunks with
+     * type === 'AIMessageChunk' instead of TypeScript's type === 'ai'.
+     * Regression test for issue #14341.
+     */
+    const plainMsg = {
+      type: 'AIMessageChunk',
+      content: 'Hello',
+      id: 'msg-1',
+    };
+    processLangGraphEvent(['messages', [plainMsg]], state, controller);
+
+    expect(chunks).toContainEqual({ type: 'text-start', id: 'msg-1' });
+    expect(chunks).toContainEqual({
+      type: 'text-delta',
+      delta: 'Hello',
+      id: 'msg-1',
+    });
+  });
+
   it('should handle plain tool message objects from RemoteGraph', () => {
     const state = createMockState();
     const chunks: unknown[] = [];
@@ -1236,6 +1270,45 @@ describe('processLangGraphEvent', () => {
     processLangGraphEvent(['values', valuesData], state, controller);
 
     // Should emit tool-input-start before tool-input-available for non-streamed tool calls
+    expect(chunks).toContainEqual({
+      type: 'tool-input-start',
+      toolCallId: 'call-1',
+      toolName: 'get_weather',
+      dynamic: true,
+    });
+    expect(chunks).toContainEqual({
+      type: 'tool-input-available',
+      toolCallId: 'call-1',
+      toolName: 'get_weather',
+      input: { city: 'NYC' },
+      dynamic: true,
+    });
+  });
+
+  it('should handle tool calls in values event for Python type: AIMessageChunk', () => {
+    const state = createMockState();
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    /**
+     * Regression test for issue #14341. Python langchain-core uses
+     * type === 'AIMessageChunk' for plain message objects from RemoteGraph;
+     * tool_calls in values events should be extracted in that case too.
+     */
+    const valuesData = {
+      messages: [
+        {
+          id: 'msg-1',
+          type: 'AIMessageChunk',
+          tool_calls: [
+            { id: 'call-1', name: 'get_weather', args: { city: 'NYC' } },
+          ],
+        },
+      ],
+    };
+
+    processLangGraphEvent(['values', valuesData], state, controller);
+
     expect(chunks).toContainEqual({
       type: 'tool-input-start',
       toolCallId: 'call-1',
