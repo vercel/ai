@@ -11,9 +11,6 @@ importers:
 
   .:
     devDependencies:
-      '@ai-sdk/konsistent-provider':
-        specifier: workspace:*
-        version: link:packages/konsistent-provider
       '@changesets/cli':
         specifier: 2.27.10
         version: 2.27.10
@@ -29,6 +26,9 @@ importers:
       konsistent:
         specifier: 0.0.1-alpha.20
         version: 0.0.1-alpha.20
+      konsistent-provider:
+        specifier: workspace:*
+        version: link:tools/konsistent-provider
       lint-staged:
         specifier: ^15.5.1
         version: 15.5.2
@@ -2368,25 +2368,6 @@ importers:
         specifier: 3.25.76
         version: 3.25.76
 
-  packages/konsistent-provider:
-    dependencies:
-      '@konsistent/convention':
-        specifier: 0.0.1-alpha.2
-        version: 0.0.1-alpha.2(zod@4.3.6)
-    devDependencies:
-      '@types/node':
-        specifier: 20.17.24
-        version: 20.17.24
-      '@vercel/ai-tsconfig':
-        specifier: workspace:*
-        version: link:../../tools/tsconfig
-      typescript:
-        specifier: 5.8.3
-        version: 5.8.3
-      zod:
-        specifier: ^4.1.8
-        version: 4.3.6
-
   packages/langchain:
     dependencies:
       ai:
@@ -3341,6 +3322,25 @@ importers:
       typescript:
         specifier: 5.8.3
         version: 5.8.3
+
+  tools/konsistent-provider:
+    dependencies:
+      '@konsistent/convention':
+        specifier: 0.0.1-alpha.2
+        version: 0.0.1-alpha.2(zod@4.3.6)
+    devDependencies:
+      '@types/node':
+        specifier: 20.17.24
+        version: 20.17.24
+      '@vercel/ai-tsconfig':
+        specifier: workspace:*
+        version: link:../tsconfig
+      typescript:
+        specifier: 5.8.3
+        version: 5.8.3
+      zod:
+        specifier: ^4.1.8
+        version: 4.3.6
 
   tools/tsconfig: {}
 

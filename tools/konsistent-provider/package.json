@@ -1,6 +1,7 @@
 {
-  "name": "@ai-sdk/konsistent-provider",
+  "name": "konsistent-provider",
   "version": "0.0.1",
+  "private": true,
   "description": "Reusable konsistent conventions for the AI SDK monorepo. Authored in TypeScript via @konsistent/convention, shipped as a JSON artifact via the \"./konsistent\" exports condition.",
   "type": "module",
   "license": "Apache-2.0",
@@ -37,15 +38,11 @@
   "engines": {
     "node": ">=18"
   },
-  "publishConfig": {
-    "access": "public",
-    "provenance": true
-  },
   "homepage": "https://ai-sdk.dev/docs",
   "repository": {
     "type": "git",
     "url": "https://github.com/vercel/ai",
-    "directory": "packages/konsistent-provider"
+    "directory": "tools/konsistent-provider"
   },
   "bugs": {
     "url": "https://github.com/vercel/ai/issues"

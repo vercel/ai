@@ -9,29 +9,29 @@ This package serves two purposes:
 
 ## Usage in third-party provider packages
 
-Add both `konsistent` and `@ai-sdk/konsistent-provider` as dev dependencies of your provider package:
+Add both `konsistent` and `konsistent-provider` as dev dependencies of your provider package:
 
 ```bash
-pnpm add -D konsistent @ai-sdk/konsistent-provider
+pnpm add -D konsistent konsistent-provider
 ```
 
 Then run `konsistent` against the bundled config, supplying your provider's kebab-case id as the `providerId` placeholder:
 
 ```bash
-konsistent --config-package=@ai-sdk/konsistent-provider --placeholder=providerId:my-provider
+konsistent --config-package=konsistent-provider --placeholder=providerId:my-provider
 ```
 
 Replace `my-provider` with the actual kebab-case id you use in your package and source files. This drives the symbol-name and file-name checks (`createMyProvider`, `my-provider-provider.ts`, `MyProviderLanguageModel`, etc.).
 
 ## Usage as a convention library
 
-If you'd rather author your own `konsistent.json` and pull in only the conventions you want, declare `@ai-sdk/konsistent-provider` as a convention source and reference its conventions by name:
+If you'd rather author your own `konsistent.json` and pull in only the conventions you want, declare `konsistent-provider` as a convention source and reference its conventions by name:
 
 ```json
 {
   "version": "v1",
   "conventionSources": {
-    "aisdk": "@ai-sdk/konsistent-provider"
+    "aisdk": "konsistent-provider"
   },
   "conventions": [
     {
