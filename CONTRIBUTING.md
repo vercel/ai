@@ -102,3 +102,4 @@ Thank you for contributing to the AI SDK! Your efforts help us improve the proje
 ## Learn More
 
 We have additional contributor documentation in the `contributing/` folder.
+For community resources, see [contributing resources](contributing/resources.md).
