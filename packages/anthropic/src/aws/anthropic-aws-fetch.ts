@@ -17,7 +17,11 @@ export interface AnthropicAwsCredentials {
 
 /**
  * Creates a fetch function that applies AWS Signature Version 4 signing for
- * Claude Platform on AWS. The SigV4 service name is `aws-external-anthropic`.
+ * Claude Platform on AWS.
+ *
+ * @param getCredentials - Function that returns the AWS credentials to use when signing.
+ * @param fetch - Optional original fetch implementation to wrap. Defaults to global fetch.
+ * @returns A FetchFunction that signs requests before passing them to the underlying fetch.
  */
 export function createSigV4FetchFunction(
   getCredentials: () =>
@@ -91,9 +95,11 @@ export function createSigV4FetchFunction(
 }
 
 /**
- * Creates a fetch function that authenticates with an AWS-provisioned API key
- * via the `x-api-key` header. Used for the simpler integration path that
- * doesn't require AWS credentials.
+ * Creates a fetch function that applies x-api-key header authentication.
+ *
+ * @param apiKey - The API key to use for x-api-key header authentication.
+ * @param fetch - Optional original fetch implementation to wrap. Defaults to global fetch.
+ * @returns A FetchFunction that adds the x-api-key header to requests.
  */
 export function createApiKeyFetchFunction(
   apiKey: string,

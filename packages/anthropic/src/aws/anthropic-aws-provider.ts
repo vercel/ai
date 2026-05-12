@@ -19,8 +19,14 @@ import {
 } from './anthropic-aws-fetch';
 
 export interface AnthropicAwsProvider extends ProviderV4 {
+  /**
+   * Creates a model for text generation.
+   */
   (modelId: AnthropicModelId): LanguageModelV4;
 
+  /**
+   * Creates a model for text generation.
+   */
   languageModel(modelId: AnthropicModelId): LanguageModelV4;
 
   chat(modelId: AnthropicModelId): LanguageModelV4;
@@ -37,67 +43,66 @@ export interface AnthropicAwsProvider extends ProviderV4 {
 
 export interface AnthropicAwsProviderSettings {
   /**
-   * AWS region for the Claude Platform on AWS endpoint. Reads from the
-   * `AWS_REGION` environment variable if omitted. No fallback default —
-   * the constructor throws if it can't be resolved from either source.
+   * The AWS region to use for Claude Platform on AWS. Defaults to the value of the
+   * `AWS_REGION` environment variable. Required — there is no fallback default.
    */
   region?: string;
 
   /**
-   * Anthropic workspace ID for this AWS account. Sent on every request via the
-   * `anthropic-workspace-id` header. Reads from the `ANTHROPIC_AWS_WORKSPACE_ID`
-   * environment variable if omitted. The constructor throws if it can't be
-   * resolved from either source.
+   * The Anthropic workspace ID for this AWS account. Sent on every request via the
+   * `anthropic-workspace-id` header. Defaults to the value of the
+   * `ANTHROPIC_AWS_WORKSPACE_ID` environment variable.
    */
   workspaceId?: string;
 
   /**
-   * AWS-provisioned API key for `x-api-key` authentication. When provided,
-   * this is used instead of AWS SigV4. Defaults to the
-   * `ANTHROPIC_AWS_API_KEY` environment variable.
+   * API key for authenticating requests via the `x-api-key` header.
+   * When provided, this will be used instead of AWS SigV4 authentication.
+   * Defaults to the value of the `ANTHROPIC_AWS_API_KEY` environment variable.
    */
   apiKey?: string;
 
   /**
-   * AWS access key ID for SigV4 authentication. Defaults to
-   * `AWS_ACCESS_KEY_ID`. Ignored when `apiKey` is set.
+   * The AWS access key ID to use for SigV4 authentication. Defaults to the value of the
+   * `AWS_ACCESS_KEY_ID` environment variable.
    */
   accessKeyId?: string;
 
   /**
-   * AWS secret access key for SigV4 authentication. Defaults to
-   * `AWS_SECRET_ACCESS_KEY`. Ignored when `apiKey` is set.
+   * The AWS secret access key to use for SigV4 authentication. Defaults to the value of the
+   * `AWS_SECRET_ACCESS_KEY` environment variable.
    */
   secretAccessKey?: string;
 
   /**
-   * AWS session token for SigV4 authentication. Defaults to
-   * `AWS_SESSION_TOKEN`. Ignored when `apiKey` is set.
+   * The AWS session token to use for SigV4 authentication. Defaults to the value of the
+   * `AWS_SESSION_TOKEN` environment variable.
    */
   sessionToken?: string;
 
   /**
-   * AWS credential provider that returns dynamic credentials at request time.
-   * When set, its values override `accessKeyId`, `secretAccessKey`, and
-   * `sessionToken`.
+   * The AWS credential provider to use to get dynamic credentials similar to the
+   * AWS SDK. Setting a provider here will cause its credential values to be used
+   * instead of the `accessKeyId`, `secretAccessKey`, and `sessionToken` settings.
    */
   credentialProvider?: () => PromiseLike<
     Omit<AnthropicAwsCredentials, 'region'>
   >;
 
   /**
-   * Override the base URL. Defaults to
+   * Base URL for the Claude Platform on AWS API calls. Defaults to
    * `https://aws-external-anthropic.{region}.api.aws/v1`.
    */
   baseURL?: string;
 
   /**
-   * Additional headers to include on every request.
+   * Custom headers to include in the requests.
    */
   headers?: Record<string, string | undefined>;
 
   /**
-   * Custom fetch implementation. Useful for testing or as middleware.
+   * Custom fetch implementation. You can use it as a middleware to intercept requests,
+   * or to provide a custom fetch implementation for e.g. testing.
    */
   fetch?: FetchFunction;
 
@@ -105,10 +110,9 @@ export interface AnthropicAwsProviderSettings {
 }
 
 /**
- * Create an Anthropic provider instance for Claude Platform on AWS. Uses the
- * Anthropic Messages API hosted in AWS at
- * `aws-external-anthropic.{region}.api.aws`, authenticated with AWS SigV4 or
- * an AWS-provisioned API key.
+ * Create a Claude Platform on AWS provider instance.
+ * This provider uses the Anthropic Messages API hosted in AWS, authenticated
+ * with AWS SigV4 or an AWS-provisioned API key.
  */
 export function createAnthropicAws(
   options: AnthropicAwsProviderSettings = {},
