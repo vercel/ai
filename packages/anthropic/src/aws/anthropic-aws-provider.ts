@@ -9,13 +9,12 @@ import {
   withoutTrailingSlash,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
-import { createSigV4FetchFunction } from '@ai-sdk/provider-utils/aws';
 import { AnthropicLanguageModel } from '../anthropic-language-model';
 import type { AnthropicModelId } from '../anthropic-language-model-options';
 import { anthropicTools } from '../anthropic-tools';
 import {
-  ANTHROPIC_AWS_USER_AGENT_SUFFIX,
   createApiKeyFetchFunction,
+  createSigV4FetchFunction,
   type AnthropicAwsCredentials,
 } from './anthropic-aws-fetch';
 
@@ -141,37 +140,30 @@ export function createAnthropicAws(
 
   const fetchFunction = apiKey
     ? createApiKeyFetchFunction(apiKey, options.fetch)
-    : createSigV4FetchFunction(
-        async () => {
-          if (options.credentialProvider) {
-            return { ...(await options.credentialProvider()), region };
-          }
-          return {
-            region,
-            accessKeyId: loadSetting({
-              settingValue: options.accessKeyId,
-              settingName: 'accessKeyId',
-              environmentVariableName: 'AWS_ACCESS_KEY_ID',
-              description: 'AWS access key ID',
-            }),
-            secretAccessKey: loadSetting({
-              settingValue: options.secretAccessKey,
-              settingName: 'secretAccessKey',
-              environmentVariableName: 'AWS_SECRET_ACCESS_KEY',
-              description: 'AWS secret access key',
-            }),
-            sessionToken: loadOptionalSetting({
-              settingValue: options.sessionToken,
-              environmentVariableName: 'AWS_SESSION_TOKEN',
-            }),
-          };
-        },
-        {
-          service: 'aws-external-anthropic',
-          userAgentSuffix: ANTHROPIC_AWS_USER_AGENT_SUFFIX,
-          fetch: options.fetch,
-        },
-      );
+    : createSigV4FetchFunction(async () => {
+        if (options.credentialProvider) {
+          return { ...(await options.credentialProvider()), region };
+        }
+        return {
+          region,
+          accessKeyId: loadSetting({
+            settingValue: options.accessKeyId,
+            settingName: 'accessKeyId',
+            environmentVariableName: 'AWS_ACCESS_KEY_ID',
+            description: 'AWS access key ID',
+          }),
+          secretAccessKey: loadSetting({
+            settingValue: options.secretAccessKey,
+            settingName: 'secretAccessKey',
+            environmentVariableName: 'AWS_SECRET_ACCESS_KEY',
+            description: 'AWS secret access key',
+          }),
+          sessionToken: loadOptionalSetting({
+            settingValue: options.sessionToken,
+            environmentVariableName: 'AWS_SESSION_TOKEN',
+          }),
+        };
+      }, options.fetch);
 
   const getHeaders = (): Record<string, string | undefined> => ({
     'anthropic-workspace-id': workspaceId,

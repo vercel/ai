@@ -16,8 +16,7 @@
     "!src/**/__fixtures__",
     "CHANGELOG.md",
     "README.md",
-    "test.d.ts",
-    "aws.d.ts"
+    "test.d.ts"
   ],
   "scripts": {
     "build": "pnpm clean && tsup --tsconfig tsconfig.build.json",
@@ -41,18 +40,12 @@
       "types": "./dist/test/index.d.ts",
       "import": "./dist/test/index.js",
       "default": "./dist/test/index.js"
-    },
-    "./aws": {
-      "types": "./dist/aws/index.d.ts",
-      "import": "./dist/aws/index.js",
-      "default": "./dist/aws/index.js"
     }
   },
   "dependencies": {
     "@ai-sdk/provider": "workspace:*",
     "@standard-schema/spec": "^1.1.0",
     "@workflow/serde": "4.1.0",
-    "aws4fetch": "^1.0.20",
     "eventsource-parser": "^3.0.8"
   },
   "devDependencies": {

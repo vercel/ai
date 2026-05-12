@@ -52,7 +52,8 @@
     "@ai-sdk/provider": "workspace:*",
     "@ai-sdk/provider-utils": "workspace:*",
     "@smithy/eventstream-codec": "^4.0.1",
-    "@smithy/util-utf8": "^4.0.0"
+    "@smithy/util-utf8": "^4.0.0",
+    "aws4fetch": "^1.0.20"
   },
   "devDependencies": {
     "@ai-sdk/test-server": "workspace:*",
