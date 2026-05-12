@@ -472,6 +472,22 @@ async function downloadAssets(
         }
       }
     }
+
+    if (message.role === 'assistant' && Array.isArray(message.content)) {
+      for (const part of message.content) {
+        if (part.type !== 'tool-result') {
+          continue;
+        }
+        if (part.output.type !== 'content') {
+          continue;
+        }
+        for (const contentPart of part.output.value) {
+          if (contentPart.type === 'file') {
+            downloadableFiles.push(contentPart);
+          }
+        }
+      }
+    }
   }
 
   const plannedDownloads = downloadableFiles
