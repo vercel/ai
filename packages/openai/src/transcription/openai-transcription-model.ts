@@ -153,6 +153,17 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
       `audio.${fileExtension}`,
     );
 
+    const isGpt4oTranscribeModel = [
+      'gpt-4o-transcribe',
+      'gpt-4o-mini-transcribe',
+    ].includes(this.modelId);
+
+    if (isGpt4oTranscribeModel) {
+      formData.append('response_format', 'json');
+    } else if (this.modelId === 'whisper-1' || openAIOptions) {
+      formData.append('response_format', 'verbose_json');
+    }
+
     // Add provider-specific options
     if (openAIOptions) {
       const transcriptionModelOptions = {
@@ -161,12 +172,6 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
         prompt: openAIOptions.prompt,
         // https://platform.openai.com/docs/api-reference/audio/createTranscription#audio_createtranscription-response_format
         // prefer verbose_json to get segments for models that support it
-        response_format: [
-          'gpt-4o-transcribe',
-          'gpt-4o-mini-transcribe',
-        ].includes(this.modelId)
-          ? 'json'
-          : 'verbose_json',
         temperature: openAIOptions.temperature,
         timestamp_granularities: openAIOptions.timestampGranularities,
       };
