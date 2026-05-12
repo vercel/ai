@@ -13,7 +13,7 @@
     "@ai-sdk/anthropic": "4.0.0-canary.52",
     "@ai-sdk/azure": "4.0.0-canary.55",
     "@ai-sdk/cohere": "4.0.0-canary.41",
-    "@ai-sdk/deepseek": "3.0.0-canary.42",
+    "@ai-sdk/deepseek": "3.0.0-canary.43",
     "@ai-sdk/fireworks": "3.0.0-canary.45",
     "@ai-sdk/google": "4.0.0-canary.60",
     "@ai-sdk/google-vertex": "5.0.0-canary.79",
