@@ -18,7 +18,7 @@ export const consoleTelemetry = {
   onObjectStepStart: logCallback('onObjectStepStart'),
   onObjectStepFinish: logCallback('onObjectStepFinish'),
   onEmbedStart: logCallback('onEmbedStart'),
-  onEmbedFinish: logCallback('onEmbedFinish'),
+  onEmbedEnd: logCallback('onEmbedEnd'),
   onRerankStart: logCallback('onRerankStart'),
   onRerankEnd: logCallback('onRerankEnd'),
   onFinish: logCallback('onFinish'),

@@ -30,7 +30,7 @@ describe('createTelemetryDispatcher', () => {
     expect(telemetry.onObjectStepStart).toBeDefined();
     expect(telemetry.onObjectStepFinish).toBeDefined();
     expect(telemetry.onEmbedStart).toBeDefined();
-    expect(telemetry.onEmbedFinish).toBeDefined();
+    expect(telemetry.onEmbedEnd).toBeDefined();
     expect(telemetry.onRerankStart).toBeDefined();
     expect(telemetry.onRerankEnd).toBeDefined();
     expect(telemetry.onFinish).toBeDefined();
@@ -74,7 +74,7 @@ describe('createTelemetryDispatcher', () => {
     await expect(
       telemetry.onToolExecutionStart!(dummyEvent),
     ).resolves.toBeUndefined();
-    await expect(telemetry.onEmbedFinish!(dummyEvent)).resolves.toBeUndefined();
+    await expect(telemetry.onEmbedEnd!(dummyEvent)).resolves.toBeUndefined();
   });
 
   it('broadcasts an event to all integrations that implement the method', async () => {
@@ -150,7 +150,7 @@ describe('createTelemetryDispatcher', () => {
       onObjectStepStart: vi.fn(),
       onObjectStepFinish: vi.fn(),
       onEmbedStart: vi.fn(),
-      onEmbedFinish: vi.fn(),
+      onEmbedEnd: vi.fn(),
       onRerankStart: vi.fn(),
       onRerankEnd: vi.fn(),
       onFinish: vi.fn(),
@@ -172,7 +172,7 @@ describe('createTelemetryDispatcher', () => {
     await telemetry.onObjectStepStart!(dummyEvent);
     await telemetry.onObjectStepFinish!(dummyEvent);
     await telemetry.onEmbedStart!(dummyEvent);
-    await telemetry.onEmbedFinish!(dummyEvent);
+    await telemetry.onEmbedEnd!(dummyEvent);
     await telemetry.onRerankStart!(dummyEvent);
     await telemetry.onRerankEnd!(dummyEvent);
     await telemetry.onFinish!(dummyEvent);
@@ -189,7 +189,7 @@ describe('createTelemetryDispatcher', () => {
     expect(integration.onObjectStepStart).toHaveBeenCalledOnce();
     expect(integration.onObjectStepFinish).toHaveBeenCalledOnce();
     expect(integration.onEmbedStart).toHaveBeenCalledOnce();
-    expect(integration.onEmbedFinish).toHaveBeenCalledOnce();
+    expect(integration.onEmbedEnd).toHaveBeenCalledOnce();
     expect(integration.onRerankStart).toHaveBeenCalledOnce();
     expect(integration.onRerankEnd).toHaveBeenCalledOnce();
     expect(integration.onFinish).toHaveBeenCalledOnce();
@@ -219,7 +219,7 @@ describe('createTelemetryDispatcher', () => {
         onObjectStepStart: vi.fn(),
         onObjectStepFinish: vi.fn(),
         onEmbedStart: vi.fn(),
-        onEmbedFinish: vi.fn(),
+        onEmbedEnd: vi.fn(),
         onRerankStart: vi.fn(),
         onRerankEnd: vi.fn(),
         onFinish: vi.fn(),
@@ -239,7 +239,7 @@ describe('createTelemetryDispatcher', () => {
       expect(telemetry.onObjectStepStart).toBeUndefined();
       expect(telemetry.onObjectStepFinish).toBeUndefined();
       expect(telemetry.onEmbedStart).toBeUndefined();
-      expect(telemetry.onEmbedFinish).toBeUndefined();
+      expect(telemetry.onEmbedEnd).toBeUndefined();
       expect(telemetry.onRerankStart).toBeUndefined();
       expect(telemetry.onRerankEnd).toBeUndefined();
       expect(telemetry.onFinish).toBeUndefined();
