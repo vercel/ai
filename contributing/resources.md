@@ -40,8 +40,8 @@ author:
 ---
 ```
 
-Use `author.name` for the display name and `author.github` for the GitHub
-username. If `author` is omitted, the recipe is attributed to the Vercel Team.
+Use `author.name` for the display name and `author.github` for your GitHub
+username. You must include your GitHub username in `author.github`.
 
 A good recipe should:
 
