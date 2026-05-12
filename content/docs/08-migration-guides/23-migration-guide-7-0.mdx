@@ -498,6 +498,58 @@ const telemetry: Telemetry = {
 };
 ```
 
+### Telemetry Embed Callback: `onEmbedFinish` Renamed to `onEmbedEnd`
+
+The telemetry integration callback for individual embedding model calls has been renamed from `onEmbedFinish` to `onEmbedEnd`.
+
+This also applies to the `type` field published on `AI_SDK_TELEMETRY_DIAGNOSTIC_CHANNEL`: diagnostic-channel subscribers now receive `onEmbedEnd` instead of `onEmbedFinish`.
+
+Update telemetry integrations and diagnostic-channel subscribers to use `onEmbedEnd`.
+
+```tsx filename="AI SDK 6"
+import type { Telemetry } from 'ai';
+
+const telemetry: Telemetry = {
+  onEmbedFinish(event) {
+    console.log('Embedding finished:', event.embeddings.length);
+  },
+};
+```
+
+```tsx filename="AI SDK 7"
+import type { Telemetry } from 'ai';
+
+const telemetry: Telemetry = {
+  onEmbedEnd(event) {
+    console.log('Embedding ended:', event.embeddings.length);
+  },
+};
+```
+
+### Embed Callbacks: `experimental_onFinish` Renamed to `experimental_onEnd`
+
+The per-call callback option for completed `embed` and `embedMany` operations has been renamed from `experimental_onFinish` to `experimental_onEnd`.
+
+```tsx filename="AI SDK 6"
+const result = await embed({
+  model: yourEmbeddingModel,
+  value,
+  experimental_onFinish(event) {
+    console.log('Embedding finished:', event.usage.tokens);
+  },
+});
+```
+
+```tsx filename="AI SDK 7"
+const result = await embed({
+  model: yourEmbeddingModel,
+  value,
+  experimental_onEnd(event) {
+    console.log('Embedding ended:', event.usage.tokens);
+  },
+});
+```
+
 ### Rerank Callback: `experimental_onFinish` Renamed to `experimental_onEnd`
 
 The per-call callback option for completed `rerank` operations has been renamed from `experimental_onFinish` to `experimental_onEnd`.
