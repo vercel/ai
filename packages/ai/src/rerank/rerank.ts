@@ -47,7 +47,7 @@ export async function rerank<VALUE extends JSONObject | string>({
   experimental_telemetry,
   telemetry = experimental_telemetry,
   experimental_onStart: onStart,
-  experimental_onFinish: onFinish,
+  experimental_onEnd: onEnd,
   _internal: { generateCallId = originalGenerateCallId } = {},
 }: {
   /**
@@ -117,7 +117,7 @@ export async function rerank<VALUE extends JSONObject | string>({
    * Callback that is called when the rerank operation completes,
    * after the reranking model returns.
    */
-  experimental_onFinish?: Callback<RerankEndEvent>;
+  experimental_onEnd?: Callback<RerankEndEvent>;
 
   /**
    * Internal. For test use only. May change without notice.
@@ -166,7 +166,7 @@ export async function rerank<VALUE extends JSONObject | string>({
           modelId: model.modelId,
         },
       },
-      callbacks: [onFinish, telemetryDispatcher.onFinish],
+      callbacks: [onEnd, telemetryDispatcher.onFinish],
     });
 
     return new DefaultRerankResult({
@@ -243,7 +243,7 @@ export async function rerank<VALUE extends JSONObject | string>({
             documentsType: documentsToSend.type,
             ranking,
           },
-          callbacks: [telemetryDispatcher.onRerankFinish],
+          callbacks: [telemetryDispatcher.onRerankEnd],
         });
 
         return {
@@ -284,7 +284,7 @@ export async function rerank<VALUE extends JSONObject | string>({
           body: response?.body,
         },
       },
-      callbacks: [onFinish, telemetryDispatcher.onFinish],
+      callbacks: [onEnd, telemetryDispatcher.onFinish],
     });
 
     return new DefaultRerankResult({
