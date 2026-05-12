@@ -1,3 +1,4 @@
+import { advisor_20260301 } from './tool/advisor_20260301';
 import { bash_20241022 } from './tool/bash_20241022';
 import { bash_20250124 } from './tool/bash_20250124';
 import { codeExecution_20250522 } from './tool/code-execution_20250522';
@@ -19,6 +20,36 @@ import { webSearch_20260209 } from './tool/web-search_20260209';
 import { webSearch_20250305 } from './tool/web-search_20250305';
 
 export const anthropicTools = {
+  /**
+   * Pairs a faster executor model with a higher-intelligence advisor model
+   * that provides strategic guidance mid-generation.
+   *
+   * The advisor lets a faster, lower-cost executor model consult a
+   * higher-intelligence advisor model server-side. The advisor reads the
+   * executor's full transcript and produces a plan or course correction;
+   * the executor continues with the task, informed by the advice. All of
+   * this happens inside a single `/v1/messages` request.
+   *
+   * Beta header `advisor-tool-2026-03-01` is added automatically when this
+   * tool is included.
+   *
+   * Multi-turn conversations: pass the full assistant content (including
+   * `advisor_tool_result` blocks) back to the API on subsequent turns. If
+   * you omit the advisor tool from `tools` on a follow-up turn while the
+   * message history still contains `advisor_tool_result` blocks, the API
+   * returns a `400 invalid_request_error`.
+   *
+   * Supported executor models: Claude Haiku 4.5, Sonnet 4.6, Opus 4.6,
+   * Opus 4.7. The advisor must be at least as capable as the executor.
+   *
+   * @param model - The advisor model ID (required), e.g. `"claude-opus-4-7"`.
+   * @param maxUses - Maximum advisor calls per request (per-request cap).
+   * @param caching - Enables prompt caching for the advisor's transcript
+   * across calls within a conversation. Worthwhile from ~3 advisor calls
+   * per conversation.
+   */
+  advisor_20260301,
+
   /**
    * The bash tool enables Claude to execute shell commands in a persistent bash session,
    * allowing system operations, script execution, and command-line automation.
