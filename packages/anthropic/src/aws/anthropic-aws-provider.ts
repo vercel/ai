@@ -29,10 +29,6 @@ export interface AnthropicAwsProvider extends ProviderV4 {
    */
   languageModel(modelId: AnthropicModelId): LanguageModelV4;
 
-  chat(modelId: AnthropicModelId): LanguageModelV4;
-
-  messages(modelId: AnthropicModelId): LanguageModelV4;
-
   /**
    * @deprecated Use `embeddingModel` instead.
    */
