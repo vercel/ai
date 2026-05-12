@@ -16,7 +16,8 @@
     "!src/**/__fixtures__",
     "CHANGELOG.md",
     "README.md",
-    "internal.d.ts"
+    "internal.d.ts",
+    "aws.d.ts"
   ],
   "directories": {
     "doc": "./docs"
@@ -45,11 +46,17 @@
       "types": "./dist/internal/index.d.ts",
       "import": "./dist/internal/index.js",
       "default": "./dist/internal/index.js"
+    },
+    "./aws": {
+      "types": "./dist/aws/index.d.ts",
+      "import": "./dist/aws/index.js",
+      "default": "./dist/aws/index.js"
     }
   },
   "dependencies": {
     "@ai-sdk/provider": "workspace:*",
-    "@ai-sdk/provider-utils": "workspace:*"
+    "@ai-sdk/provider-utils": "workspace:*",
+    "aws4fetch": "^1.0.20"
   },
   "devDependencies": {
     "@ai-sdk/test-server": "workspace:*",
