@@ -32,9 +32,6 @@ export interface AnthropicAwsProvider extends ProviderV4 {
    */
   textEmbeddingModel(modelId: string): never;
 
-  /**
-   * Anthropic-specific computer use tool.
-   */
   tools: typeof anthropicTools;
 }
 
