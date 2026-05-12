@@ -5533,6 +5533,80 @@ describe('generateText', () => {
 
       expect(result.text).toStrictEqual('provider metadata test');
     });
+
+    it('should pass toModelOutput provider options to tool result parts', async () => {
+      let responseCount = 0;
+      let secondPrompt: LanguageModelV4Prompt | undefined;
+
+      await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async ({ prompt }) => {
+            switch (responseCount++) {
+              case 0:
+                return {
+                  ...dummyResponseValues,
+                  content: [
+                    {
+                      type: 'tool-call',
+                      toolCallType: 'function',
+                      toolCallId: 'call-1',
+                      toolName: 'cachedTool',
+                      input: '{}',
+                    },
+                  ],
+                  finishReason: { unified: 'tool-calls', raw: undefined },
+                };
+              case 1:
+                secondPrompt = prompt;
+                return {
+                  ...dummyResponseValues,
+                  content: [{ type: 'text', text: 'done' }],
+                };
+              default:
+                throw new Error(`Unexpected response count: ${responseCount}`);
+            }
+          },
+        }),
+        tools: {
+          cachedTool: tool({
+            inputSchema: z.object({}),
+            execute: async () => 'cached result',
+            toModelOutput: ({ output }) => ({
+              type: 'text',
+              value: String(output),
+              providerOptions: {
+                anthropic: { cacheControl: { type: 'ephemeral' } },
+              },
+            }),
+          }),
+        },
+        prompt: 'test-input',
+        stopWhen: isStepCount(3),
+      });
+
+      const toolMessage = secondPrompt?.find(
+        message => message.role === 'tool',
+      );
+      const toolResult = toolMessage?.content.find(
+        part => part.type === 'tool-result',
+      );
+
+      expect(toolResult).toMatchObject({
+        type: 'tool-result',
+        toolCallId: 'call-1',
+        toolName: 'cachedTool',
+        output: {
+          type: 'text',
+          value: 'cached result',
+          providerOptions: {
+            anthropic: { cacheControl: { type: 'ephemeral' } },
+          },
+        },
+        providerOptions: {
+          anthropic: { cacheControl: { type: 'ephemeral' } },
+        },
+      });
+    });
   });
 
   describe('options.reasoning', () => {

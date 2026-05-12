@@ -24,6 +24,7 @@ import type { ModelMessage } from '../prompt';
 import { cloneModelMessages } from '../prompt/clone-model-message';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { createToolModelOutput } from '../prompt/create-tool-model-output';
+import { getToolResultProviderOptions } from '../prompt/get-tool-result-provider-options';
 import type { LanguageModelCallOptions } from '../prompt/language-model-call-options';
 import { prepareLanguageModelCallOptions } from '../prompt/prepare-language-model-call-options';
 import { prepareToolChoice } from '../prompt/prepare-tool-choice';
@@ -584,12 +585,16 @@ export async function generateText<
           output: output.type === 'tool-result' ? output.output : output.error,
           errorMode: output.type === 'tool-error' ? 'text' : 'none',
         });
+        const providerOptions = getToolResultProviderOptions({
+          output: modelOutput,
+        });
 
         toolContent.push({
           type: 'tool-result' as const,
           toolCallId: output.toolCallId,
           toolName: output.toolName,
           output: modelOutput,
+          ...(providerOptions != null ? { providerOptions } : {}),
         });
       }
 

@@ -460,6 +460,85 @@ describe('toResponseMessages', () => {
     `);
   });
 
+  it('should promote toModelOutput provider options to tool result parts', async () => {
+    const result = await toResponseMessages({
+      content: [
+        {
+          type: 'tool-call',
+          toolCallId: '123',
+          toolName: 'testTool',
+          input: {},
+        },
+        {
+          type: 'tool-result',
+          toolCallId: '123',
+          toolName: 'testTool',
+          output: 'Tool result',
+          input: {},
+        },
+      ],
+      tools: {
+        testTool: tool({
+          description: 'A test tool',
+          inputSchema: z.object({}),
+          toModelOutput: () => ({
+            type: 'text',
+            value: 'Tool result',
+            providerOptions: {
+              anthropic: { cacheControl: { type: 'ephemeral' } },
+            },
+          }),
+        }),
+      },
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "content": [
+            {
+              "input": {},
+              "providerExecuted": undefined,
+              "providerOptions": undefined,
+              "toolCallId": "123",
+              "toolName": "testTool",
+              "type": "tool-call",
+            },
+          ],
+          "role": "assistant",
+        },
+        {
+          "content": [
+            {
+              "output": {
+                "providerOptions": {
+                  "anthropic": {
+                    "cacheControl": {
+                      "type": "ephemeral",
+                    },
+                  },
+                },
+                "type": "text",
+                "value": "Tool result",
+              },
+              "providerOptions": {
+                "anthropic": {
+                  "cacheControl": {
+                    "type": "ephemeral",
+                  },
+                },
+              },
+              "toolCallId": "123",
+              "toolName": "testTool",
+              "type": "tool-result",
+            },
+          ],
+          "role": "tool",
+        },
+      ]
+    `);
+  });
+
   it('should include reasoning-file parts in the assistant message', async () => {
     const pngFile = new DefaultGeneratedFile({
       data: new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]),

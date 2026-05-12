@@ -27,6 +27,7 @@ import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
 import { cloneModelMessages } from '../prompt/clone-model-message';
 import { createToolModelOutput } from '../prompt/create-tool-model-output';
+import { getToolResultProviderOptions } from '../prompt/get-tool-result-provider-options';
 import type { LanguageModelCallOptions } from '../prompt/language-model-call-options';
 import { prepareLanguageModelCallOptions } from '../prompt/prepare-language-model-call-options';
 import { prepareToolChoice } from '../prompt/prepare-tool-choice';
@@ -1505,20 +1506,24 @@ class DefaultStreamTextResult<
 
             // add regular tool results for approved tool calls:
             for (const output of toolOutputs) {
+              const modelOutput = await createToolModelOutput({
+                toolCallId: output.toolCallId,
+                input: output.input,
+                tool: tools?.[output.toolName],
+                output:
+                  output.type === 'tool-result' ? output.output : output.error,
+                errorMode: output.type === 'tool-error' ? 'text' : 'none',
+              });
+              const providerOptions = getToolResultProviderOptions({
+                output: modelOutput,
+              });
+
               localToolContent.push({
                 type: 'tool-result' as const,
                 toolCallId: output.toolCallId,
                 toolName: output.toolName,
-                output: await createToolModelOutput({
-                  toolCallId: output.toolCallId,
-                  input: output.input,
-                  tool: tools?.[output.toolName],
-                  output:
-                    output.type === 'tool-result'
-                      ? output.output
-                      : output.error,
-                  errorMode: output.type === 'tool-error' ? 'text' : 'none',
-                }),
+                output: modelOutput,
+                ...(providerOptions != null ? { providerOptions } : {}),
               });
             }
 

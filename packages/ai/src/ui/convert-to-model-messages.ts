@@ -10,6 +10,7 @@ import {
   type ToolResultPart,
 } from '@ai-sdk/provider-utils';
 import { createToolModelOutput } from '../prompt/create-tool-model-output';
+import { getToolResultProviderOptions } from '../prompt/get-tool-result-provider-options';
 import { MessageConversionError } from '../prompt/message-conversion-error';
 import {
   getToolName,
@@ -241,25 +242,28 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                   ) {
                     const resultProviderMetadata =
                       part.resultProviderMetadata ?? part.callProviderMetadata;
+                    const output = await createToolModelOutput({
+                      toolCallId: part.toolCallId,
+                      input: part.input,
+                      output:
+                        part.state === 'output-error'
+                          ? part.errorText
+                          : part.output,
+                      tool: options?.tools?.[toolName],
+                      errorMode:
+                        part.state === 'output-error' ? 'json' : 'none',
+                    });
+                    const providerOptions = getToolResultProviderOptions({
+                      output,
+                      providerOptions: resultProviderMetadata,
+                    });
 
                     content.push({
                       type: 'tool-result',
                       toolCallId: part.toolCallId,
                       toolName,
-                      output: await createToolModelOutput({
-                        toolCallId: part.toolCallId,
-                        input: part.input,
-                        output:
-                          part.state === 'output-error'
-                            ? part.errorText
-                            : part.output,
-                        tool: options?.tools?.[toolName],
-                        errorMode:
-                          part.state === 'output-error' ? 'json' : 'none',
-                      }),
-                      ...(resultProviderMetadata != null
-                        ? { providerOptions: resultProviderMetadata }
-                        : {}),
+                      output,
+                      ...(providerOptions != null ? { providerOptions } : {}),
                     });
                   }
                 }
@@ -359,24 +363,28 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                     case 'output-error':
                     case 'output-available': {
                       const toolName = getToolName(toolPart);
+                      const output = await createToolModelOutput({
+                        toolCallId: toolPart.toolCallId,
+                        input: toolPart.input,
+                        output:
+                          toolPart.state === 'output-error'
+                            ? toolPart.errorText
+                            : toolPart.output,
+                        tool: options?.tools?.[toolName],
+                        errorMode:
+                          toolPart.state === 'output-error' ? 'text' : 'none',
+                      });
+                      const providerOptions = getToolResultProviderOptions({
+                        output,
+                        providerOptions: toolPart.callProviderMetadata,
+                      });
+
                       content.push({
                         type: 'tool-result',
                         toolCallId: toolPart.toolCallId,
                         toolName,
-                        output: await createToolModelOutput({
-                          toolCallId: toolPart.toolCallId,
-                          input: toolPart.input,
-                          output:
-                            toolPart.state === 'output-error'
-                              ? toolPart.errorText
-                              : toolPart.output,
-                          tool: options?.tools?.[toolName],
-                          errorMode:
-                            toolPart.state === 'output-error' ? 'text' : 'none',
-                        }),
-                        ...(toolPart.callProviderMetadata != null
-                          ? { providerOptions: toolPart.callProviderMetadata }
-                          : {}),
+                        output,
+                        ...(providerOptions != null ? { providerOptions } : {}),
                       });
                       break;
                     }

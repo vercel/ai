@@ -5,6 +5,7 @@ import type {
   ToolModelMessage,
 } from '../prompt';
 import { createToolModelOutput } from '../prompt/create-tool-model-output';
+import { getToolResultProviderOptions } from '../prompt/get-tool-result-provider-options';
 import type { ContentPart } from './content-part';
 import type { ToolSet } from '@ai-sdk/provider-utils';
 
@@ -102,7 +103,10 @@ export async function toResponseMessages<TOOLS extends ToolSet>({
           toolCallId: part.toolCallId,
           toolName: part.toolName,
           output,
-          providerOptions: part.providerMetadata,
+          providerOptions: getToolResultProviderOptions({
+            output,
+            providerOptions: part.providerMetadata,
+          }),
         });
         break;
       }
@@ -119,7 +123,10 @@ export async function toResponseMessages<TOOLS extends ToolSet>({
           toolCallId: part.toolCallId,
           toolName: part.toolName,
           output,
-          providerOptions: part.providerMetadata,
+          providerOptions: getToolResultProviderOptions({
+            output,
+            providerOptions: part.providerMetadata,
+          }),
         });
         break;
       }
@@ -188,15 +195,17 @@ export async function toResponseMessages<TOOLS extends ToolSet>({
       output: part.type === 'tool-result' ? part.output : part.error,
       errorMode: part.type === 'tool-error' ? 'text' : 'none',
     });
+    const providerOptions = getToolResultProviderOptions({
+      output,
+      providerOptions: part.providerMetadata,
+    });
 
     toolResultContent.push({
       type: 'tool-result',
       toolCallId: part.toolCallId,
       toolName: part.toolName,
       output,
-      ...(part.providerMetadata != null
-        ? { providerOptions: part.providerMetadata }
-        : {}),
+      ...(providerOptions != null ? { providerOptions } : {}),
     });
   }
 
