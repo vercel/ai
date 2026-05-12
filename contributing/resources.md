@@ -25,7 +25,7 @@ Use the detailed tool registry guide for the complete entry shape and PR format:
 ## Recipes
 
 Recipes are practical examples that show how to solve a specific problem with
-the AI SDK. They live in `apps/studio/content/v7/cookbook`.
+the AI SDK. They live in `content/cookbook`.
 
 Create a new `.mdx` file in the relevant category and add frontmatter:
 
