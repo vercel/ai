@@ -1,4 +1,3 @@
-/* eslint-disable turbo/no-undeclared-env-vars */
 import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createAnthropicAws } from './anthropic-aws-provider';
@@ -42,19 +41,17 @@ const createSuccessfulResponse = () =>
   );
 
 describe('createAnthropicAws', () => {
-  const originalEnv = { ...process.env };
-
   beforeEach(() => {
-    process.env.AWS_REGION = 'us-west-2';
-    process.env.ANTHROPIC_AWS_WORKSPACE_ID = 'wrkspc_default';
-    delete process.env.ANTHROPIC_AWS_API_KEY;
-    delete process.env.AWS_ACCESS_KEY_ID;
-    delete process.env.AWS_SECRET_ACCESS_KEY;
-    delete process.env.AWS_SESSION_TOKEN;
+    vi.stubEnv('AWS_REGION', 'us-west-2');
+    vi.stubEnv('ANTHROPIC_AWS_WORKSPACE_ID', 'wrkspc_default');
+    vi.stubEnv('ANTHROPIC_AWS_API_KEY', undefined);
+    vi.stubEnv('AWS_ACCESS_KEY_ID', undefined);
+    vi.stubEnv('AWS_SECRET_ACCESS_KEY', undefined);
+    vi.stubEnv('AWS_SESSION_TOKEN', undefined);
   });
 
   afterEach(() => {
-    process.env = { ...originalEnv };
+    vi.unstubAllEnvs();
     vi.restoreAllMocks();
   });
 
@@ -134,22 +131,22 @@ describe('createAnthropicAws', () => {
   });
 
   it('throws when region is not set anywhere', () => {
-    delete process.env.AWS_REGION;
+    vi.stubEnv('AWS_REGION', undefined);
     expect(() =>
       createAnthropicAws({ workspaceId: 'wrkspc_test', apiKey: 'k' }),
     ).toThrow(/region/i);
   });
 
   it('throws when workspaceId is not set anywhere', () => {
-    delete process.env.ANTHROPIC_AWS_WORKSPACE_ID;
+    vi.stubEnv('ANTHROPIC_AWS_WORKSPACE_ID', undefined);
     expect(() =>
       createAnthropicAws({ region: 'us-west-2', apiKey: 'k' }),
     ).toThrow(/workspace/i);
   });
 
   it('reads region and workspaceId from environment variables', async () => {
-    process.env.AWS_REGION = 'eu-west-1';
-    process.env.ANTHROPIC_AWS_WORKSPACE_ID = 'wrkspc_from_env';
+    vi.stubEnv('AWS_REGION', 'eu-west-1');
+    vi.stubEnv('ANTHROPIC_AWS_WORKSPACE_ID', 'wrkspc_from_env');
     const fetchMock = vi.fn().mockResolvedValue(createSuccessfulResponse());
     const provider = createAnthropicAws({
       apiKey: 'sk-aws-test',
