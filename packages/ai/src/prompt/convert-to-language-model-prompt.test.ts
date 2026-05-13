@@ -1029,7 +1029,6 @@ describe('convertToLanguageModelPrompt', () => {
 
       const result = await convertToLanguageModelPrompt({
         prompt: {
-          instructions: undefined,
           messages: [
             {
               role: 'assistant',
@@ -1053,12 +1052,8 @@ describe('convertToLanguageModelPrompt', () => {
                     type: 'content',
                     value: [
                       {
-                        type: 'file',
-                        mediaType: 'image/png',
-                        data: {
-                          type: 'url',
-                          url: new URL('https://example.com/image.png'),
-                        },
+                        type: 'file-url',
+                        url: 'https://example.com/image.png',
                       },
                     ],
                   },
@@ -1105,13 +1100,9 @@ describe('convertToLanguageModelPrompt', () => {
                 type: 'content',
                 value: [
                   {
-                    type: 'file',
+                    type: 'file-data',
                     mediaType: 'image/png',
-                    data: {
-                      type: 'data',
-                      data: new Uint8Array([0, 1, 2, 3]),
-                    },
-                    filename: undefined,
+                    data: 'AAECAw==',
                     providerOptions: undefined,
                   },
                 ],
@@ -1135,7 +1126,6 @@ describe('convertToLanguageModelPrompt', () => {
 
       const result = await convertToLanguageModelPrompt({
         prompt: {
-          instructions: undefined,
           messages: [
             {
               role: 'assistant',
@@ -1148,14 +1138,8 @@ describe('convertToLanguageModelPrompt', () => {
                     type: 'content',
                     value: [
                       {
-                        type: 'file',
-                        mediaType: 'image/png',
-                        data: {
-                          type: 'url',
-                          url: new URL(
-                            'https://example.com/assistant-image.png',
-                          ),
-                        },
+                        type: 'image-url',
+                        url: 'https://example.com/assistant-image.png',
                       },
                     ],
                   },
@@ -1185,19 +1169,10 @@ describe('convertToLanguageModelPrompt', () => {
                   "type": "content",
                   "value": [
                     {
-                      "data": {
-                        "data": Uint8Array [
-                          4,
-                          5,
-                          6,
-                          7,
-                        ],
-                        "type": "data",
-                      },
-                      "filename": undefined,
+                      "data": "BAUGBw==",
                       "mediaType": "image/png",
                       "providerOptions": undefined,
-                      "type": "file",
+                      "type": "image-data",
                     },
                   ],
                 },
