@@ -640,6 +640,7 @@ export class LegacyOpenTelemetry implements Telemetry {
     if (!state?.stepSpan) return;
 
     const { telemetry } = state;
+    const isStreamText = state.operationId === 'ai.streamText';
 
     state.stepSpan.setAttributes(
       selectAttributes(telemetry, {
@@ -686,10 +687,15 @@ export class LegacyOpenTelemetry implements Telemetry {
         'ai.response.providerMetadata': event.providerMetadata
           ? JSON.stringify(event.providerMetadata)
           : undefined,
-        'ai.response.msToFirstChunk': event.performance.timeToFirstTokenMs,
-        'ai.response.msToFinish': event.performance.responseTimeMs,
-        'ai.response.avgOutputTokensPerSecond':
-          event.performance.tokensPerSecond,
+        'ai.response.msToFirstChunk': isStreamText
+          ? event.performance.timeToFirstTokenMs
+          : undefined,
+        'ai.response.msToFinish': isStreamText
+          ? event.performance.responseTimeMs
+          : undefined,
+        'ai.response.avgOutputTokensPerSecond': isStreamText
+          ? event.performance.tokensPerSecond
+          : undefined,
 
         'ai.usage.inputTokens': event.usage.inputTokens,
         'ai.usage.outputTokens': event.usage.outputTokens,
@@ -717,16 +723,19 @@ export class LegacyOpenTelemetry implements Telemetry {
       }),
     );
 
-    if (event.performance.timeToFirstTokenMs != null) {
+    if (isStreamText && event.performance.timeToFirstTokenMs != null) {
       state.stepSpan.addEvent('ai.stream.firstChunk', {
         'ai.response.msToFirstChunk': event.performance.timeToFirstTokenMs,
       });
     }
 
-    state.stepSpan.addEvent('ai.stream.finish', {
-      'ai.response.msToFinish': event.performance.responseTimeMs,
-      'ai.response.avgOutputTokensPerSecond': event.performance.tokensPerSecond,
-    });
+    if (isStreamText) {
+      state.stepSpan.addEvent('ai.stream.finish', {
+        'ai.response.msToFinish': event.performance.responseTimeMs,
+        'ai.response.avgOutputTokensPerSecond':
+          event.performance.tokensPerSecond,
+      });
+    }
 
     state.stepSpan.end();
     state.stepSpan = undefined;
