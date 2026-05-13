@@ -4,7 +4,7 @@ export { filterActiveTools as experimental_filterActiveTools } from './filter-ac
 export { generateText, type GenerateTextInclude } from './generate-text';
 export type {
   GenerateTextEndEvent,
-  GenerateTextOnFinishCallback,
+  GenerateTextOnEndCallback,
   GenerateTextOnStartCallback,
   GenerateTextOnStepFinishCallback,
   GenerateTextOnStepStartCallback,

@@ -7,7 +7,7 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
 import type {
-  GenerateTextOnFinishCallback,
+  GenerateTextOnEndCallback,
   GenerateTextOnStartCallback,
   GenerateTextOnStepStartCallback,
 } from '../generate-text/generate-text-events';
@@ -3031,7 +3031,7 @@ describe('ToolLoopAgent', () => {
       });
 
       it('should pass correct event information', async () => {
-        let event!: Parameters<GenerateTextOnFinishCallback<{}>>[0];
+        let event!: Parameters<GenerateTextOnEndCallback<{}>>[0];
 
         const agent = new ToolLoopAgent({
           model: mockModel,
@@ -3048,8 +3048,8 @@ describe('ToolLoopAgent', () => {
           text: event.text,
           finishReason: event.finishReason,
           stepsLength: event.steps.length,
-          inputTokens: event.totalUsage.inputTokens,
-          outputTokens: event.totalUsage.outputTokens,
+          inputTokens: event.usage.inputTokens,
+          outputTokens: event.usage.outputTokens,
         }).toMatchInlineSnapshot(`
           {
             "finishReason": "stop",
@@ -3182,7 +3182,7 @@ describe('ToolLoopAgent', () => {
       });
 
       it('should pass correct event information', async () => {
-        let event!: Parameters<GenerateTextOnFinishCallback<{}>>[0];
+        let event!: Parameters<GenerateTextOnEndCallback<{}>>[0];
 
         const agent = new ToolLoopAgent({
           model: mockModel,
@@ -3201,8 +3201,8 @@ describe('ToolLoopAgent', () => {
           text: event.text,
           finishReason: event.finishReason,
           stepsLength: event.steps.length,
-          inputTokens: event.totalUsage.inputTokens,
-          outputTokens: event.totalUsage.outputTokens,
+          inputTokens: event.usage.inputTokens,
+          outputTokens: event.usage.outputTokens,
         }).toMatchInlineSnapshot(`
           {
             "finishReason": "stop",

@@ -477,7 +477,7 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
     },
     {
       name: 'onFinish',
-      type: 'GenerateTextOnFinishCallback',
+      type: 'GenerateTextOnEndCallback',
       isOptional: true,
       description:
         'Callback that is called when all agent steps are finished and the response is complete. Receives step results, total usage, shared `runtimeContext`, and `toolsContext`. If also specified in `generate()` or `stream()`, both callbacks are called (constructor first).',
@@ -729,7 +729,7 @@ const result = await agent.generate({
     },
     {
       name: 'onFinish',
-      type: 'GenerateTextOnFinishCallback',
+      type: 'GenerateTextOnEndCallback',
       isOptional: true,
       description:
         'Callback that is called when all agent steps are finished and the response is complete. If also specified in the constructor, both callbacks are called (constructor first, then this one).',
@@ -839,7 +839,7 @@ for await (const chunk of stream.textStream) {
     },
     {
       name: 'onFinish',
-      type: 'GenerateTextOnFinishCallback',
+      type: 'GenerateTextOnEndCallback',
       isOptional: true,
       description:
         'Callback that is called when all agent steps are finished and the response is complete. If also specified in the constructor, both callbacks are called (constructor first, then this one).',

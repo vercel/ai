@@ -60,7 +60,7 @@ import type {
   OnToolExecutionStartCallback,
 } from './tool-execution-events';
 import type {
-  GenerateTextOnFinishCallback,
+  GenerateTextOnEndCallback,
   GenerateTextOnStartCallback,
   GenerateTextOnStepStartCallback,
 } from './generate-text-events';
@@ -4919,9 +4919,7 @@ describe('streamText', () => {
 
     it('should send warnings from all steps to onFinish', async () => {
       let responseCount = 0;
-      let onFinishResult!: Parameters<
-        GenerateTextOnFinishCallback<any, any>
-      >[0];
+      let onFinishResult!: Parameters<GenerateTextOnEndCallback<any, any>>[0];
       const warning0 = { type: 'other' as const, message: 'step 0 warning' };
       const warning1 = { type: 'other' as const, message: 'step 1 warning' };
 
@@ -5699,9 +5697,7 @@ describe('streamText', () => {
 
     it('should send files from all steps to onFinish', async () => {
       let responseCount = 0;
-      let onFinishResult!: Parameters<
-        GenerateTextOnFinishCallback<any, any>
-      >[0];
+      let onFinishResult!: Parameters<GenerateTextOnEndCallback<any, any>>[0];
 
       const result = streamText({
         model: new MockLanguageModelV4({
@@ -9031,7 +9027,7 @@ describe('streamText', () => {
 
   describe('options.onFinish', () => {
     it('should send correct information', async () => {
-      let result!: Parameters<GenerateTextOnFinishCallback<any, any>>[0];
+      let result!: Parameters<GenerateTextOnEndCallback<any, any>>[0];
 
       const resultObject = streamText({
         model: createTestModel({
@@ -9226,62 +9222,7 @@ describe('streamText', () => {
             "modelId": "mock-model-id",
             "provider": "mock-provider",
           },
-          "providerMetadata": {
-            "testProvider": {
-              "testKey": "testValue",
-            },
-          },
           "rawFinishReason": "stop",
-          "reasoning": [],
-          "reasoningText": undefined,
-          "request": {
-            "body": undefined,
-            "messages": undefined,
-          },
-          "response": {
-            "headers": {
-              "call": "2",
-            },
-            "id": "id-0",
-            "messages": [
-              {
-                "content": [
-                  {
-                    "providerOptions": undefined,
-                    "text": "Hello, world!",
-                    "type": "text",
-                  },
-                  {
-                    "input": {
-                      "value": "value",
-                    },
-                    "providerExecuted": undefined,
-                    "providerOptions": undefined,
-                    "toolCallId": "call-1",
-                    "toolName": "tool1",
-                    "type": "tool-call",
-                  },
-                ],
-                "role": "assistant",
-              },
-              {
-                "content": [
-                  {
-                    "output": {
-                      "type": "text",
-                      "value": "value-result",
-                    },
-                    "toolCallId": "call-1",
-                    "toolName": "tool1",
-                    "type": "tool-result",
-                  },
-                ],
-                "role": "tool",
-              },
-            ],
-            "modelId": "mock-model-id",
-            "timestamp": 1970-01-01T00:00:00.000Z,
-          },
           "responseMessages": [
             {
               "content": [
@@ -9484,20 +9425,6 @@ describe('streamText', () => {
             },
           ],
           "toolsContext": {},
-          "totalUsage": {
-            "inputTokenDetails": {
-              "cacheReadTokens": undefined,
-              "cacheWriteTokens": undefined,
-              "noCacheTokens": 3,
-            },
-            "inputTokens": 3,
-            "outputTokenDetails": {
-              "reasoningTokens": undefined,
-              "textTokens": 10,
-            },
-            "outputTokens": 10,
-            "totalTokens": 13,
-          },
           "usage": {
             "inputTokenDetails": {
               "cacheReadTokens": undefined,
@@ -9656,32 +9583,7 @@ describe('streamText', () => {
             "modelId": "mock-model-id",
             "provider": "mock-provider",
           },
-          "providerMetadata": undefined,
           "rawFinishReason": "stop",
-          "reasoning": [],
-          "reasoningText": undefined,
-          "request": {
-            "body": undefined,
-            "messages": undefined,
-          },
-          "response": {
-            "headers": undefined,
-            "id": "id-0",
-            "messages": [
-              {
-                "content": [
-                  {
-                    "providerOptions": undefined,
-                    "text": "Hello!",
-                    "type": "text",
-                  },
-                ],
-                "role": "assistant",
-              },
-            ],
-            "modelId": "mock-model-id",
-            "timestamp": 1970-01-01T00:00:00.000Z,
-          },
           "responseMessages": [
             {
               "content": [
@@ -9812,20 +9714,6 @@ describe('streamText', () => {
           "toolCalls": [],
           "toolResults": [],
           "toolsContext": {},
-          "totalUsage": {
-            "inputTokenDetails": {
-              "cacheReadTokens": undefined,
-              "cacheWriteTokens": undefined,
-              "noCacheTokens": 3,
-            },
-            "inputTokens": 3,
-            "outputTokenDetails": {
-              "reasoningTokens": undefined,
-              "textTokens": 10,
-            },
-            "outputTokens": 10,
-            "totalTokens": 13,
-          },
           "usage": {
             "inputTokenDetails": {
               "cacheReadTokens": undefined,
@@ -10028,44 +9916,7 @@ describe('streamText', () => {
             "modelId": "mock-model-id",
             "provider": "mock-provider",
           },
-          "providerMetadata": undefined,
           "rawFinishReason": "stop",
-          "reasoning": [],
-          "reasoningText": undefined,
-          "request": {
-            "body": undefined,
-            "messages": undefined,
-          },
-          "response": {
-            "headers": undefined,
-            "id": "id-0",
-            "messages": [
-              {
-                "content": [
-                  {
-                    "data": "Hello World",
-                    "mediaType": "text/plain",
-                    "providerOptions": undefined,
-                    "type": "file",
-                  },
-                  {
-                    "providerOptions": undefined,
-                    "text": "Hello!",
-                    "type": "text",
-                  },
-                  {
-                    "data": "QkFVRw==",
-                    "mediaType": "image/jpeg",
-                    "providerOptions": undefined,
-                    "type": "file",
-                  },
-                ],
-                "role": "assistant",
-              },
-            ],
-            "modelId": "mock-model-id",
-            "timestamp": 1970-01-01T00:00:00.000Z,
-          },
           "responseMessages": [
             {
               "content": [
@@ -10189,20 +10040,6 @@ describe('streamText', () => {
           "toolCalls": [],
           "toolResults": [],
           "toolsContext": {},
-          "totalUsage": {
-            "inputTokenDetails": {
-              "cacheReadTokens": undefined,
-              "cacheWriteTokens": undefined,
-              "noCacheTokens": 3,
-            },
-            "inputTokens": 3,
-            "outputTokenDetails": {
-              "reasoningTokens": undefined,
-              "textTokens": 10,
-            },
-            "outputTokens": 10,
-            "totalTokens": 13,
-          },
           "usage": {
             "inputTokenDetails": {
               "cacheReadTokens": undefined,
@@ -10356,7 +10193,7 @@ describe('streamText', () => {
 
   describe('options.stopWhen', () => {
     let result: StreamTextResult<any, any, any>;
-    let onFinishResult: Parameters<GenerateTextOnFinishCallback<any, any>>[0];
+    let onFinishResult: Parameters<GenerateTextOnEndCallback<any, any>>[0];
     let onStepFinishResults: StepResult<any, any>[];
     let stepInputs: Array<any>;
 
@@ -10842,34 +10679,7 @@ describe('streamText', () => {
                 "modelId": "mock-model-id",
                 "provider": "mock-provider",
               },
-              "providerMetadata": undefined,
               "rawFinishReason": "stop",
-              "reasoning": [],
-              "reasoningText": undefined,
-              "request": {
-                "body": undefined,
-                "messages": undefined,
-              },
-              "response": {
-                "headers": {
-                  "call": "2",
-                },
-                "id": "id-1",
-                "messages": [
-                  {
-                    "content": [
-                      {
-                        "providerOptions": undefined,
-                        "text": "Hello, world!",
-                        "type": "text",
-                      },
-                    ],
-                    "role": "assistant",
-                  },
-                ],
-                "modelId": "mock-model-id",
-                "timestamp": 1970-01-01T00:00:01.000Z,
-              },
               "responseMessages": [
                 {
                   "content": [
@@ -11138,20 +10948,6 @@ describe('streamText', () => {
                 },
               ],
               "toolsContext": {},
-              "totalUsage": {
-                "inputTokenDetails": {
-                  "cacheReadTokens": 0,
-                  "cacheWriteTokens": 0,
-                  "noCacheTokens": 6,
-                },
-                "inputTokens": 6,
-                "outputTokenDetails": {
-                  "reasoningTokens": 10,
-                  "textTokens": 20,
-                },
-                "outputTokens": 20,
-                "totalTokens": 26,
-              },
               "usage": {
                 "inputTokenDetails": {
                   "cacheReadTokens": 0,
@@ -11409,7 +11205,7 @@ describe('streamText', () => {
 
         it('onFinishResult.usage should sum token usage and finalStep should contain final step usage', async () => {
           expect(onFinishResult.usage).toEqual(await result.usage);
-          expect(onFinishResult.totalUsage).toEqual(await result.totalUsage);
+          expect(onFinishResult.usage).toEqual(await result.totalUsage);
           expect(onFinishResult.finalStep).toBe(onFinishResult.steps.at(-1));
           expect(onFinishResult.finalStep.usage).toEqual(
             (await result.finalStep).usage,
@@ -12741,34 +12537,7 @@ describe('streamText', () => {
                 "modelId": "mock-model-id",
                 "provider": "mock-provider",
               },
-              "providerMetadata": undefined,
               "rawFinishReason": "stop",
-              "reasoning": [],
-              "reasoningText": undefined,
-              "request": {
-                "body": undefined,
-                "messages": undefined,
-              },
-              "response": {
-                "headers": {
-                  "call": "2",
-                },
-                "id": "id-1",
-                "messages": [
-                  {
-                    "content": [
-                      {
-                        "providerOptions": undefined,
-                        "text": "Hello, world!",
-                        "type": "text",
-                      },
-                    ],
-                    "role": "assistant",
-                  },
-                ],
-                "modelId": "mock-model-id",
-                "timestamp": 1970-01-01T00:00:01.000Z,
-              },
               "responseMessages": [
                 {
                   "content": [
@@ -13037,20 +12806,6 @@ describe('streamText', () => {
                 },
               ],
               "toolsContext": {},
-              "totalUsage": {
-                "inputTokenDetails": {
-                  "cacheReadTokens": 0,
-                  "cacheWriteTokens": 0,
-                  "noCacheTokens": 6,
-                },
-                "inputTokens": 6,
-                "outputTokenDetails": {
-                  "reasoningTokens": 10,
-                  "textTokens": 20,
-                },
-                "outputTokens": 20,
-                "totalTokens": 26,
-              },
               "usage": {
                 "inputTokenDetails": {
                   "cacheReadTokens": 0,
@@ -16890,62 +16645,7 @@ describe('streamText', () => {
               "modelId": "mock-model-id",
               "provider": "mock-provider",
             },
-            "providerMetadata": {
-              "testProvider": {
-                "testKey": "TEST VALUE",
-              },
-            },
             "rawFinishReason": "stop",
-            "reasoning": [],
-            "reasoningText": undefined,
-            "request": {
-              "body": undefined,
-              "messages": undefined,
-            },
-            "response": {
-              "headers": {
-                "call": "2",
-              },
-              "id": "id-0",
-              "messages": [
-                {
-                  "content": [
-                    {
-                      "providerOptions": undefined,
-                      "text": "HELLO, WORLD!",
-                      "type": "text",
-                    },
-                    {
-                      "input": {
-                        "value": "VALUE",
-                      },
-                      "providerExecuted": undefined,
-                      "providerOptions": undefined,
-                      "toolCallId": "call-1",
-                      "toolName": "tool1",
-                      "type": "tool-call",
-                    },
-                  ],
-                  "role": "assistant",
-                },
-                {
-                  "content": [
-                    {
-                      "output": {
-                        "type": "text",
-                        "value": "VALUE-RESULT",
-                      },
-                      "toolCallId": "call-1",
-                      "toolName": "tool1",
-                      "type": "tool-result",
-                    },
-                  ],
-                  "role": "tool",
-                },
-              ],
-              "modelId": "mock-model-id",
-              "timestamp": 1970-01-01T00:00:00.000Z,
-            },
             "responseMessages": [
               {
                 "content": [
@@ -17148,20 +16848,6 @@ describe('streamText', () => {
               },
             ],
             "toolsContext": {},
-            "totalUsage": {
-              "inputTokenDetails": {
-                "cacheReadTokens": undefined,
-                "cacheWriteTokens": undefined,
-                "noCacheTokens": 3,
-              },
-              "inputTokens": 3,
-              "outputTokenDetails": {
-                "reasoningTokens": undefined,
-                "textTokens": 10,
-              },
-              "outputTokens": 10,
-              "totalTokens": 13,
-            },
             "usage": {
               "inputTokenDetails": {
                 "cacheReadTokens": undefined,
@@ -18279,32 +17965,7 @@ describe('streamText', () => {
               "modelId": "mock-model-id",
               "provider": "mock-provider",
             },
-            "providerMetadata": undefined,
             "rawFinishReason": "stop",
-            "reasoning": [],
-            "reasoningText": undefined,
-            "request": {
-              "body": undefined,
-              "messages": undefined,
-            },
-            "response": {
-              "headers": undefined,
-              "id": "id-0",
-              "messages": [
-                {
-                  "content": [
-                    {
-                      "providerOptions": undefined,
-                      "text": "{ "value": "Hello, world!" }",
-                      "type": "text",
-                    },
-                  ],
-                  "role": "assistant",
-                },
-              ],
-              "modelId": "mock-model-id",
-              "timestamp": 1970-01-01T00:00:00.000Z,
-            },
             "responseMessages": [
               {
                 "content": [
@@ -18386,20 +18047,6 @@ describe('streamText', () => {
             "toolCalls": [],
             "toolResults": [],
             "toolsContext": {},
-            "totalUsage": {
-              "inputTokenDetails": {
-                "cacheReadTokens": undefined,
-                "cacheWriteTokens": undefined,
-                "noCacheTokens": 3,
-              },
-              "inputTokens": 3,
-              "outputTokenDetails": {
-                "reasoningTokens": undefined,
-                "textTokens": 10,
-              },
-              "outputTokens": 10,
-              "totalTokens": 13,
-            },
             "usage": {
               "inputTokenDetails": {
                 "cacheReadTokens": undefined,
@@ -21581,7 +21228,7 @@ describe('streamText', () => {
   describe('programmatic tool calling', () => {
     describe('5 steps: code_execution triggers client tool across multiple turns (dice game fixture)', () => {
       let result: StreamTextResult<any, any, any>;
-      let onFinishResult: Parameters<GenerateTextOnFinishCallback<any, any>>[0];
+      let onFinishResult: Parameters<GenerateTextOnEndCallback<any, any>>[0];
       let onStepFinishResults: StepResult<any, any>[];
       let doStreamCalls: Array<LanguageModelV4CallOptions>;
       let prepareStepCalls: Array<{
@@ -22671,9 +22318,9 @@ describe('streamText', () => {
           expect(onFinishResult.steps.length).toBe(5);
         });
 
-        it('should contain correct totalUsage', async () => {
+        it('should contain correct usage', async () => {
           await result.consumeStream();
-          expect(onFinishResult.totalUsage).toMatchInlineSnapshot(`
+          expect(onFinishResult.usage).toMatchInlineSnapshot(`
             {
               "inputTokenDetails": {
                 "cacheReadTokens": undefined,

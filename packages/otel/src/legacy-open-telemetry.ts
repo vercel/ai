@@ -766,8 +766,8 @@ export class LegacyOpenTelemetry implements Telemetry {
         },
         'ai.response.reasoning': {
           output: () =>
-            event.reasoning.length > 0
-              ? event.reasoning
+            event.finalStep.reasoning.length > 0
+              ? event.finalStep.reasoning
                   .filter(part => 'text' in part)
                   .map(part => part.text)
                   .join('\n')
@@ -797,27 +797,27 @@ export class LegacyOpenTelemetry implements Telemetry {
                 )
               : undefined,
         },
-        'ai.response.providerMetadata': event.providerMetadata
-          ? JSON.stringify(event.providerMetadata)
+        'ai.response.providerMetadata': event.finalStep.providerMetadata
+          ? JSON.stringify(event.finalStep.providerMetadata)
           : undefined,
 
-        'ai.usage.inputTokens': event.totalUsage.inputTokens,
-        'ai.usage.outputTokens': event.totalUsage.outputTokens,
-        'ai.usage.totalTokens': event.totalUsage.totalTokens,
+        'ai.usage.inputTokens': event.usage.inputTokens,
+        'ai.usage.outputTokens': event.usage.outputTokens,
+        'ai.usage.totalTokens': event.usage.totalTokens,
         'ai.usage.reasoningTokens':
-          event.totalUsage.outputTokenDetails?.reasoningTokens,
+          event.usage.outputTokenDetails?.reasoningTokens,
         'ai.usage.cachedInputTokens':
-          event.totalUsage.inputTokenDetails?.cacheReadTokens,
+          event.usage.inputTokenDetails?.cacheReadTokens,
         'ai.usage.inputTokenDetails.noCacheTokens':
-          event.totalUsage.inputTokenDetails?.noCacheTokens,
+          event.usage.inputTokenDetails?.noCacheTokens,
         'ai.usage.inputTokenDetails.cacheReadTokens':
-          event.totalUsage.inputTokenDetails?.cacheReadTokens,
+          event.usage.inputTokenDetails?.cacheReadTokens,
         'ai.usage.inputTokenDetails.cacheWriteTokens':
-          event.totalUsage.inputTokenDetails?.cacheWriteTokens,
+          event.usage.inputTokenDetails?.cacheWriteTokens,
         'ai.usage.outputTokenDetails.textTokens':
-          event.totalUsage.outputTokenDetails?.textTokens,
+          event.usage.outputTokenDetails?.textTokens,
         'ai.usage.outputTokenDetails.reasoningTokens':
-          event.totalUsage.outputTokenDetails?.reasoningTokens,
+          event.usage.outputTokenDetails?.reasoningTokens,
       }),
     );
 

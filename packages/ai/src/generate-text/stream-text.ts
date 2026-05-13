@@ -95,7 +95,7 @@ import {
   type ActiveToolSubset,
 } from './filter-active-tools';
 import type {
-  GenerateTextOnFinishCallback,
+  GenerateTextOnEndCallback,
   GenerateTextOnStartCallback,
   GenerateTextOnStepFinishCallback,
   GenerateTextOnStepStartCallback,
@@ -493,7 +493,7 @@ export function streamText<
      *
      * The usage is the combined usage of all steps.
      */
-    onFinish?: GenerateTextOnFinishCallback<
+    onFinish?: GenerateTextOnEndCallback<
       NoInfer<TOOLS>,
       NoInfer<RUNTIME_CONTEXT>
     >;
@@ -899,7 +899,7 @@ class DefaultStreamTextResult<
     onError: StreamTextOnErrorCallback;
     onFinish:
       | undefined
-      | GenerateTextOnFinishCallback<NoInfer<TOOLS>, NoInfer<RUNTIME_CONTEXT>>;
+      | GenerateTextOnEndCallback<NoInfer<TOOLS>, NoInfer<RUNTIME_CONTEXT>>;
     onAbort:
       | undefined
       | StreamTextOnAbortCallback<NoInfer<TOOLS>, NoInfer<RUNTIME_CONTEXT>>;
@@ -1266,12 +1266,9 @@ class DefaultStreamTextResult<
               runtimeContext: finalStep.runtimeContext,
               finishReason: finalStep.finishReason,
               rawFinishReason: finalStep.rawFinishReason,
-              totalUsage,
               usage: totalUsage,
               content,
               text: finalStep.text,
-              reasoningText: finalStep.reasoningText,
-              reasoning: finalStep.reasoning,
               files,
               sources,
               toolCalls,
@@ -1280,14 +1277,11 @@ class DefaultStreamTextResult<
               toolResults,
               staticToolResults,
               dynamicToolResults,
-              request: finalStep.request,
-              response: finalStep.response,
               responseMessages: [
                 ...initialResponseMessages,
                 ...recordedSteps.flatMap(step => step.response.messages),
               ],
               warnings,
-              providerMetadata: finalStep.providerMetadata,
               steps: recordedSteps,
               finalStep,
             },

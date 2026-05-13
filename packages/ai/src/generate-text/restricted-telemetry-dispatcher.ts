@@ -12,7 +12,7 @@ import type {
   TelemetryOptions,
 } from '../telemetry/telemetry-options';
 import type {
-  GenerateTextOnFinishCallback,
+  GenerateTextOnEndCallback,
   GenerateTextOnStartCallback,
   GenerateTextOnStepFinishCallback,
   GenerateTextOnStepStartCallback,
@@ -44,7 +44,7 @@ export type RestrictedTelemetryDispatcher<
   onStart: GenerateTextOnStartCallback<TOOLS, RUNTIME_CONTEXT, OUTPUT>;
   onStepStart: GenerateTextOnStepStartCallback<TOOLS, RUNTIME_CONTEXT, OUTPUT>;
   onStepFinish: GenerateTextOnStepFinishCallback<TOOLS, RUNTIME_CONTEXT>;
-  onEnd: GenerateTextOnFinishCallback<TOOLS, RUNTIME_CONTEXT>;
+  onEnd: GenerateTextOnEndCallback<TOOLS, RUNTIME_CONTEXT>;
   onToolExecutionStart?: OnToolExecutionStartCallback<TOOLS>;
   onToolExecutionEnd?: OnToolExecutionEndCallback<TOOLS>;
 };

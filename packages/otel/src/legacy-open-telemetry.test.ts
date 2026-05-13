@@ -30,6 +30,7 @@ import {
   rerank,
   type Embedding,
   type EmbeddingModelUsage,
+  type GenerateTextEndEvent,
   type Telemetry,
 } from 'ai';
 import {
@@ -267,14 +268,26 @@ function makeStepFinishEvent(overrides?: Record<string, unknown>) {
 }
 
 function makeFinishEvent(overrides?: Record<string, unknown>) {
-  const finalStep = makeStepFinishEvent();
+  const { usage, ...restOverrides } = overrides ?? {};
+  const stepOverrides = Object.fromEntries(
+    Object.entries(restOverrides).filter(([key]) =>
+      [
+        'providerMetadata',
+        'reasoning',
+        'reasoningText',
+        'request',
+        'response',
+      ].includes(key),
+    ),
+  );
+  const finalStep = makeStepFinishEvent(stepOverrides);
 
   return {
     ...finalStep,
     responseMessages: [],
     steps: [finalStep],
     finalStep,
-    totalUsage: {
+    usage: (usage as GenerateTextEndEvent['usage']) ?? {
       inputTokens: 10,
       outputTokens: 20,
       totalTokens: 30,
@@ -288,7 +301,7 @@ function makeFinishEvent(overrides?: Record<string, unknown>) {
         reasoningTokens: undefined,
       },
     },
-    ...overrides,
+    ...restOverrides,
   } as Parameters<NonNullable<Telemetry['onEnd']>>[0];
 }
 
@@ -790,7 +803,7 @@ describe('LegacyOpenTelemetry', () => {
       otelIntegration.onStepFinish!(makeStepFinishEvent());
       otelIntegration.onEnd!(
         makeFinishEvent({
-          totalUsage: {
+          usage: {
             inputTokens: 50,
             outputTokens: 100,
             totalTokens: 150,

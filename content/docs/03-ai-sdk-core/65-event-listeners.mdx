@@ -21,7 +21,7 @@ const result = await generateText({
     console.log('Generation started:', event.modelId);
   },
   onFinish: event => {
-    console.log('Generation finished:', event.totalUsage);
+    console.log('Generation finished:', event.usage);
   },
 });
 ```
@@ -791,7 +791,7 @@ const result = await generateText({
   prompt: 'Hello!',
   onFinish: event => {
     console.log('Total steps:', event.steps.length);
-    console.log('Total tokens:', event.totalUsage.totalTokens);
+    console.log('Total tokens:', event.usage.totalTokens);
     console.log('Final text:', event.text);
   },
 });
@@ -1239,7 +1239,7 @@ const result = await generateText({
   onFinish: event => {
     console.log(`[${new Date().toISOString()}] Generation complete`, {
       totalSteps: event.steps.length,
-      totalTokens: event.totalUsage.totalTokens,
+      totalTokens: event.usage.totalTokens,
     });
   },
 });

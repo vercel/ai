@@ -92,7 +92,7 @@ export type AgentCallParameters<CALL_OPTIONS, TOOLS extends ToolSet = {}> = ([
     /**
      * Callback that is called when all steps are finished and the response is complete.
      */
-    onFinish?: GenerateTextOnFinishCallback<TOOLS>;
+    onFinish?: GenerateTextOnEndCallback<TOOLS>;
   };
 
 /**

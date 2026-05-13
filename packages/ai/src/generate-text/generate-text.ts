@@ -65,7 +65,7 @@ import {
   type ActiveToolSubset,
 } from './filter-active-tools';
 import type {
-  GenerateTextOnFinishCallback,
+  GenerateTextOnEndCallback,
   GenerateTextOnStartCallback,
   GenerateTextOnStepFinishCallback,
   GenerateTextOnStepStartCallback,
@@ -411,7 +411,7 @@ export async function generateText<
     /**
      * Callback that is called when all steps are finished and the response is complete.
      */
-    onFinish?: GenerateTextOnFinishCallback<
+    onFinish?: GenerateTextOnEndCallback<
       NoInfer<TOOLS>,
       NoInfer<RUNTIME_CONTEXT>
     >;
@@ -1147,8 +1147,6 @@ export async function generateText<
       usage: totalUsage,
       content: steps.flatMap(step => step.content),
       text: lastStep.text,
-      reasoningText: lastStep.reasoningText,
-      reasoning: lastStep.reasoning,
       files,
       sources,
       toolCalls,
@@ -1157,17 +1155,13 @@ export async function generateText<
       toolResults,
       staticToolResults,
       dynamicToolResults,
-      request: lastStep.request,
-      response: lastStep.response,
       responseMessages: [
         ...initialResponseMessages,
         ...steps.flatMap(step => step.response.messages),
       ],
       warnings,
-      providerMetadata: lastStep.providerMetadata,
       steps,
       finalStep: lastStep,
-      totalUsage,
       toolsContext,
     };
 

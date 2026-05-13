@@ -10,7 +10,7 @@ import type {
 } from '@ai-sdk/provider-utils';
 import type { ActiveTools } from '../generate-text/active-tools';
 import type {
-  GenerateTextOnFinishCallback,
+  GenerateTextOnEndCallback,
   GenerateTextOnStartCallback,
   GenerateTextOnStepFinishCallback,
   GenerateTextOnStepStartCallback,
@@ -170,7 +170,7 @@ export type ToolLoopAgentSettings<
     /**
      * Callback that is called when all steps are finished and the response is complete.
      */
-    onFinish?: GenerateTextOnFinishCallback<
+    onFinish?: GenerateTextOnEndCallback<
       NoInfer<TOOLS>,
       NoInfer<RUNTIME_CONTEXT>
     >;

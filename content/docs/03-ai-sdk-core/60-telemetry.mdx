@@ -300,7 +300,7 @@ class MyIntegration implements Telemetry {
   }
 
   async onEnd(event) {
-    console.log('Done. Total tokens:', event.totalUsage.totalTokens);
+    console.log('Done. Total tokens:', event.usage.totalTokens);
   }
 }
 

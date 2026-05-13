@@ -33,7 +33,7 @@ import type { Instructions } from '../prompt';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import { generateText } from './generate-text';
 import type {
-  GenerateTextOnFinishCallback,
+  GenerateTextOnEndCallback,
   GenerateTextOnStartCallback,
   GenerateTextOnStepFinishCallback,
   GenerateTextOnStepStartCallback,
@@ -487,9 +487,7 @@ describe('generateText', () => {
 
     it('should send warnings from all steps to onFinish', async () => {
       let responseCount = 0;
-      let onFinishResult!: Parameters<
-        GenerateTextOnFinishCallback<any, any>
-      >[0];
+      let onFinishResult!: Parameters<GenerateTextOnEndCallback<any, any>>[0];
       const warning0 = { type: 'other' as const, message: 'step 0 warning' };
       const warning1 = { type: 'other' as const, message: 'step 1 warning' };
 
@@ -718,9 +716,7 @@ describe('generateText', () => {
 
     it('should send files from all steps to onFinish', async () => {
       let responseCount = 0;
-      let onFinishResult!: Parameters<
-        GenerateTextOnFinishCallback<any, any>
-      >[0];
+      let onFinishResult!: Parameters<GenerateTextOnEndCallback<any, any>>[0];
 
       await generateText({
         model: new MockLanguageModelV4({
@@ -3787,7 +3783,7 @@ describe('generateText', () => {
 
   describe('options.onFinish', () => {
     it('should send correct information', async () => {
-      let result!: Parameters<GenerateTextOnFinishCallback<any, any>>[0];
+      let result!: Parameters<GenerateTextOnEndCallback<any, any>>[0];
 
       await generateText({
         model: new MockLanguageModelV4({
@@ -3974,59 +3970,7 @@ describe('generateText', () => {
             "modelId": "mock-model-id",
             "provider": "mock-provider",
           },
-          "providerMetadata": undefined,
           "rawFinishReason": "stop",
-          "reasoning": [],
-          "reasoningText": undefined,
-          "request": {
-            "body": undefined,
-            "messages": undefined,
-          },
-          "response": {
-            "body": undefined,
-            "headers": {
-              "call": "2",
-            },
-            "id": "id-0",
-            "messages": [
-              {
-                "content": [
-                  {
-                    "providerOptions": undefined,
-                    "text": "Hello, World!",
-                    "type": "text",
-                  },
-                  {
-                    "input": {
-                      "value": "value",
-                    },
-                    "providerExecuted": undefined,
-                    "providerOptions": undefined,
-                    "toolCallId": "call-1",
-                    "toolName": "tool1",
-                    "type": "tool-call",
-                  },
-                ],
-                "role": "assistant",
-              },
-              {
-                "content": [
-                  {
-                    "output": {
-                      "type": "text",
-                      "value": "value-result",
-                    },
-                    "toolCallId": "call-1",
-                    "toolName": "tool1",
-                    "type": "tool-result",
-                  },
-                ],
-                "role": "tool",
-              },
-            ],
-            "modelId": "mock-model-id",
-            "timestamp": 1970-01-01T00:00:00.000Z,
-          },
           "responseMessages": [
             {
               "content": [
@@ -4225,20 +4169,6 @@ describe('generateText', () => {
             },
           ],
           "toolsContext": {},
-          "totalUsage": {
-            "inputTokenDetails": {
-              "cacheReadTokens": undefined,
-              "cacheWriteTokens": undefined,
-              "noCacheTokens": 3,
-            },
-            "inputTokens": 3,
-            "outputTokenDetails": {
-              "reasoningTokens": undefined,
-              "textTokens": 10,
-            },
-            "outputTokens": 10,
-            "totalTokens": 13,
-          },
           "usage": {
             "inputTokenDetails": {
               "cacheReadTokens": undefined,
@@ -4261,7 +4191,7 @@ describe('generateText', () => {
 
   describe('options.stopWhen', () => {
     let result: GenerateTextResult<any, any, any>;
-    let onFinishResult: Parameters<GenerateTextOnFinishCallback<any, any>>[0];
+    let onFinishResult: Parameters<GenerateTextOnEndCallback<any, any>>[0];
     let onStepFinishResults: StepResult<any, any>[];
 
     beforeEach(() => {
@@ -4469,7 +4399,7 @@ describe('generateText', () => {
 
       it('onFinishResult.usage should sum token usage and finalStep should contain final step usage', () => {
         expect(onFinishResult.usage).toEqual(result.usage);
-        expect(onFinishResult.totalUsage).toEqual(result.totalUsage);
+        expect(onFinishResult.usage).toEqual(result.totalUsage);
         expect(onFinishResult.finalStep).toBe(onFinishResult.steps.at(-1));
         expect(onFinishResult.finalStep.usage).toEqual(result.finalStep.usage);
       });
@@ -7068,7 +6998,7 @@ describe('generateText', () => {
   describe('programmatic tool calling', () => {
     describe('5 steps: code_execution triggers client tool across multiple turns (dice game fixture)', () => {
       let result: GenerateTextResult<any, any, any>;
-      let onFinishResult: Parameters<GenerateTextOnFinishCallback<any, any>>[0];
+      let onFinishResult: Parameters<GenerateTextOnEndCallback<any, any>>[0];
       let onStepFinishResults: StepResult<any, any>[];
       let doGenerateCalls: Array<LanguageModelV4CallOptions>;
       let prepareStepCalls: Array<{
@@ -8252,8 +8182,8 @@ describe('generateText', () => {
           expect(onFinishResult.steps.length).toBe(5);
         });
 
-        it('should contain correct totalUsage', () => {
-          expect(onFinishResult.totalUsage).toMatchInlineSnapshot(`
+        it('should contain correct usage', () => {
+          expect(onFinishResult.usage).toMatchInlineSnapshot(`
             {
               "inputTokenDetails": {
                 "cacheReadTokens": undefined,

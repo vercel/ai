@@ -265,7 +265,7 @@ describe('createRestrictedTelemetryDispatcher', () => {
       runtimeContext,
       steps: [step],
       finalStep: step,
-      totalUsage: createNullLanguageModelUsage(),
+      usage: createNullLanguageModelUsage(),
     } as any);
 
     const telemetryEvent = onEnd.mock.calls[0][0];
@@ -297,7 +297,7 @@ describe('createRestrictedTelemetryDispatcher', () => {
       toolsContext,
       steps: [step],
       finalStep: step,
-      totalUsage: createNullLanguageModelUsage(),
+      usage: createNullLanguageModelUsage(),
     } as any);
 
     const telemetryEvent = onEnd.mock.calls[0][0];
