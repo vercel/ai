@@ -19,7 +19,7 @@ exports[`simulateStreamingMiddleware > should handle empty text response 1`] = `
       "responseTimeMs": 0,
       "stepTimeMs": 0,
       "timeToFirstTokenMs": undefined,
-      "tokensPerSecond": Infinity,
+      "tokensPerSecond": 0,
       "toolExecutionMs": {},
     },
     "providerMetadata": undefined,
