@@ -1729,16 +1729,17 @@ class DefaultStreamTextResult<
             }),
           );
 
-          const stream2 = invokeToolCallbacksFromStream({
-            stream: languageModelStream,
-            tools,
-            stepInputMessages: stepMessages,
-            abortSignal,
-            runtimeContext,
-          });
+          const streamAfterToolCallbackInvocation =
+            invokeToolCallbacksFromStream({
+              stream: languageModelStream,
+              tools,
+              stepInputMessages: stepMessages,
+              abortSignal,
+              runtimeContext,
+            });
 
           const streamWithToolResults = executeToolsFromStream({
-            stream: stream2,
+            stream: streamAfterToolCallbackInvocation,
             tools,
             callId,
             messages: stepMessages,
@@ -1749,6 +1750,9 @@ class DefaultStreamTextResult<
             toolApproval,
             runtimeContext,
             generateId,
+
+            // the callbacks need to be passed down and handled by executeToolCall
+            // to guarantee that the onToolExecutionStart callback is invoked before the tool execute function
             onToolExecutionStart: filterNullable(
               onToolExecutionStart,
               telemetryDispatcher.onToolExecutionStart,
@@ -1757,6 +1761,7 @@ class DefaultStreamTextResult<
               onToolExecutionEnd,
               telemetryDispatcher.onToolExecutionEnd,
             ),
+
             executeToolInTelemetryContext: telemetryDispatcher.executeTool,
           });
 
