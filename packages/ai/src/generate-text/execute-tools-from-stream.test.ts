@@ -9,7 +9,7 @@ import { z } from 'zod/v4';
 import { TypeValidationError } from '../error';
 import { asLanguageModelUsage } from '../types/usage';
 import { now } from '../util/now';
-import { createExecuteToolsTransformation } from './create-execute-tools-transformation';
+import { executeToolsFromStream } from './execute-tools-from-stream';
 import type { LanguageModelStreamPart } from './stream-language-model-call';
 import type {
   ToolExecutionEndEvent,
@@ -47,7 +47,7 @@ const finishChunk = {
   },
 };
 
-describe('createExecuteToolsTransformation', () => {
+describe('executeToolsFromStream', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     vi.clearAllMocks();
@@ -77,18 +77,17 @@ describe('createExecuteToolsTransformation', () => {
         finishChunk,
       ]);
 
-    const transformedStream = inputStream.pipeThrough(
-      createExecuteToolsTransformation({
-        generateId: mockId({ prefix: 'id' }),
-        tools,
-        callId: 'test-telemetry-call-id',
-        messages: [],
-        timeout: undefined,
-        abortSignal: undefined,
-        toolsContext: {},
-        runtimeContext: {},
-      }),
-    );
+    const transformedStream = executeToolsFromStream({
+      stream: inputStream,
+      generateId: mockId({ prefix: 'id' }),
+      tools,
+      callId: 'test-telemetry-call-id',
+      messages: [],
+      timeout: undefined,
+      abortSignal: undefined,
+      toolsContext: {},
+      runtimeContext: {},
+    });
 
     expect(await convertReadableStreamToArray(transformedStream))
       .toMatchInlineSnapshot(`
@@ -164,7 +163,8 @@ describe('createExecuteToolsTransformation', () => {
         finishChunk,
       ]);
 
-    const transformedStream = createExecuteToolsTransformation({
+    const transformedStream = executeToolsFromStream({
+      stream: inputStream,
       generateId: mockId({ prefix: 'id' }),
       tools,
       callId: 'test-telemetry-call-id',
@@ -175,11 +175,8 @@ describe('createExecuteToolsTransformation', () => {
       runtimeContext: {},
     });
 
-    expect(
-      await convertReadableStreamToArray(
-        inputStream.pipeThrough(transformedStream),
-      ),
-    ).toMatchInlineSnapshot(`
+    expect(await convertReadableStreamToArray(transformedStream))
+      .toMatchInlineSnapshot(`
       [
         {
           "input": {
@@ -266,19 +263,18 @@ describe('createExecuteToolsTransformation', () => {
       ]);
 
     await convertReadableStreamToArray(
-      inputStream.pipeThrough(
-        createExecuteToolsTransformation({
-          generateId: mockId({ prefix: 'id' }),
-          tools,
-          callId: 'test-telemetry-call-id',
-          messages: [],
-          abortSignal: undefined,
-          timeout: undefined,
-          sandbox,
-          toolsContext: {},
-          runtimeContext: {},
-        }),
-      ),
+      executeToolsFromStream({
+        stream: inputStream,
+        generateId: mockId({ prefix: 'id' }),
+        tools,
+        callId: 'test-telemetry-call-id',
+        messages: [],
+        abortSignal: undefined,
+        timeout: undefined,
+        sandbox,
+        toolsContext: {},
+        runtimeContext: {},
+      }),
     );
 
     expect(receivedSandbox).toBe(sandbox);
@@ -317,18 +313,17 @@ describe('createExecuteToolsTransformation', () => {
         finishChunk,
       ]);
 
-    const transformedStream = inputStream.pipeThrough(
-      createExecuteToolsTransformation({
-        generateId: mockId({ prefix: 'id' }),
-        tools,
-        callId: 'test-telemetry-call-id',
-        messages: [],
-        abortSignal: undefined,
-        timeout: undefined,
-        toolsContext: {},
-        runtimeContext: {},
-      }),
-    );
+    const transformedStream = executeToolsFromStream({
+      stream: inputStream,
+      generateId: mockId({ prefix: 'id' }),
+      tools,
+      callId: 'test-telemetry-call-id',
+      messages: [],
+      abortSignal: undefined,
+      timeout: undefined,
+      toolsContext: {},
+      runtimeContext: {},
+    });
 
     await convertReadableStreamToArray(transformedStream);
 
@@ -358,24 +353,23 @@ describe('createExecuteToolsTransformation', () => {
         finishChunk,
       ]);
 
-    const transformedStream = inputStream.pipeThrough(
-      createExecuteToolsTransformation({
-        generateId: mockId({ prefix: 'id' }),
-        tools,
-        callId: 'test-telemetry-call-id',
-        messages: [],
-        abortSignal: undefined,
-        timeout: undefined,
-        toolsContext: {},
-        runtimeContext: {},
-        toolApproval: {
-          approvedTool: {
-            type: 'approved',
-            reason: 'trusted internal tool',
-          },
+    const transformedStream = executeToolsFromStream({
+      stream: inputStream,
+      generateId: mockId({ prefix: 'id' }),
+      tools,
+      callId: 'test-telemetry-call-id',
+      messages: [],
+      abortSignal: undefined,
+      timeout: undefined,
+      toolsContext: {},
+      runtimeContext: {},
+      toolApproval: {
+        approvedTool: {
+          type: 'approved',
+          reason: 'trusted internal tool',
         },
-      }),
-    );
+      },
+    });
 
     expect(await convertReadableStreamToArray(transformedStream))
       .toMatchInlineSnapshot(`
@@ -486,24 +480,23 @@ describe('createExecuteToolsTransformation', () => {
         finishChunk,
       ]);
 
-    const transformedStream = inputStream.pipeThrough(
-      createExecuteToolsTransformation({
-        generateId: mockId({ prefix: 'id' }),
-        tools,
-        callId: 'test-telemetry-call-id',
-        messages: [],
-        abortSignal: undefined,
-        timeout: undefined,
-        toolsContext: {},
-        runtimeContext: {},
-        toolApproval: {
-          deniedTool: {
-            type: 'denied',
-            reason: 'blocked by policy',
-          },
+    const transformedStream = executeToolsFromStream({
+      stream: inputStream,
+      generateId: mockId({ prefix: 'id' }),
+      tools,
+      callId: 'test-telemetry-call-id',
+      messages: [],
+      abortSignal: undefined,
+      timeout: undefined,
+      toolsContext: {},
+      runtimeContext: {},
+      toolApproval: {
+        deniedTool: {
+          type: 'denied',
+          reason: 'blocked by policy',
         },
-      }),
-    );
+      },
+    });
 
     expect(await convertReadableStreamToArray(transformedStream))
       .toMatchInlineSnapshot(`
@@ -600,24 +593,23 @@ describe('createExecuteToolsTransformation', () => {
           finishChunk,
         ]);
 
-      const transformedStream = inputStream.pipeThrough(
-        createExecuteToolsTransformation({
-          generateId: mockId({ prefix: 'id' }),
-          tools,
-          callId: 'test-telemetry-call-id',
-          messages: [],
-          timeout: undefined,
-          abortSignal: undefined,
-          toolsContext: {},
-          runtimeContext: {},
-          onToolExecutionStart: async () => {
-            callOrder.push('onToolExecutionStart');
-          },
-          onToolExecutionEnd: async () => {
-            callOrder.push('onToolExecutionEnd');
-          },
-        }),
-      );
+      const transformedStream = executeToolsFromStream({
+        stream: inputStream,
+        generateId: mockId({ prefix: 'id' }),
+        tools,
+        callId: 'test-telemetry-call-id',
+        messages: [],
+        timeout: undefined,
+        abortSignal: undefined,
+        toolsContext: {},
+        runtimeContext: {},
+        onToolExecutionStart: async () => {
+          callOrder.push('onToolExecutionStart');
+        },
+        onToolExecutionEnd: async () => {
+          callOrder.push('onToolExecutionEnd');
+        },
+      });
 
       await convertReadableStreamToArray(transformedStream);
 
@@ -650,24 +642,23 @@ describe('createExecuteToolsTransformation', () => {
           finishChunk,
         ]);
 
-      const transformedStream = inputStream.pipeThrough(
-        createExecuteToolsTransformation({
-          generateId: mockId({ prefix: 'id' }),
-          tools,
-          callId: 'test-telemetry-call-id',
-          messages: [],
-          timeout: undefined,
-          abortSignal: undefined,
-          toolsContext: { testTool: { value: 'test' } },
-          runtimeContext: {},
-          onToolExecutionStart: async event => {
-            startEvents.push(event);
-          },
-          onToolExecutionEnd: async event => {
-            finishEvents.push(event);
-          },
-        }),
-      );
+      const transformedStream = executeToolsFromStream({
+        stream: inputStream,
+        generateId: mockId({ prefix: 'id' }),
+        tools,
+        callId: 'test-telemetry-call-id',
+        messages: [],
+        timeout: undefined,
+        abortSignal: undefined,
+        toolsContext: { testTool: { value: 'test' } },
+        runtimeContext: {},
+        onToolExecutionStart: async event => {
+          startEvents.push(event);
+        },
+        onToolExecutionEnd: async event => {
+          finishEvents.push(event);
+        },
+      });
 
       await convertReadableStreamToArray(transformedStream);
 
@@ -743,21 +734,20 @@ describe('createExecuteToolsTransformation', () => {
           finishChunk,
         ]);
 
-      const transformedStream = inputStream.pipeThrough(
-        createExecuteToolsTransformation({
-          generateId: mockId({ prefix: 'id' }),
-          tools,
-          callId: 'test-telemetry-call-id',
-          messages: [],
-          timeout: undefined,
-          abortSignal: undefined,
-          toolsContext: {},
-          runtimeContext: {},
-          onToolExecutionEnd: async event => {
-            toolExecutionEndEvents.push(event);
-          },
-        }),
-      );
+      const transformedStream = executeToolsFromStream({
+        stream: inputStream,
+        generateId: mockId({ prefix: 'id' }),
+        tools,
+        callId: 'test-telemetry-call-id',
+        messages: [],
+        timeout: undefined,
+        abortSignal: undefined,
+        toolsContext: {},
+        runtimeContext: {},
+        onToolExecutionEnd: async event => {
+          toolExecutionEndEvents.push(event);
+        },
+      });
 
       await convertReadableStreamToArray(transformedStream);
 
@@ -817,21 +807,20 @@ describe('createExecuteToolsTransformation', () => {
           finishChunk,
         ]);
 
-      const transformedStream = inputStream.pipeThrough(
-        createExecuteToolsTransformation({
-          generateId: mockId({ prefix: 'id' }),
-          tools,
-          callId: 'test-telemetry-call-id',
-          messages: [],
-          timeout: undefined,
-          abortSignal: undefined,
-          toolsContext: {},
-          runtimeContext: {},
-          onToolExecutionEnd: async event => {
-            toolExecutionEndEvents.push(event);
-          },
-        }),
-      );
+      const transformedStream = executeToolsFromStream({
+        stream: inputStream,
+        generateId: mockId({ prefix: 'id' }),
+        tools,
+        callId: 'test-telemetry-call-id',
+        messages: [],
+        timeout: undefined,
+        abortSignal: undefined,
+        toolsContext: {},
+        runtimeContext: {},
+        onToolExecutionEnd: async event => {
+          toolExecutionEndEvents.push(event);
+        },
+      });
 
       await convertReadableStreamToArray(transformedStream);
 
@@ -887,24 +876,23 @@ describe('createExecuteToolsTransformation', () => {
           finishChunk,
         ]);
 
-      const transformedStream = inputStream.pipeThrough(
-        createExecuteToolsTransformation({
-          generateId: mockId({ prefix: 'id' }),
-          tools,
-          callId: 'test-telemetry-call-id',
-          messages: [],
-          timeout: undefined,
-          abortSignal: undefined,
-          toolsContext: {},
-          runtimeContext: {},
-          onToolExecutionStart: async event => {
-            toolExecutionStartEvents.push(event);
-          },
-          onToolExecutionEnd: async event => {
-            toolExecutionEndEvents.push(event);
-          },
-        }),
-      );
+      const transformedStream = executeToolsFromStream({
+        stream: inputStream,
+        generateId: mockId({ prefix: 'id' }),
+        tools,
+        callId: 'test-telemetry-call-id',
+        messages: [],
+        timeout: undefined,
+        abortSignal: undefined,
+        toolsContext: {},
+        runtimeContext: {},
+        onToolExecutionStart: async event => {
+          toolExecutionStartEvents.push(event);
+        },
+        onToolExecutionEnd: async event => {
+          toolExecutionEndEvents.push(event);
+        },
+      });
 
       await convertReadableStreamToArray(transformedStream);
 
@@ -941,24 +929,23 @@ describe('createExecuteToolsTransformation', () => {
           finishChunk,
         ]);
 
-      const transformedStream = inputStream.pipeThrough(
-        createExecuteToolsTransformation({
-          generateId: mockId({ prefix: 'id' }),
-          tools,
-          callId: 'test-telemetry-call-id',
-          messages: [],
-          timeout: undefined,
-          abortSignal: undefined,
-          toolsContext: {},
-          runtimeContext: {},
-          onToolExecutionStart: async event => {
-            toolExecutionStartEvents.push(event);
-          },
-          onToolExecutionEnd: async event => {
-            toolExecutionEndEvents.push(event);
-          },
-        }),
-      );
+      const transformedStream = executeToolsFromStream({
+        stream: inputStream,
+        generateId: mockId({ prefix: 'id' }),
+        tools,
+        callId: 'test-telemetry-call-id',
+        messages: [],
+        timeout: undefined,
+        abortSignal: undefined,
+        toolsContext: {},
+        runtimeContext: {},
+        onToolExecutionStart: async event => {
+          toolExecutionStartEvents.push(event);
+        },
+        onToolExecutionEnd: async event => {
+          toolExecutionEndEvents.push(event);
+        },
+      });
 
       await convertReadableStreamToArray(transformedStream);
 
@@ -1078,24 +1065,23 @@ describe('createExecuteToolsTransformation', () => {
           finishChunk,
         ]);
 
-      const transformedStream = inputStream.pipeThrough(
-        createExecuteToolsTransformation({
-          generateId: mockId({ prefix: 'id' }),
-          tools,
-          callId: 'test-telemetry-call-id',
-          messages: [],
-          timeout: undefined,
-          abortSignal: undefined,
-          toolsContext: {},
-          runtimeContext: {},
-          onToolExecutionStart: async event => {
-            toolExecutionStartEvents.push(event);
-          },
-          onToolExecutionEnd: async event => {
-            toolExecutionEndEvents.push(event);
-          },
-        }),
-      );
+      const transformedStream = executeToolsFromStream({
+        stream: inputStream,
+        generateId: mockId({ prefix: 'id' }),
+        tools,
+        callId: 'test-telemetry-call-id',
+        messages: [],
+        timeout: undefined,
+        abortSignal: undefined,
+        toolsContext: {},
+        runtimeContext: {},
+        onToolExecutionStart: async event => {
+          toolExecutionStartEvents.push(event);
+        },
+        onToolExecutionEnd: async event => {
+          toolExecutionEndEvents.push(event);
+        },
+      });
 
       await convertReadableStreamToArray(transformedStream);
 
@@ -1117,7 +1103,7 @@ describe('createExecuteToolsTransformation', () => {
         }),
       };
 
-      const transformedStream = convertArrayToReadableStream<
+      const inputStream = convertArrayToReadableStream<
         LanguageModelStreamPart<typeof tools>
       >([
         {
@@ -1127,20 +1113,21 @@ describe('createExecuteToolsTransformation', () => {
           input: { value: 'test' },
         },
         finishChunk,
-      ]).pipeThrough(
-        createExecuteToolsTransformation({
-          generateId: mockId({ prefix: 'id' }),
-          tools,
-          callId: 'test-telemetry-call-id',
-          messages: [],
-          abortSignal: undefined,
-          timeout: undefined,
-          toolsContext: {
-            guardedTool: { apiKey: 123 } as any,
-          },
-          runtimeContext: {},
-        }),
-      );
+      ]);
+
+      const transformedStream = executeToolsFromStream({
+        stream: inputStream,
+        generateId: mockId({ prefix: 'id' }),
+        tools,
+        callId: 'test-telemetry-call-id',
+        messages: [],
+        abortSignal: undefined,
+        timeout: undefined,
+        toolsContext: {
+          guardedTool: { apiKey: 123 } as any,
+        },
+        runtimeContext: {},
+      });
 
       try {
         await convertReadableStreamToArray(transformedStream);
@@ -1186,18 +1173,17 @@ describe('createExecuteToolsTransformation', () => {
 
       const toolError = new Error('Tool execution failed!');
 
-      const transformedStream = inputStream.pipeThrough(
-        createExecuteToolsTransformation({
-          generateId: mockId({ prefix: 'id' }),
-          tools,
-          callId: 'test-telemetry-call-id',
-          messages: [],
-          abortSignal: undefined,
-          timeout: undefined,
-          toolsContext: {},
-          runtimeContext: {},
-        }),
-      );
+      const transformedStream = executeToolsFromStream({
+        stream: inputStream,
+        generateId: mockId({ prefix: 'id' }),
+        tools,
+        callId: 'test-telemetry-call-id',
+        messages: [],
+        abortSignal: undefined,
+        timeout: undefined,
+        toolsContext: {},
+        runtimeContext: {},
+      });
 
       const resultPromise = convertReadableStreamToArray(transformedStream);
       await vi.advanceTimersByTimeAsync(10);
@@ -1283,17 +1269,16 @@ describe('createExecuteToolsTransformation', () => {
 
       const toolError = new Error('Sync tool failed!');
 
-      const transformedStream = inputStream.pipeThrough(
-        createExecuteToolsTransformation({
-          generateId: mockId({ prefix: 'id' }),
-          tools,
-          callId: 'test-telemetry-call-id',
-          messages: [],
-          abortSignal: undefined,
-          toolsContext: {},
-          runtimeContext: {},
-        }),
-      );
+      const transformedStream = executeToolsFromStream({
+        stream: inputStream,
+        generateId: mockId({ prefix: 'id' }),
+        tools,
+        callId: 'test-telemetry-call-id',
+        messages: [],
+        abortSignal: undefined,
+        toolsContext: {},
+        runtimeContext: {},
+      });
 
       const result = await convertReadableStreamToArray(transformedStream);
 

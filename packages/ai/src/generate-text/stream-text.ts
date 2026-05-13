@@ -89,9 +89,9 @@ import type { ActiveTools } from './active-tools';
 import { collectToolApprovals } from './collect-tool-approvals';
 import type { ContentPart } from './content-part';
 import {
-  createExecuteToolsTransformation,
+  executeToolsFromStream,
   type ExecuteToolsStreamPart,
-} from './create-execute-tools-transformation';
+} from './execute-tools-from-stream';
 import { executeToolCall } from './execute-tool-call';
 import {
   filterActiveTools,
@@ -1737,29 +1737,28 @@ class DefaultStreamTextResult<
             runtimeContext,
           });
 
-          const streamWithToolResults = stream2.pipeThrough(
-            createExecuteToolsTransformation({
-              tools,
-              callId,
-              messages: stepMessages,
-              abortSignal,
-              timeout,
-              sandbox: stepSandbox,
-              toolsContext,
-              toolApproval,
-              runtimeContext,
-              generateId,
-              onToolExecutionStart: filterNullable(
-                onToolExecutionStart,
-                telemetryDispatcher.onToolExecutionStart,
-              ),
-              onToolExecutionEnd: filterNullable(
-                onToolExecutionEnd,
-                telemetryDispatcher.onToolExecutionEnd,
-              ),
-              executeToolInTelemetryContext: telemetryDispatcher.executeTool,
-            }),
-          );
+          const streamWithToolResults = executeToolsFromStream({
+            stream: stream2,
+            tools,
+            callId,
+            messages: stepMessages,
+            abortSignal,
+            timeout,
+            sandbox: stepSandbox,
+            toolsContext,
+            toolApproval,
+            runtimeContext,
+            generateId,
+            onToolExecutionStart: filterNullable(
+              onToolExecutionStart,
+              telemetryDispatcher.onToolExecutionStart,
+            ),
+            onToolExecutionEnd: filterNullable(
+              onToolExecutionEnd,
+              telemetryDispatcher.onToolExecutionEnd,
+            ),
+            executeToolInTelemetryContext: telemetryDispatcher.executeTool,
+          });
 
           // Conditionally include request.body based on include settings.
           // Large payloads (e.g., base64-encoded images) can cause memory issues.
