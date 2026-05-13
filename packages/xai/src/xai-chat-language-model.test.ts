@@ -1231,6 +1231,21 @@ describe('XaiChatLanguageModel', () => {
       `);
     });
 
+    it('should pass reasoning_effort: "none" via providerOptions', async () => {
+      prepareJsonFixtureResponse('xai-text');
+
+      await reasoningModel.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          xai: { reasoningEffort: 'none' },
+        },
+      });
+
+      expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
+        'none',
+      );
+    });
+
     it('should map top-level reasoning to reasoning_effort', async () => {
       prepareJsonFixtureResponse('xai-text');
 
@@ -1244,7 +1259,7 @@ describe('XaiChatLanguageModel', () => {
       );
     });
 
-    it('should coerce top-level reasoning medium to low', async () => {
+    it('should map top-level reasoning medium to reasoning_effort: "medium"', async () => {
       prepareJsonFixtureResponse('xai-text');
 
       await reasoningModel.doGenerate({
@@ -1253,7 +1268,22 @@ describe('XaiChatLanguageModel', () => {
       });
 
       expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
-        'low',
+        'medium',
+      );
+    });
+
+    it('should pass reasoning_effort: "medium" via providerOptions', async () => {
+      prepareJsonFixtureResponse('xai-text');
+
+      await reasoningModel.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          xai: { reasoningEffort: 'medium' },
+        },
+      });
+
+      expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
+        'medium',
       );
     });
 
