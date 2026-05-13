@@ -623,6 +623,13 @@ describe('streamText', () => {
             },
             {
               "finishReason": "stop",
+              "performance": {
+                "maxToolExecutionTimeMs": 0,
+                "responseTimeMs": 0,
+                "stepTimeMs": 0,
+                "timeToFirstTokenMs": 0,
+                "tokensPerSecond": Infinity,
+              },
               "providerMetadata": undefined,
               "rawFinishReason": "stop",
               "response": {
@@ -852,6 +859,13 @@ describe('streamText', () => {
             },
             {
               "finishReason": "stop",
+              "performance": {
+                "maxToolExecutionTimeMs": 0,
+                "responseTimeMs": 0,
+                "stepTimeMs": 0,
+                "timeToFirstTokenMs": 0,
+                "tokensPerSecond": Infinity,
+              },
               "providerMetadata": undefined,
               "rawFinishReason": "stop",
               "response": {
@@ -960,6 +974,13 @@ describe('streamText', () => {
             },
             {
               "finishReason": "stop",
+              "performance": {
+                "maxToolExecutionTimeMs": 0,
+                "responseTimeMs": 0,
+                "stepTimeMs": 0,
+                "timeToFirstTokenMs": 0,
+                "tokensPerSecond": Infinity,
+              },
               "providerMetadata": undefined,
               "rawFinishReason": "stop",
               "response": {
@@ -1053,6 +1074,13 @@ describe('streamText', () => {
             },
             {
               "finishReason": "stop",
+              "performance": {
+                "maxToolExecutionTimeMs": 0,
+                "responseTimeMs": 0,
+                "stepTimeMs": 0,
+                "timeToFirstTokenMs": 0,
+                "tokensPerSecond": Infinity,
+              },
               "providerMetadata": undefined,
               "rawFinishReason": "stop",
               "response": {
@@ -1157,6 +1185,13 @@ describe('streamText', () => {
             },
             {
               "finishReason": "stop",
+              "performance": {
+                "maxToolExecutionTimeMs": 0,
+                "responseTimeMs": 0,
+                "stepTimeMs": 0,
+                "timeToFirstTokenMs": 0,
+                "tokensPerSecond": Infinity,
+              },
               "providerMetadata": undefined,
               "rawFinishReason": "stop",
               "response": {
@@ -1318,6 +1353,13 @@ describe('streamText', () => {
             },
             {
               "finishReason": "stop",
+              "performance": {
+                "maxToolExecutionTimeMs": 0,
+                "responseTimeMs": 0,
+                "stepTimeMs": 0,
+                "timeToFirstTokenMs": 0,
+                "tokensPerSecond": Infinity,
+              },
               "providerMetadata": undefined,
               "rawFinishReason": "stop",
               "response": {
@@ -1443,6 +1485,13 @@ describe('streamText', () => {
             },
             {
               "finishReason": "stop",
+              "performance": {
+                "maxToolExecutionTimeMs": 0,
+                "responseTimeMs": 0,
+                "stepTimeMs": 0,
+                "timeToFirstTokenMs": 0,
+                "tokensPerSecond": Infinity,
+              },
               "providerMetadata": undefined,
               "rawFinishReason": "stop",
               "response": {
@@ -1784,6 +1833,13 @@ describe('streamText', () => {
             },
             {
               "finishReason": "tool-calls",
+              "performance": {
+                "maxToolExecutionTimeMs": 0,
+                "responseTimeMs": 0,
+                "stepTimeMs": 0,
+                "timeToFirstTokenMs": 0,
+                "tokensPerSecond": Infinity,
+              },
               "providerMetadata": undefined,
               "rawFinishReason": undefined,
               "response": {
@@ -2048,6 +2104,13 @@ describe('streamText', () => {
             },
             {
               "finishReason": "stop",
+              "performance": {
+                "maxToolExecutionTimeMs": 0,
+                "responseTimeMs": 0,
+                "stepTimeMs": 0,
+                "timeToFirstTokenMs": 0,
+                "tokensPerSecond": Infinity,
+              },
               "providerMetadata": undefined,
               "rawFinishReason": "stop",
               "response": {
@@ -4745,6 +4808,13 @@ describe('streamText', () => {
             },
             {
               "finishReason": "stop",
+              "performance": {
+                "maxToolExecutionTimeMs": 0,
+                "responseTimeMs": 0,
+                "stepTimeMs": 0,
+                "timeToFirstTokenMs": 0,
+                "tokensPerSecond": Infinity,
+              },
               "providerMetadata": undefined,
               "rawFinishReason": "stop",
               "response": {
@@ -10475,6 +10545,13 @@ describe('streamText', () => {
               },
               {
                 "finishReason": "tool-calls",
+                "performance": {
+                  "maxToolExecutionTimeMs": 0,
+                  "responseTimeMs": 600,
+                  "stepTimeMs": 1000,
+                  "timeToFirstTokenMs": 500,
+                  "tokensPerSecond": 16.666666666666668,
+                },
                 "providerMetadata": undefined,
                 "rawFinishReason": undefined,
                 "response": {
@@ -10532,6 +10609,13 @@ describe('streamText', () => {
               },
               {
                 "finishReason": "stop",
+                "performance": {
+                  "maxToolExecutionTimeMs": 0,
+                  "responseTimeMs": 0,
+                  "stepTimeMs": 0,
+                  "timeToFirstTokenMs": 0,
+                  "tokensPerSecond": Infinity,
+                },
                 "providerMetadata": undefined,
                 "rawFinishReason": "stop",
                 "response": {
@@ -12304,6 +12388,13 @@ describe('streamText', () => {
               },
               {
                 "finishReason": "tool-calls",
+                "performance": {
+                  "maxToolExecutionTimeMs": 0,
+                  "responseTimeMs": 600,
+                  "stepTimeMs": 1000,
+                  "timeToFirstTokenMs": 500,
+                  "tokensPerSecond": 16.666666666666668,
+                },
                 "providerMetadata": undefined,
                 "rawFinishReason": undefined,
                 "response": {
@@ -12361,6 +12452,13 @@ describe('streamText', () => {
               },
               {
                 "finishReason": "stop",
+                "performance": {
+                  "maxToolExecutionTimeMs": 0,
+                  "responseTimeMs": 0,
+                  "stepTimeMs": 0,
+                  "timeToFirstTokenMs": 0,
+                  "tokensPerSecond": Infinity,
+                },
                 "providerMetadata": undefined,
                 "rawFinishReason": "stop",
                 "response": {
@@ -13969,6 +14067,13 @@ describe('streamText', () => {
               },
               {
                 "finishReason": "stop",
+                "performance": {
+                  "maxToolExecutionTimeMs": 0,
+                  "responseTimeMs": 0,
+                  "stepTimeMs": 0,
+                  "timeToFirstTokenMs": 0,
+                  "tokensPerSecond": Infinity,
+                },
                 "providerMetadata": undefined,
                 "rawFinishReason": "stop",
                 "response": {
@@ -14508,6 +14613,13 @@ describe('streamText', () => {
               },
               {
                 "finishReason": "tool-calls",
+                "performance": {
+                  "maxToolExecutionTimeMs": 0,
+                  "responseTimeMs": 0,
+                  "stepTimeMs": 0,
+                  "timeToFirstTokenMs": 0,
+                  "tokensPerSecond": Infinity,
+                },
                 "providerMetadata": undefined,
                 "rawFinishReason": undefined,
                 "response": {
@@ -15707,6 +15819,13 @@ describe('streamText', () => {
             },
             {
               "finishReason": "stop",
+              "performance": {
+                "maxToolExecutionTimeMs": 0,
+                "responseTimeMs": 0,
+                "stepTimeMs": 0,
+                "timeToFirstTokenMs": undefined,
+                "tokensPerSecond": Infinity,
+              },
               "providerMetadata": undefined,
               "rawFinishReason": "stop",
               "response": {
@@ -17179,6 +17298,13 @@ describe('streamText', () => {
                   rawFinishReason: undefined,
                   providerMetadata: undefined,
                   usage: createNullLanguageModelUsage(),
+                  performance: {
+                    stepTimeMs: 0,
+                    responseTimeMs: 0,
+                    tokensPerSecond: 0,
+                    maxToolExecutionTimeMs: 0,
+                    timeToFirstTokenMs: undefined,
+                  },
                   response: {
                     id: 'response-id',
                     modelId: 'mock-model-id',
@@ -17258,6 +17384,13 @@ describe('streamText', () => {
               },
               {
                 "finishReason": "stop",
+                "performance": {
+                  "maxToolExecutionTimeMs": 0,
+                  "responseTimeMs": 0,
+                  "stepTimeMs": 0,
+                  "timeToFirstTokenMs": undefined,
+                  "tokensPerSecond": 0,
+                },
                 "providerMetadata": undefined,
                 "rawFinishReason": undefined,
                 "response": {
@@ -19035,6 +19168,13 @@ describe('streamText', () => {
               },
               {
                 "finishReason": "stop",
+                "performance": {
+                  "maxToolExecutionTimeMs": 0,
+                  "responseTimeMs": 0,
+                  "stepTimeMs": 0,
+                  "timeToFirstTokenMs": 0,
+                  "tokensPerSecond": Infinity,
+                },
                 "providerMetadata": undefined,
                 "rawFinishReason": "stop",
                 "response": {
@@ -19663,6 +19803,13 @@ describe('streamText', () => {
               },
               {
                 "finishReason": "tool-calls",
+                "performance": {
+                  "maxToolExecutionTimeMs": 0,
+                  "responseTimeMs": 0,
+                  "stepTimeMs": 0,
+                  "timeToFirstTokenMs": undefined,
+                  "tokensPerSecond": Infinity,
+                },
                 "providerMetadata": undefined,
                 "rawFinishReason": undefined,
                 "response": {
@@ -20382,6 +20529,13 @@ describe('streamText', () => {
               },
               {
                 "finishReason": "stop",
+                "performance": {
+                  "maxToolExecutionTimeMs": 0,
+                  "responseTimeMs": 0,
+                  "stepTimeMs": 0,
+                  "timeToFirstTokenMs": 0,
+                  "tokensPerSecond": Infinity,
+                },
                 "providerMetadata": undefined,
                 "rawFinishReason": "stop",
                 "response": {
@@ -20620,6 +20774,13 @@ describe('streamText', () => {
               },
               {
                 "finishReason": "stop",
+                "performance": {
+                  "maxToolExecutionTimeMs": 0,
+                  "responseTimeMs": 0,
+                  "stepTimeMs": 0,
+                  "timeToFirstTokenMs": undefined,
+                  "tokensPerSecond": Infinity,
+                },
                 "providerMetadata": undefined,
                 "rawFinishReason": "stop",
                 "response": {
@@ -21022,6 +21183,13 @@ describe('streamText', () => {
               },
               {
                 "finishReason": "stop",
+                "performance": {
+                  "maxToolExecutionTimeMs": 0,
+                  "responseTimeMs": 0,
+                  "stepTimeMs": 0,
+                  "timeToFirstTokenMs": 0,
+                  "tokensPerSecond": Infinity,
+                },
                 "providerMetadata": undefined,
                 "rawFinishReason": "stop",
                 "response": {
@@ -22364,6 +22532,13 @@ describe('streamText', () => {
                 },
                 {
                   "finishReason": "tool-calls",
+                  "performance": {
+                    "maxToolExecutionTimeMs": 0,
+                    "responseTimeMs": 0,
+                    "stepTimeMs": 0,
+                    "timeToFirstTokenMs": 0,
+                    "tokensPerSecond": Infinity,
+                  },
                   "providerMetadata": {
                     "anthropic": {
                       "container": {
@@ -22428,6 +22603,13 @@ describe('streamText', () => {
                 },
                 {
                   "finishReason": "tool-calls",
+                  "performance": {
+                    "maxToolExecutionTimeMs": 0,
+                    "responseTimeMs": 0,
+                    "stepTimeMs": 0,
+                    "timeToFirstTokenMs": undefined,
+                    "tokensPerSecond": NaN,
+                  },
                   "providerMetadata": {
                     "anthropic": {
                       "container": {
@@ -22492,6 +22674,13 @@ describe('streamText', () => {
                 },
                 {
                   "finishReason": "tool-calls",
+                  "performance": {
+                    "maxToolExecutionTimeMs": 0,
+                    "responseTimeMs": 0,
+                    "stepTimeMs": 0,
+                    "timeToFirstTokenMs": undefined,
+                    "tokensPerSecond": NaN,
+                  },
                   "providerMetadata": {
                     "anthropic": {
                       "container": {
@@ -22556,6 +22745,13 @@ describe('streamText', () => {
                 },
                 {
                   "finishReason": "tool-calls",
+                  "performance": {
+                    "maxToolExecutionTimeMs": 0,
+                    "responseTimeMs": 0,
+                    "stepTimeMs": 0,
+                    "timeToFirstTokenMs": undefined,
+                    "tokensPerSecond": NaN,
+                  },
                   "providerMetadata": {
                     "anthropic": {
                       "container": {
@@ -22688,6 +22884,13 @@ describe('streamText', () => {
                 },
                 {
                   "finishReason": "stop",
+                  "performance": {
+                    "maxToolExecutionTimeMs": 0,
+                    "responseTimeMs": 0,
+                    "stepTimeMs": 0,
+                    "timeToFirstTokenMs": 0,
+                    "tokensPerSecond": Infinity,
+                  },
                   "providerMetadata": undefined,
                   "rawFinishReason": "stop",
                   "response": {
@@ -23212,6 +23415,13 @@ describe('streamText', () => {
               },
               {
                 "finishReason": "tool-calls",
+                "performance": {
+                  "maxToolExecutionTimeMs": 0,
+                  "responseTimeMs": 0,
+                  "stepTimeMs": 0,
+                  "timeToFirstTokenMs": undefined,
+                  "tokensPerSecond": Infinity,
+                },
                 "providerMetadata": undefined,
                 "rawFinishReason": undefined,
                 "response": {
@@ -24020,6 +24230,13 @@ describe('streamText', () => {
               },
               {
                 "finishReason": "tool-calls",
+                "performance": {
+                  "maxToolExecutionTimeMs": 0,
+                  "responseTimeMs": 0,
+                  "stepTimeMs": 0,
+                  "timeToFirstTokenMs": undefined,
+                  "tokensPerSecond": Infinity,
+                },
                 "providerMetadata": undefined,
                 "rawFinishReason": undefined,
                 "response": {
@@ -24601,6 +24818,13 @@ describe('streamText', () => {
               },
               {
                 "finishReason": "stop",
+                "performance": {
+                  "maxToolExecutionTimeMs": 0,
+                  "responseTimeMs": 0,
+                  "stepTimeMs": 0,
+                  "timeToFirstTokenMs": 0,
+                  "tokensPerSecond": Infinity,
+                },
                 "providerMetadata": undefined,
                 "rawFinishReason": "stop",
                 "response": {
@@ -25045,6 +25269,13 @@ describe('streamText', () => {
               },
               {
                 "finishReason": "stop",
+                "performance": {
+                  "maxToolExecutionTimeMs": 0,
+                  "responseTimeMs": 0,
+                  "stepTimeMs": 0,
+                  "timeToFirstTokenMs": 0,
+                  "tokensPerSecond": Infinity,
+                },
                 "providerMetadata": undefined,
                 "rawFinishReason": "stop",
                 "response": {
@@ -25350,6 +25581,13 @@ describe('streamText', () => {
               },
               {
                 "finishReason": "stop",
+                "performance": {
+                  "maxToolExecutionTimeMs": 0,
+                  "responseTimeMs": 0,
+                  "stepTimeMs": 0,
+                  "timeToFirstTokenMs": 0,
+                  "tokensPerSecond": Infinity,
+                },
                 "providerMetadata": undefined,
                 "rawFinishReason": "stop",
                 "response": {
@@ -25525,6 +25763,13 @@ describe('streamText', () => {
                 },
                 {
                   "finishReason": "tool-calls",
+                  "performance": {
+                    "maxToolExecutionTimeMs": 0,
+                    "responseTimeMs": 0,
+                    "stepTimeMs": 0,
+                    "timeToFirstTokenMs": undefined,
+                    "tokensPerSecond": Infinity,
+                  },
                   "providerMetadata": undefined,
                   "rawFinishReason": undefined,
                   "response": {

@@ -154,17 +154,6 @@ const originalGenerateCallId = createIdGenerator({
   size: 24,
 });
 
-const finishStepPerformance = new WeakMap<
-  TextStreamPart<ToolSet>,
-  {
-    stepTimeMs: number;
-    responseTimeMs: number;
-    tokensPerSecond: number;
-    maxToolExecutionTimeMs: number;
-    timeToFirstTokenMs: number | undefined;
-  }
->();
-
 export type StreamTextInclude = {
   /**
    * Whether to retain the request body in step results.
@@ -1155,14 +1144,6 @@ class DefaultStreamTextResult<
         }
 
         if (part.type === 'finish-step') {
-          const performance = finishStepPerformance.get(part) ?? {
-            stepTimeMs: 0,
-            responseTimeMs: 0,
-            tokensPerSecond: 0,
-            maxToolExecutionTimeMs: 0,
-            timeToFirstTokenMs: undefined,
-          };
-
           const stepResponseMessages = await toResponseMessages({
             content: recordedContent,
             tools,
@@ -1181,9 +1162,7 @@ class DefaultStreamTextResult<
               finishReason: part.finishReason,
               rawFinishReason: part.rawFinishReason,
               usage: part.usage,
-              performance: {
-                ...performance,
-              },
+              performance: part.performance,
               warnings: recordedWarnings,
               request: {
                 ...recordedRequest,
@@ -1989,19 +1968,19 @@ class DefaultStreamTextResult<
                     finishReason: stepFinishReason,
                     rawFinishReason: stepRawFinishReason,
                     usage: stepUsage,
+                    performance: {
+                      stepTimeMs,
+                      responseTimeMs,
+                      tokensPerSecond,
+                      maxToolExecutionTimeMs,
+                      timeToFirstTokenMs,
+                    },
                     providerMetadata: stepProviderMetadata,
                     response: {
                       ...stepResponse,
                       headers: response?.headers,
                     },
                   };
-                  finishStepPerformance.set(finishStepPart, {
-                    stepTimeMs,
-                    responseTimeMs,
-                    tokensPerSecond,
-                    maxToolExecutionTimeMs,
-                    timeToFirstTokenMs,
-                  });
 
                   controller.enqueue(finishStepPart);
 
