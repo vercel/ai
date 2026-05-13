@@ -4,7 +4,7 @@ import { print } from '../../lib/print';
 import { run } from '../../lib/run';
 
 // API-key auth path. Set in .env or shell:
-//   AWS_REGION=us-west-2
+//   AWS_REGION=us-east-2
 //   ANTHROPIC_AWS_WORKSPACE_ID=wrkspc_…
 //   ANTHROPIC_AWS_API_KEY=sk-…
 const anthropicAws = createAnthropicAws();

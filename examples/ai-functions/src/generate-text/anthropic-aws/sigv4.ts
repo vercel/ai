@@ -8,7 +8,7 @@ import { run } from '../../lib/run';
 // or any other source the AWS SDK normally resolves.
 //
 // Required env vars:
-//   AWS_REGION=us-west-2
+//   AWS_REGION=us-east-2
 //   ANTHROPIC_AWS_WORKSPACE_ID=wrkspc_…
 const anthropicAws = createAnthropicAws();
 
