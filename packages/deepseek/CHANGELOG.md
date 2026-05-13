@@ -1,5 +1,11 @@
 # @ai-sdk/deepseek
 
+## 2.0.35
+
+### Patch Changes
+
+- c70e921: Accept `thinking.type: 'adaptive'` and the full `reasoningEffort` enum (`low`, `medium`, `high`, `xhigh`, `max`) for the DeepSeek provider.
+
 ## 2.0.34
 
 ### Patch Changes
