@@ -1813,7 +1813,6 @@ class DefaultStreamTextResult<
                   }
 
                   if (stepFirstChunk) {
-                    const msToFirstChunk = now() - stepStartTimestampMs;
                     stepFirstChunk = false;
 
                     // Step start:
@@ -1821,17 +1820,6 @@ class DefaultStreamTextResult<
                       type: 'start-step',
                       request: stepRequest,
                       warnings: warnings ?? [],
-                    });
-
-                    void telemetryDispatcher.onChunk?.({
-                      chunk: {
-                        type: 'ai.stream.firstChunk',
-                        callId,
-                        stepNumber: recordedSteps.length,
-                        attributes: {
-                          'ai.response.msToFirstChunk': msToFirstChunk,
-                        },
-                      },
                     });
                   }
 
@@ -1914,18 +1902,6 @@ class DefaultStreamTextResult<
                       responseTimeMs = chunk.performance.responseTimeMs;
                       tokensPerSecond = chunk.performance.tokensPerSecond;
                       timeToFirstTokenMs = chunk.performance.timeToFirstTokenMs;
-                      void telemetryDispatcher.onChunk?.({
-                        chunk: {
-                          type: 'ai.stream.finish',
-                          callId,
-                          stepNumber: recordedSteps.length,
-                          attributes: {
-                            'ai.response.msToFinish': responseTimeMs,
-                            'ai.response.avgOutputTokensPerSecond':
-                              tokensPerSecond,
-                          },
-                        },
-                      });
 
                       break;
                     }

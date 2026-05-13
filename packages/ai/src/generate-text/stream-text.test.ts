@@ -26720,21 +26720,16 @@ describe('streamText', () => {
 
       expect(chunks.map(c => c.type)).toMatchInlineSnapshot(`
         [
-          "ai.stream.firstChunk",
           "text-start",
           "text-delta",
           "text-delta",
           "text-end",
           "tool-call",
-          "ai.stream.finish",
           "tool-result",
         ]
       `);
 
-      const contentChunks = chunks.filter(
-        c => c.type !== 'ai.stream.firstChunk' && c.type !== 'ai.stream.finish',
-      );
-      expect(contentChunks).toMatchInlineSnapshot(`
+      expect(chunks).toMatchInlineSnapshot(`
         [
           {
             "id": "1",
