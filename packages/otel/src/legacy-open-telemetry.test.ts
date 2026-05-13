@@ -1808,11 +1808,11 @@ function createStreamTestModel({
 }
 
 function mockTokenStreamTextTelemetryNow() {
-  return mockValues(0, 0, 100, 100, 500);
+  return mockValues(0, 0, 100, 500, 500);
 }
 
 function mockToolOnlyStreamTextTelemetryNow() {
-  return mockValues(0, 0, 100, 500);
+  return mockValues(0, 0, 500, 500);
 }
 
 function mockTwoStepStreamTextTelemetryNow() {
@@ -1820,11 +1820,10 @@ function mockTwoStepStreamTextTelemetryNow() {
     0,
     0,
     100,
-    100,
+    500,
     500,
     600,
     600,
-    1000,
     1000,
     1000,
     1400,
