@@ -1238,7 +1238,23 @@ class DefaultStreamTextResult<
 
           // call onFinish callback:
           const finalStep = recordedSteps[recordedSteps.length - 1];
+          const content = recordedSteps.flatMap(step => step.content);
           const files = recordedSteps.flatMap(step => step.files);
+          const sources = recordedSteps.flatMap(step => step.sources);
+          const toolCalls = recordedSteps.flatMap(step => step.toolCalls);
+          const staticToolCalls = recordedSteps.flatMap(
+            step => step.staticToolCalls,
+          );
+          const dynamicToolCalls = recordedSteps.flatMap(
+            step => step.dynamicToolCalls,
+          );
+          const toolResults = recordedSteps.flatMap(step => step.toolResults);
+          const staticToolResults = recordedSteps.flatMap(
+            step => step.staticToolResults,
+          );
+          const dynamicToolResults = recordedSteps.flatMap(
+            step => step.dynamicToolResults,
+          );
           const warnings = recordedSteps.flatMap(step => step.warnings ?? []);
 
           await notify({
@@ -1251,19 +1267,19 @@ class DefaultStreamTextResult<
               finishReason: finalStep.finishReason,
               rawFinishReason: finalStep.rawFinishReason,
               totalUsage,
-              usage: finalStep.usage,
-              content: finalStep.content,
+              usage: totalUsage,
+              content,
               text: finalStep.text,
               reasoningText: finalStep.reasoningText,
               reasoning: finalStep.reasoning,
               files,
-              sources: finalStep.sources,
-              toolCalls: finalStep.toolCalls,
-              staticToolCalls: finalStep.staticToolCalls,
-              dynamicToolCalls: finalStep.dynamicToolCalls,
-              toolResults: finalStep.toolResults,
-              staticToolResults: finalStep.staticToolResults,
-              dynamicToolResults: finalStep.dynamicToolResults,
+              sources,
+              toolCalls,
+              staticToolCalls,
+              dynamicToolCalls,
+              toolResults,
+              staticToolResults,
+              dynamicToolResults,
               request: finalStep.request,
               response: finalStep.response,
               responseMessages: [
@@ -1273,6 +1289,7 @@ class DefaultStreamTextResult<
               warnings,
               providerMetadata: finalStep.providerMetadata,
               steps: recordedSteps,
+              finalStep,
             },
             callbacks: [onFinish, telemetryDispatcher.onEnd],
           });

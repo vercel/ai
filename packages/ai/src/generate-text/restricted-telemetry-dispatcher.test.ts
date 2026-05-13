@@ -264,6 +264,7 @@ describe('createRestrictedTelemetryDispatcher', () => {
       text: 'Hello',
       runtimeContext,
       steps: [step],
+      finalStep: step,
       totalUsage: createNullLanguageModelUsage(),
     } as any);
 
@@ -275,6 +276,7 @@ describe('createRestrictedTelemetryDispatcher', () => {
     expect(telemetryEvent.steps[0].runtimeContext).toEqual({
       requestId: 'request-123',
     });
+    expect(telemetryEvent.finalStep).toBe(telemetryEvent.steps[0]);
     expect(telemetryEvent.text).toBe('Hello');
     expect(step.runtimeContext).toEqual(runtimeContext);
   });
@@ -294,6 +296,7 @@ describe('createRestrictedTelemetryDispatcher', () => {
       runtimeContext,
       toolsContext,
       steps: [step],
+      finalStep: step,
       totalUsage: createNullLanguageModelUsage(),
     } as any);
 
@@ -301,6 +304,7 @@ describe('createRestrictedTelemetryDispatcher', () => {
 
     expect(telemetryEvent.toolsContext).toEqual(filteredToolsContext);
     expect(telemetryEvent.steps[0].toolsContext).toEqual(filteredToolsContext);
+    expect(telemetryEvent.finalStep).toBe(telemetryEvent.steps[0]);
     expect(telemetryEvent.text).toBe('Hello');
     expect(step.toolsContext).toEqual(toolsContext);
   });

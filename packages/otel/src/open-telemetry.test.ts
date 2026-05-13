@@ -294,10 +294,13 @@ function makeStepFinishEvent(overrides?: Record<string, unknown>) {
 }
 
 function makeFinishEvent(overrides?: Record<string, unknown>) {
+  const finalStep = makeStepFinishEvent();
+
   return {
-    ...makeStepFinishEvent(),
+    ...finalStep,
     responseMessages: [],
-    steps: [],
+    steps: [finalStep],
+    finalStep,
     totalUsage: {
       inputTokens: 10,
       outputTokens: 20,

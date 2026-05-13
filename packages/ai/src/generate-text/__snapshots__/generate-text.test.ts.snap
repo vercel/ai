@@ -42,6 +42,27 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
   "callId": "test-telemetry-call-id",
   "content": [
     {
+      "input": {
+        "value": "value",
+      },
+      "providerExecuted": undefined,
+      "providerMetadata": undefined,
+      "title": "Tool One",
+      "toolCallId": "call-1",
+      "toolName": "tool1",
+      "type": "tool-call",
+    },
+    {
+      "dynamic": false,
+      "input": {
+        "value": "value",
+      },
+      "output": "result1",
+      "toolCallId": "call-1",
+      "toolName": "tool1",
+      "type": "tool-result",
+    },
+    {
       "text": "Hello, world!",
       "type": "text",
     },
@@ -49,6 +70,66 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
   "dynamicToolCalls": [],
   "dynamicToolResults": [],
   "files": [],
+  "finalStep": DefaultStepResult {
+    "callId": "test-telemetry-call-id",
+    "content": [
+      {
+        "text": "Hello, world!",
+        "type": "text",
+      },
+    ],
+    "finishReason": "stop",
+    "model": {
+      "modelId": "mock-model-id",
+      "provider": "mock-provider",
+    },
+    "providerMetadata": undefined,
+    "rawFinishReason": "stop",
+    "request": {
+      "body": undefined,
+      "messages": undefined,
+    },
+    "response": {
+      "body": undefined,
+      "headers": {
+        "custom-response-header": "response-header-value",
+      },
+      "id": "test-id-2-from-model",
+      "messages": [
+        {
+          "content": [
+            {
+              "providerOptions": undefined,
+              "text": "Hello, world!",
+              "type": "text",
+            },
+          ],
+          "role": "assistant",
+        },
+      ],
+      "modelId": "test-response-model-id",
+      "timestamp": 1970-01-01T00:00:10.000Z,
+    },
+    "runtimeContext": {},
+    "stepNumber": 1,
+    "toolsContext": {},
+    "usage": {
+      "inputTokenDetails": {
+        "cacheReadTokens": undefined,
+        "cacheWriteTokens": undefined,
+        "noCacheTokens": 3,
+      },
+      "inputTokens": 3,
+      "outputTokenDetails": {
+        "reasoningTokens": undefined,
+        "textTokens": 10,
+      },
+      "outputTokens": 10,
+      "raw": undefined,
+      "totalTokens": 13,
+    },
+    "warnings": [],
+  },
   "finishReason": "stop",
   "model": {
     "modelId": "mock-model-id",
@@ -126,8 +207,31 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
   ],
   "runtimeContext": {},
   "sources": [],
-  "staticToolCalls": [],
-  "staticToolResults": [],
+  "staticToolCalls": [
+    {
+      "input": {
+        "value": "value",
+      },
+      "providerExecuted": undefined,
+      "providerMetadata": undefined,
+      "title": "Tool One",
+      "toolCallId": "call-1",
+      "toolName": "tool1",
+      "type": "tool-call",
+    },
+  ],
+  "staticToolResults": [
+    {
+      "dynamic": false,
+      "input": {
+        "value": "value",
+      },
+      "output": "result1",
+      "toolCallId": "call-1",
+      "toolName": "tool1",
+      "type": "tool-result",
+    },
+  ],
   "stepNumber": 1,
   "steps": [
     DefaultStepResult {
@@ -286,8 +390,31 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
     },
   ],
   "text": "Hello, world!",
-  "toolCalls": [],
-  "toolResults": [],
+  "toolCalls": [
+    {
+      "input": {
+        "value": "value",
+      },
+      "providerExecuted": undefined,
+      "providerMetadata": undefined,
+      "title": "Tool One",
+      "toolCallId": "call-1",
+      "toolName": "tool1",
+      "type": "tool-call",
+    },
+  ],
+  "toolResults": [
+    {
+      "dynamic": false,
+      "input": {
+        "value": "value",
+      },
+      "output": "result1",
+      "toolCallId": "call-1",
+      "toolName": "tool1",
+      "type": "tool-result",
+    },
+  ],
   "toolsContext": {},
   "totalUsage": {
     "inputTokenDetails": {
@@ -307,16 +434,15 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
     "inputTokenDetails": {
       "cacheReadTokens": undefined,
       "cacheWriteTokens": undefined,
-      "noCacheTokens": 3,
+      "noCacheTokens": 13,
     },
-    "inputTokens": 3,
+    "inputTokens": 13,
     "outputTokenDetails": {
       "reasoningTokens": undefined,
-      "textTokens": 10,
+      "textTokens": 15,
     },
-    "outputTokens": 10,
-    "raw": undefined,
-    "totalTokens": 13,
+    "outputTokens": 15,
+    "totalTokens": 28,
   },
   "warnings": [],
 }

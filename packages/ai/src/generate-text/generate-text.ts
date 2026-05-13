@@ -1128,6 +1128,13 @@ export async function generateText<
     );
 
     const files = steps.flatMap(step => step.files);
+    const sources = steps.flatMap(step => step.sources);
+    const toolCalls = steps.flatMap(step => step.toolCalls);
+    const staticToolCalls = steps.flatMap(step => step.staticToolCalls);
+    const dynamicToolCalls = steps.flatMap(step => step.dynamicToolCalls);
+    const toolResults = steps.flatMap(step => step.toolResults);
+    const staticToolResults = steps.flatMap(step => step.staticToolResults);
+    const dynamicToolResults = steps.flatMap(step => step.dynamicToolResults);
     const warnings = steps.flatMap(step => step.warnings ?? []);
 
     const onFinishEvent = {
@@ -1137,19 +1144,19 @@ export async function generateText<
       runtimeContext: lastStep.runtimeContext,
       finishReason: lastStep.finishReason,
       rawFinishReason: lastStep.rawFinishReason,
-      usage: lastStep.usage,
-      content: lastStep.content,
+      usage: totalUsage,
+      content: steps.flatMap(step => step.content),
       text: lastStep.text,
       reasoningText: lastStep.reasoningText,
       reasoning: lastStep.reasoning,
       files,
-      sources: lastStep.sources,
-      toolCalls: lastStep.toolCalls,
-      staticToolCalls: lastStep.staticToolCalls,
-      dynamicToolCalls: lastStep.dynamicToolCalls,
-      toolResults: lastStep.toolResults,
-      staticToolResults: lastStep.staticToolResults,
-      dynamicToolResults: lastStep.dynamicToolResults,
+      sources,
+      toolCalls,
+      staticToolCalls,
+      dynamicToolCalls,
+      toolResults,
+      staticToolResults,
+      dynamicToolResults,
       request: lastStep.request,
       response: lastStep.response,
       responseMessages: [
@@ -1159,6 +1166,7 @@ export async function generateText<
       warnings,
       providerMetadata: lastStep.providerMetadata,
       steps,
+      finalStep: lastStep,
       totalUsage,
       toolsContext,
     };

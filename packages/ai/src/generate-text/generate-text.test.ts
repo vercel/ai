@@ -3864,6 +3864,111 @@ describe('generateText', () => {
           "dynamicToolCalls": [],
           "dynamicToolResults": [],
           "files": [],
+          "finalStep": DefaultStepResult {
+            "callId": "test-telemetry-call-id",
+            "content": [
+              {
+                "text": "Hello, World!",
+                "type": "text",
+              },
+              {
+                "input": {
+                  "value": "value",
+                },
+                "providerExecuted": undefined,
+                "providerMetadata": undefined,
+                "title": undefined,
+                "toolCallId": "call-1",
+                "toolName": "tool1",
+                "type": "tool-call",
+              },
+              {
+                "dynamic": false,
+                "input": {
+                  "value": "value",
+                },
+                "output": "value-result",
+                "toolCallId": "call-1",
+                "toolName": "tool1",
+                "type": "tool-result",
+              },
+            ],
+            "finishReason": "stop",
+            "model": {
+              "modelId": "mock-model-id",
+              "provider": "mock-provider",
+            },
+            "providerMetadata": undefined,
+            "rawFinishReason": "stop",
+            "request": {
+              "body": undefined,
+              "messages": undefined,
+            },
+            "response": {
+              "body": undefined,
+              "headers": {
+                "call": "2",
+              },
+              "id": "id-0",
+              "messages": [
+                {
+                  "content": [
+                    {
+                      "providerOptions": undefined,
+                      "text": "Hello, World!",
+                      "type": "text",
+                    },
+                    {
+                      "input": {
+                        "value": "value",
+                      },
+                      "providerExecuted": undefined,
+                      "providerOptions": undefined,
+                      "toolCallId": "call-1",
+                      "toolName": "tool1",
+                      "type": "tool-call",
+                    },
+                  ],
+                  "role": "assistant",
+                },
+                {
+                  "content": [
+                    {
+                      "output": {
+                        "type": "text",
+                        "value": "value-result",
+                      },
+                      "toolCallId": "call-1",
+                      "toolName": "tool1",
+                      "type": "tool-result",
+                    },
+                  ],
+                  "role": "tool",
+                },
+              ],
+              "modelId": "mock-model-id",
+              "timestamp": 1970-01-01T00:00:00.000Z,
+            },
+            "runtimeContext": {},
+            "stepNumber": 0,
+            "toolsContext": {},
+            "usage": {
+              "inputTokenDetails": {
+                "cacheReadTokens": undefined,
+                "cacheWriteTokens": undefined,
+                "noCacheTokens": 3,
+              },
+              "inputTokens": 3,
+              "outputTokenDetails": {
+                "reasoningTokens": undefined,
+                "textTokens": 10,
+              },
+              "outputTokens": 10,
+              "raw": undefined,
+              "totalTokens": 13,
+            },
+            "warnings": [],
+          },
           "finishReason": "stop",
           "model": {
             "modelId": "mock-model-id",
@@ -4146,7 +4251,6 @@ describe('generateText', () => {
               "textTokens": 10,
             },
             "outputTokens": 10,
-            "raw": undefined,
             "totalTokens": 13,
           },
           "warnings": [],
@@ -4361,6 +4465,13 @@ describe('generateText', () => {
             "totalTokens": 13,
           }
         `);
+      });
+
+      it('onFinishResult.usage should sum token usage and finalStep should contain final step usage', () => {
+        expect(onFinishResult.usage).toEqual(result.usage);
+        expect(onFinishResult.totalUsage).toEqual(result.totalUsage);
+        expect(onFinishResult.finalStep).toBe(onFinishResult.steps.at(-1));
+        expect(onFinishResult.finalStep.usage).toEqual(result.finalStep.usage);
       });
 
       it('result.steps should contain all steps', () => {

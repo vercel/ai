@@ -267,10 +267,13 @@ function makeStepFinishEvent(overrides?: Record<string, unknown>) {
 }
 
 function makeFinishEvent(overrides?: Record<string, unknown>) {
+  const finalStep = makeStepFinishEvent();
+
   return {
-    ...makeStepFinishEvent(),
+    ...finalStep,
     responseMessages: [],
-    steps: [],
+    steps: [finalStep],
+    finalStep,
     totalUsage: {
       inputTokens: 10,
       outputTokens: 20,
@@ -3242,6 +3245,7 @@ describe('LegacyOpenTelemetry integration with streamText stopWhen (2 steps with
             "ai.prompt": "{"messages":[{"role":"user","content":"test-input"}]}",
             "ai.response.finishReason": "stop",
             "ai.response.text": "Hello, world!",
+            "ai.response.toolCalls": "[{"toolCallId":"call-1","toolName":"tool1","input":{"value":"value"}}]",
             "ai.settings.maxRetries": 2,
             "ai.usage.cachedInputTokens": 0,
             "ai.usage.inputTokenDetails.cacheReadTokens": 0,

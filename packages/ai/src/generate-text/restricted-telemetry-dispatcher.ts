@@ -223,24 +223,31 @@ export function createRestrictedTelemetryDispatcher<
         }),
       ),
     onEnd: event =>
-      telemetryDispatcher.onEnd?.({
-        ...event,
-        runtimeContext: filterIncludedContext({
-          context: event.runtimeContext,
-          includeContext: includeRuntimeContext,
-        }),
-        steps: event.steps.map(step =>
-          restrictStepResult({
-            step,
-            includeRuntimeContext,
-            includeToolsContext,
-          }),
+      telemetryDispatcher.onEnd?.(
+        ((restrictedSteps: StepResult<TOOLS, Context>[]) => {
+          return {
+            ...event,
+            runtimeContext: filterIncludedContext({
+              context: event.runtimeContext,
+              includeContext: includeRuntimeContext,
+            }),
+            steps: restrictedSteps,
+            finalStep: restrictedSteps.at(-1)!,
+            toolsContext: filterToolsContext({
+              toolsContext: event.toolsContext,
+              includeToolsContext,
+            }),
+          };
+        })(
+          event.steps.map(step =>
+            restrictStepResult({
+              step,
+              includeRuntimeContext,
+              includeToolsContext,
+            }),
+          ),
         ),
-        toolsContext: filterToolsContext({
-          toolsContext: event.toolsContext,
-          includeToolsContext,
-        }),
-      }),
+      ),
     onToolExecutionStart: event =>
       telemetryDispatcher.onToolExecutionStart?.({
         ...event,
