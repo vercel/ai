@@ -240,6 +240,11 @@ function makeLanguageModelCallEndEvent(overrides?: Record<string, unknown>) {
     },
     content: [{ type: 'text', text: 'Hello world' }],
     responseId: 'test-response-id',
+    performance: {
+      responseTimeMs: 1000,
+      tokensPerSecond: 20,
+      timeToFirstTokenMs: undefined,
+    },
     ...overrides,
   } as Parameters<NonNullable<Telemetry['onLanguageModelCallEnd']>>[0];
 }
