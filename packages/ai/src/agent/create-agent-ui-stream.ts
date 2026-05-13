@@ -111,10 +111,11 @@ export async function createAgentUIStream<
   const originalMessages =
     uiMessageStreamOptions.originalMessages ?? validatedMessages;
 
-  type AgentUIMessage = UIMessage<MESSAGE_METADATA, never, InferUITools<TOOLS>>;
-
   return createAsyncIterableStream(
-    toUIMessageChunkStream<TOOLS, AgentUIMessage>({
+    toUIMessageChunkStream<
+      TOOLS,
+      UIMessage<MESSAGE_METADATA, never, InferUITools<TOOLS>>
+    >({
       ...uiMessageStreamOptions,
       originalMessages,
       stream: result.fullStream,
