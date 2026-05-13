@@ -190,10 +190,18 @@ export type GenerateTextEndEvent<
   /** The text that was generated in the final step. */
   readonly text: StepResult<TOOLS, RUNTIME_CONTEXT>['text'];
 
-  /** The reasoning that was generated in the final step. */
+  /**
+   * The reasoning that was generated in the final step.
+   *
+   * @deprecated Use `finalStep.reasoning` instead.
+   */
   readonly reasoning: StepResult<TOOLS, RUNTIME_CONTEXT>['reasoning'];
 
-  /** The reasoning text that was generated in the final step. */
+  /**
+   * The reasoning text that was generated in the final step.
+   *
+   * @deprecated Use `finalStep.reasoningText` instead.
+   */
   readonly reasoningText: StepResult<TOOLS, RUNTIME_CONTEXT>['reasoningText'];
 
   /** Files that were generated in all steps. */
@@ -247,13 +255,25 @@ export type GenerateTextEndEvent<
   /** Warnings from the model provider in all steps. */
   readonly warnings: StepResult<TOOLS, RUNTIME_CONTEXT>['warnings'];
 
-  /** Additional request information from the final step. */
+  /**
+   * Additional request information from the final step.
+   *
+   * @deprecated Use `finalStep.request` instead.
+   */
   readonly request: StepResult<TOOLS, RUNTIME_CONTEXT>['request'];
 
-  /** Additional response information from the final step. */
+  /**
+   * Additional response information from the final step.
+   *
+   * @deprecated Use `finalStep.response` instead.
+   */
   readonly response: StepResult<TOOLS, RUNTIME_CONTEXT>['response'];
 
-  /** Additional provider-specific metadata from the final step. */
+  /**
+   * Additional provider-specific metadata from the final step.
+   *
+   * @deprecated Use `finalStep.providerMetadata` instead.
+   */
   readonly providerMetadata: StepResult<
     TOOLS,
     RUNTIME_CONTEXT
@@ -268,7 +288,11 @@ export type GenerateTextEndEvent<
   /** The final step. This is a shortcut for `steps.at(-1)`. */
   readonly finalStep: StepResult<TOOLS, RUNTIME_CONTEXT>;
 
-  /** Aggregated token usage across all steps. */
+  /**
+   * Aggregated token usage across all steps.
+   *
+   * @deprecated Use `usage` instead.
+   */
   readonly totalUsage: LanguageModelUsage;
 };
 
