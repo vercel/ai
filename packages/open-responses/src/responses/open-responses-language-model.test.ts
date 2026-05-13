@@ -516,7 +516,7 @@ describe('OpenResponsesLanguageModel', () => {
     });
 
     describe('pdf input file', () => {
-      function getPdfPrompt(): LanguageModelV4Prompt {
+      function getPdfPrompt(): LanguageModelV3Prompt {
         return [
           {
             role: 'user',
@@ -540,7 +540,7 @@ describe('OpenResponsesLanguageModel', () => {
         ];
       }
 
-      let result: LanguageModelV4GenerateResult;
+      let result: LanguageModelV3GenerateResult;
 
       beforeEach(async () => {
         prepareJsonFixtureResponse('openai-pdf-input-file.1');
