@@ -527,12 +527,9 @@ describe('OpenResponsesLanguageModel', () => {
               },
               {
                 type: 'file',
-                data: {
-                  type: 'url',
-                  url: new globalThis.URL(
-                    'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
-                  ),
-                },
+                data: new globalThis.URL(
+                  'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+                ),
                 mediaType: 'application/pdf',
               },
             ],
@@ -677,12 +674,9 @@ describe('OpenResponsesLanguageModel', () => {
                 },
                 {
                   type: 'file',
-                  data: {
-                    type: 'url',
-                    url: new globalThis.URL(
-                      'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
-                    ),
-                  },
+                  data: new globalThis.URL(
+                    'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+                  ),
                   mediaType: 'application/pdf',
                 },
               ],

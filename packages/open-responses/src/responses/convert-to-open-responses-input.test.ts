@@ -234,10 +234,7 @@ describe('convertToOpenResponsesInput', () => {
             content: [
               {
                 type: 'file',
-                data: {
-                  type: 'url' as const,
-                  url: new URL('https://example.com/document.pdf'),
-                },
+                data: new URL('https://example.com/document.pdf'),
                 mediaType: 'application/pdf',
               },
             ],
@@ -270,7 +267,7 @@ describe('convertToOpenResponsesInput', () => {
             content: [
               {
                 type: 'file',
-                data: { type: 'data' as const, data: 'UERGREFUQQ==' },
+                data: 'UERGREFUQQ==',
                 mediaType: 'application/pdf',
                 filename: 'report.pdf',
               },
