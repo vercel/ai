@@ -1,5 +1,12 @@
 # @ai-sdk/openai
 
+## 4.0.0-canary.56
+
+### Patch Changes
+
+- Updated dependencies [105f95b]
+  - @ai-sdk/provider-utils@5.0.0-canary.39
+
 ## 4.0.0-canary.55
 
 ### Patch Changes

@@ -9,8 +9,8 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@ai-sdk/google-vertex": "5.0.0-canary.79",
-    "ai": "7.0.0-canary.134",
+    "@ai-sdk/google-vertex": "5.0.0-canary.80",
+    "ai": "7.0.0-canary.135",
     "geist": "^1.3.1",
     "next": "^15.5.9",
     "react": "^18",
