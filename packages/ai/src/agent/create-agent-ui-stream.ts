@@ -45,6 +45,8 @@ export async function createAgentUIStream<
   RUNTIME_CONTEXT extends Context = Context,
   OUTPUT extends Output = never,
   MESSAGE_METADATA = unknown,
+  UI_MESSAGE extends UIMessage<MESSAGE_METADATA, never, InferUITools<TOOLS>> =
+    UIMessage<MESSAGE_METADATA, never, InferUITools<TOOLS>>,
 >({
   agent,
   uiMessages,
@@ -65,30 +67,17 @@ export async function createAgentUIStream<
   experimental_transform?: Arrayable<StreamTextTransform<TOOLS>>;
   onStepFinish?: GenerateTextOnStepFinishCallback<TOOLS>;
   // TODO `originalMessages` is part of this for bc, omit in v7
-} & UIMessageStreamOptions<
-  UIMessage<MESSAGE_METADATA, never, InferUITools<TOOLS>>
->): Promise<
-  AsyncIterableStream<
-    InferUIMessageChunk<UIMessage<MESSAGE_METADATA, never, InferUITools<TOOLS>>>
-  >
+} & UIMessageStreamOptions<UI_MESSAGE>): Promise<
+  AsyncIterableStream<InferUIMessageChunk<UI_MESSAGE>>
 > {
-  const validatedMessages = await validateUIMessages<
-    UIMessage<MESSAGE_METADATA, never, InferUITools<TOOLS>>
-  >({
+  const validatedMessages = await validateUIMessages<UI_MESSAGE>({
     messages: uiMessages,
     // tools are compatible; the casting is required because the context param is
     // not available in ui messages
     tools: agent.tools as unknown as {
-      [NAME in keyof InferUIMessageTools<
-        UIMessage<MESSAGE_METADATA, never, InferUITools<TOOLS>>
-      > &
-        string]?: Tool<
-        InferUIMessageTools<
-          UIMessage<MESSAGE_METADATA, never, InferUITools<TOOLS>>
-        >[NAME]['input'],
-        InferUIMessageTools<
-          UIMessage<MESSAGE_METADATA, never, InferUITools<TOOLS>>
-        >[NAME]['output']
+      [NAME in keyof InferUIMessageTools<UI_MESSAGE> & string]?: Tool<
+        InferUIMessageTools<UI_MESSAGE>[NAME]['input'],
+        InferUIMessageTools<UI_MESSAGE>[NAME]['output']
       >;
     },
   });
@@ -112,10 +101,7 @@ export async function createAgentUIStream<
     uiMessageStreamOptions.originalMessages ?? validatedMessages;
 
   return createAsyncIterableStream(
-    toUIMessageChunkStream<
-      TOOLS,
-      UIMessage<MESSAGE_METADATA, never, InferUITools<TOOLS>>
-    >({
+    toUIMessageChunkStream<TOOLS, UI_MESSAGE>({
       ...uiMessageStreamOptions,
       originalMessages,
       stream: result.fullStream,
