@@ -1,8 +1,8 @@
 import { z } from 'zod/v4';
 
 export type XaiResponsesModelId =
-  | 'grok-4.20-0309-non-reasoning'
-  | 'grok-4.20-0309-reasoning'
+  | 'grok-4.20-non-reasoning'
+  | 'grok-4.20-reasoning'
   | 'grok-4.3'
   | 'grok-latest'
   | (string & {});
