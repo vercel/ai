@@ -1,5 +1,11 @@
 # @ai-sdk/open-responses
 
+## 1.0.16
+
+### Patch Changes
+
+- 16a5de5: fix(open-responses): map non-image file parts to input_file
+
 ## 1.0.15
 
 ### Patch Changes
