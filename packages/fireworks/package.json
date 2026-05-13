@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/fireworks",
-  "version": "3.0.0-canary.46",
+  "version": "3.0.0-canary.47",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
