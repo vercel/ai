@@ -502,22 +502,6 @@ export type TextStreamFinishStepPart = {
   type: 'finish-step';
   response: Omit<LanguageModelResponseMetadata, 'messages' | 'body'>;
   usage: LanguageModelUsage;
-  /**
-   * @internal
-   */
-  experimental_stepTimeMs?: number;
-  /**
-   * @internal
-   */
-  experimental_responseTimeMs?: number;
-  /**
-   * @internal
-   */
-  experimental_maxToolExecutionTimeMs?: number;
-  /**
-   * @internal
-   */
-  experimental_timeToFirstTokenMs?: number | undefined;
   finishReason: FinishReason;
   rawFinishReason: string | undefined;
   providerMetadata: ProviderMetadata | undefined;

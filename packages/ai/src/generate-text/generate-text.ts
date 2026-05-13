@@ -58,6 +58,7 @@ import { prepareRetries } from '../util/prepare-retries';
 import { setAbortTimeout } from '../util/set-abort-timeout';
 import { VERSION } from '../version';
 import type { ActiveTools } from './active-tools';
+import { calculateTokensPerSecond } from './calculate-tokens-per-second';
 import { collectToolApprovals } from './collect-tool-approvals';
 import type { ContentPart } from './content-part';
 import { executeToolCall } from './execute-tool-call';
@@ -1008,8 +1009,10 @@ export async function generateText<
 
         const stepTimeMs = now() - stepStartTimestampMs;
         const stepPerformance: StepResultPerformance = {
-          tokensPerSecond:
-            (1000 * (stepUsage.outputTokens ?? 0)) / responseTimeMs,
+          tokensPerSecond: calculateTokensPerSecond({
+            outputTokens: stepUsage.outputTokens,
+            responseTimeMs,
+          }),
           stepTimeMs,
           responseTimeMs,
           maxToolExecutionTimeMs,

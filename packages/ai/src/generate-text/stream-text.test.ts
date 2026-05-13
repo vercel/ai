@@ -17164,32 +17164,18 @@ describe('streamText', () => {
               if (chunk.text.includes('STOP')) {
                 stopStream();
 
-                controller.enqueue(
-                  Object.defineProperties(
-                    {
-                      type: 'finish-step',
-                      finishReason: 'stop',
-                      rawFinishReason: undefined,
-                      providerMetadata: undefined,
-                      usage: createNullLanguageModelUsage(),
-                      response: {
-                        id: 'response-id',
-                        modelId: 'mock-model-id',
-                        timestamp: new Date(0),
-                      },
-                    },
-                    {
-                      experimental_stepTimeMs: {
-                        value: 0,
-                        enumerable: false,
-                      },
-                      experimental_timeToFirstTokenMs: {
-                        value: undefined,
-                        enumerable: false,
-                      },
-                    },
-                  ),
-                );
+                controller.enqueue({
+                  type: 'finish-step',
+                  finishReason: 'stop',
+                  rawFinishReason: undefined,
+                  providerMetadata: undefined,
+                  usage: createNullLanguageModelUsage(),
+                  response: {
+                    id: 'response-id',
+                    modelId: 'mock-model-id',
+                    timestamp: new Date(0),
+                  },
+                });
 
                 controller.enqueue({
                   type: 'finish',
