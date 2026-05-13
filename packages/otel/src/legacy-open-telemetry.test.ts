@@ -253,6 +253,13 @@ function makeStepFinishEvent(overrides?: Record<string, unknown>) {
         reasoningTokens: undefined,
       },
     },
+    performance: {
+      tokensPerSecond: 20,
+      stepTimeMs: 1000,
+      responseTimeMs: 1000,
+      toolExecutionMs: {},
+      timeToFirstTokenMs: undefined,
+    },
     warnings: undefined,
     request: { body: undefined, messages: [] },
     response: {
@@ -336,7 +343,7 @@ function makeToolCallFinishEvent(
       input: { query: 'test' },
     },
     abortSignal: undefined,
-    durationMs: 42,
+    toolExecutionMs: 42,
     ...telemetryFields(),
     messages: [],
     toolContext: {},
@@ -1825,6 +1832,32 @@ function createStreamTestModel({
   });
 }
 
+function mockTokenStreamTextTelemetryNow() {
+  return mockValues(0, 0, 100, 100, 500);
+}
+
+function mockToolOnlyStreamTextTelemetryNow() {
+  return mockValues(0, 0, 100, 500);
+}
+
+function mockTwoStepStreamTextTelemetryNow() {
+  return mockValues(
+    0,
+    0,
+    100,
+    100,
+    500,
+    600,
+    600,
+    1000,
+    1000,
+    1000,
+    1400,
+    1400,
+    1400,
+  );
+}
+
 describe('LegacyOpenTelemetry integration with streamText', () => {
   let tracer: IntegrationMockTracer;
 
@@ -1840,7 +1873,7 @@ describe('LegacyOpenTelemetry integration with streamText', () => {
         integrations: new LegacyOpenTelemetry({ tracer }),
       },
       _internal: {
-        now: mockValues(0, 100, 500),
+        now: mockTokenStreamTextTelemetryNow(),
       },
     });
 
@@ -1876,7 +1909,7 @@ describe('LegacyOpenTelemetry integration with streamText', () => {
         },
         integrations: new LegacyOpenTelemetry({ tracer }),
       },
-      _internal: { now: mockValues(0, 100, 500) },
+      _internal: { now: mockTokenStreamTextTelemetryNow() },
     });
 
     await result.consumeStream();
@@ -1918,7 +1951,7 @@ describe('LegacyOpenTelemetry integration with streamText', () => {
         isEnabled: true,
         integrations: new LegacyOpenTelemetry({ tracer }),
       },
-      _internal: { now: mockValues(0, 100, 500) },
+      _internal: { now: mockToolOnlyStreamTextTelemetryNow() },
     });
 
     await result.consumeStream();
@@ -1962,7 +1995,7 @@ describe('LegacyOpenTelemetry integration with streamText', () => {
         isEnabled: true,
         integrations: new LegacyOpenTelemetry({ tracer }),
       },
-      _internal: { now: mockValues(0, 100, 500) },
+      _internal: { now: mockToolOnlyStreamTextTelemetryNow() },
     });
 
     await result.consumeStream();
@@ -2028,7 +2061,7 @@ describe('LegacyOpenTelemetry integration with streamText', () => {
         recordOutputs: false,
         integrations: new LegacyOpenTelemetry({ tracer }),
       },
-      _internal: { now: mockValues(0, 100, 500) },
+      _internal: { now: mockToolOnlyStreamTextTelemetryNow() },
     });
 
     await result.consumeStream();
@@ -2073,7 +2106,7 @@ describe('LegacyOpenTelemetry integration with streamText', () => {
         isEnabled: true,
         integrations: new LegacyOpenTelemetry({ tracer }),
       },
-      _internal: { now: mockValues(0, 100, 500) },
+      _internal: { now: mockTokenStreamTextTelemetryNow() },
     });
 
     await result.consumeStream();
@@ -2155,7 +2188,7 @@ describe('LegacyOpenTelemetry integration with streamText', () => {
                 functionId: `sub-agent-${city.toLowerCase()}`,
                 integrations: otelIntegration,
               },
-              _internal: { now: mockValues(0, 100, 500) },
+              _internal: { now: mockTokenStreamTextTelemetryNow() },
               onError: () => {},
             });
 
@@ -2182,7 +2215,7 @@ describe('LegacyOpenTelemetry integration with streamText', () => {
         ],
       },
       _internal: {
-        now: mockValues(0, 100, 500),
+        now: mockToolOnlyStreamTextTelemetryNow(),
         generateId: mockId({ prefix: 'id' }),
         generateCallId: () => 'outer-test-call-id',
       },
@@ -3133,7 +3166,7 @@ describe('LegacyOpenTelemetry integration with streamText stopWhen (2 steps)', (
       },
       stopWhen: isStepCount(3),
       _internal: {
-        now: mockValues(0, 100, 500, 600, 1000),
+        now: mockTwoStepStreamTextTelemetryNow(),
         generateId: mockId({ prefix: 'id' }),
         generateCallId: () => 'test-telemetry-call-id',
       },
@@ -3240,7 +3273,7 @@ describe('LegacyOpenTelemetry integration with streamText stopWhen (2 steps with
       },
       stopWhen: isStepCount(3),
       _internal: {
-        now: mockValues(0, 100, 500, 600, 1000),
+        now: mockTwoStepStreamTextTelemetryNow(),
         generateId: mockId({ prefix: 'id' }),
         generateCallId: () => 'test-telemetry-call-id',
       },
@@ -3477,7 +3510,7 @@ describe('LegacyOpenTelemetry integration with streamText transform', () => {
         isEnabled: true,
         integrations: new LegacyOpenTelemetry({ tracer }),
       },
-      _internal: { now: mockValues(0, 100, 500) },
+      _internal: { now: mockTokenStreamTextTelemetryNow() },
     });
 
     await result.consumeStream();

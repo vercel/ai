@@ -1,5 +1,11 @@
 # @ai-sdk/devtools
 
+## 1.0.0-canary.22
+
+### Patch Changes
+
+- ddfcdc7: Fix `ToolItem` expand/collapse logic: chevron now shows whenever there's expandable content (parameters or description), expanded view shows full description plus parameters, collapsed view shows truncated description only.
+
 ## 1.0.0-canary.21
 
 ### Patch Changes

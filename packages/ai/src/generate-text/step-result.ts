@@ -34,6 +34,41 @@ import type {
 } from './tool-result';
 
 /**
+ * Performance metrics for a single step in the generation process.
+ */
+export type StepResultPerformance = {
+  /**
+   * Average number of output tokens per second during the language model
+   * response.
+   */
+  readonly tokensPerSecond: number;
+
+  /**
+   * Total time spent on the step in milliseconds.
+   */
+  readonly stepTimeMs: number;
+
+  /**
+   * Time spent waiting for the language model response in milliseconds.
+   */
+  readonly responseTimeMs: number;
+
+  /**
+   * Time spent executing each client-side tool call in milliseconds, keyed by
+   * tool call ID.
+   */
+  readonly toolExecutionMs: Readonly<Record<string, number>>;
+
+  /**
+   * Time until the first text, reasoning, or tool input delta was received in
+   * milliseconds.
+   *
+   * Only available for streaming steps.
+   */
+  readonly timeToFirstTokenMs: number | undefined;
+};
+
+/**
  * The result of a single step in the generation process.
  */
 export type StepResult<
@@ -150,6 +185,11 @@ export type StepResult<
   readonly usage: LanguageModelUsage;
 
   /**
+   * Performance metrics for the step.
+   */
+  readonly performance: StepResultPerformance;
+
+  /**
    * Warnings from the model provider (e.g. unsupported settings).
    */
   readonly warnings: CallWarning[] | undefined;
@@ -188,6 +228,7 @@ export class DefaultStepResult<
     RUNTIME_CONTEXT
   >['rawFinishReason'];
   readonly usage: StepResult<TOOLS, RUNTIME_CONTEXT>['usage'];
+  readonly performance: StepResult<TOOLS, RUNTIME_CONTEXT>['performance'];
   readonly warnings: StepResult<TOOLS, RUNTIME_CONTEXT>['warnings'];
   readonly request: StepResult<TOOLS, RUNTIME_CONTEXT>['request'];
   readonly response: StepResult<TOOLS, RUNTIME_CONTEXT>['response'];
@@ -207,6 +248,7 @@ export class DefaultStepResult<
     finishReason,
     rawFinishReason,
     usage,
+    performance,
     warnings,
     request,
     response,
@@ -222,6 +264,7 @@ export class DefaultStepResult<
     finishReason: StepResult<TOOLS, RUNTIME_CONTEXT>['finishReason'];
     rawFinishReason: StepResult<TOOLS, RUNTIME_CONTEXT>['rawFinishReason'];
     usage: StepResult<TOOLS, RUNTIME_CONTEXT>['usage'];
+    performance: StepResult<TOOLS, RUNTIME_CONTEXT>['performance'];
     warnings: StepResult<TOOLS, RUNTIME_CONTEXT>['warnings'];
     request: StepResult<TOOLS, RUNTIME_CONTEXT>['request'];
     response: StepResult<TOOLS, RUNTIME_CONTEXT>['response'];
@@ -236,6 +279,7 @@ export class DefaultStepResult<
     this.finishReason = finishReason;
     this.rawFinishReason = rawFinishReason;
     this.usage = usage;
+    this.performance = performance;
     this.warnings = warnings;
     this.request = request;
     this.response = response;

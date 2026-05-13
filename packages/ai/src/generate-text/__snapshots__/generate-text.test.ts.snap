@@ -236,6 +236,15 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
         "modelId": "mock-model-id",
         "provider": "mock-provider",
       },
+      "performance": {
+        "responseTimeMs": 0,
+        "stepTimeMs": 0,
+        "timeToFirstTokenMs": undefined,
+        "tokensPerSecond": 0,
+        "toolExecutionMs": {
+          "call-1": 0,
+        },
+      },
       "providerMetadata": undefined,
       "rawFinishReason": undefined,
       "request": {
@@ -312,6 +321,13 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
       "model": {
         "modelId": "mock-model-id",
         "provider": "mock-provider",
+      },
+      "performance": {
+        "responseTimeMs": 0,
+        "stepTimeMs": 0,
+        "timeToFirstTokenMs": undefined,
+        "tokensPerSecond": 0,
+        "toolExecutionMs": {},
       },
       "providerMetadata": undefined,
       "rawFinishReason": "stop",
@@ -438,6 +454,15 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
       "modelId": "mock-model-id",
       "provider": "mock-provider",
     },
+    "performance": {
+      "responseTimeMs": 0,
+      "stepTimeMs": 0,
+      "timeToFirstTokenMs": undefined,
+      "tokensPerSecond": 0,
+      "toolExecutionMs": {
+        "call-1": 0,
+      },
+    },
     "providerMetadata": undefined,
     "rawFinishReason": undefined,
     "request": {
@@ -514,6 +539,13 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
     "model": {
       "modelId": "mock-model-id",
       "provider": "mock-provider",
+    },
+    "performance": {
+      "responseTimeMs": 0,
+      "stepTimeMs": 0,
+      "timeToFirstTokenMs": undefined,
+      "tokensPerSecond": 0,
+      "toolExecutionMs": {},
     },
     "providerMetadata": undefined,
     "rawFinishReason": "stop",
@@ -641,6 +673,15 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > resul
       "modelId": "mock-model-id",
       "provider": "mock-provider",
     },
+    "performance": {
+      "responseTimeMs": 0,
+      "stepTimeMs": 0,
+      "timeToFirstTokenMs": undefined,
+      "tokensPerSecond": 0,
+      "toolExecutionMs": {
+        "call-1": 0,
+      },
+    },
     "providerMetadata": undefined,
     "rawFinishReason": undefined,
     "request": {
@@ -717,6 +758,13 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > resul
     "model": {
       "modelId": "mock-model-id",
       "provider": "mock-provider",
+    },
+    "performance": {
+      "responseTimeMs": 0,
+      "stepTimeMs": 0,
+      "timeToFirstTokenMs": undefined,
+      "tokensPerSecond": 0,
+      "toolExecutionMs": {},
     },
     "providerMetadata": undefined,
     "rawFinishReason": "stop",
@@ -800,6 +848,15 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
       "modelId": "mock-model-id",
       "provider": "mock-provider",
     },
+    "performance": {
+      "responseTimeMs": 0,
+      "stepTimeMs": 0,
+      "timeToFirstTokenMs": undefined,
+      "tokensPerSecond": 0,
+      "toolExecutionMs": {
+        "call-1": 0,
+      },
+    },
     "providerMetadata": undefined,
     "rawFinishReason": undefined,
     "request": {
@@ -878,6 +935,13 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
     "model": {
       "modelId": "mock-model-id",
       "provider": "mock-provider",
+    },
+    "performance": {
+      "responseTimeMs": 0,
+      "stepTimeMs": 0,
+      "timeToFirstTokenMs": undefined,
+      "tokensPerSecond": 0,
+      "toolExecutionMs": {},
     },
     "providerMetadata": undefined,
     "rawFinishReason": "stop",
@@ -1007,6 +1071,15 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
       "modelId": "mock-model-id",
       "provider": "mock-provider",
     },
+    "performance": {
+      "responseTimeMs": 0,
+      "stepTimeMs": 0,
+      "timeToFirstTokenMs": undefined,
+      "tokensPerSecond": 0,
+      "toolExecutionMs": {
+        "call-1": 0,
+      },
+    },
     "providerMetadata": undefined,
     "rawFinishReason": undefined,
     "request": {
@@ -1085,6 +1158,13 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
     "model": {
       "modelId": "mock-model-id",
       "provider": "mock-provider",
+    },
+    "performance": {
+      "responseTimeMs": 0,
+      "stepTimeMs": 0,
+      "timeToFirstTokenMs": undefined,
+      "tokensPerSecond": 0,
+      "toolExecutionMs": {},
     },
     "providerMetadata": undefined,
     "rawFinishReason": "stop",
@@ -1592,6 +1672,13 @@ exports[`generateText > result.steps > should add the reasoning from the model r
       "modelId": "mock-model-id",
       "provider": "mock-provider",
     },
+    "performance": {
+      "responseTimeMs": 0,
+      "stepTimeMs": 0,
+      "timeToFirstTokenMs": undefined,
+      "tokensPerSecond": 0,
+      "toolExecutionMs": {},
+    },
     "providerMetadata": undefined,
     "rawFinishReason": "stop",
     "request": {
@@ -1693,6 +1780,13 @@ exports[`generateText > result.steps > should contain files 1`] = `
       "modelId": "mock-model-id",
       "provider": "mock-provider",
     },
+    "performance": {
+      "responseTimeMs": 0,
+      "stepTimeMs": 0,
+      "timeToFirstTokenMs": undefined,
+      "tokensPerSecond": 0,
+      "toolExecutionMs": {},
+    },
     "providerMetadata": undefined,
     "rawFinishReason": "stop",
     "request": {
@@ -1791,6 +1885,13 @@ exports[`generateText > result.steps > should contain sources 1`] = `
     "model": {
       "modelId": "mock-model-id",
       "provider": "mock-provider",
+    },
+    "performance": {
+      "responseTimeMs": 0,
+      "stepTimeMs": 0,
+      "timeToFirstTokenMs": undefined,
+      "tokensPerSecond": 0,
+      "toolExecutionMs": {},
     },
     "providerMetadata": undefined,
     "rawFinishReason": "stop",

@@ -171,7 +171,7 @@ Both `generate()` and `stream()` accept an `AgentCallParameters<CALL_OPTIONS, TO
 - `experimental_onStepStart` (optional): Callback invoked when a step (LLM call) begins, before the provider is called. Experimental.
 - `onToolExecutionStart` (optional): Callback invoked right before a tool's execute function runs.
 - `onToolExecutionEnd` (optional): Callback invoked right after a tool's execute function completes or errors.
-- `onStepFinish` (optional): A callback invoked after each agent step (LLM/tool call) completes. Useful for tracking token usage or logging.
+- `onStepFinish` (optional): A callback invoked after each agent step (LLM/tool call) completes. Useful for tracking token usage, per-step performance, or logging.
 - `onFinish` (optional): A callback invoked when all steps are finished and the response is complete.
 
 ## Example: Custom Agent Implementation

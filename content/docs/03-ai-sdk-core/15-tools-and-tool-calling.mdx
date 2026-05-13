@@ -441,7 +441,7 @@ const { text, steps } = await generateText({
 
 To access intermediate tool calls and results, you can use the `steps` property in the result object
 or the `streamText` `onFinish` callback.
-It contains all the text, tool calls, tool results, and more from each step.
+It contains all the text, tool calls, tool results, per-step `performance`, and more from each step.
 
 #### Example: Extract tool results from all steps
 
@@ -480,8 +480,12 @@ const result = await generateText({
     toolResults,
     finishReason,
     usage,
+    performance,
   }) {
-    console.log(`Step ${stepNumber} finished (${finishReason})`);
+    console.log(`Step ${stepNumber} finished (${finishReason})`, {
+      usage,
+      performance,
+    });
     // your own logic, e.g. for saving the chat history or recording usage
   },
 });
@@ -504,16 +508,19 @@ const result = await generateText({
       input: toolCall.input,
     });
   },
-  onToolExecutionEnd({ toolCall, durationMs, toolOutput }) {
+  onToolExecutionEnd({ toolCall, toolExecutionMs, toolOutput }) {
     if (toolOutput.type === 'tool-error') {
       console.error(
-        `Tool ${toolCall.toolName} failed after ${durationMs}ms:`,
+        `Tool ${toolCall.toolName} failed after ${toolExecutionMs}ms:`,
         toolOutput.error,
       );
     } else {
-      console.log(`Tool ${toolCall.toolName} completed in ${durationMs}ms`, {
-        output: toolOutput.output,
-      });
+      console.log(
+        `Tool ${toolCall.toolName} completed in ${toolExecutionMs}ms`,
+        {
+          output: toolOutput.output,
+        },
+      );
     }
   },
 });

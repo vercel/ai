@@ -1,5 +1,12 @@
 # @ai-sdk/gladia
 
+## 3.0.0-canary.40
+
+### Patch Changes
+
+- Updated dependencies [105f95b]
+  - @ai-sdk/provider-utils@5.0.0-canary.39
+
 ## 3.0.0-canary.39
 
 ### Patch Changes
