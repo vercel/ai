@@ -127,6 +127,11 @@ describe('createExecuteToolsTransformation', () => {
             },
           },
           {
+            "toolCallId": "call-1",
+            "toolExecutionMs": 0,
+            "type": "tool-execution-end",
+          },
+          {
             "dynamic": false,
             "input": {
               "value": "test",
@@ -208,6 +213,11 @@ describe('createExecuteToolsTransformation', () => {
             "raw": undefined,
             "totalTokens": 13,
           },
+        },
+        {
+          "toolCallId": "call-1",
+          "toolExecutionMs": 0,
+          "type": "tool-execution-end",
         },
         {
           "dynamic": false,
@@ -430,6 +440,11 @@ describe('createExecuteToolsTransformation', () => {
               "raw": undefined,
               "totalTokens": 13,
             },
+          },
+          {
+            "toolCallId": "call-1",
+            "toolExecutionMs": 0,
+            "type": "tool-execution-end",
           },
           {
             "dynamic": false,
@@ -1224,6 +1239,11 @@ describe('createExecuteToolsTransformation', () => {
             },
           },
           {
+            "toolCallId": "call-1",
+            "toolExecutionMs": 0,
+            "type": "tool-execution-end",
+          },
+          {
             "dynamic": false,
             "error": [Error: Tool execution failed!],
             "input": {
@@ -1311,6 +1331,11 @@ describe('createExecuteToolsTransformation', () => {
               "raw": undefined,
               "totalTokens": 13,
             },
+          },
+          {
+            "toolCallId": "call-1",
+            "toolExecutionMs": 0,
+            "type": "tool-execution-end",
           },
           {
             "dynamic": false,

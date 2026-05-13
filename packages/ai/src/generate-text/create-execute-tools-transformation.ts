@@ -19,6 +19,16 @@ import type {
   OnToolExecutionStartCallback,
 } from './tool-execution-events';
 
+export type ToolExecutionEndStreamPart = {
+  type: 'tool-execution-end';
+  toolCallId: string;
+  toolExecutionMs: number;
+};
+
+export type ExecuteToolsStreamPart<TOOLS extends ToolSet = ToolSet> =
+  | LanguageModelStreamPart<TOOLS>
+  | ToolExecutionEndStreamPart;
+
 export function createExecuteToolsTransformation<
   TOOLS extends ToolSet,
   RUNTIME_CONTEXT extends Context | unknown | never,
@@ -36,7 +46,6 @@ export function createExecuteToolsTransformation<
   onToolExecutionStart,
   onToolExecutionEnd,
   executeToolInTelemetryContext,
-  onToolExecutionPerformance,
 }: {
   tools: TOOLS | undefined;
   callId: string;
@@ -51,22 +60,21 @@ export function createExecuteToolsTransformation<
   onToolExecutionStart?: Arrayable<OnToolExecutionStartCallback<TOOLS>>;
   onToolExecutionEnd?: Arrayable<OnToolExecutionEndCallback<TOOLS>>;
   executeToolInTelemetryContext?: Telemetry['executeTool'];
-  onToolExecutionPerformance?: (toolExecutionMs: number) => void;
 }): TransformStream<
   LanguageModelStreamPart<TOOLS>,
-  LanguageModelStreamPart<TOOLS>
+  ExecuteToolsStreamPart<TOOLS>
 > {
   const toolCallsToExecute: Array<TypedToolCall<TOOLS>> = [];
 
   // forward stream
   return new TransformStream<
     LanguageModelStreamPart<TOOLS>,
-    LanguageModelStreamPart<TOOLS>
+    ExecuteToolsStreamPart<TOOLS>
   >({
     async transform(
       chunk: LanguageModelStreamPart<TOOLS>,
       controller: TransformStreamDefaultController<
-        LanguageModelStreamPart<TOOLS>
+        ExecuteToolsStreamPart<TOOLS>
       >,
     ) {
       // immediately forward all chunks
@@ -186,7 +194,11 @@ export function createExecuteToolsTransformation<
                   },
                 });
                 if (result != null) {
-                  onToolExecutionPerformance?.(result.toolExecutionMs);
+                  controller.enqueue({
+                    type: 'tool-execution-end',
+                    toolCallId: result.output.toolCallId,
+                    toolExecutionMs: result.toolExecutionMs,
+                  });
                   controller.enqueue(result.output);
                 }
               } catch (error) {

@@ -88,7 +88,10 @@ import { setAbortTimeout } from '../util/set-abort-timeout';
 import type { ActiveTools } from './active-tools';
 import { collectToolApprovals } from './collect-tool-approvals';
 import type { ContentPart } from './content-part';
-import { createExecuteToolsTransformation } from './create-execute-tools-transformation';
+import {
+  createExecuteToolsTransformation,
+  type ExecuteToolsStreamPart,
+} from './create-execute-tools-transformation';
 import { executeToolCall } from './execute-tool-call';
 import {
   filterActiveTools,
@@ -121,10 +124,7 @@ import {
   isStopConditionMet,
   type StopCondition,
 } from './stop-condition';
-import {
-  streamLanguageModelCall,
-  type LanguageModelStreamPart,
-} from './stream-language-model-call';
+import { streamLanguageModelCall } from './stream-language-model-call';
 import type {
   ConsumeStreamOptions,
   StreamTextResult,
@@ -1779,12 +1779,6 @@ class DefaultStreamTextResult<
                 telemetryDispatcher.onToolExecutionEnd,
               ),
               executeToolInTelemetryContext: telemetryDispatcher.executeTool,
-              onToolExecutionPerformance: toolExecutionMs => {
-                maxToolExecutionTimeMs = Math.max(
-                  maxToolExecutionTimeMs,
-                  toolExecutionMs,
-                );
-              },
             }),
           );
 
@@ -1824,7 +1818,7 @@ class DefaultStreamTextResult<
           self.addStream(
             streamWithToolResults.pipeThrough(
               new TransformStream<
-                LanguageModelStreamPart<TOOLS>,
+                ExecuteToolsStreamPart<TOOLS>,
                 TextStreamPart<TOOLS>
               >({
                 async transform(chunk, controller): Promise<void> {
@@ -1913,6 +1907,14 @@ class DefaultStreamTextResult<
                       break;
                     }
 
+                    case 'tool-execution-end': {
+                      maxToolExecutionTimeMs = Math.max(
+                        maxToolExecutionTimeMs,
+                        chunk.toolExecutionMs,
+                      );
+                      break;
+                    }
+
                     case 'model-call-response-metadata': {
                       stepResponse = {
                         id: chunk.id ?? stepResponse.id,
@@ -1969,7 +1971,8 @@ class DefaultStreamTextResult<
 
                   if (
                     chunkType !== 'model-call-end' &&
-                    chunkType !== 'model-call-response-metadata'
+                    chunkType !== 'model-call-response-metadata' &&
+                    chunkType !== 'tool-execution-end'
                   ) {
                     void telemetryDispatcher.onChunk?.({ chunk });
                   }
