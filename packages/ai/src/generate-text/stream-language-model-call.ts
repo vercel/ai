@@ -7,7 +7,7 @@ import {
 import {
   createIdGenerator,
   type Arrayable,
-  type Experimental_Sandbox,
+  type Experimental_Sandbox as Sandbox,
   type IdGenerator,
   type InferToolSetContext,
   type ModelMessage,
@@ -203,7 +203,7 @@ export async function streamLanguageModelCall<
   refineToolInput,
   callId,
   toolsContext,
-  experimental_sandbox,
+  experimental_sandbox: sandbox,
   _internal: {
     generateId = originalGenerateId,
     generateCallId = originalGenerateCallId,
@@ -232,9 +232,9 @@ export async function streamLanguageModelCall<
    */
   toolsContext?: InferToolSetContext<TOOLS>;
   /**
-   * Experimental sandbox passed through for resolving tool descriptions that depend on it.
+   * Sandbox passed through for resolving tool descriptions that depend on it.
    */
-  experimental_sandbox?: Experimental_Sandbox;
+  experimental_sandbox?: Sandbox;
   _internal?: {
     generateId?: IdGenerator;
     generateCallId?: IdGenerator;
@@ -294,7 +294,7 @@ export async function streamLanguageModelCall<
   const stepTools = await prepareTools({
     tools,
     toolsContext,
-    experimental_sandbox,
+    experimental_sandbox: sandbox,
   });
 
   const stepToolChoice = prepareToolChoice({

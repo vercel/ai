@@ -2,7 +2,7 @@ import {
   executeTool,
   isExecutableTool,
   type Arrayable,
-  type Experimental_Sandbox,
+  type Experimental_Sandbox as Sandbox,
   type InferToolInput,
   type InferToolSetContext,
   type ModelMessage,
@@ -46,7 +46,7 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   messages,
   abortSignal,
   timeout,
-  experimental_sandbox,
+  experimental_sandbox: sandbox,
   onPreliminaryToolResult,
   onToolExecutionStart,
   onToolExecutionEnd,
@@ -59,7 +59,7 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   abortSignal: AbortSignal | undefined;
   toolsContext: InferToolSetContext<TOOLS>;
   timeout?: TimeoutConfiguration<TOOLS>;
-  experimental_sandbox?: Experimental_Sandbox;
+  experimental_sandbox?: Sandbox;
   onPreliminaryToolResult?: (result: TypedToolResult<TOOLS>) => void;
   onToolExecutionStart?: Arrayable<OnToolExecutionStartCallback<TOOLS>>;
   onToolExecutionEnd?: Arrayable<OnToolExecutionEndCallback<TOOLS>>;
@@ -126,7 +126,7 @@ export async function executeToolCall<TOOLS extends ToolSet>({
               messages,
               abortSignal: toolAbortSignal,
               context,
-              experimental_sandbox,
+              experimental_sandbox: sandbox,
             },
           });
 

@@ -1,5 +1,8 @@
 import type { LanguageModelV4CallOptions } from '@ai-sdk/provider';
-import { tool, type Experimental_Sandbox } from '@ai-sdk/provider-utils';
+import {
+  tool,
+  type Experimental_Sandbox as Sandbox,
+} from '@ai-sdk/provider-utils';
 import {
   convertArrayToReadableStream,
   mockId,
@@ -98,21 +101,21 @@ describe('ToolLoopAgent', () => {
       `);
     });
 
-    it('should pass experimental_sandbox to prepareCall', async () => {
+    it('should pass sandbox to prepareCall', async () => {
       const sandbox = {
-        description: 'test experimental sandbox',
+        description: 'test sandbox',
         executeCommand: vi.fn(async () => ({
           exitCode: 0,
           stdout: 'ok',
           stderr: '',
         })),
-      } satisfies Experimental_Sandbox;
-      let recordedExperimentalSandbox: Experimental_Sandbox | undefined;
+      } satisfies Sandbox;
+      let recordedSandbox: Sandbox | undefined;
 
       const agent = new ToolLoopAgent({
         model: mockModel,
         prepareCall: options => {
-          recordedExperimentalSandbox = options.experimental_sandbox;
+          recordedSandbox = options.experimental_sandbox;
 
           return options;
         },
@@ -123,7 +126,7 @@ describe('ToolLoopAgent', () => {
         experimental_sandbox: sandbox,
       });
 
-      expect(recordedExperimentalSandbox).toBe(sandbox);
+      expect(recordedSandbox).toBe(sandbox);
     });
 
     it('should pass abortSignal to generateText', async () => {
@@ -151,16 +154,16 @@ describe('ToolLoopAgent', () => {
       expect(doGenerateOptions?.abortSignal).toBeDefined();
     });
 
-    it('should pass experimental_sandbox to tool execution', async () => {
+    it('should pass sandbox to tool execution', async () => {
       const sandbox = {
-        description: 'test experimental sandbox',
+        description: 'test sandbox',
         executeCommand: vi.fn(async () => ({
           exitCode: 0,
           stdout: 'ok',
           stderr: '',
         })),
-      } satisfies Experimental_Sandbox;
-      let recordedExperimentalSandbox: Experimental_Sandbox | undefined;
+      } satisfies Sandbox;
+      let recordedSandbox: Sandbox | undefined;
       let modelCallCount = 0;
 
       const agent = new ToolLoopAgent({
@@ -225,8 +228,8 @@ describe('ToolLoopAgent', () => {
         tools: {
           testTool: tool({
             inputSchema: z.object({ value: z.string() }),
-            execute: async ({ value }, { experimental_sandbox }) => {
-              recordedExperimentalSandbox = experimental_sandbox;
+            execute: async ({ value }, { experimental_sandbox: sandbox }) => {
+              recordedSandbox = sandbox;
               return value;
             },
           }),
@@ -238,7 +241,7 @@ describe('ToolLoopAgent', () => {
         experimental_sandbox: sandbox,
       });
 
-      expect(recordedExperimentalSandbox).toBe(sandbox);
+      expect(recordedSandbox).toBe(sandbox);
     });
 
     it('should pass experimental_download to generateText', async () => {
@@ -683,21 +686,21 @@ describe('ToolLoopAgent', () => {
       );
     });
 
-    it('should pass experimental_sandbox to prepareCall', async () => {
+    it('should pass sandbox to prepareCall', async () => {
       const sandbox = {
-        description: 'test experimental sandbox',
+        description: 'test sandbox',
         executeCommand: vi.fn(async () => ({
           exitCode: 0,
           stdout: 'ok',
           stderr: '',
         })),
-      } satisfies Experimental_Sandbox;
-      let recordedExperimentalSandbox: Experimental_Sandbox | undefined;
+      } satisfies Sandbox;
+      let recordedSandbox: Sandbox | undefined;
 
       const agent = new ToolLoopAgent({
         model: mockModel,
         prepareCall: options => {
-          recordedExperimentalSandbox = options.experimental_sandbox;
+          recordedSandbox = options.experimental_sandbox;
 
           return options;
         },
@@ -709,7 +712,7 @@ describe('ToolLoopAgent', () => {
       });
       await result.consumeStream();
 
-      expect(recordedExperimentalSandbox).toBe(sandbox);
+      expect(recordedSandbox).toBe(sandbox);
     });
 
     it('should pass abortSignal to streamText', async () => {
@@ -745,16 +748,16 @@ describe('ToolLoopAgent', () => {
       expect(doStreamOptions?.abortSignal).toBeDefined();
     });
 
-    it('should pass experimental_sandbox to tool execution', async () => {
+    it('should pass sandbox to tool execution', async () => {
       const sandbox = {
-        description: 'test experimental sandbox',
+        description: 'test sandbox',
         executeCommand: vi.fn(async () => ({
           exitCode: 0,
           stdout: 'ok',
           stderr: '',
         })),
-      } satisfies Experimental_Sandbox;
-      let recordedExperimentalSandbox: Experimental_Sandbox | undefined;
+      } satisfies Sandbox;
+      let recordedSandbox: Sandbox | undefined;
       let modelCallCount = 0;
 
       const agent = new ToolLoopAgent({
@@ -840,8 +843,8 @@ describe('ToolLoopAgent', () => {
         tools: {
           testTool: tool({
             inputSchema: z.object({ value: z.string() }),
-            execute: async ({ value }, { experimental_sandbox }) => {
-              recordedExperimentalSandbox = experimental_sandbox;
+            execute: async ({ value }, { experimental_sandbox: sandbox }) => {
+              recordedSandbox = sandbox;
               return value;
             },
           }),
@@ -854,7 +857,7 @@ describe('ToolLoopAgent', () => {
       });
       await result.consumeStream();
 
-      expect(recordedExperimentalSandbox).toBe(sandbox);
+      expect(recordedSandbox).toBe(sandbox);
     });
 
     it('should forward include to streamText', async () => {

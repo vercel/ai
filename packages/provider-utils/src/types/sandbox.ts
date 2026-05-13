@@ -1,5 +1,5 @@
 /**
- * Experimental sandbox environment that can execute commands.
+ * Sandbox environment that can execute commands.
  */
 export type Experimental_Sandbox = {
   /**

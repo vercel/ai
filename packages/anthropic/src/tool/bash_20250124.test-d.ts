@@ -17,7 +17,7 @@ type BashDefaultOutput = {
 };
 
 describe('bash_20250124 tool type', () => {
-  it('uses the experimental sandbox command result output by default', () => {
+  it('uses the sandbox command result output by default', () => {
     const bashTool = bash_20250124();
 
     expectTypeOf(bashTool).toExtend<
@@ -41,10 +41,13 @@ describe('bash_20250124 tool type', () => {
 
   it('infers custom execute output', () => {
     const bashTool = bash_20250124({
-      execute: async ({ command, restart }, { experimental_sandbox }) => {
+      execute: async (
+        { command, restart },
+        { experimental_sandbox: sandbox },
+      ) => {
         expectTypeOf(command).toEqualTypeOf<string>();
         expectTypeOf(restart).toEqualTypeOf<boolean | undefined>();
-        expectTypeOf(experimental_sandbox).not.toEqualTypeOf<undefined>();
+        expectTypeOf(sandbox).not.toEqualTypeOf<undefined>();
 
         return {
           command,

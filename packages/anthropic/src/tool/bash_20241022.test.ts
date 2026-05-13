@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { bash_20241022 } from './bash_20241022';
 
 describe('bash_20241022 tool', () => {
-  it('passes abort signal to experimental sandbox command execution', async () => {
+  it('passes abort signal to sandbox command execution', async () => {
     const abortController = new AbortController();
     let receivedAbortSignal: AbortSignal | undefined;
     const bashTool = bash_20241022();
@@ -15,7 +15,7 @@ describe('bash_20241022 tool', () => {
         abortSignal: abortController.signal,
         context: {},
         experimental_sandbox: {
-          description: 'test experimental sandbox',
+          description: 'test sandbox',
           executeCommand: async ({ abortSignal }) => {
             receivedAbortSignal = abortSignal;
 

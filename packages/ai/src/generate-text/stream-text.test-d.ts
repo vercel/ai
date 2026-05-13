@@ -490,13 +490,13 @@ describe('streamText types', () => {
         });
       });
 
-      it('should accept experimental_sandbox overrides', async () => {
+      it('should accept sandbox overrides', async () => {
         streamText({
           model: new MockLanguageModelV4(),
           prompt: 'Hello',
           prepareStep: () => ({
             experimental_sandbox: {
-              description: 'test experimental sandbox',
+              description: 'test sandbox',
               executeCommand: async () => ({
                 exitCode: 0,
                 stdout: 'ok',

@@ -1,6 +1,6 @@
 import type { Context } from './context';
 import type { ModelMessage } from './model-message';
-import type { Experimental_Sandbox } from './sandbox';
+import type { Experimental_Sandbox as Sandbox } from './sandbox';
 
 /**
  * Additional options that are sent into each tool execution.
@@ -38,9 +38,9 @@ export interface ToolExecutionOptions<
   context: CONTEXT;
 
   /**
-   * The experimental sandbox environment that the tool is operating in.
+   * The sandbox environment that the tool is operating in.
    */
-  experimental_sandbox?: Experimental_Sandbox;
+  experimental_sandbox?: Sandbox;
 }
 
 /**

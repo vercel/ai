@@ -1,7 +1,7 @@
-import { type Experimental_Sandbox } from 'ai';
+import { type Experimental_Sandbox as Sandbox } from 'ai';
 import { type Bash } from 'just-bash';
 
-export class JustBashSandbox implements Experimental_Sandbox {
+export class JustBashSandbox implements Sandbox {
   constructor(private readonly bash: Bash) {}
 
   async executeCommand({

@@ -1,7 +1,7 @@
 import {
   validateTypes,
   type Context,
-  type Experimental_Sandbox,
+  type Experimental_Sandbox as Sandbox,
   type ModelMessage,
   type ToolSet,
 } from '@ai-sdk/provider-utils';
@@ -79,7 +79,7 @@ export class ToolLoopAgent<
     prompt?: string | Array<ModelMessage>;
     messages?: Array<ModelMessage>;
     options?: CALL_OPTIONS;
-    experimental_sandbox?: Experimental_Sandbox;
+    experimental_sandbox?: Sandbox;
   }): Promise<
     Omit<
       ToolLoopAgentSettings<CALL_OPTIONS, TOOLS, RUNTIME_CONTEXT, OUTPUT>,
@@ -161,7 +161,7 @@ export class ToolLoopAgent<
   async generate({
     abortSignal,
     timeout,
-    experimental_sandbox,
+    experimental_sandbox: sandbox,
     experimental_onStart,
     experimental_onStepStart,
     onToolExecutionStart,
@@ -175,12 +175,12 @@ export class ToolLoopAgent<
     const generate = generateText<TOOLS, RUNTIME_CONTEXT, OUTPUT>;
     const preparedCall = await this.prepareCall({
       ...options,
-      experimental_sandbox,
+      experimental_sandbox: sandbox,
     });
     const callbackArgs = {
       abortSignal,
       timeout,
-      experimental_sandbox,
+      experimental_sandbox: sandbox,
       experimental_onStart: mergeCallbacks(
         this.settings.experimental_onStart,
         experimental_onStart as
@@ -217,7 +217,7 @@ export class ToolLoopAgent<
   async stream({
     abortSignal,
     timeout,
-    experimental_sandbox,
+    experimental_sandbox: sandbox,
     experimental_transform,
     experimental_onStart,
     experimental_onStepStart,
@@ -232,12 +232,12 @@ export class ToolLoopAgent<
     const stream = streamText<TOOLS, RUNTIME_CONTEXT, OUTPUT>;
     const preparedCall = await this.prepareCall({
       ...options,
-      experimental_sandbox,
+      experimental_sandbox: sandbox,
     });
     const callbackArgs = {
       abortSignal,
       timeout,
-      experimental_sandbox,
+      experimental_sandbox: sandbox,
       experimental_transform,
       experimental_onStart: mergeCallbacks(
         this.settings.experimental_onStart,

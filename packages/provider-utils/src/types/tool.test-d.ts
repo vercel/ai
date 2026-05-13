@@ -4,7 +4,7 @@ import type { FlexibleSchema } from '../schema';
 import type { ToolResultOutput } from './content-part';
 import type { Context } from './context';
 import type { ModelMessage } from './model-message';
-import type { Experimental_Sandbox } from './sandbox';
+import type { Experimental_Sandbox as Sandbox } from './sandbox';
 import {
   dynamicTool,
   tool,
@@ -37,7 +37,7 @@ describe('DynamicTool', () => {
       | string
       | ((options: {
           context: Context;
-          experimental_sandbox?: Experimental_Sandbox;
+          experimental_sandbox?: Sandbox;
         }) => string)
       | undefined
     >();
