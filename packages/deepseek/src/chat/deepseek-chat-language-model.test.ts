@@ -171,20 +171,81 @@ describe('DeepSeekChatLanguageModel', () => {
         });
       });
 
-      it('should map top-level reasoning low to reasoning_effort high with compatibility warning', async () => {
+      it('should map top-level reasoning low to reasoning_effort low without a compatibility warning', async () => {
         const result = await provider.chat('deepseek-reasoner').doGenerate({
           prompt: TEST_PROMPT,
           reasoning: 'low',
         });
 
         expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
-          'high',
+          'low',
+        );
+        expect(result.warnings).not.toContainEqual(
+          expect.objectContaining({
+            type: 'compatibility',
+            feature: 'reasoning',
+          }),
+        );
+      });
+
+      it('should map top-level reasoning medium to reasoning_effort medium', async () => {
+        await provider.chat('deepseek-reasoner').doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'medium',
+        });
+
+        expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
+          'medium',
+        );
+      });
+
+      it('should map top-level reasoning minimal to reasoning_effort low with compatibility warning', async () => {
+        const result = await provider.chat('deepseek-reasoner').doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'minimal',
+        });
+
+        expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
+          'low',
         );
         expect(result.warnings).toContainEqual({
           type: 'compatibility',
           feature: 'reasoning',
           details:
-            'reasoning "low" is not directly supported by this model. mapped to effort "high".',
+            'reasoning "minimal" is not directly supported by this model. mapped to effort "low".',
+        });
+      });
+
+      it.each(['low', 'medium', 'xhigh'] as const)(
+        'should pass providerOptions reasoningEffort %s through to the API',
+        async effort => {
+          await provider.chat('deepseek-reasoner').doGenerate({
+            prompt: TEST_PROMPT,
+            providerOptions: {
+              deepseek: {
+                reasoningEffort: effort,
+              } satisfies DeepSeekLanguageModelChatOptions,
+            },
+          });
+
+          expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
+            effort,
+          );
+        },
+      );
+
+      it('should pass providerOptions thinking.type=adaptive through to the API', async () => {
+        await provider.chat('deepseek-reasoner').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            deepseek: {
+              thinking: { type: 'adaptive' },
+            } satisfies DeepSeekLanguageModelChatOptions,
+          },
+        });
+
+        expect((await server.calls[0].requestBodyJson).thinking).toStrictEqual({
+          type: 'adaptive',
         });
       });
 

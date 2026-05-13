@@ -1,5 +1,12 @@
 # @ai-sdk/gateway
 
+## 4.0.0-canary.78
+
+### Patch Changes
+
+- 38ca8dc: fix(gateway): enable retry support for gateway errors
+- 8b7af75: chore(provider/gateway): update gateway model settings files
+
 ## 4.0.0-canary.77
 
 ### Patch Changes

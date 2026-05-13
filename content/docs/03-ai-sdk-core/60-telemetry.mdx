@@ -353,6 +353,11 @@ export function myIntegration(): Telemetry {
       description: 'Called when a step (LLM call) completes.',
     },
     {
+      name: 'onEmbedEnd',
+      type: '(event: EmbeddingModelCallEndEvent) => void | PromiseLike<void>',
+      description: 'Called when an individual embedding model call completes.',
+    },
+    {
       name: 'onRerankEnd',
       type: '(event: RerankingModelCallEndEvent) => void | PromiseLike<void>',
       description: 'Called when an individual reranking model call completes.',

@@ -96,13 +96,16 @@ The following optional provider options are available for DeepSeek models:
 - `thinking` _object_
 
   Optional. Controls thinking mode (chain-of-thought reasoning). You can enable thinking mode either by using the `deepseek-reasoner` model or by setting this option.
-  - `type`: `'enabled' | 'disabled'` - Enable or disable thinking mode.
+  - `type`: `'adaptive' | 'enabled' | 'disabled'` - Enable, disable, or let the model decide (`adaptive`) when to think. See [DeepSeek's thinking mode docs](https://api-docs.deepseek.com/guides/thinking_mode).
 
-- `reasoningEffort` _'high' | 'max'_
+- `reasoningEffort` _'low' | 'medium' | 'high' | 'xhigh' | 'max'_
 
-  Optional. Controls thinking strength for DeepSeek V4 reasoning models. When
-  using the top-level `reasoning` setting, `low`, `medium`, and `high` are sent
-  as `high`, while `xhigh` is sent as `max`.
+  Optional. Controls thinking strength for DeepSeek V4 reasoning models. Per
+  DeepSeek's docs, `low` and `medium` are mapped to `high`, and `xhigh` is
+  mapped to `max` server-side for compatibility with other providers. When
+  using the top-level `reasoning` setting, `minimal` is sent as `low`, and
+  `low`, `medium`, `high`, and `xhigh` pass through to DeepSeek's native
+  effort values.
 
 ```ts highlight="7-12"
 import {

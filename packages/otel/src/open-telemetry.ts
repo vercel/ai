@@ -1032,7 +1032,7 @@ export class OpenTelemetry implements Telemetry {
     });
   }
 
-  onEmbedFinish(event: EmbeddingModelCallEndEvent): void {
+  onEmbedEnd(event: EmbeddingModelCallEndEvent): void {
     const state = this.getCallState(event.callId);
     if (!state) return;
 
