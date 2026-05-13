@@ -1783,7 +1783,6 @@ class DefaultStreamTextResult<
           let stepUsage: LanguageModelUsage = createNullLanguageModelUsage();
           let stepProviderMetadata: ProviderMetadata | undefined;
           let stepFirstChunk = true;
-          let stepTimeMs = 0;
           let responseTimeMs = 0;
           let tokensPerSecond = 0;
           let maxToolExecutionMs = 0;
@@ -1959,9 +1958,7 @@ class DefaultStreamTextResult<
 
                 // invoke onFinish callback and resolve toolResults promise when the stream is about to close:
                 async flush(controller) {
-                  if (stepTimeMs === 0) {
-                    stepTimeMs = now() - stepStartTimestampMs;
-                  }
+                  const stepTimeMs = now() - stepStartTimestampMs;
 
                   const finishStepPart: TextStreamPart<TOOLS> = {
                     type: 'finish-step',
