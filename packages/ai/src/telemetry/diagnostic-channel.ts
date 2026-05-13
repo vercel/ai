@@ -12,10 +12,10 @@ export type TelemetryDiagnosticEventType =
   | 'onObjectStepStart'
   | 'onObjectStepFinish'
   | 'onEmbedStart'
-  | 'onEmbedFinish'
+  | 'onEmbedEnd'
   | 'onRerankStart'
-  | 'onRerankFinish'
-  | 'onFinish'
+  | 'onRerankEnd'
+  | 'onEnd'
   | 'onError';
 
 export type TelemetryDiagnosticChannelMessage<EVENT = unknown> = {

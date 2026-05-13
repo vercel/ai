@@ -111,6 +111,7 @@ describe('streamLanguageModelCall', () => {
         {
           "callId": "test-telemetry-call-id",
           "frequencyPenalty": 0.1,
+          "instructions": undefined,
           "maxOutputTokens": 128,
           "messages": [
             {
@@ -126,11 +127,9 @@ describe('streamLanguageModelCall', () => {
           "stopSequences": [
             "stop",
           ],
-          "system": undefined,
           "temperature": 0.7,
           "tools": [
             {
-              "description": undefined,
               "inputSchema": {
                 "$schema": "http://json-schema.org/draft-07/schema#",
                 "additionalProperties": false,
@@ -145,7 +144,6 @@ describe('streamLanguageModelCall', () => {
                 "type": "object",
               },
               "name": "testTool",
-              "providerOptions": undefined,
               "type": "function",
             },
           ],
@@ -201,7 +199,6 @@ describe('streamLanguageModelCall', () => {
             "provider": "mock-provider",
             "responseId": "aitxt-generated-response-id",
             "usage": {
-              "cachedInputTokens": undefined,
               "inputTokenDetails": {
                 "cacheReadTokens": undefined,
                 "cacheWriteTokens": undefined,
@@ -214,12 +211,12 @@ describe('streamLanguageModelCall', () => {
               },
               "outputTokens": 10,
               "raw": undefined,
-              "reasoningTokens": undefined,
               "totalTokens": 13,
             },
           },
           "startEvent": {
             "callId": "call-generated-call-id",
+            "instructions": undefined,
             "messages": [
               {
                 "content": "test prompt",
@@ -228,7 +225,6 @@ describe('streamLanguageModelCall', () => {
             ],
             "modelId": "mock-model-id",
             "provider": "mock-provider",
-            "system": undefined,
             "tools": undefined,
           },
         }
@@ -309,7 +305,6 @@ describe('streamLanguageModelCall', () => {
             "provider": "mock-provider",
             "responseId": "response-1",
             "usage": {
-              "cachedInputTokens": undefined,
               "inputTokenDetails": {
                 "cacheReadTokens": undefined,
                 "cacheWriteTokens": undefined,
@@ -322,7 +317,6 @@ describe('streamLanguageModelCall', () => {
               },
               "outputTokens": 10,
               "raw": undefined,
-              "reasoningTokens": undefined,
               "totalTokens": 13,
             },
           },
@@ -367,7 +361,6 @@ describe('streamLanguageModelCall', () => {
           "provider": "mock-provider",
           "responseId": "aitxt-generated-response-id",
           "usage": {
-            "cachedInputTokens": undefined,
             "inputTokenDetails": {
               "cacheReadTokens": undefined,
               "cacheWriteTokens": undefined,
@@ -380,7 +373,6 @@ describe('streamLanguageModelCall', () => {
             },
             "outputTokens": 10,
             "raw": undefined,
-            "reasoningTokens": undefined,
             "totalTokens": 13,
           },
         }
@@ -446,7 +438,6 @@ describe('streamLanguageModelCall', () => {
             "rawFinishReason": "stop",
             "type": "model-call-end",
             "usage": {
-              "cachedInputTokens": undefined,
               "inputTokenDetails": {
                 "cacheReadTokens": undefined,
                 "cacheWriteTokens": undefined,
@@ -459,7 +450,6 @@ describe('streamLanguageModelCall', () => {
               },
               "outputTokens": 10,
               "raw": undefined,
-              "reasoningTokens": undefined,
               "totalTokens": 13,
             },
           },
@@ -507,7 +497,6 @@ describe('streamLanguageModelCall', () => {
             "rawFinishReason": "stop",
             "type": "model-call-end",
             "usage": {
-              "cachedInputTokens": undefined,
               "inputTokenDetails": {
                 "cacheReadTokens": undefined,
                 "cacheWriteTokens": undefined,
@@ -520,7 +509,6 @@ describe('streamLanguageModelCall', () => {
               },
               "outputTokens": 10,
               "raw": undefined,
-              "reasoningTokens": undefined,
               "totalTokens": 13,
             },
           },
@@ -599,7 +587,6 @@ describe('streamLanguageModelCall', () => {
             "rawFinishReason": "stop",
             "type": "model-call-end",
             "usage": {
-              "cachedInputTokens": undefined,
               "inputTokenDetails": {
                 "cacheReadTokens": undefined,
                 "cacheWriteTokens": undefined,
@@ -612,7 +599,6 @@ describe('streamLanguageModelCall', () => {
               },
               "outputTokens": 10,
               "raw": undefined,
-              "reasoningTokens": undefined,
               "totalTokens": 13,
             },
           },
@@ -680,7 +666,6 @@ describe('streamLanguageModelCall', () => {
             "rawFinishReason": "stop",
             "type": "model-call-end",
             "usage": {
-              "cachedInputTokens": undefined,
               "inputTokenDetails": {
                 "cacheReadTokens": undefined,
                 "cacheWriteTokens": undefined,
@@ -693,7 +678,6 @@ describe('streamLanguageModelCall', () => {
               },
               "outputTokens": 10,
               "raw": undefined,
-              "reasoningTokens": undefined,
               "totalTokens": 13,
             },
           },
@@ -740,7 +724,6 @@ describe('streamLanguageModelCall', () => {
             "rawFinishReason": "stop",
             "type": "model-call-end",
             "usage": {
-              "cachedInputTokens": undefined,
               "inputTokenDetails": {
                 "cacheReadTokens": undefined,
                 "cacheWriteTokens": undefined,
@@ -753,7 +736,6 @@ describe('streamLanguageModelCall', () => {
               },
               "outputTokens": 10,
               "raw": undefined,
-              "reasoningTokens": undefined,
               "totalTokens": 13,
             },
           },
@@ -853,43 +835,41 @@ describe('streamLanguageModelCall', () => {
       });
 
       expect(result).toMatchInlineSnapshot(`
-          [
-            {
-              "input": {
-                "value": "test",
-              },
-              "providerExecuted": undefined,
-              "providerMetadata": undefined,
-              "title": undefined,
-              "toolCallId": "call-1",
-              "toolName": "correctTool",
-              "type": "tool-call",
+        [
+          {
+            "input": {
+              "value": "test",
             },
-            {
-              "finishReason": "stop",
-              "providerMetadata": undefined,
-              "rawFinishReason": "stop",
-              "type": "model-call-end",
-              "usage": {
-                "cachedInputTokens": undefined,
-                "inputTokenDetails": {
-                  "cacheReadTokens": undefined,
-                  "cacheWriteTokens": undefined,
-                  "noCacheTokens": 3,
-                },
-                "inputTokens": 3,
-                "outputTokenDetails": {
-                  "reasoningTokens": undefined,
-                  "textTokens": 10,
-                },
-                "outputTokens": 10,
-                "raw": undefined,
+            "providerExecuted": undefined,
+            "providerMetadata": undefined,
+            "title": undefined,
+            "toolCallId": "call-1",
+            "toolName": "correctTool",
+            "type": "tool-call",
+          },
+          {
+            "finishReason": "stop",
+            "providerMetadata": undefined,
+            "rawFinishReason": "stop",
+            "type": "model-call-end",
+            "usage": {
+              "inputTokenDetails": {
+                "cacheReadTokens": undefined,
+                "cacheWriteTokens": undefined,
+                "noCacheTokens": 3,
+              },
+              "inputTokens": 3,
+              "outputTokenDetails": {
                 "reasoningTokens": undefined,
-                "totalTokens": 13,
+                "textTokens": 10,
               },
+              "outputTokens": 10,
+              "raw": undefined,
+              "totalTokens": 13,
             },
-          ]
-        `);
+          },
+        ]
+      `);
     });
   });
 
@@ -925,7 +905,6 @@ describe('streamLanguageModelCall', () => {
             "rawFinishReason": undefined,
             "type": "model-call-end",
             "usage": {
-              "cachedInputTokens": undefined,
               "inputTokenDetails": {
                 "cacheReadTokens": undefined,
                 "cacheWriteTokens": undefined,
@@ -938,7 +917,6 @@ describe('streamLanguageModelCall', () => {
               },
               "outputTokens": 10,
               "raw": undefined,
-              "reasoningTokens": undefined,
               "totalTokens": 13,
             },
           },
@@ -1015,7 +993,6 @@ describe('streamLanguageModelCall', () => {
             "rawFinishReason": undefined,
             "type": "model-call-end",
             "usage": {
-              "cachedInputTokens": undefined,
               "inputTokenDetails": {
                 "cacheReadTokens": undefined,
                 "cacheWriteTokens": undefined,
@@ -1028,7 +1005,6 @@ describe('streamLanguageModelCall', () => {
               },
               "outputTokens": 10,
               "raw": undefined,
-              "reasoningTokens": undefined,
               "totalTokens": 13,
             },
           },
@@ -1150,7 +1126,6 @@ describe('streamLanguageModelCall', () => {
             "rawFinishReason": undefined,
             "type": "model-call-end",
             "usage": {
-              "cachedInputTokens": undefined,
               "inputTokenDetails": {
                 "cacheReadTokens": undefined,
                 "cacheWriteTokens": undefined,
@@ -1163,7 +1138,6 @@ describe('streamLanguageModelCall', () => {
               },
               "outputTokens": 10,
               "raw": undefined,
-              "reasoningTokens": undefined,
               "totalTokens": 13,
             },
           },

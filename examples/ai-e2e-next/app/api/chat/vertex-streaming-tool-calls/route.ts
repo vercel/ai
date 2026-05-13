@@ -32,7 +32,7 @@ export async function POST(req: Request) {
   const result = streamText({
     model: googleVertex('gemini-3.1-pro-preview'),
     messages: await convertToModelMessages(messages),
-    system:
+    instructions:
       'You are a helpful weather assistant. ' +
       'Use getWeatherInformation to fetch weather data, then use showWeatherInformation to display it to the user. ' +
       'Always show the weather using the showWeatherInformation tool.',

@@ -22,7 +22,6 @@ import {
   type ReasoningFileOutput,
   type ReasoningOutput,
 } from './reasoning-output';
-import type { ResponseMessage } from './response-message';
 import type {
   DynamicToolCall,
   StaticToolCall,
@@ -57,6 +56,7 @@ export type StepResult<
   readonly model: {
     /** The provider of the model. */
     readonly provider: string;
+
     /** The ID of the model. */
     readonly modelId: string;
   };
@@ -67,7 +67,7 @@ export type StepResult<
   readonly toolsContext: InferToolSetContext<TOOLS>;
 
   /**
-   * Runtime context.
+   * The runtime context that was used as input for the step.
    */
   readonly runtimeContext: RUNTIME_CONTEXT;
 
@@ -77,7 +77,7 @@ export type StepResult<
   readonly content: Array<ContentPart<TOOLS>>;
 
   /**
-   * The generated text.
+   * The generated text. Can be an empty string if the model has not generated any text.
    */
   readonly text: string;
 
@@ -88,6 +88,9 @@ export type StepResult<
 
   /**
    * The reasoning text that was generated during the generation.
+   *
+   * It is a concatenation of all reasoning parts (but excluding reasoning file parts).
+   * Can be undefined if the model has only generated text.
    */
   readonly reasoningText: string | undefined;
 
@@ -159,19 +162,7 @@ export type StepResult<
   /**
    * Additional response information.
    */
-  readonly response: LanguageModelResponseMetadata & {
-    /**
-     * The response messages that were generated during the call.
-     * Response messages can be either assistant messages or tool messages.
-     * They contain a generated id.
-     */
-    readonly messages: Array<ResponseMessage>;
-
-    /**
-     * Response body (available only for providers that use HTTP requests).
-     */
-    body?: unknown;
-  };
+  readonly response: LanguageModelResponseMetadata;
 
   /**
    * Additional provider-specific metadata. They are passed through

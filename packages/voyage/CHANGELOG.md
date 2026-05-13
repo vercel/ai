@@ -1,5 +1,47 @@
 # @ai-sdk/voyage
 
+## 2.0.0-canary.13
+
+### Patch Changes
+
+- Updated dependencies [ca446f8]
+  - @ai-sdk/provider-utils@5.0.0-canary.38
+
+## 2.0.0-canary.12
+
+### Patch Changes
+
+- Updated dependencies [d848405]
+  - @ai-sdk/provider-utils@5.0.0-canary.37
+
+## 2.0.0-canary.11
+
+### Patch Changes
+
+- Updated dependencies [ca39020]
+  - @ai-sdk/provider-utils@5.0.0-canary.36
+
+## 2.0.0-canary.10
+
+### Patch Changes
+
+- Updated dependencies [f634bac]
+  - @ai-sdk/provider-utils@5.0.0-canary.35
+
+## 2.0.0-canary.9
+
+### Patch Changes
+
+- Updated dependencies [69254e0]
+- Updated dependencies [3015fc3]
+  - @ai-sdk/provider-utils@5.0.0-canary.34
+
+## 2.0.0-canary.8
+
+### Patch Changes
+
+- c25eb7a: chore(voyage): trigger canary release at 2.0.0
+
 ## 1.0.0-canary.7
 
 ### Patch Changes

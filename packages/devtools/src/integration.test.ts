@@ -441,14 +441,14 @@ describe('DevToolsTelemetry', () => {
     });
   });
 
-  describe('onFinish', () => {
+  describe('onEnd', () => {
     it('cleans up call state so subsequent events are ignored', async () => {
       const integration = createIntegration();
 
       await integration.onStart!(makeStartEvent());
       await integration.onStepStart!(makeStepStartEvent());
       await integration.onStepFinish!(makeStepFinishEvent());
-      await integration.onFinish!({ callId: 'call-1' } as any);
+      await integration.onEnd!({ callId: 'call-1' } as any);
 
       mockCreateStep.mockClear();
       await integration.onStepStart!(makeStepStartEvent());

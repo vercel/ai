@@ -241,7 +241,7 @@ export async function POST(req: Request) {
             model: openai('gpt-4o-mini'),
             tools,
             stopWhen: isStepCount(10),
-            system:
+            instructions:
               'You are a helpful assistant with access to protected tools.',
             messages: await convertToModelMessages(messages),
           });

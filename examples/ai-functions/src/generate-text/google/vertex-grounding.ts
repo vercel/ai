@@ -14,7 +14,7 @@ run(async () => {
   });
 
   console.log(result.text);
-  console.log(result.providerMetadata?.google);
+  console.log(result.finalStep.providerMetadata?.google);
   console.log();
   console.log('Token usage:', result.usage);
   console.log('Finish reason:', result.finishReason);

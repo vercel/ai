@@ -1,4 +1,4 @@
-import { tool } from '@ai-sdk/provider-utils';
+import { tool, type Sandbox } from '@ai-sdk/provider-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as z from 'zod/v4';
 import { TypeValidationError } from '../error';
@@ -81,6 +81,38 @@ describe('executeToolCall', () => {
       });
     });
 
+    it('should pass sandbox to tool execution', async () => {
+      const sandbox = {
+        description: 'test sandbox',
+        executeCommand: vi.fn(async () => ({
+          exitCode: 0,
+          stdout: 'ok',
+          stderr: '',
+        })),
+      } satisfies Sandbox;
+      let receivedSandbox: Sandbox | undefined;
+
+      await executeToolCall({
+        toolCall: createToolCall(),
+        tools: {
+          testTool: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }, { sandbox }) => {
+              receivedSandbox = sandbox;
+              return `${value}-result`;
+            },
+          }),
+        },
+        callId: 'test-telemetry-call-id',
+        messages: [],
+        abortSignal: undefined,
+        sandbox,
+        toolsContext: {},
+      });
+
+      expect(receivedSandbox).toBe(sandbox);
+    });
+
     it('should preserve providerMetadata from toolCall', async () => {
       const result = await executeToolCall({
         toolCall: createToolCall({
@@ -102,6 +134,40 @@ describe('executeToolCall', () => {
         type: 'tool-result',
         providerMetadata: { custom: { key: 'value' } },
       });
+    });
+
+    it('should preserve toolMetadata from toolCall', async () => {
+      const result = await executeToolCall({
+        toolCall: createToolCall({
+          toolMetadata: { clientName: 'MyMCPClient' },
+        }),
+        tools: {
+          testTool: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => `${value}-result`,
+          }),
+        },
+        callId: 'test-telemetry-call-id',
+        messages: [],
+        abortSignal: undefined,
+        toolsContext: {},
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "dynamic": false,
+          "input": {
+            "value": "test",
+          },
+          "output": "test-result",
+          "toolCallId": "call-1",
+          "toolMetadata": {
+            "clientName": "MyMCPClient",
+          },
+          "toolName": "testTool",
+          "type": "tool-result",
+        }
+      `);
     });
 
     it('should throw TypeValidationError when tool context fails validation', async () => {
@@ -189,6 +255,42 @@ describe('executeToolCall', () => {
         type: 'tool-error',
         providerMetadata: { custom: { key: 'value' } },
       });
+    });
+
+    it('should preserve toolMetadata from toolCall on error', async () => {
+      const result = await executeToolCall({
+        toolCall: createToolCall({
+          toolMetadata: { clientName: 'MyMCPClient' },
+        }),
+        tools: {
+          testTool: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async (): Promise<string> => {
+              throw new Error('execution failed');
+            },
+          }),
+        },
+        callId: 'test-telemetry-call-id',
+        messages: [],
+        abortSignal: undefined,
+        toolsContext: {},
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "dynamic": false,
+          "error": [Error: execution failed],
+          "input": {
+            "value": "test",
+          },
+          "toolCallId": "call-1",
+          "toolMetadata": {
+            "clientName": "MyMCPClient",
+          },
+          "toolName": "testTool",
+          "type": "tool-error",
+        }
+      `);
     });
   });
 

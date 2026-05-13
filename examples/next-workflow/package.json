@@ -10,13 +10,15 @@
   },
   "dependencies": {
     "@ai-sdk/anthropic": "workspace:*",
+    "@ai-sdk/devtools": "workspace:*",
+    "@ai-sdk/provider-utils": "workspace:*",
     "@ai-sdk/react": "workspace:*",
     "@ai-sdk/workflow": "workspace:*",
     "ai": "workspace:*",
     "next": "^15.5.14",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "workflow": "4.2.0",
+    "workflow": "4.2.4",
     "zod": "3.25.76"
   },
   "devDependencies": {

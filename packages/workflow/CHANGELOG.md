@@ -1,5 +1,131 @@
 # @ai-sdk/workflow
 
+## 1.0.0-canary.50
+
+### Patch Changes
+
+- Updated dependencies [38ca8dc]
+- Updated dependencies [6d76710]
+  - ai@7.0.0-canary.133
+
+## 1.0.0-canary.49
+
+### Patch Changes
+
+- 81e68da: Fix `stepNumber` on telemetry events emitted by `WorkflowAgent.stream` so per-step telemetry integrations (e.g. `@ai-sdk/devtools`) correctly key state per step.
+- Updated dependencies [eaf849f]
+- Updated dependencies [8565dcb]
+  - ai@7.0.0-canary.132
+
+## 1.0.0-canary.48
+
+### Patch Changes
+
+- c3a6524: Add a `stepNumber` option to `doStreamStep` so callers can create `StepResult` objects with the correct step number.
+
+## 1.0.0-canary.47
+
+### Patch Changes
+
+- ca446f8: feat: flexible tool descriptions
+- Updated dependencies [b67525f]
+- Updated dependencies [ca446f8]
+- Updated dependencies [bcacd48]
+  - ai@7.0.0-canary.131
+  - @ai-sdk/provider-utils@5.0.0-canary.38
+
+## 1.0.0-canary.46
+
+### Patch Changes
+
+- ai@7.0.0-canary.130
+
+## 1.0.0-canary.45
+
+### Patch Changes
+
+- Updated dependencies [d1b3786]
+  - ai@7.0.0-canary.129
+
+## 1.0.0-canary.44
+
+### Patch Changes
+
+- Updated dependencies [d848405]
+  - @ai-sdk/provider-utils@5.0.0-canary.37
+  - ai@7.0.0-canary.128
+
+## 1.0.0-canary.43
+
+### Patch Changes
+
+- d775a57: feat: introduce Instructions type
+- 39dad72: feat(workflow): add stable telemetry integration support to `WorkflowAgent` and remove legacy telemetry options.
+- Updated dependencies [e95e38d]
+- Updated dependencies [016e877]
+- Updated dependencies [ca99fea]
+- Updated dependencies [ca39020]
+- Updated dependencies [d775a57]
+- Updated dependencies [538c12b]
+  - ai@7.0.0-canary.127
+  - @ai-sdk/provider-utils@5.0.0-canary.36
+
+## 1.0.0-canary.42
+
+### Patch Changes
+
+- Updated dependencies [f634bac]
+  - @ai-sdk/provider-utils@5.0.0-canary.35
+  - ai@7.0.0-canary.126
+
+## 1.0.0-canary.41
+
+### Patch Changes
+
+- 1d56275: feat(workflow): add `runtimeContext` and `toolsContext` to `WorkflowAgent`.
+
+  `runtimeContext` is shared agent state that flows through `prepareCall`, `prepareStep`, step results, and `onFinish`. `toolsContext` is a per-tool map; each tool receives its own validated entry as `context`, validated against `tool.contextSchema` when defined. The previous `experimental_context` option (and corresponding fields on related callbacks and option types) has been removed — use `runtimeContext` for shared state and `toolsContext` for per-tool values. Context values in `WorkflowAgent` should be serializable because they can cross workflow and step boundaries.
+
+## 1.0.0-canary.40
+
+### Patch Changes
+
+- Updated dependencies [fd4f578]
+- Updated dependencies [31f69de]
+- Updated dependencies [7c71ac6]
+- Updated dependencies [c0c8ca2]
+- Updated dependencies [5faf71c]
+- Updated dependencies [69254e0]
+- Updated dependencies [3015fc3]
+- Updated dependencies [eee1166]
+- Updated dependencies [7dbf992]
+  - ai@7.0.0-canary.125
+  - @ai-sdk/provider-utils@5.0.0-canary.34
+
+## 1.0.0-canary.39
+
+### Patch Changes
+
+- Updated dependencies [69aeb0e]
+- Updated dependencies [48e92f3]
+  - ai@7.0.0-canary.124
+
+## 1.0.0-canary.38
+
+### Patch Changes
+
+- Updated dependencies [7392266]
+- Updated dependencies [4bb4dbc]
+  - ai@7.0.0-canary.123
+
+## 1.0.0-canary.37
+
+### Patch Changes
+
+- Updated dependencies [79b2468]
+- Updated dependencies [c22750c]
+  - ai@7.0.0-canary.122
+
 ## 1.0.0-canary.36
 
 ### Patch Changes

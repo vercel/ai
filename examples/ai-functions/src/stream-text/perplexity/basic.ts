@@ -23,6 +23,6 @@ run(async () => {
   console.log('Usage:', await result.usage);
   console.log(
     'Metadata:',
-    JSON.stringify(await result.providerMetadata, null, 2),
+    JSON.stringify((await result.finalStep).providerMetadata, null, 2),
   );
 });

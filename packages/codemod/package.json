@@ -17,7 +17,7 @@
     "README.md"
   ],
   "scripts": {
-    "build": "pnpm generate-readme && pnpm clean && tsup --tsconfig tsconfig.build.json",
+    "build": "pnpm clean && tsup --tsconfig tsconfig.build.json",
     "clean": "del-cli dist *.tsbuildinfo",
     "dev": "tsup --watch",
     "type-check": "tsc --build",

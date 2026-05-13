@@ -30,10 +30,10 @@ describe('createTelemetryDispatcher', () => {
     expect(telemetry.onObjectStepStart).toBeDefined();
     expect(telemetry.onObjectStepFinish).toBeDefined();
     expect(telemetry.onEmbedStart).toBeDefined();
-    expect(telemetry.onEmbedFinish).toBeDefined();
+    expect(telemetry.onEmbedEnd).toBeDefined();
     expect(telemetry.onRerankStart).toBeDefined();
-    expect(telemetry.onRerankFinish).toBeDefined();
-    expect(telemetry.onFinish).toBeDefined();
+    expect(telemetry.onRerankEnd).toBeDefined();
+    expect(telemetry.onEnd).toBeDefined();
     expect(telemetry.onError).toBeDefined();
     expect(telemetry.executeTool).toBeUndefined();
 
@@ -58,12 +58,12 @@ describe('createTelemetryDispatcher', () => {
   it('accepts an array of integrations', () => {
     const telemetry = createTelemetryDispatcher({
       telemetry: {
-        integrations: [{ onStart: vi.fn() }, { onFinish: vi.fn() }],
+        integrations: [{ onStart: vi.fn() }, { onEnd: vi.fn() }],
       },
     });
 
     expect(telemetry.onStart).toBeDefined();
-    expect(telemetry.onFinish).toBeDefined();
+    expect(telemetry.onEnd).toBeDefined();
   });
 
   it('returns no-op listeners for methods that no integration implements', async () => {
@@ -74,7 +74,7 @@ describe('createTelemetryDispatcher', () => {
     await expect(
       telemetry.onToolExecutionStart!(dummyEvent),
     ).resolves.toBeUndefined();
-    await expect(telemetry.onEmbedFinish!(dummyEvent)).resolves.toBeUndefined();
+    await expect(telemetry.onEmbedEnd!(dummyEvent)).resolves.toBeUndefined();
   });
 
   it('broadcasts an event to all integrations that implement the method', async () => {
@@ -150,10 +150,10 @@ describe('createTelemetryDispatcher', () => {
       onObjectStepStart: vi.fn(),
       onObjectStepFinish: vi.fn(),
       onEmbedStart: vi.fn(),
-      onEmbedFinish: vi.fn(),
+      onEmbedEnd: vi.fn(),
       onRerankStart: vi.fn(),
-      onRerankFinish: vi.fn(),
-      onFinish: vi.fn(),
+      onRerankEnd: vi.fn(),
+      onEnd: vi.fn(),
       onError: vi.fn(),
     };
 
@@ -172,10 +172,10 @@ describe('createTelemetryDispatcher', () => {
     await telemetry.onObjectStepStart!(dummyEvent);
     await telemetry.onObjectStepFinish!(dummyEvent);
     await telemetry.onEmbedStart!(dummyEvent);
-    await telemetry.onEmbedFinish!(dummyEvent);
+    await telemetry.onEmbedEnd!(dummyEvent);
     await telemetry.onRerankStart!(dummyEvent);
-    await telemetry.onRerankFinish!(dummyEvent);
-    await telemetry.onFinish!(dummyEvent);
+    await telemetry.onRerankEnd!(dummyEvent);
+    await telemetry.onEnd!(dummyEvent);
     await telemetry.onError!(dummyEvent);
 
     expect(integration.onStart).toHaveBeenCalledOnce();
@@ -189,10 +189,10 @@ describe('createTelemetryDispatcher', () => {
     expect(integration.onObjectStepStart).toHaveBeenCalledOnce();
     expect(integration.onObjectStepFinish).toHaveBeenCalledOnce();
     expect(integration.onEmbedStart).toHaveBeenCalledOnce();
-    expect(integration.onEmbedFinish).toHaveBeenCalledOnce();
+    expect(integration.onEmbedEnd).toHaveBeenCalledOnce();
     expect(integration.onRerankStart).toHaveBeenCalledOnce();
-    expect(integration.onRerankFinish).toHaveBeenCalledOnce();
-    expect(integration.onFinish).toHaveBeenCalledOnce();
+    expect(integration.onRerankEnd).toHaveBeenCalledOnce();
+    expect(integration.onEnd).toHaveBeenCalledOnce();
     expect(integration.onError).toHaveBeenCalledOnce();
   });
 
@@ -202,7 +202,7 @@ describe('createTelemetryDispatcher', () => {
     });
 
     expect(telemetry.onStart).toBeDefined();
-    expect(telemetry.onFinish).toBeDefined();
+    expect(telemetry.onEnd).toBeDefined();
 
     await expect(telemetry.onStart!(dummyEvent)).resolves.toBeUndefined();
   });
@@ -219,10 +219,10 @@ describe('createTelemetryDispatcher', () => {
         onObjectStepStart: vi.fn(),
         onObjectStepFinish: vi.fn(),
         onEmbedStart: vi.fn(),
-        onEmbedFinish: vi.fn(),
+        onEmbedEnd: vi.fn(),
         onRerankStart: vi.fn(),
-        onRerankFinish: vi.fn(),
-        onFinish: vi.fn(),
+        onRerankEnd: vi.fn(),
+        onEnd: vi.fn(),
         onError: vi.fn(),
       };
 
@@ -239,10 +239,10 @@ describe('createTelemetryDispatcher', () => {
       expect(telemetry.onObjectStepStart).toBeUndefined();
       expect(telemetry.onObjectStepFinish).toBeUndefined();
       expect(telemetry.onEmbedStart).toBeUndefined();
-      expect(telemetry.onEmbedFinish).toBeUndefined();
+      expect(telemetry.onEmbedEnd).toBeUndefined();
       expect(telemetry.onRerankStart).toBeUndefined();
-      expect(telemetry.onRerankFinish).toBeUndefined();
-      expect(telemetry.onFinish).toBeUndefined();
+      expect(telemetry.onRerankEnd).toBeUndefined();
+      expect(telemetry.onEnd).toBeUndefined();
       expect(telemetry.onError).toBeUndefined();
       expect(telemetry.executeTool).toBeUndefined();
     });
@@ -409,8 +409,8 @@ describe('createTelemetryDispatcher', () => {
           this.calls.push('start');
         }
 
-        async onFinish() {
-          this.calls.push('finish');
+        async onEnd() {
+          this.calls.push('end');
         }
       }
 
@@ -420,9 +420,9 @@ describe('createTelemetryDispatcher', () => {
       });
 
       await telemetry.onStart!(dummyEvent);
-      await telemetry.onFinish!(dummyEvent);
+      await telemetry.onEnd!(dummyEvent);
 
-      expect(instance.calls).toEqual(['start', 'finish']);
+      expect(instance.calls).toEqual(['start', 'end']);
     });
   });
 

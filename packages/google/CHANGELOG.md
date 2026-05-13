@@ -1,5 +1,55 @@
 # @ai-sdk/google
 
+## 4.0.0-canary.60
+
+### Patch Changes
+
+- 6a26901: feat(google): add `fileData` support to embedding model
+
+## 4.0.0-canary.59
+
+### Patch Changes
+
+- db394ab: feat(provider/google): support cancelling long-running Interactions API agents via AbortSignal, and process their intermittent stream
+- Updated dependencies [ca446f8]
+  - @ai-sdk/provider-utils@5.0.0-canary.38
+
+## 4.0.0-canary.58
+
+### Patch Changes
+
+- Updated dependencies [d848405]
+  - @ai-sdk/provider-utils@5.0.0-canary.37
+
+## 4.0.0-canary.57
+
+### Patch Changes
+
+- Updated dependencies [ca39020]
+  - @ai-sdk/provider-utils@5.0.0-canary.36
+
+## 4.0.0-canary.56
+
+### Patch Changes
+
+- Updated dependencies [f634bac]
+  - @ai-sdk/provider-utils@5.0.0-canary.35
+
+## 4.0.0-canary.55
+
+### Patch Changes
+
+- ebbb0f2: fix(provider/google): fix lack of image consistency when using Interactions API in stateless mode
+- Updated dependencies [69254e0]
+- Updated dependencies [3015fc3]
+  - @ai-sdk/provider-utils@5.0.0-canary.34
+
+## 4.0.0-canary.54
+
+### Patch Changes
+
+- b04e23e: feat(provider/google): add support for the Gemini Interactions API
+
 ## 4.0.0-canary.53
 
 ### Patch Changes
@@ -1766,7 +1816,6 @@
 ### Patch Changes
 
 - 2e06f14: feat (provider/google): Change to provider defined tools
-
   - Change the google search tool to be a provider defined tool
   - Added new URL context tool as a provider defined tool
 

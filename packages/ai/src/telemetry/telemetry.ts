@@ -49,7 +49,7 @@ type OperationStartEvent =
   | EmbedStartEvent
   | RerankStartEvent;
 
-type OperationFinishEvent =
+type OperationEndEvent =
   | GenerateTextEndEvent<ToolSet>
   | GenerateObjectEndEvent<unknown>
   | EmbedEndEvent
@@ -67,10 +67,10 @@ export interface TelemetryDispatcher {
   onObjectStepStart?: Callback<GenerateObjectStepStartEvent>;
   onObjectStepFinish?: Callback<GenerateObjectStepEndEvent>;
   onEmbedStart?: Callback<EmbeddingModelCallStartEvent>;
-  onEmbedFinish?: Callback<EmbeddingModelCallEndEvent>;
+  onEmbedEnd?: Callback<EmbeddingModelCallEndEvent>;
   onRerankStart?: Callback<RerankingModelCallStartEvent>;
-  onRerankFinish?: Callback<RerankingModelCallEndEvent>;
-  onFinish?: Callback<OperationFinishEvent>;
+  onRerankEnd?: Callback<RerankingModelCallEndEvent>;
+  onEnd?: Callback<OperationEndEvent>;
   onError?: Callback<unknown>;
   executeTool?: Telemetry['executeTool'];
 }
@@ -177,7 +177,7 @@ export interface Telemetry {
    * Called when an individual embedding model call (doEmbed) completes.
    * Contains the embeddings, usage, and any warnings from the model response.
    */
-  onEmbedFinish?: Callback<InferTelemetryEvent<EmbeddingModelCallEndEvent>>;
+  onEmbedEnd?: Callback<InferTelemetryEvent<EmbeddingModelCallEndEvent>>;
 
   /**
    * Called when an individual reranking model call (doRerank) begins.
@@ -189,7 +189,7 @@ export interface Telemetry {
    * Called when an individual reranking model call (doRerank) completes.
    * Contains the ranking results from the model response.
    */
-  onRerankFinish?: Callback<InferTelemetryEvent<RerankingModelCallEndEvent>>;
+  onRerankEnd?: Callback<InferTelemetryEvent<RerankingModelCallEndEvent>>;
 
   /**
    * Called when an operation completes. Fired for text generation
@@ -198,7 +198,7 @@ export interface Telemetry {
    *
    * Use the event shape or `operationId` to distinguish between operation types.
    */
-  onFinish?: Callback<InferTelemetryEvent<OperationFinishEvent>>;
+  onEnd?: Callback<InferTelemetryEvent<OperationEndEvent>>;
 
   /**
    * Called when an unrecoverable error occurs during the generation lifecycle.

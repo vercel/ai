@@ -1,5 +1,50 @@
 # @ai-sdk/mcp
 
+## 2.0.0-canary.47
+
+### Patch Changes
+
+- 2655da8: fix(mcp): use negotiated protocol version in transport request headers
+- Updated dependencies [ca446f8]
+  - @ai-sdk/provider-utils@5.0.0-canary.38
+
+## 2.0.0-canary.46
+
+### Patch Changes
+
+- Updated dependencies [d848405]
+  - @ai-sdk/provider-utils@5.0.0-canary.37
+
+## 2.0.0-canary.45
+
+### Patch Changes
+
+- Updated dependencies [ca39020]
+  - @ai-sdk/provider-utils@5.0.0-canary.36
+
+## 2.0.0-canary.44
+
+### Patch Changes
+
+- 611f621: feat(mcp): feat(mcp): add support for MCP Apps
+
+## 2.0.0-canary.43
+
+### Patch Changes
+
+- f634bac: feat(mcp): add new McpProviderMetadata type
+- Updated dependencies [f634bac]
+  - @ai-sdk/provider-utils@5.0.0-canary.35
+
+## 2.0.0-canary.42
+
+### Patch Changes
+
+- 69254e0: feat(ai): add toolMetadata for tool specific metdata
+- Updated dependencies [69254e0]
+- Updated dependencies [3015fc3]
+  - @ai-sdk/provider-utils@5.0.0-canary.34
+
 ## 2.0.0-canary.41
 
 ### Patch Changes

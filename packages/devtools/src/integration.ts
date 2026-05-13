@@ -451,9 +451,9 @@ export function DevToolsTelemetry(): Telemetry {
       state.stepStates.delete(stepResult.stepNumber);
     },
 
-    onFinish: async event => {
-      const finishEvent = event as { callId: string };
-      callStates.delete(finishEvent.callId);
+    onEnd: async event => {
+      const endEvent = event as { callId: string };
+      callStates.delete(endEvent.callId);
     },
 
     onError: async error => {

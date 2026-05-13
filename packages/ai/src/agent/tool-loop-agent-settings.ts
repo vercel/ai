@@ -6,7 +6,6 @@ import type {
   InferToolSetContext,
   MaybePromiseLike,
   ProviderOptions,
-  SystemModelMessage,
   ToolSet,
 } from '@ai-sdk/provider-utils';
 import type { ActiveTools } from '../generate-text/active-tools';
@@ -16,9 +15,11 @@ import type {
   GenerateTextOnStepFinishCallback,
   GenerateTextOnStepStartCallback,
 } from '../generate-text/generate-text-events';
+import type { GenerateTextInclude } from '../generate-text/generate-text';
 import type { Output } from '../generate-text/output';
 import type { PrepareStepFunction } from '../generate-text/prepare-step';
 import type { StopCondition } from '../generate-text/stop-condition';
+import type { StreamTextInclude } from '../generate-text/stream-text';
 import type { ToolApprovalConfiguration } from '../generate-text/tool-approval-configuration';
 import type { ToolCallRepairFunction } from '../generate-text/tool-call-repair-function';
 import type {
@@ -28,7 +29,7 @@ import type {
 import type { ToolInputRefinement } from '../generate-text/tool-input-refinement';
 import type { ToolsContextParameter } from '../generate-text/tools-context-parameter';
 import type { LanguageModelCallOptions } from '../prompt/language-model-call-options';
-import type { Prompt } from '../prompt/prompt';
+import type { Instructions, Prompt } from '../prompt/prompt';
 import type { RequestOptions } from '../prompt/request-options';
 import type { TelemetryOptions } from '../telemetry/telemetry-options';
 import type { LanguageModel, ToolChoice } from '../types/language-model';
@@ -56,7 +57,7 @@ export type ToolLoopAgentSettings<
      *
      * It can be a string, or, if you need to pass additional provider options (e.g. for caching), a `SystemModelMessage`.
      */
-    instructions?: string | SystemModelMessage | Array<SystemModelMessage>;
+    instructions?: Instructions;
 
     /**
      * The language model to use.
@@ -151,16 +152,12 @@ export type ToolLoopAgentSettings<
     /**
      * Callback that is called before each tool execution begins.
      */
-    experimental_onToolExecutionStart?: OnToolExecutionStartCallback<
-      NoInfer<TOOLS>
-    >;
+    onToolExecutionStart?: OnToolExecutionStartCallback<NoInfer<TOOLS>>;
 
     /**
      * Callback that is called after each tool execution completes.
      */
-    experimental_onToolExecutionEnd?: OnToolExecutionEndCallback<
-      NoInfer<TOOLS>
-    >;
+    onToolExecutionEnd?: OnToolExecutionEndCallback<NoInfer<TOOLS>>;
 
     /**
      * Callback that is called when each step (LLM call) is finished, including intermediate steps.
@@ -193,6 +190,16 @@ export type ToolLoopAgentSettings<
     experimental_download?: DownloadFunction | undefined;
 
     /**
+     * Settings for controlling what data is included in step results.
+     * Disabling inclusion can help reduce memory usage when processing
+     * large payloads like images.
+     *
+     * By default, request and response bodies are included, and request
+     * messages are excluded.
+     */
+    include?: GenerateTextInclude & StreamTextInclude;
+
+    /**
      * Internal. For test use only. May change without notice.
      */
     _internal?: {
@@ -209,6 +216,16 @@ export type ToolLoopAgentSettings<
      * Prepare the parameters for the generateText or streamText call.
      *
      * You can use this to have templates based on call options.
+     *
+     * The design requires you to pass call parameters as follows to
+     * allow for the removal of parameters from the original settings
+     * by setting them to `undefined`:
+     *
+     * ```
+     *   prepareCall: ({ options, ...rest }) => ({
+     *     ...rest,
+     *   }),
+     * ```
      */
     prepareCall?: (
       options: Omit<
@@ -246,6 +263,7 @@ export type ToolLoopAgentSettings<
           | 'providerOptions'
           | 'experimental_download'
           | 'experimental_refineToolInput'
+          | 'include'
           | 'runtimeContext'
           | '_internal'
         > & { toolsContext: InferToolSetContext<TOOLS> },
@@ -277,6 +295,7 @@ export type ToolLoopAgentSettings<
         | 'providerOptions'
         | 'experimental_download'
         | 'experimental_refineToolInput'
+        | 'include'
         | 'runtimeContext'
         | '_internal'
       > &

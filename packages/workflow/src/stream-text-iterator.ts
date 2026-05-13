@@ -3,6 +3,7 @@ import type {
   LanguageModelV4Prompt,
   LanguageModelV4ToolResultPart,
 } from '@ai-sdk/provider';
+import type { Context } from '@ai-sdk/provider-utils';
 import {
   experimental_filterActiveTools as filterActiveTools,
   type Experimental_LanguageModelStreamPart as ModelCallStreamPart,
@@ -13,6 +14,7 @@ import {
   type ToolChoice,
   type ToolSet,
 } from 'ai';
+import { createRestrictedTelemetryDispatcher } from 'ai/internal';
 import {
   doStreamStep,
   type ModelStopCondition,
@@ -43,8 +45,10 @@ export interface StreamTextIteratorYieldValue {
   messages: LanguageModelV4Prompt;
   /** The step result from the current step */
   step?: StepResult<ToolSet, any>;
-  /** The current experimental context */
-  context?: unknown;
+  /** The current runtime context shared across the agent loop */
+  runtimeContext?: Context;
+  /** The current per-tool context, keyed by tool name */
+  toolsContext?: Record<string, Context | undefined>;
   /** Provider-executed tool results (keyed by tool call ID) */
   providerExecutedToolResults?: Map<string, ProviderExecutedToolResult>;
 }
@@ -62,7 +66,8 @@ export async function* streamTextIterator({
   prepareStep,
   generationSettings,
   toolChoice,
-  experimental_context,
+  runtimeContext,
+  toolsContext,
   telemetry,
   includeRawChunks = false,
   repairToolCall,
@@ -79,8 +84,9 @@ export async function* streamTextIterator({
   prepareStep?: PrepareStepCallback<any>;
   generationSettings?: GenerationSettings;
   toolChoice?: ToolChoice<ToolSet>;
-  experimental_context?: unknown;
-  telemetry?: TelemetryOptions;
+  runtimeContext?: Context;
+  toolsContext?: Record<string, Context | undefined>;
+  telemetry?: TelemetryOptions<Context, ToolSet>;
   includeRawChunks?: boolean;
   repairToolCall?: ToolCallRepairFunction<ToolSet>;
   responseFormat?: LanguageModelV4CallOptions['responseFormat'];
@@ -93,7 +99,9 @@ export async function* streamTextIterator({
   let currentModel: LanguageModel = model;
   let currentGenerationSettings = generationSettings ?? {};
   let currentToolChoice = toolChoice;
-  let currentContext = experimental_context;
+  let currentRuntimeContext: Context = runtimeContext ?? {};
+  let currentToolsContext: Record<string, Context | undefined> =
+    toolsContext ?? {};
   let currentActiveTools: string[] | undefined;
 
   const steps: StepResult<any, any>[] = [];
@@ -102,6 +110,20 @@ export async function* streamTextIterator({
   let stepNumber = 0;
   let lastStep: StepResult<any, any> | undefined;
   let lastStepWasToolCalls = false;
+
+  // TODO(#12164): replace this AI-core telemetry bridge with a
+  // WorkflowAgent-specific typed dispatcher. `streamTextIterator` widens
+  // tools/runtime context and emits Workflow-shaped events that are only
+  // approximately compatible with generateText telemetry event types.
+  const telemetryDispatcher = createRestrictedTelemetryDispatcher<
+    any,
+    any,
+    any
+  >({
+    telemetry: telemetry as any,
+    includeRuntimeContext: telemetry?.includeRuntimeContext,
+    includeToolsContext: telemetry?.includeToolsContext,
+  }) as any;
 
   while (!done) {
     // Check for abort signal
@@ -116,19 +138,20 @@ export async function* streamTextIterator({
         stepNumber,
         steps,
         messages: conversationPrompt,
-        experimental_context: currentContext,
+        runtimeContext: currentRuntimeContext,
+        toolsContext: currentToolsContext as never,
       });
 
       // Apply any overrides from prepareStep
-      if (prepareResult.model !== undefined) {
+      if (prepareResult?.model !== undefined) {
         currentModel = prepareResult.model;
       }
       // Apply messages override BEFORE system so the system message
       // isn't lost when messages replaces the prompt.
-      if (prepareResult.messages !== undefined) {
+      if (prepareResult?.messages !== undefined) {
         conversationPrompt = [...prepareResult.messages];
       }
-      if (prepareResult.system !== undefined) {
+      if (prepareResult?.system !== undefined) {
         // Update or prepend system message in the conversation prompt.
         // Applied AFTER messages override so the system message isn't
         // lost when messages replaces the prompt.
@@ -149,80 +172,86 @@ export async function* streamTextIterator({
           });
         }
       }
-      if (prepareResult.experimental_context !== undefined) {
-        currentContext = prepareResult.experimental_context;
+      if (prepareResult?.runtimeContext !== undefined) {
+        currentRuntimeContext = prepareResult.runtimeContext;
       }
-      if (prepareResult.activeTools !== undefined) {
+      if (prepareResult?.toolsContext !== undefined) {
+        currentToolsContext = prepareResult.toolsContext as Record<
+          string,
+          Context | undefined
+        >;
+      }
+      if (prepareResult?.activeTools !== undefined) {
         currentActiveTools = prepareResult.activeTools;
       }
       // Apply generation settings overrides
-      if (prepareResult.maxOutputTokens !== undefined) {
+      if (prepareResult?.maxOutputTokens !== undefined) {
         currentGenerationSettings = {
           ...currentGenerationSettings,
           maxOutputTokens: prepareResult.maxOutputTokens,
         };
       }
-      if (prepareResult.temperature !== undefined) {
+      if (prepareResult?.temperature !== undefined) {
         currentGenerationSettings = {
           ...currentGenerationSettings,
           temperature: prepareResult.temperature,
         };
       }
-      if (prepareResult.topP !== undefined) {
+      if (prepareResult?.topP !== undefined) {
         currentGenerationSettings = {
           ...currentGenerationSettings,
           topP: prepareResult.topP,
         };
       }
-      if (prepareResult.topK !== undefined) {
+      if (prepareResult?.topK !== undefined) {
         currentGenerationSettings = {
           ...currentGenerationSettings,
           topK: prepareResult.topK,
         };
       }
-      if (prepareResult.presencePenalty !== undefined) {
+      if (prepareResult?.presencePenalty !== undefined) {
         currentGenerationSettings = {
           ...currentGenerationSettings,
           presencePenalty: prepareResult.presencePenalty,
         };
       }
-      if (prepareResult.frequencyPenalty !== undefined) {
+      if (prepareResult?.frequencyPenalty !== undefined) {
         currentGenerationSettings = {
           ...currentGenerationSettings,
           frequencyPenalty: prepareResult.frequencyPenalty,
         };
       }
-      if (prepareResult.stopSequences !== undefined) {
+      if (prepareResult?.stopSequences !== undefined) {
         currentGenerationSettings = {
           ...currentGenerationSettings,
           stopSequences: prepareResult.stopSequences,
         };
       }
-      if (prepareResult.seed !== undefined) {
+      if (prepareResult?.seed !== undefined) {
         currentGenerationSettings = {
           ...currentGenerationSettings,
           seed: prepareResult.seed,
         };
       }
-      if (prepareResult.maxRetries !== undefined) {
+      if (prepareResult?.maxRetries !== undefined) {
         currentGenerationSettings = {
           ...currentGenerationSettings,
           maxRetries: prepareResult.maxRetries,
         };
       }
-      if (prepareResult.headers !== undefined) {
+      if (prepareResult?.headers !== undefined) {
         currentGenerationSettings = {
           ...currentGenerationSettings,
           headers: prepareResult.headers,
         };
       }
-      if (prepareResult.providerOptions !== undefined) {
+      if (prepareResult?.providerOptions !== undefined) {
         currentGenerationSettings = {
           ...currentGenerationSettings,
           providerOptions: prepareResult.providerOptions,
         };
       }
-      if (prepareResult.toolChoice !== undefined) {
+      if (prepareResult?.toolChoice !== undefined) {
         currentToolChoice = prepareResult.toolChoice;
       }
     }
@@ -233,8 +262,28 @@ export async function* streamTextIterator({
         model: currentModel,
         messages: conversationPrompt as unknown as ModelMessage[],
         steps: [...steps],
+        runtimeContext: currentRuntimeContext,
+        toolsContext: currentToolsContext as never,
       });
     }
+
+    const stepStartModelInfo = getModelInfo(currentModel);
+    await telemetryDispatcher.onStepStart?.({
+      callId: 'workflow-agent',
+      provider: stepStartModelInfo.provider,
+      modelId: stepStartModelInfo.modelId,
+      stepNumber,
+      system: undefined,
+      messages: conversationPrompt as unknown as ModelMessage[],
+      tools,
+      toolChoice: currentToolChoice,
+      activeTools: currentActiveTools as never,
+      steps: steps.map(normalizeStepForTelemetry),
+      providerOptions: currentGenerationSettings.providerOptions,
+      output: undefined,
+      runtimeContext: currentRuntimeContext,
+      toolsContext: currentToolsContext as never,
+    });
 
     try {
       // Filter tools if activeTools is specified
@@ -250,8 +299,31 @@ export async function* streamTextIterator({
       // contain functions that can't be serialized by the workflow runtime.
       // Tools are reconstructed with Ajv validation inside doStreamStep.
       const serializedTools = serializeToolSet(effectiveTools);
+      const modelCallInfo = getModelInfo(currentModel);
 
-      const { toolCalls, finish, step, providerExecutedToolResults } =
+      await telemetryDispatcher.onLanguageModelCallStart?.({
+        callId: 'workflow-agent',
+        provider: modelCallInfo.provider,
+        modelId: modelCallInfo.modelId,
+        system: undefined,
+        messages: conversationPrompt as unknown as ModelMessage[],
+        tools:
+          serializedTools == null
+            ? undefined
+            : Object.values(serializedTools).map(tool => ({ ...tool })),
+        maxOutputTokens: currentGenerationSettings.maxOutputTokens,
+        temperature: currentGenerationSettings.temperature,
+        topP: currentGenerationSettings.topP,
+        topK: currentGenerationSettings.topK,
+        presencePenalty: currentGenerationSettings.presencePenalty,
+        frequencyPenalty: currentGenerationSettings.frequencyPenalty,
+        stopSequences: currentGenerationSettings.stopSequences,
+        seed: currentGenerationSettings.seed,
+        providerOptions: currentGenerationSettings.providerOptions,
+        headers: currentGenerationSettings.headers,
+      } as never);
+
+      const { toolCalls, finish, step, chunks, providerExecutedToolResults } =
         await doStreamStep(
           conversationPrompt,
           currentModel,
@@ -261,11 +333,27 @@ export async function* streamTextIterator({
             ...currentGenerationSettings,
             toolChoice: currentToolChoice,
             includeRawChunks,
-            telemetry,
             repairToolCall,
             responseFormat,
+            runtimeContext: currentRuntimeContext,
+            toolsContext: currentToolsContext,
+            stepNumber,
           },
         );
+
+      await telemetryDispatcher.onLanguageModelCallEnd?.({
+        callId: step.callId,
+        provider: step.model?.provider ?? 'unknown',
+        modelId: step.model?.modelId ?? 'unknown',
+        finishReason: step.finishReason,
+        usage: step.usage,
+        content: step.content,
+        responseId: step.response.id,
+      });
+
+      for (const chunk of chunks ?? []) {
+        await telemetryDispatcher.onChunk?.({ chunk: chunk as never });
+      }
 
       _isFirstIteration = false;
       stepNumber++;
@@ -308,7 +396,8 @@ export async function* streamTextIterator({
           toolCalls,
           messages: conversationPrompt,
           step,
-          context: currentContext,
+          runtimeContext: currentRuntimeContext,
+          toolsContext: currentToolsContext,
           providerExecutedToolResults,
         };
 
@@ -366,6 +455,7 @@ export async function* streamTextIterator({
       if (onStepFinish) {
         await onStepFinish(step);
       }
+      await telemetryDispatcher.onStepFinish?.(normalizeStepForTelemetry(step));
     } catch (error) {
       if (onError) {
         await onError({ error });
@@ -380,11 +470,28 @@ export async function* streamTextIterator({
       toolCalls: [],
       messages: conversationPrompt,
       step: lastStep,
-      context: currentContext,
+      runtimeContext: currentRuntimeContext,
+      toolsContext: currentToolsContext,
     };
   }
 
   return conversationPrompt;
+}
+
+function getModelInfo(model: LanguageModel): {
+  provider: string;
+  modelId: string;
+} {
+  return typeof model === 'string'
+    ? { provider: model.split('/')[0] ?? 'gateway', modelId: model }
+    : { provider: model.provider, modelId: model.modelId };
+}
+
+function normalizeStepForTelemetry(step: StepResult<any, any>) {
+  return {
+    ...step,
+    model: step.model ?? { provider: 'unknown', modelId: 'unknown' },
+  };
 }
 
 /**

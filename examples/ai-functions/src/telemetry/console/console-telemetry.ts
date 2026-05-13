@@ -18,10 +18,10 @@ export const consoleTelemetry = {
   onObjectStepStart: logCallback('onObjectStepStart'),
   onObjectStepFinish: logCallback('onObjectStepFinish'),
   onEmbedStart: logCallback('onEmbedStart'),
-  onEmbedFinish: logCallback('onEmbedFinish'),
+  onEmbedEnd: logCallback('onEmbedEnd'),
   onRerankStart: logCallback('onRerankStart'),
-  onRerankFinish: logCallback('onRerankFinish'),
-  onFinish: logCallback('onFinish'),
+  onRerankEnd: logCallback('onRerankEnd'),
+  onEnd: logCallback('onEnd'),
   onError: logCallback('onError'),
   executeTool: async ({ callId, toolCallId, execute }) => {
     console.log('executeTool', JSON.stringify({ callId, toolCallId }, null, 2));

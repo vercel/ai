@@ -93,6 +93,14 @@
     },
     "integration-test": {
       "dependsOn": ["^build", "build"]
+    },
+    "//#konsistent:check": {
+      "dependsOn": ["konsistent-provider#build"],
+      "cache": false
+    },
+    "//#konsistent:validate": {
+      "dependsOn": ["konsistent-provider#build"],
+      "cache": false
     }
   }
 }
