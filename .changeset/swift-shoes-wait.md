@@ -3,4 +3,4 @@
 "ai": patch
 ---
 
-feat: experimental sandbox shell execution abstraction
+feat: sandbox shell execution abstraction
