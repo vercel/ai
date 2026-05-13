@@ -6467,7 +6467,7 @@ describe('streamText', () => {
         stepTimeMs: 500,
         responseTimeMs: 500,
         toolExecutionMs: {},
-        timeToFirstTokenMs: 500,
+        timeToFirstTokenMs: 200,
       });
     });
 
@@ -6510,11 +6510,11 @@ describe('streamText', () => {
       });
 
       expect((await result.finalStep).performance).toStrictEqual({
-        tokensPerSecond: 20,
+        tokensPerSecond: 50,
         stepTimeMs: 500,
-        responseTimeMs: 500,
+        responseTimeMs: 200,
         toolExecutionMs: {},
-        timeToFirstTokenMs: 200,
+        timeToFirstTokenMs: 100,
       });
     });
   });
@@ -10548,10 +10548,10 @@ describe('streamText', () => {
               {
                 "finishReason": "tool-calls",
                 "performance": {
-                  "responseTimeMs": 600,
-                  "stepTimeMs": 1000,
-                  "timeToFirstTokenMs": 500,
-                  "tokensPerSecond": 16.666666666666668,
+                  "responseTimeMs": 500,
+                  "stepTimeMs": 600,
+                  "timeToFirstTokenMs": 100,
+                  "tokensPerSecond": 20,
                   "toolExecutionMs": {
                     "call-1": 0,
                   },
@@ -10810,10 +10810,10 @@ describe('streamText', () => {
                     "provider": "mock-provider",
                   },
                   "performance": {
-                    "responseTimeMs": 600,
-                    "stepTimeMs": 1000,
-                    "timeToFirstTokenMs": 500,
-                    "tokensPerSecond": 16.666666666666668,
+                    "responseTimeMs": 500,
+                    "stepTimeMs": 600,
+                    "timeToFirstTokenMs": 100,
+                    "tokensPerSecond": 20,
                     "toolExecutionMs": {
                       "call-1": 0,
                     },
@@ -11033,10 +11033,10 @@ describe('streamText', () => {
                   "provider": "mock-provider",
                 },
                 "performance": {
-                  "responseTimeMs": 600,
-                  "stepTimeMs": 1000,
-                  "timeToFirstTokenMs": 500,
-                  "tokensPerSecond": 16.666666666666668,
+                  "responseTimeMs": 500,
+                  "stepTimeMs": 600,
+                  "timeToFirstTokenMs": 100,
+                  "tokensPerSecond": 20,
                   "toolExecutionMs": {
                     "call-1": 0,
                   },
@@ -11293,10 +11293,10 @@ describe('streamText', () => {
                   "provider": "mock-provider",
                 },
                 "performance": {
-                  "responseTimeMs": 600,
-                  "stepTimeMs": 1000,
-                  "timeToFirstTokenMs": 500,
-                  "tokensPerSecond": 16.666666666666668,
+                  "responseTimeMs": 500,
+                  "stepTimeMs": 600,
+                  "timeToFirstTokenMs": 100,
+                  "tokensPerSecond": 20,
                   "toolExecutionMs": {
                     "call-1": 0,
                   },
@@ -12403,10 +12403,10 @@ describe('streamText', () => {
               {
                 "finishReason": "tool-calls",
                 "performance": {
-                  "responseTimeMs": 600,
-                  "stepTimeMs": 1000,
-                  "timeToFirstTokenMs": 500,
-                  "tokensPerSecond": 16.666666666666668,
+                  "responseTimeMs": 500,
+                  "stepTimeMs": 600,
+                  "timeToFirstTokenMs": 100,
+                  "tokensPerSecond": 20,
                   "toolExecutionMs": {
                     "call-1": 0,
                   },
@@ -12665,10 +12665,10 @@ describe('streamText', () => {
                     "provider": "mock-provider",
                   },
                   "performance": {
-                    "responseTimeMs": 600,
-                    "stepTimeMs": 1000,
-                    "timeToFirstTokenMs": 500,
-                    "tokensPerSecond": 16.666666666666668,
+                    "responseTimeMs": 500,
+                    "stepTimeMs": 600,
+                    "timeToFirstTokenMs": 100,
+                    "tokensPerSecond": 20,
                     "toolExecutionMs": {
                       "call-1": 0,
                     },
@@ -12888,10 +12888,10 @@ describe('streamText', () => {
                   "provider": "mock-provider",
                 },
                 "performance": {
-                  "responseTimeMs": 600,
-                  "stepTimeMs": 1000,
-                  "timeToFirstTokenMs": 500,
-                  "tokensPerSecond": 16.666666666666668,
+                  "responseTimeMs": 500,
+                  "stepTimeMs": 600,
+                  "timeToFirstTokenMs": 100,
+                  "tokensPerSecond": 20,
                   "toolExecutionMs": {
                     "call-1": 0,
                   },
@@ -13144,10 +13144,10 @@ describe('streamText', () => {
                   "provider": "mock-provider",
                 },
                 "performance": {
-                  "responseTimeMs": 600,
-                  "stepTimeMs": 1000,
-                  "timeToFirstTokenMs": 500,
-                  "tokensPerSecond": 16.666666666666668,
+                  "responseTimeMs": 500,
+                  "stepTimeMs": 600,
+                  "timeToFirstTokenMs": 100,
+                  "tokensPerSecond": 20,
                   "toolExecutionMs": {
                     "call-1": 0,
                   },
@@ -13548,10 +13548,10 @@ describe('streamText', () => {
                     "provider": "mock-provider",
                   },
                   "performance": {
-                    "responseTimeMs": 600,
-                    "stepTimeMs": 1000,
-                    "timeToFirstTokenMs": 500,
-                    "tokensPerSecond": 16.666666666666668,
+                    "responseTimeMs": 500,
+                    "stepTimeMs": 600,
+                    "timeToFirstTokenMs": 100,
+                    "tokensPerSecond": 20,
                     "toolExecutionMs": {
                       "call-1": 0,
                     },
@@ -13667,10 +13667,10 @@ describe('streamText', () => {
                     "provider": "mock-provider",
                   },
                   "performance": {
-                    "responseTimeMs": 600,
-                    "stepTimeMs": 1000,
-                    "timeToFirstTokenMs": 500,
-                    "tokensPerSecond": 16.666666666666668,
+                    "responseTimeMs": 500,
+                    "stepTimeMs": 600,
+                    "timeToFirstTokenMs": 100,
+                    "tokensPerSecond": 20,
                     "toolExecutionMs": {
                       "call-1": 0,
                     },
