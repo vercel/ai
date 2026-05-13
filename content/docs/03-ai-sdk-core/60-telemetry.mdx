@@ -299,7 +299,7 @@ class MyIntegration implements Telemetry {
     }
   }
 
-  async onFinish(event) {
+  async onEnd(event) {
     console.log('Done. Total tokens:', event.totalUsage.totalTokens);
   }
 }
@@ -363,7 +363,7 @@ export function myIntegration(): Telemetry {
       description: 'Called when an individual reranking model call completes.',
     },
     {
-      name: 'onFinish',
+      name: 'onEnd',
       type: '(event: GenerateTextEndEvent) => void | PromiseLike<void>',
       description:
         'Called when the entire generation completes (all steps finished).',

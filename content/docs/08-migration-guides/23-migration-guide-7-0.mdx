@@ -526,6 +526,34 @@ const telemetry: Telemetry = {
 };
 ```
 
+### Telemetry Operation Callback: `onFinish` Renamed to `onEnd`
+
+The telemetry integration callback for completed AI SDK operations has been renamed from `onFinish` to `onEnd`.
+
+This also applies to the `type` field published on `AI_SDK_TELEMETRY_DIAGNOSTIC_CHANNEL`: diagnostic-channel subscribers now receive `onEnd` instead of `onFinish`.
+
+Update telemetry integrations and diagnostic-channel subscribers to use `onEnd`.
+
+```tsx filename="AI SDK 6"
+import type { Telemetry } from 'ai';
+
+const telemetry: Telemetry = {
+  onFinish(event) {
+    console.log('Operation finished:', event.operationId);
+  },
+};
+```
+
+```tsx filename="AI SDK 7"
+import type { Telemetry } from 'ai';
+
+const telemetry: Telemetry = {
+  onEnd(event) {
+    console.log('Operation ended:', event.operationId);
+  },
+};
+```
+
 ### Embed Callbacks: `experimental_onFinish` Renamed to `experimental_onEnd`
 
 The per-call callback option for completed `embed` and `embedMany` operations has been renamed from `experimental_onFinish` to `experimental_onEnd`.

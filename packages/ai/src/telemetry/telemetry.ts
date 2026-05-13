@@ -49,7 +49,7 @@ type OperationStartEvent =
   | EmbedStartEvent
   | RerankStartEvent;
 
-type OperationFinishEvent =
+type OperationEndEvent =
   | GenerateTextEndEvent<ToolSet>
   | GenerateObjectEndEvent<unknown>
   | EmbedEndEvent
@@ -70,7 +70,7 @@ export interface TelemetryDispatcher {
   onEmbedEnd?: Callback<EmbeddingModelCallEndEvent>;
   onRerankStart?: Callback<RerankingModelCallStartEvent>;
   onRerankEnd?: Callback<RerankingModelCallEndEvent>;
-  onFinish?: Callback<OperationFinishEvent>;
+  onEnd?: Callback<OperationEndEvent>;
   onError?: Callback<unknown>;
   executeTool?: Telemetry['executeTool'];
 }
@@ -198,7 +198,7 @@ export interface Telemetry {
    *
    * Use the event shape or `operationId` to distinguish between operation types.
    */
-  onFinish?: Callback<InferTelemetryEvent<OperationFinishEvent>>;
+  onEnd?: Callback<InferTelemetryEvent<OperationEndEvent>>;
 
   /**
    * Called when an unrecoverable error occurs during the generation lifecycle.

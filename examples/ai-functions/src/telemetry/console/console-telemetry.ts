@@ -21,7 +21,7 @@ export const consoleTelemetry = {
   onEmbedEnd: logCallback('onEmbedEnd'),
   onRerankStart: logCallback('onRerankStart'),
   onRerankEnd: logCallback('onRerankEnd'),
-  onFinish: logCallback('onFinish'),
+  onEnd: logCallback('onEnd'),
   onError: logCallback('onError'),
   executeTool: async ({ callId, toolCallId, execute }) => {
     console.log('executeTool', JSON.stringify({ callId, toolCallId }, null, 2));

@@ -37,14 +37,14 @@ export type RestrictedTelemetryDispatcher<
   | 'onStart'
   | 'onStepStart'
   | 'onStepFinish'
-  | 'onFinish'
+  | 'onEnd'
   | 'onToolExecutionStart'
   | 'onToolExecutionEnd'
 > & {
   onStart: GenerateTextOnStartCallback<TOOLS, RUNTIME_CONTEXT, OUTPUT>;
   onStepStart: GenerateTextOnStepStartCallback<TOOLS, RUNTIME_CONTEXT, OUTPUT>;
   onStepFinish: GenerateTextOnStepFinishCallback<TOOLS, RUNTIME_CONTEXT>;
-  onFinish: GenerateTextOnFinishCallback<TOOLS, RUNTIME_CONTEXT>;
+  onEnd: GenerateTextOnFinishCallback<TOOLS, RUNTIME_CONTEXT>;
   onToolExecutionStart?: OnToolExecutionStartCallback<TOOLS>;
   onToolExecutionEnd?: OnToolExecutionEndCallback<TOOLS>;
 };
@@ -222,8 +222,8 @@ export function createRestrictedTelemetryDispatcher<
           includeToolsContext,
         }),
       ),
-    onFinish: event =>
-      telemetryDispatcher.onFinish?.({
+    onEnd: event =>
+      telemetryDispatcher.onEnd?.({
         ...event,
         runtimeContext: filterIncludedContext({
           context: event.runtimeContext,

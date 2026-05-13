@@ -2023,7 +2023,7 @@ export class WorkflowAgent<
             if (!wasAborted && steps.length > 0) {
               const telemetrySteps = steps.map(normalizeStepForTelemetry);
               const lastStep = telemetrySteps[telemetrySteps.length - 1];
-              await telemetryDispatcher.onFinish?.({
+              await telemetryDispatcher.onEnd?.({
                 ...lastStep,
                 steps: telemetrySteps,
                 totalUsage: aggregateUsage(steps),
@@ -2231,7 +2231,7 @@ export class WorkflowAgent<
     if (!wasAborted && steps.length > 0) {
       const telemetrySteps = steps.map(normalizeStepForTelemetry);
       const lastStep = telemetrySteps[telemetrySteps.length - 1];
-      await telemetryDispatcher.onFinish?.({
+      await telemetryDispatcher.onEnd?.({
         ...lastStep,
         steps: telemetrySteps,
         totalUsage: aggregateUsage(steps),

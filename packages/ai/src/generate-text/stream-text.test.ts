@@ -6747,7 +6747,7 @@ describe('streamText', () => {
             onStepFinish: async ({ runtimeContext }) => {
               telemetryContexts.push(runtimeContext);
             },
-            onFinish: async event => {
+            onEnd: async event => {
               telemetryContexts.push(
                 (event as { runtimeContext: unknown }).runtimeContext,
               );
@@ -6808,7 +6808,7 @@ describe('streamText', () => {
             onStepFinish: async ({ toolsContext }) => {
               telemetryContexts.push(toolsContext);
             },
-            onFinish: async event => {
+            onEnd: async event => {
               telemetryContexts.push(
                 (event as { toolsContext: unknown }).toolsContext,
               );
@@ -6851,7 +6851,7 @@ describe('streamText', () => {
             onStepFinish: async ({ runtimeContext }) => {
               telemetryContexts.push(runtimeContext);
             },
-            onFinish: async event => {
+            onEnd: async event => {
               telemetryContexts.push(
                 (event as { runtimeContext: unknown }).runtimeContext,
               );
@@ -25902,8 +25902,8 @@ describe('streamText', () => {
             onStepFinish: async () => {
               events.push('onStepFinish');
             },
-            onFinish: async () => {
-              events.push('onFinish');
+            onEnd: async () => {
+              events.push('onEnd');
             },
           },
         },
@@ -25918,7 +25918,7 @@ describe('streamText', () => {
           "onToolExecutionStart",
           "onToolExecutionEnd",
           "onStepFinish",
-          "onFinish",
+          "onEnd",
         ]
       `);
     });
@@ -25934,8 +25934,8 @@ describe('streamText', () => {
           onStepFinish: async () => {
             events.push('global-onStepFinish');
           },
-          onFinish: async () => {
-            events.push('global-onFinish');
+          onEnd: async () => {
+            events.push('global-onEnd');
           },
         },
       ];
@@ -25951,7 +25951,7 @@ describe('streamText', () => {
       expect(events).toEqual([
         'global-onStart',
         'global-onStepFinish',
-        'global-onFinish',
+        'global-onEnd',
       ]);
     });
 
@@ -26008,8 +26008,8 @@ describe('streamText', () => {
             onStepFinish: async () => {
               events.push('integration-onStepFinish');
             },
-            onFinish: async () => {
-              events.push('integration-onFinish');
+            onEnd: async () => {
+              events.push('integration-onEnd');
             },
           },
         },
@@ -26023,7 +26023,7 @@ describe('streamText', () => {
         'user-onStepFinish',
         'integration-onStepFinish',
         'user-onFinish',
-        'integration-onFinish',
+        'integration-onEnd',
       ]);
     });
 
@@ -26040,7 +26040,7 @@ describe('streamText', () => {
             onStepFinish: async () => {
               throw new Error('integration error');
             },
-            onFinish: async () => {
+            onEnd: async () => {
               throw new Error('integration error');
             },
           },

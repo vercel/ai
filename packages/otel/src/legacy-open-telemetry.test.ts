@@ -286,7 +286,7 @@ function makeFinishEvent(overrides?: Record<string, unknown>) {
       },
     },
     ...overrides,
-  } as Parameters<NonNullable<Telemetry['onFinish']>>[0];
+  } as Parameters<NonNullable<Telemetry['onEnd']>>[0];
 }
 
 function makeToolCallStartEvent(overrides?: Record<string, unknown>) {
@@ -770,12 +770,12 @@ describe('LegacyOpenTelemetry', () => {
     });
   });
 
-  describe('onFinish', () => {
+  describe('onEnd', () => {
     it('ends the root span', () => {
       otelIntegration.onStart!(makeOnStartEvent());
       otelIntegration.onStepStart!(makeStepStartEvent());
       otelIntegration.onStepFinish!(makeStepFinishEvent());
-      otelIntegration.onFinish!(makeFinishEvent());
+      otelIntegration.onEnd!(makeFinishEvent());
 
       const rootSpan = tracer.spans[0];
       expect(rootSpan.ended).toBe(true);
@@ -785,7 +785,7 @@ describe('LegacyOpenTelemetry', () => {
       otelIntegration.onStart!(makeOnStartEvent());
       otelIntegration.onStepStart!(makeStepStartEvent());
       otelIntegration.onStepFinish!(makeStepFinishEvent());
-      otelIntegration.onFinish!(
+      otelIntegration.onEnd!(
         makeFinishEvent({
           totalUsage: {
             inputTokens: 50,
@@ -806,7 +806,7 @@ describe('LegacyOpenTelemetry', () => {
       otelIntegration.onStart!(makeOnStartEvent());
       otelIntegration.onStepStart!(makeStepStartEvent());
       otelIntegration.onStepFinish!(makeStepFinishEvent());
-      otelIntegration.onFinish!(makeFinishEvent());
+      otelIntegration.onEnd!(makeFinishEvent());
 
       const rootSpan = tracer.spans[0];
       const setAttrsCall = getSetAttributesArg(rootSpan);
@@ -817,7 +817,7 @@ describe('LegacyOpenTelemetry', () => {
       otelIntegration.onStart!(makeOnStartEvent());
       otelIntegration.onStepStart!(makeStepStartEvent());
       otelIntegration.onStepFinish!(makeStepFinishEvent());
-      otelIntegration.onFinish!(
+      otelIntegration.onEnd!(
         makeFinishEvent({
           files: [
             {
@@ -845,14 +845,14 @@ describe('LegacyOpenTelemetry', () => {
       otelIntegration.onStart!(makeOnStartEvent());
       otelIntegration.onStepStart!(makeStepStartEvent());
       otelIntegration.onStepFinish!(makeStepFinishEvent());
-      otelIntegration.onFinish!(makeFinishEvent());
+      otelIntegration.onEnd!(makeFinishEvent());
 
       otelIntegration.onStepStart!(makeStepStartEvent());
       expect(tracer.spans).toHaveLength(2);
     });
 
     it('does nothing without prior onStart', () => {
-      otelIntegration.onFinish!(makeFinishEvent());
+      otelIntegration.onEnd!(makeFinishEvent());
 
       expect(tracer.spans).toHaveLength(0);
     });
@@ -1092,7 +1092,7 @@ describe('LegacyOpenTelemetry', () => {
       otelIntegration.onToolExecutionStart!(makeToolCallStartEvent());
       otelIntegration.onToolExecutionEnd!(makeToolCallFinishEvent(true));
       otelIntegration.onStepFinish!(makeStepFinishEvent());
-      otelIntegration.onFinish!(makeFinishEvent());
+      otelIntegration.onEnd!(makeFinishEvent());
 
       expect(tracer.spans).toHaveLength(3);
       expect(tracer.spans[0].name).toBe('ai.generateText');
@@ -1115,7 +1115,7 @@ describe('LegacyOpenTelemetry', () => {
       otelIntegration.onStepStart!(makeStepStartEvent({ steps: [{}] }));
       otelIntegration.onStepFinish!(makeStepFinishEvent({ stepNumber: 1 }));
 
-      otelIntegration.onFinish!(makeFinishEvent());
+      otelIntegration.onEnd!(makeFinishEvent());
 
       expect(tracer.spans).toHaveLength(4);
       expect(tracer.spans[0].name).toBe('ai.generateText');
@@ -1143,7 +1143,7 @@ describe('LegacyOpenTelemetry', () => {
       expect(tracer.spans).toHaveLength(4);
 
       otelIntegration.onStepFinish!(makeStepFinishEvent({ callId: callId1 }));
-      otelIntegration.onFinish!(makeFinishEvent({ callId: callId1 }));
+      otelIntegration.onEnd!(makeFinishEvent({ callId: callId1 }));
 
       expect(tracer.spans[0].ended).toBe(true);
       expect(tracer.spans[2].ended).toBe(true);
@@ -1152,7 +1152,7 @@ describe('LegacyOpenTelemetry', () => {
       expect(tracer.spans[3].ended).toBe(false);
 
       otelIntegration.onStepFinish!(makeStepFinishEvent({ callId: callId2 }));
-      otelIntegration.onFinish!(makeFinishEvent({ callId: callId2 }));
+      otelIntegration.onEnd!(makeFinishEvent({ callId: callId2 }));
 
       for (const span of tracer.spans) {
         expect(span.ended).toBe(true);
@@ -1184,7 +1184,7 @@ describe('LegacyOpenTelemetry', () => {
       );
 
       otelIntegration.onStepFinish!(makeStepFinishEvent());
-      otelIntegration.onFinish!(makeFinishEvent());
+      otelIntegration.onEnd!(makeFinishEvent());
 
       expect(tracer.spans).toHaveLength(2);
       expect(tracer.spans[0].name).toBe('ai.streamText');
