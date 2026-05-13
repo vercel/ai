@@ -8,8 +8,8 @@
     "type-check": "tsc --build"
   },
   "dependencies": {
-    "@ai-sdk/openai": "4.0.0-canary.56",
-    "ai": "7.0.0-canary.135",
+    "@ai-sdk/openai": "4.0.0-canary.57",
+    "ai": "7.0.0-canary.136",
     "dotenv": "16.4.5",
     "express": "5.0.1"
   },
