@@ -433,6 +433,8 @@ export function TextBlock({
 export function ToolItem({ tool }: { tool: ToolDefinition }) {
   const [expanded, setExpanded] = useState(false);
 
+  const hasExpandableContent = tool.parameters || tool.description;
+
   return (
     <div className="overflow-hidden rounded-md border border-border bg-background">
       <button
@@ -440,7 +442,7 @@ export function ToolItem({ tool }: { tool: ToolDefinition }) {
         onClick={() => setExpanded(!expanded)}
       >
         <span className="font-mono text-sm text-purple">{tool.name}</span>
-        {tool.parameters && (
+        {hasExpandableContent && (
           <ChevronRight
             className={`size-3 text-muted-foreground transition-transform ${
               expanded ? 'rotate-90' : ''
@@ -448,21 +450,23 @@ export function ToolItem({ tool }: { tool: ToolDefinition }) {
           />
         )}
       </button>
-      {expanded && tool.parameters && (
-        <div className="px-2.5 pb-2.5 border-t border-border">
-          {tool.description && (
-            <p className="pt-2 mb-2 text-xs text-muted-foreground">
-              {tool.description}
-            </p>
-          )}
-          <JsonBlock data={tool.parameters} compact />
-        </div>
-      )}
       {!expanded && tool.description && (
-        <div className="px-2.5 pb-2 -mt-1">
+        <div className="px-2.5 pb-2">
           <p className="text-[11px] text-muted-foreground truncate">
             {tool.description}
           </p>
+        </div>
+      )}
+      {expanded && hasExpandableContent && (
+        <div className="px-2.5 pb-2.5 border-t border-border">
+          {tool.description && (
+            <p
+              className={`pt-2 text-xs text-muted-foreground ${tool.parameters ? 'mb-2' : ''}`}
+            >
+              {tool.description}
+            </p>
+          )}
+          {tool.parameters && <JsonBlock data={tool.parameters} compact />}
         </div>
       )}
     </div>
