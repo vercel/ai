@@ -623,6 +623,13 @@ describe('streamText', () => {
             },
             {
               "finishReason": "stop",
+              "performance": {
+                "responseTimeMs": 0,
+                "stepTimeMs": 0,
+                "timeToFirstTokenMs": 0,
+                "tokensPerSecond": 0,
+                "toolExecutionMs": {},
+              },
               "providerMetadata": undefined,
               "rawFinishReason": "stop",
               "response": {
@@ -852,6 +859,13 @@ describe('streamText', () => {
             },
             {
               "finishReason": "stop",
+              "performance": {
+                "responseTimeMs": 0,
+                "stepTimeMs": 0,
+                "timeToFirstTokenMs": 0,
+                "tokensPerSecond": 0,
+                "toolExecutionMs": {},
+              },
               "providerMetadata": undefined,
               "rawFinishReason": "stop",
               "response": {
@@ -960,6 +974,13 @@ describe('streamText', () => {
             },
             {
               "finishReason": "stop",
+              "performance": {
+                "responseTimeMs": 0,
+                "stepTimeMs": 0,
+                "timeToFirstTokenMs": 0,
+                "tokensPerSecond": 0,
+                "toolExecutionMs": {},
+              },
               "providerMetadata": undefined,
               "rawFinishReason": "stop",
               "response": {
@@ -1053,6 +1074,13 @@ describe('streamText', () => {
             },
             {
               "finishReason": "stop",
+              "performance": {
+                "responseTimeMs": 0,
+                "stepTimeMs": 0,
+                "timeToFirstTokenMs": 0,
+                "tokensPerSecond": 0,
+                "toolExecutionMs": {},
+              },
               "providerMetadata": undefined,
               "rawFinishReason": "stop",
               "response": {
@@ -1157,6 +1185,13 @@ describe('streamText', () => {
             },
             {
               "finishReason": "stop",
+              "performance": {
+                "responseTimeMs": 0,
+                "stepTimeMs": 0,
+                "timeToFirstTokenMs": 0,
+                "tokensPerSecond": 0,
+                "toolExecutionMs": {},
+              },
               "providerMetadata": undefined,
               "rawFinishReason": "stop",
               "response": {
@@ -1318,6 +1353,13 @@ describe('streamText', () => {
             },
             {
               "finishReason": "stop",
+              "performance": {
+                "responseTimeMs": 0,
+                "stepTimeMs": 0,
+                "timeToFirstTokenMs": 0,
+                "tokensPerSecond": 0,
+                "toolExecutionMs": {},
+              },
               "providerMetadata": undefined,
               "rawFinishReason": "stop",
               "response": {
@@ -1443,6 +1485,13 @@ describe('streamText', () => {
             },
             {
               "finishReason": "stop",
+              "performance": {
+                "responseTimeMs": 0,
+                "stepTimeMs": 0,
+                "timeToFirstTokenMs": 0,
+                "tokensPerSecond": 0,
+                "toolExecutionMs": {},
+              },
               "providerMetadata": undefined,
               "rawFinishReason": "stop",
               "response": {
@@ -1784,6 +1833,13 @@ describe('streamText', () => {
             },
             {
               "finishReason": "tool-calls",
+              "performance": {
+                "responseTimeMs": 0,
+                "stepTimeMs": 0,
+                "timeToFirstTokenMs": 0,
+                "tokensPerSecond": 0,
+                "toolExecutionMs": {},
+              },
               "providerMetadata": undefined,
               "rawFinishReason": undefined,
               "response": {
@@ -2048,6 +2104,13 @@ describe('streamText', () => {
             },
             {
               "finishReason": "stop",
+              "performance": {
+                "responseTimeMs": 0,
+                "stepTimeMs": 0,
+                "timeToFirstTokenMs": 0,
+                "tokensPerSecond": 0,
+                "toolExecutionMs": {},
+              },
               "providerMetadata": undefined,
               "rawFinishReason": "stop",
               "response": {
@@ -4745,6 +4808,13 @@ describe('streamText', () => {
             },
             {
               "finishReason": "stop",
+              "performance": {
+                "responseTimeMs": 0,
+                "stepTimeMs": 0,
+                "timeToFirstTokenMs": 0,
+                "tokensPerSecond": 0,
+                "toolExecutionMs": {},
+              },
               "providerMetadata": undefined,
               "rawFinishReason": "stop",
               "response": {
@@ -5931,6 +6001,13 @@ describe('streamText', () => {
               "modelId": "mock-model-id",
               "provider": "mock-provider",
             },
+            "performance": {
+              "responseTimeMs": 0,
+              "stepTimeMs": 0,
+              "timeToFirstTokenMs": 0,
+              "tokensPerSecond": 0,
+              "toolExecutionMs": {},
+            },
             "providerMetadata": undefined,
             "rawFinishReason": "stop",
             "request": {
@@ -6074,6 +6151,13 @@ describe('streamText', () => {
               "modelId": "mock-model-id",
               "provider": "mock-provider",
             },
+            "performance": {
+              "responseTimeMs": 0,
+              "stepTimeMs": 0,
+              "timeToFirstTokenMs": 0,
+              "tokensPerSecond": 0,
+              "toolExecutionMs": {},
+            },
             "providerMetadata": undefined,
             "rawFinishReason": "stop",
             "request": {
@@ -6161,6 +6245,13 @@ describe('streamText', () => {
             "model": {
               "modelId": "mock-model-id",
               "provider": "mock-provider",
+            },
+            "performance": {
+              "responseTimeMs": 0,
+              "stepTimeMs": 0,
+              "timeToFirstTokenMs": 0,
+              "tokensPerSecond": 0,
+              "toolExecutionMs": {},
             },
             "providerMetadata": undefined,
             "rawFinishReason": "stop",
@@ -6272,6 +6363,13 @@ describe('streamText', () => {
               "modelId": "mock-model-id",
               "provider": "mock-provider",
             },
+            "performance": {
+              "responseTimeMs": 0,
+              "stepTimeMs": 0,
+              "timeToFirstTokenMs": 0,
+              "tokensPerSecond": 0,
+              "toolExecutionMs": {},
+            },
             "providerMetadata": undefined,
             "rawFinishReason": "stop",
             "request": {
@@ -6350,6 +6448,74 @@ describe('streamText', () => {
       const steps = await result.steps;
 
       await expect(result.finalStep).resolves.toBe(steps.at(-1));
+    });
+
+    it('should include step performance', async () => {
+      const settings = defaultSettings();
+
+      const result = streamText({
+        model: createTestModel(),
+        ...settings,
+        _internal: {
+          ...settings._internal,
+          now: mockValues(1000, 1000, 1200, 1500, 1500, 1500),
+        },
+      });
+
+      expect((await result.finalStep).performance).toStrictEqual({
+        tokensPerSecond: 20,
+        stepTimeMs: 500,
+        responseTimeMs: 500,
+        toolExecutionMs: {},
+        timeToFirstTokenMs: 500,
+      });
+    });
+
+    it('should measure time to first token from tool input deltas', async () => {
+      const settings = defaultSettings();
+
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'stream-start',
+              warnings: [],
+            },
+            { type: 'tool-input-start', id: 'call-1', toolName: 'tool1' },
+            { type: 'tool-input-delta', id: 'call-1', delta: '{' },
+            { type: 'tool-input-end', id: 'call-1' },
+            {
+              type: 'tool-call',
+              toolCallId: 'call-1',
+              toolName: 'tool1',
+              input: `{ "value": "value" }`,
+            },
+            {
+              type: 'finish',
+              finishReason: { unified: 'tool-calls', raw: 'tool-calls' },
+              usage: testUsage,
+            },
+          ]),
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+          }),
+        },
+        ...settings,
+        _internal: {
+          ...settings._internal,
+          now: mockValues(1000, 1000, 1100, 1200, 1500, 1500),
+        },
+      });
+
+      expect((await result.finalStep).performance).toStrictEqual({
+        tokensPerSecond: 20,
+        stepTimeMs: 500,
+        responseTimeMs: 500,
+        toolExecutionMs: {},
+        timeToFirstTokenMs: 200,
+      });
     });
   });
 
@@ -7690,6 +7856,11 @@ describe('streamText', () => {
             ],
             "finishReason": "tool-calls",
             "modelId": "mock-model-id",
+            "performance": {
+              "responseTimeMs": 0,
+              "timeToFirstTokenMs": 0,
+              "tokensPerSecond": 0,
+            },
             "provider": "mock-provider",
             "responseId": "response-1",
             "usage": {
@@ -8342,10 +8513,12 @@ describe('streamText', () => {
       expect(
         (toolExecutionEndEvents[0].toolOutput as { error: unknown }).error,
       ).toBe(toolError);
-      expect(toolExecutionEndEvents[0].durationMs).toBeGreaterThanOrEqual(0);
+      expect(toolExecutionEndEvents[0].toolExecutionMs).toBeGreaterThanOrEqual(
+        0,
+      );
     });
 
-    it('should have a positive durationMs', async () => {
+    it('should have a positive toolExecutionMs', async () => {
       const toolExecutionEndEvents: Parameters<
         OnToolExecutionEndCallback<any>
       >[0][] = [];
@@ -8389,8 +8562,10 @@ describe('streamText', () => {
 
       await result.consumeStream();
 
-      expect(toolExecutionEndEvents[0].durationMs).toBeGreaterThanOrEqual(0);
-      expect(typeof toolExecutionEndEvents[0].durationMs).toBe('number');
+      expect(toolExecutionEndEvents[0].toolExecutionMs).toBeGreaterThanOrEqual(
+        0,
+      );
+      expect(typeof toolExecutionEndEvents[0].toolExecutionMs).toBe('number');
     });
 
     it('should not break generation when callback throws', async () => {
@@ -8533,7 +8708,6 @@ describe('streamText', () => {
         [
           {
             "callId": "test-telemetry-call-id",
-            "durationMs": 0,
             "messages": [
               {
                 "content": "prompt",
@@ -8554,6 +8728,7 @@ describe('streamText', () => {
             "toolContext": {
               "context": "test",
             },
+            "toolExecutionMs": 0,
             "toolOutput": {
               "dynamic": false,
               "input": {
@@ -8621,7 +8796,6 @@ describe('streamText', () => {
         [
           {
             "callId": "test-telemetry-call-id",
-            "durationMs": 0,
             "messages": [
               {
                 "content": "prompt",
@@ -8642,6 +8816,7 @@ describe('streamText', () => {
             "toolContext": {
               "context": "test",
             },
+            "toolExecutionMs": 0,
             "toolOutput": {
               "dynamic": false,
               "error": [Error: Tool execution failed],
@@ -9273,6 +9448,15 @@ describe('streamText', () => {
                 "modelId": "mock-model-id",
                 "provider": "mock-provider",
               },
+              "performance": {
+                "responseTimeMs": 0,
+                "stepTimeMs": 0,
+                "timeToFirstTokenMs": 0,
+                "tokensPerSecond": 0,
+                "toolExecutionMs": {
+                  "call-1": 0,
+                },
+              },
               "providerMetadata": {
                 "testProvider": {
                   "testKey": "testValue",
@@ -9573,6 +9757,13 @@ describe('streamText', () => {
                 "modelId": "mock-model-id",
                 "provider": "mock-provider",
               },
+              "performance": {
+                "responseTimeMs": 0,
+                "stepTimeMs": 0,
+                "timeToFirstTokenMs": 0,
+                "tokensPerSecond": 0,
+                "toolExecutionMs": {},
+              },
               "providerMetadata": undefined,
               "rawFinishReason": "stop",
               "request": {
@@ -9850,6 +10041,13 @@ describe('streamText', () => {
               "model": {
                 "modelId": "mock-model-id",
                 "provider": "mock-provider",
+              },
+              "performance": {
+                "responseTimeMs": 0,
+                "stepTimeMs": 0,
+                "timeToFirstTokenMs": 0,
+                "tokensPerSecond": 0,
+                "toolExecutionMs": {},
               },
               "providerMetadata": undefined,
               "rawFinishReason": "stop",
@@ -10172,7 +10370,7 @@ describe('streamText', () => {
           },
           stopWhen: isStepCount(3),
           _internal: {
-            now: mockValues(0, 100, 500, 600, 1000),
+            now: mockValues(0, 0, 100, 500, 600, 1000),
             generateId: mockId({ prefix: 'id' }),
             generateCallId: () => 'test-telemetry-call-id',
           },
@@ -10349,6 +10547,15 @@ describe('streamText', () => {
               },
               {
                 "finishReason": "tool-calls",
+                "performance": {
+                  "responseTimeMs": 600,
+                  "stepTimeMs": 1000,
+                  "timeToFirstTokenMs": 500,
+                  "tokensPerSecond": 16.666666666666668,
+                  "toolExecutionMs": {
+                    "call-1": 0,
+                  },
+                },
                 "providerMetadata": undefined,
                 "rawFinishReason": undefined,
                 "response": {
@@ -10406,6 +10613,13 @@ describe('streamText', () => {
               },
               {
                 "finishReason": "stop",
+                "performance": {
+                  "responseTimeMs": 0,
+                  "stepTimeMs": 0,
+                  "timeToFirstTokenMs": 0,
+                  "tokensPerSecond": 0,
+                  "toolExecutionMs": {},
+                },
                 "providerMetadata": undefined,
                 "rawFinishReason": "stop",
                 "response": {
@@ -10595,6 +10809,15 @@ describe('streamText', () => {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
                   },
+                  "performance": {
+                    "responseTimeMs": 600,
+                    "stepTimeMs": 1000,
+                    "timeToFirstTokenMs": 500,
+                    "tokensPerSecond": 16.666666666666668,
+                    "toolExecutionMs": {
+                      "call-1": 0,
+                    },
+                  },
                   "providerMetadata": undefined,
                   "rawFinishReason": undefined,
                   "request": {
@@ -10678,6 +10901,13 @@ describe('streamText', () => {
                   "model": {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
+                  },
+                  "performance": {
+                    "responseTimeMs": 0,
+                    "stepTimeMs": 0,
+                    "timeToFirstTokenMs": 0,
+                    "tokensPerSecond": 0,
+                    "toolExecutionMs": {},
                   },
                   "providerMetadata": undefined,
                   "rawFinishReason": "stop",
@@ -10802,6 +11032,15 @@ describe('streamText', () => {
                   "modelId": "mock-model-id",
                   "provider": "mock-provider",
                 },
+                "performance": {
+                  "responseTimeMs": 600,
+                  "stepTimeMs": 1000,
+                  "timeToFirstTokenMs": 500,
+                  "tokensPerSecond": 16.666666666666668,
+                  "toolExecutionMs": {
+                    "call-1": 0,
+                  },
+                },
                 "providerMetadata": undefined,
                 "rawFinishReason": undefined,
                 "request": {
@@ -10885,6 +11124,13 @@ describe('streamText', () => {
                 "model": {
                   "modelId": "mock-model-id",
                   "provider": "mock-provider",
+                },
+                "performance": {
+                  "responseTimeMs": 0,
+                  "stepTimeMs": 0,
+                  "timeToFirstTokenMs": 0,
+                  "tokensPerSecond": 0,
+                  "toolExecutionMs": {},
                 },
                 "providerMetadata": undefined,
                 "rawFinishReason": "stop",
@@ -11046,6 +11292,15 @@ describe('streamText', () => {
                   "modelId": "mock-model-id",
                   "provider": "mock-provider",
                 },
+                "performance": {
+                  "responseTimeMs": 600,
+                  "stepTimeMs": 1000,
+                  "timeToFirstTokenMs": 500,
+                  "tokensPerSecond": 16.666666666666668,
+                  "toolExecutionMs": {
+                    "call-1": 0,
+                  },
+                },
                 "providerMetadata": undefined,
                 "rawFinishReason": undefined,
                 "request": {
@@ -11129,6 +11384,13 @@ describe('streamText', () => {
                 "model": {
                   "modelId": "mock-model-id",
                   "provider": "mock-provider",
+                },
+                "performance": {
+                  "responseTimeMs": 0,
+                  "stepTimeMs": 0,
+                  "timeToFirstTokenMs": 0,
+                  "tokensPerSecond": 0,
+                  "toolExecutionMs": {},
                 },
                 "providerMetadata": undefined,
                 "rawFinishReason": "stop",
@@ -11608,6 +11870,15 @@ describe('streamText', () => {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
                   },
+                  "performance": {
+                    "responseTimeMs": 0,
+                    "stepTimeMs": 0,
+                    "timeToFirstTokenMs": undefined,
+                    "tokensPerSecond": 0,
+                    "toolExecutionMs": {
+                      "call-1": 0,
+                    },
+                  },
                   "providerMetadata": undefined,
                   "rawFinishReason": undefined,
                   "request": {
@@ -11688,6 +11959,13 @@ describe('streamText', () => {
                   "model": {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
+                  },
+                  "performance": {
+                    "responseTimeMs": 0,
+                    "stepTimeMs": 0,
+                    "timeToFirstTokenMs": 0,
+                    "tokensPerSecond": 0,
+                    "toolExecutionMs": {},
                   },
                   "providerMetadata": undefined,
                   "rawFinishReason": "stop",
@@ -11811,6 +12089,15 @@ describe('streamText', () => {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
                   },
+                  "performance": {
+                    "responseTimeMs": 0,
+                    "stepTimeMs": 0,
+                    "timeToFirstTokenMs": undefined,
+                    "tokensPerSecond": 0,
+                    "toolExecutionMs": {
+                      "call-1": 0,
+                    },
+                  },
                   "providerMetadata": undefined,
                   "rawFinishReason": undefined,
                   "request": {
@@ -11891,6 +12178,13 @@ describe('streamText', () => {
                   "model": {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
+                  },
+                  "performance": {
+                    "responseTimeMs": 0,
+                    "stepTimeMs": 0,
+                    "timeToFirstTokenMs": 0,
+                    "tokensPerSecond": 0,
+                    "toolExecutionMs": {},
                   },
                   "providerMetadata": undefined,
                   "rawFinishReason": "stop",
@@ -12049,7 +12343,7 @@ describe('streamText', () => {
           },
           stopWhen: isStepCount(3),
           _internal: {
-            now: mockValues(0, 100, 500, 600, 1000),
+            now: mockValues(0, 0, 100, 500, 600, 1000),
             generateId: mockId({ prefix: 'id' }),
             generateCallId: () => 'test-telemetry-call-id',
           },
@@ -12108,6 +12402,15 @@ describe('streamText', () => {
               },
               {
                 "finishReason": "tool-calls",
+                "performance": {
+                  "responseTimeMs": 600,
+                  "stepTimeMs": 1000,
+                  "timeToFirstTokenMs": 500,
+                  "tokensPerSecond": 16.666666666666668,
+                  "toolExecutionMs": {
+                    "call-1": 0,
+                  },
+                },
                 "providerMetadata": undefined,
                 "rawFinishReason": undefined,
                 "response": {
@@ -12165,6 +12468,13 @@ describe('streamText', () => {
               },
               {
                 "finishReason": "stop",
+                "performance": {
+                  "responseTimeMs": 0,
+                  "stepTimeMs": 0,
+                  "timeToFirstTokenMs": 0,
+                  "tokensPerSecond": 0,
+                  "toolExecutionMs": {},
+                },
                 "providerMetadata": undefined,
                 "rawFinishReason": "stop",
                 "response": {
@@ -12354,6 +12664,15 @@ describe('streamText', () => {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
                   },
+                  "performance": {
+                    "responseTimeMs": 600,
+                    "stepTimeMs": 1000,
+                    "timeToFirstTokenMs": 500,
+                    "tokensPerSecond": 16.666666666666668,
+                    "toolExecutionMs": {
+                      "call-1": 0,
+                    },
+                  },
                   "providerMetadata": undefined,
                   "rawFinishReason": undefined,
                   "request": {
@@ -12437,6 +12756,13 @@ describe('streamText', () => {
                   "model": {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
+                  },
+                  "performance": {
+                    "responseTimeMs": 0,
+                    "stepTimeMs": 0,
+                    "timeToFirstTokenMs": 0,
+                    "tokensPerSecond": 0,
+                    "toolExecutionMs": {},
                   },
                   "providerMetadata": undefined,
                   "rawFinishReason": "stop",
@@ -12561,6 +12887,15 @@ describe('streamText', () => {
                   "modelId": "mock-model-id",
                   "provider": "mock-provider",
                 },
+                "performance": {
+                  "responseTimeMs": 600,
+                  "stepTimeMs": 1000,
+                  "timeToFirstTokenMs": 500,
+                  "tokensPerSecond": 16.666666666666668,
+                  "toolExecutionMs": {
+                    "call-1": 0,
+                  },
+                },
                 "providerMetadata": undefined,
                 "rawFinishReason": undefined,
                 "request": {
@@ -12644,6 +12979,13 @@ describe('streamText', () => {
                 "model": {
                   "modelId": "mock-model-id",
                   "provider": "mock-provider",
+                },
+                "performance": {
+                  "responseTimeMs": 0,
+                  "stepTimeMs": 0,
+                  "timeToFirstTokenMs": 0,
+                  "tokensPerSecond": 0,
+                  "toolExecutionMs": {},
                 },
                 "providerMetadata": undefined,
                 "rawFinishReason": "stop",
@@ -12801,6 +13143,15 @@ describe('streamText', () => {
                   "modelId": "mock-model-id",
                   "provider": "mock-provider",
                 },
+                "performance": {
+                  "responseTimeMs": 600,
+                  "stepTimeMs": 1000,
+                  "timeToFirstTokenMs": 500,
+                  "tokensPerSecond": 16.666666666666668,
+                  "toolExecutionMs": {
+                    "call-1": 0,
+                  },
+                },
                 "providerMetadata": undefined,
                 "rawFinishReason": undefined,
                 "request": {
@@ -12884,6 +13235,13 @@ describe('streamText', () => {
                 "model": {
                   "modelId": "mock-model-id",
                   "provider": "mock-provider",
+                },
+                "performance": {
+                  "responseTimeMs": 0,
+                  "stepTimeMs": 0,
+                  "timeToFirstTokenMs": 0,
+                  "tokensPerSecond": 0,
+                  "toolExecutionMs": {},
                 },
                 "providerMetadata": undefined,
                 "rawFinishReason": "stop",
@@ -13136,7 +13494,7 @@ describe('streamText', () => {
             },
           ],
           _internal: {
-            now: mockValues(0, 100, 500, 600, 1000),
+            now: mockValues(0, 0, 100, 500, 600, 1000),
             generateId: () => 'test-call-id',
             generateCallId: () => 'test-telemetry-call-id',
           },
@@ -13188,6 +13546,15 @@ describe('streamText', () => {
                   "model": {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
+                  },
+                  "performance": {
+                    "responseTimeMs": 600,
+                    "stepTimeMs": 1000,
+                    "timeToFirstTokenMs": 500,
+                    "tokensPerSecond": 16.666666666666668,
+                    "toolExecutionMs": {
+                      "call-1": 0,
+                    },
                   },
                   "providerMetadata": undefined,
                   "rawFinishReason": undefined,
@@ -13298,6 +13665,15 @@ describe('streamText', () => {
                   "model": {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
+                  },
+                  "performance": {
+                    "responseTimeMs": 600,
+                    "stepTimeMs": 1000,
+                    "timeToFirstTokenMs": 500,
+                    "tokensPerSecond": 16.666666666666668,
+                    "toolExecutionMs": {
+                      "call-1": 0,
+                    },
                   },
                   "providerMetadata": undefined,
                   "rawFinishReason": undefined,
@@ -13717,6 +14093,13 @@ describe('streamText', () => {
               },
               {
                 "finishReason": "stop",
+                "performance": {
+                  "responseTimeMs": 0,
+                  "stepTimeMs": 0,
+                  "timeToFirstTokenMs": 0,
+                  "tokensPerSecond": 0,
+                  "toolExecutionMs": {},
+                },
                 "providerMetadata": undefined,
                 "rawFinishReason": "stop",
                 "response": {
@@ -14256,6 +14639,15 @@ describe('streamText', () => {
               },
               {
                 "finishReason": "tool-calls",
+                "performance": {
+                  "responseTimeMs": 0,
+                  "stepTimeMs": 0,
+                  "timeToFirstTokenMs": 0,
+                  "tokensPerSecond": 0,
+                  "toolExecutionMs": {
+                    "call-1": 0,
+                  },
+                },
                 "providerMetadata": undefined,
                 "rawFinishReason": undefined,
                 "response": {
@@ -15455,6 +15847,15 @@ describe('streamText', () => {
             },
             {
               "finishReason": "stop",
+              "performance": {
+                "responseTimeMs": 0,
+                "stepTimeMs": 0,
+                "timeToFirstTokenMs": undefined,
+                "tokensPerSecond": 0,
+                "toolExecutionMs": {
+                  "call-1": 0,
+                },
+              },
               "providerMetadata": undefined,
               "rawFinishReason": "stop",
               "response": {
@@ -15535,6 +15936,15 @@ describe('streamText', () => {
             "model": {
               "modelId": "mock-model-id",
               "provider": "mock-provider",
+            },
+            "performance": {
+              "responseTimeMs": 0,
+              "stepTimeMs": 0,
+              "timeToFirstTokenMs": undefined,
+              "tokensPerSecond": 0,
+              "toolExecutionMs": {
+                "call-1": 0,
+              },
             },
             "providerMetadata": undefined,
             "rawFinishReason": "stop",
@@ -16029,6 +16439,15 @@ describe('streamText', () => {
                 "modelId": "mock-model-id",
                 "provider": "mock-provider",
               },
+              "performance": {
+                "responseTimeMs": 0,
+                "stepTimeMs": 0,
+                "timeToFirstTokenMs": 0,
+                "tokensPerSecond": 0,
+                "toolExecutionMs": {
+                  "call-1": 0,
+                },
+              },
               "providerMetadata": undefined,
               "rawFinishReason": "stop",
               "request": {
@@ -16390,6 +16809,15 @@ describe('streamText', () => {
                   "modelId": "mock-model-id",
                   "provider": "mock-provider",
                 },
+                "performance": {
+                  "responseTimeMs": 0,
+                  "stepTimeMs": 0,
+                  "timeToFirstTokenMs": 0,
+                  "tokensPerSecond": 0,
+                  "toolExecutionMs": {
+                    "call-1": 0,
+                  },
+                },
                 "providerMetadata": {
                   "testProvider": {
                     "testKey": "TEST VALUE",
@@ -16616,6 +17044,15 @@ describe('streamText', () => {
             "model": {
               "modelId": "mock-model-id",
               "provider": "mock-provider",
+            },
+            "performance": {
+              "responseTimeMs": 0,
+              "stepTimeMs": 0,
+              "timeToFirstTokenMs": 0,
+              "tokensPerSecond": 0,
+              "toolExecutionMs": {
+                "call-1": 0,
+              },
             },
             "providerMetadata": {
               "testProvider": {
@@ -16899,6 +17336,13 @@ describe('streamText', () => {
                   rawFinishReason: undefined,
                   providerMetadata: undefined,
                   usage: createNullLanguageModelUsage(),
+                  performance: {
+                    stepTimeMs: 0,
+                    responseTimeMs: 0,
+                    tokensPerSecond: 0,
+                    toolExecutionMs: {},
+                    timeToFirstTokenMs: undefined,
+                  },
                   response: {
                     id: 'response-id',
                     modelId: 'mock-model-id',
@@ -16978,6 +17422,13 @@ describe('streamText', () => {
               },
               {
                 "finishReason": "stop",
+                "performance": {
+                  "responseTimeMs": 0,
+                  "stepTimeMs": 0,
+                  "timeToFirstTokenMs": undefined,
+                  "tokensPerSecond": 0,
+                  "toolExecutionMs": {},
+                },
                 "providerMetadata": undefined,
                 "rawFinishReason": undefined,
                 "response": {
@@ -17073,6 +17524,13 @@ describe('streamText', () => {
             "model": {
               "modelId": "mock-model-id",
               "provider": "mock-provider",
+            },
+            "performance": {
+              "responseTimeMs": 0,
+              "stepTimeMs": 0,
+              "timeToFirstTokenMs": undefined,
+              "tokensPerSecond": 0,
+              "toolExecutionMs": {},
             },
             "providerMetadata": undefined,
             "rawFinishReason": undefined,
@@ -17623,6 +18081,13 @@ describe('streamText', () => {
                 "model": {
                   "modelId": "mock-model-id",
                   "provider": "mock-provider",
+                },
+                "performance": {
+                  "responseTimeMs": 0,
+                  "stepTimeMs": 0,
+                  "timeToFirstTokenMs": 0,
+                  "tokensPerSecond": 0,
+                  "toolExecutionMs": {},
                 },
                 "providerMetadata": undefined,
                 "rawFinishReason": "stop",
@@ -18741,6 +19206,13 @@ describe('streamText', () => {
               },
               {
                 "finishReason": "stop",
+                "performance": {
+                  "responseTimeMs": 0,
+                  "stepTimeMs": 0,
+                  "timeToFirstTokenMs": 0,
+                  "tokensPerSecond": 0,
+                  "toolExecutionMs": {},
+                },
                 "providerMetadata": undefined,
                 "rawFinishReason": "stop",
                 "response": {
@@ -18847,6 +19319,13 @@ describe('streamText', () => {
               "model": {
                 "modelId": "mock-model-id",
                 "provider": "mock-provider",
+              },
+              "performance": {
+                "responseTimeMs": 0,
+                "stepTimeMs": 0,
+                "timeToFirstTokenMs": 0,
+                "tokensPerSecond": 0,
+                "toolExecutionMs": {},
               },
               "providerMetadata": undefined,
               "rawFinishReason": "stop",
@@ -19248,6 +19727,15 @@ describe('streamText', () => {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
                   },
+                  "performance": {
+                    "responseTimeMs": 0,
+                    "stepTimeMs": 0,
+                    "timeToFirstTokenMs": undefined,
+                    "tokensPerSecond": 0,
+                    "toolExecutionMs": {
+                      "call-1": 0,
+                    },
+                  },
                   "providerMetadata": undefined,
                   "rawFinishReason": undefined,
                   "request": {
@@ -19355,6 +19843,15 @@ describe('streamText', () => {
               },
               {
                 "finishReason": "tool-calls",
+                "performance": {
+                  "responseTimeMs": 0,
+                  "stepTimeMs": 0,
+                  "timeToFirstTokenMs": undefined,
+                  "tokensPerSecond": 0,
+                  "toolExecutionMs": {
+                    "call-1": 0,
+                  },
+                },
                 "providerMetadata": undefined,
                 "rawFinishReason": undefined,
                 "response": {
@@ -20074,6 +20571,13 @@ describe('streamText', () => {
               },
               {
                 "finishReason": "stop",
+                "performance": {
+                  "responseTimeMs": 0,
+                  "stepTimeMs": 0,
+                  "timeToFirstTokenMs": 0,
+                  "tokensPerSecond": 0,
+                  "toolExecutionMs": {},
+                },
                 "providerMetadata": undefined,
                 "rawFinishReason": "stop",
                 "response": {
@@ -20312,6 +20816,15 @@ describe('streamText', () => {
               },
               {
                 "finishReason": "stop",
+                "performance": {
+                  "responseTimeMs": 0,
+                  "stepTimeMs": 0,
+                  "timeToFirstTokenMs": undefined,
+                  "tokensPerSecond": 0,
+                  "toolExecutionMs": {
+                    "call-1": 0,
+                  },
+                },
                 "providerMetadata": undefined,
                 "rawFinishReason": "stop",
                 "response": {
@@ -20485,6 +20998,15 @@ describe('streamText', () => {
               "model": {
                 "modelId": "mock-model-id",
                 "provider": "mock-provider",
+              },
+              "performance": {
+                "responseTimeMs": 0,
+                "stepTimeMs": 0,
+                "timeToFirstTokenMs": undefined,
+                "tokensPerSecond": 0,
+                "toolExecutionMs": {
+                  "call-1": 0,
+                },
               },
               "providerMetadata": undefined,
               "rawFinishReason": "stop",
@@ -20707,6 +21229,13 @@ describe('streamText', () => {
               },
               {
                 "finishReason": "stop",
+                "performance": {
+                  "responseTimeMs": 0,
+                  "stepTimeMs": 0,
+                  "timeToFirstTokenMs": 0,
+                  "tokensPerSecond": 0,
+                  "toolExecutionMs": {},
+                },
                 "providerMetadata": undefined,
                 "rawFinishReason": "stop",
                 "response": {
@@ -22049,6 +22578,15 @@ describe('streamText', () => {
                 },
                 {
                   "finishReason": "tool-calls",
+                  "performance": {
+                    "responseTimeMs": 0,
+                    "stepTimeMs": 0,
+                    "timeToFirstTokenMs": 0,
+                    "tokensPerSecond": 0,
+                    "toolExecutionMs": {
+                      "toolu_019jKkXz4jAdwHweHBw92CVY": 0,
+                    },
+                  },
                   "providerMetadata": {
                     "anthropic": {
                       "container": {
@@ -22113,6 +22651,15 @@ describe('streamText', () => {
                 },
                 {
                   "finishReason": "tool-calls",
+                  "performance": {
+                    "responseTimeMs": 0,
+                    "stepTimeMs": 0,
+                    "timeToFirstTokenMs": undefined,
+                    "tokensPerSecond": 0,
+                    "toolExecutionMs": {
+                      "toolu_015dGLMbwBKv1ZRQr6KdJzeH": 0,
+                    },
+                  },
                   "providerMetadata": {
                     "anthropic": {
                       "container": {
@@ -22177,6 +22724,15 @@ describe('streamText', () => {
                 },
                 {
                   "finishReason": "tool-calls",
+                  "performance": {
+                    "responseTimeMs": 0,
+                    "stepTimeMs": 0,
+                    "timeToFirstTokenMs": undefined,
+                    "tokensPerSecond": 0,
+                    "toolExecutionMs": {
+                      "toolu_01YYqBNq5mk1wMtv3PAqY44m": 0,
+                    },
+                  },
                   "providerMetadata": {
                     "anthropic": {
                       "container": {
@@ -22241,6 +22797,15 @@ describe('streamText', () => {
                 },
                 {
                   "finishReason": "tool-calls",
+                  "performance": {
+                    "responseTimeMs": 0,
+                    "stepTimeMs": 0,
+                    "timeToFirstTokenMs": undefined,
+                    "tokensPerSecond": 0,
+                    "toolExecutionMs": {
+                      "toolu_018WxjDkQG8h7i63poySGT2x": 0,
+                    },
+                  },
                   "providerMetadata": {
                     "anthropic": {
                       "container": {
@@ -22373,6 +22938,13 @@ describe('streamText', () => {
                 },
                 {
                   "finishReason": "stop",
+                  "performance": {
+                    "responseTimeMs": 0,
+                    "stepTimeMs": 0,
+                    "timeToFirstTokenMs": 0,
+                    "tokensPerSecond": 0,
+                    "toolExecutionMs": {},
+                  },
                   "providerMetadata": undefined,
                   "rawFinishReason": "stop",
                   "response": {
@@ -22897,6 +23469,13 @@ describe('streamText', () => {
               },
               {
                 "finishReason": "tool-calls",
+                "performance": {
+                  "responseTimeMs": 0,
+                  "stepTimeMs": 0,
+                  "timeToFirstTokenMs": undefined,
+                  "tokensPerSecond": 0,
+                  "toolExecutionMs": {},
+                },
                 "providerMetadata": undefined,
                 "rawFinishReason": undefined,
                 "response": {
@@ -23705,6 +24284,15 @@ describe('streamText', () => {
               },
               {
                 "finishReason": "tool-calls",
+                "performance": {
+                  "responseTimeMs": 0,
+                  "stepTimeMs": 0,
+                  "timeToFirstTokenMs": undefined,
+                  "tokensPerSecond": 0,
+                  "toolExecutionMs": {
+                    "call-2": 0,
+                  },
+                },
                 "providerMetadata": undefined,
                 "rawFinishReason": undefined,
                 "response": {
@@ -24286,6 +24874,13 @@ describe('streamText', () => {
               },
               {
                 "finishReason": "stop",
+                "performance": {
+                  "responseTimeMs": 0,
+                  "stepTimeMs": 0,
+                  "timeToFirstTokenMs": 0,
+                  "tokensPerSecond": 0,
+                  "toolExecutionMs": {},
+                },
                 "providerMetadata": undefined,
                 "rawFinishReason": "stop",
                 "response": {
@@ -24730,6 +25325,13 @@ describe('streamText', () => {
               },
               {
                 "finishReason": "stop",
+                "performance": {
+                  "responseTimeMs": 0,
+                  "stepTimeMs": 0,
+                  "timeToFirstTokenMs": 0,
+                  "tokensPerSecond": 0,
+                  "toolExecutionMs": {},
+                },
                 "providerMetadata": undefined,
                 "rawFinishReason": "stop",
                 "response": {
@@ -25035,6 +25637,13 @@ describe('streamText', () => {
               },
               {
                 "finishReason": "stop",
+                "performance": {
+                  "responseTimeMs": 0,
+                  "stepTimeMs": 0,
+                  "timeToFirstTokenMs": 0,
+                  "tokensPerSecond": 0,
+                  "toolExecutionMs": {},
+                },
                 "providerMetadata": undefined,
                 "rawFinishReason": "stop",
                 "response": {
@@ -25210,6 +25819,13 @@ describe('streamText', () => {
                 },
                 {
                   "finishReason": "tool-calls",
+                  "performance": {
+                    "responseTimeMs": 0,
+                    "stepTimeMs": 0,
+                    "timeToFirstTokenMs": undefined,
+                    "tokensPerSecond": 0,
+                    "toolExecutionMs": {},
+                  },
                   "providerMetadata": undefined,
                   "rawFinishReason": undefined,
                   "response": {

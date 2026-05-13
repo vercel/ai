@@ -88,7 +88,10 @@ import { setAbortTimeout } from '../util/set-abort-timeout';
 import type { ActiveTools } from './active-tools';
 import { collectToolApprovals } from './collect-tool-approvals';
 import type { ContentPart } from './content-part';
-import { createExecuteToolsTransformation } from './create-execute-tools-transformation';
+import {
+  createExecuteToolsTransformation,
+  type ExecuteToolsStreamPart,
+} from './create-execute-tools-transformation';
 import { executeToolCall } from './execute-tool-call';
 import {
   filterActiveTools,
@@ -121,10 +124,7 @@ import {
   isStopConditionMet,
   type StopCondition,
 } from './stop-condition';
-import {
-  streamLanguageModelCall,
-  type LanguageModelStreamPart,
-} from './stream-language-model-call';
+import { streamLanguageModelCall } from './stream-language-model-call';
 import type {
   ConsumeStreamOptions,
   StreamTextResult,
@@ -1162,6 +1162,7 @@ class DefaultStreamTextResult<
               finishReason: part.finishReason,
               rawFinishReason: part.rawFinishReason,
               usage: part.usage,
+              performance: part.performance,
               warnings: recordedWarnings,
               request: {
                 ...recordedRequest,
@@ -1493,8 +1494,8 @@ class DefaultStreamTextResult<
               });
 
               if (result != null) {
-                toolExecutionStepStreamController?.enqueue(result);
-                toolOutputs.push(result);
+                toolExecutionStepStreamController?.enqueue(result.output);
+                toolOutputs.push(result.output);
               }
             }),
           );
@@ -1721,6 +1722,9 @@ class DefaultStreamTextResult<
                   callbacks: [onStepStart, telemetryDispatcher.onStepStart],
                 });
               },
+              _internal: {
+                now,
+              },
               ...callSettings,
             }),
           );
@@ -1779,6 +1783,10 @@ class DefaultStreamTextResult<
           let stepUsage: LanguageModelUsage = createNullLanguageModelUsage();
           let stepProviderMetadata: ProviderMetadata | undefined;
           let stepFirstChunk = true;
+          let responseTimeMs = 0;
+          let tokensPerSecond = 0;
+          const toolExecutionMs: Record<string, number> = {};
+          let timeToFirstTokenMs: number | undefined;
           let stepResponse: { id: string; timestamp: Date; modelId: string } = {
             id: generateId(),
             timestamp: new Date(),
@@ -1788,7 +1796,7 @@ class DefaultStreamTextResult<
           self.addStream(
             streamWithToolResults.pipeThrough(
               new TransformStream<
-                LanguageModelStreamPart<TOOLS>,
+                ExecuteToolsStreamPart<TOOLS>,
                 TextStreamPart<TOOLS>
               >({
                 async transform(chunk, controller): Promise<void> {
@@ -1877,6 +1885,11 @@ class DefaultStreamTextResult<
                       break;
                     }
 
+                    case 'tool-execution-end': {
+                      toolExecutionMs[chunk.toolCallId] = chunk.toolExecutionMs;
+                      break;
+                    }
+
                     case 'model-call-response-metadata': {
                       stepResponse = {
                         id: chunk.id ?? stepResponse.id,
@@ -1893,17 +1906,18 @@ class DefaultStreamTextResult<
                       stepFinishReason = chunk.finishReason;
                       stepRawFinishReason = chunk.rawFinishReason;
                       stepProviderMetadata = chunk.providerMetadata;
-                      const msToFinish = now() - stepStartTimestampMs;
+                      responseTimeMs = chunk.performance.responseTimeMs;
+                      tokensPerSecond = chunk.performance.tokensPerSecond;
+                      timeToFirstTokenMs = chunk.performance.timeToFirstTokenMs;
                       void telemetryDispatcher.onChunk?.({
                         chunk: {
                           type: 'ai.stream.finish',
                           callId,
                           stepNumber: recordedSteps.length,
                           attributes: {
-                            'ai.response.msToFinish': msToFinish,
+                            'ai.response.msToFinish': responseTimeMs,
                             'ai.response.avgOutputTokensPerSecond':
-                              (1000 * (stepUsage.outputTokens ?? 0)) /
-                              msToFinish,
+                              tokensPerSecond,
                           },
                         },
                       });
@@ -1932,7 +1946,8 @@ class DefaultStreamTextResult<
 
                   if (
                     chunkType !== 'model-call-end' &&
-                    chunkType !== 'model-call-response-metadata'
+                    chunkType !== 'model-call-response-metadata' &&
+                    chunkType !== 'tool-execution-end'
                   ) {
                     void telemetryDispatcher.onChunk?.({ chunk });
                   }
@@ -1940,17 +1955,28 @@ class DefaultStreamTextResult<
 
                 // invoke onFinish callback and resolve toolResults promise when the stream is about to close:
                 async flush(controller) {
-                  controller.enqueue({
+                  const stepTimeMs = now() - stepStartTimestampMs;
+
+                  const finishStepPart: TextStreamPart<TOOLS> = {
                     type: 'finish-step',
                     finishReason: stepFinishReason,
                     rawFinishReason: stepRawFinishReason,
                     usage: stepUsage,
+                    performance: {
+                      stepTimeMs,
+                      responseTimeMs,
+                      tokensPerSecond,
+                      toolExecutionMs,
+                      timeToFirstTokenMs,
+                    },
                     providerMetadata: stepProviderMetadata,
                     response: {
                       ...stepResponse,
                       headers: response?.headers,
                     },
-                  });
+                  };
+
+                  controller.enqueue(finishStepPart);
 
                   const combinedUsage = addLanguageModelUsage(usage, stepUsage);
 

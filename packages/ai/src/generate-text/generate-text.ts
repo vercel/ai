@@ -52,11 +52,13 @@ import {
 import type { DownloadFunction } from '../util/download/download-function';
 import { mergeAbortSignals } from '../util/merge-abort-signals';
 import { mergeObjects } from '../util/merge-objects';
+import { now as originalNow } from '../util/now';
 import { notify } from '../util/notify';
 import { prepareRetries } from '../util/prepare-retries';
 import { setAbortTimeout } from '../util/set-abort-timeout';
 import { VERSION } from '../version';
 import type { ActiveTools } from './active-tools';
+import { calculateTokensPerSecond } from './calculate-tokens-per-second';
 import { collectToolApprovals } from './collect-tool-approvals';
 import type { ContentPart } from './content-part';
 import { executeToolCall } from './execute-tool-call';
@@ -84,7 +86,11 @@ import { convertToReasoningOutputs } from './reasoning-output';
 import { resolveToolApproval } from './resolve-tool-approval';
 import type { ResponseMessage } from './response-message';
 import { createRestrictedTelemetryDispatcher } from './restricted-telemetry-dispatcher';
-import { DefaultStepResult, type StepResult } from './step-result';
+import {
+  DefaultStepResult,
+  type StepResult,
+  type StepResultPerformance,
+} from './step-result';
 import {
   isStepCount,
   isStopConditionMet,
@@ -236,6 +242,7 @@ export async function generateText<
   _internal: {
     generateId = originalGenerateId,
     generateCallId = originalGenerateCallId,
+    now = originalNow,
   } = {},
   experimental_onStart: onStart,
   experimental_onStepStart: onStepStart,
@@ -439,6 +446,7 @@ export async function generateText<
     _internal?: {
       generateId?: IdGenerator;
       generateCallId?: IdGenerator;
+      now?: () => number;
     };
   }): Promise<GenerateTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>> {
   // assign default values to include:
@@ -543,7 +551,7 @@ export async function generateText<
       deniedToolApprovals.length > 0 ||
       localApprovedToolApprovals.length > 0
     ) {
-      const toolOutputs = await executeTools({
+      const toolResults = await executeTools({
         toolCalls: localApprovedToolApprovals.map(
           toolApproval => toolApproval.toolCall,
         ),
@@ -576,7 +584,8 @@ export async function generateText<
       const toolContent: Array<any> = [];
 
       // add regular tool results for approved tool calls:
-      for (const output of toolOutputs) {
+      for (const result of toolResults) {
+        const output = result.output;
         const modelOutput = await createToolModelOutput({
           toolCallId: output.toolCallId,
           input: output.input,
@@ -760,6 +769,8 @@ export async function generateText<
           ],
         });
 
+        const stepStartTimestampMs = now();
+
         currentModelResponse = await retry(async () => {
           const result = await stepModel.doGenerate({
             ...callSettings,
@@ -782,6 +793,8 @@ export async function generateText<
 
           return { ...result, response: responseData };
         });
+        const responseTimeMs = now() - stepStartTimestampMs;
+        const stepUsage = asLanguageModelUsage(currentModelResponse.usage);
 
         // parse tool calls:
         const stepToolCalls: TypedToolCall<TOOLS>[] = await Promise.all(
@@ -826,9 +839,17 @@ export async function generateText<
             provider: stepModel.provider,
             modelId: stepModel.modelId,
             finishReason: currentModelResponse.finishReason.unified,
-            usage: asLanguageModelUsage(currentModelResponse.usage),
+            usage: stepUsage,
             content: modelCallContent,
             responseId: currentModelResponse.response.id,
+            performance: {
+              responseTimeMs,
+              tokensPerSecond: calculateTokensPerSecond({
+                outputTokens: stepUsage.outputTokens,
+                responseTimeMs,
+              }),
+              timeToFirstTokenMs: undefined,
+            },
           },
           callbacks: [
             onLanguageModelCallEnd,
@@ -952,42 +973,58 @@ export async function generateText<
         deniedToolApprovalResponses = toolApprovalResponses.filter(
           toolApprovalResponse => toolApprovalResponse.approved === false,
         );
+        const toolExecutionMs: Record<string, number> = {};
 
         if (tools != null) {
-          clientToolOutputs.push(
-            ...(await executeTools({
-              toolCalls: clientToolCalls.filter(
-                toolCall =>
-                  !toolCall.invalid &&
-                  !blockedToolCallIds.has(toolCall.toolCallId),
-              ),
-              tools,
-              callId,
-              messages: stepMessages,
-              abortSignal: mergedAbortSignal,
-              timeout,
-              sandbox: stepSandbox,
-              toolsContext,
-              onToolExecutionStart: event =>
-                notify({
-                  event,
-                  callbacks: [
-                    resolvedOnToolExecutionStart,
-                    telemetryDispatcher.onToolExecutionStart,
-                  ],
-                }),
-              onToolExecutionEnd: event =>
-                notify({
-                  event,
-                  callbacks: [
-                    resolvedOnToolExecutionEnd,
-                    telemetryDispatcher.onToolExecutionEnd,
-                  ],
-                }),
-              executeToolInTelemetryContext: telemetryDispatcher.executeTool,
-            })),
-          );
+          const toolExecutionResults = await executeTools({
+            toolCalls: clientToolCalls.filter(
+              toolCall =>
+                !toolCall.invalid &&
+                !blockedToolCallIds.has(toolCall.toolCallId),
+            ),
+            tools,
+            callId,
+            messages: stepMessages,
+            abortSignal: mergedAbortSignal,
+            timeout,
+            sandbox: stepSandbox,
+            toolsContext,
+            onToolExecutionStart: event =>
+              notify({
+                event,
+                callbacks: [
+                  resolvedOnToolExecutionStart,
+                  telemetryDispatcher.onToolExecutionStart,
+                ],
+              }),
+            onToolExecutionEnd: event =>
+              notify({
+                event,
+                callbacks: [
+                  resolvedOnToolExecutionEnd,
+                  telemetryDispatcher.onToolExecutionEnd,
+                ],
+              }),
+            executeToolInTelemetryContext: telemetryDispatcher.executeTool,
+          });
+
+          for (const result of toolExecutionResults) {
+            toolExecutionMs[result.output.toolCallId] = result.toolExecutionMs;
+            clientToolOutputs.push(result.output);
+          }
         }
+
+        const stepTimeMs = now() - stepStartTimestampMs;
+        const stepPerformance: StepResultPerformance = {
+          tokensPerSecond: calculateTokensPerSecond({
+            outputTokens: stepUsage.outputTokens,
+            responseTimeMs,
+          }),
+          stepTimeMs,
+          responseTimeMs,
+          toolExecutionMs,
+          timeToFirstTokenMs: undefined,
+        };
 
         // Track provider-executed tool calls that support deferred results.
         // In programmatic tool calling, a server tool (e.g., code_execution) may
@@ -1066,7 +1103,8 @@ export async function generateText<
             content: stepContent,
             finishReason: currentModelResponse.finishReason.unified,
             rawFinishReason: currentModelResponse.finishReason.raw,
-            usage: asLanguageModelUsage(currentModelResponse.usage),
+            usage: stepUsage,
+            performance: stepPerformance,
             warnings: currentModelResponse.warnings,
             providerMetadata: currentModelResponse.providerMetadata,
             request: stepRequest,
@@ -1218,8 +1256,13 @@ async function executeTools<TOOLS extends ToolSet>({
   onToolExecutionStart?: OnToolExecutionStartCallback<TOOLS>;
   onToolExecutionEnd?: OnToolExecutionEndCallback<TOOLS>;
   executeToolInTelemetryContext?: Telemetry['executeTool'];
-}): Promise<Array<ToolOutput<TOOLS>>> {
-  const toolOutputs = await Promise.all(
+}): Promise<
+  Array<{
+    output: ToolOutput<TOOLS>;
+    toolExecutionMs: number;
+  }>
+> {
+  const toolResults = await Promise.all(
     toolCalls.map(
       async toolCall =>
         await executeToolCall({
@@ -1238,8 +1281,8 @@ async function executeTools<TOOLS extends ToolSet>({
     ),
   );
 
-  return toolOutputs.filter(
-    (output): output is NonNullable<typeof output> => output != null,
+  return toolResults.filter(
+    (result): result is NonNullable<typeof result> => result != null,
   );
 }
 

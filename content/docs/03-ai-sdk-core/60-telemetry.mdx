@@ -289,7 +289,7 @@ class MyIntegration implements Telemetry {
   async onToolExecutionEnd(event) {
     if (event.toolOutput.type === 'tool-result') {
       console.log(
-        `Tool "${event.toolCall.toolName}" took ${event.durationMs}ms`,
+        `Tool "${event.toolCall.toolName}" took ${event.toolExecutionMs}ms`,
       );
     } else {
       console.error(

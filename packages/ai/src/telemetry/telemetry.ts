@@ -128,7 +128,7 @@ export interface Telemetry {
    * The event uses a discriminated union on the `success` field — check
    * `event.success` to determine whether `output` or `error` is available.
    *
-   * The event includes execution duration (`durationMs`) for performance tracking.
+   * The event includes execution time (`toolExecutionMs`) for performance tracking.
    */
   onToolExecutionEnd?: Callback<InferTelemetryEvent<ToolExecutionEndEvent>>;
 

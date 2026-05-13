@@ -240,6 +240,11 @@ function makeLanguageModelCallEndEvent(overrides?: Record<string, unknown>) {
     },
     content: [{ type: 'text', text: 'Hello world' }],
     responseId: 'test-response-id',
+    performance: {
+      responseTimeMs: 1000,
+      tokensPerSecond: 20,
+      timeToFirstTokenMs: undefined,
+    },
     ...overrides,
   } as Parameters<NonNullable<Telemetry['onLanguageModelCallEnd']>>[0];
 }
@@ -276,6 +281,13 @@ function makeStepFinishEvent(overrides?: Record<string, unknown>) {
         textTokens: undefined,
         reasoningTokens: undefined,
       },
+    },
+    performance: {
+      tokensPerSecond: 20,
+      stepTimeMs: 1000,
+      responseTimeMs: 1000,
+      toolExecutionMs: {},
+      timeToFirstTokenMs: undefined,
     },
     warnings: undefined,
     request: { body: undefined, messages: [] },
@@ -347,7 +359,7 @@ function makeToolCallFinishEvent(
       input: { query: 'test' },
     },
     abortSignal: undefined,
-    durationMs: 42,
+    toolExecutionMs: 42,
     ...telemetryFields(),
     messages: [],
     toolContext: {},
