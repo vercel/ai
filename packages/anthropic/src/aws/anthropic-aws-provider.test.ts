@@ -239,6 +239,21 @@ describe('anthropicAws provider - workspaceId', () => {
     vi.unstubAllEnvs();
   });
 
+  it('sends the anthropic-version header on every request', async () => {
+    const fetchMock = createFetchMock();
+    const provider = createAnthropicAws({
+      region: 'us-west-2',
+      workspaceId: 'wrkspc_test',
+      apiKey: 'test-api-key',
+      fetch: fetchMock,
+    });
+
+    await provider('claude-sonnet-4-6').doGenerate({ prompt: TEST_PROMPT });
+
+    const [, requestOptions] = fetchMock.mock.calls[0]!;
+    expect(requestOptions.headers['anthropic-version']).toBe('2023-06-01');
+  });
+
   it('sends the anthropic-workspace-id header on every request', async () => {
     const fetchMock = createFetchMock();
     const provider = createAnthropicAws({

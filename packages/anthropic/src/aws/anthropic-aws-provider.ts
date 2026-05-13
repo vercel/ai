@@ -205,6 +205,7 @@ export function createAnthropicAws(
     })}.api.aws/v1`;
 
   const getHeaders = (): Record<string, string | undefined> => ({
+    'anthropic-version': '2023-06-01',
     'anthropic-workspace-id': loadSetting({
       settingValue: options.workspaceId,
       settingName: 'workspaceId',
