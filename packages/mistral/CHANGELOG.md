@@ -1,5 +1,11 @@
 # @ai-sdk/mistral
 
+## 4.0.0-canary.44
+
+### Patch Changes
+
+- 7acf358: fix(mistral): forward `stopSequences` as Mistral's native `stop` parameter
+
 ## 4.0.0-canary.43
 
 ### Patch Changes

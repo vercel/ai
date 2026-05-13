@@ -1,5 +1,11 @@
 # @ai-sdk/deepseek
 
+## 3.0.0-canary.43
+
+### Patch Changes
+
+- 87280a6: Accept `thinking.type: 'adaptive'` and the full `reasoningEffort` enum (`low`, `medium`, `high`, `xhigh`, `max`) for the DeepSeek provider.
+
 ## 3.0.0-canary.42
 
 ### Patch Changes

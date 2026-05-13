@@ -20,7 +20,9 @@
     "clean-examples": "node .github/scripts/cleanup-examples-changesets.mjs && pnpm install --no-frozen-lockfile",
     "check": "ultracite check",
     "fix": "ultracite fix",
-    "konsistent": "konsistent --config-path .github/konsistent.json",
+    "konsistent": "turbo run konsistent:validate konsistent:check --log-order=grouped --log-prefix=none",
+    "konsistent:check": "konsistent --config-path .github/konsistent.json",
+    "konsistent:validate": "konsistent validate --config-path .github/konsistent.json",
     "worktree:setup": "bash tools/worktree-setup.sh"
   },
   "lint-staged": {
@@ -29,11 +31,12 @@
     ]
   },
   "devDependencies": {
+    "konsistent-provider": "workspace:*",
     "@changesets/cli": "2.27.10",
     "@playwright/test": "^1.44.1",
     "del-cli": "^5.1.0",
     "husky": "^9.1.7",
-    "konsistent": "0.0.1-alpha.15",
+    "konsistent": "0.0.1-alpha.20",
     "lint-staged": "^15.5.1",
     "next": "15.0.7",
     "oxfmt": "^0.41.0",

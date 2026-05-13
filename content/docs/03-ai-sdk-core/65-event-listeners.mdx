@@ -94,7 +94,7 @@ For multi-step text generations that use tools, the callback order is typically
         'Called when the embedding operation begins, before the embedding model is called.',
     },
     {
-      name: 'experimental_onFinish',
+      name: 'experimental_onEnd',
       type: '(event: EmbedEndEvent) => void | Promise<void>',
       description:
         'Called when the embedding operation completes, after the embedding model returns.',
@@ -997,7 +997,7 @@ const result = await embed({
   ]}
 />
 
-#### `experimental_onFinish`
+#### `experimental_onEnd`
 
 Called when the embedding operation completes. For `embed`, `embedding` is a single vector and `response` is a single response object. For `embedMany`, `embedding` is an array of vectors and `response` is an array of response objects (one per chunk).
 
@@ -1007,7 +1007,7 @@ import { embedMany } from 'ai';
 const result = await embedMany({
   model: openai.embedding('text-embedding-3-small'),
   values: ['sunny day at the beach', 'rainy afternoon in the city'],
-  experimental_onFinish: event => {
+  experimental_onEnd: event => {
     console.log('Operation:', event.operationId);
     console.log('Usage:', event.usage);
   },
@@ -1286,7 +1286,7 @@ const result = await embedMany({
       valueCount: Array.isArray(event.value) ? event.value.length : 1,
     });
   },
-  experimental_onFinish: event => {
+  experimental_onEnd: event => {
     console.log(`Embedding complete (${event.operationId})`, {
       tokens: event.usage.tokens,
     });
