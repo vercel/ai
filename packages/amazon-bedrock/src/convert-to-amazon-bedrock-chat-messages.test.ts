@@ -1298,6 +1298,40 @@ describe('assistant messages', () => {
     });
   });
 
+  it('should filter out assistant messages with only empty text blocks', async () => {
+    const result = await convertToAmazonBedrockChatMessages([
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'Hello' }],
+      },
+      {
+        role: 'assistant',
+        content: [
+          { type: 'text', text: '\n\n' },
+          { type: 'text', text: '  ' },
+        ],
+      },
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'Next question' }],
+      },
+    ]);
+
+    expect(result).toEqual({
+      messages: [
+        {
+          role: 'user',
+          content: [{ text: 'Hello' }],
+        },
+        {
+          role: 'user',
+          content: [{ text: 'Next question' }],
+        },
+      ],
+      system: [],
+    });
+  });
+
   it('should preserve empty text blocks when reasoning blocks are present', async () => {
     const result = await convertToAmazonBedrockChatMessages([
       {
