@@ -277,6 +277,13 @@ function makeStepFinishEvent(overrides?: Record<string, unknown>) {
         reasoningTokens: undefined,
       },
     },
+    performance: {
+      tokensPerSecond: 20,
+      stepTimeMs: 1000,
+      responseTimeMs: 1000,
+      maxToolExecutionTimeMs: 0,
+      timeToFirstTokenMs: undefined,
+    },
     warnings: undefined,
     request: { body: undefined, messages: [] },
     response: {

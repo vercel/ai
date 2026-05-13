@@ -101,7 +101,7 @@ export async function handler(req, res) {
       type: 'GenerateTextOnStepFinishCallback',
       isRequired: false,
       description:
-        'Callback invoked after each agent step (LLM/tool call) completes. Useful for tracking token usage or logging intermediate steps.',
+        'Callback invoked after each agent step (LLM/tool call) completes. Useful for tracking token usage, per-step performance, or logging intermediate steps.',
     },
     {
       name: '...UIMessageStreamResponseInit & UIMessageStreamOptions',

@@ -325,6 +325,13 @@ export async function doStreamStep(
         },
         totalTokens: 0,
       } as LanguageModelUsage),
+    performance: {
+      tokensPerSecond: 0,
+      stepTimeMs: 0,
+      responseTimeMs: 0,
+      maxToolExecutionTimeMs: 0,
+      timeToFirstTokenMs: undefined,
+    },
     warnings,
     request: {
       body: '',

@@ -1643,6 +1643,49 @@ To see `generateText` in action, check out [these examples](#examples).
               ],
             },
             {
+              name: 'performance',
+              type: 'StepResultPerformance',
+              description:
+                'Timing and throughput metrics for the step. For `generateText`, `timeToFirstTokenMs` is undefined.',
+              properties: [
+                {
+                  type: 'StepResultPerformance',
+                  parameters: [
+                    {
+                      name: 'tokensPerSecond',
+                      type: 'number',
+                      description:
+                        'Average number of output tokens per second for the language model response.',
+                    },
+                    {
+                      name: 'stepTimeMs',
+                      type: 'number',
+                      description:
+                        'Total time spent on the step, including language model response time and tool execution time, in milliseconds.',
+                    },
+                    {
+                      name: 'responseTimeMs',
+                      type: 'number',
+                      description:
+                        'Time spent waiting for the language model response in milliseconds.',
+                    },
+                    {
+                      name: 'maxToolExecutionTimeMs',
+                      type: 'number',
+                      description:
+                        'Maximum time spent executing a single client-side tool in the step in milliseconds.',
+                    },
+                    {
+                      name: 'timeToFirstTokenMs',
+                      type: 'number | undefined',
+                      description:
+                        'Time until the first text, reasoning, or tool input delta was received in milliseconds. Only available for streaming steps.',
+                    },
+                  ],
+                },
+              ],
+            },
+            {
               name: 'warnings',
               type: 'CallWarning[] | undefined',
               description:

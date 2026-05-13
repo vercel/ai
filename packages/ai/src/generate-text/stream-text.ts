@@ -115,7 +115,11 @@ import type { PrepareStepFunction } from './prepare-step';
 import { convertToReasoningOutputs } from './reasoning-output';
 import type { ResponseMessage } from './response-message';
 import { createRestrictedTelemetryDispatcher } from './restricted-telemetry-dispatcher';
-import { DefaultStepResult, type StepResult } from './step-result';
+import {
+  DefaultStepResult,
+  type StepResult,
+  type StepResultPerformance,
+} from './step-result';
 import {
   isStepCount,
   isStopConditionMet,
@@ -153,6 +157,28 @@ const originalGenerateCallId = createIdGenerator({
   prefix: 'call',
   size: 24,
 });
+
+function createStepResultPerformance({
+  usage,
+  stepTimeMs,
+  responseTimeMs,
+  maxToolExecutionTimeMs,
+  timeToFirstTokenMs,
+}: {
+  usage: LanguageModelUsage;
+  stepTimeMs: number;
+  responseTimeMs: number;
+  maxToolExecutionTimeMs: number;
+  timeToFirstTokenMs: number | undefined;
+}): StepResultPerformance {
+  return {
+    tokensPerSecond: (1000 * (usage.outputTokens ?? 0)) / responseTimeMs,
+    stepTimeMs,
+    responseTimeMs,
+    maxToolExecutionTimeMs,
+    timeToFirstTokenMs,
+  };
+}
 
 export type StreamTextInclude = {
   /**
@@ -1162,6 +1188,14 @@ class DefaultStreamTextResult<
               finishReason: part.finishReason,
               rawFinishReason: part.rawFinishReason,
               usage: part.usage,
+              performance: createStepResultPerformance({
+                usage: part.usage,
+                stepTimeMs: part.experimental_stepTimeMs ?? 0,
+                responseTimeMs: part.experimental_responseTimeMs ?? 0,
+                maxToolExecutionTimeMs:
+                  part.experimental_maxToolExecutionTimeMs ?? 0,
+                timeToFirstTokenMs: part.experimental_timeToFirstTokenMs,
+              }),
               warnings: recordedWarnings,
               request: {
                 ...recordedRequest,
@@ -1241,39 +1275,41 @@ class DefaultStreamTextResult<
           const files = recordedSteps.flatMap(step => step.files);
           const warnings = recordedSteps.flatMap(step => step.warnings ?? []);
 
+          const onFinishEvent = {
+            callId,
+            toolsContext: finalStep.toolsContext,
+            stepNumber: finalStep.stepNumber,
+            model: finalStep.model,
+            runtimeContext: finalStep.runtimeContext,
+            finishReason: finalStep.finishReason,
+            rawFinishReason: finalStep.rawFinishReason,
+            totalUsage,
+            usage: finalStep.usage,
+            content: finalStep.content,
+            text: finalStep.text,
+            reasoningText: finalStep.reasoningText,
+            reasoning: finalStep.reasoning,
+            files,
+            sources: finalStep.sources,
+            toolCalls: finalStep.toolCalls,
+            staticToolCalls: finalStep.staticToolCalls,
+            dynamicToolCalls: finalStep.dynamicToolCalls,
+            toolResults: finalStep.toolResults,
+            staticToolResults: finalStep.staticToolResults,
+            dynamicToolResults: finalStep.dynamicToolResults,
+            request: finalStep.request,
+            response: finalStep.response,
+            responseMessages: [
+              ...initialResponseMessages,
+              ...recordedSteps.flatMap(step => step.response.messages),
+            ],
+            warnings,
+            providerMetadata: finalStep.providerMetadata,
+            steps: recordedSteps,
+          };
+
           await notify({
-            event: {
-              callId,
-              toolsContext: finalStep.toolsContext,
-              stepNumber: finalStep.stepNumber,
-              model: finalStep.model,
-              runtimeContext: finalStep.runtimeContext,
-              finishReason: finalStep.finishReason,
-              rawFinishReason: finalStep.rawFinishReason,
-              totalUsage,
-              usage: finalStep.usage,
-              content: finalStep.content,
-              text: finalStep.text,
-              reasoningText: finalStep.reasoningText,
-              reasoning: finalStep.reasoning,
-              files,
-              sources: finalStep.sources,
-              toolCalls: finalStep.toolCalls,
-              staticToolCalls: finalStep.staticToolCalls,
-              dynamicToolCalls: finalStep.dynamicToolCalls,
-              toolResults: finalStep.toolResults,
-              staticToolResults: finalStep.staticToolResults,
-              dynamicToolResults: finalStep.dynamicToolResults,
-              request: finalStep.request,
-              response: finalStep.response,
-              responseMessages: [
-                ...initialResponseMessages,
-                ...recordedSteps.flatMap(step => step.response.messages),
-              ],
-              warnings,
-              providerMetadata: finalStep.providerMetadata,
-              steps: recordedSteps,
-            },
+            event: onFinishEvent,
             callbacks: [onFinish, telemetryDispatcher.onFinish],
           });
         } catch (error) {
@@ -1749,10 +1785,19 @@ class DefaultStreamTextResult<
                 onToolExecutionStart,
                 telemetryDispatcher.onToolExecutionStart,
               ),
-              onToolExecutionEnd: filterNullable(
-                onToolExecutionEnd,
-                telemetryDispatcher.onToolExecutionEnd,
-              ),
+              onToolExecutionEnd: event => {
+                maxToolExecutionTimeMs = Math.max(
+                  maxToolExecutionTimeMs,
+                  event.durationMs,
+                );
+                return notify({
+                  event,
+                  callbacks: filterNullable(
+                    onToolExecutionEnd,
+                    telemetryDispatcher.onToolExecutionEnd,
+                  ),
+                });
+              },
               executeToolInTelemetryContext: telemetryDispatcher.executeTool,
             }),
           );
@@ -1779,6 +1824,10 @@ class DefaultStreamTextResult<
           let stepUsage: LanguageModelUsage = createNullLanguageModelUsage();
           let stepProviderMetadata: ProviderMetadata | undefined;
           let stepFirstChunk = true;
+          let stepTimeMs = 0;
+          let responseTimeMs = 0;
+          let maxToolExecutionTimeMs = 0;
+          let timeToFirstTokenMs: number | undefined;
           let stepResponse: { id: string; timestamp: Date; modelId: string } = {
             id: generateId(),
             timestamp: new Date(),
@@ -1823,6 +1872,17 @@ class DefaultStreamTextResult<
                   }
 
                   const chunkType = chunk.type;
+                  if (
+                    timeToFirstTokenMs == null &&
+                    ((chunkType === 'text-delta' && chunk.text.length > 0) ||
+                      (chunkType === 'reasoning-delta' &&
+                        chunk.text.length > 0) ||
+                      (chunkType === 'tool-input-delta' &&
+                        chunk.delta.length > 0))
+                  ) {
+                    timeToFirstTokenMs = now() - stepStartTimestampMs;
+                  }
+
                   switch (chunkType) {
                     case 'file':
                     case 'custom':
@@ -1893,17 +1953,17 @@ class DefaultStreamTextResult<
                       stepFinishReason = chunk.finishReason;
                       stepRawFinishReason = chunk.rawFinishReason;
                       stepProviderMetadata = chunk.providerMetadata;
-                      const msToFinish = now() - stepStartTimestampMs;
+                      responseTimeMs = now() - stepStartTimestampMs;
                       void telemetryDispatcher.onChunk?.({
                         chunk: {
                           type: 'ai.stream.finish',
                           callId,
                           stepNumber: recordedSteps.length,
                           attributes: {
-                            'ai.response.msToFinish': msToFinish,
+                            'ai.response.msToFinish': responseTimeMs,
                             'ai.response.avgOutputTokensPerSecond':
                               (1000 * (stepUsage.outputTokens ?? 0)) /
-                              msToFinish,
+                              responseTimeMs,
                           },
                         },
                       });
@@ -1940,17 +2000,46 @@ class DefaultStreamTextResult<
 
                 // invoke onFinish callback and resolve toolResults promise when the stream is about to close:
                 async flush(controller) {
-                  controller.enqueue({
-                    type: 'finish-step',
-                    finishReason: stepFinishReason,
-                    rawFinishReason: stepRawFinishReason,
-                    usage: stepUsage,
-                    providerMetadata: stepProviderMetadata,
-                    response: {
-                      ...stepResponse,
-                      headers: response?.headers,
-                    },
-                  });
+                  if (stepTimeMs === 0) {
+                    stepTimeMs = now() - stepStartTimestampMs;
+                  }
+                  if (responseTimeMs === 0) {
+                    responseTimeMs = stepTimeMs;
+                  }
+
+                  controller.enqueue(
+                    Object.defineProperties(
+                      {
+                        type: 'finish-step',
+                        finishReason: stepFinishReason,
+                        rawFinishReason: stepRawFinishReason,
+                        usage: stepUsage,
+                        providerMetadata: stepProviderMetadata,
+                        response: {
+                          ...stepResponse,
+                          headers: response?.headers,
+                        },
+                      },
+                      {
+                        experimental_stepTimeMs: {
+                          value: stepTimeMs,
+                          enumerable: false,
+                        },
+                        experimental_responseTimeMs: {
+                          value: responseTimeMs,
+                          enumerable: false,
+                        },
+                        experimental_maxToolExecutionTimeMs: {
+                          value: maxToolExecutionTimeMs,
+                          enumerable: false,
+                        },
+                        experimental_timeToFirstTokenMs: {
+                          value: timeToFirstTokenMs,
+                          enumerable: false,
+                        },
+                      },
+                    ),
+                  );
 
                   const combinedUsage = addLanguageModelUsage(usage, stepUsage);
 

@@ -59,6 +59,13 @@ function createStepResult({
     finishReason: 'stop',
     rawFinishReason: 'stop',
     usage: createNullLanguageModelUsage(),
+    performance: {
+      tokensPerSecond: 0,
+      stepTimeMs: 0,
+      responseTimeMs: 0,
+      maxToolExecutionTimeMs: 0,
+      timeToFirstTokenMs: undefined,
+    },
     warnings: [],
     request: { messages: [] },
     response: {

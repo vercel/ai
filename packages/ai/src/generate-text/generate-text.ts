@@ -52,6 +52,7 @@ import {
 import type { DownloadFunction } from '../util/download/download-function';
 import { mergeAbortSignals } from '../util/merge-abort-signals';
 import { mergeObjects } from '../util/merge-objects';
+import { now as originalNow } from '../util/now';
 import { notify } from '../util/notify';
 import { prepareRetries } from '../util/prepare-retries';
 import { setAbortTimeout } from '../util/set-abort-timeout';
@@ -84,7 +85,11 @@ import { convertToReasoningOutputs } from './reasoning-output';
 import { resolveToolApproval } from './resolve-tool-approval';
 import type { ResponseMessage } from './response-message';
 import { createRestrictedTelemetryDispatcher } from './restricted-telemetry-dispatcher';
-import { DefaultStepResult, type StepResult } from './step-result';
+import {
+  DefaultStepResult,
+  type StepResult,
+  type StepResultPerformance,
+} from './step-result';
 import {
   isStepCount,
   isStopConditionMet,
@@ -236,6 +241,7 @@ export async function generateText<
   _internal: {
     generateId = originalGenerateId,
     generateCallId = originalGenerateCallId,
+    now = originalNow,
   } = {},
   experimental_onStart: onStart,
   experimental_onStepStart: onStepStart,
@@ -439,6 +445,7 @@ export async function generateText<
     _internal?: {
       generateId?: IdGenerator;
       generateCallId?: IdGenerator;
+      now?: () => number;
     };
   }): Promise<GenerateTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>> {
   // assign default values to include:
@@ -760,6 +767,8 @@ export async function generateText<
           ],
         });
 
+        const stepStartTimestampMs = now();
+
         currentModelResponse = await retry(async () => {
           const result = await stepModel.doGenerate({
             ...callSettings,
@@ -782,6 +791,8 @@ export async function generateText<
 
           return { ...result, response: responseData };
         });
+        const responseTimeMs = now() - stepStartTimestampMs;
+        const stepUsage = asLanguageModelUsage(currentModelResponse.usage);
 
         // parse tool calls:
         const stepToolCalls: TypedToolCall<TOOLS>[] = await Promise.all(
@@ -826,7 +837,7 @@ export async function generateText<
             provider: stepModel.provider,
             modelId: stepModel.modelId,
             finishReason: currentModelResponse.finishReason.unified,
-            usage: asLanguageModelUsage(currentModelResponse.usage),
+            usage: stepUsage,
             content: modelCallContent,
             responseId: currentModelResponse.response.id,
           },
@@ -952,6 +963,7 @@ export async function generateText<
         deniedToolApprovalResponses = toolApprovalResponses.filter(
           toolApprovalResponse => toolApprovalResponse.approved === false,
         );
+        let maxToolExecutionTimeMs = 0;
 
         if (tools != null) {
           clientToolOutputs.push(
@@ -976,18 +988,33 @@ export async function generateText<
                     telemetryDispatcher.onToolExecutionStart,
                   ],
                 }),
-              onToolExecutionEnd: event =>
-                notify({
+              onToolExecutionEnd: event => {
+                maxToolExecutionTimeMs = Math.max(
+                  maxToolExecutionTimeMs,
+                  event.durationMs,
+                );
+                return notify({
                   event,
                   callbacks: [
                     resolvedOnToolExecutionEnd,
                     telemetryDispatcher.onToolExecutionEnd,
                   ],
-                }),
+                });
+              },
               executeToolInTelemetryContext: telemetryDispatcher.executeTool,
             })),
           );
         }
+
+        const stepTimeMs = now() - stepStartTimestampMs;
+        const stepPerformance: StepResultPerformance = {
+          tokensPerSecond:
+            (1000 * (stepUsage.outputTokens ?? 0)) / responseTimeMs,
+          stepTimeMs,
+          responseTimeMs,
+          maxToolExecutionTimeMs,
+          timeToFirstTokenMs: undefined,
+        };
 
         // Track provider-executed tool calls that support deferred results.
         // In programmatic tool calling, a server tool (e.g., code_execution) may
@@ -1066,7 +1093,8 @@ export async function generateText<
             content: stepContent,
             finishReason: currentModelResponse.finishReason.unified,
             rawFinishReason: currentModelResponse.finishReason.raw,
-            usage: asLanguageModelUsage(currentModelResponse.usage),
+            usage: stepUsage,
+            performance: stepPerformance,
             warnings: currentModelResponse.warnings,
             providerMetadata: currentModelResponse.providerMetadata,
             request: stepRequest,
