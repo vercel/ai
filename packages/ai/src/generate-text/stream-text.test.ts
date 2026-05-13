@@ -6388,7 +6388,7 @@ describe('streamText', () => {
         ...settings,
         _internal: {
           ...settings._internal,
-          now: mockValues(1000, 1200, 1500, 1500),
+          now: mockValues(1000, 1000, 1200, 1500, 1500, 1500),
         },
       });
 
@@ -6435,7 +6435,7 @@ describe('streamText', () => {
         ...settings,
         _internal: {
           ...settings._internal,
-          now: mockValues(1000, 1100, 1200, 1500),
+          now: mockValues(1000, 1000, 1100, 1200, 1500, 1500),
         },
       });
 
@@ -7786,6 +7786,10 @@ describe('streamText', () => {
             ],
             "finishReason": "tool-calls",
             "modelId": "mock-model-id",
+            "performance": {
+              "responseTimeMs": 0,
+              "tokensPerSecond": Infinity,
+            },
             "provider": "mock-provider",
             "responseId": "response-1",
             "usage": {
@@ -10289,7 +10293,7 @@ describe('streamText', () => {
           },
           stopWhen: isStepCount(3),
           _internal: {
-            now: mockValues(0, 100, 500, 600, 1000),
+            now: mockValues(0, 0, 100, 500, 600, 1000),
             generateId: mockId({ prefix: 'id' }),
             generateCallId: () => 'test-telemetry-call-id',
           },
@@ -12236,7 +12240,7 @@ describe('streamText', () => {
           },
           stopWhen: isStepCount(3),
           _internal: {
-            now: mockValues(0, 100, 500, 600, 1000),
+            now: mockValues(0, 0, 100, 500, 600, 1000),
             generateId: mockId({ prefix: 'id' }),
             generateCallId: () => 'test-telemetry-call-id',
           },
@@ -13365,7 +13369,7 @@ describe('streamText', () => {
             },
           ],
           _internal: {
-            now: mockValues(0, 100, 500, 600, 1000),
+            now: mockValues(0, 0, 100, 500, 600, 1000),
             generateId: () => 'test-call-id',
             generateCallId: () => 'test-telemetry-call-id',
           },
@@ -17350,7 +17354,7 @@ describe('streamText', () => {
               "responseTimeMs": 0,
               "stepTimeMs": 0,
               "timeToFirstTokenMs": undefined,
-              "tokensPerSecond": NaN,
+              "tokensPerSecond": 0,
             },
             "providerMetadata": undefined,
             "rawFinishReason": undefined,

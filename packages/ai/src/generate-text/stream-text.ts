@@ -86,7 +86,6 @@ import { now as originalNow } from '../util/now';
 import { prepareRetries } from '../util/prepare-retries';
 import { setAbortTimeout } from '../util/set-abort-timeout';
 import type { ActiveTools } from './active-tools';
-import { calculateTokensPerSecond } from './calculate-tokens-per-second';
 import { collectToolApprovals } from './collect-tool-approvals';
 import type { ContentPart } from './content-part';
 import { createExecuteToolsTransformation } from './create-execute-tools-transformation';
@@ -160,6 +159,7 @@ const finishStepPerformance = new WeakMap<
   {
     stepTimeMs: number;
     responseTimeMs: number;
+    tokensPerSecond: number;
     maxToolExecutionTimeMs: number;
     timeToFirstTokenMs: number | undefined;
   }
@@ -1171,6 +1171,7 @@ class DefaultStreamTextResult<
           const performance = finishStepPerformance.get(part) ?? {
             stepTimeMs: 0,
             responseTimeMs: 0,
+            tokensPerSecond: 0,
             maxToolExecutionTimeMs: 0,
             timeToFirstTokenMs: undefined,
           };
@@ -1194,10 +1195,6 @@ class DefaultStreamTextResult<
               rawFinishReason: part.rawFinishReason,
               usage: part.usage,
               performance: {
-                tokensPerSecond: calculateTokensPerSecond({
-                  outputTokens: part.usage.outputTokens,
-                  responseTimeMs: performance.responseTimeMs,
-                }),
                 ...performance,
               },
               warnings: recordedWarnings,
@@ -1759,6 +1756,9 @@ class DefaultStreamTextResult<
                   callbacks: [onStepStart, telemetryDispatcher.onStepStart],
                 });
               },
+              _internal: {
+                now,
+              },
               ...callSettings,
             }),
           );
@@ -1819,6 +1819,7 @@ class DefaultStreamTextResult<
           let stepFirstChunk = true;
           let stepTimeMs = 0;
           let responseTimeMs = 0;
+          let tokensPerSecond = 0;
           let maxToolExecutionTimeMs = 0;
           const toolExecutionStartTimes = new Map<string, number>();
           let timeToFirstTokenMs: number | undefined;
@@ -1956,7 +1957,8 @@ class DefaultStreamTextResult<
                       stepFinishReason = chunk.finishReason;
                       stepRawFinishReason = chunk.rawFinishReason;
                       stepProviderMetadata = chunk.providerMetadata;
-                      responseTimeMs = now() - stepStartTimestampMs;
+                      responseTimeMs = chunk.performance.responseTimeMs;
+                      tokensPerSecond = chunk.performance.tokensPerSecond;
                       for (const toolCall of stepToolCalls) {
                         if (toolCall.providerExecuted !== true) {
                           toolExecutionStartTimes.set(
@@ -1973,8 +1975,7 @@ class DefaultStreamTextResult<
                           attributes: {
                             'ai.response.msToFinish': responseTimeMs,
                             'ai.response.avgOutputTokensPerSecond':
-                              (1000 * (stepUsage.outputTokens ?? 0)) /
-                              responseTimeMs,
+                              tokensPerSecond,
                           },
                         },
                       });
@@ -2014,9 +2015,6 @@ class DefaultStreamTextResult<
                   if (stepTimeMs === 0) {
                     stepTimeMs = now() - stepStartTimestampMs;
                   }
-                  if (responseTimeMs === 0) {
-                    responseTimeMs = stepTimeMs;
-                  }
 
                   const finishStepPart: TextStreamPart<TOOLS> = {
                     type: 'finish-step',
@@ -2032,6 +2030,7 @@ class DefaultStreamTextResult<
                   finishStepPerformance.set(finishStepPart, {
                     stepTimeMs,
                     responseTimeMs,
+                    tokensPerSecond,
                     maxToolExecutionTimeMs,
                     timeToFirstTokenMs,
                   });

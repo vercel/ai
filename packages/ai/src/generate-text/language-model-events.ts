@@ -53,6 +53,15 @@ export type LanguageModelCallEndEvent<TOOLS extends ToolSet = ToolSet> =
 
     /** The provider-returned response id for this model call. */
     readonly responseId: string;
+
+    /** Performance metrics for the model call. */
+    readonly performance: {
+      /** Time spent waiting for the language model response in milliseconds. */
+      readonly responseTimeMs: number;
+
+      /** Average number of output tokens per second during the model response. */
+      readonly tokensPerSecond: number;
+    };
   };
 
 /**

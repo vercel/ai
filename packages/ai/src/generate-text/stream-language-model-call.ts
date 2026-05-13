@@ -36,6 +36,8 @@ import {
 } from '../util/async-iterable-stream';
 import type { DownloadFunction } from '../util/download/download-function';
 import { notify } from '../util/notify';
+import { now as originalNow } from '../util/now';
+import { calculateTokensPerSecond } from './calculate-tokens-per-second';
 import type { ContentPart } from './content-part';
 import { DefaultGeneratedFileWithType } from './generated-file';
 import type {
@@ -101,6 +103,10 @@ export type LanguageModelStreamPart<TOOLS extends ToolSet = ToolSet> =
       rawFinishReason: string | undefined;
       usage: LanguageModelUsage;
       providerMetadata?: ProviderMetadata;
+      performance: {
+        responseTimeMs: number;
+        tokensPerSecond: number;
+      };
     }
   | {
       type: 'model-call-start';
@@ -200,6 +206,7 @@ export async function streamLanguageModelCall<
   _internal: {
     generateId = originalGenerateId,
     generateCallId = originalGenerateCallId,
+    now = originalNow,
   } = {},
   onStart,
   onLanguageModelCallStart,
@@ -230,6 +237,7 @@ export async function streamLanguageModelCall<
   _internal?: {
     generateId?: IdGenerator;
     generateCallId?: IdGenerator;
+    now?: () => number;
   };
   onLanguageModelCallStart?: Arrayable<OnLanguageModelCallStartCallback>;
   onLanguageModelCallEnd?: Arrayable<OnLanguageModelCallEndCallback<TOOLS>>;
@@ -306,6 +314,8 @@ export async function streamLanguageModelCall<
     callbacks: onLanguageModelCallStart,
   });
 
+  const callStartTimestampMs = now();
+
   const {
     stream: languageModelStream,
     response,
@@ -333,6 +343,8 @@ export async function streamLanguageModelCall<
       provider: resolvedModel.provider,
       modelId: resolvedModel.modelId,
       generateId,
+      now,
+      callStartTimestampMs,
       onLanguageModelCallEnd,
     }),
   );
@@ -357,6 +369,8 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
   provider,
   modelId,
   generateId,
+  now,
+  callStartTimestampMs,
   onLanguageModelCallEnd,
 }: {
   tools: TOOLS | undefined;
@@ -368,6 +382,8 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
   provider: string;
   modelId: string;
   generateId: IdGenerator;
+  now: () => number;
+  callStartTimestampMs: number;
   onLanguageModelCallEnd?: Arrayable<OnLanguageModelCallEndCallback<TOOLS>>;
 }) {
   // keep track of parsed tool calls so provider-emitted approval requests can reference them
@@ -492,6 +508,14 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
 
         case 'finish': {
           const usage = asLanguageModelUsage(chunk.usage);
+          const responseTimeMs = now() - callStartTimestampMs;
+          const performance = {
+            responseTimeMs,
+            tokensPerSecond: calculateTokensPerSecond({
+              outputTokens: usage.outputTokens,
+              responseTimeMs,
+            }),
+          };
 
           await notify({
             event: {
@@ -502,6 +526,7 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
               usage,
               content: modelCallContent,
               responseId,
+              performance,
             },
             callbacks: onLanguageModelCallEnd,
           });
@@ -512,6 +537,7 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
             rawFinishReason: chunk.finishReason.raw,
             usage,
             providerMetadata: chunk.providerMetadata,
+            performance,
           });
           break;
         }

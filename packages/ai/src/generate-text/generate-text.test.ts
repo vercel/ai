@@ -2658,6 +2658,10 @@ describe('generateText', () => {
             ],
             "finishReason": "tool-calls",
             "modelId": "mock-model-id",
+            "performance": {
+              "responseTimeMs": 0,
+              "tokensPerSecond": Infinity,
+            },
             "provider": "mock-provider",
             "responseId": "response-1",
             "usage": {

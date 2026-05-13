@@ -40,6 +40,10 @@ const finishChunk = {
       reasoning: undefined,
     },
   }),
+  performance: {
+    responseTimeMs: 0,
+    tokensPerSecond: Infinity,
+  },
 };
 
 describe('createExecuteToolsTransformation', () => {
@@ -98,6 +102,10 @@ describe('createExecuteToolsTransformation', () => {
           },
           {
             "finishReason": "stop",
+            "performance": {
+              "responseTimeMs": 0,
+              "tokensPerSecond": Infinity,
+            },
             "rawFinishReason": "stop",
             "type": "model-call-end",
             "usage": {
@@ -176,6 +184,10 @@ describe('createExecuteToolsTransformation', () => {
         },
         {
           "finishReason": "stop",
+          "performance": {
+            "responseTimeMs": 0,
+            "tokensPerSecond": Infinity,
+          },
           "rawFinishReason": "stop",
           "type": "model-call-end",
           "usage": {
@@ -393,6 +405,10 @@ describe('createExecuteToolsTransformation', () => {
           },
           {
             "finishReason": "stop",
+            "performance": {
+              "responseTimeMs": 0,
+              "tokensPerSecond": Infinity,
+            },
             "rawFinishReason": "stop",
             "type": "model-call-end",
             "usage": {
@@ -511,6 +527,10 @@ describe('createExecuteToolsTransformation', () => {
           },
           {
             "finishReason": "stop",
+            "performance": {
+              "responseTimeMs": 0,
+              "tokensPerSecond": Infinity,
+            },
             "rawFinishReason": "stop",
             "type": "model-call-end",
             "usage": {
@@ -1175,6 +1195,10 @@ describe('createExecuteToolsTransformation', () => {
           },
           {
             "finishReason": "stop",
+            "performance": {
+              "responseTimeMs": 0,
+              "tokensPerSecond": Infinity,
+            },
             "rawFinishReason": "stop",
             "type": "model-call-end",
             "usage": {
@@ -1259,6 +1283,10 @@ describe('createExecuteToolsTransformation', () => {
           },
           {
             "finishReason": "stop",
+            "performance": {
+              "responseTimeMs": 0,
+              "tokensPerSecond": Infinity,
+            },
             "rawFinishReason": "stop",
             "type": "model-call-end",
             "usage": {

@@ -19,6 +19,10 @@ import { streamLanguageModelCall } from './stream-language-model-call';
 import type { ToolCallRepairFunction } from './tool-call-repair-function';
 import type { ToolInputRefinement } from './tool-input-refinement';
 
+vi.mock('../util/now', () => ({
+  now: vi.fn(() => 0),
+}));
+
 const testUsage: LanguageModelV4Usage = {
   inputTokens: {
     total: 3,
@@ -196,6 +200,10 @@ describe('streamLanguageModelCall', () => {
             "content": [],
             "finishReason": "stop",
             "modelId": "mock-model-id",
+            "performance": {
+              "responseTimeMs": 0,
+              "tokensPerSecond": Infinity,
+            },
             "provider": "mock-provider",
             "responseId": "aitxt-generated-response-id",
             "usage": {
@@ -302,6 +310,10 @@ describe('streamLanguageModelCall', () => {
             ],
             "finishReason": "tool-calls",
             "modelId": "mock-model-id",
+            "performance": {
+              "responseTimeMs": 0,
+              "tokensPerSecond": Infinity,
+            },
             "provider": "mock-provider",
             "responseId": "response-1",
             "usage": {
@@ -358,6 +370,10 @@ describe('streamLanguageModelCall', () => {
           "content": [],
           "finishReason": "stop",
           "modelId": "mock-model-id",
+          "performance": {
+            "responseTimeMs": 0,
+            "tokensPerSecond": Infinity,
+          },
           "provider": "mock-provider",
           "responseId": "aitxt-generated-response-id",
           "usage": {
@@ -434,6 +450,10 @@ describe('streamLanguageModelCall', () => {
           },
           {
             "finishReason": "stop",
+            "performance": {
+              "responseTimeMs": 0,
+              "tokensPerSecond": Infinity,
+            },
             "providerMetadata": undefined,
             "rawFinishReason": "stop",
             "type": "model-call-end",
@@ -493,6 +513,10 @@ describe('streamLanguageModelCall', () => {
           },
           {
             "finishReason": "stop",
+            "performance": {
+              "responseTimeMs": 0,
+              "tokensPerSecond": Infinity,
+            },
             "providerMetadata": undefined,
             "rawFinishReason": "stop",
             "type": "model-call-end",
@@ -583,6 +607,10 @@ describe('streamLanguageModelCall', () => {
           },
           {
             "finishReason": "stop",
+            "performance": {
+              "responseTimeMs": 0,
+              "tokensPerSecond": Infinity,
+            },
             "providerMetadata": undefined,
             "rawFinishReason": "stop",
             "type": "model-call-end",
@@ -662,6 +690,10 @@ describe('streamLanguageModelCall', () => {
           },
           {
             "finishReason": "stop",
+            "performance": {
+              "responseTimeMs": 0,
+              "tokensPerSecond": Infinity,
+            },
             "providerMetadata": undefined,
             "rawFinishReason": "stop",
             "type": "model-call-end",
@@ -720,6 +752,10 @@ describe('streamLanguageModelCall', () => {
           },
           {
             "finishReason": "stop",
+            "performance": {
+              "responseTimeMs": 0,
+              "tokensPerSecond": Infinity,
+            },
             "providerMetadata": undefined,
             "rawFinishReason": "stop",
             "type": "model-call-end",
@@ -849,6 +885,10 @@ describe('streamLanguageModelCall', () => {
           },
           {
             "finishReason": "stop",
+            "performance": {
+              "responseTimeMs": 0,
+              "tokensPerSecond": Infinity,
+            },
             "providerMetadata": undefined,
             "rawFinishReason": "stop",
             "type": "model-call-end",
@@ -901,6 +941,10 @@ describe('streamLanguageModelCall', () => {
           },
           {
             "finishReason": "stop",
+            "performance": {
+              "responseTimeMs": 0,
+              "tokensPerSecond": Infinity,
+            },
             "providerMetadata": undefined,
             "rawFinishReason": undefined,
             "type": "model-call-end",
@@ -989,6 +1033,10 @@ describe('streamLanguageModelCall', () => {
           },
           {
             "finishReason": "tool-calls",
+            "performance": {
+              "responseTimeMs": 0,
+              "tokensPerSecond": Infinity,
+            },
             "providerMetadata": undefined,
             "rawFinishReason": undefined,
             "type": "model-call-end",
@@ -1122,6 +1170,10 @@ describe('streamLanguageModelCall', () => {
           },
           {
             "finishReason": "tool-calls",
+            "performance": {
+              "responseTimeMs": 0,
+              "tokensPerSecond": Infinity,
+            },
             "providerMetadata": undefined,
             "rawFinishReason": undefined,
             "type": "model-call-end",

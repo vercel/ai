@@ -841,6 +841,13 @@ export async function generateText<
             usage: stepUsage,
             content: modelCallContent,
             responseId: currentModelResponse.response.id,
+            performance: {
+              responseTimeMs,
+              tokensPerSecond: calculateTokensPerSecond({
+                outputTokens: stepUsage.outputTokens,
+                responseTimeMs,
+              }),
+            },
           },
           callbacks: [
             onLanguageModelCallEnd,
