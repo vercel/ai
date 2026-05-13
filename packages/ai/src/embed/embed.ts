@@ -214,7 +214,7 @@ export async function embed({
         providerMetadata,
         response,
       },
-      callbacks: [onEnd, telemetryDispatcher.onFinish],
+      callbacks: [onEnd, telemetryDispatcher.onEnd],
     });
 
     return new DefaultEmbedResult({

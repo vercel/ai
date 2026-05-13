@@ -55,6 +55,6 @@ export const devToolsTelemetry: Telemetry = {
   onStepFinish: dispatch('onStepFinish'),
   onObjectStepStart: dispatch('onObjectStepStart'),
   onObjectStepFinish: dispatch('onObjectStepFinish'),
-  onFinish: dispatch('onFinish'),
+  onEnd: dispatch('onEnd'),
   onError: dispatch('onError'),
 };

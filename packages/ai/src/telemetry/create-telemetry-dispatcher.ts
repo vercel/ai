@@ -131,7 +131,7 @@ export function createTelemetryDispatcher({
     onEmbedEnd: mergeTelemetryCallback('onEmbedEnd'),
     onRerankStart: mergeTelemetryCallback('onRerankStart'),
     onRerankEnd: mergeTelemetryCallback('onRerankEnd'),
-    onFinish: mergeTelemetryCallback('onFinish'),
+    onEnd: mergeTelemetryCallback('onEnd'),
     onError: mergeTelemetryCallback('onError'),
 
     /**

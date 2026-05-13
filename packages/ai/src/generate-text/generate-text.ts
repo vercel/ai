@@ -1206,7 +1206,7 @@ export async function generateText<
 
     await notify({
       event: onFinishEvent,
-      callbacks: [onFinish, telemetryDispatcher.onFinish],
+      callbacks: [onFinish, telemetryDispatcher.onEnd],
     });
 
     // parse output only if the last step was finished with "stop":

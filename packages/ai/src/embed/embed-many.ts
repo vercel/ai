@@ -240,7 +240,7 @@ export async function embedMany({
           providerMetadata,
           response: [response],
         },
-        callbacks: [onEnd, telemetryDispatcher.onFinish],
+        callbacks: [onEnd, telemetryDispatcher.onEnd],
       });
 
       return new DefaultEmbedManyResult({
@@ -366,7 +366,7 @@ export async function embedMany({
         providerMetadata,
         response: responses,
       },
-      callbacks: [onEnd, telemetryDispatcher.onFinish],
+      callbacks: [onEnd, telemetryDispatcher.onEnd],
     });
 
     return new DefaultEmbedManyResult({

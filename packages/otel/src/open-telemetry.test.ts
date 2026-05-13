@@ -325,7 +325,7 @@ function makeFinishEvent(overrides?: Record<string, unknown>) {
       },
     },
     ...overrides,
-  } as Parameters<NonNullable<Telemetry['onFinish']>>[0];
+  } as Parameters<NonNullable<Telemetry['onEnd']>>[0];
 }
 
 function makeToolCallStartEvent(overrides?: Record<string, unknown>) {
@@ -810,12 +810,12 @@ describe('OpenTelemetry', () => {
     });
   });
 
-  describe('onFinish (generateText)', () => {
+  describe('onEnd (generateText)', () => {
     it('sets total usage and output on root span', () => {
       integration.onStart!(makeOnStartEvent());
       integration.onStepStart!(makeStepStartEvent());
       integration.onStepFinish!(makeStepFinishEvent());
-      integration.onFinish!(makeFinishEvent());
+      integration.onEnd!(makeFinishEvent());
 
       expect(serializeSpan(tracer.spans[0], tracer)).toMatchInlineSnapshot(`
         {
@@ -845,7 +845,7 @@ describe('OpenTelemetry', () => {
       integration.onStart!(makeOnStartEvent());
       integration.onStepStart!(makeStepStartEvent());
       integration.onStepFinish!(makeStepFinishEvent());
-      integration.onFinish!(makeFinishEvent());
+      integration.onEnd!(makeFinishEvent());
 
       const rootSpan = tracer.spans[0];
       expect(parseJsonAttributes(rootSpan.attributes, 'gen_ai.output.messages'))
@@ -1153,7 +1153,7 @@ describe('OpenTelemetry', () => {
           providerMetadata: { openai: { response: 'metadata' } },
         }),
       );
-      integration.onFinish!(
+      integration.onEnd!(
         makeFinishEvent({
           totalUsage: detailedUsage,
           providerMetadata: { openai: { response: 'metadata' } },
@@ -1275,7 +1275,7 @@ describe('OpenTelemetry', () => {
       integration.onToolExecutionStart!(makeToolCallStartEvent());
       integration.onToolExecutionEnd!(makeToolCallFinishEvent(true));
       integration.onStepFinish!(makeStepFinishEvent());
-      integration.onFinish!(makeFinishEvent());
+      integration.onEnd!(makeFinishEvent());
 
       expect(serializeTrace(tracer)).toMatchInlineSnapshot(`
         [
@@ -1358,7 +1358,7 @@ describe('OpenTelemetry', () => {
       integration.onToolExecutionStart!(makeToolCallStartEvent());
       integration.onToolExecutionEnd!(makeToolCallFinishEvent(true));
       integration.onStepFinish!(makeStepFinishEvent());
-      integration.onFinish!(makeFinishEvent());
+      integration.onEnd!(makeFinishEvent());
 
       expect(serializeTrace(tracer)).toMatchInlineSnapshot(`
         [
@@ -1506,7 +1506,7 @@ describe('OpenTelemetry', () => {
       integration.onLanguageModelCallEnd!(makeLanguageModelCallEndEvent());
       integration.onStepFinish!(makeStepFinishEvent({ stepNumber: 1 }));
 
-      integration.onFinish!(makeFinishEvent());
+      integration.onEnd!(makeFinishEvent());
 
       expect(
         tracer.spans.map(s => ({
@@ -1549,7 +1549,7 @@ describe('OpenTelemetry', () => {
       integration.onLanguageModelCallStart!(makeLanguageModelCallStartEvent());
       integration.onLanguageModelCallEnd!(makeLanguageModelCallEndEvent());
       integration.onStepFinish!(makeStepFinishEvent());
-      integration.onFinish!(makeFinishEvent());
+      integration.onEnd!(makeFinishEvent());
 
       expect(serializeTrace(tracer)).toMatchInlineSnapshot(`
         [
@@ -1637,7 +1637,7 @@ describe('OpenTelemetry', () => {
       integration.onLanguageModelCallEnd!(makeLanguageModelCallEndEvent());
       integration.onStepFinish!(makeStepFinishEvent({ stepNumber: 1 }));
 
-      integration.onFinish!(makeFinishEvent());
+      integration.onEnd!(makeFinishEvent());
 
       expect(serializeTrace(tracer)).toMatchInlineSnapshot(`
         [
@@ -1743,7 +1743,7 @@ describe('OpenTelemetry', () => {
       integration.onToolExecutionStart!(makeToolCallStartEvent());
       integration.onToolExecutionEnd!(makeToolCallFinishEvent(true));
       integration.onStepFinish!(makeStepFinishEvent());
-      integration.onFinish!(makeFinishEvent());
+      integration.onEnd!(makeFinishEvent());
 
       for (const span of tracer.spans) {
         for (const key of Object.keys(span.attributes)) {

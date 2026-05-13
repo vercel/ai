@@ -1275,7 +1275,7 @@ class DefaultStreamTextResult<
               providerMetadata: finalStep.providerMetadata,
               steps: recordedSteps,
             },
-            callbacks: [onFinish, telemetryDispatcher.onFinish],
+            callbacks: [onFinish, telemetryDispatcher.onEnd],
           });
         } catch (error) {
           controller.error(error);
