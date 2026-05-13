@@ -104,13 +104,27 @@ export const createJsonResponseHandler =
   <T>(responseSchema: FlexibleSchema<T>): ResponseHandler<T> =>
   async ({ response, url, requestBodyValues }) => {
     const responseBody = await response.text();
+    const responseHeaders = extractResponseHeaders(response);
+
+    console.log(
+      '[AI SDK HTTP JSON response before parsing]',
+      JSON.stringify(
+        {
+          url,
+          status: response.status,
+          statusText: response.statusText,
+          headers: responseHeaders,
+          body: responseBody,
+        },
+        null,
+        2,
+      ),
+    );
 
     const parsedResult = await safeParseJSON({
       text: responseBody,
       schema: responseSchema,
     });
-
-    const responseHeaders = extractResponseHeaders(response);
 
     if (!parsedResult.success) {
       throw new APICallError({
@@ -149,9 +163,27 @@ export const createBinaryResponseHandler =
 
     try {
       const buffer = await response.arrayBuffer();
+      const bytes = new Uint8Array(buffer);
+      console.log(
+        '[AI SDK HTTP binary response before parsing]',
+        JSON.stringify(
+          {
+            url,
+            status: response.status,
+            statusText: response.statusText,
+            headers: responseHeaders,
+            byteLength: bytes.byteLength,
+            first256BytesBase64: Buffer.from(bytes.subarray(0, 256)).toString(
+              'base64',
+            ),
+          },
+          null,
+          2,
+        ),
+      );
       return {
         responseHeaders,
-        value: new Uint8Array(buffer),
+        value: bytes,
       };
     } catch (error) {
       throw new APICallError({

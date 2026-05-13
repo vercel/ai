@@ -95,6 +95,26 @@ export const postToApi = async <T>({
   fetch?: FetchFunction;
 }) => {
   try {
+    console.log(
+      '[AI SDK HTTP request]',
+      JSON.stringify(
+        {
+          method: 'POST',
+          url,
+          headers: redactHeaders(
+            withUserAgentSuffix(
+              headers,
+              `ai-sdk/provider-utils/${VERSION}`,
+              getRuntimeEnvironmentUserAgent(),
+            ),
+          ),
+          body: describeRequestBody(body.content, body.values),
+        },
+        null,
+        2,
+      ),
+    );
+
     const response = await fetch(url, {
       method: 'POST',
       headers: withUserAgentSuffix(
@@ -164,3 +184,50 @@ export const postToApi = async <T>({
     throw handleFetchError({ error, url, requestBodyValues: body.values });
   }
 };
+
+function redactHeaders(headers: Record<string, string | undefined>) {
+  return Object.fromEntries(
+    Object.entries(headers).map(([key, value]) => [
+      key,
+      key.toLowerCase() === 'authorization' ? '<redacted>' : value,
+    ]),
+  );
+}
+
+function describeRequestBody(
+  content: string | FormData | Uint8Array,
+  values: unknown,
+) {
+  if (typeof content === 'string') {
+    return {
+      type: 'string',
+      content,
+      parsedValues: values,
+    };
+  }
+
+  if (content instanceof Uint8Array) {
+    return {
+      type: 'uint8array',
+      byteLength: content.byteLength,
+      first64BytesBase64: Buffer.from(content.subarray(0, 64)).toString(
+        'base64',
+      ),
+    };
+  }
+
+  return {
+    type: 'form-data',
+    fields: Array.from(content.entries()).map(([key, value]) => [
+      key,
+      value instanceof File
+        ? {
+            type: 'file',
+            name: value.name,
+            mediaType: value.type,
+            size: value.size,
+          }
+        : value,
+    ]),
+  };
+}
