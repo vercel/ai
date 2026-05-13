@@ -1,14 +1,11 @@
 import { getErrorMessage, type ToolSet } from '@ai-sdk/provider-utils';
-import type {
-  InferUIMessageChunk,
-  UIMessageChunk,
-} from '../ui-message-stream/ui-message-chunks';
+import type { TextStreamPart } from '../generate-text/stream-text-result';
 import type {
   InferUIMessageData,
   InferUIMessageMetadata,
   UIMessage,
 } from '../ui/ui-messages';
-import type { TextStreamPart } from './stream-text-result';
+import type { InferUIMessageChunk, UIMessageChunk } from './ui-message-chunks';
 
 export type ToUIMessageChunkOptions<
   TOOLS extends ToolSet = ToolSet,

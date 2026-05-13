@@ -9,9 +9,9 @@ import type { GenerateTextOnStepFinishCallback } from '../generate-text/generate
 import type { Output } from '../generate-text/output';
 import type { StreamTextTransform } from '../generate-text/stream-text';
 import type { UIMessageStreamOptions } from '../generate-text/stream-text-result';
-import { toUIMessageChunkStream } from '../generate-text/to-ui-message-chunk-stream';
 import type { TimeoutConfiguration } from '../prompt/request-options';
 import type { InferUIMessageChunk } from '../ui-message-stream';
+import { toUIMessageChunkStream } from '../ui-message-stream/to-ui-message-chunk-stream';
 import { convertToModelMessages } from '../ui/convert-to-model-messages';
 import type {
   InferUIMessageTools,

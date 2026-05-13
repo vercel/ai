@@ -2,7 +2,7 @@ import type { Context, Tool, ToolSet } from '@ai-sdk/provider-utils';
 import type { Agent } from '../agent/agent';
 import type { Output } from '../generate-text/output';
 import type { UIMessageStreamOptions } from '../generate-text/stream-text-result';
-import { toUIMessageChunkStream } from '../generate-text/to-ui-message-chunk-stream';
+import { toUIMessageChunkStream } from '../ui-message-stream/to-ui-message-chunk-stream';
 import type { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
 import type { ChatTransport } from './chat-transport';
 import { convertToModelMessages } from './convert-to-model-messages';

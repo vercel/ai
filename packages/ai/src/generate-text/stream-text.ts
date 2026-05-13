@@ -60,6 +60,7 @@ import {
 import type { UIMessage } from '../ui';
 import { createUIMessageStreamResponse } from '../ui-message-stream/create-ui-message-stream-response';
 import { pipeUIMessageStreamToResponse } from '../ui-message-stream/pipe-ui-message-stream-to-response';
+import { toUIMessageChunkStream } from '../ui-message-stream/to-ui-message-chunk-stream';
 import type { InferUIMessageChunk } from '../ui-message-stream/ui-message-chunks';
 import type { UIMessageStreamResponseInit } from '../ui-message-stream/ui-message-stream-response-init';
 import {
@@ -123,7 +124,6 @@ import type {
   UIMessageStreamOptions,
 } from './stream-text-result';
 import { toResponseMessages } from './to-response-messages';
-import { toUIMessageChunkStream } from './to-ui-message-chunk-stream';
 import type { ToolApprovalConfiguration } from './tool-approval-configuration';
 import type { TypedToolCall } from './tool-call';
 import type { ToolCallRepairFunction } from './tool-call-repair-function';

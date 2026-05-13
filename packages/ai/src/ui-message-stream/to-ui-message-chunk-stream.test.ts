@@ -3,9 +3,9 @@ import {
   convertReadableStreamToArray,
 } from '@ai-sdk/provider-utils/test';
 import { describe, expect, it, vi } from 'vitest';
+import type { TextStreamPart } from '../generate-text/stream-text-result';
 import type { LanguageModelUsage } from '../types/usage';
 import type { UIMessage } from '../ui/ui-messages';
-import type { TextStreamPart } from './stream-text-result';
 import { toUIMessageChunkStream } from './to-ui-message-chunk-stream';
 
 const testUsage: LanguageModelUsage = {

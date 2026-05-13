@@ -1,12 +1,12 @@
 import { getErrorMessage, type ToolSet } from '@ai-sdk/provider-utils';
-import { getResponseUIMessageId } from '../ui-message-stream/get-response-ui-message-id';
-import { handleUIMessageStreamFinish } from '../ui-message-stream/handle-ui-message-stream-finish';
-import type { InferUIMessageChunk } from '../ui-message-stream/ui-message-chunks';
-import type { UIMessage } from '../ui/ui-messages';
 import type {
   TextStreamPart,
   UIMessageStreamOptions,
-} from './stream-text-result';
+} from '../generate-text/stream-text-result';
+import type { UIMessage } from '../ui/ui-messages';
+import { getResponseUIMessageId } from './get-response-ui-message-id';
+import { handleUIMessageStreamFinish } from './handle-ui-message-stream-finish';
+import type { InferUIMessageChunk } from './ui-message-chunks';
 import { toUIMessageChunk } from './to-ui-message-chunk';
 
 /**

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import type { TextStreamPart } from '../generate-text/stream-text-result';
 import type { UIMessage } from '../ui/ui-messages';
-import type { TextStreamPart } from './stream-text-result';
 import { toUIMessageChunk } from './to-ui-message-chunk';
 
 describe('toUIMessageChunk', () => {
