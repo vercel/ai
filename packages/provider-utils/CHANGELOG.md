@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 5.0.0-canary.40
+
+### Patch Changes
+
+- a7de9c9: fix: make sandbox experimental
+
 ## 5.0.0-canary.39
 
 ### Patch Changes

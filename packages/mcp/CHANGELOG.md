@@ -1,5 +1,12 @@
 # @ai-sdk/mcp
 
+## 2.0.0-canary.49
+
+### Patch Changes
+
+- Updated dependencies [a7de9c9]
+  - @ai-sdk/provider-utils@5.0.0-canary.40
+
 ## 2.0.0-canary.48
 
 ### Patch Changes
