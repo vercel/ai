@@ -18,7 +18,7 @@ import {
   tool,
   type ToolSet,
   type ModelMessage,
-  type Sandbox,
+  type Experimental_Sandbox,
   type Tool,
   type ToolExecuteFunction,
 } from '@ai-sdk/provider-utils';
@@ -20145,16 +20145,16 @@ describe('streamText', () => {
       });
     });
 
-    it('should pass sandbox to tool execution', async () => {
+    it('should pass experimental_sandbox to tool execution', async () => {
       const sandbox = {
-        description: 'test sandbox',
+        description: 'test experimental sandbox',
         executeCommand: vi.fn(async () => ({
           exitCode: 0,
           stdout: 'ok',
           stderr: '',
         })),
-      } satisfies Sandbox;
-      let recordedSandbox: Sandbox | undefined;
+      } satisfies Experimental_Sandbox;
+      let recordedExperimentalSandbox: Experimental_Sandbox | undefined;
 
       const result = streamText({
         model: createTestModel({
@@ -20175,19 +20175,19 @@ describe('streamText', () => {
         tools: {
           t1: tool({
             inputSchema: z.object({ value: z.string() }),
-            execute: async ({ value }, { sandbox }) => {
-              recordedSandbox = sandbox;
+            execute: async ({ value }, { experimental_sandbox }) => {
+              recordedExperimentalSandbox = experimental_sandbox;
               return { value };
             },
           }),
         },
-        sandbox,
+        experimental_sandbox: sandbox,
         prompt: 'test-input',
       });
 
       await result.consumeStream();
 
-      expect(recordedSandbox).toBe(sandbox);
+      expect(recordedExperimentalSandbox).toBe(sandbox);
     });
 
     it('should pass runtimeContext to prepareStep', async () => {
@@ -20221,16 +20221,16 @@ describe('streamText', () => {
       expect(capturedContext).toEqual({ myData: 'test-value' });
     });
 
-    it('should pass sandbox to prepareStep', async () => {
+    it('should pass experimental_sandbox to prepareStep', async () => {
       const sandbox = {
-        description: 'test sandbox',
+        description: 'test experimental sandbox',
         executeCommand: vi.fn(async () => ({
           exitCode: 0,
           stdout: 'ok',
           stderr: '',
         })),
-      } satisfies Sandbox;
-      let capturedSandbox: Sandbox | undefined;
+      } satisfies Experimental_Sandbox;
+      let capturedExperimentalSandbox: Experimental_Sandbox | undefined;
 
       const result = streamText({
         model: new MockLanguageModelV4({
@@ -20248,9 +20248,9 @@ describe('streamText', () => {
             response: {},
           }),
         }),
-        sandbox,
-        prepareStep: async ({ sandbox }) => {
-          capturedSandbox = sandbox;
+        experimental_sandbox: sandbox,
+        prepareStep: async ({ experimental_sandbox }) => {
+          capturedExperimentalSandbox = experimental_sandbox;
           return undefined;
         },
         prompt: 'test',
@@ -20258,27 +20258,29 @@ describe('streamText', () => {
 
       await result.consumeStream();
 
-      expect(capturedSandbox).toBe(sandbox);
+      expect(capturedExperimentalSandbox).toBe(sandbox);
     });
 
     it('should use sandbox returned from prepareStep for that step only', async () => {
       const sandbox = {
-        description: 'default sandbox',
+        description: 'default experimental sandbox',
         executeCommand: vi.fn(async () => ({
           exitCode: 0,
           stdout: 'ok',
           stderr: '',
         })),
-      } satisfies Sandbox;
-      const stepSandbox = {
-        description: 'step sandbox',
+      } satisfies Experimental_Sandbox;
+      const stepExperimentalSandbox = {
+        description: 'step experimental sandbox',
         executeCommand: vi.fn(async () => ({
           exitCode: 0,
           stdout: 'ok',
           stderr: '',
         })),
-      } satisfies Sandbox;
-      const recordedSandboxes: Array<Sandbox | undefined> = [];
+      } satisfies Experimental_Sandbox;
+      const recordedExperimentalSandboxes: Array<
+        Experimental_Sandbox | undefined
+      > = [];
       let responseCount = 0;
 
       const result = streamText({
@@ -20336,22 +20338,27 @@ describe('streamText', () => {
         tools: {
           t1: tool({
             inputSchema: z.object({ value: z.string() }),
-            execute: async ({ value }, { sandbox }) => {
-              recordedSandboxes.push(sandbox);
+            execute: async ({ value }, { experimental_sandbox }) => {
+              recordedExperimentalSandboxes.push(experimental_sandbox);
               return { value };
             },
           }),
         },
-        sandbox,
+        experimental_sandbox: sandbox,
         prepareStep: async ({ stepNumber }) =>
-          stepNumber === 0 ? { sandbox: stepSandbox } : {},
+          stepNumber === 0
+            ? { experimental_sandbox: stepExperimentalSandbox }
+            : {},
         prompt: 'test-input',
         stopWhen: isStepCount(3),
       });
 
       await result.consumeStream();
 
-      expect(recordedSandboxes).toEqual([stepSandbox, sandbox]);
+      expect(recordedExperimentalSandboxes).toEqual([
+        stepExperimentalSandbox,
+        sandbox,
+      ]);
     });
 
     it('should send runtimeContext in onFinish callback', async () => {
@@ -24548,13 +24555,13 @@ describe('streamText', () => {
       let result: StreamTextResult<any, any, any>;
       let prompts: LanguageModelV4Prompt[];
       let executeFunction: ToolExecuteFunction<any, any, any>;
-      let sandbox: Sandbox;
+      let sandbox: Experimental_Sandbox;
 
       beforeEach(async () => {
         prompts = [];
         executeFunction = vi.fn().mockReturnValue('result1');
         sandbox = {
-          description: 'test sandbox',
+          description: 'test experimental sandbox',
           executeCommand: vi.fn(async () => ({
             exitCode: 0,
             stdout: 'ok',
@@ -24593,7 +24600,7 @@ describe('streamText', () => {
           toolApproval: {
             tool1: 'user-approval',
           },
-          sandbox,
+          experimental_sandbox: sandbox,
           stopWhen: isStepCount(3),
           _internal: {
             generateId: mockId({ prefix: 'id' }),
@@ -24648,11 +24655,11 @@ describe('streamText', () => {
         );
       });
 
-      it('should pass sandbox to approved tool execution', async () => {
+      it('should pass experimental_sandbox to approved tool execution', async () => {
         expect(executeFunction).toHaveBeenCalledWith(
           { value: 'value' },
           expect.objectContaining({
-            sandbox,
+            experimental_sandbox: sandbox,
           }),
         );
       });

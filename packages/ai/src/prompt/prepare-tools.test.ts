@@ -1,7 +1,7 @@
 import { z } from 'zod/v4';
 import {
   tool,
-  type Sandbox,
+  type Experimental_Sandbox,
   type Tool,
   type ToolSet,
 } from '@ai-sdk/provider-utils';
@@ -233,8 +233,8 @@ describe('prepareTools', () => {
     `);
   });
 
-  it('resolves function descriptions from toolsContext and sandbox', async () => {
-    const sandbox: Sandbox = {
+  it('resolves function descriptions from toolsContext and experimental_sandbox', async () => {
+    const experimental_sandbox: Experimental_Sandbox = {
       description: 'test-sandbox',
       executeCommand: async () => ({
         exitCode: 0,
@@ -252,16 +252,19 @@ describe('prepareTools', () => {
           inputSchema: z.object({}),
           execute: async () => {},
         },
-        withSandbox: {
+        withExperimentalSandbox: {
           type: 'dynamic' as const,
-          description: ({ sandbox: sb }: { sandbox?: Sandbox }) =>
-            `Env: ${sb?.description ?? 'none'}`,
+          description: ({
+            experimental_sandbox: sb,
+          }: {
+            experimental_sandbox?: Experimental_Sandbox;
+          }) => `Env: ${sb?.description ?? 'none'}`,
           inputSchema: z.object({}),
           execute: async () => {},
         },
       } as unknown as ToolSet,
       toolsContext: { contextual: { userName: 'Ada' } },
-      sandbox,
+      experimental_sandbox,
     });
 
     expect(result).toEqual([
@@ -270,7 +273,7 @@ describe('prepareTools', () => {
         description: 'User is Ada',
       }),
       expect.objectContaining({
-        name: 'withSandbox',
+        name: 'withExperimentalSandbox',
         description: 'Env: test-sandbox',
       }),
     ]);

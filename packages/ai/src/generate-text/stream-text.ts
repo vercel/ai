@@ -12,11 +12,11 @@ import {
   isAbortError,
   type Arrayable,
   type Context,
+  type Experimental_Sandbox,
   type IdGenerator,
   type InferToolSetContext,
   type ModelMessage,
   type ProviderOptions,
-  type Sandbox,
   type ToolApprovalResponse,
   type ToolContent,
   type ToolSet,
@@ -282,7 +282,7 @@ export type StreamTextOnAbortCallback<
  * @param timeout - An optional timeout in milliseconds. The call will be aborted if it takes longer than the specified timeout.
  * @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
  *
- * @param sandbox - The sandbox environment that is passed through to the tool execution.
+ * @param experimental_sandbox - The experimental sandbox environment that is passed through to tool execution.
  * @param runtimeContext - User-defined runtime context that flows through the entire generation lifecycle.
  * @param experimental_refineToolInput - Optional mapping of tool names to functions that refine parsed tool inputs before tools are executed and before outputs, callbacks, and telemetry are recorded.
  *
@@ -316,7 +316,7 @@ export function streamText<
   timeout,
   headers,
   stopWhen = isStepCount(1),
-  sandbox,
+  experimental_sandbox,
   output,
   toolApproval,
   experimental_telemetry,
@@ -396,9 +396,9 @@ export function streamText<
     providerOptions?: ProviderOptions;
 
     /**
-     * The sandbox environment that is passed through to the tool execution.
+     * The experimental sandbox environment that is passed through to tool execution.
      */
-    sandbox?: Sandbox;
+    experimental_sandbox?: Experimental_Sandbox;
 
     /**
      * Runtime context. Treat runtime context as immutable.
@@ -625,7 +625,7 @@ export function streamText<
     prompt,
     messages,
     allowSystemInMessages,
-    sandbox,
+    experimental_sandbox,
     tools,
     toolsContext,
     runtimeContext,
@@ -822,7 +822,7 @@ class DefaultStreamTextResult<
     prompt,
     messages,
     allowSystemInMessages,
-    sandbox,
+    experimental_sandbox,
     tools,
     toolChoice,
     transforms,
@@ -871,7 +871,7 @@ class DefaultStreamTextResult<
     prompt: Prompt['prompt'];
     messages: Prompt['messages'];
     allowSystemInMessages: Prompt['allowSystemInMessages'];
-    sandbox: Sandbox | undefined;
+    experimental_sandbox: Experimental_Sandbox | undefined;
     tools: TOOLS | undefined;
     toolChoice: ToolChoice<TOOLS> | undefined;
     transforms: Array<StreamTextTransform<TOOLS>>;
@@ -1477,7 +1477,7 @@ class DefaultStreamTextResult<
                 messages: initialMessages,
                 abortSignal,
                 timeout,
-                sandbox,
+                experimental_sandbox,
                 toolsContext,
                 onToolExecutionStart: filterNullable(
                   onToolExecutionStart,
@@ -1616,10 +1616,11 @@ class DefaultStreamTextResult<
             responseMessages: accumulatedResponseMessages,
             toolsContext,
             runtimeContext,
-            sandbox,
+            experimental_sandbox,
           });
 
-          const stepSandbox = prepareStepResult?.sandbox ?? sandbox;
+          const stepExperimentalSandbox =
+            prepareStepResult?.experimental_sandbox ?? experimental_sandbox;
 
           runtimeContext = prepareStepResult?.runtimeContext ?? runtimeContext;
           toolsContext = prepareStepResult?.toolsContext ?? toolsContext;
@@ -1639,7 +1640,7 @@ class DefaultStreamTextResult<
             toolsContext: toolsContext as unknown as InferToolSetContext<
               ActiveToolSubset<TOOLS, ActiveTools<NoInfer<TOOLS>>>
             >,
-            sandbox: stepSandbox,
+            experimental_sandbox: stepExperimentalSandbox,
           });
 
           const stepToolChoice = prepareToolChoice({
@@ -1685,7 +1686,7 @@ class DefaultStreamTextResult<
               output,
               callId,
               toolsContext,
-              sandbox: stepSandbox,
+              experimental_sandbox: stepExperimentalSandbox,
               onLanguageModelCallStart: filterNullable(
                 onLanguageModelCallStart,
                 telemetryDispatcher.onLanguageModelCallStart as
@@ -1744,7 +1745,7 @@ class DefaultStreamTextResult<
               messages: stepMessages,
               abortSignal,
               timeout,
-              sandbox: stepSandbox,
+              experimental_sandbox: stepExperimentalSandbox,
               toolsContext,
               toolApproval,
               runtimeContext,

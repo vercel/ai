@@ -12,7 +12,7 @@ import {
   jsonSchema,
   tool,
   type ModelMessage,
-  type Sandbox,
+  type Experimental_Sandbox,
   type ToolExecuteFunction,
 } from '@ai-sdk/provider-utils';
 import { mockId } from '@ai-sdk/provider-utils/test';
@@ -8412,16 +8412,16 @@ describe('generateText', () => {
       `);
     });
 
-    it('should pass sandbox to tool execution', async () => {
+    it('should pass experimental_sandbox to tool execution', async () => {
       const sandbox = {
-        description: 'test sandbox',
+        description: 'test experimental sandbox',
         executeCommand: vi.fn(async () => ({
           exitCode: 0,
           stdout: 'ok',
           stderr: '',
         })),
-      } satisfies Sandbox;
-      let recordedSandbox: Sandbox | undefined;
+      } satisfies Experimental_Sandbox;
+      let recordedExperimentalSandbox: Experimental_Sandbox | undefined;
 
       await generateText({
         model: new MockLanguageModelV4({
@@ -8442,17 +8442,17 @@ describe('generateText', () => {
         tools: {
           t1: tool({
             inputSchema: z.object({ value: z.string() }),
-            execute: async ({ value }, { sandbox }) => {
-              recordedSandbox = sandbox;
+            execute: async ({ value }, { experimental_sandbox }) => {
+              recordedExperimentalSandbox = experimental_sandbox;
               return { value };
             },
           }),
         },
-        sandbox,
+        experimental_sandbox: sandbox,
         prompt: 'test-input',
       });
 
-      expect(recordedSandbox).toBe(sandbox);
+      expect(recordedExperimentalSandbox).toBe(sandbox);
     });
 
     it('should pass runtimeContext to prepareStep', async () => {
@@ -8476,16 +8476,16 @@ describe('generateText', () => {
       expect(capturedContext).toEqual({ myData: 'test-value' });
     });
 
-    it('should pass sandbox to prepareStep', async () => {
+    it('should pass experimental_sandbox to prepareStep', async () => {
       const sandbox = {
-        description: 'test sandbox',
+        description: 'test experimental sandbox',
         executeCommand: vi.fn(async () => ({
           exitCode: 0,
           stdout: 'ok',
           stderr: '',
         })),
-      } satisfies Sandbox;
-      let capturedSandbox: Sandbox | undefined;
+      } satisfies Experimental_Sandbox;
+      let capturedExperimentalSandbox: Experimental_Sandbox | undefined;
 
       await generateText({
         model: new MockLanguageModelV4({
@@ -8494,35 +8494,37 @@ describe('generateText', () => {
             content: [{ type: 'text', text: 'Hello, world!' }],
           }),
         }),
-        sandbox,
-        prepareStep: async ({ sandbox }) => {
-          capturedSandbox = sandbox;
+        experimental_sandbox: sandbox,
+        prepareStep: async ({ experimental_sandbox }) => {
+          capturedExperimentalSandbox = experimental_sandbox;
           return undefined;
         },
         prompt: 'test',
       });
 
-      expect(capturedSandbox).toBe(sandbox);
+      expect(capturedExperimentalSandbox).toBe(sandbox);
     });
 
     it('should use sandbox returned from prepareStep for that step only', async () => {
       const sandbox = {
-        description: 'default sandbox',
+        description: 'default experimental sandbox',
         executeCommand: vi.fn(async () => ({
           exitCode: 0,
           stdout: 'ok',
           stderr: '',
         })),
-      } satisfies Sandbox;
-      const stepSandbox = {
-        description: 'step sandbox',
+      } satisfies Experimental_Sandbox;
+      const stepExperimentalSandbox = {
+        description: 'step experimental sandbox',
         executeCommand: vi.fn(async () => ({
           exitCode: 0,
           stdout: 'ok',
           stderr: '',
         })),
-      } satisfies Sandbox;
-      const recordedSandboxes: Array<Sandbox | undefined> = [];
+      } satisfies Experimental_Sandbox;
+      const recordedExperimentalSandboxes: Array<
+        Experimental_Sandbox | undefined
+      > = [];
       let responseCount = 0;
 
       await generateText({
@@ -8568,20 +8570,25 @@ describe('generateText', () => {
         tools: {
           t1: tool({
             inputSchema: z.object({ value: z.string() }),
-            execute: async ({ value }, { sandbox }) => {
-              recordedSandboxes.push(sandbox);
+            execute: async ({ value }, { experimental_sandbox }) => {
+              recordedExperimentalSandboxes.push(experimental_sandbox);
               return { value };
             },
           }),
         },
-        sandbox,
+        experimental_sandbox: sandbox,
         prepareStep: async ({ stepNumber }) =>
-          stepNumber === 0 ? { sandbox: stepSandbox } : {},
+          stepNumber === 0
+            ? { experimental_sandbox: stepExperimentalSandbox }
+            : {},
         prompt: 'test-input',
         stopWhen: isStepCount(3),
       });
 
-      expect(recordedSandboxes).toEqual([stepSandbox, sandbox]);
+      expect(recordedExperimentalSandboxes).toEqual([
+        stepExperimentalSandbox,
+        sandbox,
+      ]);
     });
 
     it('should send runtimeContext in onFinish callback', async () => {

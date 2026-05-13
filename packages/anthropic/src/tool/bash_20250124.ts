@@ -1,8 +1,8 @@
 import {
   createProviderDefinedToolFactory,
   lazySchema,
+  type Experimental_Sandbox,
   type ProviderDefinedTool,
-  type Sandbox,
   type Tool,
   type ToolExecuteFunction,
   zodSchema,
@@ -54,7 +54,9 @@ type Bash20250124OptionsWithNullableExecute<OUTPUT> = Omit<
   execute?: Bash20250124Options<OUTPUT>['execute'] | null;
 };
 
-type Bash20250124DefaultOutput = Awaited<ReturnType<Sandbox['executeCommand']>>;
+type Bash20250124DefaultOutput = Awaited<
+  ReturnType<Experimental_Sandbox['executeCommand']>
+>;
 
 export function bash_20250124(
   options?: Omit<Bash20250124Options<Bash20250124DefaultOutput>, 'execute'> & {
@@ -79,12 +81,15 @@ export function bash_20250124<OUTPUT>(
   if (execute === undefined) {
     return bash_20250124_internal({
       ...rest,
-      execute: async ({ command }, { abortSignal, sandbox }) => {
-        if (!sandbox) {
-          throw new Error('Sandbox is not available');
+      execute: async ({ command }, { abortSignal, experimental_sandbox }) => {
+        if (!experimental_sandbox) {
+          throw new Error('Experimental sandbox is not available');
         }
 
-        return await sandbox.executeCommand({ command, abortSignal });
+        return await experimental_sandbox.executeCommand({
+          command,
+          abortSignal,
+        });
       },
     } as Bash20250124Options<Bash20250124DefaultOutput>) as ReturnType<
       typeof bash_20250124_internal<OUTPUT>

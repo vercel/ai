@@ -33,7 +33,7 @@ For agents, `runtimeContext` is the shared runtime state that flows through the
 loop. For guidance on `runtimeContext`, `toolsContext`, tool `context`, and
 sensitive context filtering, see [Runtime and Tool
 Context](/docs/ai-sdk-core/runtime-and-tool-context).
-Pass `sandbox` to `generate()` or `stream()` when tools need access to a command
+Pass `experimental_sandbox` to `generate()` or `stream()` when tools need access to a command
 or code execution environment.
 
 To see `ToolLoopAgent` in action, check out [these examples](#examples).
@@ -679,11 +679,11 @@ const result = await agent.generate({
         'Timeout in milliseconds. Can be specified as a number or as an object with totalMs, stepMs, and/or chunkMs properties. The call will be aborted if it takes longer than the specified timeout. Can be used alongside abortSignal.',
     },
     {
-      name: 'sandbox',
-      type: 'Sandbox',
+      name: 'experimental_sandbox',
+      type: 'Experimental_Sandbox',
       isOptional: true,
       description:
-        'Sandbox environment that is passed through to `prepareStep`, tool description functions, and tool execution. Tools can access it from their description function options and execution options.',
+        'Experimental sandbox environment that is passed through to `prepareStep`, tool description functions, and tool execution. Tools can access it from their description function options and execution options.',
     },
     {
       name: 'options',
@@ -782,11 +782,11 @@ for await (const chunk of stream.textStream) {
         'Timeout in milliseconds. Can be specified as a number or as an object with totalMs, stepMs, and/or chunkMs properties. The call will be aborted if it takes longer than the specified timeout. Can be used alongside abortSignal.',
     },
     {
-      name: 'sandbox',
-      type: 'Sandbox',
+      name: 'experimental_sandbox',
+      type: 'Experimental_Sandbox',
       isOptional: true,
       description:
-        'Sandbox environment that is passed through to `prepareStep`, tool description functions, and tool execution. Tools can access it from their description function options and execution options.',
+        'Experimental sandbox environment that is passed through to `prepareStep`, tool description functions, and tool execution. Tools can access it from their description function options and execution options.',
     },
     {
       name: 'options',

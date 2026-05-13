@@ -1,6 +1,6 @@
 import { exec } from 'node:child_process';
 import { promisify } from 'node:util';
-import { type Sandbox } from 'ai';
+import { type Experimental_Sandbox } from 'ai';
 
 const execAsync = promisify(exec);
 
@@ -12,7 +12,7 @@ const execAsync = promisify(exec);
  * parent-directory paths, symlinks, subprocesses, and shell features. Only use
  * this with trusted commands.
  */
-export class LocalSandbox implements Sandbox {
+export class LocalSandbox implements Experimental_Sandbox {
   /**
    * Root directory used as the default working directory.
    *

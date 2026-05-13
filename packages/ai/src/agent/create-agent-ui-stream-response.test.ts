@@ -1,5 +1,5 @@
 import type { LanguageModelV4CallOptions } from '@ai-sdk/provider';
-import { type Sandbox, tool } from '@ai-sdk/provider-utils';
+import { type Experimental_Sandbox, tool } from '@ai-sdk/provider-utils';
 import {
   convertArrayToReadableStream,
   convertReadableStreamToArray,
@@ -357,16 +357,16 @@ describe('createAgentUIStreamResponse', () => {
     });
   });
 
-  it('should pass sandbox to tool execution', async () => {
+  it('should pass experimental_sandbox to tool execution', async () => {
     const sandbox = {
-      description: 'test sandbox',
+      description: 'test experimental sandbox',
       executeCommand: async () => ({
         exitCode: 0,
         stdout: 'ok',
         stderr: '',
       }),
-    } satisfies Sandbox;
-    let receivedSandbox: Sandbox | undefined;
+    } satisfies Experimental_Sandbox;
+    let receivedExperimentalSandbox: Experimental_Sandbox | undefined;
     let callCount = 0;
 
     const agent = new ToolLoopAgent({
@@ -462,8 +462,8 @@ describe('createAgentUIStreamResponse', () => {
         testTool: tool({
           description: 'Test tool',
           inputSchema: z.object({ value: z.string() }),
-          execute: async ({ value }, { sandbox }) => {
-            receivedSandbox = sandbox;
+          execute: async ({ value }, { experimental_sandbox }) => {
+            receivedExperimentalSandbox = experimental_sandbox;
             return `${value}-result`;
           },
         }),
@@ -479,11 +479,11 @@ describe('createAgentUIStreamResponse', () => {
           parts: [{ type: 'text' as const, text: 'Run the test tool' }],
         },
       ],
-      sandbox,
+      experimental_sandbox: sandbox,
     });
 
     await convertReadableStreamToArray(response.body!);
 
-    expect(receivedSandbox).toBe(sandbox);
+    expect(receivedExperimentalSandbox).toBe(sandbox);
   });
 });

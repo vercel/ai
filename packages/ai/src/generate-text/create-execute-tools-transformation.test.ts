@@ -1,4 +1,4 @@
-import { delay, tool, type Sandbox } from '@ai-sdk/provider-utils';
+import { delay, tool, type Experimental_Sandbox } from '@ai-sdk/provider-utils';
 import {
   convertArrayToReadableStream,
   convertReadableStreamToArray,
@@ -233,22 +233,22 @@ describe('createExecuteToolsTransformation', () => {
     `);
   });
 
-  it('should pass sandbox to tool execution', async () => {
-    const sandbox = {
-      description: 'test sandbox',
+  it('should pass experimental_sandbox to tool execution', async () => {
+    const experimental_sandbox = {
+      description: 'test experimental sandbox',
       executeCommand: vi.fn(async () => ({
         exitCode: 0,
         stdout: 'ok',
         stderr: '',
       })),
-    } satisfies Sandbox;
-    let receivedSandbox: Sandbox | undefined;
+    } satisfies Experimental_Sandbox;
+    let receivedExperimentalSandbox: Experimental_Sandbox | undefined;
 
     const tools = {
       sandboxTool: tool({
         inputSchema: z.object({ value: z.string() }),
-        execute: async ({ value }, { sandbox }) => {
-          receivedSandbox = sandbox;
+        execute: async ({ value }, { experimental_sandbox }) => {
+          receivedExperimentalSandbox = experimental_sandbox;
           return `${value}-sandbox-result`;
         },
       }),
@@ -274,14 +274,14 @@ describe('createExecuteToolsTransformation', () => {
           messages: [],
           abortSignal: undefined,
           timeout: undefined,
-          sandbox,
+          experimental_sandbox,
           toolsContext: {},
           runtimeContext: {},
         }),
       ),
     );
 
-    expect(receivedSandbox).toBe(sandbox);
+    expect(receivedExperimentalSandbox).toBe(experimental_sandbox);
   });
 
   it('should not call execute for provider-executed tool calls', async () => {

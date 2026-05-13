@@ -37,7 +37,7 @@ export async function POST(req: Request) {
     agent: sandboxAgent,
     uiMessages: messages,
     originalMessages: messages,
-    sandbox,
+    experimental_sandbox: sandbox,
     messageMetadata: ({ part }) => {
       if (part.type === 'start') {
         return { sandboxId: vercelSandbox.sandboxId };

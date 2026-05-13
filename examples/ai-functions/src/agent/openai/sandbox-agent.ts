@@ -9,10 +9,10 @@ export const sandboxAgent = new ToolLoopAgent({
     shell: sandboxShellTool(),
   },
 
-  prepareCall: ({ sandbox, ...rest }) => ({
+  prepareCall: ({ experimental_sandbox, ...rest }) => ({
     ...rest,
     instructions:
       `You are a helpful assistant that can run shell commands.\n` +
-      `You are operating in the following sandbox: ${sandbox?.description}`,
+      `You are operating in the following sandbox: ${experimental_sandbox?.description}`,
   }),
 });

@@ -374,13 +374,13 @@ describe('generateText types', () => {
         });
       });
 
-      it('should accept sandbox overrides', async () => {
+      it('should accept experimental_sandbox overrides', async () => {
         generateText({
           model: new MockLanguageModelV4(),
           prompt: 'Hello',
           prepareStep: () => ({
-            sandbox: {
-              description: 'test sandbox',
+            experimental_sandbox: {
+              description: 'test experimental sandbox',
               executeCommand: async () => ({
                 exitCode: 0,
                 stdout: 'ok',
