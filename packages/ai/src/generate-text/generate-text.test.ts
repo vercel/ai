@@ -936,7 +936,7 @@ describe('generateText', () => {
         tokensPerSecond: 20,
         stepTimeMs: 500,
         responseTimeMs: 500,
-        maxToolExecutionMs: 0,
+        toolExecutionMs: {},
         timeToFirstTokenMs: undefined,
       });
     });
@@ -979,7 +979,9 @@ describe('generateText', () => {
         tokensPerSecond: 20,
         stepTimeMs: 1000,
         responseTimeMs: 500,
-        maxToolExecutionMs: 300,
+        toolExecutionMs: {
+          'call-1': 300,
+        },
         timeToFirstTokenMs: undefined,
       });
     });
@@ -4097,11 +4099,13 @@ describe('generateText', () => {
                 "provider": "mock-provider",
               },
               "performance": {
-                "maxToolExecutionMs": 0,
                 "responseTimeMs": 0,
                 "stepTimeMs": 0,
                 "timeToFirstTokenMs": undefined,
                 "tokensPerSecond": Infinity,
+                "toolExecutionMs": {
+                  "call-1": 0,
+                },
               },
               "providerMetadata": undefined,
               "rawFinishReason": "stop",
@@ -4654,11 +4658,13 @@ describe('generateText', () => {
                     "provider": "mock-provider",
                   },
                   "performance": {
-                    "maxToolExecutionMs": 0,
                     "responseTimeMs": 0,
                     "stepTimeMs": 0,
                     "timeToFirstTokenMs": undefined,
                     "tokensPerSecond": Infinity,
+                    "toolExecutionMs": {
+                      "call-1": 0,
+                    },
                   },
                   "providerMetadata": undefined,
                   "rawFinishReason": undefined,
@@ -4740,11 +4746,11 @@ describe('generateText', () => {
                     "provider": "mock-provider",
                   },
                   "performance": {
-                    "maxToolExecutionMs": 0,
                     "responseTimeMs": 0,
                     "stepTimeMs": 0,
                     "timeToFirstTokenMs": undefined,
                     "tokensPerSecond": Infinity,
+                    "toolExecutionMs": {},
                   },
                   "providerMetadata": undefined,
                   "rawFinishReason": "stop",
@@ -4870,11 +4876,13 @@ describe('generateText', () => {
                     "provider": "mock-provider",
                   },
                   "performance": {
-                    "maxToolExecutionMs": 0,
                     "responseTimeMs": 0,
                     "stepTimeMs": 0,
                     "timeToFirstTokenMs": undefined,
                     "tokensPerSecond": Infinity,
+                    "toolExecutionMs": {
+                      "call-1": 0,
+                    },
                   },
                   "providerMetadata": undefined,
                   "rawFinishReason": undefined,
@@ -4956,11 +4964,11 @@ describe('generateText', () => {
                     "provider": "mock-provider",
                   },
                   "performance": {
-                    "maxToolExecutionMs": 0,
                     "responseTimeMs": 0,
                     "stepTimeMs": 0,
                     "timeToFirstTokenMs": undefined,
                     "tokensPerSecond": Infinity,
+                    "toolExecutionMs": {},
                   },
                   "providerMetadata": undefined,
                   "rawFinishReason": "stop",
@@ -5382,11 +5390,13 @@ describe('generateText', () => {
                     "provider": "mock-provider",
                   },
                   "performance": {
-                    "maxToolExecutionMs": 0,
                     "responseTimeMs": 0,
                     "stepTimeMs": 0,
                     "timeToFirstTokenMs": undefined,
                     "tokensPerSecond": Infinity,
+                    "toolExecutionMs": {
+                      "call-1": 0,
+                    },
                   },
                   "providerMetadata": undefined,
                   "rawFinishReason": undefined,
@@ -5488,11 +5498,13 @@ describe('generateText', () => {
                     "provider": "mock-provider",
                   },
                   "performance": {
-                    "maxToolExecutionMs": 0,
                     "responseTimeMs": 0,
                     "stepTimeMs": 0,
                     "timeToFirstTokenMs": undefined,
                     "tokensPerSecond": Infinity,
+                    "toolExecutionMs": {
+                      "call-1": 0,
+                    },
                   },
                   "providerMetadata": undefined,
                   "rawFinishReason": undefined,
@@ -9121,11 +9133,13 @@ describe('generateText', () => {
                 "provider": "mock-provider",
               },
               "performance": {
-                "maxToolExecutionMs": 0,
                 "responseTimeMs": 0,
                 "stepTimeMs": 0,
                 "timeToFirstTokenMs": undefined,
                 "tokensPerSecond": Infinity,
+                "toolExecutionMs": {
+                  "call-1": 0,
+                },
               },
               "providerMetadata": undefined,
               "rawFinishReason": undefined,

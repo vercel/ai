@@ -286,7 +286,7 @@ function makeStepFinishEvent(overrides?: Record<string, unknown>) {
       tokensPerSecond: 20,
       stepTimeMs: 1000,
       responseTimeMs: 1000,
-      maxToolExecutionMs: 0,
+      toolExecutionMs: {},
       timeToFirstTokenMs: undefined,
     },
     warnings: undefined,

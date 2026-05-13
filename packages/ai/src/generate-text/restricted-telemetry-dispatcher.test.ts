@@ -63,7 +63,7 @@ function createStepResult({
       tokensPerSecond: 0,
       stepTimeMs: 0,
       responseTimeMs: 0,
-      maxToolExecutionMs: 0,
+      toolExecutionMs: {},
       timeToFirstTokenMs: undefined,
     },
     warnings: [],

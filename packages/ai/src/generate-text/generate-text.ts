@@ -973,7 +973,7 @@ export async function generateText<
         deniedToolApprovalResponses = toolApprovalResponses.filter(
           toolApprovalResponse => toolApprovalResponse.approved === false,
         );
-        let maxToolExecutionMs = 0;
+        const toolExecutionMs: Record<string, number> = {};
 
         if (tools != null) {
           const toolExecutionResults = await executeTools({
@@ -1009,10 +1009,7 @@ export async function generateText<
           });
 
           for (const result of toolExecutionResults) {
-            maxToolExecutionMs = Math.max(
-              maxToolExecutionMs,
-              result.toolExecutionMs,
-            );
+            toolExecutionMs[result.output.toolCallId] = result.toolExecutionMs;
             clientToolOutputs.push(result.output);
           }
         }
@@ -1025,7 +1022,7 @@ export async function generateText<
           }),
           stepTimeMs,
           responseTimeMs,
-          maxToolExecutionMs,
+          toolExecutionMs,
           timeToFirstTokenMs: undefined,
         };
 

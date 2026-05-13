@@ -54,9 +54,10 @@ export type StepResultPerformance = {
   readonly responseTimeMs: number;
 
   /**
-   * Maximum time spent executing a single client-side tool in milliseconds.
+   * Time spent executing each client-side tool call in milliseconds, keyed by
+   * tool call ID.
    */
-  readonly maxToolExecutionMs: number;
+  readonly toolExecutionMs: Readonly<Record<string, number>>;
 
   /**
    * Time until the first text, reasoning, or tool input delta was received in

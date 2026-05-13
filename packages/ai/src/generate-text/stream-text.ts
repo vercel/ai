@@ -1785,7 +1785,7 @@ class DefaultStreamTextResult<
           let stepFirstChunk = true;
           let responseTimeMs = 0;
           let tokensPerSecond = 0;
-          let maxToolExecutionMs = 0;
+          const toolExecutionMs: Record<string, number> = {};
           let timeToFirstTokenMs: number | undefined;
           let stepResponse: { id: string; timestamp: Date; modelId: string } = {
             id: generateId(),
@@ -1886,10 +1886,7 @@ class DefaultStreamTextResult<
                     }
 
                     case 'tool-execution-end': {
-                      maxToolExecutionMs = Math.max(
-                        maxToolExecutionMs,
-                        chunk.toolExecutionMs,
-                      );
+                      toolExecutionMs[chunk.toolCallId] = chunk.toolExecutionMs;
                       break;
                     }
 
@@ -1969,7 +1966,7 @@ class DefaultStreamTextResult<
                       stepTimeMs,
                       responseTimeMs,
                       tokensPerSecond,
-                      maxToolExecutionMs,
+                      toolExecutionMs,
                       timeToFirstTokenMs,
                     },
                     providerMetadata: stepProviderMetadata,

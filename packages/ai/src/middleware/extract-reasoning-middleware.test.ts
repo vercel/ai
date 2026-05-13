@@ -30,10 +30,10 @@ function normalizeFullStreamPerformance(parts: Array<TextStreamPart<any>>) {
       ? {
           ...part,
           performance: {
-            maxToolExecutionMs: 0,
             responseTimeMs: 0,
             stepTimeMs: 0,
             timeToFirstTokenMs: 0,
+            toolExecutionMs: {},
             tokensPerSecond: 0,
           },
         }
@@ -308,113 +308,113 @@ describe('extractReasoningMiddleware', () => {
           await convertAsyncIterableToArray(result.fullStream),
         ),
       ).toMatchInlineSnapshot(`
-          [
-            {
-              "type": "start",
+        [
+          {
+            "type": "start",
+          },
+          {
+            "request": {
+              "body": undefined,
+              "messages": undefined,
             },
-            {
-              "request": {
-                "body": undefined,
-                "messages": undefined,
+            "type": "start-step",
+            "warnings": [],
+          },
+          {
+            "id": "reasoning-0",
+            "type": "reasoning-start",
+          },
+          {
+            "id": "reasoning-0",
+            "providerMetadata": undefined,
+            "text": "ana",
+            "type": "reasoning-delta",
+          },
+          {
+            "id": "reasoning-0",
+            "providerMetadata": undefined,
+            "text": "lyzing the request",
+            "type": "reasoning-delta",
+          },
+          {
+            "id": "reasoning-0",
+            "type": "reasoning-end",
+          },
+          {
+            "id": "1",
+            "type": "text-start",
+          },
+          {
+            "id": "1",
+            "providerMetadata": undefined,
+            "text": "Here",
+            "type": "text-delta",
+          },
+          {
+            "id": "1",
+            "providerMetadata": undefined,
+            "text": " is the response",
+            "type": "text-delta",
+          },
+          {
+            "id": "1",
+            "type": "text-end",
+          },
+          {
+            "finishReason": "stop",
+            "performance": {
+              "responseTimeMs": 0,
+              "stepTimeMs": 0,
+              "timeToFirstTokenMs": 0,
+              "tokensPerSecond": 0,
+              "toolExecutionMs": {},
+            },
+            "providerMetadata": undefined,
+            "rawFinishReason": "stop",
+            "response": {
+              "headers": undefined,
+              "id": "id-0",
+              "modelId": "mock-model-id",
+              "timestamp": 1970-01-01T00:00:00.000Z,
+            },
+            "type": "finish-step",
+            "usage": {
+              "inputTokenDetails": {
+                "cacheReadTokens": 0,
+                "cacheWriteTokens": 0,
+                "noCacheTokens": 5,
               },
-              "type": "start-step",
-              "warnings": [],
-            },
-            {
-              "id": "reasoning-0",
-              "type": "reasoning-start",
-            },
-            {
-              "id": "reasoning-0",
-              "providerMetadata": undefined,
-              "text": "ana",
-              "type": "reasoning-delta",
-            },
-            {
-              "id": "reasoning-0",
-              "providerMetadata": undefined,
-              "text": "lyzing the request",
-              "type": "reasoning-delta",
-            },
-            {
-              "id": "reasoning-0",
-              "type": "reasoning-end",
-            },
-            {
-              "id": "1",
-              "type": "text-start",
-            },
-            {
-              "id": "1",
-              "providerMetadata": undefined,
-              "text": "Here",
-              "type": "text-delta",
-            },
-            {
-              "id": "1",
-              "providerMetadata": undefined,
-              "text": " is the response",
-              "type": "text-delta",
-            },
-            {
-              "id": "1",
-              "type": "text-end",
-            },
-            {
-              "finishReason": "stop",
-              "performance": {
-                "maxToolExecutionMs": 0,
-                "responseTimeMs": 0,
-                "stepTimeMs": 0,
-                "timeToFirstTokenMs": 0,
-                "tokensPerSecond": 0,
+              "inputTokens": 5,
+              "outputTokenDetails": {
+                "reasoningTokens": 3,
+                "textTokens": 10,
               },
-              "providerMetadata": undefined,
-              "rawFinishReason": "stop",
-              "response": {
-                "headers": undefined,
-                "id": "id-0",
-                "modelId": "mock-model-id",
-                "timestamp": 1970-01-01T00:00:00.000Z,
-              },
-              "type": "finish-step",
-              "usage": {
-                "inputTokenDetails": {
-                  "cacheReadTokens": 0,
-                  "cacheWriteTokens": 0,
-                  "noCacheTokens": 5,
-                },
-                "inputTokens": 5,
-                "outputTokenDetails": {
-                  "reasoningTokens": 3,
-                  "textTokens": 10,
-                },
-                "outputTokens": 10,
-                "raw": undefined,
-                "totalTokens": 15,
-              },
+              "outputTokens": 10,
+              "raw": undefined,
+              "totalTokens": 15,
             },
-            {
-              "finishReason": "stop",
-              "rawFinishReason": "stop",
-              "totalUsage": {
-                "inputTokenDetails": {
-                  "cacheReadTokens": 0,
-                  "cacheWriteTokens": 0,
-                  "noCacheTokens": 5,
-                },
-                "inputTokens": 5,
-                "outputTokenDetails": {
-                  "reasoningTokens": 3,
-                  "textTokens": 10,
-                },
-                "outputTokens": 10,
-                "totalTokens": 15,
+          },
+          {
+            "finishReason": "stop",
+            "rawFinishReason": "stop",
+            "totalUsage": {
+              "inputTokenDetails": {
+                "cacheReadTokens": 0,
+                "cacheWriteTokens": 0,
+                "noCacheTokens": 5,
               },
-              "type": "finish",
+              "inputTokens": 5,
+              "outputTokenDetails": {
+                "reasoningTokens": 3,
+                "textTokens": 10,
+              },
+              "outputTokens": 10,
+              "totalTokens": 15,
             },
-          ]
-        `);
+            "type": "finish",
+          },
+        ]
+      `);
     });
 
     it('should extract reasoning from single chunk with multiple <think> tags', async () => {
@@ -459,123 +459,123 @@ describe('extractReasoningMiddleware', () => {
           await convertAsyncIterableToArray(result.fullStream),
         ),
       ).toMatchInlineSnapshot(`
-          [
-            {
-              "type": "start",
+        [
+          {
+            "type": "start",
+          },
+          {
+            "request": {
+              "body": undefined,
+              "messages": undefined,
             },
-            {
-              "request": {
-                "body": undefined,
-                "messages": undefined,
+            "type": "start-step",
+            "warnings": [],
+          },
+          {
+            "id": "reasoning-0",
+            "type": "reasoning-start",
+          },
+          {
+            "id": "reasoning-0",
+            "providerMetadata": undefined,
+            "text": "analyzing the request",
+            "type": "reasoning-delta",
+          },
+          {
+            "id": "reasoning-0",
+            "type": "reasoning-end",
+          },
+          {
+            "id": "1",
+            "type": "text-start",
+          },
+          {
+            "id": "1",
+            "providerMetadata": undefined,
+            "text": "Here is the response",
+            "type": "text-delta",
+          },
+          {
+            "id": "reasoning-1",
+            "type": "reasoning-start",
+          },
+          {
+            "id": "reasoning-1",
+            "providerMetadata": undefined,
+            "text": "
+        thinking about the response",
+            "type": "reasoning-delta",
+          },
+          {
+            "id": "reasoning-1",
+            "type": "reasoning-end",
+          },
+          {
+            "id": "1",
+            "providerMetadata": undefined,
+            "text": "
+        more",
+            "type": "text-delta",
+          },
+          {
+            "id": "1",
+            "type": "text-end",
+          },
+          {
+            "finishReason": "stop",
+            "performance": {
+              "responseTimeMs": 0,
+              "stepTimeMs": 0,
+              "timeToFirstTokenMs": 0,
+              "tokensPerSecond": 0,
+              "toolExecutionMs": {},
+            },
+            "providerMetadata": undefined,
+            "rawFinishReason": "stop",
+            "response": {
+              "headers": undefined,
+              "id": "id-0",
+              "modelId": "mock-model-id",
+              "timestamp": 1970-01-01T00:00:00.000Z,
+            },
+            "type": "finish-step",
+            "usage": {
+              "inputTokenDetails": {
+                "cacheReadTokens": 0,
+                "cacheWriteTokens": 0,
+                "noCacheTokens": 5,
               },
-              "type": "start-step",
-              "warnings": [],
-            },
-            {
-              "id": "reasoning-0",
-              "type": "reasoning-start",
-            },
-            {
-              "id": "reasoning-0",
-              "providerMetadata": undefined,
-              "text": "analyzing the request",
-              "type": "reasoning-delta",
-            },
-            {
-              "id": "reasoning-0",
-              "type": "reasoning-end",
-            },
-            {
-              "id": "1",
-              "type": "text-start",
-            },
-            {
-              "id": "1",
-              "providerMetadata": undefined,
-              "text": "Here is the response",
-              "type": "text-delta",
-            },
-            {
-              "id": "reasoning-1",
-              "type": "reasoning-start",
-            },
-            {
-              "id": "reasoning-1",
-              "providerMetadata": undefined,
-              "text": "
-          thinking about the response",
-              "type": "reasoning-delta",
-            },
-            {
-              "id": "reasoning-1",
-              "type": "reasoning-end",
-            },
-            {
-              "id": "1",
-              "providerMetadata": undefined,
-              "text": "
-          more",
-              "type": "text-delta",
-            },
-            {
-              "id": "1",
-              "type": "text-end",
-            },
-            {
-              "finishReason": "stop",
-              "performance": {
-                "maxToolExecutionMs": 0,
-                "responseTimeMs": 0,
-                "stepTimeMs": 0,
-                "timeToFirstTokenMs": 0,
-                "tokensPerSecond": 0,
+              "inputTokens": 5,
+              "outputTokenDetails": {
+                "reasoningTokens": 3,
+                "textTokens": 10,
               },
-              "providerMetadata": undefined,
-              "rawFinishReason": "stop",
-              "response": {
-                "headers": undefined,
-                "id": "id-0",
-                "modelId": "mock-model-id",
-                "timestamp": 1970-01-01T00:00:00.000Z,
-              },
-              "type": "finish-step",
-              "usage": {
-                "inputTokenDetails": {
-                  "cacheReadTokens": 0,
-                  "cacheWriteTokens": 0,
-                  "noCacheTokens": 5,
-                },
-                "inputTokens": 5,
-                "outputTokenDetails": {
-                  "reasoningTokens": 3,
-                  "textTokens": 10,
-                },
-                "outputTokens": 10,
-                "raw": undefined,
-                "totalTokens": 15,
-              },
+              "outputTokens": 10,
+              "raw": undefined,
+              "totalTokens": 15,
             },
-            {
-              "finishReason": "stop",
-              "rawFinishReason": "stop",
-              "totalUsage": {
-                "inputTokenDetails": {
-                  "cacheReadTokens": 0,
-                  "cacheWriteTokens": 0,
-                  "noCacheTokens": 5,
-                },
-                "inputTokens": 5,
-                "outputTokenDetails": {
-                  "reasoningTokens": 3,
-                  "textTokens": 10,
-                },
-                "outputTokens": 10,
-                "totalTokens": 15,
+          },
+          {
+            "finishReason": "stop",
+            "rawFinishReason": "stop",
+            "totalUsage": {
+              "inputTokenDetails": {
+                "cacheReadTokens": 0,
+                "cacheWriteTokens": 0,
+                "noCacheTokens": 5,
               },
-              "type": "finish",
+              "inputTokens": 5,
+              "outputTokenDetails": {
+                "reasoningTokens": 3,
+                "textTokens": 10,
+              },
+              "outputTokens": 10,
+              "totalTokens": 15,
             },
-          ]
-        `);
+            "type": "finish",
+          },
+        ]
+      `);
     });
 
     it('should extract reasoning from <think> when there is no text', async () => {
@@ -618,102 +618,102 @@ describe('extractReasoningMiddleware', () => {
           await convertAsyncIterableToArray(result.fullStream),
         ),
       ).toMatchInlineSnapshot(`
-          [
-            {
-              "type": "start",
+        [
+          {
+            "type": "start",
+          },
+          {
+            "request": {
+              "body": undefined,
+              "messages": undefined,
             },
-            {
-              "request": {
-                "body": undefined,
-                "messages": undefined,
+            "type": "start-step",
+            "warnings": [],
+          },
+          {
+            "id": "reasoning-0",
+            "type": "reasoning-start",
+          },
+          {
+            "id": "reasoning-0",
+            "providerMetadata": undefined,
+            "text": "ana",
+            "type": "reasoning-delta",
+          },
+          {
+            "id": "reasoning-0",
+            "providerMetadata": undefined,
+            "text": "lyzing the request
+        ",
+            "type": "reasoning-delta",
+          },
+          {
+            "id": "reasoning-0",
+            "type": "reasoning-end",
+          },
+          {
+            "id": "1",
+            "type": "text-start",
+          },
+          {
+            "id": "1",
+            "type": "text-end",
+          },
+          {
+            "finishReason": "stop",
+            "performance": {
+              "responseTimeMs": 0,
+              "stepTimeMs": 0,
+              "timeToFirstTokenMs": 0,
+              "tokensPerSecond": 0,
+              "toolExecutionMs": {},
+            },
+            "providerMetadata": undefined,
+            "rawFinishReason": "stop",
+            "response": {
+              "headers": undefined,
+              "id": "id-0",
+              "modelId": "mock-model-id",
+              "timestamp": 1970-01-01T00:00:00.000Z,
+            },
+            "type": "finish-step",
+            "usage": {
+              "inputTokenDetails": {
+                "cacheReadTokens": 0,
+                "cacheWriteTokens": 0,
+                "noCacheTokens": 5,
               },
-              "type": "start-step",
-              "warnings": [],
-            },
-            {
-              "id": "reasoning-0",
-              "type": "reasoning-start",
-            },
-            {
-              "id": "reasoning-0",
-              "providerMetadata": undefined,
-              "text": "ana",
-              "type": "reasoning-delta",
-            },
-            {
-              "id": "reasoning-0",
-              "providerMetadata": undefined,
-              "text": "lyzing the request
-          ",
-              "type": "reasoning-delta",
-            },
-            {
-              "id": "reasoning-0",
-              "type": "reasoning-end",
-            },
-            {
-              "id": "1",
-              "type": "text-start",
-            },
-            {
-              "id": "1",
-              "type": "text-end",
-            },
-            {
-              "finishReason": "stop",
-              "performance": {
-                "maxToolExecutionMs": 0,
-                "responseTimeMs": 0,
-                "stepTimeMs": 0,
-                "timeToFirstTokenMs": 0,
-                "tokensPerSecond": 0,
+              "inputTokens": 5,
+              "outputTokenDetails": {
+                "reasoningTokens": 3,
+                "textTokens": 10,
               },
-              "providerMetadata": undefined,
-              "rawFinishReason": "stop",
-              "response": {
-                "headers": undefined,
-                "id": "id-0",
-                "modelId": "mock-model-id",
-                "timestamp": 1970-01-01T00:00:00.000Z,
-              },
-              "type": "finish-step",
-              "usage": {
-                "inputTokenDetails": {
-                  "cacheReadTokens": 0,
-                  "cacheWriteTokens": 0,
-                  "noCacheTokens": 5,
-                },
-                "inputTokens": 5,
-                "outputTokenDetails": {
-                  "reasoningTokens": 3,
-                  "textTokens": 10,
-                },
-                "outputTokens": 10,
-                "raw": undefined,
-                "totalTokens": 15,
-              },
+              "outputTokens": 10,
+              "raw": undefined,
+              "totalTokens": 15,
             },
-            {
-              "finishReason": "stop",
-              "rawFinishReason": "stop",
-              "totalUsage": {
-                "inputTokenDetails": {
-                  "cacheReadTokens": 0,
-                  "cacheWriteTokens": 0,
-                  "noCacheTokens": 5,
-                },
-                "inputTokens": 5,
-                "outputTokenDetails": {
-                  "reasoningTokens": 3,
-                  "textTokens": 10,
-                },
-                "outputTokens": 10,
-                "totalTokens": 15,
+          },
+          {
+            "finishReason": "stop",
+            "rawFinishReason": "stop",
+            "totalUsage": {
+              "inputTokenDetails": {
+                "cacheReadTokens": 0,
+                "cacheWriteTokens": 0,
+                "noCacheTokens": 5,
               },
-              "type": "finish",
+              "inputTokens": 5,
+              "outputTokenDetails": {
+                "reasoningTokens": 3,
+                "textTokens": 10,
+              },
+              "outputTokens": 10,
+              "totalTokens": 15,
             },
-          ]
-        `);
+            "type": "finish",
+          },
+        ]
+      `);
     });
 
     it('should prepend <think> tag if startWithReasoning is true', async () => {
@@ -767,214 +767,214 @@ describe('extractReasoningMiddleware', () => {
           await convertAsyncIterableToArray(resultTrue.fullStream),
         ),
       ).toMatchInlineSnapshot(`
-          [
-            {
-              "type": "start",
+        [
+          {
+            "type": "start",
+          },
+          {
+            "request": {
+              "body": undefined,
+              "messages": undefined,
             },
-            {
-              "request": {
-                "body": undefined,
-                "messages": undefined,
+            "type": "start-step",
+            "warnings": [],
+          },
+          {
+            "id": "reasoning-0",
+            "type": "reasoning-start",
+          },
+          {
+            "id": "reasoning-0",
+            "providerMetadata": undefined,
+            "text": "ana",
+            "type": "reasoning-delta",
+          },
+          {
+            "id": "reasoning-0",
+            "providerMetadata": undefined,
+            "text": "lyzing the request
+        ",
+            "type": "reasoning-delta",
+          },
+          {
+            "id": "reasoning-0",
+            "type": "reasoning-end",
+          },
+          {
+            "id": "1",
+            "type": "text-start",
+          },
+          {
+            "id": "1",
+            "providerMetadata": undefined,
+            "text": "this is the response",
+            "type": "text-delta",
+          },
+          {
+            "id": "1",
+            "type": "text-end",
+          },
+          {
+            "finishReason": "stop",
+            "performance": {
+              "responseTimeMs": 0,
+              "stepTimeMs": 0,
+              "timeToFirstTokenMs": 0,
+              "tokensPerSecond": 0,
+              "toolExecutionMs": {},
+            },
+            "providerMetadata": undefined,
+            "rawFinishReason": "stop",
+            "response": {
+              "headers": undefined,
+              "id": "id-0",
+              "modelId": "mock-model-id",
+              "timestamp": 1970-01-01T00:00:00.000Z,
+            },
+            "type": "finish-step",
+            "usage": {
+              "inputTokenDetails": {
+                "cacheReadTokens": 0,
+                "cacheWriteTokens": 0,
+                "noCacheTokens": 5,
               },
-              "type": "start-step",
-              "warnings": [],
-            },
-            {
-              "id": "reasoning-0",
-              "type": "reasoning-start",
-            },
-            {
-              "id": "reasoning-0",
-              "providerMetadata": undefined,
-              "text": "ana",
-              "type": "reasoning-delta",
-            },
-            {
-              "id": "reasoning-0",
-              "providerMetadata": undefined,
-              "text": "lyzing the request
-          ",
-              "type": "reasoning-delta",
-            },
-            {
-              "id": "reasoning-0",
-              "type": "reasoning-end",
-            },
-            {
-              "id": "1",
-              "type": "text-start",
-            },
-            {
-              "id": "1",
-              "providerMetadata": undefined,
-              "text": "this is the response",
-              "type": "text-delta",
-            },
-            {
-              "id": "1",
-              "type": "text-end",
-            },
-            {
-              "finishReason": "stop",
-              "performance": {
-                "maxToolExecutionMs": 0,
-                "responseTimeMs": 0,
-                "stepTimeMs": 0,
-                "timeToFirstTokenMs": 0,
-                "tokensPerSecond": 0,
+              "inputTokens": 5,
+              "outputTokenDetails": {
+                "reasoningTokens": 3,
+                "textTokens": 10,
               },
-              "providerMetadata": undefined,
-              "rawFinishReason": "stop",
-              "response": {
-                "headers": undefined,
-                "id": "id-0",
-                "modelId": "mock-model-id",
-                "timestamp": 1970-01-01T00:00:00.000Z,
-              },
-              "type": "finish-step",
-              "usage": {
-                "inputTokenDetails": {
-                  "cacheReadTokens": 0,
-                  "cacheWriteTokens": 0,
-                  "noCacheTokens": 5,
-                },
-                "inputTokens": 5,
-                "outputTokenDetails": {
-                  "reasoningTokens": 3,
-                  "textTokens": 10,
-                },
-                "outputTokens": 10,
-                "raw": undefined,
-                "totalTokens": 15,
-              },
+              "outputTokens": 10,
+              "raw": undefined,
+              "totalTokens": 15,
             },
-            {
-              "finishReason": "stop",
-              "rawFinishReason": "stop",
-              "totalUsage": {
-                "inputTokenDetails": {
-                  "cacheReadTokens": 0,
-                  "cacheWriteTokens": 0,
-                  "noCacheTokens": 5,
-                },
-                "inputTokens": 5,
-                "outputTokenDetails": {
-                  "reasoningTokens": 3,
-                  "textTokens": 10,
-                },
-                "outputTokens": 10,
-                "totalTokens": 15,
+          },
+          {
+            "finishReason": "stop",
+            "rawFinishReason": "stop",
+            "totalUsage": {
+              "inputTokenDetails": {
+                "cacheReadTokens": 0,
+                "cacheWriteTokens": 0,
+                "noCacheTokens": 5,
               },
-              "type": "finish",
+              "inputTokens": 5,
+              "outputTokenDetails": {
+                "reasoningTokens": 3,
+                "textTokens": 10,
+              },
+              "outputTokens": 10,
+              "totalTokens": 15,
             },
-          ]
-        `);
+            "type": "finish",
+          },
+        ]
+      `);
 
       expect(
         normalizeFullStreamPerformance(
           await convertAsyncIterableToArray(resultFalse.fullStream),
         ),
       ).toMatchInlineSnapshot(`
-          [
-            {
-              "type": "start",
+        [
+          {
+            "type": "start",
+          },
+          {
+            "request": {
+              "body": undefined,
+              "messages": undefined,
             },
-            {
-              "request": {
-                "body": undefined,
-                "messages": undefined,
+            "type": "start-step",
+            "warnings": [],
+          },
+          {
+            "id": "1",
+            "type": "text-start",
+          },
+          {
+            "id": "1",
+            "providerMetadata": undefined,
+            "text": "ana",
+            "type": "text-delta",
+          },
+          {
+            "id": "1",
+            "providerMetadata": undefined,
+            "text": "lyzing the request
+        ",
+            "type": "text-delta",
+          },
+          {
+            "id": "1",
+            "providerMetadata": undefined,
+            "text": "</think>",
+            "type": "text-delta",
+          },
+          {
+            "id": "1",
+            "providerMetadata": undefined,
+            "text": "this is the response",
+            "type": "text-delta",
+          },
+          {
+            "id": "1",
+            "type": "text-end",
+          },
+          {
+            "finishReason": "stop",
+            "performance": {
+              "responseTimeMs": 0,
+              "stepTimeMs": 0,
+              "timeToFirstTokenMs": 0,
+              "tokensPerSecond": 0,
+              "toolExecutionMs": {},
+            },
+            "providerMetadata": undefined,
+            "rawFinishReason": "stop",
+            "response": {
+              "headers": undefined,
+              "id": "id-0",
+              "modelId": "mock-model-id",
+              "timestamp": 1970-01-01T00:00:00.000Z,
+            },
+            "type": "finish-step",
+            "usage": {
+              "inputTokenDetails": {
+                "cacheReadTokens": 0,
+                "cacheWriteTokens": 0,
+                "noCacheTokens": 5,
               },
-              "type": "start-step",
-              "warnings": [],
-            },
-            {
-              "id": "1",
-              "type": "text-start",
-            },
-            {
-              "id": "1",
-              "providerMetadata": undefined,
-              "text": "ana",
-              "type": "text-delta",
-            },
-            {
-              "id": "1",
-              "providerMetadata": undefined,
-              "text": "lyzing the request
-          ",
-              "type": "text-delta",
-            },
-            {
-              "id": "1",
-              "providerMetadata": undefined,
-              "text": "</think>",
-              "type": "text-delta",
-            },
-            {
-              "id": "1",
-              "providerMetadata": undefined,
-              "text": "this is the response",
-              "type": "text-delta",
-            },
-            {
-              "id": "1",
-              "type": "text-end",
-            },
-            {
-              "finishReason": "stop",
-              "performance": {
-                "maxToolExecutionMs": 0,
-                "responseTimeMs": 0,
-                "stepTimeMs": 0,
-                "timeToFirstTokenMs": 0,
-                "tokensPerSecond": 0,
+              "inputTokens": 5,
+              "outputTokenDetails": {
+                "reasoningTokens": 3,
+                "textTokens": 10,
               },
-              "providerMetadata": undefined,
-              "rawFinishReason": "stop",
-              "response": {
-                "headers": undefined,
-                "id": "id-0",
-                "modelId": "mock-model-id",
-                "timestamp": 1970-01-01T00:00:00.000Z,
-              },
-              "type": "finish-step",
-              "usage": {
-                "inputTokenDetails": {
-                  "cacheReadTokens": 0,
-                  "cacheWriteTokens": 0,
-                  "noCacheTokens": 5,
-                },
-                "inputTokens": 5,
-                "outputTokenDetails": {
-                  "reasoningTokens": 3,
-                  "textTokens": 10,
-                },
-                "outputTokens": 10,
-                "raw": undefined,
-                "totalTokens": 15,
-              },
+              "outputTokens": 10,
+              "raw": undefined,
+              "totalTokens": 15,
             },
-            {
-              "finishReason": "stop",
-              "rawFinishReason": "stop",
-              "totalUsage": {
-                "inputTokenDetails": {
-                  "cacheReadTokens": 0,
-                  "cacheWriteTokens": 0,
-                  "noCacheTokens": 5,
-                },
-                "inputTokens": 5,
-                "outputTokenDetails": {
-                  "reasoningTokens": 3,
-                  "textTokens": 10,
-                },
-                "outputTokens": 10,
-                "totalTokens": 15,
+          },
+          {
+            "finishReason": "stop",
+            "rawFinishReason": "stop",
+            "totalUsage": {
+              "inputTokenDetails": {
+                "cacheReadTokens": 0,
+                "cacheWriteTokens": 0,
+                "noCacheTokens": 5,
               },
-              "type": "finish",
+              "inputTokens": 5,
+              "outputTokenDetails": {
+                "reasoningTokens": 3,
+                "textTokens": 10,
+              },
+              "outputTokens": 10,
+              "totalTokens": 15,
             },
-          ]
-        `);
+            "type": "finish",
+          },
+        ]
+      `);
     });
 
     it('should keep original text when <think> tag is not present', async () => {
@@ -1014,87 +1014,87 @@ describe('extractReasoningMiddleware', () => {
           await convertAsyncIterableToArray(result.fullStream),
         ),
       ).toMatchInlineSnapshot(`
-          [
-            {
-              "type": "start",
+        [
+          {
+            "type": "start",
+          },
+          {
+            "request": {
+              "body": undefined,
+              "messages": undefined,
             },
-            {
-              "request": {
-                "body": undefined,
-                "messages": undefined,
+            "type": "start-step",
+            "warnings": [],
+          },
+          {
+            "id": "1",
+            "type": "text-start",
+          },
+          {
+            "id": "1",
+            "providerMetadata": undefined,
+            "text": "this is the response",
+            "type": "text-delta",
+          },
+          {
+            "id": "1",
+            "type": "text-end",
+          },
+          {
+            "finishReason": "stop",
+            "performance": {
+              "responseTimeMs": 0,
+              "stepTimeMs": 0,
+              "timeToFirstTokenMs": 0,
+              "tokensPerSecond": 0,
+              "toolExecutionMs": {},
+            },
+            "providerMetadata": undefined,
+            "rawFinishReason": "stop",
+            "response": {
+              "headers": undefined,
+              "id": "id-0",
+              "modelId": "mock-model-id",
+              "timestamp": 1970-01-01T00:00:00.000Z,
+            },
+            "type": "finish-step",
+            "usage": {
+              "inputTokenDetails": {
+                "cacheReadTokens": 0,
+                "cacheWriteTokens": 0,
+                "noCacheTokens": 5,
               },
-              "type": "start-step",
-              "warnings": [],
-            },
-            {
-              "id": "1",
-              "type": "text-start",
-            },
-            {
-              "id": "1",
-              "providerMetadata": undefined,
-              "text": "this is the response",
-              "type": "text-delta",
-            },
-            {
-              "id": "1",
-              "type": "text-end",
-            },
-            {
-              "finishReason": "stop",
-              "performance": {
-                "maxToolExecutionMs": 0,
-                "responseTimeMs": 0,
-                "stepTimeMs": 0,
-                "timeToFirstTokenMs": 0,
-                "tokensPerSecond": 0,
+              "inputTokens": 5,
+              "outputTokenDetails": {
+                "reasoningTokens": 3,
+                "textTokens": 10,
               },
-              "providerMetadata": undefined,
-              "rawFinishReason": "stop",
-              "response": {
-                "headers": undefined,
-                "id": "id-0",
-                "modelId": "mock-model-id",
-                "timestamp": 1970-01-01T00:00:00.000Z,
-              },
-              "type": "finish-step",
-              "usage": {
-                "inputTokenDetails": {
-                  "cacheReadTokens": 0,
-                  "cacheWriteTokens": 0,
-                  "noCacheTokens": 5,
-                },
-                "inputTokens": 5,
-                "outputTokenDetails": {
-                  "reasoningTokens": 3,
-                  "textTokens": 10,
-                },
-                "outputTokens": 10,
-                "raw": undefined,
-                "totalTokens": 15,
-              },
+              "outputTokens": 10,
+              "raw": undefined,
+              "totalTokens": 15,
             },
-            {
-              "finishReason": "stop",
-              "rawFinishReason": "stop",
-              "totalUsage": {
-                "inputTokenDetails": {
-                  "cacheReadTokens": 0,
-                  "cacheWriteTokens": 0,
-                  "noCacheTokens": 5,
-                },
-                "inputTokens": 5,
-                "outputTokenDetails": {
-                  "reasoningTokens": 3,
-                  "textTokens": 10,
-                },
-                "outputTokens": 10,
-                "totalTokens": 15,
+          },
+          {
+            "finishReason": "stop",
+            "rawFinishReason": "stop",
+            "totalUsage": {
+              "inputTokenDetails": {
+                "cacheReadTokens": 0,
+                "cacheWriteTokens": 0,
+                "noCacheTokens": 5,
               },
-              "type": "finish",
+              "inputTokens": 5,
+              "outputTokenDetails": {
+                "reasoningTokens": 3,
+                "textTokens": 10,
+              },
+              "outputTokens": 10,
+              "totalTokens": 15,
             },
-          ]
-        `);
+            "type": "finish",
+          },
+        ]
+      `);
     });
 
     it('should handle empty <think></think> tags without crashing', async () => {

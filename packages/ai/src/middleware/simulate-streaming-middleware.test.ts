@@ -108,11 +108,11 @@ describe('simulateStreamingMiddleware', () => {
           {
             "finishReason": "stop",
             "performance": {
-              "maxToolExecutionMs": 0,
               "responseTimeMs": 0,
               "stepTimeMs": 0,
               "timeToFirstTokenMs": 0,
               "tokensPerSecond": Infinity,
+              "toolExecutionMs": {},
             },
             "providerMetadata": undefined,
             "rawFinishReason": "stop",
@@ -235,11 +235,11 @@ describe('simulateStreamingMiddleware', () => {
           {
             "finishReason": "stop",
             "performance": {
-              "maxToolExecutionMs": 0,
               "responseTimeMs": 0,
               "stepTimeMs": 0,
               "timeToFirstTokenMs": 0,
               "tokensPerSecond": Infinity,
+              "toolExecutionMs": {},
             },
             "providerMetadata": undefined,
             "rawFinishReason": "stop",
@@ -408,11 +408,11 @@ describe('simulateStreamingMiddleware', () => {
           {
             "finishReason": "stop",
             "performance": {
-              "maxToolExecutionMs": 0,
               "responseTimeMs": 0,
               "stepTimeMs": 0,
               "timeToFirstTokenMs": 0,
               "tokensPerSecond": Infinity,
+              "toolExecutionMs": {},
             },
             "providerMetadata": undefined,
             "rawFinishReason": "stop",
@@ -563,11 +563,11 @@ describe('simulateStreamingMiddleware', () => {
           {
             "finishReason": "stop",
             "performance": {
-              "maxToolExecutionMs": 0,
               "responseTimeMs": 0,
               "stepTimeMs": 0,
               "timeToFirstTokenMs": 0,
               "tokensPerSecond": Infinity,
+              "toolExecutionMs": {},
             },
             "providerMetadata": undefined,
             "rawFinishReason": "stop",
@@ -721,11 +721,11 @@ describe('simulateStreamingMiddleware', () => {
           {
             "finishReason": "tool-calls",
             "performance": {
-              "maxToolExecutionMs": 0,
               "responseTimeMs": 0,
               "stepTimeMs": 0,
               "timeToFirstTokenMs": 0,
               "tokensPerSecond": Infinity,
+              "toolExecutionMs": {},
             },
             "providerMetadata": undefined,
             "rawFinishReason": undefined,
@@ -827,11 +827,11 @@ describe('simulateStreamingMiddleware', () => {
           {
             "finishReason": "stop",
             "performance": {
-              "maxToolExecutionMs": 0,
               "responseTimeMs": 0,
               "stepTimeMs": 0,
               "timeToFirstTokenMs": 0,
               "tokensPerSecond": Infinity,
+              "toolExecutionMs": {},
             },
             "providerMetadata": {
               "custom": {
