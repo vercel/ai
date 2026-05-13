@@ -35,6 +35,31 @@ See the [Model Access Docs](https://docs.aws.amazon.com/bedrock/latest/userguide
 
 ### Authentication
 
+The Amazon Bedrock provider supports two authentication methods with automatic fallback: API key authentication (recommended) and AWS SigV4 authentication using IAM credentials or the AWS SDK credentials chain.
+
+#### Using an API Key (Recommended)
+
+API key authentication provides a simpler setup compared to AWS SigV4 authentication. When an API key is supplied, it takes precedence over any SigV4 credentials.
+
+Generate a bedrock API key from the [AWS console](https://docs.aws.amazon.com/bedrock/latest/userguide/api-keys.html), then either set it as the `AWS_BEARER_TOKEN_BEDROCK` environment variable:
+
+```bash
+AWS_BEARER_TOKEN_BEDROCK=your-api-key-here
+```
+
+or pass it directly to `createAmazonBedrock`:
+
+```ts
+import { createAmazonBedrock } from '@ai-sdk/amazon-bedrock';
+
+const amazonBedrock = createAmazonBedrock({
+  apiKey: 'your-api-key-here',
+  region: 'us-east-1',
+});
+```
+
+When `apiKey` is omitted, the provider falls back to `AWS_BEARER_TOKEN_BEDROCK`, and then to SigV4 authentication if neither is set.
+
 #### Using IAM Access Key and Secret Key
 
 **Step 1: Creating AWS Access Key and Secret Key**
