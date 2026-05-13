@@ -624,7 +624,7 @@ describe('streamText', () => {
             {
               "finishReason": "stop",
               "performance": {
-                "maxToolExecutionTimeMs": 0,
+                "maxToolExecutionMs": 0,
                 "responseTimeMs": 0,
                 "stepTimeMs": 0,
                 "timeToFirstTokenMs": 0,
@@ -860,7 +860,7 @@ describe('streamText', () => {
             {
               "finishReason": "stop",
               "performance": {
-                "maxToolExecutionTimeMs": 0,
+                "maxToolExecutionMs": 0,
                 "responseTimeMs": 0,
                 "stepTimeMs": 0,
                 "timeToFirstTokenMs": 0,
@@ -975,7 +975,7 @@ describe('streamText', () => {
             {
               "finishReason": "stop",
               "performance": {
-                "maxToolExecutionTimeMs": 0,
+                "maxToolExecutionMs": 0,
                 "responseTimeMs": 0,
                 "stepTimeMs": 0,
                 "timeToFirstTokenMs": 0,
@@ -1075,7 +1075,7 @@ describe('streamText', () => {
             {
               "finishReason": "stop",
               "performance": {
-                "maxToolExecutionTimeMs": 0,
+                "maxToolExecutionMs": 0,
                 "responseTimeMs": 0,
                 "stepTimeMs": 0,
                 "timeToFirstTokenMs": 0,
@@ -1186,7 +1186,7 @@ describe('streamText', () => {
             {
               "finishReason": "stop",
               "performance": {
-                "maxToolExecutionTimeMs": 0,
+                "maxToolExecutionMs": 0,
                 "responseTimeMs": 0,
                 "stepTimeMs": 0,
                 "timeToFirstTokenMs": 0,
@@ -1354,7 +1354,7 @@ describe('streamText', () => {
             {
               "finishReason": "stop",
               "performance": {
-                "maxToolExecutionTimeMs": 0,
+                "maxToolExecutionMs": 0,
                 "responseTimeMs": 0,
                 "stepTimeMs": 0,
                 "timeToFirstTokenMs": 0,
@@ -1486,7 +1486,7 @@ describe('streamText', () => {
             {
               "finishReason": "stop",
               "performance": {
-                "maxToolExecutionTimeMs": 0,
+                "maxToolExecutionMs": 0,
                 "responseTimeMs": 0,
                 "stepTimeMs": 0,
                 "timeToFirstTokenMs": 0,
@@ -1834,7 +1834,7 @@ describe('streamText', () => {
             {
               "finishReason": "tool-calls",
               "performance": {
-                "maxToolExecutionTimeMs": 0,
+                "maxToolExecutionMs": 0,
                 "responseTimeMs": 0,
                 "stepTimeMs": 0,
                 "timeToFirstTokenMs": 0,
@@ -2105,7 +2105,7 @@ describe('streamText', () => {
             {
               "finishReason": "stop",
               "performance": {
-                "maxToolExecutionTimeMs": 0,
+                "maxToolExecutionMs": 0,
                 "responseTimeMs": 0,
                 "stepTimeMs": 0,
                 "timeToFirstTokenMs": 0,
@@ -4809,7 +4809,7 @@ describe('streamText', () => {
             {
               "finishReason": "stop",
               "performance": {
-                "maxToolExecutionTimeMs": 0,
+                "maxToolExecutionMs": 0,
                 "responseTimeMs": 0,
                 "stepTimeMs": 0,
                 "timeToFirstTokenMs": 0,
@@ -6002,7 +6002,7 @@ describe('streamText', () => {
               "provider": "mock-provider",
             },
             "performance": {
-              "maxToolExecutionTimeMs": 0,
+              "maxToolExecutionMs": 0,
               "responseTimeMs": 0,
               "stepTimeMs": 0,
               "timeToFirstTokenMs": 0,
@@ -6152,7 +6152,7 @@ describe('streamText', () => {
               "provider": "mock-provider",
             },
             "performance": {
-              "maxToolExecutionTimeMs": 0,
+              "maxToolExecutionMs": 0,
               "responseTimeMs": 0,
               "stepTimeMs": 0,
               "timeToFirstTokenMs": 0,
@@ -6247,7 +6247,7 @@ describe('streamText', () => {
               "provider": "mock-provider",
             },
             "performance": {
-              "maxToolExecutionTimeMs": 0,
+              "maxToolExecutionMs": 0,
               "responseTimeMs": 0,
               "stepTimeMs": 0,
               "timeToFirstTokenMs": 0,
@@ -6364,7 +6364,7 @@ describe('streamText', () => {
               "provider": "mock-provider",
             },
             "performance": {
-              "maxToolExecutionTimeMs": 0,
+              "maxToolExecutionMs": 0,
               "responseTimeMs": 0,
               "stepTimeMs": 0,
               "timeToFirstTokenMs": 0,
@@ -6466,7 +6466,7 @@ describe('streamText', () => {
         tokensPerSecond: 20,
         stepTimeMs: 500,
         responseTimeMs: 500,
-        maxToolExecutionTimeMs: 0,
+        maxToolExecutionMs: 0,
         timeToFirstTokenMs: 500,
       });
     });
@@ -6513,7 +6513,7 @@ describe('streamText', () => {
         tokensPerSecond: 20,
         stepTimeMs: 500,
         responseTimeMs: 500,
-        maxToolExecutionTimeMs: 0,
+        maxToolExecutionMs: 0,
         timeToFirstTokenMs: 200,
       });
     });
@@ -9449,7 +9449,7 @@ describe('streamText', () => {
                 "provider": "mock-provider",
               },
               "performance": {
-                "maxToolExecutionTimeMs": 0,
+                "maxToolExecutionMs": 0,
                 "responseTimeMs": 0,
                 "stepTimeMs": 0,
                 "timeToFirstTokenMs": 0,
@@ -9756,7 +9756,7 @@ describe('streamText', () => {
                 "provider": "mock-provider",
               },
               "performance": {
-                "maxToolExecutionTimeMs": 0,
+                "maxToolExecutionMs": 0,
                 "responseTimeMs": 0,
                 "stepTimeMs": 0,
                 "timeToFirstTokenMs": 0,
@@ -10041,7 +10041,7 @@ describe('streamText', () => {
                 "provider": "mock-provider",
               },
               "performance": {
-                "maxToolExecutionTimeMs": 0,
+                "maxToolExecutionMs": 0,
                 "responseTimeMs": 0,
                 "stepTimeMs": 0,
                 "timeToFirstTokenMs": 0,
@@ -10546,7 +10546,7 @@ describe('streamText', () => {
               {
                 "finishReason": "tool-calls",
                 "performance": {
-                  "maxToolExecutionTimeMs": 0,
+                  "maxToolExecutionMs": 0,
                   "responseTimeMs": 600,
                   "stepTimeMs": 1000,
                   "timeToFirstTokenMs": 500,
@@ -10610,7 +10610,7 @@ describe('streamText', () => {
               {
                 "finishReason": "stop",
                 "performance": {
-                  "maxToolExecutionTimeMs": 0,
+                  "maxToolExecutionMs": 0,
                   "responseTimeMs": 0,
                   "stepTimeMs": 0,
                   "timeToFirstTokenMs": 0,
@@ -10806,7 +10806,7 @@ describe('streamText', () => {
                     "provider": "mock-provider",
                   },
                   "performance": {
-                    "maxToolExecutionTimeMs": 0,
+                    "maxToolExecutionMs": 0,
                     "responseTimeMs": 600,
                     "stepTimeMs": 1000,
                     "timeToFirstTokenMs": 500,
@@ -10897,7 +10897,7 @@ describe('streamText', () => {
                     "provider": "mock-provider",
                   },
                   "performance": {
-                    "maxToolExecutionTimeMs": 0,
+                    "maxToolExecutionMs": 0,
                     "responseTimeMs": 0,
                     "stepTimeMs": 0,
                     "timeToFirstTokenMs": 0,
@@ -11027,7 +11027,7 @@ describe('streamText', () => {
                   "provider": "mock-provider",
                 },
                 "performance": {
-                  "maxToolExecutionTimeMs": 0,
+                  "maxToolExecutionMs": 0,
                   "responseTimeMs": 600,
                   "stepTimeMs": 1000,
                   "timeToFirstTokenMs": 500,
@@ -11118,7 +11118,7 @@ describe('streamText', () => {
                   "provider": "mock-provider",
                 },
                 "performance": {
-                  "maxToolExecutionTimeMs": 0,
+                  "maxToolExecutionMs": 0,
                   "responseTimeMs": 0,
                   "stepTimeMs": 0,
                   "timeToFirstTokenMs": 0,
@@ -11285,7 +11285,7 @@ describe('streamText', () => {
                   "provider": "mock-provider",
                 },
                 "performance": {
-                  "maxToolExecutionTimeMs": 0,
+                  "maxToolExecutionMs": 0,
                   "responseTimeMs": 600,
                   "stepTimeMs": 1000,
                   "timeToFirstTokenMs": 500,
@@ -11376,7 +11376,7 @@ describe('streamText', () => {
                   "provider": "mock-provider",
                 },
                 "performance": {
-                  "maxToolExecutionTimeMs": 0,
+                  "maxToolExecutionMs": 0,
                   "responseTimeMs": 0,
                   "stepTimeMs": 0,
                   "timeToFirstTokenMs": 0,
@@ -11861,7 +11861,7 @@ describe('streamText', () => {
                     "provider": "mock-provider",
                   },
                   "performance": {
-                    "maxToolExecutionTimeMs": 0,
+                    "maxToolExecutionMs": 0,
                     "responseTimeMs": 0,
                     "stepTimeMs": 0,
                     "timeToFirstTokenMs": undefined,
@@ -11949,7 +11949,7 @@ describe('streamText', () => {
                     "provider": "mock-provider",
                   },
                   "performance": {
-                    "maxToolExecutionTimeMs": 0,
+                    "maxToolExecutionMs": 0,
                     "responseTimeMs": 0,
                     "stepTimeMs": 0,
                     "timeToFirstTokenMs": 0,
@@ -12078,7 +12078,7 @@ describe('streamText', () => {
                     "provider": "mock-provider",
                   },
                   "performance": {
-                    "maxToolExecutionTimeMs": 0,
+                    "maxToolExecutionMs": 0,
                     "responseTimeMs": 0,
                     "stepTimeMs": 0,
                     "timeToFirstTokenMs": undefined,
@@ -12166,7 +12166,7 @@ describe('streamText', () => {
                     "provider": "mock-provider",
                   },
                   "performance": {
-                    "maxToolExecutionTimeMs": 0,
+                    "maxToolExecutionMs": 0,
                     "responseTimeMs": 0,
                     "stepTimeMs": 0,
                     "timeToFirstTokenMs": 0,
@@ -12389,7 +12389,7 @@ describe('streamText', () => {
               {
                 "finishReason": "tool-calls",
                 "performance": {
-                  "maxToolExecutionTimeMs": 0,
+                  "maxToolExecutionMs": 0,
                   "responseTimeMs": 600,
                   "stepTimeMs": 1000,
                   "timeToFirstTokenMs": 500,
@@ -12453,7 +12453,7 @@ describe('streamText', () => {
               {
                 "finishReason": "stop",
                 "performance": {
-                  "maxToolExecutionTimeMs": 0,
+                  "maxToolExecutionMs": 0,
                   "responseTimeMs": 0,
                   "stepTimeMs": 0,
                   "timeToFirstTokenMs": 0,
@@ -12649,7 +12649,7 @@ describe('streamText', () => {
                     "provider": "mock-provider",
                   },
                   "performance": {
-                    "maxToolExecutionTimeMs": 0,
+                    "maxToolExecutionMs": 0,
                     "responseTimeMs": 600,
                     "stepTimeMs": 1000,
                     "timeToFirstTokenMs": 500,
@@ -12740,7 +12740,7 @@ describe('streamText', () => {
                     "provider": "mock-provider",
                   },
                   "performance": {
-                    "maxToolExecutionTimeMs": 0,
+                    "maxToolExecutionMs": 0,
                     "responseTimeMs": 0,
                     "stepTimeMs": 0,
                     "timeToFirstTokenMs": 0,
@@ -12870,7 +12870,7 @@ describe('streamText', () => {
                   "provider": "mock-provider",
                 },
                 "performance": {
-                  "maxToolExecutionTimeMs": 0,
+                  "maxToolExecutionMs": 0,
                   "responseTimeMs": 600,
                   "stepTimeMs": 1000,
                   "timeToFirstTokenMs": 500,
@@ -12961,7 +12961,7 @@ describe('streamText', () => {
                   "provider": "mock-provider",
                 },
                 "performance": {
-                  "maxToolExecutionTimeMs": 0,
+                  "maxToolExecutionMs": 0,
                   "responseTimeMs": 0,
                   "stepTimeMs": 0,
                   "timeToFirstTokenMs": 0,
@@ -13124,7 +13124,7 @@ describe('streamText', () => {
                   "provider": "mock-provider",
                 },
                 "performance": {
-                  "maxToolExecutionTimeMs": 0,
+                  "maxToolExecutionMs": 0,
                   "responseTimeMs": 600,
                   "stepTimeMs": 1000,
                   "timeToFirstTokenMs": 500,
@@ -13215,7 +13215,7 @@ describe('streamText', () => {
                   "provider": "mock-provider",
                 },
                 "performance": {
-                  "maxToolExecutionTimeMs": 0,
+                  "maxToolExecutionMs": 0,
                   "responseTimeMs": 0,
                   "stepTimeMs": 0,
                   "timeToFirstTokenMs": 0,
@@ -13526,7 +13526,7 @@ describe('streamText', () => {
                     "provider": "mock-provider",
                   },
                   "performance": {
-                    "maxToolExecutionTimeMs": 0,
+                    "maxToolExecutionMs": 0,
                     "responseTimeMs": 600,
                     "stepTimeMs": 1000,
                     "timeToFirstTokenMs": 500,
@@ -13643,7 +13643,7 @@ describe('streamText', () => {
                     "provider": "mock-provider",
                   },
                   "performance": {
-                    "maxToolExecutionTimeMs": 0,
+                    "maxToolExecutionMs": 0,
                     "responseTimeMs": 600,
                     "stepTimeMs": 1000,
                     "timeToFirstTokenMs": 500,
@@ -14068,7 +14068,7 @@ describe('streamText', () => {
               {
                 "finishReason": "stop",
                 "performance": {
-                  "maxToolExecutionTimeMs": 0,
+                  "maxToolExecutionMs": 0,
                   "responseTimeMs": 0,
                   "stepTimeMs": 0,
                   "timeToFirstTokenMs": 0,
@@ -14614,7 +14614,7 @@ describe('streamText', () => {
               {
                 "finishReason": "tool-calls",
                 "performance": {
-                  "maxToolExecutionTimeMs": 0,
+                  "maxToolExecutionMs": 0,
                   "responseTimeMs": 0,
                   "stepTimeMs": 0,
                   "timeToFirstTokenMs": 0,
@@ -15820,7 +15820,7 @@ describe('streamText', () => {
             {
               "finishReason": "stop",
               "performance": {
-                "maxToolExecutionTimeMs": 0,
+                "maxToolExecutionMs": 0,
                 "responseTimeMs": 0,
                 "stepTimeMs": 0,
                 "timeToFirstTokenMs": undefined,
@@ -15908,7 +15908,7 @@ describe('streamText', () => {
               "provider": "mock-provider",
             },
             "performance": {
-              "maxToolExecutionTimeMs": 0,
+              "maxToolExecutionMs": 0,
               "responseTimeMs": 0,
               "stepTimeMs": 0,
               "timeToFirstTokenMs": undefined,
@@ -16408,7 +16408,7 @@ describe('streamText', () => {
                 "provider": "mock-provider",
               },
               "performance": {
-                "maxToolExecutionTimeMs": 0,
+                "maxToolExecutionMs": 0,
                 "responseTimeMs": 0,
                 "stepTimeMs": 0,
                 "timeToFirstTokenMs": 0,
@@ -16776,7 +16776,7 @@ describe('streamText', () => {
                   "provider": "mock-provider",
                 },
                 "performance": {
-                  "maxToolExecutionTimeMs": 0,
+                  "maxToolExecutionMs": 0,
                   "responseTimeMs": 0,
                   "stepTimeMs": 0,
                   "timeToFirstTokenMs": 0,
@@ -17010,7 +17010,7 @@ describe('streamText', () => {
               "provider": "mock-provider",
             },
             "performance": {
-              "maxToolExecutionTimeMs": 0,
+              "maxToolExecutionMs": 0,
               "responseTimeMs": 0,
               "stepTimeMs": 0,
               "timeToFirstTokenMs": 0,
@@ -17302,7 +17302,7 @@ describe('streamText', () => {
                     stepTimeMs: 0,
                     responseTimeMs: 0,
                     tokensPerSecond: 0,
-                    maxToolExecutionTimeMs: 0,
+                    maxToolExecutionMs: 0,
                     timeToFirstTokenMs: undefined,
                   },
                   response: {
@@ -17385,7 +17385,7 @@ describe('streamText', () => {
               {
                 "finishReason": "stop",
                 "performance": {
-                  "maxToolExecutionTimeMs": 0,
+                  "maxToolExecutionMs": 0,
                   "responseTimeMs": 0,
                   "stepTimeMs": 0,
                   "timeToFirstTokenMs": undefined,
@@ -17488,7 +17488,7 @@ describe('streamText', () => {
               "provider": "mock-provider",
             },
             "performance": {
-              "maxToolExecutionTimeMs": 0,
+              "maxToolExecutionMs": 0,
               "responseTimeMs": 0,
               "stepTimeMs": 0,
               "timeToFirstTokenMs": undefined,
@@ -18045,7 +18045,7 @@ describe('streamText', () => {
                   "provider": "mock-provider",
                 },
                 "performance": {
-                  "maxToolExecutionTimeMs": 0,
+                  "maxToolExecutionMs": 0,
                   "responseTimeMs": 0,
                   "stepTimeMs": 0,
                   "timeToFirstTokenMs": 0,
@@ -19169,7 +19169,7 @@ describe('streamText', () => {
               {
                 "finishReason": "stop",
                 "performance": {
-                  "maxToolExecutionTimeMs": 0,
+                  "maxToolExecutionMs": 0,
                   "responseTimeMs": 0,
                   "stepTimeMs": 0,
                   "timeToFirstTokenMs": 0,
@@ -19283,7 +19283,7 @@ describe('streamText', () => {
                 "provider": "mock-provider",
               },
               "performance": {
-                "maxToolExecutionTimeMs": 0,
+                "maxToolExecutionMs": 0,
                 "responseTimeMs": 0,
                 "stepTimeMs": 0,
                 "timeToFirstTokenMs": 0,
@@ -19690,7 +19690,7 @@ describe('streamText', () => {
                     "provider": "mock-provider",
                   },
                   "performance": {
-                    "maxToolExecutionTimeMs": 0,
+                    "maxToolExecutionMs": 0,
                     "responseTimeMs": 0,
                     "stepTimeMs": 0,
                     "timeToFirstTokenMs": undefined,
@@ -19804,7 +19804,7 @@ describe('streamText', () => {
               {
                 "finishReason": "tool-calls",
                 "performance": {
-                  "maxToolExecutionTimeMs": 0,
+                  "maxToolExecutionMs": 0,
                   "responseTimeMs": 0,
                   "stepTimeMs": 0,
                   "timeToFirstTokenMs": undefined,
@@ -20530,7 +20530,7 @@ describe('streamText', () => {
               {
                 "finishReason": "stop",
                 "performance": {
-                  "maxToolExecutionTimeMs": 0,
+                  "maxToolExecutionMs": 0,
                   "responseTimeMs": 0,
                   "stepTimeMs": 0,
                   "timeToFirstTokenMs": 0,
@@ -20775,7 +20775,7 @@ describe('streamText', () => {
               {
                 "finishReason": "stop",
                 "performance": {
-                  "maxToolExecutionTimeMs": 0,
+                  "maxToolExecutionMs": 0,
                   "responseTimeMs": 0,
                   "stepTimeMs": 0,
                   "timeToFirstTokenMs": undefined,
@@ -20956,7 +20956,7 @@ describe('streamText', () => {
                 "provider": "mock-provider",
               },
               "performance": {
-                "maxToolExecutionTimeMs": 0,
+                "maxToolExecutionMs": 0,
                 "responseTimeMs": 0,
                 "stepTimeMs": 0,
                 "timeToFirstTokenMs": undefined,
@@ -21184,7 +21184,7 @@ describe('streamText', () => {
               {
                 "finishReason": "stop",
                 "performance": {
-                  "maxToolExecutionTimeMs": 0,
+                  "maxToolExecutionMs": 0,
                   "responseTimeMs": 0,
                   "stepTimeMs": 0,
                   "timeToFirstTokenMs": 0,
@@ -22533,7 +22533,7 @@ describe('streamText', () => {
                 {
                   "finishReason": "tool-calls",
                   "performance": {
-                    "maxToolExecutionTimeMs": 0,
+                    "maxToolExecutionMs": 0,
                     "responseTimeMs": 0,
                     "stepTimeMs": 0,
                     "timeToFirstTokenMs": 0,
@@ -22604,7 +22604,7 @@ describe('streamText', () => {
                 {
                   "finishReason": "tool-calls",
                   "performance": {
-                    "maxToolExecutionTimeMs": 0,
+                    "maxToolExecutionMs": 0,
                     "responseTimeMs": 0,
                     "stepTimeMs": 0,
                     "timeToFirstTokenMs": undefined,
@@ -22675,7 +22675,7 @@ describe('streamText', () => {
                 {
                   "finishReason": "tool-calls",
                   "performance": {
-                    "maxToolExecutionTimeMs": 0,
+                    "maxToolExecutionMs": 0,
                     "responseTimeMs": 0,
                     "stepTimeMs": 0,
                     "timeToFirstTokenMs": undefined,
@@ -22746,7 +22746,7 @@ describe('streamText', () => {
                 {
                   "finishReason": "tool-calls",
                   "performance": {
-                    "maxToolExecutionTimeMs": 0,
+                    "maxToolExecutionMs": 0,
                     "responseTimeMs": 0,
                     "stepTimeMs": 0,
                     "timeToFirstTokenMs": undefined,
@@ -22885,7 +22885,7 @@ describe('streamText', () => {
                 {
                   "finishReason": "stop",
                   "performance": {
-                    "maxToolExecutionTimeMs": 0,
+                    "maxToolExecutionMs": 0,
                     "responseTimeMs": 0,
                     "stepTimeMs": 0,
                     "timeToFirstTokenMs": 0,
@@ -23416,7 +23416,7 @@ describe('streamText', () => {
               {
                 "finishReason": "tool-calls",
                 "performance": {
-                  "maxToolExecutionTimeMs": 0,
+                  "maxToolExecutionMs": 0,
                   "responseTimeMs": 0,
                   "stepTimeMs": 0,
                   "timeToFirstTokenMs": undefined,
@@ -24231,7 +24231,7 @@ describe('streamText', () => {
               {
                 "finishReason": "tool-calls",
                 "performance": {
-                  "maxToolExecutionTimeMs": 0,
+                  "maxToolExecutionMs": 0,
                   "responseTimeMs": 0,
                   "stepTimeMs": 0,
                   "timeToFirstTokenMs": undefined,
@@ -24819,7 +24819,7 @@ describe('streamText', () => {
               {
                 "finishReason": "stop",
                 "performance": {
-                  "maxToolExecutionTimeMs": 0,
+                  "maxToolExecutionMs": 0,
                   "responseTimeMs": 0,
                   "stepTimeMs": 0,
                   "timeToFirstTokenMs": 0,
@@ -25270,7 +25270,7 @@ describe('streamText', () => {
               {
                 "finishReason": "stop",
                 "performance": {
-                  "maxToolExecutionTimeMs": 0,
+                  "maxToolExecutionMs": 0,
                   "responseTimeMs": 0,
                   "stepTimeMs": 0,
                   "timeToFirstTokenMs": 0,
@@ -25582,7 +25582,7 @@ describe('streamText', () => {
               {
                 "finishReason": "stop",
                 "performance": {
-                  "maxToolExecutionTimeMs": 0,
+                  "maxToolExecutionMs": 0,
                   "responseTimeMs": 0,
                   "stepTimeMs": 0,
                   "timeToFirstTokenMs": 0,
@@ -25764,7 +25764,7 @@ describe('streamText', () => {
                 {
                   "finishReason": "tool-calls",
                   "performance": {
-                    "maxToolExecutionTimeMs": 0,
+                    "maxToolExecutionMs": 0,
                     "responseTimeMs": 0,
                     "stepTimeMs": 0,
                     "timeToFirstTokenMs": undefined,

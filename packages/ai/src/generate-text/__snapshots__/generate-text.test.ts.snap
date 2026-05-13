@@ -161,7 +161,7 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
         "provider": "mock-provider",
       },
       "performance": {
-        "maxToolExecutionTimeMs": 0,
+        "maxToolExecutionMs": 0,
         "responseTimeMs": 0,
         "stepTimeMs": 0,
         "timeToFirstTokenMs": undefined,
@@ -245,7 +245,7 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
         "provider": "mock-provider",
       },
       "performance": {
-        "maxToolExecutionTimeMs": 0,
+        "maxToolExecutionMs": 0,
         "responseTimeMs": 0,
         "stepTimeMs": 0,
         "timeToFirstTokenMs": undefined,
@@ -369,7 +369,7 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
       "provider": "mock-provider",
     },
     "performance": {
-      "maxToolExecutionTimeMs": 0,
+      "maxToolExecutionMs": 0,
       "responseTimeMs": 0,
       "stepTimeMs": 0,
       "timeToFirstTokenMs": undefined,
@@ -453,7 +453,7 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
       "provider": "mock-provider",
     },
     "performance": {
-      "maxToolExecutionTimeMs": 0,
+      "maxToolExecutionMs": 0,
       "responseTimeMs": 0,
       "stepTimeMs": 0,
       "timeToFirstTokenMs": undefined,
@@ -586,7 +586,7 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > resul
       "provider": "mock-provider",
     },
     "performance": {
-      "maxToolExecutionTimeMs": 0,
+      "maxToolExecutionMs": 0,
       "responseTimeMs": 0,
       "stepTimeMs": 0,
       "timeToFirstTokenMs": undefined,
@@ -670,7 +670,7 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > resul
       "provider": "mock-provider",
     },
     "performance": {
-      "maxToolExecutionTimeMs": 0,
+      "maxToolExecutionMs": 0,
       "responseTimeMs": 0,
       "stepTimeMs": 0,
       "timeToFirstTokenMs": undefined,
@@ -759,7 +759,7 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
       "provider": "mock-provider",
     },
     "performance": {
-      "maxToolExecutionTimeMs": 0,
+      "maxToolExecutionMs": 0,
       "responseTimeMs": 0,
       "stepTimeMs": 0,
       "timeToFirstTokenMs": undefined,
@@ -845,7 +845,7 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
       "provider": "mock-provider",
     },
     "performance": {
-      "maxToolExecutionTimeMs": 0,
+      "maxToolExecutionMs": 0,
       "responseTimeMs": 0,
       "stepTimeMs": 0,
       "timeToFirstTokenMs": undefined,
@@ -980,7 +980,7 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
       "provider": "mock-provider",
     },
     "performance": {
-      "maxToolExecutionTimeMs": 0,
+      "maxToolExecutionMs": 0,
       "responseTimeMs": 0,
       "stepTimeMs": 0,
       "timeToFirstTokenMs": undefined,
@@ -1066,7 +1066,7 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
       "provider": "mock-provider",
     },
     "performance": {
-      "maxToolExecutionTimeMs": 0,
+      "maxToolExecutionMs": 0,
       "responseTimeMs": 0,
       "stepTimeMs": 0,
       "timeToFirstTokenMs": undefined,
@@ -1579,7 +1579,7 @@ exports[`generateText > result.steps > should add the reasoning from the model r
       "provider": "mock-provider",
     },
     "performance": {
-      "maxToolExecutionTimeMs": 0,
+      "maxToolExecutionMs": 0,
       "responseTimeMs": 0,
       "stepTimeMs": 0,
       "timeToFirstTokenMs": undefined,
@@ -1687,7 +1687,7 @@ exports[`generateText > result.steps > should contain files 1`] = `
       "provider": "mock-provider",
     },
     "performance": {
-      "maxToolExecutionTimeMs": 0,
+      "maxToolExecutionMs": 0,
       "responseTimeMs": 0,
       "stepTimeMs": 0,
       "timeToFirstTokenMs": undefined,
@@ -1793,7 +1793,7 @@ exports[`generateText > result.steps > should contain sources 1`] = `
       "provider": "mock-provider",
     },
     "performance": {
-      "maxToolExecutionTimeMs": 0,
+      "maxToolExecutionMs": 0,
       "responseTimeMs": 0,
       "stepTimeMs": 0,
       "timeToFirstTokenMs": undefined,

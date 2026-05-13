@@ -973,7 +973,7 @@ export async function generateText<
         deniedToolApprovalResponses = toolApprovalResponses.filter(
           toolApprovalResponse => toolApprovalResponse.approved === false,
         );
-        let maxToolExecutionTimeMs = 0;
+        let maxToolExecutionMs = 0;
 
         if (tools != null) {
           const toolExecutionResults = await executeTools({
@@ -1009,8 +1009,8 @@ export async function generateText<
           });
 
           for (const result of toolExecutionResults) {
-            maxToolExecutionTimeMs = Math.max(
-              maxToolExecutionTimeMs,
+            maxToolExecutionMs = Math.max(
+              maxToolExecutionMs,
               result.toolExecutionMs,
             );
             clientToolOutputs.push(result.output);
@@ -1025,7 +1025,7 @@ export async function generateText<
           }),
           stepTimeMs,
           responseTimeMs,
-          maxToolExecutionTimeMs,
+          maxToolExecutionMs,
           timeToFirstTokenMs: undefined,
         };
 

@@ -56,7 +56,7 @@ export type StepResultPerformance = {
   /**
    * Maximum time spent executing a single client-side tool in milliseconds.
    */
-  readonly maxToolExecutionTimeMs: number;
+  readonly maxToolExecutionMs: number;
 
   /**
    * Time until the first text, reasoning, or tool input delta was received in

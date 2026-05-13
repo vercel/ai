@@ -65,7 +65,7 @@ Each step includes `performance` with timing and throughput information:
 - `tokensPerSecond`: Average output tokens generated per second, calculated from `responseTimeMs`.
 - `stepTimeMs`: Total time spent on the step, including language model response time and tool execution time, in milliseconds.
 - `responseTimeMs`: Time spent waiting for the language model response in milliseconds.
-- `maxToolExecutionTimeMs`: Maximum time spent executing a single client-side tool in the step in milliseconds.
+- `maxToolExecutionMs`: Maximum time spent executing a single client-side tool in the step in milliseconds.
 - `timeToFirstTokenMs`: For streaming steps, the time until the first text, reasoning, or tool input delta was received in milliseconds. For `generateText`, this is `undefined`.
 
 ### Accessing response headers & body
