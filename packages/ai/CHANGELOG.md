@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.182
+
+### Patch Changes
+
+- e76a29a: fix(ai): download tool-result file URLs
+
 ## 6.0.181
 
 ### Patch Changes
