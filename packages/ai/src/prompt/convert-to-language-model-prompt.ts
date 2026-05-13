@@ -25,7 +25,10 @@ import {
   createDefaultDownloadFunction,
   type DownloadFunction,
 } from '../util/download/download-function';
-import { convertToLanguageModelV3DataContent } from './data-content';
+import {
+  convertDataContentToBase64String,
+  convertToLanguageModelV3DataContent,
+} from './data-content';
 import { InvalidMessageRoleError } from './invalid-message-role-error';
 import type { StandardizedPrompt } from './standardize-prompt';
 import { asArray } from '../util/as-array';
@@ -283,7 +286,10 @@ export function convertToLanguageModelMessage({
                   type: 'tool-result' as const,
                   toolCallId: part.toolCallId,
                   toolName: part.toolName,
-                  output: mapToolResultOutput(part.output),
+                  output: mapToolResultOutput({
+                    output: part.output,
+                    downloadedAssets,
+                  }),
                   providerOptions,
                 };
               }
@@ -309,7 +315,10 @@ export function convertToLanguageModelMessage({
                   type: 'tool-result' as const,
                   toolCallId: part.toolCallId,
                   toolName: part.toolName,
-                  output: mapToolResultOutput(part.output),
+                  output: mapToolResultOutput({
+                    output: part.output,
+                    downloadedAssets,
+                  }),
                   providerOptions: part.providerOptions,
                 };
               }
@@ -344,28 +353,59 @@ async function downloadAssets(
 ): Promise<
   Record<string, { mediaType: string | undefined; data: Uint8Array }>
 > {
-  const plannedDownloads = messages
-    .filter(message => message.role === 'user')
-    .map(message => message.content)
-    .filter((content): content is Array<TextPart | ImagePart | FilePart> =>
-      Array.isArray(content),
-    )
-    .flat()
-    .filter(
-      (part): part is ImagePart | FilePart =>
-        part.type === 'image' || part.type === 'file',
-    )
-    .map(part => {
-      const mediaType =
-        part.mediaType ?? (part.type === 'image' ? 'image/*' : undefined);
+  type DownloadableFile = {
+    mediaType: string | undefined;
+    data: DataContent | URL;
+  };
 
-      let data = part.type === 'image' ? part.image : part.data;
-      if (typeof data === 'string') {
-        try {
-          data = new URL(data);
-        } catch (ignored) {}
+  const downloadableFiles: DownloadableFile[] = [];
+  for (const message of messages) {
+    if (message.role === 'user' && Array.isArray(message.content)) {
+      for (const part of message.content) {
+        if (part.type === 'image' || part.type === 'file') {
+          downloadableFiles.push({
+            data: part.type === 'image' ? part.image : part.data,
+            mediaType:
+              part.mediaType ?? (part.type === 'image' ? 'image/*' : undefined),
+          });
+        }
+      }
+    }
+
+    if (message.role === 'tool' || message.role === 'assistant') {
+      if (!Array.isArray(message.content)) {
+        continue;
       }
 
+      for (const part of message.content) {
+        if (part.type !== 'tool-result') {
+          continue;
+        }
+
+        if (part.output.type !== 'content') {
+          continue;
+        }
+
+        for (const contentPart of part.output.value) {
+          if (
+            contentPart.type === 'image-url' ||
+            contentPart.type === 'file-url'
+          ) {
+            downloadableFiles.push({
+              data: new URL(contentPart.url),
+              mediaType:
+                contentPart.type === 'image-url' ? 'image/*' : undefined,
+            });
+          }
+        }
+      }
+    }
+  }
+
+  const plannedDownloads = downloadableFiles
+    .map(part => {
+      const mediaType = part.mediaType;
+      const { data } = convertToLanguageModelV3DataContent(part.data);
       return { mediaType, data };
     })
 
@@ -383,7 +423,6 @@ async function downloadAssets(
           supportedUrls,
         }),
     }));
-
   // download in parallel:
   const downloadedFiles = await download(plannedDownloads);
 
@@ -492,9 +531,16 @@ function convertPartToLanguageModelPart(
   }
 }
 
-function mapToolResultOutput(
-  output: ToolResultOutput,
-): LanguageModelV3ToolResultOutput {
+function mapToolResultOutput({
+  output,
+  downloadedAssets,
+}: {
+  output: ToolResultOutput;
+  downloadedAssets: Record<
+    string,
+    { mediaType: string | undefined; data: Uint8Array }
+  >;
+}): LanguageModelV3ToolResultOutput {
   if (output.type !== 'content') {
     return output;
   }
@@ -502,6 +548,34 @@ function mapToolResultOutput(
   return {
     type: 'content',
     value: output.value.map(item => {
+      if (item.type === 'image-url') {
+        const downloadedFile = downloadedAssets[new URL(item.url).toString()];
+        if (downloadedFile) {
+          return {
+            type: 'image-data' as const,
+            data: convertDataContentToBase64String(downloadedFile.data),
+            mediaType: downloadedFile.mediaType ?? 'image/*',
+            providerOptions: item.providerOptions,
+          };
+        }
+
+        return item;
+      }
+
+      if (item.type === 'file-url') {
+        const downloadedFile = downloadedAssets[new URL(item.url).toString()];
+        if (downloadedFile) {
+          return {
+            type: 'file-data' as const,
+            data: convertDataContentToBase64String(downloadedFile.data),
+            mediaType: downloadedFile.mediaType ?? 'application/octet-stream',
+            providerOptions: item.providerOptions,
+          };
+        }
+
+        return item;
+      }
+
       if (item.type !== 'media') {
         return item;
       }
