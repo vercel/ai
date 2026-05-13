@@ -206,7 +206,7 @@ describe('streamLanguageModelCall', () => {
             "performance": {
               "responseTimeMs": 0,
               "timeToFirstTokenMs": undefined,
-              "tokensPerSecond": Infinity,
+              "tokensPerSecond": 0,
             },
             "provider": "mock-provider",
             "responseId": "aitxt-generated-response-id",
@@ -317,7 +317,7 @@ describe('streamLanguageModelCall', () => {
             "performance": {
               "responseTimeMs": 0,
               "timeToFirstTokenMs": 0,
-              "tokensPerSecond": Infinity,
+              "tokensPerSecond": 0,
             },
             "provider": "mock-provider",
             "responseId": "response-1",
@@ -378,7 +378,7 @@ describe('streamLanguageModelCall', () => {
           "performance": {
             "responseTimeMs": 0,
             "timeToFirstTokenMs": undefined,
-            "tokensPerSecond": Infinity,
+            "tokensPerSecond": 0,
           },
           "provider": "mock-provider",
           "responseId": "aitxt-generated-response-id",
@@ -459,7 +459,7 @@ describe('streamLanguageModelCall', () => {
             "performance": {
               "responseTimeMs": 0,
               "timeToFirstTokenMs": undefined,
-              "tokensPerSecond": Infinity,
+              "tokensPerSecond": 0,
             },
             "providerMetadata": undefined,
             "rawFinishReason": "stop",
@@ -523,7 +523,7 @@ describe('streamLanguageModelCall', () => {
             "performance": {
               "responseTimeMs": 0,
               "timeToFirstTokenMs": 0,
-              "tokensPerSecond": Infinity,
+              "tokensPerSecond": 0,
             },
             "providerMetadata": undefined,
             "rawFinishReason": "stop",
@@ -648,7 +648,7 @@ describe('streamLanguageModelCall', () => {
             "performance": {
               "responseTimeMs": 0,
               "timeToFirstTokenMs": undefined,
-              "tokensPerSecond": Infinity,
+              "tokensPerSecond": 0,
             },
             "providerMetadata": undefined,
             "rawFinishReason": "stop",
@@ -732,7 +732,7 @@ describe('streamLanguageModelCall', () => {
             "performance": {
               "responseTimeMs": 0,
               "timeToFirstTokenMs": undefined,
-              "tokensPerSecond": Infinity,
+              "tokensPerSecond": 0,
             },
             "providerMetadata": undefined,
             "rawFinishReason": "stop",
@@ -795,7 +795,7 @@ describe('streamLanguageModelCall', () => {
             "performance": {
               "responseTimeMs": 0,
               "timeToFirstTokenMs": undefined,
-              "tokensPerSecond": Infinity,
+              "tokensPerSecond": 0,
             },
             "providerMetadata": undefined,
             "rawFinishReason": "stop",
@@ -929,7 +929,7 @@ describe('streamLanguageModelCall', () => {
             "performance": {
               "responseTimeMs": 0,
               "timeToFirstTokenMs": undefined,
-              "tokensPerSecond": Infinity,
+              "tokensPerSecond": 0,
             },
             "providerMetadata": undefined,
             "rawFinishReason": "stop",
@@ -986,7 +986,7 @@ describe('streamLanguageModelCall', () => {
             "performance": {
               "responseTimeMs": 0,
               "timeToFirstTokenMs": undefined,
-              "tokensPerSecond": Infinity,
+              "tokensPerSecond": 0,
             },
             "providerMetadata": undefined,
             "rawFinishReason": undefined,
@@ -1079,7 +1079,7 @@ describe('streamLanguageModelCall', () => {
             "performance": {
               "responseTimeMs": 0,
               "timeToFirstTokenMs": undefined,
-              "tokensPerSecond": Infinity,
+              "tokensPerSecond": 0,
             },
             "providerMetadata": undefined,
             "rawFinishReason": undefined,
@@ -1217,7 +1217,7 @@ describe('streamLanguageModelCall', () => {
             "performance": {
               "responseTimeMs": 0,
               "timeToFirstTokenMs": undefined,
-              "tokensPerSecond": Infinity,
+              "tokensPerSecond": 0,
             },
             "providerMetadata": undefined,
             "rawFinishReason": undefined,

@@ -43,7 +43,7 @@ const finishChunk = {
   performance: {
     responseTimeMs: 0,
     timeToFirstTokenMs: undefined,
-    tokensPerSecond: Infinity,
+    tokensPerSecond: 0,
   },
 };
 
@@ -106,7 +106,7 @@ describe('createExecuteToolsTransformation', () => {
             "performance": {
               "responseTimeMs": 0,
               "timeToFirstTokenMs": undefined,
-              "tokensPerSecond": Infinity,
+              "tokensPerSecond": 0,
             },
             "rawFinishReason": "stop",
             "type": "model-call-end",
@@ -194,7 +194,7 @@ describe('createExecuteToolsTransformation', () => {
           "performance": {
             "responseTimeMs": 0,
             "timeToFirstTokenMs": undefined,
-            "tokensPerSecond": Infinity,
+            "tokensPerSecond": 0,
           },
           "rawFinishReason": "stop",
           "type": "model-call-end",
@@ -421,7 +421,7 @@ describe('createExecuteToolsTransformation', () => {
             "performance": {
               "responseTimeMs": 0,
               "timeToFirstTokenMs": undefined,
-              "tokensPerSecond": Infinity,
+              "tokensPerSecond": 0,
             },
             "rawFinishReason": "stop",
             "type": "model-call-end",
@@ -549,7 +549,7 @@ describe('createExecuteToolsTransformation', () => {
             "performance": {
               "responseTimeMs": 0,
               "timeToFirstTokenMs": undefined,
-              "tokensPerSecond": Infinity,
+              "tokensPerSecond": 0,
             },
             "rawFinishReason": "stop",
             "type": "model-call-end",
@@ -1218,7 +1218,7 @@ describe('createExecuteToolsTransformation', () => {
             "performance": {
               "responseTimeMs": 0,
               "timeToFirstTokenMs": undefined,
-              "tokensPerSecond": Infinity,
+              "tokensPerSecond": 0,
             },
             "rawFinishReason": "stop",
             "type": "model-call-end",
@@ -1312,7 +1312,7 @@ describe('createExecuteToolsTransformation', () => {
             "performance": {
               "responseTimeMs": 0,
               "timeToFirstTokenMs": undefined,
-              "tokensPerSecond": Infinity,
+              "tokensPerSecond": 0,
             },
             "rawFinishReason": "stop",
             "type": "model-call-end",

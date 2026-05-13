@@ -2663,7 +2663,7 @@ describe('generateText', () => {
             "performance": {
               "responseTimeMs": 0,
               "timeToFirstTokenMs": undefined,
-              "tokensPerSecond": Infinity,
+              "tokensPerSecond": 0,
             },
             "provider": "mock-provider",
             "responseId": "response-1",
@@ -4102,7 +4102,7 @@ describe('generateText', () => {
                 "responseTimeMs": 0,
                 "stepTimeMs": 0,
                 "timeToFirstTokenMs": undefined,
-                "tokensPerSecond": Infinity,
+                "tokensPerSecond": 0,
                 "toolExecutionMs": {
                   "call-1": 0,
                 },
@@ -4661,7 +4661,7 @@ describe('generateText', () => {
                     "responseTimeMs": 0,
                     "stepTimeMs": 0,
                     "timeToFirstTokenMs": undefined,
-                    "tokensPerSecond": Infinity,
+                    "tokensPerSecond": 0,
                     "toolExecutionMs": {
                       "call-1": 0,
                     },
@@ -4749,7 +4749,7 @@ describe('generateText', () => {
                     "responseTimeMs": 0,
                     "stepTimeMs": 0,
                     "timeToFirstTokenMs": undefined,
-                    "tokensPerSecond": Infinity,
+                    "tokensPerSecond": 0,
                     "toolExecutionMs": {},
                   },
                   "providerMetadata": undefined,
@@ -4879,7 +4879,7 @@ describe('generateText', () => {
                     "responseTimeMs": 0,
                     "stepTimeMs": 0,
                     "timeToFirstTokenMs": undefined,
-                    "tokensPerSecond": Infinity,
+                    "tokensPerSecond": 0,
                     "toolExecutionMs": {
                       "call-1": 0,
                     },
@@ -4967,7 +4967,7 @@ describe('generateText', () => {
                     "responseTimeMs": 0,
                     "stepTimeMs": 0,
                     "timeToFirstTokenMs": undefined,
-                    "tokensPerSecond": Infinity,
+                    "tokensPerSecond": 0,
                     "toolExecutionMs": {},
                   },
                   "providerMetadata": undefined,
@@ -5393,7 +5393,7 @@ describe('generateText', () => {
                     "responseTimeMs": 0,
                     "stepTimeMs": 0,
                     "timeToFirstTokenMs": undefined,
-                    "tokensPerSecond": Infinity,
+                    "tokensPerSecond": 0,
                     "toolExecutionMs": {
                       "call-1": 0,
                     },
@@ -5501,7 +5501,7 @@ describe('generateText', () => {
                     "responseTimeMs": 0,
                     "stepTimeMs": 0,
                     "timeToFirstTokenMs": undefined,
-                    "tokensPerSecond": Infinity,
+                    "tokensPerSecond": 0,
                     "toolExecutionMs": {
                       "call-1": 0,
                     },
@@ -9136,7 +9136,7 @@ describe('generateText', () => {
                 "responseTimeMs": 0,
                 "stepTimeMs": 0,
                 "timeToFirstTokenMs": undefined,
-                "tokensPerSecond": Infinity,
+                "tokensPerSecond": 0,
                 "toolExecutionMs": {
                   "call-1": 0,
                 },

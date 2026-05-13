@@ -252,7 +252,7 @@ exports[`streamText > result.fullStream > should send delayed asynchronous tool 
       "responseTimeMs": 0,
       "stepTimeMs": 60,
       "timeToFirstTokenMs": undefined,
-      "tokensPerSecond": Infinity,
+      "tokensPerSecond": 0,
       "toolExecutionMs": {
         "call-1": 60,
       },
@@ -338,7 +338,7 @@ exports[`streamText > result.fullStream > should send tool calls 1`] = `
       "responseTimeMs": 0,
       "stepTimeMs": 0,
       "timeToFirstTokenMs": undefined,
-      "tokensPerSecond": Infinity,
+      "tokensPerSecond": 0,
       "toolExecutionMs": {},
     },
     "providerMetadata": undefined,
@@ -428,7 +428,7 @@ exports[`streamText > result.fullStream > should send tool results 1`] = `
       "responseTimeMs": 0,
       "stepTimeMs": 0,
       "timeToFirstTokenMs": undefined,
-      "tokensPerSecond": Infinity,
+      "tokensPerSecond": 0,
       "toolExecutionMs": {
         "call-1": 0,
       },
