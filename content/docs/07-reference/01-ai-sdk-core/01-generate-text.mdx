@@ -1335,6 +1335,42 @@ To see `generateText` in action, check out [these examples](#examples).
               description:
                 'The content parts produced by the model call (text, reasoning, files, tool calls, etc.).',
             },
+            {
+              name: 'responseId',
+              type: 'string',
+              description:
+                'The provider-returned response ID for this model call.',
+            },
+            {
+              name: 'performance',
+              type: '{ responseTimeMs: number; tokensPerSecond: number; timeToFirstTokenMs: number | undefined }',
+              description: 'Performance metrics for the model call.',
+              properties: [
+                {
+                  type: 'LanguageModelCallPerformance',
+                  parameters: [
+                    {
+                      name: 'responseTimeMs',
+                      type: 'number',
+                      description:
+                        'Time spent waiting for the language model response in milliseconds.',
+                    },
+                    {
+                      name: 'tokensPerSecond',
+                      type: 'number',
+                      description:
+                        'Average number of output tokens per second during the language model response.',
+                    },
+                    {
+                      name: 'timeToFirstTokenMs',
+                      type: 'number | undefined',
+                      description:
+                        'Time until the first text, reasoning, or tool input delta was received in milliseconds. Only available for streaming model calls.',
+                    },
+                  ],
+                },
+              ],
+            },
           ],
         },
       ],
@@ -1400,7 +1436,7 @@ To see `generateText` in action, check out [these examples](#examples).
                 'The full tool call object containing toolName, toolCallId, input, and metadata.',
             },
             {
-              name: 'durationMs',
+              name: 'toolExecutionMs',
               type: 'number',
               description:
                 'The wall-clock duration of the tool execution in milliseconds.',
@@ -1643,6 +1679,49 @@ To see `generateText` in action, check out [these examples](#examples).
               ],
             },
             {
+              name: 'performance',
+              type: 'StepResultPerformance',
+              description:
+                'Timing and throughput metrics for the step. For `generateText`, `timeToFirstTokenMs` is undefined.',
+              properties: [
+                {
+                  type: 'StepResultPerformance',
+                  parameters: [
+                    {
+                      name: 'tokensPerSecond',
+                      type: 'number',
+                      description:
+                        'Average number of output tokens per second for the language model response.',
+                    },
+                    {
+                      name: 'stepTimeMs',
+                      type: 'number',
+                      description:
+                        'Total time spent on the step, including language model response time and tool execution time, in milliseconds.',
+                    },
+                    {
+                      name: 'responseTimeMs',
+                      type: 'number',
+                      description:
+                        'Time spent waiting for the language model response in milliseconds.',
+                    },
+                    {
+                      name: 'toolExecutionMs',
+                      type: 'Readonly<Record<string, number>>',
+                      description:
+                        'Time spent executing each client-side tool call in the step in milliseconds, keyed by tool call ID.',
+                    },
+                    {
+                      name: 'timeToFirstTokenMs',
+                      type: 'number | undefined',
+                      description:
+                        'Time until the first text, reasoning, or tool input delta was received in milliseconds. Only available for streaming steps.',
+                    },
+                  ],
+                },
+              ],
+            },
+            {
               name: 'warnings',
               type: 'CallWarning[] | undefined',
               description:
@@ -1741,10 +1820,10 @@ To see `generateText` in action, check out [these examples](#examples).
     },
     {
       name: 'onFinish',
-      type: '(event: StepResult<TOOLS> & { steps: StepResult<TOOLS>[]; totalUsage: LanguageModelUsage }) => PromiseLike<void> | void',
+      type: '(event: GenerateTextEndEvent<TOOLS>) => PromiseLike<void> | void',
       isOptional: true,
       description:
-        'Callback that is called when the entire generation completes (all steps finished). The event includes the final step result properties along with aggregated data from all steps.',
+        'Callback that is called when the entire generation completes (all steps finished). The event includes the final step result properties, excluding direct `performance`, along with aggregated data from all steps. Use `event.steps` for per-step performance metrics.',
       properties: [
         {
           type: 'GenerateTextEndEvent',

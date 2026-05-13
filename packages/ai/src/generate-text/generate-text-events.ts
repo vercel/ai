@@ -168,7 +168,7 @@ export type GenerateTextStepEndEvent<
 export type GenerateTextEndEvent<
   TOOLS extends ToolSet = ToolSet,
   RUNTIME_CONTEXT extends Context = Context,
-> = StepResult<TOOLS, RUNTIME_CONTEXT> & {
+> = Omit<StepResult<TOOLS, RUNTIME_CONTEXT>, 'performance'> & {
   /** The response messages that were generated during the call. */
   readonly responseMessages: ResponseMessage[];
 

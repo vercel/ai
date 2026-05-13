@@ -1379,6 +1379,48 @@ To see `streamText` in action, check out [these examples](#examples).
               ],
             },
             {
+              name: 'performance',
+              type: 'StepResultPerformance',
+              description: 'Timing and throughput metrics for the step.',
+              properties: [
+                {
+                  type: 'StepResultPerformance',
+                  parameters: [
+                    {
+                      name: 'tokensPerSecond',
+                      type: 'number',
+                      description:
+                        'Average number of output tokens per second for the language model response.',
+                    },
+                    {
+                      name: 'stepTimeMs',
+                      type: 'number',
+                      description:
+                        'Total time spent on the step, including language model response time and tool execution time, in milliseconds.',
+                    },
+                    {
+                      name: 'responseTimeMs',
+                      type: 'number',
+                      description:
+                        'Time spent waiting for the language model response in milliseconds.',
+                    },
+                    {
+                      name: 'toolExecutionMs',
+                      type: 'Readonly<Record<string, number>>',
+                      description:
+                        'Time spent executing each client-side tool call in the step in milliseconds, keyed by tool call ID.',
+                    },
+                    {
+                      name: 'timeToFirstTokenMs',
+                      type: 'number | undefined',
+                      description:
+                        'Time until the first text, reasoning, or tool input delta was received in milliseconds. Only available for streaming steps.',
+                    },
+                  ],
+                },
+              ],
+            },
+            {
               name: 'text',
               type: 'string',
               description: 'The full text that has been generated.',
@@ -2239,6 +2281,42 @@ To see `streamText` in action, check out [these examples](#examples).
               description:
                 'The content parts produced by the model call (text, reasoning, files, tool calls, etc.).',
             },
+            {
+              name: 'responseId',
+              type: 'string',
+              description:
+                'The provider-returned response ID for this model call.',
+            },
+            {
+              name: 'performance',
+              type: '{ responseTimeMs: number; tokensPerSecond: number; timeToFirstTokenMs: number | undefined }',
+              description: 'Performance metrics for the model call.',
+              properties: [
+                {
+                  type: 'LanguageModelCallPerformance',
+                  parameters: [
+                    {
+                      name: 'responseTimeMs',
+                      type: 'number',
+                      description:
+                        'Time spent waiting for the language model response in milliseconds.',
+                    },
+                    {
+                      name: 'tokensPerSecond',
+                      type: 'number',
+                      description:
+                        'Average number of output tokens per second during the language model response.',
+                    },
+                    {
+                      name: 'timeToFirstTokenMs',
+                      type: 'number | undefined',
+                      description:
+                        'Time until the first text, reasoning, or tool input delta was received in milliseconds. Only available for streaming model calls.',
+                    },
+                  ],
+                },
+              ],
+            },
           ],
         },
       ],
@@ -2304,7 +2382,7 @@ To see `streamText` in action, check out [these examples](#examples).
                 'The full tool call object containing toolName, toolCallId, input, and metadata.',
             },
             {
-              name: 'durationMs',
+              name: 'toolExecutionMs',
               type: 'number',
               description:
                 'The wall-clock duration of the tool execution in milliseconds.',
@@ -3476,6 +3554,48 @@ To see `streamText` in action, check out [these examples](#examples).
                       type: 'object | undefined',
                       isOptional: true,
                       description: 'Raw usage information from the provider. This is the provider\'s original usage information and may include additional fields.',
+                    },
+                  ],
+                },
+              ],
+            },
+            {
+              name: 'performance',
+              type: 'StepResultPerformance',
+              description: 'Timing and throughput metrics for the step.',
+              properties: [
+                {
+                  type: 'StepResultPerformance',
+                  parameters: [
+                    {
+                      name: 'tokensPerSecond',
+                      type: 'number',
+                      description:
+                        'Average number of output tokens per second for the language model response.',
+                    },
+                    {
+                      name: 'stepTimeMs',
+                      type: 'number',
+                      description:
+                        'Total time spent on the step, including language model response time and tool execution time, in milliseconds.',
+                    },
+                    {
+                      name: 'responseTimeMs',
+                      type: 'number',
+                      description:
+                        'Time spent waiting for the language model response in milliseconds.',
+                    },
+                    {
+                      name: 'toolExecutionMs',
+                      type: 'Readonly<Record<string, number>>',
+                      description:
+                        'Time spent executing each client-side tool call in the step in milliseconds, keyed by tool call ID.',
+                    },
+                    {
+                      name: 'timeToFirstTokenMs',
+                      type: 'number | undefined',
+                      description:
+                        'Time until the first text, reasoning, or tool input delta was received in milliseconds. Only available for streaming steps.',
                     },
                   ],
                 },

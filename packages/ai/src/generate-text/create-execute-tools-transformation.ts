@@ -19,6 +19,16 @@ import type {
   OnToolExecutionStartCallback,
 } from './tool-execution-events';
 
+export type ToolExecutionEndStreamPart = {
+  type: 'tool-execution-end';
+  toolCallId: string;
+  toolExecutionMs: number;
+};
+
+export type ExecuteToolsStreamPart<TOOLS extends ToolSet = ToolSet> =
+  | LanguageModelStreamPart<TOOLS>
+  | ToolExecutionEndStreamPart;
+
 export function createExecuteToolsTransformation<
   TOOLS extends ToolSet,
   RUNTIME_CONTEXT extends Context | unknown | never,
@@ -52,19 +62,19 @@ export function createExecuteToolsTransformation<
   executeToolInTelemetryContext?: Telemetry['executeTool'];
 }): TransformStream<
   LanguageModelStreamPart<TOOLS>,
-  LanguageModelStreamPart<TOOLS>
+  ExecuteToolsStreamPart<TOOLS>
 > {
   const toolCallsToExecute: Array<TypedToolCall<TOOLS>> = [];
 
   // forward stream
   return new TransformStream<
     LanguageModelStreamPart<TOOLS>,
-    LanguageModelStreamPart<TOOLS>
+    ExecuteToolsStreamPart<TOOLS>
   >({
     async transform(
       chunk: LanguageModelStreamPart<TOOLS>,
       controller: TransformStreamDefaultController<
-        LanguageModelStreamPart<TOOLS>
+        ExecuteToolsStreamPart<TOOLS>
       >,
     ) {
       // immediately forward all chunks
@@ -183,7 +193,14 @@ export function createExecuteToolsTransformation<
                     controller.enqueue(result);
                   },
                 });
-                controller.enqueue(result);
+                if (result != null) {
+                  controller.enqueue({
+                    type: 'tool-execution-end',
+                    toolCallId: result.output.toolCallId,
+                    toolExecutionMs: result.toolExecutionMs,
+                  });
+                  controller.enqueue(result.output);
+                }
               } catch (error) {
                 controller.enqueue({
                   type: 'error',

@@ -59,6 +59,13 @@ function createStepResult({
     finishReason: 'stop',
     rawFinishReason: 'stop',
     usage: createNullLanguageModelUsage(),
+    performance: {
+      tokensPerSecond: 0,
+      stepTimeMs: 0,
+      responseTimeMs: 0,
+      toolExecutionMs: {},
+      timeToFirstTokenMs: undefined,
+    },
     warnings: [],
     request: { messages: [] },
     response: {
@@ -344,7 +351,7 @@ describe('createRestrictedTelemetryDispatcher', () => {
     });
     const event = {
       callId: 'call-1',
-      durationMs: 10,
+      toolExecutionMs: 10,
       messages: [],
       toolCall: {
         type: 'tool-call',

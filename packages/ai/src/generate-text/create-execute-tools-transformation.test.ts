@@ -40,6 +40,11 @@ const finishChunk = {
       reasoning: undefined,
     },
   }),
+  performance: {
+    responseTimeMs: 0,
+    timeToFirstTokenMs: undefined,
+    tokensPerSecond: 0,
+  },
 };
 
 describe('createExecuteToolsTransformation', () => {
@@ -98,6 +103,11 @@ describe('createExecuteToolsTransformation', () => {
           },
           {
             "finishReason": "stop",
+            "performance": {
+              "responseTimeMs": 0,
+              "timeToFirstTokenMs": undefined,
+              "tokensPerSecond": 0,
+            },
             "rawFinishReason": "stop",
             "type": "model-call-end",
             "usage": {
@@ -115,6 +125,11 @@ describe('createExecuteToolsTransformation', () => {
               "raw": undefined,
               "totalTokens": 13,
             },
+          },
+          {
+            "toolCallId": "call-1",
+            "toolExecutionMs": 0,
+            "type": "tool-execution-end",
           },
           {
             "dynamic": false,
@@ -176,6 +191,11 @@ describe('createExecuteToolsTransformation', () => {
         },
         {
           "finishReason": "stop",
+          "performance": {
+            "responseTimeMs": 0,
+            "timeToFirstTokenMs": undefined,
+            "tokensPerSecond": 0,
+          },
           "rawFinishReason": "stop",
           "type": "model-call-end",
           "usage": {
@@ -193,6 +213,11 @@ describe('createExecuteToolsTransformation', () => {
             "raw": undefined,
             "totalTokens": 13,
           },
+        },
+        {
+          "toolCallId": "call-1",
+          "toolExecutionMs": 0,
+          "type": "tool-execution-end",
         },
         {
           "dynamic": false,
@@ -393,6 +418,11 @@ describe('createExecuteToolsTransformation', () => {
           },
           {
             "finishReason": "stop",
+            "performance": {
+              "responseTimeMs": 0,
+              "timeToFirstTokenMs": undefined,
+              "tokensPerSecond": 0,
+            },
             "rawFinishReason": "stop",
             "type": "model-call-end",
             "usage": {
@@ -410,6 +440,11 @@ describe('createExecuteToolsTransformation', () => {
               "raw": undefined,
               "totalTokens": 13,
             },
+          },
+          {
+            "toolCallId": "call-1",
+            "toolExecutionMs": 0,
+            "type": "tool-execution-end",
           },
           {
             "dynamic": false,
@@ -511,6 +546,11 @@ describe('createExecuteToolsTransformation', () => {
           },
           {
             "finishReason": "stop",
+            "performance": {
+              "responseTimeMs": 0,
+              "timeToFirstTokenMs": undefined,
+              "tokensPerSecond": 0,
+            },
             "rawFinishReason": "stop",
             "type": "model-call-end",
             "usage": {
@@ -654,7 +694,6 @@ describe('createExecuteToolsTransformation', () => {
         [
           {
             "callId": "test-telemetry-call-id",
-            "durationMs": 0,
             "messages": [],
             "toolCall": {
               "input": {
@@ -667,6 +706,7 @@ describe('createExecuteToolsTransformation', () => {
             "toolContext": {
               "value": "test",
             },
+            "toolExecutionMs": 0,
             "toolOutput": {
               "dynamic": false,
               "input": {
@@ -725,7 +765,6 @@ describe('createExecuteToolsTransformation', () => {
         [
           {
             "callId": "test-telemetry-call-id",
-            "durationMs": 0,
             "messages": [],
             "toolCall": {
               "input": {
@@ -736,6 +775,7 @@ describe('createExecuteToolsTransformation', () => {
               "type": "tool-call",
             },
             "toolContext": undefined,
+            "toolExecutionMs": 0,
             "toolOutput": {
               "dynamic": false,
               "input": {
@@ -799,7 +839,6 @@ describe('createExecuteToolsTransformation', () => {
         [
           {
             "callId": "test-telemetry-call-id",
-            "durationMs": 0,
             "messages": [],
             "toolCall": {
               "input": {
@@ -810,6 +849,7 @@ describe('createExecuteToolsTransformation', () => {
               "type": "tool-call",
             },
             "toolContext": undefined,
+            "toolExecutionMs": 0,
             "toolOutput": {
               "dynamic": false,
               "error": [Error: tool failed],
@@ -956,7 +996,6 @@ describe('createExecuteToolsTransformation', () => {
         [
           {
             "callId": "test-telemetry-call-id",
-            "durationMs": 0,
             "messages": [],
             "toolCall": {
               "input": {
@@ -967,6 +1006,7 @@ describe('createExecuteToolsTransformation', () => {
               "type": "tool-call",
             },
             "toolContext": undefined,
+            "toolExecutionMs": 0,
             "toolOutput": {
               "dynamic": false,
               "input": {
@@ -980,7 +1020,6 @@ describe('createExecuteToolsTransformation', () => {
           },
           {
             "callId": "test-telemetry-call-id",
-            "durationMs": 0,
             "messages": [],
             "toolCall": {
               "input": {
@@ -991,6 +1030,7 @@ describe('createExecuteToolsTransformation', () => {
               "type": "tool-call",
             },
             "toolContext": undefined,
+            "toolExecutionMs": 0,
             "toolOutput": {
               "dynamic": false,
               "input": {
@@ -1175,6 +1215,11 @@ describe('createExecuteToolsTransformation', () => {
           },
           {
             "finishReason": "stop",
+            "performance": {
+              "responseTimeMs": 0,
+              "timeToFirstTokenMs": undefined,
+              "tokensPerSecond": 0,
+            },
             "rawFinishReason": "stop",
             "type": "model-call-end",
             "usage": {
@@ -1192,6 +1237,11 @@ describe('createExecuteToolsTransformation', () => {
               "raw": undefined,
               "totalTokens": 13,
             },
+          },
+          {
+            "toolCallId": "call-1",
+            "toolExecutionMs": 0,
+            "type": "tool-execution-end",
           },
           {
             "dynamic": false,
@@ -1259,6 +1309,11 @@ describe('createExecuteToolsTransformation', () => {
           },
           {
             "finishReason": "stop",
+            "performance": {
+              "responseTimeMs": 0,
+              "timeToFirstTokenMs": undefined,
+              "tokensPerSecond": 0,
+            },
             "rawFinishReason": "stop",
             "type": "model-call-end",
             "usage": {
@@ -1276,6 +1331,11 @@ describe('createExecuteToolsTransformation', () => {
               "raw": undefined,
               "totalTokens": 13,
             },
+          },
+          {
+            "toolCallId": "call-1",
+            "toolExecutionMs": 0,
+            "type": "tool-execution-end",
           },
           {
             "dynamic": false,

@@ -104,6 +104,7 @@ function restrictStepResult<
     finishReason: step.finishReason,
     rawFinishReason: step.rawFinishReason,
     usage: step.usage,
+    performance: step.performance,
     warnings: step.warnings,
     request: step.request,
     response: step.response,
