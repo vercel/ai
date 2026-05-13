@@ -1924,14 +1924,6 @@ class DefaultStreamTextResult<
                       throw new Error(`Unknown chunk type: ${exhaustiveCheck}`);
                     }
                   }
-
-                  if (
-                    chunkType !== 'model-call-end' &&
-                    chunkType !== 'model-call-response-metadata' &&
-                    chunkType !== 'tool-execution-end'
-                  ) {
-                    void telemetryDispatcher.onChunk?.({ chunk });
-                  }
                 },
 
                 // invoke onFinish callback and resolve toolResults promise when the stream is about to close:

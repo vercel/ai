@@ -18,7 +18,6 @@ import type {
   GenerateObjectStartEvent,
   GenerateObjectStepEndEvent,
   GenerateObjectStepStartEvent,
-  StreamTextChunkEvent,
   GenerateTextEndEvent,
   GenerateTextStartEvent,
   GenerateTextStepEndEvent,
@@ -1196,10 +1195,6 @@ export class OpenTelemetry implements Telemetry {
 
     span.end();
     state.rerankSpan = undefined;
-  }
-
-  onChunk(_event: StreamTextChunkEvent<ToolSet>): void {
-    // No-op: streaming chunk events are not part of the GenAI SemConv.
   }
 
   onError(error: unknown): void {

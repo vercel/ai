@@ -12,7 +12,6 @@ import type {
   GenerateObjectStepStartEvent,
 } from '../generate-object/structured-output-events';
 import type {
-  StreamTextChunkEvent,
   GenerateTextEndEvent,
   GenerateTextStartEvent,
   GenerateTextStepEndEvent,
@@ -62,7 +61,6 @@ export interface TelemetryDispatcher {
   onLanguageModelCallEnd?: OnLanguageModelCallEndCallback;
   onToolExecutionStart?: Callback<ToolExecutionStartEvent>;
   onToolExecutionEnd?: Callback<ToolExecutionEndEvent>;
-  onChunk?: Callback<StreamTextChunkEvent>;
   onStepFinish?: Callback<GenerateTextStepEndEvent>;
   onObjectStepStart?: Callback<GenerateObjectStepStartEvent>;
   onObjectStepFinish?: Callback<GenerateObjectStepEndEvent>;
@@ -131,12 +129,6 @@ export interface Telemetry {
    * The event includes execution time (`toolExecutionMs`) for performance tracking.
    */
   onToolExecutionEnd?: Callback<InferTelemetryEvent<ToolExecutionEndEvent>>;
-
-  /**
-   * Called for each chunk received during streaming.
-   * Only relevant for `streamText` — not called during `generateText`.
-   */
-  onChunk?: Callback<StreamTextChunkEvent>;
 
   /**
    * Called when an individual step (single LLM invocation) completes.

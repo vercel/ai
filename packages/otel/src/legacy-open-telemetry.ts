@@ -19,7 +19,6 @@ import type {
   GenerateObjectStartEvent,
   GenerateObjectStepEndEvent,
   GenerateObjectStepStartEvent,
-  StreamTextChunkEvent,
   GenerateTextEndEvent,
   GenerateTextStartEvent,
   GenerateTextStepEndEvent,
@@ -1065,39 +1064,6 @@ export class LegacyOpenTelemetry implements Telemetry {
 
     span.end();
     state.rerankSpan = undefined;
-  }
-
-  onChunk(event: StreamTextChunkEvent<ToolSet>): void {
-    const chunk = event.chunk as {
-      type: string;
-      callId?: unknown;
-      attributes?: unknown;
-    };
-
-    if (typeof chunk.callId !== 'string') {
-      return;
-    }
-
-    if (
-      chunk.type !== 'ai.stream.firstChunk' &&
-      chunk.type !== 'ai.stream.finish'
-    ) {
-      return;
-    }
-
-    const state = this.getCallState(chunk.callId);
-    if (!state?.stepSpan) return;
-
-    const attributes = Object.fromEntries(
-      Object.entries(
-        (chunk.attributes as Record<string, unknown>) ?? {},
-      ).filter(([, value]) => value != null),
-    ) as Attributes;
-
-    state.stepSpan.addEvent(chunk.type, attributes);
-    if (Object.keys(attributes).length > 0) {
-      state.stepSpan.setAttributes(attributes);
-    }
   }
 
   onError(error: unknown): void {
