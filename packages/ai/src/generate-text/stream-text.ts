@@ -165,19 +165,6 @@ const finishStepPerformance = new WeakMap<
   }
 >();
 
-/**
- * Returns true for streamed deltas that contain generated output tokens.
- * Used to measure time-to-first-token for text, reasoning, and streamed tool
- * input.
- */
-function isChunkWithTokens(chunk: LanguageModelStreamPart): boolean {
-  return (
-    (chunk.type === 'text-delta' && chunk.text.length > 0) ||
-    (chunk.type === 'reasoning-delta' && chunk.text.length > 0) ||
-    (chunk.type === 'tool-input-delta' && chunk.delta.length > 0)
-  );
-}
-
 export type StreamTextInclude = {
   /**
    * Whether to retain the request body in step results.
@@ -1867,10 +1854,6 @@ class DefaultStreamTextResult<
                   }
 
                   const chunkType = chunk.type;
-                  if (timeToFirstTokenMs == null && isChunkWithTokens(chunk)) {
-                    timeToFirstTokenMs = now() - stepStartTimestampMs;
-                  }
-
                   if (
                     (chunkType === 'tool-result' && !chunk.preliminary) ||
                     chunkType === 'tool-error'
@@ -1959,6 +1942,7 @@ class DefaultStreamTextResult<
                       stepProviderMetadata = chunk.providerMetadata;
                       responseTimeMs = chunk.performance.responseTimeMs;
                       tokensPerSecond = chunk.performance.tokensPerSecond;
+                      timeToFirstTokenMs = chunk.performance.timeToFirstTokenMs;
                       for (const toolCall of stepToolCalls) {
                         if (toolCall.providerExecuted !== true) {
                           toolExecutionStartTimes.set(

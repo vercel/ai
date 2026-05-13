@@ -61,6 +61,12 @@ export type LanguageModelCallEndEvent<TOOLS extends ToolSet = ToolSet> =
 
       /** Average number of output tokens per second during the model response. */
       readonly tokensPerSecond: number;
+
+      /**
+       * Time until the first text, reasoning, or tool input delta was received
+       * in milliseconds.
+       */
+      readonly timeToFirstTokenMs: number | undefined;
     };
   };
 

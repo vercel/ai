@@ -106,6 +106,7 @@ export type LanguageModelStreamPart<TOOLS extends ToolSet = ToolSet> =
       performance: {
         responseTimeMs: number;
         tokensPerSecond: number;
+        timeToFirstTokenMs: number | undefined;
       };
     }
   | {
@@ -393,12 +394,17 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
   const textPartIndexes = new Map<string, number>();
   const reasoningPartIndexes = new Map<string, number>();
   let responseId = generateId();
+  let timeToFirstTokenMs: number | undefined;
 
   return new TransformStream<
     LanguageModelV4StreamPart,
     LanguageModelStreamPart<TOOLS>
   >({
     async transform(chunk, controller) {
+      if (timeToFirstTokenMs == null && isChunkWithTokens(chunk)) {
+        timeToFirstTokenMs = now() - callStartTimestampMs;
+      }
+
       switch (chunk.type) {
         case 'text-start':
           upsertTextContentPart({
@@ -515,6 +521,7 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
               outputTokens: usage.outputTokens,
               responseTimeMs,
             }),
+            timeToFirstTokenMs,
           };
 
           await notify({
@@ -688,6 +695,19 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
       }
     },
   });
+}
+
+/**
+ * Returns true for streamed deltas that contain generated output tokens.
+ * Used to measure time-to-first-token for text, reasoning, and streamed tool
+ * input.
+ */
+function isChunkWithTokens(chunk: LanguageModelV4StreamPart): boolean {
+  return (
+    (chunk.type === 'text-delta' && chunk.delta.length > 0) ||
+    (chunk.type === 'reasoning-delta' && chunk.delta.length > 0) ||
+    (chunk.type === 'tool-input-delta' && chunk.delta.length > 0)
+  );
 }
 
 /**

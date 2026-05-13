@@ -847,6 +847,7 @@ export async function generateText<
                 outputTokens: stepUsage.outputTokens,
                 responseTimeMs,
               }),
+              timeToFirstTokenMs: undefined,
             },
           },
           callbacks: [

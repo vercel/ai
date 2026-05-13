@@ -2660,6 +2660,7 @@ describe('generateText', () => {
             "modelId": "mock-model-id",
             "performance": {
               "responseTimeMs": 0,
+              "timeToFirstTokenMs": undefined,
               "tokensPerSecond": Infinity,
             },
             "provider": "mock-provider",

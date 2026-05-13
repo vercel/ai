@@ -7788,6 +7788,7 @@ describe('streamText', () => {
             "modelId": "mock-model-id",
             "performance": {
               "responseTimeMs": 0,
+              "timeToFirstTokenMs": 0,
               "tokensPerSecond": Infinity,
             },
             "provider": "mock-provider",

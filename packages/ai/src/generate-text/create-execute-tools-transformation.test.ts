@@ -42,6 +42,7 @@ const finishChunk = {
   }),
   performance: {
     responseTimeMs: 0,
+    timeToFirstTokenMs: undefined,
     tokensPerSecond: Infinity,
   },
 };
@@ -104,6 +105,7 @@ describe('createExecuteToolsTransformation', () => {
             "finishReason": "stop",
             "performance": {
               "responseTimeMs": 0,
+              "timeToFirstTokenMs": undefined,
               "tokensPerSecond": Infinity,
             },
             "rawFinishReason": "stop",
@@ -186,6 +188,7 @@ describe('createExecuteToolsTransformation', () => {
           "finishReason": "stop",
           "performance": {
             "responseTimeMs": 0,
+            "timeToFirstTokenMs": undefined,
             "tokensPerSecond": Infinity,
           },
           "rawFinishReason": "stop",
@@ -407,6 +410,7 @@ describe('createExecuteToolsTransformation', () => {
             "finishReason": "stop",
             "performance": {
               "responseTimeMs": 0,
+              "timeToFirstTokenMs": undefined,
               "tokensPerSecond": Infinity,
             },
             "rawFinishReason": "stop",
@@ -529,6 +533,7 @@ describe('createExecuteToolsTransformation', () => {
             "finishReason": "stop",
             "performance": {
               "responseTimeMs": 0,
+              "timeToFirstTokenMs": undefined,
               "tokensPerSecond": Infinity,
             },
             "rawFinishReason": "stop",
@@ -1197,6 +1202,7 @@ describe('createExecuteToolsTransformation', () => {
             "finishReason": "stop",
             "performance": {
               "responseTimeMs": 0,
+              "timeToFirstTokenMs": undefined,
               "tokensPerSecond": Infinity,
             },
             "rawFinishReason": "stop",
@@ -1285,6 +1291,7 @@ describe('createExecuteToolsTransformation', () => {
             "finishReason": "stop",
             "performance": {
               "responseTimeMs": 0,
+              "timeToFirstTokenMs": undefined,
               "tokensPerSecond": Infinity,
             },
             "rawFinishReason": "stop",
