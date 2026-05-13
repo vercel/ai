@@ -193,7 +193,7 @@ describe('ToolExecutionEndEvent', () => {
     expectTypeOf<Dynamic['toolContext']>().toEqualTypeOf<unknown>();
   });
 
-  it('includes durationMs, callId, and messages on static branches', () => {
+  it('includes toolExecutionMs, callId, and messages on static branches', () => {
     type Weather = Extract<
       ToolExecutionEndEvent<Tools>,
       { toolCall: { toolName: 'weather'; dynamic?: false | undefined } }
@@ -201,7 +201,7 @@ describe('ToolExecutionEndEvent', () => {
 
     expectTypeOf<Weather>().toMatchTypeOf<{
       callId: string;
-      durationMs: number;
+      toolExecutionMs: number;
       messages: ModelMessage[];
     }>();
   });

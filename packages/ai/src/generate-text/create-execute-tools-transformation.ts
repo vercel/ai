@@ -36,6 +36,7 @@ export function createExecuteToolsTransformation<
   onToolExecutionStart,
   onToolExecutionEnd,
   executeToolInTelemetryContext,
+  onToolExecutionPerformance,
 }: {
   tools: TOOLS | undefined;
   callId: string;
@@ -50,6 +51,7 @@ export function createExecuteToolsTransformation<
   onToolExecutionStart?: Arrayable<OnToolExecutionStartCallback<TOOLS>>;
   onToolExecutionEnd?: Arrayable<OnToolExecutionEndCallback<TOOLS>>;
   executeToolInTelemetryContext?: Telemetry['executeTool'];
+  onToolExecutionPerformance?: (toolExecutionMs: number) => void;
 }): TransformStream<
   LanguageModelStreamPart<TOOLS>,
   LanguageModelStreamPart<TOOLS>
@@ -183,7 +185,10 @@ export function createExecuteToolsTransformation<
                     controller.enqueue(result);
                   },
                 });
-                controller.enqueue(result);
+                if (result != null) {
+                  onToolExecutionPerformance?.(result.toolExecutionMs);
+                  controller.enqueue(result.output);
+                }
               } catch (error) {
                 controller.enqueue({
                   type: 'error',

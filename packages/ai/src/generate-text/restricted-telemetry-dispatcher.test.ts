@@ -351,7 +351,7 @@ describe('createRestrictedTelemetryDispatcher', () => {
     });
     const event = {
       callId: 'call-1',
-      durationMs: 10,
+      toolExecutionMs: 10,
       messages: [],
       toolCall: {
         type: 'tool-call',

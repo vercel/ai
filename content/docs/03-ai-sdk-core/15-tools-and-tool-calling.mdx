@@ -508,16 +508,19 @@ const result = await generateText({
       input: toolCall.input,
     });
   },
-  onToolExecutionEnd({ toolCall, durationMs, toolOutput }) {
+  onToolExecutionEnd({ toolCall, toolExecutionMs, toolOutput }) {
     if (toolOutput.type === 'tool-error') {
       console.error(
-        `Tool ${toolCall.toolName} failed after ${durationMs}ms:`,
+        `Tool ${toolCall.toolName} failed after ${toolExecutionMs}ms:`,
         toolOutput.error,
       );
     } else {
-      console.log(`Tool ${toolCall.toolName} completed in ${durationMs}ms`, {
-        output: toolOutput.output,
-      });
+      console.log(
+        `Tool ${toolCall.toolName} completed in ${toolExecutionMs}ms`,
+        {
+          output: toolOutput.output,
+        },
+      );
     }
   },
 });

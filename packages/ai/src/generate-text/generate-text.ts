@@ -551,7 +551,7 @@ export async function generateText<
       deniedToolApprovals.length > 0 ||
       localApprovedToolApprovals.length > 0
     ) {
-      const toolOutputs = await executeTools({
+      const toolResults = await executeTools({
         toolCalls: localApprovedToolApprovals.map(
           toolApproval => toolApproval.toolCall,
         ),
@@ -584,7 +584,8 @@ export async function generateText<
       const toolContent: Array<any> = [];
 
       // add regular tool results for approved tool calls:
-      for (const output of toolOutputs) {
+      for (const result of toolResults) {
+        const output = result.output;
         const modelOutput = await createToolModelOutput({
           toolCallId: output.toolCallId,
           input: output.input,
@@ -975,44 +976,45 @@ export async function generateText<
         let maxToolExecutionTimeMs = 0;
 
         if (tools != null) {
-          clientToolOutputs.push(
-            ...(await executeTools({
-              toolCalls: clientToolCalls.filter(
-                toolCall =>
-                  !toolCall.invalid &&
-                  !blockedToolCallIds.has(toolCall.toolCallId),
-              ),
-              tools,
-              callId,
-              messages: stepMessages,
-              abortSignal: mergedAbortSignal,
-              timeout,
-              sandbox: stepSandbox,
-              toolsContext,
-              onToolExecutionStart: event =>
-                notify({
-                  event,
-                  callbacks: [
-                    resolvedOnToolExecutionStart,
-                    telemetryDispatcher.onToolExecutionStart,
-                  ],
-                }),
-              onToolExecutionEnd: event => {
-                maxToolExecutionTimeMs = Math.max(
-                  maxToolExecutionTimeMs,
-                  event.durationMs,
-                );
-                return notify({
-                  event,
-                  callbacks: [
-                    resolvedOnToolExecutionEnd,
-                    telemetryDispatcher.onToolExecutionEnd,
-                  ],
-                });
-              },
-              executeToolInTelemetryContext: telemetryDispatcher.executeTool,
-            })),
-          );
+          const toolExecutionResults = await executeTools({
+            toolCalls: clientToolCalls.filter(
+              toolCall =>
+                !toolCall.invalid &&
+                !blockedToolCallIds.has(toolCall.toolCallId),
+            ),
+            tools,
+            callId,
+            messages: stepMessages,
+            abortSignal: mergedAbortSignal,
+            timeout,
+            sandbox: stepSandbox,
+            toolsContext,
+            onToolExecutionStart: event =>
+              notify({
+                event,
+                callbacks: [
+                  resolvedOnToolExecutionStart,
+                  telemetryDispatcher.onToolExecutionStart,
+                ],
+              }),
+            onToolExecutionEnd: event =>
+              notify({
+                event,
+                callbacks: [
+                  resolvedOnToolExecutionEnd,
+                  telemetryDispatcher.onToolExecutionEnd,
+                ],
+              }),
+            executeToolInTelemetryContext: telemetryDispatcher.executeTool,
+          });
+
+          for (const result of toolExecutionResults) {
+            maxToolExecutionTimeMs = Math.max(
+              maxToolExecutionTimeMs,
+              result.toolExecutionMs,
+            );
+            clientToolOutputs.push(result.output);
+          }
         }
 
         const stepTimeMs = now() - stepStartTimestampMs;
@@ -1257,8 +1259,13 @@ async function executeTools<TOOLS extends ToolSet>({
   onToolExecutionStart?: OnToolExecutionStartCallback<TOOLS>;
   onToolExecutionEnd?: OnToolExecutionEndCallback<TOOLS>;
   executeToolInTelemetryContext?: Telemetry['executeTool'];
-}): Promise<Array<ToolOutput<TOOLS>>> {
-  const toolOutputs = await Promise.all(
+}): Promise<
+  Array<{
+    output: ToolOutput<TOOLS>;
+    toolExecutionMs: number;
+  }>
+> {
+  const toolResults = await Promise.all(
     toolCalls.map(
       async toolCall =>
         await executeToolCall({
@@ -1277,8 +1284,8 @@ async function executeTools<TOOLS extends ToolSet>({
     ),
   );
 
-  return toolOutputs.filter(
-    (output): output is NonNullable<typeof output> => output != null,
+  return toolResults.filter(
+    (result): result is NonNullable<typeof result> => result != null,
   );
 }
 

@@ -36,7 +36,7 @@ import { validateToolContext } from './validate-tool-context';
  * 3. Handles streaming outputs via `onPreliminaryToolResult`
  * 4. Invokes `onToolExecutionEnd` callback with success or error result
  *
- * @returns The tool output (result or error), or undefined if the tool has no execute function.
+ * @returns The tool output with performance metrics, or undefined if the tool has no execute function.
  */
 export async function executeToolCall<TOOLS extends ToolSet>({
   toolCall,
@@ -68,7 +68,13 @@ export async function executeToolCall<TOOLS extends ToolSet>({
     toolCallId: string;
     execute: () => PromiseLike<T>;
   }) => PromiseLike<T>;
-}): Promise<ToolOutput<TOOLS> | undefined> {
+}): Promise<
+  | {
+      output: ToolOutput<TOOLS>;
+      toolExecutionMs: number;
+    }
+  | undefined
+> {
   const { toolName, toolCallId, input } = toolCall;
   const tool = tools?.[toolName];
 
@@ -99,7 +105,7 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   const toolTimeoutMs = getToolTimeoutMs<TOOLS>(timeout, toolName);
   const toolAbortSignal = mergeAbortSignals(abortSignal, toolTimeoutMs);
 
-  let durationMs = 0;
+  let toolExecutionMs = 0;
   try {
     // In order to correctly nest telemetry spans within tool calls spans, telemetry integrations need
     // to be able to execute the tool call in a telemetry-integration-specific context.
@@ -137,7 +143,7 @@ export async function executeToolCall<TOOLS extends ToolSet>({
             }
           }
         } finally {
-          durationMs = now() - startTime;
+          toolExecutionMs = now() - startTime;
         }
       },
     });
@@ -161,12 +167,15 @@ export async function executeToolCall<TOOLS extends ToolSet>({
       event: {
         ...baseCallbackEvent,
         toolOutput: toolError,
-        durationMs,
+        toolExecutionMs,
       } as ToolExecutionEndEvent<TOOLS>,
       callbacks: onToolExecutionEnd,
     });
 
-    return toolError;
+    return {
+      output: toolError,
+      toolExecutionMs,
+    };
   }
 
   const toolResult = {
@@ -188,10 +197,13 @@ export async function executeToolCall<TOOLS extends ToolSet>({
     event: {
       ...baseCallbackEvent,
       toolOutput: toolResult,
-      durationMs,
+      toolExecutionMs,
     } as ToolExecutionEndEvent<TOOLS>,
     callbacks: onToolExecutionEnd,
   });
 
-  return toolResult;
+  return {
+    output: toolResult,
+    toolExecutionMs,
+  };
 }

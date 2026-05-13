@@ -1515,8 +1515,8 @@ class DefaultStreamTextResult<
               });
 
               if (result != null) {
-                toolExecutionStepStreamController?.enqueue(result);
-                toolOutputs.push(result);
+                toolExecutionStepStreamController?.enqueue(result.output);
+                toolOutputs.push(result.output);
               }
             }),
           );
@@ -1779,6 +1779,12 @@ class DefaultStreamTextResult<
                 telemetryDispatcher.onToolExecutionEnd,
               ),
               executeToolInTelemetryContext: telemetryDispatcher.executeTool,
+              onToolExecutionPerformance: toolExecutionMs => {
+                maxToolExecutionTimeMs = Math.max(
+                  maxToolExecutionTimeMs,
+                  toolExecutionMs,
+                );
+              },
             }),
           );
 
@@ -1808,7 +1814,6 @@ class DefaultStreamTextResult<
           let responseTimeMs = 0;
           let tokensPerSecond = 0;
           let maxToolExecutionTimeMs = 0;
-          const toolExecutionStartTimes = new Map<string, number>();
           let timeToFirstTokenMs: number | undefined;
           let stepResponse: { id: string; timestamp: Date; modelId: string } = {
             id: generateId(),
@@ -1854,22 +1859,6 @@ class DefaultStreamTextResult<
                   }
 
                   const chunkType = chunk.type;
-                  if (
-                    (chunkType === 'tool-result' && !chunk.preliminary) ||
-                    chunkType === 'tool-error'
-                  ) {
-                    const toolExecutionStartMs = toolExecutionStartTimes.get(
-                      chunk.toolCallId,
-                    );
-
-                    if (toolExecutionStartMs != null) {
-                      maxToolExecutionTimeMs = Math.max(
-                        maxToolExecutionTimeMs,
-                        now() - toolExecutionStartMs,
-                      );
-                    }
-                  }
-
                   switch (chunkType) {
                     case 'file':
                     case 'custom':
@@ -1943,14 +1932,6 @@ class DefaultStreamTextResult<
                       responseTimeMs = chunk.performance.responseTimeMs;
                       tokensPerSecond = chunk.performance.tokensPerSecond;
                       timeToFirstTokenMs = chunk.performance.timeToFirstTokenMs;
-                      for (const toolCall of stepToolCalls) {
-                        if (toolCall.providerExecuted !== true) {
-                          toolExecutionStartTimes.set(
-                            toolCall.toolCallId,
-                            now(),
-                          );
-                        }
-                      }
                       void telemetryDispatcher.onChunk?.({
                         chunk: {
                           type: 'ai.stream.finish',

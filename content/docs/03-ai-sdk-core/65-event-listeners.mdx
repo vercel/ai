@@ -568,7 +568,7 @@ const result = await generateText({
   tools: { getWeather },
   onToolExecutionEnd: event => {
     console.log('Tool:', event.toolCall.toolName);
-    console.log('Duration:', event.durationMs, 'ms');
+    console.log('Duration:', event.toolExecutionMs, 'ms');
 
     if (event.toolOutput.type === 'tool-result') {
       console.log('Output:', event.toolOutput.output);
@@ -620,7 +620,7 @@ const result = await generateText({
       ],
     },
     {
-      name: 'durationMs',
+      name: 'toolExecutionMs',
       type: 'number',
       description: 'Execution time of the tool call in milliseconds.',
     },
@@ -1260,7 +1260,7 @@ const result = await generateText({
   onToolExecutionEnd: event => {
     if (event.toolOutput.type === 'tool-result') {
       console.log(
-        `Tool "${event.toolCall.toolName}" completed in ${event.durationMs}ms`,
+        `Tool "${event.toolCall.toolName}" completed in ${event.toolExecutionMs}ms`,
       );
     } else {
       console.error(

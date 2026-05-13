@@ -679,7 +679,6 @@ describe('createExecuteToolsTransformation', () => {
         [
           {
             "callId": "test-telemetry-call-id",
-            "durationMs": 0,
             "messages": [],
             "toolCall": {
               "input": {
@@ -692,6 +691,7 @@ describe('createExecuteToolsTransformation', () => {
             "toolContext": {
               "value": "test",
             },
+            "toolExecutionMs": 0,
             "toolOutput": {
               "dynamic": false,
               "input": {
@@ -750,7 +750,6 @@ describe('createExecuteToolsTransformation', () => {
         [
           {
             "callId": "test-telemetry-call-id",
-            "durationMs": 0,
             "messages": [],
             "toolCall": {
               "input": {
@@ -761,6 +760,7 @@ describe('createExecuteToolsTransformation', () => {
               "type": "tool-call",
             },
             "toolContext": undefined,
+            "toolExecutionMs": 0,
             "toolOutput": {
               "dynamic": false,
               "input": {
@@ -824,7 +824,6 @@ describe('createExecuteToolsTransformation', () => {
         [
           {
             "callId": "test-telemetry-call-id",
-            "durationMs": 0,
             "messages": [],
             "toolCall": {
               "input": {
@@ -835,6 +834,7 @@ describe('createExecuteToolsTransformation', () => {
               "type": "tool-call",
             },
             "toolContext": undefined,
+            "toolExecutionMs": 0,
             "toolOutput": {
               "dynamic": false,
               "error": [Error: tool failed],
@@ -981,7 +981,6 @@ describe('createExecuteToolsTransformation', () => {
         [
           {
             "callId": "test-telemetry-call-id",
-            "durationMs": 0,
             "messages": [],
             "toolCall": {
               "input": {
@@ -992,6 +991,7 @@ describe('createExecuteToolsTransformation', () => {
               "type": "tool-call",
             },
             "toolContext": undefined,
+            "toolExecutionMs": 0,
             "toolOutput": {
               "dynamic": false,
               "input": {
@@ -1005,7 +1005,6 @@ describe('createExecuteToolsTransformation', () => {
           },
           {
             "callId": "test-telemetry-call-id",
-            "durationMs": 0,
             "messages": [],
             "toolCall": {
               "input": {
@@ -1016,6 +1015,7 @@ describe('createExecuteToolsTransformation', () => {
               "type": "tool-call",
             },
             "toolContext": undefined,
+            "toolExecutionMs": 0,
             "toolOutput": {
               "dynamic": false,
               "input": {
