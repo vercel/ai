@@ -5,6 +5,7 @@ import {
 } from '@ai-sdk/provider-utils/test';
 import { describe, expect, it } from 'vitest';
 import { generateText, streamText } from '../generate-text';
+import type { TextStreamPart } from '../generate-text/stream-text-result';
 import { wrapLanguageModel } from '../middleware/wrap-language-model';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import { extractReasoningMiddleware } from './extract-reasoning-middleware';
@@ -22,6 +23,23 @@ const testUsage: LanguageModelV4Usage = {
     reasoning: 3,
   },
 };
+
+function normalizeFullStreamPerformance(parts: Array<TextStreamPart<any>>) {
+  return parts.map(part =>
+    part.type === 'finish-step'
+      ? {
+          ...part,
+          performance: {
+            maxToolExecutionMs: 0,
+            responseTimeMs: 0,
+            stepTimeMs: 0,
+            timeToFirstTokenMs: 0,
+            tokensPerSecond: 0,
+          },
+        }
+      : part,
+  );
+}
 
 describe('extractReasoningMiddleware', () => {
   describe('wrapGenerate', () => {
@@ -285,8 +303,11 @@ describe('extractReasoningMiddleware', () => {
         prompt: 'Hello, how can I help?',
       });
 
-      expect(await convertAsyncIterableToArray(result.fullStream))
-        .toMatchInlineSnapshot(`
+      expect(
+        normalizeFullStreamPerformance(
+          await convertAsyncIterableToArray(result.fullStream),
+        ),
+      ).toMatchInlineSnapshot(`
           [
             {
               "type": "start",
@@ -341,6 +362,13 @@ describe('extractReasoningMiddleware', () => {
             },
             {
               "finishReason": "stop",
+              "performance": {
+                "maxToolExecutionMs": 0,
+                "responseTimeMs": 0,
+                "stepTimeMs": 0,
+                "timeToFirstTokenMs": 0,
+                "tokensPerSecond": 0,
+              },
               "providerMetadata": undefined,
               "rawFinishReason": "stop",
               "response": {
@@ -426,8 +454,11 @@ describe('extractReasoningMiddleware', () => {
         prompt: 'Hello, how can I help?',
       });
 
-      expect(await convertAsyncIterableToArray(result.fullStream))
-        .toMatchInlineSnapshot(`
+      expect(
+        normalizeFullStreamPerformance(
+          await convertAsyncIterableToArray(result.fullStream),
+        ),
+      ).toMatchInlineSnapshot(`
           [
             {
               "type": "start",
@@ -492,6 +523,13 @@ describe('extractReasoningMiddleware', () => {
             },
             {
               "finishReason": "stop",
+              "performance": {
+                "maxToolExecutionMs": 0,
+                "responseTimeMs": 0,
+                "stepTimeMs": 0,
+                "timeToFirstTokenMs": 0,
+                "tokensPerSecond": 0,
+              },
               "providerMetadata": undefined,
               "rawFinishReason": "stop",
               "response": {
@@ -575,8 +613,11 @@ describe('extractReasoningMiddleware', () => {
         prompt: 'Hello, how can I help?',
       });
 
-      expect(await convertAsyncIterableToArray(result.fullStream))
-        .toMatchInlineSnapshot(`
+      expect(
+        normalizeFullStreamPerformance(
+          await convertAsyncIterableToArray(result.fullStream),
+        ),
+      ).toMatchInlineSnapshot(`
           [
             {
               "type": "start",
@@ -620,6 +661,13 @@ describe('extractReasoningMiddleware', () => {
             },
             {
               "finishReason": "stop",
+              "performance": {
+                "maxToolExecutionMs": 0,
+                "responseTimeMs": 0,
+                "stepTimeMs": 0,
+                "timeToFirstTokenMs": 0,
+                "tokensPerSecond": 0,
+              },
               "providerMetadata": undefined,
               "rawFinishReason": "stop",
               "response": {
@@ -714,8 +762,11 @@ describe('extractReasoningMiddleware', () => {
         prompt: 'Hello, how can I help?',
       });
 
-      expect(await convertAsyncIterableToArray(resultTrue.fullStream))
-        .toMatchInlineSnapshot(`
+      expect(
+        normalizeFullStreamPerformance(
+          await convertAsyncIterableToArray(resultTrue.fullStream),
+        ),
+      ).toMatchInlineSnapshot(`
           [
             {
               "type": "start",
@@ -765,6 +816,13 @@ describe('extractReasoningMiddleware', () => {
             },
             {
               "finishReason": "stop",
+              "performance": {
+                "maxToolExecutionMs": 0,
+                "responseTimeMs": 0,
+                "stepTimeMs": 0,
+                "timeToFirstTokenMs": 0,
+                "tokensPerSecond": 0,
+              },
               "providerMetadata": undefined,
               "rawFinishReason": "stop",
               "response": {
@@ -812,8 +870,11 @@ describe('extractReasoningMiddleware', () => {
           ]
         `);
 
-      expect(await convertAsyncIterableToArray(resultFalse.fullStream))
-        .toMatchInlineSnapshot(`
+      expect(
+        normalizeFullStreamPerformance(
+          await convertAsyncIterableToArray(resultFalse.fullStream),
+        ),
+      ).toMatchInlineSnapshot(`
           [
             {
               "type": "start",
@@ -861,6 +922,13 @@ describe('extractReasoningMiddleware', () => {
             },
             {
               "finishReason": "stop",
+              "performance": {
+                "maxToolExecutionMs": 0,
+                "responseTimeMs": 0,
+                "stepTimeMs": 0,
+                "timeToFirstTokenMs": 0,
+                "tokensPerSecond": 0,
+              },
               "providerMetadata": undefined,
               "rawFinishReason": "stop",
               "response": {
@@ -941,8 +1009,11 @@ describe('extractReasoningMiddleware', () => {
         prompt: 'Hello, how can I help?',
       });
 
-      expect(await convertAsyncIterableToArray(result.fullStream))
-        .toMatchInlineSnapshot(`
+      expect(
+        normalizeFullStreamPerformance(
+          await convertAsyncIterableToArray(result.fullStream),
+        ),
+      ).toMatchInlineSnapshot(`
           [
             {
               "type": "start",
@@ -971,6 +1042,13 @@ describe('extractReasoningMiddleware', () => {
             },
             {
               "finishReason": "stop",
+              "performance": {
+                "maxToolExecutionMs": 0,
+                "responseTimeMs": 0,
+                "stepTimeMs": 0,
+                "timeToFirstTokenMs": 0,
+                "tokensPerSecond": 0,
+              },
               "providerMetadata": undefined,
               "rawFinishReason": "stop",
               "response": {
