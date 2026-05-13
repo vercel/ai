@@ -43,68 +43,30 @@ export async function convertToOpenResponsesInput({
               break;
             }
             case 'file': {
-<<<<<<< HEAD
-              if (!part.mediaType.startsWith('image/')) {
-                warnings.push({
-                  type: 'other',
-                  message: `unsupported file content type: ${part.mediaType}`,
-                });
-                break;
-=======
-              switch (part.data.type) {
-                case 'reference': {
-                  throw new UnsupportedFunctionalityError({
-                    functionality: 'file parts with provider references',
-                  });
-                }
-                case 'text': {
-                  throw new UnsupportedFunctionalityError({
-                    functionality: 'text file parts',
-                  });
-                }
-                case 'url':
-                case 'data': {
-                  const topLevel = getTopLevelMediaType(part.mediaType);
-
-                  if (topLevel === 'image') {
-                    userContent.push({
-                      type: 'input_image',
-                      ...(part.data.type === 'url'
-                        ? { image_url: part.data.url.toString() }
-                        : {
-                            image_url: `data:${resolveFullMediaType({ part })};base64,${convertToBase64(part.data.data)}`,
-                          }),
-                    });
-                  } else if (part.data.type === 'url') {
-                    userContent.push({
-                      type: 'input_file',
-                      file_url: part.data.url.toString(),
-                    });
-                  } else {
-                    const fullMediaType = resolveFullMediaType({ part });
-                    userContent.push({
-                      type: 'input_file',
-                      filename: part.filename ?? 'data',
-                      file_data: `data:${fullMediaType};base64,${convertToBase64(part.data.data)}`,
-                    });
-                  }
-
-                  break;
-                }
->>>>>>> 52d2e306b (fix(open-responses): map non-image file parts to input_file (#15212))
-              }
-
               const mediaType =
                 part.mediaType === 'image/*' ? 'image/jpeg' : part.mediaType;
 
-              userContent.push({
-                type: 'input_image',
-                ...(part.data instanceof URL
-                  ? { image_url: part.data.toString() }
-                  : {
-                      image_url: `data:${mediaType};base64,${convertToBase64(part.data)}`,
-                    }),
-              });
+              if (part.mediaType.startsWith('image/')) {
+                userContent.push({
+                  type: 'input_image',
+                  ...(part.data instanceof URL
+                    ? { image_url: part.data.toString() }
+                    : {
+                        image_url: `data:${mediaType};base64,${convertToBase64(part.data)}`,
+                      }),
+                });
+              } else if (part.data instanceof URL) {
+                userContent.push({
+                  type: 'input_file',
+                  file_url: part.data.toString(),
+                });
+              } else {
+                userContent.push({
+                  type: 'input_file',
+                  filename: part.filename ?? 'data',
+                  file_data: `data:${mediaType};base64,${convertToBase64(part.data)}`,
+                });
+              }
               break;
             }
           }
