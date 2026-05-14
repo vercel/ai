@@ -160,8 +160,9 @@ const middleware = honcho.middleware({
   assistantId: 'assistant-xyz',
   persistInput: true,
   injectHistory: true,
-  formatContext: (context) => `<memory>${context.summary?.content ?? ''}</memory>`,
-  onError: (err) => {
+  formatContext: context =>
+    `<memory>${context.summary?.content ?? ''}</memory>`,
+  onError: err => {
     console.error('[honcho]', err);
   },
 });
