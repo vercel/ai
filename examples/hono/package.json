@@ -4,10 +4,10 @@
   "private": true,
   "dependencies": {
     "@ai-sdk/openai": "4.0.0-canary.55",
-    "@hono/node-server": "1.13.7",
+    "@hono/node-server": "1.19.13",
     "ai": "7.0.0-canary.133",
     "dotenv": "16.4.5",
-    "hono": "4.6.9"
+    "hono": "4.12.18"
   },
   "scripts": {
     "dev": "tsx watch src/server.ts",
