@@ -1,5 +1,11 @@
 # @ai-sdk/devtools
 
+## 1.0.0-canary.24
+
+### Patch Changes
+
+- ee7bb67: fix(devtools): add pointer cursor to DevTools buttons
+
 ## 1.0.0-canary.23
 
 ### Patch Changes

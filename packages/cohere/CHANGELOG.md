@@ -1,5 +1,11 @@
 # @ai-sdk/cohere
 
+## 4.0.0-canary.44
+
+### Patch Changes
+
+- 3cfb762: Harden streamed tool call argument parsing against prototype keys.
+
 ## 4.0.0-canary.43
 
 ### Patch Changes

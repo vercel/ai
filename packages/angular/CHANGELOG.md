@@ -1,5 +1,11 @@
 # @ai-sdk/angular
 
+## 3.0.0-canary.138
+
+### Patch Changes
+
+- ai@7.0.0-canary.138
+
 ## 3.0.0-canary.137
 
 ### Patch Changes

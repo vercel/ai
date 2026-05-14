@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 4.0.0-canary.62
+
+### Patch Changes
+
+- 85735d8: fix(xai): stop emitting additionalProperties flag
+
 ## 4.0.0-canary.61
 
 ### Patch Changes

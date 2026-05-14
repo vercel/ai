@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 4.0.0-canary.81
+
+### Patch Changes
+
+- 67c4011: fix(gateway): encode inline v4 file part bytes as { type: 'data' } instead of a data: URL
+
 ## 4.0.0-canary.80
 
 ### Patch Changes
