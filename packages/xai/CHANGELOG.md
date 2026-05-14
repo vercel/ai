@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 3.0.90
+
+### Patch Changes
+
+- 1822d0c: fix(xai): stop emitting additionalProperties flag
+
 ## 3.0.89
 
 ### Patch Changes

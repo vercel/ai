@@ -1,5 +1,11 @@
 # @ai-sdk/mistral
 
+## 3.0.37
+
+### Patch Changes
+
+- 4f70a87: fix(mistral): forward `stopSequences` as Mistral's native `stop` parameter
+
 ## 3.0.36
 
 ### Patch Changes
