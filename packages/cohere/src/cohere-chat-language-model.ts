@@ -12,6 +12,7 @@ import {
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   parseProviderOptions,
+  parseJSON,
   postJsonToApi,
   type FetchFunction,
   type ParseResult,
@@ -263,7 +264,7 @@ export class CohereChatLanguageModel implements LanguageModelV3 {
             controller.enqueue({ type: 'stream-start', warnings });
           },
 
-          transform(chunk, controller) {
+          async transform(chunk, controller) {
             if (options.includeRawChunks) {
               controller.enqueue({ type: 'raw', rawValue: chunk.rawValue });
             }
@@ -388,7 +389,9 @@ export class CohereChatLanguageModel implements LanguageModelV3 {
                     toolCallId: pendingToolCall.id,
                     toolName: pendingToolCall.name,
                     input: JSON.stringify(
-                      JSON.parse(pendingToolCall.arguments?.trim() || '{}'),
+                      await parseJSON({
+                        text: pendingToolCall.arguments?.trim() || '{}',
+                      }),
                     ),
                   });
 
