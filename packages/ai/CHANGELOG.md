@@ -1,5 +1,70 @@
 # ai
 
+## 7.0.0-canary.137
+
+### Patch Changes
+
+- 98627e5: feat(ai): remove onChunk event from telemetry
+- 476e1ca: feat(ai): remove telemetry dependency on onChunk callback
+
+## 7.0.0-canary.136
+
+### Patch Changes
+
+- a7de9c9: fix: make sandbox experimental
+- Updated dependencies [a7de9c9]
+  - @ai-sdk/provider-utils@5.0.0-canary.40
+  - @ai-sdk/gateway@4.0.0-canary.80
+
+## 7.0.0-canary.135
+
+### Patch Changes
+
+- Updated dependencies [105f95b]
+  - @ai-sdk/provider-utils@5.0.0-canary.39
+  - @ai-sdk/gateway@4.0.0-canary.79
+
+## 7.0.0-canary.134
+
+### Patch Changes
+
+- ed74dae: fix(ui): make `input` optional on `output-error` tool and dynamic-tool UI message parts
+
+  `validateUIMessages` rejected persisted assistant messages whose `output-error` tool parts had no `input` key. This happened for any errored tool call where the SDK set `input: undefined` (e.g. `NoSuchToolError` / `InvalidToolInputError`): JSON serialization stripped the `undefined` value, and Zod 4.4+ treats a missing `z.unknown()` key as a validation failure (previously it was implicitly optional). The schema now matches the runtime shape produced by `process-ui-message-stream`, so reloading a thread that contains an errored tool call no longer throws `AI_TypeValidationError`.
+
+- f4cc8eb: feat: add performance statistics
+- e80ada0: fix(ai): download tool-result file URLs
+- 1dca341: fix: rename telemetry onFinish to onEnd
+- 2605e5f: fix test mocks to return the first array-backed result on the first call
+
+## 7.0.0-canary.133
+
+### Patch Changes
+
+- 38ca8dc: fix(gateway): enable retry support for gateway errors
+- 6d76710: fix URL of hero animation in README
+- Updated dependencies [38ca8dc]
+- Updated dependencies [8b7af75]
+  - @ai-sdk/gateway@4.0.0-canary.78
+
+## 7.0.0-canary.132
+
+### Patch Changes
+
+- eaf849f: Rename rerank telemetry finish callback to `onRerankEnd`.
+- 8565dcb: fix: rename onEmbedFinish to onEmbedEnd
+
+## 7.0.0-canary.131
+
+### Patch Changes
+
+- b67525f: feat: instructions as prepareStep input
+- ca446f8: feat: flexible tool descriptions
+- bcacd48: fix(ai): accumulative properties on StreamTextResult, GenerateTextResult
+- Updated dependencies [ca446f8]
+  - @ai-sdk/provider-utils@5.0.0-canary.38
+  - @ai-sdk/gateway@4.0.0-canary.77
+
 ## 7.0.0-canary.130
 
 ### Patch Changes

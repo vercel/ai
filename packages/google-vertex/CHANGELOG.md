@@ -1,5 +1,45 @@
 # @ai-sdk/google-vertex
 
+## 5.0.0-canary.81
+
+### Patch Changes
+
+- Updated dependencies [a7de9c9]
+  - @ai-sdk/provider-utils@5.0.0-canary.40
+  - @ai-sdk/anthropic@4.0.0-canary.54
+  - @ai-sdk/google@4.0.0-canary.62
+  - @ai-sdk/openai-compatible@3.0.0-canary.47
+
+## 5.0.0-canary.80
+
+### Patch Changes
+
+- Updated dependencies [105f95b]
+  - @ai-sdk/provider-utils@5.0.0-canary.39
+  - @ai-sdk/anthropic@4.0.0-canary.53
+  - @ai-sdk/google@4.0.0-canary.61
+  - @ai-sdk/openai-compatible@3.0.0-canary.46
+
+## 5.0.0-canary.79
+
+### Patch Changes
+
+- Updated dependencies [8018480]
+- Updated dependencies [6a26901]
+  - @ai-sdk/anthropic@4.0.0-canary.52
+  - @ai-sdk/google@4.0.0-canary.60
+
+## 5.0.0-canary.78
+
+### Patch Changes
+
+- Updated dependencies [ca446f8]
+- Updated dependencies [db394ab]
+  - @ai-sdk/provider-utils@5.0.0-canary.38
+  - @ai-sdk/google@4.0.0-canary.59
+  - @ai-sdk/anthropic@4.0.0-canary.51
+  - @ai-sdk/openai-compatible@3.0.0-canary.45
+
 ## 5.0.0-canary.77
 
 ### Patch Changes
@@ -1379,13 +1419,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel('my-model-id');
+  model.textEmbeddingModel("my-model-id");
   ```
 
   After
 
   ```ts
-  model.embeddingModel('my-model-id');
+  model.embeddingModel("my-model-id");
   ```
 
 - 32a6c13: Add Google Maps grounding tool support for location-aware Gemini responses
@@ -1417,6 +1457,7 @@
   Added support for combining tool calling with structured outputs in both Amazon Bedrock and Google Vertex Anthropic providers. This allows developers to use tools (like weather lookups, web search, etc.) alongside structured JSON output schemas, enabling multi-step agentic workflows with structured final outputs.
 
   **Amazon Bedrock Changes:**
+
   - Removed incorrect warning that prevented using tools with JSON response format
   - Updated tool choice to use `{ type: 'required' }` instead of specific tool selection when using structured outputs
   - Added `isJsonResponseFromTool` parameter to finish reason mapping
@@ -1425,6 +1466,7 @@
   - Added example files demonstrating the feature
 
   **Google Vertex Anthropic Changes:**
+
   - Inherits support from underlying Anthropic provider implementation
   - Added test coverage to verify the feature works correctly
   - Added example files demonstrating the feature
@@ -1867,13 +1909,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel('my-model-id');
+  model.textEmbeddingModel("my-model-id");
   ```
 
   After
 
   ```ts
-  model.embeddingModel('my-model-id');
+  model.embeddingModel("my-model-id");
   ```
 
 - Updated dependencies [8d9e8ad]
@@ -1960,6 +2002,7 @@
   Added support for combining tool calling with structured outputs in both Amazon Bedrock and Google Vertex Anthropic providers. This allows developers to use tools (like weather lookups, web search, etc.) alongside structured JSON output schemas, enabling multi-step agentic workflows with structured final outputs.
 
   **Amazon Bedrock Changes:**
+
   - Removed incorrect warning that prevented using tools with JSON response format
   - Updated tool choice to use `{ type: 'required' }` instead of specific tool selection when using structured outputs
   - Added `isJsonResponseFromTool` parameter to finish reason mapping
@@ -1968,6 +2011,7 @@
   - Added example files demonstrating the feature
 
   **Google Vertex Anthropic Changes:**
+
   - Inherits support from underlying Anthropic provider implementation
   - Added test coverage to verify the feature works correctly
   - Added example files demonstrating the feature
@@ -2826,7 +2870,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1', {
+    model: luma.image("photon-flash-1", {
       maxImagesPerCall: 5,
       pollIntervalMillis: 500,
     }),
@@ -2839,7 +2883,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1'),
+    model: luma.image("photon-flash-1"),
     prompt,
     n: 10,
     maxImagesPerCall: 5,
@@ -3229,7 +3273,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1', {
+    model: luma.image("photon-flash-1", {
       maxImagesPerCall: 5,
       pollIntervalMillis: 500,
     }),
@@ -3242,7 +3286,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1'),
+    model: luma.image("photon-flash-1"),
     prompt,
     n: 10,
     maxImagesPerCall: 5,

@@ -323,7 +323,7 @@ export async function* streamTextIterator({
         headers: currentGenerationSettings.headers,
       } as never);
 
-      const { toolCalls, finish, step, chunks, providerExecutedToolResults } =
+      const { toolCalls, finish, step, providerExecutedToolResults } =
         await doStreamStep(
           conversationPrompt,
           currentModel,
@@ -337,6 +337,7 @@ export async function* streamTextIterator({
             responseFormat,
             runtimeContext: currentRuntimeContext,
             toolsContext: currentToolsContext,
+            stepNumber,
           },
         );
 
@@ -349,10 +350,6 @@ export async function* streamTextIterator({
         content: step.content,
         responseId: step.response.id,
       });
-
-      for (const chunk of chunks ?? []) {
-        await telemetryDispatcher.onChunk?.({ chunk: chunk as never });
-      }
 
       _isFirstIteration = false;
       stepNumber++;

@@ -4,7 +4,7 @@ import type { FlexibleSchema } from '../schema';
 import type { ToolResultOutput } from './content-part';
 import type { Context } from './context';
 import type { ModelMessage } from './model-message';
-import type { Sandbox } from './sandbox';
+import type { Experimental_Sandbox as Sandbox } from './sandbox';
 import {
   dynamicTool,
   tool,
@@ -35,7 +35,10 @@ describe('DynamicTool', () => {
 
     expectTypeOf(aTool.description).toEqualTypeOf<
       | string
-      | ((options: { context: Context; sandbox?: Sandbox }) => string)
+      | ((options: {
+          context: Context;
+          experimental_sandbox?: Sandbox;
+        }) => string)
       | undefined
     >();
     expectTypeOf(aTool.strict).toEqualTypeOf<boolean | undefined>();

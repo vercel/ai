@@ -9,7 +9,7 @@ run(async () => {
     tools: {
       bash: anthropic.tools.bash_20250124(),
     },
-    sandbox: new LocalSandbox({
+    experimental_sandbox: new LocalSandbox({
       rootDirectory: `${process.env.HOME}/Downloads`,
     }),
     stopWhen: isStepCount(2),

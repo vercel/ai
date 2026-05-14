@@ -962,7 +962,6 @@ exports[`LegacyOpenTelemetry integration with streamText > should not record tel
       "ai.response.id": "id-0",
       "ai.response.model": "mock-model-id",
       "ai.response.msToFinish": 500,
-      "ai.response.msToFirstChunk": 100,
       "ai.response.timestamp": "1970-01-01T00:00:00.000Z",
       "ai.settings.maxRetries": 2,
       "ai.usage.inputTokenDetails.noCacheTokens": 3,
@@ -982,12 +981,6 @@ exports[`LegacyOpenTelemetry integration with streamText > should not record tel
       "operation.name": "ai.streamText.doStream",
     },
     "events": [
-      {
-        "attributes": {
-          "ai.response.msToFirstChunk": 100,
-        },
-        "name": "ai.stream.firstChunk",
-      },
       {
         "attributes": {
           "ai.response.avgOutputTokensPerSecond": 20,
@@ -1048,7 +1041,6 @@ exports[`LegacyOpenTelemetry integration with streamText > should record success
       "ai.response.id": "id-0",
       "ai.response.model": "mock-model-id",
       "ai.response.msToFinish": 500,
-      "ai.response.msToFirstChunk": 100,
       "ai.response.text": "",
       "ai.response.timestamp": "1970-01-01T00:00:00.000Z",
       "ai.response.toolCalls": "[{"toolCallId":"call-1","toolName":"tool1","input":{"value":"value"}}]",
@@ -1070,12 +1062,6 @@ exports[`LegacyOpenTelemetry integration with streamText > should record success
       "operation.name": "ai.streamText.doStream",
     },
     "events": [
-      {
-        "attributes": {
-          "ai.response.msToFirstChunk": 100,
-        },
-        "name": "ai.stream.firstChunk",
-      },
       {
         "attributes": {
           "ai.response.avgOutputTokensPerSecond": 20,

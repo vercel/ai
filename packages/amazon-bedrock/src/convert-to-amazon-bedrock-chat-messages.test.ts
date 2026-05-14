@@ -914,7 +914,7 @@ describe('assistant messages', () => {
     `);
   });
 
-  it('should trim trailing whitespace from reasoning content without signature when it is the last part', async () => {
+  it('should omit reasoning content without signature', async () => {
     const result = await convertToAmazonBedrockChatMessages([
       {
         role: 'user',
@@ -927,6 +927,7 @@ describe('assistant messages', () => {
             type: 'reasoning',
             text: 'This is my reasoning with trailing space    ',
           },
+          { type: 'text', text: 'final answer' },
         ],
       },
     ]);
@@ -945,11 +946,7 @@ describe('assistant messages', () => {
           {
             "content": [
               {
-                "reasoningContent": {
-                  "reasoningText": {
-                    "text": "This is my reasoning with trailing space",
-                  },
-                },
+                "text": "final answer",
               },
             ],
             "role": "assistant",
@@ -960,7 +957,7 @@ describe('assistant messages', () => {
     `);
   });
 
-  it('should only trim last reasoning part when multiple reasoning parts have trailing spaces', async () => {
+  it('should omit multiple reasoning parts without signatures', async () => {
     const result = await convertToAmazonBedrockChatMessages([
       {
         role: 'user',
@@ -977,6 +974,7 @@ describe('assistant messages', () => {
             type: 'reasoning',
             text: 'Second reasoning with trailing space    ',
           },
+          { type: 'text', text: 'final answer' },
         ],
       },
     ]);
@@ -995,21 +993,90 @@ describe('assistant messages', () => {
           {
             "content": [
               {
-                "reasoningContent": {
-                  "reasoningText": {
-                    "text": "First reasoning with trailing space    ",
-                  },
-                },
+                "text": "final answer",
               },
+            ],
+            "role": "assistant",
+          },
+        ],
+        "system": [],
+      }
+    `);
+  });
+
+  it('should omit unsigned reasoning while preserving tool calls in multi-turn tool use', async () => {
+    const result = await convertToAmazonBedrockChatMessages([
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'What is the weather?' }],
+      },
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'reasoning',
+            text: 'I should call the weather tool.',
+          },
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'getWeather',
+            input: { city: 'SF' },
+          },
+        ],
+      },
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolCallId: 'call-1',
+            toolName: 'getWeather',
+            output: { type: 'text', value: 'Sunny, 72F' },
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": [
               {
-                "reasoningContent": {
-                  "reasoningText": {
-                    "text": "Second reasoning with trailing space",
+                "text": "What is the weather?",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "content": [
+              {
+                "toolUse": {
+                  "input": {
+                    "city": "SF",
                   },
+                  "name": "getWeather",
+                  "toolUseId": "call-1",
                 },
               },
             ],
             "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "toolResult": {
+                  "content": [
+                    {
+                      "text": "Sunny, 72F",
+                    },
+                  ],
+                  "toolUseId": "call-1",
+                },
+              },
+            ],
+            "role": "user",
           },
         ],
         "system": [],

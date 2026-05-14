@@ -1555,7 +1555,7 @@ The following optional provider options are available for Google embedding model
 
 - **content**: _array_
 
-  Optional. Per-value multimodal content parts for embedding non-text content (images, video, PDF, audio). Each entry corresponds to the embedding value at the same index — its parts are merged with the text value in the request. Use `null` for entries that are text-only. The array length must match the number of values being embedded. Each non-null entry is an array of parts, where each part can be either `{ text: string }` or `{ inlineData: { mimeType: string, data: string } }`. Supported by `gemini-embedding-2-preview`.
+  Optional. Per-value multimodal content parts for embedding non-text content (images, video, PDF, audio). Each entry corresponds to the embedding value at the same index — its parts are merged with the text value in the request. Use `null` for entries that are text-only. The array length must match the number of values being embedded. Each non-null entry is an array of parts, where each part can be `{ text: string }`, `{ inlineData: { mimeType: string, data: string } }` for inline base64 data, or `{ fileData: { fileUri: string, mimeType: string } }` to reference remote content via HTTP URL or Google Cloud Storage URI (`gs://...`). Supported by `gemini-embedding-2-preview`.
 
 ### Model Capabilities
 

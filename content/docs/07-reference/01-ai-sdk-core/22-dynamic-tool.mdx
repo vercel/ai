@@ -54,9 +54,9 @@ export const customTool = dynamicTool({
             {
               name: 'description',
               isOptional: true,
-              type: 'string | ((options: { context: Context; sandbox?: Sandbox }) => string)',
+              type: 'string | ((options: { context: Context; experimental_sandbox?: Experimental_Sandbox }) => string)',
               description:
-                'Information about the purpose of the tool including details on how and when it can be used by the model. Provide a string for a fixed description, or a function to derive the description from the tool-specific context and optional sandbox before each model call.'
+                'Information about the purpose of the tool including details on how and when it can be used by the model. Provide a string for a fixed description, or a function to derive the description from the tool-specific context and optional experimental sandbox before each model call.'
             },
             {
               name: 'title',

@@ -1,6 +1,6 @@
 import { exec } from 'node:child_process';
 import { promisify } from 'node:util';
-import { type Sandbox } from 'ai';
+import { type Experimental_Sandbox as Sandbox } from 'ai';
 
 const execAsync = promisify(exec);
 

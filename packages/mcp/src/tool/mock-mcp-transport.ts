@@ -43,7 +43,7 @@ export class MockMCPTransport implements MCPTransport {
   onmessage?: (message: JSONRPCMessage) => void;
   onclose?: () => void;
   onerror?: (error: Error) => void;
-
+  protocolVersion?: string;
   constructor({
     overrideTools = DEFAULT_TOOLS,
     resources = [

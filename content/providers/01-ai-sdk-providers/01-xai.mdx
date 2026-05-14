@@ -99,6 +99,45 @@ xAI language models can also be used in the `streamText` function
 and support structured data generation with [`Output`](/docs/reference/ai-sdk-core/output)
 (see [AI SDK Core](/docs/ai-sdk-core)).
 
+### Reasoning Effort
+
+For reasoning-capable models you can control how much effort the model spends
+thinking before responding via `providerOptions.xai.reasoningEffort`. This
+works for both the Responses API (default) and the Chat Completions API
+(`xai.chat()`).
+
+```ts
+import { xai } from '@ai-sdk/xai';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: xai('grok-4.3'),
+  prompt: 'Explain quantum entanglement.',
+  providerOptions: {
+    xai: { reasoningEffort: 'medium' },
+  },
+});
+```
+
+Supported values:
+
+- `'none'` — Disables reasoning entirely; no thinking tokens are used. Best
+  for simple use cases that need a near-instant response. Supported by
+  `grok-4.3` and newer reasoning models.
+- `'low'` (default) — Uses some reasoning tokens, but still fast. Good for
+  general agentic use and tool calling.
+- `'medium'` — More thinking for less-latency-sensitive applications such as
+  complex data analysis and long-context reasoning.
+- `'high'` — More reasoning tokens for deeper thinking. Suited for very
+  challenging problems, complex math, multi-step logic, and competition-level
+  tasks.
+
+<Note>
+  Not every Grok model accepts every value. See xAI's [reasoning
+  docs](https://docs.x.ai/docs/guides/reasoning) for the values supported by
+  your selected model. `'none'` requires `grok-4.3` or newer.
+</Note>
+
 ## Responses API (Agentic Tools)
 
 The xAI Responses API is the default when using `xai(modelId)`. You can also use `xai.responses(modelId)` explicitly. This enables the model to autonomously orchestrate tool calls and research on xAI's servers.
@@ -416,9 +455,9 @@ const result = await generateText({
 
 The following provider options are available:
 
-- **reasoningEffort** _'low' | 'medium' | 'high'_
+- **reasoningEffort** _'none' | 'low' | 'medium' | 'high'_
 
-  Control the reasoning effort for the model. Higher effort may produce more thorough results at the cost of increased latency and token usage.
+  Control the reasoning effort for the model. See [Reasoning Effort](#reasoning-effort) for details on each value. `'none'` disables reasoning entirely (requires `grok-4.3` or newer).
 
 - **logprobs** _boolean_
 

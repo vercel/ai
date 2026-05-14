@@ -1,5 +1,32 @@
 # @ai-sdk/deepseek
 
+## 3.0.0-canary.45
+
+### Patch Changes
+
+- Updated dependencies [a7de9c9]
+  - @ai-sdk/provider-utils@5.0.0-canary.40
+
+## 3.0.0-canary.44
+
+### Patch Changes
+
+- Updated dependencies [105f95b]
+  - @ai-sdk/provider-utils@5.0.0-canary.39
+
+## 3.0.0-canary.43
+
+### Patch Changes
+
+- 87280a6: Accept `thinking.type: 'adaptive'` and the full `reasoningEffort` enum (`low`, `medium`, `high`, `xhigh`, `max`) for the DeepSeek provider.
+
+## 3.0.0-canary.42
+
+### Patch Changes
+
+- Updated dependencies [ca446f8]
+  - @ai-sdk/provider-utils@5.0.0-canary.38
+
 ## 3.0.0-canary.41
 
 ### Patch Changes
@@ -543,13 +570,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel('my-model-id');
+  model.textEmbeddingModel("my-model-id");
   ```
 
   After
 
   ```ts
-  model.embeddingModel('my-model-id');
+  model.embeddingModel("my-model-id");
   ```
 
 - 2625a04: feat(openai); update spec for mcp approval
@@ -766,13 +793,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel('my-model-id');
+  model.textEmbeddingModel("my-model-id");
   ```
 
   After
 
   ```ts
-  model.embeddingModel('my-model-id');
+  model.embeddingModel("my-model-id");
   ```
 
 - Updated dependencies [8d9e8ad]

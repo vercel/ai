@@ -1,5 +1,75 @@
 # @ai-sdk/workflow
 
+## 1.0.0-canary.54
+
+### Patch Changes
+
+- 98627e5: feat(ai): remove onChunk event from telemetry
+- Updated dependencies [98627e5]
+- Updated dependencies [476e1ca]
+  - ai@7.0.0-canary.137
+
+## 1.0.0-canary.53
+
+### Patch Changes
+
+- Updated dependencies [a7de9c9]
+  - @ai-sdk/provider-utils@5.0.0-canary.40
+  - ai@7.0.0-canary.136
+
+## 1.0.0-canary.52
+
+### Patch Changes
+
+- Updated dependencies [105f95b]
+  - @ai-sdk/provider-utils@5.0.0-canary.39
+  - ai@7.0.0-canary.135
+
+## 1.0.0-canary.51
+
+### Patch Changes
+
+- Updated dependencies [ed74dae]
+- Updated dependencies [f4cc8eb]
+- Updated dependencies [e80ada0]
+- Updated dependencies [1dca341]
+- Updated dependencies [2605e5f]
+  - ai@7.0.0-canary.134
+
+## 1.0.0-canary.50
+
+### Patch Changes
+
+- Updated dependencies [38ca8dc]
+- Updated dependencies [6d76710]
+  - ai@7.0.0-canary.133
+
+## 1.0.0-canary.49
+
+### Patch Changes
+
+- 81e68da: Fix `stepNumber` on telemetry events emitted by `WorkflowAgent.stream` so per-step telemetry integrations (e.g. `@ai-sdk/devtools`) correctly key state per step.
+- Updated dependencies [eaf849f]
+- Updated dependencies [8565dcb]
+  - ai@7.0.0-canary.132
+
+## 1.0.0-canary.48
+
+### Patch Changes
+
+- c3a6524: Add a `stepNumber` option to `doStreamStep` so callers can create `StepResult` objects with the correct step number.
+
+## 1.0.0-canary.47
+
+### Patch Changes
+
+- ca446f8: feat: flexible tool descriptions
+- Updated dependencies [b67525f]
+- Updated dependencies [ca446f8]
+- Updated dependencies [bcacd48]
+  - ai@7.0.0-canary.131
+  - @ai-sdk/provider-utils@5.0.0-canary.38
+
 ## 1.0.0-canary.46
 
 ### Patch Changes

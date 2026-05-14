@@ -1,5 +1,66 @@
 # @ai-sdk/angular
 
+## 3.0.0-canary.137
+
+### Patch Changes
+
+- Updated dependencies [98627e5]
+- Updated dependencies [476e1ca]
+  - ai@7.0.0-canary.137
+
+## 3.0.0-canary.136
+
+### Patch Changes
+
+- Updated dependencies [a7de9c9]
+  - @ai-sdk/provider-utils@5.0.0-canary.40
+  - ai@7.0.0-canary.136
+
+## 3.0.0-canary.135
+
+### Patch Changes
+
+- Updated dependencies [105f95b]
+  - @ai-sdk/provider-utils@5.0.0-canary.39
+  - ai@7.0.0-canary.135
+
+## 3.0.0-canary.134
+
+### Patch Changes
+
+- Updated dependencies [ed74dae]
+- Updated dependencies [f4cc8eb]
+- Updated dependencies [e80ada0]
+- Updated dependencies [1dca341]
+- Updated dependencies [2605e5f]
+  - ai@7.0.0-canary.134
+
+## 3.0.0-canary.133
+
+### Patch Changes
+
+- Updated dependencies [38ca8dc]
+- Updated dependencies [6d76710]
+  - ai@7.0.0-canary.133
+
+## 3.0.0-canary.132
+
+### Patch Changes
+
+- Updated dependencies [eaf849f]
+- Updated dependencies [8565dcb]
+  - ai@7.0.0-canary.132
+
+## 3.0.0-canary.131
+
+### Patch Changes
+
+- Updated dependencies [b67525f]
+- Updated dependencies [ca446f8]
+- Updated dependencies [bcacd48]
+  - ai@7.0.0-canary.131
+  - @ai-sdk/provider-utils@5.0.0-canary.38
+
 ## 3.0.0-canary.130
 
 ### Patch Changes

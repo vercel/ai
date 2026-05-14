@@ -1,5 +1,8 @@
 import type { LanguageModelV4CallOptions } from '@ai-sdk/provider';
-import { type Sandbox, tool } from '@ai-sdk/provider-utils';
+import {
+  type Experimental_Sandbox as Sandbox,
+  tool,
+} from '@ai-sdk/provider-utils';
 import {
   convertArrayToReadableStream,
   convertReadableStreamToArray,
@@ -462,7 +465,7 @@ describe('createAgentUIStreamResponse', () => {
         testTool: tool({
           description: 'Test tool',
           inputSchema: z.object({ value: z.string() }),
-          execute: async ({ value }, { sandbox }) => {
+          execute: async ({ value }, { experimental_sandbox: sandbox }) => {
             receivedSandbox = sandbox;
             return `${value}-result`;
           },
@@ -479,7 +482,7 @@ describe('createAgentUIStreamResponse', () => {
           parts: [{ type: 'text' as const, text: 'Run the test tool' }],
         },
       ],
-      sandbox,
+      experimental_sandbox: sandbox,
     });
 
     await convertReadableStreamToArray(response.body!);

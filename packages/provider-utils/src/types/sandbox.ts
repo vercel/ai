@@ -1,7 +1,7 @@
 /**
  * Sandbox environment that can execute commands.
  */
-export type Sandbox = {
+export type Experimental_Sandbox = {
   /**
    * Description of the sandbox environment that can be added to the agent's instructions
    * so that the agent knows about relevant details such as the root directory, exposed
