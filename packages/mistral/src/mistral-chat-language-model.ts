@@ -100,44 +100,6 @@ export class MistralChatLanguageModel implements LanguageModelV3 {
       warnings.push({ type: 'unsupported', feature: 'presencePenalty' });
     }
 
-<<<<<<< HEAD
-    if (stopSequences != null) {
-      warnings.push({ type: 'unsupported', feature: 'stopSequences' });
-=======
-    const supportsReasoningEffort =
-      this.modelId === 'mistral-small-latest' ||
-      this.modelId === 'mistral-small-2603' ||
-      this.modelId === 'mistral-medium-3' ||
-      this.modelId === 'mistral-medium-3.5';
-
-    let resolvedReasoningEffort: string | undefined;
-    if (supportsReasoningEffort) {
-      resolvedReasoningEffort =
-        options.reasoningEffort ??
-        (isCustomReasoning(reasoning)
-          ? reasoning === 'none'
-            ? 'none'
-            : mapReasoningToProviderEffort({
-                reasoning,
-                effortMap: {
-                  minimal: 'high',
-                  low: 'high',
-                  medium: 'high',
-                  high: 'high',
-                  xhigh: 'high',
-                },
-                warnings,
-              })
-          : undefined);
-    } else if (isCustomReasoning(reasoning)) {
-      warnings.push({
-        type: 'unsupported',
-        feature: 'reasoning',
-        details: 'This model does not support reasoning configuration.',
-      });
->>>>>>> 7acf3580f (fix(mistral): forward stopSequences as Mistral native stop parameter (#15200))
-    }
-
     const structuredOutputs = options.structuredOutputs ?? true;
     const strictJsonSchema = options.strictJsonSchema ?? false;
 
