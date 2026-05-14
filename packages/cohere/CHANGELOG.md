@@ -1,5 +1,11 @@
 # @ai-sdk/cohere
 
+## 3.0.36
+
+### Patch Changes
+
+- 3870773: Harden streamed tool call argument parsing against prototype keys.
+
 ## 3.0.35
 
 ### Patch Changes

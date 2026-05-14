@@ -1,5 +1,11 @@
 # @ai-sdk/devtools
 
+## 0.0.18
+
+### Patch Changes
+
+- 41aff6f: fix(devtools): add pointer cursor to DevTools buttons
+
 ## 0.0.17
 
 ### Patch Changes
