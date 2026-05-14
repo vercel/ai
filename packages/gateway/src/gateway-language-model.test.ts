@@ -333,10 +333,7 @@ describe('GatewayLanguageModel', () => {
           .content[1] as LanguageModelV4FilePart;
 
         expect(imagePart.type).toBe('file');
-        expect(imagePart.data).toEqual({
-          type: 'url',
-          url: `data:image/jpeg;base64,${expectedBase64}`,
-        });
+        expect(imagePart.data).toBe(`data:image/jpeg;base64,${expectedBase64}`);
         expect(imagePart.mediaType).toBe('image/jpeg');
       });
 
@@ -367,10 +364,9 @@ describe('GatewayLanguageModel', () => {
           .content[0] as LanguageModelV4FilePart;
 
         expect(imagePart.type).toBe('file');
-        expect(imagePart.data).toEqual({
-          type: 'url',
-          url: `data:${mimeType};base64,${expectedBase64}`,
-        });
+        expect(imagePart.data).toBe(
+          `data:${mimeType};base64,${expectedBase64}`,
+        );
         expect(imagePart.mediaType).toBe(mimeType);
       });
 
@@ -400,10 +396,7 @@ describe('GatewayLanguageModel', () => {
           .content[1] as LanguageModelV4FilePart;
 
         expect(imagePart.type).toBe('file');
-        expect(imagePart.data).toEqual({
-          type: 'url',
-          url: imageUrl.toString(),
-        });
+        expect(imagePart.data).toBe(imageUrl.toString());
       });
 
       it('should handle mixed content types correctly', async () => {
@@ -441,18 +434,69 @@ describe('GatewayLanguageModel', () => {
         expect(content[0]).toEqual({ type: 'text', text: 'First text.' });
         expect(content[1]).toEqual({
           type: 'file',
-          data: {
-            type: 'url',
-            url: `data:image/gif;base64,${expectedBase64}`,
-          },
+          data: `data:image/gif;base64,${expectedBase64}`,
           mediaType: 'image/gif',
         });
         expect(content[2]).toEqual({ type: 'text', text: 'Second text.' });
         expect(content[3]).toEqual({
           type: 'file',
-          data: { type: 'url', url: imageUrl.toString() },
+          data: imageUrl.toString(),
           mediaType: 'image/png',
         });
+      });
+
+      it('should expand top-level-only media type by sniffing inline bytes', async () => {
+        prepareJsonResponse({ content: { type: 'text', text: 'response' } });
+        // PNG signature: 0x89 0x50 0x4e 0x47
+        const pngBytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a]);
+        const expectedBase64 = Buffer.from(pngBytes).toString('base64');
+        const imagePrompt: LanguageModelV4Prompt = [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                data: { type: 'data' as const, data: pngBytes },
+                mediaType: 'image',
+              },
+            ],
+          },
+        ];
+
+        await createTestModel().doGenerate({ prompt: imagePrompt });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        const imagePart = requestBody.prompt[0]
+          .content[0] as LanguageModelV4FilePart;
+
+        expect(imagePart.mediaType).toBe('image/png');
+        expect(imagePart.data).toBe(`data:image/png;base64,${expectedBase64}`);
+      });
+
+      it('should leave top-level-only media type as-is when sniffing is not possible', async () => {
+        prepareJsonResponse({ content: { type: 'text', text: 'response' } });
+        const imageUrl = new URL('https://example.com/image');
+        const imagePrompt: LanguageModelV4Prompt = [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                data: { type: 'url' as const, url: imageUrl },
+                mediaType: 'image',
+              },
+            ],
+          },
+        ];
+
+        await createTestModel().doGenerate({ prompt: imagePrompt });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        const imagePart = requestBody.prompt[0]
+          .content[0] as LanguageModelV4FilePart;
+
+        expect(imagePart.mediaType).toBe('image');
+        expect(imagePart.data).toBe(imageUrl.toString());
       });
     });
 
@@ -893,10 +937,7 @@ describe('GatewayLanguageModel', () => {
           .content[1] as LanguageModelV4FilePart;
 
         expect(imagePart.type).toBe('file');
-        expect(imagePart.data).toEqual({
-          type: 'url',
-          url: `data:image/jpeg;base64,${expectedBase64}`,
-        });
+        expect(imagePart.data).toBe(`data:image/jpeg;base64,${expectedBase64}`);
         expect(imagePart.mediaType).toBe('image/jpeg');
       });
 
@@ -929,10 +970,9 @@ describe('GatewayLanguageModel', () => {
           .content[1] as LanguageModelV4FilePart;
 
         expect(imagePart.type).toBe('file');
-        expect(imagePart.data).toEqual({
-          type: 'url',
-          url: `data:${mimeType};base64,${expectedBase64}`,
-        });
+        expect(imagePart.data).toBe(
+          `data:${mimeType};base64,${expectedBase64}`,
+        );
         expect(imagePart.mediaType).toBe(mimeType);
       });
 
@@ -963,10 +1003,7 @@ describe('GatewayLanguageModel', () => {
           .content[1] as LanguageModelV4FilePart;
 
         expect(imagePart.type).toBe('file');
-        expect(imagePart.data).toEqual({
-          type: 'url',
-          url: imageUrl.toString(),
-        });
+        expect(imagePart.data).toBe(imageUrl.toString());
         expect(imagePart.mediaType).toBe('image/jpeg');
       });
 
@@ -1006,16 +1043,13 @@ describe('GatewayLanguageModel', () => {
         expect(content[0]).toEqual({ type: 'text', text: 'First text.' });
         expect(content[1]).toEqual({
           type: 'file',
-          data: {
-            type: 'url',
-            url: `data:image/gif;base64,${expectedBase64}`,
-          },
+          data: `data:image/gif;base64,${expectedBase64}`,
           mediaType: 'image/gif',
         });
         expect(content[2]).toEqual({ type: 'text', text: 'Second text.' });
         expect(content[3]).toEqual({
           type: 'file',
-          data: { type: 'url', url: imageUrl.toString() },
+          data: imageUrl.toString(),
           mediaType: 'image/png',
         });
       });

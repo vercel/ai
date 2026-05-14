@@ -2,6 +2,7 @@ import type {
   LanguageModelV4,
   LanguageModelV4CallOptions,
   LanguageModelV4FilePart,
+  LanguageModelV4Message,
   LanguageModelV4StreamPart,
   LanguageModelV4GenerateResult,
   LanguageModelV4StreamResult,
@@ -13,6 +14,7 @@ import {
   createJsonResponseHandler,
   postJsonToApi,
   resolve,
+  resolveFullMediaType,
   serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
@@ -28,6 +30,42 @@ import { parseAuthMethod } from './errors/parse-auth-method';
 type GatewayChatConfig = GatewayConfig & {
   provider: string;
   o11yHeaders: Resolvable<Record<string, string>>;
+};
+
+/**
+ * File part shape that the AI Gateway server actually accepts on the wire:
+ * the V3-style untagged `data` (a `Uint8Array`, base64 string, or `URL`),
+ * instead of the V4 tagged discriminated union.
+ */
+type GatewayLanguageModelV4FilePart = Omit<LanguageModelV4FilePart, 'data'> & {
+  data: Uint8Array | string | URL;
+};
+
+/**
+ * `LanguageModelV4Message` with any `LanguageModelV4FilePart` inside the
+ * content array replaced by `GatewayLanguageModelV4FilePart`. Distributed over
+ * the message role union; the `system` role (whose `content` is a string)
+ * passes through unchanged.
+ */
+type GatewayLanguageModelV4Message = LanguageModelV4Message extends infer M
+  ? M extends { content: Array<infer P> }
+    ? Omit<M, 'content'> & {
+        content: Array<
+          P extends LanguageModelV4FilePart ? GatewayLanguageModelV4FilePart : P
+        >;
+      }
+    : M
+  : never;
+
+/**
+ * Call options as sent to the AI Gateway: same as `LanguageModelV4CallOptions`
+ * but with file parts in the prompt flattened to the untagged data shape.
+ */
+type GatewayLanguageModelV4CallOptions = Omit<
+  LanguageModelV4CallOptions,
+  'prompt'
+> & {
+  prompt: GatewayLanguageModelV4Message[];
 };
 
 export class GatewayLanguageModel implements LanguageModelV4 {
@@ -191,43 +229,72 @@ export class GatewayLanguageModel implements LanguageModelV4 {
     }
   }
 
-  private isFilePart(part: unknown) {
-    return (
-      part && typeof part === 'object' && 'type' in part && part.type === 'file'
-    );
+  /**
+   * Converts a V4 file part to the shape the AI Gateway accepts: the
+   * discriminated `data` union is flattened to the V3-style untagged
+   * `Uint8Array | string | URL`, raw bytes are base64-encoded into a data URL,
+   * and the media type is expanded to a full `type/subtype` whenever possible
+   * (some downstream providers require the full IANA media type).
+   *
+   * `reference` and `text` data variants are forwarded as-is so the Gateway
+   * can reject them with a clear error rather than us silently dropping data.
+   */
+  private encodeFilePart(
+    part: LanguageModelV4FilePart,
+  ): GatewayLanguageModelV4FilePart {
+    let mediaType = part.mediaType;
+    try {
+      mediaType = resolveFullMediaType({ part });
+    } catch {
+      // Could not resolve a full media type (e.g. URL-sourced data with a
+      // top-level-only media type). Pass mediaType through and let the
+      // Gateway / downstream provider decide.
+    }
+
+    const data = part.data;
+    let flattenedData: GatewayLanguageModelV4FilePart['data'];
+    if (data.type === 'data') {
+      if (data.data instanceof Uint8Array) {
+        const base64Data = Buffer.from(data.data).toString('base64');
+        flattenedData = new URL(
+          `data:${mediaType || 'application/octet-stream'};base64,${base64Data}`,
+        );
+      } else {
+        flattenedData = data.data;
+      }
+    } else if (data.type === 'url') {
+      flattenedData = data.url;
+    } else {
+      // `reference` / `text` variants have no V3 equivalent. Forward the
+      // tagged object as-is and let the Gateway surface a clear error.
+      flattenedData = data as unknown as GatewayLanguageModelV4FilePart['data'];
+    }
+
+    return { ...part, mediaType, data: flattenedData };
   }
 
   /**
-   * Encodes file parts in the prompt to base64. Mutates the passed options
-   * instance directly to avoid copying the file data.
-   * @param options - The options to encode.
-   * @returns The options with the file parts encoded.
+   * Rewrites the prompt so every `file` part uses the Gateway-friendly shape
+   * produced by `encodeFilePart`. Returns a fresh options object — callers
+   * should treat the input as untouched.
    */
-  private maybeEncodeFileParts(options: LanguageModelV4CallOptions) {
-    for (const message of options.prompt) {
-      for (const part of message.content) {
-        if (this.isFilePart(part)) {
-          const filePart = part as LanguageModelV4FilePart;
-          // If the file part is a URL it will get cleanly converted to a string.
-          // If it's a binary file attachment we convert it to a data url.
-          // In either case, server-side we should only ever see URLs as strings.
-          if (
-            filePart.data.type === 'data' &&
-            filePart.data.data instanceof Uint8Array
-          ) {
-            const buffer = Uint8Array.from(filePart.data.data);
-            const base64Data = Buffer.from(buffer).toString('base64');
-            filePart.data = {
-              type: 'url',
-              url: new URL(
-                `data:${filePart.mediaType || 'application/octet-stream'};base64,${base64Data}`,
-              ),
-            };
-          }
+  private maybeEncodeFileParts(
+    options: LanguageModelV4CallOptions,
+  ): GatewayLanguageModelV4CallOptions {
+    return {
+      ...options,
+      prompt: options.prompt.map(message => {
+        if (typeof message.content === 'string') {
+          return message;
         }
-      }
-    }
-    return options;
+        return {
+          ...message,
+          content: message.content.map(part =>
+            part.type === 'file' ? this.encodeFilePart(part) : part,
+          ),
+        };
+      }) as GatewayLanguageModelV4Message[],
+    };
   }
 
   private getUrl() {
