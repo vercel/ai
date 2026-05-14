@@ -423,6 +423,51 @@ describe('prepareResponsesTools', () => {
         ]
       `);
     });
+
+    it('should omit unsupported additionalProperties: false from function tool schemas', async () => {
+      const inputSchema = {
+        type: 'object',
+        properties: {
+          location: {
+            type: 'object',
+            properties: {
+              city: { type: 'string' },
+            },
+            additionalProperties: false,
+          },
+        },
+        additionalProperties: false,
+      } as const;
+
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'weather',
+            description: 'get weather',
+            inputSchema,
+          },
+        ],
+      });
+
+      expect(result.tools?.[0]).toEqual({
+        type: 'function',
+        name: 'weather',
+        description: 'get weather',
+        parameters: {
+          type: 'object',
+          properties: {
+            location: {
+              type: 'object',
+              properties: {
+                city: { type: 'string' },
+              },
+            },
+          },
+        },
+      });
+      expect(inputSchema).toHaveProperty('additionalProperties', false);
+    });
   });
 
   describe('function tools strict mode', () => {

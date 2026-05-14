@@ -59,6 +59,46 @@ describe('prepareTools', () => {
     `);
   });
 
+  it('should omit unsupported additionalProperties: false from function tool schemas', () => {
+    const inputSchema = {
+      type: 'object',
+      properties: {
+        location: {
+          type: 'object',
+          properties: {
+            city: { type: 'string' },
+          },
+          additionalProperties: false,
+        },
+      },
+      additionalProperties: false,
+    } as const;
+
+    const result = prepareTools({
+      tools: [
+        {
+          type: 'function',
+          name: 'weather',
+          description: 'get weather',
+          inputSchema,
+        },
+      ],
+    });
+
+    expect(result.tools?.[0].function.parameters).toEqual({
+      type: 'object',
+      properties: {
+        location: {
+          type: 'object',
+          properties: {
+            city: { type: 'string' },
+          },
+        },
+      },
+    });
+    expect(inputSchema).toHaveProperty('additionalProperties', false);
+  });
+
   it('should add warnings for provider-defined tools', () => {
     const result = prepareTools({
       tools: [
