@@ -9,7 +9,7 @@ run(async () => {
   const dataUrl = `data:image/png;base64,${base64Data}`;
 
   const result = await generateText({
-    model: 'xai/grok-3',
+    model: 'google/gemini-2.5-flash',
     messages: [
       {
         role: 'user',

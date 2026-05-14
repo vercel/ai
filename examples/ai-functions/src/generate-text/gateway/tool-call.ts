@@ -5,7 +5,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: 'xai/grok-3',
+    model: 'google/gemini-2.5-flash',
     maxOutputTokens: 512,
     tools: {
       weather: weatherTool,
