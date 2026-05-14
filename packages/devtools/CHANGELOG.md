@@ -1,5 +1,11 @@
 # @ai-sdk/devtools
 
+## 1.0.0-canary.23
+
+### Patch Changes
+
+- 98627e5: feat(ai): remove onChunk event from telemetry
+
 ## 1.0.0-canary.22
 
 ### Patch Changes

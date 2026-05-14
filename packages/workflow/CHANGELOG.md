@@ -1,5 +1,14 @@
 # @ai-sdk/workflow
 
+## 1.0.0-canary.54
+
+### Patch Changes
+
+- 98627e5: feat(ai): remove onChunk event from telemetry
+- Updated dependencies [98627e5]
+- Updated dependencies [476e1ca]
+  - ai@7.0.0-canary.137
+
 ## 1.0.0-canary.53
 
 ### Patch Changes

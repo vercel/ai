@@ -1,5 +1,12 @@
 # ai
 
+## 7.0.0-canary.137
+
+### Patch Changes
+
+- 98627e5: feat(ai): remove onChunk event from telemetry
+- 476e1ca: feat(ai): remove telemetry dependency on onChunk callback
+
 ## 7.0.0-canary.136
 
 ### Patch Changes

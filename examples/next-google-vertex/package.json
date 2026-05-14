@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@ai-sdk/google-vertex": "5.0.0-canary.81",
-    "ai": "7.0.0-canary.136",
+    "ai": "7.0.0-canary.137",
     "geist": "^1.3.1",
     "next": "^15.5.9",
     "react": "^18",
