@@ -1,5 +1,48 @@
 # @ai-sdk/provider-utils
 
+## 5.0.0-canary.40
+
+### Patch Changes
+
+- a7de9c9: fix: make sandbox experimental
+
+## 5.0.0-canary.39
+
+### Patch Changes
+
+- 105f95b: Ensure the default empty tool input schema includes `type: "object"` for OpenAI-compatible providers that require object schemas.
+
+## 5.0.0-canary.38
+
+### Patch Changes
+
+- ca446f8: feat: flexible tool descriptions
+
+## 5.0.0-canary.37
+
+### Patch Changes
+
+- d848405: feat: add optional `abortSignal` parameters to sandbox command execution
+
+## 5.0.0-canary.36
+
+### Patch Changes
+
+- ca39020: Add an optional `workingDirectory` parameter to sandbox command execution.
+
+## 5.0.0-canary.35
+
+### Patch Changes
+
+- f634bac: feat(mcp): add new McpProviderMetadata type
+
+## 5.0.0-canary.34
+
+### Patch Changes
+
+- 69254e0: feat(ai): add toolMetadata for tool specific metdata
+- 3015fc3: feat: sandbox shell execution abstraction
+
 ## 5.0.0-canary.33
 
 ### Patch Changes

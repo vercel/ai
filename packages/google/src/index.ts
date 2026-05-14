@@ -30,6 +30,12 @@ export type {
   GoogleVideoModelId as GoogleGenerativeAIVideoModelId,
 } from './google-video-settings';
 export type { GoogleFilesUploadOptions } from './google-files';
+export type {
+  GoogleLanguageModelInteractionsOptions,
+  GoogleInteractionsModelId,
+} from './interactions/google-interactions-language-model-options';
+export type { GoogleInteractionsProviderMetadata } from './interactions/google-interactions-provider-metadata';
+export type { GoogleInteractionsAgentName } from './interactions/google-interactions-agent';
 export {
   createGoogle,
   google,

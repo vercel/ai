@@ -1,5 +1,55 @@
 # @ai-sdk/klingai
 
+## 4.0.0-canary.42
+
+### Patch Changes
+
+- Updated dependencies [a7de9c9]
+  - @ai-sdk/provider-utils@5.0.0-canary.40
+
+## 4.0.0-canary.41
+
+### Patch Changes
+
+- Updated dependencies [105f95b]
+  - @ai-sdk/provider-utils@5.0.0-canary.39
+
+## 4.0.0-canary.40
+
+### Patch Changes
+
+- Updated dependencies [ca446f8]
+  - @ai-sdk/provider-utils@5.0.0-canary.38
+
+## 4.0.0-canary.39
+
+### Patch Changes
+
+- Updated dependencies [d848405]
+  - @ai-sdk/provider-utils@5.0.0-canary.37
+
+## 4.0.0-canary.38
+
+### Patch Changes
+
+- Updated dependencies [ca39020]
+  - @ai-sdk/provider-utils@5.0.0-canary.36
+
+## 4.0.0-canary.37
+
+### Patch Changes
+
+- Updated dependencies [f634bac]
+  - @ai-sdk/provider-utils@5.0.0-canary.35
+
+## 4.0.0-canary.36
+
+### Patch Changes
+
+- Updated dependencies [69254e0]
+- Updated dependencies [3015fc3]
+  - @ai-sdk/provider-utils@5.0.0-canary.34
+
 ## 4.0.0-canary.35
 
 ### Patch Changes

@@ -7,7 +7,7 @@ export async function POST(req: Request) {
 
   const { output } = await generateText({
     model: openai('gpt-5'),
-    system: 'You are a helpful assistant.',
+    instructions: 'You are a helpful assistant.',
     prompt,
     output: Output.object({
       schema: z.object({

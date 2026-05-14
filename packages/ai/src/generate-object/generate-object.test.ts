@@ -726,8 +726,6 @@ describe('generateObject', () => {
               reasoningTokens: undefined,
             },
             totalTokens: 30,
-            reasoningTokens: undefined,
-            cachedInputTokens: undefined,
           },
           finishReason: 'stop',
         });

@@ -1,11 +1,29 @@
 import type { JSONValue } from '@ai-sdk/provider';
-import { tool, type Context } from '@ai-sdk/provider-utils';
+import {
+  tool,
+  type Context,
+  type ModelMessage,
+  type SystemModelMessage,
+} from '@ai-sdk/provider-utils';
 import { describe, expectTypeOf, it } from 'vitest';
 import { z } from 'zod';
 import { generateText, Output } from '../generate-text';
+import type { Instructions, Prompt } from '../prompt';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
+import type { ResponseMessage } from './response-message';
 
 describe('generateText types', () => {
+  describe('instructions', () => {
+    it('should use the Instructions type for prompt instructions', () => {
+      expectTypeOf<Prompt['instructions']>().toEqualTypeOf<
+        Instructions | undefined
+      >();
+      expectTypeOf<Instructions>().toEqualTypeOf<
+        string | SystemModelMessage | Array<SystemModelMessage>
+      >();
+    });
+  });
+
   describe('output', () => {
     it('should infer text output type (default)', async () => {
       const result = await generateText({
@@ -284,7 +302,24 @@ describe('generateText types', () => {
         generateText({
           model: new MockLanguageModelV4(),
           prompt: 'Hello',
-          prepareStep: ({ runtimeContext, toolsContext }) => {
+          prepareStep: ({
+            instructions,
+            initialInstructions,
+            initialMessages,
+            responseMessages,
+            runtimeContext,
+            toolsContext,
+          }) => {
+            expectTypeOf(instructions).toEqualTypeOf<
+              Instructions | undefined
+            >();
+            expectTypeOf(initialInstructions).toEqualTypeOf<
+              Instructions | undefined
+            >();
+            expectTypeOf(initialMessages).toEqualTypeOf<Array<ModelMessage>>();
+            expectTypeOf(responseMessages).toEqualTypeOf<
+              Array<ResponseMessage>
+            >();
             expectTypeOf(runtimeContext).toEqualTypeOf<Context>();
             expectTypeOf(toolsContext).toEqualTypeOf<{}>();
 
@@ -336,6 +371,23 @@ describe('generateText types', () => {
 
             return {};
           },
+        });
+      });
+
+      it('should accept sandbox overrides', async () => {
+        generateText({
+          model: new MockLanguageModelV4(),
+          prompt: 'Hello',
+          prepareStep: () => ({
+            experimental_sandbox: {
+              description: 'test sandbox',
+              executeCommand: async () => ({
+                exitCode: 0,
+                stdout: 'ok',
+                stderr: '',
+              }),
+            },
+          }),
         });
       });
     });

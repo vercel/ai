@@ -1,5 +1,154 @@
 # ai
 
+## 7.0.0-canary.137
+
+### Patch Changes
+
+- 98627e5: feat(ai): remove onChunk event from telemetry
+- 476e1ca: feat(ai): remove telemetry dependency on onChunk callback
+
+## 7.0.0-canary.136
+
+### Patch Changes
+
+- a7de9c9: fix: make sandbox experimental
+- Updated dependencies [a7de9c9]
+  - @ai-sdk/provider-utils@5.0.0-canary.40
+  - @ai-sdk/gateway@4.0.0-canary.80
+
+## 7.0.0-canary.135
+
+### Patch Changes
+
+- Updated dependencies [105f95b]
+  - @ai-sdk/provider-utils@5.0.0-canary.39
+  - @ai-sdk/gateway@4.0.0-canary.79
+
+## 7.0.0-canary.134
+
+### Patch Changes
+
+- ed74dae: fix(ui): make `input` optional on `output-error` tool and dynamic-tool UI message parts
+
+  `validateUIMessages` rejected persisted assistant messages whose `output-error` tool parts had no `input` key. This happened for any errored tool call where the SDK set `input: undefined` (e.g. `NoSuchToolError` / `InvalidToolInputError`): JSON serialization stripped the `undefined` value, and Zod 4.4+ treats a missing `z.unknown()` key as a validation failure (previously it was implicitly optional). The schema now matches the runtime shape produced by `process-ui-message-stream`, so reloading a thread that contains an errored tool call no longer throws `AI_TypeValidationError`.
+
+- f4cc8eb: feat: add performance statistics
+- e80ada0: fix(ai): download tool-result file URLs
+- 1dca341: fix: rename telemetry onFinish to onEnd
+- 2605e5f: fix test mocks to return the first array-backed result on the first call
+
+## 7.0.0-canary.133
+
+### Patch Changes
+
+- 38ca8dc: fix(gateway): enable retry support for gateway errors
+- 6d76710: fix URL of hero animation in README
+- Updated dependencies [38ca8dc]
+- Updated dependencies [8b7af75]
+  - @ai-sdk/gateway@4.0.0-canary.78
+
+## 7.0.0-canary.132
+
+### Patch Changes
+
+- eaf849f: Rename rerank telemetry finish callback to `onRerankEnd`.
+- 8565dcb: fix: rename onEmbedFinish to onEmbedEnd
+
+## 7.0.0-canary.131
+
+### Patch Changes
+
+- b67525f: feat: instructions as prepareStep input
+- ca446f8: feat: flexible tool descriptions
+- bcacd48: fix(ai): accumulative properties on StreamTextResult, GenerateTextResult
+- Updated dependencies [ca446f8]
+  - @ai-sdk/provider-utils@5.0.0-canary.38
+  - @ai-sdk/gateway@4.0.0-canary.77
+
+## 7.0.0-canary.130
+
+### Patch Changes
+
+- Updated dependencies [5f380c0]
+  - @ai-sdk/gateway@4.0.0-canary.76
+
+## 7.0.0-canary.129
+
+### Patch Changes
+
+- d1b3786: fix(ai): deprecate properties on result that have moved to finalStep
+
+## 7.0.0-canary.128
+
+### Patch Changes
+
+- Updated dependencies [d848405]
+  - @ai-sdk/provider-utils@5.0.0-canary.37
+  - @ai-sdk/gateway@4.0.0-canary.75
+
+## 7.0.0-canary.127
+
+### Patch Changes
+
+- e95e38d: fix: Make `generateText` and `streamText` result `usage` report total usage across all steps and deprecate `totalUsage`.
+- 016e877: feat(ai): add `instructions` as the primary prompt option and deprecate `system`
+- ca99fea: feat: expose `finalStep` on text generation results
+- d775a57: feat: introduce Instructions type
+- 538c12b: feat: use instructions on ToolCallRepairFunction, parseToolCall, and events
+- Updated dependencies [ca39020]
+  - @ai-sdk/provider-utils@5.0.0-canary.36
+  - @ai-sdk/gateway@4.0.0-canary.74
+
+## 7.0.0-canary.126
+
+### Patch Changes
+
+- Updated dependencies [f634bac]
+  - @ai-sdk/provider-utils@5.0.0-canary.35
+  - @ai-sdk/gateway@4.0.0-canary.73
+
+## 7.0.0-canary.125
+
+### Major Changes
+
+- 31f69de: fix(ai): carry prepareStep message overrides forward across steps
+- 7c71ac6: fix(ai): limit response messages in StepResult to messages created in that step
+
+### Patch Changes
+
+- fd4f578: fix(ai): exclude request and response bodies from text generation results by default to reduce memory usage.
+- c0c8ca2: fix(ai): remove deprecated LanguageModelUsage properties
+- 5faf71c: feat: introduce responseMessages on GenerateTextResult and StreamTextResult
+- 69254e0: feat(ai): add toolMetadata for tool specific metdata
+- 3015fc3: feat: sandbox shell execution abstraction
+- eee1166: feat(ai): expose initial and response messages in prepareStep
+- 7dbf992: feat(ai): allow prepareStep to override sandbox per step
+- Updated dependencies [69254e0]
+- Updated dependencies [3015fc3]
+  - @ai-sdk/provider-utils@5.0.0-canary.34
+  - @ai-sdk/gateway@4.0.0-canary.72
+
+## 7.0.0-canary.124
+
+### Patch Changes
+
+- 69aeb0e: feat: add deprecated tool call lifecycle callback aliases for AI SDK 6 compatibility.
+- 48e92f3: feat: make include stable
+
+## 7.0.0-canary.123
+
+### Patch Changes
+
+- 7392266: feat: move includeRawChunks to include.rawChunks
+- 4bb4dbc: feat: introduce include.requestMessage option for step request message storage opt-in
+
+## 7.0.0-canary.122
+
+### Patch Changes
+
+- 79b2468: feat: add request.messages to StepResult
+- c22750c: fix(ai): move onToolExecutionStart and onToolExecutionEnd to stable
+
 ## 7.0.0-canary.121
 
 ### Patch Changes
@@ -1535,7 +1684,6 @@
 ### Patch Changes
 
 - 2dc9bfa: fix(ai): handle provider-executed tools and tool-approval-response in validation
-
   - Skip validation for tool calls with `providerExecuted: true` (deferred results)
   - Map approvalId to toolCallId for proper tool-approval-response handling
   - Filter out empty tool messages after content filtering

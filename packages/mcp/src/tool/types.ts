@@ -10,6 +10,13 @@ export const SUPPORTED_PROTOCOL_VERSIONS = [
   '2024-11-05',
 ];
 
+export type McpProviderMetadata = {
+  clientName?: string;
+  title?: string;
+  toolName?: string;
+  app?: JSONObject;
+};
+
 /** MCP tool metadata - keys should follow MCP _meta key format specification */
 const ToolMetaSchema = z.optional(z.record(z.string(), z.unknown()));
 export type ToolMeta = z.infer<typeof ToolMetaSchema>;

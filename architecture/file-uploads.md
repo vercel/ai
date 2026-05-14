@@ -39,6 +39,7 @@ type FilesV4 = {
 ```
 
 The `uploadFile` method receives raw file data (not URLs) and returns a `FilesV4UploadFileResult` containing:
+
 - `providerReference`: A `SharedV4ProviderReference` with the provider's file ID
 - `providerMetadata`: Optional provider-specific metadata
 - `warnings`: Any warnings from the provider
@@ -86,12 +87,13 @@ Add a `files()` factory method to the provider that creates the files interface:
 ```ts
 const provider = {
   // ... existing model factories
-  files: () => createMyProviderFiles({
-    provider: 'myprovider.files',
-    baseURL,
-    headers: getHeaders,
-    fetch: options.fetch,
-  }),
+  files: () =>
+    createMyProviderFiles({
+      provider: 'myprovider.files',
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+    }),
 };
 ```
 
@@ -140,9 +142,9 @@ This ensures TypeScript correctly narrows the type of `part.data` for subsequent
 
 ## Existing Implementations
 
-| Provider  | Files implementation | Message conversion |
-| --------- | -------------------- | ------------------- |
-| OpenAI    | [`packages/openai/src/files/openai-files.ts`](../packages/openai/src/files/openai-files.ts) | [`packages/openai/src/chat/convert-to-openai-chat-messages.ts`](../packages/openai/src/chat/convert-to-openai-chat-messages.ts) |
+| Provider  | Files implementation                                                                        | Message conversion                                                                                                                    |
+| --------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| OpenAI    | [`packages/openai/src/files/openai-files.ts`](../packages/openai/src/files/openai-files.ts) | [`packages/openai/src/chat/convert-to-openai-chat-messages.ts`](../packages/openai/src/chat/convert-to-openai-chat-messages.ts)       |
 | Anthropic | [`packages/anthropic/src/anthropic-files.ts`](../packages/anthropic/src/anthropic-files.ts) | [`packages/anthropic/src/convert-to-anthropic-messages-prompt.ts`](../packages/anthropic/src/convert-to-anthropic-messages-prompt.ts) |
-| Google    | [`packages/google/src/google-files.ts`](../packages/google/src/google-files.ts) | [`packages/google/src/convert-to-google-messages.ts`](../packages/google/src/convert-to-google-messages.ts) |
-| xAI       | [`packages/xai/src/files/xai-files.ts`](../packages/xai/src/files/xai-files.ts) | [`packages/xai/src/convert-to-xai-chat-messages.ts`](../packages/xai/src/convert-to-xai-chat-messages.ts) |
+| Google    | [`packages/google/src/google-files.ts`](../packages/google/src/google-files.ts)             | [`packages/google/src/convert-to-google-messages.ts`](../packages/google/src/convert-to-google-messages.ts)                           |
+| xAI       | [`packages/xai/src/files/xai-files.ts`](../packages/xai/src/files/xai-files.ts)             | [`packages/xai/src/convert-to-xai-chat-messages.ts`](../packages/xai/src/convert-to-xai-chat-messages.ts)                             |

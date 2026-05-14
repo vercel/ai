@@ -8,7 +8,9 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    includeRawChunks: true,
+    include: {
+      rawChunks: true,
+    },
     onChunk({ chunk }) {
       if (chunk.type === 'raw') {
         const raw = chunk.rawValue as Record<string, unknown>;
@@ -274,7 +276,7 @@ run(async () => {
 
   console.log('\n');
 
-  const providerMetadata = await result.providerMetadata;
+  const providerMetadata = (await result.finalStep).providerMetadata;
   console.log('providerMetadata:', JSON.stringify(providerMetadata, null, 2));
   console.log(
     'contextManagement:',

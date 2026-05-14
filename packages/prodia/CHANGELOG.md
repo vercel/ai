@@ -1,5 +1,55 @@
 # @ai-sdk/prodia
 
+## 2.0.0-canary.44
+
+### Patch Changes
+
+- Updated dependencies [a7de9c9]
+  - @ai-sdk/provider-utils@5.0.0-canary.40
+
+## 2.0.0-canary.43
+
+### Patch Changes
+
+- Updated dependencies [105f95b]
+  - @ai-sdk/provider-utils@5.0.0-canary.39
+
+## 2.0.0-canary.42
+
+### Patch Changes
+
+- Updated dependencies [ca446f8]
+  - @ai-sdk/provider-utils@5.0.0-canary.38
+
+## 2.0.0-canary.41
+
+### Patch Changes
+
+- Updated dependencies [d848405]
+  - @ai-sdk/provider-utils@5.0.0-canary.37
+
+## 2.0.0-canary.40
+
+### Patch Changes
+
+- Updated dependencies [ca39020]
+  - @ai-sdk/provider-utils@5.0.0-canary.36
+
+## 2.0.0-canary.39
+
+### Patch Changes
+
+- Updated dependencies [f634bac]
+  - @ai-sdk/provider-utils@5.0.0-canary.35
+
+## 2.0.0-canary.38
+
+### Patch Changes
+
+- Updated dependencies [69254e0]
+- Updated dependencies [3015fc3]
+  - @ai-sdk/provider-utils@5.0.0-canary.34
+
 ## 2.0.0-canary.37
 
 ### Patch Changes
@@ -275,7 +325,6 @@
 ### Patch Changes
 
 - e2bdcd6: feat(provider/prodia): Add LanguageModel and VideoModel support to the Prodia provider.
-
   - **LanguageModel**: Supports Nano Banana (`inference.nano-banana.img2img.v2`) for img2img generation with text+image output via multipart form-data requests. Implements both `doGenerate` and `doStream`.
   - **VideoModel**: Supports Wan 2.2 Lightning for text-to-video (`inference.wan2-2.lightning.txt2vid.v0`) and image-to-video (`inference.wan2-2.lightning.img2vid.v0`) generation.
   - Extract shared multipart parsing and error handling infrastructure into `prodia-api.ts`.
