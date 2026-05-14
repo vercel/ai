@@ -551,4 +551,35 @@ console.log(text);`,
     websiteUrl: 'https://you.com',
     npmUrl: 'https://www.npmjs.com/package/@youdotcom-oss/ai-sdk-plugin',
   },
+  {
+    slug: 'quantoracle',
+    name: 'QuantOracle',
+    description:
+      'Deterministic quant finance tools: Black-Scholes pricing with full Greeks, Kelly Criterion position sizing, Monte Carlo simulation, full risk audit (Sharpe/Sortino/Calmar/VaR/CVaR/Hurst), hedge recommender, implied volatility solver, binomial trees for American options, correlation matrices, impermanent loss, perp liquidation price. 15 tools across 4 opt-in bundles (core, options, risk, defi). Free tier covers 13 of 15 tools with no signup or API key — 1000 calls/IP/day. Paid composite tools settle in USDC via x402 micropayments on Base or Solana mainnet.',
+    packageName: '@quantoracle/ai-tools',
+    tags: ['finance', 'quant-finance', 'options'],
+    installCommand: {
+      pnpm: 'pnpm add @quantoracle/ai-tools',
+      npm: 'npm install @quantoracle/ai-tools',
+      yarn: 'yarn add @quantoracle/ai-tools',
+      bun: 'bun add @quantoracle/ai-tools',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { quantoracleTools } from '@quantoracle/ai-tools';
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  prompt:
+    'Price a 30-day SPY $500 call with vol=18%, spot=$498, rate=5%. ' +
+    'Then size a $50k account position with a 55% win rate, ' +
+    '$1,200 average win, and $800 average loss.',
+  tools: quantoracleTools(),
+  stopWhen: isStepCount(5),
+});
+
+console.log(text);`,
+    docsUrl: 'https://quantoracle.dev/writing/vercel-ai-sdk-quant-tools',
+    websiteUrl: 'https://quantoracle.dev',
+    npmUrl: 'https://www.npmjs.com/package/@quantoracle/ai-tools',
+  },
 ];
