@@ -100,10 +100,6 @@ export class MistralChatLanguageModel implements LanguageModelV3 {
       warnings.push({ type: 'unsupported', feature: 'presencePenalty' });
     }
 
-    if (stopSequences != null) {
-      warnings.push({ type: 'unsupported', feature: 'stopSequences' });
-    }
-
     const structuredOutputs = options.structuredOutputs ?? true;
     const strictJsonSchema = options.strictJsonSchema ?? false;
 
@@ -127,6 +123,7 @@ export class MistralChatLanguageModel implements LanguageModelV3 {
       max_tokens: maxOutputTokens,
       temperature,
       top_p: topP,
+      stop: stopSequences,
       random_seed: seed,
       reasoning_effort: options.reasoningEffort,
 
