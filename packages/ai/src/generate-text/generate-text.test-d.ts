@@ -379,7 +379,7 @@ describe('generateText types', () => {
           model: new MockLanguageModelV4(),
           prompt: 'Hello',
           prepareStep: () => ({
-            sandbox: {
+            experimental_sandbox: {
               description: 'test sandbox',
               executeCommand: async () => ({
                 exitCode: 0,

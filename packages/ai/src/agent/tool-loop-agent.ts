@@ -1,8 +1,8 @@
 import {
   validateTypes,
   type Context,
+  type Experimental_Sandbox as Sandbox,
   type ModelMessage,
-  type Sandbox,
   type ToolSet,
 } from '@ai-sdk/provider-utils';
 import { generateText } from '../generate-text/generate-text';
@@ -79,7 +79,7 @@ export class ToolLoopAgent<
     prompt?: string | Array<ModelMessage>;
     messages?: Array<ModelMessage>;
     options?: CALL_OPTIONS;
-    sandbox?: Sandbox;
+    experimental_sandbox?: Sandbox;
   }): Promise<
     Omit<
       ToolLoopAgentSettings<CALL_OPTIONS, TOOLS, RUNTIME_CONTEXT, OUTPUT>,
@@ -161,7 +161,7 @@ export class ToolLoopAgent<
   async generate({
     abortSignal,
     timeout,
-    sandbox,
+    experimental_sandbox: sandbox,
     experimental_onStart,
     experimental_onStepStart,
     onToolExecutionStart,
@@ -173,11 +173,14 @@ export class ToolLoopAgent<
     GenerateTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>
   > {
     const generate = generateText<TOOLS, RUNTIME_CONTEXT, OUTPUT>;
-    const preparedCall = await this.prepareCall({ ...options, sandbox });
+    const preparedCall = await this.prepareCall({
+      ...options,
+      experimental_sandbox: sandbox,
+    });
     const callbackArgs = {
       abortSignal,
       timeout,
-      sandbox,
+      experimental_sandbox: sandbox,
       experimental_onStart: mergeCallbacks(
         this.settings.experimental_onStart,
         experimental_onStart as
@@ -214,7 +217,7 @@ export class ToolLoopAgent<
   async stream({
     abortSignal,
     timeout,
-    sandbox,
+    experimental_sandbox: sandbox,
     experimental_transform,
     experimental_onStart,
     experimental_onStepStart,
@@ -227,11 +230,14 @@ export class ToolLoopAgent<
     StreamTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>
   > {
     const stream = streamText<TOOLS, RUNTIME_CONTEXT, OUTPUT>;
-    const preparedCall = await this.prepareCall({ ...options, sandbox });
+    const preparedCall = await this.prepareCall({
+      ...options,
+      experimental_sandbox: sandbox,
+    });
     const callbackArgs = {
       abortSignal,
       timeout,
-      sandbox,
+      experimental_sandbox: sandbox,
       experimental_transform,
       experimental_onStart: mergeCallbacks(
         this.settings.experimental_onStart,

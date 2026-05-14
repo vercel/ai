@@ -1,5 +1,25 @@
 # @ai-sdk/open-responses
 
+## 2.0.0-canary.44
+
+### Patch Changes
+
+- Updated dependencies [a7de9c9]
+  - @ai-sdk/provider-utils@5.0.0-canary.40
+
+## 2.0.0-canary.43
+
+### Patch Changes
+
+- Updated dependencies [105f95b]
+  - @ai-sdk/provider-utils@5.0.0-canary.39
+
+## 2.0.0-canary.42
+
+### Patch Changes
+
+- 52d2e30: fix(open-responses): map non-image file parts to input_file
+
 ## 2.0.0-canary.41
 
 ### Patch Changes

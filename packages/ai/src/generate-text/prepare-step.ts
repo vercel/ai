@@ -1,9 +1,9 @@
 import type {
   Context,
+  Experimental_Sandbox as Sandbox,
   InferToolSetContext,
   ModelMessage,
   ProviderOptions,
-  Sandbox,
   ToolSet,
 } from '@ai-sdk/provider-utils';
 import type { Instructions } from '../prompt';
@@ -87,7 +87,7 @@ export type PrepareStepFunction<
   /**
    * The sandbox environment that the step is operating in.
    */
-  sandbox?: Sandbox;
+  experimental_sandbox?: Sandbox;
 }) =>
   | PromiseLike<PrepareStepResult<TOOLS, RUNTIME_CONTEXT>>
   | PrepareStepResult<TOOLS, RUNTIME_CONTEXT>;
@@ -159,7 +159,7 @@ export type PrepareStepResult<
        *
        * Changing the sandbox will affect tool execution in this step only.
        */
-      sandbox?: Sandbox;
+      experimental_sandbox?: Sandbox;
 
       /**
        * Additional provider-specific options for this step.

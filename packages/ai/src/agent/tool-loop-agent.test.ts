@@ -1,5 +1,8 @@
 import type { LanguageModelV4CallOptions } from '@ai-sdk/provider';
-import { tool, type Sandbox } from '@ai-sdk/provider-utils';
+import {
+  tool,
+  type Experimental_Sandbox as Sandbox,
+} from '@ai-sdk/provider-utils';
 import {
   convertArrayToReadableStream,
   mockId,
@@ -112,13 +115,16 @@ describe('ToolLoopAgent', () => {
       const agent = new ToolLoopAgent({
         model: mockModel,
         prepareCall: options => {
-          recordedSandbox = options.sandbox;
+          recordedSandbox = options.experimental_sandbox;
 
           return options;
         },
       });
 
-      await agent.generate({ prompt: 'Hello, world!', sandbox });
+      await agent.generate({
+        prompt: 'Hello, world!',
+        experimental_sandbox: sandbox,
+      });
 
       expect(recordedSandbox).toBe(sandbox);
     });
@@ -222,7 +228,7 @@ describe('ToolLoopAgent', () => {
         tools: {
           testTool: tool({
             inputSchema: z.object({ value: z.string() }),
-            execute: async ({ value }, { sandbox }) => {
+            execute: async ({ value }, { experimental_sandbox: sandbox }) => {
               recordedSandbox = sandbox;
               return value;
             },
@@ -230,7 +236,10 @@ describe('ToolLoopAgent', () => {
         },
       });
 
-      await agent.generate({ prompt: 'test', sandbox });
+      await agent.generate({
+        prompt: 'test',
+        experimental_sandbox: sandbox,
+      });
 
       expect(recordedSandbox).toBe(sandbox);
     });
@@ -691,13 +700,16 @@ describe('ToolLoopAgent', () => {
       const agent = new ToolLoopAgent({
         model: mockModel,
         prepareCall: options => {
-          recordedSandbox = options.sandbox;
+          recordedSandbox = options.experimental_sandbox;
 
           return options;
         },
       });
 
-      const result = await agent.stream({ prompt: 'Hello, world!', sandbox });
+      const result = await agent.stream({
+        prompt: 'Hello, world!',
+        experimental_sandbox: sandbox,
+      });
       await result.consumeStream();
 
       expect(recordedSandbox).toBe(sandbox);
@@ -831,7 +843,7 @@ describe('ToolLoopAgent', () => {
         tools: {
           testTool: tool({
             inputSchema: z.object({ value: z.string() }),
-            execute: async ({ value }, { sandbox }) => {
+            execute: async ({ value }, { experimental_sandbox: sandbox }) => {
               recordedSandbox = sandbox;
               return value;
             },
@@ -839,7 +851,10 @@ describe('ToolLoopAgent', () => {
         },
       });
 
-      const result = await agent.stream({ prompt: 'test', sandbox });
+      const result = await agent.stream({
+        prompt: 'test',
+        experimental_sandbox: sandbox,
+      });
       await result.consumeStream();
 
       expect(recordedSandbox).toBe(sandbox);
@@ -2679,7 +2694,6 @@ describe('ToolLoopAgent', () => {
         expect(event).toMatchInlineSnapshot(`
           {
             "callId": "call-2",
-            "durationMs": 0,
             "messages": [
               {
                 "content": "test",
@@ -2698,6 +2712,7 @@ describe('ToolLoopAgent', () => {
               "type": "tool-call",
             },
             "toolContext": undefined,
+            "toolExecutionMs": 0,
             "toolOutput": {
               "dynamic": false,
               "input": {
@@ -2900,7 +2915,6 @@ describe('ToolLoopAgent', () => {
         expect(event).toMatchInlineSnapshot(`
           {
             "callId": "call-3",
-            "durationMs": 0,
             "messages": [
               {
                 "content": "test",
@@ -2919,6 +2933,7 @@ describe('ToolLoopAgent', () => {
               "type": "tool-call",
             },
             "toolContext": undefined,
+            "toolExecutionMs": 0,
             "toolOutput": {
               "dynamic": false,
               "input": {

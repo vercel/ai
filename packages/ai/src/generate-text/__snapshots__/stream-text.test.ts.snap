@@ -248,6 +248,15 @@ exports[`streamText > result.fullStream > should send delayed asynchronous tool 
   },
   {
     "finishReason": "stop",
+    "performance": {
+      "responseTimeMs": 0,
+      "stepTimeMs": 60,
+      "timeToFirstTokenMs": undefined,
+      "tokensPerSecond": 0,
+      "toolExecutionMs": {
+        "call-1": 60,
+      },
+    },
     "providerMetadata": undefined,
     "rawFinishReason": "stop",
     "response": {
@@ -325,6 +334,13 @@ exports[`streamText > result.fullStream > should send tool calls 1`] = `
   },
   {
     "finishReason": "stop",
+    "performance": {
+      "responseTimeMs": 0,
+      "stepTimeMs": 0,
+      "timeToFirstTokenMs": undefined,
+      "tokensPerSecond": 0,
+      "toolExecutionMs": {},
+    },
     "providerMetadata": undefined,
     "rawFinishReason": "stop",
     "response": {
@@ -408,6 +424,15 @@ exports[`streamText > result.fullStream > should send tool results 1`] = `
   },
   {
     "finishReason": "stop",
+    "performance": {
+      "responseTimeMs": 0,
+      "stepTimeMs": 0,
+      "timeToFirstTokenMs": undefined,
+      "tokensPerSecond": 0,
+      "toolExecutionMs": {
+        "call-1": 0,
+      },
+    },
     "providerMetadata": undefined,
     "rawFinishReason": "stop",
     "response": {
@@ -761,6 +786,13 @@ exports[`streamText > tools with custom schema > should send tool calls 1`] = `
   },
   {
     "finishReason": "stop",
+    "performance": {
+      "responseTimeMs": 400,
+      "stepTimeMs": 500,
+      "timeToFirstTokenMs": undefined,
+      "tokensPerSecond": 25,
+      "toolExecutionMs": {},
+    },
     "providerMetadata": undefined,
     "rawFinishReason": "stop",
     "response": {

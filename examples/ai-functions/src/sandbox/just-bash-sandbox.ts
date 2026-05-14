@@ -1,4 +1,4 @@
-import { type Sandbox } from 'ai';
+import { type Experimental_Sandbox as Sandbox } from 'ai';
 import { type Bash } from 'just-bash';
 
 export class JustBashSandbox implements Sandbox {

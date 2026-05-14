@@ -133,10 +133,10 @@ For the full model, including sensitive context filtering and where each context
 value is available, see [Runtime and Tool
 Context](/docs/ai-sdk-core/runtime-and-tool-context).
 
-### Tools That Use Sandboxes
+### Tools That Use Experimental Sandboxes
 
-Pass `sandbox` when an agent tool needs a command or code execution
-environment. The sandbox is a per-call value, so provide it to `generate()`,
+Pass `experimental_sandbox` when an agent tool needs a command or code execution
+environment. The experimental sandbox is a per-call value, so provide it to `generate()`,
 `stream()`, or the agent UI stream helper that invokes the agent.
 
 ```ts highlight="8-16,25"
@@ -145,20 +145,20 @@ const agent = new ToolLoopAgent({
   instructions: 'You are a coding assistant. Use the shell tool when needed.',
   tools: {
     shell: tool({
-      description: 'Execute shell commands in the sandbox.',
+      description: 'Execute shell commands in the experimental sandbox.',
       inputSchema: z.object({
         command: z.string(),
         workingDirectory: z.string().optional(),
       }),
       execute: async (
         { command, workingDirectory },
-        { abortSignal, sandbox },
+        { abortSignal, experimental_sandbox },
       ) => {
-        if (!sandbox) {
-          throw new Error('Sandbox is not available');
+        if (!experimental_sandbox) {
+          throw new Error('Experimental sandbox is not available');
         }
 
-        return sandbox.executeCommand({
+        return experimental_sandbox.executeCommand({
           command,
           workingDirectory,
           abortSignal,
@@ -169,16 +169,16 @@ const agent = new ToolLoopAgent({
 });
 
 const result = await agent.generate({
-  prompt: `Run the tests.\n\nSandbox:\n${sandbox.description}`,
-  sandbox,
+  prompt: `Run the tests.\n\nSandbox:\n${experimental_sandbox.description}`,
+  experimental_sandbox,
 });
 ```
 
-The sandbox description is not added to the model prompt automatically. Include
+The experimental sandbox description is not added to the model prompt automatically. Include
 it in the prompt or instructions when the model needs to know environment
-details. Passing a sandbox does not sandbox the tool itself; the tool must
-explicitly delegate operations to the sandbox. See the
-[`sandbox` section in Tool Calling](/docs/ai-sdk-core/tools-and-tool-calling#sandbox)
+details. Passing an experimental sandbox does not sandbox the tool itself; the tool must
+explicitly delegate operations to the experimental sandbox. See the
+[Experimental Sandbox section in Tool Calling](/docs/ai-sdk-core/tools-and-tool-calling#experimental-sandbox)
 for more details.
 
 You can also require approval before a tool executes. Configure approval on the
@@ -483,16 +483,21 @@ const result = await myAgent.generate({
     console.log(`Tool call starting: ${toolCall.toolName}`);
   },
 
-  onToolExecutionEnd({ toolCall, durationMs, toolOutput }) {
-    console.log(`Tool call finished: ${toolCall.toolName} (${durationMs}ms)`, {
-      success: toolOutput.type === 'tool-result',
-    });
+  onToolExecutionEnd({ toolCall, toolExecutionMs, toolOutput }) {
+    console.log(
+      `Tool call finished: ${toolCall.toolName} (${toolExecutionMs}ms)`,
+      {
+        success: toolOutput.type === 'tool-result',
+      },
+    );
   },
 
-  onStepFinish({ stepNumber, usage, finishReason, toolCalls }) {
+  onStepFinish({ stepNumber, usage, performance, finishReason, toolCalls }) {
     console.log(`Step ${stepNumber} completed:`, {
       inputTokens: usage.inputTokens,
       outputTokens: usage.outputTokens,
+      tokensPerSecond: performance.tokensPerSecond,
+      stepTimeMs: performance.stepTimeMs,
       finishReason,
       toolsUsed: toolCalls?.map(tc => tc.toolName),
     });
@@ -512,8 +517,8 @@ The available lifecycle callbacks are:
 - **`experimental_onStart`**: Called once when the agent operation begins, before any LLM calls. Receives model info, messages, settings, and `runtimeContext`.
 - **`experimental_onStepStart`**: Called before each step (LLM call). Receives the step number, model, messages being sent, tools, and prior steps.
 - **`onToolExecutionStart`**: Called right before a tool's `execute` function runs. Receives the tool call object, messages, and `toolContext`.
-- **`onToolExecutionEnd`**: Called right after a tool's `execute` function completes or errors. Receives the tool call, `durationMs`, and a `toolOutput` discriminated union (`type: 'tool-result'` with `output`, or `type: 'tool-error'` with `error`).
-- **`onStepFinish`**: Called after each step finishes. Receives step results including usage, finish reason, and tool calls.
+- **`onToolExecutionEnd`**: Called right after a tool's `execute` function completes or errors. Receives the tool call, `toolExecutionMs`, and a `toolOutput` discriminated union (`type: 'tool-result'` with `output`, or `type: 'tool-error'` with `error`).
+- **`onStepFinish`**: Called after each step finishes. Receives step results including usage, performance, finish reason, and tool calls.
 - **`onFinish`**: Called when all steps are finished and the response is complete. Receives all step results, total usage, and `runtimeContext`.
 
 #### Constructor vs. Method Callbacks
