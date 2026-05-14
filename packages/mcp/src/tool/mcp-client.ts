@@ -88,6 +88,30 @@ function mcpToModelOutput({
           data: { type: 'data' as const, data: part.data as string },
         };
       }
+      if (part.type === 'audio' && 'data' in part && 'mimeType' in part) {
+        return {
+          type: 'file' as const,
+          mediaType: part.mimeType as string,
+          data: { type: 'data' as const, data: part.data as string },
+        };
+      }
+      if (part.type === 'resource' && 'resource' in part) {
+        const resource = part.resource as {
+          blob?: string;
+          text?: string;
+          mimeType?: string;
+        };
+        if ('blob' in resource && resource.blob != null) {
+          return {
+            type: 'file' as const,
+            mediaType: resource.mimeType ?? 'application/octet-stream',
+            data: { type: 'data' as const, data: resource.blob as string },
+          };
+        }
+        if ('text' in resource && resource.text != null) {
+          return { type: 'text' as const, text: resource.text as string };
+        }
+      }
       return { type: 'text' as const, text: JSON.stringify(part) };
     },
   );

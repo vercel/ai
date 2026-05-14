@@ -483,6 +483,212 @@ describe('MCPClient', () => {
     `);
   });
 
+  it('should convert audio content to file format via toModelOutput', async () => {
+    createMockTransport.mockImplementation(
+      () =>
+        new MockMCPTransport({
+          overrideTools: [
+            {
+              name: 'get-audio',
+              description: 'Returns audio content',
+              inputSchema: { type: 'object' },
+            },
+          ],
+          toolCallResults: {
+            'get-audio': {
+              content: [
+                {
+                  type: 'audio',
+                  data: 'base64audiodata',
+                  mimeType: 'audio/wav',
+                },
+              ],
+              isError: false,
+            },
+          },
+        }),
+    );
+
+    client = await createMCPClient({
+      transport: { type: 'sse', url: 'https://example.com/sse' },
+    });
+
+    const tools = await client.tools();
+    const tool = tools['get-audio'];
+
+    expect(tool.toModelOutput).toBeDefined();
+    expect(
+      tool.toModelOutput!({
+        toolCallId: '1',
+        input: {},
+        output: {
+          content: [
+            {
+              type: 'audio',
+              data: 'base64audiodata',
+              mimeType: 'audio/wav',
+            },
+          ],
+          isError: false,
+        },
+      }),
+    ).toMatchInlineSnapshot(`
+      {
+        "type": "content",
+        "value": [
+          {
+            "data": {
+              "data": "base64audiodata",
+              "type": "data",
+            },
+            "mediaType": "audio/wav",
+            "type": "file",
+          },
+        ],
+      }
+    `);
+  });
+
+  it('should convert embedded blob resource to file format via toModelOutput', async () => {
+    createMockTransport.mockImplementation(
+      () =>
+        new MockMCPTransport({
+          overrideTools: [
+            {
+              name: 'get-resource',
+              description: 'Returns embedded resource',
+              inputSchema: { type: 'object' },
+            },
+          ],
+          toolCallResults: {
+            'get-resource': {
+              content: [
+                {
+                  type: 'resource',
+                  resource: {
+                    uri: 'file:///data/audio.ogg',
+                    mimeType: 'audio/ogg',
+                    blob: 'base64blobdata',
+                  },
+                },
+              ],
+              isError: false,
+            },
+          },
+        }),
+    );
+
+    client = await createMCPClient({
+      transport: { type: 'sse', url: 'https://example.com/sse' },
+    });
+
+    const tools = await client.tools();
+    const tool = tools['get-resource'];
+
+    expect(tool.toModelOutput).toBeDefined();
+    expect(
+      tool.toModelOutput!({
+        toolCallId: '1',
+        input: {},
+        output: {
+          content: [
+            {
+              type: 'resource',
+              resource: {
+                uri: 'file:///data/audio.ogg',
+                mimeType: 'audio/ogg',
+                blob: 'base64blobdata',
+              },
+            },
+          ],
+          isError: false,
+        },
+      }),
+    ).toMatchInlineSnapshot(`
+      {
+        "type": "content",
+        "value": [
+          {
+            "data": {
+              "data": "base64blobdata",
+              "type": "data",
+            },
+            "mediaType": "audio/ogg",
+            "type": "file",
+          },
+        ],
+      }
+    `);
+  });
+
+  it('should convert embedded text resource to text format via toModelOutput', async () => {
+    createMockTransport.mockImplementation(
+      () =>
+        new MockMCPTransport({
+          overrideTools: [
+            {
+              name: 'get-text-resource',
+              description: 'Returns text resource',
+              inputSchema: { type: 'object' },
+            },
+          ],
+          toolCallResults: {
+            'get-text-resource': {
+              content: [
+                {
+                  type: 'resource',
+                  resource: {
+                    uri: 'file:///data/readme.md',
+                    mimeType: 'text/markdown',
+                    text: '# Hello World',
+                  },
+                },
+              ],
+              isError: false,
+            },
+          },
+        }),
+    );
+
+    client = await createMCPClient({
+      transport: { type: 'sse', url: 'https://example.com/sse' },
+    });
+
+    const tools = await client.tools();
+    const tool = tools['get-text-resource'];
+
+    expect(tool.toModelOutput).toBeDefined();
+    expect(
+      tool.toModelOutput!({
+        toolCallId: '1',
+        input: {},
+        output: {
+          content: [
+            {
+              type: 'resource',
+              resource: {
+                uri: 'file:///data/readme.md',
+                mimeType: 'text/markdown',
+                text: '# Hello World',
+              },
+            },
+          ],
+          isError: false,
+        },
+      }),
+    ).toMatchInlineSnapshot(`
+      {
+        "type": "content",
+        "value": [
+          {
+            "text": "# Hello World",
+            "type": "text",
+          },
+        ],
+      }
+    `);
+  });
+
   it('should fallback to JSON for unknown content types via toModelOutput', async () => {
     createMockTransport.mockImplementation(
       () =>
