@@ -395,7 +395,9 @@ describe('parseToolCall', () => {
           "dynamic": true,
           "error": [AI_InvalidToolInputError: Invalid input for tool testTool: AI_JSONParseError: JSON parsing failed: Text: invalid json.
         Error message: SyntaxError: Unexpected token 'i', "invalid json" is not valid JSON],
-          "input": "invalid json",
+          "input": {
+            "rawInvalidInput": "invalid json",
+          },
           "invalid": true,
           "providerExecuted": undefined,
           "providerMetadata": undefined,
@@ -434,7 +436,9 @@ describe('parseToolCall', () => {
         {
           "dynamic": true,
           "error": [AI_ToolCallRepairError: Error repairing tool call: Error: test error],
-          "input": "invalid json",
+          "input": {
+            "rawInvalidInput": "invalid json",
+          },
           "invalid": true,
           "providerExecuted": undefined,
           "providerMetadata": undefined,
@@ -484,6 +488,30 @@ describe('parseToolCall', () => {
         "type": "tool-call",
       }
     `);
+  });
+
+  it('should wrap malformed JSON input in rawInvalidInput object for invalid tool calls', async () => {
+    const result = await parseToolCall({
+      toolCall: {
+        type: 'tool-call',
+        toolName: 'testTool',
+        toolCallId: '123',
+        input: 'not valid json {',
+      },
+      tools: {
+        testTool: tool({
+          inputSchema: z.object({
+            param1: z.string(),
+          }),
+        }),
+      } as const,
+      repairToolCall: undefined,
+      messages: [],
+      system: undefined,
+    });
+
+    expect(result.invalid).toBe(true);
+    expect(result.input).toEqual({ rawInvalidInput: 'not valid json {' });
   });
 
   describe('tool title', () => {
