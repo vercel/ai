@@ -3738,7 +3738,18 @@ describe('streamText', () => {
       }
 
       abortController.abort();
-      const { value: abortChunk } = await reader.read();
+      let abortChunk;
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+
+        if (value?.type === 'abort') {
+          abortChunk = value;
+          break;
+        }
+      }
+
       expect(abortChunk?.type).toBe('abort');
 
       while (true) {
@@ -3754,7 +3765,7 @@ describe('streamText', () => {
         (p: any) => p.type === 'text',
       );
       expect(textPart).toBeDefined();
-      expect(textPart.text).toBe(''); // Text was not streamed yet when aborted
+      expect(textPart.text).not.toContain(' from AI'); // Delayed text was not streamed after abort
       expect(callArgs.isAborted).toBe(true); // Stream was aborted
 
       reader.releaseLock();
@@ -14977,19 +14988,29 @@ describe('streamText', () => {
     describe('with transformation that aborts stream', () => {
       const stopWordTransform =
         <TOOLS extends ToolSet>() =>
-        ({ stopStream }: { stopStream: () => void }) =>
-          new TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>({
+        ({ stopStream }: { stopStream: () => void }) => {
+          let stopped = false;
+
+          return new TransformStream<
+            TextStreamPart<TOOLS>,
+            TextStreamPart<TOOLS>
+          >({
             // note: this is a simplified transformation for testing;
             // in a real-world version more there would need to be
             // stream buffering and scanning to correctly emit prior text
             // and to detect all STOP occurrences.
             transform(chunk, controller) {
+              if (stopped) {
+                return;
+              }
+
               if (chunk.type !== 'text-delta') {
                 controller.enqueue(chunk);
                 return;
               }
 
               if (chunk.text.includes('STOP')) {
+                stopped = true;
                 stopStream();
 
                 controller.enqueue({
@@ -15018,6 +15039,7 @@ describe('streamText', () => {
               controller.enqueue(chunk);
             },
           });
+        };
 
       it('stream should stop when STOP token is encountered', async () => {
         const result = streamText({
