@@ -1,7 +1,8 @@
 /**
  * Recursively removes `additionalProperties: false` entries from a JSON
  * schema.
- * Used to sanitize tool input schemas before sending them to the xAI API,
+ * Used to sanitize tool input schemas before sending them to the xAI API.
+ * https://docs.x.ai/developers/model-capabilities/text/structured-outputs#supported-types
  */
 export function removeAdditionalPropertiesFalse(value: unknown): unknown {
   if (Array.isArray(value)) {
