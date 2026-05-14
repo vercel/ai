@@ -1289,6 +1289,144 @@ describe('XaiResponsesLanguageModel', () => {
           ]
         `);
       });
+
+      it('should omit additionalProperties from serialized function tool schemas', async () => {
+        prepareJsonResponse({
+          id: 'resp_123',
+          object: 'response',
+          status: 'completed',
+          model: 'grok-4-fast-non-reasoning',
+          output: [],
+          usage: { input_tokens: 10, output_tokens: 5 },
+        });
+
+        await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'function',
+              name: 'saveContactWithAddress',
+              description: 'Save a contact with an address.',
+              inputSchema: {
+                type: 'object',
+                properties: {
+                  address: {
+                    type: 'object',
+                    properties: {
+                      city: { type: 'string' },
+                      country: { type: 'string' },
+                    },
+                    required: ['city', 'country'],
+                    additionalProperties: false,
+                  },
+                },
+                required: ['address'],
+                additionalProperties: false,
+                $schema: 'http://json-schema.org/draft-07/schema#',
+              },
+            },
+            {
+              type: 'function',
+              name: 'saveContactWithProperties',
+              description: 'Save a contact with a properties field.',
+              inputSchema: {
+                type: 'object',
+                properties: {
+                  properties: {
+                    type: 'object',
+                    properties: {
+                      city: { type: 'string' },
+                      country: { type: 'string' },
+                    },
+                    required: ['city', 'country'],
+                    additionalProperties: false,
+                  },
+                },
+                required: ['properties'],
+                additionalProperties: false,
+                $schema: 'http://json-schema.org/draft-07/schema#',
+              },
+            },
+          ],
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "grok-4-fast-non-reasoning",
+            "tools": [
+              {
+                "description": "Save a contact with an address.",
+                "name": "saveContactWithAddress",
+                "parameters": {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "properties": {
+                    "address": {
+                      "properties": {
+                        "city": {
+                          "type": "string",
+                        },
+                        "country": {
+                          "type": "string",
+                        },
+                      },
+                      "required": [
+                        "city",
+                        "country",
+                      ],
+                      "type": "object",
+                    },
+                  },
+                  "required": [
+                    "address",
+                  ],
+                  "type": "object",
+                },
+                "type": "function",
+              },
+              {
+                "description": "Save a contact with a properties field.",
+                "name": "saveContactWithProperties",
+                "parameters": {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "properties": {
+                    "properties": {
+                      "properties": {
+                        "city": {
+                          "type": "string",
+                        },
+                        "country": {
+                          "type": "string",
+                        },
+                      },
+                      "required": [
+                        "city",
+                        "country",
+                      ],
+                      "type": "object",
+                    },
+                  },
+                  "required": [
+                    "properties",
+                  ],
+                  "type": "object",
+                },
+                "type": "function",
+              },
+            ],
+          }
+        `);
+      });
     });
 
     describe('citations', () => {
