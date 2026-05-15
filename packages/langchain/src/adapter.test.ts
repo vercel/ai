@@ -1897,6 +1897,207 @@ describe('toUIMessageStream with streamEvents', () => {
     `);
   });
 
+  it('should emit tool-input-start from streamEvents tool call chunks', async () => {
+    const inputStream = convertArrayToReadableStream([
+      {
+        event: 'on_chat_model_stream',
+        data: {
+          chunk: {
+            id: 'stream-msg-1',
+            content: '',
+            tool_call_chunks: [
+              {
+                id: 'call-123',
+                name: 'get_weather',
+                args: '{"city":"SF"}',
+                index: 0,
+              },
+            ],
+          },
+        },
+      },
+    ]);
+
+    const result = await convertReadableStreamToArray(
+      toUIMessageStream(inputStream),
+    );
+
+    expect(result).toContainEqual({
+      type: 'tool-input-start',
+      toolCallId: 'call-123',
+      toolName: 'get_weather',
+      dynamic: true,
+    });
+    expect(result).toContainEqual({
+      type: 'tool-input-delta',
+      toolCallId: 'call-123',
+      inputTextDelta: '{"city":"SF"}',
+    });
+  });
+
+  it('should emit tool-input-available from streamEvents model end tool calls', async () => {
+    const inputStream = convertArrayToReadableStream([
+      {
+        event: 'on_chat_model_end',
+        data: {
+          output: {
+            id: 'stream-msg-1',
+            content: '',
+            tool_calls: [
+              {
+                id: 'call-123',
+                name: 'get_weather',
+                args: { city: 'SF' },
+              },
+            ],
+          },
+        },
+      },
+    ]);
+
+    const result = await convertReadableStreamToArray(
+      toUIMessageStream(inputStream),
+    );
+
+    expect(result).toContainEqual({
+      type: 'tool-input-start',
+      toolCallId: 'call-123',
+      toolName: 'get_weather',
+      dynamic: true,
+    });
+    expect(result).toContainEqual({
+      type: 'tool-input-available',
+      toolCallId: 'call-123',
+      toolName: 'get_weather',
+      input: { city: 'SF' },
+      dynamic: true,
+    });
+  });
+
+  it('should split streamEvents text parts around tool calls', async () => {
+    const inputStream = convertArrayToReadableStream([
+      {
+        event: 'on_chat_model_stream',
+        data: {
+          chunk: {
+            id: 'stream-msg-1',
+            content: 'Intro text.',
+          },
+        },
+      },
+      {
+        event: 'on_chat_model_stream',
+        data: {
+          chunk: {
+            id: 'stream-msg-1',
+            content: '',
+            tool_call_chunks: [
+              {
+                id: 'call-123',
+                name: 'get_weather',
+                args: '{"city":"SF"}',
+                index: 0,
+              },
+            ],
+          },
+        },
+      },
+      {
+        event: 'on_chat_model_end',
+        data: {
+          output: {
+            id: 'stream-msg-1',
+            content: '',
+            tool_calls: [
+              {
+                id: 'call-123',
+                name: 'get_weather',
+                args: { city: 'SF' },
+              },
+            ],
+          },
+        },
+      },
+      {
+        event: 'on_chat_model_stream',
+        data: {
+          chunk: {
+            id: 'stream-msg-1',
+            content: ' Report text.',
+          },
+        },
+      },
+    ]);
+
+    const result = await convertReadableStreamToArray(
+      toUIMessageStream(inputStream),
+    );
+
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "start",
+        },
+        {
+          "id": "stream-msg-1",
+          "type": "text-start",
+        },
+        {
+          "delta": "Intro text.",
+          "id": "stream-msg-1",
+          "type": "text-delta",
+        },
+        {
+          "id": "stream-msg-1",
+          "type": "text-end",
+        },
+        {
+          "dynamic": true,
+          "toolCallId": "call-123",
+          "toolName": "get_weather",
+          "type": "tool-input-start",
+        },
+        {
+          "inputTextDelta": "{"city":"SF"}",
+          "toolCallId": "call-123",
+          "type": "tool-input-delta",
+        },
+        {
+          "dynamic": true,
+          "input": {
+            "city": "SF",
+          },
+          "toolCallId": "call-123",
+          "toolName": "get_weather",
+          "type": "tool-input-available",
+        },
+        {
+          "id": "stream-msg-1-text-2",
+          "type": "text-start",
+        },
+        {
+          "delta": " Report text.",
+          "id": "stream-msg-1-text-2",
+          "type": "text-delta",
+        },
+        {
+          "id": "stream-msg-1-text-2",
+          "type": "text-end",
+        },
+        {
+          "type": "finish",
+        },
+      ]
+    `);
+
+    expect(
+      result.filter(chunk => chunk.type === 'tool-input-start'),
+    ).toHaveLength(1);
+    expect(
+      result.filter(chunk => chunk.type === 'tool-input-available'),
+    ).toHaveLength(1);
+  });
+
   it('should handle streamEvents with reasoning content', async () => {
     const inputStream = convertArrayToReadableStream([
       {

@@ -36,10 +36,10 @@
     }
   },
   "dependencies": {
+    "@ai-sdk/provider-utils": "workspace:*",
     "ai": "workspace:*"
   },
   "devDependencies": {
-    "@ai-sdk/provider-utils": "workspace:*",
     "@langchain/core": "^1.1.5",
     "@langchain/langgraph": "^1.0.5",
     "@types/node": "20.17.24",

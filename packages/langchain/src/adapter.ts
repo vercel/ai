@@ -3,6 +3,7 @@ import {
   type BaseMessage,
   type AIMessageChunk,
 } from '@langchain/core/messages';
+import { safeParseJSON } from '@ai-sdk/provider-utils';
 import {
   convertToModelMessages,
   type UIMessage,
@@ -111,6 +112,167 @@ function isStreamEventsEvent(
   return obj.data === null || typeof obj.data === 'object';
 }
 
+type StreamEventsToolCallInfo = {
+  id: string;
+  name: string;
+};
+
+type StreamEventsState = {
+  started: boolean;
+  messageId: string;
+  reasoningStarted: boolean;
+  textStarted: boolean;
+  textMessageId: string | null;
+  reasoningMessageId: string | null;
+  textPartCount: number;
+  toolCallInfoByIndex: Record<number, StreamEventsToolCallInfo>;
+  emittedToolCallStarts: Set<string>;
+  emittedToolCallAvailable: Set<string>;
+};
+
+function closeStreamEventsText(
+  state: StreamEventsState,
+  controller: ReadableStreamDefaultController<UIMessageChunk>,
+): void {
+  if (!state.textStarted) return;
+
+  controller.enqueue({
+    type: 'text-end',
+    id: state.textMessageId ?? state.messageId,
+  });
+  state.textStarted = false;
+  state.textMessageId = null;
+}
+
+function startStreamEventsText(
+  state: StreamEventsState,
+  controller: ReadableStreamDefaultController<UIMessageChunk>,
+): void {
+  if (state.textStarted) return;
+
+  state.textPartCount += 1;
+  const textId =
+    state.textPartCount === 1
+      ? state.messageId
+      : `${state.messageId}-text-${state.textPartCount}`;
+  state.textMessageId = textId;
+  controller.enqueue({ type: 'text-start', id: textId });
+  state.textStarted = true;
+  state.started = true;
+}
+
+function emitStreamEventsToolInputStart({
+  toolCallId,
+  toolName,
+  state,
+  controller,
+}: {
+  toolCallId: string;
+  toolName: string;
+  state: StreamEventsState;
+  controller: ReadableStreamDefaultController<UIMessageChunk>;
+}): void {
+  if (state.emittedToolCallStarts.has(toolCallId)) return;
+
+  closeStreamEventsText(state, controller);
+  controller.enqueue({
+    type: 'tool-input-start',
+    toolCallId,
+    toolName,
+    dynamic: true,
+  });
+  state.emittedToolCallStarts.add(toolCallId);
+  state.started = true;
+}
+
+function getObjectDataSource(value: unknown): Record<string, unknown> | null {
+  if (value == null || typeof value !== 'object') return null;
+
+  const obj = value as Record<string, unknown>;
+  if (obj.kwargs && typeof obj.kwargs === 'object') {
+    return obj.kwargs as Record<string, unknown>;
+  }
+
+  return obj;
+}
+
+function getStreamEventsToolCallChunks(
+  chunk: Record<string, unknown>,
+): Array<Record<string, unknown>> {
+  return Array.isArray(chunk.tool_call_chunks)
+    ? (chunk.tool_call_chunks as Array<Record<string, unknown>>)
+    : [];
+}
+
+async function parseToolCallInput(input: unknown): Promise<unknown> {
+  if (typeof input !== 'string') return input ?? {};
+
+  const parseResult = await safeParseJSON({ text: input });
+  return parseResult.success ? parseResult.value : input;
+}
+
+async function extractCompletedToolCalls(
+  output: unknown,
+): Promise<Array<{ id: string; name: string; input: unknown }>> {
+  const dataSource = getObjectDataSource(output);
+  if (!dataSource) return [];
+
+  if (Array.isArray(dataSource.tool_calls)) {
+    const toolCalls: Array<{ id: string; name: string; input: unknown }> = [];
+    for (const toolCall of dataSource.tool_calls) {
+      if (toolCall == null || typeof toolCall !== 'object') continue;
+
+      const toolCallObj = toolCall as Record<string, unknown>;
+      if (
+        typeof toolCallObj.id === 'string' &&
+        typeof toolCallObj.name === 'string'
+      ) {
+        toolCalls.push({
+          id: toolCallObj.id,
+          name: toolCallObj.name,
+          input: await parseToolCallInput(toolCallObj.args),
+        });
+      }
+    }
+
+    return toolCalls;
+  }
+
+  const additionalKwargs = dataSource.additional_kwargs;
+  if (
+    additionalKwargs == null ||
+    typeof additionalKwargs !== 'object' ||
+    !Array.isArray((additionalKwargs as Record<string, unknown>).tool_calls)
+  ) {
+    return [];
+  }
+
+  const toolCalls: Array<{ id: string; name: string; input: unknown }> = [];
+  for (const toolCall of (additionalKwargs as Record<string, unknown>)
+    .tool_calls as Array<unknown>) {
+    if (toolCall == null || typeof toolCall !== 'object') continue;
+
+    const toolCallObj = toolCall as Record<string, unknown>;
+    const functionData =
+      toolCallObj.function && typeof toolCallObj.function === 'object'
+        ? (toolCallObj.function as Record<string, unknown>)
+        : undefined;
+
+    if (
+      typeof toolCallObj.id === 'string' &&
+      typeof functionData?.name === 'string'
+    ) {
+      toolCalls.push({
+        id: toolCallObj.id,
+        name: functionData.name,
+        input: await parseToolCallInput(functionData.arguments),
+      });
+    }
+  }
+
+  return toolCalls;
+}
+
 /**
  * Processes a streamEvents event and emits UI message chunks.
  *
@@ -118,23 +280,16 @@ function isStreamEventsEvent(
  * @param state - The state for tracking stream progress.
  * @param controller - The controller to emit UI message chunks.
  */
-function processStreamEventsEvent(
+async function processStreamEventsEvent(
   event: {
     event: string;
     data: Record<string, unknown> | null;
     run_id?: string;
     name?: string;
   },
-  state: {
-    started: boolean;
-    messageId: string;
-    reasoningStarted: boolean;
-    textStarted: boolean;
-    textMessageId: string | null;
-    reasoningMessageId: string | null;
-  },
+  state: StreamEventsState,
   controller: ReadableStreamDefaultController<UIMessageChunk>,
-): void {
+): Promise<void> {
   /**
    * Capture run_id from event level if available (streamEvents v2 format)
    */
@@ -166,12 +321,55 @@ function processStreamEventsEvent(
        */
       const chunk = event.data.chunk;
       if (chunk && typeof chunk === 'object') {
+        const chunkObj = chunk as Record<string, unknown>;
         /**
          * Get message ID from chunk if available
          */
         const chunkId = (chunk as { id?: string }).id;
         if (chunkId) {
           state.messageId = chunkId;
+        }
+
+        const toolCallChunks = getStreamEventsToolCallChunks(chunkObj);
+        if (toolCallChunks.length > 0) {
+          closeStreamEventsText(state, controller);
+          for (const toolCallChunk of toolCallChunks) {
+            const index =
+              typeof toolCallChunk.index === 'number' ? toolCallChunk.index : 0;
+            const existingToolCall = state.toolCallInfoByIndex[index];
+            const toolCallId =
+              typeof toolCallChunk.id === 'string'
+                ? toolCallChunk.id
+                : existingToolCall?.id;
+            const toolName =
+              typeof toolCallChunk.name === 'string'
+                ? toolCallChunk.name
+                : existingToolCall?.name;
+
+            if (toolCallId && toolName) {
+              state.toolCallInfoByIndex[index] = {
+                id: toolCallId,
+                name: toolName,
+              };
+              emitStreamEventsToolInputStart({
+                toolCallId,
+                toolName,
+                state,
+                controller,
+              });
+
+              if (
+                typeof toolCallChunk.args === 'string' &&
+                toolCallChunk.args
+              ) {
+                controller.enqueue({
+                  type: 'tool-input-delta',
+                  toolCallId,
+                  inputTextDelta: toolCallChunk.args,
+                });
+              }
+            }
+          }
         }
 
         /**
@@ -229,17 +427,40 @@ function processStreamEventsEvent(
           }
 
           if (!state.textStarted) {
-            // Track the ID used for text-start to ensure text-end uses the same ID
-            state.textMessageId = state.messageId;
-            controller.enqueue({ type: 'text-start', id: state.messageId });
-            state.textStarted = true;
-            state.started = true;
+            startStreamEventsText(state, controller);
           }
           controller.enqueue({
             type: 'text-delta',
             delta: text,
             id: state.textMessageId ?? state.messageId,
           });
+        }
+      }
+      break;
+    }
+
+    case 'on_chat_model_end': {
+      const toolCalls = await extractCompletedToolCalls(event.data.output);
+      if (toolCalls.length === 0) break;
+
+      closeStreamEventsText(state, controller);
+      for (const toolCall of toolCalls) {
+        emitStreamEventsToolInputStart({
+          toolCallId: toolCall.id,
+          toolName: toolCall.name,
+          state,
+          controller,
+        });
+
+        if (!state.emittedToolCallAvailable.has(toolCall.id)) {
+          controller.enqueue({
+            type: 'tool-input-available',
+            toolCallId: toolCall.id,
+            toolName: toolCall.name,
+            input: toolCall.input,
+            dynamic: true,
+          });
+          state.emittedToolCallAvailable.add(toolCall.id);
         }
       }
       break;
@@ -254,11 +475,11 @@ function processStreamEventsEvent(
       const name = event.name || (event.data.name as string | undefined);
 
       if (runId && name) {
-        controller.enqueue({
-          type: 'tool-input-start',
+        emitStreamEventsToolInputStart({
           toolCallId: runId,
           toolName: name,
-          dynamic: true,
+          state,
+          controller,
         });
       }
       break;
@@ -378,6 +599,10 @@ export function toUIMessageStream<TState = unknown>(
     textMessageId: null as string | null,
     /** Track the ID used for reasoning-start to ensure reasoning-end uses the same ID */
     reasoningMessageId: null as string | null,
+    textPartCount: 0,
+    toolCallInfoByIndex: {} as Record<number, StreamEventsToolCallInfo>,
+    emittedToolCallStarts: new Set<string>(),
+    emittedToolCallAvailable: new Set<string>(),
   };
 
   /**
@@ -488,7 +713,7 @@ export function toUIMessageStream<TState = unknown>(
               wrappedController,
             );
           } else if (streamType === 'streamEvents') {
-            processStreamEventsEvent(
+            await processStreamEventsEvent(
               value as {
                 event: string;
                 data: Record<string, unknown> | null;
