@@ -1,5 +1,11 @@
 # ai
 
+## 7.0.0-canary.141
+
+### Patch Changes
+
+- e3a0419: fix(ai): default missing embedding warnings to an empty array
+
 ## 7.0.0-canary.140
 
 ### Patch Changes
