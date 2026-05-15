@@ -16,12 +16,12 @@ export class DefaultChatTransport<
     super(options);
   }
 
-  protected override prepareHeaders(
+  protected override prepareSendHeaders(
     headers: Record<string, string>,
   ): HeadersInit {
     return {
       accept: 'text/event-stream',
-      ...super.prepareHeaders(headers),
+      ...super.prepareSendHeaders(headers),
     };
   }
 

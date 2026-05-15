@@ -1315,6 +1315,26 @@ describe('processLangGraphEvent', () => {
     });
   });
 
+  it('should handle tool message output without message id', () => {
+    const state = createMockState();
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    const toolMsg = new ToolMessage({
+      tool_call_id: 'call-1',
+      content: 'Tool result',
+    });
+    processLangGraphEvent(['messages', [toolMsg]], state, controller);
+
+    expect(chunks).toEqual([
+      {
+        type: 'tool-output-available',
+        toolCallId: 'call-1',
+        output: 'Tool result',
+      },
+    ]);
+  });
+
   it('should handle plain AI message objects from RemoteGraph', () => {
     const state = createMockState();
     const chunks: unknown[] = [];

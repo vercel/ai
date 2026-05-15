@@ -199,16 +199,18 @@ function getObjectDataSource(value: unknown): Record<string, unknown> | null {
 function getStreamEventsToolCallChunks(
   chunk: Record<string, unknown>,
 ): Array<Record<string, unknown>> {
-  return Array.isArray(chunk.tool_call_chunks)
-    ? (chunk.tool_call_chunks as Array<Record<string, unknown>>)
+  const dataSource = getObjectDataSource(chunk);
+  return Array.isArray(dataSource?.tool_call_chunks)
+    ? (dataSource.tool_call_chunks as Array<Record<string, unknown>>)
     : [];
 }
 
 async function parseToolCallInput(input: unknown): Promise<unknown> {
-  if (typeof input !== 'string') return input ?? {};
+  if (input != null && typeof input === 'object') return input;
+  if (typeof input !== 'string' || input.length === 0) return {};
 
   const parseResult = await safeParseJSON({ text: input });
-  return parseResult.success ? parseResult.value : input;
+  return parseResult.success ? parseResult.value : {};
 }
 
 async function extractCompletedToolCalls(

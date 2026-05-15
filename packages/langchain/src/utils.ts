@@ -600,6 +600,9 @@ export function getMessageId(msg: unknown): string | undefined {
 }
 
 function getFallbackMessageId(metadata: Record<string, unknown> | undefined) {
+  // Prefer stable LangGraph identifiers when available. LangGraph versions and
+  // transports use different metadata keys, so keep step/node as a best-effort
+  // last resort for local streams that omit message ids.
   const metadataId = [
     metadata?.langgraph_checkpoint_ns,
     metadata?.checkpoint_ns,
@@ -624,6 +627,8 @@ function getFallbackMessageId(metadata: Record<string, unknown> | undefined) {
   return `langgraph-${step}-${node}`;
 }
 
+// Only synthesize ids for chunk formats where streaming deltas need grouping.
+// Plain AI messages without ids are still skipped to preserve existing behavior.
 function canUseFallbackMessageId(msg: unknown): boolean {
   if (AIMessageChunk.isInstance(msg)) return true;
 

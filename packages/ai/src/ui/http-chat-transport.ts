@@ -190,7 +190,7 @@ export abstract class HttpChatTransport<
 
     const response = await fetch(api, {
       method: 'POST',
-      headers: this.prepareHeaders(headers),
+      headers: this.prepareSendHeaders(headers),
       body: JSON.stringify(body),
       credentials,
       signal: abortSignal,
@@ -268,7 +268,7 @@ export abstract class HttpChatTransport<
     stream: ReadableStream<Uint8Array<ArrayBufferLike>>,
   ): ReadableStream<UIMessageChunk>;
 
-  protected prepareHeaders(headers: Record<string, string>): HeadersInit {
+  protected prepareSendHeaders(headers: Record<string, string>): HeadersInit {
     return {
       'Content-Type': 'application/json',
       ...headers,

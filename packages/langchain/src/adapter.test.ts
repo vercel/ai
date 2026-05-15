@@ -1903,16 +1903,20 @@ describe('toUIMessageStream with streamEvents', () => {
         event: 'on_chat_model_stream',
         data: {
           chunk: {
-            id: 'stream-msg-1',
-            content: '',
-            tool_call_chunks: [
-              {
-                id: 'call-123',
-                name: 'get_weather',
-                args: '{"city":"SF"}',
-                index: 0,
-              },
-            ],
+            type: 'constructor',
+            id: ['langchain_core', 'messages', 'AIMessageChunk'],
+            kwargs: {
+              id: 'stream-msg-1',
+              content: '',
+              tool_call_chunks: [
+                {
+                  id: 'call-123',
+                  name: 'get_weather',
+                  args: '{"city":"SF"}',
+                  index: 0,
+                },
+              ],
+            },
           },
         },
       },
@@ -1932,6 +1936,45 @@ describe('toUIMessageStream with streamEvents', () => {
       type: 'tool-input-delta',
       toolCallId: 'call-123',
       inputTextDelta: '{"city":"SF"}',
+    });
+  });
+
+  it('should use empty object for invalid streamEvents final tool call string args', async () => {
+    const inputStream = convertArrayToReadableStream([
+      {
+        event: 'on_chat_model_end',
+        data: {
+          output: {
+            id: 'stream-msg-1',
+            content: '',
+            tool_calls: [
+              {
+                id: 'call-123',
+                name: 'get_weather',
+                args: '{invalid json',
+              },
+            ],
+          },
+        },
+      },
+    ]);
+
+    const result = await convertReadableStreamToArray(
+      toUIMessageStream(inputStream),
+    );
+
+    expect(result).toContainEqual({
+      type: 'tool-input-start',
+      toolCallId: 'call-123',
+      toolName: 'get_weather',
+      dynamic: true,
+    });
+    expect(result).toContainEqual({
+      type: 'tool-input-available',
+      toolCallId: 'call-123',
+      toolName: 'get_weather',
+      input: {},
+      dynamic: true,
     });
   });
 
