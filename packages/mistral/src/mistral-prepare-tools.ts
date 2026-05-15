@@ -81,10 +81,8 @@ export function prepareTools({
     // so we filter the tools and force the tool choice through 'any'
     case 'tool':
       return {
-        tools: mistralTools.filter(
-          tool => tool.function.name === toolChoice.toolName,
-        ),
-        toolChoice: 'any',
+        tools: mistralTools,
+        toolChoice: { type: 'function', function: { name: toolChoice.toolName } },
         toolWarnings,
       };
     default: {
