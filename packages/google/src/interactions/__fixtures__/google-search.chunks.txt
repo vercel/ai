@@ -1,0 +1,13 @@
+{"interaction":{"id":"v1_streamgsearch","status":"in_progress","object":"interaction","model":"gemini-2.5-flash"},"event_type":"interaction.start"}
+{"index":0,"content":{"type":"thought"},"event_type":"content.start"}
+{"index":0,"delta":{"signature":"thought-sig-stream","type":"thought_signature"},"event_type":"content.delta"}
+{"index":0,"event_type":"content.stop"}
+{"index":1,"content":{"type":"google_search_call","id":"gscall-stream-1","arguments":{"queries":["latest AI development past week"]}},"event_type":"content.start"}
+{"index":1,"event_type":"content.stop"}
+{"index":2,"content":{"type":"google_search_result","call_id":"gscall-stream-1","result":[{"url":"https://example.com/article-1","title":"Notable AI Development From Last Week"},{"url":"https://example.com/article-2","title":"Another AI Story"},{"search_suggestions":"<div>...</div>"}]},"event_type":"content.start"}
+{"index":2,"event_type":"content.stop"}
+{"index":3,"content":{"type":"text"},"event_type":"content.start"}
+{"index":3,"delta":{"text":"Last week, two notable AI developments were reported.","type":"text"},"event_type":"content.delta"}
+{"index":3,"delta":{"type":"text_annotation","annotations":[{"type":"url_citation","url":"https://example.com/article-1","title":"Notable AI Development From Last Week","start_index":0,"end_index":30}]},"event_type":"content.delta"}
+{"index":3,"event_type":"content.stop"}
+{"interaction":{"id":"v1_streamgsearch","status":"completed","usage":{"total_tokens":320,"total_input_tokens":12,"input_tokens_by_modality":[{"modality":"text","tokens":12}],"total_cached_tokens":0,"total_output_tokens":200,"total_tool_use_tokens":50,"total_thought_tokens":58},"role":"model","created":"2026-05-04T19:00:00Z","updated":"2026-05-04T19:00:01Z","service_tier":"standard","object":"interaction","model":"gemini-2.5-flash"},"event_type":"interaction.complete"}

@@ -271,7 +271,7 @@ run(async () => {
   if (result.finishReason === 'other') {
     // Check if this is a compaction pause by looking at provider metadata
     const iterations = (
-      result.providerMetadata?.anthropic as {
+      result.finalStep.providerMetadata?.anthropic as {
         usage?: { iterations?: Array<{ type?: string }> };
       }
     )?.usage?.iterations;
@@ -280,7 +280,7 @@ run(async () => {
     if (hasCompaction) {
       console.log('\n[Compaction detected - response paused]');
 
-      messages.push(...result.response.messages);
+      messages.push(...result.responseMessages);
       console.log('Continuing with compacted context...\n');
 
       result = await generateText({
@@ -310,6 +310,6 @@ run(async () => {
   console.log('Final text:', result.text);
   console.log(
     '\nProvider Metadata:',
-    JSON.stringify(result.providerMetadata, null, 2),
+    JSON.stringify(result.finalStep.providerMetadata, null, 2),
   );
 });

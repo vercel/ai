@@ -17,6 +17,7 @@ export {
   type InferSchema,
   type InferToolInput,
   type InferToolOutput,
+  type Experimental_Sandbox,
   type Schema,
   type Tool,
   type ToolApprovalRequest,

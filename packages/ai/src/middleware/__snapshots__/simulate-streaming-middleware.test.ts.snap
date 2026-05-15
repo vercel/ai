@@ -6,12 +6,22 @@ exports[`simulateStreamingMiddleware > should handle empty text response 1`] = `
     "type": "start",
   },
   {
-    "request": {},
+    "request": {
+      "body": undefined,
+      "messages": undefined,
+    },
     "type": "start-step",
     "warnings": [],
   },
   {
     "finishReason": "stop",
+    "performance": {
+      "responseTimeMs": 0,
+      "stepTimeMs": 0,
+      "timeToFirstTokenMs": undefined,
+      "tokensPerSecond": 0,
+      "toolExecutionMs": {},
+    },
     "providerMetadata": undefined,
     "rawFinishReason": "stop",
     "response": {
@@ -22,7 +32,6 @@ exports[`simulateStreamingMiddleware > should handle empty text response 1`] = `
     },
     "type": "finish-step",
     "usage": {
-      "cachedInputTokens": 0,
       "inputTokenDetails": {
         "cacheReadTokens": 0,
         "cacheWriteTokens": 0,
@@ -35,7 +44,6 @@ exports[`simulateStreamingMiddleware > should handle empty text response 1`] = `
       },
       "outputTokens": 10,
       "raw": undefined,
-      "reasoningTokens": 3,
       "totalTokens": 15,
     },
   },
@@ -43,7 +51,6 @@ exports[`simulateStreamingMiddleware > should handle empty text response 1`] = `
     "finishReason": "stop",
     "rawFinishReason": "stop",
     "totalUsage": {
-      "cachedInputTokens": 0,
       "inputTokenDetails": {
         "cacheReadTokens": 0,
         "cacheWriteTokens": 0,
@@ -55,7 +62,6 @@ exports[`simulateStreamingMiddleware > should handle empty text response 1`] = `
         "textTokens": 10,
       },
       "outputTokens": 10,
-      "reasoningTokens": 3,
       "totalTokens": 15,
     },
     "type": "finish",

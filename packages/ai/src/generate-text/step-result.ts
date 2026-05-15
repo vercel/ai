@@ -22,7 +22,6 @@ import {
   type ReasoningFileOutput,
   type ReasoningOutput,
 } from './reasoning-output';
-import type { ResponseMessage } from './response-message';
 import type {
   DynamicToolCall,
   StaticToolCall,
@@ -33,6 +32,41 @@ import type {
   StaticToolResult,
   TypedToolResult,
 } from './tool-result';
+
+/**
+ * Performance metrics for a single step in the generation process.
+ */
+export type StepResultPerformance = {
+  /**
+   * Average number of output tokens per second during the language model
+   * response.
+   */
+  readonly tokensPerSecond: number;
+
+  /**
+   * Total time spent on the step in milliseconds.
+   */
+  readonly stepTimeMs: number;
+
+  /**
+   * Time spent waiting for the language model response in milliseconds.
+   */
+  readonly responseTimeMs: number;
+
+  /**
+   * Time spent executing each client-side tool call in milliseconds, keyed by
+   * tool call ID.
+   */
+  readonly toolExecutionMs: Readonly<Record<string, number>>;
+
+  /**
+   * Time until the first text, reasoning, or tool input delta was received in
+   * milliseconds.
+   *
+   * Only available for streaming steps.
+   */
+  readonly timeToFirstTokenMs: number | undefined;
+};
 
 /**
  * The result of a single step in the generation process.
@@ -57,6 +91,7 @@ export type StepResult<
   readonly model: {
     /** The provider of the model. */
     readonly provider: string;
+
     /** The ID of the model. */
     readonly modelId: string;
   };
@@ -67,7 +102,7 @@ export type StepResult<
   readonly toolsContext: InferToolSetContext<TOOLS>;
 
   /**
-   * Runtime context.
+   * The runtime context that was used as input for the step.
    */
   readonly runtimeContext: RUNTIME_CONTEXT;
 
@@ -77,7 +112,7 @@ export type StepResult<
   readonly content: Array<ContentPart<TOOLS>>;
 
   /**
-   * The generated text.
+   * The generated text. Can be an empty string if the model has not generated any text.
    */
   readonly text: string;
 
@@ -88,6 +123,9 @@ export type StepResult<
 
   /**
    * The reasoning text that was generated during the generation.
+   *
+   * It is a concatenation of all reasoning parts (but excluding reasoning file parts).
+   * Can be undefined if the model has only generated text.
    */
   readonly reasoningText: string | undefined;
 
@@ -147,6 +185,11 @@ export type StepResult<
   readonly usage: LanguageModelUsage;
 
   /**
+   * Performance metrics for the step.
+   */
+  readonly performance: StepResultPerformance;
+
+  /**
    * Warnings from the model provider (e.g. unsupported settings).
    */
   readonly warnings: CallWarning[] | undefined;
@@ -159,19 +202,7 @@ export type StepResult<
   /**
    * Additional response information.
    */
-  readonly response: LanguageModelResponseMetadata & {
-    /**
-     * The response messages that were generated during the call.
-     * Response messages can be either assistant messages or tool messages.
-     * They contain a generated id.
-     */
-    readonly messages: Array<ResponseMessage>;
-
-    /**
-     * Response body (available only for providers that use HTTP requests).
-     */
-    body?: unknown;
-  };
+  readonly response: LanguageModelResponseMetadata;
 
   /**
    * Additional provider-specific metadata. They are passed through
@@ -197,6 +228,7 @@ export class DefaultStepResult<
     RUNTIME_CONTEXT
   >['rawFinishReason'];
   readonly usage: StepResult<TOOLS, RUNTIME_CONTEXT>['usage'];
+  readonly performance: StepResult<TOOLS, RUNTIME_CONTEXT>['performance'];
   readonly warnings: StepResult<TOOLS, RUNTIME_CONTEXT>['warnings'];
   readonly request: StepResult<TOOLS, RUNTIME_CONTEXT>['request'];
   readonly response: StepResult<TOOLS, RUNTIME_CONTEXT>['response'];
@@ -216,6 +248,7 @@ export class DefaultStepResult<
     finishReason,
     rawFinishReason,
     usage,
+    performance,
     warnings,
     request,
     response,
@@ -231,6 +264,7 @@ export class DefaultStepResult<
     finishReason: StepResult<TOOLS, RUNTIME_CONTEXT>['finishReason'];
     rawFinishReason: StepResult<TOOLS, RUNTIME_CONTEXT>['rawFinishReason'];
     usage: StepResult<TOOLS, RUNTIME_CONTEXT>['usage'];
+    performance: StepResult<TOOLS, RUNTIME_CONTEXT>['performance'];
     warnings: StepResult<TOOLS, RUNTIME_CONTEXT>['warnings'];
     request: StepResult<TOOLS, RUNTIME_CONTEXT>['request'];
     response: StepResult<TOOLS, RUNTIME_CONTEXT>['response'];
@@ -245,6 +279,7 @@ export class DefaultStepResult<
     this.finishReason = finishReason;
     this.rawFinishReason = rawFinishReason;
     this.usage = usage;
+    this.performance = performance;
     this.warnings = warnings;
     this.request = request;
     this.response = response;

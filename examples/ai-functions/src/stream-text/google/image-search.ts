@@ -51,7 +51,7 @@ run(async () => {
     }
   }
 
-  const metadata = (await result.providerMetadata)?.google as
+  const metadata = (await result.finalStep).providerMetadata?.google as
     | GoogleProviderMetadata
     | undefined;
   const groundingMetadata = metadata?.groundingMetadata;

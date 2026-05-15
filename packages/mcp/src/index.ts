@@ -12,12 +12,23 @@ export {
   type MCPClientConfig,
   type MCPClient,
 } from './tool/mcp-client';
+export {
+  MCP_APP_MIME_TYPE,
+  mcpAppClientCapabilities,
+  readMCPAppResource,
+  splitMCPAppTools,
+  type MCPAppResource,
+  type MCPAppResourceCSP,
+  type MCPAppResourceMeta,
+} from './tool/mcp-apps';
 export { ElicitationRequestSchema, ElicitResultSchema } from './tool/types';
 export type {
+  CallToolResult,
   Configuration,
   ElicitationRequest,
   ElicitResult,
   ListToolsResult,
+  McpProviderMetadata,
   ClientCapabilities as MCPClientCapabilities,
 } from './tool/types';
 export { auth, UnauthorizedError } from './tool/oauth';

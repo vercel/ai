@@ -8,6 +8,7 @@ exports[`streamText > options.experimental_onStart > should send correct informa
   "callId": "test-telemetry-call-id",
   "frequencyPenalty": undefined,
   "headers": undefined,
+  "instructions": undefined,
   "maxOutputTokens": undefined,
   "maxRetries": 2,
   "messages": [
@@ -26,7 +27,6 @@ exports[`streamText > options.experimental_onStart > should send correct informa
   "runtimeContext": {},
   "seed": undefined,
   "stopSequences": undefined,
-  "system": undefined,
   "temperature": undefined,
   "timeout": undefined,
   "toolChoice": undefined,
@@ -218,7 +218,10 @@ exports[`streamText > result.fullStream > should send delayed asynchronous tool 
     "type": "start",
   },
   {
-    "request": {},
+    "request": {
+      "body": undefined,
+      "messages": undefined,
+    },
     "type": "start-step",
     "warnings": [],
   },
@@ -245,6 +248,15 @@ exports[`streamText > result.fullStream > should send delayed asynchronous tool 
   },
   {
     "finishReason": "stop",
+    "performance": {
+      "responseTimeMs": 0,
+      "stepTimeMs": 60,
+      "timeToFirstTokenMs": undefined,
+      "tokensPerSecond": 0,
+      "toolExecutionMs": {
+        "call-1": 60,
+      },
+    },
     "providerMetadata": undefined,
     "rawFinishReason": "stop",
     "response": {
@@ -255,7 +267,6 @@ exports[`streamText > result.fullStream > should send delayed asynchronous tool 
     },
     "type": "finish-step",
     "usage": {
-      "cachedInputTokens": undefined,
       "inputTokenDetails": {
         "cacheReadTokens": undefined,
         "cacheWriteTokens": undefined,
@@ -268,7 +279,6 @@ exports[`streamText > result.fullStream > should send delayed asynchronous tool 
       },
       "outputTokens": 10,
       "raw": undefined,
-      "reasoningTokens": undefined,
       "totalTokens": 13,
     },
   },
@@ -276,7 +286,6 @@ exports[`streamText > result.fullStream > should send delayed asynchronous tool 
     "finishReason": "stop",
     "rawFinishReason": "stop",
     "totalUsage": {
-      "cachedInputTokens": undefined,
       "inputTokenDetails": {
         "cacheReadTokens": undefined,
         "cacheWriteTokens": undefined,
@@ -288,7 +297,6 @@ exports[`streamText > result.fullStream > should send delayed asynchronous tool 
         "textTokens": 10,
       },
       "outputTokens": 10,
-      "reasoningTokens": undefined,
       "totalTokens": 13,
     },
     "type": "finish",
@@ -302,7 +310,10 @@ exports[`streamText > result.fullStream > should send tool calls 1`] = `
     "type": "start",
   },
   {
-    "request": {},
+    "request": {
+      "body": undefined,
+      "messages": undefined,
+    },
     "type": "start-step",
     "warnings": [],
   },
@@ -323,6 +334,13 @@ exports[`streamText > result.fullStream > should send tool calls 1`] = `
   },
   {
     "finishReason": "stop",
+    "performance": {
+      "responseTimeMs": 0,
+      "stepTimeMs": 0,
+      "timeToFirstTokenMs": undefined,
+      "tokensPerSecond": 0,
+      "toolExecutionMs": {},
+    },
     "providerMetadata": undefined,
     "rawFinishReason": "stop",
     "response": {
@@ -333,7 +351,6 @@ exports[`streamText > result.fullStream > should send tool calls 1`] = `
     },
     "type": "finish-step",
     "usage": {
-      "cachedInputTokens": undefined,
       "inputTokenDetails": {
         "cacheReadTokens": undefined,
         "cacheWriteTokens": undefined,
@@ -346,7 +363,6 @@ exports[`streamText > result.fullStream > should send tool calls 1`] = `
       },
       "outputTokens": 10,
       "raw": undefined,
-      "reasoningTokens": undefined,
       "totalTokens": 13,
     },
   },
@@ -354,7 +370,6 @@ exports[`streamText > result.fullStream > should send tool calls 1`] = `
     "finishReason": "stop",
     "rawFinishReason": "stop",
     "totalUsage": {
-      "cachedInputTokens": undefined,
       "inputTokenDetails": {
         "cacheReadTokens": undefined,
         "cacheWriteTokens": undefined,
@@ -366,7 +381,6 @@ exports[`streamText > result.fullStream > should send tool calls 1`] = `
         "textTokens": 10,
       },
       "outputTokens": 10,
-      "reasoningTokens": undefined,
       "totalTokens": 13,
     },
     "type": "finish",
@@ -380,7 +394,10 @@ exports[`streamText > result.fullStream > should send tool results 1`] = `
     "type": "start",
   },
   {
-    "request": {},
+    "request": {
+      "body": undefined,
+      "messages": undefined,
+    },
     "type": "start-step",
     "warnings": [],
   },
@@ -407,6 +424,15 @@ exports[`streamText > result.fullStream > should send tool results 1`] = `
   },
   {
     "finishReason": "stop",
+    "performance": {
+      "responseTimeMs": 0,
+      "stepTimeMs": 0,
+      "timeToFirstTokenMs": undefined,
+      "tokensPerSecond": 0,
+      "toolExecutionMs": {
+        "call-1": 0,
+      },
+    },
     "providerMetadata": undefined,
     "rawFinishReason": "stop",
     "response": {
@@ -417,7 +443,6 @@ exports[`streamText > result.fullStream > should send tool results 1`] = `
     },
     "type": "finish-step",
     "usage": {
-      "cachedInputTokens": undefined,
       "inputTokenDetails": {
         "cacheReadTokens": undefined,
         "cacheWriteTokens": undefined,
@@ -430,7 +455,6 @@ exports[`streamText > result.fullStream > should send tool results 1`] = `
       },
       "outputTokens": 10,
       "raw": undefined,
-      "reasoningTokens": undefined,
       "totalTokens": 13,
     },
   },
@@ -438,7 +462,6 @@ exports[`streamText > result.fullStream > should send tool results 1`] = `
     "finishReason": "stop",
     "rawFinishReason": "stop",
     "totalUsage": {
-      "cachedInputTokens": undefined,
       "inputTokenDetails": {
         "cacheReadTokens": undefined,
         "cacheWriteTokens": undefined,
@@ -450,7 +473,6 @@ exports[`streamText > result.fullStream > should send tool results 1`] = `
         "textTokens": 10,
       },
       "outputTokens": 10,
-      "reasoningTokens": undefined,
       "totalTokens": 13,
     },
     "type": "finish",
@@ -744,7 +766,10 @@ exports[`streamText > tools with custom schema > should send tool calls 1`] = `
     "type": "start",
   },
   {
-    "request": {},
+    "request": {
+      "body": undefined,
+      "messages": undefined,
+    },
     "type": "start-step",
     "warnings": [],
   },
@@ -761,6 +786,13 @@ exports[`streamText > tools with custom schema > should send tool calls 1`] = `
   },
   {
     "finishReason": "stop",
+    "performance": {
+      "responseTimeMs": 400,
+      "stepTimeMs": 500,
+      "timeToFirstTokenMs": undefined,
+      "tokensPerSecond": 25,
+      "toolExecutionMs": {},
+    },
     "providerMetadata": undefined,
     "rawFinishReason": "stop",
     "response": {
@@ -771,7 +803,6 @@ exports[`streamText > tools with custom schema > should send tool calls 1`] = `
     },
     "type": "finish-step",
     "usage": {
-      "cachedInputTokens": undefined,
       "inputTokenDetails": {
         "cacheReadTokens": undefined,
         "cacheWriteTokens": undefined,
@@ -784,7 +815,6 @@ exports[`streamText > tools with custom schema > should send tool calls 1`] = `
       },
       "outputTokens": 10,
       "raw": undefined,
-      "reasoningTokens": undefined,
       "totalTokens": 13,
     },
   },
@@ -792,7 +822,6 @@ exports[`streamText > tools with custom schema > should send tool calls 1`] = `
     "finishReason": "stop",
     "rawFinishReason": "stop",
     "totalUsage": {
-      "cachedInputTokens": undefined,
       "inputTokenDetails": {
         "cacheReadTokens": undefined,
         "cacheWriteTokens": undefined,
@@ -804,7 +833,6 @@ exports[`streamText > tools with custom schema > should send tool calls 1`] = `
         "textTokens": 10,
       },
       "outputTokens": 10,
-      "reasoningTokens": undefined,
       "totalTokens": 13,
     },
     "type": "finish",

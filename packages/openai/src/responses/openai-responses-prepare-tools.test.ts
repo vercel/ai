@@ -1735,4 +1735,89 @@ describe('prepareResponsesTools', () => {
       `);
     });
   });
+
+  describe('allowedTools provider option', () => {
+    it('should emit allowed_tools with default auto mode', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'get_weather',
+            description: 'Get weather',
+            inputSchema: { type: 'object', properties: {} },
+          },
+          {
+            type: 'function',
+            name: 'get_time',
+            description: 'Get time',
+            inputSchema: { type: 'object', properties: {} },
+          },
+        ],
+        toolChoice: undefined,
+        allowedTools: { toolNames: ['get_weather'] },
+      });
+
+      expect(result.toolChoice).toEqual({
+        type: 'allowed_tools',
+        mode: 'auto',
+        tools: [{ type: 'function', name: 'get_weather' }],
+      });
+      expect(result.tools).toHaveLength(2);
+    });
+
+    it('should emit allowed_tools with required mode', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'get_weather',
+            description: 'Get weather',
+            inputSchema: { type: 'object', properties: {} },
+          },
+          {
+            type: 'function',
+            name: 'get_time',
+            description: 'Get time',
+            inputSchema: { type: 'object', properties: {} },
+          },
+        ],
+        toolChoice: undefined,
+        allowedTools: {
+          toolNames: ['get_weather', 'get_time'],
+          mode: 'required',
+        },
+      });
+
+      expect(result.toolChoice).toEqual({
+        type: 'allowed_tools',
+        mode: 'required',
+        tools: [
+          { type: 'function', name: 'get_weather' },
+          { type: 'function', name: 'get_time' },
+        ],
+      });
+      expect(result.tools).toHaveLength(2);
+    });
+
+    it('should override request-level toolChoice when allowedTools is set', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'get_weather',
+            description: 'Get weather',
+            inputSchema: { type: 'object', properties: {} },
+          },
+        ],
+        toolChoice: { type: 'required' },
+        allowedTools: { toolNames: ['get_weather'] },
+      });
+
+      expect(result.toolChoice).toEqual({
+        type: 'allowed_tools',
+        mode: 'auto',
+        tools: [{ type: 'function', name: 'get_weather' }],
+      });
+    });
+  });
 });

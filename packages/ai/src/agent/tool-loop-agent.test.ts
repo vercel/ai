@@ -1,5 +1,8 @@
 import type { LanguageModelV4CallOptions } from '@ai-sdk/provider';
-import { tool } from '@ai-sdk/provider-utils';
+import {
+  tool,
+  type Experimental_Sandbox as Sandbox,
+} from '@ai-sdk/provider-utils';
 import {
   convertArrayToReadableStream,
   mockId,
@@ -98,6 +101,34 @@ describe('ToolLoopAgent', () => {
       `);
     });
 
+    it('should pass sandbox to prepareCall', async () => {
+      const sandbox = {
+        description: 'test sandbox',
+        executeCommand: vi.fn(async () => ({
+          exitCode: 0,
+          stdout: 'ok',
+          stderr: '',
+        })),
+      } satisfies Sandbox;
+      let recordedSandbox: Sandbox | undefined;
+
+      const agent = new ToolLoopAgent({
+        model: mockModel,
+        prepareCall: options => {
+          recordedSandbox = options.experimental_sandbox;
+
+          return options;
+        },
+      });
+
+      await agent.generate({
+        prompt: 'Hello, world!',
+        experimental_sandbox: sandbox,
+      });
+
+      expect(recordedSandbox).toBe(sandbox);
+    });
+
     it('should pass abortSignal to generateText', async () => {
       const abortController = new AbortController();
 
@@ -121,6 +152,96 @@ describe('ToolLoopAgent', () => {
 
       // timeout is merged into abortSignal, so we check that an abort signal was created
       expect(doGenerateOptions?.abortSignal).toBeDefined();
+    });
+
+    it('should pass sandbox to tool execution', async () => {
+      const sandbox = {
+        description: 'test sandbox',
+        executeCommand: vi.fn(async () => ({
+          exitCode: 0,
+          stdout: 'ok',
+          stderr: '',
+        })),
+      } satisfies Sandbox;
+      let recordedSandbox: Sandbox | undefined;
+      let modelCallCount = 0;
+
+      const agent = new ToolLoopAgent({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => {
+            modelCallCount++;
+
+            if (modelCallCount === 1) {
+              return {
+                content: [
+                  {
+                    type: 'tool-call' as const,
+                    toolCallType: 'function' as const,
+                    toolCallId: 'call-1',
+                    toolName: 'testTool',
+                    input: '{ "value": "test" }',
+                  },
+                ],
+                finishReason: {
+                  unified: 'tool-calls' as const,
+                  raw: undefined,
+                },
+                usage: {
+                  cachedInputTokens: undefined,
+                  inputTokens: {
+                    total: 3,
+                    noCache: 3,
+                    cacheRead: undefined,
+                    cacheWrite: undefined,
+                  },
+                  outputTokens: {
+                    total: 10,
+                    text: 10,
+                    reasoning: undefined,
+                  },
+                },
+                warnings: [],
+              };
+            }
+
+            return {
+              content: [{ type: 'text' as const, text: 'done' }],
+              finishReason: { unified: 'stop' as const, raw: 'stop' },
+              usage: {
+                cachedInputTokens: undefined,
+                inputTokens: {
+                  total: 3,
+                  noCache: 3,
+                  cacheRead: undefined,
+                  cacheWrite: undefined,
+                },
+                outputTokens: {
+                  total: 10,
+                  text: 10,
+                  reasoning: undefined,
+                },
+              },
+              warnings: [],
+            };
+          },
+        }),
+        tools: {
+          testTool: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }, { experimental_sandbox: sandbox }) => {
+              recordedSandbox = sandbox;
+              return value;
+            },
+          }),
+        },
+      });
+
+      await agent.generate({
+        prompt: 'test',
+        experimental_sandbox: sandbox,
+      });
+
+      expect(recordedSandbox).toBe(sandbox);
     });
 
     it('should pass experimental_download to generateText', async () => {
@@ -378,6 +499,19 @@ describe('ToolLoopAgent', () => {
         });
       });
 
+      it('should forward include to generateText', async () => {
+        const agent = new ToolLoopAgent({
+          model: mockModel,
+          include: { requestMessages: true },
+        });
+
+        const result = await agent.generate({ prompt: 'test' });
+
+        expect(result.request.messages).toStrictEqual([
+          { role: 'user', content: 'test' },
+        ]);
+      });
+
       it('should honor toolApproval in generate', async () => {
         let modelCallCount = 0;
         const execute = vi.fn(async () => 'tool-result');
@@ -552,6 +686,35 @@ describe('ToolLoopAgent', () => {
       );
     });
 
+    it('should pass sandbox to prepareCall', async () => {
+      const sandbox = {
+        description: 'test sandbox',
+        executeCommand: vi.fn(async () => ({
+          exitCode: 0,
+          stdout: 'ok',
+          stderr: '',
+        })),
+      } satisfies Sandbox;
+      let recordedSandbox: Sandbox | undefined;
+
+      const agent = new ToolLoopAgent({
+        model: mockModel,
+        prepareCall: options => {
+          recordedSandbox = options.experimental_sandbox;
+
+          return options;
+        },
+      });
+
+      const result = await agent.stream({
+        prompt: 'Hello, world!',
+        experimental_sandbox: sandbox,
+      });
+      await result.consumeStream();
+
+      expect(recordedSandbox).toBe(sandbox);
+    });
+
     it('should pass abortSignal to streamText', async () => {
       const abortController = new AbortController();
 
@@ -583,6 +746,133 @@ describe('ToolLoopAgent', () => {
 
       // timeout is merged into abortSignal, so we check that an abort signal was created
       expect(doStreamOptions?.abortSignal).toBeDefined();
+    });
+
+    it('should pass sandbox to tool execution', async () => {
+      const sandbox = {
+        description: 'test sandbox',
+        executeCommand: vi.fn(async () => ({
+          exitCode: 0,
+          stdout: 'ok',
+          stderr: '',
+        })),
+      } satisfies Sandbox;
+      let recordedSandbox: Sandbox | undefined;
+      let modelCallCount = 0;
+
+      const agent = new ToolLoopAgent({
+        model: new MockLanguageModelV4({
+          doStream: async () => {
+            modelCallCount++;
+
+            if (modelCallCount === 1) {
+              return {
+                stream: convertArrayToReadableStream([
+                  { type: 'stream-start', warnings: [] },
+                  {
+                    type: 'response-metadata',
+                    id: 'id-0',
+                    modelId: 'mock-model-id',
+                    timestamp: new Date(0),
+                  },
+                  {
+                    type: 'tool-call',
+                    toolCallId: 'call-1',
+                    toolName: 'testTool',
+                    input: '{ "value": "test" }',
+                  },
+                  {
+                    type: 'finish',
+                    finishReason: {
+                      unified: 'tool-calls' as const,
+                      raw: undefined,
+                    },
+                    usage: {
+                      inputTokens: {
+                        total: 3,
+                        noCache: 3,
+                        cacheRead: undefined,
+                        cacheWrite: undefined,
+                      },
+                      outputTokens: {
+                        total: 10,
+                        text: 10,
+                        reasoning: undefined,
+                      },
+                    },
+                    providerMetadata: {},
+                  },
+                ]),
+              };
+            }
+
+            return {
+              stream: convertArrayToReadableStream([
+                { type: 'stream-start', warnings: [] },
+                {
+                  type: 'response-metadata',
+                  id: 'id-1',
+                  modelId: 'mock-model-id',
+                  timestamp: new Date(0),
+                },
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: 'done' },
+                { type: 'text-end', id: '1' },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'stop' as const, raw: 'stop' },
+                  usage: {
+                    inputTokens: {
+                      total: 3,
+                      noCache: 3,
+                      cacheRead: undefined,
+                      cacheWrite: undefined,
+                    },
+                    outputTokens: {
+                      total: 10,
+                      text: 10,
+                      reasoning: undefined,
+                    },
+                  },
+                  providerMetadata: {},
+                },
+              ]),
+            };
+          },
+        }),
+        tools: {
+          testTool: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }, { experimental_sandbox: sandbox }) => {
+              recordedSandbox = sandbox;
+              return value;
+            },
+          }),
+        },
+      });
+
+      const result = await agent.stream({
+        prompt: 'test',
+        experimental_sandbox: sandbox,
+      });
+      await result.consumeStream();
+
+      expect(recordedSandbox).toBe(sandbox);
+    });
+
+    it('should forward include to streamText', async () => {
+      const agent = new ToolLoopAgent({
+        model: mockModel,
+        include: { rawChunks: true },
+      });
+
+      const result = await agent.stream({
+        prompt: 'Hello, world!',
+      });
+
+      await result.consumeStream();
+
+      expect(doStreamOptions?.includeRawChunks).toBe(true);
     });
 
     it('should pass string instructions', async () => {
@@ -953,13 +1243,14 @@ describe('ToolLoopAgent', () => {
         expect({
           provider: startEvent.provider,
           modelId: startEvent.modelId,
-          system: startEvent.system,
+          instructions: startEvent.instructions,
           messages: startEvent.messages,
           temperature: startEvent.temperature,
           maxOutputTokens: startEvent.maxOutputTokens,
           runtimeContext: startEvent.runtimeContext,
         }).toMatchInlineSnapshot(`
           {
+            "instructions": "You are a helpful assistant",
             "maxOutputTokens": 500,
             "messages": [
               {
@@ -972,7 +1263,6 @@ describe('ToolLoopAgent', () => {
             "runtimeContext": {
               "userId": "test-user",
             },
-            "system": "You are a helpful assistant",
             "temperature": 0.7,
           }
         `);
@@ -1140,13 +1430,14 @@ describe('ToolLoopAgent', () => {
         expect({
           provider: startEvent.provider,
           modelId: startEvent.modelId,
-          system: startEvent.system,
+          instructions: startEvent.instructions,
           messages: startEvent.messages,
           temperature: startEvent.temperature,
           maxOutputTokens: startEvent.maxOutputTokens,
           runtimeContext: startEvent.runtimeContext,
         }).toMatchInlineSnapshot(`
           {
+            "instructions": "You are a helpful assistant",
             "maxOutputTokens": 500,
             "messages": [
               {
@@ -1159,7 +1450,6 @@ describe('ToolLoopAgent', () => {
             "runtimeContext": {
               "userId": "test-user",
             },
-            "system": "You are a helpful assistant",
             "temperature": 0.7,
           }
         `);
@@ -1346,12 +1636,13 @@ describe('ToolLoopAgent', () => {
           stepNumber: stepStartEvent.steps.length,
           provider: stepStartEvent.provider,
           modelId: stepStartEvent.modelId,
-          system: stepStartEvent.system,
+          instructions: stepStartEvent.instructions,
           messagesLength: stepStartEvent.messages.length,
           steps: stepStartEvent.steps,
           runtimeContext: stepStartEvent.runtimeContext,
         }).toMatchInlineSnapshot(`
           {
+            "instructions": "You are a helpful assistant",
             "messagesLength": 1,
             "modelId": "mock-model-id",
             "provider": "mock-provider",
@@ -1360,7 +1651,6 @@ describe('ToolLoopAgent', () => {
             },
             "stepNumber": 0,
             "steps": [],
-            "system": "You are a helpful assistant",
           }
         `);
       });
@@ -1502,12 +1792,13 @@ describe('ToolLoopAgent', () => {
           stepNumber: stepStartEvent.steps.length,
           provider: stepStartEvent.provider,
           modelId: stepStartEvent.modelId,
-          system: stepStartEvent.system,
+          instructions: stepStartEvent.instructions,
           messagesLength: stepStartEvent.messages.length,
           steps: stepStartEvent.steps,
           runtimeContext: stepStartEvent.runtimeContext,
         }).toMatchInlineSnapshot(`
           {
+            "instructions": "You are a helpful assistant",
             "messagesLength": 1,
             "modelId": "mock-model-id",
             "provider": "mock-provider",
@@ -1516,7 +1807,6 @@ describe('ToolLoopAgent', () => {
             },
             "stepNumber": 0,
             "steps": [],
-            "system": "You are a helpful assistant",
           }
         `);
       });
@@ -1815,7 +2105,7 @@ describe('ToolLoopAgent', () => {
     });
   });
 
-  describe('experimental_onToolExecutionStart', () => {
+  describe('onToolExecutionStart', () => {
     describe('generate', () => {
       const dummyResponseValues = {
         usage: {
@@ -1866,7 +2156,7 @@ describe('ToolLoopAgent', () => {
         });
       }
 
-      it('should call experimental_onToolExecutionStart from constructor', async () => {
+      it('should call onToolExecutionStart from constructor', async () => {
         const calls: string[] = [];
 
         const agent = new ToolLoopAgent({
@@ -1878,7 +2168,7 @@ describe('ToolLoopAgent', () => {
                 `${value}-result`,
             }),
           },
-          experimental_onToolExecutionStart: async () => {
+          onToolExecutionStart: async () => {
             calls.push('constructor');
           },
         });
@@ -1892,7 +2182,7 @@ describe('ToolLoopAgent', () => {
         `);
       });
 
-      it('should call experimental_onToolExecutionStart from generate method', async () => {
+      it('should call onToolExecutionStart from generate method', async () => {
         const calls: string[] = [];
 
         const agent = new ToolLoopAgent({
@@ -1908,7 +2198,7 @@ describe('ToolLoopAgent', () => {
 
         await agent.generate({
           prompt: 'test',
-          experimental_onToolExecutionStart: async () => {
+          onToolExecutionStart: async () => {
             calls.push('method');
           },
         });
@@ -1932,14 +2222,14 @@ describe('ToolLoopAgent', () => {
                 `${value}-result`,
             }),
           },
-          experimental_onToolExecutionStart: async () => {
+          onToolExecutionStart: async () => {
             calls.push('constructor');
           },
         });
 
         await agent.generate({
           prompt: 'test',
-          experimental_onToolExecutionStart: async () => {
+          onToolExecutionStart: async () => {
             calls.push('method');
           },
         });
@@ -1969,7 +2259,7 @@ describe('ToolLoopAgent', () => {
 
         await agent.generate({
           prompt: 'test',
-          experimental_onToolExecutionStart: async e => {
+          onToolExecutionStart: async e => {
             event = e;
           },
         });
@@ -2069,7 +2359,7 @@ describe('ToolLoopAgent', () => {
         });
       }
 
-      it('should call experimental_onToolExecutionStart from constructor', async () => {
+      it('should call onToolExecutionStart from constructor', async () => {
         const calls: string[] = [];
 
         const agent = new ToolLoopAgent({
@@ -2081,7 +2371,7 @@ describe('ToolLoopAgent', () => {
                 `${value}-result`,
             }),
           },
-          experimental_onToolExecutionStart: async () => {
+          onToolExecutionStart: async () => {
             calls.push('constructor');
           },
         });
@@ -2096,7 +2386,7 @@ describe('ToolLoopAgent', () => {
         `);
       });
 
-      it('should call experimental_onToolExecutionStart from stream method', async () => {
+      it('should call onToolExecutionStart from stream method', async () => {
         const calls: string[] = [];
 
         const agent = new ToolLoopAgent({
@@ -2112,7 +2402,7 @@ describe('ToolLoopAgent', () => {
 
         const result = await agent.stream({
           prompt: 'test',
-          experimental_onToolExecutionStart: async () => {
+          onToolExecutionStart: async () => {
             calls.push('method');
           },
         });
@@ -2138,14 +2428,14 @@ describe('ToolLoopAgent', () => {
                 `${value}-result`,
             }),
           },
-          experimental_onToolExecutionStart: async () => {
+          onToolExecutionStart: async () => {
             calls.push('constructor');
           },
         });
 
         const result = await agent.stream({
           prompt: 'test',
-          experimental_onToolExecutionStart: async () => {
+          onToolExecutionStart: async () => {
             calls.push('method');
           },
         });
@@ -2177,7 +2467,7 @@ describe('ToolLoopAgent', () => {
 
         const result = await agent.stream({
           prompt: 'test',
-          experimental_onToolExecutionStart: async e => {
+          onToolExecutionStart: async e => {
             event = e;
           },
         });
@@ -2211,7 +2501,7 @@ describe('ToolLoopAgent', () => {
     });
   });
 
-  describe('experimental_onToolExecutionEnd', () => {
+  describe('onToolExecutionEnd', () => {
     describe('generate', () => {
       const dummyResponseValues = {
         usage: {
@@ -2293,7 +2583,7 @@ describe('ToolLoopAgent', () => {
         });
       }
 
-      it('should call experimental_onToolExecutionEnd from constructor', async () => {
+      it('should call onToolExecutionEnd from constructor', async () => {
         const calls: string[] = [];
 
         const agent = new ToolLoopAgent({
@@ -2305,7 +2595,7 @@ describe('ToolLoopAgent', () => {
                 `${value}-result`,
             }),
           },
-          experimental_onToolExecutionEnd: async () => {
+          onToolExecutionEnd: async () => {
             calls.push('constructor');
           },
         });
@@ -2319,7 +2609,7 @@ describe('ToolLoopAgent', () => {
         `);
       });
 
-      it('should call experimental_onToolExecutionEnd from generate method', async () => {
+      it('should call onToolExecutionEnd from generate method', async () => {
         const calls: string[] = [];
 
         const agent = new ToolLoopAgent({
@@ -2335,7 +2625,7 @@ describe('ToolLoopAgent', () => {
 
         await agent.generate({
           prompt: 'test',
-          experimental_onToolExecutionEnd: async () => {
+          onToolExecutionEnd: async () => {
             calls.push('method');
           },
         });
@@ -2359,14 +2649,14 @@ describe('ToolLoopAgent', () => {
                 `${value}-result`,
             }),
           },
-          experimental_onToolExecutionEnd: async () => {
+          onToolExecutionEnd: async () => {
             calls.push('constructor');
           },
         });
 
         await agent.generate({
           prompt: 'test',
-          experimental_onToolExecutionEnd: async () => {
+          onToolExecutionEnd: async () => {
             calls.push('method');
           },
         });
@@ -2396,7 +2686,7 @@ describe('ToolLoopAgent', () => {
 
         await agent.generate({
           prompt: 'test',
-          experimental_onToolExecutionEnd: async e => {
+          onToolExecutionEnd: async e => {
             event = e;
           },
         });
@@ -2404,7 +2694,6 @@ describe('ToolLoopAgent', () => {
         expect(event).toMatchInlineSnapshot(`
           {
             "callId": "call-2",
-            "durationMs": 0,
             "messages": [
               {
                 "content": "test",
@@ -2423,6 +2712,7 @@ describe('ToolLoopAgent', () => {
               "type": "tool-call",
             },
             "toolContext": undefined,
+            "toolExecutionMs": 0,
             "toolOutput": {
               "dynamic": false,
               "input": {
@@ -2507,7 +2797,7 @@ describe('ToolLoopAgent', () => {
         });
       }
 
-      it('should call experimental_onToolExecutionEnd from constructor', async () => {
+      it('should call onToolExecutionEnd from constructor', async () => {
         const calls: string[] = [];
 
         const agent = new ToolLoopAgent({
@@ -2519,7 +2809,7 @@ describe('ToolLoopAgent', () => {
                 `${value}-result`,
             }),
           },
-          experimental_onToolExecutionEnd: async () => {
+          onToolExecutionEnd: async () => {
             calls.push('constructor');
           },
         });
@@ -2534,7 +2824,7 @@ describe('ToolLoopAgent', () => {
         `);
       });
 
-      it('should call experimental_onToolExecutionEnd from stream method', async () => {
+      it('should call onToolExecutionEnd from stream method', async () => {
         const calls: string[] = [];
 
         const agent = new ToolLoopAgent({
@@ -2550,7 +2840,7 @@ describe('ToolLoopAgent', () => {
 
         const result = await agent.stream({
           prompt: 'test',
-          experimental_onToolExecutionEnd: async () => {
+          onToolExecutionEnd: async () => {
             calls.push('method');
           },
         });
@@ -2576,14 +2866,14 @@ describe('ToolLoopAgent', () => {
                 `${value}-result`,
             }),
           },
-          experimental_onToolExecutionEnd: async () => {
+          onToolExecutionEnd: async () => {
             calls.push('constructor');
           },
         });
 
         const result = await agent.stream({
           prompt: 'test',
-          experimental_onToolExecutionEnd: async () => {
+          onToolExecutionEnd: async () => {
             calls.push('method');
           },
         });
@@ -2615,7 +2905,7 @@ describe('ToolLoopAgent', () => {
 
         const result = await agent.stream({
           prompt: 'test',
-          experimental_onToolExecutionEnd: async e => {
+          onToolExecutionEnd: async e => {
             event = e;
           },
         });
@@ -2625,7 +2915,6 @@ describe('ToolLoopAgent', () => {
         expect(event).toMatchInlineSnapshot(`
           {
             "callId": "call-3",
-            "durationMs": 0,
             "messages": [
               {
                 "content": "test",
@@ -2644,6 +2933,7 @@ describe('ToolLoopAgent', () => {
               "type": "tool-call",
             },
             "toolContext": undefined,
+            "toolExecutionMs": 0,
             "toolOutput": {
               "dynamic": false,
               "input": {
@@ -2660,7 +2950,7 @@ describe('ToolLoopAgent', () => {
     });
   });
 
-  describe('onFinish', () => {
+  describe('onEnd', () => {
     describe('generate', () => {
       let mockModel: MockLanguageModelV4;
 
@@ -3025,8 +3315,8 @@ describe('ToolLoopAgent', () => {
               onStepFinish: async () => {
                 events.push('onStepFinish');
               },
-              onFinish: async () => {
-                events.push('onFinish');
+              onEnd: async () => {
+                events.push('onEnd');
               },
             },
           },
@@ -3042,7 +3332,7 @@ describe('ToolLoopAgent', () => {
           'onStepFinish',
           'onStepStart',
           'onStepFinish',
-          'onFinish',
+          'onEnd',
         ]);
       });
 
@@ -3057,8 +3347,8 @@ describe('ToolLoopAgent', () => {
             onStepFinish: async () => {
               events.push('global-onStepFinish');
             },
-            onFinish: async () => {
-              events.push('global-onFinish');
+            onEnd: async () => {
+              events.push('global-onEnd');
             },
           },
         ];
@@ -3078,7 +3368,7 @@ describe('ToolLoopAgent', () => {
         expect(events).toEqual([
           'global-onStart',
           'global-onStepFinish',
-          'global-onFinish',
+          'global-onEnd',
         ]);
       });
 
@@ -3120,7 +3410,7 @@ describe('ToolLoopAgent', () => {
               onStepFinish: async ({ runtimeContext }) => {
                 telemetryContexts.push(runtimeContext);
               },
-              onFinish: async event => {
+              onEnd: async event => {
                 telemetryContexts.push(
                   (event as { runtimeContext: unknown }).runtimeContext,
                 );
@@ -3171,8 +3461,8 @@ describe('ToolLoopAgent', () => {
               onStepFinish: async () => {
                 events.push('integration-onStepFinish');
               },
-              onFinish: async () => {
-                events.push('integration-onFinish');
+              onEnd: async () => {
+                events.push('integration-onEnd');
               },
             },
           },
@@ -3186,7 +3476,7 @@ describe('ToolLoopAgent', () => {
           'agent-onStepFinish',
           'integration-onStepFinish',
           'agent-onFinish',
-          'integration-onFinish',
+          'integration-onEnd',
         ]);
       });
 
@@ -3207,7 +3497,7 @@ describe('ToolLoopAgent', () => {
               onStepFinish: async () => {
                 throw new Error('integration error');
               },
-              onFinish: async () => {
+              onEnd: async () => {
                 throw new Error('integration error');
               },
             },
@@ -3318,8 +3608,8 @@ describe('ToolLoopAgent', () => {
               onStepFinish: async () => {
                 events.push('onStepFinish');
               },
-              onFinish: async () => {
-                events.push('onFinish');
+              onEnd: async () => {
+                events.push('onEnd');
               },
             },
           },
@@ -3336,7 +3626,7 @@ describe('ToolLoopAgent', () => {
           'onStepFinish',
           'onStepStart',
           'onStepFinish',
-          'onFinish',
+          'onEnd',
         ]);
       });
 
@@ -3351,8 +3641,8 @@ describe('ToolLoopAgent', () => {
             onStepFinish: async () => {
               events.push('global-onStepFinish');
             },
-            onFinish: async () => {
-              events.push('global-onFinish');
+            onEnd: async () => {
+              events.push('global-onEnd');
             },
           },
         ];
@@ -3383,7 +3673,7 @@ describe('ToolLoopAgent', () => {
         expect(events).toEqual([
           'global-onStart',
           'global-onStepFinish',
-          'global-onFinish',
+          'global-onEnd',
         ]);
       });
 
@@ -3435,7 +3725,7 @@ describe('ToolLoopAgent', () => {
               onStepFinish: async ({ runtimeContext }) => {
                 telemetryContexts.push(runtimeContext);
               },
-              onFinish: async event => {
+              onEnd: async event => {
                 telemetryContexts.push(
                   (event as { runtimeContext: unknown }).runtimeContext,
                 );
@@ -3497,8 +3787,8 @@ describe('ToolLoopAgent', () => {
               onStepFinish: async () => {
                 events.push('integration-onStepFinish');
               },
-              onFinish: async () => {
-                events.push('integration-onFinish');
+              onEnd: async () => {
+                events.push('integration-onEnd');
               },
             },
           },
@@ -3513,7 +3803,7 @@ describe('ToolLoopAgent', () => {
           'agent-onStepFinish',
           'integration-onStepFinish',
           'agent-onFinish',
-          'integration-onFinish',
+          'integration-onEnd',
         ]);
       });
 
@@ -3544,7 +3834,7 @@ describe('ToolLoopAgent', () => {
               onStepFinish: async () => {
                 throw new Error('integration error');
               },
-              onFinish: async () => {
+              onEnd: async () => {
                 throw new Error('integration error');
               },
             },

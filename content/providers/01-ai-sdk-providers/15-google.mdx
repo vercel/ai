@@ -149,11 +149,9 @@ The following optional provider options are available for Google models:
 - **safetySettings** _Array\<\{ category: string; threshold: string \}\>_
 
   Optional. Safety settings for the model.
-
   - **category** _string_
 
     The category of the safety setting. Can be one of the following:
-
     - `HARM_CATEGORY_UNSPECIFIED`
     - `HARM_CATEGORY_HATE_SPEECH`
     - `HARM_CATEGORY_DANGEROUS_CONTENT`
@@ -164,7 +162,6 @@ The following optional provider options are available for Google models:
   - **threshold** _string_
 
     The threshold of the safety setting. Can be one of the following:
-
     - `HARM_BLOCK_THRESHOLD_UNSPECIFIED`
     - `BLOCK_LOW_AND_ABOVE`
     - `BLOCK_MEDIUM_AND_ABOVE`
@@ -178,7 +175,6 @@ The following optional provider options are available for Google models:
 - **thinkingConfig** _\{ thinkingLevel?: 'minimal' | 'low' | 'medium' | 'high'; thinkingBudget?: number; includeThoughts?: boolean \}_
 
   Optional. Configuration for the model's thinking process. Only supported by specific [Google models](https://ai.google.dev/gemini-api/docs/thinking).
-
   - **thinkingLevel** _'minimal' | 'low' | 'medium' | 'high'_
 
     Optional. Controls the thinking depth for Gemini 3 models. Gemini 3.1 Pro supports 'low', 'medium', and 'high', Gemini 3 Pro supports 'low' and 'high', while Gemini 3 Flash supports all four levels: 'minimal', 'low', 'medium', and 'high'. Only supported by Gemini 3 models.
@@ -200,11 +196,9 @@ The following optional provider options are available for Google models:
 - **imageConfig** _\{ aspectRatio?: string, imageSize?: string \}_
 
   Optional. Configuration for the models image generation. Only supported by specific [Google models](https://ai.google.dev/gemini-api/docs/image-generation).
-
   - **aspectRatio** _string_
 
     Model defaults to generate 1:1 squares, or to matching the output image size to that of your input image. Can be one of the following:
-
     - 1:1
     - 2:3
     - 3:2
@@ -219,7 +213,6 @@ The following optional provider options are available for Google models:
   - **imageSize** _string_
 
     Controls the output image resolution. Defaults to 1K. Can be one of the following:
-
     - 1K
     - 2K
     - 4K
@@ -232,7 +225,6 @@ The following optional provider options are available for Google models:
 - **mediaResolution** _string_
 
   Optional. If specified, the media resolution specified will be used. Can be one of the following:
-
   - `MEDIA_RESOLUTION_UNSPECIFIED`
   - `MEDIA_RESOLUTION_LOW`
   - `MEDIA_RESOLUTION_MEDIUM`
@@ -531,9 +523,7 @@ const { text, sources, providerMetadata } = await generateText({
 
 // access the grounding metadata. Casting to the provider metadata type
 // is optional but provides autocomplete and type safety.
-const metadata = providerMetadata?.google as
-  | GoogleProviderMetadata
-  | undefined;
+const metadata = providerMetadata?.google as GoogleProviderMetadata | undefined;
 const groundingMetadata = metadata?.groundingMetadata;
 const safetyRatings = metadata?.safetyRatings;
 ```
@@ -543,14 +533,12 @@ The `googleSearch` tool accepts the following optional configuration options:
 - **searchTypes** _object_
 
   Enables specific search types. Both can be combined.
-
   - `webSearch`: Enable web search grounding (pass `{}` to enable). This is the default.
   - `imageSearch`: Enable [image search grounding](https://ai.google.dev/gemini-api/docs/image-generation#image-search) (pass `{}` to enable).
 
 - **timeRangeFilter** _object_
 
   Restricts search results to a specific time range. Both `startTime` and `endTime` are required.
-
   - `startTime`: Start time in ISO 8601 format (e.g. `'2025-01-01T00:00:00Z'`).
   - `endTime`: End time in ISO 8601 format (e.g. `'2025-12-31T23:59:59Z'`).
 
@@ -569,12 +557,10 @@ When Google Search grounding is enabled, the model will include sources in the r
 Additionally, the grounding metadata includes detailed information about how search results were used to ground the model's response. Here are the available fields:
 
 - **`webSearchQueries`** (`string[] | null`)
-
   - Array of search queries used to retrieve information
   - Example: `["What's the weather in Chicago this weekend?"]`
 
 - **`searchEntryPoint`** (`{ renderedContent: string } | null`)
-
   - Contains the main search result content used as an entry point
   - The `renderedContent` field contains the formatted content
 
@@ -692,9 +678,7 @@ const { text, sources, providerMetadata } = await generateText({
   },
 });
 
-const metadata = providerMetadata?.google as
-  | GoogleProviderMetadata
-  | undefined;
+const metadata = providerMetadata?.google as GoogleProviderMetadata | undefined;
 const groundingMetadata = metadata?.groundingMetadata;
 const urlContextMetadata = metadata?.urlContextMetadata;
 ```
@@ -702,7 +686,6 @@ const urlContextMetadata = metadata?.urlContextMetadata;
 The URL context metadata includes detailed information about how the model used the URL context to generate the response. Here are the available fields:
 
 - **`urlMetadata`** (`{ retrievedUrl: string; urlRetrievalStatus: string; }[] | null`)
-
   - Array of URL context metadata
   - Each object includes:
     - **`retrievedUrl`**: The URL of the context
@@ -774,9 +757,7 @@ const { text, sources, providerMetadata } = await generateText({
   },
 });
 
-const metadata = providerMetadata?.google as
-  | GoogleProviderMetadata
-  | undefined;
+const metadata = providerMetadata?.google as GoogleProviderMetadata | undefined;
 const groundingMetadata = metadata?.groundingMetadata;
 const urlContextMetadata = metadata?.urlContextMetadata;
 ```
@@ -807,9 +788,7 @@ const { text, sources, providerMetadata } = await generateText({
     'What are the best Italian restaurants within a 15-minute walk from here?',
 });
 
-const metadata = providerMetadata?.google as
-  | GoogleProviderMetadata
-  | undefined;
+const metadata = providerMetadata?.google as GoogleProviderMetadata | undefined;
 const groundingMetadata = metadata?.groundingMetadata;
 ```
 
@@ -872,9 +851,7 @@ const { text, sources, providerMetadata } = await generateText({
 
 // access the grounding metadata. Casting to the provider metadata type
 // is optional but provides autocomplete and type safety.
-const metadata = providerMetadata?.google as
-  | GoogleProviderMetadata
-  | undefined;
+const metadata = providerMetadata?.google as GoogleProviderMetadata | undefined;
 const groundingMetadata = metadata?.groundingMetadata;
 const safetyRatings = metadata?.safetyRatings;
 ```
@@ -884,7 +861,6 @@ When RAG Engine Grounding is enabled, the model will include sources from your R
 Additionally, the grounding metadata includes detailed information about how RAG results were used to ground the model's response. Here are the available fields:
 
 - **`groundingChunks`** (Array of chunk objects | null)
-
   - Contains the retrieved context chunks from your RAG corpus
   - Each chunk includes:
     - **`retrievedContext`**: Information about the retrieved context
@@ -893,7 +869,6 @@ Additionally, the grounding metadata includes detailed information about how RAG
       - `text`: The actual text content of the chunk
 
 - **`groundingSupports`** (Array of support objects | null)
-
   - Contains details about how specific response parts are supported by RAG results
   - Each support object includes:
     - **`segment`**: Information about the grounded text segment
@@ -937,12 +912,10 @@ Example response:
 The `vertexRagStore` tool accepts the following configuration options:
 
 - **`ragCorpus`** (`string`, required)
-
   - The RagCorpus resource name in the format: `projects/{project}/locations/{location}/ragCorpora/{rag_corpus}`
   - This identifies your specific RAG corpus to search against
 
 - **`topK`** (`number`, optional)
-
   - The number of top contexts to retrieve from your RAG corpus
   - Defaults to the corpus configuration if not specified
 
@@ -1085,6 +1058,404 @@ The following Zod features are known to not work with Google:
   available provider model ID as a string if needed.
 </Note>
 
+## Interactions API
+
+The [Gemini Interactions API](https://ai.google.dev/gemini-api/docs/interactions)
+(`POST /v1beta/interactions`) is a separate Google endpoint with server-side
+state, unified content blocks, first-class built-in tools, agent presets, and
+native multimodal image output. It is reached via the `google.interactions(...)`
+factory:
+
+```ts
+import { google } from '@ai-sdk/google';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: google.interactions('gemini-2.5-flash'),
+  prompt: 'Hello, how are you?',
+});
+```
+
+`google.interactions(...)` accepts either a model ID string (e.g.
+`'gemini-2.5-flash'`, `'gemini-3-pro-preview'`) or `{ agent: <name> }` to use
+a Gemini [agent preset](#agent-presets). The returned model can be passed to
+`generateText` and `streamText` like any other AI SDK language model.
+
+<Note>
+  Use `google(...)` for the standard `:generateContent` /
+  `:streamGenerateContent` endpoints, and `google.interactions(...)` for the new
+  Interactions endpoint. Pick one per model instance — they target different
+  request bodies and SSE event vocabularies.
+</Note>
+
+### Provider Options
+
+The Interactions model reads its options from the shared
+`providerOptions.google.*` namespace. Validate them with the
+`GoogleLanguageModelInteractionsOptions` type:
+
+```ts
+import {
+  google,
+  type GoogleLanguageModelInteractionsOptions,
+} from '@ai-sdk/google';
+import { generateText } from 'ai';
+
+await generateText({
+  model: google.interactions('gemini-2.5-flash'),
+  prompt: 'What color is the sky in one word?',
+  providerOptions: {
+    google: {
+      serviceTier: 'priority',
+    } satisfies GoogleLanguageModelInteractionsOptions,
+  },
+});
+```
+
+The following optional provider options are available:
+
+- **previousInteractionId** _string_
+
+  Server-side interaction id from a prior turn. When set, the server pulls
+  prior context from its own state and only the new user message is sent on
+  the wire. Pair with the default `store: true` to chain stateful
+  conversations. See [Stateful chaining](#stateful-chaining).
+
+- **store** _boolean_
+
+  Whether the server should persist the interaction. Defaults to `true`.
+  Set to `false` for stateless multi-turn conversations where the full
+  message history is re-sent on every turn.
+
+- **agent** _string_
+
+  Name of a Gemini agent preset (e.g. `'deep-research-pro-preview-12-2025'`).
+
+      <Note>
+
+  Prefer the factory form `google.interactions({ agent: '...' })` over
+  setting `agent` in provider options — the factory is type-checked
+  against the supported agent names.
+
+  </Note>
+
+- **agentConfig** _object_
+
+  Per-agent configuration. Currently supports `{ type: 'dynamic' }` and
+  `{ type: 'deep-research', thinkingSummaries?, visualization?, collaborativePlanning? }`.
+
+- **thinkingLevel** _'minimal' | 'low' | 'medium' | 'high'_
+
+  Controls reasoning depth for thinking-enabled models. Mapped onto the
+  Interactions request's `thinking_level`.
+
+- **thinkingSummaries** _'auto' | 'none'_
+
+  Whether the model returns synthesized thought summaries on reasoning
+  parts. Defaults to the API default.
+
+- **imageConfig** _\{ aspectRatio?: string; imageSize?: '1K' | '2K' | '4K' | '512' \}_
+
+  Image generation configuration when `responseModalities` includes
+  `'image'`. `aspectRatio` accepts `1:1`, `2:3`, `3:2`, `3:4`, `4:3`,
+  `4:5`, `5:4`, `9:16`, `16:9`, `21:9`, `1:8`, `8:1`, `1:4`, `4:1`.
+
+- **mediaResolution** _'low' | 'medium' | 'high' | 'ultra_high'_
+
+  Media resolution applied to image inputs / outputs.
+
+- **responseModalities** _Array\<'text' | 'image' | 'audio' | 'video' | 'document'\>_
+
+  The modalities the model may emit. Defaults to text-only. Pass
+  `['image']` (or `['text', 'image']`) to enable native image output. See
+  [Image output](#image-output-via-interactions).
+
+- **serviceTier** _'flex' | 'standard' | 'priority'_
+
+  Service tier for the request. Mirrored back on
+  `result.providerMetadata.google.serviceTier` for observability.
+
+- **systemInstruction** _string_
+
+  Alternative to the AI SDK `system` message. If both are set, the AI SDK
+  `system` message wins and a warning is emitted.
+
+- **pollingTimeoutMs** _number_
+
+  Maximum time, in milliseconds, to poll a background interaction (agent
+  call) before giving up. Defaults to 30 minutes (1,800,000 ms). Long-running
+  agents such as deep research may need longer.
+
+### Provider Metadata
+
+`result.providerMetadata.google` (typed via `GoogleInteractionsProviderMetadata`)
+exposes:
+
+- **interactionId** _string_
+
+  Server-side interaction id. Pass this back as `previousInteractionId` on
+  the next turn to chain.
+
+- **serviceTier** _string_
+
+  Service tier the request actually ran on.
+
+- **signature** _string_
+
+  Per-block signature hash, set by the SDK on output reasoning and
+  tool-call parts. Round-tripped automatically on the next turn.
+
+### Stateful chaining
+
+With the default `store: true`, the server retains the prior turn so the
+next request only needs to send the new user message and the
+`previousInteractionId`:
+
+```ts
+import { google } from '@ai-sdk/google';
+import { generateText } from 'ai';
+
+const turn1 = await generateText({
+  model: google.interactions('gemini-2.5-flash'),
+  prompt: 'What are the three largest cities in Spain?',
+});
+
+const interactionId = turn1.providerMetadata?.google?.interactionId as
+  | string
+  | undefined;
+
+const turn2 = await generateText({
+  model: google.interactions('gemini-2.5-flash'),
+  prompt: 'What is the most famous landmark in the second one?',
+  providerOptions: {
+    google: { previousInteractionId: interactionId },
+  },
+});
+```
+
+For stateless multi-turn conversations, set `store: false` and re-send the
+full message history on every turn (no `previousInteractionId`):
+
+```ts
+import { google } from '@ai-sdk/google';
+import { generateText, type ModelMessage } from 'ai';
+
+const messages: Array<ModelMessage> = [
+  { role: 'user', content: 'What are the three largest cities in Spain?' },
+];
+
+const turn1 = await generateText({
+  model: google.interactions('gemini-2.5-flash'),
+  messages,
+  providerOptions: { google: { store: false } },
+});
+
+messages.push(...turn1.responseMessages);
+messages.push({
+  role: 'user',
+  content: 'What is the most famous landmark in the second one?',
+});
+
+const turn2 = await generateText({
+  model: google.interactions('gemini-2.5-flash'),
+  messages,
+  providerOptions: { google: { store: false } },
+});
+```
+
+### Built-in Tools
+
+The Interactions API ships a built-in tool catalog. The provider-defined
+tools under `google.tools.*` map onto Interactions tool descriptors:
+
+| AI SDK tool                           | Interactions tool type | Notes                                     |
+| ------------------------------------- | ---------------------- | ----------------------------------------- |
+| `google.tools.googleSearch`           | `google_search`        | Web / image search grounding.             |
+| `google.tools.codeExecution`          | `code_execution`       | Server-side Python execution.             |
+| `google.tools.urlContext`             | `url_context`          | Fetch URLs referenced in the prompt.      |
+| `google.tools.fileSearch`             | `file_search`          | Retrieval from File Search stores.        |
+| `google.tools.googleMaps`             | `google_maps`          | Maps grounding for nearby-places queries. |
+| _provider tool_ `google.computer_use` | `computer_use`         | Computer use (browser environment).       |
+| _provider tool_ `google.mcp_server`   | `mcp_server`           | Remote MCP server passthrough.            |
+| _provider tool_ `google.retrieval`    | `retrieval`            | Vertex AI Search retrieval.               |
+
+Function tools (`type: 'function'`) defined with the AI SDK `tool(...)`
+helper are translated to Interactions `function` tool descriptors. Other
+tool kinds emit a warning and are dropped.
+
+```ts
+import { google } from '@ai-sdk/google';
+import { generateText } from 'ai';
+
+const { text, sources } = await generateText({
+  model: google.interactions('gemini-2.5-flash'),
+  tools: {
+    google_search: google.tools.googleSearch({}),
+  },
+  prompt:
+    "What's a notable AI development from this past week? " +
+    'Include the date for each item you mention.',
+});
+```
+
+Function tools work the same way as on the standard provider:
+
+```ts
+import { google } from '@ai-sdk/google';
+import { generateText, stepCountIs, tool } from 'ai';
+import { z } from 'zod';
+
+const weatherTool = tool({
+  description: 'Get the weather for a city.',
+  inputSchema: z.object({ city: z.string() }),
+  execute: async ({ city }) => `It is sunny in ${city}.`,
+});
+
+const { text, toolCalls } = await generateText({
+  model: google.interactions('gemini-2.5-flash'),
+  tools: { getWeather: weatherTool },
+  stopWhen: stepCountIs(5),
+  prompt: 'What is the weather in San Francisco right now?',
+});
+```
+
+### Image output via Interactions
+
+Set `responseModalities: ['image']` on a Gemini image-capable model to get
+images as `LanguageModelV4FilePart` files in the response. No tool wrapping
+is required.
+
+```ts
+import { google } from '@ai-sdk/google';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: google.interactions('gemini-3-pro-image-preview'),
+  prompt: 'Generate an image of a comic cat in a spaceship.',
+  providerOptions: {
+    google: {
+      responseModalities: ['image'],
+    },
+  },
+});
+
+for (const file of result.files) {
+  if (file.mediaType.startsWith('image/')) {
+    // file.uint8Array | file.base64 | file.mediaType
+  }
+}
+```
+
+Iterative image editing pairs naturally with stateful chaining — keep
+`previousInteractionId` set across turns and the model edits its prior
+output:
+
+```ts
+import { google } from '@ai-sdk/google';
+import { generateText } from 'ai';
+
+const model = google.interactions('gemini-3-pro-image-preview');
+
+const turn1 = await generateText({
+  model,
+  prompt: 'Generate an image of a comic cat in a spaceship.',
+  providerOptions: { google: { responseModalities: ['image'] } },
+});
+
+const interactionId = turn1.providerMetadata?.google?.interactionId as
+  | string
+  | undefined;
+
+const turn2 = await generateText({
+  model,
+  prompt: 'now make the cat red',
+  providerOptions: {
+    google: {
+      responseModalities: ['image'],
+      previousInteractionId: interactionId,
+    },
+  },
+});
+```
+
+### Agent presets
+
+Pass `{ agent: <name> }` to target a Gemini agent preset. The factory
+type-checks the agent name against the supported set:
+
+```ts
+import { google } from '@ai-sdk/google';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: google.interactions({
+    agent: 'deep-research-pro-preview-12-2025',
+  }),
+  prompt:
+    'Briefly summarize the most-cited papers on retrieval-augmented generation since 2024 (2-3 sentences).',
+});
+```
+
+Agent calls run with `background: true` on the wire and the SDK polls the
+`GET /interactions/{id}` endpoint internally until the interaction
+completes. The default polling timeout is 30 minutes; raise it via
+`pollingTimeoutMs` for slower agents:
+
+```ts
+await generateText({
+  model: google.interactions({ agent: 'deep-research-max-preview-04-2026' }),
+  prompt: 'Produce a long-form research brief on ...',
+  providerOptions: {
+    google: {
+      pollingTimeoutMs: 60 * 60 * 1000, // 1 hour
+    },
+  },
+});
+```
+
+Agents also chain through `previousInteractionId` like model-id calls.
+
+### Streaming
+
+`streamText` is supported and consumes the seven Interactions SSE event
+types (`interaction.start`, `content.start`, `content.delta`,
+`content.stop`, `interaction.status_update`, `interaction.complete`,
+`error`). The stream's `finish` part exposes `interactionId` on
+`providerMetadata.google` so callers can chain.
+
+```ts
+import { google } from '@ai-sdk/google';
+import { streamText } from 'ai';
+
+const result = streamText({
+  model: google.interactions('gemini-2.5-flash'),
+  prompt: 'Hello, how are you?',
+});
+
+for await (const textPart of result.textStream) {
+  process.stdout.write(textPart);
+}
+
+const googleMetadata = (await result.providerMetadata)?.google;
+console.log('Interaction id:', googleMetadata?.interactionId);
+```
+
+### Runnable Examples
+
+Paired `generateText` + `streamText` examples live under:
+
+- `examples/ai-functions/src/generate-text/google/interactions-*.ts`
+- `examples/ai-functions/src/stream-text/google/interactions-*.ts`
+
+Notable examples: `interactions-basic`, `interactions-multi-turn-stateful`,
+`interactions-multi-turn-stateless`, `interactions-tool-call`,
+`interactions-google-search`, `interactions-image-output`,
+`interactions-image-output-modify`, `interactions-image-base64`,
+`interactions-image-reference`, `interactions-image-url`,
+`interactions-pdf`, `interactions-structured-output`,
+`interactions-service-tier`, `interactions-agent-single-turn`, and
+`interactions-agent-multi-turn`.
+
 ## Gemma Models
 
 You can use [Gemma models](https://deepmind.google/models/gemma/) with the Google Generative AI API.
@@ -1173,7 +1544,6 @@ The following optional provider options are available for Google embedding model
 - **taskType**: _string_
 
   Optional. Specifies the task type for generating embeddings. Supported task types include:
-
   - `SEMANTIC_SIMILARITY`: Optimized for text similarity.
   - `CLASSIFICATION`: Optimized for text classification.
   - `CLUSTERING`: Optimized for clustering texts based on similarity.
@@ -1185,7 +1555,7 @@ The following optional provider options are available for Google embedding model
 
 - **content**: _array_
 
-  Optional. Per-value multimodal content parts for embedding non-text content (images, video, PDF, audio). Each entry corresponds to the embedding value at the same index — its parts are merged with the text value in the request. Use `null` for entries that are text-only. The array length must match the number of values being embedded. Each non-null entry is an array of parts, where each part can be either `{ text: string }` or `{ inlineData: { mimeType: string, data: string } }`. Supported by `gemini-embedding-2-preview`.
+  Optional. Per-value multimodal content parts for embedding non-text content (images, video, PDF, audio). Each entry corresponds to the embedding value at the same index — its parts are merged with the text value in the request. Use `null` for entries that are text-only. The array length must match the number of values being embedded. Each non-null entry is an array of parts, where each part can be `{ text: string }`, `{ inlineData: { mimeType: string, data: string } }` for inline base64 data, or `{ fileData: { fileUri: string, mimeType: string } }` to reference remote content via HTTP URL or Google Cloud Storage URI (`gs://...`). Supported by `gemini-embedding-2-preview`.
 
 ### Model Capabilities
 

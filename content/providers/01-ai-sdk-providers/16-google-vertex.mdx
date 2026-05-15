@@ -100,7 +100,6 @@ You can use the following optional settings to customize the provider instance:
 - **googleAuthOptions** _object_
 
   Optional. The Authentication options used by the [Google Auth Library](https://github.com/googleapis/google-auth-library-nodejs/). See also the [GoogleAuthOptions](https://github.com/googleapis/google-auth-library-nodejs/blob/08978822e1b7b5961f0e355df51d738e012be392/src/auth/googleauth.ts#L87C18-L87C35) interface.
-
   - **authClient** _object_
     An `AuthClient` to use.
 
@@ -128,7 +127,6 @@ You can use the following optional settings to customize the provider instance:
 - **headers** _Resolvable&lt;Record&lt;string, string | undefined&gt;&gt;_
 
   Headers to include in the requests. Can be provided in multiple formats:
-
   - A record of header key-value pairs: `Record<string, string | undefined>`
   - A function that returns headers: `() => Record<string, string | undefined>`
   - An async function that returns headers: `async () => Record<string, string | undefined>`
@@ -204,7 +202,6 @@ You can use the following optional settings to customize the provider instance:
 - **googleCredentials** _object_
 
   Optional. The credentials used by the Edge provider for authentication. These credentials are typically set through environment variables and are derived from a service account JSON file.
-
   - **clientEmail** _string_
     The client email from the service account JSON file. Defaults to the contents of the `GOOGLE_CLIENT_EMAIL` environment variable.
 
@@ -217,7 +214,6 @@ You can use the following optional settings to customize the provider instance:
 - **headers** _Resolvable&lt;Record&lt;string, string | undefined&gt;&gt;_
 
   Headers to include in the requests. Can be provided in multiple formats:
-
   - A record of header key-value pairs: `Record<string, string | undefined>`
   - A function that returns headers: `() => Record<string, string | undefined>`
   - An async function that returns headers: `async () => Record<string, string | undefined>`
@@ -310,11 +306,9 @@ The following optional provider options are available for Google Vertex models:
 - **safetySettings** _Array\<\{ category: string; threshold: string \}\>_
 
   Optional. Safety settings for the model.
-
   - **category** _string_
 
     The category of the safety setting. Can be one of the following:
-
     - `HARM_CATEGORY_UNSPECIFIED`
     - `HARM_CATEGORY_HATE_SPEECH`
     - `HARM_CATEGORY_DANGEROUS_CONTENT`
@@ -325,7 +319,6 @@ The following optional provider options are available for Google Vertex models:
   - **threshold** _string_
 
     The threshold of the safety setting. Can be one of the following:
-
     - `HARM_BLOCK_THRESHOLD_UNSPECIFIED`
     - `BLOCK_LOW_AND_ABOVE`
     - `BLOCK_MEDIUM_AND_ABOVE`
@@ -512,8 +505,8 @@ for await (const part of result.fullStream) {
 
 <Note>
   This feature is only available on the Vertex AI API. It is not supported on
-  the Gemini API. When used with the Google provider, a warning
-  will be emitted and the option will be ignored.
+  the Gemini API. When used with the Google provider, a warning will be emitted
+  and the option will be ignored.
 </Note>
 
 #### Reasoning (Thinking Tokens)
@@ -872,7 +865,6 @@ The following optional provider options are available for Google Vertex AI embed
 - **taskType**: _string_
 
   Optional. Specifies the task type for generating embeddings. Supported task types include:
-
   - `SEMANTIC_SIMILARITY`: Optimized for text similarity.
   - `CLASSIFICATION`: Optimized for text classification.
   - `CLUSTERING`: Optimized for clustering texts based on similarity.
@@ -993,7 +985,10 @@ Google Vertex Imagen models support image editing through inpainting, outpaintin
 Insert or replace objects in specific areas using a mask:
 
 ```ts
-import { googleVertex, GoogleVertexImageModelOptions } from '@ai-sdk/google-vertex';
+import {
+  googleVertex,
+  GoogleVertexImageModelOptions,
+} from '@ai-sdk/google-vertex';
 import { generateImage } from 'ai';
 import fs from 'fs';
 
@@ -1025,7 +1020,10 @@ const { images } = await generateImage({
 Extend an image beyond its original boundaries:
 
 ```ts
-import { googleVertex, GoogleVertexImageModelOptions } from '@ai-sdk/google-vertex';
+import {
+  googleVertex,
+  GoogleVertexImageModelOptions,
+} from '@ai-sdk/google-vertex';
 import { generateImage } from 'ai';
 import fs from 'fs';
 
@@ -1056,7 +1054,6 @@ const { images } = await generateImage({
 The following options are available under `providerOptions.vertex.edit`:
 
 - **mode** - The edit mode to use:
-
   - `EDIT_MODE_INPAINT_INSERTION` - Insert objects into masked areas
   - `EDIT_MODE_INPAINT_REMOVAL` - Remove objects from masked areas
   - `EDIT_MODE_OUTPAINT` - Extend image beyond boundaries
@@ -1067,7 +1064,6 @@ The following options are available under `providerOptions.vertex.edit`:
 - **baseSteps** _number_ - Number of sampling steps (35-75). Higher values = better quality but slower.
 
 - **maskMode** - How to interpret the mask:
-
   - `MASK_MODE_USER_PROVIDED` - Use the provided mask directly
   - `MASK_MODE_DEFAULT` - Default mask mode
   - `MASK_MODE_DETECTION_BOX` - Mask from detected bounding boxes
@@ -1330,7 +1326,6 @@ You can use the following optional settings to customize the Google Vertex Anthr
 - **googleAuthOptions** _object_
 
   Optional. The Authentication options used by the [Google Auth Library](https://github.com/googleapis/google-auth-library-nodejs/). See also the [GoogleAuthOptions](https://github.com/googleapis/google-auth-library-nodejs/blob/08978822e1b7b5961f0e355df51d738e012be392/src/auth/googleauth.ts#L87C18-L87C35) interface.
-
   - **authClient** _object_
     An `AuthClient` to use.
 
@@ -1358,7 +1353,6 @@ You can use the following optional settings to customize the Google Vertex Anthr
 - **headers** _Resolvable&lt;Record&lt;string, string | undefined&gt;&gt;_
 
   Headers to include in the requests. Can be provided in multiple formats:
-
   - A record of header key-value pairs: `Record<string, string | undefined>`
   - A function that returns headers: `() => Record<string, string | undefined>`
   - An async function that returns headers: `async () => Record<string, string | undefined>`
@@ -1421,7 +1415,6 @@ You can use the following optional settings to customize the provider instance:
 - **googleCredentials** _object_
 
   Optional. The credentials used by the Edge provider for authentication. These credentials are typically set through environment variables and are derived from a service account JSON file.
-
   - **clientEmail** _string_
     The client email from the service account JSON file. Defaults to the contents of the `GOOGLE_CLIENT_EMAIL` environment variable.
 
@@ -1434,7 +1427,6 @@ You can use the following optional settings to customize the provider instance:
 - **headers** _Resolvable&lt;Record&lt;string, string | undefined&gt;&gt;_
 
   Headers to include in the requests. Can be provided in multiple formats:
-
   - A record of header key-value pairs: `Record<string, string | undefined>`
   - A function that returns headers: `() => Record<string, string | undefined>`
   - An async function that returns headers: `async () => Record<string, string | undefined>`
@@ -1495,7 +1487,6 @@ The following optional provider options are available for Anthropic models:
 - `metadata` _object_
 
   Optional. Metadata to include with the request. See the [Anthropic API documentation](https://platform.claude.com/docs/en/api/messages/create) for details.
-
   - `userId` _string_ - An external identifier for the end-user.
 
 ### Reasoning
@@ -1570,7 +1561,10 @@ const result = await generateText({
 });
 
 console.log(result.text);
-console.log('Cache read tokens:', result.usage.inputTokenDetails.cacheReadTokens);
+console.log(
+  'Cache read tokens:',
+  result.usage.inputTokenDetails.cacheReadTokens,
+);
 console.log(
   'Cache write tokens:',
   result.usage.inputTokenDetails.cacheWriteTokens,
@@ -1934,7 +1928,7 @@ import { z } from 'zod';
 
 const result = await generateText({
   model: googleVertexXai('xai/grok-4.1-fast-reasoning'),
-  output: Output.object({  
+  output: Output.object({
     schema: z.object({
       name: z.string(),
       date: z.string(),
@@ -1949,12 +1943,12 @@ const result = await generateText({
 
 The following models are available through the Google Vertex xAI provider. You can also pass any valid model ID as a string.
 
-| Model ID                            | Reasoning |
-| ----------------------------------- | --------- |
-| `xai/grok-4.20-reasoning`           | Yes       |
-| `xai/grok-4.20-non-reasoning`       | No        |
-| `xai/grok-4.1-fast-reasoning`       | Yes       |
-| `xai/grok-4.1-fast-non-reasoning`   | No        |
+| Model ID                          | Reasoning |
+| --------------------------------- | --------- |
+| `xai/grok-4.20-reasoning`         | Yes       |
+| `xai/grok-4.20-non-reasoning`     | No        |
+| `xai/grok-4.1-fast-reasoning`     | Yes       |
+| `xai/grok-4.1-fast-non-reasoning` | No        |
 
 <Note>
   Grok reasoning models on Vertex report reasoning token counts in usage
@@ -2086,21 +2080,22 @@ The following models are available through the MaaS provider. You can also pass 
 
 | Model ID                                       | Provider |
 | ---------------------------------------------- | -------- |
-| `deepseek-ai/deepseek-r1-0528-maas`           | DeepSeek |
-| `deepseek-ai/deepseek-v3.1-maas`              | DeepSeek |
-| `deepseek-ai/deepseek-v3.2-maas`              | DeepSeek |
-| `openai/gpt-oss-120b-maas`                    | OpenAI   |
-| `openai/gpt-oss-20b-maas`                     | OpenAI   |
+| `deepseek-ai/deepseek-r1-0528-maas`            | DeepSeek |
+| `deepseek-ai/deepseek-v3.1-maas`               | DeepSeek |
+| `deepseek-ai/deepseek-v3.2-maas`               | DeepSeek |
+| `openai/gpt-oss-120b-maas`                     | OpenAI   |
+| `openai/gpt-oss-20b-maas`                      | OpenAI   |
 | `meta/llama-4-maverick-17b-128e-instruct-maas` | Meta     |
-| `meta/llama-4-scout-17b-16e-instruct-maas`    | Meta     |
+| `meta/llama-4-scout-17b-16e-instruct-maas`     | Meta     |
 | `minimax/minimax-m2-maas`                      | MiniMax  |
-| `qwen/qwen3-coder-480b-a35b-instruct-maas`    | Qwen     |
-| `qwen/qwen3-next-80b-a3b-instruct-maas`       | Qwen     |
-| `qwen/qwen3-next-80b-a3b-thinking-maas`       | Qwen     |
+| `qwen/qwen3-coder-480b-a35b-instruct-maas`     | Qwen     |
+| `qwen/qwen3-next-80b-a3b-instruct-maas`        | Qwen     |
+| `qwen/qwen3-next-80b-a3b-thinking-maas`        | Qwen     |
 | `moonshotai/kimi-k2-thinking-maas`             | Moonshot |
 
 <Note>
   Model availability depends on your Google Cloud project and region. Check the
-  [Vertex AI Model Garden](https://console.cloud.google.com/vertex-ai/model-garden)
-  for the latest available models.
+  [Vertex AI Model
+  Garden](https://console.cloud.google.com/vertex-ai/model-garden) for the
+  latest available models.
 </Note>

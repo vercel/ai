@@ -1,0 +1,41 @@
+{
+  "id": "v1_ChdsV2Y1YWZPakRiLUh6N0lQOVA2UTJBRRIXcVdmNWFidndDWmlJejdJUGdLLTF3UUU",
+  "status": "completed",
+  "outputs": [
+    {
+      "signature": "__SIGNATURE_TRUNCATED__",
+      "type": "thought"
+    },
+    {
+      "mime_type": "image/jpeg",
+      "data": "__IMAGE_DATA_TRUNCATED__",
+      "type": "image"
+    }
+  ],
+  "usage": {
+    "total_tokens": 1447,
+    "total_input_tokens": 6,
+    "input_tokens_by_modality": [
+      {
+        "modality": "text",
+        "tokens": 6
+      }
+    ],
+    "total_cached_tokens": 0,
+    "total_output_tokens": 1267,
+    "output_tokens_by_modality": [
+      {
+        "modality": "image",
+        "tokens": 1120
+      }
+    ],
+    "total_tool_use_tokens": 0,
+    "total_thought_tokens": 174
+  },
+  "role": "model",
+  "created": "2026-05-05T03:45:00Z",
+  "updated": "2026-05-05T03:45:00Z",
+  "service_tier": "standard",
+  "object": "interaction",
+  "model": "gemini-3-pro-image-preview"
+}

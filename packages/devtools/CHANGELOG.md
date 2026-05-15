@@ -1,5 +1,23 @@
 # @ai-sdk/devtools
 
+## 1.0.0-canary.24
+
+### Patch Changes
+
+- ee7bb67: fix(devtools): add pointer cursor to DevTools buttons
+
+## 1.0.0-canary.23
+
+### Patch Changes
+
+- 98627e5: feat(ai): remove onChunk event from telemetry
+
+## 1.0.0-canary.22
+
+### Patch Changes
+
+- ddfcdc7: Fix `ToolItem` expand/collapse logic: chevron now shows whenever there's expandable content (parameters or description), expanded view shows full description plus parameters, collapsed view shows truncated description only.
+
 ## 1.0.0-canary.21
 
 ### Patch Changes
