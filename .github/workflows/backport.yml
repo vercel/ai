@@ -237,7 +237,7 @@ jobs:
       # outages. We add two explicit retries with longer waits on top of that.
       - name: Checkout Repository
         id: checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         continue-on-error: true
         with:
           fetch-depth: 0
@@ -249,7 +249,7 @@ jobs:
       - name: Checkout Repository (retry 1)
         id: checkout-retry-1
         if: steps.checkout.outcome == 'failure'
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         continue-on-error: true
         with:
           fetch-depth: 0
@@ -260,7 +260,7 @@ jobs:
 
       - name: Checkout Repository (retry 2)
         if: steps.checkout.outcome == 'failure' && steps.checkout-retry-1.outcome == 'failure'
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
 
@@ -445,7 +445,7 @@ jobs:
 
       - name: Checkout Repository
         if: '!steps.check-existing.outputs.existing-pr'
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
           ref: ${{ needs.find-branch.outputs.release-branch }}
