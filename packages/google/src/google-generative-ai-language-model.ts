@@ -584,139 +584,10 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
                 }
               }
 
-<<<<<<< HEAD
               const toolCallDeltas = getToolCallsFromParts({
                 parts: content.parts,
                 generateId,
               });
-=======
-              // Handle streaming and complete function calls
-              for (const part of parts) {
-                if (!('functionCall' in part)) continue;
-
-                const providerMeta = part.thoughtSignature
-                  ? {
-                      [providerOptionsName]: {
-                        thoughtSignature: part.thoughtSignature,
-                      },
-                    }
-                  : undefined;
-
-                const isStreamingChunk =
-                  part.functionCall.partialArgs != null ||
-                  (part.functionCall.name != null &&
-                    part.functionCall.willContinue === true);
-                const isTerminalChunk =
-                  part.functionCall.name == null &&
-                  part.functionCall.args == null &&
-                  part.functionCall.partialArgs == null &&
-                  part.functionCall.willContinue == null;
-                const isCompleteCall =
-                  part.functionCall.name != null &&
-                  part.functionCall.args != null &&
-                  part.functionCall.partialArgs == null;
-                // Single-chunk no-args call: `{ name: 'X' }` with no `args`,
-                // `partialArgs`, or `willContinue`. Carries `thoughtSignature`.
-                const isNoArgsCompleteCall =
-                  part.functionCall.name != null &&
-                  part.functionCall.args == null &&
-                  part.functionCall.partialArgs == null &&
-                  part.functionCall.willContinue !== true;
-
-                if (isStreamingChunk) {
-                  if (
-                    part.functionCall.name != null &&
-                    part.functionCall.willContinue === true
-                  ) {
-                    const toolCallId = part.functionCall.id ?? generateId();
-                    const accumulator = new GoogleJSONAccumulator();
-                    activeStreamingToolCalls.push({
-                      toolCallId,
-                      toolName: part.functionCall.name,
-                      accumulator,
-                      providerMetadata: providerMeta,
-                    });
-
-                    controller.enqueue({
-                      type: 'tool-input-start',
-                      id: toolCallId,
-                      toolName: part.functionCall.name,
-                      providerMetadata: providerMeta,
-                    });
-
-                    if (part.functionCall.partialArgs != null) {
-                      const { textDelta } = accumulator.processPartialArgs(
-                        part.functionCall.partialArgs as PartialArg[],
-                      );
-                      if (textDelta.length > 0) {
-                        controller.enqueue({
-                          type: 'tool-input-delta',
-                          id: toolCallId,
-                          delta: textDelta,
-                          providerMetadata: providerMeta,
-                        });
-                      }
-                    }
-                  } else if (
-                    part.functionCall.partialArgs != null &&
-                    activeStreamingToolCalls.length > 0
-                  ) {
-                    const active =
-                      activeStreamingToolCalls[
-                        activeStreamingToolCalls.length - 1
-                      ];
-                    const { textDelta } = active.accumulator.processPartialArgs(
-                      part.functionCall.partialArgs as PartialArg[],
-                    );
-                    if (textDelta.length > 0) {
-                      controller.enqueue({
-                        type: 'tool-input-delta',
-                        id: active.toolCallId,
-                        delta: textDelta,
-                        providerMetadata: providerMeta,
-                      });
-                    }
-                  }
-                } else if (
-                  isTerminalChunk &&
-                  activeStreamingToolCalls.length > 0
-                ) {
-                  const active = activeStreamingToolCalls.pop()!;
-                  const { finalJSON, closingDelta } =
-                    active.accumulator.finalize();
-
-                  if (closingDelta.length > 0) {
-                    controller.enqueue({
-                      type: 'tool-input-delta',
-                      id: active.toolCallId,
-                      delta: closingDelta,
-                      providerMetadata: active.providerMetadata,
-                    });
-                  }
-
-                  controller.enqueue({
-                    type: 'tool-input-end',
-                    id: active.toolCallId,
-                    providerMetadata: active.providerMetadata,
-                  });
-
-                  controller.enqueue({
-                    type: 'tool-call',
-                    toolCallId: active.toolCallId,
-                    toolName: active.toolName,
-                    input: finalJSON,
-                    providerMetadata: active.providerMetadata,
-                  });
-
-                  hasToolCalls = true;
-                } else if (isCompleteCall) {
-                  const toolCallId = part.functionCall.id ?? generateId();
-                  const toolName = part.functionCall.name!;
-                  const args =
-                    typeof part.functionCall.args === 'string'
-                      ? part.functionCall.args
-                      : JSON.stringify(part.functionCall.args ?? {});
->>>>>>> 3ca0daa8e (Backport: fix(provider/google): support `functionCall.id` when returned by Gemini API and provide matching `functionResponse.id` (#15318))
 
               if (toolCallDeltas != null) {
                 for (const toolCall of toolCallDeltas) {
@@ -742,43 +613,10 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
 
                   controller.enqueue({
                     type: 'tool-call',
-<<<<<<< HEAD
                     toolCallId: toolCall.toolCallId,
                     toolName: toolCall.toolName,
                     input: toolCall.args,
                     providerMetadata: toolCall.providerMetadata,
-=======
-                    toolCallId,
-                    toolName,
-                    input: args,
-                    providerMetadata: providerMeta,
-                  });
-
-                  hasToolCalls = true;
-                } else if (isNoArgsCompleteCall) {
-                  const toolCallId = part.functionCall.id ?? generateId();
-                  const toolName = part.functionCall.name!;
-
-                  controller.enqueue({
-                    type: 'tool-input-start',
-                    id: toolCallId,
-                    toolName,
-                    providerMetadata: providerMeta,
-                  });
-
-                  controller.enqueue({
-                    type: 'tool-input-end',
-                    id: toolCallId,
-                    providerMetadata: providerMeta,
-                  });
-
-                  controller.enqueue({
-                    type: 'tool-call',
-                    toolCallId,
-                    toolName,
-                    input: '{}',
-                    providerMetadata: providerMeta,
->>>>>>> 3ca0daa8e (Backport: fix(provider/google): support `functionCall.id` when returned by Gemini API and provide matching `functionResponse.id` (#15318))
                   });
 
                   hasToolCalls = true;
@@ -848,7 +686,7 @@ function getToolCallsFromParts({
     part => 'functionCall' in part,
   ) as Array<
     GoogleGenerativeAIContentPart & {
-      functionCall: { name: string; args: unknown };
+      functionCall: { id?: string | null; name: string; args: unknown };
       thoughtSignature?: string | null;
     }
   >;
@@ -857,7 +695,7 @@ function getToolCallsFromParts({
     ? undefined
     : functionCallParts.map(part => ({
         type: 'tool-call' as const,
-        toolCallId: generateId(),
+        toolCallId: part.functionCall.id ?? generateId(),
         toolName: part.functionCall.name,
         args: JSON.stringify(part.functionCall.args),
         providerMetadata: part.thoughtSignature
@@ -1051,16 +889,9 @@ const getContentSchema = () =>
           // note: order matters since text can be fully empty
           z.object({
             functionCall: z.object({
-<<<<<<< HEAD
+              id: z.string().nullish(),
               name: z.string(),
               args: z.unknown(),
-=======
-              id: z.string().nullish(),
-              name: z.string().nullish(),
-              args: z.unknown().nullish(),
-              partialArgs: z.array(partialArgSchema).nullish(),
-              willContinue: z.boolean().nullish(),
->>>>>>> 3ca0daa8e (Backport: fix(provider/google): support `functionCall.id` when returned by Gemini API and provide matching `functionResponse.id` (#15318))
             }),
             thoughtSignature: z.string().nullish(),
           }),

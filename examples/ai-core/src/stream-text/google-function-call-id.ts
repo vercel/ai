@@ -1,7 +1,7 @@
 import { google } from '@ai-sdk/google';
 import { stepCountIs, streamText, type ModelMessage } from 'ai';
-import { weatherTool } from '../../tools/weather-tool';
-import { run } from '../../lib/run';
+import { weatherTool } from '../tools/weather-tool';
+import { run } from '../lib/run';
 
 /*
  * Exercises Gemini 3's parallel function calling across two turns via

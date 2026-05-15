@@ -8,164 +8,7 @@ import type {
   GoogleGenerativeAIFunctionResponsePart,
   GoogleGenerativeAIPrompt,
 } from './google-generative-ai-prompt';
-<<<<<<< HEAD
 import { convertToBase64 } from '@ai-sdk/provider-utils';
-=======
-
-const dataUrlRegex = /^data:([^;,]+);base64,(.+)$/s;
-
-function parseBase64DataUrl(
-  value: string,
-): { mediaType: string; data: string } | undefined {
-  const match = dataUrlRegex.exec(value);
-  if (match == null) {
-    return undefined;
-  }
-
-  return {
-    mediaType: match[1],
-    data: match[2],
-  };
-}
-
-function convertUrlToolResultPart(
-  url: string,
-): GoogleGenerativeAIFunctionResponsePart | undefined {
-  // Per https://ai.google.dev/api/caching#FunctionResponsePart, only inline data is supported.
-  // https://docs.cloud.google.com/vertex-ai/generative-ai/docs/model-reference/function-calling#functionresponsepart suggests that this
-  // may be different for Vertex, but this needs to be confirmed and further tested for both APIs.
-  const parsedDataUrl = parseBase64DataUrl(url);
-  if (parsedDataUrl == null) {
-    return undefined;
-  }
-
-  return {
-    inlineData: {
-      mimeType: parsedDataUrl.mediaType,
-      data: parsedDataUrl.data,
-    },
-  };
-}
-
-/*
- * Appends tool result content parts to the message using the functionResponse
- * format with support for multimodal parts (e.g. inline images/files alongside
- * text). This format is supported by Gemini 3+ models.
- */
-function appendToolResultParts(
-  parts: GoogleGenerativeAIContentPart[],
-  toolName: string,
-  outputValue: Array<{
-    type: string;
-    [key: string]: unknown;
-  }>,
-  toolCallId?: string,
-): void {
-  const functionResponseParts: GoogleGenerativeAIFunctionResponsePart[] = [];
-  const responseTextParts: string[] = [];
-
-  for (const contentPart of outputValue) {
-    switch (contentPart.type) {
-      case 'text': {
-        responseTextParts.push(contentPart.text as string);
-        break;
-      }
-      case 'image-data':
-      case 'file-data': {
-        functionResponseParts.push({
-          inlineData: {
-            mimeType: contentPart.mediaType as string,
-            data: contentPart.data as string,
-          },
-        });
-        break;
-      }
-      case 'image-url':
-      case 'file-url': {
-        const functionResponsePart = convertUrlToolResultPart(
-          contentPart.url as string,
-        );
-
-        if (functionResponsePart != null) {
-          functionResponseParts.push(functionResponsePart);
-        } else {
-          responseTextParts.push(JSON.stringify(contentPart));
-        }
-        break;
-      }
-      default: {
-        responseTextParts.push(JSON.stringify(contentPart));
-        break;
-      }
-    }
-  }
-
-  parts.push({
-    functionResponse: {
-      ...(toolCallId != null ? { id: toolCallId } : {}),
-      name: toolName,
-      response: {
-        name: toolName,
-        content:
-          responseTextParts.length > 0
-            ? responseTextParts.join('\n')
-            : 'Tool executed successfully.',
-      },
-      ...(functionResponseParts.length > 0
-        ? { parts: functionResponseParts }
-        : {}),
-    },
-  });
-}
-
-/*
- * Appends tool result content parts using a legacy format for pre-Gemini 3
- * models that do not support multimodal parts within functionResponse. Instead,
- * non-text content like images is sent as separate top-level inlineData parts.
- */
-function appendLegacyToolResultParts(
-  parts: GoogleGenerativeAIContentPart[],
-  toolName: string,
-  outputValue: Array<{
-    type: string;
-    [key: string]: unknown;
-  }>,
-  toolCallId?: string,
-): void {
-  for (const contentPart of outputValue) {
-    switch (contentPart.type) {
-      case 'text':
-        parts.push({
-          functionResponse: {
-            ...(toolCallId != null ? { id: toolCallId } : {}),
-            name: toolName,
-            response: {
-              name: toolName,
-              content: contentPart.text,
-            },
-          },
-        });
-        break;
-      case 'image-data':
-        parts.push(
-          {
-            inlineData: {
-              mimeType: String(contentPart.mediaType),
-              data: String(contentPart.data),
-            },
-          },
-          {
-            text: 'Tool executed successfully and returned this image as a response',
-          },
-        );
-        break;
-      default:
-        parts.push({ text: JSON.stringify(contentPart) });
-        break;
-    }
-  }
-}
->>>>>>> 3ca0daa8e (Backport: fix(provider/google): support `functionCall.id` when returned by Gemini API and provide matching `functionResponse.id` (#15318))
 
 export function convertToGoogleGenerativeAIMessages(
   prompt: LanguageModelV2Prompt,
@@ -318,25 +161,9 @@ export function convertToGoogleGenerativeAIMessages(
 
           if (output.type === 'content') {
             if (supportsFunctionResponseParts) {
-<<<<<<< HEAD
               appendToolResultParts({ parts, part, output });
             } else {
               appendLegacyToolResultParts({ parts, part, output });
-=======
-              appendToolResultParts(
-                parts,
-                part.toolName,
-                output.value,
-                part.toolCallId,
-              );
-            } else {
-              appendLegacyToolResultParts(
-                parts,
-                part.toolName,
-                output.value,
-                part.toolCallId,
-              );
->>>>>>> 3ca0daa8e (Backport: fix(provider/google): support `functionCall.id` when returned by Gemini API and provide matching `functionResponse.id` (#15318))
             }
           } else {
             parts.push({
@@ -389,7 +216,7 @@ function appendToolResultParts({
   output,
 }: {
   parts: GoogleGenerativeAIContentPart[];
-  part: { toolName: string };
+  part: { toolName: string; toolCallId?: string };
   output: {
     type: 'content';
     value: Array<
@@ -424,6 +251,7 @@ function appendToolResultParts({
 
   parts.push({
     functionResponse: {
+      ...(part.toolCallId != null ? { id: part.toolCallId } : {}),
       name: part.toolName,
       response: {
         name: part.toolName,
@@ -442,7 +270,7 @@ function appendLegacyToolResultParts({
   output,
 }: {
   parts: GoogleGenerativeAIContentPart[];
-  part: { toolName: string };
+  part: { toolName: string; toolCallId?: string };
   output: {
     type: 'content';
     value: Array<
@@ -456,6 +284,7 @@ function appendLegacyToolResultParts({
       case 'text':
         parts.push({
           functionResponse: {
+            ...(part.toolCallId != null ? { id: part.toolCallId } : {}),
             name: part.toolName,
             response: {
               name: part.toolName,
