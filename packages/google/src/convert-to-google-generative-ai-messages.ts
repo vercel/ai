@@ -57,6 +57,7 @@ function appendToolResultParts(
     type: string;
     [key: string]: unknown;
   }>,
+  toolCallId?: string,
 ): void {
   const functionResponseParts: GoogleGenerativeAIFunctionResponsePart[] = [];
   const responseTextParts: string[] = [];
@@ -99,6 +100,7 @@ function appendToolResultParts(
 
   parts.push({
     functionResponse: {
+      ...(toolCallId != null ? { id: toolCallId } : {}),
       name: toolName,
       response: {
         name: toolName,
@@ -126,12 +128,14 @@ function appendLegacyToolResultParts(
     type: string;
     [key: string]: unknown;
   }>,
+  toolCallId?: string,
 ): void {
   for (const contentPart of outputValue) {
     switch (contentPart.type) {
       case 'text':
         parts.push({
           functionResponse: {
+            ...(toolCallId != null ? { id: toolCallId } : {}),
             name: toolName,
             response: {
               name: toolName,
@@ -315,6 +319,9 @@ export function convertToGoogleGenerativeAIMessages(
 
                   return {
                     functionCall: {
+                      ...(part.toolCallId != null
+                        ? { id: part.toolCallId }
+                        : {}),
                       name: part.toolName,
                       args: part.input,
                     },
@@ -405,13 +412,24 @@ export function convertToGoogleGenerativeAIMessages(
 
           if (output.type === 'content') {
             if (supportsFunctionResponseParts) {
-              appendToolResultParts(parts, part.toolName, output.value);
+              appendToolResultParts(
+                parts,
+                part.toolName,
+                output.value,
+                part.toolCallId,
+              );
             } else {
-              appendLegacyToolResultParts(parts, part.toolName, output.value);
+              appendLegacyToolResultParts(
+                parts,
+                part.toolName,
+                output.value,
+                part.toolCallId,
+              );
             }
           } else {
             parts.push({
               functionResponse: {
+                ...(part.toolCallId != null ? { id: part.toolCallId } : {}),
                 name: part.toolName,
                 response: {
                   name: part.toolName,
