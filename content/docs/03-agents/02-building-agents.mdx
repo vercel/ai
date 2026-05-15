@@ -496,7 +496,7 @@ const result = await myAgent.generate({
     console.log(`Step ${stepNumber} completed:`, {
       inputTokens: usage.inputTokens,
       outputTokens: usage.outputTokens,
-      tokensPerSecond: performance.tokensPerSecond,
+      outputTokensPerSecond: performance.effectiveOutputTokensPerSecond,
       stepTimeMs: performance.stepTimeMs,
       finishReason,
       toolsUsed: toolCalls?.map(tc => tc.toolName),

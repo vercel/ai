@@ -58,6 +58,7 @@ import type {
   TextStreamToolErrorPart,
   TextStreamToolResultPart,
 } from './stream-text-result';
+import { sumTokenCounts } from './sum-token-counts';
 import type { TypedToolCall } from './tool-call';
 import type { ToolCallRepairFunction } from './tool-call-repair-function';
 import type { TypedToolError } from './tool-error';
@@ -105,8 +106,11 @@ export type LanguageModelStreamPart<TOOLS extends ToolSet = ToolSet> =
       providerMetadata?: ProviderMetadata;
       performance: {
         responseTimeMs: number;
-        tokensPerSecond: number;
-        timeToFirstTokenMs: number | undefined;
+        effectiveOutputTokensPerSecond: number;
+        outputTokensPerSecond: number | undefined;
+        inputTokensPerSecond: number | undefined;
+        effectiveTotalTokensPerSecond: number;
+        timeToFirstOutputTokenMs: number | undefined;
       };
     }
   | {
@@ -398,15 +402,15 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
   const textPartIndexes = new Map<string, number>();
   const reasoningPartIndexes = new Map<string, number>();
   let responseId = generateId();
-  let timeToFirstTokenMs: number | undefined;
+  let timeToFirstOutputTokenMs: number | undefined;
 
   return new TransformStream<
     LanguageModelV4StreamPart,
     LanguageModelStreamPart<TOOLS>
   >({
     async transform(chunk, controller) {
-      if (timeToFirstTokenMs == null && isChunkWithTokens(chunk)) {
-        timeToFirstTokenMs = now() - callStartTimestampMs;
+      if (timeToFirstOutputTokenMs == null && isChunkWithTokens(chunk)) {
+        timeToFirstOutputTokenMs = now() - callStartTimestampMs;
       }
 
       switch (chunk.type) {
@@ -521,11 +525,29 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
           const responseTimeMs = now() - callStartTimestampMs;
           const performance = {
             responseTimeMs,
-            tokensPerSecond: calculateTokensPerSecond({
-              outputTokens: usage.outputTokens,
-              responseTimeMs,
+            effectiveOutputTokensPerSecond: calculateTokensPerSecond({
+              tokens: usage.outputTokens,
+              durationMs: responseTimeMs,
             }),
-            timeToFirstTokenMs,
+            outputTokensPerSecond:
+              timeToFirstOutputTokenMs == null
+                ? undefined
+                : calculateTokensPerSecond({
+                    tokens: usage.outputTokens,
+                    durationMs: responseTimeMs - timeToFirstOutputTokenMs,
+                  }),
+            inputTokensPerSecond:
+              timeToFirstOutputTokenMs == null
+                ? undefined
+                : calculateTokensPerSecond({
+                    tokens: usage.inputTokens,
+                    durationMs: timeToFirstOutputTokenMs,
+                  }),
+            effectiveTotalTokensPerSecond: calculateTokensPerSecond({
+              tokens: sumTokenCounts(usage.inputTokens, usage.outputTokens),
+              durationMs: responseTimeMs,
+            }),
+            timeToFirstOutputTokenMs,
           };
 
           await notify({

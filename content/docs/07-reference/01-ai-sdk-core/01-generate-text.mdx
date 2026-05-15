@@ -1343,7 +1343,7 @@ To see `generateText` in action, check out [these examples](#examples).
             },
             {
               name: 'performance',
-              type: '{ responseTimeMs: number; tokensPerSecond: number; timeToFirstTokenMs: number | undefined }',
+              type: '{ responseTimeMs: number; effectiveOutputTokensPerSecond: number; outputTokensPerSecond: number | undefined; inputTokensPerSecond: number | undefined; effectiveTotalTokensPerSecond: number; timeToFirstOutputTokenMs: number | undefined }',
               description: 'Performance metrics for the model call.',
               properties: [
                 {
@@ -1356,13 +1356,31 @@ To see `generateText` in action, check out [these examples](#examples).
                         'Time spent waiting for the language model response in milliseconds.',
                     },
                     {
-                      name: 'tokensPerSecond',
+                      name: 'effectiveOutputTokensPerSecond',
                       type: 'number',
                       description:
-                        'Average number of output tokens per second during the language model response.',
+                        'Effective number of output tokens per second over the full language model response.',
                     },
                     {
-                      name: 'timeToFirstTokenMs',
+                      name: 'outputTokensPerSecond',
+                      type: 'number | undefined',
+                      description:
+                        'Number of output tokens per second after the first output token was received. Only available for streaming model calls.',
+                    },
+                    {
+                      name: 'inputTokensPerSecond',
+                      type: 'number | undefined',
+                      description:
+                        'Number of input tokens processed per second before the first output token was received. Only available for streaming model calls.',
+                    },
+                    {
+                      name: 'effectiveTotalTokensPerSecond',
+                      type: 'number',
+                      description:
+                        'Effective number of input and output tokens per second over the full language model response.',
+                    },
+                    {
+                      name: 'timeToFirstOutputTokenMs',
                       type: 'number | undefined',
                       description:
                         'Time until the first text, reasoning, or tool input delta was received in milliseconds. Only available for streaming model calls.',
@@ -1682,16 +1700,34 @@ To see `generateText` in action, check out [these examples](#examples).
               name: 'performance',
               type: 'StepResultPerformance',
               description:
-                'Timing and throughput metrics for the step. For `generateText`, `timeToFirstTokenMs` is undefined.',
+                'Timing and throughput metrics for the step. For `generateText`, streaming-only metrics are undefined.',
               properties: [
                 {
                   type: 'StepResultPerformance',
                   parameters: [
                     {
-                      name: 'tokensPerSecond',
+                      name: 'effectiveOutputTokensPerSecond',
                       type: 'number',
                       description:
-                        'Average number of output tokens per second for the language model response.',
+                        'Effective number of output tokens per second over the full language model response.',
+                    },
+                    {
+                      name: 'outputTokensPerSecond',
+                      type: 'number | undefined',
+                      description:
+                        'Number of output tokens per second after the first output token was received. Only available for streaming steps.',
+                    },
+                    {
+                      name: 'inputTokensPerSecond',
+                      type: 'number | undefined',
+                      description:
+                        'Number of input tokens processed per second before the first output token was received. Only available for streaming steps.',
+                    },
+                    {
+                      name: 'effectiveTotalTokensPerSecond',
+                      type: 'number',
+                      description:
+                        'Effective number of input and output tokens per second over the full language model response.',
                     },
                     {
                       name: 'stepTimeMs',
@@ -1712,7 +1748,7 @@ To see `generateText` in action, check out [these examples](#examples).
                         'Time spent executing each client-side tool call in the step in milliseconds, keyed by tool call ID.',
                     },
                     {
-                      name: 'timeToFirstTokenMs',
+                      name: 'timeToFirstOutputTokenMs',
                       type: 'number | undefined',
                       description:
                         'Time until the first text, reasoning, or tool input delta was received in milliseconds. Only available for streaming steps.',
