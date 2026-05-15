@@ -291,26 +291,28 @@ function makeFinishEvent(overrides?: Record<string, unknown>) {
     ),
   );
   const finalStep = makeStepFinishEvent(stepOverrides);
+  const totalUsage = (usage as GenerateTextEndEvent['usage']) ?? {
+    inputTokens: 10,
+    outputTokens: 20,
+    totalTokens: 30,
+    inputTokenDetails: {
+      noCacheTokens: undefined,
+      cacheReadTokens: undefined,
+      cacheWriteTokens: undefined,
+    },
+    outputTokenDetails: {
+      textTokens: undefined,
+      reasoningTokens: undefined,
+    },
+  };
 
   return {
     ...finalStep,
     responseMessages: [],
     steps: [finalStep],
     finalStep,
-    usage: (usage as GenerateTextEndEvent['usage']) ?? {
-      inputTokens: 10,
-      outputTokens: 20,
-      totalTokens: 30,
-      inputTokenDetails: {
-        noCacheTokens: undefined,
-        cacheReadTokens: undefined,
-        cacheWriteTokens: undefined,
-      },
-      outputTokenDetails: {
-        textTokens: undefined,
-        reasoningTokens: undefined,
-      },
-    },
+    usage: totalUsage,
+    totalUsage,
     ...restOverrides,
   } as Parameters<NonNullable<Telemetry['onEnd']>>[0];
 }

@@ -1,5 +1,6 @@
 import {
   type ModelMessage,
+  type PrepareStepFunction,
   generateText,
   isStepCount,
   pruneMessages,
@@ -26,6 +27,28 @@ const estimateTokens = (messages: ModelMessage[]) => {
   return JSON.stringify(messages).length / 4;
 };
 
+const compactMessages: PrepareStepFunction<{
+  bash: ReturnType<typeof anthropic.tools.bash_20250124>;
+}> = ({ messages, stepNumber }) => {
+  console.log('\nStep number:', stepNumber);
+
+  const tokenCount = estimateTokens(messages);
+  console.log('Estimated token count:', tokenCount);
+
+  if (tokenCount > COMPACTION_THRESHOLD) {
+    console.log('Compacting messages...');
+    return {
+      // message changes persist over steps now
+      messages: pruneMessages({
+        messages,
+        reasoning: 'all',
+        toolCalls: 'before-last-2-messages',
+        emptyMessages: 'remove',
+      }),
+    };
+  }
+};
+
 run(async () => {
   const result = await generateText({
     model: openai('gpt-5.5'),
@@ -37,25 +60,7 @@ run(async () => {
       bash: anthropic.tools.bash_20250124(),
     },
     stopWhen: isStepCount(10),
-    prepareStep: ({ messages, stepNumber }) => {
-      console.log('\nStep number:', stepNumber);
-
-      const tokenCount = estimateTokens(messages);
-      console.log('Estimated token count:', tokenCount);
-
-      if (tokenCount > COMPACTION_THRESHOLD) {
-        console.log('Compacting messages...');
-        return {
-          // message changes persist over steps now
-          messages: pruneMessages({
-            messages,
-            reasoning: 'all',
-            toolCalls: 'before-last-2-messages',
-            emptyMessages: 'remove',
-          }),
-        };
-      }
-    },
+    prepareStep: compactMessages,
   });
 
   console.log(result.text);
