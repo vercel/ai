@@ -1,8 +1,6 @@
 export type { GatewayModelId } from './gateway-language-model-settings';
 export type { GatewayRerankingModelId } from './gateway-reranking-model-settings';
-export type { GatewaySpeechModelOptions } from './gateway-speech-model-options';
 export type { GatewaySpeechModelId } from './gateway-speech-model-settings';
-export type { GatewayTranscriptionModelOptions } from './gateway-transcription-model-options';
 export type { GatewayTranscriptionModelId } from './gateway-transcription-model-settings';
 export type { GatewayVideoModelId } from './gateway-video-model-settings';
 export type {

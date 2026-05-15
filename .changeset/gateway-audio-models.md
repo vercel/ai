@@ -1,5 +1,6 @@
 ---
 '@ai-sdk/gateway': patch
+'@ai-sdk/openai': patch
 ---
 
-Add AI Gateway speech and transcription model support for `generateSpeech` and `transcribe`.
+feat(provider/gateway): add speech and transcription model support

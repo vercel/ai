@@ -295,6 +295,43 @@ describe('resolveSpeechModel', () => {
       expect(resolvedModel?.modelId).toBe('actual-test-model-id');
     });
   });
+
+  describe('when a string is provided and the default provider does not support speech models', () => {
+    beforeEach(() => {
+      globalThis.AI_SDK_DEFAULT_PROVIDER = {
+        specificationVersion: 'v4' as const,
+        languageModel: () => {
+          throw new Error('not implemented');
+        },
+        embeddingModel: () => {
+          throw new Error('not implemented');
+        },
+        imageModel: () => {
+          throw new Error('not implemented');
+        },
+      };
+    });
+
+    afterEach(() => {
+      delete globalThis.AI_SDK_DEFAULT_PROVIDER;
+    });
+
+    it('should return undefined', () => {
+      expect(resolveSpeechModel('test-model-id')).toBeUndefined();
+    });
+  });
+
+  describe('when a model with unsupported specification version is provided', () => {
+    it('should throw UnsupportedModelVersionError', () => {
+      const unsupportedModel = {
+        specificationVersion: 'v1',
+        provider: 'test-provider',
+        modelId: 'test-model-id',
+      } as any;
+
+      expect(() => resolveSpeechModel(unsupportedModel)).toThrow();
+    });
+  });
 });
 
 describe('resolveTranscriptionModel', () => {
@@ -370,6 +407,43 @@ describe('resolveTranscriptionModel', () => {
 
       expect(resolvedModel?.provider).toBe('global-test-provider');
       expect(resolvedModel?.modelId).toBe('actual-test-model-id');
+    });
+  });
+
+  describe('when a string is provided and the default provider does not support transcription models', () => {
+    beforeEach(() => {
+      globalThis.AI_SDK_DEFAULT_PROVIDER = {
+        specificationVersion: 'v4' as const,
+        languageModel: () => {
+          throw new Error('not implemented');
+        },
+        embeddingModel: () => {
+          throw new Error('not implemented');
+        },
+        imageModel: () => {
+          throw new Error('not implemented');
+        },
+      };
+    });
+
+    afterEach(() => {
+      delete globalThis.AI_SDK_DEFAULT_PROVIDER;
+    });
+
+    it('should return undefined', () => {
+      expect(resolveTranscriptionModel('test-model-id')).toBeUndefined();
+    });
+  });
+
+  describe('when a model with unsupported specification version is provided', () => {
+    it('should throw UnsupportedModelVersionError', () => {
+      const unsupportedModel = {
+        specificationVersion: 'v1',
+        provider: 'test-provider',
+        modelId: 'test-model-id',
+      } as any;
+
+      expect(() => resolveTranscriptionModel(unsupportedModel)).toThrow();
     });
   });
 });
