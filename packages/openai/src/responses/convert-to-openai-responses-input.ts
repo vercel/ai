@@ -118,12 +118,10 @@ export async function convertToOpenAIResponsesInput({
                 return { type: 'input_text', text: part.text };
               }
               case 'file': {
-                if (part.mediaType.startsWith('image/')) {
-                  const mediaType =
-                    part.mediaType === 'image/*'
-                      ? 'image/jpeg'
-                      : part.mediaType;
+                const mediaType =
+                  part.mediaType === 'image/*' ? 'image/jpeg' : part.mediaType;
 
+                if (mediaType.startsWith('image/')) {
                   return {
                     type: 'input_image',
                     ...(part.data instanceof URL
@@ -137,89 +135,38 @@ export async function convertToOpenAIResponsesInput({
                     detail:
                       part.providerOptions?.[providerOptionsName]?.imageDetail,
                   };
-                } else if (part.mediaType === 'application/pdf') {
-                  if (part.data instanceof URL) {
-                    return {
-                      type: 'input_file',
-                      file_url: part.data.toString(),
-                    };
-                  }
-<<<<<<< HEAD
+                }
+
+                if (part.data instanceof URL) {
                   return {
                     type: 'input_file',
-                    ...(typeof part.data === 'string' &&
-                    isFileId(part.data, fileIdPrefixes)
-                      ? { file_id: part.data }
-                      : {
-                          filename: part.filename ?? `part-${index}.pdf`,
-                          file_data: `data:application/pdf;base64,${convertToBase64(part.data)}`,
-                        }),
+                    file_url: part.data.toString(),
                   };
-                } else {
-                  throw new UnsupportedFunctionalityError({
-                    functionality: `file part media type ${part.mediaType}`,
-                  });
-=======
-                  case 'text': {
-                    throw new UnsupportedFunctionalityError({
-                      functionality: 'text file parts',
-                    });
-                  }
-                  case 'url':
-                  case 'data': {
-                    const topLevel = getTopLevelMediaType(part.mediaType);
-
-                    if (topLevel === 'image') {
-                      return {
-                        type: 'input_image',
-                        ...(part.data.type === 'url'
-                          ? { image_url: part.data.url.toString() }
-                          : typeof part.data.data === 'string' &&
-                              isFileId(part.data.data, fileIdPrefixes)
-                            ? { file_id: part.data.data }
-                            : {
-                                image_url: `data:${resolveFullMediaType({ part })};base64,${convertToBase64(part.data.data)}`,
-                              }),
-                        detail:
-                          part.providerOptions?.[providerOptionsName]
-                            ?.imageDetail,
-                      };
-                    } else {
-                      if (part.data.type === 'url') {
-                        return {
-                          type: 'input_file',
-                          file_url: part.data.url.toString(),
-                        };
-                      }
-
-                      const fullMediaType = resolveFullMediaType({ part });
-                      if (
-                        fullMediaType !== 'application/pdf' &&
-                        !passThroughUnsupportedFiles
-                      ) {
-                        throw new UnsupportedFunctionalityError({
-                          functionality: `file part media type ${fullMediaType}`,
-                        });
-                      }
-
-                      return {
-                        type: 'input_file',
-                        ...(typeof part.data.data === 'string' &&
-                        isFileId(part.data.data, fileIdPrefixes)
-                          ? { file_id: part.data.data }
-                          : {
-                              filename:
-                                part.filename ??
-                                (fullMediaType === 'application/pdf'
-                                  ? `part-${index}.pdf`
-                                  : `part-${index}`),
-                              file_data: `data:${fullMediaType};base64,${convertToBase64(part.data.data)}`,
-                            }),
-                      };
-                    }
-                  }
->>>>>>> 685cec7fc (feat(openai): add opt-in pass-through for unsupported file media types (#15297))
                 }
+
+                if (
+                  mediaType !== 'application/pdf' &&
+                  !passThroughUnsupportedFiles
+                ) {
+                  throw new UnsupportedFunctionalityError({
+                    functionality: `file part media type ${mediaType}`,
+                  });
+                }
+
+                return {
+                  type: 'input_file',
+                  ...(typeof part.data === 'string' &&
+                  isFileId(part.data, fileIdPrefixes)
+                    ? { file_id: part.data }
+                    : {
+                        filename:
+                          part.filename ??
+                          (mediaType === 'application/pdf'
+                            ? `part-${index}.pdf`
+                            : `part-${index}`),
+                        file_data: `data:${mediaType};base64,${convertToBase64(part.data)}`,
+                      }),
+                };
               }
             }
           }),

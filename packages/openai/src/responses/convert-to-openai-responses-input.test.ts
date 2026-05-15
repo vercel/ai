@@ -455,7 +455,7 @@ describe('convertToOpenAIResponsesInput', () => {
               {
                 type: 'file',
                 mediaType: 'text/csv',
-                data: { type: 'data' as const, data: base64Data },
+                data: base64Data,
                 filename: 'names.csv',
               },
             ],
