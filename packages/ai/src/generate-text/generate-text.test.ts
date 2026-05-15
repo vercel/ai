@@ -929,11 +929,14 @@ describe('generateText', () => {
       });
 
       expect(result.finalStep.performance).toStrictEqual({
-        tokensPerSecond: 20,
+        effectiveOutputTokensPerSecond: 20,
+        outputTokensPerSecond: undefined,
+        inputTokensPerSecond: undefined,
+        effectiveTotalTokensPerSecond: 26,
         stepTimeMs: 500,
         responseTimeMs: 500,
         toolExecutionMs: {},
-        timeToFirstTokenMs: undefined,
+        timeToFirstOutputTokenMs: undefined,
       });
     });
 
@@ -972,13 +975,16 @@ describe('generateText', () => {
       });
 
       expect(result.finalStep.performance).toStrictEqual({
-        tokensPerSecond: 20,
+        effectiveOutputTokensPerSecond: 20,
+        outputTokensPerSecond: undefined,
+        inputTokensPerSecond: undefined,
+        effectiveTotalTokensPerSecond: 26,
         stepTimeMs: 1000,
         responseTimeMs: 500,
         toolExecutionMs: {
           'call-1': 300,
         },
-        timeToFirstTokenMs: undefined,
+        timeToFirstOutputTokenMs: undefined,
       });
     });
   });
@@ -2657,9 +2663,12 @@ describe('generateText', () => {
             "finishReason": "tool-calls",
             "modelId": "mock-model-id",
             "performance": {
+              "effectiveOutputTokensPerSecond": 0,
+              "effectiveTotalTokensPerSecond": 0,
+              "inputTokensPerSecond": undefined,
+              "outputTokensPerSecond": undefined,
               "responseTimeMs": 0,
-              "timeToFirstTokenMs": undefined,
-              "tokensPerSecond": 0,
+              "timeToFirstOutputTokenMs": undefined,
             },
             "provider": "mock-provider",
             "responseId": "response-1",
@@ -4209,10 +4218,13 @@ describe('generateText', () => {
                 "provider": "mock-provider",
               },
               "performance": {
+                "effectiveOutputTokensPerSecond": 0,
+                "effectiveTotalTokensPerSecond": 0,
+                "inputTokensPerSecond": undefined,
+                "outputTokensPerSecond": undefined,
                 "responseTimeMs": 0,
                 "stepTimeMs": 0,
-                "timeToFirstTokenMs": undefined,
-                "tokensPerSecond": 0,
+                "timeToFirstOutputTokenMs": undefined,
                 "toolExecutionMs": {
                   "call-1": 0,
                 },
@@ -4787,10 +4799,13 @@ describe('generateText', () => {
                     "provider": "mock-provider",
                   },
                   "performance": {
+                    "effectiveOutputTokensPerSecond": 0,
+                    "effectiveTotalTokensPerSecond": 0,
+                    "inputTokensPerSecond": undefined,
+                    "outputTokensPerSecond": undefined,
                     "responseTimeMs": 0,
                     "stepTimeMs": 0,
-                    "timeToFirstTokenMs": undefined,
-                    "tokensPerSecond": 0,
+                    "timeToFirstOutputTokenMs": undefined,
                     "toolExecutionMs": {
                       "call-1": 0,
                     },
@@ -4875,10 +4890,13 @@ describe('generateText', () => {
                     "provider": "mock-provider",
                   },
                   "performance": {
+                    "effectiveOutputTokensPerSecond": 0,
+                    "effectiveTotalTokensPerSecond": 0,
+                    "inputTokensPerSecond": undefined,
+                    "outputTokensPerSecond": undefined,
                     "responseTimeMs": 0,
                     "stepTimeMs": 0,
-                    "timeToFirstTokenMs": undefined,
-                    "tokensPerSecond": 0,
+                    "timeToFirstOutputTokenMs": undefined,
                     "toolExecutionMs": {},
                   },
                   "providerMetadata": undefined,
@@ -5005,10 +5023,13 @@ describe('generateText', () => {
                     "provider": "mock-provider",
                   },
                   "performance": {
+                    "effectiveOutputTokensPerSecond": 0,
+                    "effectiveTotalTokensPerSecond": 0,
+                    "inputTokensPerSecond": undefined,
+                    "outputTokensPerSecond": undefined,
                     "responseTimeMs": 0,
                     "stepTimeMs": 0,
-                    "timeToFirstTokenMs": undefined,
-                    "tokensPerSecond": 0,
+                    "timeToFirstOutputTokenMs": undefined,
                     "toolExecutionMs": {
                       "call-1": 0,
                     },
@@ -5093,10 +5114,13 @@ describe('generateText', () => {
                     "provider": "mock-provider",
                   },
                   "performance": {
+                    "effectiveOutputTokensPerSecond": 0,
+                    "effectiveTotalTokensPerSecond": 0,
+                    "inputTokensPerSecond": undefined,
+                    "outputTokensPerSecond": undefined,
                     "responseTimeMs": 0,
                     "stepTimeMs": 0,
-                    "timeToFirstTokenMs": undefined,
-                    "tokensPerSecond": 0,
+                    "timeToFirstOutputTokenMs": undefined,
                     "toolExecutionMs": {},
                   },
                   "providerMetadata": undefined,
@@ -5519,10 +5543,13 @@ describe('generateText', () => {
                     "provider": "mock-provider",
                   },
                   "performance": {
+                    "effectiveOutputTokensPerSecond": 0,
+                    "effectiveTotalTokensPerSecond": 0,
+                    "inputTokensPerSecond": undefined,
+                    "outputTokensPerSecond": undefined,
                     "responseTimeMs": 0,
                     "stepTimeMs": 0,
-                    "timeToFirstTokenMs": undefined,
-                    "tokensPerSecond": 0,
+                    "timeToFirstOutputTokenMs": undefined,
                     "toolExecutionMs": {
                       "call-1": 0,
                     },
@@ -5627,10 +5654,13 @@ describe('generateText', () => {
                     "provider": "mock-provider",
                   },
                   "performance": {
+                    "effectiveOutputTokensPerSecond": 0,
+                    "effectiveTotalTokensPerSecond": 0,
+                    "inputTokensPerSecond": undefined,
+                    "outputTokensPerSecond": undefined,
                     "responseTimeMs": 0,
                     "stepTimeMs": 0,
-                    "timeToFirstTokenMs": undefined,
-                    "tokensPerSecond": 0,
+                    "timeToFirstOutputTokenMs": undefined,
                     "toolExecutionMs": {
                       "call-1": 0,
                     },
@@ -9262,10 +9292,13 @@ describe('generateText', () => {
                 "provider": "mock-provider",
               },
               "performance": {
+                "effectiveOutputTokensPerSecond": 0,
+                "effectiveTotalTokensPerSecond": 0,
+                "inputTokensPerSecond": undefined,
+                "outputTokensPerSecond": undefined,
                 "responseTimeMs": 0,
                 "stepTimeMs": 0,
-                "timeToFirstTokenMs": undefined,
-                "tokensPerSecond": 0,
+                "timeToFirstOutputTokenMs": undefined,
                 "toolExecutionMs": {
                   "call-1": 0,
                 },

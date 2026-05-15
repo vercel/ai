@@ -62,11 +62,14 @@ The result object of `generateText` contains the generated output and metadata:
 
 Each step includes `performance` with timing and throughput information:
 
-- `tokensPerSecond`: Average output tokens generated per second, calculated from `responseTimeMs`.
+- `effectiveOutputTokensPerSecond`: Effective output tokens per second, calculated as `outputTokens / requestSeconds`.
+- `outputTokensPerSecond`: For streaming steps, output tokens per second after the first output token, calculated as `outputTokens / outputStreamSeconds`. For `generateText`, this is `undefined`.
+- `inputTokensPerSecond`: For streaming steps, input tokens per second before the first output token, calculated as `inputTokens / ttftSeconds`. For `generateText`, this is `undefined`.
+- `effectiveTotalTokensPerSecond`: Effective total tokens per second, calculated as `(inputTokens + outputTokens) / requestSeconds`.
 - `stepTimeMs`: Total time spent on the step, including language model response time and tool execution time, in milliseconds.
 - `responseTimeMs`: Time spent waiting for the language model response in milliseconds.
 - `toolExecutionMs`: Time spent executing each client-side tool call in the step in milliseconds, keyed by tool call ID.
-- `timeToFirstTokenMs`: For streaming steps, the time until the first text, reasoning, or tool input delta was received in milliseconds. For `generateText`, this is `undefined`.
+- `timeToFirstOutputTokenMs`: For streaming steps, the time until the first text, reasoning, or tool input delta was received in milliseconds. For `generateText`, this is `undefined`.
 
 ### Accessing response headers & body
 
@@ -249,7 +252,7 @@ It also provides several promises that resolve when the stream is finished:
 - `result.warnings`: Warnings from the model provider in all steps (e.g. unsupported settings).
 - `result.steps`: Details for all steps, useful for getting information about intermediate steps, including per-step `performance`.
 
-For `streamText`, `timeToFirstTokenMs` is set when the first text, reasoning, or tool input delta is received for a step.
+For `streamText`, `timeToFirstOutputTokenMs` is set when the first text, reasoning, or tool input delta is received for a step.
 
 ### `onError` callback
 
@@ -618,11 +621,14 @@ const stopWordTransform =
               totalTokens: undefined,
             },
             performance: {
-              tokensPerSecond: 0,
+              effectiveOutputTokensPerSecond: 0,
+              outputTokensPerSecond: undefined,
+              inputTokensPerSecond: undefined,
+              effectiveTotalTokensPerSecond: 0,
               stepTimeMs: 0,
               responseTimeMs: 0,
               toolExecutionMs: {},
-              timeToFirstTokenMs: undefined,
+              timeToFirstOutputTokenMs: undefined,
             },
             response: {
               id: 'response-id',

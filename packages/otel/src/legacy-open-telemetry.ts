@@ -687,13 +687,13 @@ export class LegacyOpenTelemetry implements Telemetry {
           ? JSON.stringify(event.providerMetadata)
           : undefined,
         'ai.response.msToFirstChunk': isStreamText
-          ? event.performance.timeToFirstTokenMs
+          ? event.performance.timeToFirstOutputTokenMs
           : undefined,
         'ai.response.msToFinish': isStreamText
           ? event.performance.responseTimeMs
           : undefined,
         'ai.response.avgOutputTokensPerSecond': isStreamText
-          ? event.performance.tokensPerSecond
+          ? event.performance.effectiveOutputTokensPerSecond
           : undefined,
 
         'ai.usage.inputTokens': event.usage.inputTokens,
@@ -722,9 +722,10 @@ export class LegacyOpenTelemetry implements Telemetry {
       }),
     );
 
-    if (isStreamText && event.performance.timeToFirstTokenMs != null) {
+    if (isStreamText && event.performance.timeToFirstOutputTokenMs != null) {
       state.stepSpan.addEvent('ai.stream.firstChunk', {
-        'ai.response.msToFirstChunk': event.performance.timeToFirstTokenMs,
+        'ai.response.msToFirstChunk':
+          event.performance.timeToFirstOutputTokenMs,
       });
     }
 
@@ -732,7 +733,7 @@ export class LegacyOpenTelemetry implements Telemetry {
       state.stepSpan.addEvent('ai.stream.finish', {
         'ai.response.msToFinish': event.performance.responseTimeMs,
         'ai.response.avgOutputTokensPerSecond':
-          event.performance.tokensPerSecond,
+          event.performance.effectiveOutputTokensPerSecond,
       });
     }
 

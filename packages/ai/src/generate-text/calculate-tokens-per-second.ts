@@ -1,18 +1,17 @@
 /**
- * Calculates average output tokens per second for the language model response.
+ * Calculates a token rate in tokens per second.
  *
- * Returns 0 when the metric cannot be represented as a finite number, for
- * example when the response time is 0. This keeps performance data JSON-safe
- * for result objects and telemetry backends.
+ * Returns 0 when the token count is unknown, the duration is unknown or 0, or
+ * the computed rate cannot be represented as a finite JSON-safe number.
  */
 export function calculateTokensPerSecond({
-  outputTokens,
-  responseTimeMs,
+  tokens,
+  durationMs,
 }: {
-  outputTokens: number | undefined;
-  responseTimeMs: number;
+  tokens: number | undefined;
+  durationMs: number | undefined;
 }): number {
-  const tokensPerSecond = (1000 * (outputTokens ?? 0)) / responseTimeMs;
+  const tokenRate = (1000 * (tokens ?? 0)) / (durationMs ?? 0);
 
-  return Number.isFinite(tokensPerSecond) ? tokensPerSecond : 0;
+  return Number.isFinite(tokenRate) ? tokenRate : 0;
 }

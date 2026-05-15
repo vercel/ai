@@ -249,10 +249,13 @@ exports[`streamText > result.fullStream > should send delayed asynchronous tool 
   {
     "finishReason": "stop",
     "performance": {
+      "effectiveOutputTokensPerSecond": 0,
+      "effectiveTotalTokensPerSecond": 0,
+      "inputTokensPerSecond": undefined,
+      "outputTokensPerSecond": undefined,
       "responseTimeMs": 0,
       "stepTimeMs": 60,
-      "timeToFirstTokenMs": undefined,
-      "tokensPerSecond": 0,
+      "timeToFirstOutputTokenMs": undefined,
       "toolExecutionMs": {
         "call-1": 60,
       },
@@ -335,10 +338,13 @@ exports[`streamText > result.fullStream > should send tool calls 1`] = `
   {
     "finishReason": "stop",
     "performance": {
+      "effectiveOutputTokensPerSecond": 0,
+      "effectiveTotalTokensPerSecond": 0,
+      "inputTokensPerSecond": undefined,
+      "outputTokensPerSecond": undefined,
       "responseTimeMs": 0,
       "stepTimeMs": 0,
-      "timeToFirstTokenMs": undefined,
-      "tokensPerSecond": 0,
+      "timeToFirstOutputTokenMs": undefined,
       "toolExecutionMs": {},
     },
     "providerMetadata": undefined,
@@ -425,10 +431,13 @@ exports[`streamText > result.fullStream > should send tool results 1`] = `
   {
     "finishReason": "stop",
     "performance": {
+      "effectiveOutputTokensPerSecond": 0,
+      "effectiveTotalTokensPerSecond": 0,
+      "inputTokensPerSecond": undefined,
+      "outputTokensPerSecond": undefined,
       "responseTimeMs": 0,
       "stepTimeMs": 0,
-      "timeToFirstTokenMs": undefined,
-      "tokensPerSecond": 0,
+      "timeToFirstOutputTokenMs": undefined,
       "toolExecutionMs": {
         "call-1": 0,
       },
@@ -787,10 +796,13 @@ exports[`streamText > tools with custom schema > should send tool calls 1`] = `
   {
     "finishReason": "stop",
     "performance": {
+      "effectiveOutputTokensPerSecond": 25,
+      "effectiveTotalTokensPerSecond": 32.5,
+      "inputTokensPerSecond": undefined,
+      "outputTokensPerSecond": undefined,
       "responseTimeMs": 400,
       "stepTimeMs": 500,
-      "timeToFirstTokenMs": undefined,
-      "tokensPerSecond": 25,
+      "timeToFirstOutputTokenMs": undefined,
       "toolExecutionMs": {},
     },
     "providerMetadata": undefined,
