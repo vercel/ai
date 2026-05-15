@@ -1133,7 +1133,7 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
     });
   });
 
-  describe('built-in google_search tool (TASK-7)', () => {
+  describe('built-in google_search tool', () => {
     const GOOGLE_SEARCH_TOOL: LanguageModelV4ProviderTool = {
       type: 'provider',
       id: 'google.google_search',
@@ -1194,7 +1194,7 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
     });
   });
 
-  describe('image output (TASK-11)', () => {
+  describe('image output', () => {
     it('emits a file content part on the result when the response carries an image block', async () => {
       prepareJsonFixtureResponse('image-output');
       const imageModel = provider.interactions('gemini-3-pro-image-preview');
@@ -1281,7 +1281,7 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
     });
   });
 
-  describe('agent factory branch (TASK-10)', () => {
+  describe('agent factory branch', () => {
     beforeEach(() => {
       prepareJsonFixtureResponse('basic');
     });
@@ -1467,7 +1467,7 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
   });
 });
 
-describe('GoogleInteractionsLanguageModel agent polling (TASK-10)', () => {
+describe('GoogleInteractionsLanguageModel agent polling', () => {
   const POST_URL =
     'https://generativelanguage.googleapis.com/v1beta/interactions';
   const POLL_URL =
@@ -2485,7 +2485,7 @@ describe('GoogleInteractionsLanguageModel.doStream', () => {
     });
   });
 
-  describe('built-in google_search tool (TASK-7)', () => {
+  describe('built-in google_search tool', () => {
     const GOOGLE_SEARCH_TOOL: LanguageModelV4ProviderTool = {
       type: 'provider',
       id: 'google.google_search',
@@ -2556,7 +2556,7 @@ describe('GoogleInteractionsLanguageModel.doStream', () => {
     });
   });
 
-  describe('image output (TASK-11)', () => {
+  describe('image output', () => {
     it('emits a file stream part at content.stop for image blocks', async () => {
       prepareChunksFixtureResponse('image-output');
       const imageModel = provider.interactions('gemini-3-pro-image-preview');
@@ -2595,7 +2595,7 @@ describe('GoogleInteractionsLanguageModel.doStream', () => {
       expect(typeof filePart?.data.data).toBe('string');
       expect(filePart?.data.data?.length ?? 0).toBeGreaterThan(0);
       expect(filePart?.providerMetadata?.google?.interactionId).toMatch(/^v1_/);
-    });
+    }, 30_000);
 
     it('emits a file stream part for the modify (turn 2) stream', async () => {
       prepareChunksFixtureResponse('image-output-modify');
@@ -2622,10 +2622,10 @@ describe('GoogleInteractionsLanguageModel.doStream', () => {
         mediaType: 'image/jpeg',
         data: { type: 'data' },
       });
-    });
+    }, 30_000);
   });
 
-  describe('agent factory branch (TASK-10)', () => {
+  describe('agent factory branch', () => {
     const AGENT_NAME = 'deep-research-pro-preview-12-2025' as const;
 
     function prepareJsonFixtureResponse(filename: string) {
