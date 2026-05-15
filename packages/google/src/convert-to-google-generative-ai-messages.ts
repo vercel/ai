@@ -53,18 +53,11 @@ function convertUrlToolResultPart(
 function appendToolResultParts(
   parts: GoogleGenerativeAIContentPart[],
   toolName: string,
-<<<<<<< HEAD:packages/google/src/convert-to-google-generative-ai-messages.ts
   outputValue: Array<{
     type: string;
     [key: string]: unknown;
   }>,
-=======
-  outputValue: Extract<
-    LanguageModelV4ToolResultOutput,
-    { type: 'content' }
-  >['value'],
   toolCallId?: string,
->>>>>>> 41da50cbc (fix(provider/google): support `functionCall.id` when returned by Gemini API and provide matching `functionResponse.id` (#15317)):packages/google/src/convert-to-google-messages.ts
 ): void {
   const functionResponseParts: GoogleGenerativeAIFunctionResponsePart[] = [];
   const responseTextParts: string[] = [];
@@ -131,18 +124,11 @@ function appendToolResultParts(
 function appendLegacyToolResultParts(
   parts: GoogleGenerativeAIContentPart[],
   toolName: string,
-<<<<<<< HEAD:packages/google/src/convert-to-google-generative-ai-messages.ts
   outputValue: Array<{
     type: string;
     [key: string]: unknown;
   }>,
-=======
-  outputValue: Extract<
-    LanguageModelV4ToolResultOutput,
-    { type: 'content' }
-  >['value'],
   toolCallId?: string,
->>>>>>> 41da50cbc (fix(provider/google): support `functionCall.id` when returned by Gemini API and provide matching `functionResponse.id` (#15317)):packages/google/src/convert-to-google-messages.ts
 ): void {
   for (const contentPart of outputValue) {
     switch (contentPart.type) {
