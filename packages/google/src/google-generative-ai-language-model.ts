@@ -349,7 +349,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
       } else if ('functionCall' in part && part.functionCall.name != null) {
         content.push({
           type: 'tool-call' as const,
-          toolCallId: this.config.generateId(),
+          toolCallId: part.functionCall.id ?? this.config.generateId(),
           toolName: part.functionCall.name,
           input: JSON.stringify(part.functionCall.args ?? {}),
           providerMetadata: part.thoughtSignature
@@ -828,7 +828,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
                     part.functionCall.name != null &&
                     part.functionCall.willContinue === true
                   ) {
-                    const toolCallId = generateId();
+                    const toolCallId = part.functionCall.id ?? generateId();
                     const accumulator = new GoogleJSONAccumulator();
                     activeStreamingToolCalls.push({
                       toolCallId,
@@ -910,7 +910,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
 
                   hasToolCalls = true;
                 } else if (isCompleteCall) {
-                  const toolCallId = generateId();
+                  const toolCallId = part.functionCall.id ?? generateId();
                   const toolName = part.functionCall.name!;
                   const args =
                     typeof part.functionCall.args === 'string'
@@ -947,7 +947,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
 
                   hasToolCalls = true;
                 } else if (isNoArgsCompleteCall) {
-                  const toolCallId = generateId();
+                  const toolCallId = part.functionCall.id ?? generateId();
                   const toolName = part.functionCall.name!;
 
                   controller.enqueue({
@@ -1257,6 +1257,7 @@ const getContentSchema = () =>
           // note: order matters since text can be fully empty
           z.object({
             functionCall: z.object({
+              id: z.string().nullish(),
               name: z.string().nullish(),
               args: z.unknown().nullish(),
               partialArgs: z.array(partialArgSchema).nullish(),

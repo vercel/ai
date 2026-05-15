@@ -53,10 +53,18 @@ function convertUrlToolResultPart(
 function appendToolResultParts(
   parts: GoogleGenerativeAIContentPart[],
   toolName: string,
+<<<<<<< HEAD:packages/google/src/convert-to-google-generative-ai-messages.ts
   outputValue: Array<{
     type: string;
     [key: string]: unknown;
   }>,
+=======
+  outputValue: Extract<
+    LanguageModelV4ToolResultOutput,
+    { type: 'content' }
+  >['value'],
+  toolCallId?: string,
+>>>>>>> 41da50cbc (fix(provider/google): support `functionCall.id` when returned by Gemini API and provide matching `functionResponse.id` (#15317)):packages/google/src/convert-to-google-messages.ts
 ): void {
   const functionResponseParts: GoogleGenerativeAIFunctionResponsePart[] = [];
   const responseTextParts: string[] = [];
@@ -99,6 +107,7 @@ function appendToolResultParts(
 
   parts.push({
     functionResponse: {
+      ...(toolCallId != null ? { id: toolCallId } : {}),
       name: toolName,
       response: {
         name: toolName,
@@ -122,16 +131,25 @@ function appendToolResultParts(
 function appendLegacyToolResultParts(
   parts: GoogleGenerativeAIContentPart[],
   toolName: string,
+<<<<<<< HEAD:packages/google/src/convert-to-google-generative-ai-messages.ts
   outputValue: Array<{
     type: string;
     [key: string]: unknown;
   }>,
+=======
+  outputValue: Extract<
+    LanguageModelV4ToolResultOutput,
+    { type: 'content' }
+  >['value'],
+  toolCallId?: string,
+>>>>>>> 41da50cbc (fix(provider/google): support `functionCall.id` when returned by Gemini API and provide matching `functionResponse.id` (#15317)):packages/google/src/convert-to-google-messages.ts
 ): void {
   for (const contentPart of outputValue) {
     switch (contentPart.type) {
       case 'text':
         parts.push({
           functionResponse: {
+            ...(toolCallId != null ? { id: toolCallId } : {}),
             name: toolName,
             response: {
               name: toolName,
@@ -315,6 +333,9 @@ export function convertToGoogleGenerativeAIMessages(
 
                   return {
                     functionCall: {
+                      ...(part.toolCallId != null
+                        ? { id: part.toolCallId }
+                        : {}),
                       name: part.toolName,
                       args: part.input,
                     },
@@ -405,13 +426,24 @@ export function convertToGoogleGenerativeAIMessages(
 
           if (output.type === 'content') {
             if (supportsFunctionResponseParts) {
-              appendToolResultParts(parts, part.toolName, output.value);
+              appendToolResultParts(
+                parts,
+                part.toolName,
+                output.value,
+                part.toolCallId,
+              );
             } else {
-              appendLegacyToolResultParts(parts, part.toolName, output.value);
+              appendLegacyToolResultParts(
+                parts,
+                part.toolName,
+                output.value,
+                part.toolCallId,
+              );
             }
           } else {
             parts.push({
               functionResponse: {
+                ...(part.toolCallId != null ? { id: part.toolCallId } : {}),
                 name: part.toolName,
                 response: {
                   name: part.toolName,
