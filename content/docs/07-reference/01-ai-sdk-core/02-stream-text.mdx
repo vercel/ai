@@ -1387,28 +1387,28 @@ To see `streamText` in action, check out [these examples](#examples).
                   type: 'StepResultPerformance',
                   parameters: [
                     {
-              name: 'effectiveOutputTokensPerSecond',
+                      name: 'effectiveOutputTokensPerSecond',
                       type: 'number',
                       description:
-                'Effective number of output tokens per second over the full language model response.',
-            },
-            {
-              name: 'outputTokensPerSecond',
-              type: 'number | undefined',
-              description:
-                'Number of output tokens per second after the first output token was received. Only available for streaming steps.',
-            },
-            {
-              name: 'inputTokensPerSecond',
-              type: 'number | undefined',
-              description:
-                'Number of input tokens processed per second before the first output token was received. Only available for streaming steps.',
-            },
-            {
-              name: 'effectiveTotalTokensPerSecond',
-              type: 'number',
-              description:
-                'Effective number of input and output tokens per second over the full language model response.',
+                        'Effective number of output tokens per second over the full language model response.',
+                    },
+                    {
+                      name: 'outputTokensPerSecond',
+                      type: 'number | undefined',
+                      description:
+                        'Number of output tokens per second after the first output token was received. Only available for streaming steps.',
+                    },
+                    {
+                      name: 'inputTokensPerSecond',
+                      type: 'number | undefined',
+                      description:
+                        'Number of input tokens processed per second before the first output token was received. Only available for streaming steps.',
+                    },
+                    {
+                      name: 'effectiveTotalTokensPerSecond',
+                      type: 'number',
+                      description:
+                        'Effective number of input and output tokens per second over the full language model response.',
                     },
                     {
                       name: 'stepTimeMs',
@@ -1429,7 +1429,7 @@ To see `streamText` in action, check out [these examples](#examples).
                         'Time spent executing each client-side tool call in the step in milliseconds, keyed by tool call ID.',
                     },
                     {
-              name: 'timeToFirstOutputTokenMs',
+                      name: 'timeToFirstOutputTokenMs',
                       type: 'number | undefined',
                       description:
                         'Time until the first text, reasoning, or tool input delta was received in milliseconds. Only available for streaming steps.',
