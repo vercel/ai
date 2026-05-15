@@ -83,14 +83,14 @@ describe('bedrock-anthropic-provider', () => {
   ])(
     'should disable native structured output for %s (Bedrock rejects output_config.format)',
     modelId => {
-      const provider = createAmazonBedrockAnthropic({
+      const provider = createBedrockAnthropic({
         region: 'us-east-1',
         accessKeyId: 'test-key',
         secretAccessKey: 'test-secret',
       });
       provider(modelId as Parameters<typeof provider>[0]);
 
-      expect(AnthropicLanguageModel).toHaveBeenCalledWith(
+      expect(AnthropicMessagesLanguageModel).toHaveBeenCalledWith(
         modelId,
         expect.objectContaining({
           supportsNativeStructuredOutput: false,
