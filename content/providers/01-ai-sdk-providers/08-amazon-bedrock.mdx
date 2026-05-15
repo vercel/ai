@@ -1640,7 +1640,7 @@ on how to integrate reasoning into your chatbot.
 
 ## Bedrock Mantle Provider Usage
 
-The Bedrock Mantle provider offers access to models through Amazon Bedrock's OpenAI-compatible Mantle API at `https://bedrock-mantle.{region}.api.aws/v1`. This endpoint supports both the Chat Completions API and the Responses API, and provides access to models that may only be available through the Mantle endpoint (such as `openai.gpt-oss-120b`).
+The Bedrock Mantle provider offers access to OpenAI-compatible models through Amazon Bedrock's Mantle API at `https://bedrock-mantle.{region}.api.aws/v1`. This endpoint supports the Chat Completions API and the Responses API, and provides access to models that may only be available through the Mantle endpoint (such as `openai.gpt-oss-120b`).
 
 ### Provider Instance
 
@@ -1717,7 +1717,7 @@ You can use the following optional settings to customize the Bedrock Mantle prov
 
 ### Language Models
 
-You can create models using the Mantle provider instance. By default, the provider creates models using the Responses API:
+You can create models using the Mantle provider instance. By default, the provider creates models using the Chat Completions API, which has the broadest model support on Mantle:
 
 ```ts
 const model = bedrockMantle("openai.gpt-oss-120b");
@@ -1729,6 +1729,8 @@ You can also explicitly select the Chat Completions API or the Responses API:
 const chatModel = bedrockMantle.chat("openai.gpt-oss-120b");
 const responsesModel = bedrockMantle.responses("openai.gpt-oss-120b");
 ```
+
+Note that not all Mantle models support the Responses API. See the model capabilities table below.
 
 You can use Bedrock Mantle language models to generate text with the `generateText` function:
 
@@ -1779,13 +1781,12 @@ const { text } = await generateText({
 
 ### Model Capabilities
 
-| Model                             | Chat Completions    | Responses API       |
-| --------------------------------- | ------------------- | ------------------- |
-| `anthropic.claude-mythos-preview` | <Check size={18} /> | <Check size={18} /> |
-| `openai.gpt-oss-20b`              | <Check size={18} /> | <Check size={18} /> |
-| `openai.gpt-oss-120b`             | <Check size={18} /> | <Check size={18} /> |
-| `openai.gpt-oss-safeguard-20b`    | <Check size={18} /> | <Check size={18} /> |
-| `openai.gpt-oss-safeguard-120b`   | <Check size={18} /> | <Check size={18} /> |
+| Model                           | Chat Completions    | Responses API       |
+| ------------------------------- | ------------------- | ------------------- |
+| `openai.gpt-oss-20b`            | <Check size={18} /> | <Check size={18} /> |
+| `openai.gpt-oss-120b`           | <Check size={18} /> | <Check size={18} /> |
+| `openai.gpt-oss-safeguard-20b`  | <Check size={18} /> | <Cross size={18} /> |
+| `openai.gpt-oss-safeguard-120b` | <Check size={18} /> | <Cross size={18} /> |
 
 <Note>
   The Bedrock Mantle provider uses the OpenAI-compatible API format. Models
