@@ -78,7 +78,9 @@ Please run `pnpm update-references` in workspace root to update the `references`
 
 ### Submitting Pull Requests
 
-We greatly appreciate your pull requests. Here are the steps to submit them:
+We greatly appreciate high-quality pull requests. To keep review volume manageable, pull request access may be limited to approved contributors. See [Pull Request Access](contributing/pull-request-access.md) for the current proposal.
+
+Here are the steps to submit a pull request:
 
 1. **Create a New Branch**: Initiate your changes in a fresh branch. It's recommended to name the branch in a manner that signifies the changes you're implementing.
 2. **Add a patch changeset**: If you're updating any packages and want to ensure they're released, add a **patch** changeset to your branch by running `pnpm changeset` in the workspace root.
