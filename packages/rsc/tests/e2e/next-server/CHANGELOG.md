@@ -4,6 +4,12 @@
 
 ### Patch Changes
 
+- ai@6.0.183
+
+## 0.0.1
+
+### Patch Changes
+
 - Updated dependencies [e76a29a]
   - ai@6.0.182
 

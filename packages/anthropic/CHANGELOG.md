@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 3.0.78
+
+### Patch Changes
+
+- 6e28d25: fix(anthropic): propagate toModelOutput providerOption to anthropic tool results
+
 ## 3.0.77
 
 ### Patch Changes
