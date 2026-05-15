@@ -43,7 +43,7 @@ run(async () => {
     }
   }
 
-  messages.push(...(await turn1.finalStep).response.messages);
+  messages.push(...(await turn1.response).messages);
   messages.push({
     role: 'user',
     content:
