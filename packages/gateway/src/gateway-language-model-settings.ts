@@ -63,6 +63,7 @@ export type GatewayModelId =
   | 'google/gemini-3.1-flash-lite'
   | 'google/gemini-3.1-flash-lite-preview'
   | 'google/gemini-3.1-pro-preview'
+  | 'google/gemini-3.5-flash'
   | 'google/gemma-4-26b-a4b-it'
   | 'google/gemma-4-31b-it'
   | 'inception/mercury-2'
