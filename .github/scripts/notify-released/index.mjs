@@ -207,8 +207,10 @@ console.log(
 
 const packageTable = publishedPackages
   .map(pkg => {
-    const encodedName = encodeURIComponent(pkg.name);
-    return `| \`${pkg.name}\` | [\`${pkg.version}\`](https://www.npmjs.com/package/${encodedName}/v/${pkg.version}) |`;
+    const tag = `${pkg.name}@${pkg.version}`;
+    const githubReleaseUrl = `https://github.com/${owner}/${repo}/releases/tag/${encodeURIComponent(tag)}`;
+    const npmUrl = `https://www.npmjs.com/package/${encodeURIComponent(pkg.name)}/v/${pkg.version}`;
+    return `| \`${pkg.name}\` | ${pkg.version} [github](${githubReleaseUrl}) [npm](${npmUrl}) |`;
   })
   .join('\n');
 
