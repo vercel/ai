@@ -3204,6 +3204,109 @@ describe('cache control', () => {
       });
     });
 
+    it('should set cache_control on tool result with output cache control', async () => {
+      const result = await convertToAnthropicPrompt({
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolName: 'test',
+                toolCallId: 'test',
+                output: {
+                  type: 'text',
+                  value: 'test',
+                  providerOptions: {
+                    anthropic: {
+                      cacheControl: { type: 'ephemeral' },
+                    },
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        sendReasoning: true,
+        warnings: [],
+        toolNameMapping: defaultToolNameMapping,
+      });
+
+      expect(result).toEqual({
+        prompt: {
+          messages: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'tool_result',
+                  content: 'test',
+                  is_error: undefined,
+                  tool_use_id: 'test',
+                  cache_control: { type: 'ephemeral' },
+                },
+              ],
+            },
+          ],
+        },
+        betas: new Set(),
+      });
+    });
+
+    it('should set cache_control on tool result with content output cache control', async () => {
+      const result = await convertToAnthropicPrompt({
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolName: 'test',
+                toolCallId: 'test',
+                output: {
+                  type: 'content',
+                  value: [
+                    {
+                      type: 'text',
+                      text: 'test',
+                      providerOptions: {
+                        anthropic: {
+                          cacheControl: { type: 'ephemeral' },
+                        },
+                      },
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+        sendReasoning: true,
+        warnings: [],
+        toolNameMapping: defaultToolNameMapping,
+      });
+
+      expect(result).toEqual({
+        prompt: {
+          messages: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'tool_result',
+                  content: [{ type: 'text', text: 'test' }],
+                  is_error: undefined,
+                  tool_use_id: 'test',
+                  cache_control: { type: 'ephemeral' },
+                },
+              ],
+            },
+          ],
+        },
+        betas: new Set(),
+      });
+    });
+
     it('should set cache_control on last tool result message part with message cache control', async () => {
       const result = await convertToAnthropicPrompt({
         prompt: [

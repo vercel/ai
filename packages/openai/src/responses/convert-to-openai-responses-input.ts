@@ -58,6 +58,7 @@ export async function convertToOpenAIResponsesInput({
   systemMessageMode,
   providerOptionsName,
   fileIdPrefixes,
+  passThroughUnsupportedFiles = false,
   store,
   hasConversation = false,
   hasLocalShellTool = false,
@@ -71,6 +72,7 @@ export async function convertToOpenAIResponsesInput({
   providerOptionsName: string;
   /** @deprecated Use provider references instead. */
   fileIdPrefixes?: readonly string[];
+  passThroughUnsupportedFiles?: boolean;
   store: boolean;
   hasConversation?: boolean; // when true, skip assistant messages that already have item IDs
   hasLocalShellTool?: boolean;
@@ -178,7 +180,10 @@ export async function convertToOpenAIResponsesInput({
                       }
 
                       const fullMediaType = resolveFullMediaType({ part });
-                      if (fullMediaType !== 'application/pdf') {
+                      if (
+                        fullMediaType !== 'application/pdf' &&
+                        !passThroughUnsupportedFiles
+                      ) {
                         throw new UnsupportedFunctionalityError({
                           functionality: `file part media type ${fullMediaType}`,
                         });
@@ -190,8 +195,12 @@ export async function convertToOpenAIResponsesInput({
                         isFileId(part.data.data, fileIdPrefixes)
                           ? { file_id: part.data.data }
                           : {
-                              filename: part.filename ?? `part-${index}.pdf`,
-                              file_data: `data:application/pdf;base64,${convertToBase64(part.data.data)}`,
+                              filename:
+                                part.filename ??
+                                (fullMediaType === 'application/pdf'
+                                  ? `part-${index}.pdf`
+                                  : `part-${index}`),
+                              file_data: `data:${fullMediaType};base64,${convertToBase64(part.data.data)}`,
                             }),
                       };
                     }

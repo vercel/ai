@@ -1,5 +1,17 @@
 # ai
 
+## 7.0.0-canary.139
+
+### Patch Changes
+
+- 334ae5d: Update step performance metrics with explicit effective, input, output, and total token throughput fields.
+- 28dfa06: fix: support tools with optional context
+- e93fa91: rename Sandbox.executeCommand to Sandbox.runCommand
+- Updated dependencies [28dfa06]
+- Updated dependencies [e93fa91]
+  - @ai-sdk/provider-utils@5.0.0-canary.41
+  - @ai-sdk/gateway@4.0.0-canary.82
+
 ## 7.0.0-canary.138
 
 ### Patch Changes

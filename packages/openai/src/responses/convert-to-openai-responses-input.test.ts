@@ -592,6 +592,44 @@ describe('convertToOpenAIResponsesInput', () => {
       ).rejects.toThrow('file part media type text/plain');
     });
 
+    it('should pass through unsupported file types when enabled', async () => {
+      const base64Data = 'bmFtZSxyb2xlCkFkYSxlbmdpbmVlcgo=';
+
+      const result = await convertToOpenAIResponsesInput({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'text/csv',
+                data: { type: 'data' as const, data: base64Data },
+                filename: 'names.csv',
+              },
+            ],
+          },
+        ],
+        toolNameMapping: testToolNameMapping,
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        passThroughUnsupportedFiles: true,
+        store: true,
+      });
+
+      expect(result.input).toEqual([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'input_file',
+              filename: 'names.csv',
+              file_data: `data:text/csv;base64,${base64Data}`,
+            },
+          ],
+        },
+      ]);
+    });
+
     it('should convert PDF file parts with URL to input_file with file_url', async () => {
       const result = await convertToOpenAIResponsesInput({
         prompt: [
