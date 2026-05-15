@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 4.0.0-canary.64
+
+### Patch Changes
+
+- 41da50c: fix(provider/google): support `functionCall.id` when returned by Gemini API and provide matching `functionResponse.id`
+
 ## 4.0.0-canary.63
 
 ### Patch Changes
