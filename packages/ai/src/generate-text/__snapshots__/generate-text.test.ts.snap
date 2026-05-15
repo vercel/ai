@@ -142,7 +142,35 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
     "modelId": "mock-model-id",
     "provider": "mock-provider",
   },
+  "providerMetadata": undefined,
   "rawFinishReason": "stop",
+  "reasoning": [],
+  "reasoningText": undefined,
+  "request": {
+    "body": undefined,
+    "messages": undefined,
+  },
+  "response": {
+    "body": undefined,
+    "headers": {
+      "custom-response-header": "response-header-value",
+    },
+    "id": "test-id-2-from-model",
+    "messages": [
+      {
+        "content": [
+          {
+            "providerOptions": undefined,
+            "text": "Hello, world!",
+            "type": "text",
+          },
+        ],
+        "role": "assistant",
+      },
+    ],
+    "modelId": "test-response-model-id",
+    "timestamp": 1970-01-01T00:00:10.000Z,
+  },
   "responseMessages": [
     {
       "content": [
@@ -411,6 +439,20 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
     },
   ],
   "toolsContext": {},
+  "totalUsage": {
+    "inputTokenDetails": {
+      "cacheReadTokens": undefined,
+      "cacheWriteTokens": undefined,
+      "noCacheTokens": 13,
+    },
+    "inputTokens": 13,
+    "outputTokenDetails": {
+      "reasoningTokens": undefined,
+      "textTokens": 15,
+    },
+    "outputTokens": 15,
+    "totalTokens": 28,
+  },
   "usage": {
     "inputTokenDetails": {
       "cacheReadTokens": undefined,

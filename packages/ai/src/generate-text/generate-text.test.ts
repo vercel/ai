@@ -4056,7 +4056,59 @@ describe('generateText', () => {
             "modelId": "mock-model-id",
             "provider": "mock-provider",
           },
+          "providerMetadata": undefined,
           "rawFinishReason": "stop",
+          "reasoning": [],
+          "reasoningText": undefined,
+          "request": {
+            "body": undefined,
+            "messages": undefined,
+          },
+          "response": {
+            "body": undefined,
+            "headers": {
+              "call": "2",
+            },
+            "id": "id-0",
+            "messages": [
+              {
+                "content": [
+                  {
+                    "providerOptions": undefined,
+                    "text": "Hello, World!",
+                    "type": "text",
+                  },
+                  {
+                    "input": {
+                      "value": "value",
+                    },
+                    "providerExecuted": undefined,
+                    "providerOptions": undefined,
+                    "toolCallId": "call-1",
+                    "toolName": "tool1",
+                    "type": "tool-call",
+                  },
+                ],
+                "role": "assistant",
+              },
+              {
+                "content": [
+                  {
+                    "output": {
+                      "type": "text",
+                      "value": "value-result",
+                    },
+                    "toolCallId": "call-1",
+                    "toolName": "tool1",
+                    "type": "tool-result",
+                  },
+                ],
+                "role": "tool",
+              },
+            ],
+            "modelId": "mock-model-id",
+            "timestamp": 1970-01-01T00:00:00.000Z,
+          },
           "responseMessages": [
             {
               "content": [
@@ -4264,6 +4316,20 @@ describe('generateText', () => {
             },
           ],
           "toolsContext": {},
+          "totalUsage": {
+            "inputTokenDetails": {
+              "cacheReadTokens": undefined,
+              "cacheWriteTokens": undefined,
+              "noCacheTokens": 3,
+            },
+            "inputTokens": 3,
+            "outputTokenDetails": {
+              "reasoningTokens": undefined,
+              "textTokens": 10,
+            },
+            "outputTokens": 10,
+            "totalTokens": 13,
+          },
           "usage": {
             "inputTokenDetails": {
               "cacheReadTokens": undefined,
@@ -4495,8 +4561,21 @@ describe('generateText', () => {
       it('onFinishResult.usage should sum token usage and finalStep should contain final step usage', () => {
         expect(onFinishResult.usage).toEqual(result.usage);
         expect(onFinishResult.usage).toEqual(result.totalUsage);
+        expect(onFinishResult.totalUsage).toEqual(result.totalUsage);
         expect(onFinishResult.finalStep).toBe(onFinishResult.steps.at(-1));
         expect(onFinishResult.finalStep.usage).toEqual(result.finalStep.usage);
+      });
+
+      it('onFinishResult should expose deprecated AI SDK 6 final-step properties', () => {
+        expect(onFinishResult.reasoning).toEqual(result.finalStep.reasoning);
+        expect(onFinishResult.reasoningText).toEqual(
+          result.finalStep.reasoningText,
+        );
+        expect(onFinishResult.request).toEqual(result.finalStep.request);
+        expect(onFinishResult.response).toEqual(result.finalStep.response);
+        expect(onFinishResult.providerMetadata).toEqual(
+          result.finalStep.providerMetadata,
+        );
       });
 
       it('result.steps should contain all steps', () => {

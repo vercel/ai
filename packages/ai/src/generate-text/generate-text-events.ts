@@ -171,6 +171,20 @@ export type GenerateTextEndEvent<
   /** The text that was generated in the final step. */
   readonly text: StepResult<TOOLS, RUNTIME_CONTEXT>['text'];
 
+  /**
+   * The reasoning that was generated in the final step.
+   *
+   * @deprecated Use `finalStep.reasoning` instead.
+   */
+  readonly reasoning: StepResult<TOOLS, RUNTIME_CONTEXT>['reasoning'];
+
+  /**
+   * The reasoning text that was generated in the final step.
+   *
+   * @deprecated Use `finalStep.reasoningText` instead.
+   */
+  readonly reasoningText: StepResult<TOOLS, RUNTIME_CONTEXT>['reasoningText'];
+
   /** Files that were generated in all steps. */
   readonly files: StepResult<TOOLS, RUNTIME_CONTEXT>['files'];
 
@@ -219,8 +233,39 @@ export type GenerateTextEndEvent<
   /** Aggregated token usage across all steps. */
   readonly usage: LanguageModelUsage;
 
+  /**
+   * Aggregated token usage across all steps.
+   *
+   * @deprecated Use `usage` instead.
+   */
+  readonly totalUsage: LanguageModelUsage;
+
   /** Warnings from the model provider in all steps. */
   readonly warnings: StepResult<TOOLS, RUNTIME_CONTEXT>['warnings'];
+
+  /**
+   * Additional request information from the final step.
+   *
+   * @deprecated Use `finalStep.request` instead.
+   */
+  readonly request: StepResult<TOOLS, RUNTIME_CONTEXT>['request'];
+
+  /**
+   * Additional response information from the final step.
+   *
+   * @deprecated Use `finalStep.response` instead.
+   */
+  readonly response: StepResult<TOOLS, RUNTIME_CONTEXT>['response'];
+
+  /**
+   * Additional provider-specific metadata from the final step.
+   *
+   * @deprecated Use `finalStep.providerMetadata` instead.
+   */
+  readonly providerMetadata: StepResult<
+    TOOLS,
+    RUNTIME_CONTEXT
+  >['providerMetadata'];
 
   /** The response messages that were generated during the call. */
   readonly responseMessages: ResponseMessage[];
@@ -314,3 +359,13 @@ export type GenerateTextOnEndCallback<
   TOOLS extends ToolSet = ToolSet,
   RUNTIME_CONTEXT extends Context = Context,
 > = Callback<GenerateTextEndEvent<TOOLS, RUNTIME_CONTEXT>>;
+
+/**
+ * Callback that is set using the `onFinish` option.
+ *
+ * @deprecated Use `GenerateTextOnEndCallback` instead.
+ */
+export type GenerateTextOnFinishCallback<
+  TOOLS extends ToolSet = ToolSet,
+  RUNTIME_CONTEXT extends Context = Context,
+> = GenerateTextOnEndCallback<TOOLS, RUNTIME_CONTEXT>;

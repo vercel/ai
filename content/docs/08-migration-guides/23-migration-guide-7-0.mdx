@@ -1202,6 +1202,51 @@ console.log(finalStep.response.headers);
 
 The deprecated top-level aliases continue to work in AI SDK 7 so you can migrate incrementally.
 
+### `generateText` and `streamText` `onFinish` Result Properties Changed
+
+The `onFinish` callback for `generateText`, `streamText`, and agents follows
+the same result property changes as `generateText` and `streamText` results:
+
+- `usage` now contains usage across all steps. `totalUsage` is deprecated; use
+  `usage` instead.
+- `content`, `toolCalls`, `toolResults`, `files`, `sources`, and `warnings` now
+  contain values from all steps.
+- Final-step-only properties are available on `finalStep`. The top-level
+  `reasoning`, `reasoningText`, `request`, `response`, and `providerMetadata`
+  properties are deprecated.
+
+```tsx filename="AI SDK 6"
+const result = await generateText({
+  model: yourModel,
+  prompt: 'Use a tool, then summarize the result.',
+  stopWhen: stepCountIs(2),
+  onFinish(event) {
+    console.log(event.usage); // final step only
+    console.log(event.totalUsage); // all steps
+    console.log(event.toolCalls); // final step only
+    console.log(event.providerMetadata);
+  },
+});
+```
+
+```tsx filename="AI SDK 7"
+const result = await generateText({
+  model: yourModel,
+  prompt: 'Use a tool, then summarize the result.',
+  stopWhen: isStepCount(2),
+  onFinish(event) {
+    console.log(event.finalStep.usage); // final step only
+    console.log(event.usage); // all steps
+    console.log(event.finalStep.toolCalls); // final step only
+    console.log(event.toolCalls); // all steps
+    console.log(event.finalStep.providerMetadata);
+  },
+});
+```
+
+The deprecated top-level aliases on the `onFinish` event continue to work in AI
+SDK 7 so you can migrate incrementally.
+
 ### Stop Condition Helper Rename: `stepCountIs` -> `isStepCount`
 
 Rename imports and usage in tool-loop stop conditions:

@@ -9406,7 +9406,62 @@ describe('streamText', () => {
             "modelId": "mock-model-id",
             "provider": "mock-provider",
           },
+          "providerMetadata": {
+            "testProvider": {
+              "testKey": "testValue",
+            },
+          },
           "rawFinishReason": "stop",
+          "reasoning": [],
+          "reasoningText": undefined,
+          "request": {
+            "body": undefined,
+            "messages": undefined,
+          },
+          "response": {
+            "headers": {
+              "call": "2",
+            },
+            "id": "id-0",
+            "messages": [
+              {
+                "content": [
+                  {
+                    "providerOptions": undefined,
+                    "text": "Hello, world!",
+                    "type": "text",
+                  },
+                  {
+                    "input": {
+                      "value": "value",
+                    },
+                    "providerExecuted": undefined,
+                    "providerOptions": undefined,
+                    "toolCallId": "call-1",
+                    "toolName": "tool1",
+                    "type": "tool-call",
+                  },
+                ],
+                "role": "assistant",
+              },
+              {
+                "content": [
+                  {
+                    "output": {
+                      "type": "text",
+                      "value": "value-result",
+                    },
+                    "toolCallId": "call-1",
+                    "toolName": "tool1",
+                    "type": "tool-result",
+                  },
+                ],
+                "role": "tool",
+              },
+            ],
+            "modelId": "mock-model-id",
+            "timestamp": 1970-01-01T00:00:00.000Z,
+          },
           "responseMessages": [
             {
               "content": [
@@ -9618,6 +9673,20 @@ describe('streamText', () => {
             },
           ],
           "toolsContext": {},
+          "totalUsage": {
+            "inputTokenDetails": {
+              "cacheReadTokens": undefined,
+              "cacheWriteTokens": undefined,
+              "noCacheTokens": 3,
+            },
+            "inputTokens": 3,
+            "outputTokenDetails": {
+              "reasoningTokens": undefined,
+              "textTokens": 10,
+            },
+            "outputTokens": 10,
+            "totalTokens": 13,
+          },
           "usage": {
             "inputTokenDetails": {
               "cacheReadTokens": undefined,
@@ -9783,7 +9852,32 @@ describe('streamText', () => {
             "modelId": "mock-model-id",
             "provider": "mock-provider",
           },
+          "providerMetadata": undefined,
           "rawFinishReason": "stop",
+          "reasoning": [],
+          "reasoningText": undefined,
+          "request": {
+            "body": undefined,
+            "messages": undefined,
+          },
+          "response": {
+            "headers": undefined,
+            "id": "id-0",
+            "messages": [
+              {
+                "content": [
+                  {
+                    "providerOptions": undefined,
+                    "text": "Hello!",
+                    "type": "text",
+                  },
+                ],
+                "role": "assistant",
+              },
+            ],
+            "modelId": "mock-model-id",
+            "timestamp": 1970-01-01T00:00:00.000Z,
+          },
           "responseMessages": [
             {
               "content": [
@@ -9921,6 +10015,20 @@ describe('streamText', () => {
           "toolCalls": [],
           "toolResults": [],
           "toolsContext": {},
+          "totalUsage": {
+            "inputTokenDetails": {
+              "cacheReadTokens": undefined,
+              "cacheWriteTokens": undefined,
+              "noCacheTokens": 3,
+            },
+            "inputTokens": 3,
+            "outputTokenDetails": {
+              "reasoningTokens": undefined,
+              "textTokens": 10,
+            },
+            "outputTokens": 10,
+            "totalTokens": 13,
+          },
           "usage": {
             "inputTokenDetails": {
               "cacheReadTokens": undefined,
@@ -10130,7 +10238,44 @@ describe('streamText', () => {
             "modelId": "mock-model-id",
             "provider": "mock-provider",
           },
+          "providerMetadata": undefined,
           "rawFinishReason": "stop",
+          "reasoning": [],
+          "reasoningText": undefined,
+          "request": {
+            "body": undefined,
+            "messages": undefined,
+          },
+          "response": {
+            "headers": undefined,
+            "id": "id-0",
+            "messages": [
+              {
+                "content": [
+                  {
+                    "data": "Hello World",
+                    "mediaType": "text/plain",
+                    "providerOptions": undefined,
+                    "type": "file",
+                  },
+                  {
+                    "providerOptions": undefined,
+                    "text": "Hello!",
+                    "type": "text",
+                  },
+                  {
+                    "data": "QkFVRw==",
+                    "mediaType": "image/jpeg",
+                    "providerOptions": undefined,
+                    "type": "file",
+                  },
+                ],
+                "role": "assistant",
+              },
+            ],
+            "modelId": "mock-model-id",
+            "timestamp": 1970-01-01T00:00:00.000Z,
+          },
           "responseMessages": [
             {
               "content": [
@@ -10261,6 +10406,20 @@ describe('streamText', () => {
           "toolCalls": [],
           "toolResults": [],
           "toolsContext": {},
+          "totalUsage": {
+            "inputTokenDetails": {
+              "cacheReadTokens": undefined,
+              "cacheWriteTokens": undefined,
+              "noCacheTokens": 3,
+            },
+            "inputTokens": 3,
+            "outputTokenDetails": {
+              "reasoningTokens": undefined,
+              "textTokens": 10,
+            },
+            "outputTokens": 10,
+            "totalTokens": 13,
+          },
           "usage": {
             "inputTokenDetails": {
               "cacheReadTokens": undefined,
@@ -10923,7 +11082,34 @@ describe('streamText', () => {
                 "modelId": "mock-model-id",
                 "provider": "mock-provider",
               },
+              "providerMetadata": undefined,
               "rawFinishReason": "stop",
+              "reasoning": [],
+              "reasoningText": undefined,
+              "request": {
+                "body": undefined,
+                "messages": undefined,
+              },
+              "response": {
+                "headers": {
+                  "call": "2",
+                },
+                "id": "id-1",
+                "messages": [
+                  {
+                    "content": [
+                      {
+                        "providerOptions": undefined,
+                        "text": "Hello, world!",
+                        "type": "text",
+                      },
+                    ],
+                    "role": "assistant",
+                  },
+                ],
+                "modelId": "mock-model-id",
+                "timestamp": 1970-01-01T00:00:01.000Z,
+              },
               "responseMessages": [
                 {
                   "content": [
@@ -11208,6 +11394,20 @@ describe('streamText', () => {
                 },
               ],
               "toolsContext": {},
+              "totalUsage": {
+                "inputTokenDetails": {
+                  "cacheReadTokens": 0,
+                  "cacheWriteTokens": 0,
+                  "noCacheTokens": 6,
+                },
+                "inputTokens": 6,
+                "outputTokenDetails": {
+                  "reasoningTokens": 10,
+                  "textTokens": 20,
+                },
+                "outputTokens": 20,
+                "totalTokens": 26,
+              },
               "usage": {
                 "inputTokenDetails": {
                   "cacheReadTokens": 0,
@@ -11482,9 +11682,22 @@ describe('streamText', () => {
         it('onFinishResult.usage should sum token usage and finalStep should contain final step usage', async () => {
           expect(onFinishResult.usage).toEqual(await result.usage);
           expect(onFinishResult.usage).toEqual(await result.totalUsage);
+          expect(onFinishResult.totalUsage).toEqual(await result.totalUsage);
           expect(onFinishResult.finalStep).toBe(onFinishResult.steps.at(-1));
           expect(onFinishResult.finalStep.usage).toEqual(
             (await result.finalStep).usage,
+          );
+        });
+
+        it('onFinishResult should expose deprecated AI SDK 6 final-step properties', async () => {
+          const finalStep = await result.finalStep;
+
+          expect(onFinishResult.reasoning).toEqual(finalStep.reasoning);
+          expect(onFinishResult.reasoningText).toEqual(finalStep.reasoningText);
+          expect(onFinishResult.request).toEqual(finalStep.request);
+          expect(onFinishResult.response).toEqual(finalStep.response);
+          expect(onFinishResult.providerMetadata).toEqual(
+            finalStep.providerMetadata,
           );
         });
 
@@ -12884,7 +13097,34 @@ describe('streamText', () => {
                 "modelId": "mock-model-id",
                 "provider": "mock-provider",
               },
+              "providerMetadata": undefined,
               "rawFinishReason": "stop",
+              "reasoning": [],
+              "reasoningText": undefined,
+              "request": {
+                "body": undefined,
+                "messages": undefined,
+              },
+              "response": {
+                "headers": {
+                  "call": "2",
+                },
+                "id": "id-1",
+                "messages": [
+                  {
+                    "content": [
+                      {
+                        "providerOptions": undefined,
+                        "text": "Hello, world!",
+                        "type": "text",
+                      },
+                    ],
+                    "role": "assistant",
+                  },
+                ],
+                "modelId": "mock-model-id",
+                "timestamp": 1970-01-01T00:00:01.000Z,
+              },
               "responseMessages": [
                 {
                   "content": [
@@ -13169,6 +13409,20 @@ describe('streamText', () => {
                 },
               ],
               "toolsContext": {},
+              "totalUsage": {
+                "inputTokenDetails": {
+                  "cacheReadTokens": 0,
+                  "cacheWriteTokens": 0,
+                  "noCacheTokens": 6,
+                },
+                "inputTokens": 6,
+                "outputTokenDetails": {
+                  "reasoningTokens": 10,
+                  "textTokens": 20,
+                },
+                "outputTokens": 20,
+                "totalTokens": 26,
+              },
               "usage": {
                 "inputTokenDetails": {
                   "cacheReadTokens": 0,
@@ -17110,7 +17364,62 @@ describe('streamText', () => {
               "modelId": "mock-model-id",
               "provider": "mock-provider",
             },
+            "providerMetadata": {
+              "testProvider": {
+                "testKey": "TEST VALUE",
+              },
+            },
             "rawFinishReason": "stop",
+            "reasoning": [],
+            "reasoningText": undefined,
+            "request": {
+              "body": undefined,
+              "messages": undefined,
+            },
+            "response": {
+              "headers": {
+                "call": "2",
+              },
+              "id": "id-0",
+              "messages": [
+                {
+                  "content": [
+                    {
+                      "providerOptions": undefined,
+                      "text": "HELLO, WORLD!",
+                      "type": "text",
+                    },
+                    {
+                      "input": {
+                        "value": "VALUE",
+                      },
+                      "providerExecuted": undefined,
+                      "providerOptions": undefined,
+                      "toolCallId": "call-1",
+                      "toolName": "tool1",
+                      "type": "tool-call",
+                    },
+                  ],
+                  "role": "assistant",
+                },
+                {
+                  "content": [
+                    {
+                      "output": {
+                        "type": "text",
+                        "value": "VALUE-RESULT",
+                      },
+                      "toolCallId": "call-1",
+                      "toolName": "tool1",
+                      "type": "tool-result",
+                    },
+                  ],
+                  "role": "tool",
+                },
+              ],
+              "modelId": "mock-model-id",
+              "timestamp": 1970-01-01T00:00:00.000Z,
+            },
             "responseMessages": [
               {
                 "content": [
@@ -17322,6 +17631,20 @@ describe('streamText', () => {
               },
             ],
             "toolsContext": {},
+            "totalUsage": {
+              "inputTokenDetails": {
+                "cacheReadTokens": undefined,
+                "cacheWriteTokens": undefined,
+                "noCacheTokens": 3,
+              },
+              "inputTokens": 3,
+              "outputTokenDetails": {
+                "reasoningTokens": undefined,
+                "textTokens": 10,
+              },
+              "outputTokens": 10,
+              "totalTokens": 13,
+            },
             "usage": {
               "inputTokenDetails": {
                 "cacheReadTokens": undefined,
@@ -18476,7 +18799,32 @@ describe('streamText', () => {
               "modelId": "mock-model-id",
               "provider": "mock-provider",
             },
+            "providerMetadata": undefined,
             "rawFinishReason": "stop",
+            "reasoning": [],
+            "reasoningText": undefined,
+            "request": {
+              "body": undefined,
+              "messages": undefined,
+            },
+            "response": {
+              "headers": undefined,
+              "id": "id-0",
+              "messages": [
+                {
+                  "content": [
+                    {
+                      "providerOptions": undefined,
+                      "text": "{ "value": "Hello, world!" }",
+                      "type": "text",
+                    },
+                  ],
+                  "role": "assistant",
+                },
+              ],
+              "modelId": "mock-model-id",
+              "timestamp": 1970-01-01T00:00:00.000Z,
+            },
             "responseMessages": [
               {
                 "content": [
@@ -18565,6 +18913,20 @@ describe('streamText', () => {
             "toolCalls": [],
             "toolResults": [],
             "toolsContext": {},
+            "totalUsage": {
+              "inputTokenDetails": {
+                "cacheReadTokens": undefined,
+                "cacheWriteTokens": undefined,
+                "noCacheTokens": 3,
+              },
+              "inputTokens": 3,
+              "outputTokenDetails": {
+                "reasoningTokens": undefined,
+                "textTokens": 10,
+              },
+              "outputTokens": 10,
+              "totalTokens": 13,
+            },
             "usage": {
               "inputTokenDetails": {
                 "cacheReadTokens": undefined,
