@@ -599,6 +599,46 @@ export function getMessageId(msg: unknown): string | undefined {
   return undefined;
 }
 
+function getFallbackMessageId(metadata: Record<string, unknown> | undefined) {
+  const metadataId = [
+    metadata?.langgraph_checkpoint_ns,
+    metadata?.checkpoint_ns,
+    metadata?.run_id,
+    metadata?.__pregel_task_id,
+    metadata?.langgraph_path,
+  ].find((value): value is string => typeof value === 'string' && value !== '');
+
+  if (metadataId) {
+    return `langgraph-${metadataId}`;
+  }
+
+  const step =
+    typeof metadata?.langgraph_step === 'number'
+      ? metadata.langgraph_step
+      : 'default';
+  const node =
+    typeof metadata?.langgraph_node === 'string'
+      ? metadata.langgraph_node
+      : 'default';
+
+  return `langgraph-${step}-${node}`;
+}
+
+function canUseFallbackMessageId(msg: unknown): boolean {
+  if (AIMessageChunk.isInstance(msg)) return true;
+
+  if (isPlainMessageObject(msg)) {
+    const obj = msg as Record<string, unknown>;
+    return (
+      obj.type === 'constructor' &&
+      Array.isArray(obj.id) &&
+      obj.id.includes('AIMessageChunk')
+    );
+  }
+
+  return false;
+}
+
 /**
  * Checks if a message is an AI message chunk (works for both class instances and plain objects).
  * For class instances, only AIMessageChunk is matched (not AIMessage).
@@ -1056,9 +1096,14 @@ export function processLangGraphEvent(
       ];
 
       const msg = rawMsg;
-      const msgId = getMessageId(msg);
+      const isAIChunk = isAIMessageChunk(msg);
+      const msgId =
+        getMessageId(msg) ||
+        (canUseFallbackMessageId(msg)
+          ? getFallbackMessageId(metadata)
+          : undefined);
 
-      if (!msgId) return;
+      if (!msgId && !isToolMessageType(msg)) return;
 
       /**
        * Track LangGraph step changes and emit start-step/finish-step events.
@@ -1093,7 +1138,7 @@ export function processLangGraphEvent(
        * Accumulate message chunks for later reference
        * Note: Only works for actual class instances, not serialized messages
        */
-      if (AIMessageChunk.isInstance(msg)) {
+      if (AIMessageChunk.isInstance(msg) && msgId) {
         if (messageConcat[msgId]) {
           messageConcat[msgId] = messageConcat[msgId].concat(
             msg,
@@ -1103,7 +1148,7 @@ export function processLangGraphEvent(
         }
       }
 
-      if (isAIMessageChunk(msg)) {
+      if (isAIChunk && msgId) {
         const concatChunk = messageConcat[msgId];
 
         /**

@@ -60,6 +60,61 @@ describe('toUIMessageStream', () => {
     `);
   });
 
+  it('should handle LangGraph message chunks without ids', async () => {
+    const chunk1 = new AIMessageChunk({
+      content: [{ type: 'text', text: 'Streaming' }],
+    });
+    const chunk2 = new AIMessageChunk({ content: ' works' });
+    const valuesData = { messages: [{ id: 'final', type: 'ai' }] };
+    const onFinish = vi.fn();
+
+    const inputStream = convertArrayToReadableStream([
+      ['messages', [chunk1, { langgraph_step: 0, langgraph_node: 'model' }]],
+      ['messages', [chunk2, { langgraph_step: 0, langgraph_node: 'model' }]],
+      ['values', valuesData],
+    ]);
+
+    const result = await convertReadableStreamToArray(
+      toUIMessageStream(inputStream, { onFinish }),
+    );
+
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "start",
+        },
+        {
+          "type": "start-step",
+        },
+        {
+          "id": "langgraph-0-model",
+          "type": "text-start",
+        },
+        {
+          "delta": "Streaming",
+          "id": "langgraph-0-model",
+          "type": "text-delta",
+        },
+        {
+          "delta": " works",
+          "id": "langgraph-0-model",
+          "type": "text-delta",
+        },
+        {
+          "id": "langgraph-0-model",
+          "type": "text-end",
+        },
+        {
+          "type": "finish-step",
+        },
+        {
+          "type": "finish",
+        },
+      ]
+    `);
+    expect(onFinish).toHaveBeenCalledWith(valuesData);
+  });
+
   it('should handle tool message output', async () => {
     const toolMsg = new ToolMessage({
       tool_call_id: 'call-1',

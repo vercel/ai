@@ -1498,6 +1498,7 @@ describe('reload', () => {
     `);
 
     expect(server.calls[1].requestHeaders).toStrictEqual({
+      accept: 'text/event-stream',
       'content-type': 'application/json',
       'header-key': 'header-value',
     });

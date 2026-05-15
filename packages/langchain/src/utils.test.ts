@@ -1143,10 +1143,157 @@ describe('processLangGraphEvent', () => {
     const chunks: unknown[] = [];
     const controller = createMockController(chunks);
 
-    const aiChunk = new AIMessageChunk({ content: 'Hello' });
-    processLangGraphEvent(['messages', [aiChunk]], state, controller);
+    const aiMessage = new AIMessage({ content: 'Hello' });
+    processLangGraphEvent(['messages', [aiMessage]], state, controller);
 
     expect(chunks).toHaveLength(0);
+  });
+
+  it('should handle AI message chunks without id using metadata fallback', () => {
+    const state = createMockState();
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    const aiChunk = new AIMessageChunk({
+      content: [{ type: 'text', text: 'Streaming' }],
+    });
+    processLangGraphEvent(
+      ['messages', [aiChunk, { langgraph_step: 0, langgraph_node: 'model' }]],
+      state,
+      controller,
+    );
+
+    expect(chunks).toContainEqual({
+      type: 'text-start',
+      id: 'langgraph-0-model',
+    });
+    expect(chunks).toContainEqual({
+      type: 'text-delta',
+      delta: 'Streaming',
+      id: 'langgraph-0-model',
+    });
+  });
+
+  it('should prefer checkpoint metadata for AI message chunks without id', () => {
+    const state = createMockState();
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    processLangGraphEvent(
+      [
+        'messages',
+        [
+          new AIMessageChunk({ content: 'First' }),
+          {
+            langgraph_step: 0,
+            langgraph_node: 'model',
+            langgraph_checkpoint_ns: 'model:checkpoint-1',
+          },
+        ],
+      ],
+      state,
+      controller,
+    );
+    processLangGraphEvent(
+      [
+        'messages',
+        [
+          new AIMessageChunk({ content: 'Second' }),
+          {
+            langgraph_step: 0,
+            langgraph_node: 'model',
+            langgraph_checkpoint_ns: 'model:checkpoint-2',
+          },
+        ],
+      ],
+      state,
+      controller,
+    );
+
+    expect(chunks).toContainEqual({
+      type: 'text-start',
+      id: 'langgraph-model:checkpoint-1',
+    });
+    expect(chunks).toContainEqual({
+      type: 'text-start',
+      id: 'langgraph-model:checkpoint-2',
+    });
+  });
+
+  it('should use task metadata to separate same-step same-node chunks without id', () => {
+    const state = createMockState();
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    processLangGraphEvent(
+      [
+        'messages',
+        [
+          new AIMessageChunk({ content: 'First task' }),
+          {
+            langgraph_step: 0,
+            langgraph_node: 'model',
+            __pregel_task_id: 'task-1',
+          },
+        ],
+      ],
+      state,
+      controller,
+    );
+    processLangGraphEvent(
+      [
+        'messages',
+        [
+          new AIMessageChunk({ content: 'Second task' }),
+          {
+            langgraph_step: 0,
+            langgraph_node: 'model',
+            __pregel_task_id: 'task-2',
+          },
+        ],
+      ],
+      state,
+      controller,
+    );
+
+    expect(chunks).toContainEqual({
+      type: 'text-start',
+      id: 'langgraph-task-1',
+    });
+    expect(chunks).toContainEqual({
+      type: 'text-delta',
+      delta: 'First task',
+      id: 'langgraph-task-1',
+    });
+    expect(chunks).toContainEqual({
+      type: 'text-start',
+      id: 'langgraph-task-2',
+    });
+    expect(chunks).toContainEqual({
+      type: 'text-delta',
+      delta: 'Second task',
+      id: 'langgraph-task-2',
+    });
+  });
+
+  it('should skip plain AI message objects without id', () => {
+    const state = createMockState();
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    processLangGraphEvent(
+      [
+        'messages',
+        [
+          { type: 'ai', content: 'Plain message without id' },
+          { langgraph_step: 0, langgraph_node: 'model' },
+        ],
+      ],
+      state,
+      controller,
+    );
+
+    expect(chunks).toEqual([]);
   });
 
   it('should handle tool message output', () => {

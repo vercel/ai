@@ -16,6 +16,24 @@ export class DefaultChatTransport<
     super(options);
   }
 
+  protected override prepareHeaders(
+    headers: Record<string, string>,
+  ): HeadersInit {
+    return {
+      accept: 'text/event-stream',
+      ...super.prepareHeaders(headers),
+    };
+  }
+
+  protected override prepareReconnectHeaders(
+    headers: Record<string, string>,
+  ): HeadersInit {
+    return {
+      accept: 'text/event-stream',
+      ...super.prepareReconnectHeaders(headers),
+    };
+  }
+
   protected processResponseStream(
     stream: ReadableStream<Uint8Array<ArrayBufferLike>>,
   ): ReadableStream<UIMessageChunk> {
