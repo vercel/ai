@@ -12,7 +12,7 @@ import {
   jsonSchema,
   tool,
   type ModelMessage,
-  type Sandbox,
+  type Experimental_Sandbox as Sandbox,
   type ToolExecuteFunction,
 } from '@ai-sdk/provider-utils';
 import { mockId } from '@ai-sdk/provider-utils/test';
@@ -31,6 +31,7 @@ import { z } from 'zod/v4';
 import * as logWarningsModule from '../logger/log-warnings';
 import type { Instructions } from '../prompt';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
+import { mockValues } from '../test/mock-values';
 import { generateText } from './generate-text';
 import type {
   GenerateTextOnFinishCallback,
@@ -172,6 +173,7 @@ describe('generateText', () => {
 
   afterEach(() => {
     vi.useRealTimers();
+    vi.unstubAllGlobals();
     logWarningsSpy.mockRestore();
   });
 
@@ -914,6 +916,74 @@ describe('generateText', () => {
       });
 
       expect(result.finalStep).toBe(result.steps.at(-1));
+    });
+
+    it('should include step performance', async () => {
+      const result = await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            content: [{ type: 'text', text: 'Hello!' }],
+          }),
+        }),
+        prompt: 'test-input',
+        _internal: {
+          now: mockValues(1000, 1500),
+        },
+      });
+
+      expect(result.finalStep.performance).toStrictEqual({
+        tokensPerSecond: 20,
+        stepTimeMs: 500,
+        responseTimeMs: 500,
+        toolExecutionMs: {},
+        timeToFirstTokenMs: undefined,
+      });
+    });
+
+    it('should calculate throughput from response time and track tool execution time', async () => {
+      const originalPerformance = globalThis.performance;
+      vi.stubGlobal('performance', {
+        ...originalPerformance,
+        now: mockValues(1500, 1800),
+      });
+
+      const result = await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                input: `{ "value": "value" }`,
+              },
+            ],
+            finishReason: { unified: 'tool-calls', raw: undefined },
+          }),
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async () => 'result1',
+          }),
+        },
+        prompt: 'test-input',
+        _internal: {
+          now: mockValues(1000, 1500, 2000),
+        },
+      });
+
+      expect(result.finalStep.performance).toStrictEqual({
+        tokensPerSecond: 20,
+        stepTimeMs: 1000,
+        responseTimeMs: 500,
+        toolExecutionMs: {
+          'call-1': 300,
+        },
+        timeToFirstTokenMs: undefined,
+      });
     });
   });
 
@@ -2590,6 +2660,11 @@ describe('generateText', () => {
             ],
             "finishReason": "tool-calls",
             "modelId": "mock-model-id",
+            "performance": {
+              "responseTimeMs": 0,
+              "timeToFirstTokenMs": undefined,
+              "tokensPerSecond": 0,
+            },
             "provider": "mock-provider",
             "responseId": "response-1",
             "usage": {
@@ -3108,7 +3183,6 @@ describe('generateText', () => {
         [
           {
             "callId": "test-telemetry-call-id",
-            "durationMs": 0,
             "messages": [
               {
                 "content": "prompt",
@@ -3127,6 +3201,7 @@ describe('generateText', () => {
               "type": "tool-call",
             },
             "toolContext": undefined,
+            "toolExecutionMs": 0,
             "toolOutput": {
               "dynamic": false,
               "input": {
@@ -3180,7 +3255,6 @@ describe('generateText', () => {
         [
           {
             "callId": "test-telemetry-call-id",
-            "durationMs": 0,
             "messages": [
               {
                 "content": "prompt",
@@ -3199,6 +3273,7 @@ describe('generateText', () => {
               "type": "tool-call",
             },
             "toolContext": undefined,
+            "toolExecutionMs": 0,
             "toolOutput": {
               "dynamic": false,
               "error": [Error: tool execution failed],
@@ -3214,7 +3289,7 @@ describe('generateText', () => {
       `);
     });
 
-    it('should have a positive durationMs', async () => {
+    it('should have a positive toolExecutionMs', async () => {
       const toolExecutionEndEvents: ToolExecutionEndEvent<any>[] = [];
 
       await generateText({
@@ -3245,8 +3320,10 @@ describe('generateText', () => {
         },
       });
 
-      expect(toolExecutionEndEvents[0].durationMs).toBeGreaterThanOrEqual(0);
-      expect(typeof toolExecutionEndEvents[0].durationMs).toBe('number');
+      expect(toolExecutionEndEvents[0].toolExecutionMs).toBeGreaterThanOrEqual(
+        0,
+      );
+      expect(typeof toolExecutionEndEvents[0].toolExecutionMs).toBe('number');
     });
 
     it('should not break generation when callback throws', async () => {
@@ -3352,7 +3429,6 @@ describe('generateText', () => {
         [
           {
             "callId": "test-telemetry-call-id",
-            "durationMs": 0,
             "messages": [
               {
                 "content": "prompt",
@@ -3373,6 +3449,7 @@ describe('generateText', () => {
             "toolContext": {
               "context": "test",
             },
+            "toolExecutionMs": 0,
             "toolOutput": {
               "dynamic": false,
               "input": {
@@ -3428,7 +3505,6 @@ describe('generateText', () => {
         [
           {
             "callId": "test-telemetry-call-id",
-            "durationMs": 0,
             "messages": [
               {
                 "content": "prompt",
@@ -3449,6 +3525,7 @@ describe('generateText', () => {
             "toolContext": {
               "context": "test",
             },
+            "toolExecutionMs": 0,
             "toolOutput": {
               "dynamic": false,
               "error": [Error: Tool execution failed],
@@ -3689,7 +3766,6 @@ describe('generateText', () => {
         [
           {
             "callId": "test-telemetry-call-id",
-            "durationMs": 0,
             "messages": [
               {
                 "content": "prompt",
@@ -3708,6 +3784,7 @@ describe('generateText', () => {
               "type": "tool-call",
             },
             "toolContext": undefined,
+            "toolExecutionMs": 0,
             "toolOutput": {
               "dynamic": false,
               "input": {
@@ -3721,7 +3798,6 @@ describe('generateText', () => {
           },
           {
             "callId": "test-telemetry-call-id",
-            "durationMs": 0,
             "messages": [
               {
                 "content": "prompt",
@@ -3769,6 +3845,7 @@ describe('generateText', () => {
               "type": "tool-call",
             },
             "toolContext": undefined,
+            "toolExecutionMs": 0,
             "toolOutput": {
               "dynamic": false,
               "input": {
@@ -4020,6 +4097,15 @@ describe('generateText', () => {
               "model": {
                 "modelId": "mock-model-id",
                 "provider": "mock-provider",
+              },
+              "performance": {
+                "responseTimeMs": 0,
+                "stepTimeMs": 0,
+                "timeToFirstTokenMs": undefined,
+                "tokensPerSecond": 0,
+                "toolExecutionMs": {
+                  "call-1": 0,
+                },
               },
               "providerMetadata": undefined,
               "rawFinishReason": "stop",
@@ -4571,6 +4657,15 @@ describe('generateText', () => {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
                   },
+                  "performance": {
+                    "responseTimeMs": 0,
+                    "stepTimeMs": 0,
+                    "timeToFirstTokenMs": undefined,
+                    "tokensPerSecond": 0,
+                    "toolExecutionMs": {
+                      "call-1": 0,
+                    },
+                  },
                   "providerMetadata": undefined,
                   "rawFinishReason": undefined,
                   "request": {
@@ -4649,6 +4744,13 @@ describe('generateText', () => {
                   "model": {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
+                  },
+                  "performance": {
+                    "responseTimeMs": 0,
+                    "stepTimeMs": 0,
+                    "timeToFirstTokenMs": undefined,
+                    "tokensPerSecond": 0,
+                    "toolExecutionMs": {},
                   },
                   "providerMetadata": undefined,
                   "rawFinishReason": "stop",
@@ -4773,6 +4875,15 @@ describe('generateText', () => {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
                   },
+                  "performance": {
+                    "responseTimeMs": 0,
+                    "stepTimeMs": 0,
+                    "timeToFirstTokenMs": undefined,
+                    "tokensPerSecond": 0,
+                    "toolExecutionMs": {
+                      "call-1": 0,
+                    },
+                  },
                   "providerMetadata": undefined,
                   "rawFinishReason": undefined,
                   "request": {
@@ -4851,6 +4962,13 @@ describe('generateText', () => {
                   "model": {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
+                  },
+                  "performance": {
+                    "responseTimeMs": 0,
+                    "stepTimeMs": 0,
+                    "timeToFirstTokenMs": undefined,
+                    "tokensPerSecond": 0,
+                    "toolExecutionMs": {},
                   },
                   "providerMetadata": undefined,
                   "rawFinishReason": "stop",
@@ -5271,6 +5389,15 @@ describe('generateText', () => {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
                   },
+                  "performance": {
+                    "responseTimeMs": 0,
+                    "stepTimeMs": 0,
+                    "timeToFirstTokenMs": undefined,
+                    "tokensPerSecond": 0,
+                    "toolExecutionMs": {
+                      "call-1": 0,
+                    },
+                  },
                   "providerMetadata": undefined,
                   "rawFinishReason": undefined,
                   "request": {
@@ -5369,6 +5496,15 @@ describe('generateText', () => {
                   "model": {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
+                  },
+                  "performance": {
+                    "responseTimeMs": 0,
+                    "stepTimeMs": 0,
+                    "timeToFirstTokenMs": undefined,
+                    "tokensPerSecond": 0,
+                    "toolExecutionMs": {
+                      "call-1": 0,
+                    },
                   },
                   "providerMetadata": undefined,
                   "rawFinishReason": undefined,
@@ -8306,13 +8442,13 @@ describe('generateText', () => {
         tools: {
           t1: tool({
             inputSchema: z.object({ value: z.string() }),
-            execute: async ({ value }, { sandbox }) => {
+            execute: async ({ value }, { experimental_sandbox: sandbox }) => {
               recordedSandbox = sandbox;
               return { value };
             },
           }),
         },
-        sandbox,
+        experimental_sandbox: sandbox,
         prompt: 'test-input',
       });
 
@@ -8358,8 +8494,8 @@ describe('generateText', () => {
             content: [{ type: 'text', text: 'Hello, world!' }],
           }),
         }),
-        sandbox,
-        prepareStep: async ({ sandbox }) => {
+        experimental_sandbox: sandbox,
+        prepareStep: async ({ experimental_sandbox: sandbox }) => {
           capturedSandbox = sandbox;
           return undefined;
         },
@@ -8432,15 +8568,15 @@ describe('generateText', () => {
         tools: {
           t1: tool({
             inputSchema: z.object({ value: z.string() }),
-            execute: async ({ value }, { sandbox }) => {
+            execute: async ({ value }, { experimental_sandbox: sandbox }) => {
               recordedSandboxes.push(sandbox);
               return { value };
             },
           }),
         },
-        sandbox,
+        experimental_sandbox: sandbox,
         prepareStep: async ({ stepNumber }) =>
-          stepNumber === 0 ? { sandbox: stepSandbox } : {},
+          stepNumber === 0 ? { experimental_sandbox: stepSandbox } : {},
         prompt: 'test-input',
         stopWhen: isStepCount(3),
       });
@@ -8548,7 +8684,7 @@ describe('generateText', () => {
             onStepFinish: ({ runtimeContext }) => {
               telemetryContexts.push(runtimeContext);
             },
-            onFinish: event => {
+            onEnd: event => {
               telemetryContexts.push(
                 (event as { runtimeContext: unknown }).runtimeContext,
               );
@@ -8612,7 +8748,7 @@ describe('generateText', () => {
             onStepFinish: ({ toolsContext }) => {
               telemetryContexts.push(toolsContext);
             },
-            onFinish: event => {
+            onEnd: event => {
               telemetryContexts.push(
                 (event as { toolsContext: unknown }).toolsContext,
               );
@@ -8671,7 +8807,7 @@ describe('generateText', () => {
             onStepFinish: ({ toolsContext }) => {
               telemetryContexts.push(toolsContext);
             },
-            onFinish: event => {
+            onEnd: event => {
               telemetryContexts.push(
                 (event as { toolsContext: unknown }).toolsContext,
               );
@@ -8712,7 +8848,7 @@ describe('generateText', () => {
             onStepFinish: ({ runtimeContext }) => {
               telemetryContexts.push(runtimeContext);
             },
-            onFinish: event => {
+            onEnd: event => {
               telemetryContexts.push(
                 (event as { runtimeContext: unknown }).runtimeContext,
               );
@@ -8995,6 +9131,15 @@ describe('generateText', () => {
               "model": {
                 "modelId": "mock-model-id",
                 "provider": "mock-provider",
+              },
+              "performance": {
+                "responseTimeMs": 0,
+                "stepTimeMs": 0,
+                "timeToFirstTokenMs": undefined,
+                "tokensPerSecond": 0,
+                "toolExecutionMs": {
+                  "call-1": 0,
+                },
               },
               "providerMetadata": undefined,
               "rawFinishReason": undefined,
@@ -11366,8 +11511,8 @@ describe('generateText', () => {
             onStepFinish: async () => {
               events.push('onStepFinish');
             },
-            onFinish: async () => {
-              events.push('onFinish');
+            onEnd: async () => {
+              events.push('onEnd');
             },
           },
         },
@@ -11380,7 +11525,7 @@ describe('generateText', () => {
           "onToolExecutionStart",
           "onToolExecutionEnd",
           "onStepFinish",
-          "onFinish",
+          "onEnd",
         ]
       `);
     });
@@ -11396,8 +11541,8 @@ describe('generateText', () => {
           onStepFinish: async () => {
             events.push('global-onStepFinish');
           },
-          onFinish: async () => {
-            events.push('global-onFinish');
+          onEnd: async () => {
+            events.push('global-onEnd');
           },
         },
       ];
@@ -11415,7 +11560,7 @@ describe('generateText', () => {
       expect(events).toEqual([
         'global-onStart',
         'global-onStepFinish',
-        'global-onFinish',
+        'global-onEnd',
       ]);
     });
 
@@ -11478,8 +11623,8 @@ describe('generateText', () => {
             onStepFinish: async () => {
               events.push('integration-onStepFinish');
             },
-            onFinish: async () => {
-              events.push('integration-onFinish');
+            onEnd: async () => {
+              events.push('integration-onEnd');
             },
           },
         },
@@ -11491,7 +11636,7 @@ describe('generateText', () => {
         'user-onStepFinish',
         'integration-onStepFinish',
         'user-onFinish',
-        'integration-onFinish',
+        'integration-onEnd',
       ]);
     });
 
@@ -11512,7 +11657,7 @@ describe('generateText', () => {
             onStepFinish: async () => {
               throw new Error('integration error');
             },
-            onFinish: async () => {
+            onEnd: async () => {
               throw new Error('integration error');
             },
           },

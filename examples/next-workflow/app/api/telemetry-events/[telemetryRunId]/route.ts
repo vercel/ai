@@ -9,7 +9,6 @@ const expectations: Record<TelemetryScenario, string[]> = {
     'onStepStart',
     'onLanguageModelCallStart',
     'onLanguageModelCallEnd',
-    'onChunk',
     'onToolExecutionStart',
     'onToolExecutionEnd',
     'onStepFinish',
@@ -27,7 +26,6 @@ const expectations: Record<TelemetryScenario, string[]> = {
     'onStepStart',
     'onLanguageModelCallStart',
     'onLanguageModelCallEnd',
-    'onChunk',
     'onFinish',
   ],
   'tool-error': [
@@ -40,7 +38,6 @@ const expectations: Record<TelemetryScenario, string[]> = {
   reconnect: [
     'onStart',
     'onStepStart',
-    'onChunk',
     'onFinish',
     'transport:postStreamInterrupted',
     'transport:reconnectStream',

@@ -14,7 +14,7 @@ describe('bash_20250124 tool', () => {
         messages: [],
         abortSignal: abortController.signal,
         context: {},
-        sandbox: {
+        experimental_sandbox: {
           description: 'test sandbox',
           executeCommand: async ({ abortSignal }) => {
             receivedAbortSignal = abortSignal;

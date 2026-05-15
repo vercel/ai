@@ -58,6 +58,16 @@ function prepareChunksFixtureResponse(
   };
 }
 
+function prepareChunkLinesResponse(chunks: Array<Record<string, unknown>>) {
+  server.urls['https://api.cohere.com/v2/chat'].response = {
+    type: 'stream-chunks',
+    chunks: chunks.map(chunk => {
+      const line = JSON.stringify(chunk);
+      return `event: ${chunk.type}\ndata: ${line}\n\n`;
+    }),
+  };
+}
+
 describe('doGenerate', () => {
   describe('text', () => {
     beforeEach(() => {
@@ -837,6 +847,62 @@ describe('doStream', () => {
         .map(chunk =>
           chunk.type === 'tool-call' ? chunk.toolCallId : chunk.id,
         );
+    });
+
+    it('rejects prototype keys in streamed tool call arguments', async () => {
+      prepareChunkLinesResponse([
+        {
+          type: 'tool-call-start',
+          index: 0,
+          delta: {
+            message: {
+              tool_calls: {
+                id: 'test-tool-call',
+                type: 'function',
+                function: { name: 'test-tool', arguments: '' },
+              },
+            },
+          },
+        },
+        {
+          type: 'tool-call-delta',
+          index: 0,
+          delta: {
+            message: {
+              tool_calls: {
+                function: {
+                  arguments: '{"__proto__":{"polluted":true}}',
+                },
+              },
+            },
+          },
+        },
+        {
+          type: 'tool-call-end',
+          index: 0,
+        },
+      ]);
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        tools: [
+          {
+            type: 'function',
+            name: 'test-tool',
+            inputSchema: {
+              type: 'object',
+              properties: {},
+              additionalProperties: true,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        ],
+        includeRawChunks: false,
+      });
+
+      await expect(convertReadableStreamToArray(stream)).rejects.toThrow(
+        'Object contains forbidden prototype property',
+      );
     });
   });
 

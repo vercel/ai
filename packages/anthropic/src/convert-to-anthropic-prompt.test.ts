@@ -2059,6 +2059,329 @@ describe('assistant messages', () => {
     expect(warnings).toMatchInlineSnapshot(`[]`);
   });
 
+  describe('advisor 20260301 multi-turn round-trip', () => {
+    it('should convert advisor server_tool_use + advisor_result back to the API shape', async () => {
+      const warnings: SharedV4Warning[] = [];
+      const result = await convertToAnthropicPrompt({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                input: {},
+                providerExecuted: true,
+                toolCallId: 'srvtoolu_advisor_abc123',
+                toolName: 'advisor',
+                type: 'tool-call',
+              },
+              {
+                output: {
+                  type: 'json',
+                  value: {
+                    type: 'advisor_result',
+                    text: 'Use a channel-based coordination pattern. Close the input channel first, then wait on a WaitGroup.',
+                  },
+                },
+                toolCallId: 'srvtoolu_advisor_abc123',
+                toolName: 'advisor',
+                type: 'tool-result',
+              },
+            ],
+          },
+        ],
+        sendReasoning: false,
+        warnings,
+        toolNameMapping: defaultToolNameMapping,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "betas": Set {},
+          "prompt": {
+            "messages": [
+              {
+                "content": [
+                  {
+                    "cache_control": undefined,
+                    "id": "srvtoolu_advisor_abc123",
+                    "input": {},
+                    "name": "advisor",
+                    "type": "server_tool_use",
+                  },
+                  {
+                    "cache_control": undefined,
+                    "content": {
+                      "text": "Use a channel-based coordination pattern. Close the input channel first, then wait on a WaitGroup.",
+                      "type": "advisor_result",
+                    },
+                    "tool_use_id": "srvtoolu_advisor_abc123",
+                    "type": "advisor_tool_result",
+                  },
+                ],
+                "role": "assistant",
+              },
+            ],
+            "system": undefined,
+          },
+        }
+      `);
+      expect(warnings).toMatchInlineSnapshot(`[]`);
+    });
+
+    it('should round-trip advisor_redacted_result verbatim across turns', async () => {
+      const warnings: SharedV4Warning[] = [];
+      const result = await convertToAnthropicPrompt({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                input: {},
+                providerExecuted: true,
+                toolCallId: 'srvtoolu_advisor_redacted',
+                toolName: 'advisor',
+                type: 'tool-call',
+              },
+              {
+                output: {
+                  type: 'json',
+                  value: {
+                    type: 'advisor_redacted_result',
+                    encryptedContent: 'opaque-encrypted-blob-xyz',
+                  },
+                },
+                toolCallId: 'srvtoolu_advisor_redacted',
+                toolName: 'advisor',
+                type: 'tool-result',
+              },
+            ],
+          },
+        ],
+        sendReasoning: false,
+        warnings,
+        toolNameMapping: defaultToolNameMapping,
+      });
+
+      // The encrypted blob must round-trip verbatim under the snake_case
+      // wire field name `encrypted_content` so the server can decrypt it.
+      expect(result.prompt.messages[0].content[1]).toMatchInlineSnapshot(`
+        {
+          "cache_control": undefined,
+          "content": {
+            "encrypted_content": "opaque-encrypted-blob-xyz",
+            "type": "advisor_redacted_result",
+          },
+          "tool_use_id": "srvtoolu_advisor_redacted",
+          "type": "advisor_tool_result",
+        }
+      `);
+      expect(warnings).toMatchInlineSnapshot(`[]`);
+    });
+
+    it('should convert advisor_tool_result_error back to the API shape', async () => {
+      const warnings: SharedV4Warning[] = [];
+      const result = await convertToAnthropicPrompt({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                input: {},
+                providerExecuted: true,
+                toolCallId: 'srvtoolu_advisor_err',
+                toolName: 'advisor',
+                type: 'tool-call',
+              },
+              {
+                output: {
+                  type: 'json',
+                  value: {
+                    type: 'advisor_tool_result_error',
+                    errorCode: 'max_uses_exceeded',
+                  },
+                },
+                toolCallId: 'srvtoolu_advisor_err',
+                toolName: 'advisor',
+                type: 'tool-result',
+              },
+            ],
+          },
+        ],
+        sendReasoning: false,
+        warnings,
+        toolNameMapping: defaultToolNameMapping,
+      });
+
+      expect(result.prompt.messages[0].content[1]).toMatchInlineSnapshot(`
+        {
+          "cache_control": undefined,
+          "content": {
+            "error_code": "max_uses_exceeded",
+            "type": "advisor_tool_result_error",
+          },
+          "tool_use_id": "srvtoolu_advisor_err",
+          "type": "advisor_tool_result",
+        }
+      `);
+      expect(warnings).toMatchInlineSnapshot(`[]`);
+    });
+
+    it('should preserve multiple advisor turns interleaved with text', async () => {
+      const warnings: SharedV4Warning[] = [];
+      const result = await convertToAnthropicPrompt({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: 'Build a concurrent worker pool in Go with graceful shutdown.',
+              },
+            ],
+          },
+          {
+            role: 'assistant',
+            content: [
+              { type: 'text', text: 'Let me consult the advisor on this.' },
+              {
+                input: {},
+                providerExecuted: true,
+                toolCallId: 'srvtoolu_advisor_1',
+                toolName: 'advisor',
+                type: 'tool-call',
+              },
+              {
+                output: {
+                  type: 'json',
+                  value: {
+                    type: 'advisor_result',
+                    text: 'Use channels and a WaitGroup.',
+                  },
+                },
+                toolCallId: 'srvtoolu_advisor_1',
+                toolName: 'advisor',
+                type: 'tool-result',
+              },
+              {
+                type: 'text',
+                text: 'Here is the implementation.',
+              },
+            ],
+          },
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: 'Now add a max-in-flight limit of 10.' },
+            ],
+          },
+        ],
+        sendReasoning: false,
+        warnings,
+        toolNameMapping: defaultToolNameMapping,
+      });
+
+      expect(result.prompt.messages).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "cache_control": undefined,
+                "text": "Build a concurrent worker pool in Go with graceful shutdown.",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "content": [
+              {
+                "cache_control": undefined,
+                "text": "Let me consult the advisor on this.",
+                "type": "text",
+              },
+              {
+                "cache_control": undefined,
+                "id": "srvtoolu_advisor_1",
+                "input": {},
+                "name": "advisor",
+                "type": "server_tool_use",
+              },
+              {
+                "cache_control": undefined,
+                "content": {
+                  "text": "Use channels and a WaitGroup.",
+                  "type": "advisor_result",
+                },
+                "tool_use_id": "srvtoolu_advisor_1",
+                "type": "advisor_tool_result",
+              },
+              {
+                "cache_control": undefined,
+                "text": "Here is the implementation.",
+                "type": "text",
+              },
+            ],
+            "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "cache_control": undefined,
+                "text": "Now add a max-in-flight limit of 10.",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+        ]
+      `);
+      expect(warnings).toMatchInlineSnapshot(`[]`);
+    });
+
+    it('should warn (and not emit a result block) when output type is unsupported', async () => {
+      const warnings: SharedV4Warning[] = [];
+      const result = await convertToAnthropicPrompt({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                input: {},
+                providerExecuted: true,
+                toolCallId: 'srvtoolu_advisor_bad',
+                toolName: 'advisor',
+                type: 'tool-call',
+              },
+              {
+                output: {
+                  type: 'text',
+                  value: 'should be json',
+                },
+                toolCallId: 'srvtoolu_advisor_bad',
+                toolName: 'advisor',
+                type: 'tool-result',
+              },
+            ],
+          },
+        ],
+        sendReasoning: false,
+        warnings,
+        toolNameMapping: defaultToolNameMapping,
+      });
+
+      // Only the server_tool_use block is emitted; the result is skipped.
+      expect(result.prompt.messages[0].content).toHaveLength(1);
+      expect(warnings).toMatchInlineSnapshot(`
+        [
+          {
+            "message": "provider executed tool result output type text for tool advisor is not supported",
+            "type": "other",
+          },
+        ]
+      `);
+    });
+  });
+
   describe('code_execution 20250522', () => {
     it('should convert anthropic code_execution tool call and result parts', async () => {
       const warnings: SharedV4Warning[] = [];

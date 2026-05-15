@@ -107,6 +107,13 @@ describe('simulateStreamingMiddleware', () => {
           },
           {
             "finishReason": "stop",
+            "performance": {
+              "responseTimeMs": 0,
+              "stepTimeMs": 0,
+              "timeToFirstTokenMs": 0,
+              "tokensPerSecond": 0,
+              "toolExecutionMs": {},
+            },
             "providerMetadata": undefined,
             "rawFinishReason": "stop",
             "response": {
@@ -227,6 +234,13 @@ describe('simulateStreamingMiddleware', () => {
           },
           {
             "finishReason": "stop",
+            "performance": {
+              "responseTimeMs": 0,
+              "stepTimeMs": 0,
+              "timeToFirstTokenMs": 0,
+              "tokensPerSecond": 0,
+              "toolExecutionMs": {},
+            },
             "providerMetadata": undefined,
             "rawFinishReason": "stop",
             "response": {
@@ -393,6 +407,13 @@ describe('simulateStreamingMiddleware', () => {
           },
           {
             "finishReason": "stop",
+            "performance": {
+              "responseTimeMs": 0,
+              "stepTimeMs": 0,
+              "timeToFirstTokenMs": 0,
+              "tokensPerSecond": 0,
+              "toolExecutionMs": {},
+            },
             "providerMetadata": undefined,
             "rawFinishReason": "stop",
             "response": {
@@ -541,6 +562,13 @@ describe('simulateStreamingMiddleware', () => {
           },
           {
             "finishReason": "stop",
+            "performance": {
+              "responseTimeMs": 0,
+              "stepTimeMs": 0,
+              "timeToFirstTokenMs": 0,
+              "tokensPerSecond": 0,
+              "toolExecutionMs": {},
+            },
             "providerMetadata": undefined,
             "rawFinishReason": "stop",
             "response": {
@@ -692,6 +720,13 @@ describe('simulateStreamingMiddleware', () => {
           },
           {
             "finishReason": "tool-calls",
+            "performance": {
+              "responseTimeMs": 0,
+              "stepTimeMs": 0,
+              "timeToFirstTokenMs": 0,
+              "tokensPerSecond": 0,
+              "toolExecutionMs": {},
+            },
             "providerMetadata": undefined,
             "rawFinishReason": undefined,
             "response": {
@@ -791,6 +826,13 @@ describe('simulateStreamingMiddleware', () => {
           },
           {
             "finishReason": "stop",
+            "performance": {
+              "responseTimeMs": 0,
+              "stepTimeMs": 0,
+              "timeToFirstTokenMs": 0,
+              "tokensPerSecond": 0,
+              "toolExecutionMs": {},
+            },
             "providerMetadata": {
               "custom": {
                 "key": "value",

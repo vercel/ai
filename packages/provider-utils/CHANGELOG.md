@@ -1,5 +1,17 @@
 # @ai-sdk/provider-utils
 
+## 5.0.0-canary.40
+
+### Patch Changes
+
+- a7de9c9: fix: make sandbox experimental
+
+## 5.0.0-canary.39
+
+### Patch Changes
+
+- 105f95b: Ensure the default empty tool input schema includes `type: "object"` for OpenAI-compatible providers that require object schemas.
+
 ## 5.0.0-canary.38
 
 ### Patch Changes

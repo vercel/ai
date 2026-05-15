@@ -1,8 +1,8 @@
 import type {
   Arrayable,
   Context,
+  Experimental_Sandbox as Sandbox,
   ModelMessage,
-  Sandbox,
   ToolSet,
 } from '@ai-sdk/provider-utils';
 import type {
@@ -107,9 +107,9 @@ export type AgentCallParameters<
     onFinish?: GenerateTextOnFinishCallback<TOOLS, RUNTIME_CONTEXT>;
 
     /**
-     * The sandbox environment that is passed through to the tool execution.
+     * The sandbox environment that is passed through to tool execution.
      */
-    sandbox?: Sandbox;
+    experimental_sandbox?: Sandbox;
   };
 
 /**

@@ -7,11 +7,11 @@ import {
 import {
   createIdGenerator,
   type Arrayable,
+  type Experimental_Sandbox as Sandbox,
   type IdGenerator,
   type InferToolSetContext,
   type ModelMessage,
   type ProviderOptions,
-  type Sandbox,
   type ToolSet,
 } from '@ai-sdk/provider-utils';
 import { ToolCallNotFoundForApprovalError } from '../error/tool-call-not-found-for-approval-error';
@@ -36,6 +36,8 @@ import {
 } from '../util/async-iterable-stream';
 import type { DownloadFunction } from '../util/download/download-function';
 import { notify } from '../util/notify';
+import { now as originalNow } from '../util/now';
+import { calculateTokensPerSecond } from './calculate-tokens-per-second';
 import type { ContentPart } from './content-part';
 import { DefaultGeneratedFileWithType } from './generated-file';
 import type {
@@ -101,6 +103,11 @@ export type LanguageModelStreamPart<TOOLS extends ToolSet = ToolSet> =
       rawFinishReason: string | undefined;
       usage: LanguageModelUsage;
       providerMetadata?: ProviderMetadata;
+      performance: {
+        responseTimeMs: number;
+        tokensPerSecond: number;
+        timeToFirstTokenMs: number | undefined;
+      };
     }
   | {
       type: 'model-call-start';
@@ -196,10 +203,11 @@ export async function streamLanguageModelCall<
   refineToolInput,
   callId,
   toolsContext,
-  sandbox,
+  experimental_sandbox: sandbox,
   _internal: {
     generateId = originalGenerateId,
     generateCallId = originalGenerateCallId,
+    now = originalNow,
   } = {},
   onStart,
   onLanguageModelCallStart,
@@ -226,10 +234,11 @@ export async function streamLanguageModelCall<
   /**
    * Sandbox passed through for resolving tool descriptions that depend on it.
    */
-  sandbox?: Sandbox;
+  experimental_sandbox?: Sandbox;
   _internal?: {
     generateId?: IdGenerator;
     generateCallId?: IdGenerator;
+    now?: () => number;
   };
   onLanguageModelCallStart?: Arrayable<OnLanguageModelCallStartCallback>;
   onLanguageModelCallEnd?: Arrayable<OnLanguageModelCallEndCallback<TOOLS>>;
@@ -282,7 +291,11 @@ export async function streamLanguageModelCall<
     provider: resolvedModel.provider.split('.')[0],
   });
 
-  const stepTools = await prepareTools({ tools, toolsContext, sandbox });
+  const stepTools = await prepareTools({
+    tools,
+    toolsContext,
+    experimental_sandbox: sandbox,
+  });
 
   const stepToolChoice = prepareToolChoice({
     toolChoice,
@@ -305,6 +318,8 @@ export async function streamLanguageModelCall<
     },
     callbacks: onLanguageModelCallStart,
   });
+
+  const callStartTimestampMs = now();
 
   const {
     stream: languageModelStream,
@@ -333,6 +348,8 @@ export async function streamLanguageModelCall<
       provider: resolvedModel.provider,
       modelId: resolvedModel.modelId,
       generateId,
+      now,
+      callStartTimestampMs,
       onLanguageModelCallEnd,
     }),
   );
@@ -357,6 +374,8 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
   provider,
   modelId,
   generateId,
+  now,
+  callStartTimestampMs,
   onLanguageModelCallEnd,
 }: {
   tools: TOOLS | undefined;
@@ -368,6 +387,8 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
   provider: string;
   modelId: string;
   generateId: IdGenerator;
+  now: () => number;
+  callStartTimestampMs: number;
   onLanguageModelCallEnd?: Arrayable<OnLanguageModelCallEndCallback<TOOLS>>;
 }) {
   // keep track of parsed tool calls so provider-emitted approval requests can reference them
@@ -377,12 +398,17 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
   const textPartIndexes = new Map<string, number>();
   const reasoningPartIndexes = new Map<string, number>();
   let responseId = generateId();
+  let timeToFirstTokenMs: number | undefined;
 
   return new TransformStream<
     LanguageModelV4StreamPart,
     LanguageModelStreamPart<TOOLS>
   >({
     async transform(chunk, controller) {
+      if (timeToFirstTokenMs == null && isChunkWithTokens(chunk)) {
+        timeToFirstTokenMs = now() - callStartTimestampMs;
+      }
+
       switch (chunk.type) {
         case 'text-start':
           upsertTextContentPart({
@@ -492,6 +518,15 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
 
         case 'finish': {
           const usage = asLanguageModelUsage(chunk.usage);
+          const responseTimeMs = now() - callStartTimestampMs;
+          const performance = {
+            responseTimeMs,
+            tokensPerSecond: calculateTokensPerSecond({
+              outputTokens: usage.outputTokens,
+              responseTimeMs,
+            }),
+            timeToFirstTokenMs,
+          };
 
           await notify({
             event: {
@@ -502,6 +537,7 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
               usage,
               content: modelCallContent,
               responseId,
+              performance,
             },
             callbacks: onLanguageModelCallEnd,
           });
@@ -512,6 +548,7 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
             rawFinishReason: chunk.finishReason.raw,
             usage,
             providerMetadata: chunk.providerMetadata,
+            performance,
           });
           break;
         }
@@ -662,6 +699,19 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
       }
     },
   });
+}
+
+/**
+ * Returns true for streamed deltas that contain generated output tokens.
+ * Used to measure time-to-first-token for text, reasoning, and streamed tool
+ * input.
+ */
+function isChunkWithTokens(chunk: LanguageModelV4StreamPart): boolean {
+  return (
+    (chunk.type === 'text-delta' && chunk.delta.length > 0) ||
+    (chunk.type === 'reasoning-delta' && chunk.delta.length > 0) ||
+    (chunk.type === 'tool-input-delta' && chunk.delta.length > 0)
+  );
 }
 
 /**

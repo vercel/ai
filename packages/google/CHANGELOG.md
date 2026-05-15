@@ -1,5 +1,25 @@
 # @ai-sdk/google
 
+## 4.0.0-canary.62
+
+### Patch Changes
+
+- Updated dependencies [a7de9c9]
+  - @ai-sdk/provider-utils@5.0.0-canary.40
+
+## 4.0.0-canary.61
+
+### Patch Changes
+
+- Updated dependencies [105f95b]
+  - @ai-sdk/provider-utils@5.0.0-canary.39
+
+## 4.0.0-canary.60
+
+### Patch Changes
+
+- 6a26901: feat(google): add `fileData` support to embedding model
+
 ## 4.0.0-canary.59
 
 ### Patch Changes

@@ -51,10 +51,9 @@ export const devToolsTelemetry: Telemetry = {
   onStepStart: dispatch('onStepStart'),
   onLanguageModelCallStart: dispatch('onLanguageModelCallStart'),
   onLanguageModelCallEnd: dispatch('onLanguageModelCallEnd'),
-  onChunk: dispatch('onChunk'),
   onStepFinish: dispatch('onStepFinish'),
   onObjectStepStart: dispatch('onObjectStepStart'),
   onObjectStepFinish: dispatch('onObjectStepFinish'),
-  onFinish: dispatch('onFinish'),
+  onEnd: dispatch('onEnd'),
   onError: dispatch('onError'),
 };

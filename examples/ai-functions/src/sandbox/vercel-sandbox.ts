@@ -1,9 +1,9 @@
-import { type Sandbox as AISandbox } from 'ai';
+import { type Experimental_Sandbox as Sandbox } from 'ai';
 import type { Sandbox as VercelSandboxSDK } from '@vercel/sandbox';
 
 const rootDirectory = '/vercel/sandbox';
 
-export class VercelSandbox implements AISandbox {
+export class VercelSandbox implements Sandbox {
   constructor(
     public readonly sandbox: Awaited<
       ReturnType<typeof VercelSandboxSDK.create>

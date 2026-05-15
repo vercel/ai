@@ -1,5 +1,25 @@
 # @ai-sdk/anthropic
 
+## 4.0.0-canary.54
+
+### Patch Changes
+
+- Updated dependencies [a7de9c9]
+  - @ai-sdk/provider-utils@5.0.0-canary.40
+
+## 4.0.0-canary.53
+
+### Patch Changes
+
+- Updated dependencies [105f95b]
+  - @ai-sdk/provider-utils@5.0.0-canary.39
+
+## 4.0.0-canary.52
+
+### Patch Changes
+
+- 8018480: feat(anthropic): add the new advisor tool
+
 ## 4.0.0-canary.51
 
 ### Patch Changes

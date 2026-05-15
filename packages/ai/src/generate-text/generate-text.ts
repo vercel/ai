@@ -10,10 +10,10 @@ import {
   withUserAgentSuffix,
   type Arrayable,
   type Context,
+  type Experimental_Sandbox as Sandbox,
   type IdGenerator,
   type InferToolSetContext,
   type ProviderOptions,
-  type Sandbox,
   type ToolSet,
 } from '@ai-sdk/provider-utils';
 import { NoOutputGeneratedError } from '../error';
@@ -52,11 +52,13 @@ import {
 import type { DownloadFunction } from '../util/download/download-function';
 import { mergeAbortSignals } from '../util/merge-abort-signals';
 import { mergeObjects } from '../util/merge-objects';
+import { now as originalNow } from '../util/now';
 import { notify } from '../util/notify';
 import { prepareRetries } from '../util/prepare-retries';
 import { setAbortTimeout } from '../util/set-abort-timeout';
 import { VERSION } from '../version';
 import type { ActiveTools } from './active-tools';
+import { calculateTokensPerSecond } from './calculate-tokens-per-second';
 import { collectToolApprovals } from './collect-tool-approvals';
 import type { ContentPart } from './content-part';
 import { executeToolCall } from './execute-tool-call';
@@ -84,7 +86,11 @@ import { convertToReasoningOutputs } from './reasoning-output';
 import { resolveToolApproval } from './resolve-tool-approval';
 import type { ResponseMessage } from './response-message';
 import { createRestrictedTelemetryDispatcher } from './restricted-telemetry-dispatcher';
-import { DefaultStepResult, type StepResult } from './step-result';
+import {
+  DefaultStepResult,
+  type StepResult,
+  type StepResultPerformance,
+} from './step-result';
 import {
   isStepCount,
   isStopConditionMet,
@@ -182,7 +188,7 @@ export type GenerateTextInclude = {
  * @param timeout - An optional timeout in milliseconds. The call will be aborted if it takes longer than the specified timeout.
  * @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
  *
- * @param sandbox - The sandbox environment that is passed through to the tool execution.
+ * @param experimental_sandbox - The sandbox environment that is passed through to tool execution.
  * @param runtimeContext - User-defined runtime context that flows through the entire generation lifecycle.
  * @param experimental_refineToolInput - Optional mapping of tool names to functions that refine parsed tool inputs before tools are executed and before outputs, callbacks, and telemetry are recorded.
  * @param experimental_onStart - Callback invoked when generation begins, before any LLM calls.
@@ -218,7 +224,7 @@ export async function generateText<
   timeout,
   headers,
   stopWhen = isStepCount(1),
-  sandbox,
+  experimental_sandbox: sandbox,
   output,
   toolApproval,
   experimental_telemetry,
@@ -236,6 +242,7 @@ export async function generateText<
   _internal: {
     generateId = originalGenerateId,
     generateCallId = originalGenerateCallId,
+    now = originalNow,
   } = {},
   experimental_onStart: onStart,
   experimental_onStepStart: onStepStart,
@@ -290,9 +297,9 @@ export async function generateText<
     providerOptions?: ProviderOptions;
 
     /**
-     * The sandbox environment that is passed through to the tool execution.
+     * The sandbox environment that is passed through to tool execution.
      */
-    sandbox?: Sandbox;
+    experimental_sandbox?: Sandbox;
 
     /**
      * Runtime context. Treat runtime context as immutable.
@@ -439,6 +446,7 @@ export async function generateText<
     _internal?: {
       generateId?: IdGenerator;
       generateCallId?: IdGenerator;
+      now?: () => number;
     };
   }): Promise<GenerateTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>> {
   // assign default values to include:
@@ -543,7 +551,7 @@ export async function generateText<
       deniedToolApprovals.length > 0 ||
       localApprovedToolApprovals.length > 0
     ) {
-      const toolOutputs = await executeTools({
+      const toolResults = await executeTools({
         toolCalls: localApprovedToolApprovals.map(
           toolApproval => toolApproval.toolCall,
         ),
@@ -552,7 +560,7 @@ export async function generateText<
         messages: initialMessages,
         abortSignal: mergedAbortSignal,
         timeout,
-        sandbox,
+        experimental_sandbox: sandbox,
         toolsContext,
         onToolExecutionStart: event =>
           notify({
@@ -576,7 +584,8 @@ export async function generateText<
       const toolContent: Array<any> = [];
 
       // add regular tool results for approved tool calls:
-      for (const output of toolOutputs) {
+      for (const result of toolResults) {
+        const output = result.output;
         const modelOutput = await createToolModelOutput({
           toolCallId: output.toolCallId,
           input: output.input,
@@ -666,10 +675,10 @@ export async function generateText<
           responseMessages: accumulatedResponseMessages,
           runtimeContext,
           toolsContext,
-          sandbox,
+          experimental_sandbox: sandbox,
         });
 
-        const stepSandbox = prepareStepResult?.sandbox ?? sandbox;
+        const stepSandbox = prepareStepResult?.experimental_sandbox ?? sandbox;
 
         const stepModel = resolveLanguageModel(
           prepareStepResult?.model ?? model,
@@ -704,7 +713,7 @@ export async function generateText<
           toolsContext: toolsContext as unknown as InferToolSetContext<
             ActiveToolSubset<TOOLS, ActiveTools<NoInfer<TOOLS>>>
           >,
-          sandbox: stepSandbox,
+          experimental_sandbox: stepSandbox,
         });
 
         const stepToolChoice = prepareToolChoice({
@@ -760,6 +769,8 @@ export async function generateText<
           ],
         });
 
+        const stepStartTimestampMs = now();
+
         currentModelResponse = await retry(async () => {
           const result = await stepModel.doGenerate({
             ...callSettings,
@@ -782,6 +793,8 @@ export async function generateText<
 
           return { ...result, response: responseData };
         });
+        const responseTimeMs = now() - stepStartTimestampMs;
+        const stepUsage = asLanguageModelUsage(currentModelResponse.usage);
 
         // parse tool calls:
         const stepToolCalls: TypedToolCall<TOOLS>[] = await Promise.all(
@@ -826,9 +839,17 @@ export async function generateText<
             provider: stepModel.provider,
             modelId: stepModel.modelId,
             finishReason: currentModelResponse.finishReason.unified,
-            usage: asLanguageModelUsage(currentModelResponse.usage),
+            usage: stepUsage,
             content: modelCallContent,
             responseId: currentModelResponse.response.id,
+            performance: {
+              responseTimeMs,
+              tokensPerSecond: calculateTokensPerSecond({
+                outputTokens: stepUsage.outputTokens,
+                responseTimeMs,
+              }),
+              timeToFirstTokenMs: undefined,
+            },
           },
           callbacks: [
             onLanguageModelCallEnd,
@@ -952,42 +973,58 @@ export async function generateText<
         deniedToolApprovalResponses = toolApprovalResponses.filter(
           toolApprovalResponse => toolApprovalResponse.approved === false,
         );
+        const toolExecutionMs: Record<string, number> = {};
 
         if (tools != null) {
-          clientToolOutputs.push(
-            ...(await executeTools({
-              toolCalls: clientToolCalls.filter(
-                toolCall =>
-                  !toolCall.invalid &&
-                  !blockedToolCallIds.has(toolCall.toolCallId),
-              ),
-              tools,
-              callId,
-              messages: stepMessages,
-              abortSignal: mergedAbortSignal,
-              timeout,
-              sandbox: stepSandbox,
-              toolsContext,
-              onToolExecutionStart: event =>
-                notify({
-                  event,
-                  callbacks: [
-                    resolvedOnToolExecutionStart,
-                    telemetryDispatcher.onToolExecutionStart,
-                  ],
-                }),
-              onToolExecutionEnd: event =>
-                notify({
-                  event,
-                  callbacks: [
-                    resolvedOnToolExecutionEnd,
-                    telemetryDispatcher.onToolExecutionEnd,
-                  ],
-                }),
-              executeToolInTelemetryContext: telemetryDispatcher.executeTool,
-            })),
-          );
+          const toolExecutionResults = await executeTools({
+            toolCalls: clientToolCalls.filter(
+              toolCall =>
+                !toolCall.invalid &&
+                !blockedToolCallIds.has(toolCall.toolCallId),
+            ),
+            tools,
+            callId,
+            messages: stepMessages,
+            abortSignal: mergedAbortSignal,
+            timeout,
+            experimental_sandbox: stepSandbox,
+            toolsContext,
+            onToolExecutionStart: event =>
+              notify({
+                event,
+                callbacks: [
+                  resolvedOnToolExecutionStart,
+                  telemetryDispatcher.onToolExecutionStart,
+                ],
+              }),
+            onToolExecutionEnd: event =>
+              notify({
+                event,
+                callbacks: [
+                  resolvedOnToolExecutionEnd,
+                  telemetryDispatcher.onToolExecutionEnd,
+                ],
+              }),
+            executeToolInTelemetryContext: telemetryDispatcher.executeTool,
+          });
+
+          for (const result of toolExecutionResults) {
+            toolExecutionMs[result.output.toolCallId] = result.toolExecutionMs;
+            clientToolOutputs.push(result.output);
+          }
         }
+
+        const stepTimeMs = now() - stepStartTimestampMs;
+        const stepPerformance: StepResultPerformance = {
+          tokensPerSecond: calculateTokensPerSecond({
+            outputTokens: stepUsage.outputTokens,
+            responseTimeMs,
+          }),
+          stepTimeMs,
+          responseTimeMs,
+          toolExecutionMs,
+          timeToFirstTokenMs: undefined,
+        };
 
         // Track provider-executed tool calls that support deferred results.
         // In programmatic tool calling, a server tool (e.g., code_execution) may
@@ -1066,7 +1103,8 @@ export async function generateText<
             content: stepContent,
             finishReason: currentModelResponse.finishReason.unified,
             rawFinishReason: currentModelResponse.finishReason.raw,
-            usage: asLanguageModelUsage(currentModelResponse.usage),
+            usage: stepUsage,
+            performance: stepPerformance,
             warnings: currentModelResponse.warnings,
             providerMetadata: currentModelResponse.providerMetadata,
             request: stepRequest,
@@ -1165,7 +1203,7 @@ export async function generateText<
 
     await notify({
       event: onFinishEvent,
-      callbacks: [onFinish, telemetryDispatcher.onFinish],
+      callbacks: [onFinish, telemetryDispatcher.onEnd],
     });
 
     // parse output only if the last step was finished with "stop":
@@ -1201,7 +1239,7 @@ async function executeTools<TOOLS extends ToolSet>({
   messages,
   abortSignal,
   timeout,
-  sandbox,
+  experimental_sandbox: sandbox,
   toolsContext,
   onToolExecutionStart,
   onToolExecutionEnd,
@@ -1213,13 +1251,18 @@ async function executeTools<TOOLS extends ToolSet>({
   messages: ModelMessage[];
   abortSignal: AbortSignal | undefined;
   timeout?: TimeoutConfiguration<TOOLS>;
-  sandbox?: Sandbox;
+  experimental_sandbox?: Sandbox;
   toolsContext: InferToolSetContext<TOOLS>;
   onToolExecutionStart?: OnToolExecutionStartCallback<TOOLS>;
   onToolExecutionEnd?: OnToolExecutionEndCallback<TOOLS>;
   executeToolInTelemetryContext?: Telemetry['executeTool'];
-}): Promise<Array<ToolOutput<TOOLS>>> {
-  const toolOutputs = await Promise.all(
+}): Promise<
+  Array<{
+    output: ToolOutput<TOOLS>;
+    toolExecutionMs: number;
+  }>
+> {
+  const toolResults = await Promise.all(
     toolCalls.map(
       async toolCall =>
         await executeToolCall({
@@ -1229,7 +1272,7 @@ async function executeTools<TOOLS extends ToolSet>({
           messages,
           abortSignal,
           timeout,
-          sandbox,
+          experimental_sandbox: sandbox,
           toolsContext,
           onToolExecutionStart,
           onToolExecutionEnd,
@@ -1238,8 +1281,8 @@ async function executeTools<TOOLS extends ToolSet>({
     ),
   );
 
-  return toolOutputs.filter(
-    (output): output is NonNullable<typeof output> => output != null,
+  return toolResults.filter(
+    (result): result is NonNullable<typeof result> => result != null,
   );
 }
 
