@@ -159,10 +159,18 @@ export type GenerateTextEndEvent<
   /** Information about the model that produced the final step. */
   readonly model: StepResult<TOOLS, RUNTIME_CONTEXT>['model'];
 
-  /** Tool context from the final step. */
+  /**
+   * Tool context from the final step.
+   *
+   * @deprecated Use `finalStep.toolsContext` instead.
+   */
   readonly toolsContext: InferToolSetContext<TOOLS>;
 
-  /** Runtime context from the final step. */
+  /**
+   * Runtime context from the final step.
+   *
+   * @deprecated Use `finalStep.runtimeContext` instead.
+   */
   readonly runtimeContext: RUNTIME_CONTEXT;
 
   /** The content that was generated in all steps. */

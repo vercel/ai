@@ -2284,13 +2284,13 @@ To see `generateText` in action, check out [these examples](#examples).
               name: 'runtimeContext',
               type: 'CONTEXT',
               description:
-                'The final state of the user-defined shared runtime context object. This reflects any modifications made during the generation lifecycle via `prepareStep`.',
+                'Deprecated. Use `finalStep.runtimeContext` instead. The final state of the user-defined shared runtime context object. This reflects any modifications made during the generation lifecycle via `prepareStep`.',
             },
             {
               name: 'toolsContext',
               type: 'InferToolSetContext<TOOLS>',
               description:
-                'The final state of the per-tool context map passed via `toolsContext`.',
+                'Deprecated. Use `finalStep.toolsContext` instead. The final state of the per-tool context map passed via `toolsContext`.',
             },
           ],
         },
