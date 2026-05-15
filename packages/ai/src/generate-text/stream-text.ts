@@ -1802,7 +1802,7 @@ class DefaultStreamTextResult<
             inputTokensPerSecond: undefined,
             effectiveTotalTokensPerSecond: 0,
             timeToFirstOutputTokenMs: undefined,
-            timeBetweenOutputTokens: undefined,
+            timeBetweenOutputTokensMs: undefined,
           };
           const toolExecutionMs: Record<string, number> = {};
           let stepResponse: { id: string; timestamp: Date; modelId: string } = {

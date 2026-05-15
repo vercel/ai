@@ -100,7 +100,7 @@ export type LanguageModelCallEndEvent<TOOLS extends ToolSet = ToolSet> =
        *
        * Only available for streaming calls with at least two output-token chunks.
        */
-      readonly timeBetweenOutputTokens?: OutputTokenTimingStats;
+      readonly timeBetweenOutputTokensMs?: OutputTokenTimingStats;
     };
   };
 

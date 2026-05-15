@@ -112,7 +112,7 @@ export type LanguageModelStreamPart<TOOLS extends ToolSet = ToolSet> =
         inputTokensPerSecond: number | undefined;
         effectiveTotalTokensPerSecond: number;
         timeToFirstOutputTokenMs: number | undefined;
-        timeBetweenOutputTokens?: OutputTokenTimingStats;
+        timeBetweenOutputTokensMs?: OutputTokenTimingStats;
       };
     }
   | {
@@ -563,7 +563,7 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
               durationMs: responseTimeMs,
             }),
             timeToFirstOutputTokenMs,
-            timeBetweenOutputTokens:
+            timeBetweenOutputTokensMs:
               timeBetweenOutputTokensMs.length > 0
                 ? calculateOutputTokenTimingStats(timeBetweenOutputTokensMs)
                 : undefined,

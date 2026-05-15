@@ -1435,7 +1435,7 @@ To see `streamText` in action, check out [these examples](#examples).
                         'Time until the first text, reasoning, or tool input delta was received in milliseconds. Only available for streaming steps.',
                     },
                     {
-                      name: 'timeBetweenOutputTokens',
+                      name: 'timeBetweenOutputTokensMs',
                       type: 'OutputTokenTimingStats | undefined',
                       description:
                         'Timing statistics for the gaps between streamed output-token chunks in milliseconds. Only available for streaming steps with at least two output-token chunks.',
@@ -2313,7 +2313,7 @@ To see `streamText` in action, check out [these examples](#examples).
             },
             {
               name: 'performance',
-              type: '{ responseTimeMs: number; effectiveOutputTokensPerSecond: number; outputTokensPerSecond: number | undefined; inputTokensPerSecond: number | undefined; effectiveTotalTokensPerSecond: number; timeToFirstOutputTokenMs: number | undefined; timeBetweenOutputTokens?: OutputTokenTimingStats }',
+              type: '{ responseTimeMs: number; effectiveOutputTokensPerSecond: number; outputTokensPerSecond: number | undefined; inputTokensPerSecond: number | undefined; effectiveTotalTokensPerSecond: number; timeToFirstOutputTokenMs: number | undefined; timeBetweenOutputTokensMs?: OutputTokenTimingStats }',
               description: 'Performance metrics for the model call.',
               properties: [
                 {
@@ -2356,7 +2356,7 @@ To see `streamText` in action, check out [these examples](#examples).
                         'Time until the first text, reasoning, or tool input delta was received in milliseconds. Only available for streaming model calls.',
                     },
                     {
-                      name: 'timeBetweenOutputTokens',
+                      name: 'timeBetweenOutputTokensMs',
                       type: 'OutputTokenTimingStats | undefined',
                       description:
                         'Timing statistics for the gaps between streamed output-token chunks in milliseconds. Only available for streaming model calls with at least two output-token chunks.',
@@ -3664,7 +3664,7 @@ To see `streamText` in action, check out [these examples](#examples).
                         'Time until the first text, reasoning, or tool input delta was received in milliseconds. Only available for streaming steps.',
                     },
                     {
-                      name: 'timeBetweenOutputTokens',
+                      name: 'timeBetweenOutputTokensMs',
                       type: 'OutputTokenTimingStats | undefined',
                       description:
                         'Timing statistics for the gaps between streamed output-token chunks in milliseconds. Only available for streaming steps with at least two output-token chunks.',

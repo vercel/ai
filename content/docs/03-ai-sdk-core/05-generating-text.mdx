@@ -70,7 +70,7 @@ Each step includes `performance` with timing and throughput information:
 - `responseTimeMs`: Time spent waiting for the language model response in milliseconds.
 - `toolExecutionMs`: Time spent executing each client-side tool call in the step in milliseconds, keyed by tool call ID.
 - `timeToFirstOutputTokenMs`: For streaming steps, the time until the first text, reasoning, or tool input delta was received in milliseconds. For `generateText`, this is `undefined`.
-- `timeBetweenOutputTokens`: For streaming steps with at least two output-token chunks, timing statistics for the gaps between streamed output tokens in milliseconds.
+- `timeBetweenOutputTokensMs`: For streaming steps with at least two output-token chunks, timing statistics for the gaps between streamed output tokens in milliseconds.
 
 ### Accessing response headers & body
 
@@ -253,7 +253,7 @@ It also provides several promises that resolve when the stream is finished:
 - `result.warnings`: Warnings from the model provider in all steps (e.g. unsupported settings).
 - `result.steps`: Details for all steps, useful for getting information about intermediate steps, including per-step `performance`.
 
-For `streamText`, `timeToFirstOutputTokenMs` is set when the first text, reasoning, or tool input delta is received for a step. `timeBetweenOutputTokens` includes `min`, `p10`, `median`, `avg`, `p90`, and `max` when at least two output-token chunks are received.
+For `streamText`, `timeToFirstOutputTokenMs` is set when the first text, reasoning, or tool input delta is received for a step. `timeBetweenOutputTokensMs` includes `min`, `p10`, `median`, `avg`, `p90`, and `max` when at least two output-token chunks are received.
 
 ### `onError` callback
 

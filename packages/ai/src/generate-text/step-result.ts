@@ -126,7 +126,7 @@ export type StepResultPerformance = {
    *
    * Only available for streaming steps with at least two output-token chunks.
    */
-  readonly timeBetweenOutputTokens?: OutputTokenTimingStats;
+  readonly timeBetweenOutputTokensMs?: OutputTokenTimingStats;
 };
 
 /**

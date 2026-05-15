@@ -1343,7 +1343,7 @@ To see `generateText` in action, check out [these examples](#examples).
             },
             {
               name: 'performance',
-              type: '{ responseTimeMs: number; effectiveOutputTokensPerSecond: number; outputTokensPerSecond: number | undefined; inputTokensPerSecond: number | undefined; effectiveTotalTokensPerSecond: number; timeToFirstOutputTokenMs: number | undefined; timeBetweenOutputTokens?: OutputTokenTimingStats }',
+              type: '{ responseTimeMs: number; effectiveOutputTokensPerSecond: number; outputTokensPerSecond: number | undefined; inputTokensPerSecond: number | undefined; effectiveTotalTokensPerSecond: number; timeToFirstOutputTokenMs: number | undefined; timeBetweenOutputTokensMs?: OutputTokenTimingStats }',
               description: 'Performance metrics for the model call.',
               properties: [
                 {
@@ -1386,7 +1386,7 @@ To see `generateText` in action, check out [these examples](#examples).
                         'Time until the first text, reasoning, or tool input delta was received in milliseconds. For `generateText`, this is `undefined` because the response is not streamed.',
                     },
                     {
-                      name: 'timeBetweenOutputTokens',
+                      name: 'timeBetweenOutputTokensMs',
                       type: 'OutputTokenTimingStats | undefined',
                       description:
                         'Timing statistics for the gaps between streamed output-token chunks in milliseconds. For `generateText`, this is `undefined` because the response is not streamed.',
@@ -1760,7 +1760,7 @@ To see `generateText` in action, check out [these examples](#examples).
                         'Time until the first text, reasoning, or tool input delta was received in milliseconds. For `generateText`, this is `undefined` because the response is not streamed.',
                     },
                     {
-                      name: 'timeBetweenOutputTokens',
+                      name: 'timeBetweenOutputTokensMs',
                       type: 'OutputTokenTimingStats | undefined',
                       description:
                         'Timing statistics for the gaps between streamed output-token chunks in milliseconds. For `generateText`, this is `undefined` because the response is not streamed.',

@@ -2,4 +2,4 @@
 "ai": patch
 ---
 
-feat: add timeBetweenOutputTokens stats
+feat: add timeBetweenOutputTokensMs stats

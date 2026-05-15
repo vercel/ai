@@ -630,7 +630,7 @@ describe('streamText', () => {
                 "outputTokensPerSecond": 0,
                 "responseTimeMs": 0,
                 "stepTimeMs": 0,
-                "timeBetweenOutputTokens": {
+                "timeBetweenOutputTokensMs": {
                   "avg": 0,
                   "max": 0,
                   "median": 0,
@@ -877,7 +877,7 @@ describe('streamText', () => {
                 "outputTokensPerSecond": 0,
                 "responseTimeMs": 0,
                 "stepTimeMs": 0,
-                "timeBetweenOutputTokens": {
+                "timeBetweenOutputTokensMs": {
                   "avg": 0,
                   "max": 0,
                   "median": 0,
@@ -1003,7 +1003,7 @@ describe('streamText', () => {
                 "outputTokensPerSecond": 0,
                 "responseTimeMs": 0,
                 "stepTimeMs": 0,
-                "timeBetweenOutputTokens": undefined,
+                "timeBetweenOutputTokensMs": undefined,
                 "timeToFirstOutputTokenMs": 0,
                 "toolExecutionMs": {},
               },
@@ -1107,7 +1107,7 @@ describe('streamText', () => {
                 "outputTokensPerSecond": 0,
                 "responseTimeMs": 0,
                 "stepTimeMs": 0,
-                "timeBetweenOutputTokens": undefined,
+                "timeBetweenOutputTokensMs": undefined,
                 "timeToFirstOutputTokenMs": 0,
                 "toolExecutionMs": {},
               },
@@ -1222,7 +1222,7 @@ describe('streamText', () => {
                 "outputTokensPerSecond": 0,
                 "responseTimeMs": 0,
                 "stepTimeMs": 0,
-                "timeBetweenOutputTokens": undefined,
+                "timeBetweenOutputTokensMs": undefined,
                 "timeToFirstOutputTokenMs": 0,
                 "toolExecutionMs": {},
               },
@@ -1394,7 +1394,7 @@ describe('streamText', () => {
                 "outputTokensPerSecond": 0,
                 "responseTimeMs": 0,
                 "stepTimeMs": 0,
-                "timeBetweenOutputTokens": {
+                "timeBetweenOutputTokensMs": {
                   "avg": 0,
                   "max": 0,
                   "median": 0,
@@ -1537,7 +1537,7 @@ describe('streamText', () => {
                 "outputTokensPerSecond": 0,
                 "responseTimeMs": 0,
                 "stepTimeMs": 0,
-                "timeBetweenOutputTokens": {
+                "timeBetweenOutputTokensMs": {
                   "avg": 0,
                   "max": 0,
                   "median": 0,
@@ -1896,7 +1896,7 @@ describe('streamText', () => {
                 "outputTokensPerSecond": 0,
                 "responseTimeMs": 0,
                 "stepTimeMs": 0,
-                "timeBetweenOutputTokens": {
+                "timeBetweenOutputTokensMs": {
                   "avg": 0,
                   "max": 0,
                   "median": 0,
@@ -2178,7 +2178,7 @@ describe('streamText', () => {
                 "outputTokensPerSecond": 0,
                 "responseTimeMs": 0,
                 "stepTimeMs": 0,
-                "timeBetweenOutputTokens": {
+                "timeBetweenOutputTokensMs": {
                   "avg": 0,
                   "max": 0,
                   "median": 0,
@@ -4893,7 +4893,7 @@ describe('streamText', () => {
                 "outputTokensPerSecond": 0,
                 "responseTimeMs": 0,
                 "stepTimeMs": 0,
-                "timeBetweenOutputTokens": {
+                "timeBetweenOutputTokensMs": {
                   "avg": 0,
                   "max": 0,
                   "median": 0,
@@ -6097,7 +6097,7 @@ describe('streamText', () => {
               "outputTokensPerSecond": 0,
               "responseTimeMs": 0,
               "stepTimeMs": 0,
-              "timeBetweenOutputTokens": {
+              "timeBetweenOutputTokensMs": {
                 "avg": 0,
                 "max": 0,
                 "median": 0,
@@ -6258,7 +6258,7 @@ describe('streamText', () => {
               "outputTokensPerSecond": 0,
               "responseTimeMs": 0,
               "stepTimeMs": 0,
-              "timeBetweenOutputTokens": undefined,
+              "timeBetweenOutputTokensMs": undefined,
               "timeToFirstOutputTokenMs": 0,
               "toolExecutionMs": {},
             },
@@ -6357,7 +6357,7 @@ describe('streamText', () => {
               "outputTokensPerSecond": 0,
               "responseTimeMs": 0,
               "stepTimeMs": 0,
-              "timeBetweenOutputTokens": undefined,
+              "timeBetweenOutputTokensMs": undefined,
               "timeToFirstOutputTokenMs": 0,
               "toolExecutionMs": {},
             },
@@ -6478,7 +6478,7 @@ describe('streamText', () => {
               "outputTokensPerSecond": 0,
               "responseTimeMs": 0,
               "stepTimeMs": 0,
-              "timeBetweenOutputTokens": {
+              "timeBetweenOutputTokensMs": {
                 "avg": 0,
                 "max": 0,
                 "median": 0,
@@ -6590,7 +6590,7 @@ describe('streamText', () => {
         responseTimeMs: 500,
         toolExecutionMs: {},
         timeToFirstOutputTokenMs: 200,
-        timeBetweenOutputTokens: {
+        timeBetweenOutputTokensMs: {
           min: 100,
           p10: 100,
           median: 100,
@@ -6648,7 +6648,7 @@ describe('streamText', () => {
         responseTimeMs: 200,
         toolExecutionMs: {},
         timeToFirstOutputTokenMs: 100,
-        timeBetweenOutputTokens: undefined,
+        timeBetweenOutputTokensMs: undefined,
       });
     });
   });
@@ -7996,7 +7996,7 @@ describe('streamText', () => {
               "inputTokensPerSecond": 0,
               "outputTokensPerSecond": 0,
               "responseTimeMs": 0,
-              "timeBetweenOutputTokens": undefined,
+              "timeBetweenOutputTokensMs": undefined,
               "timeToFirstOutputTokenMs": 0,
             },
             "provider": "mock-provider",
@@ -9593,7 +9593,7 @@ describe('streamText', () => {
                 "outputTokensPerSecond": 0,
                 "responseTimeMs": 0,
                 "stepTimeMs": 0,
-                "timeBetweenOutputTokens": {
+                "timeBetweenOutputTokensMs": {
                   "avg": 0,
                   "max": 0,
                   "median": 0,
@@ -9913,7 +9913,7 @@ describe('streamText', () => {
                 "outputTokensPerSecond": 0,
                 "responseTimeMs": 0,
                 "stepTimeMs": 0,
-                "timeBetweenOutputTokens": undefined,
+                "timeBetweenOutputTokensMs": undefined,
                 "timeToFirstOutputTokenMs": 0,
                 "toolExecutionMs": {},
               },
@@ -10202,7 +10202,7 @@ describe('streamText', () => {
                 "outputTokensPerSecond": 0,
                 "responseTimeMs": 0,
                 "stepTimeMs": 0,
-                "timeBetweenOutputTokens": undefined,
+                "timeBetweenOutputTokensMs": undefined,
                 "timeToFirstOutputTokenMs": 0,
                 "toolExecutionMs": {},
               },
@@ -10711,7 +10711,7 @@ describe('streamText', () => {
                   "outputTokensPerSecond": 25,
                   "responseTimeMs": 500,
                   "stepTimeMs": 600,
-                  "timeBetweenOutputTokens": undefined,
+                  "timeBetweenOutputTokensMs": undefined,
                   "timeToFirstOutputTokenMs": 100,
                   "toolExecutionMs": {
                     "call-1": 0,
@@ -10781,7 +10781,7 @@ describe('streamText', () => {
                   "outputTokensPerSecond": 0,
                   "responseTimeMs": 0,
                   "stepTimeMs": 0,
-                  "timeBetweenOutputTokens": {
+                  "timeBetweenOutputTokensMs": {
                     "avg": 0,
                     "max": 0,
                     "median": 0,
@@ -10988,7 +10988,7 @@ describe('streamText', () => {
                     "outputTokensPerSecond": 25,
                     "responseTimeMs": 500,
                     "stepTimeMs": 600,
-                    "timeBetweenOutputTokens": undefined,
+                    "timeBetweenOutputTokensMs": undefined,
                     "timeToFirstOutputTokenMs": 100,
                     "toolExecutionMs": {
                       "call-1": 0,
@@ -11085,7 +11085,7 @@ describe('streamText', () => {
                     "outputTokensPerSecond": 0,
                     "responseTimeMs": 0,
                     "stepTimeMs": 0,
-                    "timeBetweenOutputTokens": {
+                    "timeBetweenOutputTokensMs": {
                       "avg": 0,
                       "max": 0,
                       "median": 0,
@@ -11226,7 +11226,7 @@ describe('streamText', () => {
                   "outputTokensPerSecond": 25,
                   "responseTimeMs": 500,
                   "stepTimeMs": 600,
-                  "timeBetweenOutputTokens": undefined,
+                  "timeBetweenOutputTokensMs": undefined,
                   "timeToFirstOutputTokenMs": 100,
                   "toolExecutionMs": {
                     "call-1": 0,
@@ -11323,7 +11323,7 @@ describe('streamText', () => {
                   "outputTokensPerSecond": 0,
                   "responseTimeMs": 0,
                   "stepTimeMs": 0,
-                  "timeBetweenOutputTokens": {
+                  "timeBetweenOutputTokensMs": {
                     "avg": 0,
                     "max": 0,
                     "median": 0,
@@ -11501,7 +11501,7 @@ describe('streamText', () => {
                   "outputTokensPerSecond": 25,
                   "responseTimeMs": 500,
                   "stepTimeMs": 600,
-                  "timeBetweenOutputTokens": undefined,
+                  "timeBetweenOutputTokensMs": undefined,
                   "timeToFirstOutputTokenMs": 100,
                   "toolExecutionMs": {
                     "call-1": 0,
@@ -11598,7 +11598,7 @@ describe('streamText', () => {
                   "outputTokensPerSecond": 0,
                   "responseTimeMs": 0,
                   "stepTimeMs": 0,
-                  "timeBetweenOutputTokens": {
+                  "timeBetweenOutputTokensMs": {
                     "avg": 0,
                     "max": 0,
                     "median": 0,
@@ -12094,7 +12094,7 @@ describe('streamText', () => {
                     "outputTokensPerSecond": undefined,
                     "responseTimeMs": 0,
                     "stepTimeMs": 0,
-                    "timeBetweenOutputTokens": undefined,
+                    "timeBetweenOutputTokensMs": undefined,
                     "timeToFirstOutputTokenMs": undefined,
                     "toolExecutionMs": {
                       "call-1": 0,
@@ -12188,7 +12188,7 @@ describe('streamText', () => {
                     "outputTokensPerSecond": 0,
                     "responseTimeMs": 0,
                     "stepTimeMs": 0,
-                    "timeBetweenOutputTokens": {
+                    "timeBetweenOutputTokensMs": {
                       "avg": 0,
                       "max": 0,
                       "median": 0,
@@ -12328,7 +12328,7 @@ describe('streamText', () => {
                     "outputTokensPerSecond": undefined,
                     "responseTimeMs": 0,
                     "stepTimeMs": 0,
-                    "timeBetweenOutputTokens": undefined,
+                    "timeBetweenOutputTokensMs": undefined,
                     "timeToFirstOutputTokenMs": undefined,
                     "toolExecutionMs": {
                       "call-1": 0,
@@ -12422,7 +12422,7 @@ describe('streamText', () => {
                     "outputTokensPerSecond": 0,
                     "responseTimeMs": 0,
                     "stepTimeMs": 0,
-                    "timeBetweenOutputTokens": {
+                    "timeBetweenOutputTokensMs": {
                       "avg": 0,
                       "max": 0,
                       "median": 0,
@@ -12656,7 +12656,7 @@ describe('streamText', () => {
                   "outputTokensPerSecond": 25,
                   "responseTimeMs": 500,
                   "stepTimeMs": 600,
-                  "timeBetweenOutputTokens": undefined,
+                  "timeBetweenOutputTokensMs": undefined,
                   "timeToFirstOutputTokenMs": 100,
                   "toolExecutionMs": {
                     "call-1": 0,
@@ -12726,7 +12726,7 @@ describe('streamText', () => {
                   "outputTokensPerSecond": 0,
                   "responseTimeMs": 0,
                   "stepTimeMs": 0,
-                  "timeBetweenOutputTokens": {
+                  "timeBetweenOutputTokensMs": {
                     "avg": 0,
                     "max": 0,
                     "median": 0,
@@ -12933,7 +12933,7 @@ describe('streamText', () => {
                     "outputTokensPerSecond": 25,
                     "responseTimeMs": 500,
                     "stepTimeMs": 600,
-                    "timeBetweenOutputTokens": undefined,
+                    "timeBetweenOutputTokensMs": undefined,
                     "timeToFirstOutputTokenMs": 100,
                     "toolExecutionMs": {
                       "call-1": 0,
@@ -13030,7 +13030,7 @@ describe('streamText', () => {
                     "outputTokensPerSecond": 0,
                     "responseTimeMs": 0,
                     "stepTimeMs": 0,
-                    "timeBetweenOutputTokens": {
+                    "timeBetweenOutputTokensMs": {
                       "avg": 0,
                       "max": 0,
                       "median": 0,
@@ -13171,7 +13171,7 @@ describe('streamText', () => {
                   "outputTokensPerSecond": 25,
                   "responseTimeMs": 500,
                   "stepTimeMs": 600,
-                  "timeBetweenOutputTokens": undefined,
+                  "timeBetweenOutputTokensMs": undefined,
                   "timeToFirstOutputTokenMs": 100,
                   "toolExecutionMs": {
                     "call-1": 0,
@@ -13268,7 +13268,7 @@ describe('streamText', () => {
                   "outputTokensPerSecond": 0,
                   "responseTimeMs": 0,
                   "stepTimeMs": 0,
-                  "timeBetweenOutputTokens": {
+                  "timeBetweenOutputTokensMs": {
                     "avg": 0,
                     "max": 0,
                     "median": 0,
@@ -13442,7 +13442,7 @@ describe('streamText', () => {
                   "outputTokensPerSecond": 25,
                   "responseTimeMs": 500,
                   "stepTimeMs": 600,
-                  "timeBetweenOutputTokens": undefined,
+                  "timeBetweenOutputTokensMs": undefined,
                   "timeToFirstOutputTokenMs": 100,
                   "toolExecutionMs": {
                     "call-1": 0,
@@ -13539,7 +13539,7 @@ describe('streamText', () => {
                   "outputTokensPerSecond": 0,
                   "responseTimeMs": 0,
                   "stepTimeMs": 0,
-                  "timeBetweenOutputTokens": {
+                  "timeBetweenOutputTokensMs": {
                     "avg": 0,
                     "max": 0,
                     "median": 0,
@@ -13861,7 +13861,7 @@ describe('streamText', () => {
                     "outputTokensPerSecond": 25,
                     "responseTimeMs": 500,
                     "stepTimeMs": 600,
-                    "timeBetweenOutputTokens": undefined,
+                    "timeBetweenOutputTokensMs": undefined,
                     "timeToFirstOutputTokenMs": 100,
                     "toolExecutionMs": {
                       "call-1": 0,
@@ -13984,7 +13984,7 @@ describe('streamText', () => {
                     "outputTokensPerSecond": 25,
                     "responseTimeMs": 500,
                     "stepTimeMs": 600,
-                    "timeBetweenOutputTokens": undefined,
+                    "timeBetweenOutputTokensMs": undefined,
                     "timeToFirstOutputTokenMs": 100,
                     "toolExecutionMs": {
                       "call-1": 0,
@@ -14415,7 +14415,7 @@ describe('streamText', () => {
                   "outputTokensPerSecond": 0,
                   "responseTimeMs": 0,
                   "stepTimeMs": 0,
-                  "timeBetweenOutputTokens": undefined,
+                  "timeBetweenOutputTokensMs": undefined,
                   "timeToFirstOutputTokenMs": 0,
                   "toolExecutionMs": {},
                 },
@@ -14965,7 +14965,7 @@ describe('streamText', () => {
                   "outputTokensPerSecond": 0,
                   "responseTimeMs": 0,
                   "stepTimeMs": 0,
-                  "timeBetweenOutputTokens": undefined,
+                  "timeBetweenOutputTokensMs": undefined,
                   "timeToFirstOutputTokenMs": 0,
                   "toolExecutionMs": {
                     "call-1": 0,
@@ -16177,7 +16177,7 @@ describe('streamText', () => {
                 "outputTokensPerSecond": undefined,
                 "responseTimeMs": 0,
                 "stepTimeMs": 0,
-                "timeBetweenOutputTokens": undefined,
+                "timeBetweenOutputTokensMs": undefined,
                 "timeToFirstOutputTokenMs": undefined,
                 "toolExecutionMs": {
                   "call-1": 0,
@@ -16271,7 +16271,7 @@ describe('streamText', () => {
               "outputTokensPerSecond": undefined,
               "responseTimeMs": 0,
               "stepTimeMs": 0,
-              "timeBetweenOutputTokens": undefined,
+              "timeBetweenOutputTokensMs": undefined,
               "timeToFirstOutputTokenMs": undefined,
               "toolExecutionMs": {
                 "call-1": 0,
@@ -16777,7 +16777,7 @@ describe('streamText', () => {
                 "outputTokensPerSecond": 0,
                 "responseTimeMs": 0,
                 "stepTimeMs": 0,
-                "timeBetweenOutputTokens": {
+                "timeBetweenOutputTokensMs": {
                   "avg": 0,
                   "max": 0,
                   "median": 0,
@@ -17158,7 +17158,7 @@ describe('streamText', () => {
                   "outputTokensPerSecond": 0,
                   "responseTimeMs": 0,
                   "stepTimeMs": 0,
-                  "timeBetweenOutputTokens": {
+                  "timeBetweenOutputTokensMs": {
                     "avg": 0,
                     "max": 0,
                     "median": 0,
@@ -17405,7 +17405,7 @@ describe('streamText', () => {
               "outputTokensPerSecond": 0,
               "responseTimeMs": 0,
               "stepTimeMs": 0,
-              "timeBetweenOutputTokens": {
+              "timeBetweenOutputTokensMs": {
                 "avg": 0,
                 "max": 0,
                 "median": 0,
@@ -18462,7 +18462,7 @@ describe('streamText', () => {
                   "outputTokensPerSecond": 0,
                   "responseTimeMs": 0,
                   "stepTimeMs": 0,
-                  "timeBetweenOutputTokens": {
+                  "timeBetweenOutputTokensMs": {
                     "avg": 0,
                     "max": 0,
                     "median": 0,
@@ -19597,7 +19597,7 @@ describe('streamText', () => {
                   "outputTokensPerSecond": 0,
                   "responseTimeMs": 0,
                   "stepTimeMs": 0,
-                  "timeBetweenOutputTokens": {
+                  "timeBetweenOutputTokensMs": {
                     "avg": 0,
                     "max": 0,
                     "median": 0,
@@ -19722,7 +19722,7 @@ describe('streamText', () => {
                 "outputTokensPerSecond": 0,
                 "responseTimeMs": 0,
                 "stepTimeMs": 0,
-                "timeBetweenOutputTokens": {
+                "timeBetweenOutputTokensMs": {
                   "avg": 0,
                   "max": 0,
                   "median": 0,
@@ -20140,7 +20140,7 @@ describe('streamText', () => {
                     "outputTokensPerSecond": undefined,
                     "responseTimeMs": 0,
                     "stepTimeMs": 0,
-                    "timeBetweenOutputTokens": undefined,
+                    "timeBetweenOutputTokensMs": undefined,
                     "timeToFirstOutputTokenMs": undefined,
                     "toolExecutionMs": {
                       "call-1": 0,
@@ -20260,7 +20260,7 @@ describe('streamText', () => {
                   "outputTokensPerSecond": undefined,
                   "responseTimeMs": 0,
                   "stepTimeMs": 0,
-                  "timeBetweenOutputTokens": undefined,
+                  "timeBetweenOutputTokensMs": undefined,
                   "timeToFirstOutputTokenMs": undefined,
                   "toolExecutionMs": {
                     "call-1": 0,
@@ -20992,7 +20992,7 @@ describe('streamText', () => {
                   "outputTokensPerSecond": 0,
                   "responseTimeMs": 0,
                   "stepTimeMs": 0,
-                  "timeBetweenOutputTokens": undefined,
+                  "timeBetweenOutputTokensMs": undefined,
                   "timeToFirstOutputTokenMs": 0,
                   "toolExecutionMs": {},
                 },
@@ -21241,7 +21241,7 @@ describe('streamText', () => {
                   "outputTokensPerSecond": undefined,
                   "responseTimeMs": 0,
                   "stepTimeMs": 0,
-                  "timeBetweenOutputTokens": undefined,
+                  "timeBetweenOutputTokensMs": undefined,
                   "timeToFirstOutputTokenMs": undefined,
                   "toolExecutionMs": {
                     "call-1": 0,
@@ -21428,7 +21428,7 @@ describe('streamText', () => {
                 "outputTokensPerSecond": undefined,
                 "responseTimeMs": 0,
                 "stepTimeMs": 0,
-                "timeBetweenOutputTokens": undefined,
+                "timeBetweenOutputTokensMs": undefined,
                 "timeToFirstOutputTokenMs": undefined,
                 "toolExecutionMs": {
                   "call-1": 0,
@@ -21662,7 +21662,7 @@ describe('streamText', () => {
                   "outputTokensPerSecond": 0,
                   "responseTimeMs": 0,
                   "stepTimeMs": 0,
-                  "timeBetweenOutputTokens": undefined,
+                  "timeBetweenOutputTokensMs": undefined,
                   "timeToFirstOutputTokenMs": 0,
                   "toolExecutionMs": {},
                 },
@@ -23015,7 +23015,7 @@ describe('streamText', () => {
                     "outputTokensPerSecond": 0,
                     "responseTimeMs": 0,
                     "stepTimeMs": 0,
-                    "timeBetweenOutputTokens": undefined,
+                    "timeBetweenOutputTokensMs": undefined,
                     "timeToFirstOutputTokenMs": 0,
                     "toolExecutionMs": {
                       "toolu_019jKkXz4jAdwHweHBw92CVY": 0,
@@ -23092,7 +23092,7 @@ describe('streamText', () => {
                     "outputTokensPerSecond": undefined,
                     "responseTimeMs": 0,
                     "stepTimeMs": 0,
-                    "timeBetweenOutputTokens": undefined,
+                    "timeBetweenOutputTokensMs": undefined,
                     "timeToFirstOutputTokenMs": undefined,
                     "toolExecutionMs": {
                       "toolu_015dGLMbwBKv1ZRQr6KdJzeH": 0,
@@ -23169,7 +23169,7 @@ describe('streamText', () => {
                     "outputTokensPerSecond": undefined,
                     "responseTimeMs": 0,
                     "stepTimeMs": 0,
-                    "timeBetweenOutputTokens": undefined,
+                    "timeBetweenOutputTokensMs": undefined,
                     "timeToFirstOutputTokenMs": undefined,
                     "toolExecutionMs": {
                       "toolu_01YYqBNq5mk1wMtv3PAqY44m": 0,
@@ -23246,7 +23246,7 @@ describe('streamText', () => {
                     "outputTokensPerSecond": undefined,
                     "responseTimeMs": 0,
                     "stepTimeMs": 0,
-                    "timeBetweenOutputTokens": undefined,
+                    "timeBetweenOutputTokensMs": undefined,
                     "timeToFirstOutputTokenMs": undefined,
                     "toolExecutionMs": {
                       "toolu_018WxjDkQG8h7i63poySGT2x": 0,
@@ -23391,7 +23391,7 @@ describe('streamText', () => {
                     "outputTokensPerSecond": 0,
                     "responseTimeMs": 0,
                     "stepTimeMs": 0,
-                    "timeBetweenOutputTokens": undefined,
+                    "timeBetweenOutputTokensMs": undefined,
                     "timeToFirstOutputTokenMs": 0,
                     "toolExecutionMs": {},
                   },
@@ -23926,7 +23926,7 @@ describe('streamText', () => {
                   "outputTokensPerSecond": undefined,
                   "responseTimeMs": 0,
                   "stepTimeMs": 0,
-                  "timeBetweenOutputTokens": undefined,
+                  "timeBetweenOutputTokensMs": undefined,
                   "timeToFirstOutputTokenMs": undefined,
                   "toolExecutionMs": {},
                 },
@@ -24745,7 +24745,7 @@ describe('streamText', () => {
                   "outputTokensPerSecond": undefined,
                   "responseTimeMs": 0,
                   "stepTimeMs": 0,
-                  "timeBetweenOutputTokens": undefined,
+                  "timeBetweenOutputTokensMs": undefined,
                   "timeToFirstOutputTokenMs": undefined,
                   "toolExecutionMs": {
                     "call-2": 0,
@@ -25339,7 +25339,7 @@ describe('streamText', () => {
                   "outputTokensPerSecond": 0,
                   "responseTimeMs": 0,
                   "stepTimeMs": 0,
-                  "timeBetweenOutputTokens": undefined,
+                  "timeBetweenOutputTokensMs": undefined,
                   "timeToFirstOutputTokenMs": 0,
                   "toolExecutionMs": {},
                 },
@@ -25794,7 +25794,7 @@ describe('streamText', () => {
                   "outputTokensPerSecond": 0,
                   "responseTimeMs": 0,
                   "stepTimeMs": 0,
-                  "timeBetweenOutputTokens": undefined,
+                  "timeBetweenOutputTokensMs": undefined,
                   "timeToFirstOutputTokenMs": 0,
                   "toolExecutionMs": {},
                 },
@@ -26110,7 +26110,7 @@ describe('streamText', () => {
                   "outputTokensPerSecond": 0,
                   "responseTimeMs": 0,
                   "stepTimeMs": 0,
-                  "timeBetweenOutputTokens": undefined,
+                  "timeBetweenOutputTokensMs": undefined,
                   "timeToFirstOutputTokenMs": 0,
                   "toolExecutionMs": {},
                 },
@@ -26296,7 +26296,7 @@ describe('streamText', () => {
                     "outputTokensPerSecond": undefined,
                     "responseTimeMs": 0,
                     "stepTimeMs": 0,
-                    "timeBetweenOutputTokens": undefined,
+                    "timeBetweenOutputTokensMs": undefined,
                     "timeToFirstOutputTokenMs": undefined,
                     "toolExecutionMs": {},
                   },
