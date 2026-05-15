@@ -6,6 +6,7 @@ import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { GatewayLanguageModel } from './gateway-language-model';
 import type { GatewayConfig } from './gateway-config';
+import type { GatewayProviderOptions } from './gateway-provider-options';
 import {
   GatewayAuthenticationError,
   GatewayRateLimitError,
@@ -1523,18 +1524,24 @@ describe('GatewayLanguageModel', () => {
         content: { type: 'text', text: 'Test response' },
       });
 
+      const gatewayOptions = {
+        order: ['anthropic', 'bedrock', 'openai'],
+        caching: 'auto',
+      } satisfies GatewayProviderOptions;
+
       await createTestModel().doGenerate({
         prompt: TEST_PROMPT,
         providerOptions: {
-          gateway: {
-            order: ['anthropic', 'bedrock', 'openai'],
-          },
+          gateway: gatewayOptions,
         },
       });
 
       const requestBody = await server.calls[0].requestBodyJson;
       expect(requestBody.providerOptions).toEqual({
-        gateway: { order: ['anthropic', 'bedrock', 'openai'] },
+        gateway: {
+          order: ['anthropic', 'bedrock', 'openai'],
+          caching: 'auto',
+        },
       });
     });
 

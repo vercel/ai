@@ -50,6 +50,11 @@ const gatewayProviderOptions = lazySchema(() =>
        */
       models: z.array(z.string()).optional(),
       /**
+       * Whether AI Gateway should automatically apply the appropriate prompt
+       * caching strategy based on the routed provider.
+       */
+      caching: z.enum(['auto']).optional(),
+      /**
        * Request-scoped BYOK credentials to use instead of cached credentials.
        *
        * When provided, cached BYOK credentials are ignored entirely.

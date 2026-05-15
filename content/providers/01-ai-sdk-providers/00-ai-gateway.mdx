@@ -794,6 +794,12 @@ The following gateway provider options are available:
 
   Example: `models: ['openai/gpt-5.4-nano', 'gemini-3-flash-preview']` will try the fallback models in order if the primary model fails.
 
+- **caching** _'auto'_
+
+  Enables automatic prompt caching. When set to `'auto'`, AI Gateway automatically applies the appropriate caching strategy based on the routed provider.
+
+  Example: `caching: 'auto'` will let AI Gateway add cache markers for providers that require explicit prompt caching.
+
 - **user** _string_
 
   Optional identifier for the end user on whose behalf the request is being made. This is used for spend tracking and attribution purposes, allowing you to track usage per end-user in your application.
