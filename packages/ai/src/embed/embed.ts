@@ -182,7 +182,44 @@ export async function embed({
 
       logWarnings({ warnings, provider: model.provider, model: model.modelId });
 
+<<<<<<< HEAD
       return new DefaultEmbedResult({
+=======
+        const embedding = modelResponse.embeddings[0];
+        const usage = modelResponse.usage ?? { tokens: NaN };
+
+        await notify({
+          event: {
+            callId,
+            embedCallId,
+            operationId: 'ai.embed.doEmbed',
+            provider: model.provider,
+            modelId: model.modelId,
+            values: [value],
+            embeddings: modelResponse.embeddings,
+            usage,
+          },
+          callbacks: [telemetryDispatcher.onEmbedEnd],
+        });
+
+        return {
+          embedding,
+          usage,
+          warnings: modelResponse.warnings ?? [],
+          providerMetadata: modelResponse.providerMetadata,
+          response: modelResponse.response,
+        };
+      });
+
+    logWarnings({ warnings, provider: model.provider, model: model.modelId });
+
+    await notify({
+      event: {
+        callId,
+        operationId: 'ai.embed',
+        provider: model.provider,
+        modelId: model.modelId,
+>>>>>>> e3a04191f (fix(ai): default missing embedding warnings (#15324))
         value,
         embedding,
         usage,
