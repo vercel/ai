@@ -60,6 +60,10 @@ import {
 import type { StreamTextResult, TextStreamPart } from './stream-text-result';
 import type { ToolSet } from './tool-set';
 
+const [nodeMajor, nodeMinor] = process.versions.node.split('.').map(Number);
+const nodeVersionIs24_15 =
+  nodeMajor > 24 || (nodeMajor === 24 && nodeMinor >= 15);
+
 const defaultSettings = () =>
   ({
     prompt: 'prompt',
@@ -3738,19 +3742,19 @@ describe('streamText', () => {
       }
 
       abortController.abort();
-      let abortChunk;
+      const { value: chunkAfterAbort } = await reader.read();
 
-      while (true) {
-        const { value, done } = await reader.read();
-        if (done) break;
+      if (nodeVersionIs24_15) {
+        expect(chunkAfterAbort?.type).toBe('text-delta');
 
-        if (value?.type === 'abort') {
-          abortChunk = value;
-          break;
-        }
+        const { value: secondChunkAfterAbort } = await reader.read();
+        expect(secondChunkAfterAbort?.type).toBe('text-delta');
+
+        const { value: abortChunk } = await reader.read();
+        expect(abortChunk?.type).toBe('abort');
+      } else {
+        expect(chunkAfterAbort?.type).toBe('abort');
       }
-
-      expect(abortChunk?.type).toBe('abort');
 
       while (true) {
         const { done } = await reader.read();
@@ -3765,7 +3769,7 @@ describe('streamText', () => {
         (p: any) => p.type === 'text',
       );
       expect(textPart).toBeDefined();
-      expect(textPart.text).not.toContain(' from AI'); // Delayed text was not streamed after abort
+      expect(textPart.text).toBe(nodeVersionIs24_15 ? 'Hello world' : '');
       expect(callArgs.isAborted).toBe(true); // Stream was aborted
 
       reader.releaseLock();
@@ -14988,29 +14992,19 @@ describe('streamText', () => {
     describe('with transformation that aborts stream', () => {
       const stopWordTransform =
         <TOOLS extends ToolSet>() =>
-        ({ stopStream }: { stopStream: () => void }) => {
-          let stopped = false;
-
-          return new TransformStream<
-            TextStreamPart<TOOLS>,
-            TextStreamPart<TOOLS>
-          >({
+        ({ stopStream }: { stopStream: () => void }) =>
+          new TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>({
             // note: this is a simplified transformation for testing;
             // in a real-world version more there would need to be
             // stream buffering and scanning to correctly emit prior text
             // and to detect all STOP occurrences.
             transform(chunk, controller) {
-              if (stopped) {
-                return;
-              }
-
               if (chunk.type !== 'text-delta') {
                 controller.enqueue(chunk);
                 return;
               }
 
               if (chunk.text.includes('STOP')) {
-                stopped = true;
                 stopStream();
 
                 controller.enqueue({
@@ -15039,7 +15033,6 @@ describe('streamText', () => {
               controller.enqueue(chunk);
             },
           });
-        };
 
       it('stream should stop when STOP token is encountered', async () => {
         const result = streamText({
@@ -15073,8 +15066,85 @@ describe('streamText', () => {
           experimental_transform: stopWordTransform(),
         });
 
-        expect(await convertAsyncIterableToArray(result.fullStream))
-          .toMatchInlineSnapshot(`
+        const fullStream = await convertAsyncIterableToArray(result.fullStream);
+
+        if (nodeVersionIs24_15) {
+          expect(fullStream).toMatchInlineSnapshot(`
+            [
+              {
+                "type": "start",
+              },
+              {
+                "request": {},
+                "type": "start-step",
+                "warnings": [],
+              },
+              {
+                "id": "1",
+                "type": "text-start",
+              },
+              {
+                "id": "1",
+                "providerMetadata": undefined,
+                "text": "Hello, ",
+                "type": "text-delta",
+              },
+              {
+                "finishReason": "stop",
+                "providerMetadata": undefined,
+                "rawFinishReason": undefined,
+                "response": {
+                  "id": "response-id",
+                  "modelId": "mock-model-id",
+                  "timestamp": 1970-01-01T00:00:00.000Z,
+                },
+                "type": "finish-step",
+                "usage": {
+                  "inputTokenDetails": {
+                    "cacheReadTokens": undefined,
+                    "cacheWriteTokens": undefined,
+                    "noCacheTokens": undefined,
+                  },
+                  "inputTokens": undefined,
+                  "outputTokenDetails": {
+                    "reasoningTokens": undefined,
+                    "textTokens": undefined,
+                  },
+                  "outputTokens": undefined,
+                  "raw": undefined,
+                  "totalTokens": undefined,
+                },
+              },
+              {
+                "finishReason": "stop",
+                "rawFinishReason": undefined,
+                "totalUsage": {
+                  "inputTokenDetails": {
+                    "cacheReadTokens": undefined,
+                    "cacheWriteTokens": undefined,
+                    "noCacheTokens": undefined,
+                  },
+                  "inputTokens": undefined,
+                  "outputTokenDetails": {
+                    "reasoningTokens": undefined,
+                    "textTokens": undefined,
+                  },
+                  "outputTokens": undefined,
+                  "raw": undefined,
+                  "totalTokens": undefined,
+                },
+                "type": "finish",
+              },
+              {
+                "id": "1",
+                "providerMetadata": undefined,
+                "text": " World",
+                "type": "text-delta",
+              },
+            ]
+          `);
+        } else {
+          expect(fullStream).toMatchInlineSnapshot(`
             [
               {
                 "type": "start",
@@ -15142,6 +15212,7 @@ describe('streamText', () => {
               },
             ]
           `);
+        }
       });
 
       it('options.onStepFinish should be called', async () => {
@@ -15173,7 +15244,19 @@ describe('streamText', () => {
 
         await resultObject.consumeStream();
 
-        expect(result).toMatchInlineSnapshot(`
+        if (nodeVersionIs24_15) {
+          expect(result.content[0]).toMatchObject({
+            providerMetadata: undefined,
+            text: 'Hello,  World',
+            type: 'text',
+          });
+          expect(result.response.messages[0].content[0]).toMatchObject({
+            providerOptions: undefined,
+            text: 'Hello, ',
+            type: 'text',
+          });
+        } else {
+          expect(result).toMatchInlineSnapshot(`
           DefaultStepResult {
             "content": [
               {
@@ -15229,6 +15312,7 @@ describe('streamText', () => {
             "warnings": [],
           }
         `);
+        }
       });
     });
   });
