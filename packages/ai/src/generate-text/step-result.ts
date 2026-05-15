@@ -34,6 +34,29 @@ import type {
 } from './tool-result';
 
 /**
+ * Timing statistics for the gaps between streamed output-token chunks.
+ */
+export type OutputTokenTimingStats = {
+  /** Shortest observed time between output tokens in milliseconds. */
+  readonly min: number;
+
+  /** 10th percentile time between output tokens in milliseconds. */
+  readonly p10: number;
+
+  /** Median time between output tokens in milliseconds. */
+  readonly median: number;
+
+  /** Average time between output tokens in milliseconds. */
+  readonly avg: number;
+
+  /** 90th percentile time between output tokens in milliseconds. */
+  readonly p90: number;
+
+  /** Longest observed time between output tokens in milliseconds. */
+  readonly max: number;
+};
+
+/**
  * Performance metrics for a single step in the generation process.
  */
 export type StepResultPerformance = {
@@ -96,6 +119,14 @@ export type StepResultPerformance = {
    * Only available for streaming steps.
    */
   readonly timeToFirstOutputTokenMs: number | undefined;
+
+  /**
+   * Timing statistics for the gaps between streamed output-token chunks in
+   * milliseconds.
+   *
+   * Only available for streaming steps with at least two output-token chunks.
+   */
+  readonly timeBetweenOutputTokens?: OutputTokenTimingStats;
 };
 
 /**

@@ -209,6 +209,7 @@ describe('streamLanguageModelCall', () => {
               "inputTokensPerSecond": undefined,
               "outputTokensPerSecond": undefined,
               "responseTimeMs": 0,
+              "timeBetweenOutputTokens": undefined,
               "timeToFirstOutputTokenMs": undefined,
             },
             "provider": "mock-provider",
@@ -323,6 +324,14 @@ describe('streamLanguageModelCall', () => {
               "inputTokensPerSecond": 0,
               "outputTokensPerSecond": 0,
               "responseTimeMs": 0,
+              "timeBetweenOutputTokens": {
+                "avg": 0,
+                "max": 0,
+                "median": 0,
+                "min": 0,
+                "p10": 0,
+                "p90": 0,
+              },
               "timeToFirstOutputTokenMs": 0,
             },
             "provider": "mock-provider",
@@ -387,6 +396,7 @@ describe('streamLanguageModelCall', () => {
             "inputTokensPerSecond": undefined,
             "outputTokensPerSecond": undefined,
             "responseTimeMs": 0,
+            "timeBetweenOutputTokens": undefined,
             "timeToFirstOutputTokenMs": undefined,
           },
           "provider": "mock-provider",
@@ -471,6 +481,7 @@ describe('streamLanguageModelCall', () => {
               "inputTokensPerSecond": undefined,
               "outputTokensPerSecond": undefined,
               "responseTimeMs": 0,
+              "timeBetweenOutputTokens": undefined,
               "timeToFirstOutputTokenMs": undefined,
             },
             "providerMetadata": undefined,
@@ -538,6 +549,7 @@ describe('streamLanguageModelCall', () => {
               "inputTokensPerSecond": 0,
               "outputTokensPerSecond": 0,
               "responseTimeMs": 0,
+              "timeBetweenOutputTokens": undefined,
               "timeToFirstOutputTokenMs": 0,
             },
             "providerMetadata": undefined,
@@ -593,6 +605,52 @@ describe('streamLanguageModelCall', () => {
           inputTokensPerSecond: 12,
           effectiveTotalTokensPerSecond: 21.666666666666668,
           timeToFirstOutputTokenMs: 250,
+        },
+      });
+    });
+
+    it('should measure time between output tokens from text deltas', async () => {
+      mockNow
+        .mockReturnValueOnce(1000)
+        .mockReturnValueOnce(1100)
+        .mockReturnValueOnce(1200)
+        .mockReturnValueOnce(1500)
+        .mockReturnValueOnce(1600)
+        .mockReturnValueOnce(2000)
+        .mockReturnValueOnce(2500)
+        .mockReturnValueOnce(2500);
+
+      const result = await streamLanguageModelCallResult({
+        streamParts: [
+          { type: 'text-start', id: '1' },
+          { type: 'text-delta', id: '1', delta: 'a' },
+          { type: 'text-delta', id: '1', delta: 'b' },
+          { type: 'text-delta', id: '1', delta: 'c' },
+          { type: 'text-delta', id: '1', delta: 'd' },
+          { type: 'text-delta', id: '1', delta: 'e' },
+          { type: 'text-delta', id: '1', delta: 'f' },
+          { type: 'text-end', id: '1' },
+          {
+            type: 'finish',
+            finishReason: { unified: 'stop', raw: 'stop' },
+            usage: testUsage,
+          },
+        ],
+        tools: undefined,
+        repairToolCall: undefined,
+      });
+
+      expect(result.at(-1)).toMatchObject({
+        type: 'model-call-end',
+        performance: {
+          timeBetweenOutputTokens: {
+            min: 100,
+            p10: 100,
+            median: 300,
+            avg: 280,
+            p90: 500,
+            max: 500,
+          },
         },
       });
     });
@@ -670,6 +728,7 @@ describe('streamLanguageModelCall', () => {
               "inputTokensPerSecond": undefined,
               "outputTokensPerSecond": undefined,
               "responseTimeMs": 0,
+              "timeBetweenOutputTokens": undefined,
               "timeToFirstOutputTokenMs": undefined,
             },
             "providerMetadata": undefined,
@@ -757,6 +816,7 @@ describe('streamLanguageModelCall', () => {
               "inputTokensPerSecond": undefined,
               "outputTokensPerSecond": undefined,
               "responseTimeMs": 0,
+              "timeBetweenOutputTokens": undefined,
               "timeToFirstOutputTokenMs": undefined,
             },
             "providerMetadata": undefined,
@@ -823,6 +883,7 @@ describe('streamLanguageModelCall', () => {
               "inputTokensPerSecond": undefined,
               "outputTokensPerSecond": undefined,
               "responseTimeMs": 0,
+              "timeBetweenOutputTokens": undefined,
               "timeToFirstOutputTokenMs": undefined,
             },
             "providerMetadata": undefined,
@@ -960,6 +1021,7 @@ describe('streamLanguageModelCall', () => {
               "inputTokensPerSecond": undefined,
               "outputTokensPerSecond": undefined,
               "responseTimeMs": 0,
+              "timeBetweenOutputTokens": undefined,
               "timeToFirstOutputTokenMs": undefined,
             },
             "providerMetadata": undefined,
@@ -1020,6 +1082,7 @@ describe('streamLanguageModelCall', () => {
               "inputTokensPerSecond": undefined,
               "outputTokensPerSecond": undefined,
               "responseTimeMs": 0,
+              "timeBetweenOutputTokens": undefined,
               "timeToFirstOutputTokenMs": undefined,
             },
             "providerMetadata": undefined,
@@ -1116,6 +1179,7 @@ describe('streamLanguageModelCall', () => {
               "inputTokensPerSecond": undefined,
               "outputTokensPerSecond": undefined,
               "responseTimeMs": 0,
+              "timeBetweenOutputTokens": undefined,
               "timeToFirstOutputTokenMs": undefined,
             },
             "providerMetadata": undefined,
@@ -1257,6 +1321,7 @@ describe('streamLanguageModelCall', () => {
               "inputTokensPerSecond": undefined,
               "outputTokensPerSecond": undefined,
               "responseTimeMs": 0,
+              "timeBetweenOutputTokens": undefined,
               "timeToFirstOutputTokenMs": undefined,
             },
             "providerMetadata": undefined,

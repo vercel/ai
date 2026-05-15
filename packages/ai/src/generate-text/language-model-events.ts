@@ -5,6 +5,7 @@ import type { LanguageModelUsage } from '../types/usage';
 import type { ContentPart } from './content-part';
 import type { StandardizedPrompt } from '../prompt/standardize-prompt';
 import type { LanguageModelCallOptions } from '../prompt';
+import type { OutputTokenTimingStats } from './step-result';
 
 /**
  * Common model information used across callback events.
@@ -92,6 +93,14 @@ export type LanguageModelCallEndEvent<TOOLS extends ToolSet = ToolSet> =
        * in milliseconds.
        */
       readonly timeToFirstOutputTokenMs: number | undefined;
+
+      /**
+       * Timing statistics for the gaps between streamed output-token chunks in
+       * milliseconds.
+       *
+       * Only available for streaming calls with at least two output-token chunks.
+       */
+      readonly timeBetweenOutputTokens?: OutputTokenTimingStats;
     };
   };
 

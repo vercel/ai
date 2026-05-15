@@ -255,6 +255,7 @@ exports[`streamText > result.fullStream > should send delayed asynchronous tool 
       "outputTokensPerSecond": undefined,
       "responseTimeMs": 0,
       "stepTimeMs": 60,
+      "timeBetweenOutputTokens": undefined,
       "timeToFirstOutputTokenMs": undefined,
       "toolExecutionMs": {
         "call-1": 60,
@@ -344,6 +345,7 @@ exports[`streamText > result.fullStream > should send tool calls 1`] = `
       "outputTokensPerSecond": undefined,
       "responseTimeMs": 0,
       "stepTimeMs": 0,
+      "timeBetweenOutputTokens": undefined,
       "timeToFirstOutputTokenMs": undefined,
       "toolExecutionMs": {},
     },
@@ -437,6 +439,7 @@ exports[`streamText > result.fullStream > should send tool results 1`] = `
       "outputTokensPerSecond": undefined,
       "responseTimeMs": 0,
       "stepTimeMs": 0,
+      "timeBetweenOutputTokens": undefined,
       "timeToFirstOutputTokenMs": undefined,
       "toolExecutionMs": {
         "call-1": 0,
@@ -802,6 +805,7 @@ exports[`streamText > tools with custom schema > should send tool calls 1`] = `
       "outputTokensPerSecond": undefined,
       "responseTimeMs": 400,
       "stepTimeMs": 500,
+      "timeBetweenOutputTokens": undefined,
       "timeToFirstOutputTokenMs": undefined,
       "toolExecutionMs": {},
     },
