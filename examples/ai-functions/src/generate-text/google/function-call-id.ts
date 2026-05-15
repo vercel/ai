@@ -22,7 +22,7 @@ run(async () => {
 
   // Turn 1: model emits parallel tool calls; tools execute automatically.
   const turn1 = await generateText({
-    model: google('gemini-3-flash-preview'),
+    model: google('gemini-3.5-flash'),
     tools: { weather: weatherTool },
     messages,
     stopWhen: isStepCount(1),
