@@ -88,7 +88,7 @@ const shell = tool({
       throw new Error('Experimental sandbox is not available');
     }
 
-    return experimental_sandbox.executeCommand({ command });
+    return experimental_sandbox.runCommand({ command });
   },
 });
 
@@ -911,7 +911,7 @@ call when a tool needs to run commands or code in an execution environment. The 
 </Note>
 
 Tool code still runs wherever your application runs. Only the operations that your tool explicitly delegates to
-the experimental sandbox, such as `experimental_sandbox.executeCommand(...)`,
+the experimental sandbox, such as `experimental_sandbox.runCommand(...)`,
 run in the experimental sandbox environment.
 
 ```ts highlight="7-15,21"
@@ -934,7 +934,7 @@ const result = await generateText({
           throw new Error('Experimental sandbox is not available');
         }
 
-        return experimental_sandbox.executeCommand({
+        return experimental_sandbox.runCommand({
           command,
           workingDirectory,
           abortSignal,
@@ -950,7 +950,7 @@ const result = await generateText({
 The experimental sandbox description is not added to the model prompt automatically. If the model should know about details such as the root directory, exposed ports, or public hostname, include `experimental_sandbox.description` in your system prompt,
 instructions, user-visible context, or a tool description function.
 
-`executeCommand` also accepts an optional `workingDirectory` and `abortSignal`.
+`runCommand` also accepts an optional `workingDirectory` and `abortSignal`.
 Use `workingDirectory` when a tool needs to run a command from a directory other
 than the experimental sandbox implementation's default working directory. Forward
 `abortSignal` from the tool execution options so the experimental sandbox can cancel the command if the overall operation is aborted or times out.
