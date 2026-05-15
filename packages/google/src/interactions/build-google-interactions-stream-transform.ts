@@ -408,13 +408,16 @@ export function buildGoogleInteractionsStreamTransform({
           let open = openBlocks.get(event.index);
           if (open == null) break;
 
+          const dtype = (event.delta as { type?: string } | undefined)?.type;
+
           /*
-           * Promote a pending model_output block to its concrete kind based
-           * on the first delta's `type`. Sub-handlers below operate on the
-           * promoted state.
+           * Promote a pending model_output block to `text` on the first
+           * text-shaped delta. Image deltas are emitted inline below — a
+           * model_output step can interleave text and image deltas, so the
+           * text "open block" stays in place across image emissions instead
+           * of being swapped for an image state.
            */
           if (open.kind === 'pending_model_output') {
-            const dtype = (event.delta as { type?: string } | undefined)?.type;
             if (
               dtype === 'text' ||
               dtype === 'text_annotation' ||
@@ -428,14 +431,51 @@ export function buildGoogleInteractionsStreamTransform({
               openBlocks.set(event.index, promoted);
               open = promoted;
               controller.enqueue({ type: 'text-start', id: promoted.id });
-            } else if (dtype === 'image') {
-              const promoted: Extract<OpenBlockState, { kind: 'image' }> = {
-                kind: 'image',
-                id: open.id,
-              };
-              openBlocks.set(event.index, promoted);
-              open = promoted;
             }
+          }
+
+          /*
+           * Image deltas inside `model_output` carry the full payload in a
+           * single chunk (no per-byte streaming). Emit the `file` part as
+           * soon as the delta arrives so it surfaces regardless of whether
+           * a text block is currently open at the same index.
+           */
+          if (
+            dtype === 'image' &&
+            (open.kind === 'pending_model_output' ||
+              open.kind === 'text' ||
+              open.kind === 'image')
+          ) {
+            const img = event.delta as
+              | { data?: string; mime_type?: string; uri?: string }
+              | undefined;
+            const google: Record<string, string> = {};
+            if (interactionId != null) google.interactionId = interactionId;
+            const providerMetadata =
+              Object.keys(google).length > 0 ? { google } : undefined;
+            if (img?.data != null && img.data.length > 0) {
+              controller.enqueue({
+                type: 'file',
+                mediaType: img.mime_type ?? 'image/png',
+                data: { type: 'data', data: img.data },
+                ...(providerMetadata ? { providerMetadata } : {}),
+              });
+            } else if (img?.uri != null && img.uri.length > 0) {
+              controller.enqueue({
+                type: 'file',
+                mediaType: img.mime_type ?? 'image/png',
+                data: { type: 'url', url: new URL(img.uri) },
+                ...(providerMetadata ? { providerMetadata } : {}),
+              });
+            }
+            // The file part was emitted inline; clear any data on an
+            // eagerly-promoted image OpenBlockState so the `step.stop`
+            // handler does not emit a duplicate.
+            if (open.kind === 'image') {
+              open.data = undefined;
+              open.uri = undefined;
+            }
+            break;
           }
 
           const delta = event.delta as
