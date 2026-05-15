@@ -3971,6 +3971,15 @@ describe('generateText', () => {
               "modelId": "mock-model-id",
               "provider": "mock-provider",
             },
+            "performance": {
+              "responseTimeMs": 0,
+              "stepTimeMs": 0,
+              "timeToFirstTokenMs": undefined,
+              "tokensPerSecond": 0,
+              "toolExecutionMs": {
+                "call-1": 0,
+              },
+            },
             "providerMetadata": undefined,
             "rawFinishReason": "stop",
             "request": {

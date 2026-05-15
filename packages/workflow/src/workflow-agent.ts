@@ -564,6 +564,11 @@ export type WorkflowAgentOnFinishCallback<
   /**
    * The total token usage across all steps.
    */
+  readonly usage: LanguageModelUsage;
+
+  /**
+   * The total token usage across all steps.
+   */
   readonly totalUsage: LanguageModelUsage;
 
   /**
@@ -2008,12 +2013,14 @@ export class WorkflowAgent<
 
             if (mergedOnFinish && !wasAborted) {
               const lastStep = steps[steps.length - 1];
+              const totalUsage = aggregateUsage(steps);
               await mergedOnFinish({
                 steps,
                 messages,
                 text: lastStep?.text ?? '',
                 finishReason: lastStep?.finishReason ?? 'other',
-                totalUsage: aggregateUsage(steps),
+                usage: totalUsage,
+                totalUsage,
                 runtimeContext,
                 toolsContext:
                   toolsContext as unknown as InferToolSetContext<TTools>,
@@ -2023,10 +2030,12 @@ export class WorkflowAgent<
             if (!wasAborted && steps.length > 0) {
               const telemetrySteps = steps.map(normalizeStepForTelemetry);
               const lastStep = telemetrySteps[telemetrySteps.length - 1];
+              const totalUsage = aggregateUsage(steps);
               await telemetryDispatcher.onEnd?.({
                 ...lastStep,
                 steps: telemetrySteps,
-                totalUsage: aggregateUsage(steps),
+                usage: totalUsage,
+                totalUsage,
               });
             }
 
@@ -2217,12 +2226,14 @@ export class WorkflowAgent<
     // Call onFinish callback if provided (always call, even on errors, but not on abort)
     if (mergedOnFinish && !wasAborted) {
       const lastStep = steps[steps.length - 1];
+      const totalUsage = aggregateUsage(steps);
       await mergedOnFinish({
         steps,
         messages: messages as ModelMessage[],
         text: lastStep?.text ?? '',
         finishReason: lastStep?.finishReason ?? 'other',
-        totalUsage: aggregateUsage(steps),
+        usage: totalUsage,
+        totalUsage,
         runtimeContext,
         toolsContext: toolsContext as unknown as InferToolSetContext<TTools>,
         output: experimentalOutput,
@@ -2231,10 +2242,12 @@ export class WorkflowAgent<
     if (!wasAborted && steps.length > 0) {
       const telemetrySteps = steps.map(normalizeStepForTelemetry);
       const lastStep = telemetrySteps[telemetrySteps.length - 1];
+      const totalUsage = aggregateUsage(steps);
       await telemetryDispatcher.onEnd?.({
         ...lastStep,
         steps: telemetrySteps,
-        totalUsage: aggregateUsage(steps),
+        usage: totalUsage,
+        totalUsage,
       });
     }
 

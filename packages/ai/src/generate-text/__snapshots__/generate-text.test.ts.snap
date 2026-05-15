@@ -83,6 +83,13 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
       "modelId": "mock-model-id",
       "provider": "mock-provider",
     },
+    "performance": {
+      "responseTimeMs": 0,
+      "stepTimeMs": 0,
+      "timeToFirstTokenMs": undefined,
+      "tokensPerSecond": 0,
+      "toolExecutionMs": {},
+    },
     "providerMetadata": undefined,
     "rawFinishReason": "stop",
     "request": {
