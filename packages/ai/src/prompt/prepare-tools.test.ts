@@ -6,6 +6,7 @@ import {
   type ToolSet,
 } from '@ai-sdk/provider-utils';
 import { describe, expect, it } from 'vitest';
+import { mockSandboxFileStubs } from '../test/mock-sandbox';
 import { prepareTools } from './prepare-tools';
 
 const mockTools = {
@@ -241,6 +242,7 @@ describe('prepareTools', () => {
         stdout: '',
         stderr: '',
       }),
+      ...mockSandboxFileStubs,
     };
 
     const result = await prepareTools({
