@@ -381,7 +381,7 @@ describe('generateText types', () => {
           prepareStep: () => ({
             experimental_sandbox: {
               description: 'test sandbox',
-              executeCommand: async () => ({
+              runCommand: async () => ({
                 exitCode: 0,
                 stdout: 'ok',
                 stderr: '',

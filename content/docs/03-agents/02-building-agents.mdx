@@ -158,7 +158,7 @@ const agent = new ToolLoopAgent({
           throw new Error('Experimental sandbox is not available');
         }
 
-        return experimental_sandbox.executeCommand({
+        return experimental_sandbox.runCommand({
           command,
           workingDirectory,
           abortSignal,

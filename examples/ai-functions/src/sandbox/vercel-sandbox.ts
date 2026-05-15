@@ -10,7 +10,7 @@ export class VercelSandbox implements Sandbox {
     >,
   ) {}
 
-  async executeCommand({
+  async runCommand({
     command,
     workingDirectory,
     abortSignal,
