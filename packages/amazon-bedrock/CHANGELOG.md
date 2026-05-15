@@ -1,5 +1,12 @@
 # @ai-sdk/amazon-bedrock
 
+## 5.0.0-canary.63
+
+### Patch Changes
+
+- cd27bca: added bedrock mantle provider
+- b555b23: fix(amazon-bedrock): disable native structured output for claude-opus-4-7
+
 ## 5.0.0-canary.62
 
 ### Patch Changes

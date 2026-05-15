@@ -9,7 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@ai-sdk/amazon-bedrock": "5.0.0-canary.62",
+    "@ai-sdk/amazon-bedrock": "5.0.0-canary.63",
     "@ai-sdk/anthropic": "4.0.0-canary.55",
     "@ai-sdk/azure": "4.0.0-canary.59",
     "@ai-sdk/cohere": "4.0.0-canary.45",
