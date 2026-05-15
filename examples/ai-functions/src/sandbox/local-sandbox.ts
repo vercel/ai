@@ -24,7 +24,7 @@ export class LocalSandbox implements Sandbox {
     this.rootDirectory = rootDirectory;
   }
 
-  async executeCommand({
+  async runCommand({
     command,
     workingDirectory,
     abortSignal,

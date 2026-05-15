@@ -19,7 +19,7 @@ describe('tool execute function types', () => {
   });
 
   it('should include abort signal in sandbox command options', () => {
-    expectTypeOf<Parameters<Sandbox['executeCommand']>[0]>().toEqualTypeOf<{
+    expectTypeOf<Parameters<Sandbox['runCommand']>[0]>().toEqualTypeOf<{
       command: string;
       workingDirectory?: string;
       abortSignal?: AbortSignal;
