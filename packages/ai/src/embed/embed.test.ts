@@ -2,6 +2,7 @@ import type { EmbeddingModelV3 } from '@ai-sdk/provider';
 import assert from 'node:assert';
 import { beforeEach, describe, expect, it, vi, vitest } from 'vitest';
 import * as logWarningsModule from '../logger/log-warnings';
+import { MockEmbeddingModelV2 } from '../test/mock-embedding-model-v2';
 import { MockEmbeddingModelV3 } from '../test/mock-embedding-model-v3';
 import { MockTracer } from '../test/mock-tracer';
 import type { Embedding, EmbeddingModelUsage, Warning } from '../types';
@@ -180,6 +181,20 @@ describe('result.warnings', () => {
     });
 
     expect(result.warnings).toStrictEqual(expectedWarnings);
+  });
+
+  it('should default missing v2 provider warnings to an empty array', async () => {
+    const result = await embed({
+      model: new MockEmbeddingModelV2<string>({
+        doEmbed: async () => ({
+          embeddings: [dummyEmbedding],
+          usage: { tokens: 1 },
+        }),
+      }),
+      value: testValue,
+    });
+
+    expect(result.warnings).toStrictEqual([]);
   });
 });
 
