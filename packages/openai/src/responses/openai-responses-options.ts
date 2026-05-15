@@ -270,6 +270,15 @@ export const openaiLanguageModelResponsesOptionsSchema = lazySchema(() =>
       store: z.boolean().nullish(),
 
       /**
+       * Whether to pass through non-image file types as generic input files.
+       *
+       * By default, inline file inputs are restricted to images and PDFs.
+       * Enable this when the target OpenAI Responses model supports additional
+       * file media types, such as text/csv.
+       */
+      passThroughUnsupportedFiles: z.boolean().optional(),
+
+      /**
        * Whether to use strict JSON schema validation.
        * Defaults to `true`.
        */

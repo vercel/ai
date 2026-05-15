@@ -52,6 +52,7 @@ export async function convertToOpenAIResponsesInput({
   systemMessageMode,
   providerOptionsName,
   fileIdPrefixes,
+  passThroughUnsupportedFiles = false,
   store,
   hasConversation = false,
   hasLocalShellTool = false,
@@ -64,6 +65,7 @@ export async function convertToOpenAIResponsesInput({
   systemMessageMode: 'system' | 'developer' | 'remove';
   providerOptionsName: string;
   fileIdPrefixes?: readonly string[];
+  passThroughUnsupportedFiles?: boolean;
   store: boolean;
   hasConversation?: boolean; // when true, skip assistant messages that already have item IDs
   hasLocalShellTool?: boolean;
@@ -142,6 +144,7 @@ export async function convertToOpenAIResponsesInput({
                       file_url: part.data.toString(),
                     };
                   }
+<<<<<<< HEAD
                   return {
                     type: 'input_file',
                     ...(typeof part.data === 'string' &&
@@ -156,6 +159,66 @@ export async function convertToOpenAIResponsesInput({
                   throw new UnsupportedFunctionalityError({
                     functionality: `file part media type ${part.mediaType}`,
                   });
+=======
+                  case 'text': {
+                    throw new UnsupportedFunctionalityError({
+                      functionality: 'text file parts',
+                    });
+                  }
+                  case 'url':
+                  case 'data': {
+                    const topLevel = getTopLevelMediaType(part.mediaType);
+
+                    if (topLevel === 'image') {
+                      return {
+                        type: 'input_image',
+                        ...(part.data.type === 'url'
+                          ? { image_url: part.data.url.toString() }
+                          : typeof part.data.data === 'string' &&
+                              isFileId(part.data.data, fileIdPrefixes)
+                            ? { file_id: part.data.data }
+                            : {
+                                image_url: `data:${resolveFullMediaType({ part })};base64,${convertToBase64(part.data.data)}`,
+                              }),
+                        detail:
+                          part.providerOptions?.[providerOptionsName]
+                            ?.imageDetail,
+                      };
+                    } else {
+                      if (part.data.type === 'url') {
+                        return {
+                          type: 'input_file',
+                          file_url: part.data.url.toString(),
+                        };
+                      }
+
+                      const fullMediaType = resolveFullMediaType({ part });
+                      if (
+                        fullMediaType !== 'application/pdf' &&
+                        !passThroughUnsupportedFiles
+                      ) {
+                        throw new UnsupportedFunctionalityError({
+                          functionality: `file part media type ${fullMediaType}`,
+                        });
+                      }
+
+                      return {
+                        type: 'input_file',
+                        ...(typeof part.data.data === 'string' &&
+                        isFileId(part.data.data, fileIdPrefixes)
+                          ? { file_id: part.data.data }
+                          : {
+                              filename:
+                                part.filename ??
+                                (fullMediaType === 'application/pdf'
+                                  ? `part-${index}.pdf`
+                                  : `part-${index}`),
+                              file_data: `data:${fullMediaType};base64,${convertToBase64(part.data.data)}`,
+                            }),
+                      };
+                    }
+                  }
+>>>>>>> 685cec7fc (feat(openai): add opt-in pass-through for unsupported file media types (#15297))
                 }
               }
             }
