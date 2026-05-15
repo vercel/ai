@@ -191,7 +191,7 @@ export async function embedMany({
                 return {
                   embeddings,
                   usage,
-                  warnings: modelResponse.warnings,
+                  warnings: modelResponse.warnings ?? [],
                   providerMetadata: modelResponse.providerMetadata,
                   response: modelResponse.response,
                 };
@@ -212,44 +212,10 @@ export async function embedMany({
           }),
         );
 
-<<<<<<< HEAD
         logWarnings({
           warnings,
           provider: model.provider,
           model: model.modelId,
-=======
-          const modelResponse = await model.doEmbed({
-            values,
-            abortSignal,
-            headers: headersWithUserAgent,
-            providerOptions,
-          });
-
-          const embeddings = modelResponse.embeddings;
-          const usage = modelResponse.usage ?? { tokens: NaN };
-
-          await notify({
-            event: {
-              callId,
-              embedCallId,
-              operationId: 'ai.embedMany.doEmbed',
-              provider: model.provider,
-              modelId: model.modelId,
-              values,
-              embeddings,
-              usage,
-            },
-            callbacks: [telemetryDispatcher.onEmbedEnd],
-          });
-
-          return {
-            embeddings,
-            usage,
-            warnings: modelResponse.warnings ?? [],
-            providerMetadata: modelResponse.providerMetadata,
-            response: modelResponse.response,
-          };
->>>>>>> e3a04191f (fix(ai): default missing embedding warnings (#15324))
         });
 
         return new DefaultEmbedManyResult({
@@ -334,7 +300,7 @@ export async function embedMany({
                   return {
                     embeddings,
                     usage,
-                    warnings: modelResponse.warnings,
+                    warnings: modelResponse.warnings ?? [],
                     providerMetadata: modelResponse.providerMetadata,
                     response: modelResponse.response,
                   };
@@ -388,124 +354,6 @@ export async function embedMany({
       return new DefaultEmbedManyResult({
         values,
         embeddings,
-<<<<<<< HEAD
-=======
-        usage,
-        warnings,
-        providerMetadata,
-        responses: [response],
-      });
-    }
-
-    const valueChunks = splitArray(values, maxEmbeddingsPerCall);
-
-    const embeddings: Array<Embedding> = [];
-    const warnings: Array<Warning> = [];
-    const responses: Array<
-      | {
-          headers?: Record<string, string>;
-          body?: unknown;
-        }
-      | undefined
-    > = [];
-    let tokens = 0;
-    let providerMetadata: ProviderMetadata | undefined;
-
-    const parallelChunks = splitArray(
-      valueChunks,
-      supportsParallelCalls ? maxParallelCalls : 1,
-    );
-
-    for (const parallelChunk of parallelChunks) {
-      const results = await Promise.all(
-        parallelChunk.map(chunk => {
-          return retry(async () => {
-            const embedCallId = generateCallId();
-
-            await notify({
-              event: {
-                callId,
-                embedCallId,
-                operationId: 'ai.embedMany.doEmbed',
-                provider: model.provider,
-                modelId: model.modelId,
-                values: chunk,
-              },
-              callbacks: [telemetryDispatcher.onEmbedStart],
-            });
-
-            const modelResponse = await model.doEmbed({
-              values: chunk,
-              abortSignal,
-              headers: headersWithUserAgent,
-              providerOptions,
-            });
-
-            const chunkEmbeddings = modelResponse.embeddings;
-            const usage = modelResponse.usage ?? { tokens: NaN };
-
-            await notify({
-              event: {
-                callId,
-                embedCallId,
-                operationId: 'ai.embedMany.doEmbed',
-                provider: model.provider,
-                modelId: model.modelId,
-                values: chunk,
-                embeddings: chunkEmbeddings,
-                usage,
-              },
-              callbacks: [telemetryDispatcher.onEmbedEnd],
-            });
-
-            return {
-              embeddings: chunkEmbeddings,
-              usage,
-              warnings: modelResponse.warnings ?? [],
-              providerMetadata: modelResponse.providerMetadata,
-              response: modelResponse.response,
-            };
-          });
-        }),
-      );
-
-      for (const result of results) {
-        embeddings.push(...result.embeddings);
-        warnings.push(...result.warnings);
-        responses.push(result.response);
-        tokens += result.usage.tokens;
-        if (result.providerMetadata) {
-          if (!providerMetadata) {
-            providerMetadata = { ...result.providerMetadata };
-          } else {
-            for (const [providerName, metadata] of Object.entries(
-              result.providerMetadata,
-            )) {
-              providerMetadata[providerName] = {
-                ...(providerMetadata[providerName] ?? {}),
-                ...metadata,
-              };
-            }
-          }
-        }
-      }
-    }
-
-    logWarnings({
-      warnings,
-      provider: model.provider,
-      model: model.modelId,
-    });
-
-    await notify({
-      event: {
-        callId,
-        operationId: 'ai.embedMany',
-        provider: model.provider,
-        modelId: model.modelId,
-        value: values,
-        embedding: embeddings,
->>>>>>> e3a04191f (fix(ai): default missing embedding warnings (#15324))
         usage: { tokens },
         warnings,
         providerMetadata: providerMetadata,

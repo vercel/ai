@@ -10,13 +10,9 @@ import {
   vitest,
 } from 'vitest';
 import * as logWarningsModule from '../logger/log-warnings';
-<<<<<<< HEAD
+import { MockEmbeddingModelV2 } from '../test/mock-embedding-model-v2';
 import { MockEmbeddingModelV3 } from '../test/mock-embedding-model-v3';
 import { MockTracer } from '../test/mock-tracer';
-=======
-import { MockEmbeddingModelV2 } from '../test/mock-embedding-model-v2';
-import { MockEmbeddingModelV4 } from '../test/mock-embedding-model-v4';
->>>>>>> e3a04191f (fix(ai): default missing embedding warnings (#15324))
 import type { Embedding, EmbeddingModelUsage, Warning } from '../types';
 import { createResolvablePromise } from '../util/create-resolvable-promise';
 import { embedMany } from './embed-many';
