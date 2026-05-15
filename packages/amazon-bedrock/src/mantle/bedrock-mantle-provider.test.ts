@@ -55,7 +55,7 @@ describe('bedrock-mantle-provider', () => {
     vi.clearAllMocks();
   });
 
-  it('should create a responses model with default settings', () => {
+  it('should create a chat model with default settings', () => {
     const provider = createBedrockMantle({
       region: 'us-east-1',
       accessKeyId: 'test-key',
@@ -63,10 +63,10 @@ describe('bedrock-mantle-provider', () => {
     });
     provider('openai.gpt-oss-20b');
 
-    expect(OpenAIResponsesLanguageModel).toHaveBeenCalledWith(
+    expect(OpenAIChatLanguageModel).toHaveBeenCalledWith(
       'openai.gpt-oss-20b',
       expect.objectContaining({
-        provider: 'bedrock-mantle.responses',
+        provider: 'bedrock-mantle.chat',
         url: expect.any(Function),
         headers: expect.any(Function),
         fetch: expect.any(Function),
@@ -93,7 +93,7 @@ describe('bedrock-mantle-provider', () => {
     );
   });
 
-  it('should alias .languageModel() to responses model', () => {
+  it('should alias .languageModel() to chat model', () => {
     const provider = createBedrockMantle({
       region: 'us-east-1',
       accessKeyId: 'test-key',
@@ -101,10 +101,10 @@ describe('bedrock-mantle-provider', () => {
     });
     provider.languageModel('test-model');
 
-    expect(OpenAIResponsesLanguageModel).toHaveBeenCalledWith(
+    expect(OpenAIChatLanguageModel).toHaveBeenCalledWith(
       'test-model',
       expect.objectContaining({
-        provider: 'bedrock-mantle.responses',
+        provider: 'bedrock-mantle.chat',
       }),
     );
   });
@@ -145,8 +145,8 @@ describe('bedrock-mantle-provider', () => {
     });
     provider('test-model');
 
-    const constructorCall = vi.mocked(OpenAIResponsesLanguageModel).mock.calls[
-      vi.mocked(OpenAIResponsesLanguageModel).mock.calls.length - 1
+    const constructorCall = vi.mocked(OpenAIChatLanguageModel).mock.calls[
+      vi.mocked(OpenAIChatLanguageModel).mock.calls.length - 1
     ];
     const config = constructorCall[1];
 
@@ -169,8 +169,8 @@ describe('bedrock-mantle-provider', () => {
     });
     provider('test-model');
 
-    const constructorCall = vi.mocked(OpenAIResponsesLanguageModel).mock.calls[
-      vi.mocked(OpenAIResponsesLanguageModel).mock.calls.length - 1
+    const constructorCall = vi.mocked(OpenAIChatLanguageModel).mock.calls[
+      vi.mocked(OpenAIChatLanguageModel).mock.calls.length - 1
     ];
     const config = constructorCall[1];
 
@@ -193,8 +193,8 @@ describe('bedrock-mantle-provider', () => {
     });
     provider('test-model');
 
-    const constructorCall = vi.mocked(OpenAIResponsesLanguageModel).mock.calls[
-      vi.mocked(OpenAIResponsesLanguageModel).mock.calls.length - 1
+    const constructorCall = vi.mocked(OpenAIChatLanguageModel).mock.calls[
+      vi.mocked(OpenAIChatLanguageModel).mock.calls.length - 1
     ];
     const config = constructorCall[1];
 

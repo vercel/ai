@@ -19,29 +19,35 @@ import {
   createSigV4FetchFunction,
   type AmazonBedrockCredentials,
 } from '../amazon-bedrock-sigv4-fetch';
-import type { BedrockMantleModelId } from './bedrock-mantle-options';
+import type {
+  BedrockMantleChatModelId,
+  BedrockMantleResponsesModelId,
+} from './bedrock-mantle-options';
 import { VERSION } from '../version';
 
 export interface BedrockMantleProvider extends ProviderV4 {
   /**
-   * Creates a model for text generation using the Responses API.
+   * Creates a model for text generation using the Chat Completions API.
+   * Chat Completions has the broadest model support on Mantle.
    */
-  (modelId: BedrockMantleModelId): LanguageModelV4;
-
-  /**
-   * Creates a model for text generation using the Responses API.
-   */
-  languageModel(modelId: BedrockMantleModelId): LanguageModelV4;
+  (modelId: BedrockMantleChatModelId): LanguageModelV4;
 
   /**
    * Creates a model for text generation using the Chat Completions API.
    */
-  chat(modelId: BedrockMantleModelId): LanguageModelV4;
+  languageModel(modelId: BedrockMantleChatModelId): LanguageModelV4;
+
+  /**
+   * Creates a model for text generation using the Chat Completions API.
+   */
+  chat(modelId: BedrockMantleChatModelId): LanguageModelV4;
 
   /**
    * Creates a model for text generation using the Responses API.
+   * Not all Mantle models support this API. Notably, gpt-oss-safeguard models
+   * are Chat-only.
    */
-  responses(modelId: BedrockMantleModelId): LanguageModelV4;
+  responses(modelId: BedrockMantleResponsesModelId): LanguageModelV4;
 
   /**
    * @deprecated Mantle does not support embedding models.
@@ -227,7 +233,7 @@ export function createBedrockMantle(
   const url = ({ path }: { path: string; modelId: string }): string =>
     `${getBaseURL()}${path}`;
 
-  const createChatModel = (modelId: BedrockMantleModelId) =>
+  const createChatModel = (modelId: BedrockMantleChatModelId) =>
     new OpenAIChatLanguageModel(modelId, {
       provider: 'bedrock-mantle.chat',
       url,
@@ -235,7 +241,7 @@ export function createBedrockMantle(
       fetch: fetchFunction,
     });
 
-  const createResponsesModel = (modelId: BedrockMantleModelId) =>
+  const createResponsesModel = (modelId: BedrockMantleResponsesModelId) =>
     new OpenAIResponsesLanguageModel(modelId, {
       provider: 'bedrock-mantle.responses',
       url,
@@ -243,18 +249,18 @@ export function createBedrockMantle(
       fetch: fetchFunction,
     });
 
-  const provider = function (modelId: BedrockMantleModelId) {
+  const provider = function (modelId: BedrockMantleChatModelId) {
     if (new.target) {
       throw new Error(
         'The Bedrock Mantle model function cannot be called with the new keyword.',
       );
     }
 
-    return createResponsesModel(modelId);
+    return createChatModel(modelId);
   };
 
   provider.specificationVersion = 'v4' as const;
-  provider.languageModel = createResponsesModel;
+  provider.languageModel = createChatModel;
   provider.chat = createChatModel;
   provider.responses = createResponsesModel;
 
