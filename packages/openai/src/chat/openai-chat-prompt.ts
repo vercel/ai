@@ -52,6 +52,13 @@ export interface ChatCompletionAssistantMessage {
   role: 'assistant';
   content?: string | null;
   tool_calls?: Array<ChatCompletionMessageToolCall>;
+  /**
+   * Provider-extension field. Used by DeepSeek and other OpenAI-
+   * compatible reasoning providers to round-trip the previous turn's
+   * thinking content back to the model. Optional and ignored by
+   * OpenAI's own API.
+   */
+  reasoning_content?: string;
 }
 
 export interface ChatCompletionMessageToolCall {

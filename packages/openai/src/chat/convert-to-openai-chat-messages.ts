@@ -18,9 +18,19 @@ function serializeToolCallArguments(input: unknown): string {
 export function convertToOpenAIChatMessages({
   prompt,
   systemMessageMode = 'system',
+  includeReasoningContent = false,
 }: {
   prompt: LanguageModelV4Prompt;
   systemMessageMode?: 'system' | 'developer' | 'remove';
+  /**
+   * When true, `reasoning` parts on assistant turns are serialized
+   * as a top-level `reasoning_content` string on the assistant
+   * message. This is the field name DeepSeek's API (and most other
+   * OpenAI-compatible reasoning providers) expect on the round trip.
+   * Default false — pure OpenAI calls drop reasoning parts (with a
+   * warning) since the OpenAI API doesn't accept them.
+   */
+  includeReasoningContent?: boolean;
 }): {
   messages: OpenAIChatPrompt;
   warnings: Array<SharedV4Warning>;
@@ -175,6 +185,7 @@ export function convertToOpenAIChatMessages({
 
       case 'assistant': {
         let text = '';
+        let reasoningText = '';
         const toolCalls: Array<{
           id: string;
           type: 'function';
@@ -185,6 +196,10 @@ export function convertToOpenAIChatMessages({
           switch (part.type) {
             case 'text': {
               text += part.text;
+              break;
+            }
+            case 'reasoning': {
+              reasoningText += part.text;
               break;
             }
             case 'tool-call': {
@@ -201,10 +216,23 @@ export function convertToOpenAIChatMessages({
           }
         }
 
+        if (reasoningText.length > 0 && !includeReasoningContent) {
+          warnings.push({
+            type: 'other',
+            message:
+              'Assistant reasoning parts were dropped because ' +
+              '`includeReasoningContent` is not enabled. Set the ' +
+              'option to pass them through as `reasoning_content`.',
+          });
+        }
+
         messages.push({
           role: 'assistant',
           content: toolCalls.length > 0 ? text || null : text,
           tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
+          ...(includeReasoningContent && reasoningText.length > 0
+            ? { reasoning_content: reasoningText }
+            : {}),
         });
 
         break;
