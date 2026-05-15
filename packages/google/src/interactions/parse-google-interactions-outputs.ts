@@ -1,10 +1,5 @@
-<<<<<<< HEAD
 import type { JSONValue, LanguageModelV3Content } from '@ai-sdk/provider';
-import type { GoogleInteractionsContentBlock } from './google-interactions-api';
-=======
-import type { JSONValue, LanguageModelV4Content } from '@ai-sdk/provider';
 import type { GoogleInteractionsStep } from './google-interactions-api';
->>>>>>> 4e825f320 (feat(google): update Interactions API implementation to cater for upstream breaking changes coming May 26 (#15346))
 import {
   annotationsToSources,
   builtinToolResultToSources,
@@ -69,13 +64,8 @@ function builtinToolNameFromResultType(type: string): string {
 }
 
 /**
-<<<<<<< HEAD
- * Walks the `outputs[]` array of an Interaction response and emits AI SDK
- * `LanguageModelV3Content[]`. Surfaces:
-=======
  * Walks the `steps[]` array of an Interactions response and emits AI SDK
- * `LanguageModelV4Content[]`. Surfaces:
->>>>>>> 4e825f320 (feat(google): update Interactions API implementation to cater for upstream breaking changes coming May 26 (#15346))
+ * `LanguageModelV3Content[]`. Surfaces:
  *
  * - `model_output` steps: iterates `step.content[]` for `text` (with
  *   annotations → source parts) and `image` content blocks.
@@ -150,15 +140,26 @@ export function parseGoogleInteractionsOutputs({
               content.push({
                 type: 'file',
                 mediaType: image.mime_type ?? 'image/png',
-                data: { type: 'data', data: image.data },
+                data: image.data,
                 ...googleProviderMetadata({ interactionId }),
               });
             } else if (image.uri != null && image.uri.length > 0) {
+              /*
+               * V3 `LanguageModelV3File` only supports inline data (`string` /
+               * `Uint8Array`). URL-only image outputs cannot be represented as
+               * a file content part on the v3 spec; surface the URI through
+               * provider metadata so callers can still recover it.
+               */
               content.push({
                 type: 'file',
                 mediaType: image.mime_type ?? 'image/png',
-                data: { type: 'url', url: new URL(image.uri) },
-                ...googleProviderMetadata({ interactionId }),
+                data: '',
+                providerMetadata: {
+                  google: {
+                    ...(interactionId != null ? { interactionId } : {}),
+                    imageUri: image.uri,
+                  },
+                },
               });
             }
           }
@@ -187,43 +188,6 @@ export function parseGoogleInteractionsOutputs({
         });
         break;
       }
-<<<<<<< HEAD
-      case 'image': {
-        const image = block as {
-          data?: string;
-          mime_type?: string;
-          uri?: string;
-        };
-        if (image.data != null && image.data.length > 0) {
-          content.push({
-            type: 'file',
-            mediaType: image.mime_type ?? 'image/png',
-            data: image.data,
-            ...googleProviderMetadata({ interactionId }),
-          });
-        } else if (image.uri != null && image.uri.length > 0) {
-          /*
-           * V3 `LanguageModelV3File` only supports inline data (`string` /
-           * `Uint8Array`). URL-only image outputs cannot be represented as a
-           * file content part on the v3 spec; surface the URI through provider
-           * metadata so callers can still recover it.
-           */
-          content.push({
-            type: 'file',
-            mediaType: image.mime_type ?? 'image/png',
-            data: '',
-            providerMetadata: {
-              google: {
-                ...(interactionId != null ? { interactionId } : {}),
-                imageUri: image.uri,
-              },
-            },
-          });
-        }
-        break;
-      }
-=======
->>>>>>> 4e825f320 (feat(google): update Interactions API implementation to cater for upstream breaking changes coming May 26 (#15346))
       case 'function_call': {
         hasFunctionCall = true;
         const call = step as {

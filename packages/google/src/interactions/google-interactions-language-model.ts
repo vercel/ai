@@ -237,17 +237,10 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV3 {
      * exclusive. The AI SDK call-level generation params and the thinking /
      * imageConfig provider options flow into `generation_config`.
      *
-<<<<<<< HEAD
-     * When an agent is set, none of these fields are accepted by the API. Per
-     * PRD US 31 we emit a single `LanguageModelV3CallWarning` listing the
-     * dropped field names and continue (do not throw); the agent-only
-     * `agent_config` field supersedes them.
-=======
      * When an agent is set, none of these fields are accepted by the API.
-     * Emit a single `LanguageModelV4CallWarning` listing the dropped field
+     * Emit a single `LanguageModelV3CallWarning` listing the dropped field
      * names and continue (do not throw); the agent-only `agent_config`
      * field supersedes them.
->>>>>>> 4e825f320 (feat(google): update Interactions API implementation to cater for upstream breaking changes coming May 26 (#15346))
      */
     let generationConfig: GoogleInteractionsGenerationConfig | undefined;
     if (isAgent) {

@@ -42,11 +42,7 @@ export type ConvertToGoogleInteractionsInputResult = {
 };
 
 /**
-<<<<<<< HEAD
  * Converts an AI SDK `LanguageModelV3Prompt` into the Gemini Interactions
- * request shape (`{ input, system_instruction }`).
-=======
- * Converts an AI SDK `LanguageModelV4Prompt` into the Gemini Interactions
  * request shape (`{ input: Array<Step>, system_instruction }`).
  *
  * Prior assistant content round-trips as discrete steps:
@@ -56,7 +52,6 @@ export type ConvertToGoogleInteractionsInputResult = {
  * User turns (and tool-result turns from the previous round) are sent as
  * `user_input` steps whose `content[]` holds the user's parts (text, files,
  * and — for tool-result turns — `function_result` blocks).
->>>>>>> 4e825f320 (feat(google): update Interactions API implementation to cater for upstream breaking changes coming May 26 (#15346))
  *
  * Handles text parts, file parts (image / audio / document / video, all four
  * `data.type` shapes), tool-call/tool-result round-tripping, per-step
@@ -203,49 +198,10 @@ export function convertToGoogleInteractionsInput({
       }
       case 'tool': {
         /*
-<<<<<<< HEAD
-         * Tool-result messages are emitted as a `user` turn whose content
-         * holds one `function_result` block per tool-result part. Wire shape
-         * (verified against `googleapis/js-genai`
-         * `samples/interactions_function_calling_client_state.ts` and
-         * `src/interactions/resources/interactions.ts` `FunctionResultContent`
-         * around line 979 — RESOLVES PRD Open Q2):
-         *
-         *   {
-         *     role: 'user',
-         *     content: [
-         *       {
-         *         type: 'function_result',
-         *         call_id: <id from the matching function_call block>,
-         *         name: <tool name>,
-         *         result: <string | unknown | Array<TextContent|ImageContent>>,
-         *         is_error?: boolean,
-         *         signature?: string,
-         *       },
-         *     ],
-         *   }
-         *
-         * The `result` field is a discriminated union: a plain string for
-         * text-only results, or an array of `text` / `image` content blocks
-         * for mixed text/image results. Our converter takes the AI SDK
-         * canonical `LanguageModelV3ToolResultOutput` and maps:
-         * - `{ type: 'text', value }` → `result: <string>`
-         * - `{ type: 'json', value }` → `result: <stringified JSON>`
-         * - `{ type: 'error-text', value }` → `result: <string>` + `is_error: true`
-         * - `{ type: 'error-json', value }` → `result: <stringified JSON>` + `is_error: true`
-         * - `{ type: 'execution-denied', reason }` → `result: <reason>` + `is_error: true`
-         * - `{ type: 'content', value: [...] }` → `result: Array<text|image>`
-         *   where each AI SDK `file` part with `mediaType: image/*` becomes
-         *   an Interactions `image` block (file-data path matches
-         *   `convertFilePartToContent` for top-level user images), and `text`
-         *   parts pass through. Non-image file parts fall back to a warning
-         *   because `FunctionResultContent.result` only accepts text/image.
-=======
          * Tool-result messages are emitted as a `user_input` step whose
          * content holds one `function_result` block per tool-result part.
          * `function_result` remains a content-block type (it sits inside
          * a step), not a top-level step type.
->>>>>>> 4e825f320 (feat(google): update Interactions API implementation to cater for upstream breaking changes coming May 26 (#15346))
          */
         const content: Array<GoogleInteractionsContentBlock> = [];
         for (const part of message.content) {
@@ -284,7 +240,6 @@ export function convertToGoogleInteractionsInput({
 /**
  * Maps a single AI SDK `LanguageModelV3FilePart` to a Gemini Interactions
  * content block (`image` / `audio` / `document` / `video`).
-<<<<<<< HEAD
  *
  * Rules for the V3 `data` shapes:
  * - `Uint8Array` / `string` (base64) → block with inline `data` (base64) +
@@ -292,8 +247,6 @@ export function convertToGoogleInteractionsInput({
  * - `URL` → block with `uri` set to the URL string verbatim. Files API URIs
  *   (e.g. `https://generativelanguage.googleapis.com/v1beta/files/<id>`) and
  *   YouTube URLs are passed through the same way.
-=======
->>>>>>> 4e825f320 (feat(google): update Interactions API implementation to cater for upstream breaking changes coming May 26 (#15346))
  */
 function convertFilePartToContent({
   part,

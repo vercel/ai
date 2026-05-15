@@ -108,13 +108,8 @@ type OpenBlockState =
   | { kind: 'unknown'; id: string };
 
 /**
-<<<<<<< HEAD
  * Builds a `TransformStream<ParseResult<GoogleInteractionsEvent>, LanguageModelV3StreamPart>`
- * over the seven Interactions SSE event types.
-=======
- * Builds a `TransformStream<ParseResult<GoogleInteractionsEvent>, LanguageModelV4StreamPart>`
  * over the Interactions API SSE event stream.
->>>>>>> 4e825f320 (feat(google): update Interactions API implementation to cater for upstream breaking changes coming May 26 (#15346))
  *
  * Surfaces text + thought (reasoning), function_call, image, built-in tool
  * call/result steps, and `text_annotation` -> `source` parts.
@@ -462,15 +457,27 @@ export function buildGoogleInteractionsStreamTransform({
               controller.enqueue({
                 type: 'file',
                 mediaType: img.mime_type ?? 'image/png',
-                data: { type: 'data', data: img.data },
+                data: img.data,
                 ...(providerMetadata ? { providerMetadata } : {}),
               });
             } else if (img?.uri != null && img.uri.length > 0) {
+              /*
+               * V3 `LanguageModelV3File` only supports inline data (`string` /
+               * `Uint8Array`). URL-only image outputs cannot be represented as
+               * a file stream part on the v3 spec; surface the URI through
+               * provider metadata so callers can still recover it.
+               */
+              const uriProviderMetadata = {
+                google: {
+                  ...(interactionId != null ? { interactionId } : {}),
+                  imageUri: img.uri,
+                },
+              };
               controller.enqueue({
                 type: 'file',
                 mediaType: img.mime_type ?? 'image/png',
-                data: { type: 'url', url: new URL(img.uri) },
-                ...(providerMetadata ? { providerMetadata } : {}),
+                data: '',
+                providerMetadata: uriProviderMetadata,
               });
             }
             // The file part was emitted inline; clear any data on an

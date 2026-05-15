@@ -1133,13 +1133,8 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
     });
   });
 
-<<<<<<< HEAD
-  describe('built-in google_search tool (TASK-7)', () => {
-    const GOOGLE_SEARCH_TOOL: LanguageModelV3ProviderTool = {
-=======
   describe('built-in google_search tool', () => {
-    const GOOGLE_SEARCH_TOOL: LanguageModelV4ProviderTool = {
->>>>>>> 4e825f320 (feat(google): update Interactions API implementation to cater for upstream breaking changes coming May 26 (#15346))
+    const GOOGLE_SEARCH_TOOL: LanguageModelV3ProviderTool = {
       type: 'provider',
       id: 'google.google_search',
       name: 'google_search',
@@ -1221,36 +1216,20 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
           },
         },
       });
-<<<<<<< HEAD
-      const filePart = result.content.find(c => c.type === 'file');
-      expect(filePart).toMatchObject({
-        type: 'file',
-        mediaType: 'image/jpeg',
-        data: '__IMAGE_DATA_TRUNCATED__',
-        providerMetadata: {
-          google: {
-            interactionId:
-              'v1_ChdsV2Y1YWZPakRiLUh6N0lQOVA2UTJBRRIXbFdmNWFmT2pEYi1IejdJUDlQNlEyQUU',
-          },
-        },
-      });
-=======
       const filePart = result.content.find(c => c.type === 'file') as
         | {
             type: string;
             mediaType: string;
-            data: { type: string; data?: string };
+            data: string;
             providerMetadata?: { google?: { interactionId?: string } };
           }
         | undefined;
       expect(filePart).toBeDefined();
       expect(filePart?.type).toBe('file');
       expect(filePart?.mediaType).toMatch(/^image\//);
-      expect(filePart?.data.type).toBe('data');
-      expect(typeof filePart?.data.data).toBe('string');
-      expect(filePart?.data.data?.length ?? 0).toBeGreaterThan(0);
+      expect(typeof filePart?.data).toBe('string');
+      expect(filePart?.data?.length ?? 0).toBeGreaterThan(0);
       expect(filePart?.providerMetadata?.google?.interactionId).toMatch(/^v1_/);
->>>>>>> 4e825f320 (feat(google): update Interactions API implementation to cater for upstream breaking changes coming May 26 (#15346))
     });
 
     it('passes responseModalities into the request body', async () => {
@@ -2510,13 +2489,8 @@ describe('GoogleInteractionsLanguageModel.doStream', () => {
     });
   });
 
-<<<<<<< HEAD
-  describe('built-in google_search tool (TASK-7)', () => {
-    const GOOGLE_SEARCH_TOOL: LanguageModelV3ProviderTool = {
-=======
   describe('built-in google_search tool', () => {
-    const GOOGLE_SEARCH_TOOL: LanguageModelV4ProviderTool = {
->>>>>>> 4e825f320 (feat(google): update Interactions API implementation to cater for upstream breaking changes coming May 26 (#15346))
+    const GOOGLE_SEARCH_TOOL: LanguageModelV3ProviderTool = {
       type: 'provider',
       id: 'google.google_search',
       name: 'google_search',
@@ -2610,38 +2584,21 @@ describe('GoogleInteractionsLanguageModel.doStream', () => {
         includeRawChunks: false,
       });
       const parts = await convertReadableStreamToArray(stream);
-<<<<<<< HEAD
-      const filePart = parts.find(p => p.type === 'file');
-      expect(filePart).toMatchObject({
-        type: 'file',
-        mediaType: 'image/jpeg',
-        data: '__IMAGE_DATA_TRUNCATED__',
-        providerMetadata: {
-          google: {
-            interactionId:
-              'v1_Chd2R2Y1YWZTcE00eld6N0lQNnVhamlBNBIXdkdmNWFmU3BNNHpXejdJUDZ1YWppQTQ',
-          },
-        },
-      });
-    });
-=======
       const filePart = parts.find(p => p.type === 'file') as
         | {
             type: string;
             mediaType: string;
-            data: { type: string; data?: string };
+            data: string;
             providerMetadata?: { google?: { interactionId?: string } };
           }
         | undefined;
       expect(filePart).toBeDefined();
       expect(filePart?.type).toBe('file');
       expect(filePart?.mediaType).toMatch(/^image\//);
-      expect(filePart?.data.type).toBe('data');
-      expect(typeof filePart?.data.data).toBe('string');
-      expect(filePart?.data.data?.length ?? 0).toBeGreaterThan(0);
+      expect(typeof filePart?.data).toBe('string');
+      expect(filePart?.data?.length ?? 0).toBeGreaterThan(0);
       expect(filePart?.providerMetadata?.google?.interactionId).toMatch(/^v1_/);
     }, 30_000);
->>>>>>> 4e825f320 (feat(google): update Interactions API implementation to cater for upstream breaking changes coming May 26 (#15346))
 
     it('emits a file stream part for the modify (turn 2) stream', async () => {
       prepareChunksFixtureResponse('image-output-modify');

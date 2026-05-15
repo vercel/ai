@@ -33,6 +33,6 @@ run(async () => {
 
   console.log(
     'Interaction id:',
-    result.finalStep.providerMetadata?.google?.interactionId,
+    result.providerMetadata?.google?.interactionId,
   );
 });
