@@ -3,23 +3,23 @@ import {
   OpenAIResponsesLanguageModel,
 } from '@ai-sdk/openai/internal';
 import {
-  LanguageModelV4,
   NoSuchModelError,
-  ProviderV4,
+  type LanguageModelV4,
+  type ProviderV4,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
   loadOptionalSetting,
   loadSetting,
   withoutTrailingSlash,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import {
-  BedrockCredentials,
   createApiKeyFetchFunction,
   createSigV4FetchFunction,
-} from '../bedrock-sigv4-fetch';
-import { BedrockMantleModelId } from './bedrock-mantle-options';
+  type AmazonBedrockCredentials,
+} from '../amazon-bedrock-sigv4-fetch';
+import type { BedrockMantleModelId } from './bedrock-mantle-options';
 import { VERSION } from '../version';
 
 export interface BedrockMantleProvider extends ProviderV4 {
@@ -103,7 +103,7 @@ export interface BedrockMantleProviderSettings {
    * credential values to be used instead of the `accessKeyId`, `secretAccessKey`,
    * and `sessionToken` settings.
    */
-  credentialProvider?: () => PromiseLike<Omit<BedrockCredentials, 'region'>>;
+  credentialProvider?: () => PromiseLike<Omit<AmazonBedrockCredentials, 'region'>>;
 }
 
 /**
