@@ -19,7 +19,10 @@ import {
 import { VERSION } from './version';
 import type { GoogleVertexConfig } from './google-vertex-config';
 import { GoogleVertexEmbeddingModel } from './google-vertex-embedding-model';
-import type { GoogleVertexEmbeddingModelId } from './google-vertex-embedding-model-options';
+import type {
+  GoogleVertexEmbeddingModelId,
+  GoogleVertexEmbeddingModelOptions,
+} from './google-vertex-embedding-model-options';
 import { GoogleVertexImageModel } from './google-vertex-image-model';
 import type { GoogleVertexImageModelId } from './google-vertex-image-settings';
 import type { GoogleVertexModelId } from './google-vertex-options';
@@ -68,10 +71,19 @@ export interface GoogleVertexProvider extends ProviderV4 {
   tools: typeof googleVertexTools;
 
   /**
+   * Creates a model for text embeddings.
+   */
+  embeddingModel(
+    modelId: GoogleVertexEmbeddingModelId,
+    settings?: GoogleVertexEmbeddingModelOptions,
+  ): GoogleVertexEmbeddingModel;
+
+  /**
    * @deprecated Use `embeddingModel` instead.
    */
   textEmbeddingModel(
     modelId: GoogleVertexEmbeddingModelId,
+    settings?: GoogleVertexEmbeddingModelOptions,
   ): GoogleVertexEmbeddingModel;
 
   /**
@@ -206,8 +218,17 @@ export function createGoogleVertex(
     });
   };
 
-  const createEmbeddingModel = (modelId: GoogleVertexEmbeddingModelId) =>
-    new GoogleVertexEmbeddingModel(modelId, createConfig('embedding'));
+  const createEmbeddingModel = (
+    modelId: GoogleVertexEmbeddingModelId,
+    settings?: GoogleVertexEmbeddingModelOptions,
+  ) =>
+    settings == null
+      ? new GoogleVertexEmbeddingModel(modelId, createConfig('embedding'))
+      : new GoogleVertexEmbeddingModel(
+          modelId,
+          createConfig('embedding'),
+          settings,
+        );
 
   const createImageModel = (modelId: GoogleVertexImageModelId) =>
     new GoogleVertexImageModel(modelId, {

@@ -111,6 +111,34 @@ describe('google-vertex-provider-base', () => {
     );
   });
 
+  it('should create embedding models with default model settings', () => {
+    const provider = createGoogleVertex({
+      project: 'test-project',
+      location: 'test-location',
+    });
+    const settings = { outputDimensionality: 1536 };
+
+    provider.embeddingModel('test-embedding-model', settings);
+    provider.textEmbeddingModel('test-text-embedding-model', settings);
+
+    expect(GoogleVertexEmbeddingModel).toHaveBeenNthCalledWith(
+      1,
+      'test-embedding-model',
+      expect.objectContaining({
+        provider: 'google.vertex.embedding',
+      }),
+      settings,
+    );
+    expect(GoogleVertexEmbeddingModel).toHaveBeenNthCalledWith(
+      2,
+      'test-text-embedding-model',
+      expect.objectContaining({
+        provider: 'google.vertex.embedding',
+      }),
+      settings,
+    );
+  });
+
   it('should pass custom headers to the model constructor', () => {
     const customHeaders = { 'Custom-Header': 'custom-value' };
     const provider = createGoogleVertex({

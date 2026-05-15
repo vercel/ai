@@ -17,8 +17,13 @@ import { googleVertexFailedResponseHandler } from './google-vertex-error';
 import {
   googleVertexEmbeddingModelOptions,
   type GoogleVertexEmbeddingModelId,
+  type GoogleVertexEmbeddingModelOptions,
 } from './google-vertex-embedding-model-options';
 import type { GoogleVertexConfig } from './google-vertex-config';
+
+interface GoogleVertexEmbeddingConfig extends GoogleVertexConfig {
+  settings?: GoogleVertexEmbeddingModelOptions;
+}
 
 export class GoogleVertexEmbeddingModel implements EmbeddingModelV4 {
   readonly specificationVersion = 'v4';
@@ -26,7 +31,8 @@ export class GoogleVertexEmbeddingModel implements EmbeddingModelV4 {
   readonly maxEmbeddingsPerCall = 2048;
   readonly supportsParallelCalls = true;
 
-  private readonly config: GoogleVertexConfig;
+  private readonly config: GoogleVertexEmbeddingConfig;
+  private readonly settings: GoogleVertexEmbeddingModelOptions;
 
   static [WORKFLOW_SERIALIZE](model: GoogleVertexEmbeddingModel) {
     return serializeModelOptions({
@@ -37,7 +43,7 @@ export class GoogleVertexEmbeddingModel implements EmbeddingModelV4 {
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: string;
-    config: GoogleVertexConfig;
+    config: GoogleVertexEmbeddingConfig;
   }) {
     return new GoogleVertexEmbeddingModel(options.modelId, options.config);
   }
@@ -48,10 +54,18 @@ export class GoogleVertexEmbeddingModel implements EmbeddingModelV4 {
 
   constructor(
     modelId: GoogleVertexEmbeddingModelId,
-    config: GoogleVertexConfig,
+    config: GoogleVertexEmbeddingConfig,
+    settings?: GoogleVertexEmbeddingModelOptions,
   ) {
     this.modelId = modelId;
-    this.config = config;
+    this.config =
+      settings == null
+        ? config
+        : {
+            ...config,
+            settings,
+          };
+    this.settings = this.config.settings ?? {};
   }
 
   async doEmbed({
@@ -84,7 +98,10 @@ export class GoogleVertexEmbeddingModel implements EmbeddingModelV4 {
       });
     }
 
-    googleOptions = googleOptions ?? {};
+    googleOptions = {
+      ...this.settings,
+      ...(googleOptions ?? {}),
+    };
 
     if (values.length > this.maxEmbeddingsPerCall) {
       throw new TooManyEmbeddingValuesForCallError({
