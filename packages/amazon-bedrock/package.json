@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/amazon-bedrock",
-  "version": "5.0.0-canary.61",
+  "version": "5.0.0-canary.62",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,

@@ -3,8 +3,8 @@
   "version": "0.0.0",
   "private": true,
   "dependencies": {
-    "@ai-sdk/openai": "4.0.0-canary.57",
-    "ai": "7.0.0-canary.138",
+    "@ai-sdk/openai": "4.0.0-canary.58",
+    "ai": "7.0.0-canary.139",
     "dotenv": "16.4.5",
     "fastify": "5.1.0"
   },

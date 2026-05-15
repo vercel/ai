@@ -1,5 +1,16 @@
 # @ai-sdk/workflow
 
+## 1.0.0-canary.56
+
+### Patch Changes
+
+- 334ae5d: Update step performance metrics with explicit effective, input, output, and total token throughput fields.
+- Updated dependencies [334ae5d]
+- Updated dependencies [28dfa06]
+- Updated dependencies [e93fa91]
+  - ai@7.0.0-canary.139
+  - @ai-sdk/provider-utils@5.0.0-canary.41
+
 ## 1.0.0-canary.55
 
 ### Patch Changes
