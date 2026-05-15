@@ -4,15 +4,15 @@ import {
   OpenAIChatLanguageModel,
   OpenAIResponsesLanguageModel,
 } from '@ai-sdk/openai/internal';
+import type * as ProviderUtilsModule from '@ai-sdk/provider-utils';
 import {
   createApiKeyFetchFunction,
   createSigV4FetchFunction,
-} from '../bedrock-sigv4-fetch';
+} from '../amazon-bedrock-sigv4-fetch';
 import { vi, describe, beforeEach, it, expect } from 'vitest';
 
 vi.mock('@ai-sdk/provider-utils', async importOriginal => {
-  const actual =
-    await importOriginal<typeof import('@ai-sdk/provider-utils')>();
+  const actual = await importOriginal<typeof ProviderUtilsModule>();
   return {
     ...actual,
     loadOptionalSetting: vi.fn().mockImplementation(({ settingValue }) => {
@@ -45,7 +45,7 @@ vi.mock('@ai-sdk/openai/internal', async () => {
   };
 });
 
-vi.mock('../bedrock-sigv4-fetch', () => ({
+vi.mock('../amazon-bedrock-sigv4-fetch', () => ({
   createSigV4FetchFunction: vi.fn().mockReturnValue(vi.fn()),
   createApiKeyFetchFunction: vi.fn().mockReturnValue(vi.fn()),
 }));

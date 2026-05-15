@@ -109,7 +109,9 @@ export interface BedrockMantleProviderSettings {
    * credential values to be used instead of the `accessKeyId`, `secretAccessKey`,
    * and `sessionToken` settings.
    */
-  credentialProvider?: () => PromiseLike<Omit<AmazonBedrockCredentials, 'region'>>;
+  credentialProvider?: () => PromiseLike<
+    Omit<AmazonBedrockCredentials, 'region'>
+  >;
 }
 
 /**
