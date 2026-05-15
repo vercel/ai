@@ -18,8 +18,13 @@ describe('convertToGoogleInteractionsInput', () => {
         {
           "input": [
             {
-              "text": "Hello, how are you?",
-              "type": "text",
+              "content": [
+                {
+                  "text": "Hello, how are you?",
+                  "type": "text",
+                },
+              ],
+              "type": "user_input",
             },
           ],
           "systemInstruction": undefined,
@@ -66,13 +71,18 @@ describe('convertToGoogleInteractionsInput', () => {
         {
           "input": [
             {
-              "text": "Describe this",
-              "type": "text",
-            },
-            {
-              "data": "AQIDBA==",
-              "mime_type": "image/png",
-              "type": "image",
+              "content": [
+                {
+                  "text": "Describe this",
+                  "type": "text",
+                },
+                {
+                  "data": "AQIDBA==",
+                  "mime_type": "image/png",
+                  "type": "image",
+                },
+              ],
+              "type": "user_input",
             },
           ],
           "systemInstruction": undefined,
@@ -97,13 +107,20 @@ describe('convertToGoogleInteractionsInput', () => {
 
       const result = convertToGoogleInteractionsInput({ prompt });
 
-      expect(result.input).toEqual([
-        {
-          type: 'image',
-          data: 'SGVsbG8=',
-          mime_type: 'image/jpeg',
-        },
-      ]);
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "data": "SGVsbG8=",
+                "mime_type": "image/jpeg",
+                "type": "image",
+              },
+            ],
+            "type": "user_input",
+          },
+        ]
+      `);
     });
 
     it('maps a url data part to an image block with `uri` (URL passthrough)', () => {
@@ -127,13 +144,18 @@ describe('convertToGoogleInteractionsInput', () => {
         {
           "input": [
             {
-              "text": "Describe this",
-              "type": "text",
-            },
-            {
-              "mime_type": "image/png",
-              "type": "image",
-              "uri": "https://example.com/cat.png",
+              "content": [
+                {
+                  "text": "Describe this",
+                  "type": "text",
+                },
+                {
+                  "mime_type": "image/png",
+                  "type": "image",
+                  "uri": "https://example.com/cat.png",
+                },
+              ],
+              "type": "user_input",
             },
           ],
           "systemInstruction": undefined,
@@ -158,12 +180,19 @@ describe('convertToGoogleInteractionsInput', () => {
 
       const result = convertToGoogleInteractionsInput({ prompt });
 
-      expect(result.input).toEqual([
-        {
-          type: 'image',
-          uri: 'https://example.com/cat.png',
-        },
-      ]);
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "type": "image",
+                "uri": "https://example.com/cat.png",
+              },
+            ],
+            "type": "user_input",
+          },
+        ]
+      `);
     });
 
     it('maps a Files API URL to an image block with `uri`', () => {
@@ -189,13 +218,18 @@ describe('convertToGoogleInteractionsInput', () => {
         {
           "input": [
             {
-              "text": "Describe this",
-              "type": "text",
-            },
-            {
-              "mime_type": "image/png",
-              "type": "image",
-              "uri": "https://generativelanguage.googleapis.com/v1beta/files/abc123",
+              "content": [
+                {
+                  "text": "Describe this",
+                  "type": "text",
+                },
+                {
+                  "mime_type": "image/png",
+                  "type": "image",
+                  "uri": "https://generativelanguage.googleapis.com/v1beta/files/abc123",
+                },
+              ],
+              "type": "user_input",
             },
           ],
           "systemInstruction": undefined,
@@ -223,14 +257,21 @@ describe('convertToGoogleInteractionsInput', () => {
         mediaResolution: 'high',
       });
 
-      expect(result.input).toEqual([
-        {
-          type: 'image',
-          data: 'SGVsbG8=',
-          mime_type: 'image/png',
-          resolution: 'high',
-        },
-      ]);
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "data": "SGVsbG8=",
+                "mime_type": "image/png",
+                "resolution": "high",
+                "type": "image",
+              },
+            ],
+            "type": "user_input",
+          },
+        ]
+      `);
     });
   });
 
@@ -252,13 +293,20 @@ describe('convertToGoogleInteractionsInput', () => {
 
       const result = convertToGoogleInteractionsInput({ prompt });
 
-      expect(result.input).toEqual([
-        {
-          type: 'document',
-          data: 'AQID',
-          mime_type: 'application/pdf',
-        },
-      ]);
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "data": "AQID",
+                "mime_type": "application/pdf",
+                "type": "document",
+              },
+            ],
+            "type": "user_input",
+          },
+        ]
+      `);
     });
 
     it('passes a base64-string PDF data part through as a document block', () => {
@@ -277,13 +325,20 @@ describe('convertToGoogleInteractionsInput', () => {
 
       const result = convertToGoogleInteractionsInput({ prompt });
 
-      expect(result.input).toEqual([
-        {
-          type: 'document',
-          data: 'JVBERi0=',
-          mime_type: 'application/pdf',
-        },
-      ]);
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "data": "JVBERi0=",
+                "mime_type": "application/pdf",
+                "type": "document",
+              },
+            ],
+            "type": "user_input",
+          },
+        ]
+      `);
     });
 
     it('maps a url PDF data part to a document block with `uri` (URL passthrough)', () => {
@@ -307,13 +362,18 @@ describe('convertToGoogleInteractionsInput', () => {
         {
           "input": [
             {
-              "text": "Summarize this",
-              "type": "text",
-            },
-            {
-              "mime_type": "application/pdf",
-              "type": "document",
-              "uri": "https://example.com/paper.pdf",
+              "content": [
+                {
+                  "text": "Summarize this",
+                  "type": "text",
+                },
+                {
+                  "mime_type": "application/pdf",
+                  "type": "document",
+                  "uri": "https://example.com/paper.pdf",
+                },
+              ],
+              "type": "user_input",
             },
           ],
           "systemInstruction": undefined,
@@ -340,14 +400,55 @@ describe('convertToGoogleInteractionsInput', () => {
 
       const result = convertToGoogleInteractionsInput({ prompt });
 
-      expect(result.input).toEqual([
-        {
-          type: 'document',
-          uri: 'https://generativelanguage.googleapis.com/v1beta/files/doc-xyz',
-          mime_type: 'application/pdf',
-        },
-      ]);
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "mime_type": "application/pdf",
+                "type": "document",
+                "uri": "https://generativelanguage.googleapis.com/v1beta/files/doc-xyz",
+              },
+            ],
+            "type": "user_input",
+          },
+        ]
+      `);
     });
+<<<<<<< HEAD
+=======
+
+    it('collapses a text-data document part to an inline text block (no text+data on the wire)', () => {
+      const prompt: LanguageModelV4Prompt = [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              mediaType: 'application/pdf',
+              data: { type: 'text', text: 'extracted PDF body' },
+            },
+          ],
+        },
+      ];
+
+      const result = convertToGoogleInteractionsInput({ prompt });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "extracted PDF body",
+                "type": "text",
+              },
+            ],
+            "type": "user_input",
+          },
+        ]
+      `);
+    });
+>>>>>>> 4e825f320 (feat(google): update Interactions API implementation to cater for upstream breaking changes coming May 26 (#15346))
   });
 
   describe('video file parts', () => {
@@ -372,12 +473,17 @@ describe('convertToGoogleInteractionsInput', () => {
         {
           "input": [
             {
-              "text": "Summarize this video",
-              "type": "text",
-            },
-            {
-              "type": "video",
-              "uri": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+              "content": [
+                {
+                  "text": "Summarize this video",
+                  "type": "text",
+                },
+                {
+                  "type": "video",
+                  "uri": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+                },
+              ],
+              "type": "user_input",
             },
           ],
           "systemInstruction": undefined,
@@ -402,13 +508,20 @@ describe('convertToGoogleInteractionsInput', () => {
 
       const result = convertToGoogleInteractionsInput({ prompt });
 
-      expect(result.input).toEqual([
-        {
-          type: 'video',
-          uri: 'https://youtu.be/abc123',
-          mime_type: 'video/mp4',
-        },
-      ]);
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "mime_type": "video/mp4",
+                "type": "video",
+                "uri": "https://youtu.be/abc123",
+              },
+            ],
+            "type": "user_input",
+          },
+        ]
+      `);
     });
 
     it('maps a video data part to an inline video block', () => {
@@ -427,13 +540,20 @@ describe('convertToGoogleInteractionsInput', () => {
 
       const result = convertToGoogleInteractionsInput({ prompt });
 
-      expect(result.input).toEqual([
-        {
-          type: 'video',
-          data: 'BQYH',
-          mime_type: 'video/mp4',
-        },
-      ]);
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "data": "BQYH",
+                "mime_type": "video/mp4",
+                "type": "video",
+              },
+            ],
+            "type": "user_input",
+          },
+        ]
+      `);
     });
 
     it('maps a video Files API URL to a video block with `uri`', () => {
@@ -454,16 +574,176 @@ describe('convertToGoogleInteractionsInput', () => {
 
       const result = convertToGoogleInteractionsInput({ prompt });
 
-      expect(result.input).toEqual([
-        {
-          type: 'video',
-          uri: 'https://generativelanguage.googleapis.com/v1beta/files/vid-xyz',
-          mime_type: 'video/mp4',
-        },
-      ]);
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "mime_type": "video/mp4",
+                "type": "video",
+                "uri": "https://generativelanguage.googleapis.com/v1beta/files/vid-xyz",
+              },
+            ],
+            "type": "user_input",
+          },
+        ]
+      `);
     });
   });
 
+<<<<<<< HEAD
+=======
+  describe('text file parts', () => {
+    it('collapses a text-data file part into an inline text block', () => {
+      const prompt: LanguageModelV4Prompt = [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              mediaType: 'text/plain',
+              data: { type: 'text', text: 'inline text content' },
+            },
+          ],
+        },
+      ];
+
+      const result = convertToGoogleInteractionsInput({ prompt });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "inline text content",
+                "type": "text",
+              },
+            ],
+            "type": "user_input",
+          },
+        ]
+      `);
+    });
+
+    it('merges an inline text-data file part with an adjacent text part', () => {
+      const prompt: LanguageModelV4Prompt = [
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: 'Please review:' },
+            {
+              type: 'file',
+              mediaType: 'text/plain',
+              data: { type: 'text', text: 'inline body' },
+            },
+          ],
+        },
+      ];
+
+      const result = convertToGoogleInteractionsInput({ prompt });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "Please review:
+
+        inline body",
+                "type": "text",
+              },
+            ],
+            "type": "user_input",
+          },
+        ]
+      `);
+    });
+
+    it('does not merge a text part across a non-text part', () => {
+      const prompt: LanguageModelV4Prompt = [
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: 'before' },
+            {
+              type: 'file',
+              mediaType: 'image/png',
+              data: { type: 'data', data: 'AQID' },
+            },
+            {
+              type: 'file',
+              mediaType: 'text/plain',
+              data: { type: 'text', text: 'after' },
+            },
+          ],
+        },
+      ];
+
+      const result = convertToGoogleInteractionsInput({ prompt });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "before",
+                "type": "text",
+              },
+              {
+                "data": "AQID",
+                "mime_type": "image/png",
+                "type": "image",
+              },
+              {
+                "text": "after",
+                "type": "text",
+              },
+            ],
+            "type": "user_input",
+          },
+        ]
+      `);
+    });
+
+    it('merges three adjacent text-derived parts into one', () => {
+      const prompt: LanguageModelV4Prompt = [
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: 'a' },
+            { type: 'text', text: 'b' },
+            {
+              type: 'file',
+              mediaType: 'text/markdown',
+              data: { type: 'text', text: 'c' },
+            },
+          ],
+        },
+      ];
+
+      const result = convertToGoogleInteractionsInput({ prompt });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "a
+
+        b
+
+        c",
+                "type": "text",
+              },
+            ],
+            "type": "user_input",
+          },
+        ]
+      `);
+    });
+  });
+
+>>>>>>> 4e825f320 (feat(google): update Interactions API implementation to cater for upstream breaking changes coming May 26 (#15346))
   describe('assistant tool-call parts', () => {
     it('emits a function_call content block from an assistant tool-call part with object input', () => {
       const prompt: LanguageModelV3Prompt = [
@@ -495,20 +775,15 @@ describe('convertToGoogleInteractionsInput', () => {
                 "type": "text",
               },
             ],
-            "role": "user",
+            "type": "user_input",
           },
           {
-            "content": [
-              {
-                "arguments": {
-                  "location": "New York",
-                },
-                "id": "call_abc",
-                "name": "getWeather",
-                "type": "function_call",
-              },
-            ],
-            "role": "model",
+            "arguments": {
+              "location": "New York",
+            },
+            "id": "call_abc",
+            "name": "getWeather",
+            "type": "function_call",
           },
         ]
       `);
@@ -534,11 +809,12 @@ describe('convertToGoogleInteractionsInput', () => {
       ];
 
       const result = convertToGoogleInteractionsInput({ prompt });
-      const turns = result.input as Array<{ content: Array<unknown> }>;
-      const fnCall = turns[1].content[0] as {
-        arguments: Record<string, unknown>;
-      };
-      expect(fnCall.arguments).toEqual({ location: 'Boston' });
+      const steps = result.input as Array<{
+        type: string;
+        arguments?: Record<string, unknown>;
+      }>;
+      const fnCall = steps.find(step => step.type === 'function_call');
+      expect(fnCall?.arguments).toEqual({ location: 'Boston' });
     });
 
     it('round-trips a function_call signature via providerMetadata.google.signature', () => {
@@ -564,9 +840,12 @@ describe('convertToGoogleInteractionsInput', () => {
       ];
 
       const result = convertToGoogleInteractionsInput({ prompt });
-      const turns = result.input as Array<{ content: Array<unknown> }>;
-      const fnCall = turns[1].content[0] as { signature?: string };
-      expect(fnCall.signature).toBe('sig-xyz');
+      const steps = result.input as Array<{
+        type: string;
+        signature?: string;
+      }>;
+      const fnCall = steps.find(step => step.type === 'function_call');
+      expect(fnCall?.signature).toBe('sig-xyz');
     });
   });
 
@@ -605,7 +884,7 @@ describe('convertToGoogleInteractionsInput', () => {
                 "type": "text",
               },
             ],
-            "role": "user",
+            "type": "user_input",
           },
           {
             "content": [
@@ -615,7 +894,7 @@ describe('convertToGoogleInteractionsInput', () => {
                 "type": "image",
               },
             ],
-            "role": "model",
+            "type": "model_output",
           },
           {
             "content": [
@@ -624,7 +903,7 @@ describe('convertToGoogleInteractionsInput', () => {
                 "type": "text",
               },
             ],
-            "role": "user",
+            "type": "user_input",
           },
         ]
       `);
@@ -696,20 +975,15 @@ describe('convertToGoogleInteractionsInput', () => {
                 "type": "text",
               },
             ],
-            "role": "user",
+            "type": "user_input",
           },
           {
-            "content": [
-              {
-                "arguments": {
-                  "location": "NYC",
-                },
-                "id": "call_abc",
-                "name": "getWeather",
-                "type": "function_call",
-              },
-            ],
-            "role": "model",
+            "arguments": {
+              "location": "NYC",
+            },
+            "id": "call_abc",
+            "name": "getWeather",
+            "type": "function_call",
           },
           {
             "content": [
@@ -720,7 +994,7 @@ describe('convertToGoogleInteractionsInput', () => {
                 "type": "function_result",
               },
             ],
-            "role": "user",
+            "type": "user_input",
           },
         ]
       `);
@@ -942,7 +1216,7 @@ describe('convertToGoogleInteractionsInput', () => {
                 "type": "text",
               },
             ],
-            "role": "user",
+            "type": "user_input",
           },
           {
             "content": [
@@ -951,7 +1225,7 @@ describe('convertToGoogleInteractionsInput', () => {
                 "type": "text",
               },
             ],
-            "role": "user",
+            "type": "user_input",
           },
         ]
       `);
@@ -984,12 +1258,15 @@ describe('convertToGoogleInteractionsInput', () => {
         prompt,
         previousInteractionId: PREV_ID,
       });
-      const turns = result.input as Array<{
-        role: string;
-        content: Array<unknown>;
+      const steps = result.input as Array<{
+        type: string;
+        content?: Array<unknown>;
       }>;
-      expect(turns).toHaveLength(3);
-      expect(turns[1].role).toBe('model');
+      expect(steps).toHaveLength(3);
+      // After compaction, the surviving 3 steps are: user_input (q1),
+      // model_output (the assistant turn from a different interaction —
+      // kept), and user_input (follow-up).
+      expect(steps[1].type).toBe('model_output');
     });
 
     it('drops the matching assistant tool-call turn AND its paired tool-result message', () => {
@@ -1032,16 +1309,16 @@ describe('convertToGoogleInteractionsInput', () => {
         prompt,
         previousInteractionId: PREV_ID,
       });
-      const turns = result.input as Array<{
-        role: string;
-        content: Array<{ type: string }>;
+      const steps = result.input as Array<{
+        type: string;
+        content: Array<{ type: string; text?: string }>;
       }>;
-      expect(turns.map(t => t.role)).toEqual(['user', 'user']);
-      expect(turns[0].content[0]).toMatchObject({
+      expect(steps.map(s => s.type)).toEqual(['user_input', 'user_input']);
+      expect(steps[0].content[0]).toMatchObject({
         type: 'text',
         text: 'q1',
       });
-      expect(turns[1].content[0]).toMatchObject({
+      expect(steps[1].content[0]).toMatchObject({
         type: 'text',
         text: 'q2',
       });
@@ -1075,8 +1352,8 @@ describe('convertToGoogleInteractionsInput', () => {
         previousInteractionId: PREV_ID,
         store: false,
       });
-      const turns = result.input as Array<{ role: string }>;
-      expect(turns).toHaveLength(3);
+      const steps = result.input as Array<{ type: string }>;
+      expect(steps).toHaveLength(3);
       expect(result.warnings).toMatchInlineSnapshot(`
         [
           {
@@ -1133,7 +1410,7 @@ describe('convertToGoogleInteractionsInput', () => {
                 "type": "text",
               },
             ],
-            "role": "user",
+            "type": "user_input",
           },
           {
             "content": [
@@ -1142,7 +1419,7 @@ describe('convertToGoogleInteractionsInput', () => {
                 "type": "text",
               },
             ],
-            "role": "user",
+            "type": "user_input",
           },
         ]
       `);
@@ -1176,12 +1453,14 @@ describe('convertToGoogleInteractionsInput', () => {
         },
       ];
       const result = convertToGoogleInteractionsInput({ prompt });
-      const turns = result.input as Array<{ content: Array<unknown> }>;
-      const modelContent = turns[1].content as Array<{
+      const steps = result.input as Array<{
         type: string;
         signature?: string;
       }>;
-      expect(modelContent[0]).toMatchObject({
+      // Assistant content fans out into discrete steps: a `thought` step
+      // (carrying the signature) followed by a `model_output` step.
+      const thoughtStep = steps.find(step => step.type === 'thought');
+      expect(thoughtStep).toMatchObject({
         type: 'thought',
         signature: 'thought-sig-XYZ',
       });
@@ -1226,21 +1505,25 @@ describe('convertToGoogleInteractionsInput', () => {
       });
 
       expect(result.warnings).toEqual([]);
-      const turns = result.input as Array<{
-        role: string;
+      const steps = result.input as Array<{
+        type: string;
         content: Array<{ type: string; text?: string }>;
       }>;
-      expect(turns).toHaveLength(3);
-      expect(turns.map(t => t.role)).toEqual(['user', 'model', 'user']);
-      expect(turns[0].content[0]).toMatchObject({
+      expect(steps).toHaveLength(3);
+      expect(steps.map(s => s.type)).toEqual([
+        'user_input',
+        'model_output',
+        'user_input',
+      ]);
+      expect(steps[0].content[0]).toMatchObject({
         type: 'text',
         text: 'What are the three largest cities in Spain?',
       });
-      expect(turns[1].content[0]).toMatchObject({
+      expect(steps[1].content[0]).toMatchObject({
         type: 'text',
         text: 'Madrid, Barcelona, Valencia.',
       });
-      expect(turns[2].content[0]).toMatchObject({
+      expect(steps[2].content[0]).toMatchObject({
         type: 'text',
         text: 'What is the most famous landmark in the second one?',
       });
@@ -1277,9 +1560,13 @@ describe('convertToGoogleInteractionsInput', () => {
       });
 
       expect(result.warnings).toEqual([]);
-      const turns = result.input as Array<{ role: string }>;
-      expect(turns).toHaveLength(3);
-      expect(turns.map(t => t.role)).toEqual(['user', 'model', 'user']);
+      const steps = result.input as Array<{ type: string }>;
+      expect(steps).toHaveLength(3);
+      expect(steps.map(s => s.type)).toEqual([
+        'user_input',
+        'model_output',
+        'user_input',
+      ]);
     });
   });
 
@@ -1301,7 +1588,19 @@ describe('convertToGoogleInteractionsInput', () => {
 
       const result = convertToGoogleInteractionsInput({ prompt });
 
-      expect(result.input).toEqual([{ type: 'text', text: 'Hi' }]);
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "Hi",
+                "type": "text",
+              },
+            ],
+            "type": "user_input",
+          },
+        ]
+      `);
       expect(result.warnings).toMatchInlineSnapshot(`
         [
           {
