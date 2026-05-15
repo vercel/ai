@@ -58,6 +58,9 @@
       "path": "examples/next-openai-upstash-rate-limits"
     },
     {
+      "path": "examples/next-vc-deal-flow-mcp"
+    },
+    {
       "path": "examples/node-http-server"
     },
     {
