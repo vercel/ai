@@ -1,5 +1,12 @@
 # @ai-sdk/provider-utils
 
+## 5.0.0-canary.41
+
+### Patch Changes
+
+- 28dfa06: fix: support tools with optional context
+- e93fa91: rename Sandbox.executeCommand to Sandbox.runCommand
+
 ## 5.0.0-canary.40
 
 ### Patch Changes
