@@ -903,8 +903,13 @@ You can create image models using the `.image()` factory method. The Google Vert
 [Imagen models](https://cloud.google.com/vertex-ai/generative-ai/docs/image/generate-images) generate images using the Imagen on Vertex AI API.
 
 ```ts
-import { googleVertex } from '@ai-sdk/google-vertex';
+import { createGoogleVertex } from '@ai-sdk/google-vertex';
 import { generateImage } from 'ai';
+
+const googleVertex = createGoogleVertex({
+  project: 'my-project',
+  location: 'us-central1',
+});
 
 const { image } = await generateImage({
   model: googleVertex.image('imagen-4.0-generate-001'),
