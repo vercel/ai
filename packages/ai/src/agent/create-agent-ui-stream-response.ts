@@ -1,7 +1,7 @@
 import type {
   Arrayable,
   Context,
-  Experimental_Sandbox as Sandbox,
+  Experimental_ProviderSandbox as ProviderSandbox,
   ToolSet,
 } from '@ai-sdk/provider-utils';
 import type { GenerateTextOnStepFinishCallback } from '../generate-text/generate-text-events';
@@ -50,7 +50,7 @@ export async function createAgentUIStreamResponse<
   uiMessages: unknown[];
   abortSignal?: AbortSignal;
   timeout?: TimeoutConfiguration<TOOLS>;
-  experimental_sandbox?: Sandbox;
+  experimental_sandbox?: ProviderSandbox;
   options?: CALL_OPTIONS;
   experimental_transform?: Arrayable<StreamTextTransform<TOOLS>>;
   onStepFinish?: GenerateTextOnStepFinishCallback<TOOLS>;

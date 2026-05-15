@@ -1,7 +1,7 @@
 import {
   validateTypes,
   type Context,
-  type Experimental_Sandbox as Sandbox,
+  type Experimental_ProviderSandbox as ProviderSandbox,
   type ModelMessage,
   type ToolSet,
 } from '@ai-sdk/provider-utils';
@@ -79,7 +79,7 @@ export class ToolLoopAgent<
     prompt?: string | Array<ModelMessage>;
     messages?: Array<ModelMessage>;
     options?: CALL_OPTIONS;
-    experimental_sandbox?: Sandbox;
+    experimental_sandbox?: ProviderSandbox;
   }): Promise<
     Omit<
       ToolLoopAgentSettings<CALL_OPTIONS, TOOLS, RUNTIME_CONTEXT, OUTPUT>,

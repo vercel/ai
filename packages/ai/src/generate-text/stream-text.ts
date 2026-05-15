@@ -12,7 +12,7 @@ import {
   isAbortError,
   type Arrayable,
   type Context,
-  type Experimental_Sandbox as Sandbox,
+  type Experimental_ProviderSandbox as ProviderSandbox,
   type IdGenerator,
   type InferToolSetContext,
   type ModelMessage,
@@ -88,6 +88,7 @@ import { setAbortTimeout } from '../util/set-abort-timeout';
 import type { ActiveTools } from './active-tools';
 import { collectToolApprovals } from './collect-tool-approvals';
 import type { ContentPart } from './content-part';
+import { wrapProviderSandbox } from './default-sandbox';
 import {
   executeToolsFromStream,
   type ExecuteToolsStreamPart,
@@ -398,7 +399,7 @@ export function streamText<
     /**
      * The sandbox environment that is passed through to tool execution.
      */
-    experimental_sandbox?: Sandbox;
+    experimental_sandbox?: ProviderSandbox;
 
     /**
      * Runtime context. Treat runtime context as immutable.
@@ -871,7 +872,7 @@ class DefaultStreamTextResult<
     prompt: Prompt['prompt'];
     messages: Prompt['messages'];
     allowSystemInMessages: Prompt['allowSystemInMessages'];
-    experimental_sandbox: Sandbox | undefined;
+    experimental_sandbox: ProviderSandbox | undefined;
     tools: TOOLS | undefined;
     toolChoice: ToolChoice<TOOLS> | undefined;
     transforms: Array<StreamTextTransform<TOOLS>>;
@@ -1423,6 +1424,7 @@ class DefaultStreamTextResult<
       });
 
       const initialMessages = initialPrompt.messages;
+      const initialSandbox = wrapProviderSandbox(sandbox);
       let instructionsForNextStep = initialPrompt.instructions;
 
       const { approvedToolApprovals, deniedToolApprovals } =
@@ -1477,7 +1479,7 @@ class DefaultStreamTextResult<
                 messages: initialMessages,
                 abortSignal,
                 timeout,
-                experimental_sandbox: sandbox,
+                experimental_sandbox: initialSandbox,
                 toolsContext,
                 onToolExecutionStart: filterNullable(
                   onToolExecutionStart,
@@ -1616,11 +1618,15 @@ class DefaultStreamTextResult<
             responseMessages: accumulatedResponseMessages,
             toolsContext,
             runtimeContext,
-            experimental_sandbox: sandbox,
+            experimental_sandbox: initialSandbox,
           });
 
-          const stepSandbox =
+          const stepProviderSandbox =
             prepareStepResult?.experimental_sandbox ?? sandbox;
+          const stepSandbox =
+            stepProviderSandbox === sandbox
+              ? initialSandbox
+              : wrapProviderSandbox(stepProviderSandbox);
 
           runtimeContext = prepareStepResult?.runtimeContext ?? runtimeContext;
           toolsContext = prepareStepResult?.toolsContext ?? toolsContext;
@@ -1686,7 +1692,7 @@ class DefaultStreamTextResult<
               output,
               callId,
               toolsContext,
-              experimental_sandbox: stepSandbox,
+              experimental_sandbox: stepProviderSandbox,
               onLanguageModelCallStart: filterNullable(
                 onLanguageModelCallStart,
                 telemetryDispatcher.onLanguageModelCallStart as

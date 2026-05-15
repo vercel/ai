@@ -17,6 +17,17 @@ import {
 import type { ToolExecuteFunction } from './tool-execute-function';
 
 describe('DynamicTool', () => {
+  it('should use the tool-facing sandbox in function descriptions', () => {
+    expectTypeOf<FunctionTool['description']>().toExtend<
+      | string
+      | ((options: {
+          context: Context;
+          experimental_sandbox?: Sandbox;
+        }) => string)
+      | undefined
+    >();
+  });
+
   it('should include dynamic tools in the Tool union', () => {
     expectTypeOf<DynamicTool<{ number: number }, string, Context>>().toExtend<
       Tool<{ number: number }, string, Context>

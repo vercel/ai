@@ -1,7 +1,7 @@
 import type {
   Arrayable,
   Context,
-  Experimental_Sandbox as Sandbox,
+  Experimental_ProviderSandbox as ProviderSandbox,
   ModelMessage,
   ToolSet,
 } from '@ai-sdk/provider-utils';
@@ -109,7 +109,7 @@ export type AgentCallParameters<
     /**
      * The sandbox environment that is passed through to tool execution.
      */
-    experimental_sandbox?: Sandbox;
+    experimental_sandbox?: ProviderSandbox;
   };
 
 /**

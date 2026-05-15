@@ -10,6 +10,7 @@ import {
   withUserAgentSuffix,
   type Arrayable,
   type Context,
+  type Experimental_ProviderSandbox as ProviderSandbox,
   type Experimental_Sandbox as Sandbox,
   type IdGenerator,
   type InferToolSetContext,
@@ -61,6 +62,7 @@ import type { ActiveTools } from './active-tools';
 import { calculateTokensPerSecond } from './calculate-tokens-per-second';
 import { collectToolApprovals } from './collect-tool-approvals';
 import type { ContentPart } from './content-part';
+import { wrapProviderSandbox } from './default-sandbox';
 import { executeToolCall } from './execute-tool-call';
 import {
   filterActiveTools,
@@ -299,7 +301,7 @@ export async function generateText<
     /**
      * The sandbox environment that is passed through to tool execution.
      */
-    experimental_sandbox?: Sandbox;
+    experimental_sandbox?: ProviderSandbox;
 
     /**
      * Runtime context. Treat runtime context as immutable.
@@ -539,6 +541,7 @@ export async function generateText<
   try {
     const initialMessages = initialPrompt.messages;
     const initialResponseMessages: Array<ResponseMessage> = [];
+    const initialSandbox = wrapProviderSandbox(sandbox);
 
     const { approvedToolApprovals, deniedToolApprovals } =
       collectToolApprovals<TOOLS>({ messages: initialMessages });
@@ -560,7 +563,7 @@ export async function generateText<
         messages: initialMessages,
         abortSignal: mergedAbortSignal,
         timeout,
-        experimental_sandbox: sandbox,
+        experimental_sandbox: initialSandbox,
         toolsContext,
         onToolExecutionStart: event =>
           notify({
@@ -675,10 +678,15 @@ export async function generateText<
           responseMessages: accumulatedResponseMessages,
           runtimeContext,
           toolsContext,
-          experimental_sandbox: sandbox,
+          experimental_sandbox: initialSandbox,
         });
 
-        const stepSandbox = prepareStepResult?.experimental_sandbox ?? sandbox;
+        const stepProviderSandbox =
+          prepareStepResult?.experimental_sandbox ?? sandbox;
+        const stepSandbox =
+          stepProviderSandbox === sandbox
+            ? initialSandbox
+            : wrapProviderSandbox(stepProviderSandbox);
 
         const stepModel = resolveLanguageModel(
           prepareStepResult?.model ?? model,
