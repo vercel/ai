@@ -7,11 +7,12 @@ import type {
 import { convertToBase64 } from '@ai-sdk/provider-utils';
 import type {
   GoogleInteractionsContent,
+  GoogleInteractionsContentBlock,
   GoogleInteractionsFunctionResultContent,
   GoogleInteractionsImageContent,
   GoogleInteractionsInput,
+  GoogleInteractionsStep,
   GoogleInteractionsTextContent,
-  GoogleInteractionsTurn,
 } from './google-interactions-prompt';
 
 function getTopLevelMediaType(mediaType: string): string {
@@ -42,22 +43,20 @@ export type ConvertToGoogleInteractionsInputResult = {
 
 /**
  * Converts an AI SDK `LanguageModelV3Prompt` into the Gemini Interactions
- * request shape (`{ input, system_instruction }`).
+ * request shape (`{ input: Array<Step>, system_instruction }`).
+ *
+ * Prior assistant content round-trips as discrete steps:
+ *   - text / image content → `model_output` step with a single `content` array
+ *   - reasoning → `thought` step (`signature` + `summary`)
+ *   - tool-call → `function_call` step
+ * User turns (and tool-result turns from the previous round) are sent as
+ * `user_input` steps whose `content[]` holds the user's parts (text, files,
+ * and — for tool-result turns — `function_result` blocks).
  *
  * Handles text parts, file parts (image / audio / document / video, all four
- * `data.type` shapes), tool-call/tool-result round-tripping, per-block
- * `signature` round-tripping (`thought.signature`, `function_call.signature`),
- * and statefulness compaction (drop assistant/tool turns whose
- * `providerOptions.google.interactionId === previousInteractionId`).
- *
- * NOTE on PRD Open Q3 (empty-text-with-signature carrier hack from the
- * `:generateContent` provider): unnecessary on Interactions because
- * `thought.signature` and `function_call.signature` are explicit fields on
- * the wire (verified against `googleapis/js-genai`
- * `src/interactions/resources/interactions.ts` `ThoughtContent` /
- * `FunctionCallContent`). When an input reasoning part has empty text + a
- * signature, the converter emits a `thought` block with `signature` and an
- * omitted `summary` — no synthetic empty-text carrier needed.
+ * `data.type` shapes), tool-call/tool-result round-tripping, per-step
+ * `signature` round-tripping, and statefulness compaction (drop assistant/tool
+ * turns whose `providerOptions.google.interactionId === previousInteractionId`).
  */
 export function convertToGoogleInteractionsInput({
   prompt,
@@ -68,20 +67,12 @@ export function convertToGoogleInteractionsInput({
   prompt: LanguageModelV3Prompt;
   previousInteractionId?: string;
   store?: boolean;
-  /**
-   * Per-block media resolution applied to every image / video input block
-   * (the Interactions wire format places `resolution` on the block, not at
-   * the top level). See js-genai
-   * `src/interactions/resources/interactions.ts` `ImageContent.resolution`
-   * and `VideoContent.resolution`.
-   */
   mediaResolution?: GoogleInteractionsMediaResolution;
 }): ConvertToGoogleInteractionsInputResult {
   const warnings: Array<SharedV3Warning> = [];
 
   /*
-   * Behavior matrix per PRD § "Public-API contracts" → "Configurable behavior
-   * matrix":
+   * Behavior matrix for compaction:
    *
    * - `previousInteractionId` set + `store !== false` → compact history (drop
    *   assistant/tool turns whose `providerMetadata.google.interactionId`
@@ -90,10 +81,6 @@ export function convertToGoogleInteractionsInput({
    *   (incoherent combo), still send full history (NO compaction).
    * - `store === false`, no `previousInteractionId` → no compaction.
    * - Default → no compaction.
-   *
-   * The actual `previous_interaction_id` / `store` body fields are emitted in
-   * the language model's `getArgs`; this converter only handles the history
-   * shape and the warning.
    */
   const incoherentCombo = previousInteractionId != null && store === false;
   const shouldCompact = previousInteractionId != null && store !== false;
@@ -113,7 +100,7 @@ export function convertToGoogleInteractionsInput({
     : prompt;
 
   const systemTexts: Array<string> = [];
-  const turns: Array<GoogleInteractionsTurn> = [];
+  const steps: Array<GoogleInteractionsStep> = [];
 
   for (const message of compactedPrompt) {
     switch (message.role) {
@@ -122,14 +109,10 @@ export function convertToGoogleInteractionsInput({
         break;
       }
       case 'user': {
-        const content: Array<GoogleInteractionsContent> = [];
+        const content: Array<GoogleInteractionsContentBlock> = [];
         for (const part of message.content) {
           if (part.type === 'text') {
-            const block: GoogleInteractionsTextContent = {
-              type: 'text',
-              text: part.text,
-            };
-            content.push(block);
+            content.push({ type: 'text', text: part.text });
           } else if (part.type === 'file') {
             const fileBlock = convertFilePartToContent({
               part,
@@ -143,20 +126,34 @@ export function convertToGoogleInteractionsInput({
         }
         const merged = mergeAdjacentTextContent(content);
         if (merged.length > 0) {
-          turns.push({ role: 'user', content: merged });
+          steps.push({ type: 'user_input', content: merged });
         }
         break;
       }
       case 'assistant': {
-        const content: Array<GoogleInteractionsContent> = [];
+        /*
+         * Prior assistant content fans out into one step per logical block.
+         * Adjacent text/image content blocks are coalesced into a single
+         * `model_output` step (matching how the API emits them on output);
+         * reasoning and tool-calls each become their own step.
+         */
+        let pendingModelOutput: Array<GoogleInteractionsContentBlock> = [];
+        const flushModelOutput = () => {
+          if (pendingModelOutput.length > 0) {
+            steps.push({ type: 'model_output', content: pendingModelOutput });
+            pendingModelOutput = [];
+          }
+        };
+
         for (const part of message.content) {
           if (part.type === 'text') {
-            content.push({ type: 'text', text: part.text });
+            pendingModelOutput.push({ type: 'text', text: part.text });
           } else if (part.type === 'reasoning') {
+            flushModelOutput();
             const signature = part.providerOptions?.google?.signature as
               | string
               | undefined;
-            content.push({
+            steps.push({
               type: 'thought',
               ...(signature != null ? { signature } : {}),
               summary:
@@ -171,9 +168,10 @@ export function convertToGoogleInteractionsInput({
               mediaResolution,
             });
             if (fileBlock != null) {
-              content.push(fileBlock);
+              pendingModelOutput.push(fileBlock);
             }
           } else if (part.type === 'tool-call') {
+            flushModelOutput();
             const signature = part.providerOptions?.google?.signature as
               | string
               | undefined;
@@ -181,7 +179,7 @@ export function convertToGoogleInteractionsInput({
               typeof part.input === 'string'
                 ? safeParseToolArgs(part.input)
                 : ((part.input ?? {}) as Record<string, unknown>);
-            content.push({
+            steps.push({
               type: 'function_call',
               id: part.toolCallId,
               name: part.toolName,
@@ -195,51 +193,17 @@ export function convertToGoogleInteractionsInput({
             });
           }
         }
-        if (content.length > 0) {
-          turns.push({ role: 'model', content });
-        }
+        flushModelOutput();
         break;
       }
       case 'tool': {
         /*
-         * Tool-result messages are emitted as a `user` turn whose content
-         * holds one `function_result` block per tool-result part. Wire shape
-         * (verified against `googleapis/js-genai`
-         * `samples/interactions_function_calling_client_state.ts` and
-         * `src/interactions/resources/interactions.ts` `FunctionResultContent`
-         * around line 979 — RESOLVES PRD Open Q2):
-         *
-         *   {
-         *     role: 'user',
-         *     content: [
-         *       {
-         *         type: 'function_result',
-         *         call_id: <id from the matching function_call block>,
-         *         name: <tool name>,
-         *         result: <string | unknown | Array<TextContent|ImageContent>>,
-         *         is_error?: boolean,
-         *         signature?: string,
-         *       },
-         *     ],
-         *   }
-         *
-         * The `result` field is a discriminated union: a plain string for
-         * text-only results, or an array of `text` / `image` content blocks
-         * for mixed text/image results. Our converter takes the AI SDK
-         * canonical `LanguageModelV3ToolResultOutput` and maps:
-         * - `{ type: 'text', value }` → `result: <string>`
-         * - `{ type: 'json', value }` → `result: <stringified JSON>`
-         * - `{ type: 'error-text', value }` → `result: <string>` + `is_error: true`
-         * - `{ type: 'error-json', value }` → `result: <stringified JSON>` + `is_error: true`
-         * - `{ type: 'execution-denied', reason }` → `result: <reason>` + `is_error: true`
-         * - `{ type: 'content', value: [...] }` → `result: Array<text|image>`
-         *   where each AI SDK `file` part with `mediaType: image/*` becomes
-         *   an Interactions `image` block (file-data path matches
-         *   `convertFilePartToContent` for top-level user images), and `text`
-         *   parts pass through. Non-image file parts fall back to a warning
-         *   because `FunctionResultContent.result` only accepts text/image.
+         * Tool-result messages are emitted as a `user_input` step whose
+         * content holds one `function_result` block per tool-result part.
+         * `function_result` remains a content-block type (it sits inside
+         * a step), not a top-level step type.
          */
-        const content: Array<GoogleInteractionsContent> = [];
+        const content: Array<GoogleInteractionsContentBlock> = [];
         for (const part of message.content) {
           if (part.type !== 'tool-result') {
             warnings.push({
@@ -260,7 +224,7 @@ export function convertToGoogleInteractionsInput({
           content.push(block);
         }
         if (content.length > 0) {
-          turns.push({ role: 'user', content });
+          steps.push({ type: 'user_input', content });
         }
         break;
       }
@@ -270,24 +234,7 @@ export function convertToGoogleInteractionsInput({
   const systemInstruction =
     systemTexts.length > 0 ? systemTexts.join('\n\n') : undefined;
 
-  let input: GoogleInteractionsInput;
-  if (turns.length === 0) {
-    input = '';
-  } else if (
-    turns.length === 1 &&
-    turns[0].role === 'user' &&
-    Array.isArray(turns[0].content)
-  ) {
-    /*
-     * Single-turn user prompt: send the bare `Array<Content>` shape per the
-     * Interactions API's preferred single-turn format.
-     */
-    input = turns[0].content;
-  } else {
-    input = turns;
-  }
-
-  return { input, systemInstruction, warnings };
+  return { input: steps, systemInstruction, warnings };
 }
 
 /**
@@ -337,12 +284,6 @@ function convertFilePartToContent({
     return undefined;
   }
 
-  /*
-   * `resolution` is per-block on the wire (`ImageContent.resolution`,
-   * `VideoContent.resolution`); only image and video carry it (see
-   * `googleapis/js-genai` `src/interactions/resources/interactions.ts`).
-   * Audio / document blocks ignore the option silently.
-   */
   const resolutionField =
     mediaResolution != null && (kind === 'image' || kind === 'video')
       ? { resolution: mediaResolution }
@@ -374,23 +315,9 @@ function convertFilePartToContent({
 }
 
 /*
- * Drops assistant turns that were part of the linked interaction
- * (`previousInteractionId`) so the API doesn't see them re-sent on top of its
- * server-side state. Also drops any subsequent `tool` (tool-result) message
- * whose `tool-result.toolCallId` matches a `tool-call.toolCallId` from the
- * dropped assistant turn — server-state already has the matching tool result
- * baked in, and re-sending it without its paired call would be malformed.
- *
- * An assistant message is considered "part of the linked interaction" if any
- * of its content parts carry `providerOptions.google.interactionId ===
- * previousInteractionId`. This is stamped by `parseGoogleInteractionsOutputs`
- * (and the stream transformer) on every output content part.
- *
- * User messages are always kept regardless of where they fell in the prior
- * conversation — only assistant model output and its tool plumbing live on the
- * server. (Note that the AI SDK does not stamp `interactionId` onto user
- * messages, so even if it did, this function would not have a way to identify
- * which user message belongs to which interaction.)
+ * Drops assistant messages that were part of the linked interaction
+ * (`previousInteractionId`). Tool-result turns whose tool-call counterpart
+ * was dropped are also pruned to keep the message stream well-formed.
  */
 function compactPromptForPreviousInteraction({
   prompt,
@@ -602,21 +529,18 @@ function filePartToImageBlock({
 }
 
 /*
- * Collapses runs of adjacent text content blocks within a single user message
- * into one combined text block, separated by a blank line. The Interactions
- * API has no `text+data` shape, so a `data.type === 'text'` file part is
- * already lowered to a `text` block by `convertFilePartToContent`; merging
- * keeps the wire shape compact and preserves intent when an inline text file
- * sits next to a regular text part. Text blocks carrying `annotations` are
- * left untouched (annotations are tied to specific text spans).
+ * Collapses runs of adjacent text content blocks within a single user step
+ * into one combined text block, separated by a blank line. Text blocks
+ * carrying `annotations` are left untouched (annotations are tied to specific
+ * text spans).
  */
 function mergeAdjacentTextContent(
-  content: Array<GoogleInteractionsContent>,
-): Array<GoogleInteractionsContent> {
+  content: Array<GoogleInteractionsContentBlock>,
+): Array<GoogleInteractionsContentBlock> {
   if (content.length < 2) {
     return content;
   }
-  const result: Array<GoogleInteractionsContent> = [];
+  const result: Array<GoogleInteractionsContentBlock> = [];
   for (const block of content) {
     const last = result[result.length - 1];
     if (

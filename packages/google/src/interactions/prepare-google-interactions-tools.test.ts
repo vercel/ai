@@ -77,7 +77,7 @@ describe('prepareGoogleInteractionsTools', () => {
     });
   });
 
-  describe('provider-defined tools (TASK-7)', () => {
+  describe('provider-defined tools', () => {
     const cases: Array<{
       title: string;
       id: `${string}.${string}`;
