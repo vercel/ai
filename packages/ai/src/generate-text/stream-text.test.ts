@@ -60,7 +60,9 @@ import {
 import type { StreamTextResult, TextStreamPart } from './stream-text-result';
 import type { ToolSet } from './tool-set';
 
-const isNode24_15 = process.versions.node.startsWith('24.15.');
+const [nodeMajor, nodeMinor] = process.versions.node.split('.').map(Number);
+const nodeVersionIs24_15 =
+  nodeMajor > 24 || (nodeMajor === 24 && nodeMinor >= 15);
 
 const defaultSettings = () =>
   ({
@@ -3742,7 +3744,7 @@ describe('streamText', () => {
       abortController.abort();
       const { value: chunkAfterAbort } = await reader.read();
 
-      if (isNode24_15) {
+      if (nodeVersionIs24_15) {
         expect(chunkAfterAbort?.type).toBe('text-delta');
 
         const { value: secondChunkAfterAbort } = await reader.read();
@@ -3767,7 +3769,7 @@ describe('streamText', () => {
         (p: any) => p.type === 'text',
       );
       expect(textPart).toBeDefined();
-      expect(textPart.text).toBe(isNode24_15 ? 'Hello world' : '');
+      expect(textPart.text).toBe(nodeVersionIs24_15 ? 'Hello world' : '');
       expect(callArgs.isAborted).toBe(true); // Stream was aborted
 
       reader.releaseLock();
@@ -15066,7 +15068,7 @@ describe('streamText', () => {
 
         const fullStream = await convertAsyncIterableToArray(result.fullStream);
 
-        if (isNode24_15) {
+        if (nodeVersionIs24_15) {
           expect(fullStream).toMatchInlineSnapshot(`
             [
               {
@@ -15242,7 +15244,7 @@ describe('streamText', () => {
 
         await resultObject.consumeStream();
 
-        if (isNode24_15) {
+        if (nodeVersionIs24_15) {
           expect(result.content[0]).toMatchObject({
             providerMetadata: undefined,
             text: 'Hello,  World',
