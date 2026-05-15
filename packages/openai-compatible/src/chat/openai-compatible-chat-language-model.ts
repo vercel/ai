@@ -91,6 +91,22 @@ export type OpenAICompatibleChatConfig = {
   convertUsage?: (
     usage: z.infer<typeof openaiCompatibleTokenUsageSchema>,
   ) => LanguageModelV4Usage;
+
+  /**
+   * Minimum chunk size for streaming text and reasoning content.
+   * Some providers send very small chunks (1-2 words), which can cause UI stuttering.
+   * When set, content is buffered until this threshold is reached before being emitted.
+   * Set to 0 or leave undefined for immediate emission (default behavior).
+   *
+   * @example
+   * // Buffer until 80 characters accumulated
+   * const provider = createOpenAICompatible({
+   *   name: 'baseten',
+   *   baseURL: 'https://inference.baseten.co/v1',
+   *   minChunkSize: 80,
+   * });
+   */
+  minChunkSize?: number;
 };
 
 type PendingToolCall = {
@@ -536,6 +552,40 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
       usage: z.infer<typeof openaiCompatibleTokenUsageSchema>,
     ) => this.convertUsage(usage);
 
+    const minChunkSize = this.config.minChunkSize;
+    const reasoningBuffer = new Map<number, string>();
+    const contentBuffer = new Map<number, string>();
+
+    function flushReasoningBuffer(
+      choiceIndex: number,
+      controller: TransformStreamDefaultController<LanguageModelV4StreamPart>,
+    ) {
+      const buffered = reasoningBuffer.get(choiceIndex);
+      if (buffered && buffered.length > 0) {
+        controller.enqueue({
+          type: 'reasoning-delta',
+          id: 'reasoning-0',
+          delta: buffered,
+        });
+        reasoningBuffer.delete(choiceIndex);
+      }
+    }
+
+    function flushContentBuffer(
+      choiceIndex: number,
+      controller: TransformStreamDefaultController<LanguageModelV4StreamPart>,
+    ) {
+      const buffered = contentBuffer.get(choiceIndex);
+      if (buffered && buffered.length > 0) {
+        controller.enqueue({
+          type: 'text-delta',
+          id: 'txt-0',
+          delta: buffered,
+        });
+        contentBuffer.delete(choiceIndex);
+      }
+    }
+
     return {
       stream: response.pipeThrough(
         new TransformStream<
@@ -630,16 +680,34 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
                 isActiveReasoning = true;
               }
 
-              controller.enqueue({
-                type: 'reasoning-delta',
-                id: 'reasoning-0',
-                delta: reasoningContent,
-              });
+              const choiceIndex = choice.index ?? 0;
+              if (minChunkSize != null && minChunkSize > 0) {
+                const current = reasoningBuffer.get(choiceIndex) ?? '';
+                const accumulated = current + reasoningContent;
+                if (accumulated.length >= minChunkSize) {
+                  controller.enqueue({
+                    type: 'reasoning-delta',
+                    id: 'reasoning-0',
+                    delta: accumulated,
+                  });
+                  reasoningBuffer.delete(choiceIndex);
+                } else {
+                  reasoningBuffer.set(choiceIndex, accumulated);
+                }
+              } else {
+                controller.enqueue({
+                  type: 'reasoning-delta',
+                  id: 'reasoning-0',
+                  delta: reasoningContent,
+                });
+              }
             }
 
             if (delta.content) {
               // end active reasoning block before text starts
               if (isActiveReasoning) {
+                const choiceIndex = choice.index ?? 0;
+                flushReasoningBuffer(choiceIndex, controller);
                 controller.enqueue({
                   type: 'reasoning-end',
                   id: 'reasoning-0',
@@ -652,16 +720,34 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
                 isActiveText = true;
               }
 
-              controller.enqueue({
-                type: 'text-delta',
-                id: 'txt-0',
-                delta: delta.content,
-              });
+              const choiceIndex = choice.index ?? 0;
+              if (minChunkSize != null && minChunkSize > 0) {
+                const current = contentBuffer.get(choiceIndex) ?? '';
+                const accumulated = current + delta.content;
+                if (accumulated.length >= minChunkSize) {
+                  controller.enqueue({
+                    type: 'text-delta',
+                    id: 'txt-0',
+                    delta: accumulated,
+                  });
+                  contentBuffer.delete(choiceIndex);
+                } else {
+                  contentBuffer.set(choiceIndex, accumulated);
+                }
+              } else {
+                controller.enqueue({
+                  type: 'text-delta',
+                  id: 'txt-0',
+                  delta: delta.content,
+                });
+              }
             }
 
             if (delta.tool_calls != null) {
               // end active reasoning block before tool calls start
               if (isActiveReasoning) {
+                const choiceIndex = choice.index ?? 0;
+                flushReasoningBuffer(choiceIndex, controller);
                 controller.enqueue({
                   type: 'reasoning-end',
                   id: 'reasoning-0',
@@ -676,6 +762,13 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
           },
 
           flush(controller) {
+            for (const [index] of reasoningBuffer) {
+              flushReasoningBuffer(index, controller);
+            }
+            for (const [index] of contentBuffer) {
+              flushContentBuffer(index, controller);
+            }
+
             if (isActiveReasoning) {
               controller.enqueue({ type: 'reasoning-end', id: 'reasoning-0' });
             }

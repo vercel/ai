@@ -2123,6 +2123,63 @@ describe('doStream', () => {
     `);
   });
 
+  it('should buffer tiny reasoning and content chunks when minChunkSize is set', async () => {
+    const bufferedProvider = createOpenAICompatible({
+      baseURL: 'https://my.api.com/v1/',
+      name: 'test-provider',
+      headers: {
+        Authorization: `Bearer test-api-key`,
+      },
+      minChunkSize: 20,
+    });
+
+    const bufferedModel = bufferedProvider('test-model');
+
+    prepareChunksFixtureResponse('tiny-chunks');
+
+    const { stream } = await bufferedModel.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const chunks = await convertReadableStreamToArray(stream);
+
+    const reasoningDeltas = chunks.filter(
+      c => c.type === 'reasoning-delta',
+    );
+    const textDeltas = chunks.filter(c => c.type === 'text-delta');
+
+    expect(reasoningDeltas.length).toBeLessThan(13);
+    expect(textDeltas.length).toBeLessThan(3);
+
+    const totalReasoning = reasoningDeltas
+      .map(d => (d as any).delta)
+      .join('');
+    const totalText = textDeltas.map(d => (d as any).delta).join('');
+
+    expect(totalReasoning).toBe('First, the user said: "Hello." That is simple.');
+    expect(totalText).toBe('Hi there!');
+  });
+
+  it('should stream reasoning and content chunks immediately when minChunkSize is not set', async () => {
+    prepareChunksFixtureResponse('tiny-chunks');
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const chunks = await convertReadableStreamToArray(stream);
+
+    const reasoningDeltas = chunks.filter(
+      c => c.type === 'reasoning-delta',
+    );
+    const textDeltas = chunks.filter(c => c.type === 'text-delta');
+
+    expect(reasoningDeltas.length).toBe(13);
+    expect(textDeltas.length).toBe(3);
+  });
+
   it('should stream tool deltas', async () => {
     server.urls['https://my.api.com/v1/chat/completions'].response = {
       type: 'stream-chunks',
