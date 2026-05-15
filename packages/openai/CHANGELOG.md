@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 3.0.64
+
+### Patch Changes
+
+- b7ed8bd: feat(openai): add opt-in pass-through for unsupported file media types
+
 ## 3.0.63
 
 ### Patch Changes
