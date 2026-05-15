@@ -1,5 +1,5 @@
 import { google } from '@ai-sdk/google';
-import { generateText, isStepCount, type ModelMessage } from 'ai';
+import { generateText, stepCountIs, type ModelMessage } from 'ai';
 import { weatherTool } from '../../tools/weather-tool';
 import { run } from '../../lib/run';
 
@@ -25,7 +25,7 @@ run(async () => {
     model: google('gemini-3-flash-preview'),
     tools: { weather: weatherTool },
     messages,
-    stopWhen: isStepCount(1),
+    stopWhen: stepCountIs(1),
   });
 
   console.log('Turn 1 tool call IDs:');

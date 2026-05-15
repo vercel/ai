@@ -1,5 +1,5 @@
 import { google } from '@ai-sdk/google';
-import { isStepCount, streamText, type ModelMessage } from 'ai';
+import { stepCountIs, streamText, type ModelMessage } from 'ai';
 import { weatherTool } from '../../tools/weather-tool';
 import { run } from '../../lib/run';
 
@@ -26,7 +26,7 @@ run(async () => {
     model: google('gemini-3-flash-preview'),
     tools: { weather: weatherTool },
     messages,
-    stopWhen: isStepCount(1),
+    stopWhen: stepCountIs(1),
   });
 
   for await (const part of turn1.fullStream) {
