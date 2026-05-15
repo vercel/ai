@@ -332,8 +332,6 @@ export function createAmazonBedrockAnthropic(
       // Bedrock Anthropic doesn't support URL sources, force download and base64 conversion
       supportedUrls: () => ({}),
       // Bedrock rejects `output_config.format` for `claude-opus-4-7`
-      // (including the `us.`/`eu.` cross-region inference profiles); fall
-      // back to the jsonResponseTool path for that model.
       supportsNativeStructuredOutput: !modelId.includes('claude-opus-4-7'),
     });
 
