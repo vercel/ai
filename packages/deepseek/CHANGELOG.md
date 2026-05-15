@@ -1,5 +1,13 @@
 # @ai-sdk/deepseek
 
+## 3.0.0-canary.46
+
+### Patch Changes
+
+- Updated dependencies [28dfa06]
+- Updated dependencies [e93fa91]
+  - @ai-sdk/provider-utils@5.0.0-canary.41
+
 ## 3.0.0-canary.45
 
 ### Patch Changes
