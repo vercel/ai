@@ -52,6 +52,7 @@ export async function convertToOpenAIResponsesInput({
   systemMessageMode,
   providerOptionsName,
   fileIdPrefixes,
+  passThroughUnsupportedFiles = false,
   store,
   hasConversation = false,
   hasLocalShellTool = false,
@@ -64,6 +65,7 @@ export async function convertToOpenAIResponsesInput({
   systemMessageMode: 'system' | 'developer' | 'remove';
   providerOptionsName: string;
   fileIdPrefixes?: readonly string[];
+  passThroughUnsupportedFiles?: boolean;
   store: boolean;
   hasConversation?: boolean; // when true, skip assistant messages that already have item IDs
   hasLocalShellTool?: boolean;
@@ -116,12 +118,10 @@ export async function convertToOpenAIResponsesInput({
                 return { type: 'input_text', text: part.text };
               }
               case 'file': {
-                if (part.mediaType.startsWith('image/')) {
-                  const mediaType =
-                    part.mediaType === 'image/*'
-                      ? 'image/jpeg'
-                      : part.mediaType;
+                const mediaType =
+                  part.mediaType === 'image/*' ? 'image/jpeg' : part.mediaType;
 
+                if (mediaType.startsWith('image/')) {
                   return {
                     type: 'input_image',
                     ...(part.data instanceof URL
@@ -135,28 +135,38 @@ export async function convertToOpenAIResponsesInput({
                     detail:
                       part.providerOptions?.[providerOptionsName]?.imageDetail,
                   };
-                } else if (part.mediaType === 'application/pdf') {
-                  if (part.data instanceof URL) {
-                    return {
-                      type: 'input_file',
-                      file_url: part.data.toString(),
-                    };
-                  }
+                }
+
+                if (part.data instanceof URL) {
                   return {
                     type: 'input_file',
-                    ...(typeof part.data === 'string' &&
-                    isFileId(part.data, fileIdPrefixes)
-                      ? { file_id: part.data }
-                      : {
-                          filename: part.filename ?? `part-${index}.pdf`,
-                          file_data: `data:application/pdf;base64,${convertToBase64(part.data)}`,
-                        }),
+                    file_url: part.data.toString(),
                   };
-                } else {
+                }
+
+                if (
+                  mediaType !== 'application/pdf' &&
+                  !passThroughUnsupportedFiles
+                ) {
                   throw new UnsupportedFunctionalityError({
-                    functionality: `file part media type ${part.mediaType}`,
+                    functionality: `file part media type ${mediaType}`,
                   });
                 }
+
+                return {
+                  type: 'input_file',
+                  ...(typeof part.data === 'string' &&
+                  isFileId(part.data, fileIdPrefixes)
+                    ? { file_id: part.data }
+                    : {
+                        filename:
+                          part.filename ??
+                          (mediaType === 'application/pdf'
+                            ? `part-${index}.pdf`
+                            : `part-${index}`),
+                        file_data: `data:${mediaType};base64,${convertToBase64(part.data)}`,
+                      }),
+                };
               }
             }
           }),
