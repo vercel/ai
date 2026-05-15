@@ -103,7 +103,7 @@ Allows you to create text completion based capabilities for your application. It
       type: "'text' | 'data'",
       isOptional: true,
       description:
-        'An optional literal that sets the type of stream to be used. Defaults to `data`. If set to `text`, the stream will be treated as a text stream.',
+        'An optional literal that sets the type of stream to be used. Defaults to `data`. If set to `text`, the stream will be treated as a text stream. Note that with either protocol, `useCompletion` only exposes text content via the `completion` field — non-text parts (e.g. `data-*` parts) emitted by the server are ignored. Use `useChat` if you need access to those parts.',
     },
     {
       name: 'fetch',

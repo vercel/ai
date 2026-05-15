@@ -306,7 +306,7 @@ describe('GatewayLanguageModel', () => {
         expect(requestBody.prompt).toEqual(TEST_PROMPT);
       });
 
-      it('should encode Uint8Array image part to base64 data URL with default mime type', async () => {
+      it('should encode Uint8Array image part to inline base64 data with default mime type', async () => {
         prepareJsonResponse({ content: { type: 'text', text: 'response' } });
         const imageBytes = new Uint8Array([1, 2, 3, 4]);
         const expectedBase64 = Buffer.from(imageBytes).toString('base64');
@@ -334,13 +334,13 @@ describe('GatewayLanguageModel', () => {
 
         expect(imagePart.type).toBe('file');
         expect(imagePart.data).toEqual({
-          type: 'url',
-          url: `data:image/jpeg;base64,${expectedBase64}`,
+          type: 'data',
+          data: expectedBase64,
         });
         expect(imagePart.mediaType).toBe('image/jpeg');
       });
 
-      it('should encode Uint8Array image part to base64 data URL with specified mime type', async () => {
+      it('should encode Uint8Array image part to inline base64 data with specified mime type', async () => {
         prepareJsonResponse({ content: { type: 'text', text: 'response' } });
         const imageBytes = new Uint8Array([5, 6, 7, 8]);
         const expectedBase64 = Buffer.from(imageBytes).toString('base64');
@@ -368,8 +368,8 @@ describe('GatewayLanguageModel', () => {
 
         expect(imagePart.type).toBe('file');
         expect(imagePart.data).toEqual({
-          type: 'url',
-          url: `data:${mimeType};base64,${expectedBase64}`,
+          type: 'data',
+          data: expectedBase64,
         });
         expect(imagePart.mediaType).toBe(mimeType);
       });
@@ -441,10 +441,7 @@ describe('GatewayLanguageModel', () => {
         expect(content[0]).toEqual({ type: 'text', text: 'First text.' });
         expect(content[1]).toEqual({
           type: 'file',
-          data: {
-            type: 'url',
-            url: `data:image/gif;base64,${expectedBase64}`,
-          },
+          data: { type: 'data', data: expectedBase64 },
           mediaType: 'image/gif',
         });
         expect(content[2]).toEqual({ type: 'text', text: 'Second text.' });
@@ -865,7 +862,7 @@ describe('GatewayLanguageModel', () => {
         expect(requestBody.prompt).toEqual(TEST_PROMPT);
       });
 
-      it('should encode Uint8Array image part to base64 data URL with default mime type', async () => {
+      it('should encode Uint8Array image part to inline base64 data with default mime type', async () => {
         prepareStreamResponse({ content: ['response'] });
         const imageBytes = new Uint8Array([1, 2, 3, 4]);
         const expectedBase64 = Buffer.from(imageBytes).toString('base64');
@@ -894,13 +891,13 @@ describe('GatewayLanguageModel', () => {
 
         expect(imagePart.type).toBe('file');
         expect(imagePart.data).toEqual({
-          type: 'url',
-          url: `data:image/jpeg;base64,${expectedBase64}`,
+          type: 'data',
+          data: expectedBase64,
         });
         expect(imagePart.mediaType).toBe('image/jpeg');
       });
 
-      it('should encode Uint8Array image part to base64 data URL with specified mime type', async () => {
+      it('should encode Uint8Array image part to inline base64 data with specified mime type', async () => {
         prepareStreamResponse({ content: ['response'] });
         const imageBytes = new Uint8Array([5, 6, 7, 8]);
         const expectedBase64 = Buffer.from(imageBytes).toString('base64');
@@ -930,8 +927,8 @@ describe('GatewayLanguageModel', () => {
 
         expect(imagePart.type).toBe('file');
         expect(imagePart.data).toEqual({
-          type: 'url',
-          url: `data:${mimeType};base64,${expectedBase64}`,
+          type: 'data',
+          data: expectedBase64,
         });
         expect(imagePart.mediaType).toBe(mimeType);
       });
@@ -1006,10 +1003,7 @@ describe('GatewayLanguageModel', () => {
         expect(content[0]).toEqual({ type: 'text', text: 'First text.' });
         expect(content[1]).toEqual({
           type: 'file',
-          data: {
-            type: 'url',
-            url: `data:image/gif;base64,${expectedBase64}`,
-          },
+          data: { type: 'data', data: expectedBase64 },
           mediaType: 'image/gif',
         });
         expect(content[2]).toEqual({ type: 'text', text: 'Second text.' });

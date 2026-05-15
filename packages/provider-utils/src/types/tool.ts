@@ -9,7 +9,7 @@ import type {
   ToolExecutionOptions,
 } from './tool-execute-function';
 import type { ToolNeedsApprovalFunction } from './tool-needs-approval-function';
-import type { Sandbox } from './sandbox';
+import type { Experimental_Sandbox as Sandbox } from './sandbox';
 
 /**
  * Helper type to determine the outputSchema and execute function properties of a tool.
@@ -182,12 +182,15 @@ type BaseFunctionTool<
    * decide when and how to call the tool.
    *
    * Provide a string for a fixed description, or a function that returns a
-   * string from the current `context` (and optional `sandbox`) when the
+   * string from the current `context` (and optional `experimental_sandbox`) when the
    * description should vary per call.
    */
   description?:
     | string
-    | ((options: { context: NoInfer<CONTEXT>; sandbox?: Sandbox }) => string);
+    | ((options: {
+        context: NoInfer<CONTEXT>;
+        experimental_sandbox?: Sandbox;
+      }) => string);
 
   /**
    * Strict mode setting for the tool.

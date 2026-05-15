@@ -61,9 +61,9 @@ export const weatherTool = tool({
             {
               name: 'description',
               isOptional: true,
-              type: 'string | ((options: { context: CONTEXT; sandbox?: Sandbox }) => string)',
+              type: 'string | ((options: { context: CONTEXT; experimental_sandbox?: Experimental_Sandbox }) => string)',
               description:
-                'Information about the purpose of the tool including details on how and when it can be used by the model. Provide a string for a fixed description, or a function to derive the description from the tool-specific context and optional sandbox before each model call.',
+                'Information about the purpose of the tool including details on how and when it can be used by the model. Provide a string for a fixed description, or a function to derive the description from the tool-specific context and optional experimental sandbox before each model call.',
             },
             {
               name: 'title',
@@ -142,11 +142,11 @@ export const weatherTool = tool({
                         'Tool-specific context passed into tool execution. When `contextSchema` is provided, this type is inferred from that schema and supplied from the matching entry in `toolsContext`.',
                     },
                     {
-                      name: 'sandbox',
-                      type: 'Sandbox',
+                      name: 'experimental_sandbox',
+                      type: 'Experimental_Sandbox',
                       isOptional: true,
                       description:
-                        'Optional sandbox environment passed from the generation or agent call. Use it when a tool needs to execute commands or code in a sandbox.',
+                        'Optional experimental sandbox environment passed from the generation or agent call. Use it when a tool needs to execute commands or code in an experimental sandbox.',
                     },
                   ],
                 },

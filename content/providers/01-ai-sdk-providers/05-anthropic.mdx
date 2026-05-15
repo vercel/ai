@@ -725,7 +725,7 @@ For more on prompt caching with Anthropic, see [Anthropic's Cache Control docume
 ### Bash Tool
 
 The Bash Tool allows running bash commands. By default, the tool executes
-commands through the `sandbox` that you pass to `generateText` or `streamText`:
+commands through the `experimental_sandbox` that you pass to `generateText` or `streamText`:
 
 ```ts
 import { anthropic } from '@ai-sdk/anthropic';
@@ -736,7 +736,7 @@ const result = await generateText({
   tools: {
     bash: anthropic.tools.bash_20250124(),
   },
-  sandbox: {
+  experimental_sandbox: {
     description: 'A sandboxed shell environment.',
     executeCommand: async ({ command }) => {
       // Run the command in your sandbox and return the result.
@@ -763,7 +763,7 @@ Parameters:
 </Note>
 
 You can also provide a custom `execute` function when you want to handle bash
-execution directly instead of using the request sandbox.
+execution directly instead of using the request experimental sandbox.
 
 ### Memory Tool
 

@@ -11,12 +11,10 @@ export type {
   GenerateTextStartEvent,
   GenerateTextStepEndEvent,
   GenerateTextStepStartEvent,
-  OnChunkEvent,
   OnFinishEvent,
   OnStartEvent,
   OnStepFinishEvent,
   OnStepStartEvent,
-  StreamTextChunkEvent,
 } from './generate-text-events';
 export type { GenerateTextResult } from './generate-text-result';
 export {

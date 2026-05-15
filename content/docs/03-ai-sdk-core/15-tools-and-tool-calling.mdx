@@ -8,7 +8,7 @@ description: Learn about tool calling and multi-step calls (using stopWhen) with
 As covered under Foundations, [tools](/docs/foundations/tools) are objects that can be called by the model to perform a specific task.
 Function tools and dynamic tools contain several core elements:
 
-- **`description`**: An optional description of the tool that can influence when the tool is picked. It can be a string or a function that derives the description from the tool's context and sandbox.
+- **`description`**: An optional description of the tool that can influence when the tool is picked. It can be a string or a function that derives the description from the tool's context and experimental sandbox.
 - **`inputSchema`**: A [Zod schema](/docs/foundations/tools#schemas) or a [JSON schema](/docs/reference/ai-sdk-core/json-schema) that defines the input parameters. The schema is consumed by the LLM, and also used to validate the LLM tool calls.
 - **`execute`**: An optional async function that is called with the inputs from the tool call. It produces a value of type `RESULT` (generic type). It is optional because you might want to forward tool calls to the client or to a queue instead of executing them in the same process.
 - **`strict`**: _(optional, boolean)_ Enables strict tool calling when supported by the provider
@@ -56,12 +56,12 @@ You can also use it to render user interfaces (Generative UI).
 
 Tool descriptions can be fixed strings or functions. Use a function when the
 description sent to the model should depend on the current tool context or
-sandbox, such as a tenant, project, environment, or workspace.
+experimental sandbox, such as a tenant, project, environment, or workspace.
 
 The description function is resolved before the tool definition is sent to the
 model for each generation step. It receives the matching tool `context` from
-`toolsContext` and the current `sandbox`, if one was provided. If `prepareStep`
-updates `toolsContext` or `sandbox`, the next step uses those updated values.
+`toolsContext` and the current `experimental_sandbox`, if one was provided. If `prepareStep`
+updates `toolsContext` or `experimental_sandbox`, the next step uses those updated values.
 
 ```ts highlight="6-14,28-33"
 import { generateText, tool } from 'ai';
@@ -71,22 +71,24 @@ const shell = tool({
   contextSchema: z.object({
     projectName: z.string(),
   }),
-  description: ({ context, sandbox }) =>
+  description: ({ context, experimental_sandbox }) =>
     [
       `Run shell commands for the ${context.projectName} project.`,
-      sandbox != null ? `Sandbox: ${sandbox.description}` : undefined,
+      experimental_sandbox != null
+        ? `Sandbox: ${experimental_sandbox.description}`
+        : undefined,
     ]
       .filter(Boolean)
       .join('\n'),
   inputSchema: z.object({
     command: z.string(),
   }),
-  execute: async ({ command }, { sandbox }) => {
-    if (!sandbox) {
-      throw new Error('Sandbox is not available');
+  execute: async ({ command }, { experimental_sandbox }) => {
+    if (!experimental_sandbox) {
+      throw new Error('Experimental sandbox is not available');
     }
 
-    return sandbox.executeCommand({ command });
+    return experimental_sandbox.executeCommand({ command });
   },
 });
 
@@ -96,7 +98,7 @@ const result = await generateText({
   toolsContext: {
     shell: { projectName: 'web-app' },
   },
-  sandbox,
+  experimental_sandbox,
   prompt: 'List the project files.',
 });
 ```
@@ -545,7 +547,7 @@ It is called with the following parameters:
 - `responseMessages`: The accumulated assistant/tool response messages so far, including any tool results generated before the first model step from approved tool calls in the input messages.
 - `runtimeContext`: The runtime context passed via the `runtimeContext` setting.
 - `toolsContext`: The per-tool context map passed via the `toolsContext` setting.
-- `sandbox`: The sandbox passed via the `sandbox` setting.
+- `experimental_sandbox`: The experimental sandbox passed via the `experimental_sandbox` setting.
 
 You can use it to provide different settings for a step, including modifying the input messages.
 
@@ -898,17 +900,19 @@ const result = await generateText({
 });
 ```
 
-### Sandbox
+### Experimental Sandbox
 
-Pass `sandbox` to `generateText`, `streamText`, or a `ToolLoopAgent` call when a
-tool needs to run commands or code in an execution environment. The sandbox is
-available to tool description functions and on the second parameter of the
-tool's `execute` function.
+Pass `experimental_sandbox` to `generateText`, `streamText`, or a `ToolLoopAgent`
+call when a tool needs to run commands or code in an execution environment. The experimental sandbox is available to tool description functions and on the second parameter of the tool's `execute` function.
 
-Passing a sandbox does not sandbox the tool itself. Tool code still runs wherever
-your application runs. Only the operations that your tool explicitly delegates to
-the sandbox, such as `sandbox.executeCommand(...)`, run in the sandbox
-environment.
+<Note type="warning">
+  This API is experimental and can change in patch releases. Passing an
+  experimental sandbox does not sandbox the tool itself.
+</Note>
+
+Tool code still runs wherever your application runs. Only the operations that your tool explicitly delegates to
+the experimental sandbox, such as `experimental_sandbox.executeCommand(...)`,
+run in the experimental sandbox environment.
 
 ```ts highlight="7-15,21"
 import { generateText, tool } from 'ai';
@@ -924,13 +928,13 @@ const result = await generateText({
       }),
       execute: async (
         { command, workingDirectory },
-        { abortSignal, sandbox },
+        { abortSignal, experimental_sandbox },
       ) => {
-        if (!sandbox) {
-          throw new Error('Sandbox is not available');
+        if (!experimental_sandbox) {
+          throw new Error('Experimental sandbox is not available');
         }
 
-        return sandbox.executeCommand({
+        return experimental_sandbox.executeCommand({
           command,
           workingDirectory,
           abortSignal,
@@ -938,32 +942,26 @@ const result = await generateText({
       },
     }),
   },
-  sandbox,
+  experimental_sandbox,
   prompt: 'List the files in the project.',
 });
 ```
 
-The sandbox description is not added to the model prompt automatically. If the
-model should know about details such as the root directory, exposed ports, or
-public hostname, include `sandbox.description` in your system prompt,
+The experimental sandbox description is not added to the model prompt automatically. If the model should know about details such as the root directory, exposed ports, or public hostname, include `experimental_sandbox.description` in your system prompt,
 instructions, user-visible context, or a tool description function.
 
 `executeCommand` also accepts an optional `workingDirectory` and `abortSignal`.
 Use `workingDirectory` when a tool needs to run a command from a directory other
-than the sandbox implementation's default working directory. Forward
-`abortSignal` from the tool execution options so the sandbox can cancel the
-command if the overall operation is aborted or times out.
+than the experimental sandbox implementation's default working directory. Forward
+`abortSignal` from the tool execution options so the experimental sandbox can cancel the command if the overall operation is aborted or times out.
 
-The AI SDK forwards your sandbox object but does not create or isolate one for
-you.
+The AI SDK forwards your experimental sandbox object but does not create or isolate one for you.
 
-The `Sandbox` interface is only a contract. Its isolation guarantees depend on
-your implementation or sandbox provider. A local implementation that uses
+The `Experimental_Sandbox` interface is only a contract. Its isolation guarantees depend on your implementation or experimental sandbox provider. A local implementation that uses
 `child_process.exec` with a working directory is not a security boundary because
 commands can still access paths outside that directory. For untrusted commands
 or user-directed coding agents, use a real isolation provider, restrict
-available commands, set command timeouts, and combine sandbox usage with
-[tool approval](#tool-execution-approval) for sensitive actions.
+available commands, set command timeouts, and combine experimental sandbox usage with [tool approval](#tool-execution-approval) for sensitive actions.
 
 ### Runtime Context
 

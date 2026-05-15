@@ -1,4 +1,7 @@
-import { tool, type Sandbox } from '@ai-sdk/provider-utils';
+import {
+  tool,
+  type Experimental_Sandbox as Sandbox,
+} from '@ai-sdk/provider-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as z from 'zod/v4';
 import { TypeValidationError } from '../error';
@@ -97,7 +100,7 @@ describe('executeToolCall', () => {
         tools: {
           testTool: tool({
             inputSchema: z.object({ value: z.string() }),
-            execute: async ({ value }, { sandbox }) => {
+            execute: async ({ value }, { experimental_sandbox: sandbox }) => {
               receivedSandbox = sandbox;
               return `${value}-result`;
             },
@@ -106,7 +109,7 @@ describe('executeToolCall', () => {
         callId: 'test-telemetry-call-id',
         messages: [],
         abortSignal: undefined,
-        sandbox,
+        experimental_sandbox: sandbox,
         toolsContext: {},
       });
 

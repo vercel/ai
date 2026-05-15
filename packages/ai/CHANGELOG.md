@@ -1,5 +1,28 @@
 # ai
 
+## 7.0.0-canary.138
+
+### Patch Changes
+
+- Updated dependencies [67c4011]
+  - @ai-sdk/gateway@4.0.0-canary.81
+
+## 7.0.0-canary.137
+
+### Patch Changes
+
+- 98627e5: feat(ai): remove onChunk event from telemetry
+- 476e1ca: feat(ai): remove telemetry dependency on onChunk callback
+
+## 7.0.0-canary.136
+
+### Patch Changes
+
+- a7de9c9: fix: make sandbox experimental
+- Updated dependencies [a7de9c9]
+  - @ai-sdk/provider-utils@5.0.0-canary.40
+  - @ai-sdk/gateway@4.0.0-canary.80
+
 ## 7.0.0-canary.135
 
 ### Patch Changes

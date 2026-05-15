@@ -1,8 +1,8 @@
 import {
   createProviderDefinedToolFactory,
   lazySchema,
+  type Experimental_Sandbox as Sandbox,
   type ProviderDefinedTool,
-  type Sandbox,
   type Tool,
   type ToolExecuteFunction,
   zodSchema,
@@ -79,12 +79,18 @@ export function bash_20250124<OUTPUT>(
   if (execute === undefined) {
     return bash_20250124_internal({
       ...rest,
-      execute: async ({ command }, { abortSignal, sandbox }) => {
+      execute: async (
+        { command },
+        { abortSignal, experimental_sandbox: sandbox },
+      ) => {
         if (!sandbox) {
           throw new Error('Sandbox is not available');
         }
 
-        return await sandbox.executeCommand({ command, abortSignal });
+        return await sandbox.executeCommand({
+          command,
+          abortSignal,
+        });
       },
     } as Bash20250124Options<Bash20250124DefaultOutput>) as ReturnType<
       typeof bash_20250124_internal<OUTPUT>

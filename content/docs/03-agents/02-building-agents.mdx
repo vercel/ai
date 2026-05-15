@@ -133,10 +133,10 @@ For the full model, including sensitive context filtering and where each context
 value is available, see [Runtime and Tool
 Context](/docs/ai-sdk-core/runtime-and-tool-context).
 
-### Tools That Use Sandboxes
+### Tools That Use Experimental Sandboxes
 
-Pass `sandbox` when an agent tool needs a command or code execution
-environment. The sandbox is a per-call value, so provide it to `generate()`,
+Pass `experimental_sandbox` when an agent tool needs a command or code execution
+environment. The experimental sandbox is a per-call value, so provide it to `generate()`,
 `stream()`, or the agent UI stream helper that invokes the agent.
 
 ```ts highlight="8-16,25"
@@ -145,20 +145,20 @@ const agent = new ToolLoopAgent({
   instructions: 'You are a coding assistant. Use the shell tool when needed.',
   tools: {
     shell: tool({
-      description: 'Execute shell commands in the sandbox.',
+      description: 'Execute shell commands in the experimental sandbox.',
       inputSchema: z.object({
         command: z.string(),
         workingDirectory: z.string().optional(),
       }),
       execute: async (
         { command, workingDirectory },
-        { abortSignal, sandbox },
+        { abortSignal, experimental_sandbox },
       ) => {
-        if (!sandbox) {
-          throw new Error('Sandbox is not available');
+        if (!experimental_sandbox) {
+          throw new Error('Experimental sandbox is not available');
         }
 
-        return sandbox.executeCommand({
+        return experimental_sandbox.executeCommand({
           command,
           workingDirectory,
           abortSignal,
@@ -169,16 +169,16 @@ const agent = new ToolLoopAgent({
 });
 
 const result = await agent.generate({
-  prompt: `Run the tests.\n\nSandbox:\n${sandbox.description}`,
-  sandbox,
+  prompt: `Run the tests.\n\nSandbox:\n${experimental_sandbox.description}`,
+  experimental_sandbox,
 });
 ```
 
-The sandbox description is not added to the model prompt automatically. Include
+The experimental sandbox description is not added to the model prompt automatically. Include
 it in the prompt or instructions when the model needs to know environment
-details. Passing a sandbox does not sandbox the tool itself; the tool must
-explicitly delegate operations to the sandbox. See the
-[`sandbox` section in Tool Calling](/docs/ai-sdk-core/tools-and-tool-calling#sandbox)
+details. Passing an experimental sandbox does not sandbox the tool itself; the tool must
+explicitly delegate operations to the experimental sandbox. See the
+[Experimental Sandbox section in Tool Calling](/docs/ai-sdk-core/tools-and-tool-calling#experimental-sandbox)
 for more details.
 
 You can also require approval before a tool executes. Configure approval on the

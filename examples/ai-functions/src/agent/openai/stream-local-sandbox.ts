@@ -10,7 +10,7 @@ run(async () => {
 
   const result = await sandboxAgent.stream({
     prompt: 'List the files in the directory',
-    sandbox,
+    experimental_sandbox: sandbox,
   });
 
   await printFullStream({ result });

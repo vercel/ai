@@ -1,5 +1,28 @@
 # @ai-sdk/otel
 
+## 1.0.0-canary.84
+
+### Patch Changes
+
+- ai@7.0.0-canary.138
+
+## 1.0.0-canary.83
+
+### Patch Changes
+
+- 98627e5: feat(ai): remove onChunk event from telemetry
+- 476e1ca: feat(ai): remove telemetry dependency on onChunk callback
+- Updated dependencies [98627e5]
+- Updated dependencies [476e1ca]
+  - ai@7.0.0-canary.137
+
+## 1.0.0-canary.82
+
+### Patch Changes
+
+- Updated dependencies [a7de9c9]
+  - ai@7.0.0-canary.136
+
 ## 1.0.0-canary.81
 
 ### Patch Changes

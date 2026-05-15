@@ -1,4 +1,8 @@
-import { delay, tool, type Sandbox } from '@ai-sdk/provider-utils';
+import {
+  delay,
+  tool,
+  type Experimental_Sandbox as Sandbox,
+} from '@ai-sdk/provider-utils';
 import {
   convertArrayToReadableStream,
   convertReadableStreamToArray,
@@ -244,7 +248,7 @@ describe('executeToolsFromStream', () => {
     const tools = {
       sandboxTool: tool({
         inputSchema: z.object({ value: z.string() }),
-        execute: async ({ value }, { sandbox }) => {
+        execute: async ({ value }, { experimental_sandbox: sandbox }) => {
           receivedSandbox = sandbox;
           return `${value}-sandbox-result`;
         },
@@ -271,7 +275,7 @@ describe('executeToolsFromStream', () => {
         messages: [],
         abortSignal: undefined,
         timeout: undefined,
-        sandbox,
+        experimental_sandbox: sandbox,
         toolsContext: {},
         runtimeContext: {},
       }),

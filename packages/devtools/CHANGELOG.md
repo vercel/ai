@@ -1,5 +1,17 @@
 # @ai-sdk/devtools
 
+## 1.0.0-canary.24
+
+### Patch Changes
+
+- ee7bb67: fix(devtools): add pointer cursor to DevTools buttons
+
+## 1.0.0-canary.23
+
+### Patch Changes
+
+- 98627e5: feat(ai): remove onChunk event from telemetry
+
 ## 1.0.0-canary.22
 
 ### Patch Changes
