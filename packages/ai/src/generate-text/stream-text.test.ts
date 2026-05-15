@@ -3236,16 +3236,6 @@ describe('streamText', () => {
                 timestamp: new Date(),
               });
               controller.enqueue({ type: 'text-start', id: '1' });
-              controller.enqueue({
-                type: 'text-delta',
-                id: '1',
-                delta: 'Hello',
-              });
-              controller.enqueue({
-                type: 'text-delta',
-                id: '1',
-                delta: ' world',
-              });
 
               await new Promise(resolve => setTimeout(resolve, 10));
 
@@ -3253,7 +3243,7 @@ describe('streamText', () => {
                 controller.enqueue({
                   type: 'text-delta',
                   id: '1',
-                  delta: ' from AI',
+                  delta: 'Hello world from AI',
                 });
                 controller.enqueue({ type: 'text-end', id: '1' });
                 controller.enqueue({
