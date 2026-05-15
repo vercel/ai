@@ -115,6 +115,14 @@ export interface OpenAICompatibleProviderSettings {
    * differ from the default OpenAI-compatible shape.
    */
   convertUsage?: OpenAICompatibleChatConfig['convertUsage'];
+
+  /**
+   * Minimum chunk size for streaming text and reasoning content.
+   * Some providers send very small chunks (1-2 words), which can cause UI stuttering.
+   * When set, content is buffered until this threshold is reached before being emitted.
+   * Set to 0 or leave undefined for immediate emission (default behavior).
+   */
+  minChunkSize?: number;
 }
 
 /**
@@ -176,6 +184,7 @@ export function createOpenAICompatible<
       transformRequestBody: options.transformRequestBody,
       metadataExtractor: options.metadataExtractor,
       convertUsage: options.convertUsage,
+      minChunkSize: options.minChunkSize,
     });
 
   const createCompletionModel = (modelId: COMPLETION_MODEL_IDS) =>
