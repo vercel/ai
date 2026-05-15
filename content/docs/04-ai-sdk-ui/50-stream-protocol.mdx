@@ -438,6 +438,9 @@ data: {"type":"finish-step"}
 
 A part indicating the completion of a message.
 
+The message is identified by the preceding `start` part. Send the `messageId`
+on the `start` part, not on the `finish` part.
+
 Format: Server-Sent Event with JSON object
 
 Example:
