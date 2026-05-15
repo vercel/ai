@@ -18,6 +18,32 @@ import type { ResponseMessage } from './response-message';
 import type { StepResult } from './step-result';
 
 describe('generateText types', () => {
+  describe('onEnd', () => {
+    it('should expose end event properties', async () => {
+      await generateText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+        onEnd: event => {
+          expectTypeOf(event).toMatchTypeOf<GenerateTextEndEvent>();
+          expectTypeOf(event.totalUsage).toEqualTypeOf<LanguageModelUsage>();
+          expectTypeOf(event.reasoning).toEqualTypeOf<
+            StepResult<any>['reasoning']
+          >();
+          expectTypeOf(event.reasoningText).toEqualTypeOf<string | undefined>();
+          expectTypeOf(
+            event.request,
+          ).toEqualTypeOf<LanguageModelRequestMetadata>();
+          expectTypeOf(event.response).toEqualTypeOf<
+            GenerateTextEndEvent['finalStep']['response']
+          >();
+          expectTypeOf(event.providerMetadata).toEqualTypeOf<
+            GenerateTextEndEvent['finalStep']['providerMetadata']
+          >();
+        },
+      });
+    });
+  });
+
   describe('onFinish compatibility', () => {
     it('should expose deprecated AI SDK 6 properties', async () => {
       await generateText({

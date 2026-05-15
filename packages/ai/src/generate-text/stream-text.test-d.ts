@@ -17,6 +17,34 @@ import type { ResponseMessage } from './response-message';
 import type { StepResult } from './step-result';
 
 describe('streamText types', () => {
+  describe('onEnd', () => {
+    it('should expose end event properties', () => {
+      streamText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+        onEnd: event => {
+          expectTypeOf(event).toMatchTypeOf<GenerateTextEndEvent>();
+          expectTypeOf(event.totalUsage).toEqualTypeOf<
+            GenerateTextEndEvent['usage']
+          >();
+          expectTypeOf(event.reasoning).toEqualTypeOf<
+            StepResult<any>['reasoning']
+          >();
+          expectTypeOf(event.reasoningText).toEqualTypeOf<string | undefined>();
+          expectTypeOf(event.request).toEqualTypeOf<
+            StepResult<any>['request']
+          >();
+          expectTypeOf(event.response).toEqualTypeOf<
+            StepResult<any>['response']
+          >();
+          expectTypeOf(event.providerMetadata).toEqualTypeOf<
+            StepResult<any>['providerMetadata']
+          >();
+        },
+      });
+    });
+  });
+
   describe('onFinish compatibility', () => {
     it('should expose deprecated AI SDK 6 properties', () => {
       streamText({

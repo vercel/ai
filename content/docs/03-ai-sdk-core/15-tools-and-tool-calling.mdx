@@ -442,7 +442,7 @@ const { text, steps } = await generateText({
 ### Steps
 
 To access intermediate tool calls and results, you can use the `steps` property in the result object
-or the `streamText` `onFinish` callback.
+or the `streamText` `onEnd` callback.
 It contains all the text, tool calls, tool results, per-step `performance`, and more from each step.
 
 #### Example: Extract tool results from all steps
@@ -643,7 +643,7 @@ especially if you are using multi-step tool calls.
 
 Both `generateText` and `streamText` have a `responseMessages` property that you can use to
 add the assistant and tool messages to your conversation history.
-It is also available in the `onFinish` callback of `streamText`.
+It is also available in the `onEnd` callback of `streamText`.
 
 The `responseMessages` property contains the accumulated response messages from the call as an array of `ModelMessage` objects that you can add to your conversation history:
 

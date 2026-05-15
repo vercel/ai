@@ -197,6 +197,36 @@ const result = await generateText({
 });
 ```
 
+#### `onFinish` Renamed to `onEnd`
+
+The final lifecycle callback for `generateText`, `streamText`, and agents has
+been renamed from `onFinish` to `onEnd`.
+
+```tsx filename="AI SDK 6"
+const result = await generateText({
+  model: yourModel,
+  prompt: 'Hello!',
+  onFinish: ({ text }) => {
+    console.log(text);
+  },
+});
+```
+
+```tsx filename="AI SDK 7"
+const result = await generateText({
+  model: yourModel,
+  prompt: 'Hello!',
+  onEnd: ({ text }) => {
+    console.log(text);
+  },
+});
+```
+
+The same rename applies to `streamText`, `Agent.generate()`,
+`Agent.stream()`, and `ToolLoopAgent` settings. The `onFinish` option is still
+accepted as a deprecated alias. When both `onEnd` and `onFinish` are provided,
+`onEnd` takes precedence.
+
 ### Prompt Messages: System Messages in `prompt` or `messages` Are Rejected by Default
 
 AI SDK 7 rejects system messages in the `prompt` or `messages` fields by default. System instructions should usually be passed with the top-level `instructions` option.
@@ -1202,9 +1232,9 @@ console.log(finalStep.response.headers);
 
 The deprecated top-level aliases continue to work in AI SDK 7 so you can migrate incrementally.
 
-### `generateText` and `streamText` `onFinish` Result Properties Changed
+### `generateText` and `streamText` `onEnd` Result Properties Changed
 
-The `onFinish` callback for `generateText`, `streamText`, and agents follows
+The `onEnd` callback for `generateText`, `streamText`, and agents follows
 the same result property changes as `generateText` and `streamText` results:
 
 - `usage` now contains usage across all steps. `totalUsage` is deprecated; use
@@ -1234,7 +1264,7 @@ const result = await generateText({
   model: yourModel,
   prompt: 'Use a tool, then summarize the result.',
   stopWhen: isStepCount(2),
-  onFinish(event) {
+  onEnd(event) {
     console.log(event.finalStep.usage); // final step only
     console.log(event.usage); // all steps
     console.log(event.finalStep.toolCalls); // final step only
@@ -1244,7 +1274,7 @@ const result = await generateText({
 });
 ```
 
-The deprecated top-level aliases on the `onFinish` event continue to work in AI
+The deprecated top-level aliases on the `onEnd` event continue to work in AI
 SDK 7 so you can migrate incrementally.
 
 ### Stop Condition Helper Rename: `stepCountIs` -> `isStepCount`

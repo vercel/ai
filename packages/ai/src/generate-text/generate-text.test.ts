@@ -3867,7 +3867,7 @@ describe('generateText', () => {
     });
   });
 
-  describe('options.onFinish', () => {
+  describe('options.onEnd', () => {
     it('should send correct information', async () => {
       let result!: Parameters<GenerateTextOnEndCallback<any, any>>[0];
 
@@ -3907,7 +3907,7 @@ describe('generateText', () => {
           generateId: () => 'test-call-id',
           generateCallId: () => 'test-telemetry-call-id',
         },
-        onFinish: async event => {
+        onEnd: async event => {
           result = event as unknown as typeof result;
         },
         prompt: 'irrelevant',
@@ -4362,6 +4362,51 @@ describe('generateText', () => {
           "warnings": [],
         }
       `);
+    });
+
+    it('should support onFinish as a deprecated alias', async () => {
+      const calls: string[] = [];
+
+      await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => ({
+            content: [{ type: 'text', text: 'Hello, World!' }],
+            finishReason: { unified: 'stop', raw: 'stop' },
+            usage: testUsage,
+            warnings: [],
+          }),
+        }),
+        prompt: 'irrelevant',
+        onFinish: async () => {
+          calls.push('onFinish');
+        },
+      });
+
+      expect(calls).toEqual(['onFinish']);
+    });
+
+    it('should prefer onEnd over onFinish', async () => {
+      const calls: string[] = [];
+
+      await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => ({
+            content: [{ type: 'text', text: 'Hello, World!' }],
+            finishReason: { unified: 'stop', raw: 'stop' },
+            usage: testUsage,
+            warnings: [],
+          }),
+        }),
+        prompt: 'irrelevant',
+        onEnd: async () => {
+          calls.push('onEnd');
+        },
+        onFinish: async () => {
+          calls.push('onFinish');
+        },
+      });
+
+      expect(calls).toEqual(['onEnd']);
     });
   });
 

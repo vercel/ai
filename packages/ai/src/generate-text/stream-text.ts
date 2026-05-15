@@ -293,7 +293,8 @@ export type StreamTextOnAbortCallback<
  * @param onToolExecutionEnd - Callback invoked after each tool execution completes.
  * @param experimental_onToolCallFinish - Deprecated alias for `onToolExecutionEnd`.
  * @param onStepFinish - Callback that is called when each step (LLM call) is finished, including intermediate steps.
- * @param onFinish - Callback that is called when all steps are finished and the response is complete.
+ * @param onEnd - Callback that is called when all steps are finished and the response is complete.
+ * @param onFinish - Deprecated alias for `onEnd`.
  *
  * @returns
  * A result object for accessing different stream types and additional information.
@@ -334,6 +335,7 @@ export function streamText<
     console.error(error);
   },
   onFinish,
+  onEnd = onFinish,
   onAbort,
   onStepFinish,
   experimental_onStart: onStart,
@@ -493,6 +495,16 @@ export function streamText<
      *
      * The usage is the combined usage of all steps.
      */
+    onEnd?: GenerateTextOnEndCallback<NoInfer<TOOLS>, NoInfer<RUNTIME_CONTEXT>>;
+
+    /**
+     * Callback that is called when the LLM response and all request tool executions
+     * (for tools that have an `execute` function) are finished.
+     *
+     * The usage is the combined usage of all steps.
+     *
+     * @deprecated Use `onEnd` instead.
+     */
     onFinish?: GenerateTextOnEndCallback<
       NoInfer<TOOLS>,
       NoInfer<RUNTIME_CONTEXT>
@@ -642,7 +654,7 @@ export function streamText<
     timeout,
     onChunk,
     onError,
-    onFinish,
+    onEnd,
     onAbort,
     onStepFinish,
     onStart,
@@ -840,7 +852,7 @@ class DefaultStreamTextResult<
     timeout,
     onChunk,
     onError,
-    onFinish,
+    onEnd,
     onAbort,
     onStepFinish,
     onStart,
@@ -897,7 +909,7 @@ class DefaultStreamTextResult<
     // callbacks:
     onChunk: undefined | StreamTextOnChunkCallback<TOOLS>;
     onError: StreamTextOnErrorCallback;
-    onFinish:
+    onEnd:
       | undefined
       | GenerateTextOnEndCallback<NoInfer<TOOLS>, NoInfer<RUNTIME_CONTEXT>>;
     onAbort:
@@ -1237,7 +1249,7 @@ class DefaultStreamTextResult<
           // aggregate results:
           self._steps.resolve(recordedSteps);
 
-          // call onFinish callback:
+          // call onEnd callback:
           const finalStep = recordedSteps[recordedSteps.length - 1];
           const content = recordedSteps.flatMap(step => step.content);
           const files = recordedSteps.flatMap(step => step.files);
@@ -1292,7 +1304,7 @@ class DefaultStreamTextResult<
               steps: recordedSteps,
               finalStep,
             },
-            callbacks: [onFinish, telemetryDispatcher.onEnd],
+            callbacks: [onEnd, telemetryDispatcher.onEnd],
           });
         } catch (error) {
           controller.error(error);
@@ -1871,7 +1883,7 @@ class DefaultStreamTextResult<
 
                     case 'tool-call': {
                       controller.enqueue(chunk);
-                      // store tool calls for onFinish callback and toolCalls promise:
+                      // store tool calls for onEnd callback and toolCalls promise:
                       stepToolCalls.push(chunk);
                       break;
                     }
@@ -1914,7 +1926,7 @@ class DefaultStreamTextResult<
 
                     case 'model-call-end': {
                       // Note: tool executions might not be finished yet when the finish event is emitted.
-                      // store usage and finish reason for promises and onFinish callback:
+                      // store usage and finish reason for promises and onEnd callback:
                       stepUsage = chunk.usage;
                       stepFinishReason = chunk.finishReason;
                       stepRawFinishReason = chunk.rawFinishReason;
@@ -1954,7 +1966,7 @@ class DefaultStreamTextResult<
                   }
                 },
 
-                // invoke onFinish callback and resolve toolResults promise when the stream is about to close:
+                // invoke onEnd callback and resolve toolResults promise when the stream is about to close:
                 async flush(controller) {
                   const stepTimeMs = now() - stepStartTimestampMs;
 

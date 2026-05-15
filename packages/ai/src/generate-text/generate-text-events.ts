@@ -141,7 +141,7 @@ export type GenerateTextStepEndEvent<
 > = StepResult<TOOLS, RUNTIME_CONTEXT>;
 
 /**
- * Event passed to the `onFinish` callback.
+ * Event passed to the `onEnd` callback.
  *
  * Called when the entire generation completes (all steps finished).
  * Includes the final step's result along with aggregated data from all steps.
@@ -355,7 +355,7 @@ export type GenerateTextOnStepFinishCallback<
 > = Callback<GenerateTextStepEndEvent<TOOLS, RUNTIME_CONTEXT>>;
 
 /**
- * Callback that is set using the `onFinish` option.
+ * Callback that is set using the `onEnd` option.
  *
  * Called when the entire generation completes (all steps finished).
  * The event includes the final step's result properties along with

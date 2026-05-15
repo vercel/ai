@@ -1855,7 +1855,7 @@ To see `generateText` in action, check out [these examples](#examples).
       ],
     },
     {
-      name: 'onFinish',
+      name: 'onEnd',
       type: '(event: GenerateTextEndEvent<TOOLS>) => PromiseLike<void> | void',
       isOptional: true,
       description:
@@ -2295,6 +2295,12 @@ To see `generateText` in action, check out [these examples](#examples).
           ],
         },
       ],
+    },
+    {
+      name: 'onFinish',
+      type: '(event: GenerateTextEndEvent<TOOLS>) => PromiseLike<void> | void',
+      isOptional: true,
+      description: 'Deprecated alias for `onEnd`.',
     },
   ]}
 />

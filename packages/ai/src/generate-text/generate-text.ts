@@ -202,7 +202,8 @@ export type GenerateTextInclude = {
  * Uses a discriminated union: check `success` to determine if `output` or `error` is present.
  * @param experimental_onToolCallFinish - Deprecated alias for `onToolExecutionEnd`.
  * @param onStepFinish - Callback that is called when each step (LLM call) is finished, including intermediate steps.
- * @param onFinish - Callback that is called when all steps are finished and the response is complete.
+ * @param onEnd - Callback that is called when all steps are finished and the response is complete.
+ * @param onFinish - Deprecated alias for `onEnd`.
  *
  * @returns
  * A result object that contains the generated text, the results of the tool calls, and additional information.
@@ -255,6 +256,7 @@ export async function generateText<
   experimental_onToolCallFinish,
   onStepFinish,
   onFinish,
+  onEnd = onFinish,
   ...settings
 }: LanguageModelCallOptions &
   RequestOptions<TOOLS> &
@@ -418,6 +420,13 @@ export async function generateText<
 
     /**
      * Callback that is called when all steps are finished and the response is complete.
+     */
+    onEnd?: GenerateTextOnEndCallback<NoInfer<TOOLS>, NoInfer<RUNTIME_CONTEXT>>;
+
+    /**
+     * Callback that is called when all steps are finished and the response is complete.
+     *
+     * @deprecated Use `onEnd` instead.
      */
     onFinish?: GenerateTextOnEndCallback<
       NoInfer<TOOLS>,
@@ -1194,7 +1203,7 @@ export async function generateText<
     const dynamicToolResults = steps.flatMap(step => step.dynamicToolResults);
     const warnings = steps.flatMap(step => step.warnings ?? []);
 
-    const onFinishEvent = {
+    const onEndEvent = {
       callId,
       stepNumber: lastStep.stepNumber,
       model: lastStep.model,
@@ -1229,8 +1238,8 @@ export async function generateText<
     };
 
     await notify({
-      event: onFinishEvent,
-      callbacks: [onFinish, telemetryDispatcher.onEnd],
+      event: onEndEvent,
+      callbacks: [onEnd, telemetryDispatcher.onEnd],
     });
 
     // parse output only if the last step was finished with "stop":

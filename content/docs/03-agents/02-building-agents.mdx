@@ -503,7 +503,7 @@ const result = await myAgent.generate({
     });
   },
 
-  onFinish({ totalUsage, steps }) {
+  onEnd({ totalUsage, steps }) {
     console.log('Agent finished:', {
       totalSteps: steps.length,
       totalTokens: totalUsage.totalTokens,
@@ -519,7 +519,7 @@ The available lifecycle callbacks are:
 - **`onToolExecutionStart`**: Called right before a tool's `execute` function runs. Receives the tool call object, messages, and `toolContext`.
 - **`onToolExecutionEnd`**: Called right after a tool's `execute` function completes or errors. Receives the tool call, `toolExecutionMs`, and a `toolOutput` discriminated union (`type: 'tool-result'` with `output`, or `type: 'tool-error'` with `error`).
 - **`onStepFinish`**: Called after each step finishes. Receives step results including usage, performance, finish reason, and tool calls.
-- **`onFinish`**: Called when all steps are finished and the response is complete. Receives all step results, total usage, and `runtimeContext`.
+- **`onEnd`**: Called when all steps are finished and the response is complete. Receives all step results, total usage, and `runtimeContext`.
 
 #### Constructor vs. Method Callbacks
 

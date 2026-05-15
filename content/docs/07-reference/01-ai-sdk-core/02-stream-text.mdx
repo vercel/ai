@@ -1588,14 +1588,14 @@ To see `streamText` in action, check out [these examples](#examples).
       ],
     },
     {
-      name: 'onFinish',
-      type: '(result: OnFinishResult) => Promise<void> | void',
+      name: 'onEnd',
+      type: '(result: OnEndResult) => Promise<void> | void',
       isOptional: true,
       description:
         'Callback that is called when the LLM response and all request tool executions (for tools that have an `execute` function) are finished.',
       properties: [
         {
-          type: 'OnFinishResult',
+          type: 'OnEndResult',
           parameters: [
             {
               name: 'finishReason',
@@ -1939,6 +1939,12 @@ To see `streamText` in action, check out [these examples](#examples).
           ],
         },
       ],
+    },
+    {
+      name: 'onFinish',
+      type: '(result: OnEndResult) => Promise<void> | void',
+      isOptional: true,
+      description: 'Deprecated alias for `onEnd`.',
     },
     {
       name: 'onAbort',

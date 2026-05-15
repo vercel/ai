@@ -497,6 +497,13 @@ export type WorkflowAgentOptions<
     /**
      * Callback that is called when the LLM response and all request tool executions are finished.
      */
+    onEnd?: WorkflowAgentOnEndCallback<TTools, TRuntimeContext>;
+
+    /**
+     * Callback that is called when the LLM response and all request tool executions are finished.
+     *
+     * @deprecated Use `onEnd` instead.
+     */
     onFinish?: WorkflowAgentOnFinishCallback<TTools, TRuntimeContext>;
 
     /**
@@ -536,7 +543,7 @@ export type WorkflowAgentOptions<
 /**
  * Callback that is called when the LLM response and all request tool executions are finished.
  */
-export type WorkflowAgentOnFinishCallback<
+export type WorkflowAgentOnEndCallback<
   TTools extends ToolSet = ToolSet,
   TRuntimeContext extends Context = Context,
   OUTPUT = never,
@@ -587,6 +594,17 @@ export type WorkflowAgentOnFinishCallback<
    */
   readonly output: OUTPUT;
 }) => PromiseLike<void> | void;
+
+/**
+ * Callback that is called when the LLM response and all request tool executions are finished.
+ *
+ * @deprecated Use `WorkflowAgentOnEndCallback` instead.
+ */
+export type WorkflowAgentOnFinishCallback<
+  TTools extends ToolSet = ToolSet,
+  TRuntimeContext extends Context = Context,
+  OUTPUT = never,
+> = WorkflowAgentOnEndCallback<TTools, TRuntimeContext, OUTPUT>;
 
 /**
  * Callback that is invoked when an error occurs during streaming.
@@ -899,6 +917,14 @@ export type WorkflowAgentStreamOptions<
      * Callback that is called when the LLM response and all request tool executions
      * (for tools that have an `execute` function) are finished.
      */
+    onEnd?: WorkflowAgentOnEndCallback<TTools, TRuntimeContext, OUTPUT>;
+
+    /**
+     * Callback that is called when the LLM response and all request tool executions
+     * (for tools that have an `execute` function) are finished.
+     *
+     * @deprecated Use `onEnd` instead.
+     */
     onFinish?: WorkflowAgentOnFinishCallback<TTools, TRuntimeContext, OUTPUT>;
 
     /**
@@ -1112,7 +1138,7 @@ export class WorkflowAgent<
     TBaseTools,
     TRuntimeContext
   >;
-  private constructorOnFinish?: WorkflowAgentOnFinishCallback<
+  private constructorOnEnd?: WorkflowAgentOnEndCallback<
     TBaseTools,
     TRuntimeContext
   >;
@@ -1145,7 +1171,8 @@ export class WorkflowAgent<
     this.experimentalDownload = options.experimental_download;
     this.prepareStep = options.prepareStep;
     this.constructorOnStepFinish = options.onStepFinish;
-    this.constructorOnFinish = options.onFinish;
+    const { onFinish, onEnd = onFinish } = options;
+    this.constructorOnEnd = onEnd;
     this.constructorOnStart = options.experimental_onStart;
     this.constructorOnStepStart = options.experimental_onStepStart;
     this.constructorOnToolExecutionStart = options.onToolExecutionStart;
@@ -1185,6 +1212,8 @@ export class WorkflowAgent<
       PARTIAL_OUTPUT
     >,
   ): Promise<WorkflowAgentStreamResult<TTools, OUTPUT>> {
+    const { onFinish, onEnd = onFinish } = options;
+
     // Call prepareCall to transform parameters before the agent loop
     let effectiveModel: LanguageModel = this.model;
     let effectiveInstructions = options.system ?? this.instructions;
@@ -1510,11 +1539,11 @@ export class WorkflowAgent<
         | undefined,
       options.onStepFinish,
     );
-    const mergedOnFinish = mergeCallbacks(
-      this.constructorOnFinish as
-        | WorkflowAgentOnFinishCallback<TTools, TRuntimeContext, OUTPUT>
+    const mergedOnEnd = mergeCallbacks(
+      this.constructorOnEnd as
+        | WorkflowAgentOnEndCallback<TTools, TRuntimeContext, OUTPUT>
         | undefined,
-      options.onFinish,
+      onEnd,
     );
     const mergedOnStart = mergeCallbacks(
       this.constructorOnStart as
@@ -2011,10 +2040,10 @@ export class WorkflowAgent<
 
             const messages = iterMessages as unknown as ModelMessage[];
 
-            if (mergedOnFinish && !wasAborted) {
+            if (mergedOnEnd && !wasAborted) {
               const lastStep = steps[steps.length - 1];
               const totalUsage = aggregateUsage(steps);
-              await mergedOnFinish({
+              await mergedOnEnd({
                 steps,
                 messages,
                 text: lastStep?.text ?? '',
@@ -2190,7 +2219,7 @@ export class WorkflowAgent<
         await options.onError({ error });
       }
       await telemetryDispatcher.onError?.(error);
-      // Don't throw yet - we want to call onFinish first
+      // Don't throw yet - we want to call onEnd first
     }
 
     // Use the final messages from the iterator, or fall back to standardized messages
@@ -2223,11 +2252,11 @@ export class WorkflowAgent<
       }
     }
 
-    // Call onFinish callback if provided (always call, even on errors, but not on abort)
-    if (mergedOnFinish && !wasAborted) {
+    // Call onEnd callback if provided (always call, even on errors, but not on abort)
+    if (mergedOnEnd && !wasAborted) {
       const lastStep = steps[steps.length - 1];
       const totalUsage = aggregateUsage(steps);
-      await mergedOnFinish({
+      await mergedOnEnd({
         steps,
         messages: messages as ModelMessage[],
         text: lastStep?.text ?? '',
