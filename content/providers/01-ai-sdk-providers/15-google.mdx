@@ -1398,9 +1398,7 @@ const result = await generateText({
 
 console.log(result.text);
 
-const images = result.files.filter(file =>
-  file.mediaType.startsWith('image/'),
-);
+const images = result.files.filter(file => file.mediaType.startsWith('image/'));
 // images[0].uint8Array | images[0].base64 | images[0].mediaType
 ```
 
