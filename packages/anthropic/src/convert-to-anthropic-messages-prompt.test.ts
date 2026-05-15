@@ -2808,7 +2808,7 @@ describe('cache control', () => {
     });
 
     it('should set cache_control on tool result with output cache control', async () => {
-      const result = await convertToAnthropicPrompt({
+      const result = await convertToAnthropicMessagesPrompt({
         prompt: [
           {
             role: 'tool',
@@ -2857,7 +2857,7 @@ describe('cache control', () => {
     });
 
     it('should set cache_control on tool result with content output cache control', async () => {
-      const result = await convertToAnthropicPrompt({
+      const result = await convertToAnthropicMessagesPrompt({
         prompt: [
           {
             role: 'tool',
