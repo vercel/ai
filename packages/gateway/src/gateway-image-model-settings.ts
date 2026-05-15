@@ -24,6 +24,10 @@ export type GatewayImageModelId =
   | 'recraft/recraft-v3'
   | 'recraft/recraft-v4'
   | 'recraft/recraft-v4-pro'
+  | 'recraft/recraft-v4.1'
+  | 'recraft/recraft-v4.1-pro'
+  | 'recraft/recraft-v4.1-utility'
+  | 'recraft/recraft-v4.1-utility-pro'
   | 'xai/grok-imagine-image'
   | 'xai/grok-imagine-image-pro'
   | (string & {});
