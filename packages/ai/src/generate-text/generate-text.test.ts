@@ -3981,10 +3981,13 @@ describe('generateText', () => {
               "provider": "mock-provider",
             },
             "performance": {
+              "effectiveOutputTokensPerSecond": 0,
+              "effectiveTotalTokensPerSecond": 0,
+              "inputTokensPerSecond": undefined,
+              "outputTokensPerSecond": undefined,
               "responseTimeMs": 0,
               "stepTimeMs": 0,
-              "timeToFirstTokenMs": undefined,
-              "tokensPerSecond": 0,
+              "timeToFirstOutputTokenMs": undefined,
               "toolExecutionMs": {
                 "call-1": 0,
               },
