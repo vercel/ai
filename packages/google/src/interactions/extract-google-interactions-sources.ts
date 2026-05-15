@@ -60,7 +60,7 @@ export function annotationToSource({
     }
     case 'file_citation': {
       const a = annotation as GoogleInteractionsFileCitation;
-      const uri = a.document_uri ?? a.source ?? a.file_name;
+      const uri = a.url ?? a.document_uri ?? a.file_name;
       if (uri == null || uri.length === 0) return undefined;
       if (uri.startsWith('http://') || uri.startsWith('https://')) {
         return {
@@ -176,10 +176,10 @@ export function builtinToolResultToSources({
         const entry = raw as {
           file_name?: string;
           document_uri?: string;
-          source?: string;
+          url?: string;
           title?: string;
         };
-        const uri = entry.document_uri ?? entry.source ?? entry.file_name;
+        const uri = entry.url ?? entry.document_uri ?? entry.file_name;
         if (uri == null || uri.length === 0) continue;
         if (uri.startsWith('http://') || uri.startsWith('https://')) {
           sources.push({
