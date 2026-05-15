@@ -258,15 +258,23 @@ export class GoogleLanguageModel implements LanguageModelV4 {
           // response format:
           responseMimeType:
             responseFormat?.type === 'json' ? 'application/json' : undefined,
-          responseSchema:
-            responseFormat?.type === 'json' &&
+          ...(responseFormat?.type === 'json' &&
             responseFormat.schema != null &&
             // Google GenAI does not support all OpenAPI Schema features,
             // so this is needed as an escape hatch:
             // TODO convert into provider option
-            (googleOptions?.structuredOutputs ?? true)
-              ? convertJSONSchemaToOpenAPISchema(responseFormat.schema)
-              : undefined,
+            (googleOptions?.structuredOutputs ?? true) &&
+            (isVertexProvider
+              ? {
+                  responseSchema: convertJSONSchemaToOpenAPISchema(
+                    responseFormat.schema,
+                  ),
+                }
+              : {
+                  responseJsonSchema: convertJSONSchemaToOpenAPISchema(
+                    responseFormat.schema,
+                  ),
+                })),
           ...(googleOptions?.audioTimestamp && {
             audioTimestamp: googleOptions.audioTimestamp,
           }),
