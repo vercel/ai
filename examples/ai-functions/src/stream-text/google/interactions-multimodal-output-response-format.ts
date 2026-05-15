@@ -10,7 +10,13 @@ run(async () => {
       'Tell me a three sentence bedtime story about a unicorn, accompanied by a suitable illustration.',
     providerOptions: {
       google: {
-        responseModalities: ['text', 'image'],
+        responseFormat: [
+          { type: 'text' },
+          {
+            type: 'image',
+            aspectRatio: '16:9',
+          },
+        ],
       },
     },
   });
