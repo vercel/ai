@@ -806,6 +806,12 @@ The following gateway provider options are available:
 
   Example: `tags: ['chat', 'v2']` will tag this request with "chat" and "v2" for filtering in usage analytics.
 
+- **caching** _'auto'_
+
+  Enables AI Gateway automatic prompt caching for the request.
+
+  Example: `caching: 'auto'` will let AI Gateway automatically cache prompt content for supported models.
+
 - **byok** _Record&lt;string, Array&lt;Record&lt;string, unknown&gt;&gt;&gt;_
 
   Request-scoped BYOK (Bring Your Own Key) credentials to use for this request. When provided, any cached BYOK credentials configured in the gateway system are not considered. Requests may still fall back to use system credentials if the provided credentials fail.
