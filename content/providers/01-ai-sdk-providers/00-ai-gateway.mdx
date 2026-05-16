@@ -158,6 +158,13 @@ You can connect your own provider credentials to use with Vercel AI Gateway. Thi
 
 To set up BYOK, add your provider credentials in your Vercel team's AI Gateway settings. Once configured, AI Gateway automatically uses your credentials. No code changes are needed.
 
+Use BYOK when a provider feature depends on resources that are scoped to the
+same upstream provider account. For example, OpenAI Responses API persistence
+with `previousResponseId` or `conversation` needs to continue against the same
+OpenAI account that stored the response or conversation. Configure OpenAI BYOK,
+or call the OpenAI provider directly, when your application relies on that
+persistence.
+
 For providers like Azure where you can use custom deployment names, you can configure model mappings to map gateway model slugs to your deployment names. See [model mappings](https://vercel.com/docs/ai-gateway/byok#model-mappings) for details.
 
 Learn more in the [BYOK documentation](https://vercel.com/docs/ai-gateway/byok).
