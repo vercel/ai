@@ -1,5 +1,12 @@
 # @ai-sdk/xai
 
+## 2.0.73
+
+### Patch Changes
+
+- b3c2af5: fix reasoning-start dedupe on multi-summary-part responses to prevent xai 400 on continuation requests
+- a455654: surface full xai error detail in APICallError.message instead of falling back to http status text
+
 ## 2.0.72
 
 ### Patch Changes
