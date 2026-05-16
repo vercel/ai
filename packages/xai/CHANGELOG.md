@@ -1,5 +1,12 @@
 # @ai-sdk/xai
 
+## 4.0.0-canary.64
+
+### Patch Changes
+
+- 2dc2a52: fix reasoning-start dedupe on multi-summary-part responses to prevent xai 400 on continuation requests
+- 1293885: surface full xai error detail in APICallError.message instead of falling back to http status text
+
 ## 4.0.0-canary.63
 
 ### Patch Changes
