@@ -1,10 +1,11 @@
 import type { GoogleLanguageModelOptions } from '@ai-sdk/google';
 import { GoogleLanguageModel } from '@ai-sdk/google/internal';
-import type {
-  ImageModelV4,
-  ImageModelV4File,
-  LanguageModelV4Prompt,
-  SharedV4Warning,
+import {
+  APICallError,
+  type ImageModelV4,
+  type ImageModelV4File,
+  type LanguageModelV4Prompt,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -186,8 +187,9 @@ export class GoogleVertexImageModel implements ImageModelV4 {
     }
 
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+    const url = `${this.config.baseURL}/models/${this.modelId}:predict`;
     const { value: response, responseHeaders } = await postJsonToApi({
-      url: `${this.config.baseURL}/models/${this.modelId}:predict`,
+      url,
       headers: combineHeaders(
         this.config.headers ? await resolve(this.config.headers) : undefined,
         headers,
@@ -201,11 +203,36 @@ export class GoogleVertexImageModel implements ImageModelV4 {
       fetch: this.config.fetch,
     });
 
+    const imagePredictions =
+      response.predictions?.filter(
+        (
+          prediction,
+        ): prediction is Extract<
+          typeof prediction,
+          { bytesBase64Encoded: string }
+        > => 'bytesBase64Encoded' in prediction,
+      ) ?? [];
+    const filteredReasons =
+      response.predictions?.flatMap(prediction =>
+        'raiFilteredReason' in prediction ? [prediction.raiFilteredReason] : [],
+      ) ?? [];
+
+    if (imagePredictions.length === 0 && filteredReasons.length > 0) {
+      throw new APICallError({
+        message: filteredReasons.join('\n'),
+        url,
+        requestBodyValues: body,
+        statusCode: 200,
+        responseHeaders,
+        data: response,
+        isRetryable: false,
+      });
+    }
+
     return {
-      images:
-        response.predictions?.map(
-          ({ bytesBase64Encoded }) => bytesBase64Encoded,
-        ) ?? [],
+      images: imagePredictions.map(
+        ({ bytesBase64Encoded }) => bytesBase64Encoded,
+      ),
       warnings,
       response: {
         timestamp: currentDate,
@@ -215,7 +242,7 @@ export class GoogleVertexImageModel implements ImageModelV4 {
       providerMetadata: (() => {
         const payload = {
           images:
-            response.predictions?.map(prediction => {
+            imagePredictions.map(prediction => {
               const {
                 // normalize revised prompt property
                 prompt: revisedPrompt,
@@ -396,11 +423,16 @@ function isGeminiModel(modelId: string): boolean {
 const googleVertexImageResponseSchema = z.object({
   predictions: z
     .array(
-      z.object({
-        bytesBase64Encoded: z.string(),
-        mimeType: z.string(),
-        prompt: z.string().nullish(),
-      }),
+      z.union([
+        z.object({
+          bytesBase64Encoded: z.string(),
+          mimeType: z.string(),
+          prompt: z.string().nullish(),
+        }),
+        z.object({
+          raiFilteredReason: z.string(),
+        }),
+      ]),
     )
     .nullish(),
 });
