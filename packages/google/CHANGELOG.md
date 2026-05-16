@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 2.0.73
+
+### Patch Changes
+
+- f081ba8: fix(provider/google): support `functionCall.id` when returned by Gemini API and provide matching `functionResponse.id`
+
 ## 2.0.72
 
 ### Patch Changes
