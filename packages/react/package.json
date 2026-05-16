@@ -63,7 +63,7 @@
     "react": "^18 || ~19.0.1 || ~19.1.2 || ^19.2.1"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=22"
   },
   "publishConfig": {
     "access": "public",

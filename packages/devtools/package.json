@@ -87,7 +87,7 @@
   "license": "Apache-2.0",
   "sideEffects": false,
   "engines": {
-    "node": ">=18"
+    "node": ">=22"
   },
   "keywords": [
     "ai"

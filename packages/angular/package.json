@@ -51,7 +51,7 @@
     "@angular/core": ">=16.0.0"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=22"
   },
   "publishConfig": {
     "access": "public",

@@ -41,7 +41,7 @@ ai ─────────────────┬──▶ @ai-sdk/provi
 
 ### Requirements
 
-- **Node.js**: v18, v20, or v22 (v22 recommended for development)
+- **Node.js**: v22 or v24
 - **pnpm**: v10+ (`npm install -g pnpm@10`)
 
 ### Initial Setup
