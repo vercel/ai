@@ -797,43 +797,46 @@ const chunkBaseSchema = z.looseObject({
   id: z.string().nullish(),
   created: z.number().nullish(),
   model: z.string().nullish(),
-  choices: z.array(
-    z.object({
-      delta: z
-        .object({
-          role: z.enum(['assistant']).nullish(),
-          content: z.string().nullish(),
-          // Most openai-compatible models set `reasoning_content`, but some
-          // providers serving `gpt-oss` set `reasoning`. See #7866
-          reasoning_content: z.string().nullish(),
-          reasoning: z.string().nullish(),
-          tool_calls: z
-            .array(
-              z.object({
-                index: z.number().nullish(), //google does not send index
-                id: z.string().nullish(),
-                function: z.object({
-                  name: z.string().nullish(),
-                  arguments: z.string().nullish(),
+  // Some providers emit usage-only final chunks without choices.
+  choices: z
+    .array(
+      z.object({
+        delta: z
+          .object({
+            role: z.enum(['assistant']).nullish(),
+            content: z.string().nullish(),
+            // Most openai-compatible models set `reasoning_content`, but some
+            // providers serving `gpt-oss` set `reasoning`. See #7866
+            reasoning_content: z.string().nullish(),
+            reasoning: z.string().nullish(),
+            tool_calls: z
+              .array(
+                z.object({
+                  index: z.number().nullish(), //google does not send index
+                  id: z.string().nullish(),
+                  function: z.object({
+                    name: z.string().nullish(),
+                    arguments: z.string().nullish(),
+                  }),
+                  // Support for Google Gemini thought signatures via OpenAI compatibility
+                  extra_content: z
+                    .object({
+                      google: z
+                        .object({
+                          thought_signature: z.string().nullish(),
+                        })
+                        .nullish(),
+                    })
+                    .nullish(),
                 }),
-                // Support for Google Gemini thought signatures via OpenAI compatibility
-                extra_content: z
-                  .object({
-                    google: z
-                      .object({
-                        thought_signature: z.string().nullish(),
-                      })
-                      .nullish(),
-                  })
-                  .nullish(),
-              }),
-            )
-            .nullish(),
-        })
-        .nullish(),
-      finish_reason: z.string().nullish(),
-    }),
-  ),
+              )
+              .nullish(),
+          })
+          .nullish(),
+        finish_reason: z.string().nullish(),
+      }),
+    )
+    .default([]),
   usage: openaiCompatibleTokenUsageSchema,
 });
 
