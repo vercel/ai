@@ -26,7 +26,8 @@ import { VERSION } from './version';
 
 const xaiErrorStructure: ProviderErrorStructure<XaiErrorData> = {
   errorSchema: xaiErrorDataSchema,
-  errorToMessage: data => data.error.message,
+  errorToMessage: data =>
+    'code' in data ? `${data.code}: ${data.error}` : data.error.message,
 };
 
 export interface XaiProvider extends ProviderV2 {
