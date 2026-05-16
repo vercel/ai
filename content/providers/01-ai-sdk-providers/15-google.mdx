@@ -1154,21 +1154,28 @@ The following optional provider options are available:
   Whether the model returns synthesized thought summaries on reasoning
   parts. Defaults to the API default.
 
-- **imageConfig** _\{ aspectRatio?: string; imageSize?: '1K' | '2K' | '4K' | '512' \}_
+- **responseFormat** _Array\<\{ type: 'text' | 'image' | 'audio'; mimeType?: string; schema?: unknown; aspectRatio?: string; imageSize?: '1K' \| '2K' \| '4K' \| '512' \}\>_
 
-  Image generation configuration when `responseModalities` includes
-  `'image'`. `aspectRatio` accepts `1:1`, `2:3`, `3:2`, `3:4`, `4:3`,
-  `4:5`, `5:4`, `9:16`, `16:9`, `21:9`, `1:8`, `8:1`, `1:4`, `4:1`.
+  Output-format entries that map directly to the API's `response_format`
+  array. Use this for fine-grained control over image, audio, or non-JSON
+  text outputs (e.g. `aspectRatio` and `imageSize` for image generation).
+  The AI SDK call-level `responseFormat: { type: 'json', schema }` still
+  drives JSON-mode automatically and prepends a matching text entry;
+  entries listed here are appended.
+
+  `aspectRatio` accepts `1:1`, `2:3`, `3:2`, `3:4`, `4:3`, `4:5`, `5:4`,
+  `9:16`, `16:9`, `21:9`, `1:8`, `8:1`, `1:4`, `4:1`.
+
+- **imageConfig** _\{ aspectRatio?: string; imageSize?: '1K' | '2K' | '4K' | '512' \}_ (deprecated)
+
+  Use **responseFormat** with a `{ type: 'image', ... }` entry instead.
+  Retained for backwards compatibility; the SDK translates `imageConfig`
+  into a matching `response_format` image entry and emits a warning when
+  set. Ignored when `responseFormat` already supplies an image entry.
 
 - **mediaResolution** _'low' | 'medium' | 'high' | 'ultra_high'_
 
   Media resolution applied to image inputs / outputs.
-
-- **responseModalities** _Array\<'text' | 'image' | 'audio' | 'video' | 'document'\>_
-
-  The modalities the model may emit. Defaults to text-only. Pass
-  `['image']` (or `['text', 'image']`) to enable native image output. See
-  [Image output](#image-output-via-interactions).
 
 - **serviceTier** _'flex' | 'standard' | 'priority'_
 
@@ -1321,9 +1328,10 @@ const { text, toolCalls } = await generateText({
 
 ### Image output via Interactions
 
-Set `responseModalities: ['image']` on a Gemini image-capable model to get
-images as `LanguageModelV4FilePart` files in the response. No tool wrapping
-is required.
+Add a `{ type: 'image' }` entry to `responseFormat` on a Gemini
+image-capable model to get images as `LanguageModelV4FilePart` files in
+the response. No tool wrapping is required, and the entry doubles as the
+place to set `aspectRatio`, `imageSize`, and `mimeType`.
 
 ```ts
 import { google } from '@ai-sdk/google';
@@ -1334,7 +1342,7 @@ const result = await generateText({
   prompt: 'Generate an image of a comic cat in a spaceship.',
   providerOptions: {
     google: {
-      responseModalities: ['image'],
+      responseFormat: [{ type: 'image' }],
     },
   },
 });
@@ -1344,6 +1352,54 @@ for (const file of result.files) {
     // file.uint8Array | file.base64 | file.mediaType
   }
 }
+```
+
+To control aspect ratio, image size, or output mime type, add those
+fields to the same image entry:
+
+```ts
+const result = await generateText({
+  model: google.interactions('gemini-3-pro-image-preview'),
+  prompt: 'Generate a high-quality landscape photo of mountains at sunset.',
+  providerOptions: {
+    google: {
+      responseFormat: [
+        {
+          type: 'image',
+          aspectRatio: '16:9',
+          imageSize: '4K',
+        },
+      ],
+    },
+  },
+});
+```
+
+For multimodal output, list one entry per modality. The model returns
+text in `result.text` and the accompanying image(s) in `result.files`:
+
+```ts
+import { google } from '@ai-sdk/google';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: google.interactions('gemini-2.5-flash-image'),
+  prompt:
+    'Tell me a three sentence bedtime story about a unicorn, accompanied by a suitable illustration.',
+  providerOptions: {
+    google: {
+      responseFormat: [
+        { type: 'text' },
+        { type: 'image', aspectRatio: '16:9' },
+      ],
+    },
+  },
+});
+
+console.log(result.text);
+
+const images = result.files.filter(file => file.mediaType.startsWith('image/'));
+// images[0].uint8Array | images[0].base64 | images[0].mediaType
 ```
 
 Iterative image editing pairs naturally with stateful chaining — keep
@@ -1359,7 +1415,7 @@ const model = google.interactions('gemini-3-pro-image-preview');
 const turn1 = await generateText({
   model,
   prompt: 'Generate an image of a comic cat in a spaceship.',
-  providerOptions: { google: { responseModalities: ['image'] } },
+  providerOptions: { google: { responseFormat: [{ type: 'image' }] } },
 });
 
 const interactionId = turn1.providerMetadata?.google?.interactionId as
@@ -1371,7 +1427,7 @@ const turn2 = await generateText({
   prompt: 'now make the cat red',
   providerOptions: {
     google: {
-      responseModalities: ['image'],
+      responseFormat: [{ type: 'image' }],
       previousInteractionId: interactionId,
     },
   },

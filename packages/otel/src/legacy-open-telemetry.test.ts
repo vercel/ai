@@ -253,11 +253,14 @@ function makeStepFinishEvent(overrides?: Record<string, unknown>) {
       },
     },
     performance: {
-      tokensPerSecond: 20,
+      effectiveOutputTokensPerSecond: 20,
+      outputTokensPerSecond: undefined,
+      inputTokensPerSecond: undefined,
+      effectiveTotalTokensPerSecond: 30,
       stepTimeMs: 1000,
       responseTimeMs: 1000,
       toolExecutionMs: {},
-      timeToFirstTokenMs: undefined,
+      timeToFirstOutputTokenMs: undefined,
     },
     warnings: undefined,
     request: { body: undefined, messages: [] },
@@ -1073,11 +1076,14 @@ describe('LegacyOpenTelemetry', () => {
       otelIntegration.onStepFinish!(
         makeStepFinishEvent({
           performance: {
-            tokensPerSecond: 20,
+            effectiveOutputTokensPerSecond: 20,
+            outputTokensPerSecond: 20.2020202020202,
+            inputTokensPerSecond: 1000,
+            effectiveTotalTokensPerSecond: 30,
             stepTimeMs: 1000,
             responseTimeMs: 1000,
             toolExecutionMs: {},
-            timeToFirstTokenMs: 10,
+            timeToFirstOutputTokenMs: 10,
           },
         }),
       );

@@ -1,5 +1,28 @@
 # @ai-sdk/otel
 
+## 1.0.0-canary.87
+
+### Patch Changes
+
+- Updated dependencies [e3a0419]
+  - ai@7.0.0-canary.141
+
+## 1.0.0-canary.86
+
+### Patch Changes
+
+- ai@7.0.0-canary.140
+
+## 1.0.0-canary.85
+
+### Patch Changes
+
+- 334ae5d: Update step performance metrics with explicit effective, input, output, and total token throughput fields.
+- Updated dependencies [334ae5d]
+- Updated dependencies [28dfa06]
+- Updated dependencies [e93fa91]
+  - ai@7.0.0-canary.139
+
 ## 1.0.0-canary.84
 
 ### Patch Changes

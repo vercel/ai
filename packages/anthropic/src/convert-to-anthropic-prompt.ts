@@ -321,14 +321,28 @@ export async function convertToAnthropicPrompt({
                   continue;
                 }
 
+                const output = part.output;
+                const outputProviderOptions =
+                  'providerOptions' in output
+                    ? output.providerOptions
+                    : output.type === 'content'
+                      ? output.value.find(
+                          contentPart => contentPart.providerOptions != null,
+                        )?.providerOptions
+                      : undefined;
+
                 // cache control: first add cache control from part.
-                // for the last part of a message,
-                // check also if the message has cache control.
+                // then from tool result output, and for the last part of a
+                // message, check also if the message has cache control.
                 const isLastPart = i === content.length - 1;
 
                 const cacheControl =
                   validator.getCacheControl(part.providerOptions, {
                     type: 'tool result part',
+                    canCache: true,
+                  }) ??
+                  validator.getCacheControl(outputProviderOptions, {
+                    type: 'tool result output',
                     canCache: true,
                   }) ??
                   (isLastPart
@@ -338,7 +352,6 @@ export async function convertToAnthropicPrompt({
                       })
                     : undefined);
 
-                const output = part.output;
                 let contentValue: AnthropicToolResultContent['content'];
                 switch (output.type) {
                   case 'content':

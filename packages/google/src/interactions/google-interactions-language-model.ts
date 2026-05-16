@@ -37,6 +37,7 @@ import type {
   GoogleInteractionsAgentConfig,
   GoogleInteractionsGenerationConfig,
   GoogleInteractionsRequestBody,
+  GoogleInteractionsResponseFormatEntry,
   GoogleInteractionsTool,
   GoogleInteractionsToolChoice,
 } from './google-interactions-prompt';
@@ -164,28 +165,22 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
     }
 
     /*
-     * Structured output mapping (resolves PRD Open Q1).
+     * `response_format` is a polymorphic array of entries. Three sources
+     * contribute, in order:
      *
-     * The Interactions API exposes structured output via two top-level body
-     * fields: `response_mime_type` (always `'application/json'` here) and
-     * `response_format` (typed as `unknown` in the js-genai SDK). Per the
-     * canonical sample at
-     * `googleapis/js-genai/sdk-samples/interactions_structured_output_json.ts`,
-     * `response_format` accepts a **plain JSON Schema** value directly - no
-     * wrapping object, no OpenAPI conversion. The js-genai resource type
-     * (`src/interactions/resources/interactions.ts:1399`) confirms the field is
-     * passed through verbatim. We therefore send the AI SDK
-     * `responseFormat.schema` (a `JSONSchema7`) as-is.
-     *
-     * If a future API revision rejects plain JSON Schema, fall back to
-     * `convertJSONSchemaToOpenAPISchema(...)` (already imported by
-     * `google-language-model.ts`); empirically that has not been needed.
+     *   1. AI SDK call-level `responseFormat: { type: 'json', schema }` →
+     *      `{ type: 'text', mime_type: 'application/json', schema }`.
+     *   2. `providerOptions.google.responseFormat` (primary path) — entries
+     *      are appended verbatim with camelCase → snake_case translation.
+     *   3. `providerOptions.google.imageConfig` (deprecated fallback) — only
+     *      contributes if no `{type:'image'}` entry was already provided via
+     *      sources 1 or 2; emits a deprecation warning when used.
      *
      * Agent calls cannot send `generation_config` and (per the API) cannot
-     * combine with structured output - emit a warning and drop the field.
+     * combine with structured output — emit a warning and drop the field.
      */
-    let responseMimeType: string | undefined;
-    let responseFormat: unknown | undefined;
+    const responseFormatEntries: Array<GoogleInteractionsResponseFormatEntry> =
+      [];
     if (options.responseFormat?.type === 'json') {
       if (isAgent) {
         warnings.push({
@@ -194,9 +189,43 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
             'google.interactions: structured output (responseFormat) is not supported when an agent is set; responseFormat will be ignored.',
         });
       } else {
-        responseMimeType = 'application/json';
-        if (options.responseFormat.schema != null) {
-          responseFormat = options.responseFormat.schema;
+        const entry: GoogleInteractionsResponseFormatEntry = {
+          type: 'text',
+          mime_type: 'application/json',
+          ...(options.responseFormat.schema != null
+            ? { schema: options.responseFormat.schema }
+            : {}),
+        };
+        responseFormatEntries.push(entry);
+      }
+    }
+
+    if (opts?.responseFormat != null) {
+      for (const entry of opts.responseFormat) {
+        if (entry.type === 'text') {
+          responseFormatEntries.push(
+            pruneUndefined({
+              type: 'text' as const,
+              mime_type: entry.mimeType ?? undefined,
+              schema: entry.schema ?? undefined,
+            }),
+          );
+        } else if (entry.type === 'image') {
+          responseFormatEntries.push(
+            pruneUndefined({
+              type: 'image' as const,
+              mime_type: entry.mimeType ?? undefined,
+              aspect_ratio: entry.aspectRatio ?? undefined,
+              image_size: entry.imageSize ?? undefined,
+            }),
+          );
+        } else if (entry.type === 'audio') {
+          responseFormatEntries.push(
+            pruneUndefined({
+              type: 'audio' as const,
+              mime_type: entry.mimeType ?? undefined,
+            }),
+          );
         }
       }
     }
@@ -229,14 +258,13 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
     /*
      * The Interactions API splits per-call config into `generation_config`
      * (model branch) and `agent_config` (agent branch); the two are mutually
-     * exclusive. We stay minimal here for TASK-1 - only the AI SDK call-level
-     * generation params and the thinking/imageConfig provider options flow
-     * into `generation_config`. Tool-related fields land here in later tasks.
+     * exclusive. The AI SDK call-level generation params and the thinking /
+     * imageConfig provider options flow into `generation_config`.
      *
-     * When an agent is set, none of these fields are accepted by the API. Per
-     * PRD US 31 we emit a single `LanguageModelV4CallWarning` listing the
-     * dropped field names and continue (do not throw); the agent-only
-     * `agent_config` field supersedes them.
+     * When an agent is set, none of these fields are accepted by the API.
+     * Emit a single `LanguageModelV4CallWarning` listing the dropped field
+     * names and continue (do not throw); the agent-only `agent_config`
+     * field supersedes them.
      */
     let generationConfig: GoogleInteractionsGenerationConfig | undefined;
     if (isAgent) {
@@ -273,15 +301,38 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
         max_output_tokens: options.maxOutputTokens ?? undefined,
         thinking_level: opts?.thinkingLevel ?? undefined,
         thinking_summaries: opts?.thinkingSummaries ?? undefined,
-        image_config:
-          opts?.imageConfig != null
-            ? pruneUndefined({
-                aspect_ratio: opts.imageConfig.aspectRatio ?? undefined,
-                image_size: opts.imageConfig.imageSize ?? undefined,
-              })
-            : undefined,
         tool_choice: toolChoiceForBody,
       });
+
+      /*
+       * Deprecated fallback path: `imageConfig` contributes an image entry
+       * only when none was supplied via `responseFormat`. A warning is
+       * always emitted when `imageConfig` is set so callers migrate to the
+       * `responseFormat` shape.
+       */
+      if (opts?.imageConfig != null) {
+        const alreadyHasImageEntry = responseFormatEntries.some(
+          entry => entry.type === 'image',
+        );
+        warnings.push({
+          type: 'other',
+          message: alreadyHasImageEntry
+            ? 'google.interactions: providerOptions.google.imageConfig is deprecated and was ignored because providerOptions.google.responseFormat already supplies an image entry. Use responseFormat exclusively.'
+            : 'google.interactions: providerOptions.google.imageConfig is deprecated. Use providerOptions.google.responseFormat with a { type: "image", ... } entry instead.',
+        });
+        if (!alreadyHasImageEntry) {
+          responseFormatEntries.push({
+            type: 'image',
+            mime_type: 'image/png',
+            ...(opts.imageConfig.aspectRatio != null
+              ? { aspect_ratio: opts.imageConfig.aspectRatio }
+              : {}),
+            ...(opts.imageConfig.imageSize != null
+              ? { image_size: opts.imageConfig.imageSize }
+              : {}),
+          });
+        }
+      }
     }
 
     let agentConfig: GoogleInteractionsAgentConfig | undefined;
@@ -317,8 +368,8 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
       input,
       system_instruction: systemInstruction,
       tools: toolsForBody,
-      response_format: responseFormat,
-      response_mime_type: responseMimeType,
+      response_format:
+        responseFormatEntries.length > 0 ? responseFormatEntries : undefined,
       response_modalities:
         opts?.responseModalities != null
           ? (opts.responseModalities as Array<
@@ -353,6 +404,7 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
     const url = `${this.config.baseURL}/interactions`;
 
     const mergedHeaders = combineHeaders(
+      INTERACTIONS_API_REVISION_HEADER,
       this.config.headers ? await resolve(this.config.headers) : undefined,
       options.headers,
     );
@@ -407,7 +459,7 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
         : undefined;
 
     const { content, hasFunctionCall } = parseGoogleInteractionsOutputs({
-      outputs: response.outputs ?? null,
+      steps: response.steps ?? null,
       generateId: this.config.generateId ?? defaultGenerateId,
       interactionId,
     });
@@ -481,6 +533,7 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
     const url = `${this.config.baseURL}/interactions`;
 
     const mergedHeaders = combineHeaders(
+      INTERACTIONS_API_REVISION_HEADER,
       this.config.headers ? await resolve(this.config.headers) : undefined,
       options.headers,
     );
@@ -648,6 +701,15 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
     };
   }
 }
+
+/*
+ * Pins the Interactions API revision the SDK targets. Sent on every request
+ * the model issues so model-id calls, agent calls, polling, SSE reconnects,
+ * and cancellation all hit the same schema.
+ */
+const INTERACTIONS_API_REVISION_HEADER: Record<string, string> = {
+  'Api-Revision': '2026-05-20',
+};
 
 function pruneUndefined<T extends Record<string, unknown>>(obj: T): T {
   const result: Record<string, unknown> = {};

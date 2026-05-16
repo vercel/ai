@@ -38,10 +38,40 @@ import type {
  */
 export type StepResultPerformance = {
   /**
-   * Average number of output tokens per second during the language model
+   * Effective number of output tokens per second over the full language model
    * response.
+   *
+   * Calculated as `outputTokens / requestSeconds`.
    */
-  readonly tokensPerSecond: number;
+  readonly effectiveOutputTokensPerSecond: number;
+
+  /**
+   * Number of output tokens per second after the first output token was
+   * received.
+   *
+   * Only available for streaming steps.
+   *
+   * Calculated as `outputTokens / outputStreamSeconds`.
+   */
+  readonly outputTokensPerSecond: number | undefined;
+
+  /**
+   * Number of input tokens processed per second before the first output token
+   * was received.
+   *
+   * Only available for streaming steps.
+   *
+   * Calculated as `inputTokens / ttftSeconds`.
+   */
+  readonly inputTokensPerSecond: number | undefined;
+
+  /**
+   * Effective number of input and output tokens per second over the full
+   * language model response.
+   *
+   * Calculated as `(inputTokens + outputTokens) / requestSeconds`.
+   */
+  readonly effectiveTotalTokensPerSecond: number;
 
   /**
    * Total time spent on the step in milliseconds.
@@ -65,7 +95,7 @@ export type StepResultPerformance = {
    *
    * Only available for streaming steps.
    */
-  readonly timeToFirstTokenMs: number | undefined;
+  readonly timeToFirstOutputTokenMs: number | undefined;
 };
 
 /**

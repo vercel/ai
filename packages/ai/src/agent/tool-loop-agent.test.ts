@@ -104,7 +104,7 @@ describe('ToolLoopAgent', () => {
     it('should pass sandbox to prepareCall', async () => {
       const sandbox = {
         description: 'test sandbox',
-        executeCommand: vi.fn(async () => ({
+        runCommand: vi.fn(async () => ({
           exitCode: 0,
           stdout: 'ok',
           stderr: '',
@@ -157,7 +157,7 @@ describe('ToolLoopAgent', () => {
     it('should pass sandbox to tool execution', async () => {
       const sandbox = {
         description: 'test sandbox',
-        executeCommand: vi.fn(async () => ({
+        runCommand: vi.fn(async () => ({
           exitCode: 0,
           stdout: 'ok',
           stderr: '',
@@ -689,7 +689,7 @@ describe('ToolLoopAgent', () => {
     it('should pass sandbox to prepareCall', async () => {
       const sandbox = {
         description: 'test sandbox',
-        executeCommand: vi.fn(async () => ({
+        runCommand: vi.fn(async () => ({
           exitCode: 0,
           stdout: 'ok',
           stderr: '',
@@ -751,7 +751,7 @@ describe('ToolLoopAgent', () => {
     it('should pass sandbox to tool execution', async () => {
       const sandbox = {
         description: 'test sandbox',
-        executeCommand: vi.fn(async () => ({
+        runCommand: vi.fn(async () => ({
           exitCode: 0,
           stdout: 'ok',
           stderr: '',

@@ -23,29 +23,29 @@ describe('streamGoogleInteractionEvents', () => {
       type: 'stream-chunks',
       chunks: sse([
         {
-          event_type: 'interaction.start',
+          event_type: 'interaction.created',
           event_id: 'evt-1',
           interaction: { id: INTERACTION_ID, status: 'in_progress' },
         },
         {
-          event_type: 'content.start',
+          event_type: 'step.start',
           event_id: 'evt-2',
           index: 0,
           content: { type: 'text' },
         },
         {
-          event_type: 'content.delta',
+          event_type: 'step.delta',
           event_id: 'evt-3',
           index: 0,
           delta: { type: 'text', text: 'hello' },
         },
         {
-          event_type: 'content.stop',
+          event_type: 'step.stop',
           event_id: 'evt-4',
           index: 0,
         },
         {
-          event_type: 'interaction.complete',
+          event_type: 'interaction.completed',
           event_id: 'evt-5',
           interaction: { id: INTERACTION_ID, status: 'completed' },
         },
@@ -65,11 +65,11 @@ describe('streamGoogleInteractionEvents', () => {
       .map(r => (r.value as { event_type: string }).event_type);
 
     expect(eventTypes).toEqual([
-      'interaction.start',
-      'content.start',
-      'content.delta',
-      'content.stop',
-      'interaction.complete',
+      'interaction.created',
+      'step.start',
+      'step.delta',
+      'step.stop',
+      'interaction.completed',
     ]);
     expect(server.calls.length).toBe(1);
     expect(server.calls[0].requestUrlSearchParams.get('stream')).toBe('true');
@@ -87,18 +87,18 @@ describe('streamGoogleInteractionEvents', () => {
           type: 'stream-chunks',
           chunks: sse([
             {
-              event_type: 'interaction.start',
+              event_type: 'interaction.created',
               event_id: 'evt-1',
               interaction: { id: INTERACTION_ID, status: 'in_progress' },
             },
             {
-              event_type: 'content.start',
+              event_type: 'step.start',
               event_id: 'evt-2',
               index: 0,
               content: { type: 'text' },
             },
             {
-              event_type: 'content.delta',
+              event_type: 'step.delta',
               event_id: 'evt-3',
               index: 0,
               delta: { type: 'text', text: 'first' },
@@ -110,18 +110,18 @@ describe('streamGoogleInteractionEvents', () => {
         type: 'stream-chunks',
         chunks: sse([
           {
-            event_type: 'content.delta',
+            event_type: 'step.delta',
             event_id: 'evt-4',
             index: 0,
             delta: { type: 'text', text: 'second' },
           },
           {
-            event_type: 'content.stop',
+            event_type: 'step.stop',
             event_id: 'evt-5',
             index: 0,
           },
           {
-            event_type: 'interaction.complete',
+            event_type: 'interaction.completed',
             event_id: 'evt-6',
             interaction: { id: INTERACTION_ID, status: 'completed' },
           },
@@ -142,12 +142,12 @@ describe('streamGoogleInteractionEvents', () => {
       .map(r => (r.value as { event_type: string }).event_type);
 
     expect(eventTypes).toEqual([
-      'interaction.start',
-      'content.start',
-      'content.delta',
-      'content.delta',
-      'content.stop',
-      'interaction.complete',
+      'interaction.created',
+      'step.start',
+      'step.delta',
+      'step.delta',
+      'step.stop',
+      'interaction.completed',
     ]);
     expect(server.calls.length).toBe(2);
     expect(server.calls[1].requestUrlSearchParams.get('last_event_id')).toBe(
@@ -179,7 +179,7 @@ describe('streamGoogleInteractionEvents', () => {
 
     controller.write(
       `data: ${JSON.stringify({
-        event_type: 'interaction.start',
+        event_type: 'interaction.created',
         event_id: 'evt-1',
         interaction: { id: INTERACTION_ID, status: 'in_progress' },
       })}\n\n`,
@@ -203,7 +203,7 @@ describe('streamGoogleInteractionEvents', () => {
       type: 'stream-chunks',
       chunks: sse([
         {
-          event_type: 'interaction.complete',
+          event_type: 'interaction.completed',
           event_id: 'evt-1',
           interaction: { id: INTERACTION_ID, status: 'completed' },
         },

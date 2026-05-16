@@ -1,5 +1,13 @@
 # @ai-sdk/hume
 
+## 3.0.0-canary.42
+
+### Patch Changes
+
+- Updated dependencies [28dfa06]
+- Updated dependencies [e93fa91]
+  - @ai-sdk/provider-utils@5.0.0-canary.41
+
 ## 3.0.0-canary.41
 
 ### Patch Changes

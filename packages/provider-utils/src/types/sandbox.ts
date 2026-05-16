@@ -10,9 +10,9 @@ export type Experimental_Sandbox = {
   readonly description: string;
 
   /**
-   * Execute a command in the sandbox.
+   * Run a command in the sandbox.
    */
-  readonly executeCommand: (options: {
+  readonly runCommand: (options: {
     /**
      * Command to execute in the sandbox.
      */

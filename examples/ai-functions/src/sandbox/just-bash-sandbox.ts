@@ -4,7 +4,7 @@ import { type Bash } from 'just-bash';
 export class JustBashSandbox implements Sandbox {
   constructor(private readonly bash: Bash) {}
 
-  async executeCommand({
+  async runCommand({
     command,
     workingDirectory,
     abortSignal,

@@ -249,6 +249,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
             : modelCapabilities.systemMessageMode),
         providerOptionsName,
         fileIdPrefixes: this.config.fileIdPrefixes,
+        passThroughUnsupportedFiles:
+          openaiOptions?.passThroughUnsupportedFiles ?? false,
         store: openaiOptions?.store ?? true,
         hasConversation: openaiOptions?.conversation != null,
         hasLocalShellTool: hasOpenAITool('openai.local_shell'),

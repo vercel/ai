@@ -16,7 +16,7 @@ describe('bash_20241022 tool', () => {
         context: {},
         experimental_sandbox: {
           description: 'test sandbox',
-          executeCommand: async ({ abortSignal }) => {
+          runCommand: async ({ abortSignal }) => {
             receivedAbortSignal = abortSignal;
 
             return {
