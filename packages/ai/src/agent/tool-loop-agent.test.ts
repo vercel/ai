@@ -110,7 +110,7 @@ describe('ToolLoopAgent', () => {
           stderr: '',
         })),
       } satisfies Sandbox;
-      let recordedSandbox: Sandbox | undefined;
+      let recordedSandbox: unknown;
 
       const agent = new ToolLoopAgent({
         model: mockModel,
@@ -241,7 +241,8 @@ describe('ToolLoopAgent', () => {
         experimental_sandbox: sandbox,
       });
 
-      expect(recordedSandbox).toBe(sandbox);
+      expect(recordedSandbox).not.toBe(sandbox);
+      expect(recordedSandbox?.description).toBe(sandbox.description);
     });
 
     it('should pass experimental_download to generateText', async () => {
@@ -857,7 +858,8 @@ describe('ToolLoopAgent', () => {
       });
       await result.consumeStream();
 
-      expect(recordedSandbox).toBe(sandbox);
+      expect(recordedSandbox).not.toBe(sandbox);
+      expect(recordedSandbox?.description).toBe(sandbox.description);
     });
 
     it('should forward include to streamText', async () => {

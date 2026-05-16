@@ -1,11 +1,9 @@
 /**
- * Sandbox environment that can execute commands.
+ * Provider-facing sandbox specification.
  */
-export interface Experimental_Sandbox {
+export interface Experimental_ProviderSandbox {
   /**
-   * Description of the sandbox environment that can be added to the agent's instructions
-   * so that the agent knows about relevant details such as the root directory, exposed
-   * ports, the public hostname, etc.
+   * Description of the sandbox environment.
    */
   readonly description: string;
 

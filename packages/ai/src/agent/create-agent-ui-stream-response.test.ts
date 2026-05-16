@@ -487,6 +487,7 @@ describe('createAgentUIStreamResponse', () => {
 
     await convertReadableStreamToArray(response.body!);
 
-    expect(receivedSandbox).toBe(sandbox);
+    expect(receivedSandbox).not.toBe(sandbox);
+    expect(receivedSandbox?.description).toBe(sandbox.description);
   });
 });

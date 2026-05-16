@@ -1,5 +1,6 @@
 import type {
   Context,
+  Experimental_ProviderSandbox as ProviderSandbox,
   Experimental_Sandbox as Sandbox,
   InferToolSetContext,
   ModelMessage,
@@ -159,7 +160,7 @@ export type PrepareStepResult<
        *
        * Changing the sandbox will affect tool execution in this step only.
        */
-      experimental_sandbox?: Sandbox;
+      experimental_sandbox?: ProviderSandbox;
 
       /**
        * Additional provider-specific options for this step.

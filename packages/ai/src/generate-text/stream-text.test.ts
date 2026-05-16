@@ -20358,7 +20358,16 @@ describe('streamText', () => {
 
       await result.consumeStream();
 
-      expect(recordedSandbox).toBe(sandbox);
+      expect(recordedSandbox).not.toBe(sandbox);
+      expect(recordedSandbox?.description).toBe(sandbox.description);
+      await expect(
+        recordedSandbox?.runCommand({ command: 'test' }),
+      ).resolves.toEqual({
+        exitCode: 0,
+        stdout: 'ok',
+        stderr: '',
+      });
+      expect(sandbox.runCommand).toHaveBeenCalledWith({ command: 'test' });
     });
 
     it('should pass runtimeContext to prepareStep', async () => {
@@ -20429,7 +20438,8 @@ describe('streamText', () => {
 
       await result.consumeStream();
 
-      expect(capturedSandbox).toBe(sandbox);
+      expect(capturedSandbox).not.toBe(sandbox);
+      expect(capturedSandbox?.description).toBe(sandbox.description);
     });
 
     it('should use sandbox returned from prepareStep for that step only', async () => {
@@ -20522,7 +20532,11 @@ describe('streamText', () => {
 
       await result.consumeStream();
 
-      expect(recordedSandboxes).toEqual([stepSandbox, sandbox]);
+      expect(recordedSandboxes).toHaveLength(2);
+      expect(recordedSandboxes[0]).not.toBe(stepSandbox);
+      expect(recordedSandboxes[0]?.description).toBe(stepSandbox.description);
+      expect(recordedSandboxes[1]).not.toBe(sandbox);
+      expect(recordedSandboxes[1]?.description).toBe(sandbox.description);
     });
 
     it('should send runtimeContext in onFinish callback', async () => {
@@ -24856,7 +24870,10 @@ describe('streamText', () => {
         expect(executeFunction).toHaveBeenCalledWith(
           { value: 'value' },
           expect.objectContaining({
-            experimental_sandbox: sandbox,
+            experimental_sandbox: expect.objectContaining({
+              description: sandbox.description,
+              runCommand: expect.any(Function),
+            }),
           }),
         );
       });

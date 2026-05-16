@@ -7,7 +7,7 @@ import {
 import {
   createIdGenerator,
   type Arrayable,
-  type Experimental_Sandbox as Sandbox,
+  type Experimental_ProviderSandbox as ProviderSandbox,
   type IdGenerator,
   type InferToolSetContext,
   type ModelMessage,
@@ -39,6 +39,7 @@ import { notify } from '../util/notify';
 import { now as originalNow } from '../util/now';
 import { calculateTokensPerSecond } from './calculate-tokens-per-second';
 import type { ContentPart } from './content-part';
+import { wrapProviderSandbox } from './default-sandbox';
 import { DefaultGeneratedFileWithType } from './generated-file';
 import type {
   OnLanguageModelCallEndCallback,
@@ -207,7 +208,7 @@ export async function streamLanguageModelCall<
   refineToolInput,
   callId,
   toolsContext,
-  experimental_sandbox: sandbox,
+  experimental_sandbox: providerSandbox,
   _internal: {
     generateId = originalGenerateId,
     generateCallId = originalGenerateCallId,
@@ -238,7 +239,7 @@ export async function streamLanguageModelCall<
   /**
    * Sandbox passed through for resolving tool descriptions that depend on it.
    */
-  experimental_sandbox?: Sandbox;
+  experimental_sandbox?: ProviderSandbox;
   _internal?: {
     generateId?: IdGenerator;
     generateCallId?: IdGenerator;
@@ -276,6 +277,7 @@ export async function streamLanguageModelCall<
 }> {
   const resolvedModel = resolveLanguageModel(model);
   const effectiveCallId = callId ?? generateCallId();
+  const sandbox = wrapProviderSandbox(providerSandbox);
 
   const standardizedPrompt = await standardizePrompt({
     instructions,
