@@ -225,6 +225,198 @@ describe('processUIMessageStream', () => {
     });
   });
 
+  describe('resume against existing assistant message', () => {
+    it('should not duplicate text parts when text-start is replayed', async () => {
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: {
+          id: 'msg-123',
+          role: 'assistant',
+          metadata: undefined,
+          parts: [
+            { type: 'step-start' },
+            {
+              type: 'text',
+              text: 'Hello, world!',
+              state: 'streaming',
+              providerMetadata: undefined,
+            },
+          ],
+        },
+      });
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream: createUIMessageStream([
+            { type: 'start', messageId: 'msg-123' },
+            { type: 'start-step' },
+            { type: 'text-start', id: 'text-1' },
+            { type: 'text-delta', id: 'text-1', delta: 'Hello, ' },
+            { type: 'text-delta', id: 'text-1', delta: 'world!' },
+            { type: 'text-end', id: 'text-1' },
+            { type: 'finish-step' },
+            { type: 'finish' },
+          ]),
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+
+      const textParts = state.message.parts.filter(
+        part => part.type === 'text',
+      );
+      expect(textParts).toHaveLength(1);
+      expect(textParts[0]).toMatchObject({
+        text: 'Hello, world!',
+        state: 'done',
+      });
+    });
+
+    it('should append only new text after replaying a persisted prefix', async () => {
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: {
+          id: 'msg-123',
+          role: 'assistant',
+          metadata: undefined,
+          parts: [
+            { type: 'step-start' },
+            {
+              type: 'text',
+              text: 'Hello, world',
+              state: 'streaming',
+              providerMetadata: undefined,
+            },
+          ],
+        },
+      });
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream: createUIMessageStream([
+            { type: 'text-start', id: 'text-1' },
+            { type: 'text-delta', id: 'text-1', delta: 'Hello, ' },
+            { type: 'text-delta', id: 'text-1', delta: 'world! New text.' },
+            { type: 'text-end', id: 'text-1' },
+          ]),
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+
+      const textParts = state.message.parts.filter(
+        part => part.type === 'text',
+      );
+      expect(textParts).toHaveLength(1);
+      expect(textParts[0]).toMatchObject({
+        text: 'Hello, world! New text.',
+        state: 'done',
+      });
+    });
+
+    it('should append a new text part after a completed existing text part', async () => {
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: {
+          id: 'msg-123',
+          role: 'assistant',
+          metadata: undefined,
+          parts: [
+            { type: 'step-start' },
+            {
+              type: 'text',
+              text: 'Existing answer.',
+              state: 'done',
+              providerMetadata: undefined,
+            },
+          ],
+        },
+      });
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream: createUIMessageStream([
+            { type: 'text-start', id: 'text-2' },
+            { type: 'text-delta', id: 'text-2', delta: 'Follow-up.' },
+            { type: 'text-end', id: 'text-2' },
+          ]),
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+
+      const textParts = state.message.parts.filter(
+        part => part.type === 'text',
+      );
+      expect(textParts).toHaveLength(2);
+      expect(textParts[0]).toMatchObject({
+        text: 'Existing answer.',
+        state: 'done',
+      });
+      expect(textParts[1]).toMatchObject({
+        text: 'Follow-up.',
+        state: 'done',
+      });
+    });
+
+    it('should not duplicate reasoning parts when reasoning-start is replayed', async () => {
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: {
+          id: 'msg-123',
+          role: 'assistant',
+          metadata: undefined,
+          parts: [
+            { type: 'step-start' },
+            {
+              type: 'reasoning',
+              text: 'thinking...',
+              state: 'streaming',
+              providerMetadata: undefined,
+            },
+          ],
+        },
+      });
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream: createUIMessageStream([
+            { type: 'start', messageId: 'msg-123' },
+            { type: 'start-step' },
+            { type: 'reasoning-start', id: 'reasoning-1' },
+            {
+              type: 'reasoning-delta',
+              id: 'reasoning-1',
+              delta: 'thinking...',
+            },
+            { type: 'reasoning-end', id: 'reasoning-1' },
+            { type: 'finish-step' },
+            { type: 'finish' },
+          ]),
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+
+      const reasoningParts = state.message.parts.filter(
+        part => part.type === 'reasoning',
+      );
+      expect(reasoningParts).toHaveLength(1);
+      expect(reasoningParts[0]).toMatchObject({
+        text: 'thinking...',
+        state: 'done',
+      });
+    });
+  });
+
   describe('malformed stream errors', () => {
     it('should throw descriptive error when text-delta is received without text-start', async () => {
       const stream = createUIMessageStream([

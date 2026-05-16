@@ -34,6 +34,10 @@ export type StreamingUIMessageState<UI_MESSAGE extends UIMessage> = {
   message: UI_MESSAGE;
   activeTextParts: Record<string, TextUIPart>;
   activeReasoningParts: Record<string, ReasoningUIPart>;
+  nextTextParts: TextUIPart[];
+  nextReasoningParts: ReasoningUIPart[];
+  replayTextParts: Record<string, { text: string; offset: number }>;
+  replayReasoningParts: Record<string, { text: string; offset: number }>;
   partialToolCalls: Record<
     string,
     {
@@ -55,23 +59,66 @@ export function createStreamingUIMessageState<UI_MESSAGE extends UIMessage>({
   lastMessage: UI_MESSAGE | undefined;
   messageId: string;
 }): StreamingUIMessageState<UI_MESSAGE> {
+  const message =
+    lastMessage?.role === 'assistant'
+      ? lastMessage
+      : ({
+          id: messageId,
+          metadata: undefined,
+          role: 'assistant',
+          parts: [] as UIMessagePart<
+            InferUIMessageData<UI_MESSAGE>,
+            InferUIMessageTools<UI_MESSAGE>
+          >[],
+        } as UI_MESSAGE);
+
   return {
-    message:
-      lastMessage?.role === 'assistant'
-        ? lastMessage
-        : ({
-            id: messageId,
-            metadata: undefined,
-            role: 'assistant',
-            parts: [] as UIMessagePart<
-              InferUIMessageData<UI_MESSAGE>,
-              InferUIMessageTools<UI_MESSAGE>
-            >[],
-          } as UI_MESSAGE),
+    message,
     activeTextParts: {},
     activeReasoningParts: {},
+    nextTextParts: message.parts.filter(
+      (part): part is TextUIPart =>
+        part.type === 'text' && part.state === 'streaming',
+    ),
+    nextReasoningParts: message.parts.filter(
+      (part): part is ReasoningUIPart =>
+        part.type === 'reasoning' && part.state === 'streaming',
+    ),
+    replayTextParts: {},
+    replayReasoningParts: {},
     partialToolCalls: {},
   };
+}
+
+function applyDelta({
+  part,
+  delta,
+  replay,
+}: {
+  part: { text: string };
+  delta: string;
+  replay: { text: string; offset: number } | undefined;
+}) {
+  if (replay == null || replay.offset >= replay.text.length) {
+    part.text += delta;
+    return;
+  }
+
+  const remaining = replay.text.slice(replay.offset);
+
+  if (remaining.startsWith(delta)) {
+    replay.offset += delta.length;
+    return;
+  }
+
+  if (delta.startsWith(remaining)) {
+    part.text += delta.slice(remaining.length);
+    replay.offset = replay.text.length;
+    return;
+  }
+
+  part.text += delta;
+  replay.offset = replay.text.length;
 }
 
 export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
@@ -384,14 +431,29 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
 
           switch (chunk.type) {
             case 'text-start': {
-              const textPart: TextUIPart = {
-                type: 'text',
-                text: '',
-                providerMetadata: chunk.providerMetadata,
-                state: 'streaming',
-              };
+              const existingTextPart = state.nextTextParts.shift();
+              const textPart =
+                existingTextPart ??
+                ({
+                  type: 'text',
+                  text: '',
+                  providerMetadata: chunk.providerMetadata,
+                  state: 'streaming',
+                } satisfies TextUIPart);
+
+              if (!state.message.parts.includes(textPart)) {
+                state.message.parts.push(textPart);
+              } else {
+                state.replayTextParts[chunk.id] = {
+                  text: textPart.text,
+                  offset: 0,
+                };
+              }
+
+              textPart.state = 'streaming';
+              textPart.providerMetadata =
+                chunk.providerMetadata ?? textPart.providerMetadata;
               state.activeTextParts[chunk.id] = textPart;
-              state.message.parts.push(textPart);
               write();
               break;
             }
@@ -407,7 +469,11 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                     `Ensure a "text-start" chunk is sent before any "text-delta" chunks.`,
                 });
               }
-              textPart.text += chunk.delta;
+              applyDelta({
+                part: textPart,
+                delta: chunk.delta,
+                replay: state.replayTextParts[chunk.id],
+              });
               textPart.providerMetadata =
                 chunk.providerMetadata ?? textPart.providerMetadata;
               write();
@@ -429,6 +495,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               textPart.providerMetadata =
                 chunk.providerMetadata ?? textPart.providerMetadata;
               delete state.activeTextParts[chunk.id];
+              delete state.replayTextParts[chunk.id];
               write();
               break;
             }
@@ -445,14 +512,29 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             }
 
             case 'reasoning-start': {
-              const reasoningPart: ReasoningUIPart = {
-                type: 'reasoning',
-                text: '',
-                providerMetadata: chunk.providerMetadata,
-                state: 'streaming',
-              };
+              const existingReasoningPart = state.nextReasoningParts.shift();
+              const reasoningPart =
+                existingReasoningPart ??
+                ({
+                  type: 'reasoning',
+                  text: '',
+                  providerMetadata: chunk.providerMetadata,
+                  state: 'streaming',
+                } satisfies ReasoningUIPart);
+
+              if (!state.message.parts.includes(reasoningPart)) {
+                state.message.parts.push(reasoningPart);
+              } else {
+                state.replayReasoningParts[chunk.id] = {
+                  text: reasoningPart.text,
+                  offset: 0,
+                };
+              }
+
+              reasoningPart.state = 'streaming';
+              reasoningPart.providerMetadata =
+                chunk.providerMetadata ?? reasoningPart.providerMetadata;
               state.activeReasoningParts[chunk.id] = reasoningPart;
-              state.message.parts.push(reasoningPart);
               write();
               break;
             }
@@ -468,7 +550,11 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                     `Ensure a "reasoning-start" chunk is sent before any "reasoning-delta" chunks.`,
                 });
               }
-              reasoningPart.text += chunk.delta;
+              applyDelta({
+                part: reasoningPart,
+                delta: chunk.delta,
+                replay: state.replayReasoningParts[chunk.id],
+              });
               reasoningPart.providerMetadata =
                 chunk.providerMetadata ?? reasoningPart.providerMetadata;
               write();
@@ -490,6 +576,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 chunk.providerMetadata ?? reasoningPart.providerMetadata;
               reasoningPart.state = 'done';
               delete state.activeReasoningParts[chunk.id];
+              delete state.replayReasoningParts[chunk.id];
 
               write();
               break;
@@ -824,6 +911,8 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               // reset the current text and reasoning parts
               state.activeTextParts = {};
               state.activeReasoningParts = {};
+              state.replayTextParts = {};
+              state.replayReasoningParts = {};
               break;
             }
 
