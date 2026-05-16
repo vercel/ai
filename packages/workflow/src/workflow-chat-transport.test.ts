@@ -526,6 +526,37 @@ describe('WorkflowChatTransport', () => {
   });
 
   describe('reconnection error formatting', () => {
+    it('should stop retrying after repeated empty reconnect streams', async () => {
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      const transport = new WorkflowChatTransport({
+        fetch: mockFetch,
+        maxConsecutiveErrors: 2,
+      });
+
+      mockFetch.mockResolvedValue({
+        ok: true,
+        headers: new Headers(),
+        body: new ReadableStream({
+          start(controller) {
+            controller.close();
+          },
+        }),
+      });
+
+      const stream = await transport.reconnectToStream({
+        chatId: 'test-chat',
+      });
+
+      const reader = stream!.getReader();
+      await expect(reader.read()).rejects.toThrow(
+        /Failed to reconnect after 2 consecutive errors/,
+      );
+      expect(mockFetch).toHaveBeenCalledTimes(2);
+
+      errorSpy.mockRestore();
+    });
+
     it('should format object errors with JSON instead of [object Object]', async () => {
       const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
