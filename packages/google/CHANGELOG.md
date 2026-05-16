@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 3.0.75
+
+### Patch Changes
+
+- ab15576: feat(google): update Interactions API implementation to cater for upstream breaking changes coming May 26
+
 ## 3.0.74
 
 ### Patch Changes
