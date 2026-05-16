@@ -135,6 +135,9 @@ export function convertToGoogleGenerativeAIMessages(
                 case 'tool-call': {
                   return {
                     functionCall: {
+                      ...(part.toolCallId != null
+                        ? { id: part.toolCallId }
+                        : {}),
                       name: part.toolName,
                       args: part.input,
                     },
@@ -165,6 +168,7 @@ export function convertToGoogleGenerativeAIMessages(
           } else {
             parts.push({
               functionResponse: {
+                ...(part.toolCallId != null ? { id: part.toolCallId } : {}),
                 name: part.toolName,
                 response: {
                   name: part.toolName,
@@ -212,7 +216,7 @@ function appendToolResultParts({
   output,
 }: {
   parts: GoogleGenerativeAIContentPart[];
-  part: { toolName: string };
+  part: { toolName: string; toolCallId?: string };
   output: {
     type: 'content';
     value: Array<
@@ -247,6 +251,7 @@ function appendToolResultParts({
 
   parts.push({
     functionResponse: {
+      ...(part.toolCallId != null ? { id: part.toolCallId } : {}),
       name: part.toolName,
       response: {
         name: part.toolName,
@@ -265,7 +270,7 @@ function appendLegacyToolResultParts({
   output,
 }: {
   parts: GoogleGenerativeAIContentPart[];
-  part: { toolName: string };
+  part: { toolName: string; toolCallId?: string };
   output: {
     type: 'content';
     value: Array<
@@ -279,6 +284,7 @@ function appendLegacyToolResultParts({
       case 'text':
         parts.push({
           functionResponse: {
+            ...(part.toolCallId != null ? { id: part.toolCallId } : {}),
             name: part.toolName,
             response: {
               name: part.toolName,
