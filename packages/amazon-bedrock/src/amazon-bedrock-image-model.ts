@@ -20,6 +20,7 @@ import {
   modelMaxImagesPerCall,
   type AmazonBedrockImageModelId,
 } from './amazon-bedrock-image-settings';
+import { encodeBedrockModelId } from './amazon-bedrock-encode-model-id';
 import { AmazonBedrockErrorSchema } from './amazon-bedrock-error';
 import { z } from 'zod/v4';
 
@@ -55,7 +56,7 @@ export class AmazonBedrockImageModel implements ImageModelV4 {
   }
 
   private getUrl(modelId: string): string {
-    const encodedModelId = encodeURIComponent(modelId);
+    const encodedModelId = encodeBedrockModelId(modelId);
     return `${this.config.baseUrl()}/model/${encodedModelId}/invoke`;
   }
 
