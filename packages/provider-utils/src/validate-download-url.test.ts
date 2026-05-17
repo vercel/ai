@@ -165,6 +165,17 @@ describe('validateDownloadUrl', () => {
       expect(() => validateDownloadUrl('http://[fe80::1]/file')).toThrow(
         DownloadError,
       );
+      expect(() => validateDownloadUrl('http://[fe90::1]/file')).toThrow(
+        DownloadError,
+      );
+      expect(() => validateDownloadUrl('http://[febf::1]/file')).toThrow(
+        DownloadError,
+      );
+    });
+
+    it('should allow IPv6 addresses adjacent to fe80::/10', () => {
+      expect(() => validateDownloadUrl('http://[fe7f::1]/file')).not.toThrow();
+      expect(() => validateDownloadUrl('http://[fec0::1]/file')).not.toThrow();
     });
   });
 
