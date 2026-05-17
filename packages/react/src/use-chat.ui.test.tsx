@@ -2698,4 +2698,65 @@ describe('use-chat', () => {
       });
     });
   });
+
+  describe('transport state stays fresh across renders (#7819)', () => {
+    setupTestComponent(() => {
+      const [subagent, setSubagent] = React.useState('todos-agent');
+
+      const { messages, sendMessage } = useChat({
+        generateId: mockId(),
+        transport: new DefaultChatTransport({
+          body: { subagent },
+        }),
+      });
+
+      return (
+        <div>
+          <div data-testid="subagent">{subagent}</div>
+          <div data-testid="message-count">{messages.length}</div>
+          <button
+            data-testid="set-agent"
+            onClick={() => setSubagent('research-agent')}
+          />
+          <button
+            data-testid="send"
+            onClick={() => {
+              sendMessage({ parts: [{ type: 'text', text: 'hi' }] });
+            }}
+          />
+        </div>
+      );
+    });
+
+    it('sends the latest body value after the parent re-renders', async () => {
+      server.urls['/api/chat'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          formatChunk({ type: 'text-start', id: '0' }),
+          formatChunk({ type: 'text-delta', id: '0', delta: 'ok' }),
+          formatChunk({ type: 'text-end', id: '0' }),
+        ],
+      };
+
+      // 1) flip the state that the inline transport body closes over
+      await userEvent.click(screen.getByTestId('set-agent'));
+      await waitFor(() =>
+        expect(screen.getByTestId('subagent')).toHaveTextContent(
+          'research-agent',
+        ),
+      );
+
+      // 2) send a message and inspect what landed in the request body
+      await userEvent.click(screen.getByTestId('send'));
+
+      await waitFor(() => {
+        expect(server.calls.length).toBeGreaterThan(0);
+      });
+
+      const sentBody = await server.calls[0].requestBodyJson;
+      // Before the fix this asserted 'todos-agent' (the value captured on
+      // the first render); after the fix it sees the latest value.
+      expect(sentBody.subagent).toBe('research-agent');
+    });
+  });
 });

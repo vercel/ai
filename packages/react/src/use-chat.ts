@@ -1,4 +1,10 @@
-import type { AbstractChat, ChatInit, CreateUIMessage, UIMessage } from 'ai';
+import type {
+  AbstractChat,
+  ChatInit,
+  ChatTransport,
+  CreateUIMessage,
+  UIMessage,
+} from 'ai';
 import { useCallback, useEffect, useRef, useSyncExternalStore } from 'react';
 import { Chat } from './chat.react';
 
@@ -79,16 +85,68 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
     };
   }
 
-  // Ensure the Chat instance has the latest callbacks
-  const optionsWithCallbacks: typeof options = {
-    ...options,
-    onToolCall: arg => callbacksRef.current.onToolCall?.(arg),
-    onData: arg => callbacksRef.current.onData?.(arg),
-    onFinish: arg => callbacksRef.current.onFinish?.(arg),
-    onError: arg => callbacksRef.current.onError?.(arg),
-    sendAutomaticallyWhen: arg =>
-      callbacksRef.current.sendAutomaticallyWhen?.(arg) ?? false,
-  };
+  // Keep the user-supplied transport (and any inline `body` / `headers` /
+  // `prepareSendMessagesRequest` baked into it) addressable across renders.
+  // The Chat instance is created once and holds a stable reference, so without
+  // this ref the transport captured on the first render would be reused
+  // forever — see https://github.com/vercel/ai/issues/7819.
+  const userTransportRef = useRef<ChatTransport<UI_MESSAGE> | undefined>(
+    !('chat' in options) ? options.transport : undefined,
+  );
+  if (!('chat' in options)) {
+    userTransportRef.current = options.transport;
+  }
+
+  // A stable delegating transport. Its identity never changes, so Chat keeps
+  // it across renders, but each method call reads through to whatever the
+  // most-recent user transport is. If the user does not supply a transport,
+  // this ref stays unset and Chat falls back to its own default.
+  const stableTransportRef = useRef<ChatTransport<UI_MESSAGE> | undefined>(
+    undefined,
+  );
+  if (
+    stableTransportRef.current === undefined &&
+    userTransportRef.current !== undefined
+  ) {
+    stableTransportRef.current = {
+      sendMessages: args => {
+        const t = userTransportRef.current;
+        if (t === undefined) {
+          throw new Error(
+            'useChat: transport was provided initially but is now undefined',
+          );
+        }
+        return t.sendMessages(args);
+      },
+      reconnectToStream: args => {
+        const t = userTransportRef.current;
+        if (t === undefined) {
+          throw new Error(
+            'useChat: transport was provided initially but is now undefined',
+          );
+        }
+        return t.reconnectToStream(args);
+      },
+    };
+  }
+
+  // Ensure the Chat instance has the latest callbacks and a transport whose
+  // closures over component state stay fresh.
+  const optionsWithCallbacks: typeof options =
+    'chat' in options
+      ? options
+      : {
+          ...options,
+          ...(stableTransportRef.current !== undefined
+            ? { transport: stableTransportRef.current }
+            : {}),
+          onToolCall: arg => callbacksRef.current.onToolCall?.(arg),
+          onData: arg => callbacksRef.current.onData?.(arg),
+          onFinish: arg => callbacksRef.current.onFinish?.(arg),
+          onError: arg => callbacksRef.current.onError?.(arg),
+          sendAutomaticallyWhen: arg =>
+            callbacksRef.current.sendAutomaticallyWhen?.(arg) ?? false,
+        };
 
   const chatRef = useRef<Chat<UI_MESSAGE>>(
     'chat' in options ? options.chat : new Chat(optionsWithCallbacks),
