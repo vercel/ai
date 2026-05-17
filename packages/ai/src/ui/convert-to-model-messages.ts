@@ -32,6 +32,35 @@ import {
   type ToolUIPart,
   type UIMessage,
 } from './ui-messages';
+
+function getOutputErrorToolInput(part: { input: unknown; rawInput?: unknown }) {
+  if (part.input != null) {
+    return part.input;
+  }
+
+  if (isObject(part.rawInput)) {
+    return part.rawInput;
+  }
+
+  if (typeof part.rawInput === 'string') {
+    try {
+      const parsedInput = JSON.parse(part.rawInput);
+
+      if (isObject(parsedInput)) {
+        return parsedInput;
+      }
+    } catch {
+      // Raw input can be malformed JSON when tool input parsing failed.
+    }
+  }
+
+  return {};
+}
+
+function isObject(value: unknown): value is Record<string, unknown> {
+  return value != null && typeof value === 'object' && !Array.isArray(value);
+}
+
 /**
  * Converts an array of UI messages from useChat into an array of ModelMessages that can be used
  * with the AI functions (e.g. `streamText`, `generateText`).
@@ -215,8 +244,7 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                     toolName,
                     input:
                       part.state === 'output-error'
-                        ? (part.input ??
-                          ('rawInput' in part ? part.rawInput : undefined))
+                        ? getOutputErrorToolInput(part)
                         : part.input,
                     providerExecuted: part.providerExecuted,
                     ...(part.callProviderMetadata != null
