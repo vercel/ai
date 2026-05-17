@@ -123,7 +123,7 @@ describe('tool calls', () => {
     expect(result).toMatchInlineSnapshot(`
       [
         {
-          "content": "",
+          "content": null,
           "role": "assistant",
           "tool_calls": [
             {
@@ -167,7 +167,7 @@ describe('tool calls', () => {
     expect(result).toMatchInlineSnapshot(`
       [
         {
-          "content": "",
+          "content": null,
           "reasoning": "I think the tool will return the correct value.",
           "role": "assistant",
           "tool_calls": [
@@ -310,5 +310,20 @@ describe('top-level-only media type resolution', () => {
       type: 'image_url',
       image_url: { url: `data:image/png;base64,${pngBase64}` },
     });
+  });
+
+  it('should preserve empty string content for assistant messages without tool calls', () => {
+    const result = convertToGroqChatMessages([
+      { role: 'assistant', content: [{ type: 'text', text: '' }] },
+    ]);
+
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "content": "",
+          "role": "assistant",
+        },
+      ]
+    `);
   });
 });

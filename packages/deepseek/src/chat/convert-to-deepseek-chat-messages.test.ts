@@ -131,7 +131,7 @@ describe('convertToDeepSeekChatMessages', () => {
         {
           "messages": [
             {
-              "content": "",
+              "content": null,
               "reasoning_content": undefined,
               "role": "assistant",
               "tool_calls": [
@@ -190,7 +190,7 @@ describe('convertToDeepSeekChatMessages', () => {
         {
           "messages": [
             {
-              "content": "",
+              "content": null,
               "reasoning_content": undefined,
               "role": "assistant",
               "tool_calls": [
@@ -261,7 +261,7 @@ describe('convertToDeepSeekChatMessages', () => {
               "role": "user",
             },
             {
-              "content": "",
+              "content": null,
               "reasoning_content": "I think the tool will return the correct value.",
               "role": "assistant",
               "tool_calls": [
@@ -336,7 +336,7 @@ describe('convertToDeepSeekChatMessages', () => {
               "role": "user",
             },
             {
-              "content": "",
+              "content": null,
               "reasoning_content": undefined,
               "role": "assistant",
               "tool_calls": [
@@ -421,7 +421,7 @@ describe('convertToDeepSeekChatMessages', () => {
               "role": "user",
             },
             {
-              "content": "",
+              "content": null,
               "reasoning_content": "I think the tool will return the correct value.",
               "role": "assistant",
               "tool_calls": [
@@ -486,6 +486,30 @@ describe('convertToDeepSeekChatMessages', () => {
             {
               "content": "Again",
               "role": "user",
+            },
+          ],
+          "warnings": [],
+        }
+      `);
+    });
+
+    it('should preserve empty string content for assistant messages without tool calls', () => {
+      const result = convertToDeepSeekChatMessages({
+        prompt: [
+          { role: 'assistant', content: [{ type: 'text', text: '' }] },
+        ],
+        responseFormat: undefined,
+        modelId: 'deepseek-chat',
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "messages": [
+            {
+              "content": "",
+              "reasoning_content": undefined,
+              "role": "assistant",
+              "tool_calls": undefined,
             },
           ],
           "warnings": [],

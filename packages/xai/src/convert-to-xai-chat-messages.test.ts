@@ -225,7 +225,7 @@ describe('convertToXaiChatMessages', () => {
     expect(messages).toEqual([
       {
         role: 'assistant',
-        content: '',
+        content: null,
         tool_calls: [
           {
             id: 'call_123',
@@ -270,7 +270,7 @@ describe('convertToXaiChatMessages', () => {
     expect(messages).toEqual([
       {
         role: 'assistant',
-        content: '',
+        content: null,
         tool_calls: [
           {
             id: 'call_123',
@@ -413,5 +413,16 @@ describe('convertToXaiChatMessages', () => {
         image_url: { url: `data:image/png;base64,${pngBase64}` },
       });
     });
+  });
+
+  it('should preserve empty string content for assistant messages without tool calls', () => {
+    const { messages, warnings } = convertToXaiChatMessages([
+      { role: 'assistant', content: [{ type: 'text', text: '' }] },
+    ]);
+
+    expect(warnings).toEqual([]);
+    expect(messages).toEqual([
+      { role: 'assistant', content: '', tool_calls: undefined },
+    ]);
   });
 });

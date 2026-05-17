@@ -163,7 +163,7 @@ describe('tool calls', () => {
     expect(result).toMatchInlineSnapshot(`
       [
         {
-          "content": "",
+          "content": null,
           "prefix": undefined,
           "role": "assistant",
           "tool_calls": [
@@ -216,7 +216,7 @@ describe('tool calls', () => {
     expect(result).toMatchInlineSnapshot(`
       [
         {
-          "content": "",
+          "content": null,
           "prefix": undefined,
           "role": "assistant",
           "tool_calls": [
@@ -279,7 +279,7 @@ describe('tool calls', () => {
     expect(result).toMatchInlineSnapshot(`
       [
         {
-          "content": "",
+          "content": null,
           "prefix": undefined,
           "role": "assistant",
           "tool_calls": [
@@ -332,7 +332,7 @@ describe('tool calls', () => {
     expect(result).toMatchInlineSnapshot(`
       [
         {
-          "content": "",
+          "content": null,
           "prefix": undefined,
           "role": "assistant",
           "tool_calls": [
@@ -455,5 +455,22 @@ describe('top-level-only media type resolution', () => {
       type: 'image_url',
       image_url: `data:image/png;base64,${pngBase64}`,
     });
+  });
+
+  it('should preserve empty string content for assistant messages without tool calls', () => {
+    const result = convertToMistralChatMessages([
+      { role: 'assistant', content: [{ type: 'text', text: '' }] },
+    ]);
+
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "content": "",
+          "prefix": undefined,
+          "role": "assistant",
+          "tool_calls": undefined,
+        },
+      ]
+    `);
   });
 });
