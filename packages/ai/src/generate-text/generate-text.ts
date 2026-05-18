@@ -1225,9 +1225,17 @@ export async function generateText<
       callbacks: [onFinish, telemetryDispatcher.onEnd],
     });
 
-    // parse output only if the last step was finished with "stop":
+    // Parse output when the last step represents a final assistant turn:
+    // either the provider reported `stop`, or the step produced text and no
+    // tool calls (so the agent loop has exited naturally). The second clause
+    // covers providers that report `tool-calls` for text-only final steps
+    // (e.g. Cerebras `zai-glm-4.7`), which would otherwise bury structured
+    // output behind `NoOutputGeneratedError`.
     let resolvedOutput;
-    if (lastStep.finishReason === 'stop') {
+    if (
+      lastStep.finishReason === 'stop' ||
+      (lastStep.toolCalls.length === 0 && lastStep.text.length > 0)
+    ) {
       const outputSpecification = output ?? text();
       resolvedOutput = await outputSpecification.parseCompleteOutput(
         { text: lastStep.text },

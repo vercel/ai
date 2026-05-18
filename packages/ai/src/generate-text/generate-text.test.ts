@@ -6928,6 +6928,27 @@ describe('generateText', () => {
       expect(result.toolCalls).toHaveLength(1);
       expect(result.toolResults).toHaveLength(1);
     });
+
+    it('should parse output when finish reason is tool-calls but the last step contained only text (e.g. Cerebras zai-glm-4.7)', async () => {
+      const result = await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            // Some providers (e.g. Cerebras GLM) report `tool-calls` as the
+            // finish reason even when the assistant turn carries only text.
+            finishReason: { unified: 'tool-calls', raw: undefined },
+            content: [{ type: 'text', text: `{ "value": "test-value" }` }],
+          }),
+        }),
+        prompt: 'prompt',
+        output: Output.object({
+          schema: z.object({ value: z.string() }),
+        }),
+      });
+
+      expect(result.output).toEqual({ value: 'test-value' });
+      expect(result.toolCalls).toHaveLength(0);
+    });
   });
 
   describe('tool execution errors', () => {
