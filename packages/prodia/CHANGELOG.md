@@ -1,5 +1,12 @@
 # @ai-sdk/prodia
 
+## 2.0.0-canary.46
+
+### Patch Changes
+
+- Updated dependencies [a6617c5]
+  - @ai-sdk/provider-utils@5.0.0-canary.42
+
 ## 2.0.0-canary.45
 
 ### Patch Changes

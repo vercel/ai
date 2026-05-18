@@ -1,5 +1,15 @@
 # @ai-sdk/vue
 
+## 4.0.0-canary.143
+
+### Patch Changes
+
+- b567a6c: dependency updates
+- d984051: Add `useChat` composable for `@ai-sdk/vue`, providing a reactive wrapper around `Chat` with auto-recreation when the init object changes.
+- Updated dependencies [a6617c5]
+  - @ai-sdk/provider-utils@5.0.0-canary.42
+  - ai@7.0.0-canary.143
+
 ## 4.0.0-canary.142
 
 ### Patch Changes
