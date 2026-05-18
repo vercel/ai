@@ -16,7 +16,6 @@ import {
   type MaybeRefOrGetter,
   type ShallowRef,
 } from 'vue';
-import type { Chat } from './chat.vue';
 
 /**
  * @internal
@@ -146,8 +145,8 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>(
   // the instance is created right away thanks to immediate: true. We do it this
   // way instead of a computed to ensure all changes to reactive state happen
   // in the same tick
-  const chatInstance = shallowRef<Chat<UI_MESSAGE>>() as ShallowRef<
-    Chat<UI_MESSAGE>
+  const chatInstance = shallowRef<VueChat<UI_MESSAGE>>() as ShallowRef<
+    VueChat<UI_MESSAGE>
   >;
 
   watch(
