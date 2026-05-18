@@ -286,7 +286,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
       } else if ('functionCall' in part) {
         content.push({
           type: 'tool-call' as const,
-          toolCallId: this.config.generateId(),
+          toolCallId: part.functionCall.id ?? this.config.generateId(),
           toolName: part.functionCall.name,
           input: JSON.stringify(part.functionCall.args),
           providerMetadata: part.thoughtSignature
@@ -686,7 +686,7 @@ function getToolCallsFromParts({
     part => 'functionCall' in part,
   ) as Array<
     GoogleGenerativeAIContentPart & {
-      functionCall: { name: string; args: unknown };
+      functionCall: { id?: string | null; name: string; args: unknown };
       thoughtSignature?: string | null;
     }
   >;
@@ -695,7 +695,7 @@ function getToolCallsFromParts({
     ? undefined
     : functionCallParts.map(part => ({
         type: 'tool-call' as const,
-        toolCallId: generateId(),
+        toolCallId: part.functionCall.id ?? generateId(),
         toolName: part.functionCall.name,
         args: JSON.stringify(part.functionCall.args),
         providerMetadata: part.thoughtSignature
@@ -889,6 +889,7 @@ const getContentSchema = () =>
           // note: order matters since text can be fully empty
           z.object({
             functionCall: z.object({
+              id: z.string().nullish(),
               name: z.string(),
               args: z.unknown(),
             }),
