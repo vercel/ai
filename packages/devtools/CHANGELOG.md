@@ -1,5 +1,11 @@
 # @ai-sdk/devtools
 
+## 1.0.0-canary.25
+
+### Patch Changes
+
+- b567a6c: dependency updates
+
 ## 1.0.0-canary.24
 
 ### Patch Changes
