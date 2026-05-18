@@ -18,6 +18,9 @@ run(async () => {
     prompt:
       'Briefly summarize the most-cited papers on retrieval-augmented generation since 2024 (2-3 sentences).',
     abortSignal: ac.signal,
+    providerOptions: {
+      google: { background: true },
+    },
   });
 
   console.log(result.text);

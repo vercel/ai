@@ -23,6 +23,7 @@ run(async () => {
           type: 'deep-research',
           thinkingSummaries: 'auto',
         },
+        background: true,
       },
     },
     prompt:

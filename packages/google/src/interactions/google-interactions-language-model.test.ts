@@ -1447,14 +1447,27 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
       expect(body.model).toBeUndefined();
     });
 
-    it('sets background:true on agent calls but not on model-id calls', async () => {
+    it('passes background through from providerOptions.google.background', async () => {
+      const agentModel = provider.interactions({ agent: AGENT_NAME });
+      await agentModel.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: { google: { background: true } },
+      });
+      const agentBody = (await server.calls[0].requestBodyJson) as Record<
+        string,
+        unknown
+      >;
+      expect(agentBody.background).toBe(true);
+    });
+
+    it('omits background by default (no auto-injection on agent calls)', async () => {
       const agentModel = provider.interactions({ agent: AGENT_NAME });
       await agentModel.doGenerate({ prompt: TEST_PROMPT });
       const agentBody = (await server.calls[0].requestBodyJson) as Record<
         string,
         unknown
       >;
-      expect(agentBody.background).toBe(true);
+      expect(agentBody.background).toBeUndefined();
 
       await model.doGenerate({ prompt: TEST_PROMPT });
       const modelBody = (await server.calls[1].requestBodyJson) as Record<
@@ -1462,6 +1475,216 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
         unknown
       >;
       expect(modelBody.background).toBeUndefined();
+    });
+
+    describe('environment', () => {
+      it('passes the literal "remote" string through verbatim', async () => {
+        const agentModel = provider.interactions({ agent: AGENT_NAME });
+        await agentModel.doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: { google: { environment: 'remote' } },
+        });
+        const body = (await server.calls[0].requestBodyJson) as Record<
+          string,
+          unknown
+        >;
+        expect(body.environment).toBe('remote');
+      });
+
+      it('passes an env_id string through verbatim', async () => {
+        const agentModel = provider.interactions({ agent: AGENT_NAME });
+        await agentModel.doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: { google: { environment: 'env_abc123' } },
+        });
+        const body = (await server.calls[0].requestBodyJson) as Record<
+          string,
+          unknown
+        >;
+        expect(body.environment).toBe('env_abc123');
+      });
+
+      it('serializes the object form with sources of all three types', async () => {
+        const agentModel = provider.interactions({ agent: AGENT_NAME });
+        await agentModel.doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            google: {
+              environment: {
+                type: 'remote',
+                sources: [
+                  {
+                    type: 'inline',
+                    content: 'note contents',
+                    target: '/data/note.txt',
+                  },
+                  {
+                    type: 'gcs',
+                    source: 'gs://example/path',
+                    target: '/data/',
+                  },
+                  {
+                    type: 'repository',
+                    source: 'github://octocat/Hello-World',
+                    target: '/repo/',
+                  },
+                ],
+              },
+            },
+          },
+        });
+        const body = (await server.calls[0].requestBodyJson) as Record<
+          string,
+          unknown
+        >;
+        expect(body.environment).toMatchInlineSnapshot(`
+          {
+            "sources": [
+              {
+                "content": "note contents",
+                "target": "/data/note.txt",
+                "type": "inline",
+              },
+              {
+                "source": "gs://example/path",
+                "target": "/data/",
+                "type": "gcs",
+              },
+              {
+                "source": "github://octocat/Hello-World",
+                "target": "/repo/",
+                "type": "repository",
+              },
+            ],
+            "type": "remote",
+          }
+        `);
+      });
+
+      it('omits null target on non-inline sources', async () => {
+        const agentModel = provider.interactions({ agent: AGENT_NAME });
+        await agentModel.doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            google: {
+              environment: {
+                type: 'remote',
+                sources: [
+                  { type: 'gcs', source: 'gs://example/path' },
+                  {
+                    type: 'repository',
+                    source: 'github://octocat/Hello-World',
+                  },
+                ],
+              },
+            },
+          },
+        });
+        const body = (await server.calls[0].requestBodyJson) as Record<
+          string,
+          unknown
+        >;
+        expect(body.environment).toMatchInlineSnapshot(`
+          {
+            "sources": [
+              {
+                "source": "gs://example/path",
+                "type": "gcs",
+              },
+              {
+                "source": "github://octocat/Hello-World",
+                "type": "repository",
+              },
+            ],
+            "type": "remote",
+          }
+        `);
+      });
+
+      it('serializes a network allowlist with header transforms', async () => {
+        const agentModel = provider.interactions({ agent: AGENT_NAME });
+        await agentModel.doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            google: {
+              environment: {
+                type: 'remote',
+                network: {
+                  allowlist: [
+                    {
+                      domain: 'generativelanguage.googleapis.com',
+                      transform: [{ 'x-goog-api-key': 'AIza-redacted' }],
+                    },
+                    { domain: '*' },
+                  ],
+                },
+              },
+            },
+          },
+        });
+        const body = (await server.calls[0].requestBodyJson) as Record<
+          string,
+          unknown
+        >;
+        expect(body.environment).toMatchInlineSnapshot(`
+          {
+            "network": {
+              "allowlist": [
+                {
+                  "domain": "generativelanguage.googleapis.com",
+                  "transform": [
+                    {
+                      "x-goog-api-key": "AIza-redacted",
+                    },
+                  ],
+                },
+                {
+                  "domain": "*",
+                },
+              ],
+            },
+            "type": "remote",
+          }
+        `);
+      });
+
+      it('serializes network "disabled" verbatim', async () => {
+        const agentModel = provider.interactions({ agent: AGENT_NAME });
+        await agentModel.doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            google: {
+              environment: { type: 'remote', network: 'disabled' },
+            },
+          },
+        });
+        const body = (await server.calls[0].requestBodyJson) as Record<
+          string,
+          unknown
+        >;
+        expect(body.environment).toEqual({
+          type: 'remote',
+          network: 'disabled',
+        });
+      });
+
+      it('emits a warning and drops environment on model-id calls', async () => {
+        const result = await model.doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: { google: { environment: 'remote' } },
+        });
+        const body = (await server.calls[0].requestBodyJson) as Record<
+          string,
+          unknown
+        >;
+        expect(body.environment).toBeUndefined();
+        const warning = result.warnings.find(
+          w =>
+            w.type === 'other' &&
+            (w as { message?: string }).message?.includes('environment'),
+        );
+        expect(warning).toBeDefined();
+      });
     });
   });
 });
@@ -1599,6 +1822,7 @@ describe('GoogleInteractionsLanguageModel agent polling', () => {
     const { stream } = await agentModel.doStream({
       prompt: TEST_PROMPT,
       includeRawChunks: false,
+      providerOptions: { google: { background: true } },
     });
     const parts = await convertReadableStreamToArray(stream);
     const types = parts.map(p => p.type);
@@ -1698,6 +1922,7 @@ describe('GoogleInteractionsLanguageModel agent polling', () => {
     const { stream } = await agentModel.doStream({
       prompt: TEST_PROMPT,
       includeRawChunks: false,
+      providerOptions: { google: { background: true } },
     });
     const parts = await convertReadableStreamToArray(stream);
     const textDeltas = parts
@@ -1758,6 +1983,7 @@ describe('GoogleInteractionsLanguageModel agent polling', () => {
     const { stream } = await agentModel.doStream({
       prompt: TEST_PROMPT,
       includeRawChunks: false,
+      providerOptions: { google: { background: true } },
     });
     const parts = await convertReadableStreamToArray(stream);
     const fileParts = parts.filter(p => p.type === 'file');
@@ -1808,6 +2034,7 @@ describe('GoogleInteractionsLanguageModel agent polling', () => {
     const { stream } = await agentModel.doStream({
       prompt: TEST_PROMPT,
       includeRawChunks: false,
+      providerOptions: { google: { background: true } },
     });
     const parts = await convertReadableStreamToArray(stream);
     const types = parts.map(p => p.type);
@@ -2642,12 +2869,13 @@ describe('GoogleInteractionsLanguageModel.doStream', () => {
       };
     }
 
-    it('puts `agent` (not `model`) and `background:true` (not `stream:true`) in the request body when streaming', async () => {
+    it('puts `agent` (not `model`) and `background:true` (not `stream:true`) in the request body when streaming with background:true', async () => {
       prepareJsonFixtureResponse('basic');
       const agentModel = provider.interactions({ agent: AGENT_NAME });
       const { stream } = await agentModel.doStream({
         prompt: TEST_PROMPT,
         includeRawChunks: false,
+        providerOptions: { google: { background: true } },
       });
       await convertReadableStreamToArray(stream);
       const body = (await server.calls[0].requestBodyJson) as Record<
@@ -2668,6 +2896,7 @@ describe('GoogleInteractionsLanguageModel.doStream', () => {
         prompt: TEST_PROMPT,
         temperature: 0.5,
         includeRawChunks: false,
+        providerOptions: { google: { background: true } },
       });
       const parts = await convertReadableStreamToArray(stream);
       const streamStart = parts.find(p => p.type === 'stream-start');
@@ -2687,6 +2916,7 @@ describe('GoogleInteractionsLanguageModel.doStream', () => {
       const { stream } = await agentModel.doStream({
         prompt: TEST_PROMPT,
         includeRawChunks: false,
+        providerOptions: { google: { background: true } },
       });
       const parts = await convertReadableStreamToArray(stream);
       const types = parts.map(p => p.type);

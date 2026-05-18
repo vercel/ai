@@ -67,6 +67,9 @@ run(async () => {
       prompt:
         'Compile an exhaustive survey of every paper published on retrieval-augmented generation since 2020. Include all authors, abstracts, and links.',
       abortSignal: ac.signal,
+      providerOptions: {
+        google: { background: true },
+      },
     });
     console.log('Unexpected: generateText returned without abort');
   } catch (error) {

@@ -25,6 +25,7 @@ run(async () => {
           type: 'deep-research',
           thinkingSummaries: 'auto',
         },
+        background: true,
       },
     },
     prompt:
@@ -68,6 +69,7 @@ run(async () => {
           type: 'deep-research',
           thinkingSummaries: 'auto',
         },
+        background: true,
       },
     },
     abortSignal: ac.signal,
