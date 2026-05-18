@@ -101,6 +101,11 @@ export function createCerebras(
       fetch: options.fetch,
       errorStructure: cerebrasErrorStructure,
       supportsStructuredOutputs: true,
+      // Cerebras rejects `reasoning_content` on input assistant messages; it
+      // expects historical reasoning to be passed back as a `reasoning` field.
+      // Without this, multi-step runs with reasoning models (e.g. `zai-glm-4.7`,
+      // `qwen-3-235b-a22b-thinking-2507`) fail with HTTP 400 after step 1.
+      assistantReasoningSerialization: 'reasoning',
     });
   };
 

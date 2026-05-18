@@ -1097,6 +1097,78 @@ describe('provider-specific metadata merging', () => {
   });
 });
 
+describe('assistant reasoning serialization', () => {
+  const promptWithReasoning = [
+    {
+      role: 'assistant' as const,
+      content: [
+        { type: 'reasoning' as const, text: 'thinking out loud' },
+        { type: 'text' as const, text: 'done.' },
+      ],
+    },
+  ];
+
+  it('serializes reasoning as reasoning_content by default', () => {
+    expect(convertToOpenAICompatibleChatMessages(promptWithReasoning)).toEqual([
+      {
+        role: 'assistant',
+        content: 'done.',
+        reasoning_content: 'thinking out loud',
+        tool_calls: undefined,
+      },
+    ]);
+  });
+
+  it('serializes reasoning as `reasoning` when requested', () => {
+    expect(
+      convertToOpenAICompatibleChatMessages(promptWithReasoning, {
+        assistantReasoningSerialization: 'reasoning',
+      }),
+    ).toEqual([
+      {
+        role: 'assistant',
+        content: 'done.',
+        reasoning: 'thinking out loud',
+        tool_calls: undefined,
+      },
+    ]);
+  });
+
+  it('omits reasoning entirely when set to `none`', () => {
+    expect(
+      convertToOpenAICompatibleChatMessages(promptWithReasoning, {
+        assistantReasoningSerialization: 'none',
+      }),
+    ).toEqual([
+      {
+        role: 'assistant',
+        content: 'done.',
+        tool_calls: undefined,
+      },
+    ]);
+  });
+
+  it('does not add a reasoning field when no reasoning parts are present', () => {
+    expect(
+      convertToOpenAICompatibleChatMessages(
+        [
+          {
+            role: 'assistant',
+            content: [{ type: 'text', text: 'hello' }],
+          },
+        ],
+        { assistantReasoningSerialization: 'reasoning' },
+      ),
+    ).toEqual([
+      {
+        role: 'assistant',
+        content: 'hello',
+        tool_calls: undefined,
+      },
+    ]);
+  });
+});
+
 describe('Google Gemini thought signatures (OpenAI compatibility)', () => {
   it('should serialize thought signature to extra_content for single tool call', () => {
     const result = convertToOpenAICompatibleChatMessages([

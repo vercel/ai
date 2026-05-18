@@ -345,6 +345,55 @@ describe('doGenerate', () => {
     `);
   });
 
+  describe('assistant reasoning serialization', () => {
+    const reasoningPrompt: LanguageModelV4Prompt = [
+      { role: 'user', content: [{ type: 'text', text: 'hi' }] },
+      {
+        role: 'assistant',
+        content: [
+          { type: 'reasoning', text: 'thinking out loud' },
+          { type: 'text', text: 'done.' },
+        ],
+      },
+      { role: 'user', content: [{ type: 'text', text: 'next' }] },
+    ];
+
+    it('serializes assistant reasoning as reasoning_content by default', async () => {
+      prepareJsonResponse({ content: '' });
+
+      await provider('grok-3').doGenerate({ prompt: reasoningPrompt });
+
+      const messages = (await server.calls[0].requestBodyJson).messages;
+      expect(messages[1]).toEqual({
+        role: 'assistant',
+        content: 'done.',
+        reasoning_content: 'thinking out loud',
+      });
+    });
+
+    it('serializes assistant reasoning as `reasoning` when configured', async () => {
+      prepareJsonResponse({ content: '' });
+
+      const cerebrasStyleProvider = createOpenAICompatible({
+        baseURL: 'https://my.api.com/v1/',
+        name: 'cerebras-style',
+        headers: { Authorization: `Bearer test-api-key` },
+        assistantReasoningSerialization: 'reasoning',
+      });
+
+      await cerebrasStyleProvider('zai-glm-4.7').doGenerate({
+        prompt: reasoningPrompt,
+      });
+
+      const messages = (await server.calls[0].requestBodyJson).messages;
+      expect(messages[1]).toEqual({
+        role: 'assistant',
+        content: 'done.',
+        reasoning: 'thinking out loud',
+      });
+    });
+  });
+
   it('should support partial usage', async () => {
     prepareJsonResponse({
       usage: { prompt_tokens: 20, total_tokens: 20 },

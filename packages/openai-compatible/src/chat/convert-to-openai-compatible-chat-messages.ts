@@ -17,6 +17,23 @@ function getOpenAIMetadata(message: {
   return message?.providerOptions?.openaiCompatible ?? {};
 }
 
+/**
+ * Controls how assistant `reasoning` content parts are serialized when sending
+ * messages back to the provider.
+ *
+ * - `'reasoning_content'` (default): emit a `reasoning_content` field, which is
+ *   the convention most OpenAI-compatible providers (xai, groq, deepseek, ...)
+ *   use.
+ * - `'reasoning'`: emit a `reasoning` field. Required by providers that reject
+ *   `reasoning_content` on input (e.g. Cerebras, which expects `reasoning`).
+ * - `'none'`: drop reasoning parts from outgoing assistant messages. Useful for
+ *   providers that reject any historical reasoning field at all.
+ */
+export type AssistantReasoningSerialization =
+  | 'reasoning_content'
+  | 'reasoning'
+  | 'none';
+
 function getAudioFormat(mediaType: string): 'wav' | 'mp3' | null {
   switch (mediaType) {
     case 'audio/wav':
@@ -31,7 +48,12 @@ function getAudioFormat(mediaType: string): 'wav' | 'mp3' | null {
 
 export function convertToOpenAICompatibleChatMessages(
   prompt: LanguageModelV4Prompt,
+  options: {
+    assistantReasoningSerialization?: AssistantReasoningSerialization;
+  } = {},
 ): OpenAICompatibleChatPrompt {
+  const assistantReasoningSerialization =
+    options.assistantReasoningSerialization ?? 'reasoning_content';
   const messages: OpenAICompatibleChatPrompt = [];
   for (const { role, content, ...message } of prompt) {
     const metadata = getOpenAIMetadata({ ...message });
@@ -221,10 +243,15 @@ export function convertToOpenAICompatibleChatMessages(
           }
         }
 
+        const reasoningField =
+          reasoning.length > 0 && assistantReasoningSerialization !== 'none'
+            ? { [assistantReasoningSerialization]: reasoning }
+            : {};
+
         messages.push({
           role: 'assistant',
           content: toolCalls.length > 0 ? text || null : text,
-          ...(reasoning.length > 0 ? { reasoning_content: reasoning } : {}),
+          ...reasoningField,
           tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
           ...metadata,
         });

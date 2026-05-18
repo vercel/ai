@@ -97,6 +97,17 @@ describe('CerebrasProvider', () => {
       const model = provider(modelId);
       expect(model).toBeInstanceOf(OpenAICompatibleChatLanguageModel);
     });
+
+    it('should serialize assistant reasoning as `reasoning` (Cerebras expects this field, not `reasoning_content`)', () => {
+      const provider = createCerebras();
+      provider('zai-glm-4.7');
+
+      const constructorCall =
+        OpenAICompatibleChatLanguageModelMock.mock.calls[0];
+      const config = constructorCall[1];
+
+      expect(config.assistantReasoningSerialization).toBe('reasoning');
+    });
   });
 
   describe('languageModel', () => {

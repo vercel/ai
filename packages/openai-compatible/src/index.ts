@@ -1,4 +1,5 @@
 export { OpenAICompatibleChatLanguageModel } from './chat/openai-compatible-chat-language-model';
+export type { AssistantReasoningSerialization } from './chat/convert-to-openai-compatible-chat-messages';
 export type {
   OpenAICompatibleChatModelId,
   OpenAICompatibleLanguageModelChatOptions,

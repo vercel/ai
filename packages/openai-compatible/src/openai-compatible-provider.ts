@@ -115,6 +115,14 @@ export interface OpenAICompatibleProviderSettings {
    * differ from the default OpenAI-compatible shape.
    */
   convertUsage?: OpenAICompatibleChatConfig['convertUsage'];
+
+  /**
+   * Controls how assistant `reasoning` content parts are serialized when
+   * sending messages back to the provider. Defaults to `'reasoning_content'`.
+   * Set to `'reasoning'` for providers that expect a `reasoning` field
+   * (e.g. Cerebras), or `'none'` to omit reasoning entirely.
+   */
+  assistantReasoningSerialization?: OpenAICompatibleChatConfig['assistantReasoningSerialization'];
 }
 
 /**
@@ -176,6 +184,7 @@ export function createOpenAICompatible<
       transformRequestBody: options.transformRequestBody,
       metadataExtractor: options.metadataExtractor,
       convertUsage: options.convertUsage,
+      assistantReasoningSerialization: options.assistantReasoningSerialization,
     });
 
   const createCompletionModel = (modelId: COMPLETION_MODEL_IDS) =>

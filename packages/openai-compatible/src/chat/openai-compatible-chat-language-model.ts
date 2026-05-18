@@ -40,7 +40,10 @@ import {
   type ProviderErrorStructure,
 } from '../openai-compatible-error';
 import { convertOpenAICompatibleChatUsage } from './convert-openai-compatible-chat-usage';
-import { convertToOpenAICompatibleChatMessages } from './convert-to-openai-compatible-chat-messages';
+import {
+  convertToOpenAICompatibleChatMessages,
+  type AssistantReasoningSerialization,
+} from './convert-to-openai-compatible-chat-messages';
 import { getResponseMetadata } from './get-response-metadata';
 import { mapOpenAICompatibleFinishReason } from './map-openai-compatible-finish-reason';
 import {
@@ -91,6 +94,15 @@ export type OpenAICompatibleChatConfig = {
   convertUsage?: (
     usage: z.infer<typeof openaiCompatibleTokenUsageSchema>,
   ) => LanguageModelV4Usage;
+
+  /**
+   * Controls how assistant `reasoning` content parts are serialized when
+   * sending messages back to the provider. Defaults to `'reasoning_content'`.
+   * Set to `'reasoning'` for providers that expect a `reasoning` field instead
+   * (e.g. Cerebras), or `'none'` to omit reasoning from outgoing assistant
+   * messages entirely.
+   */
+  assistantReasoningSerialization?: AssistantReasoningSerialization;
 };
 
 type PendingToolCall = {
@@ -314,7 +326,10 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
         verbosity: compatibleOptions.textVerbosity,
 
         // messages:
-        messages: convertToOpenAICompatibleChatMessages(prompt),
+        messages: convertToOpenAICompatibleChatMessages(prompt, {
+          assistantReasoningSerialization:
+            this.config.assistantReasoningSerialization,
+        }),
 
         // tools:
         tools: openaiTools,
