@@ -1,5 +1,16 @@
 # @ai-sdk/react
 
+## 4.0.0-canary.144
+
+### Patch Changes
+
+- b567a6c: dependency updates
+- Updated dependencies [b567a6c]
+- Updated dependencies [a6617c5]
+  - @ai-sdk/mcp@2.0.0-canary.51
+  - @ai-sdk/provider-utils@5.0.0-canary.42
+  - ai@7.0.0-canary.143
+
 ## 4.0.0-canary.143
 
 ### Patch Changes

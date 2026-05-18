@@ -193,7 +193,7 @@ jobs:
         id: node-versions
         run: |
           if [ "${{ github.event_name }}" != "pull_request" ]; then
-            echo 'node_versions=[20,22,24]' >> "$GITHUB_OUTPUT"
+            echo 'node_versions=[22,24,26]' >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
@@ -201,7 +201,7 @@ jobs:
           git fetch --no-tags --depth=1 origin "$BASE_SHA"
 
           if git diff --name-only "$BASE_SHA" "${{ github.sha }}" | grep -E '^packages/[^/]+/(src/|test/|tests/|.*\.test(-d)?\.(ts|tsx|js|jsx)$)'; then
-            echo 'node_versions=[20,22,24]' >> "$GITHUB_OUTPUT"
+            echo 'node_versions=[22,24,26]' >> "$GITHUB_OUTPUT"
           else
             echo 'node_versions=[22]' >> "$GITHUB_OUTPUT"
           fi
@@ -243,6 +243,7 @@ jobs:
         run: tar -xzf package-build-artifacts.tgz
 
       - name: Install Playwright Browsers
+        timeout-minutes: 10
         run: pnpm exec playwright install --with-deps
 
       - name: Run tests
