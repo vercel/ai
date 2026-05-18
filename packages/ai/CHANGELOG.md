@@ -1,5 +1,11 @@
 # ai
 
+## 7.0.0-canary.142
+
+### Patch Changes
+
+- 62d6481: Post-publish release notifications now link to each package’s GitHub release and npm page.
+
 ## 7.0.0-canary.141
 
 ### Patch Changes
