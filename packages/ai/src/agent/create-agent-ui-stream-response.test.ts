@@ -363,7 +363,7 @@ describe('createAgentUIStreamResponse', () => {
   it('should pass sandbox to tool execution', async () => {
     const sandbox = {
       description: 'test sandbox',
-      executeCommand: async () => ({
+      runCommand: async () => ({
         exitCode: 0,
         stdout: 'ok',
         stderr: '',

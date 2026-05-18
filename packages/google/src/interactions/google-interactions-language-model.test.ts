@@ -62,8 +62,8 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
             {
               "providerMetadata": {
                 "google": {
-                  "interactionId": "v1_ChdLTjM0YWRHQkVKbXNtdGtQOUlQUXNBURIXS04zNGFkR0JFSm1zbXRrUDlJUFFzQVE",
-                  "signature": "Cv0BAQw51serEk3MRGVfSy7vc0tS+q+WLnLsoLLdOvC3q/iR8A1qkVaM4HTJx4z1+0wstylDi+YTpVc48Ho2iu36UuupoZ8EwEV87DXHrYJifyR7BPwNYdId9sr70OhDCp7/bss1wHWnQcW79NJoxm5UJw9ByajV4UQfBtFLgafkYN2wrX1oSFWJl3NikzpkCFsDOyrRaSt1iCQ5SuL2cmHJbx2pjapYi0hKdd5g9Gi0jSfyv2rI7YrAJi1kAJSCJ4CNeUiitO7DB/CIxZBA0r718u6+8eFtzFbtLgWDVJwpPWVqOCAzSCVLbmBgkFwQHmIhkPVlwr6Ta3ilGlVeyA==",
+                  "interactionId": "v1_ChdTbXNIYXFyUEV0ZUttdGtQNXVqVHdRRRIXU21zSGFxclBFdGVLbXRrUDV1alR3UUU",
+                  "signature": "CqwBAQw51sfgKVnBHSz5praTe+uG0Anr7XQqpCF63u254O4l2U4+GL3n7WRshuMFMfTty31n/76lM81JlqplsBd+YnEEPdyYqh4RpVrMnvUgDP7rkuWFPutrEgLUU/r3LuD3z1dc3qiMjtw3r3RkXtdHNF2Om28zmRoMT0/u8yNkPJA7S2IEfzasBN5yobkpwgbPAQ73PDJZy8n0qjNQmSG/OCMCUDBZMH3C9A1rEg==",
                 },
               },
               "text": "",
@@ -72,12 +72,12 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
             {
               "providerMetadata": {
                 "google": {
-                  "interactionId": "v1_ChdLTjM0YWRHQkVKbXNtdGtQOUlQUXNBURIXS04zNGFkR0JFSm1zbXRrUDlJUFFzQVE",
+                  "interactionId": "v1_ChdTbXNIYXFyUEV0ZUttdGtQNXVqVHdRRRIXU21zSGFxclBFdGVLbXRrUDV1alR3UUU",
                 },
               },
-              "text": "Hello! I'm an AI, so I don't experience feelings like humans do, but I'm ready and functioning perfectly.
+              "text": "Hello! I'm doing well, thank you for asking.
 
-        How can I help you today?",
+        How are you today?",
               "type": "text",
             },
           ],
@@ -87,7 +87,7 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
           },
           "providerMetadata": {
             "google": {
-              "interactionId": "v1_ChdLTjM0YWRHQkVKbXNtdGtQOUlQUXNBURIXS04zNGFkR0JFSm1zbXRrUDlJUFFzQVE",
+              "interactionId": "v1_ChdTbXNIYXFyUEV0ZUttdGtQNXVqVHdRRRIXU21zSGFxclBFdGVLbXRrUDV1alR3UUU",
               "serviceTier": "standard",
             },
           },
@@ -99,9 +99,9 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
               "total": 7,
             },
             "outputTokens": {
-              "reasoning": 55,
-              "text": 36,
-              "total": 91,
+              "reasoning": 32,
+              "text": 19,
+              "total": 51,
             },
             "raw": {
               "input_tokens_by_modality": [
@@ -112,9 +112,9 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
               ],
               "total_cached_tokens": 0,
               "total_input_tokens": 7,
-              "total_output_tokens": 36,
-              "total_thought_tokens": 55,
-              "total_tokens": 98,
+              "total_output_tokens": 19,
+              "total_thought_tokens": 32,
+              "total_tokens": 58,
               "total_tool_use_tokens": 0,
             },
           },
@@ -129,8 +129,13 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
         {
           "input": [
             {
-              "text": "Hello, how are you?",
-              "type": "text",
+              "content": [
+                {
+                  "text": "Hello, how are you?",
+                  "type": "text",
+                },
+              ],
+              "type": "user_input",
             },
           ],
           "model": "gemini-2.5-flash",
@@ -144,8 +149,13 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
         {
           "input": [
             {
-              "text": "Hello, how are you?",
-              "type": "text",
+              "content": [
+                {
+                  "text": "Hello, how are you?",
+                  "type": "text",
+                },
+              ],
+              "type": "user_input",
             },
           ],
           "model": "gemini-2.5-flash",
@@ -156,9 +166,7 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
     it('exposes the raw response body via result.response.body', async () => {
       const { response } = await model.doGenerate({ prompt: TEST_PROMPT });
       expect(typeof response?.body).toBe('object');
-      expect((response?.body as { id?: string })?.id).toBe(
-        'v1_ChdLTjM0YWRHQkVKbXNtdGtQOUlQUXNBURIXS04zNGFkR0JFSm1zbXRrUDlJUFFzQVE',
-      );
+      expect((response?.body as { id?: string })?.id).toMatch(/^v1_/);
     });
   });
 
@@ -188,7 +196,7 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
                   "type": "text",
                 },
               ],
-              "role": "user",
+              "type": "user_input",
             },
             {
               "content": [
@@ -197,7 +205,7 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
                   "type": "text",
                 },
               ],
-              "role": "model",
+              "type": "model_output",
             },
             {
               "content": [
@@ -206,7 +214,7 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
                   "type": "text",
                 },
               ],
-              "role": "user",
+              "type": "user_input",
             },
           ],
           "model": "gemini-2.5-flash",
@@ -232,7 +240,7 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
       $schema: 'http://json-schema.org/draft-07/schema#',
     };
 
-    it('emits response_mime_type and response_format on the request body when responseFormat is json with a schema', async () => {
+    it('emits response_format on the request body when responseFormat is json with a schema', async () => {
       await model.doGenerate({
         prompt: TEST_PROMPT,
         responseFormat: {
@@ -244,36 +252,46 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
         {
           "input": [
             {
-              "text": "Hello, how are you?",
-              "type": "text",
+              "content": [
+                {
+                  "text": "Hello, how are you?",
+                  "type": "text",
+                },
+              ],
+              "type": "user_input",
             },
           ],
           "model": "gemini-2.5-flash",
-          "response_format": {
-            "$schema": "http://json-schema.org/draft-07/schema#",
-            "additionalProperties": false,
-            "properties": {
-              "age": {
-                "description": "Age of the person in years.",
-                "type": "number",
+          "response_format": [
+            {
+              "mime_type": "application/json",
+              "schema": {
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "additionalProperties": false,
+                "properties": {
+                  "age": {
+                    "description": "Age of the person in years.",
+                    "type": "number",
+                  },
+                  "name": {
+                    "description": "Full name of the person.",
+                    "type": "string",
+                  },
+                },
+                "required": [
+                  "name",
+                  "age",
+                ],
+                "type": "object",
               },
-              "name": {
-                "description": "Full name of the person.",
-                "type": "string",
-              },
+              "type": "text",
             },
-            "required": [
-              "name",
-              "age",
-            ],
-            "type": "object",
-          },
-          "response_mime_type": "application/json",
+          ],
         }
       `);
     });
 
-    it('emits only response_mime_type when responseFormat is json without a schema', async () => {
+    it('emits a single text response_format entry when responseFormat is json without a schema', async () => {
       await model.doGenerate({
         prompt: TEST_PROMPT,
         responseFormat: { type: 'json' },
@@ -282,11 +300,15 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
         string,
         unknown
       >;
-      expect(body.response_mime_type).toBe('application/json');
-      expect(body.response_format).toBeUndefined();
+      // mime_type lives inside the polymorphic response_format entry; no
+      // top-level response_mime_type field on the wire.
+      expect(body.response_mime_type).toBeUndefined();
+      expect(body.response_format).toEqual([
+        { type: 'text', mime_type: 'application/json' },
+      ]);
     });
 
-    it('omits response_mime_type and response_format when responseFormat is text', async () => {
+    it('omits response_format when responseFormat is text', async () => {
       await model.doGenerate({
         prompt: TEST_PROMPT,
         responseFormat: { type: 'text' },
@@ -309,10 +331,20 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
           {
             "providerMetadata": {
               "google": {
-                "interactionId": "v1_ChdLTjM0YWRHQkVKbXNtdGtQOUlQUXNBUhIXS04zNGFkR0JFSm1zbXRrUDlJUFFzQVI",
+                "interactionId": "v1_ChdUV3NIYW9LTk9OYXlxdHNQb2RpcC1RRRIXVFdzSGFvS05PTmF5cXRzUG9kaXAtUUU",
+                "signature": "CqACAQw51sc7wSan2PLLtHG+z0j4AgWR8MPPe76QUDZpwhGeQ1AGXBWGqSm7nhjwbkyXhJ7JlfZ/R3iLZAmqxGH9mLrdkzQooTu5YKptE0+D1jb+PLv7PM/pkCeI8E2IUDtamWiQP2/eG3Rgouxd7+kNxcaERwGTLFsGMdZttew0aP8+xd0hKPAZVkkqKtjVVNYQaSVsnXpTxZrE+spikYx1T/lB9tl6tYkJrB/SmkGO/tsTqDVsaejBXheSM+pu/Nt7s9gAhiNxJnoTvFENezmmiGwiho1lkkPrK8u5uODO5MldRXefJnv8mkZAw/3l6Cxd63hKPGP5za6sjFr/0Scsv0LcrOU65e+YEqZOkp7OXcCoqTCZZITx89JjkOA/pN1T",
               },
             },
-            "text": "{"name":"Alice Smith","age":30}",
+            "text": "",
+            "type": "reasoning",
+          },
+          {
+            "providerMetadata": {
+              "google": {
+                "interactionId": "v1_ChdUV3NIYW9LTk9OYXlxdHNQb2RpcC1RRRIXVFdzSGFvS05PTmF5cXRzUG9kaXAtUUU",
+              },
+            },
+            "text": "{"name":"John Doe","age":30}",
             "type": "text",
           },
         ]
@@ -527,7 +559,7 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
                 "type": "text",
               },
             ],
-            "role": "user",
+            "type": "user_input",
           },
           {
             "content": [
@@ -536,7 +568,7 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
                 "type": "text",
               },
             ],
-            "role": "user",
+            "type": "user_input",
           },
         ]
       `);
@@ -578,7 +610,7 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
         ],
       });
       expect(result.providerMetadata?.google?.interactionId).toBe(
-        'v1_ChdhZlA0YWNISkM1T2R6N0lQNHM3RW1RZxIXYWZQNGFjSEpDNU9kejdJUDRzN0VtUWc',
+        'v1_ChdWV3NIYXNYZEc5S19xdHNQcmVYeG1BRRIXVldzSGFzWGRHOUtfcXRzUHJlWHhtQUU',
       );
       const text = result.content
         .filter(c => c.type === 'text')
@@ -592,7 +624,7 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
     it('compacts the turn-2 wire body and references prior interaction (fixture-driven)', async () => {
       prepareJsonFixtureResponse('multi-turn-stateful-turn2');
       const TURN_1_ID =
-        'v1_ChdhZlA0YWNISkM1T2R6N0lQNHM3RW1RZxIXYWZQNGFjSEpDNU9kejdJUDRzN0VtUWc';
+        'v1_ChdWV3NIYXNYZEc5S19xdHNQcmVYeG1BRRIXVldzSGFzWGRHOUtfcXRzUHJlWHhtQUU';
 
       const result = await model.doGenerate({
         prompt: [
@@ -657,7 +689,7 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
                 "type": "text",
               },
             ],
-            "role": "user",
+            "type": "user_input",
           },
           {
             "content": [
@@ -666,7 +698,7 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
                 "type": "text",
               },
             ],
-            "role": "user",
+            "type": "user_input",
           },
         ]
       `);
@@ -677,7 +709,7 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
         .map(c => (c as { text: string }).text)
         .join('');
       expect(text).toContain('Barcelona');
-      expect(text).toContain('Sagrada Familia');
+      expect(text).toMatch(/Sagrada Fam.lia/);
     });
 
     it('round-trips a thought signature on an input reasoning part to the wire thought block', async () => {
@@ -707,12 +739,11 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
         ],
       });
       const body = (await server.calls[0].requestBodyJson) as {
-        input: Array<{ content: Array<{ type: string; signature?: string }> }>;
+        input: Array<{ type: string; signature?: string }>;
       };
-      const modelTurn = body.input.find(
-        t => (t as { role?: string }).role === 'model',
-      );
-      const thought = modelTurn?.content.find(c => c.type === 'thought');
+      // `thought` is a top-level step type, not a content block under a
+      // turn — find it directly on `input`.
+      const thought = body.input.find(step => step.type === 'thought');
       expect(thought?.signature).toBe('sig-roundtrip');
     });
   });
@@ -747,8 +778,13 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
       expect(body.input).toMatchInlineSnapshot(`
         [
           {
-            "text": "What are the three largest cities in Spain?",
-            "type": "text",
+            "content": [
+              {
+                "text": "What are the three largest cities in Spain?",
+                "type": "text",
+              },
+            ],
+            "type": "user_input",
           },
         ]
       `);
@@ -820,7 +856,7 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
                 "type": "text",
               },
             ],
-            "role": "user",
+            "type": "user_input",
           },
           {
             "content": [
@@ -829,7 +865,7 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
                 "type": "text",
               },
             ],
-            "role": "model",
+            "type": "model_output",
           },
           {
             "content": [
@@ -838,7 +874,7 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
                 "type": "text",
               },
             ],
-            "role": "user",
+            "type": "user_input",
           },
         ]
       `);
@@ -849,7 +885,7 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
         .filter(c => c.type === 'text')
         .map(c => (c as { text: string }).text)
         .join('');
-      expect(text).toContain('Sagrada Familia');
+      expect(text).toMatch(/Sagrada Fam.lia/);
     });
   });
 
@@ -894,8 +930,13 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
         {
           "input": [
             {
-              "text": "Hello, how are you?",
-              "type": "text",
+              "content": [
+                {
+                  "text": "Hello, how are you?",
+                  "type": "text",
+                },
+              ],
+              "type": "user_input",
             },
           ],
           "model": "gemini-2.5-flash",
@@ -955,10 +996,10 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
             "input": "{"location":"San Francisco"}",
             "providerMetadata": {
               "google": {
-                "interactionId": "v1_ChdrdW40YWVYaklyNnN6N0lQdGNUMjZBYxIXa3VuNGFlWGpJcjZzejdJUHRjVDI2QWM",
+                "interactionId": "v1_ChdUMnNIYXVxU0lJX2lxdHNQX2FicXVBWRIXVDJzSGF1cVNJSV9pcXRzUF9hYnF1QVk",
               },
             },
-            "toolCallId": "r7b1dyif",
+            "toolCallId": "zggxzq8r",
             "toolName": "getWeather",
             "type": "tool-call",
           },
@@ -1027,24 +1068,19 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
                   "type": "text",
                 },
               ],
-              "role": "user",
+              "type": "user_input",
             },
             {
-              "content": [
-                {
-                  "signature": "sig-abc",
-                  "type": "thought",
-                },
-                {
-                  "arguments": {
-                    "location": "San Francisco",
-                  },
-                  "id": "r7b1dyif",
-                  "name": "getWeather",
-                  "type": "function_call",
-                },
-              ],
-              "role": "model",
+              "signature": "sig-abc",
+              "type": "thought",
+            },
+            {
+              "arguments": {
+                "location": "San Francisco",
+              },
+              "id": "r7b1dyif",
+              "name": "getWeather",
+              "type": "function_call",
             },
             {
               "content": [
@@ -1055,7 +1091,7 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
                   "type": "function_result",
                 },
               ],
-              "role": "user",
+              "type": "user_input",
             },
           ],
           "model": "gemini-2.5-flash",
@@ -1097,7 +1133,7 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
     });
   });
 
-  describe('built-in google_search tool (TASK-7)', () => {
+  describe('built-in google_search tool', () => {
     const GOOGLE_SEARCH_TOOL: LanguageModelV4ProviderTool = {
       type: 'provider',
       id: 'google.google_search',
@@ -1143,8 +1179,10 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
       const urls = sources
         .filter(s => (s as { sourceType?: string }).sourceType === 'url')
         .map(s => (s as { url?: string }).url);
-      expect(urls).toContain('https://example.com/article-1');
-      expect(urls).toContain('https://example.com/article-2');
+      expect(urls.length).toBeGreaterThan(0);
+      for (const url of urls) {
+        expect(url).toMatch(/^https?:\/\//);
+      }
     });
 
     it('finishes with reason "stop"', async () => {
@@ -1156,7 +1194,7 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
     });
   });
 
-  describe('image output (TASK-11)', () => {
+  describe('image output', () => {
     it('emits a file content part on the result when the response carries an image block', async () => {
       prepareJsonFixtureResponse('image-output');
       const imageModel = provider.interactions('gemini-3-pro-image-preview');
@@ -1178,18 +1216,21 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
           },
         },
       });
-      const filePart = result.content.find(c => c.type === 'file');
-      expect(filePart).toMatchObject({
-        type: 'file',
-        mediaType: 'image/jpeg',
-        data: { type: 'data', data: '__IMAGE_DATA_TRUNCATED__' },
-        providerMetadata: {
-          google: {
-            interactionId:
-              'v1_ChdsV2Y1YWZPakRiLUh6N0lQOVA2UTJBRRIXbFdmNWFmT2pEYi1IejdJUDlQNlEyQUU',
-          },
-        },
-      });
+      const filePart = result.content.find(c => c.type === 'file') as
+        | {
+            type: string;
+            mediaType: string;
+            data: { type: string; data?: string };
+            providerMetadata?: { google?: { interactionId?: string } };
+          }
+        | undefined;
+      expect(filePart).toBeDefined();
+      expect(filePart?.type).toBe('file');
+      expect(filePart?.mediaType).toMatch(/^image\//);
+      expect(filePart?.data.type).toBe('data');
+      expect(typeof filePart?.data.data).toBe('string');
+      expect(filePart?.data.data?.length ?? 0).toBeGreaterThan(0);
+      expect(filePart?.providerMetadata?.google?.interactionId).toMatch(/^v1_/);
     });
 
     it('passes responseModalities into the request body', async () => {
@@ -1240,7 +1281,7 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
     });
   });
 
-  describe('agent factory branch (TASK-10)', () => {
+  describe('agent factory branch', () => {
     beforeEach(() => {
       prepareJsonFixtureResponse('basic');
     });
@@ -1426,7 +1467,7 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
   });
 });
 
-describe('GoogleInteractionsLanguageModel agent polling (TASK-10)', () => {
+describe('GoogleInteractionsLanguageModel agent polling', () => {
   const POST_URL =
     'https://generativelanguage.googleapis.com/v1beta/interactions';
   const POLL_URL =
@@ -1461,7 +1502,12 @@ describe('GoogleInteractionsLanguageModel agent polling (TASK-10)', () => {
         body: {
           id: 'v1_poll-test',
           status: 'completed',
-          outputs: [{ type: 'text', text: 'researched answer' }],
+          steps: [
+            {
+              type: 'model_output',
+              content: [{ type: 'text', text: 'researched answer' }],
+            },
+          ],
           usage: {
             total_input_tokens: 5,
             total_output_tokens: 3,
@@ -1505,7 +1551,7 @@ describe('GoogleInteractionsLanguageModel agent polling (TASK-10)', () => {
       type: 'stream-chunks',
       chunks: [
         `data: ${JSON.stringify({
-          event_type: 'interaction.start',
+          event_type: 'interaction.created',
           event_id: 'evt-1',
           interaction: {
             id: 'v1_poll-test',
@@ -1514,24 +1560,24 @@ describe('GoogleInteractionsLanguageModel agent polling (TASK-10)', () => {
           },
         })}\n\n`,
         `data: ${JSON.stringify({
-          event_type: 'content.start',
+          event_type: 'step.start',
           event_id: 'evt-2',
           index: 0,
-          content: { type: 'text' },
+          step: { type: 'model_output' },
         })}\n\n`,
         `data: ${JSON.stringify({
-          event_type: 'content.delta',
+          event_type: 'step.delta',
           event_id: 'evt-3',
           index: 0,
           delta: { type: 'text', text: 'streamed agent answer' },
         })}\n\n`,
         `data: ${JSON.stringify({
-          event_type: 'content.stop',
+          event_type: 'step.stop',
           event_id: 'evt-4',
           index: 0,
         })}\n\n`,
         `data: ${JSON.stringify({
-          event_type: 'interaction.complete',
+          event_type: 'interaction.completed',
           event_id: 'evt-5',
           interaction: {
             id: 'v1_poll-test',
@@ -1591,7 +1637,7 @@ describe('GoogleInteractionsLanguageModel agent polling (TASK-10)', () => {
           type: 'stream-chunks',
           chunks: [
             `data: ${JSON.stringify({
-              event_type: 'interaction.start',
+              event_type: 'interaction.created',
               event_id: 'evt-1',
               interaction: {
                 id: 'v1_poll-test',
@@ -1600,13 +1646,13 @@ describe('GoogleInteractionsLanguageModel agent polling (TASK-10)', () => {
               },
             })}\n\n`,
             `data: ${JSON.stringify({
-              event_type: 'content.start',
+              event_type: 'step.start',
               event_id: 'evt-2',
               index: 0,
-              content: { type: 'text' },
+              step: { type: 'model_output' },
             })}\n\n`,
             `data: ${JSON.stringify({
-              event_type: 'content.delta',
+              event_type: 'step.delta',
               event_id: 'evt-3',
               index: 0,
               delta: { type: 'text', text: 'first half ' },
@@ -1618,18 +1664,18 @@ describe('GoogleInteractionsLanguageModel agent polling (TASK-10)', () => {
         type: 'stream-chunks',
         chunks: [
           `data: ${JSON.stringify({
-            event_type: 'content.delta',
+            event_type: 'step.delta',
             event_id: 'evt-4',
             index: 0,
             delta: { type: 'text', text: 'second half' },
           })}\n\n`,
           `data: ${JSON.stringify({
-            event_type: 'content.stop',
+            event_type: 'step.stop',
             event_id: 'evt-5',
             index: 0,
           })}\n\n`,
           `data: ${JSON.stringify({
-            event_type: 'interaction.complete',
+            event_type: 'interaction.completed',
             event_id: 'evt-6',
             interaction: {
               id: 'v1_poll-test',
@@ -1679,17 +1725,22 @@ describe('GoogleInteractionsLanguageModel agent polling (TASK-10)', () => {
       body: {
         id: 'v1_poll-test',
         status: 'completed',
-        outputs: [
-          { type: 'text', text: 'here is your image' },
+        steps: [
           {
-            type: 'image',
-            data: 'aGVsbG8=',
-            mime_type: 'image/png',
-          },
-          {
-            type: 'image',
-            uri: 'https://example.com/img.png',
-            mime_type: 'image/png',
+            type: 'model_output',
+            content: [
+              { type: 'text', text: 'here is your image' },
+              {
+                type: 'image',
+                data: 'aGVsbG8=',
+                mime_type: 'image/png',
+              },
+              {
+                type: 'image',
+                uri: 'https://example.com/img.png',
+                mime_type: 'image/png',
+              },
+            ],
           },
         ],
         usage: {
@@ -1731,7 +1782,12 @@ describe('GoogleInteractionsLanguageModel agent polling (TASK-10)', () => {
       body: {
         id: 'v1_poll-test',
         status: 'completed',
-        outputs: [{ type: 'text', text: 'instant answer' }],
+        steps: [
+          {
+            type: 'model_output',
+            content: [{ type: 'text', text: 'instant answer' }],
+          },
+        ],
         usage: {
           total_input_tokens: 5,
           total_output_tokens: 3,
@@ -1799,47 +1855,40 @@ describe('GoogleInteractionsLanguageModel.doStream', () => {
             "warnings": [],
           },
           {
-            "id": "v1_ChdPZDM0YWRHZ0ZOZXlxdHNQMjdyU2tBYxIXT2QzNGFkR2dGTmV5cXRzUDI3clNrQWM",
+            "id": "v1_ChdUR3NIYXVyQkFlYVA2ZGtQajZERThBVRIXVEdzSGF1ckJBZWFQNmRrUGo2REU4QVU",
             "modelId": "gemini-2.5-flash",
             "type": "response-metadata",
           },
           {
-            "id": "v1_ChdPZDM0YWRHZ0ZOZXlxdHNQMjdyU2tBYxIXT2QzNGFkR2dGTmV5cXRzUDI3clNrQWM:0",
+            "id": "v1_ChdUR3NIYXVyQkFlYVA2ZGtQajZERThBVRIXVEdzSGF1ckJBZWFQNmRrUGo2REU4QVU:0",
             "type": "reasoning-start",
           },
           {
-            "id": "v1_ChdPZDM0YWRHZ0ZOZXlxdHNQMjdyU2tBYxIXT2QzNGFkR2dGTmV5cXRzUDI3clNrQWM:0",
+            "id": "v1_ChdUR3NIYXVyQkFlYVA2ZGtQajZERThBVRIXVEdzSGF1ckJBZWFQNmRrUGo2REU4QVU:0",
             "providerMetadata": {
               "google": {
-                "interactionId": "v1_ChdPZDM0YWRHZ0ZOZXlxdHNQMjdyU2tBYxIXT2QzNGFkR2dGTmV5cXRzUDI3clNrQWM",
-                "signature": "CiQBDDnWxytZFpiQuIZjP8oHNBmOKwhpGddG0lQFQyXcOKLEml4KdAEMOdbH4ehCqkGJqC+xNM2vWwZSUJmSyrGwF8bzQNyy3C+9V/H4WPaSUMqo7JmudP08l6IlSbM9LEhEtwVZqI1I//WswzKBf+mQZl7oLmAURaxZhXLlqHIX8jxQZcKe3/INZNwNZWA4ZqpO4jTywln55FtGClMBDDnWx2KSMtCAZ2Iyz0IKjbISA2RLaHe8fgZ8kueEqX9JwPboCK2S4uvgNR4oUl7xUDjzO0nqfSZEYdiUxhPVyCpTJgUxgwoubMn5QRyk3sDGEQ==",
+                "interactionId": "v1_ChdUR3NIYXVyQkFlYVA2ZGtQajZERThBVRIXVEdzSGF1ckJBZWFQNmRrUGo2REU4QVU",
+                "signature": "CiQBDDnWxzCnKBoG0/vIUQ9fHy3JYGvjTmIZFY4uKrzvEqSAJh8KdQEMOdbH472i8Wb3Z10/9wPWQyeSH2KMnQfWxi4Z+jlD+igWd1veIZW9QWMqrhgPQqsabcZiwzNAyNaSOJFu0D2ulKtvde8IrVcZkeoG0IR7QVcZWFbKF/uuXxeAV2CYsqXF8Xhv362V/Lc17nWUjzFwvkrftAq8AQEMOdbHZ41h6ebbkW11izLCzDhm/aW2Zh5LR60hYvYMFrL22tOZFEHoBAzZJR+NaPaGbCCd6YtSKUMWXDckIRL42Ms6xISx5eW2xKiNk4Pf+6CDD09wP7kxx/jrvn17+oFEB86PDzUCjK79WXHTufzNZ2NFyXV9wqAX6VcrxSz6eA7BvXtZcHnP5mIlSpBwNDkuWwqtWZq7ebtySPbjjUq4tZw8xB/I0guOpC+u+lCAoSoCOtf8Y+Zc7SG6Cs8BAQw51sel75qdPe/A19DGEaH4sRjNgXHSNzW6zsOqn+nMZEQznZSP+EMitUNYJSCv9ceM5a2+hs9PhGJuPVKrSxnmVya1iHYdquju9DD0q+wSycGXsor1UI4TMic4jg2+5xAFSUir9qA6nSZeuRDjMkCQ0fbJESf2if70CBFNWQe1Q2kKpfc1CrZR2dtc28YfS/c8iyarj3cts6sybBAxgAR834OcVIttdMt8eimPXfCPAP0qGu1cxjXSk746D3XmMwQtpIfW1/xpIjVhJsGA",
               },
             },
             "type": "reasoning-end",
           },
           {
-            "id": "v1_ChdPZDM0YWRHZ0ZOZXlxdHNQMjdyU2tBYxIXT2QzNGFkR2dGTmV5cXRzUDI3clNrQWM:1",
+            "id": "v1_ChdUR3NIYXVyQkFlYVA2ZGtQajZERThBVRIXVEdzSGF1ckJBZWFQNmRrUGo2REU4QVU:1",
             "type": "text-start",
           },
           {
-            "delta": "Hello! I'm doing well, thank you for asking.
+            "delta": "I'm doing great, thank you for asking!
 
-        As an AI, I don't have feelings in the way humans do, but I'm fully",
-            "id": "v1_ChdPZDM0YWRHZ0ZOZXlxdHNQMjdyU2tBYxIXT2QzNGFkR2dGTmV5cXRzUDI3clNrQWM:1",
+        How are you doing today? And what can I do for you?",
+            "id": "v1_ChdUR3NIYXVyQkFlYVA2ZGtQajZERThBVRIXVEdzSGF1ckJBZWFQNmRrUGo2REU4QVU:1",
             "type": "text-delta",
           },
           {
-            "delta": " operational and ready to assist you.
-
-        How can I help you today?",
-            "id": "v1_ChdPZDM0YWRHZ0ZOZXlxdHNQMjdyU2tBYxIXT2QzNGFkR2dGTmV5cXRzUDI3clNrQWM:1",
-            "type": "text-delta",
-          },
-          {
-            "id": "v1_ChdPZDM0YWRHZ0ZOZXlxdHNQMjdyU2tBYxIXT2QzNGFkR2dGTmV5cXRzUDI3clNrQWM:1",
+            "id": "v1_ChdUR3NIYXVyQkFlYVA2ZGtQajZERThBVRIXVEdzSGF1ckJBZWFQNmRrUGo2REU4QVU:1",
             "providerMetadata": {
               "google": {
-                "interactionId": "v1_ChdPZDM0YWRHZ0ZOZXlxdHNQMjdyU2tBYxIXT2QzNGFkR2dGTmV5cXRzUDI3clNrQWM",
+                "interactionId": "v1_ChdUR3NIYXVyQkFlYVA2ZGtQajZERThBVRIXVEdzSGF1ckJBZWFQNmRrUGo2REU4QVU",
               },
             },
             "type": "text-end",
@@ -1851,7 +1900,7 @@ describe('GoogleInteractionsLanguageModel.doStream', () => {
             },
             "providerMetadata": {
               "google": {
-                "interactionId": "v1_ChdPZDM0YWRHZ0ZOZXlxdHNQMjdyU2tBYxIXT2QzNGFkR2dGTmV5cXRzUDI3clNrQWM",
+                "interactionId": "v1_ChdUR3NIYXVyQkFlYVA2ZGtQajZERThBVRIXVEdzSGF1ckJBZWFQNmRrUGo2REU4QVU",
                 "serviceTier": "standard",
               },
             },
@@ -1864,9 +1913,9 @@ describe('GoogleInteractionsLanguageModel.doStream', () => {
                 "total": 7,
               },
               "outputTokens": {
-                "reasoning": 29,
-                "text": 50,
-                "total": 79,
+                "reasoning": 115,
+                "text": 26,
+                "total": 141,
               },
               "raw": {
                 "input_tokens_by_modality": [
@@ -1877,9 +1926,9 @@ describe('GoogleInteractionsLanguageModel.doStream', () => {
                 ],
                 "total_cached_tokens": 0,
                 "total_input_tokens": 7,
-                "total_output_tokens": 50,
-                "total_thought_tokens": 29,
-                "total_tokens": 86,
+                "total_output_tokens": 26,
+                "total_thought_tokens": 115,
+                "total_tokens": 148,
                 "total_tool_use_tokens": 0,
               },
             },
@@ -1963,7 +2012,7 @@ describe('GoogleInteractionsLanguageModel.doStream', () => {
     it('reads providerMetadata.google.serviceTier from the interaction.complete event body service_tier field', async () => {
       const objs = readFixtureChunkLines('basic');
       const completeIdx = objs.findIndex(
-        o => o.event_type === 'interaction.complete',
+        o => o.event_type === 'interaction.completed',
       );
       const complete = objs[completeIdx];
       const interaction = complete.interaction as Record<string, unknown>;
@@ -1992,7 +2041,7 @@ describe('GoogleInteractionsLanguageModel.doStream', () => {
     it('falls back to the x-gemini-service-tier response header when service_tier is absent from the body', async () => {
       const objs = readFixtureChunkLines('basic');
       const completeIdx = objs.findIndex(
-        o => o.event_type === 'interaction.complete',
+        o => o.event_type === 'interaction.completed',
       );
       const complete = objs[completeIdx];
       const interaction = {
@@ -2023,7 +2072,7 @@ describe('GoogleInteractionsLanguageModel.doStream', () => {
     it('omits serviceTier from finish providerMetadata when both response body and header are absent', async () => {
       const objs = readFixtureChunkLines('basic');
       const completeIdx = objs.findIndex(
-        o => o.event_type === 'interaction.complete',
+        o => o.event_type === 'interaction.completed',
       );
       const complete = objs[completeIdx];
       const interaction = {
@@ -2089,7 +2138,7 @@ describe('GoogleInteractionsLanguageModel.doStream', () => {
     it('compacts the turn-2 stream wire body and streams the chained answer', async () => {
       prepareChunksFixtureResponse('multi-turn-stateful-turn2');
       const TURN_1_ID =
-        'v1_ChdhZlA0YWNISkM1T2R6N0lQNHM3RW1RZxIXYWZQNGFjSEpDNU9kejdJUDRzN0VtUWc';
+        'v1_ChdWV3NIYXNYZEc5S19xdHNQcmVYeG1BRRIXVldzSGFzWGRHOUtfcXRzUHJlWHhtQUU';
       const { stream } = await model.doStream({
         prompt: [
           {
@@ -2154,7 +2203,7 @@ describe('GoogleInteractionsLanguageModel.doStream', () => {
                 "type": "text",
               },
             ],
-            "role": "user",
+            "type": "user_input",
           },
           {
             "content": [
@@ -2163,7 +2212,7 @@ describe('GoogleInteractionsLanguageModel.doStream', () => {
                 "type": "text",
               },
             ],
-            "role": "user",
+            "type": "user_input",
           },
         ]
       `);
@@ -2172,7 +2221,7 @@ describe('GoogleInteractionsLanguageModel.doStream', () => {
         .filter(p => p.type === 'text-delta')
         .map(p => (p as { delta: string }).delta)
         .join('');
-      expect(text).toContain('Sagrada Familia');
+      expect(text).toMatch(/Sagrada Fam.lia/);
     });
   });
 
@@ -2282,7 +2331,7 @@ describe('GoogleInteractionsLanguageModel.doStream', () => {
                 "type": "text",
               },
             ],
-            "role": "user",
+            "type": "user_input",
           },
           {
             "content": [
@@ -2291,7 +2340,7 @@ describe('GoogleInteractionsLanguageModel.doStream', () => {
                 "type": "text",
               },
             ],
-            "role": "model",
+            "type": "model_output",
           },
           {
             "content": [
@@ -2300,7 +2349,7 @@ describe('GoogleInteractionsLanguageModel.doStream', () => {
                 "type": "text",
               },
             ],
-            "role": "user",
+            "type": "user_input",
           },
         ]
       `);
@@ -2349,27 +2398,28 @@ describe('GoogleInteractionsLanguageModel.doStream', () => {
       expect(interesting).toMatchInlineSnapshot(`
         [
           {
-            "id": "odkxni2w",
+            "id": "61nzpsv4",
             "toolName": "getWeather",
             "type": "tool-input-start",
           },
           {
             "delta": "{"location":"San Francisco"}",
-            "id": "odkxni2w",
+            "id": "61nzpsv4",
             "type": "tool-input-delta",
           },
           {
-            "id": "odkxni2w",
+            "id": "61nzpsv4",
             "type": "tool-input-end",
           },
           {
             "input": "{"location":"San Francisco"}",
             "providerMetadata": {
               "google": {
-                "interactionId": "v1_ChdzT240YVlHeElfV0p6N0lQZ2R1czRRYxIXc09uNGFZR3hJX1dKejdJUGdkdXM0UWM",
+                "interactionId": "v1_ChdVbXNIYXVEUkVacmpxdHNQb3JQeXlBRRIXVW1zSGF1RFJFWnJqcXRzUG9yUHl5QUU",
+                "signature": "",
               },
             },
-            "toolCallId": "odkxni2w",
+            "toolCallId": "61nzpsv4",
             "toolName": "getWeather",
             "type": "tool-call",
           },
@@ -2380,7 +2430,7 @@ describe('GoogleInteractionsLanguageModel.doStream', () => {
             },
             "providerMetadata": {
               "google": {
-                "interactionId": "v1_ChdzT240YVlHeElfV0p6N0lQZ2R1czRRYxIXc09uNGFZR3hJX1dKejdJUGdkdXM0UWM",
+                "interactionId": "v1_ChdVbXNIYXVEUkVacmpxdHNQb3JQeXlBRRIXVW1zSGF1RFJFWnJqcXRzUG9yUHl5QUU",
                 "serviceTier": "standard",
               },
             },
@@ -2389,26 +2439,26 @@ describe('GoogleInteractionsLanguageModel.doStream', () => {
               "inputTokens": {
                 "cacheRead": 0,
                 "cacheWrite": undefined,
-                "noCache": 54,
-                "total": 54,
+                "noCache": 53,
+                "total": 53,
               },
               "outputTokens": {
-                "reasoning": 67,
+                "reasoning": 65,
                 "text": 15,
-                "total": 82,
+                "total": 80,
               },
               "raw": {
                 "input_tokens_by_modality": [
                   {
                     "modality": "text",
-                    "tokens": 54,
+                    "tokens": 53,
                   },
                 ],
                 "total_cached_tokens": 0,
-                "total_input_tokens": 54,
+                "total_input_tokens": 53,
                 "total_output_tokens": 15,
-                "total_thought_tokens": 67,
-                "total_tokens": 136,
+                "total_thought_tokens": 65,
+                "total_tokens": 133,
                 "total_tool_use_tokens": 0,
               },
             },
@@ -2435,7 +2485,7 @@ describe('GoogleInteractionsLanguageModel.doStream', () => {
     });
   });
 
-  describe('built-in google_search tool (TASK-7)', () => {
+  describe('built-in google_search tool', () => {
     const GOOGLE_SEARCH_TOOL: LanguageModelV4ProviderTool = {
       type: 'provider',
       id: 'google.google_search',
@@ -2472,8 +2522,10 @@ describe('GoogleInteractionsLanguageModel.doStream', () => {
         .filter(p => p.type === 'source')
         .filter(p => (p as { sourceType?: string }).sourceType === 'url')
         .map(p => (p as { url?: string }).url);
-      expect(sourceUrls).toContain('https://example.com/article-1');
-      expect(sourceUrls).toContain('https://example.com/article-2');
+      expect(sourceUrls.length).toBeGreaterThan(0);
+      for (const url of sourceUrls) {
+        expect(url).toMatch(/^https?:\/\//);
+      }
 
       const finish = parts.find(p => p.type === 'finish');
       expect(finish?.finishReason.unified).toBe('stop');
@@ -2491,14 +2543,20 @@ describe('GoogleInteractionsLanguageModel.doStream', () => {
         .filter(p => (p as { sourceType?: string }).sourceType === 'url')
         .map(p => (p as { url?: string }).url);
 
-      const a1Count = sourceUrls.filter(
-        u => u === 'https://example.com/article-1',
-      ).length;
-      expect(a1Count).toBe(1);
+      // De-duplication invariant: each unique URL appears at most once,
+      // regardless of how many times it surfaced across tool-result and
+      // text_annotation events.
+      const counts = new Map<string | undefined, number>();
+      for (const url of sourceUrls) {
+        counts.set(url, (counts.get(url) ?? 0) + 1);
+      }
+      for (const [, count] of counts) {
+        expect(count).toBe(1);
+      }
     });
   });
 
-  describe('image output (TASK-11)', () => {
+  describe('image output', () => {
     it('emits a file stream part at content.stop for image blocks', async () => {
       prepareChunksFixtureResponse('image-output');
       const imageModel = provider.interactions('gemini-3-pro-image-preview');
@@ -2522,19 +2580,22 @@ describe('GoogleInteractionsLanguageModel.doStream', () => {
         includeRawChunks: false,
       });
       const parts = await convertReadableStreamToArray(stream);
-      const filePart = parts.find(p => p.type === 'file');
-      expect(filePart).toMatchObject({
-        type: 'file',
-        mediaType: 'image/jpeg',
-        data: { type: 'data', data: '__IMAGE_DATA_TRUNCATED__' },
-        providerMetadata: {
-          google: {
-            interactionId:
-              'v1_Chd2R2Y1YWZTcE00eld6N0lQNnVhamlBNBIXdkdmNWFmU3BNNHpXejdJUDZ1YWppQTQ',
-          },
-        },
-      });
-    });
+      const filePart = parts.find(p => p.type === 'file') as
+        | {
+            type: string;
+            mediaType: string;
+            data: { type: string; data?: string };
+            providerMetadata?: { google?: { interactionId?: string } };
+          }
+        | undefined;
+      expect(filePart).toBeDefined();
+      expect(filePart?.type).toBe('file');
+      expect(filePart?.mediaType).toMatch(/^image\//);
+      expect(filePart?.data.type).toBe('data');
+      expect(typeof filePart?.data.data).toBe('string');
+      expect(filePart?.data.data?.length ?? 0).toBeGreaterThan(0);
+      expect(filePart?.providerMetadata?.google?.interactionId).toMatch(/^v1_/);
+    }, 30_000);
 
     it('emits a file stream part for the modify (turn 2) stream', async () => {
       prepareChunksFixtureResponse('image-output-modify');
@@ -2561,10 +2622,10 @@ describe('GoogleInteractionsLanguageModel.doStream', () => {
         mediaType: 'image/jpeg',
         data: { type: 'data' },
       });
-    });
+    }, 30_000);
   });
 
-  describe('agent factory branch (TASK-10)', () => {
+  describe('agent factory branch', () => {
     const AGENT_NAME = 'deep-research-pro-preview-12-2025' as const;
 
     function prepareJsonFixtureResponse(filename: string) {

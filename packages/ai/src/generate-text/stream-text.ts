@@ -1789,9 +1789,12 @@ class DefaultStreamTextResult<
           let stepProviderMetadata: ProviderMetadata | undefined;
           let stepFirstChunk = true;
           let responseTimeMs = 0;
-          let tokensPerSecond = 0;
+          let effectiveOutputTokensPerSecond = 0;
+          let outputTokensPerSecond: number | undefined;
+          let inputTokensPerSecond: number | undefined;
+          let effectiveTotalTokensPerSecond = 0;
           const toolExecutionMs: Record<string, number> = {};
-          let timeToFirstTokenMs: number | undefined;
+          let timeToFirstOutputTokenMs: number | undefined;
           let stepResponse: { id: string; timestamp: Date; modelId: string } = {
             id: generateId(),
             timestamp: new Date(),
@@ -1900,8 +1903,16 @@ class DefaultStreamTextResult<
                       stepRawFinishReason = chunk.rawFinishReason;
                       stepProviderMetadata = chunk.providerMetadata;
                       responseTimeMs = chunk.performance.responseTimeMs;
-                      tokensPerSecond = chunk.performance.tokensPerSecond;
-                      timeToFirstTokenMs = chunk.performance.timeToFirstTokenMs;
+                      effectiveOutputTokensPerSecond =
+                        chunk.performance.effectiveOutputTokensPerSecond;
+                      outputTokensPerSecond =
+                        chunk.performance.outputTokensPerSecond;
+                      inputTokensPerSecond =
+                        chunk.performance.inputTokensPerSecond;
+                      effectiveTotalTokensPerSecond =
+                        chunk.performance.effectiveTotalTokensPerSecond;
+                      timeToFirstOutputTokenMs =
+                        chunk.performance.timeToFirstOutputTokenMs;
 
                       break;
                     }
@@ -1938,9 +1949,12 @@ class DefaultStreamTextResult<
                     performance: {
                       stepTimeMs,
                       responseTimeMs,
-                      tokensPerSecond,
+                      effectiveOutputTokensPerSecond,
+                      outputTokensPerSecond,
+                      inputTokensPerSecond,
+                      effectiveTotalTokensPerSecond,
                       toolExecutionMs,
-                      timeToFirstTokenMs,
+                      timeToFirstOutputTokenMs,
                     },
                     providerMetadata: stepProviderMetadata,
                     response: {

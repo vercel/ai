@@ -165,6 +165,10 @@ The following provider options are available:
 
   Whether to store the generation. Defaults to `true`.
 
+- **passThroughUnsupportedFiles** _boolean_
+
+  Whether to pass through non-image file types as generic input files. Defaults to `false`, which restricts inline file inputs to images and PDFs. Enable this when the target OpenAI Responses model supports additional file media types.
+
 - **maxToolCalls** _integer_
   The maximum number of total calls to built-in tools that can be processed in a response.
   This maximum number applies across all built-in tool calls, not per individual tool.

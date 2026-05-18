@@ -738,7 +738,7 @@ const result = await generateText({
   },
   experimental_sandbox: {
     description: 'A sandboxed shell environment.',
-    executeCommand: async ({ command }) => {
+    runCommand: async ({ command }) => {
       // Run the command in your sandbox and return the result.
       return {
         exitCode: 0,
