@@ -1,6 +1,6 @@
 import {
   AbstractChat,
-  type ChatInit as BaseChatInit,
+  type ChatInit,
   type ChatState,
   type ChatStatus,
   type UIMessage,
@@ -60,7 +60,7 @@ class VueChatState<
 export class Chat<
   UI_MESSAGE extends UIMessage,
 > extends AbstractChat<UI_MESSAGE> {
-  constructor({ messages, ...init }: BaseChatInit<UI_MESSAGE>) {
+  constructor({ messages, ...init }: ChatInit<UI_MESSAGE>) {
     super({
       ...init,
       state: new VueChatState(messages),
