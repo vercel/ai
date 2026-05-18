@@ -206,6 +206,21 @@ export const googleLanguageModelOptions = lazySchema(() =>
       streamFunctionCallArguments: z.boolean().optional(),
 
       /**
+       * Optional. Override Google's functionCallingConfig. Lets callers set the
+       * function-calling mode and allowed function names without going through
+       * `toolChoice`. When provided, the supplied fields take precedence over
+       * the configuration derived from `toolChoice` and strict tools.
+       *
+       * https://ai.google.dev/gemini-api/docs/function-calling#function_calling_modes
+       */
+      functionCallingConfig: z
+        .object({
+          mode: z.enum(['AUTO', 'ANY', 'NONE', 'VALIDATED']).optional(),
+          allowedFunctionNames: z.array(z.string()).optional(),
+        })
+        .optional(),
+
+      /**
        * Optional. The service tier to use for the request.
        */
       serviceTier: z.enum(['standard', 'flex', 'priority']).optional(),

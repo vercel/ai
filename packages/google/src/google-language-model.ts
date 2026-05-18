@@ -224,17 +224,27 @@ export class GoogleLanguageModel implements LanguageModelV4 {
         ? (googleOptions?.streamFunctionCallArguments ?? false)
         : undefined;
 
+    const resolvedFunctionCallingConfig =
+      googleToolConfig?.functionCallingConfig ||
+      streamFunctionCallArguments ||
+      googleOptions?.functionCallingConfig
+        ? {
+            ...googleToolConfig?.functionCallingConfig,
+            ...(streamFunctionCallArguments && {
+              streamFunctionCallArguments: true as const,
+            }),
+            ...googleOptions?.functionCallingConfig,
+          }
+        : undefined;
+
     const toolConfig =
       googleToolConfig ||
-      streamFunctionCallArguments ||
+      resolvedFunctionCallingConfig ||
       googleOptions?.retrievalConfig
         ? {
             ...googleToolConfig,
-            ...(streamFunctionCallArguments && {
-              functionCallingConfig: {
-                ...googleToolConfig?.functionCallingConfig,
-                streamFunctionCallArguments: true as const,
-              },
+            ...(resolvedFunctionCallingConfig && {
+              functionCallingConfig: resolvedFunctionCallingConfig,
             }),
             ...(googleOptions?.retrievalConfig && {
               retrievalConfig: googleOptions.retrievalConfig,
