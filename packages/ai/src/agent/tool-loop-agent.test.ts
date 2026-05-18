@@ -8,6 +8,7 @@ import {
   mockId,
 } from '@ai-sdk/provider-utils/test';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { mockSandboxFileStubs } from '../test/mock-sandbox';
 import { z } from 'zod/v4';
 import type {
   GenerateTextOnFinishCallback,
@@ -109,6 +110,7 @@ describe('ToolLoopAgent', () => {
           stdout: 'ok',
           stderr: '',
         })),
+        ...mockSandboxFileStubs,
       } satisfies Sandbox;
       let recordedSandbox: Sandbox | undefined;
 
@@ -162,6 +164,7 @@ describe('ToolLoopAgent', () => {
           stdout: 'ok',
           stderr: '',
         })),
+        ...mockSandboxFileStubs,
       } satisfies Sandbox;
       let recordedSandbox: Sandbox | undefined;
       let modelCallCount = 0;
@@ -694,6 +697,7 @@ describe('ToolLoopAgent', () => {
           stdout: 'ok',
           stderr: '',
         })),
+        ...mockSandboxFileStubs,
       } satisfies Sandbox;
       let recordedSandbox: Sandbox | undefined;
 
@@ -756,6 +760,7 @@ describe('ToolLoopAgent', () => {
           stdout: 'ok',
           stderr: '',
         })),
+        ...mockSandboxFileStubs,
       } satisfies Sandbox;
       let recordedSandbox: Sandbox | undefined;
       let modelCallCount = 0;
