@@ -644,4 +644,115 @@ describe('createUIMessageStream', () => {
       ]
     `);
   });
+
+  describe('abortSignal (issue #9707)', () => {
+    beforeEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('passes the abortSignal through to execute', async () => {
+      const controller = new AbortController();
+      let observedSignal: AbortSignal | undefined;
+      const stream = createUIMessageStream({
+        abortSignal: controller.signal,
+        execute: ({ writer, abortSignal }) => {
+          observedSignal = abortSignal;
+          writer.write({ type: 'text-start', id: '1' });
+          writer.write({ type: 'text-end', id: '1' });
+        },
+      });
+      await consumeStream({ stream });
+      expect(observedSignal).toBe(controller.signal);
+    });
+
+    it('drops writer.write calls once the signal aborts', async () => {
+      const controller = new AbortController();
+      const stream = createUIMessageStream({
+        abortSignal: controller.signal,
+        execute: async ({ writer }) => {
+          writer.write({ type: 'text-start', id: '1' });
+          writer.write({ type: 'text-delta', id: '1', delta: 'before' });
+          controller.abort();
+          // user code that didn't observe the signal still pushes more deltas
+          writer.write({ type: 'text-delta', id: '1', delta: 'after' });
+          writer.write({ type: 'text-end', id: '1' });
+        },
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+      expect(parts.map(p => (p as any).delta).filter(Boolean)).toEqual([
+        'before',
+      ]);
+    });
+
+    it('cancels the source reader of a merged stream when the signal aborts', async () => {
+      const controller = new AbortController();
+      let sourceCancelled = false;
+      let sourceCancelReason: unknown = undefined;
+      const stream = createUIMessageStream({
+        abortSignal: controller.signal,
+        execute: ({ writer }) => {
+          writer.merge(
+            new ReadableStream<UIMessageChunk>({
+              start(c) {
+                c.enqueue({ type: 'text-delta', id: '1', delta: 'first' });
+                // never close — wait for cancel
+              },
+              cancel(reason) {
+                sourceCancelled = true;
+                sourceCancelReason = reason;
+              },
+            }),
+          );
+        },
+      });
+
+      const reader = stream.getReader();
+      const first = await reader.read();
+      expect((first.value as any).delta).toBe('first');
+
+      controller.abort('client disconnected');
+
+      // give the cancel propagation a tick
+      await reader.read();
+
+      expect(sourceCancelled).toBe(true);
+      expect(sourceCancelReason).toBe('client disconnected');
+    });
+
+    it('closes the output stream when an already-aborted signal is supplied', async () => {
+      const controller = new AbortController();
+      controller.abort();
+      const stream = createUIMessageStream({
+        abortSignal: controller.signal,
+        execute: ({ writer }) => {
+          // these writes should all be dropped
+          writer.write({ type: 'text-start', id: '1' });
+          writer.write({ type: 'text-delta', id: '1', delta: 'ghost' });
+        },
+      });
+
+      expect(await convertReadableStreamToArray(stream)).toEqual([]);
+    });
+
+    it('remains backward compatible when abortSignal is omitted', async () => {
+      // No signal supplied: behavior must match the pre-existing test path.
+      const stream = createUIMessageStream({
+        execute: ({ writer, abortSignal }) => {
+          // abortSignal should be undefined when no signal was passed
+          expect(abortSignal).toBeUndefined();
+          writer.write({ type: 'text-start', id: '1' });
+          writer.write({ type: 'text-delta', id: '1', delta: 'ok' });
+          writer.write({ type: 'text-end', id: '1' });
+        },
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+      expect(parts).toEqual([
+        { type: 'text-start', id: '1' },
+        { type: 'text-delta', id: '1', delta: 'ok' },
+        { type: 'text-end', id: '1' },
+      ]);
+    });
+  });
 });

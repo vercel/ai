@@ -20,6 +20,17 @@ import type { UIMessageStreamWriter } from './ui-message-stream-writer';
  * @param options.onStepFinish - A callback that is called when each step finishes. Useful for persisting intermediate messages.
  * @param options.onFinish - A callback that is called when the stream finishes.
  * @param options.generateId - A function that generates a unique ID. Defaults to the built-in ID generator.
+ * @param options.abortSignal - Optional `AbortSignal` that propagates client-side cancellation
+ *   (e.g. `useChat().stop()`) into this stream. When the signal aborts:
+ *     - the same signal is exposed to `execute` so user code can short-circuit
+ *       long-running work (e.g. break out of generation loops)
+ *     - any in-flight `writer.merge` reads are cancelled at their source
+ *     - subsequent `writer.write` calls become no-ops
+ *     - the output `ReadableStream` is closed, so a wrapping
+ *       `createUIMessageStreamResponse` terminates the HTTP body cleanly
+ *
+ *   To wire this up end-to-end, pass `request.signal` (or your framework's
+ *   equivalent) from your route handler. Closes #9707.
  *
  * @returns A `ReadableStream` of UI message chunks.
  */
@@ -30,9 +41,11 @@ export function createUIMessageStream<UI_MESSAGE extends UIMessage>({
   onStepFinish,
   onFinish,
   generateId = generateIdFunc,
+  abortSignal,
 }: {
   execute: (options: {
     writer: UIMessageStreamWriter<UI_MESSAGE>;
+    abortSignal?: AbortSignal;
   }) => Promise<void> | void;
   onError?: (error: unknown) => string;
 
@@ -50,6 +63,13 @@ export function createUIMessageStream<UI_MESSAGE extends UIMessage>({
   onFinish?: UIMessageStreamOnFinishCallback<UI_MESSAGE>;
 
   generateId?: IdGenerator;
+
+  /**
+   * Optional abort signal. Propagates client-side cancellation
+   * (e.g. `useChat().stop()`) into this stream. See the function-level
+   * JSDoc for the full contract.
+   */
+  abortSignal?: AbortSignal;
 }): ReadableStream<InferUIMessageChunk<UI_MESSAGE>> {
   let controller!: ReadableStreamDefaultController<
     InferUIMessageChunk<UI_MESSAGE>
@@ -71,20 +91,65 @@ export function createUIMessageStream<UI_MESSAGE extends UIMessage>({
     }
   }
 
+  function safeCloseController() {
+    try {
+      controller.close();
+    } catch {
+      // suppress errors when the stream has been closed already
+    }
+  }
+
+  // When the upstream signal aborts, close the output stream eagerly so any
+  // SSE Response wrapping us terminates the HTTP body. Merge loops cancel
+  // their source reader on the same signal below.
+  if (abortSignal) {
+    if (abortSignal.aborted) {
+      safeCloseController();
+    } else {
+      abortSignal.addEventListener('abort', safeCloseController, {
+        once: true,
+      });
+    }
+  }
+
   try {
     const result = execute({
       writer: {
         write(part: InferUIMessageChunk<UI_MESSAGE>) {
+          // Drop writes after abort so user code that didn't observe the
+          // signal mid-loop still terminates cleanly without enqueuing
+          // ghost tokens onto a closed controller.
+          if (abortSignal?.aborted) {
+            return;
+          }
           safeEnqueue(part);
         },
         merge(streamArg) {
           ongoingStreamPromises.push(
             (async () => {
               const reader = streamArg.getReader();
-              while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-                safeEnqueue(value);
+              const cancelOnAbort = () => {
+                void reader.cancel(abortSignal?.reason).catch(() => {
+                  // suppress: reader may already be closed / locked
+                });
+              };
+              if (abortSignal) {
+                if (abortSignal.aborted) {
+                  cancelOnAbort();
+                } else {
+                  abortSignal.addEventListener('abort', cancelOnAbort, {
+                    once: true,
+                  });
+                }
+              }
+              try {
+                while (true) {
+                  const { done, value } = await reader.read();
+                  if (done) break;
+                  safeEnqueue(value);
+                }
+              } finally {
+                abortSignal?.removeEventListener('abort', cancelOnAbort);
               }
             })().catch(error => {
               safeEnqueue({
@@ -96,6 +161,7 @@ export function createUIMessageStream<UI_MESSAGE extends UIMessage>({
         },
         onError,
       },
+      abortSignal,
     });
 
     if (result) {
