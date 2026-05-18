@@ -52,7 +52,7 @@
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/user-event": "^14.5.2",
     "@testing-library/react": "^16.0.1",
-    "@types/node": "20.17.24",
+    "@types/node": "22.19.19",
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "@vitejs/plugin-react": "4.3.3",
@@ -76,7 +76,7 @@
     }
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=22"
   },
   "publishConfig": {
     "access": "public",
