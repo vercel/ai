@@ -199,6 +199,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Build AI dependencies
+        run: pnpm exec turbo build --filter=ai
+
       - name: Run AI tests
         working-directory: packages/ai
         run: |
