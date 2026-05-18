@@ -1,5 +1,6 @@
 import {
   isNonNullable,
+  safeParseJSON,
   type ToolSet,
   type AssistantContent,
   type CustomPart,
@@ -33,7 +34,10 @@ import {
   type UIMessage,
 } from './ui-messages';
 
-function getOutputErrorToolInput(part: { input: unknown; rawInput?: unknown }) {
+async function getOutputErrorToolInput(part: {
+  input: unknown;
+  rawInput?: unknown;
+}) {
   if (part.input != null) {
     return part.input;
   }
@@ -43,14 +47,10 @@ function getOutputErrorToolInput(part: { input: unknown; rawInput?: unknown }) {
   }
 
   if (typeof part.rawInput === 'string') {
-    try {
-      const parsedInput = JSON.parse(part.rawInput);
+    const parsedInputResult = await safeParseJSON({ text: part.rawInput });
 
-      if (isObject(parsedInput)) {
-        return parsedInput;
-      }
-    } catch {
-      // Raw input can be malformed JSON when tool input parsing failed.
+    if (parsedInputResult.success && isObject(parsedInputResult.value)) {
+      return parsedInputResult.value;
     }
   }
 
@@ -244,7 +244,7 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                     toolName,
                     input:
                       part.state === 'output-error'
-                        ? getOutputErrorToolInput(part)
+                        ? await getOutputErrorToolInput(part)
                         : part.input,
                     providerExecuted: part.providerExecuted,
                     ...(part.callProviderMetadata != null
