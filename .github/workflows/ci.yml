@@ -274,7 +274,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [20, 22, 24]
+        node-version: [22, 24, 26]
         shard: ['1/4', '2/4', '3/4', '4/4']
     steps:
       - name: Checkout
@@ -308,7 +308,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [20, 22, 24]
+        node-version: [22, 24, 26]
         shard: ['1/4', '2/4', '3/4', '4/4']
     steps:
       - name: Checkout
