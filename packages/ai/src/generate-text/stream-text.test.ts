@@ -40,6 +40,7 @@ import {
   vi,
   vitest,
 } from 'vitest';
+import { mockSandboxFileStubs } from '../test/mock-sandbox';
 import { z } from 'zod/v4';
 import { Output, type LanguageModelCallEndEvent } from '..';
 import * as logWarningsModule from '../logger/log-warnings';
@@ -20324,6 +20325,7 @@ describe('streamText', () => {
           stdout: 'ok',
           stderr: '',
         })),
+        ...mockSandboxFileStubs,
       } satisfies Sandbox;
       let recordedSandbox: Sandbox | undefined;
 
@@ -20400,6 +20402,7 @@ describe('streamText', () => {
           stdout: 'ok',
           stderr: '',
         })),
+        ...mockSandboxFileStubs,
       } satisfies Sandbox;
       let capturedSandbox: Sandbox | undefined;
 
@@ -20440,6 +20443,7 @@ describe('streamText', () => {
           stdout: 'ok',
           stderr: '',
         })),
+        ...mockSandboxFileStubs,
       } satisfies Sandbox;
       const stepSandbox = {
         description: 'step sandbox',
@@ -20448,6 +20452,7 @@ describe('streamText', () => {
           stdout: 'ok',
           stderr: '',
         })),
+        ...mockSandboxFileStubs,
       } satisfies Sandbox;
       const recordedSandboxes: Array<Sandbox | undefined> = [];
       let responseCount = 0;
@@ -24764,6 +24769,7 @@ describe('streamText', () => {
             stdout: 'ok',
             stderr: '',
           })),
+          ...mockSandboxFileStubs,
         };
         result = streamText({
           model: new MockLanguageModelV4({
