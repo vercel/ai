@@ -21,6 +21,22 @@ pnpm install ai@latest @ai-sdk/react@latest @ai-sdk/openai@latest @ai-sdk/otel@l
 
 ## All Packages
 
+### Minimum Node.js Version
+
+AI SDK 7.0 requires **Node.js 22** or later. The SDK is tested on Node.js **22**, **24**, and **26**.
+
+Node.js 18 and 20 are no longer supported. Node.js 22 reached end-of-maintenance on **April 30, 2026**; for production workloads, prefer **Node.js 24 (LTS)** or **Node.js 26**. See the [Node.js release schedule](https://nodejs.org/en/about/previous-releases) for current status and support timelines.
+
+Update the `engines` field in your `package.json` if you enforce a minimum Node.js version:
+
+```json filename="package.json"
+{
+  "engines": {
+    "node": ">=22"
+  }
+}
+```
+
 ### ESM Only — CommonJS Support Removed
 
 All AI SDK packages are now ESM-only. The `require()` function is no longer supported.
