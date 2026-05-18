@@ -1238,7 +1238,10 @@ next request only needs to send the new user message and the
 `previousInteractionId`:
 
 ```ts
-import { google } from '@ai-sdk/google';
+import {
+  google,
+  type GoogleLanguageModelInteractionsOptions,
+} from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const turn1 = await generateText({
@@ -1254,7 +1257,9 @@ const turn2 = await generateText({
   model: google.interactions('gemini-2.5-flash'),
   prompt: 'What is the most famous landmark in the second one?',
   providerOptions: {
-    google: { previousInteractionId: interactionId },
+    google: {
+      previousInteractionId: interactionId,
+    } satisfies GoogleLanguageModelInteractionsOptions,
   },
 });
 ```
@@ -1263,7 +1268,10 @@ For stateless multi-turn conversations, set `store: false` and re-send the
 full message history on every turn (no `previousInteractionId`):
 
 ```ts
-import { google } from '@ai-sdk/google';
+import {
+  google,
+  type GoogleLanguageModelInteractionsOptions,
+} from '@ai-sdk/google';
 import { generateText, type ModelMessage } from 'ai';
 
 const messages: Array<ModelMessage> = [
@@ -1273,7 +1281,9 @@ const messages: Array<ModelMessage> = [
 const turn1 = await generateText({
   model: google.interactions('gemini-2.5-flash'),
   messages,
-  providerOptions: { google: { store: false } },
+  providerOptions: {
+    google: { store: false } satisfies GoogleLanguageModelInteractionsOptions,
+  },
 });
 
 messages.push(...turn1.responseMessages);
@@ -1285,7 +1295,9 @@ messages.push({
 const turn2 = await generateText({
   model: google.interactions('gemini-2.5-flash'),
   messages,
-  providerOptions: { google: { store: false } },
+  providerOptions: {
+    google: { store: false } satisfies GoogleLanguageModelInteractionsOptions,
+  },
 });
 ```
 
@@ -1353,7 +1365,10 @@ the response. No tool wrapping is required, and the entry doubles as the
 place to set `aspectRatio`, `imageSize`, and `mimeType`.
 
 ```ts
-import { google } from '@ai-sdk/google';
+import {
+  google,
+  type GoogleLanguageModelInteractionsOptions,
+} from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const result = await generateText({
@@ -1362,7 +1377,7 @@ const result = await generateText({
   providerOptions: {
     google: {
       responseFormat: [{ type: 'image' }],
-    },
+    } satisfies GoogleLanguageModelInteractionsOptions,
   },
 });
 
@@ -1377,6 +1392,12 @@ To control aspect ratio, image size, or output mime type, add those
 fields to the same image entry:
 
 ```ts
+import {
+  google,
+  type GoogleLanguageModelInteractionsOptions,
+} from '@ai-sdk/google';
+import { generateText } from 'ai';
+
 const result = await generateText({
   model: google.interactions('gemini-3-pro-image-preview'),
   prompt: 'Generate a high-quality landscape photo of mountains at sunset.',
@@ -1389,7 +1410,7 @@ const result = await generateText({
           imageSize: '4K',
         },
       ],
-    },
+    } satisfies GoogleLanguageModelInteractionsOptions,
   },
 });
 ```
@@ -1398,7 +1419,10 @@ For multimodal output, list one entry per modality. The model returns
 text in `result.text` and the accompanying image(s) in `result.files`:
 
 ```ts
-import { google } from '@ai-sdk/google';
+import {
+  google,
+  type GoogleLanguageModelInteractionsOptions,
+} from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const result = await generateText({
@@ -1411,7 +1435,7 @@ const result = await generateText({
         { type: 'text' },
         { type: 'image', aspectRatio: '16:9' },
       ],
-    },
+    } satisfies GoogleLanguageModelInteractionsOptions,
   },
 });
 
@@ -1426,7 +1450,10 @@ Iterative image editing pairs naturally with stateful chaining — keep
 output:
 
 ```ts
-import { google } from '@ai-sdk/google';
+import {
+  google,
+  type GoogleLanguageModelInteractionsOptions,
+} from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const model = google.interactions('gemini-3-pro-image-preview');
@@ -1434,7 +1461,11 @@ const model = google.interactions('gemini-3-pro-image-preview');
 const turn1 = await generateText({
   model,
   prompt: 'Generate an image of a comic cat in a spaceship.',
-  providerOptions: { google: { responseFormat: [{ type: 'image' }] } },
+  providerOptions: {
+    google: {
+      responseFormat: [{ type: 'image' }],
+    } satisfies GoogleLanguageModelInteractionsOptions,
+  },
 });
 
 const interactionId = turn1.providerMetadata?.google?.interactionId as
@@ -1448,7 +1479,7 @@ const turn2 = await generateText({
     google: {
       responseFormat: [{ type: 'image' }],
       previousInteractionId: interactionId,
-    },
+    } satisfies GoogleLanguageModelInteractionsOptions,
   },
 });
 ```
@@ -1459,7 +1490,10 @@ Pass `{ agent: <name> }` to target a Gemini agent preset. The factory
 type-checks the agent name against the supported set:
 
 ```ts
-import { google } from '@ai-sdk/google';
+import {
+  google,
+  type GoogleLanguageModelInteractionsOptions,
+} from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const result = await generateText({
@@ -1469,7 +1503,9 @@ const result = await generateText({
   prompt:
     'Briefly summarize the most-cited papers on retrieval-augmented generation since 2024 (2-3 sentences).',
   providerOptions: {
-    google: { background: true },
+    google: {
+      background: true,
+    } satisfies GoogleLanguageModelInteractionsOptions,
   },
 });
 ```
@@ -1486,6 +1522,12 @@ The default polling timeout is 30 minutes; raise it via
 `pollingTimeoutMs` for slower agents:
 
 ```ts
+import {
+  google,
+  type GoogleLanguageModelInteractionsOptions,
+} from '@ai-sdk/google';
+import { generateText } from 'ai';
+
 await generateText({
   model: google.interactions({ agent: 'deep-research-max-preview-04-2026' }),
   prompt: 'Produce a long-form research brief on ...',
@@ -1493,7 +1535,7 @@ await generateText({
     google: {
       background: true,
       pollingTimeoutMs: 60 * 60 * 1000, // 1 hour
-    },
+    } satisfies GoogleLanguageModelInteractionsOptions,
   },
 });
 ```
@@ -1509,7 +1551,10 @@ sandbox is set up; the option is only accepted on agent calls.
 The simplest form provisions a fresh sandbox:
 
 ```ts
-import { google } from '@ai-sdk/google';
+import {
+  google,
+  type GoogleLanguageModelInteractionsOptions,
+} from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const result = await generateText({
@@ -1518,7 +1563,7 @@ const result = await generateText({
   providerOptions: {
     google: {
       environment: 'remote',
-    },
+    } satisfies GoogleLanguageModelInteractionsOptions,
   },
 });
 ```
@@ -1532,6 +1577,12 @@ const result = await generateText({
   and/or constrain outbound traffic via `network`:
 
 ```ts
+import {
+  google,
+  type GoogleLanguageModelInteractionsOptions,
+} from '@ai-sdk/google';
+import { generateText } from 'ai';
+
 await generateText({
   model: google.interactions({ agent: 'antigravity-preview-05-2026' }),
   prompt:
@@ -1548,7 +1599,7 @@ await generateText({
           },
         ],
       },
-    },
+    } satisfies GoogleLanguageModelInteractionsOptions,
   },
 });
 ```
@@ -1570,11 +1621,19 @@ Gemini API's `/v1beta/agents` endpoint, pass the agent's name through the dedica
 known preset names):
 
 ```ts
+import {
+  google,
+  type GoogleLanguageModelInteractionsOptions,
+} from '@ai-sdk/google';
+import { generateText } from 'ai';
+
 const result = await generateText({
   model: google.interactions({ managedAgent: 'my-custom-agent' }),
   prompt: 'Hello!',
   providerOptions: {
-    google: { environment: 'remote' },
+    google: {
+      environment: 'remote',
+    } satisfies GoogleLanguageModelInteractionsOptions,
   },
 });
 ```

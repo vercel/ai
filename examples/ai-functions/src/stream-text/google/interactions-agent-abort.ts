@@ -1,4 +1,7 @@
-import { createGoogle } from '@ai-sdk/google';
+import {
+  createGoogle,
+  type GoogleLanguageModelInteractionsOptions,
+} from '@ai-sdk/google';
 import { streamText } from 'ai';
 import { run } from '../../lib/run';
 
@@ -66,7 +69,7 @@ run(async () => {
           thinkingSummaries: 'auto',
         },
         background: true,
-      },
+      } satisfies GoogleLanguageModelInteractionsOptions,
     },
     prompt:
       'Compile an exhaustive survey of every paper published on retrieval-augmented generation since 2020. Include all authors, abstracts, and links.',

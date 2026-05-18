@@ -1,4 +1,7 @@
-import { google } from '@ai-sdk/google';
+import {
+  google,
+  type GoogleLanguageModelInteractionsOptions,
+} from '@ai-sdk/google';
 import { generateText } from 'ai';
 import { cancelOnSigint } from '../../lib/cancel-on-sigint';
 import { run } from '../../lib/run';
@@ -13,7 +16,7 @@ run(async () => {
     providerOptions: {
       google: {
         environment: 'remote',
-      },
+      } satisfies GoogleLanguageModelInteractionsOptions,
     },
   });
 

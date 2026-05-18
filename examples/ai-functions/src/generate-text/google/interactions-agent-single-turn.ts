@@ -1,4 +1,7 @@
-import { google } from '@ai-sdk/google';
+import {
+  google,
+  type GoogleLanguageModelInteractionsOptions,
+} from '@ai-sdk/google';
 import { generateText } from 'ai';
 import { cancelOnSigint } from '../../lib/cancel-on-sigint';
 import { run } from '../../lib/run';
@@ -19,7 +22,9 @@ run(async () => {
       'Briefly summarize the most-cited papers on retrieval-augmented generation since 2024 (2-3 sentences).',
     abortSignal: ac.signal,
     providerOptions: {
-      google: { background: true },
+      google: {
+        background: true,
+      } satisfies GoogleLanguageModelInteractionsOptions,
     },
   });
 
