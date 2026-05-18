@@ -2,6 +2,7 @@ import type {
   LanguageModelV4Prompt,
   LanguageModelV4StreamPart,
 } from '@ai-sdk/provider';
+import fs from 'node:fs';
 import { describe, expect, it, vi } from 'vitest';
 import { createCerebras } from './cerebras-provider';
 
@@ -29,68 +30,38 @@ async function convertStreamToArray(
   return chunks;
 }
 
-function createJsonFetchMock({
-  content,
-  finishReason,
-  toolCalls,
-}: {
-  content: string | null;
-  finishReason: string;
-  toolCalls?: Array<{
-    id: string;
-    type: 'function';
-    function: {
-      name: string;
-      arguments: string;
-    };
-  }>;
-}) {
+function createJsonFixtureFetchMock(filename: string) {
+  return vi.fn().mockResolvedValue(
+    new Response(fs.readFileSync(`src/fixtures/${filename}.json`, 'utf8'), {
+      headers: { 'content-type': 'application/json' },
+    }),
+  );
+}
+
+function createStreamFixtureFetchMock(filename: string) {
+  const chunks = fs
+    .readFileSync(`src/fixtures/${filename}.chunks.txt`, 'utf8')
+    .split('\n')
+    .filter(line => line.trim().length > 0);
+
   return vi.fn().mockResolvedValue(
     new Response(
-      JSON.stringify({
-        id: 'chatcmpl-test',
-        object: 'chat.completion',
-        created: 1711115037,
-        model: 'zai-glm-4.7',
-        choices: [
-          {
-            index: 0,
-            message: {
-              role: 'assistant',
-              content,
-              tool_calls: toolCalls,
-            },
-            finish_reason: finishReason,
-          },
-        ],
-        usage: {
-          prompt_tokens: 4,
-          completion_tokens: 30,
-          total_tokens: 34,
-        },
-      }),
+      [...chunks.map(chunk => `data: ${chunk}\n\n`), 'data: [DONE]\n\n'].join(
+        '',
+      ),
       {
-        headers: { 'content-type': 'application/json' },
+        headers: { 'content-type': 'text/event-stream' },
       },
     ),
   );
 }
 
-function createStreamFetchMock({ chunks }: { chunks: string[] }) {
-  return vi.fn().mockResolvedValue(
-    new Response(chunks.map(chunk => `data: ${chunk}\n\n`).join(''), {
-      headers: { 'content-type': 'text/event-stream' },
-    }),
-  );
-}
-
 describe('doGenerate', () => {
   describe('finish reason normalization', () => {
-    it('normalizes final text responses mislabeled as tool calls', async () => {
-      const fetch = createJsonFetchMock({
-        content: '{"result":"2026"}',
-        finishReason: 'tool_calls',
-      });
+    it('preserves the captured first tool-call step', async () => {
+      const fetch = createJsonFixtureFetchMock(
+        'cerebras-structured-output-tools.1',
+      );
       const model = createCerebras({ apiKey: 'test-api-key', fetch })(
         'zai-glm-4.7',
       );
@@ -103,84 +74,13 @@ describe('doGenerate', () => {
       expect(result.content).toMatchInlineSnapshot(`
         [
           {
-            "text": "{"result":"2026"}",
-            "type": "text",
-          },
-        ]
-      `);
-      expect(result.finishReason).toMatchInlineSnapshot(`
-        {
-          "raw": "tool_calls",
-          "unified": "stop",
-        }
-      `);
-    });
-
-    it('drops stray tool calls when final text is present', async () => {
-      const fetch = createJsonFetchMock({
-        content: '{"result":"2026"}',
-        finishReason: 'tool_calls',
-        toolCalls: [
-          {
-            id: 'tool-call-id',
-            type: 'function',
-            function: { name: 'getNumber', arguments: '{}' },
-          },
-        ],
-      });
-      const model = createCerebras({ apiKey: 'test-api-key', fetch })(
-        'zai-glm-4.7',
-      );
-
-      const result = await model.doGenerate({
-        prompt: TEST_PROMPT,
-        responseFormat: JSON_RESPONSE_FORMAT,
-      });
-
-      expect(result.content).toMatchInlineSnapshot(`
-        [
-          {
-            "text": "{"result":"2026"}",
-            "type": "text",
-          },
-        ]
-      `);
-      expect(result.finishReason).toMatchInlineSnapshot(`
-        {
-          "raw": "tool_calls",
-          "unified": "stop",
-        }
-      `);
-    });
-
-    it('preserves mixed text and tool calls without structured output', async () => {
-      const fetch = createJsonFetchMock({
-        content: 'The result is 2026.',
-        finishReason: 'tool_calls',
-        toolCalls: [
-          {
-            id: 'tool-call-id',
-            type: 'function',
-            function: { name: 'getNumber', arguments: '{}' },
-          },
-        ],
-      });
-      const model = createCerebras({ apiKey: 'test-api-key', fetch })(
-        'zai-glm-4.7',
-      );
-
-      const result = await model.doGenerate({ prompt: TEST_PROMPT });
-
-      expect(result.content).toMatchInlineSnapshot(`
-        [
-          {
-            "text": "The result is 2026.",
-            "type": "text",
+            "text": "The user is asking about a "magic number". I see that I have access to a function called "nonUsefulTool" which "returns a magic number". This seems like exactly what the user is asking for. Let me call this function to get the magic number for them.",
+            "type": "reasoning",
           },
           {
             "input": "{}",
-            "toolCallId": "tool-call-id",
-            "toolName": "getNumber",
+            "toolCallId": "85e4fd267",
+            "toolName": "nonUsefulTool",
             "type": "tool-call",
           },
         ]
@@ -193,18 +93,43 @@ describe('doGenerate', () => {
       `);
     });
 
-    it('preserves real tool-call finish reasons', async () => {
-      const fetch = createJsonFetchMock({
-        content: null,
-        finishReason: 'tool_calls',
-        toolCalls: [
-          {
-            id: 'tool-call-id',
-            type: 'function',
-            function: { name: 'getNumber', arguments: '{}' },
-          },
-        ],
+    it('drops the captured repeated tool call when structured output text is present', async () => {
+      const fetch = createJsonFixtureFetchMock(
+        'cerebras-structured-output-tools.2',
+      );
+      const model = createCerebras({ apiKey: 'test-api-key', fetch })(
+        'zai-glm-4.7',
+      );
+
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+        responseFormat: JSON_RESPONSE_FORMAT,
       });
+
+      expect(result.content).toMatchInlineSnapshot(`
+        [
+          {
+            "text": "{"result":"2026"}",
+            "type": "text",
+          },
+          {
+            "text": "The function returned 2026 as the magic number. Now I need to return this as a JSON object matching the specified schema. The schema requires a "result" property of type string. So I should wrap the magic number in a string.",
+            "type": "reasoning",
+          },
+        ]
+      `);
+      expect(result.finishReason).toMatchInlineSnapshot(`
+        {
+          "raw": "tool_calls",
+          "unified": "stop",
+        }
+      `);
+    });
+
+    it('preserves the captured mixed response without structured output', async () => {
+      const fetch = createJsonFixtureFetchMock(
+        'cerebras-structured-output-tools.2',
+      );
       const model = createCerebras({ apiKey: 'test-api-key', fetch })(
         'zai-glm-4.7',
       );
@@ -214,9 +139,17 @@ describe('doGenerate', () => {
       expect(result.content).toMatchInlineSnapshot(`
         [
           {
+            "text": "{"result":"2026"}",
+            "type": "text",
+          },
+          {
+            "text": "The function returned 2026 as the magic number. Now I need to return this as a JSON object matching the specified schema. The schema requires a "result" property of type string. So I should wrap the magic number in a string.",
+            "type": "reasoning",
+          },
+          {
             "input": "{}",
-            "toolCallId": "tool-call-id",
-            "toolName": "getNumber",
+            "toolCallId": "0babb4517",
+            "toolName": "nonUsefulTool",
             "type": "tool-call",
           },
         ]
@@ -233,14 +166,10 @@ describe('doGenerate', () => {
 
 describe('doStream', () => {
   describe('finish reason normalization', () => {
-    it('normalizes streamed final text responses mislabeled as tool calls', async () => {
-      const fetch = createStreamFetchMock({
-        chunks: [
-          `{"id":"chatcmpl-test","object":"chat.completion.chunk","created":1711115037,"model":"zai-glm-4.7","choices":[{"index":0,"delta":{"role":"assistant","content":"{\\"result\\":\\"2026\\"}"},"finish_reason":null}]}`,
-          `{"id":"chatcmpl-test","object":"chat.completion.chunk","created":1711115037,"model":"zai-glm-4.7","choices":[{"index":0,"delta":{},"finish_reason":"tool_calls"}],"usage":{"prompt_tokens":4,"completion_tokens":30,"total_tokens":34}}`,
-          '[DONE]',
-        ],
-      });
+    it('normalizes captured streamed structured output with tool calls finish reason', async () => {
+      const fetch = createStreamFixtureFetchMock(
+        'cererebras-structured-output-tools.1',
+      );
       const model = createCerebras({ apiKey: 'test-api-key', fetch })(
         'zai-glm-4.7',
       );
@@ -258,40 +187,46 @@ describe('doStream', () => {
             "unified": "stop",
           },
           "providerMetadata": {
-            "cerebras": {},
+            "cerebras": {
+              "acceptedPredictionTokens": 0,
+              "rejectedPredictionTokens": 0,
+            },
           },
           "type": "finish",
           "usage": {
             "inputTokens": {
-              "cacheRead": 0,
+              "cacheRead": 256,
               "cacheWrite": undefined,
-              "noCache": 4,
-              "total": 4,
+              "noCache": 177,
+              "total": 433,
             },
             "outputTokens": {
-              "reasoning": 0,
-              "text": 30,
-              "total": 30,
+              "reasoning": 108,
+              "text": 14,
+              "total": 122,
             },
             "raw": {
-              "completion_tokens": 30,
-              "prompt_tokens": 4,
-              "total_tokens": 34,
+              "completion_tokens": 122,
+              "completion_tokens_details": {
+                "accepted_prediction_tokens": 0,
+                "reasoning_tokens": 108,
+                "rejected_prediction_tokens": 0,
+              },
+              "prompt_tokens": 433,
+              "prompt_tokens_details": {
+                "cached_tokens": 256,
+              },
+              "total_tokens": 555,
             },
           },
         }
       `);
     });
 
-    it('drops streamed stray tool calls when final text is present', async () => {
-      const fetch = createStreamFetchMock({
-        chunks: [
-          `{"id":"chatcmpl-test","object":"chat.completion.chunk","created":1711115037,"model":"zai-glm-4.7","choices":[{"index":0,"delta":{"role":"assistant","content":"{\\"result\\":\\"2026\\"}"},"finish_reason":null}]}`,
-          `{"id":"chatcmpl-test","object":"chat.completion.chunk","created":1711115037,"model":"zai-glm-4.7","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"id":"tool-call-id","type":"function","function":{"name":"getNumber","arguments":"{}"}}]},"finish_reason":null}]}`,
-          `{"id":"chatcmpl-test","object":"chat.completion.chunk","created":1711115037,"model":"zai-glm-4.7","choices":[{"index":0,"delta":{},"finish_reason":"tool_calls"}],"usage":{"prompt_tokens":4,"completion_tokens":30,"total_tokens":34}}`,
-          '[DONE]',
-        ],
-      });
+    it('preserves the first streamed tool call and drops the repeated one', async () => {
+      const fetch = createStreamFixtureFetchMock(
+        'cererebras-structured-output-tools.1',
+      );
       const model = createCerebras({ apiKey: 'test-api-key', fetch })(
         'zai-glm-4.7',
       );
@@ -302,44 +237,16 @@ describe('doStream', () => {
       });
       const chunks = await convertStreamToArray(stream);
 
-      expect(
-        chunks.some(
-          chunk =>
-            chunk.type === 'tool-input-start' ||
-            chunk.type === 'tool-input-delta' ||
-            chunk.type === 'tool-input-end' ||
-            chunk.type === 'tool-call',
-        ),
-      ).toBe(false);
-      expect(chunks.at(-1)).toMatchInlineSnapshot(`
-        {
-          "finishReason": {
-            "raw": "tool_calls",
-            "unified": "stop",
+      expect(chunks.filter(chunk => chunk.type === 'tool-call'))
+        .toMatchInlineSnapshot(`
+        [
+          {
+            "input": "{}",
+            "toolCallId": "bbd2b9d98",
+            "toolName": "nonUsefulTool",
+            "type": "tool-call",
           },
-          "providerMetadata": {
-            "cerebras": {},
-          },
-          "type": "finish",
-          "usage": {
-            "inputTokens": {
-              "cacheRead": 0,
-              "cacheWrite": undefined,
-              "noCache": 4,
-              "total": 4,
-            },
-            "outputTokens": {
-              "reasoning": 0,
-              "text": 30,
-              "total": 30,
-            },
-            "raw": {
-              "completion_tokens": 30,
-              "prompt_tokens": 4,
-              "total_tokens": 34,
-            },
-          },
-        }
+        ]
       `);
     });
   });
