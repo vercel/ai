@@ -35,7 +35,10 @@ import {
 } from './google-interactions-language-model-options';
 import type {
   GoogleInteractionsAgentConfig,
+  GoogleInteractionsEnvironmentSource,
   GoogleInteractionsGenerationConfig,
+  GoogleInteractionsNetworkAllowlistEntry,
+  GoogleInteractionsNetworkConfig,
   GoogleInteractionsRequestBody,
   GoogleInteractionsResponseFormatEntry,
   GoogleInteractionsTool,
@@ -62,7 +65,8 @@ export type GoogleInteractionsConfig = {
 
 export type GoogleInteractionsModelInput =
   | GoogleInteractionsModelId
-  | { agent: string };
+  | { agent: string }
+  | { managedAgent: string };
 
 export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
   readonly specificationVersion = 'v4';
@@ -105,6 +109,9 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
     if (typeof modelOrAgent === 'string') {
       this.modelId = modelOrAgent;
       this.agent = undefined;
+    } else if ('managedAgent' in modelOrAgent) {
+      this.modelId = modelOrAgent.managedAgent;
+      this.agent = modelOrAgent.managedAgent;
     } else {
       this.modelId = modelOrAgent.agent;
       this.agent = modelOrAgent.agent;
@@ -350,18 +357,60 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
       }
     }
 
+    let environment: GoogleInteractionsRequestBody['environment'];
+    if (opts?.environment != null) {
+      if (!isAgent) {
+        warnings.push({
+          type: 'other',
+          message:
+            'google.interactions: environment is only supported when an agent is set; environment will be omitted from the request body.',
+        });
+      } else if (typeof opts.environment === 'string') {
+        environment = opts.environment;
+      } else {
+        const env = opts.environment;
+        const sources: Array<GoogleInteractionsEnvironmentSource> | undefined =
+          env.sources?.map(s => {
+            if (s.type === 'inline') {
+              return {
+                type: 'inline' as const,
+                content: s.content,
+                target: s.target,
+              };
+            }
+            return pruneUndefined({
+              type: s.type,
+              source: s.source,
+              target: s.target ?? undefined,
+            }) as GoogleInteractionsEnvironmentSource;
+          });
+        let network: GoogleInteractionsNetworkConfig | undefined;
+        if (env.network === 'disabled') {
+          network = 'disabled';
+        } else if (env.network != null) {
+          network = {
+            allowlist: env.network.allowlist.map(entry =>
+              pruneUndefined({
+                domain: entry.domain,
+                transform: entry.transform ?? undefined,
+              }),
+            ) as Array<GoogleInteractionsNetworkAllowlistEntry>,
+          };
+        }
+        environment = pruneUndefined({
+          type: 'remote' as const,
+          sources: sources != null && sources.length > 0 ? sources : undefined,
+          network,
+        });
+      }
+    }
+
     /*
-     * Agent calls require `background: true` on the wire — otherwise the API
-     * rejects them with `background=true is required for agent interactions.`
-     * The server returns a non-terminal status (`in_progress`/`requires_action`)
-     * and the final outputs are streamed via `GET /interactions/{id}?stream=true`
-     * (or polled via `GET /interactions/{id}`). This is handled internally in
-     * `doGenerate` / `doStream` so the user-facing surface stays identical to
-     * model-id calls.
-     *
-     * Model-id calls retain their original synchronous behavior — no
-     * `background` field is sent. (No documented model accepts `background:
-     * true` today; revisit when one does.)
+     * `background` is opt-in via `providerOptions.google.background`. Some
+     * agents require it because their server-side workflow cannot complete
+     * within a single request; others reject it. When `background: true`, the
+     * POST returns a non-terminal status and the SDK polls
+     * `GET /interactions/{id}` until the work completes.
      */
     const args: GoogleInteractionsRequestBody = pruneUndefined({
       ...(isAgent ? { agent: this.agent } : { model: this.modelId }),
@@ -384,13 +433,15 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
           ? generationConfig
           : undefined,
       agent_config: agentConfig,
-      ...(isAgent ? { background: true } : {}),
+      environment,
+      background: opts?.background ?? undefined,
     });
 
     return {
       args,
       warnings,
       isAgent,
+      isBackground: opts?.background === true,
       pollingTimeoutMs: opts?.pollingTimeoutMs ?? undefined,
     };
   }
@@ -527,7 +578,7 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
   async doStream(
     options: LanguageModelV4CallOptions,
   ): Promise<LanguageModelV4StreamResult> {
-    const { args, warnings, isAgent, pollingTimeoutMs } =
+    const { args, warnings, isBackground, pollingTimeoutMs } =
       await this.getArgs(options);
 
     const url = `${this.config.baseURL}/interactions`;
@@ -539,13 +590,13 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
     );
 
     /*
-     * Agent calls require `background: true`, which is incompatible with
-     * `stream: true` on POST. Drive these via POST background -> GET stream
-     * (with terminal-status short-circuit). The user-facing stream surface
-     * stays identical -- text-start / text-delta / text-end / finish parts
-     * are emitted in the same order as a true SSE response.
+     * `background: true` is incompatible with `stream: true` on POST. Drive
+     * background calls via POST background -> GET stream (with terminal-status
+     * short-circuit). The user-facing stream surface stays identical --
+     * text-start / text-delta / text-end / finish parts are emitted in the
+     * same order as a true SSE response.
      */
-    if (isAgent) {
+    if (isBackground) {
       return this.doStreamBackground({
         args,
         warnings,
