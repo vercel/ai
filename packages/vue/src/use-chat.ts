@@ -174,7 +174,7 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>(
     addToolApprovalResponse: (...args) =>
       chatInstance.value.addToolApprovalResponse(...args),
     addToolOutput: (...args) => chatInstance.value.addToolOutput(...args),
-    clearError: () => (chatStateWrapper.error = undefined),
+    clearError: () => chatInstance.value.clearError(),
     regenerate: () => chatInstance.value.regenerate(),
     sendMessage: (...args) => chatInstance.value.sendMessage(...args),
     stop: () => chatInstance.value.stop(),
