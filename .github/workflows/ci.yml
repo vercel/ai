@@ -172,7 +172,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Cache local Turbo artifacts
-        uses: actions/cache@d4323d4df104b026a6aa633fdb11d772146be0bf # v4.2.2
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
           path: .turbo
           key: turbo-${{ runner.os }}-node-${{ matrix.node-version }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.sha }}
