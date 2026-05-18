@@ -99,7 +99,7 @@ export class TogetherAIImageModel implements ImageModelV3 {
       body: {
         model: this.modelId,
         prompt,
-        seed,
+        ...(seed != null ? { seed } : {}),
         ...(n > 1 ? { n } : {}),
         ...(splitSize && {
           width: parseInt(splitSize[0]),
