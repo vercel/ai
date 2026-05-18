@@ -34,7 +34,7 @@
     "@ai-sdk/provider-utils": "workspace:*"
   },
   "devDependencies": {
-    "@types/node": "20.17.24",
+    "@types/node": "22.19.19",
     "@valibot/to-json-schema": "^1.7.0",
     "@vercel/ai-tsconfig": "workspace:*",
     "tsup": "^8.5.1",
