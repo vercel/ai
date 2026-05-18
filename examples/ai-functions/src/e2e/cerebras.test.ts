@@ -27,7 +27,9 @@ createFeatureTestSuite({
   timeout: 30000,
   customAssertions: {
     errorValidator: (error: APICallError) => {
-      expect((error.data as CerebrasErrorData).message).toMatch(/not exist/i);
+      expect((error.data as CerebrasErrorData).error.message).toMatch(
+        /not exist/i,
+      );
     },
   },
 })();
