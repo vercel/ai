@@ -316,7 +316,14 @@ jobs:
   # as the matrix build names above change each time Node versions change
   test:
     runs-on: ubuntu-latest
-    needs: [build-packages, test_node_versions, test_matrix, test_ai_matrix, test_codemod_matrix]
+    needs:
+      [
+        build-packages,
+        test_node_versions,
+        test_matrix,
+        test_ai_matrix,
+        test_codemod_matrix,
+      ]
     if: ${{ !cancelled() }}
     steps:
       - name: All required jobs passed
