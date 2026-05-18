@@ -1,5 +1,13 @@
 # @ai-sdk/gateway
 
+## 4.0.0-canary.84
+
+### Patch Changes
+
+- 032c4a5: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [a6617c5]
+  - @ai-sdk/provider-utils@5.0.0-canary.42
+
 ## 4.0.0-canary.83
 
 ### Patch Changes
