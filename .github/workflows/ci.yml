@@ -179,7 +179,7 @@ jobs:
           BASE_SHA="${{ github.event.pull_request.base.sha }}"
           git fetch --no-tags --depth=1 origin "$BASE_SHA"
 
-          if git diff --name-only "$BASE_SHA" "${{ github.sha }}" | grep -E '^(packages/rsc/|pnpm-lock.yaml|package.json)$'; then
+          if git diff --name-only "$BASE_SHA" "${{ github.sha }}" | grep -E '^(packages/rsc/|pnpm-lock.yaml$|package.json$)'; then
             echo "run=true" >> "$GITHUB_OUTPUT"
           else
             echo "run=false" >> "$GITHUB_OUTPUT"
