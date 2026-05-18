@@ -1247,6 +1247,62 @@ const mcpClient = await createMCPClient({
 
 If the MCP server you use does not issue redirects, no changes are needed — the new default is more secure.
 
+## Vue Package
+
+### `Chat` Class Deprecated in Favor of `useChat` Composable
+
+The `Chat` class exported from `@ai-sdk/vue` is deprecated in AI SDK 7 in favor of the new `useChat` composable. `useChat` exposes reactive refs for `messages`, `status`, and `error`, and automatically recreates the underlying chat when its init object changes — so reactive inputs (a route param, a selected model, etc.) flow through without manual orchestration.
+
+```tsx filename="AI SDK 6"
+<script setup lang="ts">
+import { Chat } from '@ai-sdk/vue';
+
+const chat = new Chat({});
+</script>
+
+<template>
+  <div v-for="m in chat.messages" :key="m.id">
+    <!-- ... -->
+  </div>
+  <button @click="chat.sendMessage({ text: 'hi' })">Send</button>
+</template>
+```
+
+```tsx filename="AI SDK 7"
+<script setup lang="ts">
+import { useChat } from '@ai-sdk/vue';
+
+const { messages, sendMessage } = useChat({
+  id: chatId,
+  transport: new DefaultChatTransport({
+    api: `/api/chats/${chatId}`,
+    body: { model: model.value },
+  }),
+});
+</script>
+
+<template>
+  <div v-for="m in messages" :key="m.id">
+    <!-- ... -->
+  </div>
+  <button @click="sendMessage({ text: 'hi' })">Send</button>
+</template>
+```
+
+To make the init reactive (recreate the chat when its inputs change), pass a getter or ref:
+
+```tsx filename="AI SDK 7"
+const { messages, sendMessage } = useChat(() => ({
+  id: chatId.value,
+  transport: new DefaultChatTransport({
+    api: `/api/chats/${chatId.value}`,
+    body: { model: model.value },
+  }),
+}));
+```
+
+The `Chat` class continues to work as a deprecated export, so you can migrate incrementally.
+
 ## Anthropic Provider
 
 ### `providerMetadata.anthropic.cacheCreationInputTokens` Removed
