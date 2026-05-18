@@ -8,6 +8,7 @@ import {
   convertReadableStreamToArray,
 } from '@ai-sdk/provider-utils/test';
 import { beforeEach, describe, expect, it } from 'vitest';
+import { mockSandboxFileStubs } from '../test/mock-sandbox';
 import { z } from 'zod/v4';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import { createAgentUIStreamResponse } from './create-agent-ui-stream-response';
@@ -368,6 +369,7 @@ describe('createAgentUIStreamResponse', () => {
         stdout: 'ok',
         stderr: '',
       }),
+      ...mockSandboxFileStubs,
     } satisfies Sandbox;
     let receivedSandbox: Sandbox | undefined;
     let callCount = 0;
