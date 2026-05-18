@@ -1,5 +1,6 @@
 import { OpenAICompatibleChatLanguageModel } from '@ai-sdk/openai-compatible';
 import type {
+  LanguageModelV4,
   LanguageModelV4CallOptions,
   LanguageModelV4GenerateResult,
   LanguageModelV4StreamPart,
@@ -22,7 +23,10 @@ function isStructuredOutputWithToolCallsFinishReason({
   );
 }
 
-export class CerebrasChatLanguageModel extends OpenAICompatibleChatLanguageModel {
+export class CerebrasChatLanguageModel
+  extends OpenAICompatibleChatLanguageModel
+  implements LanguageModelV4
+{
   async doGenerate(
     options: LanguageModelV4CallOptions,
   ): Promise<LanguageModelV4GenerateResult> {
