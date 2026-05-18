@@ -2,15 +2,13 @@
  * Internal TypeScript types for the Gemini Interactions API wire format.
  *
  * Mirrors the public types in `googleapis/js-genai`:
- * `src/interactions/resources/interactions.ts`. Kept minimal for TASK-1 (text +
- * thought happy path); further content/tool block variants are scaffolded as
- * `unknown` here and populated in subsequent tasks.
+ * `src/interactions/resources/interactions.ts`.
  */
 
 export type GoogleInteractionsTextContent = {
   type: 'text';
   text: string;
-  annotations?: Array<unknown>;
+  annotations?: Array<GoogleInteractionsAnnotation | { type: string }>;
 };
 
 export type GoogleInteractionsImageContent = {
@@ -49,20 +47,6 @@ export type GoogleInteractionsThoughtSummaryItem =
   | GoogleInteractionsTextContent
   | GoogleInteractionsImageContent;
 
-export type GoogleInteractionsThoughtContent = {
-  type: 'thought';
-  signature?: string;
-  summary?: Array<GoogleInteractionsThoughtSummaryItem>;
-};
-
-export type GoogleInteractionsFunctionCallContent = {
-  type: 'function_call';
-  id: string;
-  name: string;
-  arguments: Record<string, unknown>;
-  signature?: string;
-};
-
 export type GoogleInteractionsFunctionResultContent = {
   type: 'function_result';
   call_id: string;
@@ -76,9 +60,11 @@ export type GoogleInteractionsFunctionResultContent = {
 };
 
 /**
- * URL citation annotation for `text` content blocks.
- * Mirrors `Annotation.URLCitation` in `googleapis/js-genai`
- * `src/interactions/resources/interactions.ts`.
+ * Annotation types attached to a `text` content block:
+ * - `url_citation` (web) — `url` + optional `title`
+ * - `file_citation` — `url` for the citation target; optional `document_uri`
+ *   / `file_name` for doc references
+ * - `place_citation` — Maps grounding, carries `url`
  */
 export type GoogleInteractionsURLCitation = {
   type: 'url_citation';
@@ -88,14 +74,11 @@ export type GoogleInteractionsURLCitation = {
   end_index?: number;
 };
 
-/**
- * File citation annotation for `text` content blocks.
- */
 export type GoogleInteractionsFileCitation = {
   type: 'file_citation';
   file_name?: string;
   document_uri?: string;
-  source?: string;
+  url?: string;
   page_number?: number;
   media_id?: string;
   start_index?: number;
@@ -103,9 +86,6 @@ export type GoogleInteractionsFileCitation = {
   custom_metadata?: Record<string, unknown>;
 };
 
-/**
- * Place citation annotation for Google Maps grounding.
- */
 export type GoogleInteractionsPlaceCitation = {
   type: 'place_citation';
   name?: string;
@@ -125,28 +105,42 @@ export type GoogleInteractionsAnnotation =
   | GoogleInteractionsFileCitation
   | GoogleInteractionsPlaceCitation;
 
-/**
- * Built-in tool call content blocks. The Interactions API exposes server-side
- * tool invocations via paired `*_call`/`*_result` blocks (as opposed to
- * `function_call`/`function_result` for client-executed tools).
+/*
+ * --- Step payload shapes ---
+ *
+ * `function_call`, `thought`, and the built-in `*_call`/`*_result` are
+ * top-level **step** types — their fields live directly on the step object
+ * (no `content` indirection). The types below model those payloads; the step
+ * wrapper (`type` discriminator + payload) is `GoogleInteractionsStep`
+ * further down.
  */
-export type GoogleInteractionsCodeExecutionCallContent = {
-  type: 'code_execution_call';
+
+export type GoogleInteractionsFunctionCallStepPayload = {
+  id: string;
+  name: string;
+  arguments: Record<string, unknown>;
+  signature?: string;
+};
+
+export type GoogleInteractionsThoughtStepPayload = {
+  signature?: string;
+  summary?: Array<GoogleInteractionsThoughtSummaryItem>;
+};
+
+export type GoogleInteractionsCodeExecutionCallStepPayload = {
   id: string;
   arguments?: { code?: string; language?: string };
   signature?: string;
 };
 
-export type GoogleInteractionsCodeExecutionResultContent = {
-  type: 'code_execution_result';
+export type GoogleInteractionsCodeExecutionResultStepPayload = {
   call_id: string;
   result?: string;
   is_error?: boolean;
   signature?: string;
 };
 
-export type GoogleInteractionsURLContextCallContent = {
-  type: 'url_context_call';
+export type GoogleInteractionsURLContextCallStepPayload = {
   id: string;
   arguments?: { urls?: Array<string> };
   signature?: string;
@@ -157,16 +151,14 @@ export type GoogleInteractionsURLContextResultEntry = {
   status?: 'success' | 'error' | 'paywall' | 'unsafe' | string;
 };
 
-export type GoogleInteractionsURLContextResultContent = {
-  type: 'url_context_result';
+export type GoogleInteractionsURLContextResultStepPayload = {
   call_id: string;
   result?: Array<GoogleInteractionsURLContextResultEntry>;
   is_error?: boolean;
   signature?: string;
 };
 
-export type GoogleInteractionsGoogleSearchCallContent = {
-  type: 'google_search_call';
+export type GoogleInteractionsGoogleSearchCallStepPayload = {
   id: string;
   arguments?: { queries?: Array<string> };
   search_type?: 'web_search' | 'image_search' | 'enterprise_web_search';
@@ -179,36 +171,25 @@ export type GoogleInteractionsGoogleSearchResultEntry = {
   title?: string;
 };
 
-export type GoogleInteractionsGoogleSearchResultContent = {
-  type: 'google_search_result';
+export type GoogleInteractionsGoogleSearchResultStepPayload = {
   call_id: string;
   result?: Array<GoogleInteractionsGoogleSearchResultEntry>;
   is_error?: boolean;
   signature?: string;
 };
 
-export type GoogleInteractionsFileSearchCallContent = {
-  type: 'file_search_call';
+export type GoogleInteractionsFileSearchCallStepPayload = {
   id: string;
   signature?: string;
 };
 
-export type GoogleInteractionsFileSearchResultEntry = {
-  file_name?: string;
-  document_uri?: string;
-  title?: string;
-  source?: string;
-};
-
-export type GoogleInteractionsFileSearchResultContent = {
-  type: 'file_search_result';
+export type GoogleInteractionsFileSearchResultStepPayload = {
   call_id: string;
   result?: Array<unknown>;
   signature?: string;
 };
 
-export type GoogleInteractionsGoogleMapsCallContent = {
-  type: 'google_maps_call';
+export type GoogleInteractionsGoogleMapsCallStepPayload = {
   id: string;
   arguments?: { queries?: Array<string> };
   signature?: string;
@@ -230,15 +211,13 @@ export type GoogleInteractionsGoogleMapsResultEntry = {
   widget_context_token?: string;
 };
 
-export type GoogleInteractionsGoogleMapsResultContent = {
-  type: 'google_maps_result';
+export type GoogleInteractionsGoogleMapsResultStepPayload = {
   call_id: string;
   result?: Array<GoogleInteractionsGoogleMapsResultEntry>;
   signature?: string;
 };
 
-export type GoogleInteractionsMCPServerToolCallContent = {
-  type: 'mcp_server_tool_call';
+export type GoogleInteractionsMCPServerToolCallStepPayload = {
   id: string;
   name: string;
   server_name: string;
@@ -246,8 +225,7 @@ export type GoogleInteractionsMCPServerToolCallContent = {
   signature?: string;
 };
 
-export type GoogleInteractionsMCPServerToolResultContent = {
-  type: 'mcp_server_tool_result';
+export type GoogleInteractionsMCPServerToolResultStepPayload = {
   call_id: string;
   result?: unknown;
   name?: string;
@@ -255,49 +233,96 @@ export type GoogleInteractionsMCPServerToolResultContent = {
   signature?: string;
 };
 
-export type GoogleInteractionsBuiltinToolCallContent =
-  | GoogleInteractionsCodeExecutionCallContent
-  | GoogleInteractionsURLContextCallContent
-  | GoogleInteractionsGoogleSearchCallContent
-  | GoogleInteractionsFileSearchCallContent
-  | GoogleInteractionsGoogleMapsCallContent
-  | GoogleInteractionsMCPServerToolCallContent;
-
-export type GoogleInteractionsBuiltinToolResultContent =
-  | GoogleInteractionsCodeExecutionResultContent
-  | GoogleInteractionsURLContextResultContent
-  | GoogleInteractionsGoogleSearchResultContent
-  | GoogleInteractionsFileSearchResultContent
-  | GoogleInteractionsGoogleMapsResultContent
-  | GoogleInteractionsMCPServerToolResultContent;
-
-/**
- * Discriminated union of every content block kind the API supports. For
- * TASK-1, only `text` and `thought` are exercised end-to-end; the remaining
- * variants are listed for type completeness so subsequent tasks can extend the
- * parser/converter without widening the type.
+/*
+ * Discriminated step union — the elements of `response.steps[]` and the
+ * `step` field on `step.start` SSE events.
  */
-export type GoogleInteractionsContent =
+export type GoogleInteractionsModelOutputStep = {
+  type: 'model_output';
+  content?: Array<GoogleInteractionsContentBlock>;
+};
+
+export type GoogleInteractionsUserInputStep = {
+  type: 'user_input';
+  content?: Array<GoogleInteractionsContentBlock>;
+};
+
+export type GoogleInteractionsFunctionCallStep = {
+  type: 'function_call';
+} & GoogleInteractionsFunctionCallStepPayload;
+
+export type GoogleInteractionsThoughtStep = {
+  type: 'thought';
+} & GoogleInteractionsThoughtStepPayload;
+
+export type GoogleInteractionsBuiltinToolCallStep =
+  | ({
+      type: 'google_search_call';
+    } & GoogleInteractionsGoogleSearchCallStepPayload)
+  | ({
+      type: 'code_execution_call';
+    } & GoogleInteractionsCodeExecutionCallStepPayload)
+  | ({ type: 'url_context_call' } & GoogleInteractionsURLContextCallStepPayload)
+  | ({ type: 'file_search_call' } & GoogleInteractionsFileSearchCallStepPayload)
+  | ({ type: 'google_maps_call' } & GoogleInteractionsGoogleMapsCallStepPayload)
+  | ({
+      type: 'mcp_server_tool_call';
+    } & GoogleInteractionsMCPServerToolCallStepPayload);
+
+export type GoogleInteractionsBuiltinToolResultStep =
+  | ({
+      type: 'google_search_result';
+    } & GoogleInteractionsGoogleSearchResultStepPayload)
+  | ({
+      type: 'code_execution_result';
+    } & GoogleInteractionsCodeExecutionResultStepPayload)
+  | ({
+      type: 'url_context_result';
+    } & GoogleInteractionsURLContextResultStepPayload)
+  | ({
+      type: 'file_search_result';
+    } & GoogleInteractionsFileSearchResultStepPayload)
+  | ({
+      type: 'google_maps_result';
+    } & GoogleInteractionsGoogleMapsResultStepPayload)
+  | ({
+      type: 'mcp_server_tool_result';
+    } & GoogleInteractionsMCPServerToolResultStepPayload);
+
+export type GoogleInteractionsStep =
+  | GoogleInteractionsUserInputStep
+  | GoogleInteractionsModelOutputStep
+  | GoogleInteractionsFunctionCallStep
+  | GoogleInteractionsThoughtStep
+  | GoogleInteractionsBuiltinToolCallStep
+  | GoogleInteractionsBuiltinToolResultStep
+  | { type: string; [k: string]: unknown };
+
+/*
+ * Inner content-block types (what lives inside `model_output.content[]` and
+ * `user_input.content[]`). Function calls, thoughts, and built-in tool
+ * call/result blocks are steps, not content blocks.
+ */
+export type GoogleInteractionsContentBlock =
   | GoogleInteractionsTextContent
   | GoogleInteractionsImageContent
   | GoogleInteractionsAudioContent
   | GoogleInteractionsDocumentContent
   | GoogleInteractionsVideoContent
-  | GoogleInteractionsThoughtContent
-  | GoogleInteractionsFunctionCallContent
   | GoogleInteractionsFunctionResultContent
   | { type: string; [k: string]: unknown };
 
-export type GoogleInteractionsTurn = {
-  role: 'user' | 'model' | string;
-  content?: string | Array<GoogleInteractionsContent>;
-};
+/**
+ * Alias kept for the file-part converter surface; identical to
+ * `GoogleInteractionsContentBlock`.
+ */
+export type GoogleInteractionsContent = GoogleInteractionsContentBlock;
 
-export type GoogleInteractionsInput =
-  | string
-  | GoogleInteractionsContent
-  | Array<GoogleInteractionsContent>
-  | Array<GoogleInteractionsTurn>;
+/*
+ * `input` is an array of steps. A single-turn user prompt is sent as
+ * `[{ type: 'user_input', content: [...] }]`.
+ */
+export type GoogleInteractionsInput = Array<GoogleInteractionsStep>;
 
 export type GoogleInteractionsTool =
   | {
@@ -381,24 +406,57 @@ export type GoogleInteractionsResponseModality =
 
 export type GoogleInteractionsServiceTier = 'flex' | 'standard' | 'priority';
 
-export type GoogleInteractionsImageConfig = {
-  aspect_ratio?:
-    | '1:1'
-    | '2:3'
-    | '3:2'
-    | '3:4'
-    | '4:3'
-    | '4:5'
-    | '5:4'
-    | '9:16'
-    | '16:9'
-    | '21:9'
-    | '1:8'
-    | '8:1'
-    | '1:4'
-    | '4:1';
-  image_size?: '1K' | '2K' | '4K' | '512';
+export type GoogleInteractionsAspectRatio =
+  | '1:1'
+  | '2:3'
+  | '3:2'
+  | '3:4'
+  | '4:3'
+  | '4:5'
+  | '5:4'
+  | '9:16'
+  | '16:9'
+  | '21:9'
+  | '1:8'
+  | '8:1'
+  | '1:4'
+  | '4:1';
+
+export type GoogleInteractionsImageSize = '1K' | '2K' | '4K' | '512';
+
+/*
+ * `response_format` is a polymorphic entry. Multiple modalities are requested
+ * by sending an array of entries. Entries the SDK constructs:
+ *
+ *   { type: 'text', mime_type: 'application/json', schema: <JSONSchema> }
+ *     -- structured output (JSON mode). `mime_type` is required; `schema` is
+ *     optional but recommended.
+ *
+ *   { type: 'image', mime_type, aspect_ratio?, image_size? }
+ *     -- image generation. `mime_type` defaults to `image/png`.
+ */
+export type GoogleInteractionsResponseFormatTextEntry = {
+  type: 'text';
+  mime_type?: string;
+  schema?: unknown;
 };
+
+export type GoogleInteractionsResponseFormatImageEntry = {
+  type: 'image';
+  mime_type?: string;
+  aspect_ratio?: GoogleInteractionsAspectRatio;
+  image_size?: GoogleInteractionsImageSize;
+};
+
+export type GoogleInteractionsResponseFormatAudioEntry = {
+  type: 'audio';
+  mime_type?: string;
+};
+
+export type GoogleInteractionsResponseFormatEntry =
+  | GoogleInteractionsResponseFormatTextEntry
+  | GoogleInteractionsResponseFormatImageEntry
+  | GoogleInteractionsResponseFormatAudioEntry;
 
 export type GoogleInteractionsGenerationConfig = {
   temperature?: number;
@@ -408,7 +466,6 @@ export type GoogleInteractionsGenerationConfig = {
   max_output_tokens?: number;
   thinking_level?: GoogleInteractionsThinkingLevel;
   thinking_summaries?: GoogleInteractionsThinkingSummaries;
-  image_config?: GoogleInteractionsImageConfig;
   tool_choice?: GoogleInteractionsToolChoice;
 };
 
@@ -427,8 +484,7 @@ export type GoogleInteractionsRequestBody = {
   input: GoogleInteractionsInput;
   system_instruction?: string;
   tools?: Array<GoogleInteractionsTool>;
-  response_format?: unknown;
-  response_mime_type?: string;
+  response_format?: Array<GoogleInteractionsResponseFormatEntry>;
   response_modalities?: Array<GoogleInteractionsResponseModality>;
   generation_config?: GoogleInteractionsGenerationConfig;
   agent_config?: GoogleInteractionsAgentConfig;
@@ -455,3 +511,22 @@ export type GoogleInteractionsStatus =
   | 'failed'
   | 'cancelled'
   | 'incomplete';
+
+/*
+ * Aliases used by the source extractor; structurally equivalent to their
+ * step-payload counterparts.
+ */
+export type GoogleInteractionsBuiltinToolResultContent =
+  GoogleInteractionsBuiltinToolResultStep;
+export type GoogleInteractionsGoogleSearchResultContent = Extract<
+  GoogleInteractionsBuiltinToolResultStep,
+  { type: 'google_search_result' }
+>;
+export type GoogleInteractionsGoogleMapsResultContent = Extract<
+  GoogleInteractionsBuiltinToolResultStep,
+  { type: 'google_maps_result' }
+>;
+export type GoogleInteractionsURLContextResultContent = Extract<
+  GoogleInteractionsBuiltinToolResultStep,
+  { type: 'url_context_result' }
+>;
