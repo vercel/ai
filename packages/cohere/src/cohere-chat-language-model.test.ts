@@ -1,9 +1,6 @@
 import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
-import {
-  convertReadableStreamToArray,
-  isNodeVersion,
-} from '@ai-sdk/provider-utils/test';
+import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import fs from 'node:fs';
 import { createCohere } from './cohere-provider';
 import { beforeEach, describe, it, expect, vi } from 'vitest';
@@ -935,22 +932,19 @@ describe('doStream', () => {
   });
 
   describe('error handling', () => {
-    it.skipIf(isNodeVersion(20))(
-      'should handle unparsable stream parts',
-      async () => {
-        server.urls['https://api.cohere.com/v2/chat'].response = {
-          type: 'stream-chunks',
-          chunks: [`event: foo-message\ndata: {unparsable}\n\n`],
-        };
+    it('should handle unparsable stream parts', async () => {
+      server.urls['https://api.cohere.com/v2/chat'].response = {
+        type: 'stream-chunks',
+        chunks: [`event: foo-message\ndata: {unparsable}\n\n`],
+      };
 
-        const { stream } = await model.doStream({
-          prompt: TEST_PROMPT,
-          includeRawChunks: false,
-        });
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
 
-        expect(await convertReadableStreamToArray(stream)).toMatchSnapshot();
-      },
-    );
+      expect(await convertReadableStreamToArray(stream)).toMatchSnapshot();
+    });
   });
 
   describe('request', () => {

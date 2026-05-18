@@ -52,7 +52,7 @@
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
-    "@types/node": "20.17.24",
+    "@types/node": "22.19.19",
     "@types/react": "^18.3.28",
     "@types/react-dom": "^18.3.7",
     "@vercel/ai-tsconfig": "workspace:*",
@@ -76,7 +76,7 @@
     }
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=22"
   },
   "publishConfig": {
     "access": "public",

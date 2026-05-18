@@ -76,7 +76,7 @@
     "type-check": "tsc --build"
   },
   "devDependencies": {
-    "@types/node": "20.17.24",
+    "@types/node": "22.19.19",
     "tsx": "4.19.2",
     "typescript": "5.8.3"
   }

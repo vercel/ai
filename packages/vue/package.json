@@ -44,7 +44,7 @@
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/user-event": "^14.6.1",
     "@testing-library/vue": "^8.1.0",
-    "@types/node": "20.17.24",
+    "@types/node": "22.19.19",
     "@vercel/ai-tsconfig": "workspace:*",
     "@vitejs/plugin-vue": "5.2.0",
     "jsdom": "^24.1.3",
@@ -58,7 +58,7 @@
     "vue": "^3.3.4"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=22"
   },
   "publishConfig": {
     "access": "public",

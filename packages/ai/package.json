@@ -64,7 +64,7 @@
     "@ai-sdk/test-server": "workspace:*",
     "@edge-runtime/vm": "^5.0.0",
     "@types/json-schema": "7.0.15",
-    "@types/node": "20.17.24",
+    "@types/node": "22.19.19",
     "@vercel/ai-tsconfig": "workspace:*",
     "esbuild": "^0.24.2",
     "tsup": "^7.2.0",
@@ -76,7 +76,7 @@
     "zod": "^3.25.76 || ^4.1.8"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=22"
   },
   "publishConfig": {
     "access": "public",

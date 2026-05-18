@@ -189,7 +189,7 @@ jobs:
       TURBO_TEAM: ${{ vars.TURBO_TEAM }}
     strategy:
       matrix:
-        node-version: [20, 22, 24]
+        node-version: [22, 24, 26]
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -217,6 +217,7 @@ jobs:
         run: tar -xzf package-build-artifacts.tgz
 
       - name: Install Playwright Browsers
+        timeout-minutes: 10
         run: pnpm exec playwright install --with-deps
 
       - name: Run tests
