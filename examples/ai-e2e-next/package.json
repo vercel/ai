@@ -15,7 +15,7 @@
     "@ai-sdk/deepseek": "2.0.35",
     "@ai-sdk/fireworks": "2.0.52",
     "@ai-sdk/google": "3.0.75",
-    "@ai-sdk/google-vertex": "4.0.130",
+    "@ai-sdk/google-vertex": "4.0.131",
     "@ai-sdk/groq": "3.0.39",
     "@ai-sdk/mcp": "1.0.42",
     "@ai-sdk/mistral": "3.0.37",
