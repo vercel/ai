@@ -141,15 +141,42 @@ jobs:
           name: bundle-size-metafiles
           path: packages/ai/dist-bundle-check/*.json
 
+  test_node_versions:
+    name: 'Test Node Versions'
+    runs-on: ubuntu-latest
+    outputs:
+      node_versions: ${{ steps.node-versions.outputs.node_versions }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Select Node versions
+        id: node-versions
+        run: |
+          if [ "${{ github.event_name }}" != "pull_request" ]; then
+            echo 'node_versions=[20,22,24]' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          git fetch --no-tags --depth=1 origin "$BASE_SHA"
+
+          if git diff --name-only "$BASE_SHA" "${{ github.sha }}" | grep -E '^packages/[^/]+/(src/|test/|tests/|.*\.test(-d)?\.(ts|tsx|js|jsx)$)'; then
+            echo 'node_versions=[20,22,24]' >> "$GITHUB_OUTPUT"
+          else
+            echo 'node_versions=[22]' >> "$GITHUB_OUTPUT"
+          fi
+
   test_matrix:
     name: 'Test'
     runs-on: ubuntu-latest
+    needs: test_node_versions
     env:
       TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
       TURBO_TEAM: ${{ vars.TURBO_TEAM }}
     strategy:
       matrix:
-        node-version: [20, 22, 24]
+        node-version: ${{ fromJSON(needs.test_node_versions.outputs.node_versions) }}
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -178,14 +205,14 @@ jobs:
   # as the matrix build names above change each time Node versions change
   test:
     runs-on: ubuntu-latest
-    needs: test_matrix
+    needs: [test_node_versions, test_matrix]
     if: ${{ !cancelled() }}
     steps:
-      - name: All matrix versions passed
-        if: ${{ !(contains(needs.*.result, 'failure')) }}
+      - name: All required jobs passed
+        if: ${{ !(contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || contains(needs.*.result, 'skipped')) }}
         run: exit 0
-      - name: Some matrix version failed
-        if: ${{ contains(needs.*.result, 'failure') }}
+      - name: Some required job failed or was skipped
+        if: ${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || contains(needs.*.result, 'skipped') }}
         run: exit 1
 
   load-time_matrix:
