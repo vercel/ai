@@ -4,10 +4,10 @@ CI uses [Vercel Remote Cache](https://vercel.com/docs/monorepos/remote-caching) 
 
 ## GitHub configuration
 
-| Name | Type | Value |
-|------|------|--------|
-| `TURBO_TOKEN` | Secret | Vercel access token with remote cache write access |
-| `TURBO_TEAM` | Variable | Vercel team **slug** (URL segment after `vercel.com/`, not display name) |
+| Name          | Type     | Value                                                                    |
+| ------------- | -------- | ------------------------------------------------------------------------ |
+| `TURBO_TOKEN` | Secret   | Vercel access token with remote cache write access                       |
+| `TURBO_TEAM`  | Variable | Vercel team **slug** (URL segment after `vercel.com/`, not display name) |
 
 Workflow sets both at the top of `.github/workflows/ci.yml`. Jobs use `pnpm run build:packages:ci` and `pnpm test:ci` so Turbo reads/writes local + remote cache.
 
