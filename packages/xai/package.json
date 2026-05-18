@@ -50,7 +50,7 @@
     "@ai-sdk/test-server": "workspace:*",
     "@types/node": "20.17.24",
     "@vercel/ai-tsconfig": "workspace:*",
-    "tsup": "^8",
+    "tsup": "^8.5.1",
     "typescript": "5.8.3",
     "zod": "3.25.76"
   },
