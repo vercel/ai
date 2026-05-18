@@ -11,12 +11,13 @@ import type { UIMessageStreamResponseInit } from './ui-message-stream-response-i
 
 /**
  * Pipes a stream of `TextStreamPart<TOOLS>` chunks (as emitted by
- * `streamText`'s `fullStream`) to a Node.js ServerResponse object.
+ * `streamText`'s `fullStream`) to a Node.js ServerResponse object as a UI
+ * message stream.
  *
  * The stream is converted to UI message chunks and then transformed to
  * Server-Sent Events (SSE) format.
  */
-export function pipeUIMessageStreamResponse<
+export function pipeTextStreamToUIMessageStreamResponse<
   TOOLS extends ToolSet,
   UI_MESSAGE extends UIMessage,
 >({

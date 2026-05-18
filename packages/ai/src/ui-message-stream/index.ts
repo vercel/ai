@@ -1,7 +1,7 @@
 export { createUIMessageStream } from './create-ui-message-stream';
 export { createUIMessageStreamResponse } from './create-ui-message-stream-response';
 export { JsonToSseTransformStream } from './json-to-sse-transform-stream';
-export { pipeUIMessageStreamResponse } from './pipe-ui-message-stream-response';
+export { pipeTextStreamToUIMessageStreamResponse } from './pipe-text-stream-to-ui-message-stream-response';
 export { pipeUIMessageStreamToResponse } from './pipe-ui-message-stream-to-response';
 export { readUIMessageStream } from './read-ui-message-stream';
 export {

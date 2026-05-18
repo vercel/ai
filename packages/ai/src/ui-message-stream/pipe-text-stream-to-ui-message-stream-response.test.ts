@@ -4,7 +4,7 @@ import type { TextStreamPart } from '../generate-text/stream-text-result';
 import { createMockServerResponse } from '../test/mock-server-response';
 import type { LanguageModelUsage } from '../types/usage';
 import type { UIMessage } from '../ui/ui-messages';
-import { pipeUIMessageStreamResponse } from './pipe-ui-message-stream-response';
+import { pipeTextStreamToUIMessageStreamResponse } from './pipe-text-stream-to-ui-message-stream-response';
 
 const testUsage: LanguageModelUsage = {
   inputTokens: 1,
@@ -21,11 +21,11 @@ const testUsage: LanguageModelUsage = {
   },
 };
 
-describe('pipeUIMessageStreamResponse', () => {
+describe('pipeTextStreamToUIMessageStreamResponse', () => {
   it('converts a text stream and writes it to ServerResponse', async () => {
     const mockResponse = createMockServerResponse();
 
-    pipeUIMessageStreamResponse<{}, UIMessage>({
+    pipeTextStreamToUIMessageStreamResponse<{}, UIMessage>({
       response: mockResponse,
       status: 200,
       headers: {
@@ -94,7 +94,7 @@ describe('pipeUIMessageStreamResponse', () => {
   it('applies UI message stream options while piping', async () => {
     const mockResponse = createMockServerResponse();
 
-    pipeUIMessageStreamResponse<{}, UIMessage>({
+    pipeTextStreamToUIMessageStreamResponse<{}, UIMessage>({
       response: mockResponse,
       sendStart: false,
       stream: convertArrayToReadableStream([
