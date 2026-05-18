@@ -1,5 +1,12 @@
 # @ai-sdk/valibot
 
+## 3.0.0-canary.42
+
+### Patch Changes
+
+- Updated dependencies [a6617c5]
+  - @ai-sdk/provider-utils@5.0.0-canary.42
+
 ## 3.0.0-canary.41
 
 ### Patch Changes

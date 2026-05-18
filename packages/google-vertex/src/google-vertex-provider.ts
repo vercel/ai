@@ -30,7 +30,15 @@ export function createGoogleVertex(
     return createGoogleVertexOriginal(options);
   }
 
-  const generateAuthToken = createAuthTokenGenerator(options.googleAuthOptions);
+  const googleAuthOptions =
+    options.project == null
+      ? options.googleAuthOptions
+      : {
+          projectId: options.project,
+          ...options.googleAuthOptions,
+        };
+
+  const generateAuthToken = createAuthTokenGenerator(googleAuthOptions);
 
   return createGoogleVertexOriginal({
     ...options,

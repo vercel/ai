@@ -25,6 +25,12 @@ describe('bash_20241022 tool', () => {
               stderr: '',
             };
           },
+          readFile: async () => null,
+          readBinaryFile: async () => null,
+          readTextFile: async () => null,
+          writeFile: async () => {},
+          writeBinaryFile: async () => {},
+          writeTextFile: async () => {},
         },
       },
     );
