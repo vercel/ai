@@ -402,6 +402,12 @@ describe('generateText types', () => {
                 stdout: 'ok',
                 stderr: '',
               }),
+              readFile: async () => null,
+              readBinaryFile: async () => null,
+              readTextFile: async () => null,
+              writeFile: async () => {},
+              writeBinaryFile: async () => {},
+              writeTextFile: async () => {},
             },
           }),
         });
