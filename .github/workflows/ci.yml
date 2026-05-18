@@ -1,5 +1,11 @@
 name: CI
 
+# Vercel Remote Cache — https://turbo.build/repo/docs/core-concepts/remote-caching
+# Requires repo secret TURBO_TOKEN + variable TURBO_TEAM (team slug). See contributing/ci-turbo-remote-cache.md
+env:
+  TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+  TURBO_TEAM: ${{ vars.TURBO_TEAM }}
+
 on:
   push:
     branches:
@@ -129,7 +135,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build packages
-        run: pnpm run build:packages
+        run: pnpm run build:packages:ci
 
       - name: Check bundle size
         run: cd packages/ai && pnpm run check-bundle-size
@@ -144,9 +150,6 @@ jobs:
   test_matrix:
     name: 'Test'
     runs-on: ubuntu-latest
-    env:
-      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
-      TURBO_TEAM: ${{ vars.TURBO_TEAM }}
     strategy:
       matrix:
         node-version: [20, 22, 24]
@@ -168,11 +171,20 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Cache local Turbo artifacts
+        uses: actions/cache@d4323d4df104b026a6aa633fdb11d772146be0bf # v4.2.2
+        with:
+          path: .turbo
+          key: turbo-${{ runner.os }}-node-${{ matrix.node-version }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.sha }}
+          restore-keys: |
+            turbo-${{ runner.os }}-node-${{ matrix.node-version }}-${{ hashFiles('pnpm-lock.yaml') }}-
+            turbo-${{ runner.os }}-node-${{ matrix.node-version }}-
+
       - name: Install Playwright Browsers
         run: pnpm exec playwright install --with-deps
 
       - name: Run tests
-        run: pnpm test
+        run: pnpm test:ci
 
   # separate "test" job to set as required in branch protections,
   # as the matrix build names above change each time Node versions change
@@ -224,7 +236,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build packages
-        run: pnpm run build:packages
+        run: pnpm run build:packages:ci
 
       - name: Measure and check load time for ${{ matrix.module }}
         id: load-time
