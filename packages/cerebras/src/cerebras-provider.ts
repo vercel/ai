@@ -17,19 +17,27 @@ import type { CerebrasChatModelId } from './cerebras-chat-options';
 import { z } from 'zod/v4';
 import { VERSION } from './version';
 
-// Add error schema and structure
+// Cerebras returns errors with the standard OpenAI-compatible envelope:
+// `{ error: { message, type, code, param, ... } }` (plus a top-level
+// `status_code` on server errors). The previous schema expected those fields
+// at the top level, which caused any non-2xx response to fall through to
+// `TypeValidationError` instead of `APICallError`. The non-`message` fields
+// are nullish because Cerebras commonly returns empty strings or omits them
+// depending on the error class.
 const cerebrasErrorSchema = z.object({
-  message: z.string(),
-  type: z.string(),
-  param: z.string(),
-  code: z.string(),
+  error: z.object({
+    message: z.string(),
+    type: z.string().nullish(),
+    param: z.any().nullish(),
+    code: z.union([z.string(), z.number()]).nullish(),
+  }),
 });
 
 export type CerebrasErrorData = z.infer<typeof cerebrasErrorSchema>;
 
 const cerebrasErrorStructure: ProviderErrorStructure<CerebrasErrorData> = {
   errorSchema: cerebrasErrorSchema,
-  errorToMessage: data => data.message,
+  errorToMessage: data => data.error.message,
 };
 
 export interface CerebrasProviderSettings {
