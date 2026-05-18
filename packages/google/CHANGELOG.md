@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 4.0.0-canary.65
+
+### Patch Changes
+
+- 4e825f3: feat(google): update Interactions API implementation to cater for upstream breaking changes coming May 26
+
 ## 4.0.0-canary.64
 
 ### Patch Changes
