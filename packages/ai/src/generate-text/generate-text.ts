@@ -96,6 +96,7 @@ import {
   isStopConditionMet,
   type StopCondition,
 } from './stop-condition';
+import { sumTokenCounts } from './sum-token-counts';
 import { toResponseMessages } from './to-response-messages';
 import type { ToolApprovalConfiguration } from './tool-approval-configuration';
 import type { ToolApprovalRequestOutput } from './tool-approval-request-output';
@@ -844,11 +845,20 @@ export async function generateText<
             responseId: currentModelResponse.response.id,
             performance: {
               responseTimeMs,
-              tokensPerSecond: calculateTokensPerSecond({
-                outputTokens: stepUsage.outputTokens,
-                responseTimeMs,
+              effectiveOutputTokensPerSecond: calculateTokensPerSecond({
+                tokens: stepUsage.outputTokens,
+                durationMs: responseTimeMs,
               }),
-              timeToFirstTokenMs: undefined,
+              outputTokensPerSecond: undefined,
+              inputTokensPerSecond: undefined,
+              effectiveTotalTokensPerSecond: calculateTokensPerSecond({
+                tokens: sumTokenCounts(
+                  stepUsage.inputTokens,
+                  stepUsage.outputTokens,
+                ),
+                durationMs: responseTimeMs,
+              }),
+              timeToFirstOutputTokenMs: undefined,
             },
           },
           callbacks: [
@@ -1016,14 +1026,23 @@ export async function generateText<
 
         const stepTimeMs = now() - stepStartTimestampMs;
         const stepPerformance: StepResultPerformance = {
-          tokensPerSecond: calculateTokensPerSecond({
-            outputTokens: stepUsage.outputTokens,
-            responseTimeMs,
+          effectiveOutputTokensPerSecond: calculateTokensPerSecond({
+            tokens: stepUsage.outputTokens,
+            durationMs: responseTimeMs,
+          }),
+          outputTokensPerSecond: undefined,
+          inputTokensPerSecond: undefined,
+          effectiveTotalTokensPerSecond: calculateTokensPerSecond({
+            tokens: sumTokenCounts(
+              stepUsage.inputTokens,
+              stepUsage.outputTokens,
+            ),
+            durationMs: responseTimeMs,
           }),
           stepTimeMs,
           responseTimeMs,
           toolExecutionMs,
-          timeToFirstTokenMs: undefined,
+          timeToFirstOutputTokenMs: undefined,
         };
 
         // Track provider-executed tool calls that support deferred results.

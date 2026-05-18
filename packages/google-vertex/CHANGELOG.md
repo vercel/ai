@@ -1,5 +1,42 @@
 # @ai-sdk/google-vertex
 
+## 5.0.0-canary.85
+
+### Patch Changes
+
+- 42bdfa4: fix(google-vertex): propagate project-id set in provider instance creation
+- Updated dependencies [a6617c5]
+  - @ai-sdk/provider-utils@5.0.0-canary.42
+  - @ai-sdk/anthropic@4.0.0-canary.56
+  - @ai-sdk/google@4.0.0-canary.66
+  - @ai-sdk/openai-compatible@3.0.0-canary.49
+
+## 5.0.0-canary.84
+
+### Patch Changes
+
+- Updated dependencies [4e825f3]
+  - @ai-sdk/google@4.0.0-canary.65
+
+## 5.0.0-canary.83
+
+### Patch Changes
+
+- Updated dependencies [41da50c]
+  - @ai-sdk/google@4.0.0-canary.64
+
+## 5.0.0-canary.82
+
+### Patch Changes
+
+- Updated dependencies [a464505]
+- Updated dependencies [28dfa06]
+- Updated dependencies [e93fa91]
+  - @ai-sdk/anthropic@4.0.0-canary.55
+  - @ai-sdk/provider-utils@5.0.0-canary.41
+  - @ai-sdk/google@4.0.0-canary.63
+  - @ai-sdk/openai-compatible@3.0.0-canary.48
+
 ## 5.0.0-canary.81
 
 ### Patch Changes

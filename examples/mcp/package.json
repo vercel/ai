@@ -31,9 +31,9 @@
     "type-check": "tsc --build"
   },
   "dependencies": {
-    "@ai-sdk/openai": "4.0.0-canary.57",
-    "@modelcontextprotocol/sdk": "^1.26.0",
-    "ai": "7.0.0-canary.136",
+    "@ai-sdk/openai": "workspace:*",
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "ai": "workspace:*",
     "dotenv": "16.4.5",
     "express": "5.0.1",
     "zod": "3.25.76"
@@ -41,7 +41,7 @@
   "devDependencies": {
     "@ai-sdk/mcp": "workspace:*",
     "@types/express": "5.0.0",
-    "@types/node": "20.17.24",
+    "@types/node": "22.19.19",
     "tsx": "4.19.2",
     "typescript": "5.8.3"
   }

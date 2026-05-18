@@ -27,6 +27,7 @@ import {
   vi,
   vitest,
 } from 'vitest';
+import { mockSandboxFileStubs } from '../test/mock-sandbox';
 import { z } from 'zod/v4';
 import * as logWarningsModule from '../logger/log-warnings';
 import type { Instructions } from '../prompt';
@@ -933,11 +934,14 @@ describe('generateText', () => {
       });
 
       expect(result.finalStep.performance).toStrictEqual({
-        tokensPerSecond: 20,
+        effectiveOutputTokensPerSecond: 20,
+        outputTokensPerSecond: undefined,
+        inputTokensPerSecond: undefined,
+        effectiveTotalTokensPerSecond: 26,
         stepTimeMs: 500,
         responseTimeMs: 500,
         toolExecutionMs: {},
-        timeToFirstTokenMs: undefined,
+        timeToFirstOutputTokenMs: undefined,
       });
     });
 
@@ -976,13 +980,16 @@ describe('generateText', () => {
       });
 
       expect(result.finalStep.performance).toStrictEqual({
-        tokensPerSecond: 20,
+        effectiveOutputTokensPerSecond: 20,
+        outputTokensPerSecond: undefined,
+        inputTokensPerSecond: undefined,
+        effectiveTotalTokensPerSecond: 26,
         stepTimeMs: 1000,
         responseTimeMs: 500,
         toolExecutionMs: {
           'call-1': 300,
         },
-        timeToFirstTokenMs: undefined,
+        timeToFirstOutputTokenMs: undefined,
       });
     });
   });
@@ -2661,9 +2668,12 @@ describe('generateText', () => {
             "finishReason": "tool-calls",
             "modelId": "mock-model-id",
             "performance": {
+              "effectiveOutputTokensPerSecond": 0,
+              "effectiveTotalTokensPerSecond": 0,
+              "inputTokensPerSecond": undefined,
+              "outputTokensPerSecond": undefined,
               "responseTimeMs": 0,
-              "timeToFirstTokenMs": undefined,
-              "tokensPerSecond": 0,
+              "timeToFirstOutputTokenMs": undefined,
             },
             "provider": "mock-provider",
             "responseId": "response-1",
@@ -4099,10 +4109,13 @@ describe('generateText', () => {
                 "provider": "mock-provider",
               },
               "performance": {
+                "effectiveOutputTokensPerSecond": 0,
+                "effectiveTotalTokensPerSecond": 0,
+                "inputTokensPerSecond": undefined,
+                "outputTokensPerSecond": undefined,
                 "responseTimeMs": 0,
                 "stepTimeMs": 0,
-                "timeToFirstTokenMs": undefined,
-                "tokensPerSecond": 0,
+                "timeToFirstOutputTokenMs": undefined,
                 "toolExecutionMs": {
                   "call-1": 0,
                 },
@@ -4658,10 +4671,13 @@ describe('generateText', () => {
                     "provider": "mock-provider",
                   },
                   "performance": {
+                    "effectiveOutputTokensPerSecond": 0,
+                    "effectiveTotalTokensPerSecond": 0,
+                    "inputTokensPerSecond": undefined,
+                    "outputTokensPerSecond": undefined,
                     "responseTimeMs": 0,
                     "stepTimeMs": 0,
-                    "timeToFirstTokenMs": undefined,
-                    "tokensPerSecond": 0,
+                    "timeToFirstOutputTokenMs": undefined,
                     "toolExecutionMs": {
                       "call-1": 0,
                     },
@@ -4746,10 +4762,13 @@ describe('generateText', () => {
                     "provider": "mock-provider",
                   },
                   "performance": {
+                    "effectiveOutputTokensPerSecond": 0,
+                    "effectiveTotalTokensPerSecond": 0,
+                    "inputTokensPerSecond": undefined,
+                    "outputTokensPerSecond": undefined,
                     "responseTimeMs": 0,
                     "stepTimeMs": 0,
-                    "timeToFirstTokenMs": undefined,
-                    "tokensPerSecond": 0,
+                    "timeToFirstOutputTokenMs": undefined,
                     "toolExecutionMs": {},
                   },
                   "providerMetadata": undefined,
@@ -4876,10 +4895,13 @@ describe('generateText', () => {
                     "provider": "mock-provider",
                   },
                   "performance": {
+                    "effectiveOutputTokensPerSecond": 0,
+                    "effectiveTotalTokensPerSecond": 0,
+                    "inputTokensPerSecond": undefined,
+                    "outputTokensPerSecond": undefined,
                     "responseTimeMs": 0,
                     "stepTimeMs": 0,
-                    "timeToFirstTokenMs": undefined,
-                    "tokensPerSecond": 0,
+                    "timeToFirstOutputTokenMs": undefined,
                     "toolExecutionMs": {
                       "call-1": 0,
                     },
@@ -4964,10 +4986,13 @@ describe('generateText', () => {
                     "provider": "mock-provider",
                   },
                   "performance": {
+                    "effectiveOutputTokensPerSecond": 0,
+                    "effectiveTotalTokensPerSecond": 0,
+                    "inputTokensPerSecond": undefined,
+                    "outputTokensPerSecond": undefined,
                     "responseTimeMs": 0,
                     "stepTimeMs": 0,
-                    "timeToFirstTokenMs": undefined,
-                    "tokensPerSecond": 0,
+                    "timeToFirstOutputTokenMs": undefined,
                     "toolExecutionMs": {},
                   },
                   "providerMetadata": undefined,
@@ -5390,10 +5415,13 @@ describe('generateText', () => {
                     "provider": "mock-provider",
                   },
                   "performance": {
+                    "effectiveOutputTokensPerSecond": 0,
+                    "effectiveTotalTokensPerSecond": 0,
+                    "inputTokensPerSecond": undefined,
+                    "outputTokensPerSecond": undefined,
                     "responseTimeMs": 0,
                     "stepTimeMs": 0,
-                    "timeToFirstTokenMs": undefined,
-                    "tokensPerSecond": 0,
+                    "timeToFirstOutputTokenMs": undefined,
                     "toolExecutionMs": {
                       "call-1": 0,
                     },
@@ -5498,10 +5526,13 @@ describe('generateText', () => {
                     "provider": "mock-provider",
                   },
                   "performance": {
+                    "effectiveOutputTokensPerSecond": 0,
+                    "effectiveTotalTokensPerSecond": 0,
+                    "inputTokensPerSecond": undefined,
+                    "outputTokensPerSecond": undefined,
                     "responseTimeMs": 0,
                     "stepTimeMs": 0,
-                    "timeToFirstTokenMs": undefined,
-                    "tokensPerSecond": 0,
+                    "timeToFirstOutputTokenMs": undefined,
                     "toolExecutionMs": {
                       "call-1": 0,
                     },
@@ -8415,11 +8446,12 @@ describe('generateText', () => {
     it('should pass sandbox to tool execution', async () => {
       const sandbox = {
         description: 'test sandbox',
-        executeCommand: vi.fn(async () => ({
+        runCommand: vi.fn(async () => ({
           exitCode: 0,
           stdout: 'ok',
           stderr: '',
         })),
+        ...mockSandboxFileStubs,
       } satisfies Sandbox;
       let recordedSandbox: Sandbox | undefined;
 
@@ -8479,11 +8511,12 @@ describe('generateText', () => {
     it('should pass sandbox to prepareStep', async () => {
       const sandbox = {
         description: 'test sandbox',
-        executeCommand: vi.fn(async () => ({
+        runCommand: vi.fn(async () => ({
           exitCode: 0,
           stdout: 'ok',
           stderr: '',
         })),
+        ...mockSandboxFileStubs,
       } satisfies Sandbox;
       let capturedSandbox: Sandbox | undefined;
 
@@ -8508,19 +8541,21 @@ describe('generateText', () => {
     it('should use sandbox returned from prepareStep for that step only', async () => {
       const sandbox = {
         description: 'default sandbox',
-        executeCommand: vi.fn(async () => ({
+        runCommand: vi.fn(async () => ({
           exitCode: 0,
           stdout: 'ok',
           stderr: '',
         })),
+        ...mockSandboxFileStubs,
       } satisfies Sandbox;
       const stepSandbox = {
         description: 'step sandbox',
-        executeCommand: vi.fn(async () => ({
+        runCommand: vi.fn(async () => ({
           exitCode: 0,
           stdout: 'ok',
           stderr: '',
         })),
+        ...mockSandboxFileStubs,
       } satisfies Sandbox;
       const recordedSandboxes: Array<Sandbox | undefined> = [];
       let responseCount = 0;
@@ -9133,10 +9168,13 @@ describe('generateText', () => {
                 "provider": "mock-provider",
               },
               "performance": {
+                "effectiveOutputTokensPerSecond": 0,
+                "effectiveTotalTokensPerSecond": 0,
+                "inputTokensPerSecond": undefined,
+                "outputTokensPerSecond": undefined,
                 "responseTimeMs": 0,
                 "stepTimeMs": 0,
-                "timeToFirstTokenMs": undefined,
-                "tokensPerSecond": 0,
+                "timeToFirstOutputTokenMs": undefined,
                 "toolExecutionMs": {
                   "call-1": 0,
                 },

@@ -1,5 +1,60 @@
 # @ai-sdk/workflow
 
+## 1.0.0-canary.60
+
+### Patch Changes
+
+- b567a6c: dependency updates
+- Updated dependencies [a6617c5]
+  - @ai-sdk/provider-utils@5.0.0-canary.42
+  - ai@7.0.0-canary.143
+
+## 1.0.0-canary.59
+
+### Patch Changes
+
+- Updated dependencies [62d6481]
+  - ai@7.0.0-canary.142
+
+## 1.0.0-canary.58
+
+### Patch Changes
+
+- Updated dependencies [e3a0419]
+  - ai@7.0.0-canary.141
+
+## 1.0.0-canary.57
+
+### Patch Changes
+
+- ai@7.0.0-canary.140
+
+## 1.0.0-canary.56
+
+### Patch Changes
+
+- 334ae5d: Update step performance metrics with explicit effective, input, output, and total token throughput fields.
+- Updated dependencies [334ae5d]
+- Updated dependencies [28dfa06]
+- Updated dependencies [e93fa91]
+  - ai@7.0.0-canary.139
+  - @ai-sdk/provider-utils@5.0.0-canary.41
+
+## 1.0.0-canary.55
+
+### Patch Changes
+
+- ai@7.0.0-canary.138
+
+## 1.0.0-canary.54
+
+### Patch Changes
+
+- 98627e5: feat(ai): remove onChunk event from telemetry
+- Updated dependencies [98627e5]
+- Updated dependencies [476e1ca]
+  - ai@7.0.0-canary.137
+
 ## 1.0.0-canary.53
 
 ### Patch Changes

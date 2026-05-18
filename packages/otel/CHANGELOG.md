@@ -1,5 +1,58 @@
 # @ai-sdk/otel
 
+## 1.0.0-canary.89
+
+### Patch Changes
+
+- Updated dependencies [a6617c5]
+  - ai@7.0.0-canary.143
+
+## 1.0.0-canary.88
+
+### Patch Changes
+
+- Updated dependencies [62d6481]
+  - ai@7.0.0-canary.142
+
+## 1.0.0-canary.87
+
+### Patch Changes
+
+- Updated dependencies [e3a0419]
+  - ai@7.0.0-canary.141
+
+## 1.0.0-canary.86
+
+### Patch Changes
+
+- ai@7.0.0-canary.140
+
+## 1.0.0-canary.85
+
+### Patch Changes
+
+- 334ae5d: Update step performance metrics with explicit effective, input, output, and total token throughput fields.
+- Updated dependencies [334ae5d]
+- Updated dependencies [28dfa06]
+- Updated dependencies [e93fa91]
+  - ai@7.0.0-canary.139
+
+## 1.0.0-canary.84
+
+### Patch Changes
+
+- ai@7.0.0-canary.138
+
+## 1.0.0-canary.83
+
+### Patch Changes
+
+- 98627e5: feat(ai): remove onChunk event from telemetry
+- 476e1ca: feat(ai): remove telemetry dependency on onChunk callback
+- Updated dependencies [98627e5]
+- Updated dependencies [476e1ca]
+  - ai@7.0.0-canary.137
+
 ## 1.0.0-canary.82
 
 ### Patch Changes

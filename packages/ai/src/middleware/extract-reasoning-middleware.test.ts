@@ -30,11 +30,14 @@ function normalizeFullStreamPerformance(parts: Array<TextStreamPart<any>>) {
       ? {
           ...part,
           performance: {
+            effectiveOutputTokensPerSecond: 0,
+            outputTokensPerSecond: 0,
+            inputTokensPerSecond: 0,
+            effectiveTotalTokensPerSecond: 0,
             responseTimeMs: 0,
             stepTimeMs: 0,
-            timeToFirstTokenMs: 0,
+            timeToFirstOutputTokenMs: 0,
             toolExecutionMs: {},
-            tokensPerSecond: 0,
           },
         }
       : part,
@@ -363,10 +366,13 @@ describe('extractReasoningMiddleware', () => {
           {
             "finishReason": "stop",
             "performance": {
+              "effectiveOutputTokensPerSecond": 0,
+              "effectiveTotalTokensPerSecond": 0,
+              "inputTokensPerSecond": 0,
+              "outputTokensPerSecond": 0,
               "responseTimeMs": 0,
               "stepTimeMs": 0,
-              "timeToFirstTokenMs": 0,
-              "tokensPerSecond": 0,
+              "timeToFirstOutputTokenMs": 0,
               "toolExecutionMs": {},
             },
             "providerMetadata": undefined,
@@ -524,10 +530,13 @@ describe('extractReasoningMiddleware', () => {
           {
             "finishReason": "stop",
             "performance": {
+              "effectiveOutputTokensPerSecond": 0,
+              "effectiveTotalTokensPerSecond": 0,
+              "inputTokensPerSecond": 0,
+              "outputTokensPerSecond": 0,
               "responseTimeMs": 0,
               "stepTimeMs": 0,
-              "timeToFirstTokenMs": 0,
-              "tokensPerSecond": 0,
+              "timeToFirstOutputTokenMs": 0,
               "toolExecutionMs": {},
             },
             "providerMetadata": undefined,
@@ -662,10 +671,13 @@ describe('extractReasoningMiddleware', () => {
           {
             "finishReason": "stop",
             "performance": {
+              "effectiveOutputTokensPerSecond": 0,
+              "effectiveTotalTokensPerSecond": 0,
+              "inputTokensPerSecond": 0,
+              "outputTokensPerSecond": 0,
               "responseTimeMs": 0,
               "stepTimeMs": 0,
-              "timeToFirstTokenMs": 0,
-              "tokensPerSecond": 0,
+              "timeToFirstOutputTokenMs": 0,
               "toolExecutionMs": {},
             },
             "providerMetadata": undefined,
@@ -817,10 +829,13 @@ describe('extractReasoningMiddleware', () => {
           {
             "finishReason": "stop",
             "performance": {
+              "effectiveOutputTokensPerSecond": 0,
+              "effectiveTotalTokensPerSecond": 0,
+              "inputTokensPerSecond": 0,
+              "outputTokensPerSecond": 0,
               "responseTimeMs": 0,
               "stepTimeMs": 0,
-              "timeToFirstTokenMs": 0,
-              "tokensPerSecond": 0,
+              "timeToFirstOutputTokenMs": 0,
               "toolExecutionMs": {},
             },
             "providerMetadata": undefined,
@@ -923,10 +938,13 @@ describe('extractReasoningMiddleware', () => {
           {
             "finishReason": "stop",
             "performance": {
+              "effectiveOutputTokensPerSecond": 0,
+              "effectiveTotalTokensPerSecond": 0,
+              "inputTokensPerSecond": 0,
+              "outputTokensPerSecond": 0,
               "responseTimeMs": 0,
               "stepTimeMs": 0,
-              "timeToFirstTokenMs": 0,
-              "tokensPerSecond": 0,
+              "timeToFirstOutputTokenMs": 0,
               "toolExecutionMs": {},
             },
             "providerMetadata": undefined,
@@ -1043,10 +1061,13 @@ describe('extractReasoningMiddleware', () => {
           {
             "finishReason": "stop",
             "performance": {
+              "effectiveOutputTokensPerSecond": 0,
+              "effectiveTotalTokensPerSecond": 0,
+              "inputTokensPerSecond": 0,
+              "outputTokensPerSecond": 0,
               "responseTimeMs": 0,
               "stepTimeMs": 0,
-              "timeToFirstTokenMs": 0,
-              "tokensPerSecond": 0,
+              "timeToFirstOutputTokenMs": 0,
               "toolExecutionMs": {},
             },
             "providerMetadata": undefined,

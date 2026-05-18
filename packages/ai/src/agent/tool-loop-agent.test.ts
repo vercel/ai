@@ -8,6 +8,7 @@ import {
   mockId,
 } from '@ai-sdk/provider-utils/test';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { mockSandboxFileStubs } from '../test/mock-sandbox';
 import { z } from 'zod/v4';
 import type {
   GenerateTextOnFinishCallback,
@@ -104,11 +105,12 @@ describe('ToolLoopAgent', () => {
     it('should pass sandbox to prepareCall', async () => {
       const sandbox = {
         description: 'test sandbox',
-        executeCommand: vi.fn(async () => ({
+        runCommand: vi.fn(async () => ({
           exitCode: 0,
           stdout: 'ok',
           stderr: '',
         })),
+        ...mockSandboxFileStubs,
       } satisfies Sandbox;
       let recordedSandbox: Sandbox | undefined;
 
@@ -157,11 +159,12 @@ describe('ToolLoopAgent', () => {
     it('should pass sandbox to tool execution', async () => {
       const sandbox = {
         description: 'test sandbox',
-        executeCommand: vi.fn(async () => ({
+        runCommand: vi.fn(async () => ({
           exitCode: 0,
           stdout: 'ok',
           stderr: '',
         })),
+        ...mockSandboxFileStubs,
       } satisfies Sandbox;
       let recordedSandbox: Sandbox | undefined;
       let modelCallCount = 0;
@@ -689,11 +692,12 @@ describe('ToolLoopAgent', () => {
     it('should pass sandbox to prepareCall', async () => {
       const sandbox = {
         description: 'test sandbox',
-        executeCommand: vi.fn(async () => ({
+        runCommand: vi.fn(async () => ({
           exitCode: 0,
           stdout: 'ok',
           stderr: '',
         })),
+        ...mockSandboxFileStubs,
       } satisfies Sandbox;
       let recordedSandbox: Sandbox | undefined;
 
@@ -751,11 +755,12 @@ describe('ToolLoopAgent', () => {
     it('should pass sandbox to tool execution', async () => {
       const sandbox = {
         description: 'test sandbox',
-        executeCommand: vi.fn(async () => ({
+        runCommand: vi.fn(async () => ({
           exitCode: 0,
           stdout: 'ok',
           stderr: '',
         })),
+        ...mockSandboxFileStubs,
       } satisfies Sandbox;
       let recordedSandbox: Sandbox | undefined;
       let modelCallCount = 0;

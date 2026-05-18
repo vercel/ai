@@ -1,5 +1,26 @@
 # @ai-sdk/openai
 
+## 4.0.0-canary.60
+
+### Patch Changes
+
+- Updated dependencies [a6617c5]
+  - @ai-sdk/provider-utils@5.0.0-canary.42
+
+## 4.0.0-canary.59
+
+### Patch Changes
+
+- 685cec7: feat(openai): add opt-in pass-through for unsupported file media types
+
+## 4.0.0-canary.58
+
+### Patch Changes
+
+- Updated dependencies [28dfa06]
+- Updated dependencies [e93fa91]
+  - @ai-sdk/provider-utils@5.0.0-canary.41
+
 ## 4.0.0-canary.57
 
 ### Patch Changes

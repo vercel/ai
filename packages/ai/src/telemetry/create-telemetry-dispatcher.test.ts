@@ -25,7 +25,6 @@ describe('createTelemetryDispatcher', () => {
     expect(telemetry.onLanguageModelCallEnd).toBeDefined();
     expect(telemetry.onToolExecutionStart).toBeDefined();
     expect(telemetry.onToolExecutionEnd).toBeDefined();
-    expect(telemetry.onChunk).toBeDefined();
     expect(telemetry.onStepFinish).toBeDefined();
     expect(telemetry.onObjectStepStart).toBeDefined();
     expect(telemetry.onObjectStepFinish).toBeDefined();
@@ -145,7 +144,6 @@ describe('createTelemetryDispatcher', () => {
       onLanguageModelCallEnd: vi.fn(),
       onToolExecutionStart: vi.fn(),
       onToolExecutionEnd: vi.fn(),
-      onChunk: vi.fn(),
       onStepFinish: vi.fn(),
       onObjectStepStart: vi.fn(),
       onObjectStepFinish: vi.fn(),
@@ -167,7 +165,6 @@ describe('createTelemetryDispatcher', () => {
     await telemetry.onLanguageModelCallEnd!(dummyEvent);
     await telemetry.onToolExecutionStart!(dummyEvent);
     await telemetry.onToolExecutionEnd!(dummyEvent);
-    await telemetry.onChunk!(dummyEvent);
     await telemetry.onStepFinish!(dummyEvent);
     await telemetry.onObjectStepStart!(dummyEvent);
     await telemetry.onObjectStepFinish!(dummyEvent);
@@ -184,7 +181,6 @@ describe('createTelemetryDispatcher', () => {
     expect(integration.onLanguageModelCallEnd).toHaveBeenCalledOnce();
     expect(integration.onToolExecutionStart).toHaveBeenCalledOnce();
     expect(integration.onToolExecutionEnd).toHaveBeenCalledOnce();
-    expect(integration.onChunk).toHaveBeenCalledOnce();
     expect(integration.onStepFinish).toHaveBeenCalledOnce();
     expect(integration.onObjectStepStart).toHaveBeenCalledOnce();
     expect(integration.onObjectStepFinish).toHaveBeenCalledOnce();
@@ -214,7 +210,6 @@ describe('createTelemetryDispatcher', () => {
         onStepStart: vi.fn(),
         onToolExecutionStart: vi.fn(),
         onToolExecutionEnd: vi.fn(),
-        onChunk: vi.fn(),
         onStepFinish: vi.fn(),
         onObjectStepStart: vi.fn(),
         onObjectStepFinish: vi.fn(),
@@ -234,7 +229,6 @@ describe('createTelemetryDispatcher', () => {
       expect(telemetry.onStepStart).toBeUndefined();
       expect(telemetry.onToolExecutionStart).toBeUndefined();
       expect(telemetry.onToolExecutionEnd).toBeUndefined();
-      expect(telemetry.onChunk).toBeUndefined();
       expect(telemetry.onStepFinish).toBeUndefined();
       expect(telemetry.onObjectStepStart).toBeUndefined();
       expect(telemetry.onObjectStepFinish).toBeUndefined();

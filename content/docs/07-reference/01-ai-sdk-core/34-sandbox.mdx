@@ -30,7 +30,7 @@ make it available to tool description functions and tool execution.
 ```ts
 type Experimental_Sandbox = {
   readonly description: string;
-  readonly executeCommand: (options: {
+  readonly runCommand: (options: {
     command: string;
     workingDirectory?: string;
     abortSignal?: AbortSignal;
@@ -53,7 +53,7 @@ type Experimental_Sandbox = {
         'Description of the experimental sandbox environment. Include this in your prompt or instructions when the model needs to know details such as the root directory, exposed ports, public hostname, or other environment constraints. The AI SDK does not add it to the prompt automatically.',
     },
     {
-      name: 'executeCommand',
+      name: 'runCommand',
       type: '(options: { command: string; workingDirectory?: string; abortSignal?: AbortSignal }) => PromiseLike<{ exitCode: number; stdout: string; stderr: string }>',
       description:
         'Executes a command in the experimental sandbox and resolves with the command exit code, standard output, and standard error.',
@@ -113,7 +113,7 @@ const shell = tool({
       throw new Error('Experimental sandbox is not available');
     }
 
-    return experimental_sandbox.executeCommand({
+    return experimental_sandbox.runCommand({
       command,
       workingDirectory,
       abortSignal,

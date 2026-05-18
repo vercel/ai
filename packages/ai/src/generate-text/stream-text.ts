@@ -1781,9 +1781,12 @@ class DefaultStreamTextResult<
           let stepProviderMetadata: ProviderMetadata | undefined;
           let stepFirstChunk = true;
           let responseTimeMs = 0;
-          let tokensPerSecond = 0;
+          let effectiveOutputTokensPerSecond = 0;
+          let outputTokensPerSecond: number | undefined;
+          let inputTokensPerSecond: number | undefined;
+          let effectiveTotalTokensPerSecond = 0;
           const toolExecutionMs: Record<string, number> = {};
-          let timeToFirstTokenMs: number | undefined;
+          let timeToFirstOutputTokenMs: number | undefined;
           let stepResponse: { id: string; timestamp: Date; modelId: string } = {
             id: generateId(),
             timestamp: new Date(),
@@ -1805,7 +1808,6 @@ class DefaultStreamTextResult<
                   }
 
                   if (stepFirstChunk) {
-                    const msToFirstChunk = now() - stepStartTimestampMs;
                     stepFirstChunk = false;
 
                     // Step start:
@@ -1813,17 +1815,6 @@ class DefaultStreamTextResult<
                       type: 'start-step',
                       request: stepRequest,
                       warnings: warnings ?? [],
-                    });
-
-                    void telemetryDispatcher.onChunk?.({
-                      chunk: {
-                        type: 'ai.stream.firstChunk',
-                        callId,
-                        stepNumber: recordedSteps.length,
-                        attributes: {
-                          'ai.response.msToFirstChunk': msToFirstChunk,
-                        },
-                      },
                     });
                   }
 
@@ -1904,20 +1895,16 @@ class DefaultStreamTextResult<
                       stepRawFinishReason = chunk.rawFinishReason;
                       stepProviderMetadata = chunk.providerMetadata;
                       responseTimeMs = chunk.performance.responseTimeMs;
-                      tokensPerSecond = chunk.performance.tokensPerSecond;
-                      timeToFirstTokenMs = chunk.performance.timeToFirstTokenMs;
-                      void telemetryDispatcher.onChunk?.({
-                        chunk: {
-                          type: 'ai.stream.finish',
-                          callId,
-                          stepNumber: recordedSteps.length,
-                          attributes: {
-                            'ai.response.msToFinish': responseTimeMs,
-                            'ai.response.avgOutputTokensPerSecond':
-                              tokensPerSecond,
-                          },
-                        },
-                      });
+                      effectiveOutputTokensPerSecond =
+                        chunk.performance.effectiveOutputTokensPerSecond;
+                      outputTokensPerSecond =
+                        chunk.performance.outputTokensPerSecond;
+                      inputTokensPerSecond =
+                        chunk.performance.inputTokensPerSecond;
+                      effectiveTotalTokensPerSecond =
+                        chunk.performance.effectiveTotalTokensPerSecond;
+                      timeToFirstOutputTokenMs =
+                        chunk.performance.timeToFirstOutputTokenMs;
 
                       break;
                     }
@@ -1940,14 +1927,6 @@ class DefaultStreamTextResult<
                       throw new Error(`Unknown chunk type: ${exhaustiveCheck}`);
                     }
                   }
-
-                  if (
-                    chunkType !== 'model-call-end' &&
-                    chunkType !== 'model-call-response-metadata' &&
-                    chunkType !== 'tool-execution-end'
-                  ) {
-                    void telemetryDispatcher.onChunk?.({ chunk });
-                  }
                 },
 
                 // invoke onFinish callback and resolve toolResults promise when the stream is about to close:
@@ -1962,9 +1941,12 @@ class DefaultStreamTextResult<
                     performance: {
                       stepTimeMs,
                       responseTimeMs,
-                      tokensPerSecond,
+                      effectiveOutputTokensPerSecond,
+                      outputTokensPerSecond,
+                      inputTokensPerSecond,
+                      effectiveTotalTokensPerSecond,
                       toolExecutionMs,
-                      timeToFirstTokenMs,
+                      timeToFirstOutputTokenMs,
                     },
                     providerMetadata: stepProviderMetadata,
                     response: {

@@ -9,6 +9,7 @@ import {
   mockId,
 } from '@ai-sdk/provider-utils/test';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { mockSandboxFileStubs } from '../test/mock-sandbox';
 import { z } from 'zod/v4';
 import { TypeValidationError } from '../error';
 import { asLanguageModelUsage } from '../types/usage';
@@ -46,8 +47,11 @@ const finishChunk = {
   }),
   performance: {
     responseTimeMs: 0,
-    timeToFirstTokenMs: undefined,
-    tokensPerSecond: 0,
+    effectiveOutputTokensPerSecond: 0,
+    outputTokensPerSecond: undefined,
+    inputTokensPerSecond: undefined,
+    effectiveTotalTokensPerSecond: 0,
+    timeToFirstOutputTokenMs: undefined,
   },
 };
 
@@ -107,9 +111,12 @@ describe('executeToolsFromStream', () => {
           {
             "finishReason": "stop",
             "performance": {
+              "effectiveOutputTokensPerSecond": 0,
+              "effectiveTotalTokensPerSecond": 0,
+              "inputTokensPerSecond": undefined,
+              "outputTokensPerSecond": undefined,
               "responseTimeMs": 0,
-              "timeToFirstTokenMs": undefined,
-              "tokensPerSecond": 0,
+              "timeToFirstOutputTokenMs": undefined,
             },
             "rawFinishReason": "stop",
             "type": "model-call-end",
@@ -181,67 +188,71 @@ describe('executeToolsFromStream', () => {
 
     expect(await convertReadableStreamToArray(transformedStream))
       .toMatchInlineSnapshot(`
-      [
-        {
-          "input": {
-            "value": "test",
-          },
-          "toolCallId": "call-1",
-          "toolName": "syncTool",
-          "type": "tool-call",
-        },
-        {
-          "finishReason": "stop",
-          "performance": {
-            "responseTimeMs": 0,
-            "timeToFirstTokenMs": undefined,
-            "tokensPerSecond": 0,
-          },
-          "rawFinishReason": "stop",
-          "type": "model-call-end",
-          "usage": {
-            "inputTokenDetails": {
-              "cacheReadTokens": undefined,
-              "cacheWriteTokens": undefined,
-              "noCacheTokens": 3,
+        [
+          {
+            "input": {
+              "value": "test",
             },
-            "inputTokens": 3,
-            "outputTokenDetails": {
-              "reasoningTokens": undefined,
-              "textTokens": 10,
+            "toolCallId": "call-1",
+            "toolName": "syncTool",
+            "type": "tool-call",
+          },
+          {
+            "finishReason": "stop",
+            "performance": {
+              "effectiveOutputTokensPerSecond": 0,
+              "effectiveTotalTokensPerSecond": 0,
+              "inputTokensPerSecond": undefined,
+              "outputTokensPerSecond": undefined,
+              "responseTimeMs": 0,
+              "timeToFirstOutputTokenMs": undefined,
             },
-            "outputTokens": 10,
-            "raw": undefined,
-            "totalTokens": 13,
+            "rawFinishReason": "stop",
+            "type": "model-call-end",
+            "usage": {
+              "inputTokenDetails": {
+                "cacheReadTokens": undefined,
+                "cacheWriteTokens": undefined,
+                "noCacheTokens": 3,
+              },
+              "inputTokens": 3,
+              "outputTokenDetails": {
+                "reasoningTokens": undefined,
+                "textTokens": 10,
+              },
+              "outputTokens": 10,
+              "raw": undefined,
+              "totalTokens": 13,
+            },
           },
-        },
-        {
-          "toolCallId": "call-1",
-          "toolExecutionMs": 0,
-          "type": "tool-execution-end",
-        },
-        {
-          "dynamic": false,
-          "input": {
-            "value": "test",
+          {
+            "toolCallId": "call-1",
+            "toolExecutionMs": 0,
+            "type": "tool-execution-end",
           },
-          "output": "test-sync-result",
-          "toolCallId": "call-1",
-          "toolName": "syncTool",
-          "type": "tool-result",
-        },
-      ]
-    `);
+          {
+            "dynamic": false,
+            "input": {
+              "value": "test",
+            },
+            "output": "test-sync-result",
+            "toolCallId": "call-1",
+            "toolName": "syncTool",
+            "type": "tool-result",
+          },
+        ]
+      `);
   });
 
   it('should pass sandbox to tool execution', async () => {
     const sandbox = {
       description: 'test sandbox',
-      executeCommand: vi.fn(async () => ({
+      runCommand: vi.fn(async () => ({
         exitCode: 0,
         stdout: 'ok',
         stderr: '',
       })),
+      ...mockSandboxFileStubs,
     } satisfies Sandbox;
     let receivedSandbox: Sandbox | undefined;
 
@@ -417,9 +428,12 @@ describe('executeToolsFromStream', () => {
           {
             "finishReason": "stop",
             "performance": {
+              "effectiveOutputTokensPerSecond": 0,
+              "effectiveTotalTokensPerSecond": 0,
+              "inputTokensPerSecond": undefined,
+              "outputTokensPerSecond": undefined,
               "responseTimeMs": 0,
-              "timeToFirstTokenMs": undefined,
-              "tokensPerSecond": 0,
+              "timeToFirstOutputTokenMs": undefined,
             },
             "rawFinishReason": "stop",
             "type": "model-call-end",
@@ -544,9 +558,12 @@ describe('executeToolsFromStream', () => {
           {
             "finishReason": "stop",
             "performance": {
+              "effectiveOutputTokensPerSecond": 0,
+              "effectiveTotalTokensPerSecond": 0,
+              "inputTokensPerSecond": undefined,
+              "outputTokensPerSecond": undefined,
               "responseTimeMs": 0,
-              "timeToFirstTokenMs": undefined,
-              "tokensPerSecond": 0,
+              "timeToFirstOutputTokenMs": undefined,
             },
             "rawFinishReason": "stop",
             "type": "model-call-end",
@@ -1206,9 +1223,12 @@ describe('executeToolsFromStream', () => {
           {
             "finishReason": "stop",
             "performance": {
+              "effectiveOutputTokensPerSecond": 0,
+              "effectiveTotalTokensPerSecond": 0,
+              "inputTokensPerSecond": undefined,
+              "outputTokensPerSecond": undefined,
               "responseTimeMs": 0,
-              "timeToFirstTokenMs": undefined,
-              "tokensPerSecond": 0,
+              "timeToFirstOutputTokenMs": undefined,
             },
             "rawFinishReason": "stop",
             "type": "model-call-end",
@@ -1299,9 +1319,12 @@ describe('executeToolsFromStream', () => {
           {
             "finishReason": "stop",
             "performance": {
+              "effectiveOutputTokensPerSecond": 0,
+              "effectiveTotalTokensPerSecond": 0,
+              "inputTokensPerSecond": undefined,
+              "outputTokensPerSecond": undefined,
               "responseTimeMs": 0,
-              "timeToFirstTokenMs": undefined,
-              "tokensPerSecond": 0,
+              "timeToFirstOutputTokenMs": undefined,
             },
             "rawFinishReason": "stop",
             "type": "model-call-end",

@@ -6,6 +6,7 @@ import {
   type ToolSet,
 } from '@ai-sdk/provider-utils';
 import { describe, expect, it } from 'vitest';
+import { mockSandboxFileStubs } from '../test/mock-sandbox';
 import { prepareTools } from './prepare-tools';
 
 const mockTools = {
@@ -236,11 +237,12 @@ describe('prepareTools', () => {
   it('resolves function descriptions from toolsContext and sandbox', async () => {
     const sandbox: Sandbox = {
       description: 'test-sandbox',
-      executeCommand: async () => ({
+      runCommand: async () => ({
         exitCode: 0,
         stdout: '',
         stderr: '',
       }),
+      ...mockSandboxFileStubs,
     };
 
     const result = await prepareTools({

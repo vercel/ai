@@ -1,5 +1,23 @@
 # @ai-sdk/togetherai
 
+## 3.0.0-canary.49
+
+### Patch Changes
+
+- 2458cea: Fix: omit `seed` from request body when undefined to avoid "Unsupported use of 'seed' parameter" errors from non-diffusion models (e.g. google/gemini-3-pro-image)
+- Updated dependencies [a6617c5]
+  - @ai-sdk/provider-utils@5.0.0-canary.42
+  - @ai-sdk/openai-compatible@3.0.0-canary.49
+
+## 3.0.0-canary.48
+
+### Patch Changes
+
+- Updated dependencies [28dfa06]
+- Updated dependencies [e93fa91]
+  - @ai-sdk/provider-utils@5.0.0-canary.41
+  - @ai-sdk/openai-compatible@3.0.0-canary.48
+
 ## 3.0.0-canary.47
 
 ### Patch Changes

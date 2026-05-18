@@ -67,16 +67,16 @@ type OpenBlockState =
       kind: 'function_call';
       id: string;
       toolCallId: string;
-      toolName: string | undefined;
-      arguments: Record<string, unknown>;
-      signature?: string;
+      toolName: string;
       /**
-       * Whether `tool-input-start` has been emitted. Deferred until we know
-       * the tool name -- `content.start` for a function_call only carries
-       * `type: 'function_call'`; `id`, `name`, and `arguments` arrive on
-       * `content.delta`.
+       * Accumulator for partial JSON arguments. Arguments stream as a
+       * sequence of `arguments_delta` substrings on `step.delta`; each one is
+       * appended verbatim and surfaced as a `tool-input-delta`. On
+       * `step.stop` the accumulated string is parsed to recover the full
+       * arguments object for the final `tool-call` event.
        */
-      startEmitted: boolean;
+      argumentsAccum: string;
+      signature?: string;
     }
   | {
       kind: 'builtin_tool_call';
@@ -97,14 +97,22 @@ type OpenBlockState =
       isError?: boolean;
       resultEmitted: boolean;
     }
+  /**
+   * A `model_output` step whose inner content-block kind has not yet been
+   * disambiguated. `step.start` may arrive bare (`{type: 'model_output'}`,
+   * no content payload); the first `step.delta` reveals whether the block
+   * is text or image. The block opens in this transitional state and swaps
+   * to `text` / `image` on the first matching delta.
+   */
+  | { kind: 'pending_model_output'; id: string }
   | { kind: 'unknown'; id: string };
 
 /**
  * Builds a `TransformStream<ParseResult<GoogleInteractionsEvent>, LanguageModelV4StreamPart>`
- * over the seven Interactions SSE event types.
+ * over the Interactions API SSE event stream.
  *
  * Surfaces text + thought (reasoning), function_call, image, built-in tool
- * call/result blocks, and `text_annotation` -> `source` parts.
+ * call/result steps, and `text_annotation` -> `source` parts.
  */
 export function buildGoogleInteractionsStreamTransform({
   warnings,
@@ -118,10 +126,9 @@ export function buildGoogleInteractionsStreamTransform({
   /**
    * Defensive fallback for service tier read from the `x-gemini-service-tier`
    * HTTP response header. The Interactions API surfaces the applied tier in
-   * the `interaction.complete` event body (see `service_tier` below); this
+   * the `interaction.completed` event body (see `service_tier` below); this
    * parameter exists so we still surface a tier if the API later starts
-   * sending the header (matching `google-language-model.ts` commit
-   * 1adfb76d2d).
+   * sending the header.
    */
   serviceTier?: string;
 }): TransformStream<
@@ -135,10 +142,10 @@ export function buildGoogleInteractionsStreamTransform({
   let hasFunctionCall = false;
 
   /*
-   * Per-index open content slots. The Interactions API frames concurrent
-   * content blocks (e.g. text alongside thought) by `index`; we track each
-   * open slot independently so a text delta at index N never collides with a
-   * thought delta at index M.
+   * Per-index open step slots. The Interactions API frames concurrent steps
+   * (e.g. text alongside thought) by `index`; we track each open slot
+   * independently so a text delta at index N never collides with a thought
+   * delta at index M.
    */
   const openBlocks = new Map<number, OpenBlockState>();
 
@@ -178,17 +185,17 @@ export function buildGoogleInteractionsStreamTransform({
       const eventType = (value as { event_type?: string }).event_type;
 
       switch (eventType) {
-        case 'interaction.start': {
+        case 'interaction.created': {
           const event = value as Extract<
             GoogleInteractionsEvent,
-            { event_type: 'interaction.start' }
+            { event_type: 'interaction.created' }
           >;
           const interaction = event.interaction;
           /*
            * The Interactions API returns `id: ""` (empty string) on streaming
-           * `interaction.start` / `interaction.complete` events when running
-           * with `store: false` — there is no server-side record. Treat empty
-           * string the same as missing so providerMetadata stays clean.
+           * events when running with `store: false` — there is no server-side
+           * record. Treat empty string the same as missing so providerMetadata
+           * stays clean.
            */
           interactionId =
             interaction?.id != null && interaction.id.length > 0
@@ -214,12 +221,12 @@ export function buildGoogleInteractionsStreamTransform({
           break;
         }
 
-        case 'content.start': {
+        case 'step.start': {
           const event = value as Extract<
             GoogleInteractionsEvent,
-            { event_type: 'content.start' }
+            { event_type: 'step.start' }
           >;
-          const block = event.content as
+          const step = event.step as
             | {
                 type?: string;
                 id?: string;
@@ -227,118 +234,163 @@ export function buildGoogleInteractionsStreamTransform({
                 name?: string;
                 arguments?: Record<string, unknown>;
                 signature?: string;
+                summary?: Array<{ type?: string; text?: string }>;
                 result?: unknown;
                 is_error?: boolean;
-                annotations?: Array<GoogleInteractionsAnnotation>;
+                content?: Array<{
+                  type?: string;
+                  text?: string;
+                  data?: string;
+                  mime_type?: string;
+                  uri?: string;
+                  annotations?: Array<GoogleInteractionsAnnotation>;
+                }>;
               }
             | undefined;
           const index = event.index;
           const blockId = `${interactionId ?? 'interaction'}:${index}`;
+          const stepType = step?.type;
 
-          if (block?.type === 'text') {
-            openBlocks.set(index, {
-              kind: 'text',
-              id: blockId,
-              emittedSourceKeys: new Set<string>(),
-            });
-            controller.enqueue({ type: 'text-start', id: blockId });
+          if (stepType === 'model_output') {
+            /*
+             * `step.start` for a `model_output` step often carries only the
+             * type discriminator — content/image payloads then arrive on
+             * subsequent `step.delta` events. Open in a transitional
+             * `pending_model_output` state; the first delta promotes it to
+             * either `text` (and emits `text-start`) or `image`.
+             *
+             * `step.content[0]` may also arrive populated as a hint; when
+             * present, promote eagerly.
+             */
+            const initial = step?.content?.[0] as
+              | {
+                  type?: string;
+                  text?: string;
+                  data?: string;
+                  mime_type?: string;
+                  uri?: string;
+                  annotations?: Array<GoogleInteractionsAnnotation>;
+                }
+              | undefined;
+            if (initial?.type === 'text') {
+              openBlocks.set(index, {
+                kind: 'text',
+                id: blockId,
+                emittedSourceKeys: new Set<string>(),
+              });
+              controller.enqueue({ type: 'text-start', id: blockId });
 
-            // text content blocks may already carry annotations on open.
-            const initialSources = annotationsToSources({
-              annotations: block.annotations,
-              generateId,
-            });
-            for (const source of initialSources) {
-              const key = sourceKey(source);
-              if (emittedSourceKeys.has(key)) continue;
-              emittedSourceKeys.add(key);
-              controller.enqueue(source);
+              const initialSources = annotationsToSources({
+                annotations: initial.annotations,
+                generateId,
+              });
+              for (const source of initialSources) {
+                const key = sourceKey(source);
+                if (emittedSourceKeys.has(key)) continue;
+                emittedSourceKeys.add(key);
+                controller.enqueue(source);
+              }
+            } else if (initial?.type === 'image') {
+              openBlocks.set(index, {
+                kind: 'image',
+                id: blockId,
+                ...(initial.data != null ? { data: initial.data } : {}),
+                ...(initial.mime_type != null
+                  ? { mimeType: initial.mime_type }
+                  : {}),
+                ...(initial.uri != null ? { uri: initial.uri } : {}),
+              });
+            } else {
+              openBlocks.set(index, {
+                kind: 'pending_model_output',
+                id: blockId,
+              });
             }
-          } else if (block?.type === 'image') {
-            const img = block as {
-              data?: string;
-              mime_type?: string;
-              uri?: string;
-            };
-            openBlocks.set(index, {
-              kind: 'image',
-              id: blockId,
-              ...(img.data != null ? { data: img.data } : {}),
-              ...(img.mime_type != null ? { mimeType: img.mime_type } : {}),
-              ...(img.uri != null ? { uri: img.uri } : {}),
-            });
-          } else if (block?.type === 'thought') {
-            const signature = (block as { signature?: string }).signature;
+          } else if (stepType === 'thought') {
+            const signature = step?.signature;
             openBlocks.set(index, {
               kind: 'reasoning',
               id: blockId,
               ...(signature != null ? { signature } : {}),
             });
             controller.enqueue({ type: 'reasoning-start', id: blockId });
-          } else if (block?.type === 'function_call') {
-            const fc = block;
-            const toolCallId = fc.id ?? blockId;
+            /*
+             * A `thought` step's initial `summary[]` may already contain text
+             * items on `step.start` — emit those as reasoning deltas so the
+             * consumer's reasoning buffer is up to date before any delta
+             * arrives.
+             */
+            if (Array.isArray(step?.summary)) {
+              for (const item of step.summary) {
+                if (item?.type === 'text' && typeof item.text === 'string') {
+                  controller.enqueue({
+                    type: 'reasoning-delta',
+                    id: blockId,
+                    delta: item.text,
+                  });
+                }
+              }
+            }
+          } else if (stepType === 'function_call') {
+            const toolCallId = step?.id ?? blockId;
+            const toolName = step?.name ?? 'unknown';
             hasFunctionCall = true;
             const state: Extract<OpenBlockState, { kind: 'function_call' }> = {
               kind: 'function_call',
               id: blockId,
               toolCallId,
-              toolName: fc.name,
-              arguments: fc.arguments ?? {},
-              ...(fc.signature != null ? { signature: fc.signature } : {}),
-              startEmitted: false,
+              toolName,
+              argumentsAccum: '',
+              ...(step?.signature != null ? { signature: step.signature } : {}),
             };
             openBlocks.set(index, state);
-            if (state.toolName != null) {
-              controller.enqueue({
-                type: 'tool-input-start',
-                id: toolCallId,
-                toolName: state.toolName,
-              });
-              state.startEmitted = true;
-            }
+            controller.enqueue({
+              type: 'tool-input-start',
+              id: toolCallId,
+              toolName,
+            });
           } else if (
-            block?.type != null &&
-            BUILTIN_TOOL_CALL_TYPES.has(block.type)
+            stepType != null &&
+            BUILTIN_TOOL_CALL_TYPES.has(stepType)
           ) {
             const toolName =
-              block.type === 'mcp_server_tool_call'
-                ? (block.name ?? 'mcp_server_tool')
-                : builtinToolNameFromCallType(block.type);
-            const toolCallId = block.id ?? blockId;
+              stepType === 'mcp_server_tool_call'
+                ? (step?.name ?? 'mcp_server_tool')
+                : builtinToolNameFromCallType(stepType);
+            const toolCallId = step?.id ?? blockId;
             const state: Extract<
               OpenBlockState,
               { kind: 'builtin_tool_call' }
             > = {
               kind: 'builtin_tool_call',
               id: blockId,
-              blockType: block.type,
+              blockType: stepType,
               toolCallId,
               toolName,
-              arguments: block.arguments ?? {},
+              arguments: step?.arguments ?? {},
               callEmitted: false,
             };
             openBlocks.set(index, state);
           } else if (
-            block?.type != null &&
-            BUILTIN_TOOL_RESULT_TYPES.has(block.type)
+            stepType != null &&
+            BUILTIN_TOOL_RESULT_TYPES.has(stepType)
           ) {
             const toolName =
-              block.type === 'mcp_server_tool_result'
-                ? (block.name ?? 'mcp_server_tool')
-                : builtinToolNameFromResultType(block.type);
-            const callId = block.call_id ?? blockId;
+              stepType === 'mcp_server_tool_result'
+                ? (step?.name ?? 'mcp_server_tool')
+                : builtinToolNameFromResultType(stepType);
+            const callId = step?.call_id ?? blockId;
             const state: Extract<
               OpenBlockState,
               { kind: 'builtin_tool_result' }
             > = {
               kind: 'builtin_tool_result',
               id: blockId,
-              blockType: block.type,
+              blockType: stepType,
               callId,
               toolName,
-              result: block.result ?? null,
-              ...(block.is_error != null ? { isError: block.is_error } : {}),
+              result: step?.result ?? null,
+              ...(step?.is_error != null ? { isError: step.is_error } : {}),
               resultEmitted: false,
             };
             openBlocks.set(index, state);
@@ -348,13 +400,83 @@ export function buildGoogleInteractionsStreamTransform({
           break;
         }
 
-        case 'content.delta': {
+        case 'step.delta': {
           const event = value as Extract<
             GoogleInteractionsEvent,
-            { event_type: 'content.delta' }
+            { event_type: 'step.delta' }
           >;
-          const open = openBlocks.get(event.index);
+          let open = openBlocks.get(event.index);
           if (open == null) break;
+
+          const dtype = (event.delta as { type?: string } | undefined)?.type;
+
+          /*
+           * Promote a pending model_output block to `text` on the first
+           * text-shaped delta. Image deltas are emitted inline below — a
+           * model_output step can interleave text and image deltas, so the
+           * text "open block" stays in place across image emissions instead
+           * of being swapped for an image state.
+           */
+          if (open.kind === 'pending_model_output') {
+            if (
+              dtype === 'text' ||
+              dtype === 'text_annotation' ||
+              dtype === 'text_annotation_delta'
+            ) {
+              const promoted: Extract<OpenBlockState, { kind: 'text' }> = {
+                kind: 'text',
+                id: open.id,
+                emittedSourceKeys: new Set<string>(),
+              };
+              openBlocks.set(event.index, promoted);
+              open = promoted;
+              controller.enqueue({ type: 'text-start', id: promoted.id });
+            }
+          }
+
+          /*
+           * Image deltas inside `model_output` carry the full payload in a
+           * single chunk (no per-byte streaming). Emit the `file` part as
+           * soon as the delta arrives so it surfaces regardless of whether
+           * a text block is currently open at the same index.
+           */
+          if (
+            dtype === 'image' &&
+            (open.kind === 'pending_model_output' ||
+              open.kind === 'text' ||
+              open.kind === 'image')
+          ) {
+            const img = event.delta as
+              | { data?: string; mime_type?: string; uri?: string }
+              | undefined;
+            const google: Record<string, string> = {};
+            if (interactionId != null) google.interactionId = interactionId;
+            const providerMetadata =
+              Object.keys(google).length > 0 ? { google } : undefined;
+            if (img?.data != null && img.data.length > 0) {
+              controller.enqueue({
+                type: 'file',
+                mediaType: img.mime_type ?? 'image/png',
+                data: { type: 'data', data: img.data },
+                ...(providerMetadata ? { providerMetadata } : {}),
+              });
+            } else if (img?.uri != null && img.uri.length > 0) {
+              controller.enqueue({
+                type: 'file',
+                mediaType: img.mime_type ?? 'image/png',
+                data: { type: 'url', url: new URL(img.uri) },
+                ...(providerMetadata ? { providerMetadata } : {}),
+              });
+            }
+            // The file part was emitted inline; clear any data on an
+            // eagerly-promoted image OpenBlockState so the `step.stop`
+            // handler does not emit a duplicate.
+            if (open.kind === 'image') {
+              open.data = undefined;
+              open.uri = undefined;
+            }
+            break;
+          }
 
           const delta = event.delta as
             | {
@@ -363,8 +485,13 @@ export function buildGoogleInteractionsStreamTransform({
                 signature?: string;
                 content?: { type?: string; text?: string };
                 id?: string;
-                name?: string;
-                arguments?: Record<string, unknown>;
+                /*
+                 * `arguments` carries different shapes per delta kind:
+                 * - `type: 'arguments_delta'` → `string` (partial JSON)
+                 * - `type: '<builtin>_tool_call'` → `Record<string, unknown>`
+                 * The branch handler reads it with the matching type.
+                 */
+                arguments?: Record<string, unknown> | string;
                 annotations?: Array<GoogleInteractionsAnnotation>;
                 call_id?: string;
                 result?: unknown;
@@ -372,6 +499,7 @@ export function buildGoogleInteractionsStreamTransform({
                 data?: string;
                 mime_type?: string;
                 uri?: string;
+                name?: string;
               }
             | undefined;
 
@@ -386,7 +514,8 @@ export function buildGoogleInteractionsStreamTransform({
             }
           } else if (
             open.kind === 'text' &&
-            delta?.type === 'text_annotation'
+            (delta?.type === 'text_annotation' ||
+              delta?.type === 'text_annotation_delta')
           ) {
             const sources = annotationsToSources({
               annotations: delta.annotations,
@@ -400,14 +529,6 @@ export function buildGoogleInteractionsStreamTransform({
               controller.enqueue(source);
             }
           } else if (open.kind === 'image' && delta?.type === 'image') {
-            /*
-             * `image` ContentDelta carries the entire image payload as a
-             * complete object (`data` base64 + `mime_type`, or `uri`) per
-             * `googleapis/js-genai`
-             * `src/interactions/resources/interactions.ts`
-             * `ContentDelta.Image`. Accumulate the latest snapshot; emit the
-             * file stream part on `content.stop`.
-             */
             if (delta.data != null) open.data = delta.data;
             if (delta.mime_type != null) open.mimeType = delta.mime_type;
             if (delta.uri != null) open.uri = delta.uri;
@@ -429,39 +550,31 @@ export function buildGoogleInteractionsStreamTransform({
             }
           } else if (
             open.kind === 'function_call' &&
-            delta?.type === 'function_call'
+            delta?.type === 'arguments_delta'
           ) {
             /*
-             * `function_call` ContentDelta carries the entire call as a
-             * complete object (id, name, arguments) per
-             * `googleapis/js-genai` `src/interactions/resources/interactions.ts`
-             * `ContentDelta.FunctionCall` (line ~458) -- there is no token
-             * streaming of the JSON arguments. We accumulate the latest
-             * snapshot and emit a single `tool-input-delta` carrying the
-             * stringified args at content.stop.
-             *
-             * The `name` typically arrives here (not on `content.start`), so
-             * defer `tool-input-start` emission until we observe it.
+             * Partial JSON arguments arrive as `arguments_delta` events.
+             * The partial JSON string lives in `delta.arguments` (a string,
+             * not the parsed object — the `arguments_delta` name applies to
+             * the discriminator only). Append to the accumulator and surface
+             * each chunk as a `tool-input-delta`; the full arguments object
+             * is emitted at `step.stop`.
              */
+            const slice =
+              typeof delta.arguments === 'string' ? delta.arguments : '';
+            if (slice.length > 0) {
+              open.argumentsAccum += slice;
+              controller.enqueue({
+                type: 'tool-input-delta',
+                id: open.toolCallId,
+                delta: slice,
+              });
+            }
             if (delta.id != null) {
               open.toolCallId = delta.id;
             }
-            if (delta.name != null) {
-              open.toolName = delta.name;
-            }
-            if (delta.arguments != null) {
-              open.arguments = delta.arguments;
-            }
             if (delta.signature != null) {
               open.signature = delta.signature;
-            }
-            if (!open.startEmitted && open.toolName != null) {
-              controller.enqueue({
-                type: 'tool-input-start',
-                id: open.toolCallId,
-                toolName: open.toolName,
-              });
-              open.startEmitted = true;
             }
             hasFunctionCall = true;
           } else if (
@@ -469,7 +582,12 @@ export function buildGoogleInteractionsStreamTransform({
             delta?.type === open.blockType
           ) {
             if (delta.id != null) open.toolCallId = delta.id;
-            if (delta.arguments != null) open.arguments = delta.arguments;
+            if (
+              delta.arguments != null &&
+              typeof delta.arguments === 'object'
+            ) {
+              open.arguments = delta.arguments;
+            }
             if (
               delta.name != null &&
               open.blockType === 'mcp_server_tool_call'
@@ -493,10 +611,10 @@ export function buildGoogleInteractionsStreamTransform({
           break;
         }
 
-        case 'content.stop': {
+        case 'step.stop': {
           const event = value as Extract<
             GoogleInteractionsEvent,
-            { event_type: 'content.stop' }
+            { event_type: 'step.stop' }
           >;
           const open = openBlocks.get(event.index);
           if (open == null) break;
@@ -543,20 +661,8 @@ export function buildGoogleInteractionsStreamTransform({
               });
             }
           } else if (open.kind === 'function_call') {
-            const toolName = open.toolName ?? 'unknown';
-            const argsJson = JSON.stringify(open.arguments ?? {});
-            if (!open.startEmitted) {
-              controller.enqueue({
-                type: 'tool-input-start',
-                id: open.toolCallId,
-                toolName,
-              });
-            }
-            controller.enqueue({
-              type: 'tool-input-delta',
-              id: open.toolCallId,
-              delta: argsJson,
-            });
+            const accumulated =
+              open.argumentsAccum.length > 0 ? open.argumentsAccum : '{}';
             controller.enqueue({
               type: 'tool-input-end',
               id: open.toolCallId,
@@ -569,8 +675,8 @@ export function buildGoogleInteractionsStreamTransform({
             controller.enqueue({
               type: 'tool-call',
               toolCallId: open.toolCallId,
-              toolName,
-              input: argsJson,
+              toolName: open.toolName,
+              input: accumulated,
               ...(providerMetadata ? { providerMetadata } : {}),
             });
           } else if (open.kind === 'builtin_tool_call' && !open.callEmitted) {
@@ -613,19 +719,32 @@ export function buildGoogleInteractionsStreamTransform({
           break;
         }
 
-        case 'interaction.status_update': {
+        case 'interaction.status_update':
+        case 'interaction.in_progress':
+        case 'interaction.requires_action': {
           const event = value as Extract<
             GoogleInteractionsEvent,
-            { event_type: 'interaction.status_update' }
+            {
+              event_type:
+                | 'interaction.status_update'
+                | 'interaction.in_progress'
+                | 'interaction.requires_action';
+            }
           >;
-          finishStatus = event.status;
+          if (event.status != null) {
+            finishStatus = event.status;
+          } else if (eventType === 'interaction.requires_action') {
+            finishStatus = 'requires_action';
+          } else {
+            finishStatus = 'in_progress';
+          }
           break;
         }
 
-        case 'interaction.complete': {
+        case 'interaction.completed': {
           const event = value as Extract<
             GoogleInteractionsEvent,
-            { event_type: 'interaction.complete' }
+            { event_type: 'interaction.completed' }
           >;
           const interaction = event.interaction as {
             id?: string;
@@ -644,7 +763,7 @@ export function buildGoogleInteractionsStreamTransform({
           }
           /*
            * The Interactions API surfaces the applied service tier on
-           * `interaction.complete.interaction.service_tier` (NOT on the
+           * `interaction.completed.interaction.service_tier` (NOT on the
            * `x-gemini-service-tier` HTTP header that `:generateContent`
            * uses). Body wins over header fallback.
            */

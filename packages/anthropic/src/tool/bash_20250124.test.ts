@@ -16,7 +16,7 @@ describe('bash_20250124 tool', () => {
         context: {},
         experimental_sandbox: {
           description: 'test sandbox',
-          executeCommand: async ({ abortSignal }) => {
+          runCommand: async ({ abortSignal }) => {
             receivedAbortSignal = abortSignal;
 
             return {
@@ -25,6 +25,12 @@ describe('bash_20250124 tool', () => {
               stderr: '',
             };
           },
+          readFile: async () => null,
+          readBinaryFile: async () => null,
+          readTextFile: async () => null,
+          writeFile: async () => {},
+          writeBinaryFile: async () => {},
+          writeTextFile: async () => {},
         },
       },
     );

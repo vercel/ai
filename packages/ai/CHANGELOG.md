@@ -1,5 +1,60 @@
 # ai
 
+## 7.0.0-canary.143
+
+### Patch Changes
+
+- a6617c5: feat(provider-utils): add `readFile` and `writeFile` plus convenience wrappers to `Experimental_Sandbox` abstraction
+- Updated dependencies [a6617c5]
+- Updated dependencies [032c4a5]
+  - @ai-sdk/provider-utils@5.0.0-canary.42
+  - @ai-sdk/gateway@4.0.0-canary.84
+
+## 7.0.0-canary.142
+
+### Patch Changes
+
+- 62d6481: Post-publish release notifications now link to each package’s GitHub release and npm page.
+
+## 7.0.0-canary.141
+
+### Patch Changes
+
+- e3a0419: fix(ai): default missing embedding warnings to an empty array
+
+## 7.0.0-canary.140
+
+### Patch Changes
+
+- Updated dependencies [1d6fb7f]
+  - @ai-sdk/gateway@4.0.0-canary.83
+
+## 7.0.0-canary.139
+
+### Patch Changes
+
+- 334ae5d: Update step performance metrics with explicit effective, input, output, and total token throughput fields.
+- 28dfa06: fix: support tools with optional context
+- e93fa91: rename Sandbox.executeCommand to Sandbox.runCommand
+- Updated dependencies [28dfa06]
+- Updated dependencies [e93fa91]
+  - @ai-sdk/provider-utils@5.0.0-canary.41
+  - @ai-sdk/gateway@4.0.0-canary.82
+
+## 7.0.0-canary.138
+
+### Patch Changes
+
+- Updated dependencies [67c4011]
+  - @ai-sdk/gateway@4.0.0-canary.81
+
+## 7.0.0-canary.137
+
+### Patch Changes
+
+- 98627e5: feat(ai): remove onChunk event from telemetry
+- 476e1ca: feat(ai): remove telemetry dependency on onChunk callback
+
 ## 7.0.0-canary.136
 
 ### Patch Changes

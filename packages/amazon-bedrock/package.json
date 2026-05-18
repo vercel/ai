@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/amazon-bedrock",
-  "version": "5.0.0-canary.61",
+  "version": "5.0.0-canary.64",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -16,7 +16,8 @@
     "!src/**/__fixtures__",
     "CHANGELOG.md",
     "README.md",
-    "anthropic/index.d.ts"
+    "anthropic/index.d.ts",
+    "mantle/index.d.ts"
   ],
   "directories": {
     "doc": "./docs"
@@ -45,21 +46,27 @@
       "types": "./dist/anthropic/index.d.ts",
       "import": "./dist/anthropic/index.js",
       "default": "./dist/anthropic/index.js"
+    },
+    "./mantle": {
+      "types": "./dist/mantle/index.d.ts",
+      "import": "./dist/mantle/index.mjs",
+      "require": "./dist/mantle/index.js"
     }
   },
   "dependencies": {
     "@ai-sdk/anthropic": "workspace:*",
+    "@ai-sdk/openai": "workspace:*",
     "@ai-sdk/provider": "workspace:*",
     "@ai-sdk/provider-utils": "workspace:*",
-    "@smithy/eventstream-codec": "^4.0.1",
-    "@smithy/util-utf8": "^4.0.0",
+    "@smithy/eventstream-codec": "^4.3.3",
+    "@smithy/util-utf8": "^4.3.3",
     "aws4fetch": "^1.0.20"
   },
   "devDependencies": {
     "@ai-sdk/test-server": "workspace:*",
-    "@types/node": "20.17.24",
+    "@types/node": "22.19.19",
     "@vercel/ai-tsconfig": "workspace:*",
-    "tsup": "^8.3.0",
+    "tsup": "^8.5.1",
     "typescript": "5.8.3",
     "zod": "3.25.76"
   },
@@ -67,7 +74,7 @@
     "zod": "^3.25.76 || ^4.1.8"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=22"
   },
   "publishConfig": {
     "access": "public",

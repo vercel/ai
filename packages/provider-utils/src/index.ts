@@ -18,6 +18,7 @@ export {
 } from './detect-media-type';
 export { downloadBlob } from './download-blob';
 export { DownloadError } from './download-error';
+export { extractLines } from './extract-lines';
 export * from './extract-response-headers';
 export * from './fetch-function';
 export { filterNullable } from './filter-nullable';

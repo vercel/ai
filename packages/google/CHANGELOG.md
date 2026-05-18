@@ -1,5 +1,32 @@
 # @ai-sdk/google
 
+## 4.0.0-canary.66
+
+### Patch Changes
+
+- Updated dependencies [a6617c5]
+  - @ai-sdk/provider-utils@5.0.0-canary.42
+
+## 4.0.0-canary.65
+
+### Patch Changes
+
+- 4e825f3: feat(google): update Interactions API implementation to cater for upstream breaking changes coming May 26
+
+## 4.0.0-canary.64
+
+### Patch Changes
+
+- 41da50c: fix(provider/google): support `functionCall.id` when returned by Gemini API and provide matching `functionResponse.id`
+
+## 4.0.0-canary.63
+
+### Patch Changes
+
+- Updated dependencies [28dfa06]
+- Updated dependencies [e93fa91]
+  - @ai-sdk/provider-utils@5.0.0-canary.41
+
 ## 4.0.0-canary.62
 
 ### Patch Changes
