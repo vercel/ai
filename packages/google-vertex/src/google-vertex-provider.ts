@@ -146,7 +146,6 @@ export function createVertex(
       description: 'Google Vertex project',
     });
 
-<<<<<<< HEAD
   const loadVertexLocation = () =>
     loadSetting({
       settingValue: options.location,
@@ -154,17 +153,6 @@ export function createVertex(
       environmentVariableName: 'GOOGLE_VERTEX_LOCATION',
       description: 'Google Vertex location',
     });
-=======
-  const googleAuthOptions =
-    options.project == null
-      ? options.googleAuthOptions
-      : {
-          projectId: options.project,
-          ...options.googleAuthOptions,
-        };
-
-  const generateAuthToken = createAuthTokenGenerator(googleAuthOptions);
->>>>>>> 42bdfa4c4 (fix(google-vertex): propagate project-id set in provider instance creation (#15391))
 
   const loadBaseURL = () => {
     if (apiKey) {
