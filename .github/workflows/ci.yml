@@ -60,8 +60,20 @@ jobs:
         run: pnpm konsistent
 
   build-examples:
-    name: 'Build Examples'
+    name: 'Build Examples (${{ matrix.shard }})'
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - shard: next-core
+            filters: --filter=@example/next --filter=@example/next-openai --filter=@example/next-agent
+          - shard: next-integrations
+            filters: --filter=@example/next-fastapi --filter=@example/next-google-vertex --filter=@example/next-langchain --filter=@example/next-workflow
+          - shard: next-telemetry
+            filters: --filter=@example/next-openai-kasada-bot-protection --filter=@example/next-openai-pages --filter=@example/next-openai-rate-limits --filter=@example/next-openai-telemetry --filter=@example/next-openai-telemetry-sentry
+          - shard: other-frameworks
+            filters: --filter=@example/angular --filter=@example/nest --filter=@example/nuxt-openai --filter=@example/sveltekit-openai
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -80,8 +92,19 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Restore build caches
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: |
+            .turbo/cache
+            examples/**/.next/cache
+            examples/**/.angular/cache
+          key: ${{ runner.os }}-build-examples-${{ matrix.shard }}-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-build-examples-${{ matrix.shard }}-
+
       - name: Build Examples
-        run: pnpm run build:examples
+        run: pnpm exec turbo build ${{ matrix.filters }}
 
   types:
     name: 'TypeScript'
