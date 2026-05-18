@@ -5,12 +5,9 @@ import { isAbsolute, join, dirname } from 'node:path';
 import { Readable, type Writable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import { promisify } from 'node:util';
+import { extractLines } from '@ai-sdk/provider-utils';
 import { type Experimental_Sandbox as Sandbox } from 'ai';
-import {
-  bytesToStream,
-  collectStream,
-  sliceTextLines,
-} from './lib/stream-utils';
+import { bytesToStream, collectStream } from './lib/stream-utils';
 
 const execAsync = promisify(exec);
 
@@ -151,7 +148,7 @@ export class LocalSandbox implements Sandbox {
     const bytes = await this.readBinaryFile({ path, abortSignal });
     if (bytes == null) return null;
     const text = Buffer.from(bytes).toString(encoding as BufferEncoding);
-    return sliceTextLines({ text, startLine, endLine });
+    return extractLines({ text, startLine, endLine });
   }
 
   async writeTextFile({

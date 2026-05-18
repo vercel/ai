@@ -1,11 +1,8 @@
 import { isAbsolute, join } from 'node:path';
+import { extractLines } from '@ai-sdk/provider-utils';
 import { type Experimental_Sandbox as Sandbox } from 'ai';
 import { type Bash } from 'just-bash';
-import {
-  bytesToStream,
-  collectStream,
-  sliceTextLines,
-} from './lib/stream-utils';
+import { bytesToStream, collectStream } from './lib/stream-utils';
 
 export class JustBashSandbox implements Sandbox {
   constructor(private readonly bash: Bash) {}
@@ -116,7 +113,7 @@ export class JustBashSandbox implements Sandbox {
     const bytes = await this.readBinaryFile({ path, abortSignal });
     if (bytes == null) return null;
     const text = Buffer.from(bytes).toString(encoding as BufferEncoding);
-    return sliceTextLines({ text, startLine, endLine });
+    return extractLines({ text, startLine, endLine });
   }
 
   async writeTextFile({
