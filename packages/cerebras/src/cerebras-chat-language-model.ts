@@ -6,6 +6,16 @@ import type {
   LanguageModelV4StreamPart,
   LanguageModelV4StreamResult,
 } from '@ai-sdk/provider';
+import {
+  serializeModelOptions,
+  WORKFLOW_DESERIALIZE,
+  WORKFLOW_SERIALIZE,
+} from '@ai-sdk/provider-utils';
+import type { CerebrasChatModelId } from './cerebras-chat-language-model-options';
+
+type CerebrasChatConfig = ConstructorParameters<
+  typeof OpenAICompatibleChatLanguageModel
+>[1];
 
 function isStructuredOutputWithToolCallsFinishReason({
   rawFinishReason,
@@ -27,6 +37,20 @@ export class CerebrasChatLanguageModel
   extends OpenAICompatibleChatLanguageModel
   implements LanguageModelV4
 {
+  static [WORKFLOW_SERIALIZE](model: CerebrasChatLanguageModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: CerebrasChatModelId;
+    config: CerebrasChatConfig;
+  }) {
+    return new CerebrasChatLanguageModel(options.modelId, options.config);
+  }
+
   async doGenerate(
     options: LanguageModelV4CallOptions,
   ): Promise<LanguageModelV4GenerateResult> {
