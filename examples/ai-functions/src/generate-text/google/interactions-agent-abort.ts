@@ -1,4 +1,7 @@
-import { createGoogleGenerativeAI } from '@ai-sdk/google';
+import {
+  createGoogleGenerativeAI,
+  type GoogleLanguageModelInteractionsOptions,
+} from '@ai-sdk/google';
 import { generateText } from 'ai';
 import { run } from '../../lib/run';
 
@@ -68,7 +71,9 @@ run(async () => {
         'Compile an exhaustive survey of every paper published on retrieval-augmented generation since 2020. Include all authors, abstracts, and links.',
       abortSignal: ac.signal,
       providerOptions: {
-        google: { background: true },
+        google: {
+          background: true,
+        } satisfies GoogleLanguageModelInteractionsOptions,
       },
     });
     console.log('Unexpected: generateText returned without abort');
