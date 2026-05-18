@@ -822,7 +822,7 @@ The following gateway provider options are available:
 
 - **zeroDataRetention** _boolean_
 
-  Restricts routing to providers with zero data retention agreements with Vercel for AI Gateway. BYOK credentials are skipped by default, since your provider agreements differ from Vercel's. If you have BYOK keys marked as ZDR, AI Gateway tries those keys first, then falls back to ZDR system credentials. You are responsible for the accuracy of that marking. Applies to both account-wide and request-level ZDR. The request fails if no ZDR-eligible credentials are available. Request-level ZDR is only available for Vercel Pro and Enterprise plans.
+  Restricts routing to providers with zero data retention agreements with Vercel for AI Gateway. BYOK credentials are skipped by default, since your provider agreements differ from Vercel's. When this filter is on, the routing set is restricted to ZDR providers for the model. If you have BYOK keys marked as ZDR, AI Gateway tries those keys first, then falls back to system credentials for the remaining ZDR providers in the routing set. You are responsible for the accuracy of that marking. Applies to both account-wide and request-level ZDR. The request fails if no ZDR-eligible credentials are available. Request-level ZDR is only available for Vercel Pro and Enterprise plans.
 
 - **disallowPromptTraining** _boolean_
 
@@ -889,7 +889,7 @@ const { text } = await generateText({
 
 #### Zero Data Retention Example
 
-Set `zeroDataRetention` to true to route requests to providers with zero data retention agreements with Vercel for AI Gateway. BYOK credentials are skipped by default, since your provider agreements differ from Vercel's. If you have BYOK keys marked as ZDR, AI Gateway tries those keys first, then falls back to ZDR system credentials. You are responsible for the accuracy of that marking. Applies to both account-wide and request-level ZDR. The request fails if no ZDR-eligible credentials are available. When `zeroDataRetention` is `false` or not specified, there is no enforcement of restricting routing. Request-level ZDR is only available for Vercel Pro and Enterprise plans.
+Set `zeroDataRetention` to true to route requests to providers with zero data retention agreements with Vercel for AI Gateway. BYOK credentials are skipped by default, since your provider agreements differ from Vercel's. When this filter is on, the routing set is restricted to ZDR providers for the model. If you have BYOK keys marked as ZDR, AI Gateway tries those keys first, then falls back to system credentials for the remaining ZDR providers in the routing set. You are responsible for the accuracy of that marking. Applies to both account-wide and request-level ZDR. The request fails if no ZDR-eligible credentials are available. When `zeroDataRetention` is `false` or not specified, there is no enforcement of restricting routing. Request-level ZDR is only available for Vercel Pro and Enterprise plans.
 
 ```ts
 import type { GatewayProviderOptions } from '@ai-sdk/gateway';
