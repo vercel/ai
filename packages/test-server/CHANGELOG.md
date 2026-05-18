@@ -1,5 +1,11 @@
 # @ai-sdk/test-server
 
+## 2.0.0-canary.5
+
+### Patch Changes
+
+- b567a6c: dependency updates
+
 ## 2.0.0-canary.4
 
 ### Patch Changes
