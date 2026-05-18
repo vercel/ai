@@ -41,12 +41,12 @@
     }
   },
   "dependencies": {
-    "msw": "^2.7.0"
+    "msw": "^2.14.6"
   },
   "devDependencies": {
     "@types/node": "22.19.19",
     "@vercel/ai-tsconfig": "workspace:*",
-    "tsup": "^8",
+    "tsup": "^8.5.1",
     "typescript": "5.8.3"
   },
   "engines": {

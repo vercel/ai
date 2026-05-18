@@ -52,7 +52,7 @@
     "@types/node": "22.19.19",
     "@vercel/ai-tsconfig": "workspace:*",
     "msw": "2.7.0",
-    "tsup": "^8",
+    "tsup": "^8.5.1",
     "typescript": "5.8.3",
     "zod": "3.25.76"
   },

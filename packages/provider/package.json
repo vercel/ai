@@ -38,7 +38,7 @@
     "@types/json-schema": "7.0.15",
     "@types/node": "22.19.19",
     "@vercel/ai-tsconfig": "workspace:*",
-    "tsup": "^8",
+    "tsup": "^8.5.1",
     "typescript": "5.8.3"
   },
   "engines": {

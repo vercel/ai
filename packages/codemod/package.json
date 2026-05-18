@@ -28,18 +28,18 @@
     "generate-readme": "tsx scripts/generate-readme.ts"
   },
   "devDependencies": {
-    "ai": "workspace:*",
     "@types/cli-progress": "^3.11.6",
-    "@types/debug": "^4.1.12",
+    "@types/debug": "^4.1.13",
     "@types/jscodeshift": "^0.12.0",
-    "@types/node": "22.19.19",
-    "@types/semver": "^7.5.8",
+    "@types/node": "20.17.24",
+    "@types/semver": "^7.7.1",
     "@vercel/ai-tsconfig": "workspace:*",
+    "ai": "workspace:*",
     "msw": "2.6.4",
-    "tsup": "^8",
+    "tsup": "^8.5.1",
     "tsx": "4.19.2",
     "typescript": "5.8.3",
-    "vitest": "^4.1.5"
+    "vitest": "^4.1.6"
   },
   "bin": {
     "codemod": "./dist/bin/codemod.js"
@@ -67,6 +67,6 @@
     "cli-progress": "^3.12.0",
     "commander": "^12.1.0",
     "debug": "^4.4.3",
-    "jscodeshift": "^17.1.1"
+    "jscodeshift": "^17.3.0"
   }
 }

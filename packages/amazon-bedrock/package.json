@@ -58,15 +58,15 @@
     "@ai-sdk/openai": "workspace:*",
     "@ai-sdk/provider": "workspace:*",
     "@ai-sdk/provider-utils": "workspace:*",
-    "@smithy/eventstream-codec": "^4.0.1",
-    "@smithy/util-utf8": "^4.0.0",
+    "@smithy/eventstream-codec": "^4.3.3",
+    "@smithy/util-utf8": "^4.3.3",
     "aws4fetch": "^1.0.20"
   },
   "devDependencies": {
     "@ai-sdk/test-server": "workspace:*",
     "@types/node": "22.19.19",
     "@vercel/ai-tsconfig": "workspace:*",
-    "tsup": "^8.3.0",
+    "tsup": "^8.5.1",
     "typescript": "5.8.3",
     "zod": "3.25.76"
   },

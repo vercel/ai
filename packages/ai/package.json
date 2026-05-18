@@ -68,7 +68,7 @@
     "@vercel/ai-tsconfig": "workspace:*",
     "esbuild": "^0.24.2",
     "tsup": "^7.2.0",
-    "tsx": "^4.19.2",
+    "tsx": "^4.22.0",
     "typescript": "5.8.3",
     "zod": "3.25.76"
   },
