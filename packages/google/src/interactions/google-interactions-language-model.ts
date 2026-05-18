@@ -479,8 +479,8 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
     } = postResult;
 
     /*
-     * Agent calls run with `background: true`; the POST returns immediately
-     * with a non-terminal status (`in_progress` / `requires_action`). Poll
+     * Agent calls may return a non-terminal status (`in_progress` /
+     * `requires_action`) when invoked with `background: true`. Poll
      * `GET /interactions/{id}` until terminal so the user-facing surface
      * matches a synchronous call.
      */
