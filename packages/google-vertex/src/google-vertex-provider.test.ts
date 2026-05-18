@@ -93,6 +93,7 @@ describe('google-vertex-provider', () => {
     );
   });
 
+<<<<<<< HEAD
   it('should create an embedding model with correct settings', () => {
     const provider = createVertex({
       project: 'test-project',
@@ -281,6 +282,47 @@ describe('google-vertex-provider', () => {
 
   it('should use express mode base URL when apiKey is provided', () => {
     const provider = createVertex({
+=======
+  it('passes project to createAuthTokenGenerator as projectId', async () => {
+    createVertexNode({
+      project: 'test-project',
+    });
+
+    expect(createGoogleVertexOriginal).toHaveBeenCalledTimes(1);
+    const passedOptions = vi.mocked(createGoogleVertexOriginal).mock
+      .calls[0][0];
+
+    await resolve(passedOptions?.headers); // call the headers function
+
+    expect(createAuthTokenGenerator).toHaveBeenCalledWith({
+      projectId: 'test-project',
+    });
+  });
+
+  it('does not override explicit googleAuthOptions projectId', async () => {
+    createVertexNode({
+      project: 'provider-project',
+      googleAuthOptions: {
+        projectId: 'auth-project',
+        keyFile: 'path/to/key.json',
+      },
+    });
+
+    expect(createGoogleVertexOriginal).toHaveBeenCalledTimes(1);
+    const passedOptions = vi.mocked(createGoogleVertexOriginal).mock
+      .calls[0][0];
+
+    await resolve(passedOptions?.headers); // call the headers function
+
+    expect(createAuthTokenGenerator).toHaveBeenCalledWith({
+      projectId: 'auth-project',
+      keyFile: 'path/to/key.json',
+    });
+  });
+
+  it('should pass options through to base provider when apiKey is provided', async () => {
+    createVertexNode({
+>>>>>>> 42bdfa4c4 (fix(google-vertex): propagate project-id set in provider instance creation (#15391))
       apiKey: 'test-api-key',
     });
     provider('test-model-id');
