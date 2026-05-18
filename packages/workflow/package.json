@@ -41,13 +41,13 @@
     "@ai-sdk/provider": "workspace:*",
     "@ai-sdk/provider-utils": "workspace:*",
     "ai": "workspace:*",
-    "ajv": "^8.18.0"
+    "ajv": "^8.20.0"
   },
   "devDependencies": {
     "@types/node": "20.17.24",
     "@vercel/ai-tsconfig": "workspace:*",
     "@workflow/vitest": "4.0.1",
-    "tsup": "^8",
+    "tsup": "^8.5.1",
     "typescript": "5.8.3",
     "workflow": "4.2.4",
     "zod": "3.25.76"
