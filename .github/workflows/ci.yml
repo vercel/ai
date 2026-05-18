@@ -168,10 +168,30 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Detect RSC e2e changes
+        id: rsc-e2e
+        run: |
+          if [ "${{ github.event_name }}" != "pull_request" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          git fetch --no-tags --depth=1 origin "$BASE_SHA"
+
+          if git diff --name-only "$BASE_SHA" "${{ github.sha }}" | grep -E '^(packages/rsc/|pnpm-lock.yaml|package.json)$'; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Install Playwright Browsers
+        if: steps.rsc-e2e.outputs.run == 'true'
         run: pnpm exec playwright install --with-deps
 
       - name: Run tests
+        env:
+          SKIP_RSC_E2E: ${{ steps.rsc-e2e.outputs.run == 'true' && '0' || '1' }}
         run: pnpm test
 
   # separate "test" job to set as required in branch protections,
