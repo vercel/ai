@@ -1638,6 +1638,163 @@ on how to integrate reasoning into your chatbot.
   Connector which are not supported on Bedrock.
 </Note>
 
+## Bedrock Mantle Provider Usage
+
+The Bedrock Mantle provider offers access to OpenAI-compatible models through Amazon Bedrock's Mantle API at `https://bedrock-mantle.{region}.api.aws/v1`. This endpoint supports the Chat Completions API and the Responses API, and provides access to models that may only be available through the Mantle endpoint (such as `openai.gpt-oss-120b`).
+
+### Provider Instance
+
+You can import the default provider instance `bedrockMantle` from `@ai-sdk/amazon-bedrock/mantle`:
+
+```typescript
+import { bedrockMantle } from '@ai-sdk/amazon-bedrock/mantle';
+```
+
+If you need a customized setup, you can import `createBedrockMantle` from `@ai-sdk/amazon-bedrock/mantle` and create a provider instance with your settings:
+
+```typescript
+import { createBedrockMantle } from '@ai-sdk/amazon-bedrock/mantle';
+
+const bedrockMantle = createBedrockMantle({
+  region: 'us-east-1', // optional
+  accessKeyId: 'xxxxxxxxx', // optional
+  secretAccessKey: 'xxxxxxxxx', // optional
+  sessionToken: 'xxxxxxxxx', // optional
+});
+```
+
+#### Provider Settings
+
+You can use the following optional settings to customize the Bedrock Mantle provider instance:
+
+- **region** _string_
+
+  The AWS region that you want to use for the API calls.
+  It uses the `AWS_REGION` environment variable by default.
+
+- **accessKeyId** _string_
+
+  The AWS access key ID that you want to use for the API calls.
+  It uses the `AWS_ACCESS_KEY_ID` environment variable by default.
+
+- **secretAccessKey** _string_
+
+  The AWS secret access key that you want to use for the API calls.
+  It uses the `AWS_SECRET_ACCESS_KEY` environment variable by default.
+
+- **sessionToken** _string_
+
+  Optional. The AWS session token that you want to use for the API calls.
+  It uses the `AWS_SESSION_TOKEN` environment variable by default.
+
+- **apiKey** _string_
+
+  API key for authenticating requests using Bearer token authentication.
+  When provided, this will be used instead of AWS SigV4 authentication.
+  It uses the `AWS_BEARER_TOKEN_BEDROCK` environment variable by default.
+
+- **baseURL** _string_
+
+  Base URL for the Bedrock Mantle API calls.
+  Defaults to `https://bedrock-mantle.{region}.api.aws/v1`.
+
+- **headers** _Record&lt;string, string | undefined&gt;_
+
+  Headers to include in the requests.
+
+- **fetch** _(input: RequestInfo, init?: RequestInit) => Promise&lt;Response&gt;_
+
+  Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch) implementation.
+  You can use it as a middleware to intercept requests,
+  or to provide a custom fetch implementation for e.g. testing.
+
+- **credentialProvider** _() => PromiseLike&lt;BedrockCredentials&gt;_
+
+  The AWS credential provider to use for the Bedrock provider to get dynamic
+  credentials similar to the AWS SDK. Setting a provider here will cause its
+  credential values to be used instead of the `accessKeyId`, `secretAccessKey`,
+  and `sessionToken` settings.
+
+### Language Models
+
+You can create models using the Mantle provider instance. By default, the provider creates models using the Chat Completions API, which has the broadest model support on Mantle:
+
+```ts
+const model = bedrockMantle('openai.gpt-oss-120b');
+```
+
+You can also explicitly select the Chat Completions API or the Responses API:
+
+```ts
+const chatModel = bedrockMantle.chat('openai.gpt-oss-120b');
+const responsesModel = bedrockMantle.responses('openai.gpt-oss-120b');
+```
+
+Note that not all Mantle models support the Responses API. See the model capabilities table below.
+
+You can use Bedrock Mantle language models to generate text with the `generateText` function:
+
+```ts
+import { bedrockMantle } from '@ai-sdk/amazon-bedrock/mantle';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: bedrockMantle('openai.gpt-oss-120b'),
+  prompt: 'Invent a new holiday and describe its traditions.',
+});
+```
+
+Or stream text with the `streamText` function:
+
+```ts
+import { bedrockMantle } from '@ai-sdk/amazon-bedrock/mantle';
+import { streamText } from 'ai';
+
+const result = streamText({
+  model: bedrockMantle('openai.gpt-oss-120b'),
+  prompt: 'Invent a new holiday and describe its traditions.',
+});
+
+for await (const textPart of result.textStream) {
+  process.stdout.write(textPart);
+}
+```
+
+### Provider Options
+
+Since the Mantle API is OpenAI-compatible, provider options are passed under the `openai` namespace:
+
+```ts
+import { bedrockMantle } from '@ai-sdk/amazon-bedrock/mantle';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: bedrockMantle('openai.gpt-oss-120b'),
+  prompt: 'Hello!',
+  providerOptions: {
+    openai: {
+      // OpenAI-compatible provider options
+    },
+  },
+});
+```
+
+### Model Capabilities
+
+| Model                           | Chat Completions    | Responses API       |
+| ------------------------------- | ------------------- | ------------------- |
+| `openai.gpt-oss-20b`            | <Check size={18} /> | <Check size={18} /> |
+| `openai.gpt-oss-120b`           | <Check size={18} /> | <Check size={18} /> |
+| `openai.gpt-oss-safeguard-20b`  | <Check size={18} /> | <Cross size={18} /> |
+| `openai.gpt-oss-safeguard-120b` | <Check size={18} /> | <Cross size={18} /> |
+
+<Note>
+  The Bedrock Mantle provider uses the OpenAI-compatible API format. Models
+  available through the Mantle endpoint may differ from those available through
+  the Bedrock Converse API. Use the Mantle endpoint's model listing API to
+  discover all available models.
+</Note>
+
 ## Migrating to `@ai-sdk/amazon-bedrock` 2.x
 
 The Amazon Bedrock provider was rewritten in version 2.x to remove the

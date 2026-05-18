@@ -178,7 +178,7 @@ export function streamGoogleInteractionEvents({
                 lastEventId = ev.event_id;
               }
               if (
-                ev.event_type === 'interaction.complete' ||
+                ev.event_type === 'interaction.completed' ||
                 ev.event_type === 'error'
               ) {
                 complete = true;

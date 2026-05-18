@@ -1,5 +1,24 @@
 # ai
 
+## 7.0.0-canary.142
+
+### Patch Changes
+
+- 62d6481: Post-publish release notifications now link to each package’s GitHub release and npm page.
+
+## 7.0.0-canary.141
+
+### Patch Changes
+
+- e3a0419: fix(ai): default missing embedding warnings to an empty array
+
+## 7.0.0-canary.140
+
+### Patch Changes
+
+- Updated dependencies [1d6fb7f]
+  - @ai-sdk/gateway@4.0.0-canary.83
+
 ## 7.0.0-canary.139
 
 ### Patch Changes
