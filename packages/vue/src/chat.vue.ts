@@ -57,6 +57,10 @@ class VueChatState<
   snapshot = <T>(value: T): T => value;
 }
 
+/**
+ * @deprecated Use the {@link useChat} composable instead. It exposes reactive
+ * refs and automatically recreates the chat when its init object changes.
+ */
 export class Chat<
   UI_MESSAGE extends UIMessage,
 > extends AbstractChat<UI_MESSAGE> {
