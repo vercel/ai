@@ -25,6 +25,12 @@
       "rules": {
         "import/no-cycle": "off"
       }
+    },
+    {
+      "files": ["packages/vue/**"],
+      "rules": {
+        "react-hooks/rules-of-hooks": "off"
+      }
     }
   ],
   "rules": {
