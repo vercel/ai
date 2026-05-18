@@ -1,5 +1,11 @@
 # @ai-sdk/togetherai
 
+## 2.0.52
+
+### Patch Changes
+
+- 5b8370a: Fix: omit `seed` from request body when undefined to avoid "Unsupported use of 'seed' parameter" errors from non-diffusion models (e.g. google/gemini-3-pro-image)
+
 ## 2.0.51
 
 ### Patch Changes
