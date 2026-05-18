@@ -8,6 +8,7 @@ export {
   type ToUIMessageChunkOptions,
 } from './to-ui-message-chunk';
 export { toUIMessageChunkStream } from './to-ui-message-chunk-stream';
+export { toUIMessageStreamResponse } from './to-ui-message-stream-response';
 export {
   uiMessageChunkSchema,
   type InferUIMessageChunk,

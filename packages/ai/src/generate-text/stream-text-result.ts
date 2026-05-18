@@ -387,9 +387,9 @@ export interface StreamTextResult<
    *
    * @returns A response object.
    *
-   * @deprecated Use the standalone `createUIMessageStreamResponse` helper
-   *   from `'ai'` with `toUIMessageChunkStream(result.fullStream)` instead.
-   *   This method will be removed in the next major release.
+   * @deprecated Use the standalone `toUIMessageStreamResponse` helper from
+   *   `'ai'` with `result.fullStream` instead. This method will be removed
+   *   in the next major release.
    */
   toUIMessageStreamResponse<UI_MESSAGE extends UIMessage>(
     options?: UIMessageStreamResponseInit & UIMessageStreamOptions<UI_MESSAGE>,

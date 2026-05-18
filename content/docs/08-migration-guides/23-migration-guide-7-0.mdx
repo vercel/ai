@@ -1272,13 +1272,11 @@ return result.toUIMessageStreamResponse({ originalMessages });
 ```
 
 ```tsx filename="AI SDK 7"
-import { createUIMessageStreamResponse, toUIMessageChunkStream } from 'ai';
+import { toUIMessageStreamResponse } from 'ai';
 
-return createUIMessageStreamResponse({
-  stream: toUIMessageChunkStream({
-    stream: result.fullStream,
-    originalMessages,
-  }),
+return toUIMessageStreamResponse({
+  stream: result.fullStream,
+  originalMessages,
 });
 ```
 
