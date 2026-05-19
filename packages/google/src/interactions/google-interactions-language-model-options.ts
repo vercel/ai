@@ -189,6 +189,70 @@ export const googleInteractionsLanguageModelOptions = lazySchema(() =>
        * such as deep research can take tens of minutes — increase if needed.
        */
       pollingTimeoutMs: z.number().int().positive().nullish(),
+
+      /**
+       * Run the interaction in the background. Required for agents whose
+       * server-side workflow cannot complete within a single request/response.
+       * When `true`, the POST returns with a non-terminal status and the SDK
+       * polls `GET /interactions/{id}` until the work completes. Some agents
+       * reject `true`; see the agent's documentation for which mode it
+       * requires.
+       */
+      background: z.boolean().nullish(),
+
+      /**
+       * Environment configuration for the agent sandbox. Only applies to agent
+       * calls (`google.interactions({ agent })`); ignored on model-id calls.
+       *
+       *   - `"remote"`: provision a fresh sandbox for this call.
+       *   - any other string: an existing `environment_id` to reuse.
+       *   - object: provision a fresh sandbox and optionally preload `sources`
+       *     and/or constrain outbound traffic via `network`.
+       */
+      environment: z
+        .union([
+          z.string(),
+          z.object({
+            type: z.literal('remote'),
+            sources: z
+              .array(
+                z.union([
+                  z.object({
+                    type: z.literal('gcs'),
+                    source: z.string(),
+                    target: z.string().nullish(),
+                  }),
+                  z.object({
+                    type: z.literal('repository'),
+                    source: z.string(),
+                    target: z.string().nullish(),
+                  }),
+                  z.object({
+                    type: z.literal('inline'),
+                    content: z.string(),
+                    target: z.string(),
+                  }),
+                ]),
+              )
+              .nullish(),
+            network: z
+              .union([
+                z.literal('disabled'),
+                z.object({
+                  allowlist: z.array(
+                    z.object({
+                      domain: z.string(),
+                      transform: z
+                        .array(z.record(z.string(), z.string()))
+                        .nullish(),
+                    }),
+                  ),
+                }),
+              ])
+              .nullish(),
+          }),
+        ])
+        .nullish(),
     }),
   ),
 );

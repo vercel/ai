@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 4.0.0-canary.86
+
+### Patch Changes
+
+- 546cefe: feat(provider/google): add `gemini-3.5-flash`
+
 ## 4.0.0-canary.85
 
 ### Patch Changes
