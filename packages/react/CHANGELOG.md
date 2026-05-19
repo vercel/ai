@@ -1,5 +1,47 @@
 # @ai-sdk/react
 
+## 4.0.0-canary.145
+
+### Patch Changes
+
+- 7fc6bd6: Raise minimum supported Node.js version to 22. Supported versions: 22, 24, and 26.
+- Updated dependencies [7fc6bd6]
+  - ai@7.0.0-canary.144
+  - @ai-sdk/mcp@2.0.0-canary.52
+  - @ai-sdk/provider-utils@5.0.0-canary.43
+  - @ai-sdk/provider@4.0.0-canary.17
+
+## 4.0.0-canary.144
+
+### Patch Changes
+
+- b567a6c: dependency updates
+- Updated dependencies [b567a6c]
+- Updated dependencies [a6617c5]
+  - @ai-sdk/mcp@2.0.0-canary.51
+  - @ai-sdk/provider-utils@5.0.0-canary.42
+  - ai@7.0.0-canary.143
+
+## 4.0.0-canary.143
+
+### Patch Changes
+
+- Updated dependencies [62d6481]
+  - ai@7.0.0-canary.142
+
+## 4.0.0-canary.142
+
+### Patch Changes
+
+- Updated dependencies [e3a0419]
+  - ai@7.0.0-canary.141
+
+## 4.0.0-canary.141
+
+### Patch Changes
+
+- ai@7.0.0-canary.140
+
 ## 4.0.0-canary.140
 
 ### Patch Changes

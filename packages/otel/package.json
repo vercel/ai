@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/otel",
-  "version": "1.0.0-canary.85",
+  "version": "1.0.0-canary.90",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -40,14 +40,14 @@
   },
   "devDependencies": {
     "@ai-sdk/provider-utils": "workspace:*",
-    "@types/node": "20.17.24",
+    "@types/node": "22.19.19",
     "@vercel/ai-tsconfig": "workspace:*",
-    "tsup": "^8",
+    "tsup": "^8.5.1",
     "typescript": "5.8.3",
     "zod": "3.25.76"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=22"
   },
   "publishConfig": {
     "access": "public",
