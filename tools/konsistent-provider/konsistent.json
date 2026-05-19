@@ -30,6 +30,7 @@
         },
         "aisdk/provider-model-file-with-subtype-must-export-model-class",
         "aisdk/provider-video-model-file-must-export-model-class",
+        "aisdk/provider-language-model-file-must-import-workflow-serialization",
         "aisdk/provider-model-options-file-must-export-model-options-type",
         "aisdk/provider-model-options-file-with-subtype-must-export-model-options-type"
       ]
