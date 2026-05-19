@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 4.0.0-canary.69
+
+### Patch Changes
+
+- 7f04802: feat(provider/google): add support for managed agents in the Interactions API
+
 ## 4.0.0-canary.68
 
 ### Patch Changes
