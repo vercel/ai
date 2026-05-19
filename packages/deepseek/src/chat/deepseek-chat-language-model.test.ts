@@ -136,7 +136,7 @@ describe('DeepSeekChatLanguageModel', () => {
             providerOptions: {
               deepseek: {
                 reasoningEffort: effort,
-              } satisfies DeepSeekLanguageModelOptions,
+              } satisfies DeepSeekChatOptions,
             },
           });
 
@@ -152,7 +152,7 @@ describe('DeepSeekChatLanguageModel', () => {
           providerOptions: {
             deepseek: {
               thinking: { type: 'adaptive' },
-            } satisfies DeepSeekLanguageModelOptions,
+            } satisfies DeepSeekChatOptions,
           },
         });
 
