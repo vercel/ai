@@ -1,4 +1,7 @@
-import { google } from '@ai-sdk/google';
+import {
+  google,
+  type GoogleLanguageModelInteractionsOptions,
+} from '@ai-sdk/google';
 import { streamText } from 'ai';
 import { cancelOnSigint } from '../../lib/cancel-on-sigint';
 import { run } from '../../lib/run';
@@ -25,7 +28,8 @@ run(async () => {
           type: 'deep-research',
           thinkingSummaries: 'auto',
         },
-      },
+        background: true,
+      } satisfies GoogleLanguageModelInteractionsOptions,
     },
     prompt:
       'List three foundational concepts behind transformer-based language models (one sentence each).',
@@ -68,7 +72,8 @@ run(async () => {
           type: 'deep-research',
           thinkingSummaries: 'auto',
         },
-      },
+        background: true,
+      } satisfies GoogleLanguageModelInteractionsOptions,
     },
     abortSignal: ac.signal,
   });

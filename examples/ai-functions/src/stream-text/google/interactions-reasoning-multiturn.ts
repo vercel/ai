@@ -1,4 +1,7 @@
-import { google } from '@ai-sdk/google';
+import {
+  google,
+  type GoogleLanguageModelInteractionsOptions,
+} from '@ai-sdk/google';
 import { streamText, type ModelMessage } from 'ai';
 import { run } from '../../lib/run';
 
@@ -30,7 +33,7 @@ run(async () => {
         store: false,
         thinkingLevel: 'medium',
         thinkingSummaries: 'auto',
-      },
+      } satisfies GoogleLanguageModelInteractionsOptions,
     },
   });
   for await (const part of turn1.fullStream) {
@@ -59,7 +62,7 @@ run(async () => {
         store: false,
         thinkingLevel: 'medium',
         thinkingSummaries: 'auto',
-      },
+      } satisfies GoogleLanguageModelInteractionsOptions,
     },
   });
   for await (const part of turn2.fullStream) {
