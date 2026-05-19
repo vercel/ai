@@ -32,6 +32,39 @@ const cerebrasErrorStructure: ProviderErrorStructure<CerebrasErrorData> = {
   errorToMessage: data => data.message,
 };
 
+/**
+ * Cerebras expects assistant reasoning history in the `reasoning` field, while
+ * the shared OpenAI-compatible converter serializes it as `reasoning_content`.
+ */
+function transformCerebrasRequestBody(
+  args: Record<string, any>,
+): Record<string, any> {
+  return {
+    ...args,
+    messages: Array.isArray(args.messages)
+      ? args.messages.map(message => {
+          if (
+            message == null ||
+            typeof message !== 'object' ||
+            message.role !== 'assistant' ||
+            !('reasoning_content' in message)
+          ) {
+            return message;
+          }
+
+          const { reasoning_content, ...rest } = message;
+
+          return {
+            ...rest,
+            ...(!('reasoning' in rest) && reasoning_content !== undefined
+              ? { reasoning: reasoning_content }
+              : {}),
+          };
+        })
+      : args.messages,
+  };
+}
+
 export interface CerebrasProviderSettings {
   /**
    * Cerebras API key.
@@ -101,6 +134,7 @@ export function createCerebras(
       fetch: options.fetch,
       errorStructure: cerebrasErrorStructure,
       supportsStructuredOutputs: true,
+      transformRequestBody: transformCerebrasRequestBody,
     });
   };
 
