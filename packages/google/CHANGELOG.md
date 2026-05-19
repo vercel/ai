@@ -1,5 +1,12 @@
 # @ai-sdk/google
 
+## 3.0.76
+
+### Patch Changes
+
+- f259bd1: fix(google): fix streaming tool call args
+- 756fec1: feat(provider/google): add `gemini-3.5-flash`
+
 ## 3.0.75
 
 ### Patch Changes
