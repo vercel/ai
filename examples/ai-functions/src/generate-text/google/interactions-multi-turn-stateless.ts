@@ -1,4 +1,7 @@
-import { google } from '@ai-sdk/google';
+import {
+  google,
+  type GoogleLanguageModelInteractionsOptions,
+} from '@ai-sdk/google';
 import { generateText, type ModelMessage } from 'ai';
 import { run } from '../../lib/run';
 
@@ -18,7 +21,7 @@ run(async () => {
     model: google.interactions('gemini-2.5-flash'),
     messages,
     providerOptions: {
-      google: { store: false },
+      google: { store: false } satisfies GoogleLanguageModelInteractionsOptions,
     },
   });
 
@@ -45,7 +48,7 @@ run(async () => {
     model: google.interactions('gemini-2.5-flash'),
     messages,
     providerOptions: {
-      google: { store: false },
+      google: { store: false } satisfies GoogleLanguageModelInteractionsOptions,
     },
   });
 

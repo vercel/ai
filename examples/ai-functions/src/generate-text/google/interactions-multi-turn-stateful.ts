@@ -1,4 +1,7 @@
-import { google } from '@ai-sdk/google';
+import {
+  google,
+  type GoogleLanguageModelInteractionsOptions,
+} from '@ai-sdk/google';
 import { generateText } from 'ai';
 import { run } from '../../lib/run';
 
@@ -31,7 +34,9 @@ run(async () => {
     model: google.interactions('gemini-2.5-flash'),
     prompt: 'What is the most famous landmark in the second one?',
     providerOptions: {
-      google: { previousInteractionId: interactionId },
+      google: {
+        previousInteractionId: interactionId,
+      } satisfies GoogleLanguageModelInteractionsOptions,
     },
   });
 
