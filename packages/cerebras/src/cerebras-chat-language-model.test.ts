@@ -1,21 +1,21 @@
 import type {
-  LanguageModelV4Prompt,
-  LanguageModelV4StreamPart,
+  LanguageModelV3Prompt,
+  LanguageModelV3StreamPart,
 } from '@ai-sdk/provider';
 import fs from 'node:fs';
 import { describe, expect, it, vi } from 'vitest';
 import { createCerebras } from './cerebras-provider';
 
-const TEST_PROMPT: LanguageModelV4Prompt = [
+const TEST_PROMPT: LanguageModelV3Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 const JSON_RESPONSE_FORMAT = { type: 'json' as const };
 
 async function convertStreamToArray(
-  stream: ReadableStream<LanguageModelV4StreamPart>,
+  stream: ReadableStream<LanguageModelV3StreamPart>,
 ) {
   const reader = stream.getReader();
-  const chunks: LanguageModelV4StreamPart[] = [];
+  const chunks: LanguageModelV3StreamPart[] = [];
 
   while (true) {
     const { done, value } = await reader.read();

@@ -1,21 +1,10 @@
 import { OpenAICompatibleChatLanguageModel } from '@ai-sdk/openai-compatible';
 import type {
-  LanguageModelV4,
-  LanguageModelV4CallOptions,
-  LanguageModelV4GenerateResult,
-  LanguageModelV4StreamPart,
-  LanguageModelV4StreamResult,
+  LanguageModelV3CallOptions,
+  LanguageModelV3GenerateResult,
+  LanguageModelV3StreamPart,
+  LanguageModelV3StreamResult,
 } from '@ai-sdk/provider';
-import {
-  serializeModelOptions,
-  WORKFLOW_DESERIALIZE,
-  WORKFLOW_SERIALIZE,
-} from '@ai-sdk/provider-utils';
-import type { CerebrasChatModelId } from './cerebras-chat-language-model-options';
-
-type CerebrasChatConfig = ConstructorParameters<
-  typeof OpenAICompatibleChatLanguageModel
->[1];
 
 function isStructuredOutputWithToolCallsFinishReason({
   rawFinishReason,
@@ -25,7 +14,7 @@ function isStructuredOutputWithToolCallsFinishReason({
   rawFinishReason: string | undefined;
   hasText: boolean;
   responseFormatType:
-    | NonNullable<LanguageModelV4CallOptions['responseFormat']>['type']
+    | NonNullable<LanguageModelV3CallOptions['responseFormat']>['type']
     | undefined;
 }) {
   return (
@@ -33,27 +22,10 @@ function isStructuredOutputWithToolCallsFinishReason({
   );
 }
 
-export class CerebrasChatLanguageModel
-  extends OpenAICompatibleChatLanguageModel
-  implements LanguageModelV4
-{
-  static [WORKFLOW_SERIALIZE](model: CerebrasChatLanguageModel) {
-    return serializeModelOptions({
-      modelId: model.modelId,
-      config: model.config,
-    });
-  }
-
-  static [WORKFLOW_DESERIALIZE](options: {
-    modelId: CerebrasChatModelId;
-    config: CerebrasChatConfig;
-  }) {
-    return new CerebrasChatLanguageModel(options.modelId, options.config);
-  }
-
+export class CerebrasChatLanguageModel extends OpenAICompatibleChatLanguageModel {
   async doGenerate(
-    options: LanguageModelV4CallOptions,
-  ): Promise<LanguageModelV4GenerateResult> {
+    options: LanguageModelV3CallOptions,
+  ): Promise<LanguageModelV3GenerateResult> {
     const result = await super.doGenerate(options);
 
     if (
@@ -81,8 +53,8 @@ export class CerebrasChatLanguageModel
   }
 
   async doStream(
-    options: LanguageModelV4CallOptions,
-  ): Promise<LanguageModelV4StreamResult> {
+    options: LanguageModelV3CallOptions,
+  ): Promise<LanguageModelV3StreamResult> {
     const result = await super.doStream(options);
     let hasText = false;
 
@@ -90,8 +62,8 @@ export class CerebrasChatLanguageModel
       ...result,
       stream: result.stream.pipeThrough(
         new TransformStream<
-          LanguageModelV4StreamPart,
-          LanguageModelV4StreamPart
+          LanguageModelV3StreamPart,
+          LanguageModelV3StreamPart
         >({
           transform(part, controller) {
             if (part.type === 'text-delta' && part.delta.length > 0) {
