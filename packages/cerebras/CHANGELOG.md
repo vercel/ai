@@ -1,5 +1,11 @@
 # @ai-sdk/cerebras
 
+## 2.0.53
+
+### Patch Changes
+
+- e99134d: feat(cerebras): add chat language model provider
+
 ## 2.0.52
 
 ### Patch Changes
