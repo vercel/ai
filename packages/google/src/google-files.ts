@@ -7,13 +7,14 @@ import {
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
+  convertInlineFileDataToUint8Array,
   createJsonResponseHandler,
   delay,
-  type FetchFunction,
   lazySchema,
   parseProviderOptions,
   zodSchema,
   getFromApi,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { googleFailedResponseHandler } from './google-error';
@@ -59,11 +60,7 @@ export class GoogleFiles implements FilesV4 {
       warnings.push({ type: 'unsupported', feature: 'filename' });
     }
 
-    const data = options.data;
-    const fileBytes =
-      data instanceof Uint8Array
-        ? data
-        : Uint8Array.from(atob(data), c => c.charCodeAt(0));
+    const fileBytes = convertInlineFileDataToUint8Array(options.data);
 
     const mediaType = options.mediaType;
     const displayName = googleOptions?.displayName;

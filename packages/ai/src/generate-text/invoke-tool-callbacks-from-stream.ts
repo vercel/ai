@@ -1,6 +1,5 @@
-import type { Context, ToolSet } from '@ai-sdk/provider-utils';
-import { ModelMessage } from '@ai-sdk/provider-utils';
-import { LanguageModelStreamPart } from './stream-language-model-call';
+import type { Context, ModelMessage, ToolSet } from '@ai-sdk/provider-utils';
+import type { LanguageModelStreamPart } from './stream-language-model-call';
 
 export function invokeToolCallbacksFromStream<
   TOOLS extends ToolSet,

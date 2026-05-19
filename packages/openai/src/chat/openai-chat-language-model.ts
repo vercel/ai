@@ -1,4 +1,4 @@
-import {
+import type {
   LanguageModelV4,
   LanguageModelV4CallOptions,
   LanguageModelV4Content,
@@ -10,8 +10,6 @@ import {
   SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
-  ParseResult,
   StreamingToolCallTracker,
   combineHeaders,
   createEventSourceResponseHandler,
@@ -23,25 +21,27 @@ import {
   serializeModelOptions,
   WORKFLOW_DESERIALIZE,
   WORKFLOW_SERIALIZE,
+  type FetchFunction,
+  type ParseResult,
 } from '@ai-sdk/provider-utils';
 import { openaiFailedResponseHandler } from '../openai-error';
 import { getOpenAILanguageModelCapabilities } from '../openai-language-model-capabilities';
 import {
-  OpenAIChatUsage,
   convertOpenAIChatUsage,
+  type OpenAIChatUsage,
 } from './convert-openai-chat-usage';
 import { convertToOpenAIChatMessages } from './convert-to-openai-chat-messages';
 import { getResponseMetadata } from './get-response-metadata';
 import { mapOpenAIFinishReason } from './map-openai-finish-reason';
 import {
-  OpenAIChatChunk,
   openaiChatChunkSchema,
   openaiChatResponseSchema,
+  type OpenAIChatChunk,
 } from './openai-chat-api';
 import {
-  OpenAIChatModelId,
   openaiLanguageModelChatOptions,
-} from './openai-chat-options';
+  type OpenAIChatModelId,
+} from './openai-chat-language-model-options';
 import { prepareChatTools } from './openai-chat-prepare-tools';
 
 type OpenAIChatConfig = {
@@ -452,10 +452,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
       fetch: this.config.fetch,
     });
 
-    const toolCallTracker = new StreamingToolCallTracker({
-      generateId,
-      typeValidation: 'if-present',
-    });
+    let toolCallTracker: StreamingToolCallTracker;
 
     let finishReason: LanguageModelV4FinishReason = {
       unified: 'other',
@@ -474,6 +471,10 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
           LanguageModelV4StreamPart
         >({
           start(controller) {
+            toolCallTracker = new StreamingToolCallTracker(controller, {
+              generateId,
+              typeValidation: 'if-present',
+            });
             controller.enqueue({ type: 'stream-start', warnings });
           },
 
@@ -565,10 +566,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
 
             if (delta.tool_calls != null) {
               for (const toolCallDelta of delta.tool_calls) {
-                toolCallTracker.processDelta(
-                  toolCallDelta,
-                  controller.enqueue.bind(controller),
-                );
+                toolCallTracker.processDelta(toolCallDelta);
               }
             }
 
@@ -591,7 +589,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
               controller.enqueue({ type: 'text-end', id: '0' });
             }
 
-            toolCallTracker.flush(controller.enqueue.bind(controller));
+            toolCallTracker.flush();
 
             controller.enqueue({
               type: 'finish',

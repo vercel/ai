@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { createVertexMaas } from './google-vertex-maas-provider';
+import { createGoogleVertexMaas } from './google-vertex-maas-provider';
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 
 // Mock the imported modules
@@ -39,7 +39,7 @@ describe('google-vertex-maas-provider', () => {
   });
 
   it('should not call createOpenAICompatible at provider creation time', () => {
-    createVertexMaas({
+    createGoogleVertexMaas({
       project: 'test-project',
       location: 'global',
     });
@@ -48,7 +48,7 @@ describe('google-vertex-maas-provider', () => {
   });
 
   it('should create a provider with correct base URL for global location', () => {
-    const provider = createVertexMaas({
+    const provider = createGoogleVertexMaas({
       project: 'test-project',
       location: 'global',
     });
@@ -66,7 +66,7 @@ describe('google-vertex-maas-provider', () => {
   });
 
   it('should create a provider with correct base URL for regional location', () => {
-    const provider = createVertexMaas({
+    const provider = createGoogleVertexMaas({
       project: 'test-project',
       location: 'us-central1',
     });
@@ -83,7 +83,7 @@ describe('google-vertex-maas-provider', () => {
   });
 
   it('should default to global location when not specified', () => {
-    const provider = createVertexMaas({
+    const provider = createGoogleVertexMaas({
       project: 'test-project',
     });
 
@@ -100,7 +100,7 @@ describe('google-vertex-maas-provider', () => {
 
   it('should use custom baseURL when provided', () => {
     const customBaseURL = 'https://custom-endpoint.example.com';
-    const provider = createVertexMaas({
+    const provider = createGoogleVertexMaas({
       project: 'test-project',
       baseURL: customBaseURL,
     });
@@ -117,7 +117,7 @@ describe('google-vertex-maas-provider', () => {
 
   it('should not pass headers to openai-compatible provider', () => {
     const customHeaders = { 'X-Custom': 'header-value' };
-    const provider = createVertexMaas({
+    const provider = createGoogleVertexMaas({
       project: 'test-project',
       headers: customHeaders,
     });
@@ -140,7 +140,7 @@ describe('google-vertex-maas-provider', () => {
 
   it('should pass custom fetch to openai-compatible provider', () => {
     const customFetch = vi.fn();
-    const provider = createVertexMaas({
+    const provider = createGoogleVertexMaas({
       project: 'test-project',
       fetch: customFetch,
     });
@@ -155,7 +155,7 @@ describe('google-vertex-maas-provider', () => {
   });
 
   it('should construct correct URL with trailing slash removed from baseURL', () => {
-    const provider = createVertexMaas({
+    const provider = createGoogleVertexMaas({
       project: 'test-project',
       baseURL: 'https://custom-endpoint.example.com/',
     });
@@ -170,7 +170,7 @@ describe('google-vertex-maas-provider', () => {
   });
 
   it('should construct correct URL when baseURL is empty string', () => {
-    const provider = createVertexMaas({
+    const provider = createGoogleVertexMaas({
       project: 'test-project',
       location: 'us-central1',
       baseURL: '',
@@ -187,7 +187,7 @@ describe('google-vertex-maas-provider', () => {
   });
 
   it('should cache the provider after first access', () => {
-    const provider = createVertexMaas({
+    const provider = createGoogleVertexMaas({
       project: 'test-project',
     });
 

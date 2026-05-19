@@ -1,5 +1,360 @@
 # ai
 
+## 7.0.0-canary.144
+
+### Patch Changes
+
+- 7fc6bd6: Raise minimum supported Node.js version to 22. Supported versions: 22, 24, and 26.
+- Updated dependencies [7fc6bd6]
+  - @ai-sdk/gateway@4.0.0-canary.85
+  - @ai-sdk/provider-utils@5.0.0-canary.43
+  - @ai-sdk/provider@4.0.0-canary.17
+
+## 7.0.0-canary.143
+
+### Patch Changes
+
+- a6617c5: feat(provider-utils): add `readFile` and `writeFile` plus convenience wrappers to `Experimental_Sandbox` abstraction
+- Updated dependencies [a6617c5]
+- Updated dependencies [032c4a5]
+  - @ai-sdk/provider-utils@5.0.0-canary.42
+  - @ai-sdk/gateway@4.0.0-canary.84
+
+## 7.0.0-canary.142
+
+### Patch Changes
+
+- 62d6481: Post-publish release notifications now link to each package’s GitHub release and npm page.
+
+## 7.0.0-canary.141
+
+### Patch Changes
+
+- e3a0419: fix(ai): default missing embedding warnings to an empty array
+
+## 7.0.0-canary.140
+
+### Patch Changes
+
+- Updated dependencies [1d6fb7f]
+  - @ai-sdk/gateway@4.0.0-canary.83
+
+## 7.0.0-canary.139
+
+### Patch Changes
+
+- 334ae5d: Update step performance metrics with explicit effective, input, output, and total token throughput fields.
+- 28dfa06: fix: support tools with optional context
+- e93fa91: rename Sandbox.executeCommand to Sandbox.runCommand
+- Updated dependencies [28dfa06]
+- Updated dependencies [e93fa91]
+  - @ai-sdk/provider-utils@5.0.0-canary.41
+  - @ai-sdk/gateway@4.0.0-canary.82
+
+## 7.0.0-canary.138
+
+### Patch Changes
+
+- Updated dependencies [67c4011]
+  - @ai-sdk/gateway@4.0.0-canary.81
+
+## 7.0.0-canary.137
+
+### Patch Changes
+
+- 98627e5: feat(ai): remove onChunk event from telemetry
+- 476e1ca: feat(ai): remove telemetry dependency on onChunk callback
+
+## 7.0.0-canary.136
+
+### Patch Changes
+
+- a7de9c9: fix: make sandbox experimental
+- Updated dependencies [a7de9c9]
+  - @ai-sdk/provider-utils@5.0.0-canary.40
+  - @ai-sdk/gateway@4.0.0-canary.80
+
+## 7.0.0-canary.135
+
+### Patch Changes
+
+- Updated dependencies [105f95b]
+  - @ai-sdk/provider-utils@5.0.0-canary.39
+  - @ai-sdk/gateway@4.0.0-canary.79
+
+## 7.0.0-canary.134
+
+### Patch Changes
+
+- ed74dae: fix(ui): make `input` optional on `output-error` tool and dynamic-tool UI message parts
+
+  `validateUIMessages` rejected persisted assistant messages whose `output-error` tool parts had no `input` key. This happened for any errored tool call where the SDK set `input: undefined` (e.g. `NoSuchToolError` / `InvalidToolInputError`): JSON serialization stripped the `undefined` value, and Zod 4.4+ treats a missing `z.unknown()` key as a validation failure (previously it was implicitly optional). The schema now matches the runtime shape produced by `process-ui-message-stream`, so reloading a thread that contains an errored tool call no longer throws `AI_TypeValidationError`.
+
+- f4cc8eb: feat: add performance statistics
+- e80ada0: fix(ai): download tool-result file URLs
+- 1dca341: fix: rename telemetry onFinish to onEnd
+- 2605e5f: fix test mocks to return the first array-backed result on the first call
+
+## 7.0.0-canary.133
+
+### Patch Changes
+
+- 38ca8dc: fix(gateway): enable retry support for gateway errors
+- 6d76710: fix URL of hero animation in README
+- Updated dependencies [38ca8dc]
+- Updated dependencies [8b7af75]
+  - @ai-sdk/gateway@4.0.0-canary.78
+
+## 7.0.0-canary.132
+
+### Patch Changes
+
+- eaf849f: Rename rerank telemetry finish callback to `onRerankEnd`.
+- 8565dcb: fix: rename onEmbedFinish to onEmbedEnd
+
+## 7.0.0-canary.131
+
+### Patch Changes
+
+- b67525f: feat: instructions as prepareStep input
+- ca446f8: feat: flexible tool descriptions
+- bcacd48: fix(ai): accumulative properties on StreamTextResult, GenerateTextResult
+- Updated dependencies [ca446f8]
+  - @ai-sdk/provider-utils@5.0.0-canary.38
+  - @ai-sdk/gateway@4.0.0-canary.77
+
+## 7.0.0-canary.130
+
+### Patch Changes
+
+- Updated dependencies [5f380c0]
+  - @ai-sdk/gateway@4.0.0-canary.76
+
+## 7.0.0-canary.129
+
+### Patch Changes
+
+- d1b3786: fix(ai): deprecate properties on result that have moved to finalStep
+
+## 7.0.0-canary.128
+
+### Patch Changes
+
+- Updated dependencies [d848405]
+  - @ai-sdk/provider-utils@5.0.0-canary.37
+  - @ai-sdk/gateway@4.0.0-canary.75
+
+## 7.0.0-canary.127
+
+### Patch Changes
+
+- e95e38d: fix: Make `generateText` and `streamText` result `usage` report total usage across all steps and deprecate `totalUsage`.
+- 016e877: feat(ai): add `instructions` as the primary prompt option and deprecate `system`
+- ca99fea: feat: expose `finalStep` on text generation results
+- d775a57: feat: introduce Instructions type
+- 538c12b: feat: use instructions on ToolCallRepairFunction, parseToolCall, and events
+- Updated dependencies [ca39020]
+  - @ai-sdk/provider-utils@5.0.0-canary.36
+  - @ai-sdk/gateway@4.0.0-canary.74
+
+## 7.0.0-canary.126
+
+### Patch Changes
+
+- Updated dependencies [f634bac]
+  - @ai-sdk/provider-utils@5.0.0-canary.35
+  - @ai-sdk/gateway@4.0.0-canary.73
+
+## 7.0.0-canary.125
+
+### Major Changes
+
+- 31f69de: fix(ai): carry prepareStep message overrides forward across steps
+- 7c71ac6: fix(ai): limit response messages in StepResult to messages created in that step
+
+### Patch Changes
+
+- fd4f578: fix(ai): exclude request and response bodies from text generation results by default to reduce memory usage.
+- c0c8ca2: fix(ai): remove deprecated LanguageModelUsage properties
+- 5faf71c: feat: introduce responseMessages on GenerateTextResult and StreamTextResult
+- 69254e0: feat(ai): add toolMetadata for tool specific metdata
+- 3015fc3: feat: sandbox shell execution abstraction
+- eee1166: feat(ai): expose initial and response messages in prepareStep
+- 7dbf992: feat(ai): allow prepareStep to override sandbox per step
+- Updated dependencies [69254e0]
+- Updated dependencies [3015fc3]
+  - @ai-sdk/provider-utils@5.0.0-canary.34
+  - @ai-sdk/gateway@4.0.0-canary.72
+
+## 7.0.0-canary.124
+
+### Patch Changes
+
+- 69aeb0e: feat: add deprecated tool call lifecycle callback aliases for AI SDK 6 compatibility.
+- 48e92f3: feat: make include stable
+
+## 7.0.0-canary.123
+
+### Patch Changes
+
+- 7392266: feat: move includeRawChunks to include.rawChunks
+- 4bb4dbc: feat: introduce include.requestMessage option for step request message storage opt-in
+
+## 7.0.0-canary.122
+
+### Patch Changes
+
+- 79b2468: feat: add request.messages to StepResult
+- c22750c: fix(ai): move onToolExecutionStart and onToolExecutionEnd to stable
+
+## 7.0.0-canary.121
+
+### Patch Changes
+
+- 2427d88: feat(ai): change Tool.sensitiveContext to telemetry.includeToolsContext and make it opt-in
+- 5588abd: feat(ai): add experimental_refineToolInput option to ToolLoopAgent, generateText, streamText
+- 6dd6b83: feat(ai): change sensitiveRuntimeContext to telemetry.includeRuntimeContext and make it opt-in
+- Updated dependencies [2427d88]
+  - @ai-sdk/provider-utils@5.0.0-canary.33
+  - @ai-sdk/gateway@4.0.0-canary.71
+
+## 7.0.0-canary.120
+
+### Major Changes
+
+- 5463d0d: feat(provider): align tool result output content file part types with top-level message file part types
+
+### Patch Changes
+
+- Updated dependencies [5463d0d]
+  - @ai-sdk/provider-utils@5.0.0-canary.32
+  - @ai-sdk/provider@4.0.0-canary.16
+  - @ai-sdk/gateway@4.0.0-canary.70
+
+## 7.0.0-canary.119
+
+### Patch Changes
+
+- Updated dependencies [8e53eb7]
+  - @ai-sdk/gateway@4.0.0-canary.69
+
+## 7.0.0-canary.118
+
+### Patch Changes
+
+- 47e65d6: fix(ai): tag step/chunk timeout aborts with `TimeoutError` reason
+
+  When `timeout: { stepMs }` or `timeout: { chunkMs }` fires, the abort reason is now a `TimeoutError` `DOMException`, matching what `AbortSignal.timeout()` produces natively. Consumers can distinguish a framework timeout from a user-initiated cancel via `signal.reason.name === 'TimeoutError'`.
+
+## 7.0.0-canary.117
+
+### Patch Changes
+
+- 0c4c275: trigger initial canary release
+- Updated dependencies [0c4c275]
+  - @ai-sdk/provider-utils@5.0.0-canary.31
+  - @ai-sdk/provider@4.0.0-canary.15
+  - @ai-sdk/gateway@4.0.0-canary.68
+
+## 7.0.0-beta.116
+
+### Patch Changes
+
+- Updated dependencies [e7e8f42]
+  - @ai-sdk/gateway@4.0.0-beta.67
+
+## 7.0.0-beta.115
+
+### Patch Changes
+
+- 08d2129: feat(mcp): propagate the server name through dynamic tool parts
+- 202f107: feat(ai): create a diagnostics channel to push event data
+- Updated dependencies [08d2129]
+- Updated dependencies [04e9009]
+- Updated dependencies [be09425]
+  - @ai-sdk/provider-utils@5.0.0-beta.30
+  - @ai-sdk/gateway@4.0.0-beta.66
+
+## 7.0.0-beta.114
+
+### Major Changes
+
+- 1f7db50: fix(ai): remove experimental_customProvider
+- 9bd6512: feat(provider): change file part data property to be tagged with a type and remove the image part type
+
+### Patch Changes
+
+- 43a6750: fix(ai): preserve `allowSystemInMessages` across `streamText` retries
+- 81caa5d: fix(ai): remove ExtractLiteralUnion export
+- 258c093: chore: ensure consistent import handling and avoid import duplicates or cycles
+- 6147cdf: fix(ai): fix auto-complete on provider registry and custom provider
+- Updated dependencies [9bd6512]
+- Updated dependencies [258c093]
+- Updated dependencies [b6783da]
+  - @ai-sdk/provider-utils@5.0.0-beta.29
+  - @ai-sdk/provider@4.0.0-beta.14
+  - @ai-sdk/gateway@4.0.0-beta.65
+
+## 7.0.0-beta.113
+
+### Patch Changes
+
+- 9f0e36c: trigger release for all packages after provenance setup
+- Updated dependencies [9f0e36c]
+  - @ai-sdk/gateway@4.0.0-beta.64
+  - @ai-sdk/provider@4.0.0-beta.13
+  - @ai-sdk/provider-utils@5.0.0-beta.28
+
+## 7.0.0-beta.112
+
+### Major Changes
+
+- cf93359: feat(ai): remove/refactor event data sent via callbacks
+- 116c89f: feat(ai): remove telemetry data from the user-facing event data
+- 4e095b0: fix(ai): reject system messages in messages or prompt by default (opt-in)
+
+### Patch Changes
+
+- 5f3749c: refactoring: rename toolNeedsApproval to toolApproval
+- 0a51f7d: fix(ai): enforce `callOptionsSchema` at runtime in `ToolLoopAgent`
+
+  `ToolLoopAgentSettings.callOptionsSchema` was declared and documented as a runtime schema for `options`, but `tool-loop-agent.ts` never invoked it. Any invariant a developer encoded in the schema was silently bypassed at runtime, and unchecked `options` flowed straight into `prepareCall` and any `instructions` template that interpolated them.
+
+  `ToolLoopAgent.prepareCall` now validates caller-supplied `options` against `callOptionsSchema` (when set) via `safeValidateTypes`, throwing `InvalidArgumentError` on failure before forwarding to `prepareCall` / `generateText` / `streamText`.
+
+- 71d3022: fix(ai): unify generate text event callbacks
+- 67df0a0: feat: add sensitiveContext property to Tool
+- 4181cfe: fix(ai): harden `getMediaTypeFromUrl` against prototype-property collisions
+
+  `getMediaTypeFromUrl` (used to infer media types for `file-url` / `image-url` parts) used `ext in URL_EXTENSION_TO_MEDIA_TYPE` against a plain object literal. A URL ending in `.constructor` therefore resolved through the prototype chain and returned the `Object` constructor function, violating the helper's `: string` return type and forwarding a non-string value to provider adapters.
+
+  Switch to `Object.hasOwn(...)` so attacker-controlled extensions like `.constructor` cannot resolve to inherited `Object.prototype` keys.
+
+- 51ce232: feat(ai): add sensitiveRuntimeContext option
+- befb78c: refactoring: remove real-time delays in unit tests
+- 29d8cf4: feat(ai): rename the core-event types
+- 58a2ad7: fix: more precise default message for tool execution denial
+- 37d69b2: feat(ai): access runtime context in tool approval functions
+- 1043274: feat(ai): add a ModelCall start/end event
+- 7f59f04: feat(ai): add approval reason to automatic tool approvals
+- 7677c1e: feat(ai): allow tool approval functions to return undefined
+- f58f9bc: fix(ai): remove stopWhen from onStart event
+- e1bfb9c: feat(ai): remove unnecessary data from events
+- e87d71b: feat(ai): support automatic tool approval in ui messages
+- 9d486aa: feat(ai): generic tool approval function
+- 9b0bc8a: fix(mcp): prevent prototype pollution by using secureJsonParse
+- fc92055: feat(ai): automatic tool approval
+- Updated dependencies [785fe16]
+- Updated dependencies [67df0a0]
+- Updated dependencies [befb78c]
+- Updated dependencies [0458559]
+- Updated dependencies [5852c0a]
+- Updated dependencies [baa5f20]
+- Updated dependencies [fc92055]
+- Updated dependencies [f9acbc0]
+  - @ai-sdk/provider-utils@5.0.0-beta.27
+  - @ai-sdk/gateway@4.0.0-beta.63
+
 ## 7.0.0-beta.111
 
 ### Major Changes
@@ -1387,7 +1742,6 @@
 ### Patch Changes
 
 - 2dc9bfa: fix(ai): handle provider-executed tools and tool-approval-response in validation
-
   - Skip validation for tool calls with `providerExecuted: true` (deferred results)
   - Map approvalId to toolCallId for proper tool-approval-response handling
   - Filter out empty tool messages after content filtering

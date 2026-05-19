@@ -1,4 +1,4 @@
-import {
+import type {
   LanguageModelV4,
   LanguageModelV4CallOptions,
   LanguageModelV4Content,
@@ -10,8 +10,6 @@ import {
   SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
-  ParseResult,
   StreamingToolCallTracker,
   combineHeaders,
   createEventSourceResponseHandler,
@@ -24,12 +22,17 @@ import {
   serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
+  type FetchFunction,
+  type ParseResult,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { convertGroqUsage } from './convert-groq-usage';
 import { convertToGroqChatMessages } from './convert-to-groq-chat-messages';
 import { getResponseMetadata } from './get-response-metadata';
-import { GroqChatModelId, groqLanguageModelOptions } from './groq-chat-options';
+import {
+  groqLanguageModelChatOptions,
+  type GroqChatModelId,
+} from './groq-chat-language-model-options';
 import { groqErrorDataSchema, groqFailedResponseHandler } from './groq-error';
 import { prepareTools } from './groq-prepare-tools';
 import { mapGroqFinishReason } from './map-groq-finish-reason';
@@ -96,7 +99,7 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
     const groqOptions = await parseProviderOptions({
       provider: 'groq',
       providerOptions,
-      schema: groqLanguageModelOptions,
+      schema: groqLanguageModelChatOptions,
     });
 
     const structuredOutputs = groqOptions?.structuredOutputs ?? true;
@@ -283,10 +286,7 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
       fetch: this.config.fetch,
     });
 
-    const toolCallTracker = new StreamingToolCallTracker({
-      generateId,
-      typeValidation: 'required',
-    });
+    let toolCallTracker: StreamingToolCallTracker;
 
     let finishReason: LanguageModelV4FinishReason = {
       unified: 'other',
@@ -322,6 +322,10 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
           LanguageModelV4StreamPart
         >({
           start(controller) {
+            toolCallTracker = new StreamingToolCallTracker(controller, {
+              generateId,
+              typeValidation: 'required',
+            });
             controller.enqueue({ type: 'stream-start', warnings });
           },
 
@@ -430,10 +434,7 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
               }
 
               for (const toolCallDelta of delta.tool_calls) {
-                toolCallTracker.processDelta(
-                  toolCallDelta,
-                  controller.enqueue.bind(controller),
-                );
+                toolCallTracker.processDelta(toolCallDelta);
               }
             }
           },
@@ -447,7 +448,7 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
               controller.enqueue({ type: 'text-end', id: 'txt-0' });
             }
 
-            toolCallTracker.flush(controller.enqueue.bind(controller));
+            toolCallTracker.flush();
 
             controller.enqueue({
               type: 'finish',

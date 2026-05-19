@@ -1,7 +1,7 @@
 import {
   JSONParseError,
-  SharedV4Warning,
   TypeValidationError,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
 import { jsonSchema } from '@ai-sdk/provider-utils';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
@@ -726,8 +726,6 @@ describe('generateObject', () => {
               reasoningTokens: undefined,
             },
             totalTokens: 30,
-            reasoningTokens: undefined,
-            cachedInputTokens: undefined,
           },
           finishReason: 'stop',
         });
@@ -1159,11 +1157,9 @@ describe('generateObject', () => {
           {
             "callId": "test-call-id",
             "frequencyPenalty": undefined,
-            "functionId": "test-function",
             "headers": {
               "user-agent": "ai/0.0.0-test",
             },
-            "isEnabled": true,
             "maxOutputTokens": 100,
             "maxRetries": 2,
             "messages": undefined,
@@ -1174,8 +1170,6 @@ describe('generateObject', () => {
             "prompt": "test-prompt",
             "provider": "test-provider",
             "providerOptions": undefined,
-            "recordInputs": undefined,
-            "recordOutputs": undefined,
             "schema": {
               "$schema": "http://json-schema.org/draft-07/schema#",
               "additionalProperties": false,
@@ -1223,8 +1217,8 @@ describe('generateObject', () => {
           },
         });
 
-        expect(startEvent.isEnabled).toBe(true);
-        expect(startEvent.functionId).toBe('deprecated-fn');
+        expect(startEvent).not.toHaveProperty('isEnabled');
+        expect(startEvent).not.toHaveProperty('functionId');
       });
     });
 

@@ -1,4 +1,4 @@
-import {
+import type {
   JSONValue,
   LanguageModelV4FinishReason,
   LanguageModelV4StreamPart,
@@ -9,58 +9,61 @@ import {
 import {
   createIdGenerator,
   DelayedPromise,
-  FlexibleSchema,
-  ProviderOptions,
   type InferSchema,
+  type FlexibleSchema,
+  type ProviderOptions,
 } from '@ai-sdk/provider-utils';
-import { ServerResponse } from 'http';
+import type { ServerResponse } from 'http';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
-import { LanguageModelCallOptions } from '../prompt/language-model-call-options';
+import type { LanguageModelCallOptions } from '../prompt/language-model-call-options';
 import { prepareLanguageModelCallOptions } from '../prompt/prepare-language-model-call-options';
-import { RequestOptions } from '../prompt/request-options';
+import type { RequestOptions } from '../prompt/request-options';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
-import { Prompt } from '../prompt/prompt';
+import type { Prompt } from '../prompt/prompt';
 import { standardizePrompt } from '../prompt/standardize-prompt';
 import { wrapGatewayError } from '../prompt/wrap-gateway-error';
-import { createUnifiedTelemetry } from '../telemetry/create-unified-telemetry';
-import { TelemetryOptions } from '../telemetry/telemetry-options';
+import { createTelemetryDispatcher } from '../telemetry/create-telemetry-dispatcher';
+import type { TelemetryOptions } from '../telemetry/telemetry-options';
 import { createTextStreamResponse } from '../text-stream/create-text-stream-response';
 import { pipeTextStreamToResponse } from '../text-stream/pipe-text-stream-to-response';
-import {
+import type {
   CallWarning,
   FinishReason,
   LanguageModel,
 } from '../types/language-model';
-import { LanguageModelRequestMetadata } from '../types/language-model-request-metadata';
-import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
-import { ProviderMetadata } from '../types/provider-metadata';
+import type { LanguageModelRequestMetadata } from '../types/language-model-request-metadata';
+import type { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
+import type { ProviderMetadata } from '../types/provider-metadata';
 import {
   asLanguageModelUsage,
   createNullLanguageModelUsage,
-  LanguageModelUsage,
+  type LanguageModelUsage,
 } from '../types/usage';
-import { DeepPartial, isDeepEqualData, parsePartialJson } from '../util';
+import { isDeepEqualData, parsePartialJson, type DeepPartial } from '../util';
 import {
-  AsyncIterableStream,
   createAsyncIterableStream,
+  type AsyncIterableStream,
 } from '../util/async-iterable-stream';
 import type { Callback } from '../util/callback';
 import { createStitchableStream } from '../util/create-stitchable-stream';
-import { DownloadFunction } from '../util/download/download-function';
+import type { DownloadFunction } from '../util/download/download-function';
 import { notify } from '../util/notify';
 import { now as originalNow } from '../util/now';
 import { prepareRetries } from '../util/prepare-retries';
 import type {
-  ObjectOnFinishEvent,
-  ObjectOnStartEvent,
-  ObjectOnStepFinishEvent,
-  ObjectOnStepStartEvent,
+  GenerateObjectEndEvent,
+  GenerateObjectStartEvent,
+  GenerateObjectStepEndEvent,
+  GenerateObjectStepStartEvent,
 } from './structured-output-events';
-import { getOutputStrategy, OutputStrategy } from './output-strategy';
+import { getOutputStrategy, type OutputStrategy } from './output-strategy';
 import { parseAndValidateObjectResultWithRepair } from './parse-and-validate-object-result';
-import { RepairTextFunction } from './repair-text';
-import { ObjectStreamPart, StreamObjectResult } from './stream-object-result';
+import type { RepairTextFunction } from './repair-text';
+import type {
+  ObjectStreamPart,
+  StreamObjectResult,
+} from './stream-object-result';
 import { validateObjectGenerationInput } from './validate-object-generation-input';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aiobj', size: 24 });
@@ -123,6 +126,7 @@ export type StreamObjectOnFinishCallback<RESULT> = (event: {
  * @param system - A system message that will be part of the prompt.
  * @param prompt - A simple text prompt. You can either use `prompt` or `messages` but not both.
  * @param messages - A list of messages. You can either use `prompt` or `messages` but not both.
+ * @param allowSystemInMessages - Whether system messages are allowed in the `prompt` or `messages` fields. Default: false.
  *
  * @param maxOutputTokens - Maximum number of tokens to generate.
  * @param temperature - Temperature setting.
@@ -259,19 +263,19 @@ export function streamObject<
        * Callback that is called when the streamObject operation begins,
        * before the LLM call is made.
        */
-      experimental_onStart?: Callback<ObjectOnStartEvent>;
+      experimental_onStart?: Callback<GenerateObjectStartEvent>;
 
       /**
        * Callback that is called when the model call (step) begins,
        * before the provider is called.
        */
-      experimental_onStepStart?: Callback<ObjectOnStepStartEvent>;
+      experimental_onStepStart?: Callback<GenerateObjectStepStartEvent>;
 
       /**
        * Callback that is called when the model streaming step completes,
        * with the raw accumulated text before final schema validation.
        */
-      onStepFinish?: Callback<ObjectOnStepFinishEvent>;
+      onStepFinish?: Callback<GenerateObjectStepEndEvent>;
 
       /**
        * Callback that is invoked when an error occurs during streaming.
@@ -283,7 +287,7 @@ export function streamObject<
       /**
        * Callback that is called when the LLM response and the final object validation are finished.
        */
-      onFinish?: Callback<ObjectOnFinishEvent<RESULT>>;
+      onFinish?: Callback<GenerateObjectEndEvent<RESULT>>;
 
       /**
        * Internal. For test use only. May change without notice.
@@ -310,9 +314,11 @@ export function streamObject<
   const {
     model,
     output = 'object',
+    instructions,
     system,
     prompt,
     messages,
+    allowSystemInMessages,
     maxRetries,
     abortSignal,
     headers,
@@ -367,9 +373,11 @@ export function streamObject<
     maxRetries,
     abortSignal,
     outputStrategy,
+    instructions,
     system,
     prompt,
     messages,
+    allowSystemInMessages,
     schemaName,
     schemaDescription,
     providerOptions,
@@ -397,10 +405,12 @@ class DefaultStreamObjectResult<
     ProviderMetadata | undefined
   >();
   private readonly _warnings = new DelayedPromise<CallWarning[] | undefined>();
-  private readonly _request =
-    new DelayedPromise<LanguageModelRequestMetadata>();
-  private readonly _response =
-    new DelayedPromise<LanguageModelResponseMetadata>();
+  private readonly _request = new DelayedPromise<
+    Omit<LanguageModelRequestMetadata, 'messages'>
+  >();
+  private readonly _response = new DelayedPromise<
+    Omit<LanguageModelResponseMetadata, 'messages'>
+  >();
   private readonly _finishReason = new DelayedPromise<FinishReason>();
 
   private readonly baseStream: ReadableStream<ObjectStreamPart<PARTIAL>>;
@@ -419,9 +429,11 @@ class DefaultStreamObjectResult<
     maxRetries: maxRetriesArg,
     abortSignal,
     outputStrategy,
+    instructions,
     system,
     prompt,
     messages,
+    allowSystemInMessages,
     schemaName,
     schemaDescription,
     providerOptions,
@@ -443,18 +455,20 @@ class DefaultStreamObjectResult<
     maxRetries: number | undefined;
     abortSignal: AbortSignal | undefined;
     outputStrategy: OutputStrategy<PARTIAL, RESULT, ELEMENT_STREAM>;
+    instructions: Prompt['instructions'];
     system: Prompt['system'];
     prompt: Prompt['prompt'];
     messages: Prompt['messages'];
+    allowSystemInMessages: Prompt['allowSystemInMessages'];
     schemaName: string | undefined;
     schemaDescription: string | undefined;
     providerOptions: ProviderOptions | undefined;
     repairText: RepairTextFunction | undefined;
-    onStart: Callback<ObjectOnStartEvent> | undefined;
-    onStepStart: Callback<ObjectOnStepStartEvent> | undefined;
-    onStepFinish: Callback<ObjectOnStepFinishEvent> | undefined;
+    onStart: Callback<GenerateObjectStartEvent> | undefined;
+    onStepStart: Callback<GenerateObjectStepStartEvent> | undefined;
+    onStepFinish: Callback<GenerateObjectStepEndEvent> | undefined;
     onError: StreamObjectOnErrorCallback;
-    onFinish: Callback<ObjectOnFinishEvent<RESULT>> | undefined;
+    onFinish: Callback<GenerateObjectEndEvent<RESULT>> | undefined;
     download: DownloadFunction | undefined;
     generateId: () => string;
     currentDate: () => Date;
@@ -469,8 +483,8 @@ class DefaultStreamObjectResult<
 
     const callSettings = prepareLanguageModelCallOptions(settings);
 
-    const unifiedTelemetry = createUnifiedTelemetry({
-      integrations: telemetry?.integrations,
+    const telemetryDispatcher = createTelemetryDispatcher({
+      telemetry,
     });
 
     const self = this;
@@ -504,7 +518,7 @@ class DefaultStreamObjectResult<
           operationId: 'ai.streamObject' as const,
           provider: model.provider,
           modelId: model.modelId,
-          system,
+          system: instructions ?? system,
           prompt,
           messages,
           maxOutputTokens: callSettings.maxOutputTokens,
@@ -525,18 +539,16 @@ class DefaultStreamObjectResult<
           schema: jsonSchema as Record<string, unknown> | undefined,
           schemaName,
           schemaDescription,
-          isEnabled: telemetry?.isEnabled ?? true,
-          recordInputs: telemetry?.recordInputs,
-          recordOutputs: telemetry?.recordOutputs,
-          functionId: telemetry?.functionId,
         },
-        callbacks: [onStart, unifiedTelemetry.onStart],
+        callbacks: [onStart, telemetryDispatcher.onStart],
       });
 
       const standardizedPrompt = await standardizePrompt({
+        instructions,
         system,
         prompt,
         messages,
+        allowSystemInMessages,
       } as Prompt);
 
       const callOptions = {
@@ -567,10 +579,9 @@ class DefaultStreamObjectResult<
           modelId: model.modelId,
           providerOptions,
           headers,
-          functionId: telemetry?.functionId,
           promptMessages: callOptions.prompt,
         },
-        callbacks: [onStepStart, unifiedTelemetry.onObjectStepStart],
+        callbacks: [onStepStart, telemetryDispatcher.onObjectStepStart],
       });
 
       const transformer: Transformer<
@@ -784,11 +795,10 @@ class DefaultStreamObjectResult<
                       headers: response?.headers,
                     },
                     providerMetadata,
-                    functionId: telemetry?.functionId,
                   },
                   callbacks: [
                     onStepFinish,
-                    unifiedTelemetry.onObjectStepFinish,
+                    telemetryDispatcher.onObjectStepFinish,
                   ],
                 });
 
@@ -807,9 +817,8 @@ class DefaultStreamObjectResult<
                       headers: response?.headers,
                     },
                     providerMetadata,
-                    functionId: telemetry?.functionId,
                   },
-                  callbacks: [onFinish, unifiedTelemetry.onFinish],
+                  callbacks: [onFinish, telemetryDispatcher.onEnd],
                 });
               } catch (error) {
                 controller.enqueue({ type: 'error', error });
@@ -821,7 +830,7 @@ class DefaultStreamObjectResult<
       stitchableStream.addStream(transformedStream);
     })()
       .catch(async error => {
-        await unifiedTelemetry.onError?.({ callId, error });
+        await telemetryDispatcher.onError?.({ callId, error });
 
         stitchableStream.addStream(
           new ReadableStream({

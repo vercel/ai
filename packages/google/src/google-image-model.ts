@@ -1,4 +1,4 @@
-import {
+import type {
   ImageModelV4,
   LanguageModelV4Prompt,
   SharedV4Warning,
@@ -7,27 +7,27 @@ import {
   combineHeaders,
   convertToBase64,
   createJsonResponseHandler,
-  FetchFunction,
   generateId as defaultGenerateId,
-  type InferSchema,
   lazySchema,
   parseProviderOptions,
   postJsonToApi,
-  Resolvable,
   resolve,
   serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
   zodSchema,
+  type FetchFunction,
+  type Resolvable,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { googleFailedResponseHandler } from './google-error';
-import {
+import { googleImageModelOptionsSchema } from './google-image-model-options';
+import type {
   GoogleImageModelId,
   GoogleImageSettings,
 } from './google-image-settings';
 import { GoogleLanguageModel } from './google-language-model';
-import type { GoogleLanguageModelOptions } from './google-options';
+import type { GoogleLanguageModelOptions } from './google-language-model-options';
 
 interface GoogleImageModelConfig {
   provider: string;
@@ -240,33 +240,39 @@ export class GoogleImageModel implements ImageModelV4 {
       });
     }
 
-    // Build user message content for language model
     const userContent: Array<
       | { type: 'text'; text: string }
-      | { type: 'file'; data: string | Uint8Array | URL; mediaType: string }
+      | {
+          type: 'file';
+          data:
+            | { type: 'data'; data: string | Uint8Array }
+            | { type: 'url'; url: URL };
+          mediaType: string;
+        }
     > = [];
 
-    // Add text prompt
     if (prompt != null) {
       userContent.push({ type: 'text', text: prompt });
     }
 
-    // Add input images for editing
     if (files != null && files.length > 0) {
       for (const file of files) {
         if (file.type === 'url') {
           userContent.push({
             type: 'file',
-            data: new URL(file.url),
+            data: { type: 'url', url: new URL(file.url) },
             mediaType: 'image/*',
           });
         } else {
           userContent.push({
             type: 'file',
-            data:
-              typeof file.data === 'string'
-                ? file.data
-                : new Uint8Array(file.data),
+            data: {
+              type: 'data',
+              data:
+                typeof file.data === 'string'
+                  ? file.data
+                  : new Uint8Array(file.data),
+            },
             mediaType: file.mediaType,
           });
         }
@@ -312,11 +318,14 @@ export class GoogleImageModel implements ImageModelV4 {
 
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
 
-    // Extract images from language model response
     const images: string[] = [];
     for (const part of result.content) {
-      if (part.type === 'file' && part.mediaType.startsWith('image/')) {
-        images.push(convertToBase64(part.data));
+      if (
+        part.type === 'file' &&
+        part.mediaType.startsWith('image/') &&
+        part.data.type === 'data'
+      ) {
+        images.push(convertToBase64(part.data.data));
       }
     }
 
@@ -360,20 +369,3 @@ const googleImageResponseSchema = lazySchema(() =>
     }),
   ),
 );
-
-// Note: For the initial GA launch of Imagen 3, safety filters are not configurable.
-// https://ai.google.dev/gemini-api/docs/imagen#imagen-model
-const googleImageModelOptionsSchema = lazySchema(() =>
-  zodSchema(
-    z.object({
-      personGeneration: z
-        .enum(['dont_allow', 'allow_adult', 'allow_all'])
-        .nullish(),
-      aspectRatio: z.enum(['1:1', '3:4', '4:3', '9:16', '16:9']).nullish(),
-    }),
-  ),
-);
-
-export type GoogleImageModelOptions = InferSchema<
-  typeof googleImageModelOptionsSchema
->;

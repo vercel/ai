@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { createCerebras } from './cerebras-provider';
 import { loadApiKey } from '@ai-sdk/provider-utils';
 import { OpenAICompatibleChatLanguageModel } from '@ai-sdk/openai-compatible';
@@ -96,6 +96,71 @@ describe('CerebrasProvider', () => {
 
       const model = provider(modelId);
       expect(model).toBeInstanceOf(OpenAICompatibleChatLanguageModel);
+    });
+
+    it('should convert assistant reasoning_content to reasoning', () => {
+      const provider = createCerebras();
+      provider('model-id');
+
+      const constructorCall =
+        OpenAICompatibleChatLanguageModelMock.mock.calls[0];
+      const config = constructorCall[1];
+
+      expect(
+        config.transformRequestBody({
+          model: 'model-id',
+          messages: [
+            { role: 'user', content: 'what is the magic number?' },
+            {
+              role: 'assistant',
+              content: null,
+              reasoning_content: 'I should call a tool.',
+              tool_calls: [
+                {
+                  id: 'tool-call-id',
+                  type: 'function',
+                  function: { name: 'getNumber', arguments: '{}' },
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              tool_call_id: 'tool-call-id',
+              content: '2026',
+            },
+          ],
+        }),
+      ).toMatchInlineSnapshot(`
+        {
+          "messages": [
+            {
+              "content": "what is the magic number?",
+              "role": "user",
+            },
+            {
+              "content": null,
+              "reasoning": "I should call a tool.",
+              "role": "assistant",
+              "tool_calls": [
+                {
+                  "function": {
+                    "arguments": "{}",
+                    "name": "getNumber",
+                  },
+                  "id": "tool-call-id",
+                  "type": "function",
+                },
+              ],
+            },
+            {
+              "content": "2026",
+              "role": "tool",
+              "tool_call_id": "tool-call-id",
+            },
+          ],
+          "model": "model-id",
+        }
+      `);
     });
   });
 

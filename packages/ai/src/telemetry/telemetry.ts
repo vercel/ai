@@ -1,34 +1,77 @@
 import type { ToolSet } from '@ai-sdk/provider-utils';
 import type {
-  EmbedFinishEvent,
-  EmbedOnFinishEvent,
-  EmbedOnStartEvent,
+  EmbedEndEvent,
   EmbedStartEvent,
+  EmbeddingModelCallEndEvent,
+  EmbeddingModelCallStartEvent,
 } from '../embed/embed-events';
 import type {
-  ObjectOnFinishEvent,
-  ObjectOnStartEvent,
-  ObjectOnStepFinishEvent,
-  ObjectOnStepStartEvent,
+  GenerateObjectEndEvent,
+  GenerateObjectStartEvent,
+  GenerateObjectStepEndEvent,
+  GenerateObjectStepStartEvent,
 } from '../generate-object/structured-output-events';
 import type {
-  OnChunkEvent,
-  OnFinishEvent,
-  OnStartEvent,
-  OnStepFinishEvent,
-  OnStepStartEvent,
-} from '../generate-text/core-events';
+  GenerateTextEndEvent,
+  GenerateTextStartEvent,
+  GenerateTextStepEndEvent,
+  GenerateTextStepStartEvent,
+} from '../generate-text/generate-text-events';
+import type {
+  LanguageModelCallEndEvent,
+  LanguageModelCallStartEvent,
+  OnLanguageModelCallEndCallback,
+  OnLanguageModelCallStartCallback,
+} from '../generate-text/language-model-events';
 import type {
   ToolExecutionEndEvent,
   ToolExecutionStartEvent,
 } from '../generate-text/tool-execution-events';
 import type {
-  RerankFinishEvent,
-  RerankOnFinishEvent,
-  RerankOnStartEvent,
+  RerankEndEvent,
   RerankStartEvent,
+  RerankingModelCallEndEvent,
+  RerankingModelCallStartEvent,
 } from '../rerank/rerank-events';
 import type { Callback } from '../util/callback';
+import type { TelemetryOptions } from '../telemetry/telemetry-options';
+
+export type InferTelemetryEvent<EVENT> = EVENT &
+  Omit<
+    TelemetryOptions,
+    'integrations' | 'isEnabled' | 'includeRuntimeContext'
+  >;
+
+type OperationStartEvent =
+  | GenerateTextStartEvent
+  | GenerateObjectStartEvent
+  | EmbedStartEvent
+  | RerankStartEvent;
+
+type OperationEndEvent =
+  | GenerateTextEndEvent<ToolSet>
+  | GenerateObjectEndEvent<unknown>
+  | EmbedEndEvent
+  | RerankEndEvent;
+
+export interface TelemetryDispatcher {
+  onStart?: Callback<OperationStartEvent>;
+  onStepStart?: Callback<GenerateTextStepStartEvent>;
+  onLanguageModelCallStart?: OnLanguageModelCallStartCallback;
+  onLanguageModelCallEnd?: OnLanguageModelCallEndCallback;
+  onToolExecutionStart?: Callback<ToolExecutionStartEvent>;
+  onToolExecutionEnd?: Callback<ToolExecutionEndEvent>;
+  onStepFinish?: Callback<GenerateTextStepEndEvent>;
+  onObjectStepStart?: Callback<GenerateObjectStepStartEvent>;
+  onObjectStepFinish?: Callback<GenerateObjectStepEndEvent>;
+  onEmbedStart?: Callback<EmbeddingModelCallStartEvent>;
+  onEmbedEnd?: Callback<EmbeddingModelCallEndEvent>;
+  onRerankStart?: Callback<RerankingModelCallStartEvent>;
+  onRerankEnd?: Callback<RerankingModelCallEndEvent>;
+  onEnd?: Callback<OperationEndEvent>;
+  onError?: Callback<unknown>;
+  executeTool?: Telemetry['executeTool'];
+}
 
 /**
  * Implement this interface to create custom telemetry integrations.
@@ -42,9 +85,7 @@ export interface Telemetry {
    *
    * Use the `operationId` field to distinguish between operation types.
    */
-  onStart?: Callback<
-    OnStartEvent | ObjectOnStartEvent | EmbedOnStartEvent | RerankOnStartEvent
-  >;
+  onStart?: Callback<InferTelemetryEvent<OperationStartEvent>>;
 
   /**
    * Called when an individual step (single LLM invocation) begins.
@@ -55,28 +96,39 @@ export interface Telemetry {
    * The event includes the step number, accumulated previous step results,
    * and the messages that will be sent to the model.
    */
-  onStepStart?: Callback<OnStepStartEvent>;
+  onStepStart?: Callback<InferTelemetryEvent<GenerateTextStepStartEvent>>;
+
+  /**
+   * Called immediately before the provider model call begins.
+   * Unlike `onStepStart`, this callback is scoped to model work only and
+   * excludes any later client-side tool execution.
+   */
+  onLanguageModelCallStart?: Callback<
+    InferTelemetryEvent<LanguageModelCallStartEvent>
+  >;
+
+  /**
+   * Called after the model response has been normalized and parsed, but before
+   * any client-side tool execution begins.
+   */
+  onLanguageModelCallEnd?: Callback<
+    InferTelemetryEvent<LanguageModelCallEndEvent>
+  >;
 
   /**
    * Called when a tool execution begins, before the tool's `execute` function
    * is invoked. Use this to create tool-level spans or log tool invocations.
    */
-  onToolExecutionStart?: Callback<ToolExecutionStartEvent>;
+  onToolExecutionStart?: Callback<InferTelemetryEvent<ToolExecutionStartEvent>>;
 
   /**
    * Called when a tool execution completes, either successfully or with an error.
    * The event uses a discriminated union on the `success` field — check
    * `event.success` to determine whether `output` or `error` is available.
    *
-   * The event includes execution duration (`durationMs`) for performance tracking.
+   * The event includes execution time (`toolExecutionMs`) for performance tracking.
    */
-  onToolExecutionEnd?: Callback<ToolExecutionEndEvent>;
-
-  /**
-   * Called for each chunk received during streaming.
-   * Only relevant for `streamText` — not called during `generateText`.
-   */
-  onChunk?: Callback<OnChunkEvent>;
+  onToolExecutionEnd?: Callback<InferTelemetryEvent<ToolExecutionEndEvent>>;
 
   /**
    * Called when an individual step (single LLM invocation) completes.
@@ -84,7 +136,7 @@ export interface Telemetry {
    * and results, usage statistics, finish reason, and optional request/response
    * bodies.
    */
-  onStepFinish?: Callback<OnStepFinishEvent>;
+  onStepFinish?: Callback<InferTelemetryEvent<GenerateTextStepEndEvent>>;
 
   /**
    * Called when an object generation step (single LLM invocation) begins.
@@ -92,7 +144,9 @@ export interface Telemetry {
    *
    * @deprecated
    */
-  onObjectStepStart?: Callback<ObjectOnStepStartEvent>;
+  onObjectStepStart?: Callback<
+    InferTelemetryEvent<GenerateObjectStepStartEvent>
+  >;
 
   /**
    * Called when an object generation step (single LLM invocation) completes,
@@ -100,32 +154,34 @@ export interface Telemetry {
    *
    * @deprecated
    */
-  onObjectStepFinish?: Callback<ObjectOnStepFinishEvent>;
+  onObjectStepFinish?: Callback<
+    InferTelemetryEvent<GenerateObjectStepEndEvent>
+  >;
 
   /**
    * Called when an individual embedding model call (doEmbed) begins.
    * For `embed`, there is one call. For `embedMany`, there may be multiple
    * calls when values are chunked.
    */
-  onEmbedStart?: Callback<EmbedStartEvent>;
+  onEmbedStart?: Callback<InferTelemetryEvent<EmbeddingModelCallStartEvent>>;
 
   /**
    * Called when an individual embedding model call (doEmbed) completes.
    * Contains the embeddings, usage, and any warnings from the model response.
    */
-  onEmbedFinish?: Callback<EmbedFinishEvent>;
+  onEmbedEnd?: Callback<InferTelemetryEvent<EmbeddingModelCallEndEvent>>;
 
   /**
    * Called when an individual reranking model call (doRerank) begins.
    * There is one call per `rerank` invocation.
    */
-  onRerankStart?: Callback<RerankStartEvent>;
+  onRerankStart?: Callback<InferTelemetryEvent<RerankingModelCallStartEvent>>;
 
   /**
    * Called when an individual reranking model call (doRerank) completes.
    * Contains the ranking results from the model response.
    */
-  onRerankFinish?: Callback<RerankFinishEvent>;
+  onRerankEnd?: Callback<InferTelemetryEvent<RerankingModelCallEndEvent>>;
 
   /**
    * Called when an operation completes. Fired for text generation
@@ -134,12 +190,7 @@ export interface Telemetry {
    *
    * Use the event shape or `operationId` to distinguish between operation types.
    */
-  onFinish?: Callback<
-    | OnFinishEvent<ToolSet>
-    | ObjectOnFinishEvent<unknown>
-    | EmbedOnFinishEvent
-    | RerankOnFinishEvent
-  >;
+  onEnd?: Callback<InferTelemetryEvent<OperationEndEvent>>;
 
   /**
    * Called when an unrecoverable error occurs during the generation lifecycle.

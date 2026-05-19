@@ -2,26 +2,26 @@ import {
   AIMessage,
   HumanMessage,
   ToolMessage,
-  BaseMessage,
   AIMessageChunk,
-  BaseMessageChunk,
-  ToolCallChunk,
   type ContentBlock,
   type ToolCall,
+  type BaseMessage,
+  type BaseMessageChunk,
+  type ToolCallChunk,
 } from '@langchain/core/messages';
-import {
-  type UIMessageChunk,
-  type ToolResultPart,
-  type AssistantContent,
-  type UserContent,
+import type {
+  UIMessageChunk,
+  ToolResultPart,
+  AssistantContent,
+  UserContent,
 } from 'ai';
 
-import {
-  type LangGraphEventState,
-  type ReasoningContentBlock,
-  type ThinkingContentBlock,
-  type GPT5ReasoningOutput,
-  type ImageGenerationOutput,
+import type {
+  LangGraphEventState,
+  ReasoningContentBlock,
+  ThinkingContentBlock,
+  GPT5ReasoningOutput,
+  ImageGenerationOutput,
 } from './types';
 
 /**
@@ -220,11 +220,51 @@ export function convertUserContent(content: UserContent): HumanMessage {
         });
       }
     } else if (part.type === 'file') {
-      const filePart = part as {
+      const rawFilePart = part as {
         type: 'file';
-        data: string | Uint8Array | URL | ArrayBuffer;
+        data:
+          | string
+          | Uint8Array
+          | URL
+          | ArrayBuffer
+          | { type: 'data'; data: string | Uint8Array | ArrayBuffer }
+          | { type: 'url'; url: URL }
+          | { type: 'reference'; reference: Record<string, string> }
+          | { type: 'text'; text: string };
         mediaType: string;
         filename?: string;
+      };
+
+      // Normalize tagged data shape into the legacy bare value this code expects.
+      const normalizedData: string | Uint8Array | URL | ArrayBuffer = (() => {
+        const d = rawFilePart.data;
+        if (
+          typeof d === 'object' &&
+          d !== null &&
+          !(d instanceof URL) &&
+          !(d instanceof Uint8Array) &&
+          !(d instanceof ArrayBuffer) &&
+          'type' in d
+        ) {
+          switch (d.type) {
+            case 'data':
+              return d.data;
+            case 'url':
+              return d.url;
+            case 'text':
+              return d.text;
+            default:
+              return '';
+          }
+        }
+        return d as string | Uint8Array | URL | ArrayBuffer;
+      })();
+
+      const filePart = {
+        type: 'file' as const,
+        data: normalizedData,
+        mediaType: rawFilePart.mediaType,
+        filename: rawFilePart.filename,
       };
 
       /**

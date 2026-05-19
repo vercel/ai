@@ -1,10 +1,10 @@
-import { bedrock } from '@ai-sdk/amazon-bedrock';
+import { amazonBedrock } from '@ai-sdk/amazon-bedrock';
 import { generateText } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: bedrock('anthropic.claude-3-haiku-20240307-v1:0'),
+    model: amazonBedrock('anthropic.claude-3-haiku-20240307-v1:0'),
     maxOutputTokens: 512,
     messages: [
       {
@@ -12,9 +12,9 @@ run(async () => {
         content: [
           { type: 'text', text: 'Describe the image in detail.' },
           {
-            type: 'image',
-            image:
-              'https://github.com/vercel/ai/blob/main/examples/ai-functions/data/comic-cat.png?raw=true',
+            type: 'file',
+            mediaType: 'image',
+            data: 'https://github.com/vercel/ai/blob/main/examples/ai-functions/data/comic-cat.png?raw=true',
           },
         ],
       },

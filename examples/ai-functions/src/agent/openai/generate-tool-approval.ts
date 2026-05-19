@@ -1,5 +1,9 @@
 import { openai } from '@ai-sdk/openai';
-import { ModelMessage, ToolApprovalResponse, ToolLoopAgent } from 'ai';
+import {
+  ToolLoopAgent,
+  type ModelMessage,
+  type ToolApprovalResponse,
+} from 'ai';
 import * as readline from 'node:readline/promises';
 import { run } from '../../lib/run';
 import { weatherTool } from '../../tools/weather-tool';
@@ -104,6 +108,6 @@ run(async () => {
 
     process.stdout.write('\n\n');
 
-    messages.push(...result.response.messages);
+    messages.push(...result.responseMessages);
   }
 });

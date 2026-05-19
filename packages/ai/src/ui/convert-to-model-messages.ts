@@ -1,38 +1,37 @@
 import {
-  AssistantContent,
-  CustomPart,
-  FilePart,
   isNonNullable,
-  ModelMessage,
-  TextPart,
-  ToolApprovalResponse,
-  ToolResultPart,
+  type ToolSet,
+  type AssistantContent,
+  type CustomPart,
+  type FilePart,
+  type ModelMessage,
+  type TextPart,
+  type ToolApprovalResponse,
+  type ToolResultPart,
 } from '@ai-sdk/provider-utils';
-import type { ToolSet } from '@ai-sdk/provider-utils';
 import { createToolModelOutput } from '../prompt/create-tool-model-output';
 import { MessageConversionError } from '../prompt/message-conversion-error';
 import {
-  CustomContentUIPart,
-  DataUIPart,
-  DynamicToolUIPart,
-  FileUIPart,
   getToolName,
-  InferUIMessageData,
-  InferUIMessageTools,
   isCustomContentUIPart,
   isDataUIPart,
   isFileUIPart,
   isReasoningFileUIPart,
   isReasoningUIPart,
-  ReasoningFileUIPart,
   isTextUIPart,
   isToolUIPart,
-  ReasoningUIPart,
-  TextUIPart,
-  ToolUIPart,
-  UIMessage,
+  type CustomContentUIPart,
+  type DataUIPart,
+  type DynamicToolUIPart,
+  type FileUIPart,
+  type InferUIMessageData,
+  type InferUIMessageTools,
+  type ReasoningFileUIPart,
+  type ReasoningUIPart,
+  type TextUIPart,
+  type ToolUIPart,
+  type UIMessage,
 } from './ui-messages';
-
 /**
  * Converts an array of UI messages from useChat into an array of ModelMessages that can be used
  * with the AI functions (e.g. `streamText`, `generateText`).
@@ -114,7 +113,13 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                   type: 'file' as const,
                   mediaType: part.mediaType,
                   filename: part.filename,
-                  data: part.providerReference ?? part.url,
+                  data:
+                    part.providerReference != null
+                      ? {
+                          type: 'reference' as const,
+                          reference: part.providerReference,
+                        }
+                      : { type: 'url' as const, url: new URL(part.url) },
                   ...(part.providerMetadata != null
                     ? { providerOptions: part.providerMetadata }
                     : {}),
@@ -176,7 +181,13 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                   type: 'file' as const,
                   mediaType: part.mediaType,
                   filename: part.filename,
-                  data: part.providerReference ?? part.url,
+                  data:
+                    part.providerReference != null
+                      ? {
+                          type: 'reference' as const,
+                          reference: part.providerReference,
+                        }
+                      : { type: 'url' as const, url: new URL(part.url) },
                   ...(part.providerMetadata != null
                     ? { providerOptions: part.providerMetadata }
                     : {}),
@@ -184,7 +195,7 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
               } else if (isReasoningFileUIPart(part)) {
                 content.push({
                   type: 'reasoning-file' as const,
-                  data: part.url,
+                  data: { type: 'url' as const, url: new URL(part.url) },
                   mediaType: part.mediaType,
                   providerOptions: part.providerMetadata,
                 });

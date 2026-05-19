@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import { google } from '@ai-sdk/google';
-import { createVertex } from '@ai-sdk/google-vertex';
+import { createGoogleVertex } from '@ai-sdk/google-vertex';
 import { isStepCount, streamText, tool } from 'ai';
 import { z } from 'zod';
 
@@ -24,7 +24,7 @@ import { z } from 'zod';
 async function main() {
   console.log('Issue #11413: Verifying bidirectional gateway failover fix\n');
 
-  const vertex = createVertex();
+  const vertex = createGoogleVertex();
 
   const weatherTool = tool({
     description: 'Get the weather for a location',

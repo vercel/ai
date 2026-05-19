@@ -1,4 +1,4 @@
-import {
+import type {
   LanguageModelV4,
   LanguageModelV4CallOptions,
   LanguageModelV4Content,
@@ -9,28 +9,32 @@ import {
   SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
-  ParseResult,
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
-  type InferSchema,
   isCustomReasoning,
   mapReasoningToProviderBudget,
   parseProviderOptions,
+  parseJSON,
   postJsonToApi,
   serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
+  type InferSchema,
+  type FetchFunction,
+  type ParseResult,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import {
-  CohereChatModelId,
-  cohereLanguageModelOptions,
-} from './cohere-chat-options';
+  cohereLanguageModelChatOptions,
+  type CohereChatModelId,
+} from './cohere-chat-language-model-options';
 import { cohereFailedResponseHandler } from './cohere-error';
 import { prepareTools } from './cohere-prepare-tools';
-import { CohereUsageTokens, convertCohereUsage } from './convert-cohere-usage';
+import {
+  convertCohereUsage,
+  type CohereUsageTokens,
+} from './convert-cohere-usage';
 import { convertToCohereChatPrompt } from './convert-to-cohere-chat-prompt';
 import { mapCohereFinishReason } from './map-cohere-finish-reason';
 
@@ -47,8 +51,8 @@ export class CohereChatLanguageModel implements LanguageModelV4 {
 
   readonly modelId: CohereChatModelId;
 
-  readonly supportedUrls = {
-    // No URLs are supported.
+  readonly supportedUrls: Record<string, RegExp[]> = {
+    'image/*': [/^https?:\/\/.*$/],
   };
 
   private readonly config: CohereChatConfig;
@@ -98,14 +102,14 @@ export class CohereChatLanguageModel implements LanguageModelV4 {
       (await parseProviderOptions({
         provider: 'cohere',
         providerOptions,
-        schema: cohereLanguageModelOptions,
+        schema: cohereLanguageModelChatOptions,
       })) ?? {};
 
     const {
       messages: chatPrompt,
       documents: cohereDocuments,
       warnings: promptWarnings,
-    } = convertToCohereChatPrompt(prompt);
+    } = await convertToCohereChatPrompt(prompt);
 
     const {
       tools: cohereTools,
@@ -284,7 +288,7 @@ export class CohereChatLanguageModel implements LanguageModelV4 {
             controller.enqueue({ type: 'stream-start', warnings });
           },
 
-          transform(chunk, controller) {
+          async transform(chunk, controller) {
             if (options.includeRawChunks) {
               controller.enqueue({ type: 'raw', rawValue: chunk.rawValue });
             }
@@ -409,7 +413,9 @@ export class CohereChatLanguageModel implements LanguageModelV4 {
                     toolCallId: pendingToolCall.id,
                     toolName: pendingToolCall.name,
                     input: JSON.stringify(
-                      JSON.parse(pendingToolCall.arguments?.trim() || '{}'),
+                      await parseJSON({
+                        text: pendingToolCall.arguments?.trim() || '{}',
+                      }),
                     ),
                   });
 
@@ -463,7 +469,7 @@ function resolveCohereThinking({
   warnings,
 }: {
   reasoning: LanguageModelV4CallOptions['reasoning'];
-  cohereOptions: InferSchema<typeof cohereLanguageModelOptions>;
+  cohereOptions: InferSchema<typeof cohereLanguageModelChatOptions>;
   warnings: SharedV4Warning[];
 }): { thinking?: { type: string; token_budget?: number } } {
   if (cohereOptions.thinking) {

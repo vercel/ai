@@ -1,5 +1,5 @@
-import { RerankingModelV4CallOptions } from './reranking-model-v4-call-options';
-import { RerankingModelV4Result } from './reranking-model-v4-result';
+import type { RerankingModelV4CallOptions } from './reranking-model-v4-call-options';
+import type { RerankingModelV4Result } from './reranking-model-v4-result';
 
 /**
  * Specification for a reranking model that implements the reranking model interface version 3.

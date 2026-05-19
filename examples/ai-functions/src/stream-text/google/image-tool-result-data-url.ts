@@ -33,9 +33,9 @@ run(async () => {
             text: output.description,
           },
           {
-            type: 'file-url',
-            url: output.imageUrl,
+            type: 'file',
             mediaType: 'image/png',
+            data: { type: 'url', url: new URL(output.imageUrl) },
           },
         ],
       };

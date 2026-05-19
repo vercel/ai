@@ -11,9 +11,10 @@ run(async () => {
       schema: z.object({
         recipe: z.object({
           name: z.string(),
-          ingredients: z.array(
-            z.object({ name: z.string(), amount: z.string() }),
-          ),
+          ingredients: z
+            .array(z.object({ name: z.string(), amount: z.string() }))
+            .min(10)
+            .max(12),
           steps: z.array(z.string()),
         }),
       }),

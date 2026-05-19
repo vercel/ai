@@ -1,10 +1,10 @@
 import { openai } from '@ai-sdk/openai';
 import {
   generateText,
-  ModelMessage,
   isStepCount,
   tool,
-  ToolApprovalResponse,
+  type ModelMessage,
+  type ToolApprovalResponse,
 } from 'ai';
 import * as readline from 'node:readline/promises';
 import { z } from 'zod/v4';
@@ -43,7 +43,7 @@ run(async () => {
       model: openai('gpt-5.4-mini'),
       // context engineering required to make sure the model does not retry
       // the tool execution if it is not approved for a particular tool call:
-      system:
+      instructions:
         'When a tool call was not approved by the user, ' +
         'do not retry the tool call with the same input.' +
         'Just say that the tool execution was not approved.' +
@@ -124,6 +124,6 @@ run(async () => {
 
     process.stdout.write('\n\n');
 
-    messages.push(...result.response.messages);
+    messages.push(...result.responseMessages);
   }
 });

@@ -15,9 +15,11 @@ describe('WorkflowChatTransport', () => {
   beforeEach(() => {
     mockFetch = vi.fn() as ReturnType<typeof vi.fn> & typeof fetch;
     vi.clearAllMocks();
+    vi.useFakeTimers();
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     vi.restoreAllMocks();
   });
 
@@ -653,7 +655,7 @@ describe('WorkflowChatTransport', () => {
       }
 
       // Give some time for the callback to be called
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await vi.advanceTimersByTimeAsync(100);
 
       expect(onChatEnd).toHaveBeenCalledWith({
         chatId: 'test-chat',

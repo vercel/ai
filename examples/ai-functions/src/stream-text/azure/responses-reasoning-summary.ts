@@ -1,12 +1,12 @@
 import { azure } from '@ai-sdk/azure';
-import { type OpenAILanguageModelResponsesOptions } from '@ai-sdk/openai';
+import type { OpenAILanguageModelResponsesOptions } from '@ai-sdk/openai';
 import { streamText } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
     model: azure.responses('gpt-5-mini'), // use your own deployment
-    system: 'You are a helpful assistant.',
+    instructions: 'You are a helpful assistant.',
     prompt:
       'Tell me about the debate over Taqueria La Cumbre and El Farolito and who created the San Francisco Mission-style burrito.',
     providerOptions: {
@@ -29,5 +29,5 @@ run(async () => {
   console.log();
   console.log('Finish reason:', await result.finishReason);
   console.log('Usage:', await result.usage);
-  console.log('Provider metadata:', await result.providerMetadata);
+  console.log('Provider metadata:', (await result.finalStep).providerMetadata);
 });

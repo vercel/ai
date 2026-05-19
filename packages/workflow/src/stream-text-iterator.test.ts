@@ -18,6 +18,8 @@ import type {
   ToolSet,
 } from 'ai';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
+import type { ParsedToolCall } from './do-stream-step.js';
+import type { StreamTextIteratorYieldValue } from './stream-text-iterator.js';
 
 // Mock doStreamStep
 vi.mock('./do-stream-step.js', () => ({
@@ -27,8 +29,6 @@ vi.mock('./do-stream-step.js', () => ({
 // Import after mocking
 const { streamTextIterator } = await import('./stream-text-iterator.js');
 const { doStreamStep } = await import('./do-stream-step.js');
-import type { ParsedToolCall } from './do-stream-step.js';
-import type { StreamTextIteratorYieldValue } from './stream-text-iterator.js';
 
 /**
  * Helper to create a mock writable stream
@@ -720,6 +720,49 @@ describe('streamTextIterator', () => {
         google: {
           thoughtSignature: 'sig_gemini_preserved',
         },
+      });
+    });
+  });
+
+  describe('runtimeContext and toolsContext', () => {
+    it('should pass current contexts to doStreamStep and yielded steps', async () => {
+      const runtimeContext = { tenantId: 'tenant_123' };
+      const toolsContext = { weather: { unit: 'celsius' } };
+      const step = createMockStepResult();
+
+      vi.mocked(doStreamStep).mockResolvedValueOnce({
+        toolCalls: [],
+        finish: createMockFinish('stop'),
+        step,
+        providerExecutedToolResults: new Map(),
+      });
+
+      const iterator = streamTextIterator({
+        prompt: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
+        tools: {} as ToolSet,
+        writable: createMockWritable(),
+        model: vi.fn() as any,
+        runtimeContext,
+        toolsContext,
+      });
+
+      const result = await iterator.next();
+
+      expect(doStreamStep).toHaveBeenCalledWith(
+        expect.any(Array),
+        expect.any(Function),
+        expect.any(WritableStream),
+        expect.any(Object),
+        expect.objectContaining({
+          runtimeContext,
+          toolsContext,
+          stepNumber: 0,
+        }),
+      );
+      expect(result.value).toMatchObject({
+        step,
+        runtimeContext,
+        toolsContext,
       });
     });
   });

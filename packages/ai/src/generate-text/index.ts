@@ -1,25 +1,34 @@
+export type { ActiveTools } from './active-tools';
 export type { ContentPart } from './content-part';
+export { filterActiveTools as experimental_filterActiveTools } from './filter-active-tools';
+export { generateText, type GenerateTextInclude } from './generate-text';
 export type {
-  OnChunkEvent,
+  GenerateTextEndEvent,
+  GenerateTextOnFinishCallback,
+  GenerateTextOnStartCallback,
+  GenerateTextOnStepFinishCallback,
+  GenerateTextOnStepStartCallback,
+  GenerateTextStartEvent,
+  GenerateTextStepEndEvent,
+  GenerateTextStepStartEvent,
   OnFinishEvent,
   OnStartEvent,
   OnStepFinishEvent,
   OnStepStartEvent,
-} from './core-events';
-export { filterActiveTools as experimental_filterActiveTools } from './filter-active-tool';
-export {
-  generateText,
-  type GenerateTextOnFinishCallback,
-  type GenerateTextOnStartCallback,
-  type GenerateTextOnStepFinishCallback,
-  type GenerateTextOnStepStartCallback,
-} from './generate-text';
+} from './generate-text-events';
 export type { GenerateTextResult } from './generate-text-result';
 export {
   DefaultGeneratedFile,
   type GeneratedFile as Experimental_GeneratedImage, // Image for backwards compatibility, TODO remove in v7
   type GeneratedFile,
 } from './generated-file';
+export type {
+  LanguageModelCallEndEvent,
+  LanguageModelCallStartEvent,
+  ModelInfo,
+  OnLanguageModelCallEndCallback,
+  OnLanguageModelCallStartCallback,
+} from './language-model-events';
 export * as Output from './output';
 export type { Output as OutputInterface } from './output';
 export type {
@@ -30,7 +39,7 @@ export type { PrepareStepFunction, PrepareStepResult } from './prepare-step';
 export { pruneMessages } from './prune-messages';
 export type { ReasoningFileOutput, ReasoningOutput } from './reasoning-output';
 export { smoothStream, type ChunkDetector } from './smooth-stream';
-export type { StepResult } from './step-result';
+export type { StepResult, StepResultPerformance } from './step-result';
 export {
   hasToolCall,
   isLoopFinished,
@@ -48,12 +57,9 @@ export {
 } from './stream-language-model-call';
 export {
   streamText,
+  type StreamTextInclude,
   type StreamTextOnChunkCallback,
   type StreamTextOnErrorCallback,
-  type StreamTextOnFinishCallback,
-  type StreamTextOnStartCallback,
-  type StreamTextOnStepFinishCallback,
-  type StreamTextOnStepStartCallback,
   type StreamTextTransform,
 } from './stream-text';
 export type {
@@ -62,8 +68,9 @@ export type {
   UIMessageStreamOptions,
 } from './stream-text-result';
 export type {
+  GenericToolApprovalFunction,
+  SingleToolApprovalFunction,
   ToolApprovalConfiguration,
-  ToolApprovalFunction,
   ToolApprovalStatus,
 } from './tool-approval-configuration';
 export type { ToolApprovalRequestOutput } from './tool-approval-request-output';
@@ -80,11 +87,14 @@ export type {
   TypedToolError,
 } from './tool-error';
 export type {
+  OnToolCallFinishEvent,
+  OnToolCallStartEvent,
   OnToolExecutionEndCallback,
   OnToolExecutionStartCallback,
   ToolExecutionEndEvent,
   ToolExecutionStartEvent,
 } from './tool-execution-events';
+export type { ToolInputRefinement } from './tool-input-refinement';
 export type {
   StaticToolOutputDenied,
   TypedToolOutputDenied,

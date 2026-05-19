@@ -1,33 +1,102 @@
 import type {
   Context,
   InferToolSetContext,
+  ReasoningFilePart,
+  ReasoningPart,
   ToolSet,
 } from '@ai-sdk/provider-utils';
-import { ReasoningFilePart, ReasoningPart } from '@ai-sdk/provider-utils';
-import {
+import type {
   CallWarning,
   FinishReason,
   LanguageModelRequestMetadata,
   LanguageModelResponseMetadata,
   ProviderMetadata,
 } from '../types';
-import { Source } from '../types/language-model';
-import { LanguageModelUsage } from '../types/usage';
-import { ContentPart } from './content-part';
-import { GeneratedFile } from './generated-file';
+import type { Source } from '../types/language-model';
+import type { LanguageModelUsage } from '../types/usage';
+import type { ContentPart } from './content-part';
+import type { GeneratedFile } from './generated-file';
 import { asReasoningText } from './reasoning';
 import {
-  ReasoningFileOutput,
-  ReasoningOutput,
   convertFromReasoningOutputs,
+  type ReasoningFileOutput,
+  type ReasoningOutput,
 } from './reasoning-output';
-import { ResponseMessage } from './response-message';
-import { DynamicToolCall, StaticToolCall, TypedToolCall } from './tool-call';
-import {
+import type {
+  DynamicToolCall,
+  StaticToolCall,
+  TypedToolCall,
+} from './tool-call';
+import type {
   DynamicToolResult,
   StaticToolResult,
   TypedToolResult,
 } from './tool-result';
+
+/**
+ * Performance metrics for a single step in the generation process.
+ */
+export type StepResultPerformance = {
+  /**
+   * Effective number of output tokens per second over the full language model
+   * response.
+   *
+   * Calculated as `outputTokens / requestSeconds`.
+   */
+  readonly effectiveOutputTokensPerSecond: number;
+
+  /**
+   * Number of output tokens per second after the first output token was
+   * received.
+   *
+   * Only available for streaming steps.
+   *
+   * Calculated as `outputTokens / outputStreamSeconds`.
+   */
+  readonly outputTokensPerSecond: number | undefined;
+
+  /**
+   * Number of input tokens processed per second before the first output token
+   * was received.
+   *
+   * Only available for streaming steps.
+   *
+   * Calculated as `inputTokens / ttftSeconds`.
+   */
+  readonly inputTokensPerSecond: number | undefined;
+
+  /**
+   * Effective number of input and output tokens per second over the full
+   * language model response.
+   *
+   * Calculated as `(inputTokens + outputTokens) / requestSeconds`.
+   */
+  readonly effectiveTotalTokensPerSecond: number;
+
+  /**
+   * Total time spent on the step in milliseconds.
+   */
+  readonly stepTimeMs: number;
+
+  /**
+   * Time spent waiting for the language model response in milliseconds.
+   */
+  readonly responseTimeMs: number;
+
+  /**
+   * Time spent executing each client-side tool call in milliseconds, keyed by
+   * tool call ID.
+   */
+  readonly toolExecutionMs: Readonly<Record<string, number>>;
+
+  /**
+   * Time until the first text, reasoning, or tool input delta was received in
+   * milliseconds.
+   *
+   * Only available for streaming steps.
+   */
+  readonly timeToFirstOutputTokenMs: number | undefined;
+};
 
 /**
  * The result of a single step in the generation process.
@@ -52,14 +121,10 @@ export type StepResult<
   readonly model: {
     /** The provider of the model. */
     readonly provider: string;
+
     /** The ID of the model. */
     readonly modelId: string;
   };
-
-  /**
-   * Identifier from telemetry settings for grouping related operations.
-   */
-  readonly functionId: string | undefined;
 
   /**
    * Tool context.
@@ -67,7 +132,7 @@ export type StepResult<
   readonly toolsContext: InferToolSetContext<TOOLS>;
 
   /**
-   * Runtime context.
+   * The runtime context that was used as input for the step.
    */
   readonly runtimeContext: RUNTIME_CONTEXT;
 
@@ -77,7 +142,7 @@ export type StepResult<
   readonly content: Array<ContentPart<TOOLS>>;
 
   /**
-   * The generated text.
+   * The generated text. Can be an empty string if the model has not generated any text.
    */
   readonly text: string;
 
@@ -88,6 +153,9 @@ export type StepResult<
 
   /**
    * The reasoning text that was generated during the generation.
+   *
+   * It is a concatenation of all reasoning parts (but excluding reasoning file parts).
+   * Can be undefined if the model has only generated text.
    */
   readonly reasoningText: string | undefined;
 
@@ -147,6 +215,11 @@ export type StepResult<
   readonly usage: LanguageModelUsage;
 
   /**
+   * Performance metrics for the step.
+   */
+  readonly performance: StepResultPerformance;
+
+  /**
    * Warnings from the model provider (e.g. unsupported settings).
    */
   readonly warnings: CallWarning[] | undefined;
@@ -159,19 +232,7 @@ export type StepResult<
   /**
    * Additional response information.
    */
-  readonly response: LanguageModelResponseMetadata & {
-    /**
-     * The response messages that were generated during the call.
-     * Response messages can be either assistant messages or tool messages.
-     * They contain a generated id.
-     */
-    readonly messages: Array<ResponseMessage>;
-
-    /**
-     * Response body (available only for providers that use HTTP requests).
-     */
-    body?: unknown;
-  };
+  readonly response: LanguageModelResponseMetadata;
 
   /**
    * Additional provider-specific metadata. They are passed through
@@ -188,7 +249,6 @@ export class DefaultStepResult<
   readonly callId: StepResult<TOOLS, RUNTIME_CONTEXT>['callId'];
   readonly stepNumber: StepResult<TOOLS, RUNTIME_CONTEXT>['stepNumber'];
   readonly model: StepResult<TOOLS, RUNTIME_CONTEXT>['model'];
-  readonly functionId: StepResult<TOOLS, RUNTIME_CONTEXT>['functionId'];
   readonly toolsContext: StepResult<TOOLS, RUNTIME_CONTEXT>['toolsContext'];
   readonly runtimeContext: StepResult<TOOLS, RUNTIME_CONTEXT>['runtimeContext'];
   readonly content: StepResult<TOOLS, RUNTIME_CONTEXT>['content'];
@@ -198,6 +258,7 @@ export class DefaultStepResult<
     RUNTIME_CONTEXT
   >['rawFinishReason'];
   readonly usage: StepResult<TOOLS, RUNTIME_CONTEXT>['usage'];
+  readonly performance: StepResult<TOOLS, RUNTIME_CONTEXT>['performance'];
   readonly warnings: StepResult<TOOLS, RUNTIME_CONTEXT>['warnings'];
   readonly request: StepResult<TOOLS, RUNTIME_CONTEXT>['request'];
   readonly response: StepResult<TOOLS, RUNTIME_CONTEXT>['response'];
@@ -211,13 +272,13 @@ export class DefaultStepResult<
     stepNumber,
     provider,
     modelId,
-    functionId,
     runtimeContext,
     toolsContext,
     content,
     finishReason,
     rawFinishReason,
     usage,
+    performance,
     warnings,
     request,
     response,
@@ -227,13 +288,13 @@ export class DefaultStepResult<
     stepNumber: StepResult<TOOLS, RUNTIME_CONTEXT>['stepNumber'];
     provider: StepResult<TOOLS, RUNTIME_CONTEXT>['model']['provider'];
     modelId: StepResult<TOOLS, RUNTIME_CONTEXT>['model']['modelId'];
-    functionId: StepResult<TOOLS, RUNTIME_CONTEXT>['functionId'];
     runtimeContext: StepResult<TOOLS, RUNTIME_CONTEXT>['runtimeContext'];
     toolsContext: StepResult<TOOLS, RUNTIME_CONTEXT>['toolsContext'];
     content: StepResult<TOOLS, RUNTIME_CONTEXT>['content'];
     finishReason: StepResult<TOOLS, RUNTIME_CONTEXT>['finishReason'];
     rawFinishReason: StepResult<TOOLS, RUNTIME_CONTEXT>['rawFinishReason'];
     usage: StepResult<TOOLS, RUNTIME_CONTEXT>['usage'];
+    performance: StepResult<TOOLS, RUNTIME_CONTEXT>['performance'];
     warnings: StepResult<TOOLS, RUNTIME_CONTEXT>['warnings'];
     request: StepResult<TOOLS, RUNTIME_CONTEXT>['request'];
     response: StepResult<TOOLS, RUNTIME_CONTEXT>['response'];
@@ -242,13 +303,13 @@ export class DefaultStepResult<
     this.callId = callId;
     this.stepNumber = stepNumber;
     this.model = { provider, modelId };
-    this.functionId = functionId;
     this.runtimeContext = runtimeContext;
     this.toolsContext = toolsContext;
     this.content = content;
     this.finishReason = finishReason;
     this.rawFinishReason = rawFinishReason;
     this.usage = usage;
+    this.performance = performance;
     this.warnings = warnings;
     this.request = request;
     this.response = response;

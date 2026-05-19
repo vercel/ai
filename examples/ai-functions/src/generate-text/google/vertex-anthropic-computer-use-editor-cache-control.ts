@@ -1,4 +1,4 @@
-import { type AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
+import type { AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
 import { run } from '../../lib/run';
 import { vertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
 import { generateText, isStepCount } from 'ai';
@@ -50,7 +50,7 @@ This is a test file.
   });
 
   console.log('TEXT', result.text);
-  console.log('CACHE', result.providerMetadata?.anthropic);
+  console.log('CACHE', result.finalStep.providerMetadata?.anthropic);
   console.log();
   console.log('EDITOR CONTENT', editorContent);
 });

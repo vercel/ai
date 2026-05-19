@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/google-vertex",
-  "version": "5.0.0-beta.58",
+  "version": "5.0.0-canary.86",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -20,7 +20,9 @@
     "anthropic/edge.d.ts",
     "anthropic/index.d.ts",
     "maas/edge.d.ts",
-    "maas/index.d.ts"
+    "maas/index.d.ts",
+    "xai/edge.d.ts",
+    "xai/index.d.ts"
   ],
   "directories": {
     "doc": "./docs"
@@ -69,6 +71,16 @@
       "types": "./dist/maas/edge/index.d.ts",
       "import": "./dist/maas/edge/index.js",
       "default": "./dist/maas/edge/index.js"
+    },
+    "./xai": {
+      "types": "./dist/xai/index.d.ts",
+      "import": "./dist/xai/index.js",
+      "default": "./dist/xai/index.js"
+    },
+    "./xai/edge": {
+      "types": "./dist/xai/edge/index.d.ts",
+      "import": "./dist/xai/edge/index.js",
+      "default": "./dist/xai/edge/index.js"
     }
   },
   "dependencies": {
@@ -77,13 +89,13 @@
     "@ai-sdk/openai-compatible": "workspace:*",
     "@ai-sdk/provider": "workspace:*",
     "@ai-sdk/provider-utils": "workspace:*",
-    "google-auth-library": "^10.5.0"
+    "google-auth-library": "^10.6.2"
   },
   "devDependencies": {
     "@ai-sdk/test-server": "workspace:*",
-    "@types/node": "20.17.24",
+    "@types/node": "22.19.19",
     "@vercel/ai-tsconfig": "workspace:*",
-    "tsup": "^8",
+    "tsup": "^8.5.1",
     "typescript": "5.8.3",
     "zod": "3.25.76"
   },
@@ -91,15 +103,17 @@
     "zod": "^3.25.76 || ^4.1.8"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=22"
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "provenance": true
   },
   "homepage": "https://ai-sdk.dev/docs",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/vercel/ai.git"
+    "url": "https://github.com/vercel/ai",
+    "directory": "packages/google-vertex"
   },
   "bugs": {
     "url": "https://github.com/vercel/ai/issues"

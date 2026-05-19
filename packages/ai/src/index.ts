@@ -1,3 +1,6 @@
+// import globals
+import './global';
+
 // re-exports:
 export { createGateway, gateway, type GatewayModelId } from '@ai-sdk/gateway';
 export {
@@ -14,6 +17,7 @@ export {
   type InferSchema,
   type InferToolInput,
   type InferToolOutput,
+  type Experimental_Sandbox,
   type Schema,
   type Tool,
   type ToolApprovalRequest,
@@ -46,6 +50,3 @@ export * from './ui-message-stream';
 export * from './upload-file';
 export * from './upload-skill';
 export * from './util';
-
-// import globals
-import './global';

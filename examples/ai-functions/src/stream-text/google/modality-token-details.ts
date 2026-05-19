@@ -11,9 +11,9 @@ run(async () => {
         content: [
           { type: 'text', text: 'Describe the image in detail.' },
           {
-            type: 'image',
-            image:
-              'https://github.com/vercel/ai/blob/main/examples/ai-functions/data/comic-cat.png?raw=true',
+            type: 'file',
+            mediaType: 'image',
+            data: 'https://github.com/vercel/ai/blob/main/examples/ai-functions/data/comic-cat.png?raw=true',
           },
         ],
       },
@@ -24,7 +24,7 @@ run(async () => {
     process.stdout.write(textPart);
   }
 
-  const usageMetadata = (await result.providerMetadata)?.google
+  const usageMetadata = (await result.finalStep).providerMetadata?.google
     ?.usageMetadata as Record<string, unknown> | undefined;
 
   console.log();

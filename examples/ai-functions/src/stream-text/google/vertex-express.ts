@@ -1,9 +1,9 @@
-import { createVertex } from '@ai-sdk/google-vertex';
+import { createGoogleVertex } from '@ai-sdk/google-vertex';
 import { streamText } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
-  const vertex = createVertex({
+  const vertex = createGoogleVertex({
     apiKey: process.env.GOOGLE_VERTEX_API_KEY,
   });
 

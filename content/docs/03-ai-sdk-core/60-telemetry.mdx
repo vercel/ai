@@ -75,20 +75,99 @@ To disable telemetry globally, do not register any telemetry integrations via th
 
 You can provide a `functionId` to identify the function that the telemetry data is for,
 and `runtimeContext` to include additional information in the telemetry data.
+For the broader context model, see
+[Runtime and Tool Context](/docs/ai-sdk-core/runtime-and-tool-context).
 
 ```ts highlight="4-10"
 const result = await generateText({
   model: __MODEL__,
   prompt: 'Write a short story about a cat.',
   runtimeContext: {
-    something: 'custom',
-    someOtherThing: 'other-value',
+    userId: 'user_123',
+    requestId: 'req_abc',
   },
   telemetry: {
     functionId: 'my-awesome-function',
   },
 });
 ```
+
+### Runtime context telemetry inclusion
+
+`runtimeContext` can contain values that are useful inside your application but should not be sent to telemetry providers, such as user identifiers, tenant IDs, or credentials. Use `telemetry.includeRuntimeContext` to mark the top-level `runtimeContext` properties that should be included in telemetry:
+
+```ts highlight="8-10"
+const result = await generateText({
+  model: __MODEL__,
+  prompt: 'Write a short story about a cat.',
+  runtimeContext: {
+    userId: 'user_123',
+    requestId: 'req_abc',
+  },
+  telemetry: {
+    includeRuntimeContext: {
+      requestId: true,
+    },
+  },
+});
+```
+
+In this example, telemetry integrations receive `runtimeContext` as `{ requestId: 'req_abc' }`. Properties set to `false` or omitted are excluded. If `telemetry.includeRuntimeContext` is omitted, no runtime context properties are included. `telemetry.includeRuntimeContext` is supported by `generateText`, `streamText`, and `ToolLoopAgent`.
+
+<Note>
+  `telemetry.includeRuntimeContext` only filters telemetry integrations,
+  including OpenTelemetry integrations. Lifecycle callbacks and returned results
+  still receive the full `runtimeContext`.
+</Note>
+
+### Tool context
+
+Tool-specific context can also contain values that are useful during execution but should not be sent to telemetry providers, such as API keys or access tokens.
+Use `telemetry.includeToolsContext` to include selected top-level properties from a tool's `context` in telemetry:
+
+```ts highlight="18-24"
+const weatherTool = tool({
+  inputSchema: z.object({
+    location: z.string(),
+  }),
+  contextSchema: z.object({
+    weatherApiKey: z.string(),
+    defaultUnit: z.enum(['celsius', 'fahrenheit']),
+  }),
+  execute: async ({ location }, { context }) =>
+    fetchWeather(location, context.weatherApiKey, context.defaultUnit),
+});
+
+const result = await generateText({
+  model: __MODEL__,
+  tools: { weather: weatherTool },
+  toolsContext: {
+    weather: {
+      weatherApiKey: 'weather-123',
+      defaultUnit: 'fahrenheit',
+    },
+  },
+  prompt: 'What is the weather in San Francisco?',
+  telemetry: {
+    includeToolsContext: {
+      weather: {
+        defaultUnit: true,
+      },
+    },
+  },
+});
+```
+
+In this example, telemetry integrations receive `toolsContext.weather` and tool execution telemetry event `toolContext` as `{ defaultUnit: 'fahrenheit' }`.
+Properties set to `false` or omitted are excluded. If `telemetry.includeToolsContext` is omitted, no tool context properties are included. `telemetry.includeToolsContext` is supported by `generateText`, `streamText`, and `ToolLoopAgent`.
+
+<Note>
+  `telemetry.includeToolsContext` only filters telemetry integrations, including
+  OpenTelemetry integrations. Tool execution, lifecycle callbacks, and returned
+  results still receive the full tool context. See [Runtime and Tool
+  Context](/docs/ai-sdk-core/runtime-and-tool-context) for the difference
+  between tool execution context and telemetry event context.
+</Note>
 
 ## Custom Tracer
 
@@ -101,18 +180,16 @@ import { OpenTelemetry } from '@ai-sdk/otel';
 const tracerProvider = new NodeTracerProvider();
 registerTelemetry(
   new OpenTelemetry({
-    tracer: tracerProvider.getTracer('ai'),
+    tracer: tracerProvider.getTracer('gen_ai'),
   }),
 );
 ```
-
-The `GenAIOpenTelemetry` also accepts a custom `Tracer` in the same way.
 
 ## Telemetry Integrations
 
 Telemetry integrations let you hook into the generation lifecycle to build custom observability — logging, analytics, DevTools, or any other monitoring system. Instead of wiring up individual callbacks on every call, you implement a `Telemetry` once and register it globally or pass it via `telemetry.integrations`.
 
-The `GenAIOpenTelemetry` and `OpenTelemetry` from `@ai-sdk/otel` are the built-in integrations for collecting OpenTelemetry spans (see [Enabling telemetry](#enabling-telemetry) above).
+The `OpenTelemetry` and `LegacyOpenTelemetry` from `@ai-sdk/otel` are the built-in integrations for collecting OpenTelemetry spans (see [Enabling telemetry](#enabling-telemetry) above).
 
 ### Registering integrations globally
 
@@ -129,13 +206,10 @@ You can also register multiple integrations in a single call by passing them as 
 
 ```ts
 import { registerTelemetryIntegration } from 'ai';
-import { OpenTelemetryIntegration } from '@ai-sdk/otel';
+import { OpenTelemetry } from '@ai-sdk/otel';
 import { DevToolsTelemetry } from '@ai-sdk/devtools';
 
-registerTelemetryIntegration(
-  new OpenTelemetryIntegration(),
-  DevToolsTelemetry(),
-);
+registerTelemetryIntegration(new OpenTelemetry(), DevToolsTelemetry());
 ```
 
 ### Per-call integrations
@@ -165,6 +239,33 @@ telemetry: {
 
 Errors inside integrations are caught and do not break the generation flow.
 
+### Diagnostic channel
+
+In Node.js, AI SDK telemetry lifecycle events are also published to the
+`ai.telemetry` [diagnostics channel](https://nodejs.org/api/diagnostics_channel.html).
+This lets observability providers subscribe to AI SDK telemetry events without
+requiring users to register a separate telemetry integration.
+
+```ts
+import { channel } from 'node:diagnostics_channel';
+import {
+  AI_SDK_TELEMETRY_DIAGNOSTIC_CHANNEL,
+  type TelemetryDiagnosticChannelMessage,
+} from 'ai';
+
+channel(AI_SDK_TELEMETRY_DIAGNOSTIC_CHANNEL).subscribe(message => {
+  const telemetryMessage = message as TelemetryDiagnosticChannelMessage;
+
+  if (telemetryMessage.type === 'onStart') {
+    // Inspect telemetryMessage.event and forward it to your provider.
+  }
+});
+```
+
+Diagnostic-channel events follow the same per-call telemetry settings as other
+telemetry integrations. Setting `telemetry: { isEnabled: false }` disables both
+registered integrations and diagnostic-channel publication for that call.
+
 ### Building a custom integration
 
 Implement the `Telemetry` interface from the `ai` package. All methods are optional — implement only the lifecycle events you care about:
@@ -174,7 +275,7 @@ import type { Telemetry } from 'ai';
 
 class MyIntegration implements Telemetry {
   async onStart(event) {
-    console.log('Generation started:', event.model.modelId);
+    console.log('Generation started:', event.modelId);
   }
 
   async onStepFinish(event) {
@@ -186,16 +287,19 @@ class MyIntegration implements Telemetry {
   }
 
   async onToolExecutionEnd(event) {
-    if (event.success) {
+    if (event.toolOutput.type === 'tool-result') {
       console.log(
-        `Tool "${event.toolCall.toolName}" took ${event.durationMs}ms`,
+        `Tool "${event.toolCall.toolName}" took ${event.toolExecutionMs}ms`,
       );
     } else {
-      console.error(`Tool "${event.toolCall.toolName}" failed:`, event.error);
+      console.error(
+        `Tool "${event.toolCall.toolName}" failed:`,
+        event.toolOutput.error,
+      );
     }
   }
 
-  async onFinish(event) {
+  async onEnd(event) {
     console.log('Done. Total tokens:', event.totalUsage.totalTokens);
   }
 }
@@ -211,15 +315,27 @@ export function myIntegration(): Telemetry {
   content={[
     {
       name: 'onStart',
-      type: '(event: OnStartEvent) => void | PromiseLike<void>',
+      type: '(event: GenerateTextStartEvent) => void | PromiseLike<void>',
       description:
         'Called when the generation operation begins, before any LLM calls.',
     },
     {
       name: 'onStepStart',
-      type: '(event: OnStepStartEvent) => void | PromiseLike<void>',
+      type: '(event: GenerateTextStepStartEvent) => void | PromiseLike<void>',
       description:
         'Called when a step (LLM call) begins, before the provider is called.',
+    },
+    {
+      name: 'onLanguageModelCallStart',
+      type: '(event: LanguageModelCallStartEvent) => void | PromiseLike<void>',
+      description:
+        'Called immediately before the provider model call begins. Useful for model-only spans or logging.',
+    },
+    {
+      name: 'onLanguageModelCallEnd',
+      type: '(event: LanguageModelCallEndEvent) => void | PromiseLike<void>',
+      description:
+        'Called after the model response has been normalized and parsed, but before any client-side tool execution begins.',
     },
     {
       name: 'onToolExecutionStart',
@@ -233,12 +349,22 @@ export function myIntegration(): Telemetry {
     },
     {
       name: 'onStepFinish',
-      type: '(event: OnStepFinishEvent) => void | PromiseLike<void>',
+      type: '(event: GenerateTextStepEndEvent) => void | PromiseLike<void>',
       description: 'Called when a step (LLM call) completes.',
     },
     {
-      name: 'onFinish',
-      type: '(event: OnFinishEvent) => void | PromiseLike<void>',
+      name: 'onEmbedEnd',
+      type: '(event: EmbeddingModelCallEndEvent) => void | PromiseLike<void>',
+      description: 'Called when an individual embedding model call completes.',
+    },
+    {
+      name: 'onRerankEnd',
+      type: '(event: RerankingModelCallEndEvent) => void | PromiseLike<void>',
+      description: 'Called when an individual reranking model call completes.',
+    },
+    {
+      name: 'onEnd',
+      type: '(event: GenerateTextEndEvent) => void | PromiseLike<void>',
       description:
         'Called when the entire generation completes (all steps finished).',
     },
@@ -250,13 +376,13 @@ The event types for each method are the same as the corresponding [event callbac
 ## Collected Data
 
 The `@ai-sdk/otel` package provides two integrations that emit different span formats.
-The `GenAIOpenTelemetry` follows the [OpenTelemetry GenAI Semantic Conventions](https://opentelemetry.io/docs/specs/semconv/gen-ai/) and is the recommended integration.
-The `OpenTelemetry` integration emits legacy AI SDK-specific spans.
+The `OpenTelemetry` follows the [OpenTelemetry GenAI Semantic Conventions](https://opentelemetry.io/docs/specs/semconv/gen-ai/) and is the recommended integration.
+The `LegacyOpenTelemetry` integration emits legacy AI SDK-specific spans.
 
 ### GenAI Semantic Conventions
 
-The `GenAIOpenTelemetry` emits spans that follow the [OpenTelemetry Semantic Conventions for GenAI](https://opentelemetry.io/docs/specs/semconv/gen-ai/).
-All attributes use the `gen_ai.*` prefix. Provider names are mapped to well-known values (e.g. `openai`, `anthropic`, `gcp.vertex_ai`).
+The `OpenTelemetry` emits spans that follow the [OpenTelemetry Semantic Conventions for GenAI](https://opentelemetry.io/docs/specs/semconv/gen-ai/).
+By default, attributes use the `gen_ai.*` prefix. Provider names are mapped to well-known values (e.g. `openai`, `anthropic`, `gcp.vertex_ai`).
 
 #### generateText / streamText
 
@@ -394,10 +520,96 @@ Tool call spans (`execute_tool {toolName}`) are nested under the step span and c
 - `gen_ai.tool.call.arguments`: the input arguments (stringified JSON, when `recordInputs` is enabled)
 - `gen_ai.tool.call.result`: the output result (stringified JSON, when `recordOutputs` is enabled). Only set when the tool call succeeds.
 
-### Legacy AI SDK Spans (`OpenTelemetry`)
+### Custom OpenTelemetry span attributes
 
-The `OpenTelemetry` integration emits spans using AI SDK-specific `ai.*` prefixed attributes.
-This is the legacy format. Consider migrating to the `GenAIOpenTelemetry` for better compatibility with observability platforms.
+Use `enrichSpan` to add custom attributes to spans created by the
+`OpenTelemetry` integration. This is useful when an observability backend needs
+vendor-specific attributes that are not AI SDK-owned semantics.
+
+```ts
+import { registerTelemetry } from 'ai';
+import { OpenTelemetry } from '@ai-sdk/otel';
+
+registerTelemetry(
+  new OpenTelemetry({
+    enrichSpan: ({ spanType, operationId, callId, runtimeContext }) => {
+      return {
+        ...getCustomAttributes(runtimeContext, spanType),
+        'my_app.operation_id': operationId,
+        'my_app.call_id': callId,
+      };
+    },
+  }),
+);
+```
+
+The callback runs when each span is created and receives:
+
+- `spanType`: the type of span being created (`operation`, `step`, `languageModel`, `tool`, `embedding`, or `reranking`).
+- `operationId`: the AI SDK operation ID for the current call, such as `ai.generateText` or `ai.streamText`.
+- `callId`: the unique ID for the current AI SDK call.
+- `runtimeContext`: the telemetry-filtered runtime context for text generation spans, including updates from `prepareStep`.
+
+Custom attributes are merged with AI SDK attributes on the span. AI SDK-owned
+attributes take precedence when a custom attribute uses the same key.
+
+`sensitiveRuntimeContext` is applied before telemetry integrations receive
+`runtimeContext`, so custom span enrichment does not receive top-level runtime
+context properties marked as sensitive.
+
+### Supplemental AI SDK attributes on OpenTelemetry spans
+
+The GenAI semantic conventions cover the core model, prompt, response, tool call, and usage data. You can opt into additional AI SDK-specific attributes for data that is not represented by GenAI semantics:
+
+```ts
+import { registerTelemetry } from 'ai';
+import { OpenTelemetry } from '@ai-sdk/otel';
+
+registerTelemetry(
+  new OpenTelemetry({
+    usage: true,
+    providerMetadata: true,
+    runtimeContext: true,
+  }),
+);
+```
+
+This does not create additional AI SDK-specific spans such as `ai.generateText`, `ai.generateText.doGenerate`, or `ai.toolCall`. Instead, it adds only the selected supplemental attributes to the spans emitted by `OpenTelemetry`, such as `invoke_agent {modelId}`, `step {n}`, `chat {modelId}`, and `execute_tool {toolName}`.
+
+All supplemental attributes are disabled by default. Enable only the data you want to collect:
+
+```ts
+registerTelemetry(
+  new OpenTelemetry({
+    usage: true,
+    providerMetadata: true,
+    embedding: true,
+    reranking: true,
+    runtimeContext: true,
+    headers: true,
+    toolChoice: true,
+    schema: true,
+  }),
+);
+```
+
+The available options are:
+
+- `usage`: detailed usage attributes that are not covered by GenAI usage attributes, such as uncached input tokens and output text/reasoning token details.
+- `providerMetadata`: `ai.response.providerMetadata`.
+- `embedding`: embedding inputs and outputs.
+- `reranking`: rerank input documents and ranking output.
+- `runtimeContext`: `ai.settings.context.*`.
+- `headers`: `ai.request.headers.*`.
+- `toolChoice`: `ai.prompt.toolChoice`.
+- `schema`: object generation schema and output mode attributes.
+
+The `recordInputs` and `recordOutputs` telemetry options are still respected for supplemental input and output attributes.
+
+### Legacy AI SDK Spans (`LegacyOpenTelemetry`)
+
+The `LegacyOpenTelemetry` integration emits spans using AI SDK-specific `ai.*` prefixed attributes.
+This is the legacy format. Consider migrating to the `OpenTelemetry` for better compatibility with observability platforms.
 
 #### generateText function
 
@@ -405,7 +617,6 @@ This is the legacy format. Consider migrating to the `GenAIOpenTelemetry` for be
 
 - `ai.generateText` (span): the full length of the generateText call. It contains 1 or more `ai.generateText.doGenerate` spans.
   It contains the [basic LLM span information](#basic-llm-span-information) and the following attributes:
-
   - `operation.name`: `ai.generateText` and the functionId that was set through `telemetry.functionId`
   - `ai.operationId`: `"ai.generateText"`
   - `ai.prompt`: the prompt that was used when calling `generateText`
@@ -416,13 +627,12 @@ This is the legacy format. Consider migrating to the `GenAIOpenTelemetry` for be
 
 - `ai.generateText.doGenerate` (span): a provider doGenerate call. It can contain `ai.toolCall` spans.
   It contains the [call LLM span information](#call-llm-span-information) and the following attributes:
-
   - `operation.name`: `ai.generateText.doGenerate` and the functionId that was set through `telemetry.functionId`
   - `ai.operationId`: `"ai.generateText.doGenerate"`
   - `ai.prompt.messages`: the messages that were passed into the provider
-  - `ai.prompt.tools`: array of stringified tool definitions. The tools can be of type `function` or `provider-defined-client`.
-    Function tools have a `name`, `description` (optional), and `inputSchema` (JSON schema).
-    Provider-defined-client tools have a `name`, `id`, and `input` (Record).
+  - `ai.prompt.tools`: array of stringified tool definitions. The serialized tools can be of type `function` or `provider`.
+    Function tools include `FunctionTool` and `DynamicTool` definitions and have a `name`, `description` (optional), and `inputSchema` (JSON schema).
+    Provider tools include `ProviderDefinedTool` and `ProviderExecutedTool` definitions and have a `name`, `id`, and `args` (Record).
   - `ai.prompt.toolChoice`: the stringified tool choice setting (JSON). It has a `type` property
     (`auto`, `none`, `required`, `tool`), and if the type is `tool`, a `toolName` property with the specific tool.
   - `ai.response.text`: the text that was generated
@@ -437,7 +647,6 @@ This is the legacy format. Consider migrating to the `GenAIOpenTelemetry` for be
 
 - `ai.streamText` (span): the full length of the streamText call. It contains a `ai.streamText.doStream` span.
   It contains the [basic LLM span information](#basic-llm-span-information) and the following attributes:
-
   - `operation.name`: `ai.streamText` and the functionId that was set through `telemetry.functionId`
   - `ai.operationId`: `"ai.streamText"`
   - `ai.prompt`: the prompt that was used when calling `streamText`
@@ -449,13 +658,12 @@ This is the legacy format. Consider migrating to the `GenAIOpenTelemetry` for be
 - `ai.streamText.doStream` (span): a provider doStream call.
   This span contains an `ai.stream.firstChunk` event and `ai.toolCall` spans.
   It contains the [call LLM span information](#call-llm-span-information) and the following attributes:
-
   - `operation.name`: `ai.streamText.doStream` and the functionId that was set through `telemetry.functionId`
   - `ai.operationId`: `"ai.streamText.doStream"`
   - `ai.prompt.messages`: the messages that were passed into the provider
-  - `ai.prompt.tools`: array of stringified tool definitions. The tools can be of type `function` or `provider-defined-client`.
-    Function tools have a `name`, `description` (optional), and `inputSchema` (JSON schema).
-    Provider-defined-client tools have a `name`, `id`, and `input` (Record).
+  - `ai.prompt.tools`: array of stringified tool definitions. The serialized tools can be of type `function` or `provider`.
+    Function tools include `FunctionTool` and `DynamicTool` definitions and have a `name`, `description` (optional), and `inputSchema` (JSON schema).
+    Provider tools include `ProviderDefinedTool` and `ProviderExecutedTool` definitions and have a `name`, `id`, and `args` (Record).
   - `ai.prompt.toolChoice`: the stringified tool choice setting (JSON). It has a `type` property
     (`auto`, `none`, `required`, `tool`), and if the type is `tool`, a `toolName` property with the specific tool.
   - `ai.response.text`: the text that was generated
@@ -468,7 +676,6 @@ This is the legacy format. Consider migrating to the `GenAIOpenTelemetry` for be
 - `ai.toolCall` (span): a tool call that is made as part of the streamText call. See [Legacy tool call spans](#legacy-tool-call-spans) for more details.
 
 - `ai.stream.firstChunk` (event): an event that is emitted when the first chunk of the stream is received.
-
   - `ai.response.msToFirstChunk`: the time it took to receive the first chunk
 
 - `ai.stream.finish` (event): an event that is emitted when the finish part of the LLM stream is received.
@@ -495,7 +702,6 @@ object-specific attributes such as `ai.schema.*`, `ai.response.object`, and
 
 - `ai.embed` (span): the full length of the embed call. It contains 1 `ai.embed.doEmbed` spans.
   It contains the [basic embedding span information](#basic-embedding-span-information) and the following attributes:
-
   - `operation.name`: `ai.embed` and the functionId that was set through `telemetry.functionId`
   - `ai.operationId`: `"ai.embed"`
   - `ai.value`: the value that was passed into the `embed` function
@@ -503,7 +709,6 @@ object-specific attributes such as `ai.schema.*`, `ai.response.object`, and
 
 - `ai.embed.doEmbed` (span): a provider doEmbed call.
   It contains the [basic embedding span information](#basic-embedding-span-information) and the following attributes:
-
   - `operation.name`: `ai.embed.doEmbed` and the functionId that was set through `telemetry.functionId`
   - `ai.operationId`: `"ai.embed.doEmbed"`
   - `ai.values`: the values that were passed into the provider (array)
@@ -515,7 +720,6 @@ object-specific attributes such as `ai.schema.*`, `ai.response.object`, and
 
 - `ai.embedMany` (span): the full length of the embedMany call. It contains 1 or more `ai.embedMany.doEmbed` spans.
   It contains the [basic embedding span information](#basic-embedding-span-information) and the following attributes:
-
   - `operation.name`: `ai.embedMany` and the functionId that was set through `telemetry.functionId`
   - `ai.operationId`: `"ai.embedMany"`
   - `ai.values`: the values that were passed into the `embedMany` function
@@ -523,7 +727,6 @@ object-specific attributes such as `ai.schema.*`, `ai.response.object`, and
 
 - `ai.embedMany.doEmbed` (span): a provider doEmbed call.
   It contains the [basic embedding span information](#basic-embedding-span-information) and the following attributes:
-
   - `operation.name`: `ai.embedMany.doEmbed` and the functionId that was set through `telemetry.functionId`
   - `ai.operationId`: `"ai.embedMany.doEmbed"`
   - `ai.values`: the values that were sent to the provider
@@ -542,7 +745,7 @@ Many spans that use LLMs (`ai.generateText`, `ai.generateText.doGenerate`, `ai.s
 - `ai.response.providerMetadata`: provider specific metadata returned with the generation response
 - `ai.settings.maxRetries`: the maximum number of retries that were set
 - `ai.telemetry.functionId`: the functionId that was set through `telemetry.functionId`
-- `ai.settings.runtimeContext.*`: the runtime context that was passed in through the `runtimeContext` option
+- `ai.settings.runtimeContext.*`: the runtime context that was passed in through the `runtimeContext` option, filtered to top-level properties marked with `telemetry.includeRuntimeContext` when configured
 - `ai.usage.completionTokens`: the number of completion tokens that were used
 - `ai.usage.promptTokens`: the number of prompt tokens that were used
 

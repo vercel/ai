@@ -3,12 +3,10 @@
 ## Core Architecture
 
 - **Unified provider interface (adapter pattern).** Keep a layered architecture (Specifications → Utilities → Providers → Core) that enables a single, consistent API across many AI providers.
-
   - This is our central architecture backbone and the heart of what the AI SDK is.
   - It also enables community providers to be developed independently in 3rd party packages.
 
 - **Keep the building blocks separated.** Building blocks beyond the provider abstraction layer must be cleanly architected and not entangled with it.
-
   - Critical for tree shaking and agentic development.
   - Enforcing architectural boundaries reduces complexity and the potential for side effects.
 
@@ -19,28 +17,23 @@
 ## API Design
 
 - **Stability and backward compatibility first.** Changes must remain backward compatible — never change the signature of existing public functions. The only exception is a new AI SDK major release.
-
   - Even in a major version, breaking changes should have a good justification.
   - If keeping a public API unchanged would result in inferior or painful DX, making the breaking change is absolutely right — it just must happen as part of a new major release.
 
 - **Be extremely cautious with `@ai-sdk/provider`.** This package contains the spec. Treat any spec changes as potentially breaking.
-
   - Ideally, `@ai-sdk/provider` changes are only made in alignment with a new AI SDK major release.
 
 - **Conservative API surface.** Keep provider option schemas as restrictive as possible to preserve flexibility for future changes.
-
   - Keep response schemas minimal (no unused properties).
   - Keep schemas flexible enough to handle provider API changes without unnecessary breakages.
   - Use minimal package exports, especially from the `@ai-sdk/provider` package, which is responsible for the spec. Usage of the TypeScript primitives `Params` and `ReturnType` is encouraged in consuming code over having direct exports of the underlying types.
 
 - **Beware premature abstraction.** Provider APIs evolve quickly. Avoid adding generic parameters or abstractions that translate differently across providers.
-
   - Follow the rule of 3: wait until at least 3 providers have implemented the same concept before generalizing, to ensure the abstraction is solid.
   - When unsure or provider-specific, prefer `providerOptions`.
   - There can be significant pressure to abstract based on one provider. Resist it.
 
 - **Use `Experimental_` prefixes to explore new features outside of major releases.** When a new feature needs to be explored outside of a major release cycle, use code structures explicitly marked as experimental (e.g. `Experimental_*` prefix for types, `experimental_*` prefix for functions). This allows iteration without committing to a stable API contract.
-
   - It is acceptable for `@ai-sdk/provider` to export `Experimental_*` types for this purpose. These types may have breaking changes outside of major releases.
   - Non-experimental types must NEVER include references to experimental types (e.g., do not add a reference to something like `Experimental_VideoModelV4` to `ProviderV4`).
   - Experimental features must remain fully isolated until they are promoted to stable.
@@ -52,7 +45,6 @@
 ## Developer & Agent Experience
 
 - **Build with developers _and_ agents in mind.** Consistent APIs, development patterns, and naming conventions are key.
-
   - Monitor common agent hallucinations encountered when using agents to write AI SDK code.
   - Agent hallucinations can be worth considering as a suggestion to make the API work the way the agent expected it in the first place.
 

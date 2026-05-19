@@ -1,11 +1,16 @@
-import { tool } from '@ai-sdk/provider-utils';
+import {
+  tool,
+  type Experimental_Sandbox as Sandbox,
+} from '@ai-sdk/provider-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { mockSandboxFileStubs } from '../test/mock-sandbox';
 import * as z from 'zod/v4';
 import { TypeValidationError } from '../error';
+import { now } from '../util/now';
 import { executeToolCall } from './execute-tool-call';
-import { TypedToolCall } from './tool-call';
-import { TypedToolResult } from './tool-result';
-import {
+import type { TypedToolCall } from './tool-call';
+import type { TypedToolResult } from './tool-result';
+import type {
   ToolExecutionEndEvent,
   ToolExecutionStartEvent,
 } from './tool-execution-events';
@@ -14,7 +19,7 @@ import {
 vi.mock('../util/now', () => ({
   now: vi.fn(),
 }));
-import { now } from '../util/now';
+
 const mockNow = vi.mocked(now);
 
 describe('executeToolCall', () => {
@@ -44,7 +49,6 @@ describe('executeToolCall', () => {
             inputSchema: z.object({ value: z.string() }),
           }),
         },
-        telemetry: undefined,
         callId: 'test-telemetry-call-id',
         messages: [],
         abortSignal: undefined,
@@ -65,14 +69,13 @@ describe('executeToolCall', () => {
             execute: async ({ value }) => `${value}-result`,
           }),
         },
-        telemetry: undefined,
         callId: 'test-telemetry-call-id',
         messages: [],
         abortSignal: undefined,
         toolsContext: {},
       });
 
-      expect(result).toEqual({
+      expect(result?.output).toEqual({
         type: 'tool-result',
         toolCallId: 'call-1',
         toolName: 'testTool',
@@ -80,6 +83,39 @@ describe('executeToolCall', () => {
         output: 'test-result',
         dynamic: false,
       });
+    });
+
+    it('should pass sandbox to tool execution', async () => {
+      const sandbox = {
+        description: 'test sandbox',
+        runCommand: vi.fn(async () => ({
+          exitCode: 0,
+          stdout: 'ok',
+          stderr: '',
+        })),
+        ...mockSandboxFileStubs,
+      } satisfies Sandbox;
+      let receivedSandbox: Sandbox | undefined;
+
+      const result = await executeToolCall({
+        toolCall: createToolCall(),
+        tools: {
+          testTool: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }, { experimental_sandbox: sandbox }) => {
+              receivedSandbox = sandbox;
+              return `${value}-result`;
+            },
+          }),
+        },
+        callId: 'test-telemetry-call-id',
+        messages: [],
+        abortSignal: undefined,
+        experimental_sandbox: sandbox,
+        toolsContext: {},
+      });
+
+      expect(receivedSandbox).toBe(sandbox);
     });
 
     it('should preserve providerMetadata from toolCall', async () => {
@@ -93,17 +129,50 @@ describe('executeToolCall', () => {
             execute: async ({ value }) => `${value}-result`,
           }),
         },
-        telemetry: undefined,
         callId: 'test-telemetry-call-id',
         messages: [],
         abortSignal: undefined,
         toolsContext: {},
       });
 
-      expect(result).toMatchObject({
+      expect(result?.output).toMatchObject({
         type: 'tool-result',
         providerMetadata: { custom: { key: 'value' } },
       });
+    });
+
+    it('should preserve toolMetadata from toolCall', async () => {
+      const result = await executeToolCall({
+        toolCall: createToolCall({
+          toolMetadata: { clientName: 'MyMCPClient' },
+        }),
+        tools: {
+          testTool: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => `${value}-result`,
+          }),
+        },
+        callId: 'test-telemetry-call-id',
+        messages: [],
+        abortSignal: undefined,
+        toolsContext: {},
+      });
+
+      expect(result?.output).toMatchInlineSnapshot(`
+        {
+          "dynamic": false,
+          "input": {
+            "value": "test",
+          },
+          "output": "test-result",
+          "toolCallId": "call-1",
+          "toolMetadata": {
+            "clientName": "MyMCPClient",
+          },
+          "toolName": "testTool",
+          "type": "tool-result",
+        }
+      `);
     });
 
     it('should throw TypeValidationError when tool context fails validation', async () => {
@@ -117,7 +186,6 @@ describe('executeToolCall', () => {
               execute: async ({ value }) => `${value}-result`,
             }),
           },
-          telemetry: undefined,
           callId: 'test-telemetry-call-id',
           messages: [],
           abortSignal: undefined,
@@ -153,14 +221,13 @@ describe('executeToolCall', () => {
             },
           }),
         },
-        telemetry: undefined,
         callId: 'test-telemetry-call-id',
         messages: [],
         abortSignal: undefined,
         toolsContext: {},
       });
 
-      expect(result).toEqual({
+      expect(result?.output).toEqual({
         type: 'tool-error',
         toolCallId: 'call-1',
         toolName: 'testTool',
@@ -183,17 +250,52 @@ describe('executeToolCall', () => {
             },
           }),
         },
-        telemetry: undefined,
         callId: 'test-telemetry-call-id',
         messages: [],
         abortSignal: undefined,
         toolsContext: {},
       });
 
-      expect(result).toMatchObject({
+      expect(result?.output).toMatchObject({
         type: 'tool-error',
         providerMetadata: { custom: { key: 'value' } },
       });
+    });
+
+    it('should preserve toolMetadata from toolCall on error', async () => {
+      const result = await executeToolCall({
+        toolCall: createToolCall({
+          toolMetadata: { clientName: 'MyMCPClient' },
+        }),
+        tools: {
+          testTool: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async (): Promise<string> => {
+              throw new Error('execution failed');
+            },
+          }),
+        },
+        callId: 'test-telemetry-call-id',
+        messages: [],
+        abortSignal: undefined,
+        toolsContext: {},
+      });
+
+      expect(result?.output).toMatchInlineSnapshot(`
+        {
+          "dynamic": false,
+          "error": [Error: execution failed],
+          "input": {
+            "value": "test",
+          },
+          "toolCallId": "call-1",
+          "toolMetadata": {
+            "clientName": "MyMCPClient",
+          },
+          "toolName": "testTool",
+          "type": "tool-error",
+        }
+      `);
     });
   });
 
@@ -202,7 +304,7 @@ describe('executeToolCall', () => {
       const toolExecutionStartEvents: ToolExecutionStartEvent<any>[] = [];
       const executionOrder: string[] = [];
 
-      await executeToolCall({
+      const result = await executeToolCall({
         toolCall: createToolCall(),
         tools: {
           testTool: tool({
@@ -213,9 +315,6 @@ describe('executeToolCall', () => {
               return `${value}-result`;
             },
           }),
-        },
-        telemetry: {
-          functionId: 'test-function',
         },
         callId: 'test-telemetry-call-id',
         messages: [{ role: 'user', content: 'test message' }],
@@ -231,10 +330,12 @@ describe('executeToolCall', () => {
         [
           {
             "callId": "test-telemetry-call-id",
-            "context": {
-              "key1": "value1",
-            },
-            "functionId": "test-function",
+            "messages": [
+              {
+                "content": "test message",
+                "role": "user",
+              },
+            ],
             "toolCall": {
               "dynamic": false,
               "input": {
@@ -243,6 +344,9 @@ describe('executeToolCall', () => {
               "toolCallId": "call-1",
               "toolName": "testTool",
               "type": "tool-call",
+            },
+            "toolContext": {
+              "key1": "value1",
             },
           },
         ]
@@ -259,7 +363,6 @@ describe('executeToolCall', () => {
             execute: async ({ value }) => `${value}-result`,
           }),
         },
-        telemetry: undefined,
         callId: 'test-telemetry-call-id',
         messages: [],
         abortSignal: undefined,
@@ -269,7 +372,7 @@ describe('executeToolCall', () => {
         },
       });
 
-      expect(result).toMatchObject({
+      expect(result?.output).toMatchObject({
         type: 'tool-result',
         output: 'test-result',
       });
@@ -282,7 +385,7 @@ describe('executeToolCall', () => {
 
       mockNow.mockReturnValueOnce(1000).mockReturnValueOnce(1050);
 
-      await executeToolCall({
+      const result = await executeToolCall({
         toolCall: createToolCall(),
         tools: {
           testTool: tool({
@@ -290,9 +393,6 @@ describe('executeToolCall', () => {
             contextSchema: z.object({ key1: z.string() }),
             execute: async ({ value }) => `${value}-result`,
           }),
-        },
-        telemetry: {
-          functionId: 'test-function',
         },
         callId: 'test-telemetry-call-id',
         messages: [{ role: 'user', content: 'test message' }],
@@ -307,13 +407,12 @@ describe('executeToolCall', () => {
         [
           {
             "callId": "test-telemetry-call-id",
-            "context": {
-              "key1": "value1",
-            },
-            "durationMs": 50,
-            "functionId": "test-function",
-            "output": "test-result",
-            "success": true,
+            "messages": [
+              {
+                "content": "test message",
+                "role": "user",
+              },
+            ],
             "toolCall": {
               "dynamic": false,
               "input": {
@@ -322,6 +421,20 @@ describe('executeToolCall', () => {
               "toolCallId": "call-1",
               "toolName": "testTool",
               "type": "tool-call",
+            },
+            "toolContext": {
+              "key1": "value1",
+            },
+            "toolExecutionMs": 50,
+            "toolOutput": {
+              "dynamic": false,
+              "input": {
+                "value": "test",
+              },
+              "output": "test-result",
+              "toolCallId": "call-1",
+              "toolName": "testTool",
+              "type": "tool-result",
             },
           },
         ]
@@ -345,9 +458,6 @@ describe('executeToolCall', () => {
             },
           }),
         },
-        telemetry: {
-          functionId: 'test-function',
-        },
         callId: 'test-telemetry-call-id',
         messages: [],
         abortSignal: undefined,
@@ -361,13 +471,7 @@ describe('executeToolCall', () => {
         [
           {
             "callId": "test-telemetry-call-id",
-            "context": {
-              "key1": "value1",
-            },
-            "durationMs": 100,
-            "error": [Error: execution failed],
-            "functionId": "test-function",
-            "success": false,
+            "messages": [],
             "toolCall": {
               "dynamic": false,
               "input": {
@@ -376,6 +480,20 @@ describe('executeToolCall', () => {
               "toolCallId": "call-1",
               "toolName": "testTool",
               "type": "tool-call",
+            },
+            "toolContext": {
+              "key1": "value1",
+            },
+            "toolExecutionMs": 100,
+            "toolOutput": {
+              "dynamic": false,
+              "error": [Error: execution failed],
+              "input": {
+                "value": "test",
+              },
+              "toolCallId": "call-1",
+              "toolName": "testTool",
+              "type": "tool-error",
             },
           },
         ]
@@ -391,7 +509,6 @@ describe('executeToolCall', () => {
             execute: async ({ value }) => `${value}-result`,
           }),
         },
-        telemetry: undefined,
         callId: 'test-telemetry-call-id',
         messages: [],
         abortSignal: undefined,
@@ -401,7 +518,7 @@ describe('executeToolCall', () => {
         },
       });
 
-      expect(result).toMatchObject({
+      expect(result?.output).toMatchObject({
         type: 'tool-result',
         output: 'test-result',
       });
@@ -420,7 +537,6 @@ describe('executeToolCall', () => {
             },
           }),
         },
-        telemetry: undefined,
         callId: 'test-telemetry-call-id',
         messages: [],
         abortSignal: undefined,
@@ -430,20 +546,20 @@ describe('executeToolCall', () => {
         },
       });
 
-      expect(result).toMatchObject({
+      expect(result?.output).toMatchObject({
         type: 'tool-error',
         error: toolError,
       });
     });
   });
 
-  describe('durationMs calculation', () => {
+  describe('toolExecutionMs calculation', () => {
     it('should calculate correct duration on success', async () => {
       const toolExecutionEndEvents: ToolExecutionEndEvent<any>[] = [];
 
       mockNow.mockReturnValueOnce(5000).mockReturnValueOnce(5250);
 
-      await executeToolCall({
+      const result = await executeToolCall({
         toolCall: createToolCall(),
         tools: {
           testTool: tool({
@@ -451,7 +567,6 @@ describe('executeToolCall', () => {
             execute: async ({ value }) => `${value}-result`,
           }),
         },
-        telemetry: undefined,
         callId: 'test-telemetry-call-id',
         messages: [],
         abortSignal: undefined,
@@ -461,7 +576,8 @@ describe('executeToolCall', () => {
         },
       });
 
-      expect(toolExecutionEndEvents[0].durationMs).toBe(250);
+      expect(toolExecutionEndEvents[0].toolExecutionMs).toBe(250);
+      expect(result?.toolExecutionMs).toBe(250);
     });
 
     it('should calculate correct duration on error', async () => {
@@ -469,7 +585,7 @@ describe('executeToolCall', () => {
 
       mockNow.mockReturnValueOnce(1000).mockReturnValueOnce(1500);
 
-      await executeToolCall({
+      const result = await executeToolCall({
         toolCall: createToolCall(),
         tools: {
           testTool: tool({
@@ -479,7 +595,6 @@ describe('executeToolCall', () => {
             },
           }),
         },
-        telemetry: undefined,
         callId: 'test-telemetry-call-id',
         messages: [],
         abortSignal: undefined,
@@ -489,7 +604,8 @@ describe('executeToolCall', () => {
         },
       });
 
-      expect(toolExecutionEndEvents[0].durationMs).toBe(500);
+      expect(toolExecutionEndEvents[0].toolExecutionMs).toBe(500);
+      expect(result?.toolExecutionMs).toBe(500);
     });
   });
 
@@ -509,7 +625,6 @@ describe('executeToolCall', () => {
             },
           }),
         },
-        telemetry: undefined,
         callId: 'test-telemetry-call-id',
         messages: [],
         abortSignal: undefined,
@@ -546,7 +661,6 @@ describe('executeToolCall', () => {
             },
           }),
         },
-        telemetry: undefined,
         callId: 'test-telemetry-call-id',
         messages: [],
         abortSignal: undefined,
@@ -559,7 +673,7 @@ describe('executeToolCall', () => {
       expect(preliminaryResults).toHaveLength(2);
       expect(preliminaryResults[0].output).toBe('partial-1');
       expect(preliminaryResults[1].output).toBe('test-final');
-      expect(result).toMatchObject({
+      expect(result?.output).toMatchObject({
         type: 'tool-result',
         output: 'test-final',
       });
@@ -580,10 +694,6 @@ describe('executeToolCall', () => {
             execute: async ({ value }) => `${value}-result`,
           }),
         },
-        telemetry: {
-          isEnabled: true,
-          functionId: 'test-function',
-        },
         callId: 'test-telemetry-call-id',
         messages: [{ role: 'user', content: 'hello' }],
         abortSignal: undefined,
@@ -600,10 +710,12 @@ describe('executeToolCall', () => {
         [
           {
             "callId": "test-telemetry-call-id",
-            "context": {
-              "key1": "value1",
-            },
-            "functionId": "test-function",
+            "messages": [
+              {
+                "content": "hello",
+                "role": "user",
+              },
+            ],
             "toolCall": {
               "dynamic": false,
               "input": {
@@ -612,6 +724,9 @@ describe('executeToolCall', () => {
               "toolCallId": "my-call-id",
               "toolName": "testTool",
               "type": "tool-call",
+            },
+            "toolContext": {
+              "key1": "value1",
             },
           },
         ]
@@ -621,13 +736,12 @@ describe('executeToolCall', () => {
         [
           {
             "callId": "test-telemetry-call-id",
-            "context": {
-              "key1": "value1",
-            },
-            "durationMs": 0,
-            "functionId": "test-function",
-            "output": "test-result",
-            "success": true,
+            "messages": [
+              {
+                "content": "hello",
+                "role": "user",
+              },
+            ],
             "toolCall": {
               "dynamic": false,
               "input": {
@@ -636,6 +750,20 @@ describe('executeToolCall', () => {
               "toolCallId": "my-call-id",
               "toolName": "testTool",
               "type": "tool-call",
+            },
+            "toolContext": {
+              "key1": "value1",
+            },
+            "toolExecutionMs": 0,
+            "toolOutput": {
+              "dynamic": false,
+              "input": {
+                "value": "test",
+              },
+              "output": "test-result",
+              "toolCallId": "my-call-id",
+              "toolName": "testTool",
+              "type": "tool-result",
             },
           },
         ]
@@ -656,7 +784,6 @@ describe('executeToolCall', () => {
             },
           }),
         },
-        telemetry: { isEnabled: true },
         callId: 'test-telemetry-call-id',
         messages: [],
         abortSignal: undefined,
@@ -670,11 +797,7 @@ describe('executeToolCall', () => {
         [
           {
             "callId": "test-telemetry-call-id",
-            "context": undefined,
-            "durationMs": 0,
-            "error": [Error: test error],
-            "functionId": undefined,
-            "success": false,
+            "messages": [],
             "toolCall": {
               "dynamic": false,
               "input": {
@@ -683,6 +806,18 @@ describe('executeToolCall', () => {
               "toolCallId": "call-1",
               "toolName": "testTool",
               "type": "tool-call",
+            },
+            "toolContext": undefined,
+            "toolExecutionMs": 0,
+            "toolOutput": {
+              "dynamic": false,
+              "error": [Error: test error],
+              "input": {
+                "value": "test",
+              },
+              "toolCallId": "call-1",
+              "toolName": "testTool",
+              "type": "tool-error",
             },
           },
         ]
@@ -704,7 +839,6 @@ describe('executeToolCall', () => {
             execute: async ({ value }) => `${value}-result`,
           }),
         },
-        telemetry: { isEnabled: true },
         callId: 'test-telemetry-call-id',
         messages: [],
         abortSignal: undefined,
@@ -746,7 +880,6 @@ describe('executeToolCall', () => {
             execute: async ({ value }) => `${value}-result`,
           }),
         },
-        telemetry: { isEnabled: true },
         callId: 'test-telemetry-call-id',
         messages: [],
         abortSignal: undefined,
@@ -757,7 +890,7 @@ describe('executeToolCall', () => {
         },
       });
 
-      expect(toolExecutionEndEvents[0].durationMs).toBe(300);
+      expect(toolExecutionEndEvents[0].toolExecutionMs).toBe(300);
     });
 
     it('should execute the tool directly when executeToolInTelemetryContext is not provided', async () => {
@@ -769,14 +902,13 @@ describe('executeToolCall', () => {
             execute: async ({ value }) => `${value}-result`,
           }),
         },
-        telemetry: { isEnabled: true },
         callId: 'test-telemetry-call-id',
         messages: [],
         abortSignal: undefined,
         toolsContext: {},
       });
 
-      expect(result).toMatchObject({
+      expect(result?.output).toMatchObject({
         type: 'tool-result',
         output: 'test-result',
       });
@@ -793,7 +925,6 @@ describe('executeToolCall', () => {
             execute: async ({ value }) => `${value}-result`,
           }),
         },
-        telemetry: undefined,
         callId: 'test-telemetry-call-id',
         messages: [],
         abortSignal: undefined,
@@ -801,7 +932,7 @@ describe('executeToolCall', () => {
         toolsContext: {},
       });
 
-      expect(result).toMatchObject({
+      expect(result?.output).toMatchObject({
         type: 'tool-result',
         output: 'test-result',
       });
@@ -821,7 +952,6 @@ describe('executeToolCall', () => {
             },
           }),
         },
-        telemetry: undefined,
         callId: 'test-telemetry-call-id',
         messages: [],
         abortSignal: undefined,
@@ -847,7 +977,6 @@ describe('executeToolCall', () => {
             },
           }),
         },
-        telemetry: undefined,
         callId: 'test-telemetry-call-id',
         messages: [],
         abortSignal: undefined,
@@ -872,7 +1001,6 @@ describe('executeToolCall', () => {
             },
           }),
         },
-        telemetry: undefined,
         callId: 'test-telemetry-call-id',
         messages: [],
         abortSignal: controller.signal,
@@ -899,7 +1027,6 @@ describe('executeToolCall', () => {
             },
           }),
         },
-        telemetry: undefined,
         callId: 'test-telemetry-call-id',
         messages: [],
         abortSignal: undefined,
@@ -925,7 +1052,6 @@ describe('executeToolCall', () => {
             },
           }),
         },
-        telemetry: undefined,
         callId: 'test-telemetry-call-id',
         messages: [],
         abortSignal: undefined,
@@ -951,7 +1077,6 @@ describe('executeToolCall', () => {
             },
           }),
         },
-        telemetry: undefined,
         callId: 'test-telemetry-call-id',
         messages: [],
         abortSignal: undefined,
@@ -975,14 +1100,13 @@ describe('executeToolCall', () => {
             execute: async () => 'dynamic-result',
           }),
         },
-        telemetry: undefined,
         callId: 'test-telemetry-call-id',
         messages: [],
         abortSignal: undefined,
         toolsContext: {},
       });
 
-      expect(result).toMatchObject({
+      expect(result?.output).toMatchObject({
         type: 'tool-result',
         dynamic: true,
       });
@@ -1001,14 +1125,13 @@ describe('executeToolCall', () => {
             },
           }),
         },
-        telemetry: undefined,
         callId: 'test-telemetry-call-id',
         messages: [],
         abortSignal: undefined,
         toolsContext: {},
       });
 
-      expect(result).toMatchObject({
+      expect(result?.output).toMatchObject({
         type: 'tool-error',
         dynamic: true,
       });
@@ -1020,7 +1143,6 @@ describe('executeToolCall', () => {
       const result = await executeToolCall({
         toolCall: createToolCall(),
         tools: undefined,
-        telemetry: undefined,
         callId: 'test-telemetry-call-id',
         messages: [],
         abortSignal: undefined,
@@ -1041,7 +1163,6 @@ describe('executeToolCall', () => {
             execute: async ({ value }) => `${value}-result`,
           }),
         },
-        telemetry: undefined,
         callId: 'test-telemetry-call-id',
         messages: [],
         abortSignal: undefined,
@@ -1064,7 +1185,6 @@ describe('executeToolCall', () => {
             execute: async ({ value }) => `${value}-result`,
           }),
         },
-        telemetry: undefined,
         callId: 'test-telemetry-call-id',
         messages: [],
         abortSignal: undefined,
@@ -1093,7 +1213,6 @@ describe('executeToolCall', () => {
             execute: async ({ value }) => `${value}-result`,
           }),
         },
-        telemetry: undefined,
         callId: 'test-telemetry-call-id',
         messages: [],
         abortSignal: undefined,
@@ -1122,7 +1241,6 @@ describe('executeToolCall', () => {
             execute: async ({ value }) => `${value}-result`,
           }),
         },
-        telemetry: undefined,
         callId: 'test-telemetry-call-id',
         messages: [],
         abortSignal: undefined,
@@ -1145,7 +1263,7 @@ describe('executeToolCall', () => {
         ],
       });
 
-      expect(result).toMatchObject({
+      expect(result?.output).toMatchObject({
         type: 'tool-result',
         output: 'test-result',
       });

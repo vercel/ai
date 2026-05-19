@@ -1,4 +1,4 @@
-import {
+import type {
   EmbeddingModelV4,
   Experimental_VideoModelV4,
   FilesV4,
@@ -7,27 +7,33 @@ import {
   ProviderV4,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
   generateId,
   loadApiKey,
   withoutTrailingSlash,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { VERSION } from './version';
 import { GoogleEmbeddingModel } from './google-embedding-model';
-import { GoogleEmbeddingModelId } from './google-embedding-options';
+import type { GoogleEmbeddingModelId } from './google-embedding-model-options';
 import { GoogleLanguageModel } from './google-language-model';
-import { GoogleModelId } from './google-options';
+import type { GoogleModelId } from './google-language-model-options';
 import { googleTools } from './google-tools';
 
-import {
+import type {
   GoogleImageSettings,
   GoogleImageModelId,
 } from './google-image-settings';
 import { GoogleImageModel } from './google-image-model';
 import { GoogleFiles } from './google-files';
 import { GoogleVideoModel } from './google-video-model';
-import { GoogleVideoModelId } from './google-video-settings';
+import type { GoogleVideoModelId } from './google-video-settings';
+import {
+  GoogleInteractionsLanguageModel,
+  type GoogleInteractionsModelInput,
+} from './interactions/google-interactions-language-model';
+import type { GoogleInteractionsModelId } from './interactions/google-interactions-language-model-options';
+import type { GoogleInteractionsAgentName } from './interactions/google-interactions-agent';
 
 export interface GoogleProvider extends ProviderV4 {
   (modelId: GoogleModelId): LanguageModelV4;
@@ -80,6 +86,17 @@ export interface GoogleProvider extends ProviderV4 {
   videoModel(modelId: GoogleVideoModelId): Experimental_VideoModelV4;
 
   files(): FilesV4;
+
+  /**
+   * Creates a language model targeting the Gemini Interactions API
+   * (`POST /v1beta/interactions`). Pass either a model ID (string) or
+   * `{ agent: <name> }` to use a Gemini agent preset.
+   */
+  interactions(
+    modelIdOrAgent:
+      | GoogleInteractionsModelId
+      | { agent: GoogleInteractionsAgentName },
+  ): LanguageModelV4;
 
   tools: typeof googleTools;
 }
@@ -202,6 +219,22 @@ export function createGoogle(
       generateId: options.generateId ?? generateId,
     });
 
+  const createInteractionsModel = (
+    modelIdOrAgent:
+      | GoogleInteractionsModelId
+      | { agent: GoogleInteractionsAgentName },
+  ) =>
+    new GoogleInteractionsLanguageModel(
+      modelIdOrAgent as GoogleInteractionsModelInput,
+      {
+        provider: `${providerName}.interactions`,
+        baseURL,
+        headers: getHeaders,
+        generateId: options.generateId ?? generateId,
+        fetch: options.fetch,
+      },
+    );
+
   const provider = function (modelId: GoogleModelId) {
     if (new.target) {
       throw new Error(
@@ -225,6 +258,7 @@ export function createGoogle(
   provider.video = createVideoModel;
   provider.videoModel = createVideoModel;
   provider.files = createFiles;
+  provider.interactions = createInteractionsModel;
   provider.tools = googleTools;
 
   return provider as GoogleProvider;

@@ -1,5 +1,9 @@
-import { JSONObject, JSONSchema7, JSONValue } from '@ai-sdk/provider';
-import { InferSchema, lazySchema, zodSchema } from '@ai-sdk/provider-utils';
+import type { JSONObject, JSONSchema7, JSONValue } from '@ai-sdk/provider';
+import {
+  lazySchema,
+  zodSchema,
+  type InferSchema,
+} from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
 const jsonValueSchema: z.ZodType<JSONValue> = z.lazy(() =>
@@ -558,6 +562,7 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
             call_id: z.string(),
             name: z.string(),
             arguments: z.string(),
+            namespace: z.string().nullish(),
           }),
           z.object({
             type: z.literal('web_search_call'),
@@ -707,6 +712,7 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
             name: z.string(),
             arguments: z.string(),
             status: z.literal('completed'),
+            namespace: z.string().nullish(),
           }),
           z.object({
             type: z.literal('custom_tool_call'),
@@ -1222,6 +1228,7 @@ export const openaiResponsesResponseSchema = lazySchema(() =>
               name: z.string(),
               arguments: z.string(),
               id: z.string(),
+              namespace: z.string().nullish(),
             }),
             z.object({
               type: z.literal('custom_tool_call'),

@@ -1,4 +1,4 @@
-import { ToolNameMapping } from '../../../provider-utils/src/create-tool-name-mapping';
+import type { ToolNameMapping } from '../../../provider-utils/src/create-tool-name-mapping';
 import { convertToOpenAIResponsesInput } from './convert-to-openai-responses-input';
 import { describe, it, expect } from 'vitest';
 
@@ -76,7 +76,10 @@ describe('convertToOpenAIResponsesInput', () => {
               {
                 type: 'file',
                 mediaType: 'image/*',
-                data: new URL('https://example.com/image.jpg'),
+                data: {
+                  type: 'url' as const,
+                  url: new URL('https://example.com/image.jpg'),
+                },
               },
             ],
           },
@@ -110,7 +113,10 @@ describe('convertToOpenAIResponsesInput', () => {
               {
                 type: 'file',
                 mediaType: 'image/png',
-                data: Buffer.from([0, 1, 2, 3]).toString('base64'),
+                data: {
+                  type: 'data' as const,
+                  data: Buffer.from([0, 1, 2, 3]).toString('base64'),
+                },
               },
             ],
           },
@@ -143,7 +149,10 @@ describe('convertToOpenAIResponsesInput', () => {
               {
                 type: 'file',
                 mediaType: 'image/png',
-                data: new Uint8Array([0, 1, 2, 3]),
+                data: {
+                  type: 'data' as const,
+                  data: new Uint8Array([0, 1, 2, 3]),
+                },
               },
             ],
           },
@@ -176,7 +185,7 @@ describe('convertToOpenAIResponsesInput', () => {
               {
                 type: 'file',
                 mediaType: 'image/png',
-                data: 'file-12345',
+                data: { type: 'data' as const, data: 'file-12345' },
               },
             ],
           },
@@ -210,7 +219,10 @@ describe('convertToOpenAIResponsesInput', () => {
               {
                 type: 'file',
                 mediaType: 'image/png',
-                data: { openai: 'file-12345' },
+                data: {
+                  type: 'reference' as const,
+                  reference: { openai: 'file-12345' },
+                },
               },
             ],
           },
@@ -234,7 +246,10 @@ describe('convertToOpenAIResponsesInput', () => {
       ]);
     });
 
-    it('should use default mime type for binary images', async () => {
+    it('detects mime type from bytes when wildcard image/*', async () => {
+      const pngBase64 = Buffer.from([
+        0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
+      ]).toString('base64');
       const result = await convertToOpenAIResponsesInput({
         prompt: [
           {
@@ -243,7 +258,7 @@ describe('convertToOpenAIResponsesInput', () => {
               {
                 type: 'file',
                 mediaType: 'image/*',
-                data: Buffer.from([0, 1, 2, 3]).toString('base64'),
+                data: { type: 'data' as const, data: pngBase64 },
               },
             ],
           },
@@ -260,11 +275,69 @@ describe('convertToOpenAIResponsesInput', () => {
           content: [
             {
               type: 'input_image',
-              image_url: 'data:image/jpeg;base64,AAECAw==',
+              image_url: `data:image/png;base64,${pngBase64}`,
             },
           ],
         },
       ]);
+    });
+
+    it('throws when wildcard image/* bytes cannot be detected', async () => {
+      await expect(
+        convertToOpenAIResponsesInput({
+          prompt: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'file',
+                  mediaType: 'image/*',
+                  data: {
+                    type: 'data' as const,
+                    data: Buffer.from([0, 1, 2, 3]).toString('base64'),
+                  },
+                },
+              ],
+            },
+          ],
+          toolNameMapping: testToolNameMapping,
+          systemMessageMode: 'system',
+          providerOptionsName: 'openai',
+          store: true,
+        }),
+      ).rejects.toThrow(/media type "image\/\*"/);
+    });
+
+    it('passes through URL for top-level-only image (provider accepts URL)', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'image',
+                data: {
+                  type: 'url' as const,
+                  url: new URL('https://example.com/x.png'),
+                },
+              },
+            ],
+          },
+        ],
+        toolNameMapping: testToolNameMapping,
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+      const firstItem = result.input[0]!;
+      expect(
+        'content' in firstItem ? (firstItem.content as unknown[])[0] : null,
+      ).toEqual({
+        type: 'input_image',
+        image_url: 'https://example.com/x.png',
+        detail: undefined,
+      });
     });
 
     it('should add image detail when specified through extension', async () => {
@@ -276,7 +349,10 @@ describe('convertToOpenAIResponsesInput', () => {
               {
                 type: 'file',
                 mediaType: 'image/png',
-                data: Buffer.from([0, 1, 2, 3]).toString('base64'),
+                data: {
+                  type: 'data' as const,
+                  data: Buffer.from([0, 1, 2, 3]).toString('base64'),
+                },
                 providerOptions: {
                   openai: {
                     imageDetail: 'low',
@@ -315,7 +391,10 @@ describe('convertToOpenAIResponsesInput', () => {
               {
                 type: 'file',
                 mediaType: 'image/png',
-                data: Buffer.from([0, 1, 2, 3]).toString('base64'),
+                data: {
+                  type: 'data' as const,
+                  data: Buffer.from([0, 1, 2, 3]).toString('base64'),
+                },
                 providerOptions: {
                   azure: {
                     imageDetail: 'low',
@@ -356,7 +435,7 @@ describe('convertToOpenAIResponsesInput', () => {
               {
                 type: 'file',
                 mediaType: 'application/pdf',
-                data: base64Data,
+                data: { type: 'data' as const, data: base64Data },
                 filename: 'document.pdf',
               },
             ],
@@ -391,7 +470,7 @@ describe('convertToOpenAIResponsesInput', () => {
               {
                 type: 'file',
                 mediaType: 'application/pdf',
-                data: 'file-pdf-12345',
+                data: { type: 'data' as const, data: 'file-pdf-12345' },
               },
             ],
           },
@@ -425,7 +504,10 @@ describe('convertToOpenAIResponsesInput', () => {
               {
                 type: 'file',
                 mediaType: 'application/pdf',
-                data: { openai: 'file-pdf-12345' },
+                data: {
+                  type: 'reference' as const,
+                  reference: { openai: 'file-pdf-12345' },
+                },
               },
             ],
           },
@@ -460,7 +542,7 @@ describe('convertToOpenAIResponsesInput', () => {
               {
                 type: 'file',
                 mediaType: 'application/pdf',
-                data: base64Data,
+                data: { type: 'data' as const, data: base64Data },
               },
             ],
           },
@@ -497,7 +579,7 @@ describe('convertToOpenAIResponsesInput', () => {
                 {
                   type: 'file',
                   mediaType: 'text/plain',
-                  data: base64Data,
+                  data: { type: 'data' as const, data: base64Data },
                 },
               ],
             },
@@ -510,6 +592,44 @@ describe('convertToOpenAIResponsesInput', () => {
       ).rejects.toThrow('file part media type text/plain');
     });
 
+    it('should pass through unsupported file types when enabled', async () => {
+      const base64Data = 'bmFtZSxyb2xlCkFkYSxlbmdpbmVlcgo=';
+
+      const result = await convertToOpenAIResponsesInput({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'text/csv',
+                data: { type: 'data' as const, data: base64Data },
+                filename: 'names.csv',
+              },
+            ],
+          },
+        ],
+        toolNameMapping: testToolNameMapping,
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        passThroughUnsupportedFiles: true,
+        store: true,
+      });
+
+      expect(result.input).toEqual([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'input_file',
+              filename: 'names.csv',
+              file_data: `data:text/csv;base64,${base64Data}`,
+            },
+          ],
+        },
+      ]);
+    });
+
     it('should convert PDF file parts with URL to input_file with file_url', async () => {
       const result = await convertToOpenAIResponsesInput({
         prompt: [
@@ -519,7 +639,10 @@ describe('convertToOpenAIResponsesInput', () => {
               {
                 type: 'file',
                 mediaType: 'application/pdf',
-                data: new URL('https://example.com/document.pdf'),
+                data: {
+                  type: 'url' as const,
+                  url: new URL('https://example.com/document.pdf'),
+                },
               },
             ],
           },
@@ -554,7 +677,10 @@ describe('convertToOpenAIResponsesInput', () => {
                 {
                   type: 'file',
                   mediaType: 'image/png',
-                  data: { azure: 'assistant-img-abc123' },
+                  data: {
+                    type: 'reference' as const,
+                    reference: { azure: 'assistant-img-abc123' },
+                  },
                 },
               ],
             },
@@ -586,7 +712,10 @@ describe('convertToOpenAIResponsesInput', () => {
                 {
                   type: 'file',
                   mediaType: 'application/pdf',
-                  data: { openai: 'file-pdf-abc123' },
+                  data: {
+                    type: 'reference' as const,
+                    reference: { openai: 'file-pdf-abc123' },
+                  },
                 },
               ],
             },
@@ -619,12 +748,21 @@ describe('convertToOpenAIResponsesInput', () => {
                 {
                   type: 'file',
                   mediaType: 'image/png',
-                  data: { openai: 'file-img-abc123', anthropic: 'img-xyz' },
+                  data: {
+                    type: 'reference' as const,
+                    reference: {
+                      openai: 'file-img-abc123',
+                      anthropic: 'img-xyz',
+                    },
+                  },
                 },
                 {
                   type: 'file',
                   mediaType: 'application/pdf',
-                  data: { openai: 'file-pdf-xyz789', google: 'doc-123' },
+                  data: {
+                    type: 'reference' as const,
+                    reference: { openai: 'file-pdf-xyz789', google: 'doc-123' },
+                  },
                 },
               ],
             },
@@ -662,7 +800,10 @@ describe('convertToOpenAIResponsesInput', () => {
                   {
                     type: 'file',
                     mediaType: 'image/png',
-                    data: { anthropic: 'file-xyz' },
+                    data: {
+                      type: 'reference' as const,
+                      reference: { anthropic: 'file-xyz' },
+                    },
                   },
                 ],
               },
@@ -686,12 +827,12 @@ describe('convertToOpenAIResponsesInput', () => {
                 {
                   type: 'file',
                   mediaType: 'image/png',
-                  data: 'file-12345',
+                  data: { type: 'data' as const, data: 'file-12345' },
                 },
                 {
                   type: 'file',
                   mediaType: 'application/pdf',
-                  data: 'assistant-abc123',
+                  data: { type: 'data' as const, data: 'assistant-abc123' },
                   filename: 'test.pdf',
                 },
               ],
@@ -733,7 +874,7 @@ describe('convertToOpenAIResponsesInput', () => {
                 {
                   type: 'file',
                   mediaType: 'image/png',
-                  data: 'assistant-img-abc123',
+                  data: { type: 'data' as const, data: 'assistant-img-abc123' },
                 },
               ],
             },
@@ -766,7 +907,7 @@ describe('convertToOpenAIResponsesInput', () => {
                 {
                   type: 'file',
                   mediaType: 'application/pdf',
-                  data: 'assistant-pdf-abc123',
+                  data: { type: 'data' as const, data: 'assistant-pdf-abc123' },
                 },
               ],
             },
@@ -800,12 +941,12 @@ describe('convertToOpenAIResponsesInput', () => {
                 {
                   type: 'file',
                   mediaType: 'image/png',
-                  data: 'assistant-img-abc123',
+                  data: { type: 'data' as const, data: 'assistant-img-abc123' },
                 },
                 {
                   type: 'file',
                   mediaType: 'application/pdf',
-                  data: 'file-pdf-xyz789',
+                  data: { type: 'data' as const, data: 'file-pdf-xyz789' },
                 },
               ],
             },
@@ -843,12 +984,12 @@ describe('convertToOpenAIResponsesInput', () => {
                 {
                   type: 'file',
                   mediaType: 'image/png',
-                  data: 'file-12345',
+                  data: { type: 'data' as const, data: 'file-12345' },
                 },
                 {
                   type: 'file',
                   mediaType: 'application/pdf',
-                  data: 'assistant-abc123',
+                  data: { type: 'data' as const, data: 'assistant-abc123' },
                   filename: 'test.pdf',
                 },
               ],
@@ -887,7 +1028,7 @@ describe('convertToOpenAIResponsesInput', () => {
                 {
                   type: 'file',
                   mediaType: 'image/png',
-                  data: 'file-12345',
+                  data: { type: 'data' as const, data: 'file-12345' },
                 },
               ],
             },
@@ -2398,9 +2539,9 @@ describe('convertToOpenAIResponsesInput', () => {
                   type: 'content',
                   value: [
                     {
-                      type: 'file-data',
+                      type: 'file',
                       mediaType: 'image/png',
-                      data: 'base64_data',
+                      data: { type: 'data', data: 'base64_data' },
                     },
                   ],
                 },
@@ -2419,7 +2560,111 @@ describe('convertToOpenAIResponsesInput', () => {
             "call_id": "call_123",
             "output": [
               {
+                "detail": undefined,
                 "image_url": "data:image/png;base64,base64_data",
+                "type": "input_image",
+              },
+            ],
+            "type": "function_call_output",
+          },
+        ]
+      `);
+    });
+
+    it('should forward openai.imageDetail providerOptions on tool-result image (data)', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_123',
+                toolName: 'view_image',
+                output: {
+                  type: 'content',
+                  value: [
+                    {
+                      type: 'file',
+                      mediaType: 'image/png',
+                      data: { type: 'data', data: 'base64_data' },
+                      providerOptions: {
+                        openai: { imageDetail: 'original' },
+                      },
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "call_id": "call_123",
+            "output": [
+              {
+                "detail": "original",
+                "image_url": "data:image/png;base64,base64_data",
+                "type": "input_image",
+              },
+            ],
+            "type": "function_call_output",
+          },
+        ]
+      `);
+    });
+
+    it('should forward openai.imageDetail providerOptions on tool-result image (url)', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_123',
+                toolName: 'view_image',
+                output: {
+                  type: 'content',
+                  value: [
+                    {
+                      type: 'file',
+                      mediaType: 'image/png',
+                      data: {
+                        type: 'url',
+                        url: new URL('https://example.com/x.png'),
+                      },
+                      providerOptions: {
+                        openai: { imageDetail: 'high' },
+                      },
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "call_id": "call_123",
+            "output": [
+              {
+                "detail": "high",
+                "image_url": "https://example.com/x.png",
                 "type": "input_image",
               },
             ],
@@ -2444,8 +2689,11 @@ describe('convertToOpenAIResponsesInput', () => {
                   type: 'content',
                   value: [
                     {
-                      type: 'file-url',
-                      url: 'https://example.com/screenshot.png',
+                      type: 'file',
+                      data: {
+                        type: 'url',
+                        url: new URL('https://example.com/screenshot.png'),
+                      },
                       mediaType: 'image/png',
                     },
                   ],
@@ -2465,6 +2713,7 @@ describe('convertToOpenAIResponsesInput', () => {
             "call_id": "call_123",
             "output": [
               {
+                "detail": undefined,
                 "image_url": "https://example.com/screenshot.png",
                 "type": "input_image",
               },
@@ -2491,9 +2740,9 @@ describe('convertToOpenAIResponsesInput', () => {
                   type: 'content',
                   value: [
                     {
-                      type: 'file-data',
+                      type: 'file',
                       mediaType: 'application/pdf',
-                      data: base64Data,
+                      data: { type: 'data', data: base64Data },
                       filename: 'document.pdf',
                     },
                   ],
@@ -2539,8 +2788,11 @@ describe('convertToOpenAIResponsesInput', () => {
                   type: 'content',
                   value: [
                     {
-                      type: 'file-url',
-                      url: 'https://example.com/document.pdf',
+                      type: 'file',
+                      data: {
+                        type: 'url',
+                        url: new URL('https://example.com/document.pdf'),
+                      },
                       mediaType: 'application/pdf',
                     },
                   ],
@@ -2590,8 +2842,11 @@ describe('convertToOpenAIResponsesInput', () => {
                       text: 'Here is the file you asked for:',
                     },
                     {
-                      type: 'file-url',
-                      url: 'https://example.com/test.pdf',
+                      type: 'file',
+                      data: {
+                        type: 'url',
+                        url: new URL('https://example.com/test.pdf'),
+                      },
                       mediaType: 'application/pdf',
                     },
                   ],
@@ -2646,14 +2901,14 @@ describe('convertToOpenAIResponsesInput', () => {
                       text: 'The weather in San Francisco is 72°F',
                     },
                     {
-                      type: 'file-data',
+                      type: 'file',
                       mediaType: 'image/png',
-                      data: 'base64_data',
+                      data: { type: 'data', data: 'base64_data' },
                     },
                     {
-                      type: 'file-data',
+                      type: 'file',
                       mediaType: 'application/pdf',
-                      data: base64Data,
+                      data: { type: 'data', data: base64Data },
                     },
                   ],
                 },
@@ -2676,6 +2931,7 @@ describe('convertToOpenAIResponsesInput', () => {
                 "type": "input_text",
               },
               {
+                "detail": undefined,
                 "image_url": "data:image/png;base64,base64_data",
                 "type": "input_image",
               },
@@ -4792,8 +5048,11 @@ describe('convertToOpenAIResponsesInput', () => {
                   value: [
                     { type: 'text', text: 'Here is the file:' },
                     {
-                      type: 'file-url',
-                      url: 'https://example.com/test.pdf',
+                      type: 'file',
+                      data: {
+                        type: 'url',
+                        url: new URL('https://example.com/test.pdf'),
+                      },
                       mediaType: 'application/pdf',
                     },
                   ],

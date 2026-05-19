@@ -1,5 +1,79 @@
 # @ai-sdk/devtools
 
+## 1.0.0-canary.26
+
+### Patch Changes
+
+- 7fc6bd6: Raise minimum supported Node.js version to 22. Supported versions: 22, 24, and 26.
+- Updated dependencies [7fc6bd6]
+  - @ai-sdk/provider@4.0.0-canary.17
+
+## 1.0.0-canary.25
+
+### Patch Changes
+
+- b567a6c: dependency updates
+
+## 1.0.0-canary.24
+
+### Patch Changes
+
+- ee7bb67: fix(devtools): add pointer cursor to DevTools buttons
+
+## 1.0.0-canary.23
+
+### Patch Changes
+
+- 98627e5: feat(ai): remove onChunk event from telemetry
+
+## 1.0.0-canary.22
+
+### Patch Changes
+
+- ddfcdc7: Fix `ToolItem` expand/collapse logic: chevron now shows whenever there's expandable content (parameters or description), expanded view shows full description plus parameters, collapsed view shows truncated description only.
+
+## 1.0.0-canary.21
+
+### Patch Changes
+
+- Updated dependencies [5463d0d]
+  - @ai-sdk/provider@4.0.0-canary.16
+
+## 1.0.0-canary.20
+
+### Patch Changes
+
+- 0c4c275: trigger initial canary release
+- Updated dependencies [0c4c275]
+  - @ai-sdk/provider@4.0.0-canary.15
+
+## 1.0.0-beta.19
+
+### Patch Changes
+
+- 258c093: chore: ensure consistent import handling and avoid import duplicates or cycles
+- Updated dependencies [9bd6512]
+- Updated dependencies [258c093]
+  - @ai-sdk/provider@4.0.0-beta.14
+
+## 1.0.0-beta.18
+
+### Patch Changes
+
+- Updated dependencies [9f0e36c]
+  - @ai-sdk/provider@4.0.0-beta.13
+
+## 1.0.0-beta.17
+
+### Major Changes
+
+- cf93359: feat(ai): remove/refactor event data sent via callbacks
+- 116c89f: feat(ai): remove telemetry data from the user-facing event data
+
+### Patch Changes
+
+- 29d8cf4: feat(ai): rename the core-event types
+
 ## 1.0.0-beta.16
 
 ### Major Changes

@@ -3,8 +3,8 @@
   "version": "0.0.0",
   "private": true,
   "dependencies": {
-    "@ai-sdk/openai": "4.0.0-beta.38",
-    "ai": "7.0.0-beta.111",
+    "@ai-sdk/openai": "workspace:*",
+    "ai": "workspace:*",
     "dotenv": "16.4.5",
     "zod": "3.25.76"
   },
@@ -13,7 +13,7 @@
     "dev": "tsx src/server.ts"
   },
   "devDependencies": {
-    "@types/node": "20.17.24",
+    "@types/node": "22.19.19",
     "tsx": "4.19.2",
     "typescript": "5.8.3"
   }

@@ -1,5 +1,39 @@
 # @ai-sdk/provider
 
+## 4.0.0-canary.17
+
+### Patch Changes
+
+- 7fc6bd6: Raise minimum supported Node.js version to 22. Supported versions: 22, 24, and 26.
+
+## 4.0.0-canary.16
+
+### Major Changes
+
+- 5463d0d: feat(provider): align tool result output content file part types with top-level message file part types
+
+## 4.0.0-canary.15
+
+### Patch Changes
+
+- 0c4c275: trigger initial canary release
+
+## 4.0.0-beta.14
+
+### Major Changes
+
+- 9bd6512: feat(provider): change file part data property to be tagged with a type and remove the image part type
+
+### Patch Changes
+
+- 258c093: chore: ensure consistent import handling and avoid import duplicates or cycles
+
+## 4.0.0-beta.13
+
+### Patch Changes
+
+- 9f0e36c: trigger release for all packages after provenance setup
+
 ## 4.0.0-beta.12
 
 ### Patch Changes

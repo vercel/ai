@@ -1,11 +1,11 @@
-import { bedrock } from '@ai-sdk/amazon-bedrock';
+import { amazonBedrock } from '@ai-sdk/amazon-bedrock';
 import { generateText, isStepCount, tool } from 'ai';
 import { z } from 'zod';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: bedrock('us.anthropic.claude-sonnet-4-5-20250929-v1:0'),
+    model: amazonBedrock('us.anthropic.claude-sonnet-4-5-20250929-v1:0'),
     messages: [
       {
         role: 'user',
@@ -34,9 +34,12 @@ run(async () => {
             type: 'content',
             value: [
               {
-                type: 'file-data',
-                data: Buffer.from(output.bytes).toString('base64'),
+                type: 'file',
                 mediaType: 'image/jpeg',
+                data: {
+                  type: 'data',
+                  data: Buffer.from(output.bytes).toString('base64'),
+                },
               },
             ],
           };

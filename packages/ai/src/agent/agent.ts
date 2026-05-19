@@ -1,20 +1,25 @@
-import type { Arrayable, Context, ToolSet } from '@ai-sdk/provider-utils';
-import { ModelMessage } from '@ai-sdk/provider-utils';
-import { GenerateTextResult } from '../generate-text/generate-text-result';
-import { Output } from '../generate-text/output';
-import { StreamTextTransform } from '../generate-text/stream-text';
-import { StreamTextResult } from '../generate-text/stream-text-result';
-import {
+import type {
+  Arrayable,
+  Context,
+  Experimental_Sandbox as Sandbox,
+  ModelMessage,
+  ToolSet,
+} from '@ai-sdk/provider-utils';
+import type {
+  GenerateTextOnFinishCallback,
+  GenerateTextOnStartCallback,
+  GenerateTextOnStepFinishCallback,
+  GenerateTextOnStepStartCallback,
+} from '../generate-text/generate-text-events';
+import type { GenerateTextResult } from '../generate-text/generate-text-result';
+import type { Output } from '../generate-text/output';
+import type { StreamTextTransform } from '../generate-text/stream-text';
+import type { StreamTextResult } from '../generate-text/stream-text-result';
+import type {
   OnToolExecutionEndCallback,
   OnToolExecutionStartCallback,
 } from '../generate-text/tool-execution-events';
-import { TimeoutConfiguration } from '../prompt/request-options';
-import type {
-  ToolLoopAgentOnFinishCallback,
-  ToolLoopAgentOnStartCallback,
-  ToolLoopAgentOnStepFinishCallback,
-  ToolLoopAgentOnStepStartCallback,
-} from './tool-loop-agent-settings';
+import type { TimeoutConfiguration } from '../prompt/request-options';
 
 /**
  * Parameters for calling an agent.
@@ -71,12 +76,12 @@ export type AgentCallParameters<
     /**
      * Callback that is called when the agent operation begins, before any LLM calls.
      */
-    experimental_onStart?: ToolLoopAgentOnStartCallback<TOOLS, RUNTIME_CONTEXT>;
+    experimental_onStart?: GenerateTextOnStartCallback<TOOLS, RUNTIME_CONTEXT>;
 
     /**
      * Callback that is called when a step (LLM call) begins, before the provider is called.
      */
-    experimental_onStepStart?: ToolLoopAgentOnStepStartCallback<
+    experimental_onStepStart?: GenerateTextOnStepStartCallback<
       TOOLS,
       RUNTIME_CONTEXT
     >;
@@ -84,22 +89,27 @@ export type AgentCallParameters<
     /**
      * Callback that is called before each tool execution begins.
      */
-    experimental_onToolExecutionStart?: OnToolExecutionStartCallback<TOOLS>;
+    onToolExecutionStart?: OnToolExecutionStartCallback<TOOLS>;
 
     /**
      * Callback that is called after each tool execution completes.
      */
-    experimental_onToolExecutionEnd?: OnToolExecutionEndCallback<TOOLS>;
+    onToolExecutionEnd?: OnToolExecutionEndCallback<TOOLS>;
 
     /**
      * Callback that is called when each step (LLM call) is finished, including intermediate steps.
      */
-    onStepFinish?: ToolLoopAgentOnStepFinishCallback<TOOLS, RUNTIME_CONTEXT>;
+    onStepFinish?: GenerateTextOnStepFinishCallback<TOOLS, RUNTIME_CONTEXT>;
 
     /**
      * Callback that is called when all steps are finished and the response is complete.
      */
-    onFinish?: ToolLoopAgentOnFinishCallback<TOOLS, RUNTIME_CONTEXT>;
+    onFinish?: GenerateTextOnFinishCallback<TOOLS, RUNTIME_CONTEXT>;
+
+    /**
+     * The sandbox environment that is passed through to tool execution.
+     */
+    experimental_sandbox?: Sandbox;
   };
 
 /**

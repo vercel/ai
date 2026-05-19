@@ -1,4 +1,4 @@
-import {
+import type {
   LanguageModelV4,
   LanguageModelV4CallOptions,
   LanguageModelV4Content,
@@ -12,27 +12,30 @@ import {
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
-  FetchFunction,
   generateId,
   injectJsonInstructionIntoMessages,
   isCustomReasoning,
   mapReasoningToProviderEffort,
   parseProviderOptions,
-  ParseResult,
   postJsonToApi,
   serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
+  type FetchFunction,
+  type ParseResult,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import { convertMistralUsage, MistralUsage } from './convert-mistral-usage';
+import {
+  convertMistralUsage,
+  type MistralUsage,
+} from './convert-mistral-usage';
 import { convertToMistralChatMessages } from './convert-to-mistral-chat-messages';
 import { getResponseMetadata } from './get-response-metadata';
 import { mapMistralFinishReason } from './map-mistral-finish-reason';
 import {
-  MistralChatModelId,
-  mistralLanguageModelOptions,
-} from './mistral-chat-options';
+  mistralLanguageModelChatOptions,
+  type MistralChatModelId,
+} from './mistral-chat-language-model-options';
 import { mistralFailedResponseHandler } from './mistral-error';
 import { prepareTools } from './mistral-prepare-tools';
 
@@ -102,7 +105,7 @@ export class MistralChatLanguageModel implements LanguageModelV4 {
       (await parseProviderOptions({
         provider: 'mistral',
         providerOptions,
-        schema: mistralLanguageModelOptions,
+        schema: mistralLanguageModelChatOptions,
       })) ?? {};
 
     if (topK != null) {
@@ -117,13 +120,11 @@ export class MistralChatLanguageModel implements LanguageModelV4 {
       warnings.push({ type: 'unsupported', feature: 'presencePenalty' });
     }
 
-    if (stopSequences != null) {
-      warnings.push({ type: 'unsupported', feature: 'stopSequences' });
-    }
-
     const supportsReasoningEffort =
       this.modelId === 'mistral-small-latest' ||
-      this.modelId === 'mistral-small-2603';
+      this.modelId === 'mistral-small-2603' ||
+      this.modelId === 'mistral-medium-3' ||
+      this.modelId === 'mistral-medium-3.5';
 
     let resolvedReasoningEffort: string | undefined;
     if (supportsReasoningEffort) {
@@ -175,6 +176,7 @@ export class MistralChatLanguageModel implements LanguageModelV4 {
       max_tokens: maxOutputTokens,
       temperature,
       top_p: topP,
+      stop: stopSequences,
       random_seed: seed,
       reasoning_effort: resolvedReasoningEffort,
 
@@ -574,6 +576,13 @@ const mistralUsageSchema = z.object({
   prompt_tokens: z.number(),
   completion_tokens: z.number(),
   total_tokens: z.number(),
+  num_cached_tokens: z.number().nullish(),
+  prompt_tokens_details: z
+    .object({ cached_tokens: z.number().nullish() })
+    .nullish(),
+  prompt_token_details: z
+    .object({ cached_tokens: z.number().nullish() })
+    .nullish(),
 });
 
 // limited version of the schema, focussed on what is needed for the implementation

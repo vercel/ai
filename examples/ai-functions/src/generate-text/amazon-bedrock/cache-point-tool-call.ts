@@ -1,6 +1,6 @@
 import { generateText, tool } from 'ai';
 import { z } from 'zod';
-import { bedrock } from '@ai-sdk/amazon-bedrock';
+import { amazonBedrock } from '@ai-sdk/amazon-bedrock';
 import { run } from '../../lib/run';
 
 const weatherTool = tool({
@@ -123,7 +123,7 @@ const weatherData: Record<string, number> = {
 
 run(async () => {
   const result = await generateText({
-    model: bedrock('anthropic.claude-3-5-sonnet-20241022-v2:0'),
+    model: amazonBedrock('anthropic.claude-3-5-sonnet-20241022-v2:0'),
     tools: {
       weather: weatherTool,
     },
@@ -170,5 +170,5 @@ run(async () => {
 
   console.log(result.text);
   console.log(JSON.stringify(result.toolCalls, null, 2));
-  console.log(JSON.stringify(result.providerMetadata, null, 2));
+  console.log(JSON.stringify(result.finalStep.providerMetadata, null, 2));
 });

@@ -27,8 +27,9 @@ run(async () => {
             text: 'Describe what you see in this image.',
           },
           {
-            type: 'image',
-            image: providerReference,
+            type: 'file',
+            mediaType: 'image',
+            data: providerReference,
           },
         ],
       },

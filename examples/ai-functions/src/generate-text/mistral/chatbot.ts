@@ -1,5 +1,5 @@
 import { mistral } from '@ai-sdk/mistral';
-import { ModelMessage, generateText } from 'ai';
+import { generateText, type ModelMessage } from 'ai';
 import * as readline from 'node:readline/promises';
 import { weatherTool } from '../../tools/weather-tool';
 import { run } from '../../lib/run';
@@ -20,12 +20,13 @@ run(async () => {
       messages.push({ role: 'user', content: userInput });
     }
 
-    const { text, toolCalls, toolResults, response } = await generateText({
-      model: mistral('mistral-large-latest'),
-      tools: { weatherTool },
-      system: `You are a helpful, respectful and honest assistant.`,
-      messages,
-    });
+    const { text, toolCalls, toolResults, responseMessages } =
+      await generateText({
+        model: mistral('mistral-large-latest'),
+        tools: { weatherTool },
+        instructions: `You are a helpful, respectful and honest assistant.`,
+        messages,
+      });
 
     toolResponseAvailable = false;
 
@@ -47,7 +48,7 @@ run(async () => {
 
     process.stdout.write('\n\n');
 
-    messages.push(...response.messages);
+    messages.push(...responseMessages);
 
     toolResponseAvailable = toolCalls.length > 0;
   }

@@ -13,14 +13,15 @@ import type {
 } from 'ai';
 */
 
-import { createMCPClient, auth } from '@ai-sdk/mcp';
-import 'dotenv/config';
-import type {
-  OAuthClientProvider,
-  OAuthClientInformation,
-  OAuthClientMetadata,
-  OAuthTokens,
+import {
+  createMCPClient,
+  auth,
+  type OAuthClientProvider,
+  type OAuthClientInformation,
+  type OAuthClientMetadata,
+  type OAuthTokens,
 } from '@ai-sdk/mcp';
+import 'dotenv/config';
 import { createServer } from 'node:http';
 import { exec } from 'node:child_process';
 
@@ -211,7 +212,7 @@ async function main() {
         });
       }
     },
-    system: 'You are a helpful assistant with access to protected tools.',
+    instructions: 'You are a helpful assistant with access to protected tools.',
     prompt:
       'List the tools available for me to call. Arrange them in alphabetical order.',
   });

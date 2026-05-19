@@ -1,16 +1,16 @@
 import {
   openai,
-  OpenaiResponsesProviderMetadata,
-  OpenAILanguageModelResponsesOptions,
+  type OpenaiResponsesProviderMetadata,
+  type OpenAILanguageModelResponsesOptions,
 } from '@ai-sdk/openai';
 import {
   convertToModelMessages,
   createUIMessageStream,
   createUIMessageStreamResponse,
-  InferUITools,
   isStepCount,
   streamText,
-  UIMessage,
+  type InferUITools,
+  type UIMessage,
 } from 'ai';
 import { rollDieToolWithProgrammaticCalling } from '@/tool/roll-die-tool-with-programmatic-calling';
 

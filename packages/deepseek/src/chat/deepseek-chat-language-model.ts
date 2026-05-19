@@ -1,4 +1,4 @@
-import {
+import type {
   APICallError,
   LanguageModelV4,
   LanguageModelV4CallOptions,
@@ -7,37 +7,39 @@ import {
   LanguageModelV4GenerateResult,
   LanguageModelV4StreamPart,
   LanguageModelV4StreamResult,
+  SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
-  FetchFunction,
   generateId,
-  InferSchema,
   isCustomReasoning,
+  mapReasoningToProviderEffort,
   parseProviderOptions,
-  ParseResult,
   postJsonToApi,
-  ResponseHandler,
   serializeModelOptions,
   StreamingToolCallTracker,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
+  type FetchFunction,
+  type InferSchema,
+  type ParseResult,
+  type ResponseHandler,
 } from '@ai-sdk/provider-utils';
 import { convertToDeepSeekChatMessages } from './convert-to-deepseek-chat-messages';
 import { convertDeepSeekUsage } from './convert-to-deepseek-usage';
 import {
   deepseekChatChunkSchema,
   deepseekChatResponseSchema,
-  DeepSeekChatTokenUsage,
   deepSeekErrorSchema,
+  type DeepSeekChatTokenUsage,
 } from './deepseek-chat-api-types';
 import {
-  DeepSeekChatModelId,
-  deepseekLanguageModelOptions,
-} from './deepseek-chat-options';
+  deepseekLanguageModelChatOptions,
+  type DeepSeekChatModelId,
+} from './deepseek-chat-language-model-options';
 import { prepareTools } from './deepseek-prepare-tools';
 import { getResponseMetadata } from './get-response-metadata';
 import { mapDeepSeekFinishReason } from './map-deepseek-finish-reason';
@@ -111,20 +113,22 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
       (await parseProviderOptions({
         provider: this.providerOptionsName,
         providerOptions,
-        schema: deepseekLanguageModelOptions,
+        schema: deepseekLanguageModelChatOptions,
       })) ?? {};
 
     const { messages, warnings } = convertToDeepSeekChatMessages({
       prompt,
       responseFormat,
+      modelId: this.modelId,
     });
+    const allWarnings: SharedV4Warning[] = [...warnings];
 
     if (topK != null) {
-      warnings.push({ type: 'unsupported', feature: 'topK' });
+      allWarnings.push({ type: 'unsupported', feature: 'topK' });
     }
 
     if (seed != null) {
-      warnings.push({ type: 'unsupported', feature: 'seed' });
+      allWarnings.push({ type: 'unsupported', feature: 'seed' });
     }
 
     const {
@@ -135,6 +139,29 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
       tools,
       toolChoice,
     });
+
+    const thinking =
+      deepseekOptions.thinking?.type != null
+        ? { type: deepseekOptions.thinking.type }
+        : isCustomReasoning(reasoning)
+          ? { type: reasoning === 'none' ? 'disabled' : 'enabled' }
+          : undefined;
+
+    const reasoningEffort =
+      deepseekOptions.reasoningEffort ??
+      (isCustomReasoning(reasoning) && reasoning !== 'none'
+        ? mapReasoningToProviderEffort({
+            reasoning,
+            effortMap: {
+              minimal: 'low',
+              low: 'low',
+              medium: 'medium',
+              high: 'high',
+              xhigh: 'max',
+            },
+            warnings: allWarnings,
+          })
+        : undefined);
 
     return {
       args: {
@@ -150,14 +177,13 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
         messages,
         tools: deepseekTools,
         tool_choice: deepseekToolChoices,
-        thinking:
-          deepseekOptions.thinking?.type != null
-            ? { type: deepseekOptions.thinking.type }
-            : isCustomReasoning(reasoning)
-              ? { type: reasoning === 'none' ? 'disabled' : 'enabled' }
-              : undefined,
+        thinking,
+        ...(thinking?.type !== 'disabled' &&
+          reasoningEffort != null && {
+            reasoning_effort: reasoningEffort,
+          }),
       },
-      warnings: [...warnings, ...toolWarnings],
+      warnings: [...allWarnings, ...toolWarnings],
     };
   }
 
@@ -264,7 +290,7 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
       fetch: this.config.fetch,
     });
 
-    const toolCallTracker = new StreamingToolCallTracker({ generateId });
+    let toolCallTracker: StreamingToolCallTracker;
 
     let finishReason: LanguageModelV4FinishReason = {
       unified: 'other',
@@ -283,6 +309,9 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
           LanguageModelV4StreamPart
         >({
           start(controller) {
+            toolCallTracker = new StreamingToolCallTracker(controller, {
+              generateId,
+            });
             controller.enqueue({ type: 'stream-start', warnings });
           },
 
@@ -386,10 +415,7 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
               }
 
               for (const toolCallDelta of delta.tool_calls) {
-                toolCallTracker.processDelta(
-                  toolCallDelta,
-                  controller.enqueue.bind(controller),
-                );
+                toolCallTracker.processDelta(toolCallDelta);
               }
             }
           },
@@ -403,7 +429,7 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
               controller.enqueue({ type: 'text-end', id: 'txt-0' });
             }
 
-            toolCallTracker.flush(controller.enqueue.bind(controller));
+            toolCallTracker.flush();
 
             controller.enqueue({
               type: 'finish',

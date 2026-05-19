@@ -1,9 +1,6 @@
-import { LanguageModelV4Prompt } from '@ai-sdk/provider';
+import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
-import {
-  convertReadableStreamToArray,
-  isNodeVersion,
-} from '@ai-sdk/provider-utils/test';
+import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import fs from 'node:fs';
 import { createCohere } from './cohere-provider';
 import { beforeEach, describe, it, expect, vi } from 'vitest';
@@ -55,6 +52,16 @@ function prepareChunksFixtureResponse(
     type: 'stream-chunks',
     headers,
     chunks,
+  };
+}
+
+function prepareChunkLinesResponse(chunks: Array<Record<string, unknown>>) {
+  server.urls['https://api.cohere.com/v2/chat'].response = {
+    type: 'stream-chunks',
+    chunks: chunks.map(chunk => {
+      const line = JSON.stringify(chunk);
+      return `event: ${chunk.type}\ndata: ${line}\n\n`;
+    }),
   };
 }
 
@@ -239,7 +246,10 @@ describe('doGenerate', () => {
               { type: 'text', text: 'What are AI benefits?' },
               {
                 type: 'file',
-                data: 'AI provides automation and efficiency.',
+                data: {
+                  type: 'data' as const,
+                  data: 'AI provides automation and efficiency.',
+                },
                 mediaType: 'text/plain',
                 filename: 'ai-benefits.txt',
               },
@@ -260,7 +270,10 @@ describe('doGenerate', () => {
               { type: 'text', text: 'What does this say?' },
               {
                 type: 'file',
-                data: 'This is a test document.',
+                data: {
+                  type: 'data' as const,
+                  data: 'This is a test document.',
+                },
                 mediaType: 'text/plain',
                 filename: 'test.txt',
               },
@@ -299,13 +312,19 @@ describe('doGenerate', () => {
               { type: 'text', text: 'What do these documents say?' },
               {
                 type: 'file',
-                data: Buffer.from('First document content'),
+                data: {
+                  type: 'data' as const,
+                  data: Buffer.from('First document content'),
+                },
                 mediaType: 'text/plain',
                 filename: 'doc1.txt',
               },
               {
                 type: 'file',
-                data: Buffer.from('Second document content'),
+                data: {
+                  type: 'data' as const,
+                  data: Buffer.from('Second document content'),
+                },
                 mediaType: 'text/plain',
                 filename: 'doc2.txt',
               },
@@ -350,7 +369,10 @@ describe('doGenerate', () => {
               { type: 'text', text: 'What is in this JSON?' },
               {
                 type: 'file',
-                data: Buffer.from('{"key": "value"}'),
+                data: {
+                  type: 'data' as const,
+                  data: Buffer.from('{"key": "value"}'),
+                },
                 mediaType: 'application/json',
                 filename: 'data.json',
               },
@@ -380,27 +402,38 @@ describe('doGenerate', () => {
       `);
     });
 
-    it('should throw error for unsupported file types', async () => {
-      await expect(
-        model.doGenerate({
-          prompt: [
-            {
-              role: 'user',
-              content: [
-                { type: 'text', text: 'What is this?' },
-                {
-                  type: 'file',
-                  data: Buffer.from('PDF binary data'),
-                  mediaType: 'application/pdf',
-                  filename: 'document.pdf',
+    it('should not include mediaType in the outgoing payload (category D)', async () => {
+      await model.doGenerate({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: 'What is this?' },
+              {
+                type: 'file',
+                data: {
+                  type: 'data' as const,
+                  data: Buffer.from('Some file content'),
                 },
-              ],
-            },
-          ],
-        }),
-      ).rejects.toThrow(
-        "Media type 'application/pdf' is not supported. Supported media types are: text/* and application/json.",
-      );
+                mediaType: 'application/pdf',
+                filename: 'document.pdf',
+              },
+            ],
+          },
+        ],
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.documents).toEqual([
+        {
+          data: {
+            text: 'Some file content',
+            title: 'document.pdf',
+          },
+        },
+      ]);
+      expect(JSON.stringify(requestBody)).not.toContain('application/pdf');
+      expect(JSON.stringify(requestBody)).not.toContain('mediaType');
     });
 
     it('should successfully process supported text media types', async () => {
@@ -412,13 +445,19 @@ describe('doGenerate', () => {
               { type: 'text', text: 'What is this?' },
               {
                 type: 'file',
-                data: Buffer.from('This is plain text content'),
+                data: {
+                  type: 'data' as const,
+                  data: Buffer.from('This is plain text content'),
+                },
                 mediaType: 'text/plain',
                 filename: 'text.txt',
               },
               {
                 type: 'file',
-                data: Buffer.from('# Markdown Header\nContent'),
+                data: {
+                  type: 'data' as const,
+                  data: Buffer.from('# Markdown Header\nContent'),
+                },
                 mediaType: 'text/markdown',
                 filename: 'doc.md',
               },
@@ -806,6 +845,62 @@ describe('doStream', () => {
           chunk.type === 'tool-call' ? chunk.toolCallId : chunk.id,
         );
     });
+
+    it('rejects prototype keys in streamed tool call arguments', async () => {
+      prepareChunkLinesResponse([
+        {
+          type: 'tool-call-start',
+          index: 0,
+          delta: {
+            message: {
+              tool_calls: {
+                id: 'test-tool-call',
+                type: 'function',
+                function: { name: 'test-tool', arguments: '' },
+              },
+            },
+          },
+        },
+        {
+          type: 'tool-call-delta',
+          index: 0,
+          delta: {
+            message: {
+              tool_calls: {
+                function: {
+                  arguments: '{"__proto__":{"polluted":true}}',
+                },
+              },
+            },
+          },
+        },
+        {
+          type: 'tool-call-end',
+          index: 0,
+        },
+      ]);
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        tools: [
+          {
+            type: 'function',
+            name: 'test-tool',
+            inputSchema: {
+              type: 'object',
+              properties: {},
+              additionalProperties: true,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        ],
+        includeRawChunks: false,
+      });
+
+      await expect(convertReadableStreamToArray(stream)).rejects.toThrow(
+        'Object contains forbidden prototype property',
+      );
+    });
   });
 
   describe('empty tool call', () => {
@@ -837,22 +932,19 @@ describe('doStream', () => {
   });
 
   describe('error handling', () => {
-    it.skipIf(isNodeVersion(20))(
-      'should handle unparsable stream parts',
-      async () => {
-        server.urls['https://api.cohere.com/v2/chat'].response = {
-          type: 'stream-chunks',
-          chunks: [`event: foo-message\ndata: {unparsable}\n\n`],
-        };
+    it('should handle unparsable stream parts', async () => {
+      server.urls['https://api.cohere.com/v2/chat'].response = {
+        type: 'stream-chunks',
+        chunks: [`event: foo-message\ndata: {unparsable}\n\n`],
+      };
 
-        const { stream } = await model.doStream({
-          prompt: TEST_PROMPT,
-          includeRawChunks: false,
-        });
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
 
-        expect(await convertReadableStreamToArray(stream)).toMatchSnapshot();
-      },
-    );
+      expect(await convertReadableStreamToArray(stream)).toMatchSnapshot();
+    });
   });
 
   describe('request', () => {

@@ -71,6 +71,7 @@ describe('thought signatures', () => {
                   "args": {
                     "value": "test",
                   },
+                  "id": "call1",
                   "name": "test",
                 },
                 "thoughtSignature": "sig3",
@@ -112,7 +113,7 @@ describe('thought signatures with vertex providerOptionsName', () => {
           ],
         },
       ],
-      { providerOptionsName: 'vertex' },
+      { providerOptionsNames: ['googleVertex', 'vertex'] },
     );
 
     expect(result).toMatchInlineSnapshot(`
@@ -134,6 +135,7 @@ describe('thought signatures with vertex providerOptionsName', () => {
                   "args": {
                     "location": "London",
                   },
+                  "id": "call1",
                   "name": "getWeather",
                 },
                 "thoughtSignature": "sig3",
@@ -166,11 +168,12 @@ describe('thought signatures with vertex providerOptionsName', () => {
           ],
         },
       ],
-      { providerOptionsName: 'vertex' },
+      { providerOptionsNames: ['googleVertex', 'vertex'] },
     );
 
     expect(result.contents[0].parts[0]).toEqual({
       functionCall: {
+        id: 'call1',
         name: 'getWeather',
         args: { location: 'London' },
       },
@@ -196,11 +199,12 @@ describe('thought signatures with vertex providerOptionsName', () => {
           ],
         },
       ],
-      { providerOptionsName: 'vertex' },
+      { providerOptionsNames: ['googleVertex', 'vertex'] },
     );
 
     expect(result.contents[0].parts[0]).toEqual({
       functionCall: {
+        id: 'call1',
         name: 'getWeather',
         args: { location: 'London' },
       },
@@ -236,7 +240,7 @@ describe('thought signatures with google providerOptionsName (gateway failover)'
           ],
         },
       ],
-      { providerOptionsName: 'google' },
+      { providerOptionsNames: ['google'] },
     );
 
     expect(result).toMatchInlineSnapshot(`
@@ -258,6 +262,7 @@ describe('thought signatures with google providerOptionsName (gateway failover)'
                   "args": {
                     "location": "London",
                   },
+                  "id": "call1",
                   "name": "getWeather",
                 },
                 "thoughtSignature": "sig3",
@@ -290,11 +295,12 @@ describe('thought signatures with google providerOptionsName (gateway failover)'
           ],
         },
       ],
-      { providerOptionsName: 'google' },
+      { providerOptionsNames: ['google'] },
     );
 
     expect(result.contents[0].parts[0]).toEqual({
       functionCall: {
+        id: 'call1',
         name: 'getWeather',
         args: { location: 'London' },
       },
@@ -322,6 +328,7 @@ describe('thought signatures with google providerOptionsName (gateway failover)'
 
     expect(result.contents[0].parts[0]).toEqual({
       functionCall: {
+        id: 'call1',
         name: 'getWeather',
         args: { location: 'London' },
       },
@@ -451,7 +458,7 @@ describe('user messages', () => {
         content: [
           {
             type: 'file',
-            data: 'AAECAw==',
+            data: { type: 'data' as const, data: 'AAECAw==' },
             mediaType: 'image/png',
           },
         ],
@@ -480,7 +487,13 @@ describe('user messages', () => {
     const result = convertToGoogleMessages([
       {
         role: 'user',
-        content: [{ type: 'file', data: 'AAECAw==', mediaType: 'image/png' }],
+        content: [
+          {
+            type: 'file',
+            data: { type: 'data' as const, data: 'AAECAw==' },
+            mediaType: 'image/png',
+          },
+        ],
       },
     ]);
 
@@ -510,9 +523,12 @@ describe('user messages', () => {
           {
             type: 'file',
             data: {
-              google:
-                'https://generativelanguage.googleapis.com/v1beta/files/abc123',
-              openai: 'file-xyz789',
+              type: 'reference' as const,
+              reference: {
+                google:
+                  'https://generativelanguage.googleapis.com/v1beta/files/abc123',
+                openai: 'file-xyz789',
+              },
             },
             mediaType: 'image/png',
           },
@@ -547,8 +563,11 @@ describe('user messages', () => {
           {
             type: 'file',
             data: {
-              google:
-                'https://generativelanguage.googleapis.com/v1beta/files/img456',
+              type: 'reference' as const,
+              reference: {
+                google:
+                  'https://generativelanguage.googleapis.com/v1beta/files/img456',
+              },
             },
             mediaType: 'image/jpeg',
           },
@@ -583,7 +602,10 @@ describe('user messages', () => {
           content: [
             {
               type: 'file',
-              data: { openai: 'file-xyz789' },
+              data: {
+                type: 'reference' as const,
+                reference: { openai: 'file-xyz789' },
+              },
               mediaType: 'image/png',
             },
           ],
@@ -619,6 +641,7 @@ describe('tool messages', () => {
           parts: [
             {
               functionResponse: {
+                id: 'testCallId',
                 name: 'testFunction',
                 response: {
                   name: 'testFunction',
@@ -649,8 +672,8 @@ describe('tool messages', () => {
                   text: 'Here is the generated image:',
                 },
                 {
-                  type: 'file-data',
-                  data: 'base64encodedimagedata',
+                  type: 'file',
+                  data: { type: 'data', data: 'base64encodedimagedata' },
                   mediaType: 'image/jpeg',
                 },
               ],
@@ -668,6 +691,7 @@ describe('tool messages', () => {
           parts: [
             {
               functionResponse: {
+                id: 'testCallId',
                 name: 'imageGenerator',
                 response: {
                   name: 'imageGenerator',
@@ -702,8 +726,8 @@ describe('tool messages', () => {
               type: 'content',
               value: [
                 {
-                  type: 'file-data',
-                  data: 'base64pdfdata',
+                  type: 'file',
+                  data: { type: 'data', data: 'base64pdfdata' },
                   mediaType: 'application/pdf',
                   filename: 'report.pdf',
                 },
@@ -716,6 +740,7 @@ describe('tool messages', () => {
 
     expect(result.contents[0].parts[0]).toEqual({
       functionResponse: {
+        id: 'testCallId',
         name: 'documentReader',
         response: {
           name: 'documentReader',
@@ -746,8 +771,11 @@ describe('tool messages', () => {
               type: 'content',
               value: [
                 {
-                  type: 'file-url',
-                  url: 'data:image/png;base64,base64pngdata',
+                  type: 'file',
+                  data: {
+                    type: 'url',
+                    url: new URL('data:image/png;base64,base64pngdata'),
+                  },
                   mediaType: 'image/png',
                 },
               ],
@@ -759,6 +787,7 @@ describe('tool messages', () => {
 
     expect(result.contents[0].parts[0]).toEqual({
       functionResponse: {
+        id: 'testCallId',
         name: 'imageGenerator',
         response: {
           name: 'imageGenerator',
@@ -789,8 +818,11 @@ describe('tool messages', () => {
               type: 'content',
               value: [
                 {
-                  type: 'file-url',
-                  url: 'https://example.com/image.png',
+                  type: 'file',
+                  data: {
+                    type: 'url',
+                    url: new URL('https://example.com/image.png'),
+                  },
                   mediaType: 'image/png',
                 },
               ],
@@ -802,11 +834,11 @@ describe('tool messages', () => {
 
     expect(result.contents[0].parts[0]).toEqual({
       functionResponse: {
+        id: 'testCallId',
         name: 'imageGenerator',
         response: {
           name: 'imageGenerator',
-          content:
-            '{"type":"file-url","url":"https://example.com/image.png","mediaType":"image/png"}',
+          content: `{"type":"file","data":{"type":"url","url":"https://example.com/image.png"},"mediaType":"image/png"}`,
         },
       },
     });
@@ -825,8 +857,11 @@ describe('tool messages', () => {
               type: 'content',
               value: [
                 {
-                  type: 'file-url',
-                  url: 'https://example.com/report.pdf',
+                  type: 'file',
+                  data: {
+                    type: 'url',
+                    url: new URL('https://example.com/report.pdf'),
+                  },
                   mediaType: 'application/pdf',
                 },
               ],
@@ -838,11 +873,11 @@ describe('tool messages', () => {
 
     expect(result.contents[0].parts[0]).toEqual({
       functionResponse: {
+        id: 'testCallId',
         name: 'documentReader',
         response: {
           name: 'documentReader',
-          content:
-            '{"type":"file-url","url":"https://example.com/report.pdf","mediaType":"application/pdf"}',
+          content: `{"type":"file","data":{"type":"url","url":"https://example.com/report.pdf"},"mediaType":"application/pdf"}`,
         },
       },
     });
@@ -866,13 +901,13 @@ describe('tool messages', () => {
                     text: 'Here is the generated image:',
                   },
                   {
-                    type: 'file-data',
-                    data: 'base64encodedimagedata',
+                    type: 'file',
+                    data: { type: 'data', data: 'base64encodedimagedata' },
                     mediaType: 'image/jpeg',
                   },
                   {
-                    type: 'file-data',
-                    data: 'base64pdfdata',
+                    type: 'file',
+                    data: { type: 'data', data: 'base64pdfdata' },
                     mediaType: 'application/pdf',
                     filename: 'report.pdf',
                   },
@@ -888,6 +923,7 @@ describe('tool messages', () => {
     expect(result.contents[0].parts).toEqual([
       {
         functionResponse: {
+          id: 'testCallId',
           name: 'imageGenerator',
           response: {
             name: 'imageGenerator',
@@ -905,7 +941,7 @@ describe('tool messages', () => {
         text: 'Tool executed successfully and returned this image as a response',
       },
       {
-        text: '{"type":"file-data","data":"base64pdfdata","mediaType":"application/pdf","filename":"report.pdf"}',
+        text: `{"type":"file","data":{"type":"data","data":"base64pdfdata"},"mediaType":"application/pdf","filename":"report.pdf"}`,
       },
     ]);
   });
@@ -924,13 +960,19 @@ describe('tool messages', () => {
                 type: 'content',
                 value: [
                   {
-                    type: 'file-url',
-                    url: 'https://example.com/image.png',
+                    type: 'file',
+                    data: {
+                      type: 'url',
+                      url: new URL('https://example.com/image.png'),
+                    },
                     mediaType: 'image/png',
                   },
                   {
-                    type: 'file-url',
-                    url: 'https://example.com/report.pdf',
+                    type: 'file',
+                    data: {
+                      type: 'url',
+                      url: new URL('https://example.com/report.pdf'),
+                    },
                     mediaType: 'application/pdf',
                   },
                 ],
@@ -944,10 +986,10 @@ describe('tool messages', () => {
 
     expect(result.contents[0].parts).toEqual([
       {
-        text: '{"type":"file-url","url":"https://example.com/image.png","mediaType":"image/png"}',
+        text: `{"type":"file","data":{"type":"url","url":"https://example.com/image.png"},"mediaType":"image/png"}`,
       },
       {
-        text: '{"type":"file-url","url":"https://example.com/report.pdf","mediaType":"application/pdf"}',
+        text: `{"type":"file","data":{"type":"url","url":"https://example.com/report.pdf"},"mediaType":"application/pdf"}`,
       },
     ]);
   });
@@ -958,7 +1000,13 @@ describe('assistant messages', () => {
     const result = convertToGoogleMessages([
       {
         role: 'assistant',
-        content: [{ type: 'file', data: 'AAECAw==', mediaType: 'image/png' }],
+        content: [
+          {
+            type: 'file',
+            data: { type: 'data' as const, data: 'AAECAw==' },
+            mediaType: 'image/png',
+          },
+        ],
       },
     ]);
 
@@ -987,7 +1035,7 @@ describe('assistant messages', () => {
         content: [
           {
             type: 'file',
-            data: 'AAECAw==',
+            data: { type: 'data' as const, data: 'AAECAw==' },
             mediaType: 'image/png',
             providerOptions: {
               google: { thought: true, thoughtSignature: 'sig1' },
@@ -995,7 +1043,7 @@ describe('assistant messages', () => {
           },
           {
             type: 'file',
-            data: 'BAUG',
+            data: { type: 'data' as const, data: 'BAUG' },
             mediaType: 'image/jpeg',
           },
         ],
@@ -1036,7 +1084,7 @@ describe('assistant messages', () => {
         content: [
           {
             type: 'reasoning-file',
-            data: 'AAECAw==',
+            data: { type: 'data' as const, data: 'AAECAw==' },
             mediaType: 'image/png',
             providerOptions: {
               google: { thoughtSignature: 'sig_reasoning_file' },
@@ -1075,7 +1123,7 @@ describe('assistant messages', () => {
         content: [
           {
             type: 'reasoning-file',
-            data: 'BAUG',
+            data: { type: 'data' as const, data: 'BAUG' },
             mediaType: 'image/jpeg',
           },
         ],
@@ -1112,7 +1160,10 @@ describe('assistant messages', () => {
           content: [
             {
               type: 'reasoning-file',
-              data: new URL('https://example.com/image.png'),
+              data: {
+                type: 'url' as const,
+                url: new URL('https://example.com/image.png'),
+              },
               mediaType: 'image/png',
             },
           ],
@@ -1133,7 +1184,7 @@ describe('assistant messages', () => {
           },
           {
             type: 'reasoning-file',
-            data: 'AAECAw==',
+            data: { type: 'data' as const, data: 'AAECAw==' },
             mediaType: 'image/png',
             providerOptions: { google: { thoughtSignature: 'sig2' } },
           },
@@ -1185,7 +1236,10 @@ describe('assistant messages', () => {
           content: [
             {
               type: 'file',
-              data: new URL('https://example.com/image.png'),
+              data: {
+                type: 'url' as const,
+                url: new URL('https://example.com/image.png'),
+              },
               mediaType: 'image/png',
             },
           ],
@@ -1202,8 +1256,11 @@ describe('assistant messages', () => {
           {
             type: 'file',
             data: {
-              google:
-                'https://generativelanguage.googleapis.com/v1beta/files/abc123',
+              type: 'reference' as const,
+              reference: {
+                google:
+                  'https://generativelanguage.googleapis.com/v1beta/files/abc123',
+              },
             },
             mediaType: 'image/png',
           },
@@ -1239,8 +1296,11 @@ describe('assistant messages', () => {
           {
             type: 'file',
             data: {
-              google:
-                'https://generativelanguage.googleapis.com/v1beta/files/abc123',
+              type: 'reference' as const,
+              reference: {
+                google:
+                  'https://generativelanguage.googleapis.com/v1beta/files/abc123',
+              },
             },
             mediaType: 'image/png',
             providerOptions: {
@@ -1280,7 +1340,10 @@ describe('assistant messages', () => {
           content: [
             {
               type: 'file',
-              data: { openai: 'file-xyz789' },
+              data: {
+                type: 'reference' as const,
+                reference: { openai: 'file-xyz789' },
+              },
               mediaType: 'image/png',
             },
           ],
@@ -1317,6 +1380,7 @@ describe('parallel tool calls', () => {
 
     expect(result.contents[0].parts[0]).toEqual({
       functionCall: {
+        id: 'call1',
         args: { city: 'paris' },
         name: 'checkweather',
       },
@@ -1325,6 +1389,7 @@ describe('parallel tool calls', () => {
 
     expect(result.contents[0].parts[1]).toEqual({
       functionCall: {
+        id: 'call2',
         args: { city: 'london' },
         name: 'checkweather',
       },
@@ -1367,6 +1432,7 @@ describe('tool results with thought signatures', () => {
 
     expect(result.contents[0].parts[0]).toEqual({
       functionCall: {
+        id: 'call1',
         args: { userId: '123' },
         name: 'readdata',
       },
@@ -1375,6 +1441,7 @@ describe('tool results with thought signatures', () => {
 
     expect(result.contents[1].parts[0]).toEqual({
       functionResponse: {
+        id: 'call1',
         name: 'readdata',
         response: {
           content: 'file not found',
@@ -1437,6 +1504,7 @@ describe('server tool combination round-trip', () => {
 
     expect(result.contents[0].parts[0]).toEqual({
       functionCall: {
+        id: 'tc-1',
         name: 'weather',
         args: { location: 'SF' },
       },
@@ -1564,6 +1632,87 @@ describe('server tool combination round-trip', () => {
         id: 'sid-1',
       },
       thoughtSignature: undefined,
+    });
+  });
+});
+
+describe('top-level-only media type resolution', () => {
+  const pngBase64 = 'iVBORw0KGgo=';
+
+  it('passes full image/png through unchanged for inline data', () => {
+    const result = convertToGoogleMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            mediaType: 'image/png',
+            data: { type: 'data', data: pngBase64 },
+          },
+        ],
+      },
+    ]);
+
+    expect(result.contents[0].parts[0]).toEqual({
+      inlineData: { mimeType: 'image/png', data: pngBase64 },
+    });
+  });
+
+  it('detects image subtype from inline bytes for top-level "image"', () => {
+    const result = convertToGoogleMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            mediaType: 'image',
+            data: { type: 'data', data: pngBase64 },
+          },
+        ],
+      },
+    ]);
+
+    expect(result.contents[0].parts[0]).toEqual({
+      inlineData: { mimeType: 'image/png', data: pngBase64 },
+    });
+  });
+
+  it('throws for top-level-only image with URL source (no bytes to detect)', () => {
+    expect(() =>
+      convertToGoogleMessages([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              mediaType: 'image',
+              data: {
+                type: 'url',
+                url: new URL('https://example.com/x.png'),
+              },
+            },
+          ],
+        },
+      ]),
+    ).toThrow(/media type "image".*not passed as inline bytes/);
+  });
+
+  it('normalizes image/* wildcard via detection', () => {
+    const result = convertToGoogleMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            mediaType: 'image/*',
+            data: { type: 'data', data: pngBase64 },
+          },
+        ],
+      },
+    ]);
+
+    expect(result.contents[0].parts[0]).toEqual({
+      inlineData: { mimeType: 'image/png', data: pngBase64 },
     });
   });
 });

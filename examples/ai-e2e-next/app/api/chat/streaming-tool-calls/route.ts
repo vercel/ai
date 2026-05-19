@@ -1,5 +1,10 @@
 import { openai } from '@ai-sdk/openai';
-import { convertToModelMessages, streamText, UIDataTypes, UIMessage } from 'ai';
+import {
+  convertToModelMessages,
+  streamText,
+  type UIDataTypes,
+  type UIMessage,
+} from 'ai';
 import { z } from 'zod';
 
 // Allow streaming responses up to 30 seconds
@@ -27,7 +32,7 @@ export async function POST(req: Request) {
   const result = streamText({
     model: openai('gpt-4o'),
     messages: await convertToModelMessages(messages),
-    system:
+    instructions:
       'You are a helpful assistant that answers questions about the weather in a given city.' +
       'You use the showWeatherInformation tool to show the weather information to the user instead of talking about it.',
     tools: {

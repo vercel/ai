@@ -1,13 +1,16 @@
 import {
-  LanguageModelV4Prompt,
   UnsupportedFunctionalityError,
+  type LanguageModelV4Prompt,
+  type LanguageModelV4ToolResultOutput,
 } from '@ai-sdk/provider';
 import {
   convertToBase64,
-  isProviderReference,
+  getTopLevelMediaType,
+  isFullMediaType,
+  resolveFullMediaType,
   resolveProviderReference,
 } from '@ai-sdk/provider-utils';
-import {
+import type {
   GoogleContent,
   GoogleContentPart,
   GoogleFunctionResponsePart,
@@ -57,10 +60,11 @@ function convertUrlToolResultPart(
 function appendToolResultParts(
   parts: GoogleContentPart[],
   toolName: string,
-  outputValue: Array<{
-    type: string;
-    [key: string]: unknown;
-  }>,
+  outputValue: Extract<
+    LanguageModelV4ToolResultOutput,
+    { type: 'content' }
+  >['value'],
+  toolCallId?: string,
 ): void {
   const functionResponseParts: GoogleFunctionResponsePart[] = [];
   const responseTextParts: string[] = [];
@@ -68,25 +72,27 @@ function appendToolResultParts(
   for (const contentPart of outputValue) {
     switch (contentPart.type) {
       case 'text': {
-        responseTextParts.push(contentPart.text as string);
+        responseTextParts.push(contentPart.text);
         break;
       }
-      case 'file-data': {
-        functionResponseParts.push({
-          inlineData: {
-            mimeType: contentPart.mediaType as string,
-            data: contentPart.data as string,
-          },
-        });
-        break;
-      }
-      case 'file-url': {
-        const functionResponsePart = convertUrlToolResultPart(
-          contentPart.url as string,
-        );
+      case 'file': {
+        if (contentPart.data.type === 'data') {
+          functionResponseParts.push({
+            inlineData: {
+              mimeType: resolveFullMediaType({ part: contentPart }),
+              data: convertToBase64(contentPart.data.data),
+            },
+          });
+        } else if (contentPart.data.type === 'url') {
+          const functionResponsePart = convertUrlToolResultPart(
+            contentPart.data.url.toString(),
+          );
 
-        if (functionResponsePart != null) {
-          functionResponseParts.push(functionResponsePart);
+          if (functionResponsePart != null) {
+            functionResponseParts.push(functionResponsePart);
+          } else {
+            responseTextParts.push(JSON.stringify(contentPart));
+          }
         } else {
           responseTextParts.push(JSON.stringify(contentPart));
         }
@@ -101,6 +107,7 @@ function appendToolResultParts(
 
   parts.push({
     functionResponse: {
+      ...(toolCallId != null ? { id: toolCallId } : {}),
       name: toolName,
       response: {
         name: toolName,
@@ -124,16 +131,18 @@ function appendToolResultParts(
 function appendLegacyToolResultParts(
   parts: GoogleContentPart[],
   toolName: string,
-  outputValue: Array<{
-    type: string;
-    [key: string]: unknown;
-  }>,
+  outputValue: Extract<
+    LanguageModelV4ToolResultOutput,
+    { type: 'content' }
+  >['value'],
+  toolCallId?: string,
 ): void {
   for (const contentPart of outputValue) {
     switch (contentPart.type) {
       case 'text':
         parts.push({
           functionResponse: {
+            ...(toolCallId != null ? { id: toolCallId } : {}),
             name: toolName,
             response: {
               name: toolName,
@@ -142,13 +151,16 @@ function appendLegacyToolResultParts(
           },
         });
         break;
-      case 'file-data':
-        if ((contentPart.mediaType as string).startsWith('image/')) {
+      case 'file': {
+        if (
+          contentPart.data.type === 'data' &&
+          getTopLevelMediaType(contentPart.mediaType) === 'image'
+        ) {
           parts.push(
             {
               inlineData: {
-                mimeType: contentPart.mediaType as string,
-                data: contentPart.data as string,
+                mimeType: resolveFullMediaType({ part: contentPart }),
+                data: convertToBase64(contentPart.data.data),
               },
             },
             {
@@ -159,6 +171,7 @@ function appendLegacyToolResultParts(
           parts.push({ text: JSON.stringify(contentPart) });
         }
         break;
+      }
       default:
         parts.push({ text: JSON.stringify(contentPart) });
         break;
@@ -170,7 +183,13 @@ export function convertToGoogleMessages(
   prompt: LanguageModelV4Prompt,
   options?: {
     isGemmaModel?: boolean;
-    providerOptionsName?: string;
+    /**
+     * Names to look up under `providerOptions` when reading per-part metadata
+     * (e.g. thought signatures). Tried in order; first match wins. For the
+     * Vertex provider this is `['googleVertex', 'vertex']` (new key first,
+     * legacy key as fallback) and for the Google provider it is `['google']`.
+     */
+    providerOptionsNames?: readonly string[];
     supportsFunctionResponseParts?: boolean;
   },
 ): GooglePrompt {
@@ -178,9 +197,29 @@ export function convertToGoogleMessages(
   const contents: Array<GoogleContent> = [];
   let systemMessagesAllowed = true;
   const isGemmaModel = options?.isGemmaModel ?? false;
-  const providerOptionsName = options?.providerOptionsName ?? 'google';
+  const providerOptionsNames = options?.providerOptionsNames ?? ['google'];
+  const isVertexLike = !providerOptionsNames.includes('google');
   const supportsFunctionResponseParts =
     options?.supportsFunctionResponseParts ?? true;
+
+  const readProviderOpts = (part: {
+    providerOptions?: Record<string, unknown> | undefined;
+  }): Record<string, unknown> | undefined => {
+    for (const name of providerOptionsNames) {
+      const v = part.providerOptions?.[name];
+      if (v != null) return v as Record<string, unknown>;
+    }
+    // Cross-namespace fallback (gateway interop): Vertex providers may receive
+    // metadata under `google`, and the Google provider may receive metadata
+    // under `googleVertex`/`vertex`.
+    if (isVertexLike) {
+      return part.providerOptions?.google as
+        | Record<string, unknown>
+        | undefined;
+    }
+    return (part.providerOptions?.googleVertex ??
+      part.providerOptions?.vertex) as Record<string, unknown> | undefined;
+  };
 
   for (const { role, content } of prompt) {
     switch (role) {
@@ -209,39 +248,56 @@ export function convertToGoogleMessages(
             }
 
             case 'file': {
-              const mediaType =
-                part.mediaType === 'image/*' ? 'image/jpeg' : part.mediaType;
-
-              if (part.data instanceof URL) {
-                parts.push({
-                  fileData: {
-                    mimeType: mediaType,
-                    fileUri: part.data.toString(),
-                  },
-                });
-              } else if (isProviderReference(part.data)) {
-                if (providerOptionsName === 'vertex') {
-                  throw new UnsupportedFunctionalityError({
-                    functionality: 'file parts with provider references',
+              switch (part.data.type) {
+                case 'url': {
+                  parts.push({
+                    fileData: {
+                      mimeType: resolveFullMediaType({ part }),
+                      fileUri: part.data.url.toString(),
+                    },
                   });
+                  break;
                 }
+                case 'reference': {
+                  if (isVertexLike) {
+                    throw new UnsupportedFunctionalityError({
+                      functionality: 'file parts with provider references',
+                    });
+                  }
 
-                parts.push({
-                  fileData: {
-                    mimeType: mediaType,
-                    fileUri: resolveProviderReference({
-                      reference: part.data,
-                      provider: 'google',
-                    }),
-                  },
-                });
-              } else {
-                parts.push({
-                  inlineData: {
-                    mimeType: mediaType,
-                    data: convertToBase64(part.data),
-                  },
-                });
+                  parts.push({
+                    fileData: {
+                      mimeType: resolveFullMediaType({ part }),
+                      fileUri: resolveProviderReference({
+                        reference: part.data.reference,
+                        provider: 'google',
+                      }),
+                    },
+                  });
+                  break;
+                }
+                case 'text': {
+                  parts.push({
+                    inlineData: {
+                      mimeType: isFullMediaType(part.mediaType)
+                        ? part.mediaType
+                        : 'text/plain',
+                      data: convertToBase64(
+                        new TextEncoder().encode(part.data.text),
+                      ),
+                    },
+                  });
+                  break;
+                }
+                case 'data': {
+                  parts.push({
+                    inlineData: {
+                      mimeType: resolveFullMediaType({ part }),
+                      data: convertToBase64(part.data.data),
+                    },
+                  });
+                  break;
+                }
               }
 
               break;
@@ -260,11 +316,7 @@ export function convertToGoogleMessages(
           role: 'model',
           parts: content
             .map(part => {
-              const providerOpts =
-                part.providerOptions?.[providerOptionsName] ??
-                (providerOptionsName !== 'google'
-                  ? part.providerOptions?.google
-                  : part.providerOptions?.vertex);
+              const providerOpts = readProviderOpts(part);
               const thoughtSignature =
                 providerOpts?.thoughtSignature != null
                   ? String(providerOpts.thoughtSignature)
@@ -291,63 +343,86 @@ export function convertToGoogleMessages(
                 }
 
                 case 'reasoning-file': {
-                  if (part.data instanceof URL) {
-                    throw new UnsupportedFunctionalityError({
-                      functionality:
-                        'File data URLs in assistant messages are not supported',
-                    });
+                  switch (part.data.type) {
+                    case 'url': {
+                      throw new UnsupportedFunctionalityError({
+                        functionality:
+                          'File data URLs in assistant messages are not supported',
+                      });
+                    }
+                    case 'data': {
+                      return {
+                        inlineData: {
+                          mimeType: part.mediaType,
+                          data: convertToBase64(part.data.data),
+                        },
+                        thought: true,
+                        thoughtSignature,
+                      };
+                    }
                   }
-
-                  return {
-                    inlineData: {
-                      mimeType: part.mediaType,
-                      data: convertToBase64(part.data),
-                    },
-                    thought: true,
-                    thoughtSignature,
-                  };
+                  break;
                 }
 
                 case 'file': {
-                  if (part.data instanceof URL) {
-                    throw new UnsupportedFunctionalityError({
-                      functionality:
-                        'File data URLs in assistant messages are not supported',
-                    });
-                  }
-
-                  if (isProviderReference(part.data)) {
-                    if (providerOptionsName === 'vertex') {
+                  switch (part.data.type) {
+                    case 'url': {
                       throw new UnsupportedFunctionalityError({
-                        functionality: 'file parts with provider references',
+                        functionality:
+                          'File data URLs in assistant messages are not supported',
                       });
                     }
+                    case 'reference': {
+                      if (isVertexLike) {
+                        throw new UnsupportedFunctionalityError({
+                          functionality: 'file parts with provider references',
+                        });
+                      }
 
-                    return {
-                      fileData: {
-                        mimeType: part.mediaType,
-                        fileUri: resolveProviderReference({
-                          reference: part.data,
-                          provider: 'google',
-                        }),
-                      },
-                      ...(providerOpts?.thought === true
-                        ? { thought: true }
-                        : {}),
-                      thoughtSignature,
-                    };
+                      return {
+                        fileData: {
+                          mimeType: part.mediaType,
+                          fileUri: resolveProviderReference({
+                            reference: part.data.reference,
+                            provider: 'google',
+                          }),
+                        },
+                        ...(providerOpts?.thought === true
+                          ? { thought: true }
+                          : {}),
+                        thoughtSignature,
+                      };
+                    }
+                    case 'text': {
+                      return {
+                        inlineData: {
+                          mimeType: isFullMediaType(part.mediaType)
+                            ? part.mediaType
+                            : 'text/plain',
+                          data: convertToBase64(
+                            new TextEncoder().encode(part.data.text),
+                          ),
+                        },
+                        ...(providerOpts?.thought === true
+                          ? { thought: true }
+                          : {}),
+                        thoughtSignature,
+                      };
+                    }
+                    case 'data': {
+                      return {
+                        inlineData: {
+                          mimeType: part.mediaType,
+                          data: convertToBase64(part.data.data),
+                        },
+                        ...(providerOpts?.thought === true
+                          ? { thought: true }
+                          : {}),
+                        thoughtSignature,
+                      };
+                    }
                   }
-
-                  return {
-                    inlineData: {
-                      mimeType: part.mediaType,
-                      data: convertToBase64(part.data),
-                    },
-                    ...(providerOpts?.thought === true
-                      ? { thought: true }
-                      : {}),
-                    thoughtSignature,
-                  };
+                  break;
                 }
 
                 case 'tool-call': {
@@ -376,6 +451,9 @@ export function convertToGoogleMessages(
 
                   return {
                     functionCall: {
+                      ...(part.toolCallId != null
+                        ? { id: part.toolCallId }
+                        : {}),
                       name: part.toolName,
                       args: part.input,
                     },
@@ -425,11 +503,7 @@ export function convertToGoogleMessages(
             continue;
           }
 
-          const partProviderOpts =
-            part.providerOptions?.[providerOptionsName] ??
-            (providerOptionsName !== 'google'
-              ? part.providerOptions?.google
-              : part.providerOptions?.vertex);
+          const partProviderOpts = readProviderOpts(part);
           const serverToolCallId =
             partProviderOpts?.serverToolCallId != null
               ? String(partProviderOpts.serverToolCallId)
@@ -466,13 +540,24 @@ export function convertToGoogleMessages(
 
           if (output.type === 'content') {
             if (supportsFunctionResponseParts) {
-              appendToolResultParts(parts, part.toolName, output.value);
+              appendToolResultParts(
+                parts,
+                part.toolName,
+                output.value,
+                part.toolCallId,
+              );
             } else {
-              appendLegacyToolResultParts(parts, part.toolName, output.value);
+              appendLegacyToolResultParts(
+                parts,
+                part.toolName,
+                output.value,
+                part.toolCallId,
+              );
             }
           } else {
             parts.push({
               functionResponse: {
+                ...(part.toolCallId != null ? { id: part.toolCallId } : {}),
                 name: part.toolName,
                 response: {
                   name: part.toolName,

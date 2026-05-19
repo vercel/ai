@@ -1,9 +1,6 @@
-import { LanguageModelV4Prompt } from '@ai-sdk/provider';
+import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
-import {
-  convertReadableStreamToArray,
-  isNodeVersion,
-} from '@ai-sdk/provider-utils/test';
+import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import fs from 'node:fs';
 import { createGroq } from './groq-provider';
 import { beforeEach, describe, it, expect, vi } from 'vitest';
@@ -1499,19 +1496,17 @@ describe('doStream', () => {
     `);
   });
 
-  it.skipIf(isNodeVersion(20))(
-    'should handle unparsable stream parts',
-    async () => {
-      server.urls[CHAT_COMPLETIONS_URL].response = {
-        type: 'stream-chunks',
-        chunks: [`data: {unparsable}\n\n`, 'data: [DONE]\n\n'],
-      };
+  it('should handle unparsable stream parts', async () => {
+    server.urls[CHAT_COMPLETIONS_URL].response = {
+      type: 'stream-chunks',
+      chunks: [`data: {unparsable}\n\n`, 'data: [DONE]\n\n'],
+    };
 
-      const { stream } = await model.doStream({
-        prompt: TEST_PROMPT,
-      });
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+    });
 
-      expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
         [
           {
             "type": "stream-start",
@@ -1545,8 +1540,7 @@ describe('doStream', () => {
           },
         ]
       `);
-    },
-  );
+  });
 
   it('should expose the raw response headers', async () => {
     prepareChunksFixtureResponse('groq-text', {
