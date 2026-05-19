@@ -1,7 +1,4 @@
-import {
-  OpenAICompatibleChatLanguageModel,
-  type ProviderErrorStructure,
-} from '@ai-sdk/openai-compatible';
+import type { ProviderErrorStructure } from '@ai-sdk/openai-compatible';
 import {
   NoSuchModelError,
   type LanguageModelV3,
@@ -13,6 +10,7 @@ import {
   withUserAgentSuffix,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
+import { CerebrasChatLanguageModel } from './cerebras-chat-language-model';
 import type { CerebrasChatModelId } from './cerebras-chat-options';
 import { z } from 'zod/v4';
 import { VERSION } from './version';
@@ -127,7 +125,7 @@ export function createCerebras(
     );
 
   const createLanguageModel = (modelId: CerebrasChatModelId) => {
-    return new OpenAICompatibleChatLanguageModel(modelId, {
+    return new CerebrasChatLanguageModel(modelId, {
       provider: `cerebras.chat`,
       url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,
