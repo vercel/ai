@@ -1,5 +1,14 @@
 # @ai-sdk/google-vertex
 
+## 4.0.132
+
+### Patch Changes
+
+- 756fec1: feat(provider/google): add `gemini-3.5-flash`
+- Updated dependencies [f259bd1]
+- Updated dependencies [756fec1]
+  - @ai-sdk/google@3.0.76
+
 ## 4.0.131
 
 ### Patch Changes
