@@ -1,5 +1,18 @@
 # @ai-sdk/google
 
+## 4.0.0-canary.69
+
+### Patch Changes
+
+- 7f04802: feat(provider/google): add support for managed agents in the Interactions API
+
+## 4.0.0-canary.68
+
+### Patch Changes
+
+- a2609df: fix(google): fix streaming tool call args
+- 546cefe: feat(provider/google): add `gemini-3.5-flash`
+
 ## 4.0.0-canary.67
 
 ### Patch Changes
