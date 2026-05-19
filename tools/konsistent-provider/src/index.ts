@@ -211,8 +211,8 @@ export const conventions = defineConventions([
       files: [
         '${providerId}-language-model.ts',
         '*/${providerId}-language-model.ts',
-        '${providerId}-{languageModelSubtype:segments(1)}-language-model.ts',
-        '*/${providerId}-{languageModelSubtype:segments(1)}-language-model.ts',
+        '${providerId}-*-language-model.ts',
+        '*/${providerId}-*-language-model.ts',
       ],
     },
     must: {
