@@ -1,0 +1,133 @@
+{
+  "$schema": "../node_modules/konsistent/konsistent.schema.json",
+  "version": "v1",
+  "conventionSources": {
+    "aisdk": "konsistent-provider"
+  },
+  "conventions": [
+    {
+      "name": "package-dir-must-have-required-files",
+      "description": "Every package directory must contain a specific minimum set of files.",
+      "paths": ["packages/*"],
+      "must": [
+        {
+          "use": "aisdk/package-must-have-package-and-docs-files",
+          "excludeFiles": ["packages/test-server"]
+        },
+        {
+          "use": "aisdk/package-must-have-index",
+          "excludeFiles": ["packages/codemod"]
+        },
+        {
+          "use": "aisdk/package-must-have-changelog"
+        },
+        {
+          "use": "aisdk/package-must-have-tsup-config",
+          "excludeFiles": ["packages/svelte"]
+        }
+      ]
+    },
+    {
+      "name": "provider-package-must-export-required-symbols",
+      "description": "Every provider package must have specific files that export a specific set of symbols.",
+      "paths": [
+        "packages/{providerId}/src/index.ts",
+        "!packages/ai",
+        "!packages/angular",
+        "!packages/codemod",
+        "!packages/devtools",
+        "!packages/langchain",
+        "!packages/llamaindex",
+        "!packages/mcp",
+        "!packages/otel",
+        "!packages/provider",
+        "!packages/provider-utils",
+        "!packages/react",
+        "!packages/rsc",
+        "!packages/svelte",
+        "!packages/test-server",
+        "!packages/valibot",
+        "!packages/vue",
+        "!packages/workflow"
+      ],
+      "must": [
+        {
+          "use": "aisdk/provider-package-must-export-provider-creator-and-settings",
+          "excludeFiles": ["packages/azure/src/index.ts"]
+        },
+        "aisdk/provider-package-must-export-instance-case-1",
+        {
+          "use": "aisdk/provider-package-must-export-instance-case-2",
+          "excludeFiles": [
+            "packages/openai-compatible/src/index.ts",
+            "packages/open-responses/src/index.ts"
+          ]
+        },
+        {
+          "use": "aisdk/provider-file-must-export-provider-class-and-settings-type",
+          "excludeFiles": [
+            "packages/google-vertex/src/google-vertex-provider.ts"
+          ]
+        },
+        "aisdk/provider-file-must-export-provider-instance-case-1",
+        {
+          "use": "aisdk/provider-file-must-export-provider-instance-case-2",
+          "excludeFiles": [
+            "packages/openai-compatible/src/openai-compatible-provider.ts",
+            "packages/open-responses/src/open-responses-provider.ts"
+          ]
+        },
+        {
+          "use": "aisdk/provider-model-file-must-export-model-class",
+          "excludeFiles": [
+            "${providerId}-video-model.ts",
+            "packages/amazon-bedrock/src/amazon-bedrock-image-model.ts",
+            "packages/deepinfra/src/deepinfra-image-model.ts",
+            "packages/fireworks/src/fireworks-image-model.ts",
+            "packages/gateway/src/gateway-embedding-model.ts",
+            "packages/gateway/src/gateway-image-model.ts",
+            "packages/gateway/src/gateway-language-model.ts",
+            "packages/gateway/src/gateway-reranking-model.ts",
+            "packages/mistral/src/mistral-embedding-model.ts",
+            "packages/openai-compatible/src/image/openai-compatible-image-model.ts",
+            "packages/perplexity/src/perplexity-language-model.ts"
+          ]
+        },
+        {
+          "use": "aisdk/provider-model-file-with-subtype-must-export-model-class",
+          "excludeFiles": [
+            "packages/deepinfra/src/deepinfra-chat-language-model.ts",
+            "packages/moonshotai/src/moonshotai-chat-language-model.ts"
+          ]
+        },
+        {
+          "use": "aisdk/provider-video-model-file-must-export-model-class",
+          "excludeFiles": [
+            "packages/bytedance/src/bytedance-video-model.ts",
+            "packages/gateway/src/gateway-video-model.ts"
+          ]
+        },
+        "aisdk/provider-language-model-file-must-import-workflow-serialization",
+        "aisdk/provider-model-options-file-must-export-model-options-type",
+        "aisdk/provider-model-options-file-with-subtype-must-export-model-options-type"
+      ]
+    }
+  ],
+  "kebabToPascalMap": {
+    "assemblyai": "AssemblyAI",
+    "bytedance": "ByteDance",
+    "deepinfra": "DeepInfra",
+    "deepseek": "DeepSeek",
+    "elevenlabs": "ElevenLabs",
+    "huggingface": "HuggingFace",
+    "klingai": "KlingAI",
+    "lmnt": "LMNT",
+    "moonshotai": "MoonshotAI",
+    "openai": "OpenAI",
+    "openai-compatible": "OpenAICompatible",
+    "togetherai": "TogetherAI"
+  },
+  "kebabToCamelMap": {
+    "lmnt": "lmnt"
+  }
+}
