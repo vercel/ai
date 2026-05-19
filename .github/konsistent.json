@@ -13,11 +13,6 @@
         {
           "use": "aisdk/package-must-have-package-and-docs-files",
           "excludeFiles": [
-<<<<<<< aayush/readme-mcp
-            "packages/otel",
-=======
-            "packages/mcp",
->>>>>>> main
             "packages/voyage",
             "packages/test-server"
           ]
