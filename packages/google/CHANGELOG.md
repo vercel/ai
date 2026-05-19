@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 2.0.74
+
+### Patch Changes
+
+- 00a1e93: feat(provider/google): add `gemini-3.5-flash`
+
 ## 2.0.73
 
 ### Patch Changes
