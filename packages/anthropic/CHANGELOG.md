@@ -1,5 +1,14 @@
 # @ai-sdk/anthropic
 
+## 4.0.0-canary.57
+
+### Patch Changes
+
+- 7fc6bd6: Raise minimum supported Node.js version to 22. Supported versions: 22, 24, and 26.
+- Updated dependencies [7fc6bd6]
+  - @ai-sdk/provider-utils@5.0.0-canary.43
+  - @ai-sdk/provider@4.0.0-canary.17
+
 ## 4.0.0-canary.56
 
 ### Patch Changes
