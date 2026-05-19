@@ -1,5 +1,46 @@
 # @ai-sdk/llamaindex
 
+## 3.0.0-canary.145
+
+### Patch Changes
+
+- ai@7.0.0-canary.145
+
+## 3.0.0-canary.144
+
+### Patch Changes
+
+- 7fc6bd6: Raise minimum supported Node.js version to 22. Supported versions: 22, 24, and 26.
+- Updated dependencies [7fc6bd6]
+  - ai@7.0.0-canary.144
+
+## 3.0.0-canary.143
+
+### Patch Changes
+
+- Updated dependencies [a6617c5]
+  - ai@7.0.0-canary.143
+
+## 3.0.0-canary.142
+
+### Patch Changes
+
+- Updated dependencies [62d6481]
+  - ai@7.0.0-canary.142
+
+## 3.0.0-canary.141
+
+### Patch Changes
+
+- Updated dependencies [e3a0419]
+  - ai@7.0.0-canary.141
+
+## 3.0.0-canary.140
+
+### Patch Changes
+
+- ai@7.0.0-canary.140
+
 ## 3.0.0-canary.139
 
 ### Patch Changes

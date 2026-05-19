@@ -1,5 +1,17 @@
 # @ai-sdk/test-server
 
+## 2.0.0-canary.6
+
+### Patch Changes
+
+- 7fc6bd6: Raise minimum supported Node.js version to 22. Supported versions: 22, 24, and 26.
+
+## 2.0.0-canary.5
+
+### Patch Changes
+
+- b567a6c: dependency updates
+
 ## 2.0.0-canary.4
 
 ### Patch Changes
