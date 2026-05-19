@@ -89,13 +89,17 @@ export interface GoogleProvider extends ProviderV4 {
 
   /**
    * Creates a language model targeting the Gemini Interactions API
-   * (`POST /v1beta/interactions`). Pass either a model ID (string) or
-   * `{ agent: <name> }` to use a Gemini agent preset.
+   * (`POST /v1beta/interactions`). Pass:
+   *   - a model ID (string),
+   *   - `{ agent: <name> }` to use a known Gemini agent preset, or
+   *   - `{ managedAgent: <name> }` to use a user-defined agent created via
+   *     the `/v1beta/agents` endpoint.
    */
   interactions(
     modelIdOrAgent:
       | GoogleInteractionsModelId
-      | { agent: GoogleInteractionsAgentName },
+      | { agent: GoogleInteractionsAgentName }
+      | { managedAgent: string },
   ): LanguageModelV4;
 
   tools: typeof googleTools;
@@ -222,7 +226,8 @@ export function createGoogle(
   const createInteractionsModel = (
     modelIdOrAgent:
       | GoogleInteractionsModelId
-      | { agent: GoogleInteractionsAgentName },
+      | { agent: GoogleInteractionsAgentName }
+      | { managedAgent: string },
   ) =>
     new GoogleInteractionsLanguageModel(
       modelIdOrAgent as GoogleInteractionsModelInput,
