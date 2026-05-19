@@ -9143,7 +9143,6 @@ describe('processUIMessageStream', () => {
       state = createStreamingUIMessageState({
         messageId: 'msg-123',
         lastMessage,
-        isResume: false,
       });
 
       const stream = createUIMessageStream([
