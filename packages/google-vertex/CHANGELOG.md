@@ -1,5 +1,21 @@
 # @ai-sdk/google-vertex
 
+## 5.0.0-canary.88
+
+### Patch Changes
+
+- Updated dependencies [7f04802]
+  - @ai-sdk/google@4.0.0-canary.69
+
+## 5.0.0-canary.87
+
+### Patch Changes
+
+- 546cefe: feat(provider/google): add `gemini-3.5-flash`
+- Updated dependencies [a2609df]
+- Updated dependencies [546cefe]
+  - @ai-sdk/google@4.0.0-canary.68
+
 ## 5.0.0-canary.86
 
 ### Patch Changes

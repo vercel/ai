@@ -12,7 +12,7 @@
       "must": [
         {
           "use": "aisdk/package-must-have-package-and-docs-files",
-          "excludeFiles": ["packages/voyage", "packages/test-server"]
+          "excludeFiles": ["packages/test-server"]
         },
         {
           "use": "aisdk/package-must-have-index",
