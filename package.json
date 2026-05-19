@@ -16,6 +16,7 @@
     "fix": "ultracite fix",
     "publint": "turbo publint",
     "test": "turbo test --concurrency 16 --filter=!@example/*",
+    "test:ci": "turbo test --concurrency 16 --filter=!@example/* --filter=!ai --filter=!@ai-sdk/codemod --only",
     "test:update": "turbo test:update --concurrency 16 --filter=!@example/*",
     "ci:release": "turbo clean && turbo build && changeset publish",
     "ci:version": "changeset version && node .github/scripts/cleanup-examples-changesets.mjs && pnpm install --no-frozen-lockfile",
