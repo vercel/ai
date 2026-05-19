@@ -1,5 +1,12 @@
 # @ai-sdk/google
 
+## 4.0.0-canary.68
+
+### Patch Changes
+
+- a2609df: fix(google): fix streaming tool call args
+- 546cefe: feat(provider/google): add `gemini-3.5-flash`
+
 ## 4.0.0-canary.67
 
 ### Patch Changes
