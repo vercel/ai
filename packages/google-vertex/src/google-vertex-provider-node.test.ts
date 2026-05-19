@@ -32,7 +32,9 @@ describe('google-vertex-provider-node', () => {
   it('default headers function should return auth token', async () => {
     createVertexNode({ project: 'test-project' });
 
-    expect(createAuthTokenGenerator).toHaveBeenCalledWith(undefined);
+    expect(createAuthTokenGenerator).toHaveBeenCalledWith({
+      projectId: 'test-project',
+    });
     expect(createVertexOriginal).toHaveBeenCalledTimes(1);
     const passedOptions = vi.mocked(createVertexOriginal).mock.calls[0][0];
 
@@ -77,6 +79,41 @@ describe('google-vertex-provider-node', () => {
       keyFile: 'path/to/key.json',
     });
     expect(generateAuthToken).toHaveBeenCalledWith();
+  });
+
+  it('passes project to createAuthTokenGenerator as projectId', async () => {
+    createVertexNode({
+      project: 'test-project',
+    });
+
+    expect(createVertexOriginal).toHaveBeenCalledTimes(1);
+    const passedOptions = vi.mocked(createVertexOriginal).mock.calls[0][0];
+
+    await resolve(passedOptions?.headers); // call the headers function
+
+    expect(createAuthTokenGenerator).toHaveBeenCalledWith({
+      projectId: 'test-project',
+    });
+  });
+
+  it('does not override explicit googleAuthOptions projectId', async () => {
+    createVertexNode({
+      project: 'provider-project',
+      googleAuthOptions: {
+        projectId: 'auth-project',
+        keyFile: 'path/to/key.json',
+      },
+    });
+
+    expect(createVertexOriginal).toHaveBeenCalledTimes(1);
+    const passedOptions = vi.mocked(createVertexOriginal).mock.calls[0][0];
+
+    await resolve(passedOptions?.headers); // call the headers function
+
+    expect(createAuthTokenGenerator).toHaveBeenCalledWith({
+      projectId: 'auth-project',
+      keyFile: 'path/to/key.json',
+    });
   });
 
   it('should pass options through to base provider when apiKey is provided', async () => {
