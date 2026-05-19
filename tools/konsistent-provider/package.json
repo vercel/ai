@@ -1,6 +1,6 @@
 {
   "name": "konsistent-provider",
-  "version": "0.0.1",
+  "version": "0.0.2-canary.0",
   "private": true,
   "description": "Reusable konsistent conventions for the AI SDK monorepo. Authored in TypeScript via @konsistent/convention, shipped as a JSON artifact via the \"./konsistent\" exports condition.",
   "type": "module",
