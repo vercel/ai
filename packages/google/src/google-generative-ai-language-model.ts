@@ -533,6 +533,42 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
       providerMetadata?: SharedV3ProviderMetadata;
     }> = [];
 
+    const finishActiveStreamingToolCall = (
+      controller: TransformStreamDefaultController<LanguageModelV4StreamPart>,
+    ) => {
+      const active = activeStreamingToolCalls.pop();
+      if (active == null) {
+        return;
+      }
+
+      const { finalJSON, closingDelta } = active.accumulator.finalize();
+
+      if (closingDelta.length > 0) {
+        controller.enqueue({
+          type: 'tool-input-delta',
+          id: active.toolCallId,
+          delta: closingDelta,
+          providerMetadata: active.providerMetadata,
+        });
+      }
+
+      controller.enqueue({
+        type: 'tool-input-end',
+        id: active.toolCallId,
+        providerMetadata: active.providerMetadata,
+      });
+
+      controller.enqueue({
+        type: 'tool-call',
+        toolCallId: active.toolCallId,
+        toolName: active.toolName,
+        input: finalJSON,
+        providerMetadata: active.providerMetadata,
+      });
+
+      hasToolCalls = true;
+    };
+
     return {
       stream: response.pipeThrough(
         new TransformStream<
@@ -824,10 +860,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
                   part.functionCall.willContinue !== true;
 
                 if (isStreamingChunk) {
-                  if (
-                    part.functionCall.name != null &&
-                    part.functionCall.willContinue === true
-                  ) {
+                  if (part.functionCall.name != null) {
                     const toolCallId = part.functionCall.id ?? generateId();
                     const accumulator = new GoogleJSONAccumulator();
                     activeStreamingToolCalls.push({
@@ -845,9 +878,10 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
                     });
 
                     if (part.functionCall.partialArgs != null) {
-                      const { textDelta } = accumulator.processPartialArgs(
-                        part.functionCall.partialArgs as PartialArg[],
-                      );
+                      const partialArgs = part.functionCall
+                        .partialArgs as PartialArg[];
+                      const { textDelta } =
+                        accumulator.processPartialArgs(partialArgs);
                       if (textDelta.length > 0) {
                         controller.enqueue({
                           type: 'tool-input-delta',
@@ -855,6 +889,12 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
                           delta: textDelta,
                           providerMetadata: providerMeta,
                         });
+                      }
+                      if (
+                        part.functionCall.willContinue !== true &&
+                        partialArgs.every(arg => arg.willContinue !== true)
+                      ) {
+                        finishActiveStreamingToolCall(controller);
                       }
                     }
                   } else if (
@@ -865,9 +905,10 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
                       activeStreamingToolCalls[
                         activeStreamingToolCalls.length - 1
                       ];
-                    const { textDelta } = active.accumulator.processPartialArgs(
-                      part.functionCall.partialArgs as PartialArg[],
-                    );
+                    const partialArgs = part.functionCall
+                      .partialArgs as PartialArg[];
+                    const { textDelta } =
+                      active.accumulator.processPartialArgs(partialArgs);
                     if (textDelta.length > 0) {
                       controller.enqueue({
                         type: 'tool-input-delta',
@@ -876,39 +917,18 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
                         providerMetadata: providerMeta,
                       });
                     }
+                    if (
+                      part.functionCall.willContinue !== true &&
+                      partialArgs.every(arg => arg.willContinue !== true)
+                    ) {
+                      finishActiveStreamingToolCall(controller);
+                    }
                   }
                 } else if (
                   isTerminalChunk &&
                   activeStreamingToolCalls.length > 0
                 ) {
-                  const active = activeStreamingToolCalls.pop()!;
-                  const { finalJSON, closingDelta } =
-                    active.accumulator.finalize();
-
-                  if (closingDelta.length > 0) {
-                    controller.enqueue({
-                      type: 'tool-input-delta',
-                      id: active.toolCallId,
-                      delta: closingDelta,
-                      providerMetadata: active.providerMetadata,
-                    });
-                  }
-
-                  controller.enqueue({
-                    type: 'tool-input-end',
-                    id: active.toolCallId,
-                    providerMetadata: active.providerMetadata,
-                  });
-
-                  controller.enqueue({
-                    type: 'tool-call',
-                    toolCallId: active.toolCallId,
-                    toolName: active.toolName,
-                    input: finalJSON,
-                    providerMetadata: active.providerMetadata,
-                  });
-
-                  hasToolCalls = true;
+                  finishActiveStreamingToolCall(controller);
                 } else if (isCompleteCall) {
                   const toolCallId = part.functionCall.id ?? generateId();
                   const toolName = part.functionCall.name!;
