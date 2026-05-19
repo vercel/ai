@@ -534,7 +534,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
     }> = [];
 
     const finishActiveStreamingToolCall = (
-      controller: TransformStreamDefaultController<LanguageModelV4StreamPart>,
+      controller: TransformStreamDefaultController<LanguageModelV3StreamPart>,
     ) => {
       const active = activeStreamingToolCalls.pop();
       if (active == null) {
