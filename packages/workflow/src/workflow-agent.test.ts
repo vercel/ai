@@ -2730,20 +2730,20 @@ describe('WorkflowAgent', () => {
     });
   });
 
-  describe('experimental_telemetry', () => {
+  describe('telemetry', () => {
     it('should pass telemetry settings from constructor to streamTextIterator', async () => {
       const mockModel = createMockModel();
 
       const TelemetryOptions = {
         isEnabled: true,
         functionId: 'test-agent',
-        metadata: { version: '1.0' },
+        recordInputs: false,
       };
 
       const agent = new WorkflowAgent({
         model: mockModel,
         tools: {},
-        experimental_telemetry: TelemetryOptions,
+        telemetry: TelemetryOptions,
       });
 
       const mockWritable = new WritableStream({
@@ -2777,7 +2777,7 @@ describe('WorkflowAgent', () => {
       const agent = new WorkflowAgent({
         model: mockModel,
         tools: {},
-        experimental_telemetry: { functionId: 'constructor-id' },
+        telemetry: { functionId: 'constructor-id' },
       });
 
       const mockWritable = new WritableStream({
@@ -2798,7 +2798,7 @@ describe('WorkflowAgent', () => {
       await agent.stream({
         messages: [{ role: 'user', content: 'test' }],
         writable: mockWritable,
-        experimental_telemetry: streamTelemetry,
+        telemetry: streamTelemetry,
       });
 
       expect(streamTextIterator).toHaveBeenCalledWith(

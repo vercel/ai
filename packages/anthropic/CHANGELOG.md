@@ -1,5 +1,64 @@
 # @ai-sdk/anthropic
 
+## 4.0.0-canary.56
+
+### Patch Changes
+
+- a6617c5: feat(provider-utils): add `readFile` and `writeFile` plus convenience wrappers to `Experimental_Sandbox` abstraction
+- Updated dependencies [a6617c5]
+  - @ai-sdk/provider-utils@5.0.0-canary.42
+
+## 4.0.0-canary.55
+
+### Patch Changes
+
+- a464505: fix(anthropic): propagate toModelOutput providerOption to anthropic tool results
+- Updated dependencies [28dfa06]
+- Updated dependencies [e93fa91]
+  - @ai-sdk/provider-utils@5.0.0-canary.41
+
+## 4.0.0-canary.54
+
+### Patch Changes
+
+- Updated dependencies [a7de9c9]
+  - @ai-sdk/provider-utils@5.0.0-canary.40
+
+## 4.0.0-canary.53
+
+### Patch Changes
+
+- Updated dependencies [105f95b]
+  - @ai-sdk/provider-utils@5.0.0-canary.39
+
+## 4.0.0-canary.52
+
+### Patch Changes
+
+- 8018480: feat(anthropic): add the new advisor tool
+
+## 4.0.0-canary.51
+
+### Patch Changes
+
+- Updated dependencies [ca446f8]
+  - @ai-sdk/provider-utils@5.0.0-canary.38
+
+## 4.0.0-canary.50
+
+### Patch Changes
+
+- d848405: feat: add optional `abortSignal` parameters to sandbox command execution
+- Updated dependencies [d848405]
+  - @ai-sdk/provider-utils@5.0.0-canary.37
+
+## 4.0.0-canary.49
+
+### Patch Changes
+
+- Updated dependencies [ca39020]
+  - @ai-sdk/provider-utils@5.0.0-canary.36
+
 ## 4.0.0-canary.48
 
 ### Patch Changes

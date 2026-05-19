@@ -107,6 +107,16 @@ describe('simulateStreamingMiddleware', () => {
           },
           {
             "finishReason": "stop",
+            "performance": {
+              "effectiveOutputTokensPerSecond": 0,
+              "effectiveTotalTokensPerSecond": 0,
+              "inputTokensPerSecond": 0,
+              "outputTokensPerSecond": 0,
+              "responseTimeMs": 0,
+              "stepTimeMs": 0,
+              "timeToFirstOutputTokenMs": 0,
+              "toolExecutionMs": {},
+            },
             "providerMetadata": undefined,
             "rawFinishReason": "stop",
             "response": {
@@ -227,6 +237,16 @@ describe('simulateStreamingMiddleware', () => {
           },
           {
             "finishReason": "stop",
+            "performance": {
+              "effectiveOutputTokensPerSecond": 0,
+              "effectiveTotalTokensPerSecond": 0,
+              "inputTokensPerSecond": 0,
+              "outputTokensPerSecond": 0,
+              "responseTimeMs": 0,
+              "stepTimeMs": 0,
+              "timeToFirstOutputTokenMs": 0,
+              "toolExecutionMs": {},
+            },
             "providerMetadata": undefined,
             "rawFinishReason": "stop",
             "response": {
@@ -393,6 +413,16 @@ describe('simulateStreamingMiddleware', () => {
           },
           {
             "finishReason": "stop",
+            "performance": {
+              "effectiveOutputTokensPerSecond": 0,
+              "effectiveTotalTokensPerSecond": 0,
+              "inputTokensPerSecond": 0,
+              "outputTokensPerSecond": 0,
+              "responseTimeMs": 0,
+              "stepTimeMs": 0,
+              "timeToFirstOutputTokenMs": 0,
+              "toolExecutionMs": {},
+            },
             "providerMetadata": undefined,
             "rawFinishReason": "stop",
             "response": {
@@ -541,6 +571,16 @@ describe('simulateStreamingMiddleware', () => {
           },
           {
             "finishReason": "stop",
+            "performance": {
+              "effectiveOutputTokensPerSecond": 0,
+              "effectiveTotalTokensPerSecond": 0,
+              "inputTokensPerSecond": 0,
+              "outputTokensPerSecond": 0,
+              "responseTimeMs": 0,
+              "stepTimeMs": 0,
+              "timeToFirstOutputTokenMs": 0,
+              "toolExecutionMs": {},
+            },
             "providerMetadata": undefined,
             "rawFinishReason": "stop",
             "response": {
@@ -692,6 +732,16 @@ describe('simulateStreamingMiddleware', () => {
           },
           {
             "finishReason": "tool-calls",
+            "performance": {
+              "effectiveOutputTokensPerSecond": 0,
+              "effectiveTotalTokensPerSecond": 0,
+              "inputTokensPerSecond": 0,
+              "outputTokensPerSecond": 0,
+              "responseTimeMs": 0,
+              "stepTimeMs": 0,
+              "timeToFirstOutputTokenMs": 0,
+              "toolExecutionMs": {},
+            },
             "providerMetadata": undefined,
             "rawFinishReason": undefined,
             "response": {
@@ -791,6 +841,16 @@ describe('simulateStreamingMiddleware', () => {
           },
           {
             "finishReason": "stop",
+            "performance": {
+              "effectiveOutputTokensPerSecond": 0,
+              "effectiveTotalTokensPerSecond": 0,
+              "inputTokensPerSecond": 0,
+              "outputTokensPerSecond": 0,
+              "responseTimeMs": 0,
+              "stepTimeMs": 0,
+              "timeToFirstOutputTokenMs": 0,
+              "toolExecutionMs": {},
+            },
             "providerMetadata": {
               "custom": {
                 "key": "value",

@@ -6,7 +6,7 @@ import { run } from '../../lib/run';
 run(async () => {
   const result = await generateText({
     model: bedrockAnthropic('us.anthropic.claude-sonnet-4-5-20250929-v1:0'),
-    system: 'You are a helpful assistant.',
+    instructions: 'You are a helpful assistant.',
     messages: [
       { role: 'user', content: 'Hello!' },
       { role: 'assistant', content: 'Hello! How can I help you today?' },

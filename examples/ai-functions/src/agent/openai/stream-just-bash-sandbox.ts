@@ -14,7 +14,7 @@ run(async () => {
   const result = await sandboxAgent.stream({
     prompt:
       'Create a file named greeting.txt with a short greeting, then list the files and show the file contents.',
-    sandbox,
+    experimental_sandbox: sandbox,
   });
 
   await printFullStream({ result });

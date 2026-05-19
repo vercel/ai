@@ -94,7 +94,7 @@ For multi-step text generations that use tools, the callback order is typically
         'Called when the embedding operation begins, before the embedding model is called.',
     },
     {
-      name: 'experimental_onFinish',
+      name: 'experimental_onEnd',
       type: '(event: EmbedEndEvent) => void | Promise<void>',
       description:
         'Called when the embedding operation completes, after the embedding model returns.',
@@ -113,7 +113,7 @@ For multi-step text generations that use tools, the callback order is typically
         'Called when the reranking operation begins, before the reranking model is called.',
     },
     {
-      name: 'experimental_onFinish',
+      name: 'experimental_onEnd',
       type: '(event: RerankEndEvent) => void | Promise<void>',
       description:
         'Called when the reranking operation completes, after the reranking model returns.',
@@ -153,9 +153,9 @@ const result = await generateText({
       description: 'The specific model identifier (e.g., "gpt-4o").',
     },
     {
-      name: 'system',
-      type: 'string | SystemModelMessage | Array<SystemModelMessage> | undefined',
-      description: 'The system message(s) provided to the model.',
+      name: 'instructions',
+      type: 'Instructions | undefined',
+      description: 'The instructions provided to the model.',
     },
     {
       name: 'messages',
@@ -301,9 +301,9 @@ const result = await generateText({
       description: 'The specific model identifier (e.g., "gpt-4o").',
     },
     {
-      name: 'system',
-      type: 'string | SystemModelMessage | Array<SystemModelMessage> | undefined',
-      description: 'The system message for this step.',
+      name: 'instructions',
+      type: 'Instructions | undefined',
+      description: 'The instructions provided to the model for this step.',
     },
     {
       name: 'messages',
@@ -417,6 +417,11 @@ const result = await generateText({
       description: 'The specific model identifier for this model call.',
     },
     {
+      name: 'instructions',
+      type: 'Instructions | undefined',
+      description: 'The instructions that will be sent to the model.',
+    },
+    {
       name: 'messages',
       type: 'Array<ModelMessage>',
       description: 'The messages that will be sent to the model.',
@@ -478,6 +483,59 @@ const result = await generateText({
       description:
         'The content parts produced by the model call (text, reasoning, files, tool calls, etc.).',
     },
+    {
+      name: 'responseId',
+      type: 'string',
+      description: 'The provider-returned response ID for this model call.',
+    },
+    {
+      name: 'performance',
+      type: '{ responseTimeMs: number; effectiveOutputTokensPerSecond: number; outputTokensPerSecond: number | undefined; inputTokensPerSecond: number | undefined; effectiveTotalTokensPerSecond: number; timeToFirstOutputTokenMs: number | undefined }',
+      description: 'Performance metrics for the model call.',
+      properties: [
+        {
+          type: 'LanguageModelCallPerformance',
+          parameters: [
+            {
+              name: 'responseTimeMs',
+              type: 'number',
+              description:
+                'Time spent waiting for the language model response in milliseconds.',
+            },
+            {
+              name: 'effectiveOutputTokensPerSecond',
+              type: 'number',
+              description:
+                'Effective number of output tokens per second over the full language model response.',
+            },
+            {
+              name: 'outputTokensPerSecond',
+              type: 'number | undefined',
+              description:
+                'Number of output tokens per second after the first output token was received. Only available for streaming model calls.',
+            },
+            {
+              name: 'inputTokensPerSecond',
+              type: 'number | undefined',
+              description:
+                'Number of input tokens processed per second before the first output token was received. Only available for streaming model calls.',
+            },
+            {
+              name: 'effectiveTotalTokensPerSecond',
+              type: 'number',
+              description:
+                'Effective number of input and output tokens per second over the full language model response.',
+            },
+            {
+              name: 'timeToFirstOutputTokenMs',
+              type: 'number | undefined',
+              description:
+                'Time until the first text, reasoning, or tool input delta was received in milliseconds. Only available for streaming model calls.',
+            },
+          ],
+        },
+      ],
+    },
   ]}
 />
 
@@ -502,7 +560,8 @@ const result = await generateText({
     {
       name: 'callId',
       type: 'string',
-      description: 'Unique identifier for this generation call, used to correlate events.',
+      description:
+        'Unique identifier for this generation call, used to correlate events.',
     },
     {
       name: 'toolCall',
@@ -562,7 +621,7 @@ const result = await generateText({
   tools: { getWeather },
   onToolExecutionEnd: event => {
     console.log('Tool:', event.toolCall.toolName);
-    console.log('Duration:', event.durationMs, 'ms');
+    console.log('Duration:', event.toolExecutionMs, 'ms');
 
     if (event.toolOutput.type === 'tool-result') {
       console.log('Output:', event.toolOutput.output);
@@ -578,7 +637,8 @@ const result = await generateText({
     {
       name: 'callId',
       type: 'string',
-      description: 'Unique identifier for this generation call, used to correlate events.',
+      description:
+        'Unique identifier for this generation call, used to correlate events.',
     },
     {
       name: 'toolCall',
@@ -613,7 +673,7 @@ const result = await generateText({
       ],
     },
     {
-      name: 'durationMs',
+      name: 'toolExecutionMs',
       type: 'number',
       description: 'Execution time of the tool call in milliseconds.',
     },
@@ -699,6 +759,66 @@ const result = await generateText({
       ],
     },
     {
+      name: 'performance',
+      type: 'StepResultPerformance',
+      description: 'Timing and throughput metrics for the step.',
+      properties: [
+        {
+          type: 'StepResultPerformance',
+          parameters: [
+            {
+              name: 'effectiveOutputTokensPerSecond',
+              type: 'number',
+              description:
+                'Effective number of output tokens per second over the full language model response.',
+            },
+            {
+              name: 'outputTokensPerSecond',
+              type: 'number | undefined',
+              description:
+                'Number of output tokens per second after the first output token was received. Only available for streaming steps.',
+            },
+            {
+              name: 'inputTokensPerSecond',
+              type: 'number | undefined',
+              description:
+                'Number of input tokens processed per second before the first output token was received. Only available for streaming steps.',
+            },
+            {
+              name: 'effectiveTotalTokensPerSecond',
+              type: 'number',
+              description:
+                'Effective number of input and output tokens per second over the full language model response.',
+            },
+            {
+              name: 'stepTimeMs',
+              type: 'number',
+              description:
+                'Total time spent on the step, including language model response time and tool execution time, in milliseconds.',
+            },
+            {
+              name: 'responseTimeMs',
+              type: 'number',
+              description:
+                'Time spent waiting for the language model response in milliseconds.',
+            },
+            {
+              name: 'toolExecutionMs',
+              type: 'Readonly<Record<string, number>>',
+              description:
+                'Time spent executing each client-side tool call in the step in milliseconds, keyed by tool call ID.',
+            },
+            {
+              name: 'timeToFirstOutputTokenMs',
+              type: 'number | undefined',
+              description:
+                'Time until the first text, reasoning, or tool input delta was received in milliseconds. Only available for streaming steps.',
+            },
+          ],
+        },
+      ],
+    },
+    {
       name: 'text',
       type: 'string',
       description: 'The generated text.',
@@ -764,8 +884,7 @@ const result = await generateText({
     {
       name: 'toolsContext',
       type: 'InferToolSetContext<TOOLS>',
-      description:
-        'Per-tool context map for the generation step.',
+      description: 'Per-tool context map for the generation step.',
     },
     {
       name: 'providerMetadata',
@@ -991,7 +1110,7 @@ const result = await embed({
   ]}
 />
 
-#### `experimental_onFinish`
+#### `experimental_onEnd`
 
 Called when the embedding operation completes. For `embed`, `embedding` is a single vector and `response` is a single response object. For `embedMany`, `embedding` is an array of vectors and `response` is an array of response objects (one per chunk).
 
@@ -1001,7 +1120,7 @@ import { embedMany } from 'ai';
 const result = await embedMany({
   model: openai.embedding('text-embedding-3-small'),
   values: ['sunny day at the beach', 'rainy afternoon in the city'],
-  experimental_onFinish: event => {
+  experimental_onEnd: event => {
     console.log('Operation:', event.operationId);
     console.log('Usage:', event.usage);
   },
@@ -1136,7 +1255,7 @@ const result = await rerank({
   ]}
 />
 
-#### `experimental_onFinish`
+#### `experimental_onEnd`
 
 Called when the reranking operation completes, after the reranking model returns.
 
@@ -1147,7 +1266,7 @@ const result = await rerank({
   model: cohere.reranking('rerank-v3.5'),
   documents: ['sunny day at the beach', 'rainy afternoon in the city'],
   query: 'talk about rain',
-  experimental_onFinish: event => {
+  experimental_onEnd: event => {
     console.log('Operation:', event.operationId);
     console.log('Rankings:', event.ranking.length);
   },
@@ -1254,7 +1373,7 @@ const result = await generateText({
   onToolExecutionEnd: event => {
     if (event.toolOutput.type === 'tool-result') {
       console.log(
-        `Tool "${event.toolCall.toolName}" completed in ${event.durationMs}ms`,
+        `Tool "${event.toolCall.toolName}" completed in ${event.toolExecutionMs}ms`,
       );
     } else {
       console.error(
@@ -1280,7 +1399,7 @@ const result = await embedMany({
       valueCount: Array.isArray(event.value) ? event.value.length : 1,
     });
   },
-  experimental_onFinish: event => {
+  experimental_onEnd: event => {
     console.log(`Embedding complete (${event.operationId})`, {
       tokens: event.usage.tokens,
     });

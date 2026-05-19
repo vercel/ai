@@ -794,6 +794,30 @@ describe('validateUIMessages', () => {
         ]
       `);
     });
+
+    it('should validate a dynamic tool part in output-error state when input key is absent', async () => {
+      const messages = [
+        {
+          id: '1',
+          role: 'assistant',
+          parts: [
+            {
+              type: 'dynamic-tool',
+              toolName: 'foo',
+              toolCallId: '1',
+              state: 'output-error',
+              rawInput: { foo: 'bar' },
+              errorText: 'Tool execution failed',
+            },
+          ],
+        },
+      ];
+
+      const result = await validateUIMessages({ messages });
+
+      expectTypeOf(result).toEqualTypeOf<Array<UIMessage>>();
+      expect(result).toEqual(messages);
+    });
   });
 
   describe('tool parts', () => {
@@ -1230,6 +1254,29 @@ describe('validateUIMessages', () => {
           },
         ]
       `);
+    });
+
+    it('should validate a tool part in output-error state when input key is absent', async () => {
+      const messages = [
+        {
+          id: '1',
+          role: 'assistant',
+          parts: [
+            {
+              type: 'tool-foo',
+              toolCallId: '1',
+              state: 'output-error',
+              rawInput: { foo: 'bar' },
+              errorText: 'Tool input validation failed',
+            },
+          ],
+        },
+      ];
+
+      const result = await validateUIMessages<TestMessage>({ messages });
+
+      expectTypeOf(result).toEqualTypeOf<Array<TestMessage>>();
+      expect(result).toEqual(messages);
     });
 
     it('should preserve rawInput when state is output-error', async () => {

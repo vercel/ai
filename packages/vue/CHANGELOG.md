@@ -1,5 +1,146 @@
 # @ai-sdk/vue
 
+## 4.0.0-canary.143
+
+### Patch Changes
+
+- b567a6c: dependency updates
+- d984051: Add `useChat` composable for `@ai-sdk/vue`, providing a reactive wrapper around `Chat` with auto-recreation when the init object changes.
+- Updated dependencies [a6617c5]
+  - @ai-sdk/provider-utils@5.0.0-canary.42
+  - ai@7.0.0-canary.143
+
+## 4.0.0-canary.142
+
+### Patch Changes
+
+- Updated dependencies [62d6481]
+  - ai@7.0.0-canary.142
+
+## 4.0.0-canary.141
+
+### Patch Changes
+
+- Updated dependencies [e3a0419]
+  - ai@7.0.0-canary.141
+
+## 4.0.0-canary.140
+
+### Patch Changes
+
+- ai@7.0.0-canary.140
+
+## 4.0.0-canary.139
+
+### Patch Changes
+
+- Updated dependencies [334ae5d]
+- Updated dependencies [28dfa06]
+- Updated dependencies [e93fa91]
+  - ai@7.0.0-canary.139
+  - @ai-sdk/provider-utils@5.0.0-canary.41
+
+## 4.0.0-canary.138
+
+### Patch Changes
+
+- ai@7.0.0-canary.138
+
+## 4.0.0-canary.137
+
+### Patch Changes
+
+- Updated dependencies [98627e5]
+- Updated dependencies [476e1ca]
+  - ai@7.0.0-canary.137
+
+## 4.0.0-canary.136
+
+### Patch Changes
+
+- Updated dependencies [a7de9c9]
+  - @ai-sdk/provider-utils@5.0.0-canary.40
+  - ai@7.0.0-canary.136
+
+## 4.0.0-canary.135
+
+### Patch Changes
+
+- Updated dependencies [105f95b]
+  - @ai-sdk/provider-utils@5.0.0-canary.39
+  - ai@7.0.0-canary.135
+
+## 4.0.0-canary.134
+
+### Patch Changes
+
+- Updated dependencies [ed74dae]
+- Updated dependencies [f4cc8eb]
+- Updated dependencies [e80ada0]
+- Updated dependencies [1dca341]
+- Updated dependencies [2605e5f]
+  - ai@7.0.0-canary.134
+
+## 4.0.0-canary.133
+
+### Patch Changes
+
+- Updated dependencies [38ca8dc]
+- Updated dependencies [6d76710]
+  - ai@7.0.0-canary.133
+
+## 4.0.0-canary.132
+
+### Patch Changes
+
+- Updated dependencies [eaf849f]
+- Updated dependencies [8565dcb]
+  - ai@7.0.0-canary.132
+
+## 4.0.0-canary.131
+
+### Patch Changes
+
+- Updated dependencies [b67525f]
+- Updated dependencies [ca446f8]
+- Updated dependencies [bcacd48]
+  - ai@7.0.0-canary.131
+  - @ai-sdk/provider-utils@5.0.0-canary.38
+
+## 4.0.0-canary.130
+
+### Patch Changes
+
+- ai@7.0.0-canary.130
+
+## 4.0.0-canary.129
+
+### Patch Changes
+
+- Updated dependencies [d1b3786]
+  - ai@7.0.0-canary.129
+
+## 4.0.0-canary.128
+
+### Patch Changes
+
+- Updated dependencies [d848405]
+  - @ai-sdk/provider-utils@5.0.0-canary.37
+  - ai@7.0.0-canary.128
+
+## 4.0.0-canary.127
+
+### Patch Changes
+
+- Updated dependencies [e95e38d]
+- Updated dependencies [016e877]
+- Updated dependencies [ca99fea]
+- Updated dependencies [ca39020]
+- Updated dependencies [d775a57]
+- Updated dependencies [538c12b]
+  - ai@7.0.0-canary.127
+  - @ai-sdk/provider-utils@5.0.0-canary.36
+
 ## 4.0.0-canary.126
 
 ### Patch Changes

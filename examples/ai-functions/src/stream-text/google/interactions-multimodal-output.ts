@@ -23,6 +23,7 @@ run(async () => {
       }
       case 'file': {
         if (part.file.mediaType.startsWith('image/')) {
+          process.stdout.write('\n');
           await presentImages([part.file]);
         }
         break;
@@ -33,6 +34,6 @@ run(async () => {
   console.log();
   console.log(
     'Interaction id:',
-    (await result.providerMetadata)?.google?.interactionId,
+    (await result.finalStep).providerMetadata?.google?.interactionId,
   );
 });

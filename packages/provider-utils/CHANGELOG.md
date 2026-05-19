@@ -1,5 +1,48 @@
 # @ai-sdk/provider-utils
 
+## 5.0.0-canary.42
+
+### Patch Changes
+
+- a6617c5: feat(provider-utils): add `readFile` and `writeFile` plus convenience wrappers to `Experimental_Sandbox` abstraction
+
+## 5.0.0-canary.41
+
+### Patch Changes
+
+- 28dfa06: fix: support tools with optional context
+- e93fa91: rename Sandbox.executeCommand to Sandbox.runCommand
+
+## 5.0.0-canary.40
+
+### Patch Changes
+
+- a7de9c9: fix: make sandbox experimental
+
+## 5.0.0-canary.39
+
+### Patch Changes
+
+- 105f95b: Ensure the default empty tool input schema includes `type: "object"` for OpenAI-compatible providers that require object schemas.
+
+## 5.0.0-canary.38
+
+### Patch Changes
+
+- ca446f8: feat: flexible tool descriptions
+
+## 5.0.0-canary.37
+
+### Patch Changes
+
+- d848405: feat: add optional `abortSignal` parameters to sandbox command execution
+
+## 5.0.0-canary.36
+
+### Patch Changes
+
+- ca39020: Add an optional `workingDirectory` parameter to sandbox command execution.
+
 ## 5.0.0-canary.35
 
 ### Patch Changes

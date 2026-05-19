@@ -29,7 +29,7 @@ run(async () => {
       await generateText({
         model: lmstudio('zai-org/glm-4.7-flash'),
         tools: { weatherTool },
-        system: `You are a helpful, respectful and honest assistant. If the weather is requested use the `,
+        instructions: `You are a helpful, respectful and honest assistant. If the weather is requested use the `,
         messages,
       });
 

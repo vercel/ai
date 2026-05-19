@@ -24,7 +24,7 @@ async function main() {
     onStepFinish: async ({ toolResults }) => {
       console.log(`STEP RESULTS: ${JSON.stringify(toolResults, null, 2)}`);
     },
-    system: 'You are a helpful chatbot',
+    instructions: 'You are a helpful chatbot',
     prompt: 'List all products, then find availability for Product 1.',
   });
 

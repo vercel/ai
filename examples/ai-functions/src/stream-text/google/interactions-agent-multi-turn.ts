@@ -1,21 +1,42 @@
 import { google } from '@ai-sdk/google';
 import { streamText } from 'ai';
+import { cancelOnSigint } from '../../lib/cancel-on-sigint';
 import { run } from '../../lib/run';
 
 run(async () => {
+  // Ctrl+C aborts the in-flight stream, which fires
+  // `POST /interactions/{id}/cancel` on Google's side so the agent stops
+  // billing instead of running to completion in the background.
+  const ac = cancelOnSigint();
+
   // Turn 1: ask the deep-research agent to identify key topics. Default
   // `store: true` keeps server-side context so we can chain via
-  // `previousInteractionId`. Note: agent calls can be slow.
+  // `previousInteractionId`. Note: agent calls can be slow. With
+  // `thinkingSummaries: 'auto'` the agent emits intermediate reasoning
+  // events as it works -- printed dimmed below alongside the final answer.
   console.log('--- Turn 1 ---');
   const turn1 = streamText({
     model: google.interactions({
       agent: 'deep-research-pro-preview-12-2025',
     }),
+    providerOptions: {
+      google: {
+        agentConfig: {
+          type: 'deep-research',
+          thinkingSummaries: 'auto',
+        },
+      },
+    },
     prompt:
       'List three foundational concepts behind transformer-based language models (one sentence each).',
+    abortSignal: ac.signal,
   });
-  for await (const textPart of turn1.textStream) {
-    process.stdout.write(textPart);
+  for await (const part of turn1.fullStream) {
+    if (part.type === 'reasoning-delta') {
+      process.stdout.write(`\x1b[2m${part.text}\x1b[0m`);
+    } else if (part.type === 'text-delta') {
+      process.stdout.write(part.text);
+    }
   }
   console.log();
 
@@ -41,11 +62,22 @@ run(async () => {
     prompt:
       'Of those three, which one was the most novel contribution at the time? Answer in 1-2 sentences.',
     providerOptions: {
-      google: { previousInteractionId: interactionId },
+      google: {
+        previousInteractionId: interactionId,
+        agentConfig: {
+          type: 'deep-research',
+          thinkingSummaries: 'auto',
+        },
+      },
     },
+    abortSignal: ac.signal,
   });
-  for await (const textPart of turn2.textStream) {
-    process.stdout.write(textPart);
+  for await (const part of turn2.fullStream) {
+    if (part.type === 'reasoning-delta') {
+      process.stdout.write(`\x1b[2m${part.text}\x1b[0m`);
+    } else if (part.type === 'text-delta') {
+      process.stdout.write(part.text);
+    }
   }
   console.log();
   console.log();

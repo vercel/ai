@@ -1,5 +1,81 @@
 # @ai-sdk/gateway
 
+## 4.0.0-canary.84
+
+### Patch Changes
+
+- 032c4a5: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [a6617c5]
+  - @ai-sdk/provider-utils@5.0.0-canary.42
+
+## 4.0.0-canary.83
+
+### Patch Changes
+
+- 1d6fb7f: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-canary.82
+
+### Patch Changes
+
+- Updated dependencies [28dfa06]
+- Updated dependencies [e93fa91]
+  - @ai-sdk/provider-utils@5.0.0-canary.41
+
+## 4.0.0-canary.81
+
+### Patch Changes
+
+- 67c4011: fix(gateway): encode inline v4 file part bytes as { type: 'data' } instead of a data: URL
+
+## 4.0.0-canary.80
+
+### Patch Changes
+
+- Updated dependencies [a7de9c9]
+  - @ai-sdk/provider-utils@5.0.0-canary.40
+
+## 4.0.0-canary.79
+
+### Patch Changes
+
+- Updated dependencies [105f95b]
+  - @ai-sdk/provider-utils@5.0.0-canary.39
+
+## 4.0.0-canary.78
+
+### Patch Changes
+
+- 38ca8dc: fix(gateway): enable retry support for gateway errors
+- 8b7af75: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-canary.77
+
+### Patch Changes
+
+- Updated dependencies [ca446f8]
+  - @ai-sdk/provider-utils@5.0.0-canary.38
+
+## 4.0.0-canary.76
+
+### Patch Changes
+
+- 5f380c0: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-canary.75
+
+### Patch Changes
+
+- Updated dependencies [d848405]
+  - @ai-sdk/provider-utils@5.0.0-canary.37
+
+## 4.0.0-canary.74
+
+### Patch Changes
+
+- Updated dependencies [ca39020]
+  - @ai-sdk/provider-utils@5.0.0-canary.36
+
 ## 4.0.0-canary.73
 
 ### Patch Changes

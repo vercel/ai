@@ -160,8 +160,16 @@ const myAnthropic = customProvider({
 });
 
 // usage:
-await uploadFile({ api: myOpenAI.files!(), data: fileData, filename: 'image.png' });
-await uploadSkill({ api: myAnthropic.skills!(), files: skillFiles, displayTitle: 'My Skill' });
+await uploadFile({
+  api: myOpenAI.files!(),
+  data: fileData,
+  filename: 'image.png',
+});
+await uploadSkill({
+  api: myAnthropic.skills!(),
+  files: skillFiles,
+  displayTitle: 'My Skill',
+});
 ```
 
 If no `files` or `skills` option is set but a `fallbackProvider` is configured, the custom provider will inherit those interfaces from the fallback.
@@ -278,7 +286,12 @@ This is useful when you want to upload files through a provider in the registry 
 
 ```ts highlight={"7,8"}
 import { openai } from '@ai-sdk/openai';
-import { createProviderRegistry, customProvider, generateText, uploadFile } from 'ai';
+import {
+  createProviderRegistry,
+  customProvider,
+  generateText,
+  uploadFile,
+} from 'ai';
 
 const registry = createProviderRegistry({
   openai: customProvider({

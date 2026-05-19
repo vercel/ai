@@ -1,5 +1,62 @@
 # @ai-sdk/vercel
 
+## 3.0.0-canary.49
+
+### Patch Changes
+
+- Updated dependencies [a6617c5]
+  - @ai-sdk/provider-utils@5.0.0-canary.42
+  - @ai-sdk/openai-compatible@3.0.0-canary.49
+
+## 3.0.0-canary.48
+
+### Patch Changes
+
+- Updated dependencies [28dfa06]
+- Updated dependencies [e93fa91]
+  - @ai-sdk/provider-utils@5.0.0-canary.41
+  - @ai-sdk/openai-compatible@3.0.0-canary.48
+
+## 3.0.0-canary.47
+
+### Patch Changes
+
+- Updated dependencies [a7de9c9]
+  - @ai-sdk/provider-utils@5.0.0-canary.40
+  - @ai-sdk/openai-compatible@3.0.0-canary.47
+
+## 3.0.0-canary.46
+
+### Patch Changes
+
+- Updated dependencies [105f95b]
+  - @ai-sdk/provider-utils@5.0.0-canary.39
+  - @ai-sdk/openai-compatible@3.0.0-canary.46
+
+## 3.0.0-canary.45
+
+### Patch Changes
+
+- Updated dependencies [ca446f8]
+  - @ai-sdk/provider-utils@5.0.0-canary.38
+  - @ai-sdk/openai-compatible@3.0.0-canary.45
+
+## 3.0.0-canary.44
+
+### Patch Changes
+
+- Updated dependencies [d848405]
+  - @ai-sdk/provider-utils@5.0.0-canary.37
+  - @ai-sdk/openai-compatible@3.0.0-canary.44
+
+## 3.0.0-canary.43
+
+### Patch Changes
+
+- Updated dependencies [ca39020]
+  - @ai-sdk/provider-utils@5.0.0-canary.36
+  - @ai-sdk/openai-compatible@3.0.0-canary.43
+
 ## 3.0.0-canary.42
 
 ### Patch Changes

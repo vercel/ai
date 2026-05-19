@@ -23,7 +23,6 @@ import {
   type StepResult,
   type StopCondition,
   type GenerateTextOnStepFinishCallback,
-  type SystemModelMessage,
   type ActiveTools,
   type ToolCallRepairFunction,
   type ToolChoice,
@@ -31,8 +30,11 @@ import {
   type UIMessage,
   type LanguageModel,
   type Prompt,
+  type TelemetryOptions as CoreTelemetryOptions,
+  type Instructions,
 } from 'ai';
 import {
+  createRestrictedTelemetryDispatcher,
   convertToLanguageModelPrompt,
   mergeAbortSignals,
   mergeCallbacks,
@@ -102,55 +104,10 @@ type WorkflowAgentToolsContextParameter<TTools extends ToolSet> =
   HasRequiredKey<InferToolSetContext<TTools>> extends true
     ? { toolsContext: InferToolSetContext<TTools> }
     : { toolsContext?: never };
-
-/**
- * Telemetry settings for observability.
- */
-export interface TelemetryOptions {
-  /**
-   * Enable or disable telemetry. Defaults to true.
-   */
-  isEnabled?: boolean;
-
-  /**
-   * Identifier for this function. Used to group telemetry data by function.
-   */
-  functionId?: string;
-
-  /**
-   * Additional information to include in the telemetry data.
-   */
-  metadata?: Record<
-    string,
-    | string
-    | number
-    | boolean
-    | Array<string | number | boolean>
-    | null
-    | undefined
-  >;
-
-  /**
-   * Enable or disable input recording. Enabled by default.
-   *
-   * You might want to disable input recording to avoid recording sensitive
-   * information, to reduce data transfers, or to increase performance.
-   */
-  recordInputs?: boolean;
-
-  /**
-   * Enable or disable output recording. Enabled by default.
-   *
-   * You might want to disable output recording to avoid recording sensitive
-   * information, to reduce data transfers, or to increase performance.
-   */
-  recordOutputs?: boolean;
-
-  /**
-   * Custom tracer for the telemetry.
-   */
-  tracer?: unknown;
-}
+export type TelemetryOptions<
+  TRuntimeContext extends Context = Context,
+  TTools extends ToolSet = ToolSet,
+> = CoreTelemetryOptions<TRuntimeContext, TTools>;
 
 /**
  * A transformation that is applied to the stream.
@@ -380,13 +337,9 @@ export interface PrepareCallOptions<
 > extends Partial<GenerationSettings> {
   model: LanguageModel;
   tools: TTools;
-  instructions?: string | SystemModelMessage | Array<SystemModelMessage>;
+  instructions?: Instructions;
   toolChoice?: ToolChoice<TTools>;
-  telemetry?: TelemetryOptions;
-  /**
-   * @deprecated Use `telemetry` instead. This alias will be removed in a future major release.
-   */
-  experimental_telemetry?: TelemetryOptions;
+  telemetry?: TelemetryOptions<TRuntimeContext, TTools>;
   /**
    * Runtime context that flows through the agent loop.
    * Treat as immutable; return a new `runtimeContext` to update it for the call.
@@ -454,7 +407,7 @@ export type WorkflowAgentOptions<
      * Agent instructions. Can be a string, a SystemModelMessage, or an array of SystemModelMessages.
      * Supports provider-specific options (e.g., caching) when using the SystemModelMessage form.
      */
-    instructions?: string | SystemModelMessage | Array<SystemModelMessage>;
+    instructions?: Instructions;
 
     /**
      * Optional system prompt to guide the agent's behavior.
@@ -470,14 +423,7 @@ export type WorkflowAgentOptions<
     /**
      * Optional telemetry configuration.
      */
-    telemetry?: TelemetryOptions;
-
-    /**
-     * Optional telemetry configuration.
-     *
-     * @deprecated Use `telemetry` instead. This alias will be removed in a future major release.
-     */
-    experimental_telemetry?: TelemetryOptions;
+    telemetry?: TelemetryOptions<TRuntimeContext, TTools>;
 
     /**
      * Default runtime context for every stream call on this agent.
@@ -853,14 +799,7 @@ export type WorkflowAgentStreamOptions<
     /**
      * Optional telemetry configuration.
      */
-    telemetry?: TelemetryOptions;
-
-    /**
-     * Optional telemetry configuration.
-     *
-     * @deprecated Use `telemetry` instead. This alias will be removed in a future major release.
-     */
-    experimental_telemetry?: TelemetryOptions;
+    telemetry?: TelemetryOptions<TRuntimeContext, TTools>;
 
     /**
      * Runtime context that flows through the agent loop.
@@ -1150,13 +1089,10 @@ export class WorkflowAgent<
    * The tool set configured for this agent.
    */
   public readonly tools: TBaseTools;
-  private instructions?:
-    | string
-    | SystemModelMessage
-    | Array<SystemModelMessage>;
+  private instructions?: Instructions;
   private generationSettings: GenerationSettings;
   private toolChoice?: ToolChoice<TBaseTools>;
-  private telemetry?: TelemetryOptions;
+  private telemetry?: TelemetryOptions<TRuntimeContext, TBaseTools>;
   private runtimeContext?: TRuntimeContext;
   private toolsContext?: InferToolSetContext<TBaseTools>;
   private stopWhen?:
@@ -1194,7 +1130,7 @@ export class WorkflowAgent<
     // `instructions` takes precedence over deprecated `system`
     this.instructions = options.instructions ?? options.system;
     this.toolChoice = options.toolChoice;
-    this.telemetry = options.telemetry ?? options.experimental_telemetry;
+    this.telemetry = options.telemetry;
     this.runtimeContext = options.runtimeContext;
     this.toolsContext = options.toolsContext;
     this.stopWhen = options.stopWhen;
@@ -1260,8 +1196,7 @@ export class WorkflowAgent<
         Context | undefined
       >;
     let effectiveToolChoiceFromPrepare = options.toolChoice ?? this.toolChoice;
-    let effectiveTelemetryFromPrepare =
-      options.telemetry ?? options.experimental_telemetry ?? this.telemetry;
+    let effectiveTelemetryFromPrepare = options.telemetry ?? this.telemetry;
 
     // Resolve messages for prepareCall: use messages directly, or convert prompt
     const resolvedMessagesForPrepareCall: ModelMessage[] =
@@ -1278,7 +1213,6 @@ export class WorkflowAgent<
         instructions: effectiveInstructions,
         toolChoice: effectiveToolChoiceFromPrepare as ToolChoice<TBaseTools>,
         telemetry: effectiveTelemetryFromPrepare,
-        experimental_telemetry: effectiveTelemetryFromPrepare,
         runtimeContext: effectiveRuntimeContext,
         toolsContext: effectiveToolsContext as InferToolSetContext<TBaseTools>,
         messages: resolvedMessagesForPrepareCall,
@@ -1304,8 +1238,6 @@ export class WorkflowAgent<
           prepared.toolChoice as ToolChoice<TBaseTools>;
       if (prepared.telemetry !== undefined)
         effectiveTelemetryFromPrepare = prepared.telemetry;
-      else if (prepared.experimental_telemetry !== undefined)
-        effectiveTelemetryFromPrepare = prepared.experimental_telemetry;
       if (prepared.maxOutputTokens !== undefined)
         effectiveGenerationSettings.maxOutputTokens = prepared.maxOutputTokens;
       if (prepared.temperature !== undefined)
@@ -1328,6 +1260,17 @@ export class WorkflowAgent<
       if (prepared.providerOptions !== undefined)
         effectiveGenerationSettings.providerOptions = prepared.providerOptions;
     }
+
+    const effectiveTelemetry = effectiveTelemetryFromPrepare;
+    const telemetryDispatcher = createRestrictedTelemetryDispatcher<
+      any,
+      any,
+      any
+    >({
+      telemetry: effectiveTelemetry as any,
+      includeRuntimeContext: effectiveTelemetry?.includeRuntimeContext,
+      includeToolsContext: effectiveTelemetry?.includeToolsContext,
+    }) as any;
 
     const prompt = await standardizePrompt({
       system: effectiveInstructions,
@@ -1367,10 +1310,42 @@ export class WorkflowAgent<
               tool,
               toolsContext: effectiveToolsContext,
             });
-            const toolResult = await execute(approval.input, {
+            const toolCallEvent: ToolCall = {
+              type: 'tool-call',
               toolCallId: approval.toolCallId,
-              messages: [],
-              context: resolvedContext,
+              toolName: approval.toolName,
+              input: approval.input,
+            };
+            const messages = prompt.messages as unknown as ModelMessage[];
+            await telemetryDispatcher.onToolExecutionStart?.({
+              toolCall: toolCallEvent,
+              stepNumber: 0,
+              messages,
+              toolContext: resolvedContext,
+            });
+            const startTime = Date.now();
+            const executeApprovedTool = () =>
+              execute(approval.input, {
+                toolCallId: approval.toolCallId,
+                messages: [],
+                context: resolvedContext,
+              });
+            const toolResult =
+              telemetryDispatcher.executeTool != null
+                ? await telemetryDispatcher.executeTool({
+                    callId: 'workflow-agent',
+                    toolCallId: approval.toolCallId,
+                    execute: executeApprovedTool,
+                  })
+                : await executeApprovedTool();
+            await telemetryDispatcher.onToolExecutionEnd?.({
+              toolCall: toolCallEvent,
+              stepNumber: 0,
+              durationMs: Date.now() - startTime,
+              messages,
+              toolContext: resolvedContext,
+              success: true,
+              output: toolResult,
             });
             toolResultContent.push({
               type: 'tool-result' as const,
@@ -1382,6 +1357,20 @@ export class WorkflowAgent<
                   : { type: 'json' as const, value: toolResult },
             });
           } catch (error) {
+            await telemetryDispatcher.onToolExecutionEnd?.({
+              toolCall: {
+                type: 'tool-call',
+                toolCallId: approval.toolCallId,
+                toolName: approval.toolName,
+                input: approval.input,
+              },
+              stepNumber: 0,
+              durationMs: 0,
+              messages: prompt.messages as unknown as ModelMessage[],
+              toolContext: undefined,
+              success: false,
+              error,
+            });
             toolResultContent.push({
               type: 'tool-result' as const,
               toolCallId: approval.toolCallId,
@@ -1546,9 +1535,6 @@ export class WorkflowAgent<
     // Determine effective tool choice
     const effectiveToolChoice = effectiveToolChoiceFromPrepare;
 
-    // Merge telemetry settings
-    const effectiveTelemetry = effectiveTelemetryFromPrepare;
-
     // Filter tools if activeTools is specified (stream-level overrides constructor default)
     const effectiveActiveTools = options.activeTools ?? this.activeTools;
     const effectiveTools =
@@ -1558,6 +1544,7 @@ export class WorkflowAgent<
             activeTools: effectiveActiveTools,
           }) ?? this.tools)
         : this.tools;
+    const effectiveModelInfo = getModelInfo(effectiveModel);
 
     // Initialize context
     let runtimeContext: TRuntimeContext = effectiveRuntimeContext;
@@ -1579,6 +1566,32 @@ export class WorkflowAgent<
         toolsContext: toolsContext as unknown as InferToolSetContext<TTools>,
       });
     }
+    await telemetryDispatcher.onStart?.({
+      callId: 'workflow-agent',
+      operationId: 'ai.workflowAgent.stream',
+      provider: effectiveModelInfo.provider,
+      modelId: effectiveModelInfo.modelId,
+      system: undefined,
+      messages: prompt.messages,
+      tools: effectiveTools,
+      toolChoice: effectiveToolChoice,
+      activeTools: effectiveActiveTools as never,
+      maxOutputTokens: mergedGenerationSettings.maxOutputTokens,
+      temperature: mergedGenerationSettings.temperature,
+      topP: mergedGenerationSettings.topP,
+      topK: mergedGenerationSettings.topK,
+      presencePenalty: mergedGenerationSettings.presencePenalty,
+      frequencyPenalty: mergedGenerationSettings.frequencyPenalty,
+      stopSequences: mergedGenerationSettings.stopSequences,
+      seed: mergedGenerationSettings.seed,
+      maxRetries: mergedGenerationSettings.maxRetries ?? 2,
+      timeout: undefined,
+      headers: mergedGenerationSettings.headers,
+      providerOptions: mergedGenerationSettings.providerOptions,
+      output: (options.output ?? this.output) as never,
+      runtimeContext,
+      toolsContext: toolsContext as unknown as InferToolSetContext<TTools>,
+    });
 
     // Helper to wrap executeTool with onToolExecutionStart/onToolExecutionEnd callbacks
     const executeToolWithCallbacks = async (
@@ -1615,11 +1628,28 @@ export class WorkflowAgent<
             | undefined,
         });
       }
+      await telemetryDispatcher.onToolExecutionStart?.({
+        toolCall: toolCallEvent,
+        stepNumber: currentStepNumber,
+        messages: modelMessages,
+        toolContext: resolvedContext as
+          | InferToolSetContext<TTools>[keyof InferToolSetContext<TTools>]
+          | undefined,
+      });
 
       const startTime = Date.now();
       let result: LanguageModelV4ToolResultPart;
       try {
-        result = await executeTool(toolCall, tools, messages, resolvedContext);
+        const execute = () =>
+          executeTool(toolCall, tools, messages, resolvedContext);
+        result =
+          telemetryDispatcher.executeTool != null
+            ? await telemetryDispatcher.executeTool({
+                callId: 'workflow-agent',
+                toolCallId: toolCall.toolCallId,
+                execute,
+              })
+            : await execute();
       } catch (err) {
         const durationMs = Date.now() - startTime;
         if (mergedOnToolExecutionEnd) {
@@ -1635,6 +1665,17 @@ export class WorkflowAgent<
             error: err,
           });
         }
+        await telemetryDispatcher.onToolExecutionEnd?.({
+          toolCall: toolCallEvent,
+          stepNumber: currentStepNumber,
+          durationMs,
+          messages: modelMessages,
+          toolContext: resolvedContext as
+            | InferToolSetContext<TTools>[keyof InferToolSetContext<TTools>]
+            | undefined,
+          success: false,
+          error: err,
+        });
         throw err;
       }
 
@@ -1674,7 +1715,91 @@ export class WorkflowAgent<
           });
         }
       }
+      if (
+        result.output &&
+        'type' in result.output &&
+        (result.output.type === 'error-text' ||
+          result.output.type === 'error-json')
+      ) {
+        await telemetryDispatcher.onToolExecutionEnd?.({
+          toolCall: toolCallEvent,
+          stepNumber: currentStepNumber,
+          durationMs,
+          messages: modelMessages,
+          toolContext: resolvedContext as
+            | InferToolSetContext<TTools>[keyof InferToolSetContext<TTools>]
+            | undefined,
+          success: false,
+          error: 'value' in result.output ? result.output.value : undefined,
+        });
+      } else {
+        await telemetryDispatcher.onToolExecutionEnd?.({
+          toolCall: toolCallEvent,
+          stepNumber: currentStepNumber,
+          durationMs,
+          messages: modelMessages,
+          toolContext: resolvedContext as
+            | InferToolSetContext<TTools>[keyof InferToolSetContext<TTools>]
+            | undefined,
+          success: true,
+          output:
+            result.output && 'value' in result.output
+              ? result.output.value
+              : undefined,
+        });
+      }
       return result;
+    };
+
+    const recordProviderExecutedToolTelemetry = async (
+      toolCall: { toolCallId: string; toolName: string; input: unknown },
+      result: LanguageModelV4ToolResultPart,
+      messages: LanguageModelV4Prompt,
+      currentStepNumber: number,
+    ) => {
+      const toolCallEvent: ToolCall = {
+        type: 'tool-call',
+        toolCallId: toolCall.toolCallId,
+        toolName: toolCall.toolName,
+        input: toolCall.input,
+      };
+      const modelMessages = getToolCallbackMessages(messages);
+
+      await telemetryDispatcher.onToolExecutionStart?.({
+        toolCall: toolCallEvent,
+        stepNumber: currentStepNumber,
+        messages: modelMessages,
+        toolContext: undefined,
+      });
+
+      const isError =
+        result.output &&
+        'type' in result.output &&
+        (result.output.type === 'error-text' ||
+          result.output.type === 'error-json');
+
+      await telemetryDispatcher.onToolExecutionEnd?.({
+        toolCall: toolCallEvent,
+        stepNumber: currentStepNumber,
+        durationMs: 0,
+        messages: modelMessages,
+        toolContext: undefined,
+        ...(isError
+          ? {
+              success: false as const,
+              error:
+                result.output && 'value' in result.output
+                  ? result.output.value
+                  : undefined,
+            }
+          : {
+              success: true as const,
+              output:
+                result.output && 'value' in result.output
+                  ? result.output.value
+                  : undefined,
+            }),
+      });
     };
 
     // Check for abort before starting
@@ -1835,6 +1960,16 @@ export class WorkflowAgent<
                   providerExecutedToolResults,
                 ),
               );
+            await Promise.all(
+              providerToolCalls.map((toolCall, index) =>
+                recordProviderExecutedToolTelemetry(
+                  toolCall,
+                  providerResults[index],
+                  iterMessages,
+                  currentStepNumber,
+                ),
+              ),
+            );
 
             const continuationInvalidResults = invalidToolCalls.map(
               createInvalidToolResult,
@@ -1883,6 +2018,15 @@ export class WorkflowAgent<
                 toolsContext:
                   toolsContext as unknown as InferToolSetContext<TTools>,
                 output: undefined as OUTPUT,
+              });
+            }
+            if (!wasAborted && steps.length > 0) {
+              const telemetrySteps = steps.map(normalizeStepForTelemetry);
+              const lastStep = telemetrySteps[telemetrySteps.length - 1];
+              await telemetryDispatcher.onEnd?.({
+                ...lastStep,
+                steps: telemetrySteps,
+                totalUsage: aggregateUsage(steps),
               });
             }
 
@@ -1943,6 +2087,16 @@ export class WorkflowAgent<
             providerToolCalls.map(toolCall =>
               resolveProviderToolResult(toolCall, providerExecutedToolResults),
             );
+          await Promise.all(
+            providerToolCalls.map((toolCall, index) =>
+              recordProviderExecutedToolTelemetry(
+                toolCall,
+                providerToolResults[index],
+                iterMessages,
+                currentStepNumber,
+              ),
+            ),
+          );
           const continuationInvalidToolResults = invalidToolCalls.map(
             createInvalidToolResult,
           );
@@ -2026,6 +2180,7 @@ export class WorkflowAgent<
         // Call onError for non-abort errors (including tool execution errors)
         await options.onError({ error });
       }
+      await telemetryDispatcher.onError?.(error);
       // Don't throw yet - we want to call onFinish first
     }
 
@@ -2073,6 +2228,15 @@ export class WorkflowAgent<
         output: experimentalOutput,
       });
     }
+    if (!wasAborted && steps.length > 0) {
+      const telemetrySteps = steps.map(normalizeStepForTelemetry);
+      const lastStep = telemetrySteps[telemetrySteps.length - 1];
+      await telemetryDispatcher.onEnd?.({
+        ...lastStep,
+        steps: telemetrySteps,
+        totalUsage: aggregateUsage(steps),
+      });
+    }
 
     // Re-throw any error that occurred
     if (encounteredError) {
@@ -2104,6 +2268,25 @@ export class WorkflowAgent<
       output: experimentalOutput,
     };
   }
+}
+
+function getModelInfo(model: LanguageModel): {
+  provider: string;
+  modelId: string;
+} {
+  return typeof model === 'string'
+    ? { provider: model.split('/')[0] ?? 'gateway', modelId: model }
+    : { provider: model.provider, modelId: model.modelId };
+}
+
+function normalizeStepForTelemetry<
+  TOOLS extends ToolSet,
+  RUNTIME_CONTEXT extends Context,
+>(step: StepResult<TOOLS, RUNTIME_CONTEXT>) {
+  return {
+    ...step,
+    model: step.model ?? { provider: 'unknown', modelId: 'unknown' },
+  };
 }
 
 /**

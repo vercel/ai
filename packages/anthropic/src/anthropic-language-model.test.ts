@@ -3856,6 +3856,178 @@ describe('AnthropicLanguageModel', () => {
       });
     });
 
+    describe('advisor tool', () => {
+      describe('with fixture', () => {
+        let result: LanguageModelV4GenerateResult;
+
+        beforeEach(async () => {
+          prepareJsonFixtureResponse('anthropic-advisor-20260301.1');
+
+          result = await provider('claude-sonnet-4-6').doGenerate({
+            prompt: TEST_PROMPT,
+            tools: [
+              {
+                type: 'provider',
+                id: 'anthropic.advisor_20260301',
+                name: 'advisor',
+                args: { model: 'claude-opus-4-7' },
+              },
+            ],
+          });
+        });
+
+        it('should send the advisor tool in the request body', async () => {
+          expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+            {
+              "max_tokens": 128000,
+              "messages": [
+                {
+                  "content": [
+                    {
+                      "text": "Hello",
+                      "type": "text",
+                    },
+                  ],
+                  "role": "user",
+                },
+              ],
+              "model": "claude-sonnet-4-6",
+              "tools": [
+                {
+                  "model": "claude-opus-4-7",
+                  "name": "advisor",
+                  "type": "advisor_20260301",
+                },
+              ],
+            }
+          `);
+        });
+
+        it('should parse advisor calls and results as provider-executed tool parts', () => {
+          const advisorToolCall = result.content.find(
+            part => part.type === 'tool-call' && part.toolName === 'advisor',
+          );
+          expect(advisorToolCall).toMatchInlineSnapshot(`
+            {
+              "input": "{}",
+              "providerExecuted": true,
+              "toolCallId": "srvtoolu_01H51YYF9DTtdAHfcxxTs1NV",
+              "toolName": "advisor",
+              "type": "tool-call",
+            }
+          `);
+
+          const advisorToolResult = result.content.find(
+            part => part.type === 'tool-result' && part.toolName === 'advisor',
+          );
+          expect(advisorToolResult).toMatchObject({
+            type: 'tool-result',
+            toolCallId: 'srvtoolu_01H51YYF9DTtdAHfcxxTs1NV',
+            toolName: 'advisor',
+            result: {
+              type: 'advisor_result',
+              text: expect.stringContaining('Deliver design outline first'),
+            },
+          });
+        });
+
+        it('should expose advisor usage iterations in provider metadata', () => {
+          expect(result.providerMetadata?.anthropic?.iterations)
+            .toMatchInlineSnapshot(`
+            [
+              {
+                "inputTokens": 1051,
+                "outputTokens": 35,
+                "type": "message",
+              },
+              {
+                "inputTokens": 2728,
+                "model": "claude-opus-4-7",
+                "outputTokens": 874,
+                "type": "advisor_message",
+              },
+              {
+                "inputTokens": 1363,
+                "outputTokens": 3165,
+                "type": "message",
+              },
+            ]
+          `);
+        });
+      });
+
+      it('should emit a tool-call for the advisor server_tool_use so it round-trips on follow-up turns', async () => {
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'json-value',
+          body: {
+            type: 'message',
+            id: 'msg_advisor',
+            model: 'claude-sonnet-4-6',
+            role: 'assistant',
+            content: [
+              {
+                type: 'server_tool_use',
+                id: 'srvtoolu_advisor_1',
+                name: 'advisor',
+                input: {},
+              },
+              {
+                type: 'advisor_tool_result',
+                tool_use_id: 'srvtoolu_advisor_1',
+                content: {
+                  type: 'advisor_result',
+                  text: 'Outline the design first; pick Submit semantics upfront.',
+                },
+              },
+              {
+                type: 'text',
+                text: 'Here is the design outline...',
+              },
+            ],
+            stop_reason: 'end_turn',
+            usage: { input_tokens: 10, output_tokens: 20 },
+          },
+        };
+
+        const result = await provider('claude-sonnet-4-6').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'anthropic.advisor_20260301',
+              name: 'advisor',
+              args: { model: 'claude-opus-4-7' },
+            },
+          ],
+        });
+
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "input": "{}",
+              "providerExecuted": true,
+              "toolCallId": "srvtoolu_advisor_1",
+              "toolName": "advisor",
+              "type": "tool-call",
+            },
+            {
+              "result": {
+                "text": "Outline the design first; pick Submit semantics upfront.",
+                "type": "advisor_result",
+              },
+              "toolCallId": "srvtoolu_advisor_1",
+              "toolName": "advisor",
+              "type": "tool-result",
+            },
+            {
+              "text": "Here is the design outline...",
+              "type": "text",
+            },
+          ]
+        `);
+      });
+    });
+
     describe('mcp servers', () => {
       it('should send request body with include and tool', async () => {
         prepareJsonFixtureResponse('anthropic-mcp.1');
@@ -8899,6 +9071,92 @@ describe('AnthropicLanguageModel', () => {
         expect(
           await convertReadableStreamToArray(result.stream),
         ).toMatchSnapshot();
+      });
+    });
+
+    describe('advisor tool', () => {
+      let result: LanguageModelV4StreamResult;
+      let parts: LanguageModelV4StreamPart[];
+
+      beforeEach(async () => {
+        prepareChunksFixtureResponse('anthropic-advisor-20250301.1');
+
+        result = await provider('claude-sonnet-4-6').doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'anthropic.advisor_20260301',
+              name: 'advisor',
+              args: { model: 'claude-opus-4-7' },
+            },
+          ],
+        });
+        parts = await convertReadableStreamToArray(result.stream);
+      });
+
+      it('should emit the advisor server_tool_use as a provider-executed tool call', () => {
+        const advisorToolCall = parts.find(
+          part => part.type === 'tool-call' && part.toolName === 'advisor',
+        );
+
+        expect(advisorToolCall).toMatchInlineSnapshot(`
+          {
+            "input": "{}",
+            "providerExecuted": true,
+            "toolCallId": "srvtoolu_01R6zRtm9VnRaSJUVkGK9zvM",
+            "toolName": "advisor",
+            "type": "tool-call",
+          }
+        `);
+      });
+
+      it('should emit the fully formed advisor result before executor text resumes', () => {
+        const advisorToolResultIndex = parts.findIndex(
+          part => part.type === 'tool-result' && part.toolName === 'advisor',
+        );
+        const nextTextStartIndex = parts.findIndex(
+          (part, index) =>
+            index > advisorToolResultIndex && part.type === 'text-start',
+        );
+
+        expect(advisorToolResultIndex).toBeGreaterThan(-1);
+        expect(nextTextStartIndex).toBeGreaterThan(advisorToolResultIndex);
+        expect(parts[advisorToolResultIndex]).toMatchObject({
+          type: 'tool-result',
+          toolCallId: 'srvtoolu_01R6zRtm9VnRaSJUVkGK9zvM',
+          toolName: 'advisor',
+          result: {
+            type: 'advisor_result',
+            text: expect.stringContaining('Concurrent Worker Pool in Go'),
+          },
+        });
+      });
+
+      it('should expose advisor usage iterations on the finish part', () => {
+        const finishPart = parts.find(part => part.type === 'finish');
+
+        expect(finishPart?.providerMetadata?.anthropic?.iterations)
+          .toMatchInlineSnapshot(`
+            [
+              {
+                "inputTokens": 1051,
+                "outputTokens": 35,
+                "type": "message",
+              },
+              {
+                "inputTokens": 2728,
+                "model": "claude-opus-4-7",
+                "outputTokens": 3880,
+                "type": "advisor_message",
+              },
+              {
+                "inputTokens": 3676,
+                "outputTokens": 3356,
+                "type": "message",
+              },
+            ]
+          `);
       });
     });
 

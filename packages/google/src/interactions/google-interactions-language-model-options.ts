@@ -68,6 +68,67 @@ export const googleInteractionsLanguageModelOptions = lazySchema(() =>
 
       thinkingLevel: z.enum(['minimal', 'low', 'medium', 'high']).nullish(),
       thinkingSummaries: z.enum(['auto', 'none']).nullish(),
+
+      /**
+       * Output-format entries that map directly to the API's `response_format`
+       * array. Use this to request image, audio, or non-JSON text outputs
+       * with full control over `mime_type`, `aspect_ratio`, and `image_size`.
+       *
+       * Entries are sent in order. The AI SDK call-level `responseFormat: {
+       * type: 'json', schema }` still drives JSON-mode and adds a matching
+       * text entry automatically; entries listed here are appended.
+       */
+      responseFormat: z
+        .array(
+          z.union([
+            z
+              .object({
+                type: z.literal('text'),
+                mimeType: z.string().nullish(),
+                schema: z.unknown().nullish(),
+              })
+              .loose(),
+            z
+              .object({
+                type: z.literal('image'),
+                mimeType: z.string().nullish(),
+                aspectRatio: z
+                  .enum([
+                    '1:1',
+                    '2:3',
+                    '3:2',
+                    '3:4',
+                    '4:3',
+                    '4:5',
+                    '5:4',
+                    '9:16',
+                    '16:9',
+                    '21:9',
+                    '1:8',
+                    '8:1',
+                    '1:4',
+                    '4:1',
+                  ])
+                  .nullish(),
+                imageSize: z.enum(['1K', '2K', '4K', '512']).nullish(),
+              })
+              .loose(),
+            z
+              .object({
+                type: z.literal('audio'),
+                mimeType: z.string().nullish(),
+              })
+              .loose(),
+          ]),
+        )
+        .nullish(),
+
+      /**
+       * @deprecated Use `responseFormat` with a `{ type: 'image', ... }`
+       * entry instead. Retained for backwards compatibility; the SDK
+       * translates it into a matching `response_format` image entry and
+       * emits a warning when set.
+       */
       imageConfig: z
         .object({
           aspectRatio: z

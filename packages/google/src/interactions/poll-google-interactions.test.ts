@@ -5,9 +5,13 @@ import { pollGoogleInteractionUntilTerminal } from './poll-google-interactions';
 const BASE_URL = 'https://generativelanguage.googleapis.com/v1beta';
 const INTERACTION_ID = 'v1_test-poll-id';
 const GET_URL = `${BASE_URL}/interactions/${INTERACTION_ID}`;
+const CANCEL_URL = `${BASE_URL}/interactions/${INTERACTION_ID}/cancel`;
 
 describe('pollGoogleInteractionUntilTerminal', () => {
-  const server = createTestServer({ [GET_URL]: {} });
+  const server = createTestServer({
+    [GET_URL]: {},
+    [CANCEL_URL]: {},
+  });
 
   it('polls until terminal status and returns the final response', async () => {
     server.urls[GET_URL].response = [
@@ -71,6 +75,10 @@ describe('pollGoogleInteractionUntilTerminal', () => {
       type: 'json-value',
       body: { id: INTERACTION_ID, status: 'in_progress' },
     };
+    server.urls[CANCEL_URL].response = {
+      type: 'json-value',
+      body: { id: INTERACTION_ID, status: 'cancelled' },
+    };
 
     const ac = new AbortController();
     const promise = pollGoogleInteractionUntilTerminal({
@@ -86,6 +94,10 @@ describe('pollGoogleInteractionUntilTerminal', () => {
     setTimeout(() => ac.abort(), 10);
 
     await expect(promise).rejects.toThrow(/abort/i);
+
+    const cancelCalls = server.calls.filter(c => c.requestUrl === CANCEL_URL);
+    expect(cancelCalls.length).toBe(1);
+    expect(cancelCalls[0].requestMethod).toBe('POST');
   });
 
   it('throws when no interaction id is provided', async () => {

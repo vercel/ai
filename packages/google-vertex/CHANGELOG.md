@@ -1,5 +1,102 @@
 # @ai-sdk/google-vertex
 
+## 5.0.0-canary.85
+
+### Patch Changes
+
+- 42bdfa4: fix(google-vertex): propagate project-id set in provider instance creation
+- Updated dependencies [a6617c5]
+  - @ai-sdk/provider-utils@5.0.0-canary.42
+  - @ai-sdk/anthropic@4.0.0-canary.56
+  - @ai-sdk/google@4.0.0-canary.66
+  - @ai-sdk/openai-compatible@3.0.0-canary.49
+
+## 5.0.0-canary.84
+
+### Patch Changes
+
+- Updated dependencies [4e825f3]
+  - @ai-sdk/google@4.0.0-canary.65
+
+## 5.0.0-canary.83
+
+### Patch Changes
+
+- Updated dependencies [41da50c]
+  - @ai-sdk/google@4.0.0-canary.64
+
+## 5.0.0-canary.82
+
+### Patch Changes
+
+- Updated dependencies [a464505]
+- Updated dependencies [28dfa06]
+- Updated dependencies [e93fa91]
+  - @ai-sdk/anthropic@4.0.0-canary.55
+  - @ai-sdk/provider-utils@5.0.0-canary.41
+  - @ai-sdk/google@4.0.0-canary.63
+  - @ai-sdk/openai-compatible@3.0.0-canary.48
+
+## 5.0.0-canary.81
+
+### Patch Changes
+
+- Updated dependencies [a7de9c9]
+  - @ai-sdk/provider-utils@5.0.0-canary.40
+  - @ai-sdk/anthropic@4.0.0-canary.54
+  - @ai-sdk/google@4.0.0-canary.62
+  - @ai-sdk/openai-compatible@3.0.0-canary.47
+
+## 5.0.0-canary.80
+
+### Patch Changes
+
+- Updated dependencies [105f95b]
+  - @ai-sdk/provider-utils@5.0.0-canary.39
+  - @ai-sdk/anthropic@4.0.0-canary.53
+  - @ai-sdk/google@4.0.0-canary.61
+  - @ai-sdk/openai-compatible@3.0.0-canary.46
+
+## 5.0.0-canary.79
+
+### Patch Changes
+
+- Updated dependencies [8018480]
+- Updated dependencies [6a26901]
+  - @ai-sdk/anthropic@4.0.0-canary.52
+  - @ai-sdk/google@4.0.0-canary.60
+
+## 5.0.0-canary.78
+
+### Patch Changes
+
+- Updated dependencies [ca446f8]
+- Updated dependencies [db394ab]
+  - @ai-sdk/provider-utils@5.0.0-canary.38
+  - @ai-sdk/google@4.0.0-canary.59
+  - @ai-sdk/anthropic@4.0.0-canary.51
+  - @ai-sdk/openai-compatible@3.0.0-canary.45
+
+## 5.0.0-canary.77
+
+### Patch Changes
+
+- Updated dependencies [d848405]
+  - @ai-sdk/provider-utils@5.0.0-canary.37
+  - @ai-sdk/anthropic@4.0.0-canary.50
+  - @ai-sdk/google@4.0.0-canary.58
+  - @ai-sdk/openai-compatible@3.0.0-canary.44
+
+## 5.0.0-canary.76
+
+### Patch Changes
+
+- Updated dependencies [ca39020]
+  - @ai-sdk/provider-utils@5.0.0-canary.36
+  - @ai-sdk/anthropic@4.0.0-canary.49
+  - @ai-sdk/google@4.0.0-canary.57
+  - @ai-sdk/openai-compatible@3.0.0-canary.43
+
 ## 5.0.0-canary.75
 
 ### Patch Changes

@@ -41,7 +41,7 @@ ai ─────────────────┬──▶ @ai-sdk/provi
 
 ### Requirements
 
-- **Node.js**: v18, v20, or v22 (v22 recommended for development)
+- **Node.js**: v22, v24, or v26 (v22 recommended for development)
 - **pnpm**: v10+ (`npm install -g pnpm@10`)
 
 ### Initial Setup
@@ -60,7 +60,7 @@ pnpm build          # Build all packages
 | `pnpm install`           | Install dependencies                                              |
 | `pnpm build`             | Build all packages                                                |
 | `pnpm test`              | Run all tests (excludes examples)                                 |
-| `pnpm check`             | Run linting (oxlint) and formatting (oxfmt) checks               |
+| `pnpm check`             | Run linting (oxlint) and formatting (oxfmt) checks                |
 | `pnpm fix`               | Fix linting and formatting issues                                 |
 | `pnpm type-check:full`   | TypeScript type checking (includes examples)                      |
 | `pnpm changeset`         | Add a changeset for your PR                                       |

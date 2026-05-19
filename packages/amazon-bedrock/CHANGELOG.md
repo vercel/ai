@@ -1,5 +1,85 @@
 # @ai-sdk/amazon-bedrock
 
+## 5.0.0-canary.64
+
+### Patch Changes
+
+- b567a6c: dependency updates
+- Updated dependencies [a6617c5]
+  - @ai-sdk/provider-utils@5.0.0-canary.42
+  - @ai-sdk/anthropic@4.0.0-canary.56
+  - @ai-sdk/openai@4.0.0-canary.60
+
+## 5.0.0-canary.63
+
+### Patch Changes
+
+- cd27bca: added bedrock mantle provider
+- b555b23: fix(amazon-bedrock): disable native structured output for claude-opus-4-7
+
+## 5.0.0-canary.62
+
+### Patch Changes
+
+- Updated dependencies [a464505]
+- Updated dependencies [28dfa06]
+- Updated dependencies [e93fa91]
+  - @ai-sdk/anthropic@4.0.0-canary.55
+  - @ai-sdk/provider-utils@5.0.0-canary.41
+
+## 5.0.0-canary.61
+
+### Patch Changes
+
+- Updated dependencies [a7de9c9]
+  - @ai-sdk/provider-utils@5.0.0-canary.40
+  - @ai-sdk/anthropic@4.0.0-canary.54
+
+## 5.0.0-canary.60
+
+### Patch Changes
+
+- Updated dependencies [105f95b]
+  - @ai-sdk/provider-utils@5.0.0-canary.39
+  - @ai-sdk/anthropic@4.0.0-canary.53
+
+## 5.0.0-canary.59
+
+### Patch Changes
+
+- Updated dependencies [8018480]
+  - @ai-sdk/anthropic@4.0.0-canary.52
+
+## 5.0.0-canary.58
+
+### Patch Changes
+
+- bcbaae6: fix(bedrock): skip passing unsigned reasoning content
+
+## 5.0.0-canary.57
+
+### Patch Changes
+
+- Updated dependencies [ca446f8]
+  - @ai-sdk/provider-utils@5.0.0-canary.38
+  - @ai-sdk/anthropic@4.0.0-canary.51
+
+## 5.0.0-canary.56
+
+### Patch Changes
+
+- Updated dependencies [d848405]
+  - @ai-sdk/provider-utils@5.0.0-canary.37
+  - @ai-sdk/anthropic@4.0.0-canary.50
+
+## 5.0.0-canary.55
+
+### Patch Changes
+
+- Updated dependencies [ca39020]
+  - @ai-sdk/provider-utils@5.0.0-canary.36
+  - @ai-sdk/anthropic@4.0.0-canary.49
+
 ## 5.0.0-canary.54
 
 ### Patch Changes

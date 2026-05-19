@@ -1,12 +1,12 @@
 import type {
   Context,
+  Experimental_Sandbox as Sandbox,
   InferToolSetContext,
   ModelMessage,
   ProviderOptions,
-  Sandbox,
-  SystemModelMessage,
   ToolSet,
 } from '@ai-sdk/provider-utils';
+import type { Instructions } from '../prompt';
 import type { LanguageModel, ToolChoice } from '../types/language-model';
 import type { ActiveTools } from './active-tools';
 import type { ResponseMessage } from './response-message';
@@ -19,6 +19,8 @@ import type { StepResult } from './step-result';
  * @param options.steps - The steps that have been executed so far.
  * @param options.stepNumber - The number of the step that is being executed.
  * @param options.model - The model that is being used.
+ * @param options.instructions - The instructions that will be sent to the model for the current step.
+ * @param options.initialInstructions - The initial instructions that were passed into generateText or streamText.
  * @param options.messages - The messages that will be sent to the model for the current step. If you return a `messages` override, those messages carry forward to later steps.
  * @param options.initialMessages - The initial messages that were passed into generateText or streamText.
  * @param options.responseMessages - The response messages that have been accumulated from previous steps.
@@ -45,6 +47,16 @@ export type PrepareStepFunction<
    * The model instance that is being used for this step.
    */
   model: LanguageModel;
+
+  /**
+   * The instructions that will be sent to the model for the current step.
+   */
+  instructions: Instructions | undefined;
+
+  /**
+   * The initial instructions that were passed into generateText or streamText.
+   */
+  initialInstructions: Instructions | undefined;
 
   /**
    * The messages that will be sent to the model for the current step.
@@ -75,14 +87,14 @@ export type PrepareStepFunction<
   /**
    * The sandbox environment that the step is operating in.
    */
-  sandbox?: Sandbox;
+  experimental_sandbox?: Sandbox;
 }) =>
   | PromiseLike<PrepareStepResult<TOOLS, RUNTIME_CONTEXT>>
   | PrepareStepResult<TOOLS, RUNTIME_CONTEXT>;
 
 /**
  * The result type returned by a {@link PrepareStepFunction},
- * allowing per-step overrides of model, tools, or messages.
+ * allowing per-step overrides of model, tools, instructions, or messages.
  */
 export type PrepareStepResult<
   TOOLS extends ToolSet,
@@ -106,9 +118,17 @@ export type PrepareStepResult<
       activeTools?: ActiveTools<NoInfer<TOOLS>>;
 
       /**
-       * Optionally override the system message(s) sent to the model for this step.
+       * Optionally override the instructions sent to the model for this step.
+       * The override carries forward to later steps.
        */
-      system?: string | SystemModelMessage | Array<SystemModelMessage>;
+      instructions?: Instructions;
+
+      /**
+       * Optionally override the instructions sent to the model for this step.
+       *
+       * @deprecated Use `instructions` instead.
+       */
+      system?: Instructions;
 
       /**
        * Optionally override the full set of messages sent to the model
@@ -139,7 +159,7 @@ export type PrepareStepResult<
        *
        * Changing the sandbox will affect tool execution in this step only.
        */
-      sandbox?: Sandbox;
+      experimental_sandbox?: Sandbox;
 
       /**
        * Additional provider-specific options for this step.
