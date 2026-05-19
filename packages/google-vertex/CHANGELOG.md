@@ -1,5 +1,18 @@
 # @ai-sdk/google-vertex
 
+## 4.0.131
+
+### Patch Changes
+
+- 00bd77f: fix(google-vertex): propagate project-id set in provider instance creation
+
+## 4.0.130
+
+### Patch Changes
+
+- Updated dependencies [ab15576]
+  - @ai-sdk/google@3.0.75
+
 ## 4.0.129
 
 ### Patch Changes

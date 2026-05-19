@@ -23,6 +23,7 @@ run(async () => {
       }
       case 'file': {
         if (part.file.mediaType.startsWith('image/')) {
+          process.stdout.write('\n');
           await presentImages([part.file]);
         }
         break;

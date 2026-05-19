@@ -1,5 +1,18 @@
 # ai
 
+## 6.0.185
+
+### Patch Changes
+
+- Updated dependencies [488ef33]
+  - @ai-sdk/gateway@3.0.116
+
+## 6.0.184
+
+### Patch Changes
+
+- 40fc5e4: fix(ai): default missing embedding warnings to an empty array
+
 ## 6.0.183
 
 ### Patch Changes

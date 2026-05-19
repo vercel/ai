@@ -1,5 +1,11 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.107
+
+### Patch Changes
+
+- 980c2ae: fix(amazon-bedrock): disable native structured output for claude-opus-4-7
+
 ## 4.0.106
 
 ### Patch Changes

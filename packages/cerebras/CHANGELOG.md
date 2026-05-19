@@ -1,5 +1,17 @@
 # @ai-sdk/cerebras
 
+## 2.0.53
+
+### Patch Changes
+
+- e99134d: feat(cerebras): add chat language model provider
+
+## 2.0.52
+
+### Patch Changes
+
+- 96a365b: fix(cerebras): serialize reasoning parts as 'reasoning' on assistant messages
+
 ## 2.0.51
 
 ### Patch Changes
