@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 2.0.91
+
+### Patch Changes
+
+- 00a1e93: feat(provider/google): add `gemini-3.5-flash`
+
 ## 2.0.90
 
 ### Patch Changes
