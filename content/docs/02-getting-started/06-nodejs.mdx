@@ -196,7 +196,7 @@ Let's enhance your agent by adding a simple weather tool.
 
 Modify your `index.ts` file to include the new weather tool:
 
-```ts filename="index.ts" highlight="2,4,24-37"
+```ts filename="index.ts" highlight="1,4,23-39"
 import { ModelMessage, streamText, tool } from 'ai';
 __PROVIDER_IMPORT__;
 import 'dotenv/config';
@@ -338,7 +338,7 @@ To solve this, you can enable multi-step tool calls using `stopWhen`. This featu
 
 Modify your `index.ts` file to configure stopping conditions with `stopWhen`:
 
-```ts filename="index.ts" highlight="38-41"
+```ts filename="index.ts" highlight="1,40-45"
 import { ModelMessage, streamText, tool, isStepCount } from 'ai';
 __PROVIDER_IMPORT__;
 import 'dotenv/config';

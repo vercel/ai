@@ -78,7 +78,7 @@ When processing messages on the server that contain tool calls, custom metadata,
 
 When your messages include tool calls, validate them against your tool definitions:
 
-```tsx filename="app/api/chat/route.ts" highlight="7-25,32-37"
+```tsx filename="app/api/chat/route.ts" highlight="7-24,31-36"
 import {
   convertToModelMessages,
   streamText,
@@ -270,7 +270,7 @@ parts, validate them using `validateUIMessages` before processing (see the
 Storing messages is done in the `onFinish` callback of the `toUIMessageStreamResponse` function.
 `onFinish` receives the complete messages including the new AI response as `UIMessage[]`.
 
-```tsx filename="app/api/chat/route.ts" highlight="6,11-17"
+```tsx filename="app/api/chat/route.ts" highlight="6,14-19"
 import { openai } from '@ai-sdk/openai';
 import { saveChat } from '@util/chat-store';
 import { convertToModelMessages, streamText, UIMessage } from 'ai';
@@ -340,7 +340,7 @@ When implementing persistence, you have two options for generating server-side I
 
 You can control the ID format by providing ID generators using [`createIdGenerator()`](/docs/reference/ai-sdk-core/create-id-generator):
 
-```tsx filename="app/api/chat/route.ts" highlight="7-11"
+```tsx filename="app/api/chat/route.ts" highlight="11-15"
 import { createIdGenerator, streamText } from 'ai';
 
 export async function POST(req: Request) {
@@ -429,7 +429,7 @@ This reduces the amount of data sent to the server on each request and can impro
 To achieve this, you can provide a `prepareSendMessagesRequest` function to the transport.
 This function receives the messages and the chat ID, and returns the request body to be sent to the server.
 
-```tsx filename="ui/chat.tsx" highlight="7-12"
+```tsx filename="ui/chat.tsx" highlight="7-13"
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 
@@ -496,7 +496,7 @@ and then save the result as usual.
 `consumeStream` effectively removes the backpressure,
 meaning that the result is stored even when the client has already disconnected.
 
-```tsx filename="app/api/chat/route.ts" highlight="19-21"
+```tsx filename="app/api/chat/route.ts" highlight="13-15"
 import { convertToModelMessages, streamText, UIMessage } from 'ai';
 import { saveChat } from '@util/chat-store';
 

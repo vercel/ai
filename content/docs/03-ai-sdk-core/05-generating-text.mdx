@@ -96,7 +96,7 @@ When using `generateText`, you can provide an `onFinish` callback that is trigge
 ).
 It contains the text, usage information, finish reason, messages, steps, total usage, and more:
 
-```tsx highlight="6-8"
+```tsx highlight="7-11"
 import { generateText } from 'ai';
 __PROVIDER_IMPORT__;
 
@@ -261,7 +261,7 @@ Errors become part of the stream and are not thrown to prevent e.g. servers from
 
 To log errors, you can provide an `onError` callback that is triggered when an error occurs.
 
-```tsx highlight="6-8"
+```tsx highlight="7-9"
 import { streamText } from 'ai';
 __PROVIDER_IMPORT__;
 
@@ -289,7 +289,7 @@ It receives the following chunk types:
 - `tool-result`
 - `raw`
 
-```tsx highlight="6-11"
+```tsx highlight="7-12"
 import { streamText } from 'ai';
 __PROVIDER_IMPORT__;
 
@@ -312,7 +312,7 @@ When using `streamText`, you can provide an `onFinish` callback that is triggere
 ).
 It contains the text, usage information, finish reason, messages, steps, total usage, and more:
 
-```tsx highlight="6-8"
+```tsx highlight="7-11"
 import { streamText } from 'ai';
 __PROVIDER_IMPORT__;
 

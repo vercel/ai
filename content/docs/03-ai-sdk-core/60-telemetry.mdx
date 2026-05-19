@@ -125,7 +125,7 @@ In this example, telemetry integrations receive `runtimeContext` as `{ requestId
 Tool-specific context can also contain values that are useful during execution but should not be sent to telemetry providers, such as API keys or access tokens.
 Use `telemetry.includeToolsContext` to include selected top-level properties from a tool's `context` in telemetry:
 
-```ts highlight="18-24"
+```ts highlight="23-29"
 const weatherTool = tool({
   inputSchema: z.object({
     location: z.string(),
@@ -216,7 +216,7 @@ registerTelemetryIntegration(new OpenTelemetry(), DevToolsTelemetry());
 
 You can also pass one or more integrations to individual `generateText` or `streamText` calls. When per-call integrations are provided, they replace the globally registered integrations for that call:
 
-```ts highlight="6-8"
+```ts highlight="7-9"
 import { streamText } from 'ai';
 import { DevToolsTelemetry } from '@ai-sdk/devtools';
 
