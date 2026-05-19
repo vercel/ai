@@ -128,6 +128,39 @@ describe('DeepSeekChatLanguageModel', () => {
         prepareJsonFixtureResponse('deepseek-text');
       });
 
+      it.each(['low', 'medium', 'xhigh'] as const)(
+        'should pass providerOptions reasoningEffort %s through to the API',
+        async effort => {
+          await provider.chat('deepseek-reasoner').doGenerate({
+            prompt: TEST_PROMPT,
+            providerOptions: {
+              deepseek: {
+                reasoningEffort: effort,
+              } satisfies DeepSeekChatOptions,
+            },
+          });
+
+          expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
+            effort,
+          );
+        },
+      );
+
+      it('should pass providerOptions thinking.type=adaptive through to the API', async () => {
+        await provider.chat('deepseek-reasoner').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            deepseek: {
+              thinking: { type: 'adaptive' },
+            } satisfies DeepSeekChatOptions,
+          },
+        });
+
+        expect((await server.calls[0].requestBodyJson).thinking).toStrictEqual({
+          type: 'adaptive',
+        });
+      });
+
       it('should pass providerOptions reasoningEffort', async () => {
         await provider.chat('deepseek-reasoner').doGenerate({
           prompt: TEST_PROMPT,
