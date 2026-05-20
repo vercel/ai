@@ -1,5 +1,13 @@
+<<<<<<< HEAD
 import { type GoogleLanguageModelOptions } from '@ai-sdk/google';
 import { vertex } from '@ai-sdk/google-vertex';
+=======
+import type {
+  GoogleLanguageModelOptions,
+  GoogleProviderMetadata,
+} from '@ai-sdk/google';
+import { googleVertex } from '@ai-sdk/google-vertex';
+>>>>>>> aeea1610b (fix(google): read serviceTier from x-gemini-service-tier response header (#14937))
 import { generateText } from 'ai';
 import { run } from '../../lib/run';
 
@@ -9,11 +17,19 @@ run(async () => {
     prompt: 'What color is the sky in one word?',
     providerOptions: {
       vertex: {
-        serviceTier: 'flex',
+        sharedRequestType: 'priority',
       } satisfies GoogleLanguageModelOptions,
     },
   });
 
+  const metadata = result.finalStep.providerMetadata?.googleVertex as
+    | GoogleProviderMetadata
+    | undefined;
+
   console.log(result.text);
+<<<<<<< HEAD
   console.log('serviceTier:', result.providerMetadata?.google?.serviceTier);
+=======
+  console.log('trafficType:', metadata?.usageMetadata?.trafficType);
+>>>>>>> aeea1610b (fix(google): read serviceTier from x-gemini-service-tier response header (#14937))
 });
