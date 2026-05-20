@@ -63,7 +63,7 @@ export class ToolLoopAgent<
   }): Promise<
     Omit<
       ToolLoopAgentSettings<CALL_OPTIONS, TOOLS, OUTPUT>,
-      'prepareCall' | 'instructions' | 'onStepFinish'
+      'prepareCall' | 'instructions' | 'allowSystemInMessages' | 'onStepFinish'
     > &
       Prompt
   > {
@@ -96,13 +96,24 @@ export class ToolLoopAgent<
         >[0],
       )) ?? baseCallArgs;
 
-    const { instructions, messages, prompt, ...callArgs } = preparedCallArgs;
+    const {
+      instructions,
+      allowSystemInMessages,
+      messages,
+      prompt,
+      ...callArgs
+    } = preparedCallArgs;
 
     return {
       ...callArgs,
 
       // restore prompt types
-      ...({ system: instructions, messages, prompt } as Prompt),
+      ...({
+        system: instructions,
+        allowSystemInMessages,
+        messages,
+        prompt,
+      } as Prompt),
     };
   }
 
