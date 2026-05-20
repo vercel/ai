@@ -19637,6 +19637,137 @@ describe('streamText', () => {
         `);
       });
 
+      // this test should already pass; added for sanity check
+      it('should call telemetry onEnd when a stream completes', async () => {
+        const telemetryCalls: string[] = [];
+        let pullCalls = 0;
+
+        const result = streamText({
+          model: new MockLanguageModelV4({
+            doStream: async () => ({
+              stream: new ReadableStream({
+                pull(controller) {
+                  switch (pullCalls++) {
+                    case 0:
+                      controller.enqueue({
+                        type: 'stream-start',
+                        warnings: [],
+                      });
+                      break;
+                    case 1:
+                      controller.enqueue({
+                        type: 'text-start',
+                        id: '1',
+                      });
+                      break;
+                    case 2:
+                      controller.enqueue({
+                        type: 'text-delta',
+                        id: '1',
+                        delta: 'Hello',
+                      });
+                      break;
+                    case 3:
+                      controller.enqueue({
+                        type: 'text-end',
+                        id: '1',
+                      });
+                      break;
+                    case 4:
+                      controller.enqueue({
+                        type: 'finish',
+                        finishReason: { unified: 'stop', raw: 'stop' },
+                        usage: testUsage,
+                      });
+                      controller.close();
+                      break;
+                  }
+                },
+              }),
+            }),
+          }),
+          prompt: 'test-input',
+          telemetry: {
+            integrations: {
+              onEnd: () => {
+                telemetryCalls.push('onEnd');
+              },
+              onError: () => {
+                telemetryCalls.push('onError');
+              },
+            },
+          },
+        });
+
+        await result.consumeStream();
+
+        expect(telemetryCalls).toEqual(['onEnd']);
+      });
+
+      // this was failing before we propagated abort signal to telemetry's onError
+      it('should call telemetry onError when the abort signal is triggered', async () => {
+        const telemetryCalls: string[] = [];
+        const abortController = new AbortController();
+        let pullCalls = 0;
+
+        const result = streamText({
+          abortSignal: abortController.signal,
+          model: new MockLanguageModelV4({
+            doStream: async () => ({
+              stream: new ReadableStream({
+                pull(controller) {
+                  switch (pullCalls++) {
+                    case 0:
+                      controller.enqueue({
+                        type: 'stream-start',
+                        warnings: [],
+                      });
+                      break;
+                    case 1:
+                      controller.enqueue({
+                        type: 'text-start',
+                        id: '1',
+                      });
+                      break;
+                    case 2:
+                      controller.enqueue({
+                        type: 'text-delta',
+                        id: '1',
+                        delta: 'Hello',
+                      });
+                      break;
+                    case 3:
+                      abortController.abort();
+                      controller.error(
+                        new DOMException(
+                          'The user aborted a request.',
+                          'AbortError',
+                        ),
+                      );
+                      break;
+                  }
+                },
+              }),
+            }),
+          }),
+          prompt: 'test-input',
+          telemetry: {
+            integrations: {
+              onEnd: () => {
+                telemetryCalls.push('onEnd');
+              },
+              onError: () => {
+                telemetryCalls.push('onError');
+              },
+            },
+          },
+        });
+
+        await result.consumeStream();
+
+        expect(telemetryCalls).toEqual(['onError']);
+      });
+
       it.skipIf(isNodeVersionAtLeast(24, 15))(
         'should only stream initial chunks in full stream',
         async () => {

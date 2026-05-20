@@ -6,7 +6,8 @@ import {
   type SpanOptions,
   type Tracer,
 } from '@opentelemetry/api';
-import type { Telemetry } from 'ai';
+import { streamText, type Telemetry } from 'ai';
+import { MockLanguageModelV4 } from 'ai/test';
 import { OpenTelemetry, type EnrichSpan } from './open-telemetry';
 
 type MockSpan = Span & {
@@ -1416,6 +1417,95 @@ describe('OpenTelemetry', () => {
             "status": {
               "code": 2,
               "message": "something went wrong",
+            },
+          },
+        ]
+      `);
+    });
+
+    it('closes streamText spans when AbortController aborts the stream', async () => {
+      const abortController = new AbortController();
+      const abortError = Object.assign(
+        new Error('The user aborted a request.'),
+        {
+          name: 'AbortError',
+        },
+      );
+      let pullCalls = 0;
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: new ReadableStream({
+              pull(controller) {
+                switch (pullCalls++) {
+                  case 0:
+                    controller.enqueue({
+                      type: 'stream-start',
+                      warnings: [],
+                    });
+                    break;
+                  case 1:
+                    controller.enqueue({
+                      type: 'text-start',
+                      id: '1',
+                    });
+                    break;
+                  case 2:
+                    controller.enqueue({
+                      type: 'text-delta',
+                      id: '1',
+                      delta: 'Hello',
+                    });
+                    break;
+                  case 3:
+                    abortController.abort(abortError);
+                    controller.error(abortError);
+                    break;
+                }
+              },
+            }),
+          }),
+        }),
+        prompt: 'test-input',
+        abortSignal: abortController.signal,
+        telemetry: {
+          integrations: integration,
+        },
+      });
+
+      await result.consumeStream();
+
+      expect(
+        tracer.spans.map(s => ({
+          name: s.name,
+          status: s.status,
+          ended: s.ended,
+        })),
+      ).toMatchInlineSnapshot(`
+        [
+          {
+            "ended": true,
+            "name": "invoke_agent mock-model-id",
+            "status": {
+              "code": 2,
+              "message": "The user aborted a request.",
+            },
+          },
+          {
+            "ended": true,
+            "name": "step 1",
+            "status": {
+              "code": 2,
+              "message": "The user aborted a request.",
+            },
+          },
+          {
+            "ended": true,
+            "name": "chat mock-model-id",
+            "status": {
+              "code": 2,
+              "message": "The user aborted a request.",
             },
           },
         ]
