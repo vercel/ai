@@ -219,6 +219,7 @@
     "google-modality-token-details",
     "google-no-args-streaming-tool-call",
     "google-stream-grounding-metadata",
+    "google-stream-service-tier-usage-metadata",
     "google-validated-strict-tools",
     "gorgeous-camels-wash",
     "gorgeous-onions-admire",
