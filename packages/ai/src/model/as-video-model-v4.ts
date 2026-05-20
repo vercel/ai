@@ -1,4 +1,4 @@
-import {
+import type {
   Experimental_VideoModelV3,
   Experimental_VideoModelV4,
 } from '@ai-sdk/provider';

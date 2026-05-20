@@ -1,23 +1,24 @@
 import type { ImageModelV4, SharedV4Warning } from '@ai-sdk/provider';
-import type { InferSchema } from '@ai-sdk/provider-utils';
 import {
   combineHeaders,
-  lazySchema,
   parseJSON,
   parseProviderOptions,
   postToApi,
   resolve,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
   zodSchema,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
-import type { ProdiaModelConfig } from './prodia-api';
 import {
   buildProdiaProviderMetadata,
   parseMultipart,
   prodiaFailedResponseHandler,
   prodiaJobResultSchema,
+  type ProdiaJobResult,
+  type ProdiaModelConfig,
 } from './prodia-api';
-import type { ProdiaJobResult } from './prodia-api';
+import { prodiaImageModelOptionsSchema } from './prodia-image-model-options';
 import type { ProdiaImageModelId } from './prodia-image-settings';
 
 export class ProdiaImageModel implements ImageModelV4 {
@@ -26,6 +27,20 @@ export class ProdiaImageModel implements ImageModelV4 {
 
   get provider(): string {
     return this.config.provider;
+  }
+
+  static [WORKFLOW_SERIALIZE](model: ProdiaImageModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: ProdiaImageModelId;
+    config: ProdiaModelConfig;
+  }) {
+    return new ProdiaImageModel(options.modelId, options.config);
   }
 
   constructor(
@@ -116,7 +131,7 @@ export class ProdiaImageModel implements ImageModelV4 {
 
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const combinedHeaders = combineHeaders(
-      await resolve(this.config.headers),
+      this.config.headers ? await resolve(this.config.headers) : undefined,
       options.headers,
     );
 
@@ -155,61 +170,6 @@ export class ProdiaImageModel implements ImageModelV4 {
     };
   }
 }
-
-const stylePresets = [
-  '3d-model',
-  'analog-film',
-  'anime',
-  'cinematic',
-  'comic-book',
-  'digital-art',
-  'enhance',
-  'fantasy-art',
-  'isometric',
-  'line-art',
-  'low-poly',
-  'neon-punk',
-  'origami',
-  'photographic',
-  'pixel-art',
-  'texture',
-  'craft-clay',
-] as const;
-
-export const prodiaImageModelOptionsSchema = lazySchema(() =>
-  zodSchema(
-    z.object({
-      /**
-       * Amount of computational iterations to run. More is typically higher quality.
-       */
-      steps: z.number().int().min(1).max(4).optional(),
-      /**
-       * Width of the output image in pixels.
-       */
-      width: z.number().int().min(256).max(1920).optional(),
-      /**
-       * Height of the output image in pixels.
-       */
-      height: z.number().int().min(256).max(1920).optional(),
-      /**
-       * Apply a visual theme to your output image.
-       */
-      stylePreset: z.enum(stylePresets).optional(),
-      /**
-       * Augment the output with a LoRa model.
-       */
-      loras: z.array(z.string()).max(3).optional(),
-      /**
-       * When using JPEG output, return a progressive JPEG.
-       */
-      progressive: z.boolean().optional(),
-    }),
-  ),
-);
-
-export type ProdiaImageModelOptions = InferSchema<
-  typeof prodiaImageModelOptionsSchema
->;
 
 interface MultipartResult {
   jobResult: ProdiaJobResult;

@@ -1,11 +1,11 @@
-import { vertex } from '@ai-sdk/google-vertex';
-import { generateText, stepCountIs, tool } from 'ai';
+import { googleVertex } from '@ai-sdk/google-vertex';
+import { generateText, isStepCount, tool } from 'ai';
 import { z } from 'zod';
 import { run } from '../../lib/run';
 
 run(async () => {
   const { text } = await generateText({
-    model: vertex('gemini-3.1-pro-preview'),
+    model: googleVertex('gemini-3.1-pro-preview'),
     prompt: 'What is the weather in New York City? ',
     tools: {
       weather: tool({
@@ -22,7 +22,7 @@ run(async () => {
         },
       }),
     },
-    stopWhen: stepCountIs(5),
+    stopWhen: isStepCount(5),
   });
 
   console.log(text);

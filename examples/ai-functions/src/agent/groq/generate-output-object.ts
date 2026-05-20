@@ -1,4 +1,4 @@
-import { groq, type GroqLanguageModelOptions } from '@ai-sdk/groq';
+import { groq, type GroqLanguageModelChatOptions } from '@ai-sdk/groq';
 import { generateText, Output } from 'ai';
 import { z } from 'zod';
 import { run } from '../../lib/run';
@@ -23,7 +23,7 @@ run(async () => {
     providerOptions: {
       groq: {
         strictJsonSchema: true,
-      } satisfies GroqLanguageModelOptions,
+      } satisfies GroqLanguageModelChatOptions,
     },
     prompt: 'Generate a lasagna recipe.',
   });

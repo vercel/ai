@@ -13,7 +13,7 @@ If you are unfamiliar with the concepts of [Prompt Engineering](/docs/advanced/p
 
 To follow this quickstart, you'll need:
 
-- Node.js 18+ and pnpm installed on your local development machine.
+- Node.js 22+ and pnpm installed on your local development machine.
 - A [ Vercel AI Gateway ](https://vercel.com/ai-gateway) API key.
 
 If you haven't obtained your Vercel AI Gateway API key, you can do so by [signing up](https://vercel.com/d?to=%2F%5Bteam%5D%2F%7E%2Fai&title=Go+to+AI+Gateway) on the Vercel website.
@@ -356,7 +356,6 @@ In this updated code:
 
 1. You import the `tool` function from the `ai` package and `z` from `zod` for schema validation.
 2. You define a `tools` object with a `weather` tool. This tool:
-
    - Has a description that helps the model understand when to use it.
    - Defines `inputSchema` using a Zod schema, specifying that it requires a `location` string to execute this tool. The model will attempt to extract this input from the context of the conversation. If it can't, it will ask the user for the missing information.
    - Defines an `execute` function that simulates getting weather data (in this case, it returns a random temperature). This is an asynchronous function running on the server so you can fetch real data from an external API.
@@ -467,7 +466,7 @@ Now, when you ask about the weather, you'll see the tool call and its result dis
 
 You may have noticed that while the tool results are visible in the chat interface, the model isn't using this information to answer your original query. This is because once the model generates a tool call, it has technically completed its generation.
 
-To solve this, you can enable multi-step tool calls using `stopWhen`. By default, `stopWhen` is set to `stepCountIs(1)`, which means generation stops after the first step when there are tool results. By changing this condition, you can allow the model to automatically send tool results back to itself to trigger additional generations until your specified stopping condition is met. In this case, you want the model to continue generating so it can use the weather tool results to answer your original question.
+To solve this, you can enable multi-step tool calls using `stopWhen`. By default, `stopWhen` is set to `isStepCount(1)`, which means generation stops after the first step when there are tool results. By changing this condition, you can allow the model to automatically send tool results back to itself to trigger additional generations until your specified stopping condition is met. In this case, you want the model to continue generating so it can use the weather tool results to answer your original question.
 
 ### Update Your API Route
 
@@ -479,7 +478,7 @@ import {
   UIMessage,
   convertToModelMessages,
   tool,
-  stepCountIs,
+  isStepCount,
 } from 'ai';
 __PROVIDER_IMPORT__;
 import { z } from 'zod';
@@ -490,7 +489,7 @@ export async function POST(req: Request) {
   const result = streamText({
     model: __MODEL__,
     messages: await convertToModelMessages(messages),
-    stopWhen: stepCountIs(5),
+    stopWhen: isStepCount(5),
     tools: {
       weather: tool({
         description: 'Get the weather in a location (fahrenheit)',
@@ -524,7 +523,7 @@ export async function POST(req: Request) {
 
 Head back to the Expo app and ask about the weather in a location. You should now see the model using the weather tool results to answer your question.
 
-By setting `stopWhen: stepCountIs(5)`, you're allowing the model to use up to 5 "steps" for any given generation. This enables more complex interactions and allows the model to gather and process information over several steps if needed. You can see this in action by adding another tool to convert the temperature from Fahrenheit to Celsius.
+By setting `stopWhen: isStepCount(5)`, you're allowing the model to use up to 5 "steps" for any given generation. This enables more complex interactions and allows the model to gather and process information over several steps if needed. You can see this in action by adding another tool to convert the temperature from Fahrenheit to Celsius.
 
 ### Add More Tools
 
@@ -536,7 +535,7 @@ import {
   UIMessage,
   convertToModelMessages,
   tool,
-  stepCountIs,
+  isStepCount,
 } from 'ai';
 __PROVIDER_IMPORT__;
 import { z } from 'zod';
@@ -547,7 +546,7 @@ export async function POST(req: Request) {
   const result = streamText({
     model: __MODEL__,
     messages: await convertToModelMessages(messages),
-    stopWhen: stepCountIs(5),
+    stopWhen: isStepCount(5),
     tools: {
       weather: tool({
         description: 'Get the weather in a location (fahrenheit)',
@@ -729,13 +728,11 @@ import structuredClone from '@ungap/structured-clone';
 
 if (Platform.OS !== 'web') {
   const setupPolyfills = async () => {
-    const { polyfillGlobal } = await import(
-      'react-native/Libraries/Utilities/PolyfillFunctions'
-    );
+    const { polyfillGlobal } =
+      await import('react-native/Libraries/Utilities/PolyfillFunctions');
 
-    const { TextEncoderStream, TextDecoderStream } = await import(
-      '@stardazed/streams-text-encoding'
-    );
+    const { TextEncoderStream, TextDecoderStream } =
+      await import('@stardazed/streams-text-encoding');
 
     if (!('structuredClone' in global)) {
       polyfillGlobal('structuredClone', () => structuredClone);

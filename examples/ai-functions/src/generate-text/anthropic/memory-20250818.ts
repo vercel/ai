@@ -1,5 +1,5 @@
 import { anthropic } from '@ai-sdk/anthropic';
-import { stepCountIs, generateText } from 'ai';
+import { isStepCount, generateText } from 'ai';
 import { run } from '../../lib/run';
 import { anthropicLocalFsMemoryTool } from '../../lib/anthropic-local-fs-memory-tool';
 
@@ -13,7 +13,7 @@ Acknowledge by saying "stored".
     tools: {
       memory: anthropicLocalFsMemoryTool({ basePath: './memory' }),
     },
-    stopWhen: stepCountIs(10),
+    stopWhen: isStepCount(10),
   });
 
   console.dir(result.content, { depth: Infinity });

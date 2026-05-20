@@ -1,12 +1,12 @@
 import {
+  NoSuchModelError,
   type Experimental_VideoModelV4 as VideoModelV4,
   type ProviderV4,
-  NoSuchModelError,
 } from '@ai-sdk/provider';
 import {
-  type FetchFunction,
   withoutTrailingSlash,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { generateKlingAIAuthToken } from './klingai-auth';
 import { KlingAIVideoModel } from './klingai-video-model';

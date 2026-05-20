@@ -48,7 +48,7 @@ export async function sendMessage(message: string) {
 
   const { value: stream } = await streamUI({
     model: openai('gpt-4o'),
-    system: 'you are a friendly assistant!',
+    instructions: 'you are a friendly assistant!',
     messages: messages.get(),
     text: async function* ({ content, done }) {
       // process text
@@ -110,7 +110,7 @@ export async function POST(request) {
 
   const result = streamText({
     model: __MODEL__,
-    system: 'you are a friendly assistant!',
+    instructions: 'you are a friendly assistant!',
     messages,
     tools: {
       // tool definitions
@@ -165,7 +165,7 @@ With AI SDK UI, `useChat` comes with built-in support for parallel tool calls. Y
 
 In AI SDK RSC, `streamUI` does not support multi-step tool calls. You will have to use a combination of `streamText`, `createStreamableUI` and `createStreamableValue`.
 
-With AI SDK UI, `useChat` comes with built-in support for multi-step tool calls. You can set `maxSteps` in the `streamText` function to define the number of steps the language model can make in a single call. The `useChat` hook will then handle the multi-step tool calls for you automatically.
+With AI SDK UI, `useChat` comes with built-in support for multi-step tool calls. You can set `stopWhen` in the `streamText` function to define when the model should stop making tool calls. The `useChat` hook will then handle the multi-step tool calls for you automatically.
 
 ### Generative User Interfaces
 
@@ -182,7 +182,7 @@ import { Weather } from '@/components/weather';
 
 const { value: stream } = await streamUI({
   model: openai('gpt-4o'),
-  system: 'you are a friendly assistant!',
+  instructions: 'you are a friendly assistant!',
   messages,
   text: async function* ({ content, done }) {
     // process text
@@ -223,7 +223,7 @@ export async function POST(request) {
 
   const result = streamText({
     model: __MODEL__,
-    system: 'you are a friendly assistant!',
+    instructions: 'you are a friendly assistant!',
     messages,
     tools: {
       displayWeather: {
@@ -354,7 +354,6 @@ export function ListFlights({ chatId, flights }) {
   const { append } = useChat({
     id: chatId,
     body: { id: chatId },
-    maxSteps: 5,
   });
 
   return (
@@ -389,7 +388,7 @@ import { streamUI } from '@ai-sdk/rsc';
 
 const { value: stream } = await streamUI({
   model: openai('gpt-4o'),
-  system: 'you are a friendly assistant!',
+  instructions: 'you are a friendly assistant!',
   messages,
   initial: <div>Loading...</div>,
   text: async function* ({ content, done }) {
@@ -492,13 +491,13 @@ export async function POST(request) {
 
   const result = streamText({
     model: __MODEL__,
-    system: 'you are a friendly assistant!',
+    instructions: 'you are a friendly assistant!',
     messages: coreMessages,
-    onFinish: async ({ response }) => {
+    onFinish: async ({ responseMessages }) => {
       try {
         await saveChat({
           id,
-          messages: [...coreMessages, ...response.messages],
+          messages: [...coreMessages, ...responseMessages],
         });
       } catch (error) {
         console.error('Failed to save chat');
@@ -616,7 +615,7 @@ export async function generateSampleNotifications() {
   (async () => {
     const { partialOutputStream } = streamText({
       model: __MODEL__,
-      system: 'generate sample ios messages for testing',
+      instructions: 'generate sample ios messages for testing',
       prompt: 'messages from a family group chat during diwali, max 4',
       output: Output.object({ schema: notificationsSchema }),
     });

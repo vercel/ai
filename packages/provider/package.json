@@ -1,10 +1,10 @@
 {
   "name": "@ai-sdk/provider",
-  "version": "4.0.0-beta.5",
+  "version": "4.0.0-canary.17",
+  "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
-  "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "source": "./src/index.ts",
   "files": [
@@ -27,8 +27,8 @@
     "./package.json": "./package.json",
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.mjs",
-      "require": "./dist/index.js"
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
     }
   },
   "dependencies": {
@@ -36,21 +36,23 @@
   },
   "devDependencies": {
     "@types/json-schema": "7.0.15",
-    "@types/node": "20.17.24",
+    "@types/node": "22.19.19",
     "@vercel/ai-tsconfig": "workspace:*",
-    "tsup": "^8",
+    "tsup": "^8.5.1",
     "typescript": "5.8.3"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=22"
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "provenance": true
   },
   "homepage": "https://ai-sdk.dev/docs",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/vercel/ai.git"
+    "url": "https://github.com/vercel/ai",
+    "directory": "packages/provider"
   },
   "bugs": {
     "url": "https://github.com/vercel/ai/issues"

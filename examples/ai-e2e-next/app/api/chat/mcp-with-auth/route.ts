@@ -1,7 +1,7 @@
 import { openai } from '@ai-sdk/openai';
 import {
   convertToModelMessages,
-  stepCountIs,
+  isStepCount,
   streamText,
   createUIMessageStream,
   createUIMessageStreamResponse,
@@ -240,8 +240,8 @@ export async function POST(req: Request) {
           const result = streamText({
             model: openai('gpt-4o-mini'),
             tools,
-            stopWhen: stepCountIs(10),
-            system:
+            stopWhen: isStepCount(10),
+            instructions:
               'You are a helpful assistant with access to protected tools.',
             messages: await convertToModelMessages(messages),
           });

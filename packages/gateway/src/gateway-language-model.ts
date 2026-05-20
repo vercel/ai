@@ -1,7 +1,6 @@
 import type {
   LanguageModelV4,
   LanguageModelV4CallOptions,
-  SharedV4Warning,
   LanguageModelV4FilePart,
   LanguageModelV4StreamPart,
   LanguageModelV4GenerateResult,
@@ -14,6 +13,9 @@ import {
   createJsonResponseHandler,
   postJsonToApi,
   resolve,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
   type ParseResult,
   type Resolvable,
 } from '@ai-sdk/provider-utils';
@@ -31,6 +33,20 @@ type GatewayChatConfig = GatewayConfig & {
 export class GatewayLanguageModel implements LanguageModelV4 {
   readonly specificationVersion = 'v4';
   readonly supportedUrls = { '*/*': [/.*/] };
+
+  static [WORKFLOW_SERIALIZE](model: GatewayLanguageModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: GatewayModelId;
+    config: GatewayChatConfig;
+  }) {
+    return new GatewayLanguageModel(options.modelId, options.config);
+  }
 
   constructor(
     readonly modelId: GatewayModelId,
@@ -56,7 +72,9 @@ export class GatewayLanguageModel implements LanguageModelV4 {
     const { args, warnings } = await this.getArgs(options);
     const { abortSignal } = options;
 
-    const resolvedHeaders = await resolve(this.config.headers());
+    const resolvedHeaders = this.config.headers
+      ? await resolve(this.config.headers)
+      : undefined;
 
     try {
       const {
@@ -88,7 +106,10 @@ export class GatewayLanguageModel implements LanguageModelV4 {
         warnings,
       };
     } catch (error) {
-      throw await asGatewayError(error, await parseAuthMethod(resolvedHeaders));
+      throw await asGatewayError(
+        error,
+        await parseAuthMethod(resolvedHeaders ?? {}),
+      );
     }
   }
 
@@ -98,7 +119,9 @@ export class GatewayLanguageModel implements LanguageModelV4 {
     const { args, warnings } = await this.getArgs(options);
     const { abortSignal } = options;
 
-    const resolvedHeaders = await resolve(this.config.headers());
+    const resolvedHeaders = this.config.headers
+      ? await resolve(this.config.headers)
+      : undefined;
 
     try {
       const { value: response, responseHeaders } = await postJsonToApi({
@@ -161,7 +184,10 @@ export class GatewayLanguageModel implements LanguageModelV4 {
         response: { headers: responseHeaders },
       };
     } catch (error) {
-      throw await asGatewayError(error, await parseAuthMethod(resolvedHeaders));
+      throw await asGatewayError(
+        error,
+        await parseAuthMethod(resolvedHeaders ?? {}),
+      );
     }
   }
 
@@ -172,8 +198,7 @@ export class GatewayLanguageModel implements LanguageModelV4 {
   }
 
   /**
-   * Encodes file parts in the prompt to base64. Mutates the passed options
-   * instance directly to avoid copying the file data.
+   * Encodes inline `Uint8Array` file part data to a base64 string in place.
    * @param options - The options to encode.
    * @returns The options with the file parts encoded.
    */
@@ -182,15 +207,14 @@ export class GatewayLanguageModel implements LanguageModelV4 {
       for (const part of message.content) {
         if (this.isFilePart(part)) {
           const filePart = part as LanguageModelV4FilePart;
-          // If the file part is a URL it will get cleanly converted to a string.
-          // If it's a binary file attachment we convert it to a data url.
-          // In either case, server-side we should only ever see URLs as strings.
-          if (filePart.data instanceof Uint8Array) {
-            const buffer = Uint8Array.from(filePart.data);
-            const base64Data = Buffer.from(buffer).toString('base64');
-            filePart.data = new URL(
-              `data:${filePart.mediaType || 'application/octet-stream'};base64,${base64Data}`,
-            );
+          if (
+            filePart.data.type === 'data' &&
+            filePart.data.data instanceof Uint8Array
+          ) {
+            filePart.data = {
+              type: 'data',
+              data: Buffer.from(filePart.data.data).toString('base64'),
+            };
           }
         }
       }

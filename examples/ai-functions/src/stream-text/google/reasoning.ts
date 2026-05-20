@@ -1,5 +1,5 @@
 import { google } from '@ai-sdk/google';
-import { stepCountIs, streamText } from 'ai';
+import { isStepCount, streamText } from 'ai';
 import { weatherTool } from '../../tools/weather-tool';
 import { run } from '../../lib/run';
 
@@ -8,7 +8,7 @@ run(async () => {
     model: google('gemini-2.5-flash'),
     tools: { weather: weatherTool },
     prompt: 'What is the weather in San Francisco?',
-    stopWhen: stepCountIs(2),
+    stopWhen: isStepCount(2),
     reasoning: 'low',
     onError: console.error,
   });

@@ -129,12 +129,27 @@ const result = await generateText({
 console.log(result.warnings);
 ```
 
+### Request Messages
+
+You can inspect the input messages that were sent to the model for the final step using `request.messages`.
+Set `include.requestMessages` to `true` to include these messages in step results.
+
+```ts highlight="6"
+const result = await generateText({
+  model: __MODEL__,
+  prompt: 'Hello, world!',
+  include: { requestMessages: true },
+});
+
+console.log(result.finalStep.request.messages);
+```
+
 ### HTTP Request Bodies
 
 You can inspect the raw HTTP request bodies for models that expose them, e.g. [OpenAI](/providers/ai-sdk-providers/openai).
 This allows you to inspect the exact payload that is sent to the model provider in the provider-specific way.
 
-Request bodies are available via the `request.body` property of the response:
+Request bodies are available via the `finalStep.request.body` property of the response:
 
 ```ts highlight="6"
 const result = await generateText({
@@ -142,5 +157,5 @@ const result = await generateText({
   prompt: 'Hello, world!',
 });
 
-console.log(result.request.body);
+console.log(result.finalStep.request.body);
 ```

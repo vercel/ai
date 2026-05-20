@@ -1,4 +1,4 @@
-import {
+import type {
   LanguageModelV2,
   LanguageModelV3,
   LanguageModelV4,

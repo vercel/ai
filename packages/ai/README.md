@@ -1,4 +1,4 @@
-![hero illustration](./assets/hero.gif)
+![hero illustration](https://github.com/vercel/ai/blob/HEAD/assets/hero.gif)
 
 # AI SDK
 
@@ -8,7 +8,7 @@ To learn more about how to use the AI SDK, check out our [API Reference](https:/
 
 ## Installation
 
-You will need Node.js 18+ and npm (or another package manager) installed on your local development machine.
+You will need Node.js 22+ and npm (or another package manager) installed on your local development machine.
 
 ```shell
 npm install ai
@@ -24,7 +24,7 @@ npx skills add vercel/ai
 
 ## Unified Provider Architecture
 
-The AI SDK provides a [unified API](https://ai-sdk.dev/docs/foundations/providers-and-models) to interact with model providers like [OpenAI](https://ai-sdk.dev/providers/ai-sdk-providers/openai), [Anthropic](https://ai-sdk.dev/providers/ai-sdk-providers/anthropic), [Google](https://ai-sdk.dev/providers/ai-sdk-providers/google-generative-ai), and [more](https://ai-sdk.dev/providers/ai-sdk-providers).
+The AI SDK provides a [unified API](https://ai-sdk.dev/docs/foundations/providers-and-models) to interact with model providers like [OpenAI](https://ai-sdk.dev/providers/ai-sdk-providers/openai), [Anthropic](https://ai-sdk.dev/providers/ai-sdk-providers/anthropic), [Google](https://ai-sdk.dev/providers/ai-sdk-providers/google), and [more](https://ai-sdk.dev/providers/ai-sdk-providers).
 
 By default, the AI SDK uses the [Vercel AI Gateway](https://vercel.com/docs/ai-gateway) to give you access to all major providers out of the box. Just pass a model string for any supported model:
 

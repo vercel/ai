@@ -1,5 +1,11 @@
 import { openai } from '@ai-sdk/openai';
-import { readUIMessageStream, stepCountIs, streamText, Tool, tool } from 'ai';
+import {
+  readUIMessageStream,
+  isStepCount,
+  streamText,
+  tool,
+  type Tool,
+} from 'ai';
 import { z } from 'zod';
 import { run } from '../../lib/run';
 
@@ -29,7 +35,7 @@ run(async () => {
         },
       }),
     },
-    stopWhen: stepCountIs(5),
+    stopWhen: isStepCount(5),
     prompt: 'What is the weather in Tokyo?',
   });
 

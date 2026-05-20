@@ -1,9 +1,14 @@
 import {
-  LanguageModelV4CallOptions,
-  SharedV4Warning,
   UnsupportedFunctionalityError,
+  type LanguageModelV4CallOptions,
+  type SharedV4ProviderReference,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
-import { ToolNameMapping, validateTypes } from '@ai-sdk/provider-utils';
+import {
+  resolveProviderReference,
+  validateTypes,
+  type ToolNameMapping,
+} from '@ai-sdk/provider-utils';
 import { codeInterpreterArgsSchema } from '../tool/code-interpreter';
 import { fileSearchArgsSchema } from '../tool/file-search';
 import { imageGenerationArgsSchema } from '../tool/image-generation';
@@ -13,16 +18,21 @@ import { shellArgsSchema } from '../tool/shell';
 import { toolSearchArgsSchema } from '../tool/tool-search';
 import { webSearchArgsSchema } from '../tool/web-search';
 import { webSearchPreviewArgsSchema } from '../tool/web-search-preview';
-import { OpenAIResponsesTool } from './openai-responses-api';
+import type { OpenAIResponsesTool } from './openai-responses-api';
 
 export async function prepareResponsesTools({
   tools,
   toolChoice,
+  allowedTools,
   toolNameMapping,
   customProviderToolNames,
 }: {
   tools: LanguageModelV4CallOptions['tools'];
   toolChoice: LanguageModelV4CallOptions['toolChoice'] | undefined;
+  allowedTools?: {
+    toolNames: string[];
+    mode?: 'auto' | 'required';
+  };
   toolNameMapping?: ToolNameMapping;
   customProviderToolNames?: Set<string>;
 }): Promise<{
@@ -39,7 +49,12 @@ export async function prepareResponsesTools({
     | { type: 'code_interpreter' }
     | { type: 'mcp' }
     | { type: 'image_generation' }
-    | { type: 'apply_patch' };
+    | { type: 'apply_patch' }
+    | {
+        type: 'allowed_tools';
+        mode: 'auto' | 'required';
+        tools: Array<{ type: 'function'; name: string }>;
+      };
   toolWarnings: SharedV4Warning[];
 }> {
   // when the tools array is empty, change it to undefined to prevent errors:
@@ -285,6 +300,21 @@ export async function prepareResponsesTools({
     }
   }
 
+  if (allowedTools != null) {
+    return {
+      tools: openaiTools,
+      toolChoice: {
+        type: 'allowed_tools',
+        mode: allowedTools.mode ?? 'auto',
+        tools: allowedTools.toolNames.map(name => ({
+          type: 'function',
+          name: toolNameMapping?.toProviderToolName(name) ?? name,
+        })),
+      },
+      toolWarnings,
+    };
+  }
+
   if (toolChoice == null) {
     return { tools: openaiTools, toolChoice: undefined, toolWarnings };
   }
@@ -360,7 +390,7 @@ function mapShellEnvironment(environment: {
       };
       skills?: Array<{
         type: string;
-        skillId?: string;
+        providerReference?: SharedV4ProviderReference;
         version?: string;
         name?: string;
         description?: string;
@@ -404,7 +434,7 @@ function mapShellSkills(
   skills:
     | Array<{
         type: string;
-        skillId?: string;
+        providerReference?: SharedV4ProviderReference;
         version?: string;
         name?: string;
         description?: string;
@@ -416,8 +446,11 @@ function mapShellSkills(
     skill.type === 'skillReference'
       ? {
           type: 'skill_reference' as const,
-          skill_id: skill.skillId!,
-          version: skill.version,
+          skill_id: resolveProviderReference({
+            reference: skill.providerReference ?? {},
+            provider: 'openai',
+          }),
+          version: skill.version ?? 'latest',
         }
       : {
           type: 'inline' as const,

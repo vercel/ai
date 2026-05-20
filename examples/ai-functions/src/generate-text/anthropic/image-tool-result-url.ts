@@ -1,4 +1,4 @@
-import { generateText, stepCountIs, tool } from 'ai';
+import { generateText, isStepCount, tool } from 'ai';
 import { run } from '../../lib/run';
 import { z } from 'zod';
 import { anthropic } from '@ai-sdk/anthropic';
@@ -28,8 +28,9 @@ run(async () => {
             text: output.description,
           },
           {
-            type: 'image-url',
-            url: output.imageUrl,
+            type: 'file',
+            mediaType: 'image/png',
+            data: { type: 'url', url: new URL(output.imageUrl) },
           },
         ],
       };
@@ -43,7 +44,7 @@ run(async () => {
     tools: {
       readImage,
     },
-    stopWhen: stepCountIs(4),
+    stopWhen: isStepCount(4),
   });
 
   console.log(`Assistant response : ${JSON.stringify(result.text, null, 2)}`);

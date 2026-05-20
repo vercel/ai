@@ -3,9 +3,9 @@
   "version": "0.0.0",
   "private": true,
   "dependencies": {
-    "@ai-sdk/openai": "4.0.0-beta.16",
+    "@ai-sdk/openai": "workspace:*",
     "@hono/node-server": "1.13.7",
-    "ai": "7.0.0-beta.45",
+    "ai": "workspace:*",
     "dotenv": "16.4.5",
     "hono": "4.6.9"
   },
@@ -16,7 +16,7 @@
     "type-check": "tsc --build"
   },
   "devDependencies": {
-    "@types/node": "20.17.24",
+    "@types/node": "22.19.19",
     "tsx": "4.19.2",
     "typescript": "5.8.3"
   }

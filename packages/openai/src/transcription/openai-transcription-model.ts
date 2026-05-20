@@ -1,4 +1,4 @@
-import {
+import type {
   TranscriptionModelV4,
   TranscriptionModelV4CallOptions,
   SharedV4Warning,
@@ -10,16 +10,18 @@ import {
   mediaTypeToExtension,
   parseProviderOptions,
   postFormDataToApi,
+  serializeModelOptions,
+  WORKFLOW_DESERIALIZE,
+  WORKFLOW_SERIALIZE,
 } from '@ai-sdk/provider-utils';
-import { OpenAIConfig } from '../openai-config';
+import type { OpenAIConfig } from '../openai-config';
 import { openaiFailedResponseHandler } from '../openai-error';
 import { openaiTranscriptionResponseSchema } from './openai-transcription-api';
 import {
-  OpenAITranscriptionModelId,
   openAITranscriptionModelOptions,
-  OpenAITranscriptionModelOptions,
-} from './openai-transcription-options';
-
+  type OpenAITranscriptionModelId,
+  type OpenAITranscriptionModelOptions,
+} from './openai-transcription-model-options';
 export type OpenAITranscriptionCallOptions = Omit<
   TranscriptionModelV4CallOptions,
   'providerOptions'
@@ -99,6 +101,20 @@ const languageMap = {
 export class OpenAITranscriptionModel implements TranscriptionModelV4 {
   readonly specificationVersion = 'v4';
 
+  static [WORKFLOW_SERIALIZE](model: OpenAITranscriptionModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: OpenAITranscriptionModelId;
+    config: OpenAITranscriptionModelConfig;
+  }) {
+    return new OpenAITranscriptionModel(options.modelId, options.config);
+  }
+
   get provider(): string {
     return this.config.provider;
   }
@@ -137,20 +153,26 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
       `audio.${fileExtension}`,
     );
 
+    if (this.modelId === 'whisper-1') {
+      formData.append('response_format', 'verbose_json');
+    }
+
     // Add provider-specific options
     if (openAIOptions) {
+      const isGpt4oTranscribeModel = [
+        'gpt-4o-transcribe',
+        'gpt-4o-mini-transcribe',
+      ].includes(this.modelId);
+
       const transcriptionModelOptions = {
         include: openAIOptions.include,
         language: openAIOptions.language,
         prompt: openAIOptions.prompt,
         // https://platform.openai.com/docs/api-reference/audio/createTranscription#audio_createtranscription-response_format
         // prefer verbose_json to get segments for models that support it
-        response_format: [
-          'gpt-4o-transcribe',
-          'gpt-4o-mini-transcribe',
-        ].includes(this.modelId)
-          ? 'json'
-          : 'verbose_json',
+        ...(this.modelId !== 'whisper-1' && {
+          response_format: isGpt4oTranscribeModel ? 'json' : 'verbose_json',
+        }),
         temperature: openAIOptions.temperature,
         timestamp_granularities: openAIOptions.timestampGranularities,
       };
@@ -189,7 +211,7 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
         path: '/audio/transcriptions',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       formData,
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(

@@ -5,6 +5,8 @@ export type GatewayVideoModelId =
   | 'alibaba/wan-v2.6-r2v'
   | 'alibaba/wan-v2.6-r2v-flash'
   | 'alibaba/wan-v2.6-t2v'
+  | 'bytedance/seedance-2.0'
+  | 'bytedance/seedance-2.0-fast'
   | 'bytedance/seedance-v1.0-lite-i2v'
   | 'bytedance/seedance-v1.0-lite-t2v'
   | 'bytedance/seedance-v1.0-pro'
@@ -20,6 +22,7 @@ export type GatewayVideoModelId =
   | 'klingai/kling-v2.6-motion-control'
   | 'klingai/kling-v2.6-t2v'
   | 'klingai/kling-v3.0-i2v'
+  | 'klingai/kling-v3.0-motion-control'
   | 'klingai/kling-v3.0-t2v'
   | 'xai/grok-imagine-video'
   | (string & {});

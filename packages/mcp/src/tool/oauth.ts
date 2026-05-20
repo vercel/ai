@@ -1,17 +1,17 @@
 import pkceChallenge from 'pkce-challenge';
 import {
-  OAuthTokens,
-  OAuthProtectedResourceMetadata,
   OAuthProtectedResourceMetadataSchema,
   OAuthMetadataSchema,
   OpenIdProviderDiscoveryMetadataSchema,
-  AuthorizationServerMetadata,
-  OAuthClientInformation,
   OAuthTokensSchema,
   OAuthErrorResponseSchema,
-  OAuthClientMetadata,
-  OAuthClientInformationFull,
   OAuthClientInformationFullSchema,
+  type OAuthTokens,
+  type OAuthProtectedResourceMetadata,
+  type AuthorizationServerMetadata,
+  type OAuthClientInformation,
+  type OAuthClientMetadata,
+  type OAuthClientInformationFull,
 } from './oauth-types';
 import {
   MCPClientOAuthError,
@@ -24,10 +24,10 @@ import {
 import {
   resourceUrlFromServerUrl,
   checkResourceAllowed,
+  resourceUrlStripSlash,
 } from '../util/oauth-util';
 import { LATEST_PROTOCOL_VERSION } from './types';
-import { FetchFunction } from '@ai-sdk/provider-utils';
-
+import { parseJSON, type FetchFunction } from '@ai-sdk/provider-utils';
 export type AuthResult = 'AUTHORIZED' | 'REDIRECT';
 
 export interface OAuthClientProvider {
@@ -451,7 +451,10 @@ export async function startAuthorization(
   }
 
   if (resource) {
-    authorizationUrl.searchParams.set('resource', resource.href);
+    authorizationUrl.searchParams.set(
+      'resource',
+      resourceUrlStripSlash(resource),
+    );
   }
 
   return { authorizationUrl, codeVerifier };
@@ -587,7 +590,9 @@ export async function parseErrorResponse(
   const body = input instanceof Response ? await input.text() : input;
 
   try {
-    const result = OAuthErrorResponseSchema.parse(JSON.parse(body));
+    const result = OAuthErrorResponseSchema.parse(
+      await parseJSON({ text: body }),
+    );
     const { error, error_description, error_uri } = result;
     const errorClass = OAUTH_ERRORS[error] || ServerError;
     return new errorClass({
@@ -675,7 +680,7 @@ export async function exchangeAuthorization(
   }
 
   if (resource) {
-    params.set('resource', resource.href);
+    params.set('resource', resourceUrlStripSlash(resource));
   }
 
   const response = await (fetchFn ?? fetch)(tokenUrl, {
@@ -762,7 +767,7 @@ export async function refreshAuthorization(
   }
 
   if (resource) {
-    params.set('resource', resource.href);
+    params.set('resource', resourceUrlStripSlash(resource));
   }
 
   const response = await (fetchFn ?? fetch)(tokenUrl, {

@@ -1,5 +1,5 @@
 import { google } from '@ai-sdk/google';
-import { stepCountIs, streamText, tool } from 'ai';
+import { isStepCount, streamText, tool } from 'ai';
 import { run } from '../../lib/run';
 import { z } from 'zod';
 
@@ -26,8 +26,9 @@ run(async () => {
             text: output.description,
           },
           {
-            type: 'image-url',
-            url: output.imageUrl,
+            type: 'file',
+            mediaType: 'image/png',
+            data: { type: 'url', url: new URL(output.imageUrl) },
           },
         ],
       };
@@ -41,7 +42,7 @@ run(async () => {
     tools: {
       readImage,
     },
-    stopWhen: stepCountIs(4),
+    stopWhen: isStepCount(4),
   });
 
   for await (const part of result.fullStream) {

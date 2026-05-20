@@ -4,10 +4,10 @@ import {
   streamText,
   createUIMessageStream,
   convertToModelMessages,
-  stepCountIs,
+  isStepCount,
 } from 'ai';
 import { createMCPClient, ElicitationRequestSchema } from '@ai-sdk/mcp';
-import { MCPElicitationUIMessage } from './types';
+import type { MCPElicitationUIMessage } from './types';
 import { createPendingElicitation } from './elicitation-store';
 
 // Allow streaming responses up to 30 seconds
@@ -83,13 +83,13 @@ async function processMessages(
     const result = streamText({
       model: openai('gpt-4o-mini'),
       tools,
-      stopWhen: stepCountIs(10),
+      stopWhen: isStepCount(10),
       onStepFinish: async ({ toolResults }) => {
         if (toolResults.length > 0) {
           console.log('TOOL RESULTS:', JSON.stringify(toolResults, null, 2));
         }
       },
-      system:
+      instructions:
         'You are a helpful assistant. When asked to register a user, use the register_user tool.',
       messages: await convertToModelMessages(messages),
       onFinish: async () => {

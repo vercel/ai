@@ -2,6 +2,8 @@
 
 The **[Replicate provider](https://ai-sdk.dev/providers/ai-sdk-providers/replicate)** for the [AI SDK](https://ai-sdk.dev/docs) contains image model support for the Replicate API.
 
+> **Deploying to Vercel?** With Vercel's AI Gateway you can access Replicate (and hundreds of models from other providers) — no additional packages, API keys, or extra cost. [Get started with AI Gateway](https://vercel.com/ai-gateway).
+
 ## Setup
 
 The Replicate provider is available in the `@ai-sdk/replicate` module. You can install it with

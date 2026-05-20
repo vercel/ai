@@ -1,5 +1,5 @@
 import { openai } from '@ai-sdk/openai';
-import { generateText, stepCountIs } from 'ai';
+import { generateText, isStepCount } from 'ai';
 import { run } from '../../lib/run';
 import { print } from '../../lib/print';
 
@@ -21,7 +21,7 @@ run(async () => {
       }),
     },
     prompt: 'How many users are older than 25? Use SQL to find out.',
-    stopWhen: stepCountIs(3),
+    stopWhen: isStepCount(3),
   });
 
   const allToolCalls = result.steps.flatMap(step => step.toolCalls);

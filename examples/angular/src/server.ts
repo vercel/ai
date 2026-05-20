@@ -1,7 +1,7 @@
-import { type OpenAILanguageModelResponsesOptions } from '@ai-sdk/openai';
-import { convertToModelMessages, Output, stepCountIs, streamText } from 'ai';
+import type { OpenAILanguageModelResponsesOptions } from '@ai-sdk/openai';
+import { convertToModelMessages, Output, isStepCount, streamText } from 'ai';
 import 'dotenv/config';
-import express, { Request, Response } from 'express';
+import express, { type Request, type Response } from 'express';
 import { z } from 'zod';
 
 const app = express();
@@ -18,7 +18,7 @@ app.post('/api/chat', async (req: Request, res: Response) => {
   const result = streamText({
     model: modelId,
     messages: await convertToModelMessages(messages ?? []),
-    stopWhen: stepCountIs(5),
+    stopWhen: isStepCount(5),
     providerOptions: {
       openai: {
         reasoningEffort: 'low',

@@ -1,10 +1,15 @@
 import {
-  SharedV4Warning,
-  LanguageModelV4Message,
   UnsupportedFunctionalityError,
+  type SharedV4Warning,
+  type LanguageModelV4Message,
 } from '@ai-sdk/provider';
-import { convertToBase64 } from '@ai-sdk/provider-utils';
 import {
+  convertToBase64,
+  getTopLevelMediaType,
+  resolveFullMediaType,
+  resolveProviderReference,
+} from '@ai-sdk/provider-utils';
+import type {
   XaiResponsesInput,
   XaiResponsesUserMessageContentPart,
 } from './xai-responses-api';
@@ -42,22 +47,51 @@ export async function convertToXaiResponsesInput({
             }
 
             case 'file': {
-              if (block.mediaType.startsWith('image/')) {
-                const mediaType =
-                  block.mediaType === 'image/*'
-                    ? 'image/jpeg'
-                    : block.mediaType;
+              switch (block.data.type) {
+                case 'reference': {
+                  contentParts.push({
+                    type: 'input_file',
+                    file_id: resolveProviderReference({
+                      reference: block.data.reference,
+                      provider: 'xai',
+                    }),
+                  });
+                  break;
+                }
+                case 'text': {
+                  throw new UnsupportedFunctionalityError({
+                    functionality: 'text file parts',
+                  });
+                }
+                case 'url':
+                case 'data': {
+                  if (getTopLevelMediaType(block.mediaType) === 'image') {
+                    const imageUrl =
+                      block.data.type === 'url'
+                        ? block.data.url.toString()
+                        : `data:${resolveFullMediaType({ part: block })};base64,${convertToBase64(block.data.data)}`;
 
-                const imageUrl =
-                  block.data instanceof URL
-                    ? block.data.toString()
-                    : `data:${mediaType};base64,${convertToBase64(block.data)}`;
-
-                contentParts.push({ type: 'input_image', image_url: imageUrl });
-              } else {
-                throw new UnsupportedFunctionalityError({
-                  functionality: `file part media type ${block.mediaType}`,
-                });
+                    contentParts.push({
+                      type: 'input_image',
+                      image_url: imageUrl,
+                    });
+                  } else if (block.data.type === 'url') {
+                    // xAI's Responses API accepts non-image documents (PDF, text, CSV, etc.)
+                    // via `{ type: 'input_file', file_url }`. See
+                    // https://docs.x.ai/docs/guides/chat-with-files. Inline bytes for
+                    // non-image files are not supported by xAI; callers must upload via
+                    // the Files API and pass a provider reference (file_id) instead.
+                    contentParts.push({
+                      type: 'input_file',
+                      file_url: block.data.url.toString(),
+                    });
+                  } else {
+                    throw new UnsupportedFunctionalityError({
+                      functionality: `file part media type ${block.mediaType} as inline data (xAI Responses requires a URL or a Files API reference for non-image files)`,
+                    });
+                  }
+                  break;
+                }
               }
               break;
             }
@@ -123,7 +157,48 @@ export async function convertToXaiResponsesInput({
               break;
             }
 
-            case 'reasoning':
+            case 'reasoning': {
+              const itemId =
+                typeof part.providerOptions?.xai?.itemId === 'string'
+                  ? part.providerOptions.xai.itemId
+                  : undefined;
+              const encryptedContent =
+                typeof part.providerOptions?.xai?.reasoningEncryptedContent ===
+                'string'
+                  ? part.providerOptions.xai.reasoningEncryptedContent
+                  : undefined;
+
+              if (itemId != null || encryptedContent != null) {
+                const summaryParts: Array<{
+                  type: 'summary_text';
+                  text: string;
+                }> = [];
+                if (part.text.length > 0) {
+                  summaryParts.push({
+                    type: 'summary_text',
+                    text: part.text,
+                  });
+                }
+
+                input.push({
+                  type: 'reasoning',
+                  id: itemId ?? '',
+                  summary: summaryParts,
+                  status: 'completed',
+                  ...(encryptedContent != null && {
+                    encrypted_content: encryptedContent,
+                  }),
+                });
+              } else {
+                inputWarnings.push({
+                  type: 'other',
+                  message:
+                    'Reasoning parts without itemId or encrypted content cannot be sent back to xAI. Skipping.',
+                });
+              }
+              break;
+            }
+
             case 'reasoning-file':
             case 'custom':
             case 'file': {

@@ -1,7 +1,7 @@
 import {
   anthropic,
-  AnthropicMessageMetadata,
   type AnthropicLanguageModelOptions,
+  type AnthropicMessageMetadata,
 } from '@ai-sdk/anthropic';
 import { streamText } from 'ai';
 import { print } from '../../lib/print';
@@ -29,7 +29,7 @@ run(async () => {
   await printFullStream({ result });
 
   const anthropicContainer = (
-    (await result.providerMetadata)
+    (await result.finalStep).providerMetadata
       ?.anthropic as unknown as AnthropicMessageMetadata
   )?.container;
 

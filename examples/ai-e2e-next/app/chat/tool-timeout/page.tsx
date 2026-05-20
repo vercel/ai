@@ -4,7 +4,7 @@ import { useState } from 'react';
 import ChatInput from '@/components/chat-input';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
-import { ToolTimeoutMessage } from '@/app/api/chat/tool-timeout/route';
+import type { ToolTimeoutMessage } from '@/app/api/chat/tool-timeout/route';
 
 function ErrorDetails({
   errorText,

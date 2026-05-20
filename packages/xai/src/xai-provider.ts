@@ -1,30 +1,33 @@
-import {
-  type Experimental_VideoModelV4,
-  ImageModelV4,
-  LanguageModelV4,
-  NoSuchModelError,
-  ProviderV4,
+import type {
   Experimental_RealtimeFactoryV4 as RealtimeFactoryV4,
-  Experimental_RealtimeFactoryV4GetTokenOptions as RealtimeFactoryV4GetTokenOptions,
+  Experimental_RealtimeFactoryV4GetTokenOptions as RealtimeFactoryV4GetTokenOptions} from '@ai-sdk/provider';
+import {
+  NoSuchModelError,
+  type Experimental_VideoModelV4,
+  type FilesV4,
+  type ImageModelV4,
+  type LanguageModelV4,
+  type ProviderV4,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
   generateId,
   loadApiKey,
   withoutTrailingSlash,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { XaiChatLanguageModel } from './xai-chat-language-model';
-import { XaiChatModelId } from './xai-chat-options';
+import type { XaiChatModelId } from './xai-chat-language-model-options';
 import { XaiImageModel } from './xai-image-model';
-import { XaiImageModelId } from './xai-image-settings';
+import type { XaiImageModelId } from './xai-image-settings';
 import { XaiResponsesLanguageModel } from './responses/xai-responses-language-model';
-import { XaiResponsesModelId } from './responses/xai-responses-options';
+import type { XaiResponsesModelId } from './responses/xai-responses-language-model-options';
 import { XaiRealtimeModel } from './realtime/xai-realtime-model';
 import { xaiTools } from './tool';
 import { VERSION } from './version';
+import { XaiFiles } from './files/xai-files';
 import { XaiVideoModel } from './xai-video-model';
-import { XaiVideoModelId } from './xai-video-settings';
+import type { XaiVideoModelId } from './xai-video-settings';
 
 export interface XaiProvider extends ProviderV4 {
   (modelId: XaiResponsesModelId): LanguageModelV4;
@@ -65,6 +68,11 @@ export interface XaiProvider extends ProviderV4 {
   videoModel(modelId: XaiVideoModelId): Experimental_VideoModelV4;
 
   realtime: RealtimeFactoryV4;
+
+  /**
+   * Returns the xAI files interface for uploading files.
+   */
+  files(): FilesV4;
 
   /**
    * Server-side agentic tools for use with the responses API.
@@ -183,6 +191,14 @@ export function createXai(options: XaiProviderSettings = {}): XaiProvider {
     },
   ) as RealtimeFactoryV4;
 
+  const createFiles = () =>
+    new XaiFiles({
+      provider: 'xai.files',
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+
   const provider = (modelId: XaiResponsesModelId) =>
     createResponsesLanguageModel(modelId);
 
@@ -199,6 +215,7 @@ export function createXai(options: XaiProviderSettings = {}): XaiProvider {
   provider.videoModel = createVideoModel;
   provider.video = createVideoModel;
   provider.realtime = realtimeFactory;
+  provider.files = createFiles;
   provider.tools = xaiTools;
 
   return provider;

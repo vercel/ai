@@ -1,11 +1,11 @@
-import { StreamTextResult } from 'ai';
+import type { StreamTextResult } from 'ai';
 import fs from 'fs';
 
 export async function saveRawChunks({
   result,
   filename,
 }: {
-  result: StreamTextResult<any, any>;
+  result: StreamTextResult<any, any, any>;
   filename: string;
 }) {
   const rawChunks: unknown[] = [];

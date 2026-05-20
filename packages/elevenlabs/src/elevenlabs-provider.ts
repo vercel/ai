@@ -1,20 +1,21 @@
-import {
-  TranscriptionModelV4,
-  SpeechModelV4,
-  ProviderV4,
-  NoSuchModelError,
+import type {
   Experimental_RealtimeFactoryV4 as RealtimeFactoryV4,
-  Experimental_RealtimeFactoryV4GetTokenOptions as RealtimeFactoryV4GetTokenOptions,
+  Experimental_RealtimeFactoryV4GetTokenOptions as RealtimeFactoryV4GetTokenOptions} from '@ai-sdk/provider';
+import {
+  NoSuchModelError,
+  type TranscriptionModelV4,
+  type SpeechModelV4,
+  type ProviderV4,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
   loadApiKey,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { ElevenLabsTranscriptionModel } from './elevenlabs-transcription-model';
-import { ElevenLabsTranscriptionModelId } from './elevenlabs-transcription-options';
+import type { ElevenLabsTranscriptionModelId } from './elevenlabs-transcription-options';
 import { ElevenLabsSpeechModel } from './elevenlabs-speech-model';
-import { ElevenLabsSpeechModelId } from './elevenlabs-speech-options';
+import type { ElevenLabsSpeechModelId } from './elevenlabs-speech-options';
 import { ElevenLabsRealtimeModel } from './realtime/elevenlabs-realtime-model';
 import { VERSION } from './version';
 
@@ -171,4 +172,4 @@ export function createElevenLabs(
 /**
  * Default ElevenLabs provider instance.
  */
-export const elevenlabs = createElevenLabs();
+export const elevenLabs = createElevenLabs();

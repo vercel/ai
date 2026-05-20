@@ -1,5 +1,5 @@
 import { openai } from '@ai-sdk/openai';
-import { generateText, stepCountIs, tool } from 'ai';
+import { generateText, isStepCount, tool } from 'ai';
 import { z } from 'zod';
 import { run } from '../../lib/run';
 
@@ -25,7 +25,7 @@ run(async () => {
     timeout: {
       toolMs: 500,
     },
-    stopWhen: stepCountIs(2),
+    stopWhen: isStepCount(2),
     prompt: 'Search for "hello world"',
   });
 

@@ -10,6 +10,9 @@ import {
   createJsonErrorResponseHandler,
   postJsonToApi,
   resolve,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
   type Resolvable,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
@@ -17,17 +20,33 @@ import type { GatewayConfig } from './gateway-config';
 import { asGatewayError } from './errors';
 import { parseAuthMethod } from './errors/parse-auth-method';
 
+type GatewayImageConfig = GatewayConfig & {
+  provider: string;
+  o11yHeaders: Resolvable<Record<string, string>>;
+};
+
 export class GatewayImageModel implements ImageModelV4 {
   readonly specificationVersion = 'v4' as const;
   // Set a very large number to prevent client-side splitting of requests
   readonly maxImagesPerCall = Number.MAX_SAFE_INTEGER;
 
+  static [WORKFLOW_SERIALIZE](model: GatewayImageModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: string;
+    config: GatewayImageConfig;
+  }) {
+    return new GatewayImageModel(options.modelId, options.config);
+  }
+
   constructor(
     readonly modelId: string,
-    private readonly config: GatewayConfig & {
-      provider: string;
-      o11yHeaders: Resolvable<Record<string, string>>;
-    },
+    private readonly config: GatewayImageConfig,
   ) {}
 
   get provider(): string {
@@ -48,13 +67,11 @@ export class GatewayImageModel implements ImageModelV4 {
   }: Parameters<ImageModelV4['doGenerate']>[0]): Promise<
     Awaited<ReturnType<ImageModelV4['doGenerate']>>
   > {
-    const resolvedHeaders = await resolve(this.config.headers());
+    const resolvedHeaders = this.config.headers
+      ? await resolve(this.config.headers)
+      : undefined;
     try {
-      const {
-        responseHeaders,
-        value: responseBody,
-        rawValue,
-      } = await postJsonToApi({
+      const { responseHeaders, value: responseBody } = await postJsonToApi({
         url: this.getUrl(),
         headers: combineHeaders(
           resolvedHeaders,
@@ -104,7 +121,10 @@ export class GatewayImageModel implements ImageModelV4 {
         }),
       };
     } catch (error) {
-      throw await asGatewayError(error, await parseAuthMethod(resolvedHeaders));
+      throw await asGatewayError(
+        error,
+        await parseAuthMethod(resolvedHeaders ?? {}),
+      );
     }
   }
 

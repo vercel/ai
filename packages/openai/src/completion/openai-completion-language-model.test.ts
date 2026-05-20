@@ -1,11 +1,8 @@
 import fs from 'node:fs';
 
-import { LanguageModelV4Prompt } from '@ai-sdk/provider';
+import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
-import {
-  convertReadableStreamToArray,
-  isNodeVersion,
-} from '@ai-sdk/provider-utils/test';
+import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { createOpenAI } from '../openai-provider';
 import { describe, it, expect, vi } from 'vitest';
 
@@ -594,20 +591,18 @@ describe('doStream', () => {
     `);
   });
 
-  it.skipIf(isNodeVersion(20))(
-    'should handle unparsable stream parts',
-    async () => {
-      server.urls['https://api.openai.com/v1/completions'].response = {
-        type: 'stream-chunks',
-        chunks: [`data: {unparsable}\n\n`, 'data: [DONE]\n\n'],
-      };
+  it('should handle unparsable stream parts', async () => {
+    server.urls['https://api.openai.com/v1/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [`data: {unparsable}\n\n`, 'data: [DONE]\n\n'],
+    };
 
-      const { stream } = await model.doStream({
-        prompt: TEST_PROMPT,
-        includeRawChunks: false,
-      });
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
 
-      expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
         [
           {
             "type": "stream-start",
@@ -615,7 +610,7 @@ describe('doStream', () => {
           },
           {
             "error": [AI_JSONParseError: JSON parsing failed: Text: {unparsable}.
-        Error message: Expected property name or '}' in JSON at position 1 (line 1 column 2)],
+        Error message: SyntaxError: Expected property name or '}' in JSON at position 1 (line 1 column 2)],
             "type": "error",
           },
           {
@@ -644,8 +639,7 @@ describe('doStream', () => {
           },
         ]
       `);
-    },
-  );
+  });
 
   it('should send request body', async () => {
     prepareChunksFixtureResponse('openai-completion-text');

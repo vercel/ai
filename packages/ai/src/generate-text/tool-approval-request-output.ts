@@ -1,5 +1,5 @@
-import { TypedToolCall } from './tool-call';
-import { ToolSet } from './tool-set';
+import type { TypedToolCall } from './tool-call';
+import type { ToolSet } from '@ai-sdk/provider-utils';
 
 /**
  * Output part that indicates that a tool approval request has been made.
@@ -18,4 +18,11 @@ export type ToolApprovalRequestOutput<TOOLS extends ToolSet> = {
    * Tool call that the approval request is for.
    */
   toolCall: TypedToolCall<TOOLS>;
+
+  /**
+   * Flag indicating whether the tool was automatically approved or denied.
+   *
+   * @default false
+   */
+  isAutomatic?: boolean;
 };

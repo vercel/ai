@@ -1,21 +1,27 @@
 import {
-  LanguageModelV4DataContent,
-  LanguageModelV4Prompt,
   UnsupportedFunctionalityError,
+  type LanguageModelV4FilePart,
+  type LanguageModelV4Prompt,
 } from '@ai-sdk/provider';
-import { MistralPrompt } from './mistral-chat-prompt';
-import { convertToBase64 } from '@ai-sdk/provider-utils';
+import type { MistralPrompt } from './mistral-chat-prompt';
+import {
+  convertToBase64,
+  getTopLevelMediaType,
+  resolveFullMediaType,
+} from '@ai-sdk/provider-utils';
 
-function formatFileUrl({
-  data,
-  mediaType,
-}: {
-  data: LanguageModelV4DataContent;
-  mediaType: string;
-}): string {
-  return data instanceof URL
-    ? data.toString()
-    : `data:${mediaType};base64,${convertToBase64(data as Uint8Array)}`;
+function formatFileUrl({ part }: { part: LanguageModelV4FilePart }): string {
+  if (part.data.type === 'url') {
+    return part.data.url.toString();
+  }
+
+  if (part.data.type === 'data') {
+    return `data:${resolveFullMediaType({ part })};base64,${convertToBase64(part.data.data)}`;
+  }
+
+  throw new UnsupportedFunctionalityError({
+    functionality: `file part data type ${part.data.type}`,
+  });
 }
 
 export function convertToMistralChatMessages(
@@ -43,29 +49,48 @@ export function convertToMistralChatMessages(
               }
 
               case 'file': {
-                if (part.mediaType.startsWith('image/')) {
-                  const mediaType =
-                    part.mediaType === 'image/*'
-                      ? 'image/jpeg'
-                      : part.mediaType;
+                switch (part.data.type) {
+                  case 'reference': {
+                    throw new UnsupportedFunctionalityError({
+                      functionality: 'file parts with provider references',
+                    });
+                  }
+                  case 'text': {
+                    throw new UnsupportedFunctionalityError({
+                      functionality: 'text file parts',
+                    });
+                  }
+                  case 'url':
+                  case 'data': {
+                    const topLevel = getTopLevelMediaType(part.mediaType);
 
-                  return {
-                    type: 'image_url',
-                    image_url: formatFileUrl({ data: part.data, mediaType }),
-                  };
-                } else if (part.mediaType === 'application/pdf') {
-                  return {
-                    type: 'document_url',
-                    document_url: formatFileUrl({
-                      data: part.data,
-                      mediaType: 'application/pdf',
-                    }),
-                  };
-                } else {
-                  throw new UnsupportedFunctionalityError({
-                    functionality:
-                      'Only images and PDF file parts are supported',
-                  });
+                    if (topLevel === 'image') {
+                      return {
+                        type: 'image_url',
+                        image_url: formatFileUrl({ part }),
+                      };
+                    } else {
+                      if (part.data.type === 'data') {
+                        const fullMediaType = resolveFullMediaType({ part });
+                        if (fullMediaType !== 'application/pdf') {
+                          throw new UnsupportedFunctionalityError({
+                            functionality:
+                              'Only images and PDF file parts are supported',
+                          });
+                        }
+                      } else if (part.mediaType !== 'application/pdf') {
+                        throw new UnsupportedFunctionalityError({
+                          functionality:
+                            'Only images and PDF file parts are supported',
+                        });
+                      }
+
+                      return {
+                        type: 'document_url',
+                        document_url: formatFileUrl({ part }),
+                      };
+                    }
+                  }
                 }
               }
             }
@@ -134,7 +159,7 @@ export function convertToMistralChatMessages(
               contentValue = output.value;
               break;
             case 'execution-denied':
-              contentValue = output.reason ?? 'Tool execution denied.';
+              contentValue = output.reason ?? 'Tool call execution denied.';
               break;
             case 'content':
             case 'json':
