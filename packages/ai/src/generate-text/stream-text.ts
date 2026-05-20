@@ -1298,7 +1298,7 @@ class DefaultStreamTextResult<
 
       async pull(controller) {
         // abort handling:
-        function abort() {
+        async function abort() {
           onAbort?.({ steps: recordedSteps });
           controller.enqueue({
             type: 'abort',
@@ -1308,6 +1308,14 @@ class DefaultStreamTextResult<
             ...(abortSignal?.reason !== undefined
               ? { reason: getErrorMessage(abortSignal.reason) }
               : {}),
+          });
+          await notify({
+            event: {
+              callId,
+              error: abortSignal?.reason,
+            },
+            // `onError` is not called for abort errors according to previous tests, so we only call `telemetryDispatcher.onError`.
+            callbacks: [telemetryDispatcher.onError],
           });
           controller.close();
         }
@@ -1321,14 +1329,14 @@ class DefaultStreamTextResult<
           }
 
           if (abortSignal?.aborted) {
-            abort();
+            await abort();
             return;
           }
 
           controller.enqueue(value);
         } catch (error) {
           if (isAbortError(error) && abortSignal?.aborted) {
-            abort();
+            await abort();
           } else {
             controller.error(error);
           }
