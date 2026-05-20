@@ -1,5 +1,11 @@
 # ai
 
+## 7.0.0-canary.148
+
+### Patch Changes
+
+- 2852a84: fix(ai): make input optional on input-streaming UIMessagePart variants
+
 ## 7.0.0-canary.147
 
 ### Patch Changes
