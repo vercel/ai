@@ -12,8 +12,14 @@ export type GoogleGenerativeAIUsageMetadata = {
   cachedContentTokenCount?: number | null;
   thoughtsTokenCount?: number | null;
   trafficType?: string | null;
+<<<<<<< HEAD:packages/google/src/convert-google-generative-ai-usage.ts
   promptTokensDetails?: GoogleGenerativeAITokenDetail[] | null;
   candidatesTokensDetails?: GoogleGenerativeAITokenDetail[] | null;
+=======
+  serviceTier?: string | null;
+  promptTokensDetails?: GoogleTokenDetail[] | null;
+  candidatesTokensDetails?: GoogleTokenDetail[] | null;
+>>>>>>> 045d2e8ee (fix(google): read serviceTier from usageMetadata in stream + generate (#15488)):packages/google/src/convert-google-usage.ts
 };
 
 export function convertGoogleGenerativeAIUsage(

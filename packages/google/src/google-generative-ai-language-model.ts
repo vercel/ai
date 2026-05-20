@@ -490,6 +490,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
       },
       usage: convertGoogleGenerativeAIUsage(usageMetadata),
       warnings,
+<<<<<<< HEAD:packages/google/src/google-generative-ai-language-model.ts
       providerMetadata: {
         [providerOptionsName]: {
           promptFeedback: response.promptFeedback ?? null,
@@ -501,6 +502,17 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
           serviceTier: responseHeaders?.['x-gemini-service-tier'] ?? null,
         } satisfies GoogleGenerativeAIProviderMetadata,
       },
+=======
+      providerMetadata: wrapProviderMetadata({
+        promptFeedback: response.promptFeedback ?? null,
+        groundingMetadata: candidate.groundingMetadata ?? null,
+        urlContextMetadata: candidate.urlContextMetadata ?? null,
+        safetyRatings: candidate.safetyRatings ?? null,
+        usageMetadata: usageMetadata ?? null,
+        finishMessage: candidate.finishMessage ?? null,
+        serviceTier: usageMetadata?.serviceTier ?? null,
+      } satisfies GoogleProviderMetadata),
+>>>>>>> 045d2e8ee (fix(google): read serviceTier from usageMetadata in stream + generate (#15488)):packages/google/src/google-language-model.ts
       request: { body: args },
       response: {
         // TODO timestamp, model id, id
@@ -542,8 +554,6 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
     let providerMetadata: SharedV3ProviderMetadata | undefined = undefined;
     let lastGroundingMetadata: GroundingMetadataSchema | null = null;
     let lastUrlContextMetadata: UrlContextMetadataSchema | null = null;
-    const serviceTier: string | null =
-      responseHeaders?.['x-gemini-service-tier'] ?? null;
 
     const generateId = this.config.generateId;
     let hasToolCalls = false;
@@ -1035,6 +1045,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
                 raw: candidate.finishReason,
               };
 
+<<<<<<< HEAD:packages/google/src/google-generative-ai-language-model.ts
               providerMetadata = {
                 [providerOptionsName]: {
                   promptFeedback: value.promptFeedback ?? null,
@@ -1046,6 +1057,17 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
                   serviceTier,
                 } satisfies GoogleGenerativeAIProviderMetadata,
               };
+=======
+              providerMetadata = wrapProviderMetadata({
+                promptFeedback: value.promptFeedback ?? null,
+                groundingMetadata: lastGroundingMetadata,
+                urlContextMetadata: lastUrlContextMetadata,
+                safetyRatings: candidate.safetyRatings ?? null,
+                usageMetadata: usageMetadata ?? null,
+                finishMessage: candidate.finishMessage ?? null,
+                serviceTier: usage?.serviceTier ?? null,
+              } satisfies GoogleProviderMetadata);
+>>>>>>> 045d2e8ee (fix(google): read serviceTier from usageMetadata in stream + generate (#15488)):packages/google/src/google-language-model.ts
             }
           },
 
@@ -1389,6 +1411,7 @@ const usageSchema = z.object({
   totalTokenCount: z.number().nullish(),
   // https://cloud.google.com/vertex-ai/generative-ai/docs/reference/rest/v1/GenerateContentResponse#TrafficType
   trafficType: z.string().nullish(),
+  serviceTier: z.string().nullish(),
   // https://ai.google.dev/api/generate-content#Modality
   promptTokensDetails: tokenDetailsSchema,
   candidatesTokensDetails: tokenDetailsSchema,
