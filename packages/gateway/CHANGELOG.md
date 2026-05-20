@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 4.0.0-canary.88
+
+### Patch Changes
+
+- accaca0: chore(provider/gateway): update gateway model settings files
+
 ## 4.0.0-canary.87
 
 ### Patch Changes

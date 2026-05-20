@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 4.0.0-canary.70
+
+### Patch Changes
+
+- aeea161: feat(google): read `serviceTier` from `x-gemini-service-tier` response header in Gemini API and use PayGo for Vertex
+
 ## 4.0.0-canary.69
 
 ### Patch Changes
