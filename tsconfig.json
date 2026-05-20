@@ -40,6 +40,7 @@
     { "path": "packages/perplexity" },
     { "path": "packages/provider" },
     { "path": "packages/provider-utils" },
+    { "path": "packages/quiverai" },
     { "path": "packages/react" },
     { "path": "packages/replicate" },
     { "path": "packages/revai" },
