@@ -1,6 +1,6 @@
 import { quiverai, type QuiverAIImageModelOptions } from '@ai-sdk/quiverai';
 import { generateImage } from 'ai';
-import fs from 'node:fs';
+import fs from 'node:fs/promises';
 import path from 'node:path';
 import { run } from '../../lib/run';
 
@@ -10,7 +10,7 @@ run(async () => {
   const { image } = await generateImage({
     model: quiverai.image('arrow-1.1'),
     prompt: {
-      images: ['https://example.com/logo.png'],
+      images: [await fs.readFile('data/wtf-logo.png')],
     },
     providerOptions: {
       quiverai: {
@@ -21,12 +21,12 @@ run(async () => {
     },
   });
 
-  fs.mkdirSync(OUTPUT_DIR, { recursive: true });
+  await fs.mkdir(OUTPUT_DIR, { recursive: true });
   const filePath = path.join(
     OUTPUT_DIR,
     `quiverai-vectorize-${Date.now()}.svg`,
   );
-  await fs.promises.writeFile(filePath, image.uint8Array);
+  await fs.writeFile(filePath, image.uint8Array);
 
   console.log(`Saved SVG to ${filePath}`);
 });
