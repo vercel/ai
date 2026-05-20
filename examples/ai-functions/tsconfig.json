@@ -108,6 +108,9 @@
       "path": "../../packages/provider"
     },
     {
+      "path": "../../packages/quiverai"
+    },
+    {
       "path": "../../packages/replicate"
     },
     {
