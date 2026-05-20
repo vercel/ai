@@ -3,3 +3,13 @@ packages:
   - 'tools/*'
   - 'examples/*'
   - 'packages/rsc/tests/e2e/next-server'
+
+minimumReleaseAge: 2880 # 2 days. Company-wide standard
+
+minimumReleaseAgeExclude:
+  - '@turbo/*'
+  - 'turbo'
+  - '@vercel/*'
+  - '@workflow/*'
+  - '@ai-sdk/*'
+  - 'ai'
