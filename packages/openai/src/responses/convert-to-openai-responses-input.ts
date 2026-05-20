@@ -61,6 +61,7 @@ export async function convertToOpenAIResponsesInput({
   passThroughUnsupportedFiles = false,
   store,
   hasConversation = false,
+  hasPreviousResponseId = false,
   hasLocalShellTool = false,
   hasShellTool = false,
   hasApplyPatchTool = false,
@@ -75,6 +76,7 @@ export async function convertToOpenAIResponsesInput({
   passThroughUnsupportedFiles?: boolean;
   store: boolean;
   hasConversation?: boolean; // when true, skip assistant messages that already have item IDs
+  hasPreviousResponseId?: boolean; // when true, skip assistant messages that already have item IDs (chained via previous_response_id)
   hasLocalShellTool?: boolean;
   hasShellTool?: boolean;
   hasApplyPatchTool?: boolean;
@@ -228,8 +230,10 @@ export async function convertToOpenAIResponsesInput({
                 | null
                 | undefined;
 
-              // when using conversation, skip items that already exist in the conversation context to avoid "Duplicate item found" errors
-              if (hasConversation && id != null) {
+              // when the assistant items are already in OpenAI's server-side context
+              // (via conversation or previous_response_id), skip them to avoid
+              // "Duplicate item found" errors
+              if ((hasConversation || hasPreviousResponseId) && id != null) {
                 break;
               }
 
@@ -260,7 +264,7 @@ export async function convertToOpenAIResponsesInput({
                 | string
                 | undefined;
 
-              if (hasConversation && id != null) {
+              if ((hasConversation || hasPreviousResponseId) && id != null) {
                 break;
               }
 
@@ -409,7 +413,7 @@ export async function convertToOpenAIResponsesInput({
                 break;
               }
 
-              if (hasConversation) {
+              if (hasConversation || hasPreviousResponseId) {
                 break;
               }
 
@@ -505,7 +509,10 @@ export async function convertToOpenAIResponsesInput({
 
               const reasoningId = providerOptions?.itemId;
 
-              if (hasConversation && reasoningId != null) {
+              if (
+                (hasConversation || hasPreviousResponseId) &&
+                reasoningId != null
+              ) {
                 break;
               }
 
@@ -603,7 +610,7 @@ export async function convertToOpenAIResponsesInput({
                   part.providerOptions?.[providerOptionsName];
                 const id = providerOpts?.itemId as string | undefined;
 
-                if (hasConversation && id != null) {
+                if ((hasConversation || hasPreviousResponseId) && id != null) {
                   break;
                 }
 

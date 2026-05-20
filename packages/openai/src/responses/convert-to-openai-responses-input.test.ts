@@ -4549,6 +4549,216 @@ describe('convertToOpenAIResponsesInput', () => {
     });
   });
 
+  describe('hasPreviousResponseId', () => {
+    // Mirrors `hasConversation`. When the assistant items are already on the
+    // server side (chained via `previous_response_id`), re-sending them as
+    // `item_reference`s in `input` produces "Duplicate item found" 400s.
+
+    it('should skip assistant text messages with item IDs when hasPreviousResponseId is true', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Hello' }],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'text',
+                text: 'Hi there!',
+                providerOptions: { openai: { itemId: 'msg_existing_123' } },
+              },
+            ],
+          },
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'What is the weather?' }],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        hasPreviousResponseId: true,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "Hello",
+                "type": "input_text",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "content": [
+              {
+                "text": "What is the weather?",
+                "type": "input_text",
+              },
+            ],
+            "role": "user",
+          },
+        ]
+      `);
+    });
+
+    it('should skip assistant tool-call messages with item IDs when hasPreviousResponseId is true', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'What is the weather?' }],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call_123',
+                toolName: 'getWeather',
+                input: { location: 'San Francisco' },
+                providerOptions: {
+                  openai: { itemId: 'fc_existing_456' },
+                },
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_123',
+                toolName: 'getWeather',
+                output: { type: 'json', value: { temp: 72 } },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        hasPreviousResponseId: true,
+      });
+
+      // Tool-call assistant message is skipped (already in chain); only the
+      // tool result is sent. OpenAI matches the result to the function call
+      // in the chain by call_id.
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "What is the weather?",
+                "type": "input_text",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "call_id": "call_123",
+            "output": "{"temp":72}",
+            "type": "function_call_output",
+          },
+        ]
+      `);
+    });
+
+    it('should skip reasoning parts with item IDs when hasPreviousResponseId is true', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Solve this' }],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'reasoning',
+                text: '',
+                providerOptions: {
+                  openai: { itemId: 'rs_existing_789' },
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        hasPreviousResponseId: true,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "Solve this",
+                "type": "input_text",
+              },
+            ],
+            "role": "user",
+          },
+        ]
+      `);
+    });
+
+    it('should skip compaction when hasPreviousResponseId is true', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Hello' }],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'custom',
+                kind: 'openai.compaction',
+                providerOptions: {
+                  openai: {
+                    type: 'compaction',
+                    itemId: 'cmp_789',
+                    encryptedContent: 'encrypted_data',
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        hasPreviousResponseId: true,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "Hello",
+                "type": "input_text",
+              },
+            ],
+            "role": "user",
+          },
+        ]
+      `);
+    });
+  });
+
   describe('compaction', () => {
     it('should convert compaction to item_reference when store is true', async () => {
       const result = await convertToOpenAIResponsesInput({
