@@ -240,8 +240,17 @@ The following optional provider options are available for Google models:
 - **serviceTier** _'standard' | 'flex' | 'priority'_
 
   Optional. The service tier to use for the request.
-  Set to 'flex' for 50% cheaper processing at the cost of increased latency.
-  Set to 'priority' for ultra-low latency at a 75-100% price premium over 'standard'.
+  Set to `'flex'` for 50% cheaper processing at the cost of increased latency.
+  Set to `'priority'` for ultra-low latency at a 75-100% price premium over `'standard'`.
+
+  Because Priority can be gracefully downgraded to Standard under load, the
+  tier the request actually ran on is surfaced on
+  `result.providerMetadata.google.serviceTier` (read from the
+  `x-gemini-service-tier` response header). On `streamText` this value is
+  currently always `null`: Google's `streamGenerateContent` endpoint does
+  not return the header. See
+  [Priority inference](https://ai.google.dev/gemini-api/docs/priority-inference)
+  and [Flex inference](https://ai.google.dev/gemini-api/docs/flex-inference).
 
 - **threshold** _string_
 

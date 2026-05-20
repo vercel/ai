@@ -37,7 +37,6 @@ import { getModelPath } from './get-model-path';
 import { googleFailedResponseHandler } from './google-error';
 import {
   googleLanguageModelOptions,
-  VertexServiceTierMap,
   type GoogleGenerativeAIModelId,
 } from './google-generative-ai-options';
 import type {
@@ -155,11 +154,43 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
       });
     }
 
-    // Vertex API requires another service tier format.
-    let sanitizedServiceTier: string | undefined = googleOptions?.serviceTier;
     if (googleOptions?.serviceTier && isVertexProvider) {
-      sanitizedServiceTier = VertexServiceTierMap[googleOptions.serviceTier];
+      warnings.push({
+        type: 'other',
+        message:
+          "'serviceTier' is a Gemini API option and is not supported on Vertex AI. " +
+          "Use 'sharedRequestType' (and optionally 'requestType') instead. See " +
+          'https://docs.cloud.google.com/vertex-ai/generative-ai/docs/priority-paygo',
+      });
     }
+    if (
+      (googleOptions?.sharedRequestType || googleOptions?.requestType) &&
+      !isVertexProvider
+    ) {
+      warnings.push({
+        type: 'other',
+        message:
+          "'sharedRequestType' and 'requestType' are Vertex AI options and " +
+          `are ignored with the current Google provider (${this.config.provider}).`,
+      });
+    }
+
+    const vertexPaygoHeaders: Record<string, string> | undefined =
+      isVertexProvider &&
+      (googleOptions?.sharedRequestType || googleOptions?.requestType)
+        ? {
+            ...(googleOptions.sharedRequestType && {
+              'X-Vertex-AI-LLM-Shared-Request-Type':
+                googleOptions.sharedRequestType,
+            }),
+            ...(googleOptions.requestType && {
+              'X-Vertex-AI-LLM-Request-Type': googleOptions.requestType,
+            }),
+          }
+        : undefined;
+    const bodyServiceTier = isVertexProvider
+      ? undefined
+      : googleOptions?.serviceTier;
 
     const isGemmaModel = this.modelId.toLowerCase().startsWith('gemma-');
     const supportsFunctionResponseParts = this.modelId.startsWith('gemini-3');
@@ -253,21 +284,24 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
         toolConfig,
         cachedContent: googleOptions?.cachedContent,
         labels: googleOptions?.labels,
-        serviceTier: sanitizedServiceTier,
+        serviceTier: bodyServiceTier,
       },
       warnings: [...warnings, ...toolWarnings],
       providerOptionsName,
+      extraHeaders: vertexPaygoHeaders,
     };
   }
 
   async doGenerate(
     options: LanguageModelV3CallOptions,
   ): Promise<LanguageModelV3GenerateResult> {
-    const { args, warnings, providerOptionsName } = await this.getArgs(options);
+    const { args, warnings, providerOptionsName, extraHeaders } =
+      await this.getArgs(options);
 
     const mergedHeaders = combineHeaders(
       await resolve(this.config.headers),
       options.headers,
+      extraHeaders,
     );
 
     const {
@@ -464,7 +498,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
           safetyRatings: candidate.safetyRatings ?? null,
           usageMetadata: usageMetadata ?? null,
           finishMessage: candidate.finishMessage ?? null,
-          serviceTier: response.serviceTier ?? null,
+          serviceTier: responseHeaders?.['x-gemini-service-tier'] ?? null,
         } satisfies GoogleGenerativeAIProviderMetadata,
       },
       request: { body: args },
@@ -479,14 +513,13 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
   async doStream(
     options: LanguageModelV3CallOptions,
   ): Promise<LanguageModelV3StreamResult> {
-    const { args, warnings, providerOptionsName } = await this.getArgs(
-      options,
-      { isStreaming: true },
-    );
+    const { args, warnings, providerOptionsName, extraHeaders } =
+      await this.getArgs(options, { isStreaming: true });
 
     const headers = combineHeaders(
       await resolve(this.config.headers),
       options.headers,
+      extraHeaders,
     );
 
     const { responseHeaders, value: response } = await postJsonToApi({
@@ -509,7 +542,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
     let providerMetadata: SharedV3ProviderMetadata | undefined = undefined;
     let lastGroundingMetadata: GroundingMetadataSchema | null = null;
     let lastUrlContextMetadata: UrlContextMetadataSchema | null = null;
-    let serviceTier: string | null = null;
+    const serviceTier: string | null =
+      responseHeaders?.['x-gemini-service-tier'] ?? null;
 
     const generateId = this.config.generateId;
     let hasToolCalls = false;
@@ -595,10 +629,6 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
 
             if (usageMetadata != null) {
               usage = usageMetadata;
-            }
-
-            if (value.serviceTier != null) {
-              serviceTier = value.serviceTier;
             }
 
             const candidate = value.candidates?.[0];
@@ -1397,7 +1427,6 @@ const responseSchema = lazySchema(() =>
           safetyRatings: z.array(getSafetyRatingSchema()).nullish(),
         })
         .nullish(),
-      serviceTier: z.string().nullish(),
     }),
   ),
 );
@@ -1453,7 +1482,6 @@ const chunkSchema = lazySchema(() =>
           safetyRatings: z.array(getSafetyRatingSchema()).nullish(),
         })
         .nullish(),
-      serviceTier: z.string().nullish(),
     }),
   ),
 );
