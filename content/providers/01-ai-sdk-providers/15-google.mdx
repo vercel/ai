@@ -1545,9 +1545,10 @@ Agents also chain through `previousInteractionId` like model-id calls.
 
 ### Managed Agents
 
-Managed agents run inside a sandboxed Linux environment provisioned per
-interaction. Pass the `environment` provider option to control how the
-sandbox is set up; the option is only accepted on agent calls.
+[Managed agents](https://ai.google.dev/gemini-api/docs/agents) run inside a
+sandboxed Linux environment provisioned per interaction. Pass the `environment`
+provider option to control how the sandbox is set up; the option is only
+accepted on agent calls.
 
 The simplest form provisions a fresh sandbox:
 
