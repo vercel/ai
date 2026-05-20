@@ -56,6 +56,13 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
         'Instructions for the agent, usually used for system prompt/context.',
     },
     {
+      name: 'allowSystemInMessages',
+      type: 'boolean',
+      isOptional: true,
+      description:
+        'Whether `role: "system"` messages are allowed in the `prompt` or `messages` fields. When unset, system messages are rejected because they can create a prompt injection attack risk. Ideally, use the `instructions` option instead. Set to `true` to allow system messages, or `false` to explicitly reject them.',
+    },
+    {
       name: 'tools',
       type: 'Record<string, Tool>',
       isOptional: true,

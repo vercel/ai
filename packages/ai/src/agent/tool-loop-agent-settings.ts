@@ -48,10 +48,27 @@ export type ToolLoopAgentSettings<
    */
   instructions?: string | SystemModelMessage | Array<SystemModelMessage>;
 
+<<<<<<< HEAD
   /**
    * The language model to use.
    */
   model: LanguageModel;
+=======
+    /**
+     * Whether system messages are allowed in the `prompt` or `messages` fields.
+     *
+     * When disabled, system messages must be provided through the `instructions`
+     * option.
+     *
+     * @default false
+     */
+    allowSystemInMessages?: boolean;
+
+    /**
+     * The language model to use.
+     */
+    model: LanguageModel;
+>>>>>>> e3d9c0e9c ([tool-loop-agent] adding support for messages with system role with override (#15483))
 
   /**
    * The tools that the model can call. The model needs to support calling tools.
@@ -137,6 +154,7 @@ export type ToolLoopAgentSettings<
    */
   callOptionsSchema?: FlexibleSchema<CALL_OPTIONS>;
 
+<<<<<<< HEAD
   /**
    * Prepare the parameters for the generateText or streamText call.
    *
@@ -147,6 +165,123 @@ export type ToolLoopAgentSettings<
       AgentCallParameters<CALL_OPTIONS, NoInfer<TOOLS>>,
       'onStepFinish'
     > &
+=======
+    /**
+     * Callback that is called after each tool execution completes.
+     */
+    onToolExecutionEnd?: OnToolExecutionEndCallback<NoInfer<TOOLS>>;
+
+    /**
+     * Callback that is called when each step (LLM call) is finished, including intermediate steps.
+     */
+    onStepFinish?: GenerateTextOnStepFinishCallback<
+      NoInfer<TOOLS>,
+      NoInfer<RUNTIME_CONTEXT>
+    >;
+
+    /**
+     * Callback that is called when all steps are finished and the response is complete.
+     */
+    onFinish?: GenerateTextOnFinishCallback<
+      NoInfer<TOOLS>,
+      NoInfer<RUNTIME_CONTEXT>
+    >;
+
+    /**
+     * Additional provider-specific options. They are passed through
+     * to the provider from the AI SDK and enable provider-specific
+     * functionality that can be fully encapsulated in the provider.
+     */
+    providerOptions?: ProviderOptions;
+
+    /**
+     * Custom download function to use for URLs.
+     *
+     * By default, files are downloaded if the model does not support the URL for the given media type.
+     */
+    experimental_download?: DownloadFunction | undefined;
+
+    /**
+     * Settings for controlling what data is included in step results.
+     * Disabling inclusion can help reduce memory usage when processing
+     * large payloads like images.
+     *
+     * By default, request and response bodies are included, and request
+     * messages are excluded.
+     */
+    include?: GenerateTextInclude & StreamTextInclude;
+
+    /**
+     * Internal. For test use only. May change without notice.
+     */
+    _internal?: {
+      generateId?: IdGenerator;
+      generateCallId?: IdGenerator;
+    };
+
+    /**
+     * The schema for the call options.
+     */
+    callOptionsSchema?: FlexibleSchema<CALL_OPTIONS>;
+
+    /**
+     * Prepare the parameters for the generateText or streamText call.
+     *
+     * You can use this to have templates based on call options.
+     *
+     * The design requires you to pass call parameters as follows to
+     * allow for the removal of parameters from the original settings
+     * by setting them to `undefined`:
+     *
+     * ```
+     *   prepareCall: ({ options, ...rest }) => ({
+     *     ...rest,
+     *   }),
+     * ```
+     */
+    prepareCall?: (
+      options: Omit<
+        AgentCallParameters<
+          CALL_OPTIONS,
+          NoInfer<TOOLS>,
+          NoInfer<RUNTIME_CONTEXT>
+        >,
+        'onStepFinish'
+      > &
+        Pick<
+          ToolLoopAgentSettings<
+            CALL_OPTIONS,
+            TOOLS,
+            RUNTIME_CONTEXT,
+            NoInfer<OUTPUT>
+          >,
+          | 'model'
+          | 'tools'
+          | 'maxOutputTokens'
+          | 'temperature'
+          | 'topP'
+          | 'topK'
+          | 'presencePenalty'
+          | 'frequencyPenalty'
+          | 'stopSequences'
+          | 'seed'
+          | 'headers'
+          | 'instructions'
+          | 'allowSystemInMessages'
+          | 'stopWhen'
+          | 'telemetry'
+          | 'experimental_telemetry'
+          | 'activeTools'
+          | 'toolApproval'
+          | 'providerOptions'
+          | 'experimental_download'
+          | 'experimental_refineToolInput'
+          | 'include'
+          | 'runtimeContext'
+          | '_internal'
+        > & { toolsContext: InferToolSetContext<TOOLS> },
+    ) => MaybePromiseLike<
+>>>>>>> e3d9c0e9c ([tool-loop-agent] adding support for messages with system role with override (#15483))
       Pick<
         ToolLoopAgentSettings<CALL_OPTIONS, TOOLS, OUTPUT>,
         | 'model'
@@ -161,6 +296,7 @@ export type ToolLoopAgentSettings<
         | 'seed'
         | 'headers'
         | 'instructions'
+        | 'allowSystemInMessages'
         | 'stopWhen'
         | 'experimental_telemetry'
         | 'activeTools'

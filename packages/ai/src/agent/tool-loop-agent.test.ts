@@ -78,6 +78,49 @@ describe('ToolLoopAgent', () => {
       expect(doGenerateOptions?.abortSignal).toBe(abortController.signal);
     });
 
+    it('should allow system messages when allowSystemInMessages is true', async () => {
+      const agent = new ToolLoopAgent({
+        model: mockModel,
+        allowSystemInMessages: true,
+      });
+
+      await agent.generate({
+        messages: [{ role: 'system', content: 'SYSTEM INSTRUCTIONS' }],
+      });
+
+      expect(doGenerateOptions?.prompt).toEqual([
+        { role: 'system', content: 'SYSTEM INSTRUCTIONS' },
+      ]);
+    });
+
+    it('should allow prepareCall to return allowSystemInMessages', async () => {
+      const agent = new ToolLoopAgent({
+        model: mockModel,
+        prepareCall: ({ ...rest }) => ({
+          ...rest,
+          allowSystemInMessages: true,
+        }),
+      });
+
+      await agent.generate({
+        messages: [{ role: 'system', content: 'SYSTEM INSTRUCTIONS' }],
+      });
+
+      expect(doGenerateOptions?.prompt).toEqual([
+        { role: 'system', content: 'SYSTEM INSTRUCTIONS' },
+      ]);
+    });
+
+    it('should reject system messages when allowSystemInMessages is not set', async () => {
+      const agent = new ToolLoopAgent({ model: mockModel });
+
+      await expect(
+        agent.generate({
+          messages: [{ role: 'system', content: 'SYSTEM INSTRUCTIONS' }],
+        }),
+      ).rejects.toThrow(/system messages are not allowed/i);
+    });
+
     it('should pass timeout to generateText', async () => {
       const agent = new ToolLoopAgent({ model: mockModel });
 
@@ -367,6 +410,174 @@ describe('ToolLoopAgent', () => {
       expect(doStreamOptions?.abortSignal).toBeDefined();
     });
 
+<<<<<<< HEAD
+=======
+    it('should allow system messages when allowSystemInMessages is true', async () => {
+      const agent = new ToolLoopAgent({
+        model: mockModel,
+        allowSystemInMessages: true,
+      });
+
+      const result = await agent.stream({
+        messages: [{ role: 'system', content: 'SYSTEM INSTRUCTIONS' }],
+      });
+
+      await result.consumeStream();
+
+      expect(doStreamOptions?.prompt).toEqual([
+        { role: 'system', content: 'SYSTEM INSTRUCTIONS' },
+      ]);
+    });
+
+    it('should allow prepareCall to return allowSystemInMessages', async () => {
+      const agent = new ToolLoopAgent({
+        model: mockModel,
+        prepareCall: ({ ...rest }) => ({
+          ...rest,
+          allowSystemInMessages: true,
+        }),
+      });
+
+      const result = await agent.stream({
+        messages: [{ role: 'system', content: 'SYSTEM INSTRUCTIONS' }],
+      });
+
+      await result.consumeStream();
+
+      expect(doStreamOptions?.prompt).toEqual([
+        { role: 'system', content: 'SYSTEM INSTRUCTIONS' },
+      ]);
+    });
+
+    it('should pass sandbox to tool execution', async () => {
+      const sandbox = {
+        description: 'test sandbox',
+        runCommand: vi.fn(async () => ({
+          exitCode: 0,
+          stdout: 'ok',
+          stderr: '',
+        })),
+        ...mockSandboxFileStubs,
+      } satisfies Sandbox;
+      let recordedSandbox: Sandbox | undefined;
+      let modelCallCount = 0;
+
+      const agent = new ToolLoopAgent({
+        model: new MockLanguageModelV4({
+          doStream: async () => {
+            modelCallCount++;
+
+            if (modelCallCount === 1) {
+              return {
+                stream: convertArrayToReadableStream([
+                  { type: 'stream-start', warnings: [] },
+                  {
+                    type: 'response-metadata',
+                    id: 'id-0',
+                    modelId: 'mock-model-id',
+                    timestamp: new Date(0),
+                  },
+                  {
+                    type: 'tool-call',
+                    toolCallId: 'call-1',
+                    toolName: 'testTool',
+                    input: '{ "value": "test" }',
+                  },
+                  {
+                    type: 'finish',
+                    finishReason: {
+                      unified: 'tool-calls' as const,
+                      raw: undefined,
+                    },
+                    usage: {
+                      inputTokens: {
+                        total: 3,
+                        noCache: 3,
+                        cacheRead: undefined,
+                        cacheWrite: undefined,
+                      },
+                      outputTokens: {
+                        total: 10,
+                        text: 10,
+                        reasoning: undefined,
+                      },
+                    },
+                    providerMetadata: {},
+                  },
+                ]),
+              };
+            }
+
+            return {
+              stream: convertArrayToReadableStream([
+                { type: 'stream-start', warnings: [] },
+                {
+                  type: 'response-metadata',
+                  id: 'id-1',
+                  modelId: 'mock-model-id',
+                  timestamp: new Date(0),
+                },
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: 'done' },
+                { type: 'text-end', id: '1' },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'stop' as const, raw: 'stop' },
+                  usage: {
+                    inputTokens: {
+                      total: 3,
+                      noCache: 3,
+                      cacheRead: undefined,
+                      cacheWrite: undefined,
+                    },
+                    outputTokens: {
+                      total: 10,
+                      text: 10,
+                      reasoning: undefined,
+                    },
+                  },
+                  providerMetadata: {},
+                },
+              ]),
+            };
+          },
+        }),
+        tools: {
+          testTool: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }, { experimental_sandbox: sandbox }) => {
+              recordedSandbox = sandbox;
+              return value;
+            },
+          }),
+        },
+      });
+
+      const result = await agent.stream({
+        prompt: 'test',
+        experimental_sandbox: sandbox,
+      });
+      await result.consumeStream();
+
+      expect(recordedSandbox).toBe(sandbox);
+    });
+
+    it('should forward include to streamText', async () => {
+      const agent = new ToolLoopAgent({
+        model: mockModel,
+        include: { rawChunks: true },
+      });
+
+      const result = await agent.stream({
+        prompt: 'Hello, world!',
+      });
+
+      await result.consumeStream();
+
+      expect(doStreamOptions?.includeRawChunks).toBe(true);
+    });
+
+>>>>>>> e3d9c0e9c ([tool-loop-agent] adding support for messages with system role with override (#15483))
     it('should pass string instructions', async () => {
       const agent = new ToolLoopAgent({
         model: mockModel,
