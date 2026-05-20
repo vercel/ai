@@ -2215,6 +2215,34 @@ describe('ToolLoopAgent', () => {
         `);
       });
 
+      it('should call deprecated tool call start alias from generate method', async () => {
+        const calls: string[] = [];
+
+        const agent = new ToolLoopAgent({
+          model: createToolCallMockModel(),
+          tools: {
+            testTool: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: async ({ value }: { value: string }) =>
+                `${value}-result`,
+            }),
+          },
+        });
+
+        await agent.generate({
+          prompt: 'test',
+          experimental_onToolCallStart: async () => {
+            calls.push('method');
+          },
+        });
+
+        expect(calls).toMatchInlineSnapshot(`
+          [
+            "method",
+          ]
+        `);
+      });
+
       it('should call both constructor and method in correct order', async () => {
         const calls: string[] = [];
 
@@ -2408,6 +2436,36 @@ describe('ToolLoopAgent', () => {
         const result = await agent.stream({
           prompt: 'test',
           onToolExecutionStart: async () => {
+            calls.push('method');
+          },
+        });
+
+        await result.consumeStream();
+
+        expect(calls).toMatchInlineSnapshot(`
+          [
+            "method",
+          ]
+        `);
+      });
+
+      it('should call deprecated tool call start alias from stream method', async () => {
+        const calls: string[] = [];
+
+        const agent = new ToolLoopAgent({
+          model: createToolCallStreamMockModel(),
+          tools: {
+            testTool: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: async ({ value }: { value: string }) =>
+                `${value}-result`,
+            }),
+          },
+        });
+
+        const result = await agent.stream({
+          prompt: 'test',
+          experimental_onToolCallStart: async () => {
             calls.push('method');
           },
         });
@@ -2642,6 +2700,34 @@ describe('ToolLoopAgent', () => {
         `);
       });
 
+      it('should call deprecated tool call finish alias from generate method', async () => {
+        const calls: string[] = [];
+
+        const agent = new ToolLoopAgent({
+          model: createToolCallMockModel(),
+          tools: {
+            testTool: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: async ({ value }: { value: string }) =>
+                `${value}-result`,
+            }),
+          },
+        });
+
+        await agent.generate({
+          prompt: 'test',
+          experimental_onToolCallFinish: async () => {
+            calls.push('method');
+          },
+        });
+
+        expect(calls).toMatchInlineSnapshot(`
+          [
+            "method",
+          ]
+        `);
+      });
+
       it('should call both constructor and method in correct order', async () => {
         const calls: string[] = [];
 
@@ -2846,6 +2932,36 @@ describe('ToolLoopAgent', () => {
         const result = await agent.stream({
           prompt: 'test',
           onToolExecutionEnd: async () => {
+            calls.push('method');
+          },
+        });
+
+        await result.consumeStream();
+
+        expect(calls).toMatchInlineSnapshot(`
+          [
+            "method",
+          ]
+        `);
+      });
+
+      it('should call deprecated tool call finish alias from stream method', async () => {
+        const calls: string[] = [];
+
+        const agent = new ToolLoopAgent({
+          model: createToolCallStreamMockModel(),
+          tools: {
+            testTool: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: async ({ value }: { value: string }) =>
+                `${value}-result`,
+            }),
+          },
+        });
+
+        const result = await agent.stream({
+          prompt: 'test',
+          experimental_onToolCallFinish: async () => {
             calls.push('method');
           },
         });
