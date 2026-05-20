@@ -498,7 +498,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
           safetyRatings: candidate.safetyRatings ?? null,
           usageMetadata: usageMetadata ?? null,
           finishMessage: candidate.finishMessage ?? null,
-          serviceTier: responseHeaders?.['x-gemini-service-tier'] ?? null,
+          serviceTier: usageMetadata?.serviceTier ?? null,
         } satisfies GoogleGenerativeAIProviderMetadata,
       },
       request: { body: args },
@@ -542,8 +542,6 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
     let providerMetadata: SharedV3ProviderMetadata | undefined = undefined;
     let lastGroundingMetadata: GroundingMetadataSchema | null = null;
     let lastUrlContextMetadata: UrlContextMetadataSchema | null = null;
-    const serviceTier: string | null =
-      responseHeaders?.['x-gemini-service-tier'] ?? null;
 
     const generateId = this.config.generateId;
     let hasToolCalls = false;
@@ -1043,7 +1041,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
                   safetyRatings: candidate.safetyRatings ?? null,
                   usageMetadata: usageMetadata ?? null,
                   finishMessage: candidate.finishMessage ?? null,
-                  serviceTier,
+                  serviceTier: usage?.serviceTier ?? null,
                 } satisfies GoogleGenerativeAIProviderMetadata,
               };
             }
@@ -1389,6 +1387,7 @@ const usageSchema = z.object({
   totalTokenCount: z.number().nullish(),
   // https://cloud.google.com/vertex-ai/generative-ai/docs/reference/rest/v1/GenerateContentResponse#TrafficType
   trafficType: z.string().nullish(),
+  serviceTier: z.string().nullish(),
   // https://ai.google.dev/api/generate-content#Modality
   promptTokensDetails: tokenDetailsSchema,
   candidatesTokensDetails: tokenDetailsSchema,

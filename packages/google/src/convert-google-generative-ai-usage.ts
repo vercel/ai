@@ -12,6 +12,7 @@ export type GoogleGenerativeAIUsageMetadata = {
   cachedContentTokenCount?: number | null;
   thoughtsTokenCount?: number | null;
   trafficType?: string | null;
+  serviceTier?: string | null;
   promptTokensDetails?: GoogleGenerativeAITokenDetail[] | null;
   candidatesTokensDetails?: GoogleGenerativeAITokenDetail[] | null;
 };
