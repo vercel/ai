@@ -22,6 +22,7 @@ import type { LanguageModelCallOptions } from '../prompt/language-model-call-opt
 import { prepareToolChoice } from '../prompt/prepare-tool-choice';
 import { prepareTools } from '../prompt/prepare-tools';
 import { standardizePrompt } from '../prompt/standardize-prompt';
+import type { Telemetry } from '../telemetry/telemetry';
 import type {
   CallWarning,
   FinishReason,
@@ -205,6 +206,8 @@ export async function streamLanguageModelCall<
   providerOptions,
   repairToolCall,
   refineToolInput,
+  executeLanguageModelCallInTelemetryContext = async ({ execute }) =>
+    await execute(),
   callId,
   toolsContext,
   experimental_sandbox: sandbox,
@@ -229,6 +232,7 @@ export async function streamLanguageModelCall<
   providerOptions?: ProviderOptions;
   repairToolCall?: ToolCallRepairFunction<TOOLS> | undefined;
   refineToolInput?: ToolInputRefinement<TOOLS> | undefined;
+  executeLanguageModelCallInTelemetryContext?: Telemetry['executeLanguageModelCall'];
   callId?: string;
   /**
    * Tool context used to resolve per-call tool metadata such as function
@@ -329,16 +333,20 @@ export async function streamLanguageModelCall<
     stream: languageModelStream,
     response,
     request,
-  } = await resolvedModel.doStream({
-    ...callSettings,
-    tools: stepTools,
-    toolChoice: stepToolChoice,
-    responseFormat: await output?.responseFormat,
-    prompt: promptMessages,
-    providerOptions,
-    abortSignal,
-    headers,
-    includeRawChunks,
+  } = await executeLanguageModelCallInTelemetryContext({
+    callId: effectiveCallId,
+    execute: async () =>
+      await resolvedModel.doStream({
+        ...callSettings,
+        tools: stepTools,
+        toolChoice: stepToolChoice,
+        responseFormat: await output?.responseFormat,
+        prompt: promptMessages,
+        providerOptions,
+        abortSignal,
+        headers,
+        includeRawChunks,
+      }),
   });
 
   const standardizedStream = languageModelStream.pipeThrough(

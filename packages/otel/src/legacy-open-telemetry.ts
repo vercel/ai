@@ -174,6 +174,26 @@ export class LegacyOpenTelemetry implements Telemetry {
     return context.with(toolSpanEntry.context, execute);
   }
 
+  /**
+   * Runs the provider `doGenerate`/`doStream` call with the active legacy
+   * model-call context.
+   */
+  executeLanguageModelCall<T>({
+    callId,
+    execute,
+  }: {
+    callId: string;
+    execute: () => PromiseLike<T>;
+  }): PromiseLike<T> {
+    const stepContext = this.getCallState(callId)?.stepContext;
+
+    if (stepContext == null) {
+      return execute();
+    }
+
+    return context.with(stepContext, execute);
+  }
+
   onStart(
     event:
       | InferTelemetryEvent<GenerateTextStartEvent>
