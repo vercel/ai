@@ -1,9 +1,6 @@
 import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
-import type {
-  ModelMessage,
-  ProviderOptions,
-  SystemModelMessage,
-} from '@ai-sdk/provider-utils';
+import type { ModelMessage, ProviderOptions } from '@ai-sdk/provider-utils';
+import type { Instructions } from '../prompt';
 import type {
   CallWarning,
   FinishReason,
@@ -35,11 +32,7 @@ export interface GenerateObjectStartEvent {
   readonly modelId: string;
 
   /** The system message(s) provided to the model. */
-  readonly system:
-    | string
-    | SystemModelMessage
-    | Array<SystemModelMessage>
-    | undefined;
+  readonly system: Instructions | undefined;
 
   /** The prompt string or array of messages if using the prompt option. */
   readonly prompt: string | Array<ModelMessage> | undefined;
@@ -153,12 +146,10 @@ export interface GenerateObjectStepEndEvent {
   readonly warnings: CallWarning[] | undefined;
 
   /** Additional request information. */
-  readonly request: LanguageModelRequestMetadata;
+  readonly request: Omit<LanguageModelRequestMetadata, 'messages'>;
 
   /** Additional response information. */
-  readonly response: LanguageModelResponseMetadata & {
-    body?: unknown;
-  };
+  readonly response: Omit<LanguageModelResponseMetadata, 'messages'>;
 
   /** Additional provider-specific metadata. */
   readonly providerMetadata: ProviderMetadata | undefined;
@@ -207,12 +198,10 @@ export interface GenerateObjectEndEvent<RESULT> {
   readonly warnings: CallWarning[] | undefined;
 
   /** Additional request information. */
-  readonly request: LanguageModelRequestMetadata;
+  readonly request: Omit<LanguageModelRequestMetadata, 'messages'>;
 
   /** Additional response information. */
-  readonly response: LanguageModelResponseMetadata & {
-    body?: unknown;
-  };
+  readonly response: Omit<LanguageModelResponseMetadata, 'messages'>;
 
   /** Additional provider-specific metadata. */
   readonly providerMetadata: ProviderMetadata | undefined;

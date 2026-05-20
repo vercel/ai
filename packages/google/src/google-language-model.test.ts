@@ -4170,6 +4170,80 @@ describe('doStream', () => {
     });
   });
 
+  describe('streaming-tool-call-array-arguments', () => {
+    beforeEach(() => {
+      prepareChunksFixtureResponse(
+        'google-stream-tool-call-array-arguments-missing-terminal-function-call',
+      );
+    });
+
+    it('should finalize streamed function call arguments when the final partialArgs chunk omits willContinue', async () => {
+      const vertexModel = new GoogleLanguageModel('gemini-pro', {
+        provider: 'google.vertex.chat',
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+        headers: { 'x-goog-api-key': 'test-api-key' },
+        generateId: () => 'test-id',
+      });
+
+      const { stream } = await vertexModel.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+        tools: [
+          {
+            type: 'function',
+            name: 'writeItems',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                operations: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      action: { type: 'string' },
+                      description: { type: 'string' },
+                      itemid: { type: 'string' },
+                      price: { type: 'number' },
+                    },
+                    required: ['action', 'description', 'itemid', 'price'],
+                    additionalProperties: false,
+                  },
+                },
+              },
+              required: ['operations'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        ],
+        providerOptions: {
+          vertex: {
+            streamFunctionCallArguments: true,
+          },
+        },
+      });
+
+      const events = await convertReadableStreamToArray(stream);
+      const inputDeltas = events.filter(e => e.type === 'tool-input-delta');
+      const toolCalls = events.filter(e => e.type === 'tool-call');
+      const finish = events.find(e => e.type === 'finish');
+
+      expect(inputDeltas.map(e => e.delta).join('')).toMatchInlineSnapshot(
+        `"{"operations":[{"action":"add","description":"Fresh red apple","itemid":"apple_001","price":0.5},{"action":"add","description":"Ripe yellow banana","itemid":"banana_001","price":0.3}]}"`,
+      );
+      expect(toolCalls.map(c => ({ toolName: c.toolName, input: c.input })))
+        .toMatchInlineSnapshot(`
+        [
+          {
+            "input": "{"operations":[{"action":"add","description":"Fresh red apple","itemid":"apple_001","price":0.5},{"action":"add","description":"Ripe yellow banana","itemid":"banana_001","price":0.3}]}",
+            "toolName": "writeItems",
+          },
+        ]
+      `);
+      expect(finish?.finishReason.unified).toBe('tool-calls');
+    });
+  });
+
   describe('streaming-no-args-tool-call', () => {
     beforeEach(() => {
       prepareChunksFixtureResponse('google-stream-no-args-tool-call');

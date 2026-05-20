@@ -1,5 +1,158 @@
 # @ai-sdk/xai
 
+## 4.0.0-canary.66
+
+### Patch Changes
+
+- 7fc6bd6: Raise minimum supported Node.js version to 22. Supported versions: 22, 24, and 26.
+- Updated dependencies [7fc6bd6]
+  - @ai-sdk/openai-compatible@3.0.0-canary.50
+  - @ai-sdk/provider-utils@5.0.0-canary.43
+  - @ai-sdk/provider@4.0.0-canary.17
+
+## 4.0.0-canary.65
+
+### Patch Changes
+
+- Updated dependencies [a6617c5]
+  - @ai-sdk/provider-utils@5.0.0-canary.42
+  - @ai-sdk/openai-compatible@3.0.0-canary.49
+
+## 4.0.0-canary.64
+
+### Patch Changes
+
+- 2dc2a52: fix reasoning-start dedupe on multi-summary-part responses to prevent xai 400 on continuation requests
+- 1293885: surface full xai error detail in APICallError.message instead of falling back to http status text
+
+## 4.0.0-canary.63
+
+### Patch Changes
+
+- Updated dependencies [28dfa06]
+- Updated dependencies [e93fa91]
+  - @ai-sdk/provider-utils@5.0.0-canary.41
+  - @ai-sdk/openai-compatible@3.0.0-canary.48
+
+## 4.0.0-canary.62
+
+### Patch Changes
+
+- 85735d8: fix(xai): stop emitting additionalProperties flag
+
+## 4.0.0-canary.61
+
+### Patch Changes
+
+- 80e1702: feat(xai): support `'none'` and `'medium'` reasoning effort for `grok-4.3`,
+  and curate the model ID autocomplete list
+
+  `grok-4.3` accepts `reasoning_effort` of `"none" | "low" | "medium" | "high"`,
+  where `"none"` disables reasoning entirely (no thinking tokens) and `"medium"`
+  provides more thinking for less-latency-sensitive applications.
+
+  - Adds `'none'` to the allowed values for `providerOptions.xai.reasoningEffort`
+    on both the chat (`xai()`) and responses (`xai.responses()`) language models.
+  - Adds `'medium'` to the chat model's `reasoningEffort` enum (the responses
+    model already supported it).
+  - Top-level `reasoning: 'medium'` now maps to `reasoning_effort: 'medium'` for
+    the chat model (previously it was coerced to `'low'` because `'medium'` was
+    not a valid value).
+
+  In addition, the `XaiChatModelId` and `XaiResponsesModelId` autocomplete unions
+  have been trimmed to xAI's current model lineup
+  ([docs](https://docs.x.ai/docs/models)):
+
+  - `grok-4.20-non-reasoning`
+  - `grok-4.20-reasoning`
+  - `grok-4.3`
+  - `grok-latest`
+
+  Older entries (`grok-3*`, `grok-4`, `grok-4-0709`, `grok-4-latest`,
+  `grok-4-1-fast-*`, `grok-4-fast-*`, `grok-code-fast-1`, and
+  `grok-4.20-multi-agent-0309`) have been removed from the autocomplete list.
+  This is **not** a runtime change — the model ID type is still open
+  (`(string & {})`), so passing any model ID that the xAI API accepts continues
+  to work; only IDE autocomplete is affected.
+
+  ```ts
+  import { xai } from "@ai-sdk/xai";
+  import { generateText } from "ai";
+
+  await generateText({
+    model: xai("grok-4.3"),
+    prompt: "Hi",
+    providerOptions: {
+      xai: { reasoningEffort: "none" },
+    },
+  });
+  ```
+
+## 4.0.0-canary.60
+
+### Patch Changes
+
+- Updated dependencies [a7de9c9]
+  - @ai-sdk/provider-utils@5.0.0-canary.40
+  - @ai-sdk/openai-compatible@3.0.0-canary.47
+
+## 4.0.0-canary.59
+
+### Patch Changes
+
+- Updated dependencies [105f95b]
+  - @ai-sdk/provider-utils@5.0.0-canary.39
+  - @ai-sdk/openai-compatible@3.0.0-canary.46
+
+## 4.0.0-canary.58
+
+### Patch Changes
+
+- Updated dependencies [ca446f8]
+  - @ai-sdk/provider-utils@5.0.0-canary.38
+  - @ai-sdk/openai-compatible@3.0.0-canary.45
+
+## 4.0.0-canary.57
+
+### Patch Changes
+
+- Updated dependencies [d848405]
+  - @ai-sdk/provider-utils@5.0.0-canary.37
+  - @ai-sdk/openai-compatible@3.0.0-canary.44
+
+## 4.0.0-canary.56
+
+### Patch Changes
+
+- Updated dependencies [ca39020]
+  - @ai-sdk/provider-utils@5.0.0-canary.36
+  - @ai-sdk/openai-compatible@3.0.0-canary.43
+
+## 4.0.0-canary.55
+
+### Patch Changes
+
+- Updated dependencies [f634bac]
+  - @ai-sdk/provider-utils@5.0.0-canary.35
+  - @ai-sdk/openai-compatible@3.0.0-canary.42
+
+## 4.0.0-canary.54
+
+### Patch Changes
+
+- Updated dependencies [69254e0]
+- Updated dependencies [3015fc3]
+  - @ai-sdk/provider-utils@5.0.0-canary.34
+  - @ai-sdk/openai-compatible@3.0.0-canary.41
+
+## 4.0.0-canary.53
+
+### Patch Changes
+
+- Updated dependencies [2427d88]
+  - @ai-sdk/provider-utils@5.0.0-canary.33
+  - @ai-sdk/openai-compatible@3.0.0-canary.40
+
 ## 4.0.0-canary.52
 
 ### Patch Changes
@@ -664,7 +817,6 @@
 ### Patch Changes
 
 - 05f3f36: Add native `file_search` server-side tool support:
-
   - Add `xai.tools.fileSearch()` for vector store search with `vectorStoreIds` and `maxNumResults` parameters
   - Add `include` option supporting `file_search_call.results` to get inline search results
   - Add `file_search_call` handling in language model for both `doGenerate` and `doStream`

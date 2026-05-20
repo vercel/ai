@@ -19,7 +19,7 @@ run(async () => {
 
   await result.consumeStream();
 
-  const metadata = (await result.providerMetadata)?.googleVertex as
+  const metadata = (await result.finalStep).providerMetadata?.googleVertex as
     | GoogleProviderMetadata
     | undefined;
 

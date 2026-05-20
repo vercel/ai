@@ -17,11 +17,32 @@ export type SupplementalAttributeOptions = Record<
   boolean
 >;
 
+export type OpenTelemetrySpanType =
+  | 'operation'
+  | 'step'
+  | 'languageModel'
+  | 'tool'
+  | 'embedding'
+  | 'reranking';
+
+export type EnrichSpan = (options: {
+  spanType: OpenTelemetrySpanType;
+  operationId: string;
+  callId: string;
+  runtimeContext: Record<string, unknown> | undefined;
+}) => Attributes | undefined;
+
 export type OpenTelemetryOptions = {
   /**
    * The tracer to use for the telemetry data.
    */
   tracer?: Tracer;
+
+  /**
+   * Adds custom attributes to spans when they are created. These attributes are
+   * not AI SDK-owned semantics and are intended for observability integrations.
+   */
+  enrichSpan?: EnrichSpan;
 
   /**
    * Emit AI SDK usage details that are not represented by GenAI SemConv.

@@ -48,7 +48,7 @@ export async function embed({
   experimental_telemetry,
   telemetry = experimental_telemetry,
   experimental_onStart: onStart,
-  experimental_onFinish: onFinish,
+  experimental_onEnd: onEnd,
   _internal: { generateCallId = originalGenerateCallId } = {},
 }: {
   /**
@@ -108,7 +108,7 @@ export async function embed({
    * Callback that is called when the embed operation completes,
    * after the embedding model returns.
    */
-  experimental_onFinish?: Callback<EmbedEndEvent>;
+  experimental_onEnd?: Callback<EmbedEndEvent>;
 
   /**
    * Internal. For test use only. May change without notice.
@@ -187,13 +187,13 @@ export async function embed({
             embeddings: modelResponse.embeddings,
             usage,
           },
-          callbacks: [telemetryDispatcher.onEmbedFinish],
+          callbacks: [telemetryDispatcher.onEmbedEnd],
         });
 
         return {
           embedding,
           usage,
-          warnings: modelResponse.warnings,
+          warnings: modelResponse.warnings ?? [],
           providerMetadata: modelResponse.providerMetadata,
           response: modelResponse.response,
         };
@@ -214,7 +214,7 @@ export async function embed({
         providerMetadata,
         response,
       },
-      callbacks: [onFinish, telemetryDispatcher.onFinish],
+      callbacks: [onEnd, telemetryDispatcher.onEnd],
     });
 
     return new DefaultEmbedResult({

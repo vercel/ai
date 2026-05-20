@@ -12,8 +12,8 @@ import type { LanguageModelUsage } from '../types/usage';
 import type { Callback } from '../util/callback';
 import type { ActiveTools } from './active-tools';
 import type { Output } from './output';
+import type { ResponseMessage } from './response-message';
 import type { StepResult } from './step-result';
-import type { TextStreamPart } from './stream-text-result';
 
 /**
  * Event passed to the `onStart` callback.
@@ -130,24 +130,6 @@ export type GenerateTextStepStartEvent<
 } & StandardizedPrompt;
 
 /**
- * Event passed to the `onChunk` callback.
- *
- * Called for each chunk received during streaming (`streamText` only).
- * The chunk is either a content part (text-delta, tool-call, etc.) or
- * a stream lifecycle marker (`ai.stream.firstChunk` / `ai.stream.finish`).
- */
-export type StreamTextChunkEvent<TOOLS extends ToolSet = ToolSet> = {
-  readonly chunk:
-    | TextStreamPart<TOOLS>
-    | {
-        readonly type: 'ai.stream.firstChunk' | 'ai.stream.finish';
-        readonly callId: string;
-        readonly stepNumber: number;
-        readonly attributes?: Record<string, unknown>;
-      };
-};
-
-/**
  * Event passed to the `onStepFinish` callback.
  *
  * Called when a step (LLM call) completes.
@@ -167,7 +149,10 @@ export type GenerateTextStepEndEvent<
 export type GenerateTextEndEvent<
   TOOLS extends ToolSet = ToolSet,
   RUNTIME_CONTEXT extends Context = Context,
-> = StepResult<TOOLS, RUNTIME_CONTEXT> & {
+> = Omit<StepResult<TOOLS, RUNTIME_CONTEXT>, 'performance'> & {
+  /** The response messages that were generated during the call. */
+  readonly responseMessages: ResponseMessage[];
+
   /** Array containing results from all steps in the generation. */
   readonly steps: StepResult<TOOLS, RUNTIME_CONTEXT>[];
 
@@ -188,10 +173,6 @@ export type OnStepStartEvent<
   RUNTIME_CONTEXT extends Context = Context,
   OUTPUT extends Output = Output,
 > = GenerateTextStepStartEvent<TOOLS, RUNTIME_CONTEXT, OUTPUT>;
-
-/** @deprecated Use `StreamTextChunkEvent` instead. */
-export type OnChunkEvent<TOOLS extends ToolSet = ToolSet> =
-  StreamTextChunkEvent<TOOLS>;
 
 /** @deprecated Use `GenerateTextStepEndEvent` instead. */
 export type OnStepFinishEvent<

@@ -123,15 +123,14 @@ export function createTelemetryDispatcher({
     onLanguageModelCallEnd: mergeTelemetryCallback('onLanguageModelCallEnd'),
     onToolExecutionStart: mergeTelemetryCallback('onToolExecutionStart'),
     onToolExecutionEnd: mergeTelemetryCallback('onToolExecutionEnd'),
-    onChunk: mergeTelemetryCallback('onChunk'),
     onStepFinish: mergeTelemetryCallback('onStepFinish'),
     onObjectStepStart: mergeTelemetryCallback('onObjectStepStart'),
     onObjectStepFinish: mergeTelemetryCallback('onObjectStepFinish'),
     onEmbedStart: mergeTelemetryCallback('onEmbedStart'),
-    onEmbedFinish: mergeTelemetryCallback('onEmbedFinish'),
+    onEmbedEnd: mergeTelemetryCallback('onEmbedEnd'),
     onRerankStart: mergeTelemetryCallback('onRerankStart'),
-    onRerankFinish: mergeTelemetryCallback('onRerankFinish'),
-    onFinish: mergeTelemetryCallback('onFinish'),
+    onRerankEnd: mergeTelemetryCallback('onRerankEnd'),
+    onEnd: mergeTelemetryCallback('onEnd'),
     onError: mergeTelemetryCallback('onError'),
 
     /**

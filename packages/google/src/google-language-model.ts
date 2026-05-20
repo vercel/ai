@@ -420,7 +420,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       } else if ('functionCall' in part && part.functionCall.name != null) {
         content.push({
           type: 'tool-call' as const,
-          toolCallId: this.config.generateId(),
+          toolCallId: part.functionCall.id ?? this.config.generateId(),
           toolName: part.functionCall.name,
           input: JSON.stringify(part.functionCall.args ?? {}),
           providerMetadata: part.thoughtSignature
@@ -589,6 +589,42 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       accumulator: GoogleJSONAccumulator;
       providerMetadata?: SharedV4ProviderMetadata;
     }> = [];
+
+    const finishActiveStreamingToolCall = (
+      controller: TransformStreamDefaultController<LanguageModelV4StreamPart>,
+    ) => {
+      const active = activeStreamingToolCalls.pop();
+      if (active == null) {
+        return;
+      }
+
+      const { finalJSON, closingDelta } = active.accumulator.finalize();
+
+      if (closingDelta.length > 0) {
+        controller.enqueue({
+          type: 'tool-input-delta',
+          id: active.toolCallId,
+          delta: closingDelta,
+          providerMetadata: active.providerMetadata,
+        });
+      }
+
+      controller.enqueue({
+        type: 'tool-input-end',
+        id: active.toolCallId,
+        providerMetadata: active.providerMetadata,
+      });
+
+      controller.enqueue({
+        type: 'tool-call',
+        toolCallId: active.toolCallId,
+        toolName: active.toolName,
+        input: finalJSON,
+        providerMetadata: active.providerMetadata,
+      });
+
+      hasToolCalls = true;
+    };
 
     return {
       stream: response.pipeThrough(
@@ -863,11 +899,8 @@ export class GoogleLanguageModel implements LanguageModelV4 {
                   part.functionCall.willContinue !== true;
 
                 if (isStreamingChunk) {
-                  if (
-                    part.functionCall.name != null &&
-                    part.functionCall.willContinue === true
-                  ) {
-                    const toolCallId = generateId();
+                  if (part.functionCall.name != null) {
+                    const toolCallId = part.functionCall.id ?? generateId();
                     const accumulator = new GoogleJSONAccumulator();
                     activeStreamingToolCalls.push({
                       toolCallId,
@@ -884,9 +917,10 @@ export class GoogleLanguageModel implements LanguageModelV4 {
                     });
 
                     if (part.functionCall.partialArgs != null) {
-                      const { textDelta } = accumulator.processPartialArgs(
-                        part.functionCall.partialArgs as PartialArg[],
-                      );
+                      const partialArgs = part.functionCall
+                        .partialArgs as PartialArg[];
+                      const { textDelta } =
+                        accumulator.processPartialArgs(partialArgs);
                       if (textDelta.length > 0) {
                         controller.enqueue({
                           type: 'tool-input-delta',
@@ -894,6 +928,12 @@ export class GoogleLanguageModel implements LanguageModelV4 {
                           delta: textDelta,
                           providerMetadata: providerMeta,
                         });
+                      }
+                      if (
+                        part.functionCall.willContinue !== true &&
+                        partialArgs.every(arg => arg.willContinue !== true)
+                      ) {
+                        finishActiveStreamingToolCall(controller);
                       }
                     }
                   } else if (
@@ -904,9 +944,10 @@ export class GoogleLanguageModel implements LanguageModelV4 {
                       activeStreamingToolCalls[
                         activeStreamingToolCalls.length - 1
                       ];
-                    const { textDelta } = active.accumulator.processPartialArgs(
-                      part.functionCall.partialArgs as PartialArg[],
-                    );
+                    const partialArgs = part.functionCall
+                      .partialArgs as PartialArg[];
+                    const { textDelta } =
+                      active.accumulator.processPartialArgs(partialArgs);
                     if (textDelta.length > 0) {
                       controller.enqueue({
                         type: 'tool-input-delta',
@@ -915,41 +956,20 @@ export class GoogleLanguageModel implements LanguageModelV4 {
                         providerMetadata: providerMeta,
                       });
                     }
+                    if (
+                      part.functionCall.willContinue !== true &&
+                      partialArgs.every(arg => arg.willContinue !== true)
+                    ) {
+                      finishActiveStreamingToolCall(controller);
+                    }
                   }
                 } else if (
                   isTerminalChunk &&
                   activeStreamingToolCalls.length > 0
                 ) {
-                  const active = activeStreamingToolCalls.pop()!;
-                  const { finalJSON, closingDelta } =
-                    active.accumulator.finalize();
-
-                  if (closingDelta.length > 0) {
-                    controller.enqueue({
-                      type: 'tool-input-delta',
-                      id: active.toolCallId,
-                      delta: closingDelta,
-                      providerMetadata: active.providerMetadata,
-                    });
-                  }
-
-                  controller.enqueue({
-                    type: 'tool-input-end',
-                    id: active.toolCallId,
-                    providerMetadata: active.providerMetadata,
-                  });
-
-                  controller.enqueue({
-                    type: 'tool-call',
-                    toolCallId: active.toolCallId,
-                    toolName: active.toolName,
-                    input: finalJSON,
-                    providerMetadata: active.providerMetadata,
-                  });
-
-                  hasToolCalls = true;
+                  finishActiveStreamingToolCall(controller);
                 } else if (isCompleteCall) {
-                  const toolCallId = generateId();
+                  const toolCallId = part.functionCall.id ?? generateId();
                   const toolName = part.functionCall.name!;
                   const args =
                     typeof part.functionCall.args === 'string'
@@ -986,7 +1006,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
 
                   hasToolCalls = true;
                 } else if (isNoArgsCompleteCall) {
-                  const toolCallId = generateId();
+                  const toolCallId = part.functionCall.id ?? generateId();
                   const toolName = part.functionCall.name!;
 
                   controller.enqueue({
@@ -1362,6 +1382,7 @@ const getContentSchema = () =>
           // note: order matters since text can be fully empty
           z.object({
             functionCall: z.object({
+              id: z.string().nullish(),
               name: z.string().nullish(),
               args: z.unknown().nullish(),
               partialArgs: z.array(partialArgSchema).nullish(),

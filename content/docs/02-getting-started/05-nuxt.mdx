@@ -15,7 +15,7 @@ If you are unfamiliar with the concepts of [Prompt Engineering](/docs/advanced/p
 
 To follow this quickstart, you'll need:
 
-- Node.js 18+ and pnpm installed on your local development machine.
+- Node.js 22+ and pnpm installed on your local development machine.
 - A [ Vercel AI Gateway ](https://vercel.com/ai-gateway) API key.
 
 If you haven't obtained your Vercel AI Gateway API key, you can do so by [signing up](https://vercel.com/d?to=%2F%5Bteam%5D%2F%7E%2Fai&title=Go+to+AI+Gateway) on the Vercel website.
@@ -190,22 +190,22 @@ Update your root page (`pages/index.vue`) with the following code to show a list
 
 ```typescript filename="pages/index.vue"
 <script setup lang="ts">
-import { Chat } from "@ai-sdk/vue";
+import { useChat } from "@ai-sdk/vue";
 import { ref } from "vue";
 
 const input = ref("");
-const chat = new Chat({});
+const { messages, sendMessage } = useChat();
 
 const handleSubmit = (e: Event) => {
     e.preventDefault();
-    chat.sendMessage({ text: input.value });
+    sendMessage({ text: input.value });
     input.value = "";
 };
 </script>
 
 <template>
     <div>
-        <div v-for="(m, index) in chat.messages" :key="m.id ? m.id : index">
+        <div v-for="(m, index) in messages" :key="m.id ? m.id : index">
             {{ m.role === "user" ? "User: " : "AI: " }}
             <div
                 v-for="(part, index) in m.parts"
@@ -309,7 +309,6 @@ In this updated code:
 
 1. You import the `tool` function from the `ai` package and `z` from `zod` for schema validation.
 2. You define a `tools` object with a `weather` tool. This tool:
-
    - Has a description that helps the model understand when to use it.
    - Defines `inputSchema` using a Zod schema, specifying that it requires a `location` string to execute this tool. The model will attempt to extract this input from the context of the conversation. If it can't, it will ask the user for the missing information.
    - Defines an `execute` function that simulates getting weather data (in this case, it returns a random temperature). This is an asynchronous function running on the server so you can fetch real data from an external API.
@@ -332,22 +331,22 @@ To display the tool invocation in your UI, update your `pages/index.vue` file:
 
 ```typescript filename="pages/index.vue" highlight="16-18"
 <script setup lang="ts">
-import { Chat } from "@ai-sdk/vue";
+import { useChat } from "@ai-sdk/vue";
 import { ref } from "vue";
 
 const input = ref("");
-const chat = new Chat({});
+const { messages, sendMessage } = useChat();
 
 const handleSubmit = (e: Event) => {
     e.preventDefault();
-    chat.sendMessage({ text: input.value });
+    sendMessage({ text: input.value });
     input.value = "";
 };
 </script>
 
 <template>
     <div>
-        <div v-for="(m, index) in chat.messages" :key="m.id ? m.id : index">
+        <div v-for="(m, index) in messages" :key="m.id ? m.id : index">
             {{ m.role === "user" ? "User: " : "AI: " }}
             <div
                 v-for="(part, index) in m.parts"
@@ -505,22 +504,22 @@ Update your UI to handle the new temperature conversion tool by modifying the to
 
 ```typescript filename="pages/index.vue" highlight="24"
 <script setup lang="ts">
-import { Chat } from "@ai-sdk/vue";
+import { useChat } from "@ai-sdk/vue";
 import { ref } from "vue";
 
 const input = ref("");
-const chat = new Chat({});
+const { messages, sendMessage } = useChat();
 
 const handleSubmit = (e: Event) => {
     e.preventDefault();
-    chat.sendMessage({ text: input.value });
+    sendMessage({ text: input.value });
     input.value = "";
 };
 </script>
 
 <template>
     <div>
-        <div v-for="(m, index) in chat.messages" :key="m.id ? m.id : index">
+        <div v-for="(m, index) in messages" :key="m.id ? m.id : index">
             {{ m.role === "user" ? "User: " : "AI: " }}
             <div
                 v-for="(part, index) in m.parts"

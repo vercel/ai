@@ -17,7 +17,7 @@ run(async () => {
     },
   });
 
-  const metadata = result.providerMetadata?.googleVertex as
+  const metadata = result.finalStep.providerMetadata?.googleVertex as
     | GoogleProviderMetadata
     | undefined;
 

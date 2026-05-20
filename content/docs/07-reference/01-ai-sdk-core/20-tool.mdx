@@ -61,15 +61,16 @@ export const weatherTool = tool({
             {
               name: 'description',
               isOptional: true,
-              type: 'string',
+              type: 'string | ((options: { context: CONTEXT; experimental_sandbox?: Experimental_Sandbox }) => string)',
               description:
-                'Information about the purpose of the tool including details on how and when it can be used by the model.',
+                'Information about the purpose of the tool including details on how and when it can be used by the model. Provide a string for a fixed description, or a function to derive the description from the tool-specific context and optional experimental sandbox before each model call.',
             },
             {
               name: 'title',
               isOptional: true,
               type: 'string',
-              description: 'A human-readable title for the tool.',
+              description:
+                'Deprecated. Use `providerMetadata` for source-specific tool display metadata.',
             },
             {
               name: 'needsApproval',
@@ -96,14 +97,7 @@ export const weatherTool = tool({
               isOptional: true,
               type: 'Zod Schema | JSON Schema',
               description:
-                'An optional schema that describes the tool-specific context expected by the tool. When provided, the `context` type in `execute`, `needsApproval`, and the input lifecycle callbacks is inferred from this schema. The value is supplied via the tool\'s entry in `toolsContext`.',
-            },
-            {
-              name: 'sensitiveContext',
-              isOptional: true,
-              type: 'SensitiveContext<CONTEXT>',
-              description:
-                'Top-level context properties that contain sensitive data and should be excluded from telemetry. Properties marked as `true` are omitted from telemetry integrations. Tool execution, lifecycle callbacks, and returned results still receive the full tool context.',
+                "An optional schema that describes the tool-specific context expected by the tool. When provided, the `context` type in `execute`, `needsApproval`, and the input lifecycle callbacks is inferred from this schema. The value is supplied via the tool's entry in `toolsContext`.",
             },
             {
               name: 'strict',
@@ -146,6 +140,13 @@ export const weatherTool = tool({
                       type: 'CONTEXT',
                       description:
                         'Tool-specific context passed into tool execution. When `contextSchema` is provided, this type is inferred from that schema and supplied from the matching entry in `toolsContext`.',
+                    },
+                    {
+                      name: 'experimental_sandbox',
+                      type: 'Experimental_Sandbox',
+                      isOptional: true,
+                      description:
+                        'Optional experimental sandbox environment passed from the generation or agent call. Use it when a tool needs to execute commands or code in an experimental sandbox.',
                     },
                   ],
                 },
@@ -194,11 +195,11 @@ export const weatherTool = tool({
                 'Additional provider-specific metadata. They are passed through to the provider from the AI SDK and enable provider-specific functionality that can be fully encapsulated in the provider.',
             },
             {
-              name: 'providerMetadata',
+              name: 'metadata',
               isOptional: true,
-              type: 'ProviderMetadata',
+              type: 'JSONObject',
               description:
-                "Optional metadata about the tool itself (e.g. its source). It is propagated onto the resulting tool call's providerMetadata so consumers can read it from tool call/result parts and UI message parts. Useful for sources of dynamic tools (e.g. an MCP server) to identify themselves.",
+                "Optional metadata about the tool itself (e.g. its source). It is propagated onto the resulting tool call's toolMetadata so consumers can read it from tool call/result parts and UI message parts. Useful for sources of dynamic tools (e.g. an MCP server) to identify themselves.",
             },
             {
               name: 'type',

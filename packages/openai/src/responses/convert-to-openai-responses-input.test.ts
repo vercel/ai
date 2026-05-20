@@ -592,6 +592,44 @@ describe('convertToOpenAIResponsesInput', () => {
       ).rejects.toThrow('file part media type text/plain');
     });
 
+    it('should pass through unsupported file types when enabled', async () => {
+      const base64Data = 'bmFtZSxyb2xlCkFkYSxlbmdpbmVlcgo=';
+
+      const result = await convertToOpenAIResponsesInput({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'text/csv',
+                data: { type: 'data' as const, data: base64Data },
+                filename: 'names.csv',
+              },
+            ],
+          },
+        ],
+        toolNameMapping: testToolNameMapping,
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        passThroughUnsupportedFiles: true,
+        store: true,
+      });
+
+      expect(result.input).toEqual([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'input_file',
+              filename: 'names.csv',
+              file_data: `data:text/csv;base64,${base64Data}`,
+            },
+          ],
+        },
+      ]);
+    });
+
     it('should convert PDF file parts with URL to input_file with file_url', async () => {
       const result = await convertToOpenAIResponsesInput({
         prompt: [
@@ -2522,7 +2560,111 @@ describe('convertToOpenAIResponsesInput', () => {
             "call_id": "call_123",
             "output": [
               {
+                "detail": undefined,
                 "image_url": "data:image/png;base64,base64_data",
+                "type": "input_image",
+              },
+            ],
+            "type": "function_call_output",
+          },
+        ]
+      `);
+    });
+
+    it('should forward openai.imageDetail providerOptions on tool-result image (data)', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_123',
+                toolName: 'view_image',
+                output: {
+                  type: 'content',
+                  value: [
+                    {
+                      type: 'file',
+                      mediaType: 'image/png',
+                      data: { type: 'data', data: 'base64_data' },
+                      providerOptions: {
+                        openai: { imageDetail: 'original' },
+                      },
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "call_id": "call_123",
+            "output": [
+              {
+                "detail": "original",
+                "image_url": "data:image/png;base64,base64_data",
+                "type": "input_image",
+              },
+            ],
+            "type": "function_call_output",
+          },
+        ]
+      `);
+    });
+
+    it('should forward openai.imageDetail providerOptions on tool-result image (url)', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_123',
+                toolName: 'view_image',
+                output: {
+                  type: 'content',
+                  value: [
+                    {
+                      type: 'file',
+                      mediaType: 'image/png',
+                      data: {
+                        type: 'url',
+                        url: new URL('https://example.com/x.png'),
+                      },
+                      providerOptions: {
+                        openai: { imageDetail: 'high' },
+                      },
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "call_id": "call_123",
+            "output": [
+              {
+                "detail": "high",
+                "image_url": "https://example.com/x.png",
                 "type": "input_image",
               },
             ],
@@ -2571,6 +2713,7 @@ describe('convertToOpenAIResponsesInput', () => {
             "call_id": "call_123",
             "output": [
               {
+                "detail": undefined,
                 "image_url": "https://example.com/screenshot.png",
                 "type": "input_image",
               },
@@ -2788,6 +2931,7 @@ describe('convertToOpenAIResponsesInput', () => {
                 "type": "input_text",
               },
               {
+                "detail": undefined,
                 "image_url": "data:image/png;base64,base64_data",
                 "type": "input_image",
               },
