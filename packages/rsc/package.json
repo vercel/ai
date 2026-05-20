@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/rsc",
-  "version": "3.0.0-canary.146",
+  "version": "3.0.0-canary.147",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/rsc-client.mjs",

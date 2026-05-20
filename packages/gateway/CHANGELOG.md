@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 4.0.0-canary.87
+
+### Patch Changes
+
+- bf837fe: feat(provider/gateway): add speech and transcription model support
+
 ## 4.0.0-canary.86
 
 ### Patch Changes

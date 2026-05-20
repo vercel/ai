@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 4.0.0-canary.62
+
+### Patch Changes
+
+- bf837fe: feat(provider/gateway): add speech and transcription model support
+
 ## 4.0.0-canary.61
 
 ### Patch Changes
