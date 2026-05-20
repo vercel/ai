@@ -100,6 +100,7 @@ export type GatewayModelId =
   | 'mistral/ministral-8b'
   | 'mistral/mistral-large-3'
   | 'mistral/mistral-medium'
+  | 'mistral/mistral-medium-3.5'
   | 'mistral/mistral-nemo'
   | 'mistral/mistral-small'
   | 'mistral/pixtral-12b'
