@@ -62,21 +62,8 @@ export class ToolLoopAgent<
     options?: CALL_OPTIONS;
   }): Promise<
     Omit<
-<<<<<<< HEAD
       ToolLoopAgentSettings<CALL_OPTIONS, TOOLS, OUTPUT>,
-      'prepareCall' | 'instructions' | 'onStepFinish'
-=======
-      ToolLoopAgentSettings<CALL_OPTIONS, TOOLS, RUNTIME_CONTEXT, OUTPUT>,
-      | 'prepareCall'
-      | 'instructions'
-      | 'allowSystemInMessages'
-      | 'experimental_onStart'
-      | 'experimental_onStepStart'
-      | 'onToolExecutionStart'
-      | 'onToolExecutionEnd'
-      | 'onStepFinish'
-      | 'onFinish'
->>>>>>> e3d9c0e9c ([tool-loop-agent] adding support for messages with system role with override (#15483))
+      'prepareCall' | 'instructions' | 'allowSystemInMessages' | 'onStepFinish'
     > &
       Prompt
   > {
@@ -109,38 +96,24 @@ export class ToolLoopAgent<
         >[0],
       )) ?? baseCallArgs;
 
-<<<<<<< HEAD
-    const { instructions, messages, prompt, ...callArgs } = preparedCallArgs;
-=======
     const {
       instructions,
       allowSystemInMessages,
       messages,
       prompt,
-      runtimeContext,
       ...callArgs
     } = preparedCallArgs;
-
-    const promptArgs = {
-      instructions,
-      allowSystemInMessages,
-      messages,
-      prompt,
-    } as Prompt;
-
-    if (runtimeContext === undefined) {
-      return {
-        ...callArgs,
-        ...promptArgs,
-      };
-    }
->>>>>>> e3d9c0e9c ([tool-loop-agent] adding support for messages with system role with override (#15483))
 
     return {
       ...callArgs,
 
       // restore prompt types
-      ...({ system: instructions, messages, prompt } as Prompt),
+      ...({
+        system: instructions,
+        allowSystemInMessages,
+        messages,
+        prompt,
+      } as Prompt),
     };
   }
 
