@@ -1,11 +1,11 @@
-import { huggingface } from '@ai-sdk/huggingface';
+import { huggingFace } from '@ai-sdk/huggingface';
 import { extractReasoningMiddleware, streamText, wrapLanguageModel } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
     model: wrapLanguageModel({
-      model: huggingface('deepseek-ai/DeepSeek-R1'),
+      model: huggingFace('deepseek-ai/DeepSeek-R1'),
       middleware: [extractReasoningMiddleware({ tagName: 'think' })],
     }),
     prompt: 'How many "r"s are in the word "strawberry"?',

@@ -1,4 +1,4 @@
-import { UIMessage } from '../ui/ui-messages';
+import type { UIMessage } from '../ui/ui-messages';
 
 /**
  * Callback that is called when a step finishes during streaming.

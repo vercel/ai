@@ -2,13 +2,13 @@ import { openai } from '@ai-sdk/openai';
 import {
   convertToModelMessages,
   dynamicTool,
-  InferUITools,
   isStepCount,
   streamText,
   tool,
-  ToolSet,
-  UIDataTypes,
-  UIMessage,
+  type InferUITools,
+  type ToolSet,
+  type UIDataTypes,
+  type UIMessage,
 } from 'ai';
 import { z } from 'zod';
 

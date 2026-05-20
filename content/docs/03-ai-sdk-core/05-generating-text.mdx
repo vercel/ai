@@ -37,40 +37,46 @@ __PROVIDER_IMPORT__;
 
 const { text } = await generateText({
   model: __MODEL__,
-  system:
+  instructions:
     'You are a professional writer. ' +
     'You write simple, clear, and concise content.',
   prompt: `Summarize the following article in 3-5 sentences: ${article}`,
 });
 ```
 
-The result object of `generateText` contains several promises that resolve when all required data is available:
+The result object of `generateText` contains the generated output and metadata:
 
-- `result.content`: The content that was generated in the last step.
-- `result.text`: The generated text.
-- `result.reasoning`: The full reasoning that the model has generated in the last step.
-- `result.reasoningText`: The reasoning text of the model (only available for some models).
-- `result.files`: The files that were generated in the last step.
-- `result.sources`: Sources that have been used as references in the last step (only available for some models).
-- `result.toolCalls`: The tool calls that were made in the last step.
-- `result.toolResults`: The results of the tool calls from the last step.
+- `result.content`: The content that was generated in all steps.
+- `result.text`: The generated text from the final step.
+- `result.files`: The files that were generated in all steps.
+- `result.sources`: Sources that have been used as references in all steps (only available for some models).
+- `result.toolCalls`: The tool calls that were made in all steps.
+- `result.toolResults`: The results of the tool calls from all steps.
 - `result.finishReason`: The reason the model finished generating text.
 - `result.rawFinishReason`: The raw reason why the generation finished (from the provider).
-- `result.usage`: The usage of the model during the final step of text generation.
-- `result.totalUsage`: The total usage across all steps (for multi-step generations).
-- `result.warnings`: Warnings from the model provider (e.g. unsupported settings).
-- `result.request`: Additional request information.
-- `result.response`: Additional response information, including response messages and body.
-- `result.providerMetadata`: Additional provider-specific metadata.
-- `result.steps`: Details for all steps, useful for getting information about intermediate steps.
+- `result.usage`: The total usage across all steps (for multi-step generations).
+- `result.warnings`: Warnings from the model provider in all steps (e.g. unsupported settings).
+- `result.steps`: Details for all steps, useful for getting information about intermediate steps, including per-step `performance`.
+- `result.finalStep`: Details for the final step, including `performance`.
 - `result.output`: The generated structured output using the `output` specification.
+
+Each step includes `performance` with timing and throughput information:
+
+- `effectiveOutputTokensPerSecond`: Effective output tokens per second, calculated as `outputTokens / requestSeconds`.
+- `outputTokensPerSecond`: For streaming steps, output tokens per second after the first output token, calculated as `outputTokens / outputStreamSeconds`. For `generateText`, this is `undefined`.
+- `inputTokensPerSecond`: For streaming steps, input tokens per second before the first output token, calculated as `inputTokens / ttftSeconds`. For `generateText`, this is `undefined`.
+- `effectiveTotalTokensPerSecond`: Effective total tokens per second, calculated as `(inputTokens + outputTokens) / requestSeconds`.
+- `stepTimeMs`: Total time spent on the step, including language model response time and tool execution time, in milliseconds.
+- `responseTimeMs`: Time spent waiting for the language model response in milliseconds.
+- `toolExecutionMs`: Time spent executing each client-side tool call in the step in milliseconds, keyed by tool call ID.
+- `timeToFirstOutputTokenMs`: For streaming steps, the time until the first text, reasoning, or tool input delta was received in milliseconds. For `generateText`, this is `undefined`.
 
 ### Accessing response headers & body
 
 Sometimes you need access to the full response from the model provider,
 e.g. to access some provider-specific headers or body content.
 
-You can access the raw response headers and body using the `response` property:
+You can access the raw response headers and body using the `finalStep.response` property:
 
 ```ts
 import { generateText } from 'ai';
@@ -79,8 +85,8 @@ const result = await generateText({
   // ...
 });
 
-console.log(JSON.stringify(result.response.headers, null, 2));
-console.log(JSON.stringify(result.response.body, null, 2));
+console.log(JSON.stringify(result.finalStep.response.headers, null, 2));
+console.log(JSON.stringify(result.finalStep.response.body, null, 2));
 ```
 
 ### `onFinish` callback
@@ -97,10 +103,10 @@ __PROVIDER_IMPORT__;
 const result = await generateText({
   model: __MODEL__,
   prompt: 'Invent a new holiday and describe its traditions.',
-  onFinish({ text, finishReason, usage, response, steps, totalUsage }) {
+  onFinish({ text, finishReason, usage, responseMessages, steps, totalUsage }) {
     // your own logic, e.g. for saving the chat history or recording usage
 
-    const messages = response.messages; // messages that were generated
+    const messages = responseMessages; // messages that were generated
   },
 });
 ```
@@ -127,37 +133,63 @@ const result = await generateText({
     // ... your tools
   },
 
-  experimental_onStart({ model, settings, functionId }) {
-    console.log('Generation started', { model, functionId });
+  experimental_onStart({ modelId }) {
+    console.log('Generation started', { modelId });
   },
 
-  experimental_onStepStart({ stepNumber, model, promptMessages }) {
-    console.log(`Step ${stepNumber} starting`, { model: model.modelId });
+  experimental_onStepStart({ stepNumber, modelId, messages }) {
+    console.log(`Step ${stepNumber} starting`, { modelId });
   },
 
-  experimental_onToolCallStart({ toolName, toolCallId, input }) {
-    console.log(`Tool call starting: ${toolName}`, { toolCallId });
-  },
-
-  experimental_onToolCallFinish({ toolName, durationMs, error }) {
-    console.log(`Tool call finished: ${toolName} (${durationMs}ms)`, {
-      success: !error,
+  experimental_onLanguageModelCallStart({ modelId, messages }) {
+    console.log('Model call starting', {
+      modelId,
+      messageCount: messages.length,
     });
   },
 
-  onStepFinish({ stepNumber, finishReason, usage }) {
-    console.log(`Step ${stepNumber} finished`, { finishReason, usage });
+  experimental_onLanguageModelCallEnd({ modelId, finishReason, content }) {
+    console.log('Model call finished', {
+      modelId,
+      finishReason,
+      contentParts: content.length,
+    });
+  },
+
+  onToolExecutionStart({ toolCall }) {
+    console.log(`Tool call starting: ${toolCall.toolName}`, {
+      toolCallId: toolCall.toolCallId,
+    });
+  },
+
+  onToolExecutionEnd({ toolCall, toolExecutionMs, toolOutput }) {
+    console.log(
+      `Tool call finished: ${toolCall.toolName} (${toolExecutionMs}ms)`,
+      {
+        success: toolOutput.type === 'tool-result',
+      },
+    );
+  },
+
+  onStepFinish({ stepNumber, finishReason, usage, performance }) {
+    console.log(`Step ${stepNumber} finished`, {
+      finishReason,
+      usage,
+      performance,
+    });
   },
 });
 ```
 
 The available lifecycle callbacks are:
 
-- **`experimental_onStart`**: Called once when the `generateText` operation begins, before any LLM calls. Receives model info, prompt, settings, and telemetry metadata.
-- **`experimental_onStepStart`**: Called before each step (LLM call). Receives the step number, model, prompt messages being sent, tools, and prior steps.
-- **`experimental_onToolCallStart`**: Called right before a tool's `execute` function runs. Receives the tool name, call ID, and input.
-- **`experimental_onToolCallFinish`**: Called right after a tool's `execute` function completes or errors. Receives the tool name, call ID, input, output (or undefined on error), error (or undefined on success), and `durationMs`.
-- **`onStepFinish`**: Called after each step finishes. Now also includes `stepNumber` (zero-based index of the completed step).
+- **`experimental_onStart`**: Called once when the `generateText` operation begins, before any LLM calls. Receives model info, messages, settings, and `runtimeContext`.
+- **`experimental_onStepStart`**: Called before each step (LLM call). Receives the step number, model, messages being sent, tools, and prior steps.
+- **`experimental_onLanguageModelCallStart`**: Called immediately before the provider model call begins. Useful when you want to observe the model invocation separately from later tool execution.
+- **`experimental_onLanguageModelCallEnd`**: Called after the model response has been normalized and parsed, but before any client-side tool execution begins. Receives the model-call content parts, usage, and finish reason.
+- **`onToolExecutionStart`**: Called right before a tool's `execute` function runs. Receives the tool call object, messages, and `toolContext`.
+- **`onToolExecutionEnd`**: Called right after a tool's `execute` function completes or errors. Receives the tool call object, `toolExecutionMs`, and a `toolOutput` discriminated union (`type: 'tool-result'` with `output`, or `type: 'tool-error'` with `error`).
+- **`onStepFinish`**: Called after each step finishes. Includes `stepNumber` (zero-based index of the completed step).
 
 ## `streamText`
 
@@ -206,23 +238,21 @@ The result object contains several helper functions to make the integration into
 
 It also provides several promises that resolve when the stream is finished:
 
-- `result.content`: The content that was generated in the last step.
-- `result.text`: The generated text.
-- `result.reasoning`: The full reasoning that the model has generated.
-- `result.reasoningText`: The reasoning text of the model (only available for some models).
-- `result.files`: Files that have been generated by the model in the last step.
-- `result.sources`: Sources that have been used as references in the last step (only available for some models).
-- `result.toolCalls`: The tool calls that have been executed in the last step.
-- `result.toolResults`: The tool results that have been generated in the last step.
+- `result.content`: The content that was generated in all steps.
+- `result.text`: The generated text from the final step.
+- `result.finalStep`: Details for the final step, including per-step `performance`.
+- `result.files`: Files that have been generated by the model in all steps.
+- `result.sources`: Sources that have been used as references in all steps (only available for some models).
+- `result.toolCalls`: The tool calls that have been executed in all steps.
+- `result.toolResults`: The tool results that have been generated in all steps.
 - `result.finishReason`: The reason the model finished generating text.
 - `result.rawFinishReason`: The raw reason why the generation finished (from the provider).
-- `result.usage`: The usage of the model during the final step of text generation.
-- `result.totalUsage`: The total usage across all steps (for multi-step generations).
-- `result.warnings`: Warnings from the model provider (e.g. unsupported settings).
-- `result.steps`: Details for all steps, useful for getting information about intermediate steps.
-- `result.request`: Additional request information from the last step.
-- `result.response`: Additional response information from the last step.
-- `result.providerMetadata`: Additional provider-specific metadata from the last step.
+- `result.usage`: The total usage across all steps (for multi-step generations).
+- `result.totalUsage`: Deprecated. Use `result.usage` instead.
+- `result.warnings`: Warnings from the model provider in all steps (e.g. unsupported settings).
+- `result.steps`: Details for all steps, useful for getting information about intermediate steps, including per-step `performance`.
+
+For `streamText`, `timeToFirstOutputTokenMs` is set when the first text, reasoning, or tool input delta is received for a step.
 
 ### `onError` callback
 
@@ -289,10 +319,10 @@ __PROVIDER_IMPORT__;
 const result = streamText({
   model: __MODEL__,
   prompt: 'Invent a new holiday and describe its traditions.',
-  onFinish({ text, finishReason, usage, response, steps, totalUsage }) {
+  onFinish({ text, finishReason, usage, responseMessages, steps, totalUsage }) {
     // your own logic, e.g. for saving the chat history or recording usage
 
-    const messages = response.messages; // messages that were generated
+    const messages = responseMessages; // messages that were generated
   },
 });
 ```
@@ -319,24 +349,42 @@ const result = streamText({
     // ... your tools
   },
 
-  experimental_onStart({ model, system, prompt, messages }) {
-    console.log('Streaming started', { model, prompt });
+  experimental_onStart({ modelId, instructions, messages }) {
+    console.log('Streaming started', { modelId });
   },
 
-  experimental_onStepStart({ stepNumber, model, messages }) {
-    console.log(`Step ${stepNumber} starting`, { model: model.modelId });
+  experimental_onStepStart({ stepNumber, modelId, messages }) {
+    console.log(`Step ${stepNumber} starting`, { modelId });
   },
 
-  experimental_onToolCallStart({ toolCall }) {
+  experimental_onLanguageModelCallStart({ modelId, messages }) {
+    console.log('Model call starting', {
+      modelId,
+      messageCount: messages.length,
+    });
+  },
+
+  experimental_onLanguageModelCallEnd({ modelId, finishReason, content }) {
+    console.log('Model call finished', {
+      modelId,
+      finishReason,
+      contentParts: content.length,
+    });
+  },
+
+  onToolExecutionStart({ toolCall }) {
     console.log(`Tool call starting: ${toolCall.toolName}`, {
       toolCallId: toolCall.toolCallId,
     });
   },
 
-  experimental_onToolCallFinish({ toolCall, durationMs, success, error }) {
-    console.log(`Tool call finished: ${toolCall.toolName} (${durationMs}ms)`, {
-      success,
-    });
+  onToolExecutionEnd({ toolCall, toolExecutionMs, toolOutput }) {
+    console.log(
+      `Tool call finished: ${toolCall.toolName} (${toolExecutionMs}ms)`,
+      {
+        success: toolOutput.type === 'tool-result',
+      },
+    );
   },
 
   onStepFinish({ finishReason, usage }) {
@@ -347,10 +395,12 @@ const result = streamText({
 
 The available lifecycle callbacks are:
 
-- **`experimental_onStart`**: Called once when the `streamText` operation begins, before any LLM calls. Receives model info, prompt, settings, and telemetry metadata.
+- **`experimental_onStart`**: Called once when the `streamText` operation begins, before any LLM calls. Receives model info, messages, settings, and `runtimeContext`.
 - **`experimental_onStepStart`**: Called before each step (LLM call). Receives the step number, model, messages being sent, tools, and prior steps.
-- **`experimental_onToolCallStart`**: Called right before a tool's `execute` function runs. Receives the tool call object, messages, and runtime context.
-- **`experimental_onToolCallFinish`**: Called right after a tool's `execute` function completes or errors. Receives the tool call object, `durationMs`, and a discriminated union with `success`/`output` or `success`/`error`.
+- **`experimental_onLanguageModelCallStart`**: Called immediately before the provider model call begins. Useful when you want to observe the model invocation separately from later tool execution.
+- **`experimental_onLanguageModelCallEnd`**: Called after the model response has been normalized and parsed, but before any client-side tool execution begins. Receives the model-call content parts, usage, and finish reason.
+- **`onToolExecutionStart`**: Called right before a tool's `execute` function runs. Receives the tool call object, messages, and `toolContext`.
+- **`onToolExecutionEnd`**: Called right after a tool's `execute` function completes or errors. Receives the tool call object, `toolExecutionMs`, and a `toolOutput` discriminated union (`type: 'tool-result'` with `output`, or `type: 'tool-error'` with `error`).
 - **`onStepFinish`**: Called after each step finishes. Receives the finish reason, usage, and other step details.
 
 ### `fullStream` property
@@ -557,9 +607,28 @@ const stopWordTransform =
             finishReason: 'stop',
             rawFinishReason: 'stop',
             usage: {
-              completionTokens: NaN,
-              promptTokens: NaN,
-              totalTokens: NaN,
+              inputTokens: undefined,
+              inputTokenDetails: {
+                cacheReadTokens: undefined,
+                cacheWriteTokens: undefined,
+                noCacheTokens: undefined,
+              },
+              outputTokens: undefined,
+              outputTokenDetails: {
+                reasoningTokens: undefined,
+                textTokens: undefined,
+              },
+              totalTokens: undefined,
+            },
+            performance: {
+              effectiveOutputTokensPerSecond: 0,
+              outputTokensPerSecond: undefined,
+              inputTokensPerSecond: undefined,
+              effectiveTotalTokensPerSecond: 0,
+              stepTimeMs: 0,
+              responseTimeMs: 0,
+              toolExecutionMs: {},
+              timeToFirstOutputTokenMs: undefined,
             },
             response: {
               id: 'response-id',
@@ -575,9 +644,18 @@ const stopWordTransform =
             finishReason: 'stop',
             rawFinishReason: 'stop',
             totalUsage: {
-              completionTokens: NaN,
-              promptTokens: NaN,
-              totalTokens: NaN,
+              inputTokens: undefined,
+              inputTokenDetails: {
+                cacheReadTokens: undefined,
+                cacheWriteTokens: undefined,
+                noCacheTokens: undefined,
+              },
+              outputTokens: undefined,
+              outputTokenDetails: {
+                reasoningTokens: undefined,
+                textTokens: undefined,
+              },
+              totalTokens: undefined,
             },
           });
 
@@ -604,7 +682,7 @@ const result = streamText({
 ## Sources
 
 Some providers such as [Perplexity](/providers/ai-sdk-providers/perplexity#sources) and
-[Google Generative AI](/providers/ai-sdk-providers/google-generative-ai#sources) include sources in the response.
+[Google](/providers/ai-sdk-providers/google#sources) include sources in the response.
 
 Currently sources are limited to web pages that ground the response.
 You can access them using the `sources` property of the result.

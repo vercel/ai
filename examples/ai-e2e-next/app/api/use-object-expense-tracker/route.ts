@@ -10,7 +10,7 @@ export async function POST(req: Request) {
 
   const result = streamText({
     model: openai('gpt-4o'),
-    system:
+    instructions:
       'You categorize expenses into one of the following categories: ' +
       'TRAVEL, MEALS, ENTERTAINMENT, OFFICE SUPPLIES, OTHER.' +
       // provide date (including day of week) for reference:

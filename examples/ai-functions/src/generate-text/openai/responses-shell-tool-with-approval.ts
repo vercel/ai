@@ -1,9 +1,9 @@
 import { openai } from '@ai-sdk/openai';
 import {
   generateText,
-  ModelMessage,
   isStepCount,
-  ToolApprovalResponse,
+  type ModelMessage,
+  type ToolApprovalResponse,
 } from 'ai';
 import * as readline from 'node:readline/promises';
 import { executeShellCommand } from '../../lib/shell-executor';
@@ -47,7 +47,7 @@ run(async () => {
       },
       messages,
       stopWhen: isStepCount(5),
-      system:
+      instructions:
         'You have access to a shell tool that can execute commands on the local filesystem. ' +
         'Use the shell tool when you need to perform file operations or run commands. ' +
         'When a tool execution is not approved by the user, do not retry it. ' +
@@ -89,7 +89,7 @@ run(async () => {
 
     process.stdout.write('\n\n');
 
-    messages.push(...result.response.messages);
+    messages.push(...result.responseMessages);
 
     if (approvals.length === 0 && result.finishReason !== 'tool-calls') {
       break;

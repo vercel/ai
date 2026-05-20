@@ -36,6 +36,9 @@
       "path": "../../packages/cerebras"
     },
     {
+      "path": "../../packages/devtools"
+    },
+    {
       "path": "../../packages/elevenlabs"
     },
     {
@@ -111,6 +114,9 @@
       "path": "../../packages/provider"
     },
     {
+      "path": "../../packages/provider-utils"
+    },
+    {
       "path": "../../packages/replicate"
     },
     {
@@ -118,6 +124,9 @@
     },
     {
       "path": "../../packages/valibot"
+    },
+    {
+      "path": "../../packages/voyage"
     },
     {
       "path": "../../packages/xai"

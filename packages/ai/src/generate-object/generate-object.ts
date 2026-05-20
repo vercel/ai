@@ -1,49 +1,45 @@
-import { JSONValue } from '@ai-sdk/provider';
+import type { JSONValue } from '@ai-sdk/provider';
 import {
   createIdGenerator,
-  FlexibleSchema,
-  InferSchema,
-  ProviderOptions,
   withUserAgentSuffix,
+  type FlexibleSchema,
+  type InferSchema,
+  type ProviderOptions,
 } from '@ai-sdk/provider-utils';
 import { NoObjectGeneratedError } from '../error/no-object-generated-error';
 import { extractReasoningContent } from '../generate-text/extract-reasoning-content';
 import { extractTextContent } from '../generate-text/extract-text-content';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
-import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
-import { prepareCallSettings } from '../prompt/prepare-call-settings';
-import { Prompt } from '../prompt/prompt';
+import type { LanguageModelCallOptions } from '../prompt/language-model-call-options';
+import { prepareLanguageModelCallOptions } from '../prompt/prepare-language-model-call-options';
+import type { Prompt } from '../prompt/prompt';
+import type { RequestOptions } from '../prompt/request-options';
 import { standardizePrompt } from '../prompt/standardize-prompt';
 import { wrapGatewayError } from '../prompt/wrap-gateway-error';
-import { getGlobalTelemetryIntegration } from '../telemetry/get-global-telemetry-integration';
-import { TelemetrySettings } from '../telemetry/telemetry-settings';
-import {
-  CallWarning,
-  FinishReason,
-  LanguageModel,
-} from '../types/language-model';
-import { LanguageModelRequestMetadata } from '../types/language-model-request-metadata';
-import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
-import { ProviderMetadata } from '../types/provider-metadata';
-import { asLanguageModelUsage, LanguageModelUsage } from '../types/usage';
-import { DownloadFunction } from '../util/download/download-function';
+import { createTelemetryDispatcher } from '../telemetry/create-telemetry-dispatcher';
+import type { TelemetryOptions } from '../telemetry/telemetry-options';
+import type { LanguageModel } from '../types/language-model';
+import type { LanguageModelRequestMetadata } from '../types/language-model-request-metadata';
+import type { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
+import { asLanguageModelUsage } from '../types/usage';
+import type { Callback } from '../util/callback';
+import type { DownloadFunction } from '../util/download/download-function';
 import { notify } from '../util/notify';
-import type { Listener } from '../util/notify';
 import { prepareHeaders } from '../util/prepare-headers';
 import { prepareRetries } from '../util/prepare-retries';
 import { VERSION } from '../version';
-import type {
-  ObjectOnFinishEvent,
-  ObjectOnStartEvent,
-  ObjectOnStepFinishEvent,
-  ObjectOnStepStartEvent,
-} from './structured-output-events';
-import { GenerateObjectResult } from './generate-object-result';
+import type { GenerateObjectResult } from './generate-object-result';
 import { getOutputStrategy } from './output-strategy';
 import { parseAndValidateObjectResultWithRepair } from './parse-and-validate-object-result';
-import { RepairTextFunction } from './repair-text';
+import type { RepairTextFunction } from './repair-text';
+import type {
+  GenerateObjectEndEvent,
+  GenerateObjectStartEvent,
+  GenerateObjectStepEndEvent,
+  GenerateObjectStepStartEvent,
+} from './structured-output-events';
 import { validateObjectGenerationInput } from './validate-object-generation-input';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aiobj', size: 24 });
@@ -58,6 +54,7 @@ const originalGenerateId = createIdGenerator({ prefix: 'aiobj', size: 24 });
  * @param system - A system message that will be part of the prompt.
  * @param prompt - A simple text prompt. You can either use `prompt` or `messages` but not both.
  * @param messages - A list of messages. You can either use `prompt` or `messages` but not both.
+ * @param allowSystemInMessages - Whether system messages are allowed in the `prompt` or `messages` fields. Default: false.
  *
  * @param maxOutputTokens - Maximum number of tokens to generate.
  * @param temperature - Temperature setting.
@@ -102,7 +99,7 @@ const originalGenerateId = createIdGenerator({ prefix: 'aiobj', size: 24 });
  * @param experimental_repairText - A function that attempts to repair the raw output of the model
  * to enable JSON parsing.
  *
- * @param experimental_telemetry - Optional telemetry configuration (experimental).
+ * @param telemetry - Optional telemetry configuration.
  *
  * @param providerOptions - Additional provider-specific options. They are passed through
  * to the provider from the AI SDK and enable provider-specific
@@ -126,7 +123,8 @@ export async function generateObject<
     ? Array<InferSchema<SCHEMA>>
     : InferSchema<SCHEMA>,
 >(
-  options: Omit<CallSettings, 'stopSequences'> &
+  options: Omit<LanguageModelCallOptions, 'stopSequences'> &
+    Omit<RequestOptions, 'timeout'> &
     Prompt &
     (OUTPUT extends 'enum'
       ? {
@@ -171,10 +169,16 @@ export async function generateObject<
       experimental_repairText?: RepairTextFunction;
 
       /**
-       * Optional telemetry configuration (experimental).
+       * Optional telemetry configuration.
        */
+      telemetry?: TelemetryOptions;
 
-      experimental_telemetry?: TelemetrySettings;
+      /**
+       * Optional telemetry configuration.
+       *
+       * @deprecated Use `telemetry` instead. This alias will be removed in a future major release.
+       */
+      experimental_telemetry?: TelemetryOptions;
 
       /**
        * Custom download function to use for URLs.
@@ -194,25 +198,25 @@ export async function generateObject<
        * Callback that is called when the generateObject operation begins,
        * before the LLM call is made.
        */
-      experimental_onStart?: Listener<ObjectOnStartEvent>;
+      experimental_onStart?: Callback<GenerateObjectStartEvent>;
 
       /**
        * Callback that is called when the model call (step) begins,
        * before the provider is called.
        */
-      experimental_onStepStart?: Listener<ObjectOnStepStartEvent>;
+      experimental_onStepStart?: Callback<GenerateObjectStepStartEvent>;
 
       /**
        * Callback that is called when the model call (step) completes,
        * with the raw result before JSON parsing.
        */
-      onStepFinish?: Listener<ObjectOnStepFinishEvent>;
+      onStepFinish?: Callback<GenerateObjectStepEndEvent>;
 
       /**
        * Callback that is called when the entire operation completes
        * with the final parsed and validated object.
        */
-      onFinish?: Listener<ObjectOnFinishEvent<RESULT>>;
+      onFinish?: Callback<GenerateObjectEndEvent<RESULT>>;
 
       /**
        * Internal. For test use only. May change without notice.
@@ -226,14 +230,17 @@ export async function generateObject<
   const {
     model: modelArg,
     output = 'object',
+    instructions,
     system,
     prompt,
     messages,
+    allowSystemInMessages,
     maxRetries: maxRetriesArg,
     abortSignal,
     headers,
     experimental_repairText: repairText,
-    experimental_telemetry: telemetry,
+    experimental_telemetry,
+    telemetry = experimental_telemetry,
     experimental_download: download,
     providerOptions,
     experimental_onStart: onStart,
@@ -275,16 +282,15 @@ export async function generateObject<
     enumValues,
   });
 
-  const callSettings = prepareCallSettings(settings);
+  const callSettings = prepareLanguageModelCallOptions(settings);
 
   const headersWithUserAgent = withUserAgentSuffix(
     headers ?? {},
     `ai/${VERSION}`,
   );
 
-  const createGlobalTelemetry = getGlobalTelemetryIntegration();
-  const globalTelemetry = createGlobalTelemetry({
-    integrations: telemetry?.integrations,
+  const telemetryDispatcher = createTelemetryDispatcher({
+    telemetry,
   });
 
   const jsonSchema = await outputStrategy.jsonSchema();
@@ -296,7 +302,7 @@ export async function generateObject<
       operationId: 'ai.generateObject' as const,
       provider: model.provider,
       modelId: model.modelId,
-      system,
+      system: instructions ?? system,
       prompt,
       messages,
       maxOutputTokens: callSettings.maxOutputTokens,
@@ -309,25 +315,21 @@ export async function generateObject<
       maxRetries,
       headers: headersWithUserAgent,
       providerOptions,
-      abortSignal,
       output: outputStrategy.type as 'object' | 'array' | 'enum' | 'no-schema',
       schema: jsonSchema as Record<string, unknown> | undefined,
       schemaName,
       schemaDescription,
-      isEnabled: telemetry?.isEnabled,
-      recordInputs: telemetry?.recordInputs,
-      recordOutputs: telemetry?.recordOutputs,
-      functionId: telemetry?.functionId,
-      metadata: telemetry?.metadata,
     },
-    callbacks: [onStart, globalTelemetry.onStart],
+    callbacks: [onStart, telemetryDispatcher.onStart],
   });
 
   try {
     const standardizedPrompt = await standardizePrompt({
+      instructions,
       system,
       prompt,
       messages,
+      allowSystemInMessages,
     } as Prompt);
 
     const promptMessages = await convertToLanguageModelPrompt({
@@ -345,12 +347,9 @@ export async function generateObject<
         modelId: model.modelId,
         providerOptions,
         headers: headersWithUserAgent,
-        abortSignal,
-        functionId: telemetry?.functionId,
-        metadata: telemetry?.metadata as Record<string, unknown> | undefined,
         promptMessages,
       },
-      callbacks: [onStepStart, globalTelemetry.onObjectStepStart],
+      callbacks: [onStepStart, telemetryDispatcher.onObjectStepStart],
     });
 
     const generateResult = await retry(() =>
@@ -361,7 +360,7 @@ export async function generateObject<
           name: schemaName,
           description: schemaDescription,
         },
-        ...prepareCallSettings(settings),
+        ...prepareLanguageModelCallOptions(settings),
         prompt: promptMessages,
         providerOptions,
         abortSignal,
@@ -393,8 +392,10 @@ export async function generateObject<
     const usage = asLanguageModelUsage(generateResult.usage);
     const warnings = generateResult.warnings;
     const resultProviderMetadata = generateResult.providerMetadata;
-    const request: LanguageModelRequestMetadata = generateResult.request ?? {};
-    const response: LanguageModelResponseMetadata = responseData;
+    const request: Omit<LanguageModelRequestMetadata, 'messages'> =
+      generateResult.request ?? {};
+    const response: Omit<LanguageModelResponseMetadata, 'messages'> =
+      responseData;
 
     logWarnings({
       warnings,
@@ -402,7 +403,7 @@ export async function generateObject<
       model: model.modelId,
     });
 
-    const stepFinishEvent: ObjectOnStepFinishEvent = {
+    const stepFinishEvent: GenerateObjectStepEndEvent = {
       callId,
       stepNumber: 0 as const,
       provider: model.provider,
@@ -416,13 +417,11 @@ export async function generateObject<
       request,
       response,
       providerMetadata: resultProviderMetadata,
-      functionId: telemetry?.functionId,
-      metadata: telemetry?.metadata as Record<string, unknown> | undefined,
     };
 
     await notify({
       event: stepFinishEvent,
-      callbacks: [onStepFinish, globalTelemetry.onObjectStepFinish],
+      callbacks: [onStepFinish, telemetryDispatcher.onObjectStepFinish],
     });
 
     const object = await parseAndValidateObjectResultWithRepair(
@@ -448,10 +447,8 @@ export async function generateObject<
         request,
         response,
         providerMetadata: resultProviderMetadata,
-        functionId: telemetry?.functionId,
-        metadata: telemetry?.metadata as Record<string, unknown> | undefined,
       },
-      callbacks: [onFinish, globalTelemetry.onFinish],
+      callbacks: [onFinish, telemetryDispatcher.onEnd],
     });
 
     return new DefaultGenerateObjectResult({
@@ -465,7 +462,7 @@ export async function generateObject<
       providerMetadata: resultProviderMetadata,
     });
   } catch (error) {
-    await globalTelemetry.onError?.({ callId, error });
+    await telemetryDispatcher.onError?.({ callId, error });
     throw wrapGatewayError(error);
   }
 }

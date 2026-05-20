@@ -32,9 +32,9 @@ run(async () => {
             text: output.description,
           },
           {
-            type: 'image-data',
+            type: 'file',
             mediaType: 'image/png',
-            data: output.imageData,
+            data: { type: 'data', data: output.imageData },
           },
         ],
       };

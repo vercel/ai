@@ -1,12 +1,11 @@
-import { bedrock } from '@ai-sdk/amazon-bedrock';
-import { convertToModelMessages, streamText, UIMessage } from 'ai';
-
+import { amazonBedrock } from '@ai-sdk/amazon-bedrock';
+import { convertToModelMessages, streamText, type UIMessage } from 'ai';
 export async function POST(req: Request) {
   try {
     const { messages }: { messages: UIMessage[] } = await req.json();
 
     const result = streamText({
-      model: bedrock('anthropic.claude-3-haiku-20240307-v1:0'),
+      model: amazonBedrock('anthropic.claude-3-haiku-20240307-v1:0'),
       messages: await convertToModelMessages(messages),
       maxOutputTokens: 500,
       temperature: 0.7,

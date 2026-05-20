@@ -1,4 +1,4 @@
-import {
+import type {
   APICallError,
   LanguageModelV4,
   LanguageModelV4CallOptions,
@@ -14,31 +14,36 @@ import {
   createEventSourceResponseHandler,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
-  FetchFunction,
   parseProviderOptions,
-  ParseResult,
   postJsonToApi,
-  ResponseHandler,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
+  type FetchFunction,
+  type ParseResult,
+  type ResponseHandler,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import { toCamelCase } from '../utils/to-camel-case';
+import {
+  toCamelCase,
+  warnIfDeprecatedProviderOptionsKey,
+} from '../utils/to-camel-case';
 import {
   defaultOpenAICompatibleErrorStructure,
-  ProviderErrorStructure,
+  type ProviderErrorStructure,
 } from '../openai-compatible-error';
 import { convertOpenAICompatibleCompletionUsage } from './convert-openai-compatible-completion-usage';
 import { convertToOpenAICompatibleCompletionPrompt } from './convert-to-openai-compatible-completion-prompt';
 import { getResponseMetadata } from './get-response-metadata';
 import { mapOpenAICompatibleFinishReason } from './map-openai-compatible-finish-reason';
 import {
-  OpenAICompatibleCompletionModelId,
   openaiCompatibleLanguageModelCompletionOptions,
-} from './openai-compatible-completion-options';
-
+  type OpenAICompatibleCompletionModelId,
+} from './openai-compatible-completion-language-model-options';
 type OpenAICompatibleCompletionConfig = {
   provider: string;
   includeUsage?: boolean;
-  headers: () => Record<string, string | undefined>;
+  headers?: () => Record<string, string | undefined>;
   url: (options: { modelId: string; path: string }) => string;
   fetch?: FetchFunction;
   errorStructure?: ProviderErrorStructure<any>;
@@ -56,6 +61,23 @@ export class OpenAICompatibleCompletionLanguageModel implements LanguageModelV4 
   private readonly config: OpenAICompatibleCompletionConfig;
   private readonly failedResponseHandler: ResponseHandler<APICallError>;
   private readonly chunkSchema; // type inferred via constructor
+
+  static [WORKFLOW_SERIALIZE](model: OpenAICompatibleCompletionLanguageModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: string;
+    config: OpenAICompatibleCompletionConfig;
+  }) {
+    return new OpenAICompatibleCompletionLanguageModel(
+      options.modelId,
+      options.config,
+    );
+  }
 
   constructor(
     modelId: OpenAICompatibleCompletionModelId,
@@ -101,6 +123,13 @@ export class OpenAICompatibleCompletionLanguageModel implements LanguageModelV4 
     toolChoice,
   }: LanguageModelV4CallOptions) {
     const warnings: SharedV4Warning[] = [];
+
+    // Warn when the raw (non-camelCase) provider name is used
+    warnIfDeprecatedProviderOptionsKey({
+      rawName: this.providerOptionsName,
+      providerOptions,
+      warnings,
+    });
 
     // Parse provider options (support both raw and camelCase keys)
     const completionOptions = Object.assign(
@@ -186,7 +215,7 @@ export class OpenAICompatibleCompletionLanguageModel implements LanguageModelV4 
         path: '/completions',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body: args,
       failedResponseHandler: this.failedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -241,7 +270,7 @@ export class OpenAICompatibleCompletionLanguageModel implements LanguageModelV4 
         path: '/completions',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body,
       failedResponseHandler: this.failedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(

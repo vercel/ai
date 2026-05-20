@@ -1,10 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { LanguageModelV4Prompt } from '@ai-sdk/provider';
+import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
-import {
-  convertReadableStreamToArray,
-  isNodeVersion,
-} from '@ai-sdk/provider-utils/test';
+import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { createOpenAICompatible } from '../openai-compatible-provider';
 import { OpenAICompatibleCompletionLanguageModel } from './openai-compatible-completion-language-model';
 
@@ -429,6 +426,44 @@ describe('doGenerate', () => {
         someCustomOption: 'camel-value',
       });
     });
+
+    it('should emit deprecated warning when raw provider options key is used', async () => {
+      prepareJsonResponse({ content: '' });
+
+      const result = await provider
+        .completionModel('gpt-3.5-turbo-instruct')
+        .doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            'test-provider': { someCustomOption: 'test-value' },
+          },
+        });
+
+      expect(result.warnings).toMatchInlineSnapshot(`
+        [
+          {
+            "message": "Use 'testProvider' instead.",
+            "setting": "providerOptions key 'test-provider'",
+            "type": "deprecated",
+          },
+        ]
+      `);
+    });
+
+    it('should not emit deprecated warning when camelCase provider options key is used', async () => {
+      prepareJsonResponse({ content: '' });
+
+      const result = await provider
+        .completionModel('gpt-3.5-turbo-instruct')
+        .doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            testProvider: { someCustomOption: 'test-value' },
+          },
+        });
+
+      expect(result.warnings).toMatchInlineSnapshot(`[]`);
+    });
   });
 });
 
@@ -585,20 +620,18 @@ describe('doStream', () => {
     `);
   });
 
-  it.skipIf(isNodeVersion(20))(
-    'should handle unparsable stream parts',
-    async () => {
-      server.urls['https://my.api.com/v1/completions'].response = {
-        type: 'stream-chunks',
-        chunks: [`data: {unparsable}\n\n`, 'data: [DONE]\n\n'],
-      };
+  it('should handle unparsable stream parts', async () => {
+    server.urls['https://my.api.com/v1/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [`data: {unparsable}\n\n`, 'data: [DONE]\n\n'],
+    };
 
-      const { stream } = await model.doStream({
-        prompt: TEST_PROMPT,
-        includeRawChunks: false,
-      });
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
 
-      expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
         [
           {
             "type": "stream-start",
@@ -632,8 +665,7 @@ describe('doStream', () => {
           },
         ]
       `);
-    },
-  );
+  });
 
   it('should send request body', async () => {
     prepareEmptyStreamResponse();

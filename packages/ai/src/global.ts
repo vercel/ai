@@ -1,6 +1,6 @@
-import { ProviderV2, ProviderV3, ProviderV4 } from '@ai-sdk/provider';
-import { LogWarningsFunction } from './logger/log-warnings';
-import type { TelemetryIntegration } from './telemetry/telemetry-integration';
+import type { ProviderV2, ProviderV3, ProviderV4 } from '@ai-sdk/provider';
+import type { LogWarningsFunction } from './logger/log-warnings';
+import type { Telemetry } from './telemetry/telemetry';
 
 // add AI SDK default provider to the globalThis object
 declare global {
@@ -29,8 +29,8 @@ declare global {
    * Integrations registered here receive lifecycle events (onStart, onStepStart,
    * etc.) from every `generateText`, `streamText`, and similar call.
    *
-   * Prefer using `registerTelemetryIntegration()` from `'ai'` instead of
+   * Prefer using `registerTelemetry()` from `'ai'` instead of
    * assigning this directly.
    */
-  var AI_SDK_TELEMETRY_INTEGRATIONS: TelemetryIntegration[] | undefined;
+  var AI_SDK_TELEMETRY_INTEGRATIONS: Telemetry[] | undefined;
 }

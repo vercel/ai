@@ -101,7 +101,6 @@ The following provider options are available:
 - **notification_config** _object_
 
   Configuration for webhook notifications when job is complete.
-
   - **url** _string_ - URL to send the notification to.
   - **auth_headers** _object_ - Optional authorization headers for the notification request.
     - **Authorization** _string_ - Authorization header value.
@@ -125,14 +124,12 @@ The following provider options are available:
 - **segments_to_transcribe** _Array_
 
   Specific segments of the audio to transcribe.
-
   - **start** _number_ - Start time of the segment in seconds.
   - **end** _number_ - End time of the segment in seconds.
 
 - **speaker_names** _Array_
 
   Names to assign to speakers in the transcription.
-
   - **display_name** _string_ - Display name for the speaker.
 
 - **skip_diarization** _boolean_
@@ -186,7 +183,6 @@ The following provider options are available:
 - **summarization_config** _object_
 
   Configuration for generating a summary of the transcription.
-
   - **model** _string_ - Model to use for summarization. Possible values: "standard" (default), "premium".
   - **type** _string_ - Format of the summary. Possible values: "paragraph" (default), "bullets".
   - **prompt** _string_ - Custom prompt for the summarization (mutually exclusive with type).
@@ -194,7 +190,6 @@ The following provider options are available:
 - **translation_config** _object_
 
   Configuration for translating the transcription.
-
   - **target_languages** _Array_ - Target languages for translation. Each item is an object with:
     - **language** _string_ - Language code. Possible values: "en", "en-us", "en-gb", "ar", "pt", "pt-br", "pt-pt", "fr", "fr-ca", "es", "es-es", "es-la", "it", "ja", "ko", "de", "ru".
   - **model** _string_ - Model to use for translation. Possible values: "standard" (default), "premium".
@@ -209,7 +204,6 @@ The following provider options are available:
   Default is `false`.
 
   Currently supported languages:
-
   - English (en, en-us, en-gb)
   - French (fr)
   - Italian (it)

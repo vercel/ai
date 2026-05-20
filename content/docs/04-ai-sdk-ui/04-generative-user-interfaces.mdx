@@ -84,7 +84,7 @@ export async function POST(request: Request) {
 
   const result = streamText({
     model: __MODEL__,
-    system: 'You are a friendly assistant!',
+    instructions: 'You are a friendly assistant!',
     messages: await convertToModelMessages(messages),
     stopWhen: isStepCount(5),
   });
@@ -137,7 +137,7 @@ export async function POST(request: Request) {
 
   const result = streamText({
     model: __MODEL__,
-    system: 'You are a friendly assistant!',
+    instructions: 'You are a friendly assistant!',
     messages: await convertToModelMessages(messages),
     stopWhen: isStepCount(5),
     tools,

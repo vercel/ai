@@ -1,18 +1,22 @@
 import {
   EventSourceParserStream,
-  FetchFunction,
   withUserAgentSuffix,
   getRuntimeEnvironmentUserAgent,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { MCPClientError } from '../error/mcp-client-error';
-import { JSONRPCMessage, JSONRPCMessageSchema } from './json-rpc-message';
-import { MCPTransport } from './mcp-transport';
+import {
+  JSONRPCMessageSchema,
+  parseJSONRPCMessage,
+  type JSONRPCMessage,
+} from './json-rpc-message';
+import type { MCPTransport } from './mcp-transport';
 import { VERSION } from '../version';
 import {
-  OAuthClientProvider,
   extractResourceMetadataUrl,
   UnauthorizedError,
   auth,
+  type OAuthClientProvider,
 } from './oauth';
 import { LATEST_PROTOCOL_VERSION } from './types';
 
@@ -47,6 +51,7 @@ export class HttpMCPTransport implements MCPTransport {
   onclose?: () => void;
   onerror?: (error: unknown) => void;
   onmessage?: (message: JSONRPCMessage) => void;
+  protocolVersion?: string;
 
   constructor({
     url,
@@ -74,7 +79,7 @@ export class HttpMCPTransport implements MCPTransport {
     const headers: Record<string, string> = {
       ...this.headers,
       ...base,
-      'mcp-protocol-version': LATEST_PROTOCOL_VERSION,
+      'mcp-protocol-version': this.protocolVersion ?? LATEST_PROTOCOL_VERSION,
     };
 
     if (this.sessionId) {
@@ -238,7 +243,7 @@ export class HttpMCPTransport implements MCPTransport {
                 const { event, data } = value;
                 if (event === 'message') {
                   try {
-                    const msg = JSONRPCMessageSchema.parse(JSON.parse(data));
+                    const msg = await parseJSONRPCMessage(data);
                     this.onmessage?.(msg);
                   } catch (error) {
                     const e = new MCPClientError({
@@ -386,7 +391,7 @@ export class HttpMCPTransport implements MCPTransport {
 
             if (event === 'message') {
               try {
-                const msg = JSONRPCMessageSchema.parse(JSON.parse(data));
+                const msg = await parseJSONRPCMessage(data);
                 this.onmessage?.(msg);
               } catch (error) {
                 const e = new MCPClientError({

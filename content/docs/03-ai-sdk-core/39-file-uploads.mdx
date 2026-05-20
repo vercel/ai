@@ -9,6 +9,11 @@ The AI SDK provides the [`uploadFile`](/docs/reference/ai-sdk-core/upload-file)
 function to upload files to a provider and get back a `ProviderReference` that can be
 used in subsequent API calls.
 
+In the AI SDK, the uploaded file is identified by a `ProviderReference` — a
+`Record<string, string>` mapping provider names to provider-specific identifiers.
+This concept is used for other provider specific asset references too, such as
+uploaded skills.
+
 ```ts
 import { uploadFile, generateText } from 'ai';
 import { openai } from '@ai-sdk/openai';
@@ -27,10 +32,20 @@ const { text } = await generateText({
       role: 'user',
       content: [
         { type: 'text', text: 'Describe what you see in this image.' },
-        { type: 'image', image: providerReference },
+        { type: 'file', mediaType: 'image', data: providerReference },
       ],
     },
   ],
+});
+```
+
+As a shorthand, you can pass a provider instance directly to `api` instead of calling `.files()` explicitly — the SDK will call `.files()` for you:
+
+```ts highlight="3"
+const { providerReference } = await uploadFile({
+  api: openai, // shorthand for openai.files()
+  data: fs.readFileSync('./photo.png'),
+  filename: 'photo.png',
 });
 ```
 
@@ -129,12 +144,12 @@ the request — each provider will find its own file ID.
 
 The following providers support `files()` and file uploads:
 
-| Provider  | Factory Method        |
-| --------- | --------------------- |
-| Anthropic | `anthropic.files()`   |
-| Google    | `google.files()`      |
-| OpenAI    | `openai.files()`      |
-| xAI       | `xai.files()`         |
+| Provider  | Factory Method      |
+| --------- | ------------------- |
+| Anthropic | `anthropic.files()` |
+| Google    | `google.files()`    |
+| OpenAI    | `openai.files()`    |
+| xAI       | `xai.files()`       |
 
 Providers without file upload support will throw an `UnsupportedFunctionalityError`
 if they encounter a provider reference in a message.

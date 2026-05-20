@@ -1,35 +1,37 @@
-import {
+import type {
   EmbeddingModelV4,
   FilesV4,
   ImageModelV4,
   LanguageModelV4,
   ProviderV4,
   SpeechModelV4,
+  SkillsV4,
   TranscriptionModelV4,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
   loadApiKey,
   loadOptionalSetting,
   withoutTrailingSlash,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { OpenAIChatLanguageModel } from './chat/openai-chat-language-model';
-import { OpenAIChatModelId } from './chat/openai-chat-options';
+import type { OpenAIChatModelId } from './chat/openai-chat-language-model-options';
 import { OpenAICompletionLanguageModel } from './completion/openai-completion-language-model';
-import { OpenAICompletionModelId } from './completion/openai-completion-options';
+import type { OpenAICompletionModelId } from './completion/openai-completion-language-model-options';
 import { OpenAIEmbeddingModel } from './embedding/openai-embedding-model';
 import { OpenAIFiles } from './files/openai-files';
-import { OpenAIEmbeddingModelId } from './embedding/openai-embedding-options';
+import type { OpenAIEmbeddingModelId } from './embedding/openai-embedding-model-options';
 import { OpenAIImageModel } from './image/openai-image-model';
-import { OpenAIImageModelId } from './image/openai-image-options';
+import type { OpenAIImageModelId } from './image/openai-image-model-options';
 import { openaiTools } from './openai-tools';
 import { OpenAIResponsesLanguageModel } from './responses/openai-responses-language-model';
-import { OpenAIResponsesModelId } from './responses/openai-responses-options';
+import type { OpenAIResponsesModelId } from './responses/openai-responses-language-model-options';
 import { OpenAISpeechModel } from './speech/openai-speech-model';
-import { OpenAISpeechModelId } from './speech/openai-speech-options';
+import type { OpenAISpeechModelId } from './speech/openai-speech-model-options';
 import { OpenAITranscriptionModel } from './transcription/openai-transcription-model';
-import { OpenAITranscriptionModelId } from './transcription/openai-transcription-options';
+import type { OpenAITranscriptionModelId } from './transcription/openai-transcription-model-options';
+import { OpenAISkills } from './skills/openai-skills';
 import { VERSION } from './version';
 
 export interface OpenAIProvider extends ProviderV4 {
@@ -99,6 +101,11 @@ export interface OpenAIProvider extends ProviderV4 {
    * Returns a FilesV4 interface for uploading files to OpenAI.
    */
   files(): FilesV4;
+
+  /**
+   * Returns a SkillsV4 interface for uploading skills to OpenAI.
+   */
+  skills(): SkillsV4;
 
   /**
    * OpenAI-specific tools.
@@ -231,6 +238,14 @@ export function createOpenAI(
       fetch: options.fetch,
     });
 
+  const createSkills = () =>
+    new OpenAISkills({
+      provider: `${providerName}.skills`,
+      url: ({ path }) => `${baseURL}${path}`,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+
   const createLanguageModel = (modelId: OpenAIResponsesModelId) => {
     if (new.target) {
       throw new Error(
@@ -274,8 +289,8 @@ export function createOpenAI(
 
   provider.speech = createSpeechModel;
   provider.speechModel = createSpeechModel;
-
   provider.files = createFiles;
+  provider.skills = createSkills;
 
   provider.tools = openaiTools;
 

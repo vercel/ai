@@ -80,7 +80,7 @@ You can use the following optional settings to customize the AI Gateway provider
 
 - **baseURL** _string_
 
-  Use a different URL prefix for API calls. The default prefix is `https://ai-gateway.vercel.sh/v3/ai`.
+  Use a different URL prefix for API calls. The default prefix is `https://ai-gateway.vercel.sh/v4/ai`.
 
 - **apiKey** _string_
 
@@ -132,7 +132,6 @@ tokens](https://vercel.com/docs/oidc) without API Keys.
 #### How OIDC Authentication Works
 
 1. **In Production/Preview Deployments**:
-
    - OIDC authentication is automatically handled
    - No manual configuration needed
    - Tokens are automatically obtained and refreshed
@@ -159,6 +158,8 @@ You can connect your own provider credentials to use with Vercel AI Gateway. Thi
 
 To set up BYOK, add your provider credentials in your Vercel team's AI Gateway settings. Once configured, AI Gateway automatically uses your credentials. No code changes are needed.
 
+For providers like Azure where you can use custom deployment names, you can configure model mappings to map gateway model slugs to your deployment names. See [model mappings](https://vercel.com/docs/ai-gateway/byok#model-mappings) for details.
+
 Learn more in the [BYOK documentation](https://vercel.com/docs/ai-gateway/byok).
 
 ## Language Models
@@ -175,6 +176,34 @@ const { text } = await generateText({
 ```
 
 AI Gateway language models can also be used in the `streamText` function and support structured data generation with [`Output`](/docs/reference/ai-sdk-core/output) (see [AI SDK Core](/docs/ai-sdk-core)).
+
+## Reranking Models
+
+You can create reranking models using the `rerankingModel` method on the provider instance:
+
+```ts
+import { rerank } from 'ai';
+import { gateway } from '@ai-sdk/gateway';
+
+const { ranking } = await rerank({
+  model: gateway.rerankingModel('cohere/rerank-v3.5'),
+  query: 'What is the capital of France?',
+  documents: [
+    'Paris is the capital of France.',
+    'Berlin is the capital of Germany.',
+    'Madrid is the capital of Spain.',
+  ],
+  topN: 2,
+});
+
+console.log(ranking);
+// [
+//   { originalIndex: 0, score: 0.89, document: 'Paris is the capital of France.' },
+//   { originalIndex: 2, score: 0.15, document: 'Madrid is the capital of Spain.' },
+// ]
+```
+
+Reranking models are useful for improving search results in retrieval-augmented generation (RAG) pipelines by re-scoring candidate documents after an initial retrieval step.
 
 ## Available Models
 
@@ -556,7 +585,6 @@ The Parallel Search tool supports the following optional configuration options:
 - **mode** _'one-shot' | 'agentic'_
 
   Mode preset for different use cases:
-
   - `'one-shot'` - Comprehensive results with longer excerpts for single-response answers (default)
   - `'agentic'` - Concise, token-efficient results optimized for multi-step agentic workflows
 
@@ -567,7 +595,6 @@ The Parallel Search tool supports the following optional configuration options:
 - **sourcePolicy** _object_
 
   Source policy for controlling which domains to include/exclude:
-
   - `includeDomains` - List of domains to include in search results
   - `excludeDomains` - List of domains to exclude from search results
   - `afterDate` - Only include results published after this date (ISO 8601 format)
@@ -575,14 +602,12 @@ The Parallel Search tool supports the following optional configuration options:
 - **excerpts** _object_
 
   Excerpt configuration for controlling result length:
-
   - `maxCharsPerResult` - Maximum characters per result
   - `maxCharsTotal` - Maximum total characters across all results
 
 - **fetchPolicy** _object_
 
   Fetch policy for controlling content freshness:
-
   - `maxAgeSeconds` - Maximum age in seconds for cached content (set to 0 for always fresh)
 
 The tool works with both `generateText` and `streamText`:
@@ -750,6 +775,19 @@ The following gateway provider options are available:
 
   Example: `only: ['anthropic', 'vertex']` will only allow routing to Anthropic or Vertex AI.
 
+- **sort** _'cost' | 'ttft' | 'tps'_
+
+  Sorts available providers by a performance or cost metric before routing. The gateway will try the best-scoring provider first and fall back through the rest in sorted order. If unspecified, providers are ordered using the gateway's default system ranking.
+  - `'cost'` — lowest cost first
+  - `'ttft'` — lowest time-to-first-token first
+  - `'tps'` — highest tokens-per-second first
+
+  When combined with `order`, the user-specified providers are promoted to the front while remaining providers follow the sorted order.
+
+  Example: `sort: 'ttft'` will route to the provider with the fastest time-to-first-token.
+
+  When `sort` is active, the response's `providerMetadata.gateway.routing.sort` object contains the sort option used, the resulting execution order, per-provider metric values, and any providers that were deprioritized.
+
 - **models** _string[]_
 
   Specifies fallback models to use when the primary model fails or is unavailable. The gateway will try the primary model first (specified in the `model` parameter), then try each model in this array in order until one succeeds.
@@ -774,15 +812,17 @@ The following gateway provider options are available:
 
   Each provider can have multiple credentials (tried in order). The structure is a record where keys are provider slugs and values are arrays of credential objects.
 
-  Examples:
+  Each credential can optionally include a `modelMappings` array to map AI Gateway model slugs to your deployment names (for example, custom Azure deployment names). If a BYOK request fails, the gateway falls back to system credentials using the default model name.
 
+  Examples:
   - Single provider: `byok: { 'anthropic': [{ apiKey: 'sk-ant-...' }] }`
   - Multiple credentials: `byok: { 'vertex': [{ project: 'proj-1', googleCredentials: { privateKey: '...', clientEmail: '...' } }, { project: 'proj-2', googleCredentials: { privateKey: '...', clientEmail: '...' } }] }`
   - Multiple providers: `byok: { 'anthropic': [{ apiKey: '...' }], 'bedrock': [{ accessKeyId: '...', secretAccessKey: '...' }] }`
+  - With model mappings: `byok: { 'azure': [{ apiKey: '...', resourceName: '...', modelMappings: [{ gatewayModelSlug: 'openai/gpt-5.4-nano', customModelId: 'my-deployment' }] }] }`
 
 - **zeroDataRetention** _boolean_
 
-  Restricts routing to providers that have zero data retention agreements with Vercel for AI Gateway. When using BYOK credentials, this filter is not applied. If BYOK credentials fail and the request falls back to system credentials, only providers with zero data retention agreements will be used. If there are no providers available for the model with zero data retention, the request will fail. Request-level ZDR is only available for Vercel Pro and Enterprise plans.
+  Restricts routing to providers with zero data retention agreements with Vercel for AI Gateway. BYOK credentials are skipped by default, since your provider agreements differ from Vercel's. When this filter is on, AI Gateway routes only to providers Vercel has ZDR agreements with for the model. If you have BYOK keys marked as ZDR, those keys are tried first, then AI Gateway falls back to its system credentials. You are responsible for the accuracy of that marking. Applies to both account-wide and request-level ZDR. The request fails if no ZDR-eligible credentials are available. Request-level ZDR is only available for Vercel Pro and Enterprise plans.
 
 - **disallowPromptTraining** _boolean_
 
@@ -849,7 +889,7 @@ const { text } = await generateText({
 
 #### Zero Data Retention Example
 
-Set `zeroDataRetention` to true to route requests to providers that have zero data retention agreements with Vercel for AI Gateway. When using BYOK credentials, this filter is not applied. If BYOK credentials fail and the request falls back to system credentials, only providers with zero data retention agreements will be used. If there are no providers available for the model with zero data retention, the request will fail. When `zeroDataRetention` is `false` or not specified, there is no enforcement of restricting routing. Request-level ZDR is only available for Vercel Pro and Enterprise plans.
+Set `zeroDataRetention` to true to route requests to providers with zero data retention agreements with Vercel for AI Gateway. BYOK credentials are skipped by default, since your provider agreements differ from Vercel's. When this filter is on, AI Gateway routes only to providers Vercel has ZDR agreements with for the model. If you have BYOK keys marked as ZDR, those keys are tried first, then AI Gateway falls back to its system credentials. You are responsible for the accuracy of that marking. Applies to both account-wide and request-level ZDR. The request fails if no ZDR-eligible credentials are available. When `zeroDataRetention` is `false` or not specified, there is no enforcement of restricting routing. Request-level ZDR is only available for Vercel Pro and Enterprise plans.
 
 ```ts
 import type { GatewayProviderOptions } from '@ai-sdk/gateway';

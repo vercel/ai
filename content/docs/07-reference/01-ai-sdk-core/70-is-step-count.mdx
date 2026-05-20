@@ -5,7 +5,7 @@ description: API Reference for isStepCount.
 
 # `isStepCount()`
 
-Creates a stop condition that stops when the number of steps reaches a specified count.
+Creates a stop condition that stops when the number of completed steps equals a specified count.
 
 This function is used with `stopWhen` in `generateText` and `streamText` to control when a tool-calling loop should stop based on the number of steps executed.
 
@@ -34,17 +34,17 @@ const result = await generateText({
 <PropertiesTable
   content={[
     {
-      name: 'count',
+      name: 'stepCount',
       type: 'number',
       description:
-        'The maximum number of steps to execute before stopping the tool-calling loop.',
+        'The number of completed steps that should trigger the stop condition.',
     },
   ]}
 />
 
 ### Returns
 
-A `StopCondition` function that returns `true` when the step count reaches the specified number. The function can be used with the `stopWhen` parameter in `generateText` and `streamText`.
+A `StopCondition` function that returns `true` when the number of completed steps equals the specified number. The function can be used with the `stopWhen` parameter in `generateText` and `streamText`.
 
 ## Examples
 

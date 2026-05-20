@@ -13,8 +13,15 @@ export interface CohereSystemMessage {
 
 export interface CohereUserMessage {
   role: 'user';
-  content: string;
+  content: string | Array<CohereUserMessageContent>;
 }
+
+export type CohereUserMessageContent =
+  | { type: 'text'; text: string }
+  | {
+      type: 'image_url';
+      image_url: { url: string; detail?: 'auto' | 'low' | 'high' };
+    };
 
 export interface CohereAssistantMessage {
   role: 'assistant';

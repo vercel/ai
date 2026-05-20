@@ -7,17 +7,16 @@ import {
   createVertexAnthropic as createVertexAnthropicEdge,
   vertexAnthropic as vertexAnthropicEdge,
 } from '@ai-sdk/google-vertex/anthropic/edge';
-import { LanguageModelV3, LanguageModelV4 } from '@ai-sdk/provider';
-import { APICallError, generateText, isStepCount } from 'ai';
+import type { LanguageModelV3, LanguageModelV4 } from '@ai-sdk/provider';
+import { generateText, isStepCount, type APICallError } from 'ai';
 import 'dotenv/config';
 import fs from 'fs';
 import { describe, expect, it } from 'vitest';
 import {
   createFeatureTestSuite,
   createLanguageModelWithCapabilities,
-  ModelWithCapabilities,
+  type ModelWithCapabilities,
 } from './feature-test-suite';
-
 const RUNTIME_VARIANTS = {
   edge: {
     name: 'Edge Runtime',
@@ -127,7 +126,8 @@ const toolTests = (model: LanguageModelV4) => {
               switch (action) {
                 case 'screenshot': {
                   return {
-                    type: 'image',
+                    type: 'file',
+                    mediaType: 'image',
                     data: fs
                       .readFileSync('./data/screenshot-editor.png')
                       .toString('base64'),
@@ -145,9 +145,9 @@ const toolTests = (model: LanguageModelV4) => {
                   typeof output === 'string'
                     ? { type: 'text', text: output }
                     : {
-                        type: 'image-data',
-                        data: output.data,
+                        type: 'file',
                         mediaType: 'image/png',
+                        data: { type: 'data', data: output.data },
                       },
                 ],
               };

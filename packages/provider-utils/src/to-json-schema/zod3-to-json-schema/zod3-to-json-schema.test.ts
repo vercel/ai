@@ -1,14 +1,23 @@
-import { describe, it, expect } from 'vitest';
-import { JSONSchema7 } from '@ai-sdk/provider';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { JSONSchema7 } from '@ai-sdk/provider';
 import { z } from 'zod/v3';
 import {
   ignoreOverride,
   jsonDescription,
-  PostProcessCallback,
+  type PostProcessCallback,
 } from './options';
 import { zod3ToJsonSchema } from './zod3-to-json-schema';
+import { delay } from '../../delay';
 
 describe('zod3-to-json-schema', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   describe('override', () => {
     it('the readme example', () => {
       expect(
@@ -323,7 +332,7 @@ describe('zod3-to-json-schema', () => {
         .string()
         .optional()
         .superRefine(async (value, ctx) => {
-          await new Promise(resolve => setTimeout(resolve, 100));
+          await delay(100);
           if (value === 'fail') {
             ctx.addIssue({
               code: z.ZodIssueCode.custom,

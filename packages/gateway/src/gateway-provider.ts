@@ -1,6 +1,7 @@
 import {
   loadOptionalSetting,
   withoutTrailingSlash,
+  withUserAgentSuffix,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { asGatewayError, GatewayAuthenticationError } from './errors';
@@ -27,8 +28,14 @@ import { GatewayLanguageModel } from './gateway-language-model';
 import { GatewayEmbeddingModel } from './gateway-embedding-model';
 import { GatewayImageModel } from './gateway-image-model';
 import { GatewayVideoModel } from './gateway-video-model';
+import { GatewayRerankingModel } from './gateway-reranking-model';
+import { GatewaySpeechModel } from './gateway-speech-model';
+import { GatewayTranscriptionModel } from './gateway-transcription-model';
 import type { GatewayEmbeddingModelId } from './gateway-embedding-model-settings';
 import type { GatewayImageModelId } from './gateway-image-model-settings';
+import type { GatewayRerankingModelId } from './gateway-reranking-model-settings';
+import type { GatewaySpeechModelId } from './gateway-speech-model-settings';
+import type { GatewayTranscriptionModelId } from './gateway-transcription-model-settings';
 import type { GatewayVideoModelId } from './gateway-video-model-settings';
 import { gatewayTools } from './gateway-tools';
 import { getVercelOidcToken, getVercelRequestId } from './vercel-environment';
@@ -37,10 +44,12 @@ import type {
   LanguageModelV4,
   EmbeddingModelV4,
   ImageModelV4,
+  RerankingModelV4,
+  SpeechModelV4,
+  TranscriptionModelV4,
   Experimental_VideoModelV4,
   ProviderV4,
 } from '@ai-sdk/provider';
-import { withUserAgentSuffix } from '@ai-sdk/provider-utils';
 import { VERSION } from './version';
 
 export interface GatewayProvider extends ProviderV4 {
@@ -118,6 +127,38 @@ export interface GatewayProvider extends ProviderV4 {
   videoModel(modelId: GatewayVideoModelId): Experimental_VideoModelV4;
 
   /**
+   * Creates a model for reranking documents.
+   */
+  reranking(modelId: GatewayRerankingModelId): RerankingModelV4;
+
+  /**
+   * Creates a model for reranking documents.
+   */
+  rerankingModel(modelId: GatewayRerankingModelId): RerankingModelV4;
+
+  /**
+   * Creates a model for text-to-speech generation.
+   */
+  speech(modelId: GatewaySpeechModelId): SpeechModelV4;
+
+  /**
+   * Creates a model for text-to-speech generation.
+   */
+  speechModel(modelId: GatewaySpeechModelId): SpeechModelV4;
+
+  /**
+   * Creates a model for audio transcription.
+   */
+  transcription(modelId: GatewayTranscriptionModelId): TranscriptionModelV4;
+
+  /**
+   * Creates a model for audio transcription.
+   */
+  transcriptionModel(
+    modelId: GatewayTranscriptionModelId,
+  ): TranscriptionModelV4;
+
+  /**
    * Gateway-specific tools executed server-side.
    */
   tools: typeof gatewayTools;
@@ -163,7 +204,7 @@ const AI_GATEWAY_PROTOCOL_VERSION = '0.0.1';
 /**
  * Create a remote provider instance.
  */
-export function createGatewayProvider(
+export function createGateway(
   options: GatewayProviderSettings = {},
 ): GatewayProvider {
   let pendingMetadata: Promise<GatewayFetchMetadataResponse> | null = null;
@@ -174,7 +215,7 @@ export function createGatewayProvider(
 
   const baseURL =
     withoutTrailingSlash(options.baseURL) ??
-    'https://ai-gateway.vercel.sh/v3/ai';
+    'https://ai-gateway.vercel.sh/v4/ai';
 
   const getHeaders = async () => {
     try {
@@ -354,6 +395,39 @@ export function createGatewayProvider(
       o11yHeaders: createO11yHeaders(),
     });
   };
+  const createRerankingModel = (modelId: GatewayRerankingModelId) => {
+    return new GatewayRerankingModel(modelId, {
+      provider: 'gateway',
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+      o11yHeaders: createO11yHeaders(),
+    });
+  };
+  provider.rerankingModel = createRerankingModel;
+  provider.reranking = createRerankingModel;
+  const createSpeechModel = (modelId: GatewaySpeechModelId) => {
+    return new GatewaySpeechModel(modelId, {
+      provider: 'gateway',
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+      o11yHeaders: createO11yHeaders(),
+    });
+  };
+  provider.speechModel = createSpeechModel;
+  provider.speech = createSpeechModel;
+  const createTranscriptionModel = (modelId: GatewayTranscriptionModelId) => {
+    return new GatewayTranscriptionModel(modelId, {
+      provider: 'gateway',
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+      o11yHeaders: createO11yHeaders(),
+    });
+  };
+  provider.transcriptionModel = createTranscriptionModel;
+  provider.transcription = createTranscriptionModel;
   provider.chat = provider.languageModel;
   provider.embedding = provider.embeddingModel;
   provider.image = provider.imageModel;
@@ -362,7 +436,7 @@ export function createGatewayProvider(
   return provider;
 }
 
-export const gateway = createGatewayProvider();
+export const gateway = createGateway();
 
 export async function getGatewayAuthToken(
   options: GatewayProviderSettings,

@@ -1,13 +1,13 @@
 import {
   convertToModelMessages,
-  Tool,
-  ToolExecutionOptions,
-  ToolSet,
-  UIMessageStreamWriter,
   getStaticToolName,
   isStaticToolUIPart,
+  type Tool,
+  type ToolExecutionOptions,
+  type ToolSet,
+  type UIMessageStreamWriter,
 } from 'ai';
-import { HumanInTheLoopUIMessage } from './types';
+import type { HumanInTheLoopUIMessage } from './types';
 
 // Approval string to be shared across frontend and backend
 export const APPROVAL = {
@@ -86,7 +86,7 @@ export async function processToolCalls<
           result = await toolInstance(part.input, {
             messages: await convertToModelMessages(messages),
             toolCallId: part.toolCallId,
-            experimental_context: {},
+            context: {},
           });
         } else {
           result = 'Error: No execute function found on tool';

@@ -1,5 +1,5 @@
-import { JSONObject } from '../../json-value';
-import { SharedV4Headers, SharedV4ProviderOptions } from '../../shared/v4';
+import type { JSONObject } from '../../json-value';
+import type { SharedV4Headers, SharedV4ProviderOptions } from '../../shared/v4';
 
 export type RerankingModelV4CallOptions = {
   /**

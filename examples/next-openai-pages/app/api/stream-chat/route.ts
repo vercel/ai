@@ -1,4 +1,4 @@
-import { ModelMessage, streamText } from 'ai';
+import { streamText, type ModelMessage } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
 export async function POST(req: Request) {
@@ -6,7 +6,7 @@ export async function POST(req: Request) {
 
   const result = streamText({
     model: openai('gpt-5'),
-    system: 'You are a helpful assistant.',
+    instructions: 'You are a helpful assistant.',
     messages,
   });
 

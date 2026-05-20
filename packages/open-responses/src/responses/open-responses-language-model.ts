@@ -1,4 +1,4 @@
-import {
+import type {
   LanguageModelV4,
   LanguageModelV4CallOptions,
   LanguageModelV4Content,
@@ -17,21 +17,26 @@ import {
   isCustomReasoning,
   jsonSchema,
   mapReasoningToProviderEffort,
-  ParseResult,
+  parseProviderOptions,
   postJsonToApi,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
+  type ParseResult,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { convertToOpenResponsesInput } from './convert-to-open-responses-input';
 import {
-  FunctionToolParam,
-  OpenResponsesRequestBody,
-  OpenResponsesResponseBody,
-  OpenResponsesChunk,
   openResponsesErrorSchema,
-  ToolChoiceParam,
+  type FunctionToolParam,
+  type OpenResponsesRequestBody,
+  type OpenResponsesResponseBody,
+  type OpenResponsesChunk,
+  type ToolChoiceParam,
 } from './open-responses-api';
 import { mapOpenResponsesFinishReason } from './map-open-responses-finish-reason';
-import { OpenResponsesConfig } from './open-responses-config';
+import type { OpenResponsesConfig } from './open-responses-config';
+import { openResponsesLanguageModelOptions } from './open-responses-language-model-options';
 
 export class OpenResponsesLanguageModel implements LanguageModelV4 {
   readonly specificationVersion = 'v4';
@@ -39,6 +44,20 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
   readonly modelId: string;
 
   private readonly config: OpenResponsesConfig;
+
+  static [WORKFLOW_SERIALIZE](model: OpenResponsesLanguageModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: string;
+    config: OpenResponsesConfig;
+  }) {
+    return new OpenResponsesLanguageModel(options.modelId, options.config);
+  }
 
   constructor(modelId: string, config: OpenResponsesConfig) {
     this.modelId = modelId;
@@ -130,6 +149,12 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
           }
         : undefined;
 
+    const openResponsesOptions = await parseProviderOptions({
+      provider: this.config.providerOptionsName,
+      providerOptions,
+      schema: openResponsesLanguageModelOptions,
+    });
+
     const resolvedReasoningEffort = isCustomReasoning(reasoning)
       ? reasoning === 'none'
         ? 'none'
@@ -157,8 +182,16 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
         presence_penalty: presencePenalty,
         frequency_penalty: frequencyPenalty,
         reasoning:
-          resolvedReasoningEffort != null
-            ? { effort: resolvedReasoningEffort }
+          resolvedReasoningEffort != null ||
+          openResponsesOptions?.reasoningSummary != null
+            ? {
+                ...(resolvedReasoningEffort != null && {
+                  effort: resolvedReasoningEffort,
+                }),
+                ...(openResponsesOptions?.reasoningSummary != null && {
+                  summary: openResponsesOptions.reasoningSummary,
+                }),
+              }
             : undefined,
         tools: functionTools?.length ? functionTools : undefined,
         tool_choice: convertedToolChoice,
@@ -179,7 +212,7 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
       rawValue: rawResponse,
     } = await postJsonToApi({
       url: this.config.url,
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body,
       failedResponseHandler: createJsonErrorResponseHandler({
         errorSchema: openResponsesErrorSchema,
@@ -284,7 +317,7 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: this.config.url,
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body: {
         ...body,
         stream: true,
