@@ -37,20 +37,12 @@ import { getModelPath } from './get-model-path';
 import { googleFailedResponseHandler } from './google-error';
 import {
   googleLanguageModelOptions,
-<<<<<<< HEAD:packages/google/src/google-generative-ai-language-model.ts
-  VertexServiceTierMap,
   type GoogleGenerativeAIModelId,
 } from './google-generative-ai-options';
 import type {
   GoogleGenerativeAIContentPart,
   GoogleGenerativeAIProviderMetadata,
 } from './google-generative-ai-prompt';
-=======
-  type GoogleLanguageModelOptions,
-  type GoogleModelId,
-} from './google-language-model-options';
-import type { GoogleProviderMetadata } from './google-prompt';
->>>>>>> aeea1610b (fix(google): read serviceTier from x-gemini-service-tier response header (#14937)):packages/google/src/google-language-model.ts
 import { prepareTools } from './google-prepare-tools';
 import {
   GoogleJSONAccumulator,
@@ -295,30 +287,16 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
         serviceTier: bodyServiceTier,
       },
       warnings: [...warnings, ...toolWarnings],
-<<<<<<< HEAD:packages/google/src/google-generative-ai-language-model.ts
       providerOptionsName,
-=======
-      providerOptionsNames,
       extraHeaders: vertexPaygoHeaders,
->>>>>>> aeea1610b (fix(google): read serviceTier from x-gemini-service-tier response header (#14937)):packages/google/src/google-language-model.ts
     };
   }
 
   async doGenerate(
-<<<<<<< HEAD:packages/google/src/google-generative-ai-language-model.ts
     options: LanguageModelV3CallOptions,
   ): Promise<LanguageModelV3GenerateResult> {
-    const { args, warnings, providerOptionsName } = await this.getArgs(options);
-=======
-    options: LanguageModelV4CallOptions,
-  ): Promise<LanguageModelV4GenerateResult> {
-    const { args, warnings, providerOptionsNames, extraHeaders } =
+    const { args, warnings, providerOptionsName, extraHeaders } =
       await this.getArgs(options);
-    const wrapProviderMetadata = (payload: Record<string, unknown>) =>
-      Object.fromEntries(
-        providerOptionsNames.map(name => [name, payload]),
-      ) as SharedV4ProviderMetadata;
->>>>>>> aeea1610b (fix(google): read serviceTier from x-gemini-service-tier response header (#14937)):packages/google/src/google-language-model.ts
 
     const mergedHeaders = combineHeaders(
       await resolve(this.config.headers),
@@ -512,7 +490,6 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
       },
       usage: convertGoogleGenerativeAIUsage(usageMetadata),
       warnings,
-<<<<<<< HEAD:packages/google/src/google-generative-ai-language-model.ts
       providerMetadata: {
         [providerOptionsName]: {
           promptFeedback: response.promptFeedback ?? null,
@@ -521,20 +498,9 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
           safetyRatings: candidate.safetyRatings ?? null,
           usageMetadata: usageMetadata ?? null,
           finishMessage: candidate.finishMessage ?? null,
-          serviceTier: response.serviceTier ?? null,
+          serviceTier: responseHeaders?.['x-gemini-service-tier'] ?? null,
         } satisfies GoogleGenerativeAIProviderMetadata,
       },
-=======
-      providerMetadata: wrapProviderMetadata({
-        promptFeedback: response.promptFeedback ?? null,
-        groundingMetadata: candidate.groundingMetadata ?? null,
-        urlContextMetadata: candidate.urlContextMetadata ?? null,
-        safetyRatings: candidate.safetyRatings ?? null,
-        usageMetadata: usageMetadata ?? null,
-        finishMessage: candidate.finishMessage ?? null,
-        serviceTier: responseHeaders?.['x-gemini-service-tier'] ?? null,
-      } satisfies GoogleProviderMetadata),
->>>>>>> aeea1610b (fix(google): read serviceTier from x-gemini-service-tier response header (#14937)):packages/google/src/google-language-model.ts
       request: { body: args },
       response: {
         // TODO timestamp, model id, id
@@ -545,23 +511,10 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
   }
 
   async doStream(
-<<<<<<< HEAD:packages/google/src/google-generative-ai-language-model.ts
     options: LanguageModelV3CallOptions,
   ): Promise<LanguageModelV3StreamResult> {
-    const { args, warnings, providerOptionsName } = await this.getArgs(
-      options,
-      { isStreaming: true },
-    );
-=======
-    options: LanguageModelV4CallOptions,
-  ): Promise<LanguageModelV4StreamResult> {
-    const { args, warnings, providerOptionsNames, extraHeaders } =
+    const { args, warnings, providerOptionsName, extraHeaders } =
       await this.getArgs(options, { isStreaming: true });
-    const wrapProviderMetadata = (payload: Record<string, unknown>) =>
-      Object.fromEntries(
-        providerOptionsNames.map(name => [name, payload]),
-      ) as SharedV4ProviderMetadata;
->>>>>>> aeea1610b (fix(google): read serviceTier from x-gemini-service-tier response header (#14937)):packages/google/src/google-language-model.ts
 
     const headers = combineHeaders(
       await resolve(this.config.headers),

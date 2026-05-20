@@ -617,7 +617,7 @@ describe('doGenerate', () => {
   it('should send requestType as X-Vertex-AI-LLM-Request-Type header on Vertex', async () => {
     prepareJsonResponse({ content: 'test response' });
 
-    const vertexModel = new GoogleLanguageModel('gemini-pro', {
+    const vertexModel = new GoogleGenerativeAILanguageModel('gemini-pro', {
       provider: 'google.vertex.chat',
       baseURL: 'https://generativelanguage.googleapis.com/v1beta',
       headers: { 'x-goog-api-key': 'test-api-key' },
@@ -643,7 +643,7 @@ describe('doGenerate', () => {
   it('should warn and drop serviceTier on Vertex provider', async () => {
     prepareJsonResponse({ content: 'test response' });
 
-    const vertexModel = new GoogleLanguageModel('gemini-pro', {
+    const vertexModel = new GoogleGenerativeAILanguageModel('gemini-pro', {
       provider: 'google.vertex.chat',
       baseURL: 'https://generativelanguage.googleapis.com/v1beta',
       headers: { 'x-goog-api-key': 'test-api-key' },
