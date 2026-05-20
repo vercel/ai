@@ -1,8 +1,9 @@
-export { baiduLanguageModelOptions } from './baidu-chat-options';
+export { baiduLanguageModelOptions } from './baidu-chat-language-model-options';
 export type {
   BaiduChatModelId,
+  BaiduLanguageModelChatOptions,
   BaiduLanguageModelOptions,
-} from './baidu-chat-options';
+} from './baidu-chat-language-model-options';
 export {
   type BaiduProvider,
   type BaiduProviderSettings,

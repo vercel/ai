@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/llamaindex",
-  "version": "3.0.0-canary.141",
+  "version": "3.0.0-canary.146",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -39,13 +39,13 @@
     "ai": "workspace:*"
   },
   "devDependencies": {
-    "@types/node": "20.17.24",
+    "@types/node": "22.19.19",
     "@vercel/ai-tsconfig": "workspace:*",
-    "tsup": "^8",
+    "tsup": "^8.5.1",
     "typescript": "5.8.3"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=22"
   },
   "publishConfig": {
     "access": "public",

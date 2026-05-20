@@ -9,22 +9,22 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@ai-sdk/openai": "4.0.0-canary.59",
-    "@ai-sdk/react": "4.0.0-canary.142",
-    "@vercel/functions": "^3.1.0",
-    "ai": "7.0.0-canary.141",
-    "next": "^15.5.9",
-    "react": "^18",
-    "react-dom": "^18",
-    "sonner": "^1.7.1"
+    "@ai-sdk/openai": "workspace:*",
+    "@ai-sdk/react": "workspace:*",
+    "@vercel/functions": "^3.6.0",
+    "ai": "workspace:*",
+    "next": "^15.5.18",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "sonner": "^1.7.4"
   },
   "devDependencies": {
-    "@types/node": "20.17.24",
-    "@types/react": "^18",
-    "@types/react-dom": "^18",
-    "autoprefixer": "^10.4.14",
-    "postcss": "^8.4.49",
-    "tailwindcss": "^3.4.15",
+    "@types/node": "22.19.19",
+    "@types/react": "^18.3.28",
+    "@types/react-dom": "^18.3.7",
+    "autoprefixer": "^10.5.0",
+    "postcss": "^8.5.14",
+    "tailwindcss": "^3.4.19",
     "typescript": "5.8.3"
   }
 }

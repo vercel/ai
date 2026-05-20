@@ -1,12 +1,13 @@
 import { OpenAICompatibleChatLanguageModel } from '@ai-sdk/openai-compatible';
 import type { OpenAICompatibleChatConfig } from '@ai-sdk/openai-compatible/internal';
+import type { LanguageModelV4 } from '@ai-sdk/provider';
 import {
   type FetchFunction,
   serializeModelOptions,
   WORKFLOW_DESERIALIZE,
   WORKFLOW_SERIALIZE,
 } from '@ai-sdk/provider-utils';
-import type { BaiduChatModelId } from './baidu-chat-options';
+import type { BaiduChatModelId } from './baidu-chat-language-model-options';
 import { convertBaiduChatUsage } from './convert-baidu-chat-usage';
 
 type BaiduChatConfig = {
@@ -23,7 +24,10 @@ function isOpenAICompatibleChatConfig(
   return 'url' in config;
 }
 
-export class BaiduChatLanguageModel extends OpenAICompatibleChatLanguageModel {
+export class BaiduChatLanguageModel
+  extends OpenAICompatibleChatLanguageModel
+  implements LanguageModelV4
+{
   static [WORKFLOW_SERIALIZE](model: BaiduChatLanguageModel) {
     return serializeModelOptions({
       modelId: model.modelId,

@@ -12,12 +12,7 @@
       "must": [
         {
           "use": "aisdk/package-must-have-package-and-docs-files",
-          "excludeFiles": [
-            "packages/mcp",
-            "packages/otel",
-            "packages/voyage",
-            "packages/test-server"
-          ]
+          "excludeFiles": ["packages/test-server"]
         },
         {
           "use": "aisdk/package-must-have-index",
@@ -93,6 +88,8 @@
             "packages/gateway/src/gateway-image-model.ts",
             "packages/gateway/src/gateway-language-model.ts",
             "packages/gateway/src/gateway-reranking-model.ts",
+            "packages/gateway/src/gateway-speech-model.ts",
+            "packages/gateway/src/gateway-transcription-model.ts",
             "packages/mistral/src/mistral-embedding-model.ts",
             "packages/openai-compatible/src/image/openai-compatible-image-model.ts",
             "packages/perplexity/src/perplexity-language-model.ts"
@@ -112,6 +109,7 @@
             "packages/gateway/src/gateway-video-model.ts"
           ]
         },
+        "aisdk/provider-language-model-file-must-import-workflow-serialization",
         "aisdk/provider-model-options-file-must-export-model-options-type",
         "aisdk/provider-model-options-file-with-subtype-must-export-model-options-type"
       ]

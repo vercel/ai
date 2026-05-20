@@ -1,5 +1,45 @@
 # ai
 
+## 7.0.0-canary.146
+
+### Patch Changes
+
+- Updated dependencies [bf837fe]
+  - @ai-sdk/gateway@4.0.0-canary.87
+
+## 7.0.0-canary.145
+
+### Patch Changes
+
+- Updated dependencies [546cefe]
+  - @ai-sdk/gateway@4.0.0-canary.86
+
+## 7.0.0-canary.144
+
+### Patch Changes
+
+- 7fc6bd6: Raise minimum supported Node.js version to 22. Supported versions: 22, 24, and 26.
+- Updated dependencies [7fc6bd6]
+  - @ai-sdk/gateway@4.0.0-canary.85
+  - @ai-sdk/provider-utils@5.0.0-canary.43
+  - @ai-sdk/provider@4.0.0-canary.17
+
+## 7.0.0-canary.143
+
+### Patch Changes
+
+- a6617c5: feat(provider-utils): add `readFile` and `writeFile` plus convenience wrappers to `Experimental_Sandbox` abstraction
+- Updated dependencies [a6617c5]
+- Updated dependencies [032c4a5]
+  - @ai-sdk/provider-utils@5.0.0-canary.42
+  - @ai-sdk/gateway@4.0.0-canary.84
+
+## 7.0.0-canary.142
+
+### Patch Changes
+
+- 62d6481: Post-publish release notifications now link to each package’s GitHub release and npm page.
+
 ## 7.0.0-canary.141
 
 ### Patch Changes

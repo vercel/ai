@@ -10,7 +10,7 @@ import {
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { BaiduChatLanguageModel } from './baidu-chat-language-model';
-import type { BaiduChatModelId } from './baidu-chat-options';
+import type { BaiduChatModelId } from './baidu-chat-language-model-options';
 import { VERSION } from './version';
 
 export interface BaiduProviderSettings {

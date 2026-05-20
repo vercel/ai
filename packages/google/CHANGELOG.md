@@ -1,5 +1,34 @@
 # @ai-sdk/google
 
+## 4.0.0-canary.69
+
+### Patch Changes
+
+- 7f04802: feat(provider/google): add support for managed agents in the Interactions API
+
+## 4.0.0-canary.68
+
+### Patch Changes
+
+- a2609df: fix(google): fix streaming tool call args
+- 546cefe: feat(provider/google): add `gemini-3.5-flash`
+
+## 4.0.0-canary.67
+
+### Patch Changes
+
+- 7fc6bd6: Raise minimum supported Node.js version to 22. Supported versions: 22, 24, and 26.
+- Updated dependencies [7fc6bd6]
+  - @ai-sdk/provider-utils@5.0.0-canary.43
+  - @ai-sdk/provider@4.0.0-canary.17
+
+## 4.0.0-canary.66
+
+### Patch Changes
+
+- Updated dependencies [a6617c5]
+  - @ai-sdk/provider-utils@5.0.0-canary.42
+
 ## 4.0.0-canary.65
 
 ### Patch Changes
