@@ -10,9 +10,9 @@ description: Use any ACP agent (Claude Code, Codex CLI, Gemini CLI, …) with th
 The existing [`@mcpc-tech/acp-ai-provider`](/providers/community-providers/acp) bridges the AI SDK directly to the bare `@agentclientprotocol/sdk`. `acpx-ai-provider` is for users who want the runtime to manage agent installation, session persistence, and lifecycle. Pick the lower-level package when you need full control over spawn semantics; pick this one when you want zero setup beyond `bun add acpx-ai-provider acpx ai`.
 
 <Note type="warning">
-  This package is alpha (v0.x). API surface and event-translation
-  semantics may change between minor versions. See [Limitations](#limitations)
-  before adopting in production.
+  This package is alpha (v0.x). API surface and event-translation semantics may
+  change between minor versions. See [Limitations](#limitations) before adopting
+  in production.
 </Note>
 
 ## Version Compatibility
@@ -126,8 +126,14 @@ const provider = createAcpxProvider({
 });
 
 // Two turns, same session, same agent process.
-await generateText({ model: provider.languageModel(), prompt: 'List my open files.' });
-await generateText({ model: provider.languageModel(), prompt: 'Summarize the largest one.' });
+await generateText({
+  model: provider.languageModel(),
+  prompt: 'List my open files.',
+});
+await generateText({
+  model: provider.languageModel(),
+  prompt: 'Summarize the largest one.',
+});
 ```
 
 ### MCP servers
