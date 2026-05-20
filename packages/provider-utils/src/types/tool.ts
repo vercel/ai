@@ -2,6 +2,7 @@ import type { JSONValue, JSONObject } from '@ai-sdk/provider';
 import type { FlexibleSchema } from '../schema';
 import type { ToolResultOutput } from './content-part';
 import type { Context } from './context';
+import type { ExecutableTool } from './executable-tool';
 import type { NeverOptional } from './never-optional';
 import type { ProviderOptions } from './provider-options';
 import type {
@@ -338,8 +339,20 @@ export type Tool<
  * Infer the tool type from a tool object.
  *
  * This is useful for type inference when working with tool objects.
+ *
+ * When the input has an `execute` function, the return type narrows to
+ * `ExecutableTool<Tool<...>>` so that `.execute` is non-nullable without
+ * needing `isExecutableTool` or a `!` assertion at the call site.
  */
-// Note: overload order is important for auto-completion
+// Note: overload order is important for auto-completion.
+// The "with execute" overload comes first so calls that include an
+// `execute` function get the narrowed return type. Calls without
+// `execute` fall through to the overloads below.
+export function tool<INPUT, OUTPUT, CONTEXT extends Context>(
+  tool: Tool<INPUT, OUTPUT, CONTEXT> & {
+    execute: ToolExecuteFunction<INPUT, OUTPUT, CONTEXT>;
+  },
+): ExecutableTool<Tool<INPUT, OUTPUT, CONTEXT>>;
 export function tool<INPUT, OUTPUT, CONTEXT extends Context>(
   tool: Tool<INPUT, OUTPUT, CONTEXT>,
 ): Tool<INPUT, OUTPUT, CONTEXT>;
