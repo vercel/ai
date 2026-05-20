@@ -1,5 +1,12 @@
 # @ai-sdk/workflow
 
+## 1.0.0-canary.66
+
+### Patch Changes
+
+- Updated dependencies [e3d9c0e]
+  - ai@7.0.0-canary.149
+
 ## 1.0.0-canary.65
 
 ### Patch Changes
