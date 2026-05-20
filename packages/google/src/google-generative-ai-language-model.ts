@@ -490,7 +490,6 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
       },
       usage: convertGoogleGenerativeAIUsage(usageMetadata),
       warnings,
-<<<<<<< HEAD:packages/google/src/google-generative-ai-language-model.ts
       providerMetadata: {
         [providerOptionsName]: {
           promptFeedback: response.promptFeedback ?? null,
@@ -499,20 +498,9 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
           safetyRatings: candidate.safetyRatings ?? null,
           usageMetadata: usageMetadata ?? null,
           finishMessage: candidate.finishMessage ?? null,
-          serviceTier: responseHeaders?.['x-gemini-service-tier'] ?? null,
+          serviceTier: usageMetadata?.serviceTier ?? null,
         } satisfies GoogleGenerativeAIProviderMetadata,
       },
-=======
-      providerMetadata: wrapProviderMetadata({
-        promptFeedback: response.promptFeedback ?? null,
-        groundingMetadata: candidate.groundingMetadata ?? null,
-        urlContextMetadata: candidate.urlContextMetadata ?? null,
-        safetyRatings: candidate.safetyRatings ?? null,
-        usageMetadata: usageMetadata ?? null,
-        finishMessage: candidate.finishMessage ?? null,
-        serviceTier: usageMetadata?.serviceTier ?? null,
-      } satisfies GoogleProviderMetadata),
->>>>>>> 045d2e8ee (fix(google): read serviceTier from usageMetadata in stream + generate (#15488)):packages/google/src/google-language-model.ts
       request: { body: args },
       response: {
         // TODO timestamp, model id, id
@@ -1045,7 +1033,6 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
                 raw: candidate.finishReason,
               };
 
-<<<<<<< HEAD:packages/google/src/google-generative-ai-language-model.ts
               providerMetadata = {
                 [providerOptionsName]: {
                   promptFeedback: value.promptFeedback ?? null,
@@ -1054,20 +1041,9 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
                   safetyRatings: candidate.safetyRatings ?? null,
                   usageMetadata: usageMetadata ?? null,
                   finishMessage: candidate.finishMessage ?? null,
-                  serviceTier,
+                  serviceTier: usage?.serviceTier ?? null,
                 } satisfies GoogleGenerativeAIProviderMetadata,
               };
-=======
-              providerMetadata = wrapProviderMetadata({
-                promptFeedback: value.promptFeedback ?? null,
-                groundingMetadata: lastGroundingMetadata,
-                urlContextMetadata: lastUrlContextMetadata,
-                safetyRatings: candidate.safetyRatings ?? null,
-                usageMetadata: usageMetadata ?? null,
-                finishMessage: candidate.finishMessage ?? null,
-                serviceTier: usage?.serviceTier ?? null,
-              } satisfies GoogleProviderMetadata);
->>>>>>> 045d2e8ee (fix(google): read serviceTier from usageMetadata in stream + generate (#15488)):packages/google/src/google-language-model.ts
             }
           },
 
