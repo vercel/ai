@@ -1,5 +1,105 @@
 # @ai-sdk/svelte
 
+## 5.0.0-canary.146
+
+### Patch Changes
+
+- ai@7.0.0-canary.146
+
+## 5.0.0-canary.145
+
+### Patch Changes
+
+- ai@7.0.0-canary.145
+
+## 5.0.0-canary.144
+
+### Patch Changes
+
+- 7fc6bd6: Raise minimum supported Node.js version to 22. Supported versions: 22, 24, and 26.
+- Updated dependencies [7fc6bd6]
+  - ai@7.0.0-canary.144
+  - @ai-sdk/provider-utils@5.0.0-canary.43
+
+## 5.0.0-canary.143
+
+### Patch Changes
+
+- Updated dependencies [a6617c5]
+  - @ai-sdk/provider-utils@5.0.0-canary.42
+  - ai@7.0.0-canary.143
+
+## 5.0.0-canary.142
+
+### Patch Changes
+
+- Updated dependencies [62d6481]
+  - ai@7.0.0-canary.142
+
+## 5.0.0-canary.141
+
+### Patch Changes
+
+- Updated dependencies [e3a0419]
+  - ai@7.0.0-canary.141
+
+## 5.0.0-canary.140
+
+### Patch Changes
+
+- ai@7.0.0-canary.140
+
+## 5.0.0-canary.139
+
+### Patch Changes
+
+- Updated dependencies [334ae5d]
+- Updated dependencies [28dfa06]
+- Updated dependencies [e93fa91]
+  - ai@7.0.0-canary.139
+  - @ai-sdk/provider-utils@5.0.0-canary.41
+
+## 5.0.0-canary.138
+
+### Patch Changes
+
+- ai@7.0.0-canary.138
+
+## 5.0.0-canary.137
+
+### Patch Changes
+
+- Updated dependencies [98627e5]
+- Updated dependencies [476e1ca]
+  - ai@7.0.0-canary.137
+
+## 5.0.0-canary.136
+
+### Patch Changes
+
+- Updated dependencies [a7de9c9]
+  - @ai-sdk/provider-utils@5.0.0-canary.40
+  - ai@7.0.0-canary.136
+
+## 5.0.0-canary.135
+
+### Patch Changes
+
+- Updated dependencies [105f95b]
+  - @ai-sdk/provider-utils@5.0.0-canary.39
+  - ai@7.0.0-canary.135
+
+## 5.0.0-canary.134
+
+### Patch Changes
+
+- Updated dependencies [ed74dae]
+- Updated dependencies [f4cc8eb]
+- Updated dependencies [e80ada0]
+- Updated dependencies [1dca341]
+- Updated dependencies [2605e5f]
+  - ai@7.0.0-canary.134
+
 ## 5.0.0-canary.133
 
 ### Patch Changes

@@ -9,7 +9,7 @@ run(async () => {
 
   const result = await sandboxAgent.generate({
     prompt: 'List the files in the directory',
-    sandbox,
+    experimental_sandbox: sandbox,
   });
 
   console.log(result.text);

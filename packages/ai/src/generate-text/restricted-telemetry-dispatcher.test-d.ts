@@ -53,7 +53,7 @@ describe('createRestrictedTelemetryDispatcher types', () => {
     expectTypeOf(telemetryDispatcher.onStepFinish).toMatchTypeOf<
       Callback<GenerateTextStepEndEvent<ToolSet, RuntimeContext>> | undefined
     >();
-    expectTypeOf(telemetryDispatcher.onFinish).toMatchTypeOf<
+    expectTypeOf(telemetryDispatcher.onEnd).toMatchTypeOf<
       Callback<GenerateTextEndEvent<ToolSet, RuntimeContext>> | undefined
     >();
   });

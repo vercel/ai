@@ -15,7 +15,7 @@ run(async () => {
   try {
     const result = await sandboxAgent.stream({
       prompt: 'Run ls -la and tell me what you see.',
-      sandbox,
+      experimental_sandbox: sandbox,
     });
 
     await printFullStream({ result });

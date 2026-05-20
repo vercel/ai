@@ -1,4 +1,7 @@
-import { google } from '@ai-sdk/google';
+import {
+  google,
+  type GoogleLanguageModelInteractionsOptions,
+} from '@ai-sdk/google';
 import { streamText } from 'ai';
 import { cancelOnSigint } from '../../lib/cancel-on-sigint';
 import { run } from '../../lib/run';
@@ -23,7 +26,8 @@ run(async () => {
           type: 'deep-research',
           thinkingSummaries: 'auto',
         },
-      },
+        background: true,
+      } satisfies GoogleLanguageModelInteractionsOptions,
     },
     prompt:
       'Briefly summarize the most-cited papers on retrieval-augmented generation since 2024 (2-3 sentences).',

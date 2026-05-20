@@ -166,7 +166,7 @@ export async function rerank<VALUE extends JSONObject | string>({
           modelId: model.modelId,
         },
       },
-      callbacks: [onEnd, telemetryDispatcher.onFinish],
+      callbacks: [onEnd, telemetryDispatcher.onEnd],
     });
 
     return new DefaultRerankResult({
@@ -284,7 +284,7 @@ export async function rerank<VALUE extends JSONObject | string>({
           body: response?.body,
         },
       },
-      callbacks: [onEnd, telemetryDispatcher.onFinish],
+      callbacks: [onEnd, telemetryDispatcher.onEnd],
     });
 
     return new DefaultRerankResult({

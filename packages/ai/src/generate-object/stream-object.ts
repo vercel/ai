@@ -818,7 +818,7 @@ class DefaultStreamObjectResult<
                     },
                     providerMetadata,
                   },
-                  callbacks: [onFinish, telemetryDispatcher.onFinish],
+                  callbacks: [onFinish, telemetryDispatcher.onEnd],
                 });
               } catch (error) {
                 controller.enqueue({ type: 'error', error });
