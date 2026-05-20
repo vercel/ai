@@ -518,7 +518,11 @@ export class GoogleLanguageModel implements LanguageModelV4 {
         safetyRatings: candidate.safetyRatings ?? null,
         usageMetadata: usageMetadata ?? null,
         finishMessage: candidate.finishMessage ?? null,
-        serviceTier: responseHeaders?.['x-gemini-service-tier'] ?? null,
+        // Gemini API also exposes this via the `x-gemini-service-tier`
+        // response header on non-streaming responses, but the body field is
+        // present in both streaming and non-streaming so we read it from
+        // there for consistency with the streaming path.
+        serviceTier: usageMetadata?.serviceTier ?? null,
       } satisfies GoogleProviderMetadata),
       request: { body: args },
       response: {
@@ -565,8 +569,6 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     let providerMetadata: SharedV4ProviderMetadata | undefined = undefined;
     let lastGroundingMetadata: GroundingMetadataSchema | null = null;
     let lastUrlContextMetadata: UrlContextMetadataSchema | null = null;
-    const serviceTier: string | null =
-      responseHeaders?.['x-gemini-service-tier'] ?? null;
 
     const generateId = this.config.generateId;
     let hasToolCalls = false;
@@ -1051,7 +1053,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
                 safetyRatings: candidate.safetyRatings ?? null,
                 usageMetadata: usageMetadata ?? null,
                 finishMessage: candidate.finishMessage ?? null,
-                serviceTier,
+                serviceTier: usage?.serviceTier ?? null,
               } satisfies GoogleProviderMetadata);
             }
           },
@@ -1464,6 +1466,11 @@ const usageSchema = z.object({
   totalTokenCount: z.number().nullish(),
   // https://cloud.google.com/vertex-ai/generative-ai/docs/reference/rest/v1/GenerateContentResponse#TrafficType
   trafficType: z.string().nullish(),
+  // Gemini API returns the applied service tier here in both streaming chunks
+  // and non-streaming responses. The `x-gemini-service-tier` header carries
+  // the same value but is only set on non-streaming responses, so for streams
+  // this field is the only available signal.
+  serviceTier: z.string().nullish(),
   // https://ai.google.dev/api/generate-content#Modality
   promptTokensDetails: tokenDetailsSchema,
   candidatesTokensDetails: tokenDetailsSchema,

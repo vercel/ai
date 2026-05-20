@@ -716,11 +716,27 @@ describe('doGenerate', () => {
     );
   });
 
-  it('should read serviceTier from x-gemini-service-tier response header', async () => {
-    prepareJsonResponse({
-      content: 'test response',
-      headers: { 'x-gemini-service-tier': 'priority' },
-    });
+  it('should read serviceTier from usageMetadata.serviceTier', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
+          {
+            content: { parts: [{ text: 'Blue.' }], role: 'model' },
+            finishReason: 'STOP',
+            index: 0,
+            safetyRatings: SAFETY_RATINGS,
+          },
+        ],
+        promptFeedback: { safetyRatings: SAFETY_RATINGS },
+        usageMetadata: {
+          promptTokenCount: 1,
+          candidatesTokenCount: 2,
+          totalTokenCount: 3,
+          serviceTier: 'priority',
+        },
+      },
+    };
 
     const { providerMetadata } = await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -4772,11 +4788,29 @@ describe('doStream', () => {
     ).toBeNull();
   });
 
-  it('should read serviceTier from x-gemini-service-tier response header', async () => {
-    prepareStreamResponse({
-      content: ['test'],
-      headers: { 'x-gemini-service-tier': 'priority' },
-    });
+  it('should read serviceTier from chunk usageMetadata', async () => {
+    // Gemini streaming does not set the x-gemini-service-tier response header
+    // but does include serviceTier in each chunk's usageMetadata.
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: { parts: [{ text: 'Blue' }], role: 'model' },
+              finishReason: 'STOP',
+              index: 0,
+            },
+          ],
+          usageMetadata: {
+            promptTokenCount: 10,
+            candidatesTokenCount: 1,
+            totalTokenCount: 11,
+            serviceTier: 'priority',
+          },
+        })}\n\n`,
+      ],
+    };
 
     const { stream } = await model.doStream({
       prompt: TEST_PROMPT,
