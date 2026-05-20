@@ -2,7 +2,7 @@ import {
   InvalidArgumentError,
   LoadAPIKeyError,
   NoSuchModelError,
-  type ImageModelV4CallOptions,
+  type ImageModelV3CallOptions,
 } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -42,7 +42,7 @@ const server = createTestServer({
   },
 });
 
-const generateOptions: ImageModelV4CallOptions = {
+const generateOptions: ImageModelV3CallOptions = {
   prompt: 'Draw a square icon.',
   n: 1,
   size: undefined,

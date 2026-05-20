@@ -1,9 +1,9 @@
 import {
   InvalidArgumentError,
-  type ImageModelV4,
-  type ImageModelV4CallOptions,
-  type ImageModelV4File,
-  type SharedV4Warning,
+  type ImageModelV3,
+  type ImageModelV3CallOptions,
+  type ImageModelV3File,
+  type SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -12,9 +12,6 @@ import {
   createJsonResponseHandler,
   parseProviderOptions,
   postJsonToApi,
-  serializeModelOptions,
-  WORKFLOW_DESERIALIZE,
-  WORKFLOW_SERIALIZE,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
@@ -37,26 +34,12 @@ interface QuiverAIImageModelConfig {
   };
 }
 
-export class QuiverAIImageModel implements ImageModelV4 {
-  readonly specificationVersion = 'v4';
+export class QuiverAIImageModel implements ImageModelV3 {
+  readonly specificationVersion = 'v3';
   readonly maxImagesPerCall = 16;
 
   get provider(): string {
     return this.config.provider;
-  }
-
-  static [WORKFLOW_SERIALIZE](model: QuiverAIImageModel) {
-    return serializeModelOptions({
-      modelId: model.modelId,
-      config: model.config,
-    });
-  }
-
-  static [WORKFLOW_DESERIALIZE](options: {
-    modelId: QuiverAIImageModelId;
-    config: QuiverAIImageModelConfig;
-  }) {
-    return new QuiverAIImageModel(options.modelId, options.config);
   }
 
   constructor(
@@ -75,8 +58,8 @@ export class QuiverAIImageModel implements ImageModelV4 {
     providerOptions,
     headers,
     abortSignal,
-  }: ImageModelV4CallOptions): Promise<
-    Awaited<ReturnType<ImageModelV4['doGenerate']>>
+  }: ImageModelV3CallOptions): Promise<
+    Awaited<ReturnType<ImageModelV3['doGenerate']>>
   > {
     const quiveraiOptions = await parseProviderOptions({
       provider: 'quiverai',
@@ -155,7 +138,7 @@ function getGenerateReferenceLimit(modelId: string) {
   return modelId === 'arrow-1.1-max' ? 16 : 4;
 }
 
-function toQuiverAIImageReference(image: ImageModelV4File) {
+function toQuiverAIImageReference(image: ImageModelV3File) {
   if (image.type === 'url') {
     return { url: image.url };
   }
@@ -178,7 +161,7 @@ function buildRequestBody({
   modelId: string;
   n: number;
   prompt: string | undefined;
-  files: ImageModelV4File[] | undefined;
+  files: ImageModelV3File[] | undefined;
   operation: QuiverAIOperation;
   options: QuiverAIImageModelOptions;
 }) {
@@ -253,9 +236,9 @@ function collectWarnings({
   size: `${number}x${number}` | undefined;
   aspectRatio: `${number}:${number}` | undefined;
   seed: number | undefined;
-  mask: ImageModelV4File | undefined;
-}): SharedV4Warning[] {
-  const warnings: SharedV4Warning[] = [];
+  mask: ImageModelV3File | undefined;
+}): SharedV3Warning[] {
+  const warnings: SharedV3Warning[] = [];
 
   if (size != null) {
     warnings.push({

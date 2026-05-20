@@ -1,7 +1,7 @@
 import {
   NoSuchModelError,
-  type ImageModelV4,
-  type ProviderV4,
+  type ImageModelV3,
+  type ProviderV3,
 } from '@ai-sdk/provider';
 import {
   loadApiKey,
@@ -39,16 +39,16 @@ export interface QuiverAIProviderSettings {
   fetch?: FetchFunction;
 }
 
-export interface QuiverAIProvider extends ProviderV4 {
+export interface QuiverAIProvider extends ProviderV3 {
   /**
    * Creates a model for image generation.
    */
-  image(modelId: QuiverAIImageModelId): ImageModelV4;
+  image(modelId: QuiverAIImageModelId): ImageModelV3;
 
   /**
    * Creates a model for image generation.
    */
-  imageModel(modelId: QuiverAIImageModelId): ImageModelV4;
+  imageModel(modelId: QuiverAIImageModelId): ImageModelV3;
 
   /**
    * @deprecated Use `embeddingModel` instead.
@@ -98,7 +98,7 @@ export function createQuiverAI(
   };
 
   return {
-    specificationVersion: 'v4',
+    specificationVersion: 'v3',
     image: createImageModel,
     imageModel: createImageModel,
     languageModel: (modelId: string) => {
