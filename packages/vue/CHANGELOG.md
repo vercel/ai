@@ -1,5 +1,12 @@
 # @ai-sdk/vue
 
+## 4.0.0-canary.148
+
+### Patch Changes
+
+- Updated dependencies [2852a84]
+  - ai@7.0.0-canary.148
+
 ## 4.0.0-canary.147
 
 ### Patch Changes
