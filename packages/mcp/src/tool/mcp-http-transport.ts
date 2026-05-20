@@ -16,9 +16,19 @@ import {
   extractResourceMetadataUrl,
   UnauthorizedError,
   auth,
+  type AuthResult,
   type OAuthClientProvider,
 } from './oauth';
 import { LATEST_PROTOCOL_VERSION } from './types';
+
+const authorizationPromises = new WeakMap<
+  OAuthClientProvider,
+  Map<string, Promise<AuthResult>>
+>();
+
+function authorizationKey(serverUrl: URL, resourceMetadataUrl?: URL): string {
+  return resourceMetadataUrl?.href ?? serverUrl.href;
+}
 
 /**
  * HTTP MCP transport implementing the Streamable HTTP style.
@@ -35,6 +45,9 @@ export class HttpMCPTransport implements MCPTransport {
   private resourceMetadataUrl?: URL;
   private sessionId?: string;
   private inboundSseConnection?: { close: () => void };
+  private inboundSsePromise?: Promise<void>;
+  private inboundSseUnavailable = false;
+  private inboundSseForcedRetryPending = false;
   private redirectMode: RequestRedirect;
   private fetchFn: FetchFunction;
 
@@ -107,13 +120,19 @@ export class HttpMCPTransport implements MCPTransport {
           'MCP HTTP Transport Error: Transport already started. Note: client.connect() calls start() automatically.',
       });
     }
+    this.inboundSseConnection = undefined;
+    this.inboundSsePromise = undefined;
+    this.inboundSseUnavailable = false;
+    this.inboundSseForcedRetryPending = false;
+    this.lastInboundEventId = undefined;
+    this.inboundReconnectAttempts = 0;
     this.abortController = new AbortController();
-
-    void this.openInboundSse();
   }
 
   async close(): Promise<void> {
     this.inboundSseConnection?.close();
+    this.inboundSseConnection = undefined;
+    this.inboundSseForcedRetryPending = false;
     try {
       if (
         this.sessionId &&
@@ -158,13 +177,10 @@ export class HttpMCPTransport implements MCPTransport {
         }
 
         if (response.status === 401 && this.authProvider && !triedAuth) {
-          this.resourceMetadataUrl = extractResourceMetadataUrl(response);
+          const resourceMetadataUrl = extractResourceMetadataUrl(response);
+          this.resourceMetadataUrl = resourceMetadataUrl;
           try {
-            const result = await auth(this.authProvider, {
-              serverUrl: this.url,
-              resourceMetadataUrl: this.resourceMetadataUrl,
-              fetchFn: this.fetchFn,
-            });
+            const result = await this.authorize(resourceMetadataUrl);
             if (result !== 'AUTHORIZED') {
               const error = new UnauthorizedError();
               throw error;
@@ -181,7 +197,7 @@ export class HttpMCPTransport implements MCPTransport {
           // If inbound SSE was not available earlier (e.g. 405 before init), try again now
           // Do not await to avoid blocking send()
           if (!this.inboundSseConnection) {
-            void this.openInboundSse();
+            this.openInboundSseIfNeeded({ force: true });
           }
           return;
         }
@@ -207,6 +223,7 @@ export class HttpMCPTransport implements MCPTransport {
         // Some servers return 200 with acknowledgment JSON instead of 202
         const isNotification = !('id' in message);
         if (isNotification) {
+          this.openInboundSseIfNeeded();
           return;
         }
 
@@ -217,6 +234,7 @@ export class HttpMCPTransport implements MCPTransport {
             ? data.map((m: unknown) => JSONRPCMessageSchema.parse(m))
             : [JSONRPCMessageSchema.parse(data)];
           for (const m of messages) this.onmessage?.(m);
+          this.openInboundSseIfNeeded();
           return;
         }
 
@@ -264,6 +282,7 @@ export class HttpMCPTransport implements MCPTransport {
           };
 
           processEvents();
+          this.openInboundSseIfNeeded();
           return;
         }
 
@@ -312,6 +331,67 @@ export class HttpMCPTransport implements MCPTransport {
     }, delay);
   }
 
+  private async authorize(resourceMetadataUrl?: URL): Promise<AuthResult> {
+    const authProvider = this.authProvider;
+    if (!authProvider) {
+      return 'REDIRECT';
+    }
+
+    const key = authorizationKey(this.url, resourceMetadataUrl);
+    let providerPromises = authorizationPromises.get(authProvider);
+    if (!providerPromises) {
+      providerPromises = new Map();
+      authorizationPromises.set(authProvider, providerPromises);
+    }
+
+    let authorizationPromise = providerPromises.get(key);
+    if (!authorizationPromise) {
+      authorizationPromise = auth(authProvider, {
+        serverUrl: this.url,
+        resourceMetadataUrl,
+        fetchFn: this.fetchFn,
+      }).finally(() => {
+        providerPromises.delete(key);
+        if (providerPromises.size === 0) {
+          authorizationPromises.delete(authProvider);
+        }
+      });
+      providerPromises.set(key, authorizationPromise);
+    }
+
+    return authorizationPromise;
+  }
+
+  private openInboundSseIfNeeded({ force = false } = {}): void {
+    if (force) {
+      this.inboundSseUnavailable = false;
+    } else if (this.inboundSseUnavailable) {
+      return;
+    }
+
+    if (this.inboundSseConnection) {
+      return;
+    }
+
+    if (this.inboundSsePromise) {
+      if (force) {
+        this.inboundSseForcedRetryPending = true;
+      }
+      return;
+    }
+
+    this.inboundSsePromise = this.openInboundSse().finally(() => {
+      this.inboundSsePromise = undefined;
+      const shouldRetry =
+        this.inboundSseForcedRetryPending && !this.inboundSseConnection;
+      this.inboundSseForcedRetryPending = false;
+      if (shouldRetry) {
+        this.openInboundSseIfNeeded({ force: true });
+      }
+    });
+    void this.inboundSsePromise;
+  }
+
   // Open optional inbound SSE stream; best-effort and resumable
   private async openInboundSse(
     triedAuth: boolean = false,
@@ -338,13 +418,10 @@ export class HttpMCPTransport implements MCPTransport {
       }
 
       if (response.status === 401 && this.authProvider && !triedAuth) {
-        this.resourceMetadataUrl = extractResourceMetadataUrl(response);
+        const resourceMetadataUrl = extractResourceMetadataUrl(response);
+        this.resourceMetadataUrl = resourceMetadataUrl;
         try {
-          const result = await auth(this.authProvider, {
-            serverUrl: this.url,
-            resourceMetadataUrl: this.resourceMetadataUrl,
-            fetchFn: this.fetchFn,
-          });
+          const result = await this.authorize(resourceMetadataUrl);
           if (result !== 'AUTHORIZED') {
             const error = new UnauthorizedError();
             this.onerror?.(error);
@@ -358,6 +435,7 @@ export class HttpMCPTransport implements MCPTransport {
       }
 
       if (response.status === 405) {
+        this.inboundSseUnavailable = true;
         return;
       }
 
@@ -416,6 +494,7 @@ export class HttpMCPTransport implements MCPTransport {
       this.inboundSseConnection = {
         close: () => reader.cancel(),
       };
+      this.inboundSseUnavailable = false;
       this.inboundReconnectAttempts = 0;
       processEvents();
     } catch (error) {
