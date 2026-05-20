@@ -1,7 +1,7 @@
 # vercel/ai uses https://github.com/changesets/changesets for versioning and changelogs,
 # but is not following semantic versioning. Instead, it uses `patch` for both fixes
 # and features. It uses `minor` for "marketing releases", accompanied by a blog post and migration guide.
-# This workflow verifies that all `.changeset/*.md` files use `patch` unless a `minor-release` label is present.
+# This workflow verifies that all `.changeset/*.md` files use `patch` unless a `minor` or `major` label is present.
 name: Verify Changesets
 
 on:
