@@ -4,7 +4,7 @@
 
 Add `allowSystemInMessages` option to `ToolLoopAgent`.
 
-This exposes the same option that exists on `streamText` and `generateText`, allowing messages with `role: "system"` in the `messages` array when set to `true`. This is useful for trusted, server-generated `role: "system"` messages in conversation history.
+This exposes the same option that exists on `streamText` and `generateText`, whether `role: "system"` messages are allowed in the `prompt` or `messages` fields. When unset, system messages are rejected because they can create a prompt injection attack risk. Ideally, use the `instructions` option instead. Set to `true` to allow system messages, or `false` to explicitly reject them.
 
 ```ts
 const agent = new ToolLoopAgent({
