@@ -89,6 +89,7 @@
   },
   "changesets": [
     "add-resource-link-content",
+    "allow-system-in-messages-agent",
     "allowed-tools-tool-choice",
     "angry-penguins-ring",
     "angry-tigers-heal",
