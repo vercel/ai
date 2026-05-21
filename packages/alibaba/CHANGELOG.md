@@ -1,5 +1,11 @@
 # @ai-sdk/alibaba
 
+## 1.0.24
+
+### Patch Changes
+
+- 33b10a2: Add `qwen3.7-max` model ID to Alibaba and AI Gateway.
+
 ## 1.0.23
 
 ### Patch Changes
