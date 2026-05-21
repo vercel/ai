@@ -232,6 +232,46 @@ describe('ToolLoopAgent', () => {
     }),
   };
 
+  describe('deprecated tool callback aliases', () => {
+    it('should accept deprecated aliases for generate', async () => {
+      const agent = new ToolLoopAgent({
+        model: new MockLanguageModelV4(),
+        tools: toolWithoutContext,
+      });
+
+      await agent.generate({
+        prompt: 'Hello, world!',
+        experimental_onToolCallStart: async event => {
+          expectTypeOf(event.callId).toEqualTypeOf<string>();
+          expectTypeOf(event.toolCall.toolName).toEqualTypeOf<string>();
+        },
+        experimental_onToolCallFinish: async event => {
+          expectTypeOf(event.callId).toEqualTypeOf<string>();
+          expectTypeOf(event.toolCall.toolName).toEqualTypeOf<string>();
+        },
+      });
+    });
+
+    it('should accept deprecated aliases for stream', async () => {
+      const agent = new ToolLoopAgent({
+        model: new MockLanguageModelV4(),
+        tools: toolWithoutContext,
+      });
+
+      await agent.stream({
+        prompt: 'Hello, world!',
+        experimental_onToolCallStart: async event => {
+          expectTypeOf(event.callId).toEqualTypeOf<string>();
+          expectTypeOf(event.toolCall.toolName).toEqualTypeOf<string>();
+        },
+        experimental_onToolCallFinish: async event => {
+          expectTypeOf(event.callId).toEqualTypeOf<string>();
+          expectTypeOf(event.toolCall.toolName).toEqualTypeOf<string>();
+        },
+      });
+    });
+  });
+
   describe('runtimeContext', () => {
     it('should accept no runtimeContext', async () => {
       new ToolLoopAgent({

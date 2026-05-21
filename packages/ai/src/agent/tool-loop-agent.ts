@@ -177,7 +177,9 @@ export class ToolLoopAgent<
     experimental_onStart,
     experimental_onStepStart,
     onToolExecutionStart,
+    experimental_onToolCallStart,
     onToolExecutionEnd,
+    experimental_onToolCallFinish,
     onStepFinish,
     onFinish,
     ...options
@@ -185,6 +187,10 @@ export class ToolLoopAgent<
     GenerateTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>
   > {
     const generate = generateText<TOOLS, RUNTIME_CONTEXT, OUTPUT>;
+    const resolvedOnToolExecutionStart =
+      onToolExecutionStart ?? experimental_onToolCallStart;
+    const resolvedOnToolExecutionEnd =
+      onToolExecutionEnd ?? experimental_onToolCallFinish;
     const preparedCall = await this.prepareCall({
       ...options,
       experimental_sandbox: sandbox,
@@ -207,11 +213,11 @@ export class ToolLoopAgent<
       ),
       onToolExecutionStart: mergeCallbacks(
         this.settings.onToolExecutionStart,
-        onToolExecutionStart,
+        resolvedOnToolExecutionStart,
       ),
       onToolExecutionEnd: mergeCallbacks(
         this.settings.onToolExecutionEnd,
-        onToolExecutionEnd,
+        resolvedOnToolExecutionEnd,
       ),
       onStepFinish: mergeCallbacks(this.settings.onStepFinish, onStepFinish),
       onFinish: mergeCallbacks(this.settings.onFinish, onFinish),
@@ -234,7 +240,9 @@ export class ToolLoopAgent<
     experimental_onStart,
     experimental_onStepStart,
     onToolExecutionStart,
+    experimental_onToolCallStart,
     onToolExecutionEnd,
+    experimental_onToolCallFinish,
     onStepFinish,
     onFinish,
     ...options
@@ -242,6 +250,10 @@ export class ToolLoopAgent<
     StreamTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>
   > {
     const stream = streamText<TOOLS, RUNTIME_CONTEXT, OUTPUT>;
+    const resolvedOnToolExecutionStart =
+      onToolExecutionStart ?? experimental_onToolCallStart;
+    const resolvedOnToolExecutionEnd =
+      onToolExecutionEnd ?? experimental_onToolCallFinish;
     const preparedCall = await this.prepareCall({
       ...options,
       experimental_sandbox: sandbox,
@@ -265,11 +277,11 @@ export class ToolLoopAgent<
       ),
       onToolExecutionStart: mergeCallbacks(
         this.settings.onToolExecutionStart,
-        onToolExecutionStart,
+        resolvedOnToolExecutionStart,
       ),
       onToolExecutionEnd: mergeCallbacks(
         this.settings.onToolExecutionEnd,
-        onToolExecutionEnd,
+        resolvedOnToolExecutionEnd,
       ),
       onStepFinish: mergeCallbacks(this.settings.onStepFinish, onStepFinish),
       onFinish: mergeCallbacks(this.settings.onFinish, onFinish),
