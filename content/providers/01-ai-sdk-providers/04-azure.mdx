@@ -369,7 +369,7 @@ const result = await generateText({
   model: azure('gpt-5'),
   prompt: 'What happened in San Francisco last week?',
   tools: {
-        web_search: azure.tools.webSearch({
+    web_search: azure.tools.webSearch({
       // optional configuration:
       searchContextSize: 'high',
       userLocation: {
@@ -410,7 +410,8 @@ The web search tool supports the following configuration options:
 For detailed information on configuration options see the [Azure OpenAI Web Search Tool documentation](https://learn.microsoft.com/en-us/azure/foundry/openai/how-to/web-search).
 
 <Note>
-  On Microsoft Foundry environment , Live internet access is not supported. The parameter `externalWebAccess` if passed will be ignored.
+  On Microsoft Foundry environment , Live internet access is not supported. The
+  parameter `externalWebAccess` if passed will be ignored.
 </Note>
 
 #### File Search Tool
