@@ -56,8 +56,8 @@ try {
 
 ### Available harnesses
 
-- `@ai-sdk/harness-claude-code` (WIP)
-- `@ai-sdk/harness-codex` (WIP)
+- `@ai-sdk/harness-claude-code`
+- `@ai-sdk/harness-codex`
 - `@ai-sdk/harness-opencode` (WIP)
 - `@ai-sdk/harness-goose` (WIP)
 - `@ai-sdk/harness-mastra` (WIP)

@@ -1,0 +1,468 @@
+import { randomBytes } from 'node:crypto';
+import { readFile } from 'node:fs/promises';
+import { fileURLToPath } from 'node:url';
+import {
+  HarnessCapabilityUnsupportedError,
+  type HarnessV1,
+  type HarnessV1BuiltinToolDescriptor,
+  type HarnessV1PromptControl,
+  type HarnessV1Sandbox,
+  type HarnessV1Session,
+  type HarnessV1StreamPart,
+} from '@ai-sdk/harness';
+import {
+  safeParseJSON,
+  type Experimental_SandboxProcess,
+} from '@ai-sdk/provider-utils';
+import { WebSocket } from 'ws';
+import {
+  resolveClaudeCodeEnv,
+  type ClaudeCodeAuthOptions,
+} from './claude-code-auth';
+import { BridgeChannel } from './claude-code-bridge-channel';
+import { bridgeReadySchema } from './claude-code-bridge-protocol';
+import { writeSkills, type ClaudeCodeSkill } from './claude-code-skills';
+import { translate } from './claude-code-translate';
+
+export type ClaudeCodeOptions = {
+  readonly auth?: ClaudeCodeAuthOptions;
+  readonly skills?: ReadonlyArray<ClaudeCodeSkill>;
+  /**
+   * Override the port the bridge binds inside the sandbox. By default the
+   * adapter uses the first port the sandbox declares via `sandbox.ports`.
+   * Only set this if the sandbox declares multiple ports and the first one
+   * is reserved for something else.
+   */
+  readonly port?: number;
+  /** Maximum milliseconds to wait for the bridge to advertise its port. Defaults to 120000. */
+  readonly startupTimeoutMs?: number;
+};
+
+const BUILTIN_TOOLS: ReadonlyArray<HarnessV1BuiltinToolDescriptor> = [
+  { nativeName: 'Read', commonName: 'read' },
+  { nativeName: 'Write', commonName: 'write' },
+  { nativeName: 'Edit', commonName: 'edit' },
+  { nativeName: 'Bash', commonName: 'bash' },
+  { nativeName: 'Glob', commonName: 'glob' },
+  { nativeName: 'Grep', commonName: 'grep' },
+];
+
+export function claudeCode(options: ClaudeCodeOptions = {}): HarnessV1 {
+  return {
+    specificationVersion: 'harness-v1',
+    harnessId: 'claude-code',
+    builtinTools: BUILTIN_TOOLS,
+    doStart: async startOpts => {
+      const sandbox = requireGetPortUrl(startOpts.sandbox);
+
+      const workdir = `/tmp/harness/${startOpts.sessionId}`;
+      const port = resolveBridgePort(sandbox, options.port);
+      const token = randomBytes(32).toString('hex');
+      const env = {
+        ...resolveClaudeCodeEnv(options.auth),
+        BRIDGE_CHANNEL_TOKEN: token,
+        BRIDGE_WS_PORT: String(port),
+      };
+
+      await sandbox.runCommand({
+        command: `mkdir -p ${workdir}`,
+        abortSignal: startOpts.abortSignal,
+      });
+
+      await Promise.all([
+        sandbox.writeTextFile({
+          path: `${workdir}/env.json`,
+          content: JSON.stringify(env),
+          abortSignal: startOpts.abortSignal,
+        }),
+        sandbox.writeTextFile({
+          path: `${workdir}/package.json`,
+          content: await readBridgeAsset('package.json'),
+          abortSignal: startOpts.abortSignal,
+        }),
+        sandbox.writeTextFile({
+          path: `${workdir}/bridge.mjs`,
+          content: await readBridgeAsset('index.mjs'),
+          abortSignal: startOpts.abortSignal,
+        }),
+        sandbox.writeTextFile({
+          path: `${workdir}/pnpm-lock.yaml`,
+          content: await readBridgeAsset('pnpm-lock.yaml'),
+          abortSignal: startOpts.abortSignal,
+        }),
+      ]);
+
+      const install = await sandbox.runCommand({
+        command: `pnpm --dir ${workdir} install --frozen-lockfile --store-dir ${workdir}/.pnpm-store`,
+        abortSignal: startOpts.abortSignal,
+      });
+      if (install.exitCode !== 0) {
+        throw new Error(
+          `claude-code bridge install failed (exit ${install.exitCode}):\n${install.stderr || install.stdout}`,
+        );
+      }
+
+      const postInstall = await sandbox.runCommand({
+        command: `cd ${workdir} && if [ -f node_modules/@anthropic-ai/claude-code/install.cjs ]; then node node_modules/@anthropic-ai/claude-code/install.cjs; fi && ./node_modules/.bin/claude --version`,
+        abortSignal: startOpts.abortSignal,
+      });
+      if (postInstall.exitCode !== 0) {
+        throw new Error(
+          `claude-code post-install failed (exit ${postInstall.exitCode}):\n${postInstall.stderr || postInstall.stdout}`,
+        );
+      }
+
+      if (options.skills && options.skills.length > 0) {
+        await writeSkills({
+          sandbox,
+          workdir,
+          skills: options.skills,
+          abortSignal: startOpts.abortSignal,
+        });
+      }
+
+      const proc = await sandbox.spawnCommand({
+        command: `node ${workdir}/bridge.mjs --workdir ${workdir}`,
+        abortSignal: startOpts.abortSignal,
+      });
+
+      await waitForBridgeReady({
+        proc,
+        timeoutMs: options.startupTimeoutMs ?? 120_000,
+        abortSignal: startOpts.abortSignal,
+      });
+
+      const wsUrl =
+        (await sandbox.getPortUrl!({ port, protocol: 'ws' })) +
+        `?agent_bridge_token=${encodeURIComponent(token)}`;
+
+      const ws = await openWebSocket(wsUrl);
+      const channel = new BridgeChannel(ws);
+
+      return createSession({ sessionId: startOpts.sessionId, channel, proc });
+    },
+  };
+}
+
+function requireGetPortUrl(
+  sandbox: HarnessV1Sandbox | undefined,
+): HarnessV1Sandbox & {
+  getPortUrl: NonNullable<HarnessV1Sandbox['getPortUrl']>;
+} {
+  if (!sandbox) {
+    throw new HarnessCapabilityUnsupportedError({
+      harnessId: 'claude-code',
+      message:
+        'The claude-code harness requires a sandbox. Supply `sandbox` when starting the agent.',
+    });
+  }
+  if (!sandbox.getPortUrl) {
+    throw new HarnessCapabilityUnsupportedError({
+      harnessId: 'claude-code',
+      message:
+        'The claude-code harness requires a sandbox that exposes `getPortUrl` (e.g. `VercelHarnessSandbox`).',
+    });
+  }
+  return sandbox as HarnessV1Sandbox & {
+    getPortUrl: NonNullable<HarnessV1Sandbox['getPortUrl']>;
+  };
+}
+
+function resolveBridgePort(
+  sandbox: HarnessV1Sandbox,
+  override: number | undefined,
+): number {
+  if (override !== undefined) return override;
+  const declared = sandbox.ports;
+  if (declared && declared.length > 0) return declared[0];
+  throw new HarnessCapabilityUnsupportedError({
+    harnessId: 'claude-code',
+    message:
+      'The claude-code harness needs a TCP port declared on the sandbox. ' +
+      'Create the sandbox with `ports: [<port>]` or pass `claudeCode({ port })`.',
+  });
+}
+
+async function readBridgeAsset(name: string): Promise<string> {
+  const candidates = [
+    new URL(`./bridge/${name}`, import.meta.url),
+    new URL(`../bridge/${name}`, import.meta.url),
+  ];
+  let lastErr: unknown;
+  for (const url of candidates) {
+    try {
+      return await readFile(fileURLToPath(url), 'utf8');
+    } catch (err) {
+      const code = (err as NodeJS.ErrnoException).code;
+      if (code !== 'ENOENT') throw err;
+      lastErr = err;
+    }
+  }
+  throw lastErr ?? new Error(`bridge asset not found: ${name}`);
+}
+
+async function waitForBridgeReady({
+  proc,
+  timeoutMs,
+  abortSignal,
+}: {
+  proc: Experimental_SandboxProcess;
+  timeoutMs: number;
+  abortSignal: AbortSignal | undefined;
+}): Promise<{ port: number }> {
+  const reader = proc.stdout.pipeThrough(new TextDecoderStream()).getReader();
+
+  const decoder = lineDecoder();
+
+  const deadline = Date.now() + timeoutMs;
+  try {
+    while (true) {
+      if (abortSignal?.aborted) {
+        await proc.kill();
+        throw abortSignal.reason ?? new DOMException('Aborted', 'AbortError');
+      }
+      const remaining = deadline - Date.now();
+      if (remaining <= 0) {
+        await proc.kill();
+        throw new Error('claude-code bridge did not become ready in time.');
+      }
+      const { value, done } = (await Promise.race([
+        reader.read(),
+        new Promise(resolve =>
+          setTimeout(
+            () => resolve({ value: undefined, done: false }),
+            remaining,
+          ),
+        ),
+      ])) as ReadableStreamReadResult<string>;
+      if (done) {
+        throw new Error('claude-code bridge exited before becoming ready.');
+      }
+      if (value === undefined) continue;
+      for (const line of decoder.push(value)) {
+        const parsed = await safeParseJSON({
+          text: line,
+          schema: bridgeReadySchema,
+        });
+        if (parsed.success) return { port: parsed.value.port };
+      }
+    }
+  } finally {
+    reader.releaseLock();
+    void drainRest(proc.stdout);
+    void drainRest(proc.stderr);
+  }
+}
+
+function lineDecoder() {
+  let buffer = '';
+  return {
+    push(chunk: string): string[] {
+      buffer += chunk;
+      const lines: string[] = [];
+      let nl: number;
+      while ((nl = buffer.indexOf('\n')) !== -1) {
+        const raw = buffer.slice(0, nl);
+        buffer = buffer.slice(nl + 1);
+        const line = raw.replace(/\r$/, '').trim();
+        if (line.length > 0) lines.push(line);
+      }
+      return lines;
+    },
+  };
+}
+
+async function drainRest(stream: ReadableStream<Uint8Array>): Promise<void> {
+  try {
+    const reader = stream.pipeThrough(new TextDecoderStream()).getReader();
+    while (true) {
+      const { done } = await reader.read();
+      if (done) return;
+    }
+  } catch {}
+}
+
+function openWebSocket(url: string): Promise<WebSocket> {
+  return new Promise((resolve, reject) => {
+    const ws = new WebSocket(url);
+    const onOpen = () => {
+      ws.off('error', onError);
+      resolve(ws);
+    };
+    const onError = (err: Error) => {
+      ws.off('open', onOpen);
+      reject(err);
+    };
+    ws.once('open', onOpen);
+    ws.once('error', onError);
+  });
+}
+
+function createSession({
+  sessionId,
+  channel,
+  proc,
+}: {
+  sessionId: string;
+  channel: BridgeChannel;
+  proc: Experimental_SandboxProcess;
+}): HarnessV1Session {
+  let stopped = false;
+  let stopPromise: Promise<void> | undefined;
+
+  return {
+    sessionId,
+    doPrompt: async promptOpts => {
+      let pendingResolve: (() => void) | undefined;
+      let pendingReject: ((err: unknown) => void) | undefined;
+      const done = new Promise<void>((resolve, reject) => {
+        pendingResolve = resolve;
+        pendingReject = reject;
+      });
+
+      const unsubs: Array<() => void> = [];
+      const forward = (event: HarnessV1StreamPart) => {
+        try {
+          promptOpts.emit(event);
+        } catch {}
+      };
+
+      const eventTypes = [
+        'stream-start',
+        'text-start',
+        'text-delta',
+        'text-end',
+        'reasoning-start',
+        'reasoning-delta',
+        'reasoning-end',
+        'tool-call',
+        'tool-result',
+        'finish-step',
+        'raw',
+      ] as const;
+      for (const type of eventTypes) {
+        unsubs.push(
+          channel.on(type, msg => {
+            forward(translate(msg));
+          }),
+        );
+      }
+      unsubs.push(
+        channel.on('finish', msg => {
+          forward(translate(msg));
+          settleSuccess();
+        }),
+      );
+      unsubs.push(
+        channel.on('error', msg => {
+          forward(translate(msg));
+          settleError(msg.error);
+        }),
+      );
+
+      const onClose = () => {
+        if (!isSettled) {
+          settleError(
+            new Error('claude-code bridge closed before the turn finished.'),
+          );
+        }
+      };
+      channel.onClose(onClose);
+
+      let isSettled = false;
+      const settleSuccess = () => {
+        if (isSettled) return;
+        isSettled = true;
+        for (const u of unsubs) u();
+        pendingResolve!();
+      };
+      const settleError = (err: unknown) => {
+        if (isSettled) return;
+        isSettled = true;
+        for (const u of unsubs) u();
+        pendingReject!(err);
+      };
+
+      const onAbort = () => {
+        if (isSettled) return;
+        try {
+          channel.send({ type: 'abort' });
+        } catch {}
+        settleError(
+          promptOpts.abortSignal?.reason ??
+            new DOMException('Aborted', 'AbortError'),
+        );
+      };
+      if (promptOpts.abortSignal) {
+        if (promptOpts.abortSignal.aborted) {
+          onAbort();
+        } else {
+          promptOpts.abortSignal.addEventListener('abort', onAbort, {
+            once: true,
+          });
+        }
+      }
+
+      channel.send({
+        type: 'start',
+        promptMessages: promptOpts.prompt as unknown[],
+        instructions: promptOpts.instructions,
+        tools: (promptOpts.tools ?? []).map(t => ({
+          name: t.name,
+          description: t.description,
+          inputSchema: t.inputSchema,
+        })),
+        activeBuiltinTools: promptOpts.activeBuiltinTools as
+          | string[]
+          | undefined,
+        harnessOptions: promptOpts.harnessOptions as
+          | Record<string, unknown>
+          | undefined,
+      });
+
+      const control: HarnessV1PromptControl = {
+        submitToolResult: async input => {
+          channel.send({
+            type: 'tool-result',
+            toolCallId: input.toolCallId,
+            output: input.output,
+            isError: input.isError,
+          });
+        },
+        submitUserMessage: async text => {
+          channel.send({ type: 'user-message', text });
+        },
+        done,
+      };
+      return control;
+    },
+    doStop: async () => {
+      if (stopped) return stopPromise;
+      stopped = true;
+      stopPromise = (async () => {
+        try {
+          if (!channel.isClosed()) {
+            channel.send({ type: 'shutdown' });
+          }
+        } catch {}
+        let stopTimer: ReturnType<typeof setTimeout> | undefined;
+        try {
+          await Promise.race([
+            proc.wait(),
+            new Promise<void>(resolve => {
+              stopTimer = setTimeout(resolve, 5000);
+              stopTimer.unref?.();
+            }),
+          ]);
+        } finally {
+          if (stopTimer) clearTimeout(stopTimer);
+          try {
+            await proc.kill();
+          } catch {}
+          channel.close();
+        }
+      })();
+      return stopPromise;
+    },
+  };
+}

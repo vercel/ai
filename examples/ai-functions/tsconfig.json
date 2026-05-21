@@ -135,6 +135,12 @@
       "path": "../../packages/harness"
     },
     {
+      "path": "../../packages/harness-claude-code"
+    },
+    {
+      "path": "../../packages/harness-codex"
+    },
+    {
       "path": "../../packages/sandbox-vercel"
     }
   ]

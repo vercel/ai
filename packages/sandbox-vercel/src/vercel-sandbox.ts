@@ -188,6 +188,15 @@ export class VercelSandbox implements Experimental_Sandbox {
       abortSignal,
     });
   }
+
+  /**
+   * Stop the underlying Vercel Sandbox. Callers own the sandbox lifecycle;
+   * this method releases the remote VM and the local HTTP-client resources
+   * that otherwise keep the host process alive until the sandbox times out.
+   */
+  async stop(): Promise<void> {
+    await this.sandbox.stop();
+  }
 }
 
 function createSandboxProcess(
