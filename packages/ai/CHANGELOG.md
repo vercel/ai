@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.189
+
+### Patch Changes
+
+- 356c3cf: fix(ai): make input optional on input-streaming UIMessagePart variants
+
 ## 6.0.188
 
 ### Patch Changes
