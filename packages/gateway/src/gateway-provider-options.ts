@@ -93,6 +93,11 @@ const gatewayProviderOptions = lazySchema(() =>
        */
       quotaEntityId: z.string().optional(),
       /**
+       * Automatic caching configuration for the AI Gateway.
+       * Example: `'auto'`
+       */
+      caching: z.string().optional(),
+      /**
        * Per-provider timeouts for BYOK credentials in milliseconds.
        * Controls how long to wait for a provider to start responding
        * before falling back to the next available provider.

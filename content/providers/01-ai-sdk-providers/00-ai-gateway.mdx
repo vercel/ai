@@ -836,6 +836,12 @@ The following gateway provider options are available:
 
   The unique identifier for the entity against which quota is tracked. Used for quota management and enforcement purposes.
 
+- **caching** _string_
+
+  Optional automatic caching configuration for the AI Gateway. Setting this to `'auto'` enables automatic caching of responses to optimize cost and latency.
+
+  Example: `caching: 'auto'`
+
 - **providerTimeouts** _object_
 
   Per-provider timeouts for BYOK credentials in milliseconds. Controls how long to wait for a provider to start responding before falling back to the next available provider.
@@ -958,6 +964,25 @@ const { text } = await generateText({
   providerOptions: {
     gateway: {
       quotaEntityId: 'org-123',
+    } satisfies GatewayProviderOptions,
+  },
+});
+```
+
+#### Caching Example
+
+Set `caching` to `'auto'` to enable automatic caching of responses, which can reduce cost and latency for repeated requests.
+
+```ts
+import type { GatewayProviderOptions } from '@ai-sdk/gateway';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: 'anthropic/claude-sonnet-4.6',
+  prompt: 'Summarize this report...',
+  providerOptions: {
+    gateway: {
+      caching: 'auto',
     } satisfies GatewayProviderOptions,
   },
 });
