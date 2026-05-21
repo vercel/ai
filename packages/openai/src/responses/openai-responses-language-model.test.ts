@@ -846,6 +846,107 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(warnings).toStrictEqual([]);
       });
 
+      it('should not send item references for reasoning items when previousResponseId is set', async () => {
+        const { warnings } = await createModel('gpt-4o').doGenerate({
+          prompt: [
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'Hello' }],
+            },
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'reasoning',
+                  text: 'Let me think...',
+                  providerOptions: {
+                    openai: { itemId: 'rs_existing_123' },
+                  },
+                },
+              ],
+            },
+          ],
+          providerOptions: {
+            openai: {
+              previousResponseId: 'resp_123',
+              store: true,
+            } satisfies OpenAILanguageModelResponsesOptions,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'gpt-4o',
+          input: [
+            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
+          ],
+          previous_response_id: 'resp_123',
+          store: true,
+        });
+
+        expect(warnings).toStrictEqual([]);
+      });
+
+      it('should not send item references for function calls when previousResponseId is set', async () => {
+        const { warnings } = await createModel('gpt-4o').doGenerate({
+          prompt: [
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'What is the weather?' }],
+            },
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call_123',
+                  toolName: 'weather',
+                  input: { location: 'San Francisco' },
+                  providerOptions: {
+                    openai: { itemId: 'fc_existing_123' },
+                  },
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolCallId: 'call_123',
+                  toolName: 'weather',
+                  output: { type: 'json', value: { temp: 72 } },
+                },
+              ],
+            },
+          ],
+          providerOptions: {
+            openai: {
+              previousResponseId: 'resp_123',
+              store: true,
+            } satisfies OpenAILanguageModelResponsesOptions,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'gpt-4o',
+          input: [
+            {
+              role: 'user',
+              content: [{ type: 'input_text', text: 'What is the weather?' }],
+            },
+            {
+              type: 'function_call_output',
+              call_id: 'call_123',
+              output: '{"temp":72}',
+            },
+          ],
+          previous_response_id: 'resp_123',
+          store: true,
+        });
+
+        expect(warnings).toStrictEqual([]);
+      });
+
       it('should send metadata provider option', async () => {
         const { warnings } = await createModel('gpt-4o').doGenerate({
           prompt: TEST_PROMPT,
