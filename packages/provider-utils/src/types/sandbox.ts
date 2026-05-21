@@ -223,6 +223,15 @@ export type Experimental_SandboxProcess = {
   readonly pid?: number;
 
   /**
+   * Stream the process reads as standard input. Optional — sandboxes that
+   * cannot expose a writable stdin omit this field. Callers that need to
+   * push data into a running process must check for its presence and fall
+   * back to a side channel (e.g. files in the sandbox filesystem) when it
+   * is absent.
+   */
+  readonly stdin?: WritableStream<Uint8Array>;
+
+  /**
    * Stream of bytes written by the process to standard output.
    */
   readonly stdout: ReadableStream<Uint8Array>;

@@ -28,6 +28,9 @@ test('Experimental_SandboxProcess exposes the expected handle shape', () => {
   expectTypeOf<Experimental_SandboxProcess['stderr']>().toEqualTypeOf<
     ReadableStream<Uint8Array>
   >();
+  expectTypeOf<Experimental_SandboxProcess['stdin']>().toEqualTypeOf<
+    WritableStream<Uint8Array> | undefined
+  >();
   expectTypeOf<
     Awaited<ReturnType<Experimental_SandboxProcess['wait']>>
   >().toEqualTypeOf<{ exitCode: number }>();
