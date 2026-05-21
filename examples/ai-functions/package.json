@@ -25,6 +25,7 @@
     "@ai-sdk/google": "workspace:*",
     "@ai-sdk/google-vertex": "workspace:*",
     "@ai-sdk/groq": "workspace:*",
+    "@ai-sdk/harness": "workspace:*",
     "@ai-sdk/huggingface": "workspace:*",
     "@ai-sdk/hume": "workspace:*",
     "@ai-sdk/klingai": "workspace:*",

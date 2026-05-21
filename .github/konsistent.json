@@ -36,6 +36,8 @@
         "!packages/angular",
         "!packages/codemod",
         "!packages/devtools",
+        "!packages/harness",
+        "!packages/harness-*",
         "!packages/langchain",
         "!packages/llamaindex",
         "!packages/mcp",

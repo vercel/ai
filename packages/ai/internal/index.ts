@@ -16,8 +16,14 @@ export {
   prepareLanguageModelCallOptions as prepareCallSettings,
 } from '../src/prompt/prepare-language-model-call-options';
 export { prepareRetries } from '../src/util/prepare-retries';
-export { asLanguageModelUsage } from '../src/types/usage';
+export {
+  addLanguageModelUsage,
+  asLanguageModelUsage,
+  createNullLanguageModelUsage,
+} from '../src/types/usage';
 export { resolveLanguageModel } from '../src/model/resolve-model';
 export { mergeAbortSignals } from '../src/util/merge-abort-signals';
 export { mergeCallbacks } from '../src/util/merge-callbacks';
 export { createRestrictedTelemetryDispatcher } from '../src/generate-text/restricted-telemetry-dispatcher';
+export { DefaultStepResult } from '../src/generate-text/step-result';
+export { toResponseMessages } from '../src/generate-text/to-response-messages';
