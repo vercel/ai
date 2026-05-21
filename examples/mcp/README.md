@@ -40,6 +40,7 @@ Available examples/folders:
 - `mcp-prompts` - MCP prompts example
 - `mcp-resources` - MCP resources example
 - `stdio` - Stdio Transport (requires `pnpm stdio:build` first)
+- `bilig-workpaper` - Stdio MCP server from npm for spreadsheet-style formula workbooks
 - `elicitation` - MCP elicitation example
 - `elicitation-multi-step` - MCP multi-step elicitation example
 - `elicitation-ui` - MCP elicitation with UI (server only)
@@ -55,6 +56,15 @@ In another terminal, run the HTTP client:
 
 ```sh
 pnpm client:http
+```
+
+Run the Bilig WorkPaper example without starting a separate server. It downloads
+the published `@bilig/workpaper` package, starts its stdio MCP server, creates a
+demo WorkPaper JSON file, edits an input cell, recalculates dependent formulas,
+and prints verified readback:
+
+```sh
+pnpm client:bilig-workpaper
 ```
 
 To test the example with the UI, you will first need to run the MCP server:
