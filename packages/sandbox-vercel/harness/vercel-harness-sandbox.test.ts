@@ -26,22 +26,22 @@ describe('VercelHarnessSandbox', () => {
       });
 
       expect(spies.domain).toHaveBeenCalledWith(3000);
-      expect(url).toBe('https://sub.vercel.run');
+      expect(url).toBe('https://sub.vercel.run/');
     });
 
     it('rewrites the scheme for http', async () => {
       const { sandbox, spies } = makeMockSandbox();
-      spies.domain.mockReturnValueOnce('https://sub.vercel.run');
+      spies.domain.mockReturnValueOnce('http://sub.vercel.run');
 
       const url = await new VercelHarnessSandbox(sandbox).getPortUrl({
         port: 80,
         protocol: 'http',
       });
 
-      expect(url).toBe('http://sub.vercel.run');
+      expect(url).toBe('http://sub.vercel.run/');
     });
 
-    it('rewrites the scheme for ws', async () => {
+    it('upgrades ws to wss when the domain is https', async () => {
       const { sandbox, spies } = makeMockSandbox();
       spies.domain.mockReturnValueOnce('https://sub.vercel.run');
 
@@ -50,7 +50,19 @@ describe('VercelHarnessSandbox', () => {
         protocol: 'ws',
       });
 
-      expect(url).toBe('ws://sub.vercel.run');
+      expect(url).toBe('wss://sub.vercel.run/');
+    });
+
+    it('keeps ws as ws when the domain is http', async () => {
+      const { sandbox, spies } = makeMockSandbox();
+      spies.domain.mockReturnValueOnce('http://sub.vercel.run');
+
+      const url = await new VercelHarnessSandbox(sandbox).getPortUrl({
+        port: 81,
+        protocol: 'ws',
+      });
+
+      expect(url).toBe('ws://sub.vercel.run/');
     });
   });
 

@@ -14,6 +14,15 @@ import type { Experimental_Sandbox } from '@ai-sdk/provider-utils';
  */
 export type HarnessV1Sandbox = Experimental_Sandbox & {
   /**
+   * Ports declared on the sandbox at creation time and reachable from the
+   * host via {@link HarnessV1Sandbox.getPortUrl}. Adapters use this list to
+   * pick a port for the bridge process to bind without requiring the
+   * caller to thread a magic number through both the sandbox factory and
+   * the harness factory.
+   */
+  readonly ports?: ReadonlyArray<number>;
+
+  /**
    * Resolve a publicly-reachable URL for a port exposed inside the sandbox.
    *
    * Used by adapters that run dev servers, file servers, or other services

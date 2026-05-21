@@ -16,6 +16,10 @@ export class VercelHarnessSandbox
   extends VercelSandbox
   implements HarnessV1Sandbox
 {
+  get ports(): ReadonlyArray<number> {
+    return this.sandbox.routes.map(route => route.port);
+  }
+
   async getPortUrl({
     port,
     protocol = 'https',
@@ -23,9 +27,20 @@ export class VercelHarnessSandbox
     port: number;
     protocol?: 'http' | 'https' | 'ws';
   }): Promise<string> {
-    const url = this.sandbox.domain(port);
-    if (protocol === 'https') return url;
-    return url.replace(/^https:\/\//, `${protocol}://`);
+    const url = new URL(this.sandbox.domain(port));
+    const isSecure = url.protocol === 'https:';
+    switch (protocol) {
+      case 'http':
+        url.protocol = isSecure ? 'https:' : 'http:';
+        break;
+      case 'https':
+        url.protocol = 'https:';
+        break;
+      case 'ws':
+        url.protocol = isSecure ? 'wss:' : 'ws:';
+        break;
+    }
+    return url.toString();
   }
 
   async setNetworkPolicy(policy: HarnessV1NetworkPolicy): Promise<void> {
