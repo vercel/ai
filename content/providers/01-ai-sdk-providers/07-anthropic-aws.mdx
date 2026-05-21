@@ -36,8 +36,6 @@ Before you can use the provider, your AWS account must be subscribed to Claude P
 aws iam enable-outbound-web-identity-federation
 ```
 
-Without this, every request returns `Outbound web identity federation is disabled for your account`. This is the most common setup error.
-
 You'll also need your workspace ID. When you subscribe, AWS provisions an initial workspace for your account in the selected region; you can find the ID in the Claude Console under **Workspaces** (accessed from the AWS Console via the Claude Platform on AWS service page).
 
 ### Authentication
