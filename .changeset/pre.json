@@ -88,6 +88,8 @@
     "konsistent-provider": "0.0.1"
   },
   "changesets": [
+    "acupf-uiktr-ypdkq",
+    "add-qwen-3-7-max-alibaba",
     "add-resource-link-content",
     "allow-system-in-messages-agent",
     "allowed-tools-tool-choice",
@@ -456,6 +458,7 @@
     "two-fireants-notice",
     "two-needles-lay",
     "two-pens-teach",
+    "two-ravens-sleep",
     "uaqzy-hwkdl-lhxvz",
     "umduv-thyel-zirhi",
     "unlucky-cats-grow",
