@@ -14,8 +14,8 @@ import {
   resolve,
   zodSchema,
   type FetchFunction,
-  type Resolvable,
   type InferSchema,
+  type Resolvable,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { googleFailedResponseHandler } from './google-error';
@@ -25,6 +25,7 @@ import type {
 } from './google-generative-ai-image-settings';
 import { GoogleGenerativeAILanguageModel } from './google-generative-ai-language-model';
 import type { GoogleLanguageModelOptions } from './google-generative-ai-options';
+import { googleSearchToolArgsBaseSchema } from './tool/google-search';
 
 interface GoogleGenerativeAIImageModelConfig {
   provider: string;
@@ -139,7 +140,17 @@ export class GoogleGenerativeAIImageModel implements ImageModelV3 {
     }
 
     if (googleOptions) {
-      Object.assign(parameters, googleOptions);
+      const { googleSearch: imagenGoogleSearch, ...imagenOptions } =
+        googleOptions;
+      if (imagenGoogleSearch != null) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'googleSearch',
+          details:
+            'Google Search grounding is only supported on Gemini image models.',
+        });
+      }
+      Object.assign(parameters, imagenOptions);
     }
 
     const body = {
@@ -257,6 +268,18 @@ export class GoogleGenerativeAIImageModel implements ImageModelV3 {
       { role: 'user', content: userContent },
     ];
 
+    // Parse image-model-specific provider options so we can map them onto
+    // the underlying language-model call. `googleSearch` is the dedicated
+    // escape hatch for grounding (generateImage has no `tools` parameter).
+    const googleImageOptions = await parseProviderOptions({
+      provider: 'google',
+      providerOptions,
+      schema: googleImageModelOptionsSchema,
+    });
+
+    const { googleSearch: _strippedGoogleSearch, ...passthroughGoogleOptions } =
+      providerOptions?.google ?? {};
+
     // Instantiate language model
     const languageModel = new GoogleGenerativeAILanguageModel(this.modelId, {
       provider: this.config.provider,
@@ -280,12 +303,23 @@ export class GoogleGenerativeAIImageModel implements ImageModelV3 {
                 >['aspectRatio'],
               }
             : undefined,
-          ...((providerOptions?.google as Omit<
+          ...(passthroughGoogleOptions as Omit<
             GoogleLanguageModelOptions,
             'responseModalities' | 'imageConfig'
-          >) ?? {}),
+          >),
         } satisfies GoogleLanguageModelOptions,
       },
+      tools:
+        googleImageOptions?.googleSearch != null
+          ? [
+              {
+                type: 'provider',
+                id: 'google.google_search',
+                name: 'google_search',
+                args: googleImageOptions.googleSearch,
+              },
+            ]
+          : undefined,
       headers,
       abortSignal,
     });
@@ -300,11 +334,17 @@ export class GoogleGenerativeAIImageModel implements ImageModelV3 {
       }
     }
 
+    const languageModelGoogleMetadata =
+      (result.providerMetadata?.google as
+        | Record<string, unknown>
+        | undefined) ?? {};
+
     return {
       images,
       warnings,
       providerMetadata: {
         google: {
+          ...languageModelGoogleMetadata,
           images: images.map(() => ({})),
         },
       },
@@ -350,6 +390,17 @@ const googleImageModelOptionsSchema = lazySchema(() =>
         .enum(['dont_allow', 'allow_adult', 'allow_all'])
         .nullish(),
       aspectRatio: z.enum(['1:1', '3:4', '4:3', '9:16', '16:9']).nullish(),
+
+      /**
+       * Enable Google Search grounding for Gemini image models. The value is
+       * forwarded as the args of the `google.tools.googleSearch` provider
+       * tool on the underlying language-model call. Pass `{}` for defaults.
+       *
+       * `generateImage` does not accept a `tools` parameter, so this is the
+       * dedicated escape hatch for grounding image generation the same way
+       * `generateText` does.
+       */
+      googleSearch: googleSearchToolArgsBaseSchema.optional(),
     }),
   ),
 );
