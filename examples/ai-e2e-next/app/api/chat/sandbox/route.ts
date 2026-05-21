@@ -6,10 +6,10 @@ import { createAgentUIStreamResponse } from 'ai';
 import { Sandbox } from '@vercel/sandbox';
 import { VercelSandbox } from '@/sandbox/vercel-sandbox';
 
-async function getSandbox(sandboxId?: string) {
-  if (sandboxId != null) {
+async function getSandbox(name?: string) {
+  if (name != null) {
     try {
-      const sandbox = await Sandbox.get({ sandboxId });
+      const sandbox = await Sandbox.get({ name });
       if (sandbox.status !== 'stopped' && sandbox.status !== 'failed') {
         return sandbox;
       }
@@ -40,7 +40,7 @@ export async function POST(req: Request) {
     experimental_sandbox: sandbox,
     messageMetadata: ({ part }) => {
       if (part.type === 'start') {
-        return { sandboxId: vercelSandbox.sandboxId };
+        return { sandboxId: vercelSandbox.name };
       }
     },
   });

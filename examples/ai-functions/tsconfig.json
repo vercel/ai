@@ -130,6 +130,12 @@
     },
     {
       "path": "../../packages/xai"
+    },
+    {
+      "path": "../../packages/harness"
+    },
+    {
+      "path": "../../packages/sandbox-vercel"
     }
   ]
 }
