@@ -46,6 +46,7 @@
         "!packages/provider-utils",
         "!packages/react",
         "!packages/rsc",
+        "!packages/sandbox-*",
         "!packages/svelte",
         "!packages/test-server",
         "!packages/valibot",
