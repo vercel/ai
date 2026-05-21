@@ -9,9 +9,11 @@ import {
   withoutTrailingSlash,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
-import { AnthropicLanguageModel } from '../anthropic-language-model';
-import type { AnthropicModelId } from '../anthropic-language-model-options';
-import { anthropicTools } from '../anthropic-tools';
+import {
+  anthropicTools,
+  AnthropicLanguageModel,
+  type AnthropicModelId,
+} from '@ai-sdk/anthropic/internal';
 import {
   createApiKeyFetchFunction,
   createSigV4FetchFunction,

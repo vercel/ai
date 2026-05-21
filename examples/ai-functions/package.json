@@ -6,6 +6,7 @@
     "@ai-sdk/alibaba": "workspace:*",
     "@ai-sdk/amazon-bedrock": "workspace:*",
     "@ai-sdk/anthropic": "workspace:*",
+    "@ai-sdk/anthropic-aws": "workspace:*",
     "@ai-sdk/assemblyai": "workspace:*",
     "@ai-sdk/azure": "workspace:*",
     "@ai-sdk/baseten": "workspace:*",

@@ -6,7 +6,7 @@ import {
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { AwsV4Signer } from 'aws4fetch';
-import { VERSION } from '../version';
+import { VERSION } from './version';
 
 export interface AnthropicAwsCredentials {
   region: string;

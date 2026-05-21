@@ -2,7 +2,7 @@ import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createAnthropicAws } from './anthropic-aws-provider';
 
-vi.mock('../version', () => ({
+vi.mock('./version', () => ({
   VERSION: '0.0.0-test',
 }));
 

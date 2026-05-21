@@ -5,7 +5,7 @@ import {
 import { vi, describe, it, expect, afterEach } from 'vitest';
 
 // Mock the version module
-vi.mock('../version', () => ({
+vi.mock('./version', () => ({
   VERSION: '0.0.0-test',
 }));
 

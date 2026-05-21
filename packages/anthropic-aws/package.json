@@ -1,6 +1,6 @@
 {
-  "name": "@ai-sdk/anthropic",
-  "version": "4.0.0-canary.57",
+  "name": "@ai-sdk/anthropic-aws",
+  "version": "0.0.1",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -8,25 +8,18 @@
   "types": "./dist/index.d.ts",
   "files": [
     "dist/**/*",
-    "docs/**/*",
     "src",
     "!src/**/*.test.ts",
     "!src/**/*.test-d.ts",
     "!src/**/__snapshots__",
     "!src/**/__fixtures__",
     "CHANGELOG.md",
-    "README.md",
-    "internal.d.ts"
+    "README.md"
   ],
-  "directories": {
-    "doc": "./docs"
-  },
   "scripts": {
     "build": "pnpm clean && tsup --tsconfig tsconfig.build.json",
-    "build:watch": "pnpm clean && tsup --watch --tsconfig tsconfig.build.json",
-    "clean": "del-cli dist docs *.tsbuildinfo",
-    "prepack": "mkdir -p docs && cp ../../content/providers/01-ai-sdk-providers/05-anthropic.mdx ./docs/",
-    "postpack": "del-cli docs",
+    "build:watch": "pnpm clean && tsup --watch",
+    "clean": "del-cli dist *.tsbuildinfo",
     "type-check": "tsc --build",
     "test": "pnpm test:node && pnpm test:edge",
     "test:update": "pnpm test:node -u",
@@ -40,16 +33,13 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
-    },
-    "./internal": {
-      "types": "./dist/internal/index.d.ts",
-      "import": "./dist/internal/index.js",
-      "default": "./dist/internal/index.js"
     }
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "workspace:*",
     "@ai-sdk/provider": "workspace:*",
-    "@ai-sdk/provider-utils": "workspace:*"
+    "@ai-sdk/provider-utils": "workspace:*",
+    "aws4fetch": "^1.0.20"
   },
   "devDependencies": {
     "@ai-sdk/test-server": "workspace:*",
@@ -73,7 +63,7 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/vercel/ai",
-    "directory": "packages/anthropic"
+    "directory": "packages/anthropic-aws"
   },
   "bugs": {
     "url": "https://github.com/vercel/ai/issues"
