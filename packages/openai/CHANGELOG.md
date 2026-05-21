@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 4.0.0-canary.63
+
+### Patch Changes
+
+- 17b5597: fix(openai): skip passing reasoning items when using previous response id
+
 ## 4.0.0-canary.62
 
 ### Patch Changes
