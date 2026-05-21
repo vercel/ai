@@ -7,7 +7,7 @@ run(async () => {
   const result = await generateText({
     model: anthropicAws('claude-sonnet-4-6'),
     tools: {
-      web_search: anthropicAws.tools.webSearch_20250305(),
+      web_search: anthropicAws.tools.webSearch_20260209(),
     },
     prompt: 'What were the major AI announcements last week?',
   });
