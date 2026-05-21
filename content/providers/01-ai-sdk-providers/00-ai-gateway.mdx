@@ -844,6 +844,40 @@ The following gateway provider options are available:
 
   For full details, see [Provider Timeouts](https://vercel.com/docs/ai-gateway/models-and-providers/provider-timeouts).
 
+- **serviceTier** _'flex' | 'priority'_
+
+  Unified service tier intent. The gateway translates this into whichever
+  per-provider option each provider expects, so you don't have to know the
+  individual provider's spelling:
+
+  | Gateway value | OpenAI                            | Google                            | Vertex                                                                         |
+  | ------------- | --------------------------------- | --------------------------------- | ------------------------------------------------------------------------------ |
+  | `'flex'`      | `openai.serviceTier = 'flex'`     | `google.serviceTier = 'flex'`     | `vertex.sharedRequestType = 'flex'` (and `vertex.requestType` is stripped)     |
+  | `'priority'`  | `openai.serviceTier = 'priority'` | `google.serviceTier = 'priority'` | `vertex.sharedRequestType = 'priority'` (and `vertex.requestType` is stripped) |
+
+  If you also set a tier in the per-provider options, the gateway value
+  overrides it. Leave unset to use each provider's default tier.
+  See the [OpenAI](/providers/ai-sdk-providers/openai),
+  [Google Generative AI](/providers/ai-sdk-providers/google-generative-ai),
+  and [Google Vertex AI](/providers/ai-sdk-providers/google-vertex)
+  provider docs for tier semantics, model availability, and graceful
+  downgrade behavior on each provider.
+
+  ```ts
+  import type { GatewayProviderOptions } from '@ai-sdk/gateway';
+  import { generateText } from 'ai';
+
+  const { text } = await generateText({
+    model: 'openai/gpt-5-mini',
+    prompt: 'Hello',
+    providerOptions: {
+      gateway: {
+        serviceTier: 'priority',
+      } satisfies GatewayProviderOptions,
+    },
+  });
+  ```
+
 You can combine these options to have fine-grained control over routing and tracking:
 
 ```ts
