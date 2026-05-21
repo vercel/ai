@@ -1,5 +1,12 @@
 # @ai-sdk/gateway
 
+## 3.0.119
+
+### Patch Changes
+
+- 33b10a2: Add `qwen3.7-max` model ID to Alibaba and AI Gateway.
+- f6e4146: Backport: chore(provider/gateway): update gateway model settings files
+
 ## 3.0.118
 
 ### Patch Changes

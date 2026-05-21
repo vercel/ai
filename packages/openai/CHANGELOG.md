@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 3.0.65
+
+### Patch Changes
+
+- eb52378: fix(openai): skip passing reasoning items when using previous response id
+
 ## 3.0.64
 
 ### Patch Changes
