@@ -562,9 +562,12 @@ describe('anthropicAws provider - streaming', () => {
       prompt: TEST_PROMPT,
     });
 
+    const reader = stream.getReader();
     const parts: unknown[] = [];
-    for await (const part of stream) {
-      parts.push(part);
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      parts.push(value);
     }
 
     expect(parts.length).toBeGreaterThan(0);
