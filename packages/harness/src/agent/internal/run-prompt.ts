@@ -1,5 +1,6 @@
 import type {
   HarnessV1,
+  HarnessV1Options,
   HarnessV1Prompt,
   HarnessV1PromptControl,
   HarnessV1Sandbox,
@@ -39,6 +40,7 @@ export function runPrompt<
   tools: TOOLS;
   toolSpecs: HarnessV1ToolSpec[];
   sandbox: HarnessV1Sandbox | undefined;
+  harnessOptions: HarnessV1Options | undefined;
   runtimeContext: RUNTIME_CONTEXT;
   abortSignal: AbortSignal | undefined;
 }): {
@@ -62,6 +64,7 @@ export function runPrompt<
         prompt: input.prompt,
         tools: input.toolSpecs,
         instructions: input.instructions,
+        harnessOptions: input.harnessOptions,
         abortSignal: input.abortSignal,
       });
     } catch (err) {
