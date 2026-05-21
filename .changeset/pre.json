@@ -43,6 +43,7 @@
     "@ai-sdk/prodia": "1.0.21",
     "@ai-sdk/provider": "3.0.8",
     "@ai-sdk/provider-utils": "4.0.19",
+    "@ai-sdk/quiverai": "1.0.0",
     "@ai-sdk/react": "3.0.118",
     "@ai-sdk/replicate": "2.0.24",
     "@ai-sdk/revai": "2.0.24",
