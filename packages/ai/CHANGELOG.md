@@ -1,5 +1,76 @@
 # ai
 
+## 7.0.0-canary.149
+
+### Patch Changes
+
+- e3d9c0e: Add `allowSystemInMessages` option to `ToolLoopAgent`.
+
+  This exposes the same option that exists on `streamText` and `generateText`, whether `role: "system"` messages are allowed in the `prompt` or `messages` fields. When unset, system messages are rejected because they can create a prompt injection attack risk. Ideally, use the `instructions` option instead. Set to `true` to allow system messages, or `false` to explicitly reject them.
+
+  ```ts
+  const agent = new ToolLoopAgent({
+    model,
+    allowSystemInMessages: true,
+  });
+
+  await agent.generate({
+    messages: [
+      { role: "system", content: "Server context" },
+      { role: "user", content: "Hello" },
+    ],
+  });
+  ```
+
+  The option can also be returned from `prepareCall` for dynamic per-call configuration.
+
+## 7.0.0-canary.148
+
+### Patch Changes
+
+- 2852a84: fix(ai): make input optional on input-streaming UIMessagePart variants
+
+## 7.0.0-canary.147
+
+### Patch Changes
+
+- Updated dependencies [accaca0]
+  - @ai-sdk/gateway@4.0.0-canary.88
+
+## 7.0.0-canary.146
+
+### Patch Changes
+
+- Updated dependencies [bf837fe]
+  - @ai-sdk/gateway@4.0.0-canary.87
+
+## 7.0.0-canary.145
+
+### Patch Changes
+
+- Updated dependencies [546cefe]
+  - @ai-sdk/gateway@4.0.0-canary.86
+
+## 7.0.0-canary.144
+
+### Patch Changes
+
+- 7fc6bd6: Raise minimum supported Node.js version to 22. Supported versions: 22, 24, and 26.
+- Updated dependencies [7fc6bd6]
+  - @ai-sdk/gateway@4.0.0-canary.85
+  - @ai-sdk/provider-utils@5.0.0-canary.43
+  - @ai-sdk/provider@4.0.0-canary.17
+
+## 7.0.0-canary.143
+
+### Patch Changes
+
+- a6617c5: feat(provider-utils): add `readFile` and `writeFile` plus convenience wrappers to `Experimental_Sandbox` abstraction
+- Updated dependencies [a6617c5]
+- Updated dependencies [032c4a5]
+  - @ai-sdk/provider-utils@5.0.0-canary.42
+  - @ai-sdk/gateway@4.0.0-canary.84
+
 ## 7.0.0-canary.142
 
 ### Patch Changes

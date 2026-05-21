@@ -1,5 +1,58 @@
 # @ai-sdk/google-vertex
 
+## 5.0.0-canary.90
+
+### Patch Changes
+
+- Updated dependencies [045d2e8]
+  - @ai-sdk/google@4.0.0-canary.71
+
+## 5.0.0-canary.89
+
+### Patch Changes
+
+- Updated dependencies [aeea161]
+  - @ai-sdk/google@4.0.0-canary.70
+
+## 5.0.0-canary.88
+
+### Patch Changes
+
+- Updated dependencies [7f04802]
+  - @ai-sdk/google@4.0.0-canary.69
+
+## 5.0.0-canary.87
+
+### Patch Changes
+
+- 546cefe: feat(provider/google): add `gemini-3.5-flash`
+- Updated dependencies [a2609df]
+- Updated dependencies [546cefe]
+  - @ai-sdk/google@4.0.0-canary.68
+
+## 5.0.0-canary.86
+
+### Patch Changes
+
+- 7fc6bd6: Raise minimum supported Node.js version to 22. Supported versions: 22, 24, and 26.
+- Updated dependencies [7fc6bd6]
+  - @ai-sdk/anthropic@4.0.0-canary.57
+  - @ai-sdk/google@4.0.0-canary.67
+  - @ai-sdk/openai-compatible@3.0.0-canary.50
+  - @ai-sdk/provider-utils@5.0.0-canary.43
+  - @ai-sdk/provider@4.0.0-canary.17
+
+## 5.0.0-canary.85
+
+### Patch Changes
+
+- 42bdfa4: fix(google-vertex): propagate project-id set in provider instance creation
+- Updated dependencies [a6617c5]
+  - @ai-sdk/provider-utils@5.0.0-canary.42
+  - @ai-sdk/anthropic@4.0.0-canary.56
+  - @ai-sdk/google@4.0.0-canary.66
+  - @ai-sdk/openai-compatible@3.0.0-canary.49
+
 ## 5.0.0-canary.84
 
 ### Patch Changes

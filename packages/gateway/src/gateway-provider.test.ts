@@ -11,6 +11,8 @@ import { GatewayEmbeddingModel } from './gateway-embedding-model';
 import { GatewayImageModel } from './gateway-image-model';
 import { GatewayVideoModel } from './gateway-video-model';
 import { GatewayRerankingModel } from './gateway-reranking-model';
+import { GatewaySpeechModel } from './gateway-speech-model';
+import { GatewayTranscriptionModel } from './gateway-transcription-model';
 import { getVercelOidcToken, getVercelRequestId } from './vercel-environment';
 import { resolve } from '@ai-sdk/provider-utils';
 import { GatewayLanguageModel } from './gateway-language-model';
@@ -155,6 +157,68 @@ function assertIsGatewayRerankingModelInternalConfig(
   ) {
     throw new Error('Invalid GatewayRerankingModel configuration');
   }
+}
+
+type GatewaySpeechModelInternalConfig = {
+  provider: string;
+  baseURL: string;
+  headers: () => Promise<Record<string, string>>;
+  fetch?: typeof fetch;
+  o11yHeaders: () => Promise<Record<string, string>>;
+};
+
+function assertIsGatewaySpeechModelInternalConfig(
+  value: unknown,
+): asserts value is GatewaySpeechModelInternalConfig {
+  if (
+    !value ||
+    typeof value !== 'object' ||
+    typeof (value as { provider?: unknown }).provider !== 'string' ||
+    typeof (value as { baseURL?: unknown }).baseURL !== 'string' ||
+    typeof (value as { headers?: unknown }).headers !== 'function' ||
+    typeof (value as { o11yHeaders?: unknown }).o11yHeaders !== 'function'
+  ) {
+    throw new Error('Invalid GatewaySpeechModel configuration');
+  }
+}
+
+function getGatewaySpeechModelInternalConfig(
+  model: GatewaySpeechModel,
+): GatewaySpeechModelInternalConfig {
+  const config = Reflect.get(model as object, 'config');
+  assertIsGatewaySpeechModelInternalConfig(config);
+  return config;
+}
+
+type GatewayTranscriptionModelInternalConfig = {
+  provider: string;
+  baseURL: string;
+  headers: () => Promise<Record<string, string>>;
+  fetch?: typeof fetch;
+  o11yHeaders: () => Promise<Record<string, string>>;
+};
+
+function assertIsGatewayTranscriptionModelInternalConfig(
+  value: unknown,
+): asserts value is GatewayTranscriptionModelInternalConfig {
+  if (
+    !value ||
+    typeof value !== 'object' ||
+    typeof (value as { provider?: unknown }).provider !== 'string' ||
+    typeof (value as { baseURL?: unknown }).baseURL !== 'string' ||
+    typeof (value as { headers?: unknown }).headers !== 'function' ||
+    typeof (value as { o11yHeaders?: unknown }).o11yHeaders !== 'function'
+  ) {
+    throw new Error('Invalid GatewayTranscriptionModel configuration');
+  }
+}
+
+function getGatewayTranscriptionModelInternalConfig(
+  model: GatewayTranscriptionModel,
+): GatewayTranscriptionModelInternalConfig {
+  const config = Reflect.get(model as object, 'config');
+  assertIsGatewayTranscriptionModelInternalConfig(config);
+  return config;
 }
 
 function getGatewayRerankingModelInternalConfig(
@@ -386,6 +450,122 @@ describe('GatewayProvider', () => {
       }
     });
 
+    it('should create GatewaySpeechModel for speechModel', () => {
+      const provider = createGateway({
+        baseURL: 'https://api.example.com',
+        apiKey: 'test-api-key',
+      });
+
+      const model = provider.speechModel('openai/tts-1');
+
+      if (!(model instanceof GatewaySpeechModel)) {
+        fail('Expected GatewaySpeechModel to be created');
+      }
+
+      const config = getGatewaySpeechModelInternalConfig(model);
+      expect(config.provider).toBe('gateway');
+      expect(config.baseURL).toBe('https://api.example.com');
+    });
+
+    it('should create GatewaySpeechModel for speech alias', () => {
+      const provider = createGateway({
+        baseURL: 'https://api.example.com',
+        apiKey: 'test-api-key',
+      });
+
+      const model = provider.speech('openai/tts-1');
+
+      if (!(model instanceof GatewaySpeechModel)) {
+        fail('Expected GatewaySpeechModel to be created');
+      }
+    });
+
+    it('should reuse gateway headers and fetch for speechModel', async () => {
+      const customFetch = vi.fn();
+      const provider = createGateway({
+        baseURL: 'https://api.example.com',
+        apiKey: 'test-api-key',
+        headers: { 'Custom-Header': 'value' },
+        fetch: customFetch,
+      });
+
+      const model = provider.speechModel('openai/tts-1');
+
+      if (!(model instanceof GatewaySpeechModel)) {
+        fail('Expected GatewaySpeechModel to be created');
+      }
+
+      const config = getGatewaySpeechModelInternalConfig(model);
+      const headers = await config.headers();
+
+      expect(headers).toEqual({
+        authorization: 'Bearer test-api-key',
+        'custom-header': 'value',
+        'ai-gateway-protocol-version': expect.any(String),
+        'ai-gateway-auth-method': 'api-key',
+        'user-agent': 'ai-sdk/gateway/0.0.0-test',
+      });
+      expect(config.fetch).toBe(customFetch);
+    });
+
+    it('should create GatewayTranscriptionModel for transcriptionModel', () => {
+      const provider = createGateway({
+        baseURL: 'https://api.example.com',
+        apiKey: 'test-api-key',
+      });
+
+      const model = provider.transcriptionModel('openai/gpt-4o-transcribe');
+
+      if (!(model instanceof GatewayTranscriptionModel)) {
+        fail('Expected GatewayTranscriptionModel to be created');
+      }
+
+      const config = getGatewayTranscriptionModelInternalConfig(model);
+      expect(config.provider).toBe('gateway');
+      expect(config.baseURL).toBe('https://api.example.com');
+    });
+
+    it('should create GatewayTranscriptionModel for transcription alias', () => {
+      const provider = createGateway({
+        baseURL: 'https://api.example.com',
+        apiKey: 'test-api-key',
+      });
+
+      const model = provider.transcription('openai/gpt-4o-transcribe');
+
+      if (!(model instanceof GatewayTranscriptionModel)) {
+        fail('Expected GatewayTranscriptionModel to be created');
+      }
+    });
+
+    it('should reuse gateway headers and fetch for transcriptionModel', async () => {
+      const customFetch = vi.fn();
+      const provider = createGateway({
+        baseURL: 'https://api.example.com',
+        apiKey: 'test-api-key',
+        headers: { 'Custom-Header': 'value' },
+        fetch: customFetch,
+      });
+
+      const model = provider.transcriptionModel('openai/gpt-4o-transcribe');
+
+      if (!(model instanceof GatewayTranscriptionModel)) {
+        fail('Expected GatewayTranscriptionModel to be created');
+      }
+
+      const config = getGatewayTranscriptionModelInternalConfig(model);
+      const headers = await config.headers();
+
+      expect(headers).toEqual({
+        authorization: 'Bearer test-api-key',
+        'custom-header': 'value',
+        'ai-gateway-protocol-version': expect.any(String),
+        'ai-gateway-auth-method': 'api-key',
+        'user-agent': 'ai-sdk/gateway/0.0.0-test',
+      });
+      expect(config.fetch).toBe(customFetch);
+    });
+
     it('should fetch available models', async () => {
       mockGetAvailableModels.mockReturnValue({ models: [] });
 
@@ -606,6 +786,34 @@ describe('GatewayProvider', () => {
       }
 
       const config = getGatewayVideoModelInternalConfig(model);
+      expect(config.provider).toBe('gateway');
+      expect(config.baseURL).toBe('https://ai-gateway.vercel.sh/v4/ai');
+    });
+
+    it('should expose speechModel on the default provider and construct model', () => {
+      expect(typeof gateway.speechModel).toBe('function');
+      const model = gateway.speechModel('openai/tts-1');
+
+      if (!(model instanceof GatewaySpeechModel)) {
+        fail('Expected GatewaySpeechModel to be created by default provider');
+      }
+
+      const config = getGatewaySpeechModelInternalConfig(model);
+      expect(config.provider).toBe('gateway');
+      expect(config.baseURL).toBe('https://ai-gateway.vercel.sh/v4/ai');
+    });
+
+    it('should expose transcriptionModel on the default provider and construct model', () => {
+      expect(typeof gateway.transcriptionModel).toBe('function');
+      const model = gateway.transcriptionModel('openai/gpt-4o-transcribe');
+
+      if (!(model instanceof GatewayTranscriptionModel)) {
+        fail(
+          'Expected GatewayTranscriptionModel to be created by default provider',
+        );
+      }
+
+      const config = getGatewayTranscriptionModelInternalConfig(model);
       expect(config.provider).toBe('gateway');
       expect(config.baseURL).toBe('https://ai-gateway.vercel.sh/v4/ai');
     });

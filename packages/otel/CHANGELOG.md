@@ -1,5 +1,53 @@
 # @ai-sdk/otel
 
+## 1.0.0-canary.95
+
+### Patch Changes
+
+- Updated dependencies [e3d9c0e]
+  - ai@7.0.0-canary.149
+
+## 1.0.0-canary.94
+
+### Patch Changes
+
+- Updated dependencies [2852a84]
+  - ai@7.0.0-canary.148
+
+## 1.0.0-canary.93
+
+### Patch Changes
+
+- ai@7.0.0-canary.147
+
+## 1.0.0-canary.92
+
+### Patch Changes
+
+- ai@7.0.0-canary.146
+
+## 1.0.0-canary.91
+
+### Patch Changes
+
+- ai@7.0.0-canary.145
+
+## 1.0.0-canary.90
+
+### Patch Changes
+
+- 7fc6bd6: Raise minimum supported Node.js version to 22. Supported versions: 22, 24, and 26.
+- Updated dependencies [7fc6bd6]
+  - ai@7.0.0-canary.144
+  - @ai-sdk/provider@4.0.0-canary.17
+
+## 1.0.0-canary.89
+
+### Patch Changes
+
+- Updated dependencies [a6617c5]
+  - ai@7.0.0-canary.143
+
 ## 1.0.0-canary.88
 
 ### Patch Changes

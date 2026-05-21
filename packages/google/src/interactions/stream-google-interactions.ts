@@ -22,7 +22,7 @@ const DEFAULT_RETRY_DELAY_MS = 500;
  * so the existing `buildGoogleInteractionsStreamTransform` can consume them
  * unchanged.
  *
- * The connection can drop mid-run: deep-research agents idle for long
+ * The connection can drop mid-run: long-running agents idle for long
  * stretches between SSE events and undici's default body timeout terminates
  * the request with `UND_ERR_BODY_TIMEOUT`. We track the last seen `event_id`
  * and reconnect with `?last_event_id=<id>` on any unexpected end. After

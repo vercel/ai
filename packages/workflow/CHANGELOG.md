@@ -1,5 +1,56 @@
 # @ai-sdk/workflow
 
+## 1.0.0-canary.66
+
+### Patch Changes
+
+- Updated dependencies [e3d9c0e]
+  - ai@7.0.0-canary.149
+
+## 1.0.0-canary.65
+
+### Patch Changes
+
+- Updated dependencies [2852a84]
+  - ai@7.0.0-canary.148
+
+## 1.0.0-canary.64
+
+### Patch Changes
+
+- ai@7.0.0-canary.147
+
+## 1.0.0-canary.63
+
+### Patch Changes
+
+- ai@7.0.0-canary.146
+
+## 1.0.0-canary.62
+
+### Patch Changes
+
+- ai@7.0.0-canary.145
+
+## 1.0.0-canary.61
+
+### Patch Changes
+
+- 7fc6bd6: Raise minimum supported Node.js version to 22. Supported versions: 22, 24, and 26.
+- Updated dependencies [7fc6bd6]
+  - ai@7.0.0-canary.144
+  - @ai-sdk/provider-utils@5.0.0-canary.43
+  - @ai-sdk/provider@4.0.0-canary.17
+
+## 1.0.0-canary.60
+
+### Patch Changes
+
+- b567a6c: dependency updates
+- Updated dependencies [a6617c5]
+  - @ai-sdk/provider-utils@5.0.0-canary.42
+  - ai@7.0.0-canary.143
+
 ## 1.0.0-canary.59
 
 ### Patch Changes

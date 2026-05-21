@@ -1,5 +1,53 @@
 # @ai-sdk/langchain
 
+## 3.0.0-canary.149
+
+### Patch Changes
+
+- Updated dependencies [e3d9c0e]
+  - ai@7.0.0-canary.149
+
+## 3.0.0-canary.148
+
+### Patch Changes
+
+- Updated dependencies [2852a84]
+  - ai@7.0.0-canary.148
+
+## 3.0.0-canary.147
+
+### Patch Changes
+
+- ai@7.0.0-canary.147
+
+## 3.0.0-canary.146
+
+### Patch Changes
+
+- ai@7.0.0-canary.146
+
+## 3.0.0-canary.145
+
+### Patch Changes
+
+- ai@7.0.0-canary.145
+
+## 3.0.0-canary.144
+
+### Patch Changes
+
+- 7fc6bd6: Raise minimum supported Node.js version to 22. Supported versions: 22, 24, and 26.
+- Updated dependencies [7fc6bd6]
+  - ai@7.0.0-canary.144
+
+## 3.0.0-canary.143
+
+### Patch Changes
+
+- b567a6c: dependency updates
+- Updated dependencies [a6617c5]
+  - ai@7.0.0-canary.143
+
 ## 3.0.0-canary.142
 
 ### Patch Changes

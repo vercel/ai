@@ -478,6 +478,55 @@ export type GoogleInteractionsAgentConfig =
       collaborative_planning?: boolean;
     };
 
+export type GoogleInteractionsGcsSource = {
+  type: 'gcs';
+  source: string;
+  target?: string;
+};
+
+export type GoogleInteractionsRepositorySource = {
+  type: 'repository';
+  source: string;
+  target?: string;
+};
+
+export type GoogleInteractionsInlineSource = {
+  type: 'inline';
+  content: string;
+  target: string;
+};
+
+export type GoogleInteractionsEnvironmentSource =
+  | GoogleInteractionsGcsSource
+  | GoogleInteractionsRepositorySource
+  | GoogleInteractionsInlineSource;
+
+export type GoogleInteractionsNetworkAllowlistEntry = {
+  domain: string;
+  transform?: Array<Record<string, string>>;
+};
+
+export type GoogleInteractionsNetworkConfig =
+  | 'disabled'
+  | { allowlist: Array<GoogleInteractionsNetworkAllowlistEntry> };
+
+/**
+ * Environment configuration for the agent sandbox.
+ *
+ *   - `"remote"`: provision a fresh sandbox for this call.
+ *   - any other string: an existing `environment_id` to reuse (forks the
+ *     previous sandbox so its filesystem and installed packages persist).
+ *   - object form: provision a fresh sandbox and preload it with `sources`
+ *     and/or constrain outbound traffic via `network`.
+ */
+export type GoogleInteractionsEnvironment =
+  | string
+  | {
+      type: 'remote';
+      sources?: Array<GoogleInteractionsEnvironmentSource>;
+      network?: GoogleInteractionsNetworkConfig;
+    };
+
 export type GoogleInteractionsRequestBody = {
   model?: string;
   agent?: string;
@@ -492,6 +541,7 @@ export type GoogleInteractionsRequestBody = {
   service_tier?: GoogleInteractionsServiceTier;
   store?: boolean;
   stream?: boolean;
+  environment?: GoogleInteractionsEnvironment;
   /**
    * Run the interaction in the background. The POST returns immediately with a
    * non-terminal status (`in_progress` / `requires_action`); the client must

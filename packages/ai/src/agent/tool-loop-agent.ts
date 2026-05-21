@@ -85,6 +85,7 @@ export class ToolLoopAgent<
       ToolLoopAgentSettings<CALL_OPTIONS, TOOLS, RUNTIME_CONTEXT, OUTPUT>,
       | 'prepareCall'
       | 'instructions'
+      | 'allowSystemInMessages'
       | 'experimental_onStart'
       | 'experimental_onStepStart'
       | 'onToolExecutionStart'
@@ -136,10 +137,21 @@ export class ToolLoopAgent<
         >[0],
       )) ?? baseCallArgs;
 
-    const { instructions, messages, prompt, runtimeContext, ...callArgs } =
-      preparedCallArgs;
+    const {
+      instructions,
+      allowSystemInMessages,
+      messages,
+      prompt,
+      runtimeContext,
+      ...callArgs
+    } = preparedCallArgs;
 
-    const promptArgs = { instructions, messages, prompt } as Prompt;
+    const promptArgs = {
+      instructions,
+      allowSystemInMessages,
+      messages,
+      prompt,
+    } as Prompt;
 
     if (runtimeContext === undefined) {
       return {
