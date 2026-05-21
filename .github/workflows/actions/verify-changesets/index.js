@@ -77,7 +77,7 @@ export async function verifyChangesets(
     if (path === '.changeset/README.md') continue;
 
     // Check if the file is a .changeset file
-    if (!/^\.changeset\/[a-z-]+\.md/.test(path)) {
+    if (!/^\.changeset\/[a-z0-9-]+\.md/.test(path)) {
       throw Object.assign(new Error(`Invalid file - not a .changeset file`), {
         path,
       });
