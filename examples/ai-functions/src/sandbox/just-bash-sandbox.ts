@@ -135,6 +135,12 @@ export class JustBashSandbox implements Sandbox {
     });
   }
 
+  spawnCommand(): never {
+    throw new Error(
+      'JustBashSandbox: spawnCommand is not yet implemented for this sandbox.',
+    );
+  }
+
   get description() {
     return [
       'just-bash JavaScript bash environment with a virtual filesystem.',

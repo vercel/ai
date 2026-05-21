@@ -171,6 +171,12 @@ export class VercelSandbox implements Sandbox {
     await this.sandbox.stop();
   }
 
+  spawnCommand(): never {
+    throw new Error(
+      'VercelSandbox: spawnCommand is not yet implemented for this sandbox.',
+    );
+  }
+
   get description() {
     return `Vercel Sandbox: ${this.sandbox.sandboxId}\nRoot directory: ${rootDirectory}`;
   }
