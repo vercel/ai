@@ -2,10 +2,17 @@ import {
   createTestServer,
   TestResponseController,
 } from '@ai-sdk/test-server/with-vitest';
+<<<<<<< HEAD
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+=======
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { createMCPClient } from './mcp-client';
+>>>>>>> 6c17a9fe1 (fix(mcp): deduplicate auth refresh on http transport (#15518))
 import { HttpMCPTransport } from './mcp-http-transport';
 import { LATEST_PROTOCOL_VERSION } from './types';
 import { MCPClientError } from '../error/mcp-client-error';
+import type { OAuthClientProvider } from './oauth';
+import type { OAuthTokens } from './oauth-types';
 
 describe('HttpMCPTransport', () => {
   const server = createTestServer({
@@ -331,6 +338,138 @@ describe('HttpMCPTransport', () => {
       ...customHeaders,
     });
     expect(server.calls[1].requestUserAgent).toContain('ai-sdk/');
+  });
+
+  it('should deduplicate OAuth refresh when inbound SSE and initialize both get 401', async () => {
+    const trace: string[] = [];
+    let storedTokens: OAuthTokens = {
+      access_token: 'expired-access-token',
+      token_type: 'Bearer',
+      refresh_token: 'rotating-refresh-token',
+    };
+    let releaseRefresh: () => void;
+    const refreshGate = new Promise<void>(resolve => {
+      releaseRefresh = resolve;
+    });
+    const refreshRequests: URLSearchParams[] = [];
+
+    const authProvider: OAuthClientProvider = {
+      tokens: vi.fn(async () => storedTokens),
+      saveTokens: vi.fn(async tokens => {
+        storedTokens = tokens;
+      }),
+      redirectToAuthorization: vi.fn(),
+      saveCodeVerifier: vi.fn(),
+      codeVerifier: vi.fn(async () => 'verifier'),
+      redirectUrl: 'http://localhost:4000/callback',
+      clientMetadata: {
+        redirect_uris: ['http://localhost:4000/callback'],
+      },
+      clientInformation: vi.fn(async () => ({ client_id: 'test-client' })),
+    };
+
+    const fetchFn = vi.fn(
+      async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = new URL(String(input));
+        const method = init?.method ?? 'GET';
+        const headers = new Headers(init?.headers);
+        trace.push(`${method} ${url.pathname}`);
+
+        if (url.href === 'http://localhost:4000/mcp') {
+          if (headers.get('authorization') === 'Bearer expired-access-token') {
+            trace.push(`${method} ${url.pathname} 401`);
+            return new Response(null, {
+              status: 401,
+              headers: {
+                'www-authenticate':
+                  'Bearer resource_metadata="http://localhost:4000/.well-known/oauth-protected-resource"',
+              },
+            });
+          }
+
+          if (method === 'GET') {
+            return new Response(null, { status: 405 });
+          }
+
+          if (
+            typeof init?.body === 'string' &&
+            init.body.includes('notifications/initialized')
+          ) {
+            return new Response(null, { status: 202 });
+          }
+
+          return Response.json({
+            jsonrpc: '2.0',
+            id: 0,
+            result: {
+              protocolVersion: LATEST_PROTOCOL_VERSION,
+              capabilities: {},
+              serverInfo: { name: 'test-server', version: '1.0.0' },
+            },
+          });
+        }
+
+        if (
+          url.href ===
+          'http://localhost:4000/.well-known/oauth-protected-resource'
+        ) {
+          return Response.json({
+            resource: 'http://localhost:4000',
+            authorization_servers: ['http://localhost:4000'],
+          });
+        }
+
+        if (
+          url.href ===
+          'http://localhost:4000/.well-known/oauth-authorization-server'
+        ) {
+          return Response.json({
+            issuer: 'http://localhost:4000',
+            authorization_endpoint: 'http://localhost:4000/authorize',
+            token_endpoint: 'http://localhost:4000/token',
+            response_types_supported: ['code'],
+            code_challenge_methods_supported: ['S256'],
+            grant_types_supported: ['refresh_token'],
+            token_endpoint_auth_methods_supported: ['none'],
+          });
+        }
+
+        if (url.href === 'http://localhost:4000/token') {
+          refreshRequests.push(init?.body as URLSearchParams);
+          await refreshGate;
+
+          return Response.json({
+            access_token: `refreshed-access-token-${refreshRequests.length}`,
+            token_type: 'Bearer',
+            refresh_token: `rotating-refresh-token-${refreshRequests.length}`,
+          });
+        }
+
+        return new Response(null, { status: 404 });
+      },
+    );
+
+    const clientPromise = createMCPClient({
+      transport: {
+        type: 'http',
+        url: 'http://localhost:4000/mcp',
+        authProvider,
+        fetch: fetchFn,
+      },
+    });
+
+    await vi.waitFor(() => {
+      expect(trace).toContain('GET /mcp 401');
+      expect(trace).toContain('POST /mcp 401');
+    });
+
+    expect(refreshRequests).toHaveLength(1);
+
+    releaseRefresh!();
+    const client = await clientPromise;
+    await client.close();
+
+    expect(refreshRequests).toHaveLength(1);
   });
 
   describe('redirect option', () => {
