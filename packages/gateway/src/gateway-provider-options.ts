@@ -105,16 +105,10 @@ const gatewayProviderOptions = lazySchema(() =>
         })
         .optional(),
       /**
-       * Service tier for the request. Translated by the gateway into the
-       * per-provider option that each provider expects:
-       *
-       * - OpenAI: `openai.serviceTier`
-       * - Google: `google.serviceTier` (body field)
-       * - Vertex: `vertex.sharedRequestType` (request header).
-       *   `vertex.requestType` is stripped if set.
-       *
-       * If the user has also set a per-provider tier directly, the gateway
-       * value overrides it. Leave unset to use each provider's default tier.
+       * Unified service tier intent. Translated by the gateway into the
+       * per-provider option each provider expects, and overrides any tier
+       * also set in the per-provider options. Leave unset for provider
+       * default.
        */
       serviceTier: z.enum(['flex', 'priority']).optional(),
     }),
