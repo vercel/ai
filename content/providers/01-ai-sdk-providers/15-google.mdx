@@ -240,8 +240,14 @@ The following optional provider options are available for Google models:
 - **serviceTier** _'standard' | 'flex' | 'priority'_
 
   Optional. The service tier to use for the request.
-  Set to 'flex' for 50% cheaper processing at the cost of increased latency.
-  Set to 'priority' for ultra-low latency at a 75-100% price premium over 'standard'.
+  Set to `'flex'` for 50% cheaper processing at the cost of increased latency.
+  Set to `'priority'` for ultra-low latency at a 75-100% price premium over `'standard'`.
+
+  Because Priority can be gracefully downgraded to Standard under load, the
+  tier the request actually ran on is surfaced on
+  `result.providerMetadata.google.serviceTier`. See
+  [Priority inference](https://ai.google.dev/gemini-api/docs/priority-inference)
+  and [Flex inference](https://ai.google.dev/gemini-api/docs/flex-inference).
 
 - **threshold** _string_
 
@@ -1545,9 +1551,10 @@ Agents also chain through `previousInteractionId` like model-id calls.
 
 ### Managed Agents
 
-Managed agents run inside a sandboxed Linux environment provisioned per
-interaction. Pass the `environment` provider option to control how the
-sandbox is set up; the option is only accepted on agent calls.
+[Managed agents](https://ai.google.dev/gemini-api/docs/agents) run inside a
+sandboxed Linux environment provisioned per interaction. Pass the `environment`
+provider option to control how the sandbox is set up; the option is only
+accepted on agent calls.
 
 The simplest form provisions a fresh sandbox:
 
