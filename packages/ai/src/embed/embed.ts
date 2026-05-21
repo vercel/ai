@@ -193,7 +193,7 @@ export async function embed({
         return {
           embedding,
           usage,
-          warnings: modelResponse.warnings,
+          warnings: modelResponse.warnings ?? [],
           providerMetadata: modelResponse.providerMetadata,
           response: modelResponse.response,
         };
@@ -214,7 +214,7 @@ export async function embed({
         providerMetadata,
         response,
       },
-      callbacks: [onEnd, telemetryDispatcher.onFinish],
+      callbacks: [onEnd, telemetryDispatcher.onEnd],
     });
 
     return new DefaultEmbedResult({

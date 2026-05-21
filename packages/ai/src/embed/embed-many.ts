@@ -215,7 +215,7 @@ export async function embedMany({
           return {
             embeddings,
             usage,
-            warnings: modelResponse.warnings,
+            warnings: modelResponse.warnings ?? [],
             providerMetadata: modelResponse.providerMetadata,
             response: modelResponse.response,
           };
@@ -240,7 +240,7 @@ export async function embedMany({
           providerMetadata,
           response: [response],
         },
-        callbacks: [onEnd, telemetryDispatcher.onFinish],
+        callbacks: [onEnd, telemetryDispatcher.onEnd],
       });
 
       return new DefaultEmbedManyResult({
@@ -317,7 +317,7 @@ export async function embedMany({
             return {
               embeddings: chunkEmbeddings,
               usage,
-              warnings: modelResponse.warnings,
+              warnings: modelResponse.warnings ?? [],
               providerMetadata: modelResponse.providerMetadata,
               response: modelResponse.response,
             };
@@ -366,7 +366,7 @@ export async function embedMany({
         providerMetadata,
         response: responses,
       },
-      callbacks: [onEnd, telemetryDispatcher.onFinish],
+      callbacks: [onEnd, telemetryDispatcher.onEnd],
     });
 
     return new DefaultEmbedManyResult({

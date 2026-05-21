@@ -448,7 +448,7 @@ export async function generateObject<
         response,
         providerMetadata: resultProviderMetadata,
       },
-      callbacks: [onFinish, telemetryDispatcher.onFinish],
+      callbacks: [onFinish, telemetryDispatcher.onEnd],
     });
 
     return new DefaultGenerateObjectResult({

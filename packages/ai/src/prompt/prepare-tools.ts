@@ -4,8 +4,8 @@ import type {
 } from '@ai-sdk/provider';
 import {
   asSchema,
+  type Experimental_Sandbox as Sandbox,
   type InferToolSetContext,
-  type Sandbox,
   type Tool,
   type ToolSet,
 } from '@ai-sdk/provider-utils';
@@ -14,11 +14,11 @@ import { isNonEmptyObject } from '../util/is-non-empty-object';
 export async function prepareTools<TOOLS extends ToolSet>({
   tools,
   toolsContext = {} as InferToolSetContext<TOOLS>,
-  sandbox,
+  experimental_sandbox: sandbox,
 }: {
   tools: TOOLS | undefined;
   toolsContext?: InferToolSetContext<TOOLS>;
-  sandbox?: Sandbox;
+  experimental_sandbox?: Sandbox;
 }): Promise<
   Array<LanguageModelV4FunctionTool | LanguageModelV4ProviderTool> | undefined
 > {
@@ -40,7 +40,7 @@ export async function prepareTools<TOOLS extends ToolSet>({
           tool,
           toolName: name,
           toolsContext,
-          sandbox,
+          experimental_sandbox: sandbox,
         });
         const providerOptions = tool.providerOptions;
         const inputExamples = tool.inputExamples;
@@ -80,12 +80,12 @@ function resolveToolDescription<TOOLS extends ToolSet>({
   tool,
   toolName,
   toolsContext,
-  sandbox,
+  experimental_sandbox: sandbox,
 }: {
   tool: Tool;
   toolName: string;
   toolsContext: InferToolSetContext<TOOLS>;
-  sandbox?: Sandbox;
+  experimental_sandbox?: Sandbox;
 }): string | undefined {
   return tool.description === undefined
     ? undefined
@@ -93,6 +93,6 @@ function resolveToolDescription<TOOLS extends ToolSet>({
       ? tool.description
       : tool.description({
           context: toolsContext[toolName as keyof InferToolSetContext<TOOLS>],
-          sandbox,
+          experimental_sandbox: sandbox,
         });
 }

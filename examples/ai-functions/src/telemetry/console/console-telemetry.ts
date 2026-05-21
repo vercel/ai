@@ -13,7 +13,6 @@ export const consoleTelemetry = {
   onLanguageModelCallEnd: logCallback('onLanguageModelCallEnd'),
   onToolExecutionStart: logCallback('onToolExecutionStart'),
   onToolExecutionEnd: logCallback('onToolExecutionEnd'),
-  onChunk: logCallback('onChunk'),
   onStepFinish: logCallback('onStepFinish'),
   onObjectStepStart: logCallback('onObjectStepStart'),
   onObjectStepFinish: logCallback('onObjectStepFinish'),
@@ -21,7 +20,7 @@ export const consoleTelemetry = {
   onEmbedEnd: logCallback('onEmbedEnd'),
   onRerankStart: logCallback('onRerankStart'),
   onRerankEnd: logCallback('onRerankEnd'),
-  onFinish: logCallback('onFinish'),
+  onEnd: logCallback('onEnd'),
   onError: logCallback('onError'),
   executeTool: async ({ callId, toolCallId, execute }) => {
     console.log('executeTool', JSON.stringify({ callId, toolCallId }, null, 2));

@@ -299,7 +299,8 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
             {
               name: 'durationMs',
               type: 'number',
-              description: 'Tool execution time in milliseconds.',
+              description:
+                'Tool execution time in milliseconds. Workflow agents use `durationMs`; AI SDK Core generation callbacks use `toolExecutionMs`.',
             },
             {
               name: 'messages',
