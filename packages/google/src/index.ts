@@ -9,7 +9,7 @@ export type {
   GoogleImageModelOptions,
   /** @deprecated Use `GoogleImageModelOptions` instead. */
   GoogleImageModelOptions as GoogleGenerativeAIImageProviderOptions,
-} from './google-image-model-options';
+} from './google-generative-ai-image-model';
 export type {
   GoogleEmbeddingModelOptions,
   /** @deprecated Use `GoogleEmbeddingModelOptions` instead. */
