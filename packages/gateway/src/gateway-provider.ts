@@ -225,19 +225,16 @@ export function createGateway(
     withoutTrailingSlash(options.baseURL) ??
     'https://ai-gateway.vercel.sh/v4/ai';
 
-  const createAuthHeaders = (
-    auth: {
-      token: string;
-      authMethod: 'api-key' | 'oidc';
-    },
-    { includeTeam = false }: { includeTeam?: boolean } = {},
-  ) =>
+  const createAuthHeaders = (auth: {
+    token: string;
+    authMethod: 'api-key' | 'oidc';
+  }) =>
     withUserAgentSuffix(
       {
         Authorization: `Bearer ${auth.token}`,
         'ai-gateway-protocol-version': AI_GATEWAY_PROTOCOL_VERSION,
         [GATEWAY_AUTH_METHOD_HEADER]: auth.authMethod,
-        ...(includeTeam && options.teamIdOrSlug != null
+        ...(options.teamIdOrSlug != null
           ? { [VERCEL_AI_GATEWAY_TEAM_HEADER]: options.teamIdOrSlug }
           : {}),
         ...options.headers,
@@ -247,9 +244,7 @@ export function createGateway(
 
   const getHeaders = async () => {
     try {
-      return createAuthHeaders(await getGatewayAuthToken(options), {
-        includeTeam: options.teamIdOrSlug != null,
-      });
+      return createAuthHeaders(await getGatewayAuthToken(options));
     } catch (error) {
       throw GatewayAuthenticationError.createContextualError({
         apiKeyProvided: false,
@@ -462,7 +457,10 @@ export const gateway = createGateway();
 export async function getGatewayAuthToken(
   options: GatewayProviderSettings,
 ): Promise<{ token: string; authMethod: 'api-key' | 'oidc' }> {
-  const apiKey = getGatewayApiKey(options);
+  const apiKey = loadOptionalSetting({
+    settingValue: options.apiKey,
+    environmentVariableName: 'AI_GATEWAY_API_KEY',
+  });
 
   if (apiKey) {
     return {
@@ -476,11 +474,4 @@ export async function getGatewayAuthToken(
     token: oidcToken,
     authMethod: 'oidc',
   };
-}
-
-function getGatewayApiKey(options: GatewayProviderSettings) {
-  return loadOptionalSetting({
-    settingValue: options.apiKey,
-    environmentVariableName: 'AI_GATEWAY_API_KEY',
-  });
 }
