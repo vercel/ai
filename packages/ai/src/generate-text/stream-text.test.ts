@@ -2363,6 +2363,55 @@ describe('streamText', () => {
         'No output generated. Check the stream for errors.',
       );
     });
+
+    it(
+      'should reject text and steps promises (instead of hanging) when the ' +
+        'stream errors mid-body without an abort signal',
+      async () => {
+        // Simulates the fetch body stream being cancelled mid-flight by a
+        // signal the SDK does not control (e.g. a custom fetch combining its
+        // own AbortSignal.timeout via AbortSignal.any): the model stream errors
+        // after headers/first chunks arrive but before a `finish` chunk, and
+        // streamText's own abortSignal is never aborted.
+        const result = streamText({
+          model: new MockLanguageModelV4({
+            doStream: async () => ({
+              stream: new ReadableStream({
+                start(controller) {
+                  controller.enqueue({ type: 'stream-start', warnings: [] });
+                  controller.enqueue({
+                    type: 'response-metadata',
+                    id: 'id-0',
+                    modelId: 'mock-model-id',
+                    timestamp: new Date(0),
+                  });
+                  controller.enqueue({ type: 'text-start', id: '1' });
+                  controller.enqueue({
+                    type: 'text-delta',
+                    id: '1',
+                    delta: 'Hello',
+                  });
+                  controller.error(
+                    new DOMException(
+                      'The operation timed out.',
+                      'TimeoutError',
+                    ),
+                  );
+                },
+              }),
+            }),
+          }),
+          prompt: 'test-input',
+          onError: () => {},
+        });
+
+        await expect(result.text).rejects.toThrow('The operation timed out.');
+        await expect(result.steps).rejects.toThrow('The operation timed out.');
+      },
+      // a generous timeout so a regression (hang) fails fast instead of
+      // running until the default test timeout
+      10_000,
+    );
   });
 
   describe('retries', () => {

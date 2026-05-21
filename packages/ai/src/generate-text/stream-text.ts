@@ -1289,6 +1289,7 @@ class DefaultStreamTextResult<
     this.closeStream = stitchableStream.close;
 
     // resilient stream that handles abort signals and errors:
+    const resultRef = this;
     const reader = stitchableStream.stream.getReader();
     let stream = new ReadableStream<TextStreamPart<TOOLS>>({
       async start(controller) {
@@ -1330,6 +1331,12 @@ class DefaultStreamTextResult<
           if (isAbortError(error) && abortSignal?.aborted) {
             abort();
           } else {
+            // The stream errored (e.g. the fetch body was cancelled mid-flight)
+            // before a `finish` chunk arrived. The downstream event processor's
+            // `flush` only runs on a graceful close, so the result promises
+            // would otherwise hang forever. Reject any still-pending result
+            // promises so that `text`, `steps`, etc. settle with the error.
+            resultRef.rejectPendingResultPromises(error);
             controller.error(error);
           }
         }
@@ -2229,6 +2236,23 @@ class DefaultStreamTextResult<
     const [stream1, stream2] = this.baseStream.tee();
     this.baseStream = stream2;
     return stream1;
+  }
+
+  /**
+   * Rejects the result promises (`steps`, `finishReason`, `totalUsage`, etc.)
+   * with the given error if they are still pending. This is used when the
+   * underlying stream errors before a graceful finish (e.g. the fetch body is
+   * cancelled mid-flight), in which case the event processor's `flush` never
+   * runs and would otherwise leave these promises pending forever.
+   */
+  private rejectPendingResultPromises(error: unknown): void {
+    if (this._finishReason.isPending()) this._finishReason.reject(error);
+    if (this._rawFinishReason.isPending()) this._rawFinishReason.reject(error);
+    if (this._totalUsage.isPending()) this._totalUsage.reject(error);
+    if (this._steps.isPending()) this._steps.reject(error);
+    if (this._initialResponseMessages.isPending()) {
+      this._initialResponseMessages.reject(error);
+    }
   }
 
   get textStream(): AsyncIterableStream<string> {
