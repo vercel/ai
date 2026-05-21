@@ -1896,6 +1896,29 @@ const { image } = await generateImage({
   details.
 </Note>
 
+#### Google Search Grounding
+
+Gemini image models support [Google Search grounding](#google-search) through `providerOptions.google.googleSearch`. The value matches the args of `google.tools.googleSearch(...)`; pass `{}` to enable with defaults, or `{ searchTypes: { imageSearch: {} } }` to ground on reference photos.
+
+```ts
+import { google } from '@ai-sdk/google';
+import { generateImage } from 'ai';
+
+const result = await generateImage({
+  model: google.image('gemini-3.1-flash-image-preview'),
+  prompt:
+    'Search for live footage of the 2026 Super Bowl halftime show artist, then generate a close-up in space.',
+  providerOptions: {
+    google: {
+      googleSearch: { searchTypes: { imageSearch: {} } },
+    },
+  },
+});
+
+// Grounding metadata is forwarded onto the image result:
+console.log(result.providerMetadata?.google?.groundingMetadata);
+```
+
 #### Gemini Image Model Capabilities
 
 | Model                            | Image Generation    | Image Editing       | Aspect Ratios                                       |

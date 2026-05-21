@@ -139,7 +139,17 @@ export class GoogleGenerativeAIImageModel implements ImageModelV3 {
     }
 
     if (googleOptions) {
-      Object.assign(parameters, googleOptions);
+      const { googleSearch: imagenGoogleSearch, ...imagenOptions } =
+        googleOptions;
+      if (imagenGoogleSearch != null) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'googleSearch',
+          details:
+            'Google Search grounding is only supported on Gemini image models.',
+        });
+      }
+      Object.assign(parameters, imagenOptions);
     }
 
     const body = {
@@ -257,6 +267,18 @@ export class GoogleGenerativeAIImageModel implements ImageModelV3 {
       { role: 'user', content: userContent },
     ];
 
+    // Parse image-model-specific provider options so we can map them onto
+    // the underlying language-model call. `googleSearch` is the dedicated
+    // escape hatch for grounding (generateImage has no `tools` parameter).
+    const googleImageOptions = await parseProviderOptions({
+      provider: 'google',
+      providerOptions,
+      schema: googleImageModelOptionsSchema,
+    });
+
+    const { googleSearch: _strippedGoogleSearch, ...passthroughGoogleOptions } =
+      providerOptions?.google ?? {};
+
     // Instantiate language model
     const languageModel = new GoogleGenerativeAILanguageModel(this.modelId, {
       provider: this.config.provider,
@@ -280,12 +302,23 @@ export class GoogleGenerativeAIImageModel implements ImageModelV3 {
                 >['aspectRatio'],
               }
             : undefined,
-          ...((providerOptions?.google as Omit<
+          ...(passthroughGoogleOptions as Omit<
             GoogleLanguageModelOptions,
             'responseModalities' | 'imageConfig'
-          >) ?? {}),
+          >),
         } satisfies GoogleLanguageModelOptions,
       },
+      tools:
+        googleImageOptions?.googleSearch != null
+          ? [
+              {
+                type: 'provider',
+                id: 'google.google_search',
+                name: 'google_search',
+                args: googleImageOptions.googleSearch,
+              },
+            ]
+          : undefined,
       headers,
       abortSignal,
     });
@@ -300,11 +333,17 @@ export class GoogleGenerativeAIImageModel implements ImageModelV3 {
       }
     }
 
+    const languageModelGoogleMetadata =
+      (result.providerMetadata?.google as
+        | Record<string, unknown>
+        | undefined) ?? {};
+
     return {
       images,
       warnings,
       providerMetadata: {
         google: {
+          ...languageModelGoogleMetadata,
           images: images.map(() => ({})),
         },
       },
