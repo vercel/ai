@@ -1,7 +1,7 @@
 import {
   google,
   type GoogleImageModelOptions,
-  type GoogleProviderMetadata,
+  type GoogleGenerativeAIProviderMetadata,
 } from '@ai-sdk/google';
 import { generateImage } from 'ai';
 import { presentImages } from '../../lib/present-image';
@@ -39,7 +39,7 @@ run(async () => {
   console.log(result.usage);
 
   const metadata = result.providerMetadata?.google as unknown as
-    | GoogleProviderMetadata
+    | GoogleGenerativeAIProviderMetadata
     | undefined;
 
   console.log();
