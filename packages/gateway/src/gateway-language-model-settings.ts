@@ -171,6 +171,7 @@ export type GatewayModelId =
   | 'xai/grok-4.20-reasoning'
   | 'xai/grok-4.20-reasoning-beta'
   | 'xai/grok-4.3'
+  | 'xai/grok-build-0.1'
   | 'xiaomi/mimo-v2-flash'
   | 'xiaomi/mimo-v2-pro'
   | 'xiaomi/mimo-v2.5'
