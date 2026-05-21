@@ -397,3 +397,170 @@ describe('anthropicAws provider - supportedUrls', () => {
     ).toBe(true);
   });
 });
+
+describe('anthropicAws provider - model identity', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    stubDefaultEnv();
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('sets the provider name to anthropic-aws.messages on the model', () => {
+    const provider = createAnthropicAws({
+      region: 'us-west-2',
+      workspaceId: 'wrkspc_test',
+      apiKey: 'test-api-key',
+    });
+
+    const model = provider('claude-sonnet-4-6');
+    expect(model.provider).toBe('anthropic-aws.messages');
+  });
+
+  it('throws NoSuchModelError when embeddingModel is invoked', () => {
+    const provider = createAnthropicAws({
+      region: 'us-west-2',
+      workspaceId: 'wrkspc_test',
+      apiKey: 'test-api-key',
+    });
+
+    expect(() => provider.embeddingModel('any-model-id')).toThrow(
+      /no such embeddingModel/i,
+    );
+  });
+
+  it('throws NoSuchModelError when imageModel is invoked', () => {
+    const provider = createAnthropicAws({
+      region: 'us-west-2',
+      workspaceId: 'wrkspc_test',
+      apiKey: 'test-api-key',
+    });
+
+    expect(() => provider.imageModel('any-model-id')).toThrow(
+      /no such imageModel/i,
+    );
+  });
+
+  it('throws if the provider function is called with new', () => {
+    const provider = createAnthropicAws({
+      region: 'us-west-2',
+      workspaceId: 'wrkspc_test',
+      apiKey: 'test-api-key',
+    });
+
+    expect(
+      () =>
+        new (provider as unknown as new (m: string) => unknown)(
+          'claude-sonnet-4-6',
+        ),
+    ).toThrow(/cannot be called with the new keyword/);
+  });
+});
+
+describe('anthropicAws provider - auth precedence', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    stubDefaultEnv();
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('prefers the API-key path when both apiKey and AWS SigV4 creds are present', async () => {
+    vi.stubEnv('AWS_ACCESS_KEY_ID', 'should-be-ignored');
+    vi.stubEnv('AWS_SECRET_ACCESS_KEY', 'should-be-ignored');
+    const fetchMock = createFetchMock();
+    const provider = createAnthropicAws({
+      region: 'us-west-2',
+      workspaceId: 'wrkspc_test',
+      apiKey: 'sk-aws-platform-key',
+      fetch: fetchMock,
+    });
+
+    await provider('claude-sonnet-4-6').doGenerate({ prompt: TEST_PROMPT });
+
+    const [, requestOptions] = fetchMock.mock.calls[0]!;
+    expect(requestOptions.headers['x-api-key']).toBe('sk-aws-platform-key');
+    expect(requestOptions.headers.authorization).toBeUndefined();
+    expect(requestOptions.headers['x-amz-date']).toBeUndefined();
+  });
+});
+
+describe('anthropicAws provider - streaming', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    stubDefaultEnv();
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('forwards doStream through the SigV4 / api-key fetch wrapper and yields stream events', async () => {
+    const sseBody = [
+      'event: message_start',
+      'data: {"type":"message_start","message":{"id":"msg_1","model":"claude-sonnet-4-6","role":"assistant","content":[],"stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":1,"output_tokens":0}}}',
+      '',
+      'event: content_block_start',
+      'data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}',
+      '',
+      'event: content_block_delta',
+      'data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Hi"}}',
+      '',
+      'event: content_block_stop',
+      'data: {"type":"content_block_stop","index":0}',
+      '',
+      'event: message_delta',
+      'data: {"type":"message_delta","delta":{"stop_reason":"end_turn","stop_sequence":null},"usage":{"output_tokens":1}}',
+      '',
+      'event: message_stop',
+      'data: {"type":"message_stop"}',
+      '',
+    ].join('\n');
+
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(sseBody, {
+        status: 200,
+        headers: { 'Content-Type': 'text/event-stream' },
+      }),
+    );
+    const provider = createAnthropicAws({
+      region: 'us-west-2',
+      workspaceId: 'wrkspc_test',
+      apiKey: 'test-api-key',
+      fetch: fetchMock,
+    });
+
+    const { stream } = await provider('claude-sonnet-4-6').doStream({
+      prompt: TEST_PROMPT,
+    });
+
+    const parts: unknown[] = [];
+    for await (const part of stream) {
+      parts.push(part);
+    }
+
+    expect(parts.length).toBeGreaterThan(0);
+    expect(
+      parts.some(
+        p =>
+          typeof p === 'object' &&
+          p !== null &&
+          'type' in p &&
+          (p as { type: string }).type === 'text-delta',
+      ),
+    ).toBe(true);
+
+    // confirm the same workspace + version headers we tested for doGenerate
+    // also fire for streaming requests
+    const [, requestOptions] = fetchMock.mock.calls[0]!;
+    expect(requestOptions.headers['anthropic-version']).toBe('2023-06-01');
+    expect(requestOptions.headers['anthropic-workspace-id']).toBe(
+      'wrkspc_test',
+    );
+    expect(requestOptions.headers['x-api-key']).toBe('test-api-key');
+  });
+});
