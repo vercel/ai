@@ -120,10 +120,17 @@ It currently does not support accepting notifications from an MCP server, and cu
               ],
             },
             {
+              name: 'clientName',
+              type: 'string',
+              isOptional: true,
+              description: 'Client name. Defaults to "ai-sdk-mcp-client".',
+            },
+            {
               name: 'name',
               type: 'string',
               isOptional: true,
-              description: 'Client name. Defaults to "ai-sdk-mcp-client"',
+              description:
+                'Deprecated. Use `clientName` instead. Defaults to "ai-sdk-mcp-client".',
             },
             {
               name: 'version',
@@ -204,6 +211,98 @@ Returns a Promise that resolves to an `MCPClient` with the following properties 
               isOptional: true,
               description:
                 'Zod schema or JSON schema defining the expected output structure. When provided, the client extracts and validates structuredContent from tool results, giving you typed outputs.',
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'listTools',
+      type: `async (options?: {
+        params?: PaginatedRequest['params'];
+        options?: RequestOptions;
+      }) => Promise<ListToolsResult>`,
+      description:
+        'Lists available tool definitions from the MCP server without converting them to AI SDK tools.',
+      properties: [
+        {
+          type: 'options',
+          parameters: [
+            {
+              name: 'params',
+              type: "PaginatedRequest['params']",
+              isOptional: true,
+              description: 'Optional pagination parameters including cursor.',
+            },
+            {
+              name: 'options',
+              type: 'RequestOptions',
+              isOptional: true,
+              description:
+                'Optional request options including signal and timeout.',
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'callTool',
+      type: `async (args: {
+        name: string;
+        arguments?: Record<string, unknown>;
+        options?: RequestOptions;
+      }) => Promise<CallToolResult>`,
+      description:
+        'Calls a tool on the MCP server. This is useful for host-mediated calls, such as MCP Apps iframe requests.',
+      properties: [
+        {
+          type: 'args',
+          parameters: [
+            {
+              name: 'name',
+              type: 'string',
+              description: 'The name of the MCP tool to call.',
+            },
+            {
+              name: 'arguments',
+              type: 'Record<string, unknown>',
+              isOptional: true,
+              description: 'Arguments to pass to the MCP tool.',
+            },
+            {
+              name: 'options',
+              type: 'RequestOptions',
+              isOptional: true,
+              description:
+                'Optional request options including signal and timeout.',
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'toolsFromDefinitions',
+      type: `(definitions: ListToolsResult, options?: {
+        schemas?: TOOL_SCHEMAS
+      }) => McpToolSet<TOOL_SCHEMAS>`,
+      description:
+        'Converts existing MCP tool definitions into AI SDK tools without listing tools again.',
+      properties: [
+        {
+          type: 'parameters',
+          parameters: [
+            {
+              name: 'definitions',
+              type: 'ListToolsResult',
+              description:
+                'Tool definitions, typically returned by `listTools`.',
+            },
+            {
+              name: 'schemas',
+              type: 'TOOL_SCHEMAS',
+              isOptional: true,
+              description:
+                'Optional schema definitions for compile-time type checking and typed outputs.',
             },
           ],
         },

@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/bytedance",
-  "version": "2.0.0-canary.33",
+  "version": "2.0.0-canary.45",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -36,9 +36,9 @@
   },
   "devDependencies": {
     "@ai-sdk/test-server": "workspace:*",
-    "@types/node": "20.17.24",
+    "@types/node": "22.19.19",
     "@vercel/ai-tsconfig": "workspace:*",
-    "tsup": "^8",
+    "tsup": "^8.5.1",
     "typescript": "5.8.3",
     "zod": "3.25.76"
   },
@@ -46,7 +46,7 @@
     "zod": "^3.25.76 || ^4.1.8"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=22"
   },
   "publishConfig": {
     "access": "public",

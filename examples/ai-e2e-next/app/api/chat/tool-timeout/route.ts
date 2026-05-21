@@ -49,7 +49,7 @@ export async function POST(req: Request) {
   const result = streamText({
     model: openai('gpt-5.4'),
     messages: await convertToModelMessages(messages),
-    system:
+    instructions:
       'You are a helpful weather assistant. When a tool times out, explain to the user that the weather service is unavailable and suggest they try again later.',
     tools,
     timeout: {

@@ -439,6 +439,40 @@ describe('user messages', () => {
       "'file parts with provider references' functionality not supported",
     );
   });
+
+  it('should add cache point to user content part when specified', async () => {
+    const result = await convertToAmazonBedrockChatMessages([
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Hello' },
+          {
+            type: 'text',
+            text: 'cached',
+            providerOptions: {
+              bedrock: { cachePoint: { type: 'default', ttl: '5m' } },
+            },
+          },
+          { type: 'text', text: 'World' },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual({
+      messages: [
+        {
+          role: 'user',
+          content: [
+            { text: 'Hello' },
+            { text: 'cached' },
+            { cachePoint: { type: 'default', ttl: '5m' } },
+            { text: 'World' },
+          ],
+        },
+      ],
+      system: [],
+    });
+  });
 });
 
 describe('assistant messages', () => {
@@ -617,6 +651,40 @@ describe('assistant messages', () => {
           content: [
             { text: 'Hello' },
             { cachePoint: { type: 'default', ttl: '1h' } },
+          ],
+        },
+      ],
+      system: [],
+    });
+  });
+
+  it('should add cache point to assistant content part when specified', async () => {
+    const result = await convertToAmazonBedrockChatMessages([
+      {
+        role: 'assistant',
+        content: [
+          { type: 'text', text: 'Hello' },
+          {
+            type: 'text',
+            text: 'cached',
+            providerOptions: {
+              bedrock: { cachePoint: { type: 'default', ttl: '1h' } },
+            },
+          },
+          { type: 'text', text: 'World' },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual({
+      messages: [
+        {
+          role: 'assistant',
+          content: [
+            { text: 'Hello' },
+            { text: 'cached' },
+            { cachePoint: { type: 'default', ttl: '1h' } },
+            { text: 'World' },
           ],
         },
       ],
@@ -846,7 +914,7 @@ describe('assistant messages', () => {
     `);
   });
 
-  it('should trim trailing whitespace from reasoning content without signature when it is the last part', async () => {
+  it('should omit reasoning content without signature', async () => {
     const result = await convertToAmazonBedrockChatMessages([
       {
         role: 'user',
@@ -859,6 +927,7 @@ describe('assistant messages', () => {
             type: 'reasoning',
             text: 'This is my reasoning with trailing space    ',
           },
+          { type: 'text', text: 'final answer' },
         ],
       },
     ]);
@@ -877,11 +946,7 @@ describe('assistant messages', () => {
           {
             "content": [
               {
-                "reasoningContent": {
-                  "reasoningText": {
-                    "text": "This is my reasoning with trailing space",
-                  },
-                },
+                "text": "final answer",
               },
             ],
             "role": "assistant",
@@ -892,7 +957,7 @@ describe('assistant messages', () => {
     `);
   });
 
-  it('should only trim last reasoning part when multiple reasoning parts have trailing spaces', async () => {
+  it('should omit multiple reasoning parts without signatures', async () => {
     const result = await convertToAmazonBedrockChatMessages([
       {
         role: 'user',
@@ -909,6 +974,7 @@ describe('assistant messages', () => {
             type: 'reasoning',
             text: 'Second reasoning with trailing space    ',
           },
+          { type: 'text', text: 'final answer' },
         ],
       },
     ]);
@@ -927,21 +993,90 @@ describe('assistant messages', () => {
           {
             "content": [
               {
-                "reasoningContent": {
-                  "reasoningText": {
-                    "text": "First reasoning with trailing space    ",
-                  },
-                },
+                "text": "final answer",
               },
+            ],
+            "role": "assistant",
+          },
+        ],
+        "system": [],
+      }
+    `);
+  });
+
+  it('should omit unsigned reasoning while preserving tool calls in multi-turn tool use', async () => {
+    const result = await convertToAmazonBedrockChatMessages([
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'What is the weather?' }],
+      },
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'reasoning',
+            text: 'I should call the weather tool.',
+          },
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'getWeather',
+            input: { city: 'SF' },
+          },
+        ],
+      },
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolCallId: 'call-1',
+            toolName: 'getWeather',
+            output: { type: 'text', value: 'Sunny, 72F' },
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": [
               {
-                "reasoningContent": {
-                  "reasoningText": {
-                    "text": "Second reasoning with trailing space",
+                "text": "What is the weather?",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "content": [
+              {
+                "toolUse": {
+                  "input": {
+                    "city": "SF",
                   },
+                  "name": "getWeather",
+                  "toolUseId": "call-1",
                 },
               },
             ],
             "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "toolResult": {
+                  "content": [
+                    {
+                      "text": "Sunny, 72F",
+                    },
+                  ],
+                  "toolUseId": "call-1",
+                },
+              },
+            ],
+            "role": "user",
           },
         ],
         "system": [],
@@ -1273,8 +1408,8 @@ describe('tool messages', () => {
               type: 'content',
               value: [
                 {
-                  type: 'file-data',
-                  data: 'base64data',
+                  type: 'file',
+                  data: { type: 'data', data: 'base64data' },
                   mediaType: 'image/jpeg',
                 },
               ],
@@ -1318,8 +1453,8 @@ describe('tool messages', () => {
                 type: 'content',
                 value: [
                   {
-                    type: 'file-data',
-                    data: 'base64data',
+                    type: 'file',
+                    data: { type: 'data', data: 'base64data' },
                     mediaType: 'image/avif', // unsupported format
                   },
                 ],
@@ -1347,8 +1482,8 @@ describe('tool messages', () => {
                 type: 'content',
                 value: [
                   {
-                    type: 'file-data',
-                    data: 'base64data',
+                    type: 'file',
+                    data: { type: 'data', data: 'base64data' },
                     mediaType: 'unsupported/mime-type',
                   },
                 ],

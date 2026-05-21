@@ -16,6 +16,7 @@ import {
   extractResourceMetadataUrl,
   UnauthorizedError,
   auth,
+  type AuthResult,
   type OAuthClientProvider,
 } from './oauth';
 import { LATEST_PROTOCOL_VERSION } from './types';
@@ -37,6 +38,7 @@ export class HttpMCPTransport implements MCPTransport {
   private inboundSseConnection?: { close: () => void };
   private redirectMode: RequestRedirect;
   private fetchFn: FetchFunction;
+  private authPromise?: Promise<AuthResult>;
 
   // Inbound SSE resumption and reconnection state
   private lastInboundEventId?: string;
@@ -51,6 +53,7 @@ export class HttpMCPTransport implements MCPTransport {
   onclose?: () => void;
   onerror?: (error: unknown) => void;
   onmessage?: (message: JSONRPCMessage) => void;
+  protocolVersion?: string;
 
   constructor({
     url,
@@ -78,7 +81,7 @@ export class HttpMCPTransport implements MCPTransport {
     const headers: Record<string, string> = {
       ...this.headers,
       ...base,
-      'mcp-protocol-version': LATEST_PROTOCOL_VERSION,
+      'mcp-protocol-version': this.protocolVersion ?? LATEST_PROTOCOL_VERSION,
     };
 
     if (this.sessionId) {
@@ -97,6 +100,27 @@ export class HttpMCPTransport implements MCPTransport {
       `ai-sdk/${VERSION}`,
       getRuntimeEnvironmentUserAgent(),
     );
+  }
+
+  /**
+   * Runs a single OAuth recovery flow for concurrent 401 responses.
+   */
+  private authorizeOnce(resourceMetadataUrl?: URL): Promise<AuthResult> {
+    if (!this.authProvider) {
+      return Promise.resolve('REDIRECT');
+    }
+
+    if (!this.authPromise) {
+      this.authPromise = auth(this.authProvider, {
+        serverUrl: this.url,
+        resourceMetadataUrl,
+        fetchFn: this.fetchFn,
+      }).finally(() => {
+        this.authPromise = undefined;
+      });
+    }
+
+    return this.authPromise;
   }
 
   async start(): Promise<void> {
@@ -159,11 +183,7 @@ export class HttpMCPTransport implements MCPTransport {
         if (response.status === 401 && this.authProvider && !triedAuth) {
           this.resourceMetadataUrl = extractResourceMetadataUrl(response);
           try {
-            const result = await auth(this.authProvider, {
-              serverUrl: this.url,
-              resourceMetadataUrl: this.resourceMetadataUrl,
-              fetchFn: this.fetchFn,
-            });
+            const result = await this.authorizeOnce(this.resourceMetadataUrl);
             if (result !== 'AUTHORIZED') {
               const error = new UnauthorizedError();
               throw error;
@@ -339,11 +359,7 @@ export class HttpMCPTransport implements MCPTransport {
       if (response.status === 401 && this.authProvider && !triedAuth) {
         this.resourceMetadataUrl = extractResourceMetadataUrl(response);
         try {
-          const result = await auth(this.authProvider, {
-            serverUrl: this.url,
-            resourceMetadataUrl: this.resourceMetadataUrl,
-            fetchFn: this.fetchFn,
-          });
+          const result = await this.authorizeOnce(this.resourceMetadataUrl);
           if (result !== 'AUTHORIZED') {
             const error = new UnauthorizedError();
             this.onerror?.(error);

@@ -33,6 +33,8 @@ For agents, `runtimeContext` is the shared runtime state that flows through the
 loop. For guidance on `runtimeContext`, `toolsContext`, tool `context`, and
 sensitive context filtering, see [Runtime and Tool
 Context](/docs/ai-sdk-core/runtime-and-tool-context).
+Pass `experimental_sandbox` to `generate()` or `stream()` when tools need access to a command
+or code execution environment.
 
 To see `ToolLoopAgent` in action, check out [these examples](#examples).
 
@@ -55,10 +57,17 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
     },
     {
       name: 'instructions',
-      type: 'string | SystemModelMessage | SystemModelMessage[]',
+      type: 'Instructions',
       isOptional: true,
       description:
         'Instructions for the agent, usually used for system prompt/context.',
+    },
+    {
+      name: 'allowSystemInMessages',
+      type: 'boolean',
+      isOptional: true,
+      description:
+        'Whether `role: "system"` messages are allowed in the `prompt` or `messages` fields. When unset, system messages are rejected because they can create a prompt injection attack risk. Ideally, use the `instructions` option instead. Set to `true` to allow system messages, or `false` to explicitly reject them.',
     },
     {
       name: 'tools',
@@ -110,11 +119,25 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
         'Optional function to mutate step settings or inject state for each agent step.',
     },
     {
+      name: 'include',
+      type: '{ requestBody?: boolean; requestMessages?: boolean; responseBody?: boolean; rawChunks?: boolean }',
+      isOptional: true,
+      description:
+        'Settings for controlling what data is included in step results. requestBody, requestMessages, and responseBody apply to generate(); requestBody, requestMessages, and rawChunks apply to stream().',
+    },
+    {
       name: 'experimental_repairToolCall',
       type: 'ToolCallRepairFunction',
       isOptional: true,
       description:
         'Optional callback to attempt automatic recovery when a tool call cannot be parsed.',
+    },
+    {
+      name: 'experimental_refineToolInput',
+      type: 'ToolInputRefinement<TOOLS>',
+      isOptional: true,
+      description:
+        'Optional mapping of tool names to functions that refine parsed tool inputs. Each function receives the typed input for its tool and must return the same input type shape. The refined input is used for tool execution, output parts, lifecycle callbacks, and telemetry in both `generate()` and `stream()`.',
     },
     {
       name: 'experimental_onStart',
@@ -129,7 +152,8 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
             {
               name: 'provider',
               type: 'string',
-              description: 'The provider identifier (e.g., "openai", "anthropic").',
+              description:
+                'The provider identifier (e.g., "openai", "anthropic").',
             },
             {
               name: 'modelId',
@@ -137,9 +161,9 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
               description: 'The specific model identifier (e.g., "gpt-4o").',
             },
             {
-              name: 'system',
-              type: 'string | SystemModelMessage | Array<SystemModelMessage> | undefined',
-              description: 'The system message(s) provided to the model.',
+              name: 'instructions',
+              type: 'Instructions | undefined',
+              description: 'The instructions provided to the model.',
             },
             {
               name: 'messages',
@@ -235,7 +259,7 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
             },
             {
               name: 'include',
-              type: '{ requestBody?: boolean; responseBody?: boolean } | undefined',
+              type: '{ requestBody?: boolean; requestMessages?: boolean; responseBody?: boolean } | undefined',
               description:
                 'Settings for controlling what data is included in step results.',
             },
@@ -268,7 +292,8 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
             {
               name: 'provider',
               type: 'string',
-              description: 'The provider identifier (e.g., "openai", "anthropic").',
+              description:
+                'The provider identifier (e.g., "openai", "anthropic").',
             },
             {
               name: 'modelId',
@@ -276,9 +301,10 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
               description: 'The specific model identifier (e.g., "gpt-4o").',
             },
             {
-              name: 'system',
-              type: 'string | SystemModelMessage | Array<SystemModelMessage> | undefined',
-              description: 'The system message for this step.',
+              name: 'instructions',
+              type: 'Instructions | undefined',
+              description:
+                'The instructions provided to the model for this step.',
             },
             {
               name: 'messages',
@@ -341,7 +367,7 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
             },
             {
               name: 'include',
-              type: '{ requestBody?: boolean; responseBody?: boolean } | undefined',
+              type: '{ requestBody?: boolean; requestMessages?: boolean; responseBody?: boolean } | undefined',
               description:
                 'Settings for controlling what data is included in step results.',
             },
@@ -362,7 +388,7 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
       ],
     },
     {
-      name: 'experimental_onToolExecutionStart',
+      name: 'onToolExecutionStart',
       type: 'OnToolExecutionStartCallback',
       isOptional: true,
       description:
@@ -374,7 +400,8 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
             {
               name: 'callId',
               type: 'string',
-              description: 'Unique identifier for this generation call, used to correlate events.',
+              description:
+                'Unique identifier for this generation call, used to correlate events.',
             },
             {
               name: 'toolCall',
@@ -399,7 +426,7 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
       ],
     },
     {
-      name: 'experimental_onToolExecutionEnd',
+      name: 'onToolExecutionEnd',
       type: 'OnToolExecutionEndCallback',
       isOptional: true,
       description:
@@ -411,7 +438,8 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
             {
               name: 'callId',
               type: 'string',
-              description: 'Unique identifier for this generation call, used to correlate events.',
+              description:
+                'Unique identifier for this generation call, used to correlate events.',
             },
             {
               name: 'toolCall',
@@ -420,7 +448,7 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
                 'The full tool call object containing toolName, toolCallId, input, and metadata.',
             },
             {
-              name: 'durationMs',
+              name: 'toolExecutionMs',
               type: 'number',
               description:
                 'The wall-clock duration of the tool execution in milliseconds.',
@@ -469,13 +497,6 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
         'User-defined shared runtime context object passed to `prepareStep` and lifecycle callbacks.',
     },
     {
-      name: 'sensitiveRuntimeContext',
-      type: 'SensitiveContext<CONTEXT>',
-      isOptional: true,
-      description:
-        'Top-level runtime context properties that contain sensitive data and should be excluded from telemetry. Properties marked as `true` are omitted from telemetry integrations. Lifecycle callbacks and returned results still receive the full `runtimeContext`.',
-    },
-    {
       name: 'toolsContext',
       type: 'InferToolSetContext<TOOLS>',
       description:
@@ -486,6 +507,27 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
       type: 'TelemetryOptions',
       isOptional: true,
       description: 'Optional telemetry configuration.',
+      properties: [
+        {
+          type: 'TelemetryOptions',
+          parameters: [
+            {
+              name: 'includeRuntimeContext',
+              type: '{ [KEY in keyof CONTEXT]?: boolean }',
+              isOptional: true,
+              description:
+                'Top-level runtime context properties that should be included in telemetry. Runtime context properties are excluded unless they are explicitly set to `true`. Lifecycle callbacks and returned results still receive the full `runtimeContext`.',
+            },
+            {
+              name: 'includeToolsContext',
+              type: '{ [TOOL_NAME in keyof InferToolSetContext<TOOLS>]?: { [KEY in keyof InferToolSetContext<TOOLS>[TOOL_NAME]]?: boolean } }',
+              isOptional: true,
+              description:
+                'Top-level tool context properties that should be included in telemetry, configured per tool. Tool context properties are excluded unless they are explicitly set to `true`. Lifecycle callbacks and returned results still receive the full `toolsContext`.',
+            },
+          ],
+        },
+      ],
     },
     {
       name: 'experimental_download',
@@ -599,7 +641,8 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
     {
       name: 'id',
       type: 'string | undefined',
-      description: 'The agent identifier, if one was provided in the constructor.',
+      description:
+        'The agent identifier, if one was provided in the constructor.',
     },
   ]}
 />
@@ -643,6 +686,13 @@ const result = await agent.generate({
         'Timeout in milliseconds. Can be specified as a number or as an object with totalMs, stepMs, and/or chunkMs properties. The call will be aborted if it takes longer than the specified timeout. Can be used alongside abortSignal.',
     },
     {
+      name: 'experimental_sandbox',
+      type: 'Experimental_Sandbox',
+      isOptional: true,
+      description:
+        'Experimental sandbox environment that is passed through to `prepareStep`, tool description functions, and tool execution. Tools can access it from their description function options and execution options.',
+    },
+    {
       name: 'options',
       type: 'CALL_OPTIONS',
       isOptional: true,
@@ -664,14 +714,14 @@ const result = await agent.generate({
         'Callback that is called when a step (LLM call) begins, before the provider is called. If also specified in the constructor, both callbacks are called (constructor first). Experimental (can break in patch releases).',
     },
     {
-      name: 'experimental_onToolExecutionStart',
+      name: 'onToolExecutionStart',
       type: 'OnToolExecutionStartCallback',
       isOptional: true,
       description:
         "Callback that is called right before a tool's execute function runs. If also specified in the constructor, both callbacks are called (constructor first). Experimental (can break in patch releases).",
     },
     {
-      name: 'experimental_onToolExecutionEnd',
+      name: 'onToolExecutionEnd',
       type: 'OnToolExecutionEndCallback',
       isOptional: true,
       description:
@@ -739,6 +789,13 @@ for await (const chunk of stream.textStream) {
         'Timeout in milliseconds. Can be specified as a number or as an object with totalMs, stepMs, and/or chunkMs properties. The call will be aborted if it takes longer than the specified timeout. Can be used alongside abortSignal.',
     },
     {
+      name: 'experimental_sandbox',
+      type: 'Experimental_Sandbox',
+      isOptional: true,
+      description:
+        'Experimental sandbox environment that is passed through to `prepareStep`, tool description functions, and tool execution. Tools can access it from their description function options and execution options.',
+    },
+    {
       name: 'options',
       type: 'CALL_OPTIONS',
       isOptional: true,
@@ -767,14 +824,14 @@ for await (const chunk of stream.textStream) {
         'Callback that is called when a step (LLM call) begins, before the provider is called. If also specified in the constructor, both callbacks are called (constructor first). Experimental (can break in patch releases).',
     },
     {
-      name: 'experimental_onToolExecutionStart',
+      name: 'onToolExecutionStart',
       type: 'OnToolExecutionStartCallback',
       isOptional: true,
       description:
         "Callback that is called right before a tool's execute function runs. If also specified in the constructor, both callbacks are called (constructor first). Experimental (can break in patch releases).",
     },
     {
-      name: 'experimental_onToolExecutionEnd',
+      name: 'onToolExecutionEnd',
       type: 'OnToolExecutionEndCallback',
       isOptional: true,
       description:
@@ -812,16 +869,6 @@ type ActiveTools<TOOLS extends ToolSet> =
 ```
 
 Limits an agent step to the listed tool names. `undefined` means no tool restriction is applied.
-
-### `SensitiveContext`
-
-```ts
-type SensitiveContext<CONTEXT extends Context> =
-  | { [KEY in keyof CONTEXT]?: boolean }
-  | undefined;
-```
-
-Marks top-level context properties that should be excluded from telemetry. Set a property to `true` to omit it from telemetry integrations; omitted or `false` properties are still sent.
 
 ### `InferAgentUIMessage`
 
@@ -980,7 +1027,7 @@ for (const part of result.content) {
   }
 }
 
-messages.push(...result.response.messages);
+messages.push(...result.responseMessages);
 messages.push({ role: 'tool', content: approvals });
 
 const approvedResult = await agent.generate({ messages });

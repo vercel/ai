@@ -45,10 +45,10 @@ To see `streamText` in action, check out [these examples](#examples).
       description: "The language model to use. Example: openai('gpt-4.1')",
     },
     {
-      name: 'system',
-      type: 'string | SystemModelMessage | SystemModelMessage[]',
+      name: 'instructions',
+      type: 'Instructions',
       description:
-        'The system prompt to use that specifies the behavior of the model.',
+        'Instructions to use that specify the behavior of the model.',
     },
     {
       name: 'prompt',
@@ -332,7 +332,7 @@ To see `streamText` in action, check out [these examples](#examples).
       type: 'boolean',
       isOptional: true,
       description:
-        'Whether system messages are allowed in the `prompt` or `messages` fields. Defaults to false. System messages in the `system` option are always allowed. Enabling this for user-controlled messages can create a prompt injection risk.',
+        'Whether system messages are allowed in the `prompt` or `messages` fields. Defaults to false. System messages in the `instructions` option are always allowed. Enabling this for user-controlled messages can create a prompt injection risk.',
     },
     {
       name: 'tools',
@@ -346,9 +346,9 @@ To see `streamText` in action, check out [these examples](#examples).
             {
               name: 'description',
               isOptional: true,
-              type: 'string',
+              type: 'string | ((options: { context: CONTEXT; experimental_sandbox?: Experimental_Sandbox }) => string)',
               description:
-                'Information about the purpose of the tool including details on how and when it can be used by the model.',
+                'Information about the purpose of the tool including details on how and when it can be used by the model. Provide a string for a fixed description, or a function to derive the description from the tool-specific context and optional experimental sandbox before each model call.',
             },
             {
               name: 'inputSchema',
@@ -527,6 +527,20 @@ To see `streamText` in action, check out [these examples](#examples).
                 'Identifier for this function. Used to group telemetry data by function.',
             },
             {
+              name: 'includeRuntimeContext',
+              type: '{ [KEY in keyof CONTEXT]?: boolean }',
+              isOptional: true,
+              description:
+                'Top-level runtime context properties that should be included in telemetry. Runtime context properties are excluded unless they are explicitly set to `true`. Lifecycle callbacks and returned results still receive the full `runtimeContext`.',
+            },
+            {
+              name: 'includeToolsContext',
+              type: '{ [TOOL_NAME in keyof InferToolSetContext<TOOLS>]?: { [KEY in keyof InferToolSetContext<TOOLS>[TOOL_NAME]]?: boolean } }',
+              isOptional: true,
+              description:
+                'Top-level tool context properties that should be included in telemetry, configured per tool. Tool context properties are excluded unless they are explicitly set to `true`. Lifecycle callbacks and returned results still receive the full `toolsContext`.',
+            },
+            {
               name: 'integrations',
               isOptional: true,
               type: 'Telemetry | Telemetry[]',
@@ -578,7 +592,7 @@ To see `streamText` in action, check out [these examples](#examples).
       type: 'boolean',
       isOptional: true,
       description:
-        'Whether to include raw chunks from the provider in the stream. When enabled, you will receive raw chunks with type "raw" that contain the unprocessed data from the provider. This allows access to cutting-edge provider features not yet wrapped by the AI SDK. Defaults to false.',
+        'Deprecated. Use include.rawChunks instead. Whether to include raw chunks from the provider in the stream. When enabled, you will receive raw chunks with type "raw" that contain the unprocessed data from the provider. This allows access to cutting-edge provider features not yet wrapped by the AI SDK. Defaults to false.',
     },
     {
       name: 'providerOptions',
@@ -602,6 +616,13 @@ To see `streamText` in action, check out [these examples](#examples).
         "Approval configuration for this call. Pass a `GenericToolApprovalFunction` to handle all tool calls in one callback with `toolCall`, `tools`, `toolsContext`, `messages`, and `runtimeContext`, or pass a per-tool object where each key can be a status (`'not-applicable'`, `'approved'`, `'denied'`, or `'user-approval'`), an object form such as `{ type: 'denied', reason: 'blocked by policy' }`, or a `SingleToolApprovalFunction` that receives the tool input and options `toolCallId`, `messages`, `toolContext`, and `runtimeContext` (same shape as tool execution options without `abortSignal`, with `context` renamed to `toolContext`). The `RUNTIME_CONTEXT` type parameter matches the call's `runtimeContext`. A `GenericToolApprovalFunction` or `SingleToolApprovalFunction` may return `undefined` for the same effect as `'not-applicable'`. `'not-applicable'` is the default execution path and runs the tool without approval metadata. Use `'approved'`, `'denied'`, or their object forms when you want explicit automatic approval request/response parts in the output. Automatic approvals and denials can include a `reason`, which is forwarded to the emitted approval response. This setting takes precedence over a tool's `needsApproval` default.",
     },
     {
+      name: 'experimental_refineToolInput',
+      type: 'ToolInputRefinement<TOOLS>',
+      isOptional: true,
+      description:
+        'Optional mapping of tool names to functions that refine parsed tool inputs. Each function receives the typed input for its tool and must return the same input type shape. The refined input is used for tool execution, stream parts, lifecycle callbacks, and telemetry.',
+    },
+    {
       name: 'stopWhen',
       type: 'StopCondition<TOOLS> | Array<StopCondition<TOOLS>>',
       isOptional: true,
@@ -613,7 +634,7 @@ To see `streamText` in action, check out [these examples](#examples).
       type: '(options: PrepareStepOptions) => PrepareStepResult<TOOLS> | Promise<PrepareStepResult<TOOLS>>',
       isOptional: true,
       description:
-        'Optional function that you can use to provide different settings for a step. You can modify the model, tool choices, active tools, system prompt, and input messages for each step.',
+        'Optional function that you can use to provide different settings for a step. You can modify the model, tool choices, active tools, instructions, input messages, and experimental sandbox for each step.',
       properties: [
         {
           type: 'PrepareStepFunction<TOOLS>',
@@ -643,10 +664,22 @@ To see `streamText` in action, check out [these examples](#examples).
                       description: 'The model that is being used.',
                     },
                     {
+                      name: 'instructions',
+                      type: 'Instructions | undefined',
+                      description:
+                        'The instructions that will be sent to the model for the current step. If prepareStep returns an instructions override, those instructions carry forward to later steps.',
+                    },
+                    {
+                      name: 'initialInstructions',
+                      type: 'Instructions | undefined',
+                      description:
+                        'The initial instructions that were passed into generateText or streamText.',
+                    },
+                    {
                       name: 'messages',
                       type: 'Array<ModelMessage>',
                       description:
-                        'The messages that will be sent to the model for the current step.',
+                        'The messages that will be sent to the model for the current step. If prepareStep returns a messages override, those messages carry forward to later steps.',
                     },
                     {
                       name: 'runtimeContext',
@@ -660,6 +693,13 @@ To see `streamText` in action, check out [these examples](#examples).
                       type: 'InferToolSetContext<TOOLS>',
                       description:
                         'The per-tool context map passed via the `toolsContext` setting.',
+                    },
+                    {
+                      name: 'experimental_sandbox',
+                      type: 'Experimental_Sandbox | undefined',
+                      isOptional: true,
+                      description:
+                        'The experimental sandbox environment passed via the `experimental_sandbox` setting.',
                     },
                   ],
                 },
@@ -694,11 +734,11 @@ To see `streamText` in action, check out [these examples](#examples).
                 'If provided, only these tools are enabled/available for this step.',
             },
             {
-              name: 'system',
-              type: 'string | SystemModelMessage | SystemModelMessage[]',
+              name: 'instructions',
+              type: 'Instructions',
               isOptional: true,
               description:
-                'Optionally override the system message(s) sent to the model for this step.',
+                'Optionally override the instructions sent to the model for this step. The override carries forward to later steps until prepareStep returns another instructions or system override.',
             },
             {
               name: 'messages',
@@ -721,6 +761,13 @@ To see `streamText` in action, check out [these examples](#examples).
                 'Per-tool context map. Changing it will affect tool-specific context in this step and all subsequent steps.',
             },
             {
+              name: 'experimental_sandbox',
+              type: 'Experimental_Sandbox',
+              isOptional: true,
+              description:
+                'Experimental sandbox environment for this step. Changing it will affect tool execution in this step only.',
+            },
+            {
               name: 'providerOptions',
               type: 'ProviderOptions',
               isOptional: true,
@@ -739,17 +786,17 @@ To see `streamText` in action, check out [these examples](#examples).
         'User-defined shared runtime context object passed to `prepareStep` and lifecycle callbacks.',
     },
     {
-      name: 'sensitiveRuntimeContext',
-      type: 'SensitiveContext<CONTEXT>',
-      isOptional: true,
-      description:
-        'Top-level runtime context properties that contain sensitive data and should be excluded from telemetry. Properties marked as `true` are omitted from telemetry integrations. Lifecycle callbacks and returned results still receive the full `runtimeContext`.',
-    },
-    {
       name: 'toolsContext',
       type: 'InferToolSetContext<TOOLS>',
       description:
         'Per-tool context map keyed by tool name. Required when at least one tool defines `contextSchema`; not accepted when no tools need context.',
+    },
+    {
+      name: 'experimental_sandbox',
+      type: 'Experimental_Sandbox',
+      isOptional: true,
+      description:
+        'Experimental sandbox environment that is passed through to `prepareStep`, tool description functions, and tool execution. Tools can access it from their description function options and execution options.',
     },
     {
       name: 'experimental_download',
@@ -759,11 +806,11 @@ To see `streamText` in action, check out [these examples](#examples).
         'Custom download function to control how URLs are fetched when they appear in prompts. By default, files are downloaded if the model does not support the URL for the given media type. Experimental feature. Return null to pass the URL directly to the model (when supported), or return downloaded content with data and media type.',
     },
     {
-      name: 'experimental_include',
-      type: '{ requestBody?: boolean }',
+      name: 'include',
+      type: '{ requestBody?: boolean; requestMessages?: boolean; rawChunks?: boolean }',
       isOptional: true,
       description:
-        'Controls inclusion of request body in step results. By default, the body is included. When processing many large payloads (e.g., images), set requestBody to false to reduce memory usage. Experimental feature.',
+        'Controls inclusion of request body and request messages in step results, and raw provider chunks in the stream. By default, request body, request messages, and raw chunks are excluded to reduce memory usage. Set requestBody or requestMessages to true when you need access to the data. Set rawChunks to true when you need access to raw provider chunks.',
       properties: [
         {
           type: 'Object',
@@ -773,7 +820,21 @@ To see `streamText` in action, check out [these examples](#examples).
               type: 'boolean',
               isOptional: true,
               description:
-                'Whether to include the request body in step results. The request body can be large when sending images or files. Default: true.',
+                'Whether to include the request body in step results. The request body can be large when sending images or files. Default: false.',
+            },
+            {
+              name: 'requestMessages',
+              type: 'boolean',
+              isOptional: true,
+              description:
+                'Whether to include the request messages in step results. The request messages can be large when sending images or files. Default: false.',
+            },
+            {
+              name: 'rawChunks',
+              type: 'boolean',
+              isOptional: true,
+              description:
+                'Whether to include raw chunks from the provider in the stream. When enabled, raw chunks with type "raw" contain unprocessed provider data. Default: false.',
             },
           ],
         },
@@ -790,9 +851,16 @@ To see `streamText` in action, check out [these examples](#examples).
           type: 'ToolCallRepairOptions',
           parameters: [
             {
+              name: 'instructions',
+              type: 'Instructions | undefined',
+              description: 'The instructions provided to the model.',
+            },
+            {
               name: 'system',
-              type: 'string | SystemModelMessage | SystemModelMessage[] | undefined',
-              description: 'The system prompt.',
+              type: 'Instructions | undefined',
+              isOptional: true,
+              description:
+                'The instructions provided to the model. Deprecated: use `instructions` instead.',
             },
             {
               name: 'messages',
@@ -810,7 +878,7 @@ To see `streamText` in action, check out [these examples](#examples).
               description: 'The tools that are available.',
             },
             {
-              name: 'parameterSchema',
+              name: 'inputSchema',
               type: '(options: { toolName: string }) => JSONSchema7',
               description:
                 'A function that returns the JSON Schema for a tool.',
@@ -1311,6 +1379,66 @@ To see `streamText` in action, check out [these examples](#examples).
               ],
             },
             {
+              name: 'performance',
+              type: 'StepResultPerformance',
+              description: 'Timing and throughput metrics for the step.',
+              properties: [
+                {
+                  type: 'StepResultPerformance',
+                  parameters: [
+                    {
+                      name: 'effectiveOutputTokensPerSecond',
+                      type: 'number',
+                      description:
+                        'Effective number of output tokens per second over the full language model response.',
+                    },
+                    {
+                      name: 'outputTokensPerSecond',
+                      type: 'number | undefined',
+                      description:
+                        'Number of output tokens per second after the first output token was received. Only available for streaming steps.',
+                    },
+                    {
+                      name: 'inputTokensPerSecond',
+                      type: 'number | undefined',
+                      description:
+                        'Number of input tokens processed per second before the first output token was received. Only available for streaming steps.',
+                    },
+                    {
+                      name: 'effectiveTotalTokensPerSecond',
+                      type: 'number',
+                      description:
+                        'Effective number of input and output tokens per second over the full language model response.',
+                    },
+                    {
+                      name: 'stepTimeMs',
+                      type: 'number',
+                      description:
+                        'Total time spent on the step, including language model response time and tool execution time, in milliseconds.',
+                    },
+                    {
+                      name: 'responseTimeMs',
+                      type: 'number',
+                      description:
+                        'Time spent waiting for the language model response in milliseconds.',
+                    },
+                    {
+                      name: 'toolExecutionMs',
+                      type: 'Readonly<Record<string, number>>',
+                      description:
+                        'Time spent executing each client-side tool call in the step in milliseconds, keyed by tool call ID.',
+                    },
+                    {
+                      name: 'timeToFirstOutputTokenMs',
+                      type: 'number | undefined',
+                      description:
+                        'Time until the first text, reasoning, or tool input delta was received in milliseconds. Only available for streaming steps.',
+                    },
+                  ],
+                },
+              ],
+            },
+            {
               name: 'text',
               type: 'string',
               description: 'The full text that has been generated.',
@@ -1324,8 +1452,7 @@ To see `streamText` in action, check out [these examples](#examples).
             {
               name: 'sources',
               type: 'Array<Source>',
-              description:
-                'Sources that have been used as input to generate the response. For multi-step generation, the sources are accumulated from all steps.',
+              description: 'Sources that have been used in the final step.',
               properties: [
                 {
                   type: 'Source',
@@ -1598,18 +1725,6 @@ To see `streamText` in action, check out [these examples](#examples).
                       description:
                         'The total number of tokens as reported by the provider. This number might be different from the sum of inputTokens and outputTokens and e.g. include reasoning tokens or other overhead.',
                     },
-                    {
-                      name: 'reasoningTokens',
-                      type: 'number | undefined',
-                      isOptional: true,
-                      description: 'The number of reasoning tokens used.',
-                    },
-                    {
-                      name: 'cachedInputTokens',
-                      type: 'number | undefined',
-                      isOptional: true,
-                      description: 'The number of cached input tokens.',
-                    },
                   ],
                 },
               ],
@@ -1679,8 +1794,7 @@ To see `streamText` in action, check out [these examples](#examples).
             {
               name: 'sources',
               type: 'Array<Source>',
-              description:
-                'Sources that have been used as input to generate the response. For multi-step generation, the sources are accumulated from all steps.',
+              description: 'Sources that have been used in the final step.',
               properties: [
                 {
                   type: 'Source',
@@ -1721,7 +1835,7 @@ To see `streamText` in action, check out [these examples](#examples).
             {
               name: 'files',
               type: 'Array<GeneratedFile>',
-              description: 'Files that were generated in the final step.',
+              description: 'Files that were generated in all steps.',
               properties: [
                 {
                   type: 'GeneratedFile',
@@ -1798,7 +1912,7 @@ To see `streamText` in action, check out [these examples](#examples).
                       name: 'messages',
                       type: 'Array<ResponseMessage>',
                       description:
-                        'The response messages that were generated during the call. It consists of an assistant message, potentially containing tool calls.  When there are tool results, there is an additional tool message with the tool results that are available. If there are tools that do not have execute functions, they are not included in the tool results and need to be added separately.',
+                        'The response messages generated during this step. It consists of an assistant message, potentially containing tool calls. When there are tool results in this step, there is an additional tool message with the available tool results. If there are tools that do not have execute functions, they are not included in the tool results and need to be added separately.',
                     },
                   ],
                 },
@@ -1809,6 +1923,12 @@ To see `streamText` in action, check out [these examples](#examples).
               type: 'Array<StepResult>',
               description:
                 'Response information for every step. You can use this to get information about intermediate steps, such as the tool calls or the response headers.',
+            },
+            {
+              name: 'finalStep',
+              type: 'StepResult',
+              description:
+                'The final step. This is a shortcut for `steps.at(-1)`.',
             },
             {
               name: 'runtimeContext',
@@ -1852,7 +1972,8 @@ To see `streamText` in action, check out [these examples](#examples).
             {
               name: 'provider',
               type: 'string',
-              description: 'The provider identifier (e.g., "openai", "anthropic").',
+              description:
+                'The provider identifier (e.g., "openai", "anthropic").',
             },
             {
               name: 'modelId',
@@ -1860,9 +1981,9 @@ To see `streamText` in action, check out [these examples](#examples).
               description: 'The specific model identifier (e.g., "gpt-4o").',
             },
             {
-              name: 'system',
-              type: 'string | SystemModelMessage | Array<SystemModelMessage> | undefined',
-              description: 'The system message(s) provided to the model.',
+              name: 'instructions',
+              type: 'Instructions | undefined',
+              description: 'The instructions provided to the model.',
             },
             {
               name: 'messages',
@@ -1959,7 +2080,7 @@ To see `streamText` in action, check out [these examples](#examples).
             },
             {
               name: 'include',
-              type: '{ requestBody?: boolean } | undefined',
+              type: '{ requestBody?: boolean; requestMessages?: boolean } | undefined',
               description:
                 'Settings for controlling what data is included in step results.',
             },
@@ -1997,7 +2118,8 @@ To see `streamText` in action, check out [these examples](#examples).
             {
               name: 'provider',
               type: 'string',
-              description: 'The provider identifier (e.g., "openai", "anthropic").',
+              description:
+                'The provider identifier (e.g., "openai", "anthropic").',
             },
             {
               name: 'modelId',
@@ -2005,15 +2127,16 @@ To see `streamText` in action, check out [these examples](#examples).
               description: 'The specific model identifier (e.g., "gpt-4o").',
             },
             {
-              name: 'system',
-              type: 'string | SystemModelMessage | Array<SystemModelMessage> | undefined',
-              description: 'The system message for this step.',
+              name: 'instructions',
+              type: 'Instructions | undefined',
+              description:
+                'The instructions provided to the model for this step.',
             },
             {
               name: 'messages',
               type: 'Array<ModelMessage>',
               description:
-                'The messages that will be sent to the model for this step. Uses the user-facing ModelMessage format. May be overridden by prepareStep.',
+                'The messages that will be sent to the model for this step. Uses the user-facing ModelMessage format. May be overridden by prepareStep. If prepareStep returns a messages override, those messages carry forward to later steps.',
             },
             {
               name: 'tools',
@@ -2070,7 +2193,7 @@ To see `streamText` in action, check out [these examples](#examples).
             },
             {
               name: 'include',
-              type: '{ requestBody?: boolean } | undefined',
+              type: '{ requestBody?: boolean; requestMessages?: boolean } | undefined',
               description:
                 'Settings for controlling what data is included in step results.',
             },
@@ -2116,6 +2239,11 @@ To see `streamText` in action, check out [these examples](#examples).
               description: 'The specific model identifier for this model call.',
             },
             {
+              name: 'instructions',
+              type: 'Instructions | undefined',
+              description: 'The instructions that will be sent to the model.',
+            },
+            {
               name: 'messages',
               type: 'Array<ModelMessage>',
               description: 'The messages that will be sent to the model.',
@@ -2123,7 +2251,8 @@ To see `streamText` in action, check out [these examples](#examples).
             {
               name: 'tools',
               type: 'ReadonlyArray<Record<string, unknown>> | undefined',
-              description: 'Prepared tool definitions for the model call, if any.',
+              description:
+                'Prepared tool definitions for the model call, if any.',
             },
           ],
         },
@@ -2170,12 +2299,66 @@ To see `streamText` in action, check out [these examples](#examples).
               description:
                 'The content parts produced by the model call (text, reasoning, files, tool calls, etc.).',
             },
+            {
+              name: 'responseId',
+              type: 'string',
+              description:
+                'The provider-returned response ID for this model call.',
+            },
+            {
+              name: 'performance',
+              type: '{ responseTimeMs: number; effectiveOutputTokensPerSecond: number; outputTokensPerSecond: number | undefined; inputTokensPerSecond: number | undefined; effectiveTotalTokensPerSecond: number; timeToFirstOutputTokenMs: number | undefined }',
+              description: 'Performance metrics for the model call.',
+              properties: [
+                {
+                  type: 'LanguageModelCallPerformance',
+                  parameters: [
+                    {
+                      name: 'responseTimeMs',
+                      type: 'number',
+                      description:
+                        'Time spent waiting for the language model response in milliseconds.',
+                    },
+                    {
+                      name: 'effectiveOutputTokensPerSecond',
+                      type: 'number',
+                      description:
+                        'Effective number of output tokens per second over the full language model response.',
+                    },
+                    {
+                      name: 'outputTokensPerSecond',
+                      type: 'number | undefined',
+                      description:
+                        'Number of output tokens per second after the first output token was received. Only available for streaming model calls.',
+                    },
+                    {
+                      name: 'inputTokensPerSecond',
+                      type: 'number | undefined',
+                      description:
+                        'Number of input tokens processed per second before the first output token was received. Only available for streaming model calls.',
+                    },
+                    {
+                      name: 'effectiveTotalTokensPerSecond',
+                      type: 'number',
+                      description:
+                        'Effective number of input and output tokens per second over the full language model response.',
+                    },
+                    {
+                      name: 'timeToFirstOutputTokenMs',
+                      type: 'number | undefined',
+                      description:
+                        'Time until the first text, reasoning, or tool input delta was received in milliseconds. Only available for streaming model calls.',
+                    },
+                  ],
+                },
+              ],
+            },
           ],
         },
       ],
     },
     {
-      name: 'experimental_onToolExecutionStart',
+      name: 'onToolExecutionStart',
       type: '(event: ToolExecutionStartEvent) => PromiseLike<void> | void',
       isOptional: true,
       description:
@@ -2187,7 +2370,8 @@ To see `streamText` in action, check out [these examples](#examples).
             {
               name: 'callId',
               type: 'string',
-              description: 'Unique identifier for this generation call, used to correlate events.',
+              description:
+                'Unique identifier for this generation call, used to correlate events.',
             },
             {
               name: 'toolCall',
@@ -2212,7 +2396,7 @@ To see `streamText` in action, check out [these examples](#examples).
       ],
     },
     {
-      name: 'experimental_onToolExecutionEnd',
+      name: 'onToolExecutionEnd',
       type: '(event: ToolExecutionEndEvent) => PromiseLike<void> | void',
       isOptional: true,
       description:
@@ -2224,7 +2408,8 @@ To see `streamText` in action, check out [these examples](#examples).
             {
               name: 'callId',
               type: 'string',
-              description: 'Unique identifier for this generation call, used to correlate events.',
+              description:
+                'Unique identifier for this generation call, used to correlate events.',
             },
             {
               name: 'toolCall',
@@ -2233,7 +2418,7 @@ To see `streamText` in action, check out [these examples](#examples).
                 'The full tool call object containing toolName, toolCallId, input, and metadata.',
             },
             {
-              name: 'durationMs',
+              name: 'toolExecutionMs',
               type: 'number',
               description:
                 'The wall-clock duration of the tool execution in milliseconds.',
@@ -2260,6 +2445,20 @@ To see `streamText` in action, check out [these examples](#examples).
         },
       ],
     },
+    {
+      name: 'experimental_onToolCallStart',
+      type: '(event: ToolExecutionStartEvent) => PromiseLike<void> | void',
+      isOptional: true,
+      description:
+        'Deprecated. Use `onToolExecutionStart` instead. This alias is only used as a fallback when `onToolExecutionStart` is not provided.',
+    },
+    {
+      name: 'experimental_onToolCallFinish',
+      type: '(event: ToolExecutionEndEvent) => PromiseLike<void> | void',
+      isOptional: true,
+      description:
+        'Deprecated. Use `onToolExecutionEnd` instead. This alias is only used as a fallback when `onToolExecutionEnd` is not provided.',
+    },
   ]}
 />
 
@@ -2270,7 +2469,8 @@ To see `streamText` in action, check out [these examples](#examples).
     {
       name: 'content',
       type: 'Promise<Array<ContentPart<TOOLS>>>',
-      description: 'The content that was generated in the last step. Automatically consumes the stream.',
+      description:
+        'The content that was generated in all steps. Automatically consumes the stream.',
     },
     {
       name: 'finishReason',
@@ -2288,7 +2488,7 @@ To see `streamText` in action, check out [these examples](#examples).
       name: 'usage',
       type: 'Promise<LanguageModelUsage>',
       description:
-        'The token usage of the last step. Automatically consumes the stream.',
+        'The total token usage of the generated response. When there are multiple steps, the usage is the sum of all step usages. Automatically consumes the stream.',
       properties: [
         {
           type: 'LanguageModelUsage',
@@ -2309,18 +2509,6 @@ To see `streamText` in action, check out [these examples](#examples).
               description:
                 'The total number of tokens as reported by the provider. This number might be different from the sum of inputTokens and outputTokens and e.g. include reasoning tokens or other overhead.',
             },
-            {
-              name: 'reasoningTokens',
-              type: 'number | undefined',
-              isOptional: true,
-              description: 'The number of reasoning tokens used.',
-            },
-            {
-              name: 'cachedInputTokens',
-              type: 'number | undefined',
-              isOptional: true,
-              description: 'The number of cached input tokens.',
-            },
           ],
         },
       ],
@@ -2328,7 +2516,7 @@ To see `streamText` in action, check out [these examples](#examples).
     {
       name: 'totalUsage',
       type: 'Promise<LanguageModelUsage>',
-      description: 'The total token usage of the generated response. When there are multiple steps, the usage is the sum of all step usages. Automatically consumes the stream.',
+      description: 'Deprecated. Use usage instead. The total token usage of the generated response. When there are multiple steps, the usage is the sum of all step usages. Automatically consumes the stream.',
       properties: [
                   {
                   type: 'LanguageModelUsage',
@@ -2416,7 +2604,7 @@ To see `streamText` in action, check out [these examples](#examples).
       name: 'providerMetadata',
       type: 'Promise<ProviderMetadata | undefined>',
       description:
-        'Additional provider-specific metadata from the last step. Metadata is passed through from the provider to the AI SDK and enables provider-specific results that can be fully encapsulated in the provider.',
+        'Deprecated. Use `finalStep.providerMetadata` instead. Additional provider-specific metadata from the final step. Metadata is passed through from the provider to the AI SDK and enables provider-specific results that can be fully encapsulated in the provider.',
     },
     {
       name: 'text',
@@ -2428,7 +2616,7 @@ To see `streamText` in action, check out [these examples](#examples).
       name: 'reasoning',
       type: 'Promise<Array<ReasoningOutput | ReasoningFileOutput>>',
       description:
-        'The full reasoning that the model has generated in the last step. Automatically consumes the stream.',
+        'Deprecated. Use `finalStep.reasoning` instead. The full reasoning that the model has generated in the final step. Automatically consumes the stream.',
       properties: [
         {
           type: 'ReasoningOutput',
@@ -2478,7 +2666,7 @@ To see `streamText` in action, check out [these examples](#examples).
       name: 'reasoningText',
       type: 'Promise<string | undefined>',
       description:
-        'The reasoning text that the model has generated in the last step. Can be undefined if the model has only generated text. Automatically consumes the stream.',
+        'Deprecated. Use `finalStep.reasoningText` instead. The reasoning text that the model has generated in the final step. Can be undefined if the model has only generated text. Automatically consumes the stream.',
     },
     {
       name: 'sources',
@@ -2525,7 +2713,7 @@ To see `streamText` in action, check out [these examples](#examples).
       name: 'files',
       type: 'Promise<Array<GeneratedFile>>',
       description:
-        'Files that were generated in the final step. Automatically consumes the stream.',
+        'Files that were generated in all steps. Automatically consumes the stream.',
       properties: [
         {
           type: 'GeneratedFile',
@@ -2553,47 +2741,56 @@ To see `streamText` in action, check out [these examples](#examples).
       name: 'toolCalls',
       type: 'Promise<TypedToolCall<TOOLS>[]>',
       description:
-        'The tool calls that have been executed. Automatically consumes the stream.',
+        'The tool calls that have been executed in all steps. Automatically consumes the stream.',
     },
     {
       name: 'toolResults',
       type: 'Promise<TypedToolResult<TOOLS>[]>',
       description:
-        'The tool results that have been generated. Resolved when the all tool executions are finished.',
+        'The tool results that have been generated in all steps. Resolved when all tool executions are finished.',
     },
     {
       name: 'staticToolCalls',
       type: 'PromiseLike<Array<StaticToolCall<TOOLS>>>',
-      description: 'The static tool calls that have been executed in the last step.',
+      description: 'The static tool calls that have been executed in all steps.',
     },
     {
       name: 'dynamicToolCalls',
       type: 'PromiseLike<Array<DynamicToolCall>>',
-      description: 'The dynamic tool calls that have been executed in the last step.',
+      description: 'The dynamic tool calls that have been executed in all steps.',
     },
     {
       name: 'staticToolResults',
       type: 'PromiseLike<Array<StaticToolResult<TOOLS>>>',
-      description: 'The static tool results that have been generated in the last step.',
+      description: 'The static tool results that have been generated in all steps.',
     },
     {
       name: 'dynamicToolResults',
       type: 'PromiseLike<Array<DynamicToolResult>>',
-      description: 'The dynamic tool results that have been generated in the last step.',
+      description: 'The dynamic tool results that have been generated in all steps.',
     },
     {
       name: 'request',
       type: 'Promise<LanguageModelRequestMetadata>',
-      description: 'Additional request information from the last step.',
+      description:
+        'Deprecated. Use `finalStep.request` instead. Additional request information from the final step. Automatically consumes the stream.',
       properties: [
         {
           type: 'LanguageModelRequestMetadata',
           parameters: [
             {
-              name: 'body',
-              type: 'string',
+              name: 'messages',
+              type: 'Array<ModelMessage>',
+              isOptional: true,
               description:
-                'Raw request HTTP body that was sent to the provider API as a string (JSON should be stringified).',
+                'The input messages that were sent to the model for this step. Undefined by default unless requestMessages is set to true.',
+            },
+            {
+              name: 'body',
+              type: 'unknown',
+              isOptional: true,
+              description:
+                'Request HTTP body that was sent to the provider API.',
             },
           ],
         },
@@ -2601,8 +2798,9 @@ To see `streamText` in action, check out [these examples](#examples).
     },
     {
       name: 'response',
-      type: 'Promise<LanguageModelResponseMetadata & { messages: Array<ResponseMessage>; }>',
-      description: 'Additional response information from the last step.',
+      type: 'Promise<LanguageModelResponseMetadata>',
+      description:
+        'Deprecated. Use `finalStep.response` instead. Additional response information from the final step. Automatically consumes the stream.',
       properties: [
         {
           type: 'LanguageModelResponseMetadata',
@@ -2632,10 +2830,17 @@ To see `streamText` in action, check out [these examples](#examples).
               description: 'Optional response headers.',
             },
             {
+              name: 'body',
+              isOptional: true,
+              type: 'unknown',
+              description:
+                'Response body (available only for providers that use HTTP requests).',
+            },
+            {
               name: 'messages',
               type: 'Array<ResponseMessage>',
               description:
-                'The response messages that were generated during the call. It consists of an assistant message, potentially containing tool calls.  When there are tool results, there is an additional tool message with the tool results that are available. If there are tools that do not have execute functions, they are not included in the tool results and need to be added separately.',
+                'The response messages generated during the final step. It consists of an assistant message, potentially containing tool calls. When there are tool results in the final step, there is an additional tool message with the available tool results. If there are tools that do not have execute functions, they are not included in the tool results and need to be added separately.',
             },
           ],
         },
@@ -2645,7 +2850,13 @@ To see `streamText` in action, check out [these examples](#examples).
       name: 'warnings',
       type: 'Promise<Warning[] | undefined>',
       description:
-        'Warnings from the model provider (e.g. unsupported settings) for the first step.',
+        'Warnings from the model provider (e.g. unsupported settings) in all steps.',
+    },
+    {
+      name: 'responseMessages',
+      type: 'Promise<Array<ResponseMessage>>',
+      description:
+        'The accumulated response messages of all steps that were generated during the call.',
     },
     {
       name: 'steps',
@@ -2860,10 +3071,18 @@ To see `streamText` in action, check out [these examples](#examples).
                   type: 'RequestMetadata',
                   parameters: [
                     {
-                      name: 'body',
-                      type: 'string',
+                      name: 'messages',
+                      type: 'Array<ModelMessage>',
+                      isOptional: true,
                       description:
-                        'Raw request HTTP body that was sent to the provider API as a string (JSON should be stringified).',
+                        'The input messages that were sent to the model for this step. Undefined by default unless requestMessages is set to true.',
+                    },
+                    {
+                      name: 'body',
+                      type: 'unknown',
+                      isOptional: true,
+                      description:
+                        'Request HTTP body that was sent to the provider API.',
                     },
                   ],
                 },
@@ -2906,7 +3125,7 @@ To see `streamText` in action, check out [these examples](#examples).
                       name: 'messages',
                       type: 'Array<ResponseMessage>',
                       description:
-                        'The response messages that were generated during the call. It consists of an assistant message, potentially containing tool calls.  When there are tool results, there is an additional tool message with the tool results that are available. If there are tools that do not have execute functions, they are not included in the tool results and need to be added separately.',
+                        'The response messages generated during this step. It consists of an assistant message, potentially containing tool calls. When there are tool results in this step, there is an additional tool message with the available tool results. If there are tools that do not have execute functions, they are not included in the tool results and need to be added separately.',
                     },
                   ],
                 },
@@ -2940,6 +3159,12 @@ To see `streamText` in action, check out [these examples](#examples).
       type: 'AsyncIterableStream<string>',
       description:
         'A text stream that returns only the generated text deltas. You can use it as either an AsyncIterable or a ReadableStream. When an error occurs, the stream will throw the error.',
+    },
+    {
+      name: 'finalStep',
+      type: 'Promise<StepResult>',
+      description:
+        'The final step. This is a shortcut for `steps.at(-1)`. Automatically consumes the stream.',
     },
     {
       name: 'fullStream',
@@ -3214,10 +3439,17 @@ To see `streamText` in action, check out [these examples](#examples).
                   type: 'LanguageModelRequestMetadata',
                   parameters: [
                     {
-                      name: 'body',
-                      type: 'string',
+                      name: 'messages',
+                      type: 'Array<ModelMessage>',
                       description:
-                        'Raw request HTTP body that was sent to the provider API as a string.',
+                        'The input messages that were sent to the model for this step.',
+                    },
+                    {
+                      name: 'body',
+                      type: 'unknown',
+                      isOptional: true,
+                      description:
+                        'Request HTTP body that was sent to the provider API.',
                     },
                   ],
                 },
@@ -3242,9 +3474,9 @@ To see `streamText` in action, check out [these examples](#examples).
             },
             {
               name: 'response',
-              type: 'LanguageModelResponseMetadata',
+              type: "Omit<LanguageModelResponseMetadata, 'messages' | 'body'>",
               description:
-                'Response metadata from the language model provider.',
+                'Response metadata from the language model provider. `messages` and `body` are not included on `finish-step` stream parts.',
               properties: [
                 {
                   type: 'LanguageModelResponseMetadata',
@@ -3358,6 +3590,66 @@ To see `streamText` in action, check out [these examples](#examples).
                       type: 'object | undefined',
                       isOptional: true,
                       description: 'Raw usage information from the provider. This is the provider\'s original usage information and may include additional fields.',
+                    },
+                  ],
+                },
+              ],
+            },
+            {
+              name: 'performance',
+              type: 'StepResultPerformance',
+              description: 'Timing and throughput metrics for the step.',
+              properties: [
+                {
+                  type: 'StepResultPerformance',
+                  parameters: [
+                    {
+              name: 'effectiveOutputTokensPerSecond',
+                      type: 'number',
+                      description:
+                'Effective number of output tokens per second over the full language model response.',
+            },
+            {
+              name: 'outputTokensPerSecond',
+              type: 'number | undefined',
+              description:
+                'Number of output tokens per second after the first output token was received. Only available for streaming steps.',
+            },
+            {
+              name: 'inputTokensPerSecond',
+              type: 'number | undefined',
+              description:
+                'Number of input tokens processed per second before the first output token was received. Only available for streaming steps.',
+            },
+            {
+              name: 'effectiveTotalTokensPerSecond',
+              type: 'number',
+              description:
+                'Effective number of input and output tokens per second over the full language model response.',
+                    },
+                    {
+                      name: 'stepTimeMs',
+                      type: 'number',
+                      description:
+                        'Total time spent on the step, including language model response time and tool execution time, in milliseconds.',
+                    },
+                    {
+                      name: 'responseTimeMs',
+                      type: 'number',
+                      description:
+                        'Time spent waiting for the language model response in milliseconds.',
+                    },
+                    {
+                      name: 'toolExecutionMs',
+                      type: 'Readonly<Record<string, number>>',
+                      description:
+                        'Time spent executing each client-side tool call in the step in milliseconds, keyed by tool call ID.',
+                    },
+                    {
+              name: 'timeToFirstOutputTokenMs',
+                      type: 'number | undefined',
+                      description:
+                        'Time until the first text, reasoning, or tool input delta was received in milliseconds. Only available for streaming steps.',
                     },
                   ],
                 },
@@ -3795,16 +4087,6 @@ type ActiveTools<TOOLS extends ToolSet> =
 ```
 
 Limits a generation step to the listed tool names. `undefined` means no tool restriction is applied.
-
-### `SensitiveContext`
-
-```ts
-type SensitiveContext<CONTEXT extends Context> =
-  | { [KEY in keyof CONTEXT]?: boolean }
-  | undefined;
-```
-
-Marks top-level context properties that should be excluded from telemetry. Set a property to `true` to omit it from telemetry integrations; omitted or `false` properties are still sent.
 
 ## Examples
 

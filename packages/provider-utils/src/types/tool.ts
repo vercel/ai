@@ -1,15 +1,15 @@
-import type { JSONValue, SharedV4ProviderMetadata } from '@ai-sdk/provider';
+import type { JSONValue, JSONObject } from '@ai-sdk/provider';
 import type { FlexibleSchema } from '../schema';
 import type { ToolResultOutput } from './content-part';
 import type { Context } from './context';
 import type { NeverOptional } from './never-optional';
 import type { ProviderOptions } from './provider-options';
-import type { SensitiveContext } from './sensitive-context';
 import type {
   ToolExecuteFunction,
   ToolExecutionOptions,
 } from './tool-execute-function';
 import type { ToolNeedsApprovalFunction } from './tool-needs-approval-function';
+import type { Experimental_Sandbox as Sandbox } from './sandbox';
 
 /**
  * Helper type to determine the outputSchema and execute function properties of a tool.
@@ -59,6 +59,8 @@ type BaseTool<
 > = {
   /**
    * An optional title of the tool.
+   *
+   * @deprecated Use `providerMetadata` for source-specific tool display metadata.
    */
   title?: string;
 
@@ -74,11 +76,11 @@ type BaseTool<
    *
    * Unlike `providerOptions`, this metadata is not sent to the language
    * model. Instead, it is propagated onto the resulting tool call's
-   * `providerMetadata` so consumers can read it from tool call / result
-   * parts and UI message parts. This is useful for sources of dynamic
-   * tools (e.g. an MCP server) to identify themselves.
+   * `toolMetadata` so consumers can read it from tool call / result parts
+   * and UI message parts. This is useful for sources of dynamic tools (e.g.
+   * an MCP server) to identify themselves.
    */
-  providerMetadata?: SharedV4ProviderMetadata;
+  metadata?: JSONObject;
 
   /**
    * The schema of the input that the tool expects.
@@ -95,12 +97,6 @@ type BaseTool<
    * The context is passed to execute function as part of the execution options.
    */
   contextSchema?: FlexibleSchema<CONTEXT>;
-
-  /**
-   * Marks top-level context properties that contain sensitive data and should be excluded from telemetry.
-   * Properties marked as `true` are omitted from telemetry integrations.
-   */
-  sensitiveContext?: SensitiveContext<CONTEXT>;
 
   /**
    * Whether the tool needs approval before it can be executed.
@@ -180,10 +176,21 @@ type BaseFunctionTool<
   CONTEXT extends Context | unknown | never = any,
 > = BaseTool<INPUT, OUTPUT, CONTEXT> & {
   /**
-   * An optional description of what the tool does.
-   * Will be used by the language model to decide whether to use the tool.
+   * Optional description of what the tool does.
+   *
+   * Included in the tool definition sent to the language model so it can
+   * decide when and how to call the tool.
+   *
+   * Provide a string for a fixed description, or a function that returns a
+   * string from the current `context` (and optional `experimental_sandbox`) when the
+   * description should vary per call.
    */
-  description?: string;
+  description?:
+    | string
+    | ((options: {
+        context: NoInfer<CONTEXT>;
+        experimental_sandbox?: Sandbox;
+      }) => string);
 
   /**
    * Strict mode setting for the tool.
@@ -208,7 +215,7 @@ type BaseFunctionTool<
 };
 
 /**
- * Tool with user-defined input and output schemas.
+ * Tool with user-defined input and output schemas that is executed by the AI SDK.
  */
 export type FunctionTool<
   INPUT extends JSONValue | unknown | never = any,
@@ -219,8 +226,10 @@ export type FunctionTool<
 };
 
 /**
- * Tool that is defined at runtime (e.g. an MCP tool).
+ * Tool that is defined at runtime.
  * The types of input and output are not known at development time.
+ *
+ * For example, MCP tools that are not known at development time.
  */
 export type DynamicTool<
   INPUT extends JSONValue | unknown | never = any,
@@ -259,6 +268,8 @@ type BaseProviderTool<
 /**
  * Tool with provider-defined input and output schemas that is executed by the
  * user.
+ *
+ * For example, shell tools that are executed in a local shell, but have provider-defined input and output schemas.
  */
 export type ProviderDefinedTool<
   INPUT extends JSONValue | unknown | never = any,
@@ -277,6 +288,8 @@ export type ProviderDefinedTool<
 /**
  * Tool with provider-defined input and output schemas that is executed by the
  * provider.
+ *
+ * For example, web search tools and code execution tools that are executed by the provider itself.
  */
 export type ProviderExecutedTool<
   INPUT extends JSONValue | unknown | never = any,
