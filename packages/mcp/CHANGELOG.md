@@ -1,5 +1,11 @@
 # @ai-sdk/mcp
 
+## 1.0.43
+
+### Patch Changes
+
+- e2b923f: fix(mcp): deduplicate auth refresh on http transport
+
 ## 1.0.42
 
 ### Patch Changes

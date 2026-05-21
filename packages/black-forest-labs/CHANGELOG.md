@@ -1,5 +1,11 @@
 # @ai-sdk/black-forest-labs
 
+## 1.0.34
+
+### Patch Changes
+
+- ba41851: fix(bfl): use 'image' field instead of 'input_image' for fill pro model
+
 ## 1.0.33
 
 ### Patch Changes
