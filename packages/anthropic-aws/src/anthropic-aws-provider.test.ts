@@ -443,6 +443,30 @@ describe('anthropicAws provider - model identity', () => {
     );
   });
 
+  it('exposes files() returning an AnthropicFiles instance', () => {
+    const provider = createAnthropicAws({
+      region: 'us-west-2',
+      workspaceId: 'wrkspc_test',
+      apiKey: 'test-api-key',
+    });
+    const files = provider.files();
+    expect(files.specificationVersion).toBe('v4');
+    expect(files.provider).toBe('anthropic-aws.messages');
+    expect(typeof files.uploadFile).toBe('function');
+  });
+
+  it('exposes skills() returning an AnthropicSkills instance', () => {
+    const provider = createAnthropicAws({
+      region: 'us-west-2',
+      workspaceId: 'wrkspc_test',
+      apiKey: 'test-api-key',
+    });
+    const skills = provider.skills();
+    expect(skills.specificationVersion).toBe('v4');
+    expect(skills.provider).toBe('anthropic-aws.skills');
+    expect(typeof skills.uploadSkill).toBe('function');
+  });
+
   it('throws if the provider function is called with new', () => {
     const provider = createAnthropicAws({
       region: 'us-west-2',

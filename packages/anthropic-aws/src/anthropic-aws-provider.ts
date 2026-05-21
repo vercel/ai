@@ -1,7 +1,9 @@
 import {
   NoSuchModelError,
+  type FilesV4,
   type LanguageModelV4,
   type ProviderV4,
+  type SkillsV4,
 } from '@ai-sdk/provider';
 import {
   loadOptionalSetting,
@@ -10,8 +12,10 @@ import {
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import {
-  anthropicTools,
+  AnthropicFiles,
   AnthropicLanguageModel,
+  AnthropicSkills,
+  anthropicTools,
   type AnthropicModelId,
 } from '@ai-sdk/anthropic/internal';
 import {
@@ -31,12 +35,19 @@ export interface AnthropicAwsProvider extends ProviderV4 {
    */
   languageModel(modelId: AnthropicModelId): LanguageModelV4;
 
-  tools: typeof anthropicTools;
-
   /**
    * @deprecated Use `embeddingModel` instead.
    */
   textEmbeddingModel(modelId: string): never;
+
+  files(): FilesV4;
+
+  /**
+   * Returns a SkillsV4 interface for uploading skills to Anthropic.
+   */
+  skills(): SkillsV4;
+
+  tools: typeof anthropicTools;
 }
 
 export interface AnthropicAwsProviderSettings {
@@ -79,8 +90,7 @@ export interface AnthropicAwsProviderSettings {
   sessionToken?: string;
 
   /**
-   * Base URL for the Claude Platform on AWS API calls. Defaults to
-   * `https://aws-external-anthropic.{region}.api.aws/v1`.
+   * Base URL for the Claude Platform on AWS API calls.
    */
   baseURL?: string;
 
@@ -251,6 +261,22 @@ export function createAnthropicAws(
   provider.imageModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
   };
+
+  provider.files = () =>
+    new AnthropicFiles({
+      provider: 'anthropic-aws.messages',
+      baseURL: getBaseURL(),
+      headers: getHeaders,
+      fetch: fetchFunction,
+    });
+
+  provider.skills = () =>
+    new AnthropicSkills({
+      provider: 'anthropic-aws.skills',
+      baseURL: getBaseURL(),
+      headers: getHeaders,
+      fetch: fetchFunction,
+    });
 
   provider.tools = anthropicTools;
 
