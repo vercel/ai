@@ -4,3 +4,4 @@ export type {
   AnthropicAwsProviderSettings,
 } from './anthropic-aws-provider';
 export type { AnthropicAwsCredentials } from './anthropic-aws-fetch';
+export { VERSION } from './version';
