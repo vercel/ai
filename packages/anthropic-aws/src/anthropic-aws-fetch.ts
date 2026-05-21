@@ -33,7 +33,6 @@ export function createSigV4FetchFunction(
     input: RequestInfo | URL,
     init?: RequestInit,
   ): Promise<Response> => {
-    // avoid caching globalThis.fetch in case it is patched by other libraries
     const effectiveFetch = fetch ?? globalThis.fetch;
     const request = input instanceof Request ? input : undefined;
     const originalHeaders = combineHeaders(
@@ -85,8 +84,6 @@ export function createSigV4FetchFunction(
 
     const signingResult = await signer.sign();
     const signedHeaders = normalizeHeaders(signingResult.headers);
-
-    // Use the combined headers directly as HeadersInit
     const combinedHeaders = combineHeaders(headersWithUserAgent, signedHeaders);
 
     return effectiveFetch(input, {
@@ -124,7 +121,6 @@ export function createApiKeyFetchFunction(
     input: RequestInfo | URL,
     init?: RequestInit,
   ): Promise<Response> => {
-    // avoid caching globalThis.fetch in case it is patched by other libraries
     const effectiveFetch = fetch ?? globalThis.fetch;
     const originalHeaders = normalizeHeaders(init?.headers);
     const headersWithUserAgent = withUserAgentSuffix(
