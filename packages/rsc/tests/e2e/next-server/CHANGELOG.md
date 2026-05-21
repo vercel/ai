@@ -4,6 +4,13 @@
 
 ### Patch Changes
 
+- Updated dependencies [c98715a]
+  - ai@6.0.188
+
+## 0.0.1
+
+### Patch Changes
+
 - ai@6.0.187
 
 ## 0.0.1

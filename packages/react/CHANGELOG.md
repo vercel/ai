@@ -1,5 +1,12 @@
 # @ai-sdk/react
 
+## 3.0.190
+
+### Patch Changes
+
+- Updated dependencies [c98715a]
+  - ai@6.0.188
+
 ## 3.0.189
 
 ### Patch Changes
