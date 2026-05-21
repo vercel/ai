@@ -61,7 +61,7 @@ import { gateway } from 'ai';
 
 You may want to create a custom provider instance when you need to:
 
-- Set custom configuration options (API key, base URL, headers)
+- Set custom configuration options (API key, Vercel access token, base URL, headers)
 - Use the provider in a [provider registry](/docs/ai-sdk-core/provider-management)
 - Wrap the provider with [middleware](/docs/ai-sdk-core/middleware)
 - Use different settings for different parts of your application
@@ -84,8 +84,15 @@ You can use the following optional settings to customize the AI Gateway provider
 
 - **apiKey** _string_
 
-  API key that is being sent using the `Authorization` header. It defaults to
-  the `AI_GATEWAY_API_KEY` environment variable.
+  API key or Vercel access token that is being sent using the `Authorization`
+  header. It defaults to the `AI_GATEWAY_API_KEY` environment variable.
+  Supports AI Gateway API keys, Vercel personal access tokens, and Vercel app
+  access tokens.
+
+- **teamIdOrSlug** _string_
+
+  Vercel team ID or slug used to scope requests when authenticating with
+  multi-team Vercel access tokens.
 
 - **headers** _Record&lt;string,string&gt;_
 
@@ -104,7 +111,7 @@ You can use the following optional settings to customize the AI Gateway provider
 
 ## Authentication
 
-The Gateway provider supports two authentication methods:
+The Gateway provider supports the following authentication methods:
 
 ### API Key Authentication
 
@@ -124,10 +131,27 @@ const gateway = createGateway({
 });
 ```
 
+### Vercel Access Token Authentication
+
+For dynamic runtime authentication, pass a Vercel personal access token or Vercel
+app access token to a custom Gateway provider instance:
+
+```ts
+import { createGateway } from 'ai';
+
+const gateway = createGateway({
+  apiKey: 'your_vercel_access_token_here',
+  teamIdOrSlug: 'your-team', // required for multi-team tokens
+});
+```
+
+`apiKey` takes precedence over `AI_GATEWAY_API_KEY` and OIDC.
+
 ### OIDC Authentication (Vercel Deployments)
 
-When deployed to Vercel, the AI Gateway provider supports authenticating using [OIDC (OpenID Connect)
-tokens](https://vercel.com/docs/oidc) without API Keys.
+When deployed to Vercel, the AI Gateway provider supports authenticating model
+requests using [OIDC (OpenID Connect) tokens](https://vercel.com/docs/oidc)
+without API Keys.
 
 #### How OIDC Authentication Works
 
@@ -146,8 +170,8 @@ tokens](https://vercel.com/docs/oidc) without API Keys.
      - You'll need to run `vercel env pull` again to refresh the token before it expires
 
 <Note>
-  If an API Key is present (either passed directly or via environment), it will
-  always be used, even if invalid.
+  If an API key or Vercel access token is present (either passed directly or via
+  environment), it will always be used instead of OIDC, even if invalid.
 </Note>
 
 Read more about using OIDC tokens in the [Vercel AI Gateway docs](https://vercel.com/docs/ai-gateway#using-the-ai-gateway-with-a-vercel-oidc-token).
