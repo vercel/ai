@@ -2,12 +2,8 @@ import {
   createTestServer,
   TestResponseController,
 } from '@ai-sdk/test-server/with-vitest';
-<<<<<<< HEAD
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-=======
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createMCPClient } from './mcp-client';
->>>>>>> 6c17a9fe1 (fix(mcp): deduplicate auth refresh on http transport (#15518))
 import { HttpMCPTransport } from './mcp-http-transport';
 import { LATEST_PROTOCOL_VERSION } from './types';
 import { MCPClientError } from '../error/mcp-client-error';
