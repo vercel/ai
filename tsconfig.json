@@ -48,6 +48,7 @@
     { "path": "packages/revai" },
     { "path": "packages/rsc" },
     { "path": "packages/sandbox-just-bash" },
+    { "path": "packages/sandbox-vercel" },
     { "path": "packages/svelte" },
     { "path": "packages/test-server" },
     { "path": "packages/togetherai" },

@@ -56,7 +56,7 @@
     "@opentelemetry/sdk-trace-node": "^2.7.1",
     "@standard-schema/spec": "1.1.0",
     "@valibot/to-json-schema": "^1.7.0",
-    "@vercel/sandbox": "^0.0.21",
+    "@vercel/sandbox": "^2.0.0-beta.20",
     "ai": "workspace:*",
     "arktype": "2.1.28",
     "dotenv": "16.4.5",

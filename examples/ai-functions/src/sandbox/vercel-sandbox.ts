@@ -165,6 +165,6 @@ export class VercelSandbox implements Sandbox {
   }
 
   get description() {
-    return `Vercel Sandbox ID: ${this.sandbox.sandboxId}\nRoot directory: ${rootDirectory}`;
+    return `Vercel Sandbox name: ${this.sandbox.name}\nRoot directory: ${rootDirectory}`;
   }
 }
