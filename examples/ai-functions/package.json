@@ -38,6 +38,7 @@
     "@ai-sdk/perplexity": "workspace:*",
     "@ai-sdk/prodia": "workspace:*",
     "@ai-sdk/provider": "workspace:*",
+    "@ai-sdk/quiverai": "workspace:*",
     "@ai-sdk/replicate": "workspace:*",
     "@ai-sdk/revai": "workspace:*",
     "@ai-sdk/togetherai": "workspace:*",
