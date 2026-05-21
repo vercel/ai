@@ -38,7 +38,7 @@ aws iam enable-outbound-web-identity-federation
 
 Without this, every request returns `Outbound web identity federation is disabled for your account`. This is the most common setup error.
 
-You'll also need your workspace ID. When you subscribe, AWS provisions an initial workspace for your account in the selected region; you can find the ID in the Claude Console under **Workspaces** (accessed from the AWS Console via the Claude Platform on AWS service page).
+You'll also need your workspace ID. When you subscribe, AWS provisions an initial workspace for your account in the selected region. You can find the ID in the Claude Console under **Workspaces** (accessed from the AWS Console via the Claude Platform on AWS service page).
 
 ### Authentication
 
@@ -128,7 +128,7 @@ import { anthropicAws } from '@ai-sdk/anthropic-aws';
 const model = anthropicAws('claude-sonnet-4-6');
 ```
 
-Model IDs are identical to the first-party Anthropic API — no Bedrock-style prefix. See the [Anthropic provider docs](/providers/ai-sdk-providers/anthropic#language-models) for the full list of supported models, language model options, prompt caching, computer use, web search, code execution, and Agent Skills. All of these work identically here because Claude Platform on AWS uses Anthropic's runtime directly.
+Model IDs are identical to the first-party Anthropic API. See the [Anthropic provider docs](/providers/ai-sdk-providers/anthropic#language-models) for the full list of language model options, prompt caching, computer use, web search, code execution, and Agent Skills. All of these work identically here because Claude Platform on AWS uses Anthropic's runtime directly.
 
 ### Example
 
@@ -149,5 +149,3 @@ Your IAM principal needs permission to call the Claude Platform on AWS actions o
 - `AnthropicFullAccess` — grants `aws-external-anthropic:*` on all resources.
 - `AnthropicInferenceAccess` — grants read actions plus `CreateInference`, `CreateBatchInference`, `CancelBatchInference`, `DeleteBatchInference`, and `CountTokens` on all workspaces. **This is the minimum for calling models.**
 - `AnthropicReadOnlyAccess` — grants `Get*`, `List*`, and `CallWithBearerToken` on all workspaces. Insufficient for inference.
-
-For request-level IAM policy examples (e.g. denying batch inference while allowing real-time inference), see the [Claude Platform on AWS documentation](https://platform.claude.com/docs/en/api/claude-platform-on-aws/iam-actions).
