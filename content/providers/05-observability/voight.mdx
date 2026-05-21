@@ -1,0 +1,132 @@
+---
+title: Voight
+description: Monitoring and per-user attribution for AI SDK applications with Voight
+---
+
+# Voight
+
+[Voight](https://voight.xyz) is an observability platform for production LLM applications. After integrating with the AI SDK, you can use Voight to capture prompts, tokens, tool calls, cache reads, latency, and errors, and attribute cost per end-user with one line of code.
+
+## Setup
+
+Voight supports [AI SDK telemetry data](/docs/ai-sdk-core/telemetry) through [OpenTelemetry](https://opentelemetry.io/docs/). The `VoightExporter` is published as `@voightxyz/vercel-ai` and consumes the spans the AI SDK emits natively.
+
+Sign up at [voight.xyz/dashboard](https://voight.xyz/dashboard) (Google / X / wallet) and generate an API key under Settings to get a `vk_…` value.
+
+### Next.js
+
+Install the dependencies:
+
+```bash
+npm install @voightxyz/vercel-ai @vercel/otel @ai-sdk/otel
+```
+
+Set your Voight key as an environment variable:
+
+```bash filename=".env"
+VOIGHT_KEY=vk_…
+```
+
+Register `LegacyOpenTelemetry` and the Voight exporter in your `instrumentation.ts`:
+
+```typescript filename="instrumentation.ts"
+import { registerTelemetry } from 'ai';
+import { LegacyOpenTelemetry } from '@ai-sdk/otel';
+import { registerOTel } from '@vercel/otel';
+import { VoightExporter } from '@voightxyz/vercel-ai';
+
+registerTelemetry(new LegacyOpenTelemetry());
+
+export function register() {
+  registerOTel({
+    serviceName: 'my-voight-app',
+    traceExporter: new VoightExporter({
+      agent: 'my-voight-app',
+      privacy: 'standard',
+    }),
+  });
+}
+```
+
+Once registered, telemetry is emitted automatically. Pass a `metadata` bag to attribute cost per end-user:
+
+```typescript
+import { generateText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+const result = await generateText({
+  model: openai('gpt-4o-mini'),
+  prompt: 'What is 2 + 2?',
+  telemetry: {
+    metadata: {
+      userId: session.user.id,
+      plan: session.user.plan,
+    },
+  },
+});
+```
+
+The Voight exporter lifts every `ai.telemetry.metadata.<key>` span attribute onto `metadata.tags.<key>` — `tags.userId` powers the dashboard's Users sub-tab; everything else feeds the per-tag filter pills.
+
+### Node.js
+
+If you are using Node.js without a framework, configure the OpenTelemetry SDK directly with a `SimpleSpanProcessor`:
+
+```bash
+npm install @voightxyz/vercel-ai @ai-sdk/otel @opentelemetry/sdk-trace-node ai @ai-sdk/openai
+```
+
+```typescript
+import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
+import { SimpleSpanProcessor } from '@opentelemetry/sdk-trace-base';
+import { registerTelemetry, generateText } from 'ai';
+import { LegacyOpenTelemetry } from '@ai-sdk/otel';
+import { openai } from '@ai-sdk/openai';
+import { VoightExporter } from '@voightxyz/vercel-ai';
+
+const provider = new NodeTracerProvider({
+  spanProcessors: [
+    new SimpleSpanProcessor(
+      new VoightExporter({ agent: 'my-voight-app', privacy: 'standard' }),
+    ),
+  ],
+});
+provider.register();
+registerTelemetry(new LegacyOpenTelemetry());
+
+const result = await generateText({
+  model: openai('gpt-4o-mini'),
+  prompt: 'Hello',
+  telemetry: { isEnabled: true },
+});
+```
+
+<Note>
+  The exporter coexists with any other OpenTelemetry exporter — pass an array of exporters to `registerOTel` (or add a second `SimpleSpanProcessor` to the `NodeTracerProvider`) to ship the same spans to Voight and Datadog / Sentry / Honeycomb / Grafana Tempo / etc. at the same time.
+</Note>
+
+## What's captured
+
+| Signal | Attribute |
+| --- | --- |
+| Model id | `model` |
+| Provider (`openai`, `anthropic`, …) | `metadata.provider` |
+| Prompts | `input.messages` (post-privacy filter) |
+| Response text | `metadata.responseText` |
+| Tool calls (id, name, JSON-stringified arguments) | `metadata.toolCalls` |
+| Token counts (input / output / cache_read / cache_creation) | `metadata.tokens` |
+| Finish reason | `metadata.finishReason` |
+| Streaming flag | `metadata.streaming` |
+| Per-call session id | `metadata.sessionId` |
+| User-supplied metadata | `metadata.tags.*` |
+| Latency | `durationMs` |
+| Errors | `errorMessage` + `outcome: 'failed'` |
+
+Three privacy levels (`'minimal'` / `'standard'` / `'full'`) control how aggressively prompts, response text, and tool arguments are scrubbed before the event leaves the process.
+
+## Resources
+
+- [Voight dashboard](https://voight.xyz/dashboard/ai-apps)
+- [Voight Vercel AI SDK docs](https://docs.voight.xyz/ai-apps/vercel-ai)
+- [GitHub — `@voightxyz/vercel-ai`](https://github.com/Voightxyz/voight-vercel-ai) (Apache 2.0)
+- [npm — `@voightxyz/vercel-ai`](https://www.npmjs.com/package/@voightxyz/vercel-ai)
