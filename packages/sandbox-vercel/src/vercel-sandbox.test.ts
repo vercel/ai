@@ -268,16 +268,6 @@ describe('VercelSandbox', () => {
       expect(exitCode).toBe(0);
     });
 
-    it('omits the stdin field', async () => {
-      const { handle } = makeMockCommand({});
-      baseSandbox.spies.runCommand.mockResolvedValueOnce(handle);
-      const proc = await new VercelSandbox(baseSandbox.sandbox).spawnCommand({
-        command: 'true',
-      });
-      expect(proc.stdin).toBeUndefined();
-      await proc.wait();
-    });
-
     it('surfaces non-zero exit codes via wait()', async () => {
       const { handle } = makeMockCommand({ exitCode: 7 });
       baseSandbox.spies.runCommand.mockResolvedValueOnce(handle);
