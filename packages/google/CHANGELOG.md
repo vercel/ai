@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 3.0.79
+
+### Patch Changes
+
+- cfa0cb2: feat(provider/google): support Google search grounding when using `generateImage` with Gemini
+
 ## 3.0.78
 
 ### Patch Changes
