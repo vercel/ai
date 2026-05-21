@@ -42,6 +42,7 @@
     "@ai-sdk/prodia": "workspace:*",
     "@ai-sdk/provider": "workspace:*",
     "@ai-sdk/provider-utils": "workspace:*",
+    "@ai-sdk/quiverai": "workspace:*",
     "@ai-sdk/replicate": "workspace:*",
     "@ai-sdk/revai": "workspace:*",
     "@ai-sdk/togetherai": "workspace:*",

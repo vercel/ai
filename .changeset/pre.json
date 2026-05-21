@@ -43,6 +43,7 @@
     "@ai-sdk/prodia": "1.0.21",
     "@ai-sdk/provider": "3.0.8",
     "@ai-sdk/provider-utils": "4.0.19",
+    "@ai-sdk/quiverai": "1.0.0",
     "@ai-sdk/react": "3.0.118",
     "@ai-sdk/replicate": "2.0.24",
     "@ai-sdk/revai": "2.0.24",
@@ -88,6 +89,8 @@
     "konsistent-provider": "0.0.1"
   },
   "changesets": [
+    "acupf-uiktr-ypdkq",
+    "add-qwen-3-7-max-alibaba",
     "add-resource-link-content",
     "allow-system-in-messages-agent",
     "allowed-tools-tool-choice",
@@ -339,6 +342,7 @@
     "quiet-ties-hide",
     "quiet-tomatoes-double",
     "quiet-worms-kick",
+    "quiverai-provider",
     "raise-minimum-node-version",
     "rare-birds-deny",
     "rare-maps-invent",
@@ -456,6 +460,7 @@
     "two-fireants-notice",
     "two-needles-lay",
     "two-pens-teach",
+    "two-ravens-sleep",
     "uaqzy-hwkdl-lhxvz",
     "umduv-thyel-zirhi",
     "unlucky-cats-grow",
