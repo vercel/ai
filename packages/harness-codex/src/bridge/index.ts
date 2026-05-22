@@ -208,6 +208,15 @@ async function runTurn({
       }
     | undefined;
 
+  /*
+   * Known limitation: codex CLI does not currently surface MCP tools to the
+   * model in `codex exec --experimental-json` mode (the path the
+   * `@openai/codex-sdk` uses). The MCP handshake completes and `tools/list`
+   * returns the host tool, but codex never registers it as a model-callable
+   * function. Built-in MCP-resource accessors (`list_mcp_resources` etc.) are
+   * exposed; tools are not. Tracked upstream at
+   * https://github.com/openai/codex/issues/19425.
+   */
   const mcpServers: Record<string, unknown> = {};
   let relay: { port: number; close(): void } | undefined;
   if (start.tools && start.tools.length > 0) {
@@ -219,6 +228,7 @@ async function runTurn({
       pendingHostToolResolvers,
     });
     mcpServers['harness-tools'] = {
+      enabled: true,
       command: 'node',
       args: [`${workdir}/host-tool-mcp.mjs`],
       env: {
@@ -232,10 +242,6 @@ async function runTurn({
         TOOL_RELAY_URL: `http://127.0.0.1:${relay.port}`,
         TOOL_RELAY_TOKEN: relayToken,
       },
-      enabled: true,
-      enabled_tools: start.tools.map(t => t.name),
-      startup_timeout_sec: 30,
-      tool_timeout_sec: 300,
     };
   }
 

@@ -279,6 +279,8 @@ async function runTurn({
         : {}),
       includePartialMessages: true,
       ...(firstTurn ? {} : { continue: true }),
+      permissionMode: 'bypassPermissions',
+      allowDangerouslySkipPermissions: true,
       mcpServers,
       cwd: workdir,
       abortSignal: abortCtl.signal,
