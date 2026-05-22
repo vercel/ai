@@ -179,6 +179,11 @@ export class ByteDanceVideoModel implements Experimental_VideoModelV4 {
       content.push({
         type: 'image_url',
         image_url: { url: convertImageModelFileToDataUri(options.image) },
+        // In First-and-Last-Frame mode the API requires a role on every
+        // image content, so tag the input image as the first frame.
+        ...(byteDanceOptions?.lastFrameImage != null
+          ? { role: 'first_frame' }
+          : {}),
       });
     }
 
