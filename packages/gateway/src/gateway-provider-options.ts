@@ -101,6 +101,13 @@ const gatewayProviderOptions = lazySchema(() =>
           byok: z.record(z.string(), z.number().int().min(1000)).optional(),
         })
         .optional(),
+      /**
+       * Unified service tier intent. Translated by the gateway into the
+       * per-provider option each provider expects, and overrides any tier
+       * also set in the per-provider options. Leave unset for provider
+       * default.
+       */
+      serviceTier: z.enum(['flex', 'priority']).optional(),
     }),
   ),
 );
