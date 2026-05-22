@@ -1,5 +1,12 @@
 # @ai-sdk/google-vertex
 
+## 5.0.0-canary.91
+
+### Patch Changes
+
+- Updated dependencies [b71c0d7]
+  - @ai-sdk/google@4.0.0-canary.72
+
 ## 5.0.0-canary.90
 
 ### Patch Changes

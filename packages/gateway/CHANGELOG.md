@@ -1,5 +1,12 @@
 # @ai-sdk/gateway
 
+## 4.0.0-canary.89
+
+### Patch Changes
+
+- bba5250: chore(provider/gateway): update gateway model settings files
+- 94c6edc: Add `qwen3.7-max` model ID to Alibaba and AI Gateway.
+
 ## 4.0.0-canary.88
 
 ### Patch Changes

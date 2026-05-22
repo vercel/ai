@@ -343,6 +343,9 @@ importers:
       '@ai-sdk/provider-utils':
         specifier: workspace:*
         version: link:../../packages/provider-utils
+      '@ai-sdk/quiverai':
+        specifier: workspace:*
+        version: link:../../packages/quiverai
       '@ai-sdk/replicate':
         specifier: workspace:*
         version: link:../../packages/replicate
@@ -2788,6 +2791,34 @@ importers:
       msw:
         specifier: 2.7.0
         version: 2.7.0(@types/node@22.19.19)(typescript@5.8.3)
+      tsup:
+        specifier: ^8.5.1
+        version: 8.5.1(@swc/core@1.15.3(@swc/helpers@0.5.21))(jiti@2.7.0)(postcss@8.5.14)(tsx@4.22.0)(typescript@5.8.3)(yaml@2.9.0)
+      typescript:
+        specifier: 5.8.3
+        version: 5.8.3
+      zod:
+        specifier: 3.25.76
+        version: 3.25.76
+
+  packages/quiverai:
+    dependencies:
+      '@ai-sdk/provider':
+        specifier: workspace:*
+        version: link:../provider
+      '@ai-sdk/provider-utils':
+        specifier: workspace:*
+        version: link:../provider-utils
+    devDependencies:
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
+      '@types/node':
+        specifier: 22.19.19
+        version: 22.19.19
+      '@vercel/ai-tsconfig':
+        specifier: workspace:*
+        version: link:../../tools/tsconfig
       tsup:
         specifier: ^8.5.1
         version: 8.5.1(@swc/core@1.15.3(@swc/helpers@0.5.21))(jiti@2.7.0)(postcss@8.5.14)(tsx@4.22.0)(typescript@5.8.3)(yaml@2.9.0)
@@ -24354,12 +24385,6 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@konsistent/convention@0.0.1-alpha.2(zod@4.3.6)':
-    dependencies:
-      citty: 0.2.1
-      jiti: 2.6.1
-      zod: 4.3.6
-
   '@konsistent/convention@0.0.1-alpha.2(zod@4.4.3)':
     dependencies:
       citty: 0.2.1
@@ -34481,13 +34506,13 @@ snapshots:
 
   konsistent@0.0.1-alpha.20:
     dependencies:
-      '@konsistent/convention': 0.0.1-alpha.2(zod@4.3.6)
+      '@konsistent/convention': 0.0.1-alpha.2(zod@4.4.3)
       citty: 0.2.1
       picocolors: 1.1.1
       resolve.exports: 2.0.2
       tinyglobby: 0.2.15
-      typescript: 5.8.3
-      zod: 4.3.6
+      typescript: 5.9.3
+      zod: 4.4.3
 
   kuler@2.0.0: {}
 
