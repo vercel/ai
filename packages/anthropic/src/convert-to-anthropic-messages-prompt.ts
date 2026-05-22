@@ -53,6 +53,7 @@ function convertToString(data: LanguageModelV3DataContent): string {
 }
 
 /**
+<<<<<<< HEAD:packages/anthropic/src/convert-to-anthropic-messages-prompt.ts
  * Checks if data is a URL (either a URL object or a URL string).
  */
 function isUrlData(
@@ -70,6 +71,31 @@ function getUrlString(data: LanguageModelV3DataContent): string {
 }
 
 export async function convertToAnthropicMessagesPrompt({
+=======
+ * Extract error information from a provider tool error result value.
+ * Handles both stringified JSON and plain object forms.
+ */
+function extractErrorValue(value: unknown): { errorCode?: string } {
+  try {
+    if (typeof value === 'string') {
+      return JSON.parse(value);
+    } else if (typeof value === 'object' && value !== null) {
+      return value as { errorCode?: string };
+    }
+  } catch {
+    const extractedErrorCode = (value as Record<string, unknown>)?.errorCode;
+    return {
+      errorCode:
+        typeof extractedErrorCode === 'string'
+          ? extractedErrorCode
+          : 'unavailable',
+    };
+  }
+  return {};
+}
+
+export async function convertToAnthropicPrompt({
+>>>>>>> acdbf8411 (Handle errors in anthropic's web search tool (#15552)):packages/anthropic/src/convert-to-anthropic-prompt.ts
   prompt,
   sendReasoning,
   warnings,
@@ -888,35 +914,14 @@ export async function convertToAnthropicMessagesPrompt({
                   const output = part.output;
 
                   if (output.type === 'error-json') {
-                    let errorValue: { errorCode?: string } = {};
-                    try {
-                      if (typeof output.value === 'string') {
-                        errorValue = JSON.parse(output.value);
-                      } else if (
-                        typeof output.value === 'object' &&
-                        output.value !== null
-                      ) {
-                        errorValue = output.value as typeof errorValue;
-                      }
-                    } catch {
-                      // If parsing fails, treat the value as-is
-                      const extractedErrorCode = (
-                        output.value as Record<string, unknown>
-                      )?.errorCode;
-                      errorValue = {
-                        errorCode:
-                          typeof extractedErrorCode === 'string'
-                            ? extractedErrorCode
-                            : 'unavailable',
-                      };
-                    }
-
                     anthropicContent.push({
                       type: 'web_fetch_tool_result',
                       tool_use_id: part.toolCallId,
                       content: {
                         type: 'web_fetch_tool_result_error',
-                        error_code: errorValue.errorCode ?? 'unavailable',
+                        error_code:
+                          extractErrorValue(output.value).errorCode ??
+                          'unavailable',
                       },
                       cache_control: cacheControl,
                     });
@@ -970,6 +975,22 @@ export async function convertToAnthropicMessagesPrompt({
 
                 if (providerToolName === 'web_search') {
                   const output = part.output;
+
+                  if (output.type === 'error-json') {
+                    anthropicContent.push({
+                      type: 'web_search_tool_result',
+                      tool_use_id: part.toolCallId,
+                      content: {
+                        type: 'web_search_tool_result_error',
+                        error_code:
+                          extractErrorValue(output.value).errorCode ??
+                          'unavailable',
+                      },
+                      cache_control: cacheControl,
+                    });
+
+                    break;
+                  }
 
                   if (output.type !== 'json') {
                     warnings.push({
