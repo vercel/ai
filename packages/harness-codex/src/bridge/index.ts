@@ -8,8 +8,15 @@
 // the host over WS and waits for the matching `tool-result`.
 
 import { randomUUID } from 'node:crypto';
-import { readFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 import { createServer, type Server } from 'node:http';
+// Temporary workaround for upstream codex MCP-tool bug — see ./cli-relay.ts
+import {
+  CLI_SHIM_FILENAME,
+  buildCliShimScript,
+  composeToolUsageInstructions,
+  isToolRelayCommand,
+} from './cli-relay';
 import { argv, env as procEnv, stdout } from 'node:process';
 
 const PROTOCOL_VERSION = 1;
@@ -216,9 +223,18 @@ async function runTurn({
    * function. Built-in MCP-resource accessors (`list_mcp_resources` etc.) are
    * exposed; tools are not. Tracked upstream at
    * https://github.com/openai/codex/issues/19425.
+   *
+   * Until that's fixed, host tools are made available to the model via a
+   * separate CLI-relay workaround (see `./cli-relay.ts`). The MCP server
+   * config below is kept so that the day codex starts exposing MCP tools
+   * properly, host tools work both ways. Three hookpoints in this file
+   * (writeFile for the shim, composeUserMessage's toolUsageBlock, and the
+   * isToolRelayCommand filter in the event loop) implement the workaround
+   * and can be removed once the upstream bug is fixed.
    */
   const mcpServers: Record<string, unknown> = {};
   let relay: { port: number; close(): void } | undefined;
+  let cliShimPath: string | undefined;
   if (start.tools && start.tools.length > 0) {
     const relayToken = randomUUID();
     relay = await startToolRelay({
@@ -243,6 +259,13 @@ async function runTurn({
         TOOL_RELAY_TOKEN: relayToken,
       },
     };
+    // Temporary workaround for upstream codex MCP-tool bug — see ./cli-relay.ts
+    cliShimPath = `${workdir}/${CLI_SHIM_FILENAME}`;
+    await writeFile(
+      cliShimPath,
+      buildCliShimScript({ relayPort: relay.port, relayToken }),
+      'utf8',
+    );
   }
 
   const codexConfig: Record<string, unknown> = {};
@@ -315,6 +338,14 @@ async function runTurn({
     text: extractUserText(start.promptMessages),
     instructions: start.instructions,
     skills: start.skills,
+    // Temporary workaround for upstream codex MCP-tool bug — see ./cli-relay.ts
+    toolUsageBlock:
+      cliShimPath && start.tools && start.tools.length > 0
+        ? composeToolUsageInstructions({
+            tools: start.tools,
+            cliShimPath,
+          })
+        : undefined,
   });
   let turnUsage: Record<string, unknown> | undefined;
   const textByItem = new Map<string, string>();
@@ -331,6 +362,15 @@ async function runTurn({
         typeof event.thread_id === 'string'
       ) {
         threadState.id = event.thread_id;
+      }
+      // Temporary workaround for upstream codex MCP-tool bug — see ./cli-relay.ts
+      if (
+        cliShimPath &&
+        event.item?.type === 'command_execution' &&
+        typeof event.item.command === 'string' &&
+        isToolRelayCommand({ command: event.item.command, cliShimPath })
+      ) {
+        continue;
       }
       translateAndEmit(event, {
         send,
@@ -605,12 +645,14 @@ function composeUserMessage({
   text,
   instructions,
   skills,
+  toolUsageBlock,
 }: {
   text: string;
   instructions: string | undefined;
   skills:
     | ReadonlyArray<{ name: string; description: string; content: string }>
     | undefined;
+  toolUsageBlock: string | undefined;
 }): string {
   const blocks: string[] = [];
   if (instructions) blocks.push(instructions);
@@ -621,6 +663,7 @@ function composeUserMessage({
     }
     blocks.push(lines.join('\n'));
   }
+  if (toolUsageBlock) blocks.push(toolUsageBlock);
   blocks.push(text);
   return blocks.join('\n\n');
 }
