@@ -1715,7 +1715,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                       providerToolName === 'code_execution'
                         ? { dynamic: true }
                         : {}),
-                      firstDelta: finalInput.length === 0,
+                      firstDelta: true,
                       providerToolName,
                     };
 
