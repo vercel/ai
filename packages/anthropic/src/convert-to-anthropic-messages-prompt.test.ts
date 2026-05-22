@@ -1295,8 +1295,8 @@ describe('assistant messages', () => {
   });
 
   it('should convert anthropic web_search tool call with error result (error-json string)', async () => {
-    const warnings: SharedV4Warning[] = [];
-    const result = await convertToAnthropicPrompt({
+    const warnings: SharedV3Warning[] = [];
+    const result = await convertToAnthropicMessagesPrompt({
       prompt: [
         {
           role: 'assistant',
@@ -1367,8 +1367,8 @@ describe('assistant messages', () => {
   });
 
   it('should convert anthropic web_search tool call with error result (error-json object)', async () => {
-    const warnings: SharedV4Warning[] = [];
-    const result = await convertToAnthropicPrompt({
+    const warnings: SharedV3Warning[] = [];
+    const result = await convertToAnthropicMessagesPrompt({
       prompt: [
         {
           role: 'assistant',

@@ -10,6 +10,7 @@ import {
   convertBase64ToUint8Array,
   convertToBase64,
   parseProviderOptions,
+  safeParseJSON,
   validateTypes,
   isNonNullable,
   type ToolNameMapping,
@@ -53,7 +54,6 @@ function convertToString(data: LanguageModelV3DataContent): string {
 }
 
 /**
-<<<<<<< HEAD:packages/anthropic/src/convert-to-anthropic-messages-prompt.ts
  * Checks if data is a URL (either a URL object or a URL string).
  */
 function isUrlData(
@@ -70,32 +70,37 @@ function getUrlString(data: LanguageModelV3DataContent): string {
   return data instanceof URL ? data.toString() : (data as string);
 }
 
-export async function convertToAnthropicMessagesPrompt({
-=======
+/**
  * Extract error information from a provider tool error result value.
  * Handles both stringified JSON and plain object forms.
  */
-function extractErrorValue(value: unknown): { errorCode?: string } {
-  try {
-    if (typeof value === 'string') {
-      return JSON.parse(value);
-    } else if (typeof value === 'object' && value !== null) {
-      return value as { errorCode?: string };
+async function extractErrorValue(
+  value: unknown,
+): Promise<{ errorCode?: string }> {
+  if (typeof value === 'string') {
+    const result = await safeParseJSON({ text: value });
+
+    if (
+      result.success &&
+      typeof result.value === 'object' &&
+      result.value !== null
+    ) {
+      return result.value as { errorCode?: string };
     }
-  } catch {
-    const extractedErrorCode = (value as Record<string, unknown>)?.errorCode;
+
     return {
-      errorCode:
-        typeof extractedErrorCode === 'string'
-          ? extractedErrorCode
-          : 'unavailable',
+      errorCode: 'unavailable',
     };
   }
+
+  if (typeof value === 'object' && value !== null) {
+    return value as { errorCode?: string };
+  }
+
   return {};
 }
 
-export async function convertToAnthropicPrompt({
->>>>>>> acdbf8411 (Handle errors in anthropic's web search tool (#15552)):packages/anthropic/src/convert-to-anthropic-prompt.ts
+export async function convertToAnthropicMessagesPrompt({
   prompt,
   sendReasoning,
   warnings,
@@ -920,7 +925,7 @@ export async function convertToAnthropicPrompt({
                       content: {
                         type: 'web_fetch_tool_result_error',
                         error_code:
-                          extractErrorValue(output.value).errorCode ??
+                          (await extractErrorValue(output.value)).errorCode ??
                           'unavailable',
                       },
                       cache_control: cacheControl,
@@ -983,7 +988,7 @@ export async function convertToAnthropicPrompt({
                       content: {
                         type: 'web_search_tool_result_error',
                         error_code:
-                          extractErrorValue(output.value).errorCode ??
+                          (await extractErrorValue(output.value)).errorCode ??
                           'unavailable',
                       },
                       cache_control: cacheControl,
