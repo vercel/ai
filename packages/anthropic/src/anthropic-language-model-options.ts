@@ -50,6 +50,14 @@ export const anthropicFilePartProviderOptions = z.object({
    * Useful for storing document metadata as text or stringified JSON.
    */
   context: z.string().optional(),
+
+  /**
+   * When true, the file reference is sent as a `container_upload` content
+   * block instead of a `document` block to the model. This is used to make
+   * uploaded files (e.g. CSV, Excel, JSON, images) available to Anthropic's
+   * code execution tool.
+   */
+  containerUpload: z.boolean().optional(),
 });
 
 export type AnthropicFilePartProviderOptions = z.infer<

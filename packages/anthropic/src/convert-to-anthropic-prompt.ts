@@ -164,7 +164,21 @@ export async function convertToAnthropicPrompt({
                         });
                         betas.add('files-api-2025-04-14');
 
-                        if (getTopLevelMediaType(part.mediaType) === 'image') {
+                        const filePartOptions = await parseProviderOptions({
+                          provider: 'anthropic',
+                          providerOptions: part.providerOptions,
+                          schema: anthropicFilePartProviderOptions,
+                        });
+
+                        if (filePartOptions?.containerUpload) {
+                          anthropicContent.push({
+                            type: 'container_upload',
+                            file_id: fileId,
+                            cache_control: cacheControl,
+                          });
+                        } else if (
+                          getTopLevelMediaType(part.mediaType) === 'image'
+                        ) {
                           anthropicContent.push({
                             type: 'image',
                             source: { type: 'file', file_id: fileId },

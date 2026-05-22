@@ -755,6 +755,96 @@ describe('user messages', () => {
       "No provider reference found for provider 'anthropic'. Available providers: openai",
     );
   });
+
+  it('should convert file reference with containerUpload option to container_upload block', async () => {
+    const result = await convertToAnthropicPrompt({
+      prompt: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              mediaType: 'text/csv',
+              data: {
+                type: 'reference' as const,
+                reference: { anthropic: 'file-csv-12345' },
+              },
+              providerOptions: {
+                anthropic: { containerUpload: true },
+              },
+            },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings: [],
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    expect(result).toEqual({
+      prompt: {
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'container_upload',
+                file_id: 'file-csv-12345',
+                cache_control: undefined,
+              },
+            ],
+          },
+        ],
+        system: undefined,
+      },
+      betas: new Set(['files-api-2025-04-14']),
+    });
+  });
+
+  it('should use container_upload for image references when containerUpload option is true', async () => {
+    const result = await convertToAnthropicPrompt({
+      prompt: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              mediaType: 'image/png',
+              data: {
+                type: 'reference' as const,
+                reference: { anthropic: 'file-img-99999' },
+              },
+              providerOptions: {
+                anthropic: { containerUpload: true },
+              },
+            },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings: [],
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    expect(result).toEqual({
+      prompt: {
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'container_upload',
+                file_id: 'file-img-99999',
+                cache_control: undefined,
+              },
+            ],
+          },
+        ],
+        system: undefined,
+      },
+      betas: new Set(['files-api-2025-04-14']),
+    });
+  });
 });
 
 describe('tool messages', () => {
