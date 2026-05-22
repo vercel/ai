@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 4.0.0-canary.59
+
+### Patch Changes
+
+- 648705c: fix(provider/anthropic): fix remaining errors with Anthropic `code_execution` tool dynamic calls from latest `web_fetch` or `web_search`
+
 ## 4.0.0-canary.58
 
 ### Patch Changes
