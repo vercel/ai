@@ -10,6 +10,7 @@ import {
   convertBase64ToUint8Array,
   convertToBase64,
   parseProviderOptions,
+  safeParseJSON,
   validateTypes,
   isNonNullable,
   type ToolNameMapping,
@@ -67,6 +68,36 @@ function isUrlString(data: LanguageModelV3DataContent): boolean {
 
 function getUrlString(data: LanguageModelV3DataContent): string {
   return data instanceof URL ? data.toString() : (data as string);
+}
+
+/**
+ * Extract error information from a provider tool error result value.
+ * Handles both stringified JSON and plain object forms.
+ */
+async function extractErrorValue(
+  value: unknown,
+): Promise<{ errorCode?: string }> {
+  if (typeof value === 'string') {
+    const result = await safeParseJSON({ text: value });
+
+    if (
+      result.success &&
+      typeof result.value === 'object' &&
+      result.value !== null
+    ) {
+      return result.value as { errorCode?: string };
+    }
+
+    return {
+      errorCode: 'unavailable',
+    };
+  }
+
+  if (typeof value === 'object' && value !== null) {
+    return value as { errorCode?: string };
+  }
+
+  return {};
 }
 
 export async function convertToAnthropicMessagesPrompt({
@@ -888,35 +919,14 @@ export async function convertToAnthropicMessagesPrompt({
                   const output = part.output;
 
                   if (output.type === 'error-json') {
-                    let errorValue: { errorCode?: string } = {};
-                    try {
-                      if (typeof output.value === 'string') {
-                        errorValue = JSON.parse(output.value);
-                      } else if (
-                        typeof output.value === 'object' &&
-                        output.value !== null
-                      ) {
-                        errorValue = output.value as typeof errorValue;
-                      }
-                    } catch {
-                      // If parsing fails, treat the value as-is
-                      const extractedErrorCode = (
-                        output.value as Record<string, unknown>
-                      )?.errorCode;
-                      errorValue = {
-                        errorCode:
-                          typeof extractedErrorCode === 'string'
-                            ? extractedErrorCode
-                            : 'unavailable',
-                      };
-                    }
-
                     anthropicContent.push({
                       type: 'web_fetch_tool_result',
                       tool_use_id: part.toolCallId,
                       content: {
                         type: 'web_fetch_tool_result_error',
-                        error_code: errorValue.errorCode ?? 'unavailable',
+                        error_code:
+                          (await extractErrorValue(output.value)).errorCode ??
+                          'unavailable',
                       },
                       cache_control: cacheControl,
                     });
@@ -970,6 +980,22 @@ export async function convertToAnthropicMessagesPrompt({
 
                 if (providerToolName === 'web_search') {
                   const output = part.output;
+
+                  if (output.type === 'error-json') {
+                    anthropicContent.push({
+                      type: 'web_search_tool_result',
+                      tool_use_id: part.toolCallId,
+                      content: {
+                        type: 'web_search_tool_result_error',
+                        error_code:
+                          (await extractErrorValue(output.value)).errorCode ??
+                          'unavailable',
+                      },
+                      cache_control: cacheControl,
+                    });
+
+                    break;
+                  }
 
                   if (output.type !== 'json') {
                     warnings.push({

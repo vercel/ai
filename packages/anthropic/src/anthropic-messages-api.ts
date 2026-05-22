@@ -205,13 +205,18 @@ export interface AnthropicToolResultContent {
 export interface AnthropicWebSearchToolResultContent {
   type: 'web_search_tool_result';
   tool_use_id: string;
-  content: Array<{
-    url: string;
-    title: string | null;
-    page_age: string | null;
-    encrypted_content: string;
-    type: string;
-  }>;
+  content:
+    | Array<{
+        url: string;
+        title: string | null;
+        page_age: string | null;
+        encrypted_content: string;
+        type: string;
+      }>
+    | {
+        type: 'web_search_tool_result_error';
+        error_code: string;
+      };
   cache_control: AnthropicCacheControl | undefined;
 }
 
