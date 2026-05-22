@@ -1,15 +1,19 @@
-import { exec } from 'node:child_process';
+import { spawn } from 'node:child_process';
 import { createReadStream, createWriteStream } from 'node:fs';
 import { mkdir, stat } from 'node:fs/promises';
 import { isAbsolute, join, dirname } from 'node:path';
 import { Readable, type Writable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
-import { promisify } from 'node:util';
-import { extractLines } from '@ai-sdk/provider-utils';
+import {
+  extractLines,
+  type Experimental_SandboxProcess,
+} from '@ai-sdk/provider-utils';
 import { type Experimental_Sandbox as Sandbox } from 'ai';
-import { bytesToStream, collectStream } from './lib/stream-utils';
-
-const execAsync = promisify(exec);
+import {
+  bytesToStream,
+  collectStream,
+  collectStreamToString,
+} from './lib/stream-utils';
 
 /**
  * WARNING: This is not a security sandbox.
@@ -45,27 +49,85 @@ export class LocalSandbox implements Sandbox {
     workingDirectory?: string;
     abortSignal?: AbortSignal;
   }) {
-    try {
-      const { stdout, stderr } = await execAsync(command, {
-        cwd: workingDirectory ?? this.rootDirectory,
-        timeout: 60_000,
-        maxBuffer: 10 * 1024 * 1024,
-        signal: abortSignal,
-      });
+    const proc = await this.spawnCommand({
+      command,
+      workingDirectory,
+      abortSignal,
+    });
 
-      return {
-        exitCode: 0,
-        stdout: stdout || '',
-        stderr: stderr || '',
-      };
-    } catch (error: any) {
-      return {
-        exitCode:
-          error?.killed || error?.signal === 'SIGTERM' ? 1 : (error?.code ?? 1),
-        stdout: error?.stdout ?? '',
-        stderr: error?.stderr ?? String(error),
-      };
+    const [stdout, stderr, { exitCode }] = await Promise.all([
+      collectStreamToString(proc.stdout),
+      collectStreamToString(proc.stderr),
+      proc.wait(),
+    ]);
+
+    return { exitCode, stdout, stderr };
+  }
+
+  async spawnCommand({
+    command,
+    workingDirectory,
+    abortSignal,
+  }: {
+    command: string;
+    workingDirectory?: string;
+    abortSignal?: AbortSignal;
+  }): Promise<Experimental_SandboxProcess> {
+    abortSignal?.throwIfAborted();
+
+    const child = spawn('bash', ['-c', command], {
+      cwd: workingDirectory ?? this.rootDirectory,
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+
+    const stdout = Readable.toWeb(child.stdout) as ReadableStream<Uint8Array>;
+    const stderr = Readable.toWeb(child.stderr) as ReadableStream<Uint8Array>;
+
+    const exitPromise = new Promise<{ exitCode: number }>((resolve, reject) => {
+      child.once('error', reject);
+      child.once('exit', (code, signal) => {
+        if (code != null) {
+          resolve({ exitCode: code });
+        } else if (signal != null) {
+          resolve({
+            exitCode: 128 + (typeof signal === 'number' ? signal : 1),
+          });
+        } else {
+          resolve({ exitCode: 1 });
+        }
+      });
+    });
+
+    const abortHandler = () => {
+      child.kill('SIGTERM');
+    };
+    if (abortSignal?.aborted) {
+      abortHandler();
+    } else {
+      abortSignal?.addEventListener('abort', abortHandler, { once: true });
     }
+
+    return {
+      pid: child.pid,
+      stdout,
+      stderr,
+      async wait(): Promise<{ exitCode: number }> {
+        try {
+          const result = await exitPromise;
+          if (abortSignal?.aborted) {
+            throw (
+              abortSignal.reason ?? new DOMException('Aborted', 'AbortError')
+            );
+          }
+          return result;
+        } finally {
+          abortSignal?.removeEventListener('abort', abortHandler);
+        }
+      },
+      async kill(): Promise<void> {
+        child.kill('SIGTERM');
+      },
+    };
   }
 
   async readFile({

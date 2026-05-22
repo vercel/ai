@@ -31,6 +31,12 @@ describe('bash_20241022 tool', () => {
           writeFile: async () => {},
           writeBinaryFile: async () => {},
           writeTextFile: async () => {},
+          spawnCommand: async () => ({
+            stdout: new ReadableStream<Uint8Array>({ start: c => c.close() }),
+            stderr: new ReadableStream<Uint8Array>({ start: c => c.close() }),
+            wait: async () => ({ exitCode: 0 }),
+            kill: async () => {},
+          }),
         },
       },
     );
