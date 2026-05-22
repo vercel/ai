@@ -1,13 +1,16 @@
-import { Bash, OverlayFs } from 'just-bash';
+import { createJustBashSandbox } from '@ai-sdk/sandbox-just-bash';
+import { OverlayFs, Sandbox } from 'just-bash';
 import { run } from '../../lib/run';
-import { JustBashSandbox } from '../../sandbox/just-bash-sandbox';
 import { sandboxAgent } from './sandbox-agent';
 
 run(async () => {
   const overlay = new OverlayFs({ root: process.cwd() });
-  const sandbox = new JustBashSandbox(
-    new Bash({ fs: overlay, cwd: overlay.getMountPoint() }),
-  );
+  const sandbox = await createJustBashSandbox({
+    sandbox: await Sandbox.create({
+      fs: overlay,
+      cwd: overlay.getMountPoint(),
+    }),
+  });
 
   const result = await sandboxAgent.generate({
     prompt:

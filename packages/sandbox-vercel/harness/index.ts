@@ -1,1 +1,4 @@
-export { VercelHarnessSandbox } from './vercel-harness-sandbox';
+export {
+  VercelHarnessSandbox,
+  createVercelHarnessSandbox,
+} from './vercel-harness-sandbox';

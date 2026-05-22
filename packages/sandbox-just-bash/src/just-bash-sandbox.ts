@@ -4,7 +4,31 @@ import {
   type Experimental_Sandbox,
   type Experimental_SandboxProcess,
 } from '@ai-sdk/provider-utils';
-import type { Sandbox, SandboxCommand } from 'just-bash';
+import { Sandbox, type SandboxCommand } from 'just-bash';
+
+type JustBashCreateParams = NonNullable<Parameters<typeof Sandbox.create>[0]>;
+
+export type JustBashSandboxSettings =
+  | {
+      /**
+       * An already-created `just-bash` `Sandbox` to wrap. The caller retains
+       * lifecycle ownership.
+       */
+      sandbox: Sandbox;
+    }
+  | (Pick<JustBashCreateParams, 'cwd' | 'env' | 'timeoutMs' | 'network'> & {
+      sandbox?: never;
+    });
+
+export async function createJustBashSandbox(
+  settings: JustBashSandboxSettings = {},
+): Promise<Experimental_Sandbox> {
+  if ('sandbox' in settings && settings.sandbox) {
+    return new JustBashSandbox(settings.sandbox);
+  }
+  const { sandbox: _ignored, ...createParams } = settings;
+  return new JustBashSandbox(await Sandbox.create(createParams));
+}
 
 /**
  * `Experimental_Sandbox` backed by a `just-bash` `Sandbox`. File operations and

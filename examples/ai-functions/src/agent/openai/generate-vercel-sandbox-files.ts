@@ -1,15 +1,15 @@
-import { Sandbox } from '@vercel/sandbox';
+import {
+  createVercelSandbox,
+  type VercelSandbox,
+} from '@ai-sdk/sandbox-vercel';
 import { run } from '../../lib/run';
-import { VercelSandbox } from '../../sandbox/vercel-sandbox';
 import { sandboxAgent } from './sandbox-agent';
 
 run(async () => {
-  const sandbox = new VercelSandbox(
-    await Sandbox.create({
-      timeout: 5 * 60 * 1000,
-      runtime: 'node22',
-    }),
-  );
+  const sandbox = (await createVercelSandbox({
+    timeout: 5 * 60 * 1000,
+    runtime: 'node22',
+  })) as VercelSandbox;
 
   try {
     const result = await sandboxAgent.generate({

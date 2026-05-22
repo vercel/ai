@@ -1,6 +1,21 @@
 import type { HarnessV1NetworkPolicy, HarnessV1Sandbox } from '@ai-sdk/harness';
-import type { NetworkPolicy } from '@vercel/sandbox';
-import { VercelSandbox } from '../src/vercel-sandbox';
+import { Sandbox, type NetworkPolicy } from '@vercel/sandbox';
+import {
+  VercelSandbox,
+  type VercelSandboxSettings,
+} from '../src/vercel-sandbox';
+
+export async function createVercelHarnessSandbox(
+  settings: VercelSandboxSettings = {},
+): Promise<HarnessV1Sandbox> {
+  if ('sandbox' in settings && settings.sandbox) {
+    return new VercelHarnessSandbox(settings.sandbox);
+  }
+  const { sandbox: _ignored, ...createParams } = settings;
+  return new VercelHarnessSandbox(
+    await Sandbox.create({ ports: [4000], ...createParams }),
+  );
+}
 
 /**
  * `HarnessV1Sandbox` backed by a `@vercel/sandbox` `Sandbox`. Extends

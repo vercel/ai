@@ -21,7 +21,7 @@ import { bridgeReadySchema } from './codex-bridge-protocol';
 import type { CodexSkill } from './codex-skills';
 import { translate } from './codex-translate';
 
-export type CodexOptions = {
+export type CodexHarnessSettings = {
   readonly auth?: CodexAuthOptions;
   /**
    * Skills made available to the model. Unlike the `claude` CLI, the
@@ -47,7 +47,7 @@ const BUILTIN_TOOLS: ReadonlyArray<HarnessV1BuiltinToolDescriptor> = [
   { nativeName: 'todo_list', commonName: 'todoList' },
 ];
 
-export function codex(options: CodexOptions = {}): HarnessV1 {
+export function createCodex(settings: CodexHarnessSettings = {}): HarnessV1 {
   return {
     specificationVersion: 'harness-v1',
     harnessId: 'codex',
@@ -56,10 +56,10 @@ export function codex(options: CodexOptions = {}): HarnessV1 {
       const sandbox = requireGetPortUrl(startOpts.sandbox);
 
       const workdir = `/tmp/harness/${startOpts.sessionId}`;
-      const port = resolveBridgePort(sandbox, options.port);
+      const port = resolveBridgePort(sandbox, settings.port);
       const token = randomBytes(32).toString('hex');
       const env = {
-        ...resolveCodexEnv(options.auth),
+        ...resolveCodexEnv(settings.auth),
         BRIDGE_CHANNEL_TOKEN: token,
         BRIDGE_WS_PORT: String(port),
       };
@@ -114,7 +114,7 @@ export function codex(options: CodexOptions = {}): HarnessV1 {
 
       await waitForBridgeReady({
         proc,
-        timeoutMs: options.startupTimeoutMs ?? 120_000,
+        timeoutMs: settings.startupTimeoutMs ?? 120_000,
         abortSignal: startOpts.abortSignal,
       });
 
@@ -129,7 +129,7 @@ export function codex(options: CodexOptions = {}): HarnessV1 {
         sessionId: startOpts.sessionId,
         channel,
         proc,
-        skills: options.skills,
+        skills: settings.skills,
       });
     },
   };
@@ -170,7 +170,7 @@ function resolveBridgePort(
     harnessId: 'codex',
     message:
       'The codex harness needs a TCP port declared on the sandbox. ' +
-      'Create the sandbox with `ports: [<port>]` or pass `codex({ port })`.',
+      'Create the sandbox with `ports: [<port>]` or pass `createCodex({ port })`.',
   });
 }
 

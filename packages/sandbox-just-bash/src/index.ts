@@ -1,1 +1,5 @@
-export { JustBashSandbox } from './just-bash-sandbox';
+export {
+  JustBashSandbox,
+  createJustBashSandbox,
+  type JustBashSandboxSettings,
+} from './just-bash-sandbox';

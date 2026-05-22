@@ -14,18 +14,18 @@ The bridge installs `@anthropic-ai/claude-agent-sdk` and `@anthropic-ai/claude-c
 
 ```ts
 import { HarnessAgent } from '@ai-sdk/harness/agent';
-import { claudeCode } from '@ai-sdk/harness-claude-code';
-import { VercelHarnessSandbox } from '@ai-sdk/sandbox-vercel/harness';
-import { Sandbox } from '@vercel/sandbox';
+import { createClaudeCode } from '@ai-sdk/harness-claude-code';
+import { createVercelHarnessSandbox } from '@ai-sdk/sandbox-vercel/harness';
 import { tool } from 'ai';
 import { z } from 'zod/v4';
 
-const sandbox = new VercelHarnessSandbox(
-  await Sandbox.create({ runtime: 'node24', ports: [4000] }),
-);
+const sandbox = await createVercelHarnessSandbox({
+  runtime: 'node24',
+  ports: [4000],
+});
 
 const agent = new HarnessAgent({
-  harness: claudeCode({
+  harness: createClaudeCode({
     skills: [
       {
         name: 'careful-refactors',

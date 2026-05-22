@@ -14,18 +14,18 @@ The bridge installs `@openai/codex-sdk` (and the `codex` CLI it depends on) insi
 
 ```ts
 import { HarnessAgent } from '@ai-sdk/harness/agent';
-import { codex } from '@ai-sdk/harness-codex';
-import { VercelHarnessSandbox } from '@ai-sdk/sandbox-vercel/harness';
-import { Sandbox } from '@vercel/sandbox';
+import { createCodex } from '@ai-sdk/harness-codex';
+import { createVercelHarnessSandbox } from '@ai-sdk/sandbox-vercel/harness';
 import { tool } from 'ai';
 import { z } from 'zod/v4';
 
-const sandbox = new VercelHarnessSandbox(
-  await Sandbox.create({ runtime: 'node24', ports: [4000] }),
-);
+const sandbox = await createVercelHarnessSandbox({
+  runtime: 'node24',
+  ports: [4000],
+});
 
 const agent = new HarnessAgent({
-  harness: codex(),
+  harness: createCodex(),
   id: 'demo',
   sandbox,
   tools: {
@@ -48,7 +48,7 @@ const agent = new HarnessAgent({
 
 ```ts
 const agent = new HarnessAgent({
-  harness: codex({
+  harness: createCodex({
     skills: [
       { name: 'haiku-mode', description: 'Answer in haikus.', content: '...' },
     ],

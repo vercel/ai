@@ -1,15 +1,10 @@
-import { Bash } from 'just-bash';
+import { createJustBashSandbox } from '@ai-sdk/sandbox-just-bash';
 import { run } from '../../lib/run';
-import { JustBashSandbox } from '../../sandbox/just-bash-sandbox';
 import { sandboxAgent } from './sandbox-agent';
 import { printFullStream } from '../../lib/print-full-stream';
 
 run(async () => {
-  const sandbox = new JustBashSandbox(
-    new Bash({
-      cwd: '/home/user',
-    }),
-  );
+  const sandbox = await createJustBashSandbox({ cwd: '/home/user' });
 
   const result = await sandboxAgent.stream({
     prompt:

@@ -1,1 +1,5 @@
-export { VercelSandbox } from './vercel-sandbox';
+export {
+  VercelSandbox,
+  createVercelSandbox,
+  type VercelSandboxSettings,
+} from './vercel-sandbox';

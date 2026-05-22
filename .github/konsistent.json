@@ -129,22 +129,22 @@
             "export": [
               {
                 "name": "create${harnessId.toPascalCase()}",
-                "from": "./{harnessId}-harness"
+                "from": "./${harnessId}-harness"
               }
             ],
             "exportTypes": [
               {
                 "name": "${harnessId.toPascalCase()}HarnessSettings",
-                "from": "./{harnessId}-harness"
+                "from": "./${harnessId}-harness"
               }
             ],
-            "haveFiles": ["{harnessId}-harness.ts"]
+            "haveFiles": ["${harnessId}-harness.ts"]
           }
         },
         {
           "name": "harness-file-must-export-harness-creator-and-settings-type",
           "description": "Every harness file must export a harness creator function and a harness settings type.",
-          "for": { "files": ["{harnessId}-harness.ts"] },
+          "for": { "files": ["${harnessId}-harness.ts"] },
           "must": {
             "importTypes": [
               {
@@ -176,16 +176,16 @@
             "export": [
               {
                 "name": "create${sandboxId.toPascalCase()}Sandbox",
-                "from": "./{sandboxId}-sandbox"
+                "from": "./${sandboxId}-sandbox"
               }
             ],
             "exportTypes": [
               {
                 "name": "${sandboxId.toPascalCase()}SandboxSettings",
-                "from": "./{sandboxId}-sandbox"
+                "from": "./${sandboxId}-sandbox"
               }
             ],
-            "haveFiles": ["{sandboxId}-sandbox.ts"]
+            "haveFiles": ["${sandboxId}-sandbox.ts"]
           }
         },
         {
@@ -209,7 +209,7 @@
               {
                 "name": "create${sandboxId.toPascalCase()}Sandbox",
                 "receiveParamOfType": "${sandboxId.toPascalCase()}SandboxSettings",
-                "returnValueOfType": "Experimental_Sandbox"
+                "returnValueOfType": "Promise<Experimental_Sandbox>"
               }
             ],
             "exportTypes": ["${sandboxId.toPascalCase()}SandboxSettings"]
@@ -223,20 +223,20 @@
             "export": [
               {
                 "name": "create${sandboxId.toPascalCase()}HarnessSandbox",
-                "from": "./{sandboxId}-harness-sandbox"
+                "from": "./${sandboxId}-harness-sandbox"
               },
               {
                 "name": "${sandboxId.toPascalCase()}HarnessSandbox",
-                "from": "./{sandboxId}-harness-sandbox"
+                "from": "./${sandboxId}-harness-sandbox"
               }
             ],
-            "haveFiles": ["{sandboxId}-harness-sandbox.ts"]
+            "haveFiles": ["${sandboxId}-harness-sandbox.ts"]
           }
         },
         {
           "name": "harness-sandbox-file-must-export-sandbox-creator-and-settings-type",
           "description": "Every harness sandbox file must export a harness sandbox creator function and class.",
-          "for": { "files": ["../harness/{sandboxId}-harness-sandbox.ts"] },
+          "for": { "files": ["../harness/${sandboxId}-harness-sandbox.ts"] },
           "must": {
             "importTypes": [
               {
@@ -254,7 +254,7 @@
               {
                 "name": "create${sandboxId.toPascalCase()}HarnessSandbox",
                 "receiveParamOfType": "${sandboxId.toPascalCase()}SandboxSettings",
-                "returnValueOfType": "HarnessV1Sandbox"
+                "returnValueOfType": "Promise<HarnessV1Sandbox>"
               }
             ]
           }

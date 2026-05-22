@@ -14,13 +14,15 @@ npm i @ai-sdk/harness
 
 ```ts
 import { HarnessAgent } from '@ai-sdk/harness/agent';
-import { claudeCode } from '@ai-sdk/harness-claude-code';
-import { justBashSandbox } from '@ai-sdk/sandbox-just-bash';
+import { createClaudeCode } from '@ai-sdk/harness-claude-code';
+import { createJustBashSandbox } from '@ai-sdk/sandbox-just-bash';
 import { tool } from 'ai';
 import { z } from 'zod';
 
+const justBashSandbox = await createJustBashSandbox();
+
 const agent = new HarnessAgent({
-  harness: claudeCode(),
+  harness: createClaudeCode(),
   id: 'auth-agent',
   system: 'You are a careful refactoring assistant. Prefer minimal diffs.',
   sandbox: justBashSandbox,

@@ -4,7 +4,35 @@ import {
   type Experimental_Sandbox,
   type Experimental_SandboxProcess,
 } from '@ai-sdk/provider-utils';
-import type { Command, Sandbox } from '@vercel/sandbox';
+import { Sandbox, type Command } from '@vercel/sandbox';
+
+type VercelCreateParams = Extract<
+  NonNullable<Parameters<typeof Sandbox.create>[0]>,
+  { runtime?: unknown }
+>;
+
+export type VercelSandboxSettings =
+  | {
+      /**
+       * An already-created `@vercel/sandbox` `Sandbox` to wrap. The caller
+       * retains lifecycle ownership.
+       */
+      sandbox: Sandbox;
+    }
+  | (Pick<
+      VercelCreateParams,
+      'name' | 'source' | 'ports' | 'timeout' | 'runtime'
+    > & { sandbox?: never });
+
+export async function createVercelSandbox(
+  settings: VercelSandboxSettings = {},
+): Promise<Experimental_Sandbox> {
+  if ('sandbox' in settings && settings.sandbox) {
+    return new VercelSandbox(settings.sandbox);
+  }
+  const { sandbox: _ignored, ...createParams } = settings;
+  return new VercelSandbox(await Sandbox.create(createParams));
+}
 
 /**
  * `Experimental_Sandbox` backed by a `@vercel/sandbox` `Sandbox`. The caller

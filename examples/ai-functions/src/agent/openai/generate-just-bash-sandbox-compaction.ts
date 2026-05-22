@@ -6,20 +6,20 @@ import {
 } from 'ai';
 import { run } from '../../lib/run';
 import { anthropic } from '@ai-sdk/anthropic';
-import { JustBashSandbox } from '../../sandbox/just-bash-sandbox';
-import { Bash, OverlayFs } from 'just-bash';
+import { createJustBashSandbox } from '@ai-sdk/sandbox-just-bash';
+import { OverlayFs, Sandbox } from 'just-bash';
 import { openai } from '@ai-sdk/openai';
 
 const overlay = new OverlayFs({
   root: process.cwd(),
 });
 
-const sandbox = new JustBashSandbox(
-  new Bash({
+const sandbox = await createJustBashSandbox({
+  sandbox: await Sandbox.create({
     fs: overlay,
     cwd: overlay.getMountPoint(),
   }),
-);
+});
 
 const COMPACTION_THRESHOLD = 8000;
 const estimateTokens = (messages: ModelMessage[]) => {

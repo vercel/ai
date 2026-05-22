@@ -358,6 +358,9 @@ importers:
       '@ai-sdk/revai':
         specifier: workspace:*
         version: link:../../packages/revai
+      '@ai-sdk/sandbox-just-bash':
+        specifier: workspace:*
+        version: link:../../packages/sandbox-just-bash
       '@ai-sdk/sandbox-vercel':
         specifier: workspace:*
         version: link:../../packages/sandbox-vercel

@@ -1,10 +1,10 @@
 import { HarnessCapabilityUnsupportedError } from '@ai-sdk/harness';
 import { describe, expect, it } from 'vitest';
-import { codex } from './codex-harness';
+import { createCodex } from './codex-harness';
 
-describe('codex adapter', () => {
+describe('createCodex adapter', () => {
   it('declares the harness id and builtin tools', () => {
-    const harness = codex();
+    const harness = createCodex();
     expect(harness.harnessId).toBe('codex');
     expect(harness.specificationVersion).toBe('harness-v1');
     expect(harness.builtinTools.map(t => t.nativeName)).toEqual([
@@ -16,14 +16,14 @@ describe('codex adapter', () => {
   });
 
   it('throws HarnessCapabilityUnsupportedError when sandbox is missing', async () => {
-    const harness = codex();
+    const harness = createCodex();
     await expect(harness.doStart({ sessionId: 's1' })).rejects.toBeInstanceOf(
       HarnessCapabilityUnsupportedError,
     );
   });
 
   it('throws HarnessCapabilityUnsupportedError when sandbox lacks getPortUrl', async () => {
-    const harness = codex();
+    const harness = createCodex();
     const sandbox = {
       description: 'fake',
       async runCommand() {

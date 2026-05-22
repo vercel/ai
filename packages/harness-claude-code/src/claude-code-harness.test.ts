@@ -1,10 +1,10 @@
 import { HarnessCapabilityUnsupportedError } from '@ai-sdk/harness';
 import { describe, expect, it } from 'vitest';
-import { claudeCode } from './claude-code-harness';
+import { createClaudeCode } from './claude-code-harness';
 
-describe('claudeCode adapter', () => {
+describe('createClaudeCode adapter', () => {
   it('declares the harness id and builtin tools', () => {
-    const harness = claudeCode();
+    const harness = createClaudeCode();
     expect(harness.harnessId).toBe('claude-code');
     expect(harness.specificationVersion).toBe('harness-v1');
     expect(harness.builtinTools.map(t => t.nativeName)).toEqual([
@@ -18,14 +18,14 @@ describe('claudeCode adapter', () => {
   });
 
   it('throws HarnessCapabilityUnsupportedError when sandbox is missing', async () => {
-    const harness = claudeCode();
+    const harness = createClaudeCode();
     await expect(harness.doStart({ sessionId: 's1' })).rejects.toBeInstanceOf(
       HarnessCapabilityUnsupportedError,
     );
   });
 
   it('throws HarnessCapabilityUnsupportedError when sandbox lacks getPortUrl', async () => {
-    const harness = claudeCode();
+    const harness = createClaudeCode();
     const sandbox = {
       description: 'fake',
       async runCommand() {

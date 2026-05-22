@@ -1,5 +1,5 @@
 import { HarnessAgent } from '@ai-sdk/harness/agent';
-import { codex } from '@ai-sdk/harness-codex';
+import { createCodex } from '@ai-sdk/harness-codex';
 import { run } from '../../lib/run';
 import { createVercelHarnessSandbox } from '../../lib/harness-sandbox';
 
@@ -7,7 +7,7 @@ run(async () => {
   const sandbox = await createVercelHarnessSandbox();
 
   const agent = new HarnessAgent({
-    harness: codex({
+    harness: createCodex({
       skills: [
         {
           name: 'haiku-mode',

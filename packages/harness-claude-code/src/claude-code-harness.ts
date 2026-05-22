@@ -24,7 +24,7 @@ import { bridgeReadySchema } from './claude-code-bridge-protocol';
 import { writeSkills, type ClaudeCodeSkill } from './claude-code-skills';
 import { translate } from './claude-code-translate';
 
-export type ClaudeCodeOptions = {
+export type ClaudeCodeHarnessSettings = {
   readonly auth?: ClaudeCodeAuthOptions;
   readonly skills?: ReadonlyArray<ClaudeCodeSkill>;
   /**
@@ -47,7 +47,9 @@ const BUILTIN_TOOLS: ReadonlyArray<HarnessV1BuiltinToolDescriptor> = [
   { nativeName: 'Grep', commonName: 'grep' },
 ];
 
-export function claudeCode(options: ClaudeCodeOptions = {}): HarnessV1 {
+export function createClaudeCode(
+  settings: ClaudeCodeHarnessSettings = {},
+): HarnessV1 {
   return {
     specificationVersion: 'harness-v1',
     harnessId: 'claude-code',
@@ -56,10 +58,10 @@ export function claudeCode(options: ClaudeCodeOptions = {}): HarnessV1 {
       const sandbox = requireGetPortUrl(startOpts.sandbox);
 
       const workdir = `/tmp/harness/${startOpts.sessionId}`;
-      const port = resolveBridgePort(sandbox, options.port);
+      const port = resolveBridgePort(sandbox, settings.port);
       const token = randomBytes(32).toString('hex');
       const env = {
-        ...resolveClaudeCodeEnv(options.auth),
+        ...resolveClaudeCodeEnv(settings.auth),
         BRIDGE_CHANNEL_TOKEN: token,
         BRIDGE_WS_PORT: String(port),
       };
@@ -112,11 +114,11 @@ export function claudeCode(options: ClaudeCodeOptions = {}): HarnessV1 {
         );
       }
 
-      if (options.skills && options.skills.length > 0) {
+      if (settings.skills && settings.skills.length > 0) {
         await writeSkills({
           sandbox,
           workdir,
-          skills: options.skills,
+          skills: settings.skills,
           abortSignal: startOpts.abortSignal,
         });
       }
@@ -128,7 +130,7 @@ export function claudeCode(options: ClaudeCodeOptions = {}): HarnessV1 {
 
       await waitForBridgeReady({
         proc,
-        timeoutMs: options.startupTimeoutMs ?? 120_000,
+        timeoutMs: settings.startupTimeoutMs ?? 120_000,
         abortSignal: startOpts.abortSignal,
       });
 
@@ -179,7 +181,7 @@ function resolveBridgePort(
     harnessId: 'claude-code',
     message:
       'The claude-code harness needs a TCP port declared on the sandbox. ' +
-      'Create the sandbox with `ports: [<port>]` or pass `claudeCode({ port })`.',
+      'Create the sandbox with `ports: [<port>]` or pass `createClaudeCode({ port })`.',
   });
 }
 
