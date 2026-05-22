@@ -193,14 +193,17 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
       : googleOptions?.serviceTier;
 
     const isGemmaModel = this.modelId.toLowerCase().startsWith('gemma-');
-    const supportsFunctionResponseParts = this.modelId.startsWith('gemini-3');
+    const isGemini3Model = this.modelId.startsWith('gemini-3');
+    const supportsFunctionResponseParts = isGemini3Model;
 
     const { contents, systemInstruction } = convertToGoogleGenerativeAIMessages(
       prompt,
       {
         isGemmaModel,
+        isGemini3Model,
         providerOptionsName,
         supportsFunctionResponseParts,
+        onWarning: warning => warnings.push(warning),
       },
     );
 

@@ -1,6 +1,7 @@
 import {
   UnsupportedFunctionalityError,
   type LanguageModelV3Prompt,
+  type SharedV3Warning,
 } from '@ai-sdk/provider';
 import { convertToBase64 } from '@ai-sdk/provider-utils';
 import type {
@@ -9,6 +10,20 @@ import type {
   GoogleGenerativeAIFunctionResponsePart,
   GoogleGenerativeAIPrompt,
 } from './google-generative-ai-prompt';
+
+/**
+ * Sentinel value Google documents for replaying functionCall parts whose
+ * original thoughtSignature is not available to the client.
+ *
+ * Gemini 3 models reject `functionCall` parts that lack a `thoughtSignature`
+ * with HTTP 400 "Function call is missing a thought_signature in functionCall
+ * parts." Sending this sentinel string in place of the missing signature
+ * makes Gemini skip the validator and continue the turn.
+ *
+ * See https://ai.google.dev/gemini-api/docs/thought-signatures.
+ */
+export const SKIP_THOUGHT_SIGNATURE_VALIDATOR =
+  'skip_thought_signature_validator';
 
 const dataUrlRegex = /^data:([^;,]+);base64,(.+)$/s;
 
@@ -168,17 +183,41 @@ export function convertToGoogleGenerativeAIMessages(
   prompt: LanguageModelV3Prompt,
   options?: {
     isGemmaModel?: boolean;
+    /**
+     * Whether the target model is in the Gemini 3 family. Gemini 3 enforces a
+     * `thoughtSignature` on every replayed `functionCall` part; when one is
+     * missing we inject the documented `skip_thought_signature_validator`
+     * sentinel and emit a warning via `onWarning` so the developer can find
+     * and fix the upstream serialization that lost the signature.
+     */
+    isGemini3Model?: boolean;
     providerOptionsName?: string;
     supportsFunctionResponseParts?: boolean;
+    /**
+     * Called once for the request when a Gemini 3 `functionCall` part is
+     * about to be sent without a `thoughtSignature` and the sentinel is
+     * injected.
+     */
+    onWarning?: (warning: SharedV3Warning) => void;
   },
 ): GoogleGenerativeAIPrompt {
   const systemInstructionParts: Array<{ text: string }> = [];
   const contents: Array<GoogleGenerativeAIContent> = [];
   let systemMessagesAllowed = true;
   const isGemmaModel = options?.isGemmaModel ?? false;
+  const isGemini3Model = options?.isGemini3Model ?? false;
   const providerOptionsName = options?.providerOptionsName ?? 'google';
   const supportsFunctionResponseParts =
     options?.supportsFunctionResponseParts ?? true;
+  const onWarning = options?.onWarning;
+
+  let sentinelInjected = false;
+  const missingSignatureToolNames: string[] = [];
+  const injectSkipSignature = (toolName: string) => {
+    missingSignatureToolNames.push(toolName);
+    sentinelInjected = true;
+    return SKIP_THOUGHT_SIGNATURE_VALIDATOR;
+  };
 
   for (const { role, content } of prompt) {
     switch (role) {
@@ -303,6 +342,16 @@ export function convertToGoogleGenerativeAIMessages(
                       ? String(providerOpts.serverToolType)
                       : undefined;
 
+                  // For Gemini 3, every replayed functionCall part must carry a
+                  // thoughtSignature or the API returns HTTP 400. If the upstream
+                  // serialization layer dropped the signature, inject the
+                  // documented sentinel so the request still succeeds.
+                  const effectiveThoughtSignature =
+                    thoughtSignature ??
+                    (isGemini3Model
+                      ? injectSkipSignature(part.toolName)
+                      : undefined);
+
                   if (serverToolCallId && serverToolType) {
                     return {
                       toolCall: {
@@ -313,7 +362,7 @@ export function convertToGoogleGenerativeAIMessages(
                             : part.input,
                         id: serverToolCallId,
                       },
-                      thoughtSignature,
+                      thoughtSignature: effectiveThoughtSignature,
                     };
                   }
 
@@ -325,7 +374,7 @@ export function convertToGoogleGenerativeAIMessages(
                       name: part.toolName,
                       args: part.input,
                     },
-                    thoughtSignature,
+                    thoughtSignature: effectiveThoughtSignature,
                   };
                 }
 
@@ -463,6 +512,23 @@ export function convertToGoogleGenerativeAIMessages(
       .join('\n\n');
 
     contents[0].parts.unshift({ text: systemText + '\n\n' });
+  }
+
+  if (sentinelInjected && onWarning != null) {
+    const uniqueToolNames = Array.from(new Set(missingSignatureToolNames));
+    onWarning({
+      type: 'other',
+      message:
+        `Replayed ${missingSignatureToolNames.length} \`functionCall\` part(s) ` +
+        `for a Gemini 3 model without a \`thoughtSignature\` ` +
+        `(tools: ${uniqueToolNames.map(name => `\`${name}\``).join(', ')}). ` +
+        `Injected the documented \`skip_thought_signature_validator\` sentinel ` +
+        `to keep the request from failing with HTTP 400. ` +
+        `The likely cause is application code that drops ` +
+        '`providerOptions.google.thoughtSignature` when persisting or ' +
+        'serializing assistant tool-call messages. ' +
+        'See https://ai.google.dev/gemini-api/docs/thought-signatures.',
+    });
   }
 
   return {
