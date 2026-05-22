@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 3.0.120
+
+### Patch Changes
+
+- 27a1b22: Add `serviceTier: 'flex' | 'priority'` to `GatewayProviderOptions`.
+
 ## 3.0.119
 
 ### Patch Changes
