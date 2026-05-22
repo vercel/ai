@@ -4,6 +4,12 @@
 
 ### Patch Changes
 
+- ai@7.0.0-canary.152
+
+## 0.0.1-canary.0
+
+### Patch Changes
+
 - ai@7.0.0-canary.151
 
 ## 0.0.1-canary.0
