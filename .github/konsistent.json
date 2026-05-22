@@ -274,6 +274,7 @@
     "moonshotai": "MoonshotAI",
     "openai": "OpenAI",
     "openai-compatible": "OpenAICompatible",
+    "quiverai": "QuiverAI",
     "togetherai": "TogetherAI"
   },
   "kebabToCamelMap": {
