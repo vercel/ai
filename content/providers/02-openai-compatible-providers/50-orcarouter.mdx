@@ -1,0 +1,136 @@
+---
+title: OrcaRouter
+description: Use OrcaRouter OpenAI compatible API with the AI SDK.
+---
+
+# OrcaRouter Provider
+
+[OrcaRouter](https://www.orcarouter.ai) is a unified API gateway that routes requests across 150+ models from OpenAI, Anthropic, Google, DeepSeek, xAI, Alibaba Qwen, MiniMax, Moonshot Kimi, Z.ai and more behind a single OpenAI-compatible endpoint and a single API key. It offers adaptive routing (a contextual bandit picks the best upstream per request), workspace-level cost / latency / quality guardrails, and an admin console for tuning router policies without redeploying clients.
+
+OrcaRouter exposes an OpenAI-compatible API, so you can use it with the AI SDK via the [`@ai-sdk/openai-compatible`](/providers/openai-compatible-providers) package.
+
+## Setup
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add @ai-sdk/openai-compatible" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @ai-sdk/openai-compatible" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @ai-sdk/openai-compatible" dark />
+  </Tab>
+
+  <Tab>
+    <Snippet text="bun add @ai-sdk/openai-compatible" dark />
+  </Tab>
+</Tabs>
+
+## Provider Instance
+
+Create a provider instance with the `createOpenAICompatible` function from `@ai-sdk/openai-compatible`:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+
+const orcarouter = createOpenAICompatible({
+  name: 'orcarouter',
+  baseURL: 'https://api.orcarouter.ai/v1',
+  apiKey: process.env.ORCAROUTER_API_KEY,
+});
+```
+
+<Note>
+  You can obtain an API key from the [OrcaRouter
+  console](https://www.orcarouter.ai). See the [API
+  reference](https://docs.orcarouter.ai) for endpoint details.
+</Note>
+
+## Language Models
+
+OrcaRouter accepts model IDs in the form `<vendor>/<model>` (for example `openai/gpt-5`, `anthropic/claude-opus-4.7`, `google/gemini-3-flash-preview`, `deepseek/deepseek-v4-pro`). The full catalog is available at [orcarouter.ai/models](https://www.orcarouter.ai/models).
+
+```ts
+const model = orcarouter.chatModel('openai/gpt-5');
+```
+
+### Adaptive routing with `orcarouter/auto`
+
+In addition to vendor-pinned model IDs, OrcaRouter exposes a virtual router named `orcarouter/auto`. Each workspace gets an `auto` router seeded with a configurable strategy (`cheapest`, `balanced`, `quality`, `adaptive` LinUCB contextual bandit, or `gated_adaptive`). You can change the strategy and upstream pool from the [routing console](https://www.orcarouter.ai/console/routing) without modifying client code.
+
+```ts
+const model = orcarouter.chatModel('orcarouter/auto');
+```
+
+### Example - Generate Text
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText } from 'ai';
+
+const orcarouter = createOpenAICompatible({
+  name: 'orcarouter',
+  baseURL: 'https://api.orcarouter.ai/v1',
+  apiKey: process.env.ORCAROUTER_API_KEY,
+});
+
+const { text, usage, finishReason } = await generateText({
+  model: orcarouter.chatModel('openai/gpt-5'),
+  prompt: 'Explain how contextual bandits pick a model for a request.',
+});
+
+console.log(text);
+console.log('Token usage:', usage);
+console.log('Finish reason:', finishReason);
+```
+
+### Example - Stream Text
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { streamText } from 'ai';
+
+const orcarouter = createOpenAICompatible({
+  name: 'orcarouter',
+  baseURL: 'https://api.orcarouter.ai/v1',
+  apiKey: process.env.ORCAROUTER_API_KEY,
+});
+
+const result = streamText({
+  model: orcarouter.chatModel('anthropic/claude-opus-4.7'),
+  prompt: 'Write a short poem about whales.',
+});
+
+for await (const textPart of result.textStream) {
+  process.stdout.write(textPart);
+}
+```
+
+### Fallback routing with `extra_body`
+
+OrcaRouter accepts an `extra_body.models` field that defines a fallback order when the primary upstream fails. Pass it through `providerOptions.orcarouter`:
+
+```ts
+const { text } = await generateText({
+  model: orcarouter.chatModel('openai/gpt-5'),
+  prompt: 'Hello',
+  providerOptions: {
+    orcarouter: {
+      extra_body: {
+        models: ['openai/gpt-5', 'anthropic/claude-opus-4.7'],
+        route: 'fallback',
+      },
+    },
+  },
+});
+```
+
+<Note>
+  Reasoning models (for example `anthropic/claude-opus-4.7`, OpenAI `gpt-5`
+  family, `deepseek/deepseek-reasoner`) reject the `temperature` parameter at
+  the upstream — omit it when calling those models. When using
+  `orcarouter/auto` from agentic clients that send a `tools` field, restrict
+  the AUTO upstream pool to tool-capable models from the routing console, or
+  pin a vendor-specific model that supports tool calling.
+</Note>
