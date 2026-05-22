@@ -6,6 +6,7 @@
     "@ai-sdk/amazon-bedrock": "4.0.77",
     "@ai-sdk/angular": "2.0.117",
     "@ai-sdk/anthropic": "3.0.58",
+    "@ai-sdk/anthropic-aws": "1.0.0",
     "@ai-sdk/assemblyai": "2.0.24",
     "@ai-sdk/azure": "3.0.42",
     "@ai-sdk/baseten": "1.0.38",
