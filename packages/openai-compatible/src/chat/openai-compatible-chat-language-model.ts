@@ -761,7 +761,7 @@ const OpenAICompatibleChatResponseSchema = z.looseObject({
   choices: z.array(
     z.object({
       message: z.object({
-        role: z.string().nullish(),
+        role: z.literal('assistant').nullish(),
         content: z.string().nullish(),
         reasoning_content: z.string().nullish(),
         reasoning: z.string().nullish(),
@@ -801,7 +801,7 @@ const chunkBaseSchema = z.looseObject({
     z.object({
       delta: z
         .object({
-          role: z.string().nullish(),
+          role: z.enum(['assistant', '']).nullish(),
           content: z.string().nullish(),
           // Most openai-compatible models set `reasoning_content`, but some
           // providers serving `gpt-oss` set `reasoning`. See #7866
