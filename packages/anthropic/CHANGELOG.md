@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 4.0.0-canary.58
+
+### Patch Changes
+
+- acdbf84: Handle errors from anthropic websearch tool
+
 ## 4.0.0-canary.57
 
 ### Patch Changes
