@@ -1492,22 +1492,6 @@ describe('GatewayProvider', () => {
       );
     });
 
-    it('should include teamIdOrSlug in getCredits request headers', async () => {
-      const provider = createGateway({
-        apiKey: 'vca_test-token',
-        teamIdOrSlug: 'vercel',
-      });
-
-      await provider.getCredits();
-
-      const config = vi.mocked(GatewayFetchMetadata).mock.calls[0][0];
-      const headers = (await resolve(config.headers))!;
-
-      expect(headers['authorization']).toBe('Bearer vca_test-token');
-      expect(headers['x-vercel-ai-gateway-team']).toBe('vercel');
-      expect(getVercelOidcToken).not.toHaveBeenCalled();
-    });
-
     it('should work with custom baseURL', async () => {
       const customBaseURL = 'https://custom-gateway.example.com/v4/ai';
       const provider = createGateway({
@@ -1680,25 +1664,6 @@ describe('GatewayProvider', () => {
       ).rejects.toThrow('Reporting service unavailable');
     });
 
-    it('should include teamIdOrSlug in spend report request headers', async () => {
-      const provider = createGateway({
-        apiKey: 'vca_test-token',
-        teamIdOrSlug: 'vercel',
-      });
-
-      await provider.getSpendReport({
-        startDate: '2026-03-01',
-        endDate: '2026-03-25',
-      });
-
-      const config = vi.mocked(GatewaySpendReport).mock.calls[0][0];
-      const headers = (await resolve(config.headers))!;
-
-      expect(headers['authorization']).toBe('Bearer vca_test-token');
-      expect(headers['x-vercel-ai-gateway-team']).toBe('vercel');
-      expect(getVercelOidcToken).not.toHaveBeenCalled();
-    });
-
     it('should work with OIDC authentication in spend reports', async () => {
       vi.mocked(getVercelOidcToken).mockResolvedValue('oidc-token');
 
@@ -1736,22 +1701,6 @@ describe('GatewayProvider', () => {
 
       expect(generationInfo).toEqual(mockGenerationInfo);
       expect(mockGetGenerationInfo).toHaveBeenCalledWith({ id: 'gen_test' });
-    });
-
-    it('should include teamIdOrSlug in generation info request headers', async () => {
-      const provider = createGateway({
-        apiKey: 'vca_test-token',
-        teamIdOrSlug: 'vercel',
-      });
-
-      await provider.getGenerationInfo({ id: 'gen_test' });
-
-      const config = vi.mocked(GatewayGenerationInfoFetcher).mock.calls[0][0];
-      const headers = (await resolve(config.headers))!;
-
-      expect(headers['authorization']).toBe('Bearer vca_test-token');
-      expect(headers['x-vercel-ai-gateway-team']).toBe('vercel');
-      expect(getVercelOidcToken).not.toHaveBeenCalled();
     });
 
     it('should work with OIDC authentication in generation info', async () => {

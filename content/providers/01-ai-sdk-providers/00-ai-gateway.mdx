@@ -91,7 +91,7 @@ You can use the following optional settings to customize the AI Gateway provider
 
 - **teamIdOrSlug** _string_
 
-  Vercel team ID or slug used to scope requests when authenticating with
+  Vercel team ID or slug used to scope model requests when authenticating with
   multi-team Vercel access tokens.
 
 - **headers** _Record&lt;string,string&gt;_
@@ -131,10 +131,10 @@ const gateway = createGateway({
 });
 ```
 
-### Vercel Access Token Authentication
+### Vercel Access Token Authentication for Model Requests
 
-For dynamic runtime authentication, pass a Vercel personal access token or Vercel
-app access token to a custom Gateway provider instance:
+For dynamic runtime authentication of model requests, pass a Vercel personal
+access token or Vercel app access token to a custom Gateway provider instance:
 
 ```ts
 import { createGateway } from 'ai';
@@ -146,6 +146,12 @@ const gateway = createGateway({
 ```
 
 `apiKey` takes precedence over `AI_GATEWAY_API_KEY` and OIDC.
+
+<Note>
+  Vercel access tokens with `teamIdOrSlug` are supported for model requests.
+  Gateway helper methods such as `getCredits`, `getSpendReport`, and
+  `getGenerationInfo` require an AI Gateway API key or OIDC authentication.
+</Note>
 
 ### OIDC Authentication (Vercel Deployments)
 
