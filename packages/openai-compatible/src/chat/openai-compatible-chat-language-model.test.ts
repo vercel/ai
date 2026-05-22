@@ -1825,6 +1825,56 @@ describe('doStream', () => {
     `);
   });
 
+  it('should handle usage-only stream chunks without choices', async () => {
+    server.urls['https://my.api.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"v0-R4OtPMxrBOury1qp09BVyMYR70AxpfE6","object":"chat.completion.chunk","created":1752978879000,"model":"v0-1.5-lg",` +
+          `"choices":[{"index":0,"delta":{"role":"assistant","content":"Hello"},"finish_reason":null}]}\n\n`,
+        `data: {"id":"v0-R4OtPMxrBOury1qp09BVyMYR70AxpfE6","object":"chat.completion.chunk","created":1752978879170,"model":"v0-1.5-lg",` +
+          `"choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}\n\n`,
+        `data: {"id":"v0-R4OtPMxrBOury1qp09BVyMYR70AxpfE6","object":"chat.completion.chunk","created":1752978879176,"model":"v0-1.5-lg",` +
+          `"usage":{"prompt_tokens":2016,"completion_tokens":958,"total_tokens":2974}}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const chunks = await convertReadableStreamToArray(stream);
+
+    expect(chunks).not.toContainEqual(
+      expect.objectContaining({ type: 'error' }),
+    );
+    expect(chunks).toContainEqual({
+      type: 'text-delta',
+      id: 'txt-0',
+      delta: 'Hello',
+    });
+    expect(chunks).toContainEqual(
+      expect.objectContaining({
+        type: 'finish',
+        finishReason: { unified: 'stop', raw: 'stop' },
+        usage: expect.objectContaining({
+          inputTokens: expect.objectContaining({
+            noCache: 2016,
+            total: 2016,
+          }),
+          outputTokens: expect.objectContaining({
+            text: 958,
+            total: 958,
+          }),
+          raw: expect.objectContaining({
+            total_tokens: 2974,
+          }),
+        }),
+      }),
+    );
+  });
+
   it('should stream reasoning content before text deltas', async () => {
     server.urls['https://my.api.com/v1/chat/completions'].response = {
       type: 'stream-chunks',
