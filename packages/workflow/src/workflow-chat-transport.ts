@@ -72,6 +72,8 @@ function createOrphanFilter(): OrphanFilter {
       case 'tool-input-error':
       case 'tool-output-available':
       case 'tool-output-error':
+      case 'tool-approval-request':
+      case 'tool-output-denied':
         if (seenStartedToolCallIds.has(chunk.toolCallId)) return false;
         warnOnce(chunk.type, chunk.toolCallId);
         return true;
