@@ -61,6 +61,7 @@ export async function convertToOpenAIResponsesInput({
   passThroughUnsupportedFiles = false,
   store,
   hasConversation = false,
+  hasPreviousResponseId = false,
   hasLocalShellTool = false,
   hasShellTool = false,
   hasApplyPatchTool = false,
@@ -75,6 +76,7 @@ export async function convertToOpenAIResponsesInput({
   passThroughUnsupportedFiles?: boolean;
   store: boolean;
   hasConversation?: boolean; // when true, skip assistant messages that already have item IDs
+  hasPreviousResponseId?: boolean; // when true, skip reasoning and function-call items that already exist in the previous response chain
   hasLocalShellTool?: boolean;
   hasShellTool?: boolean;
   hasApplyPatchTool?: boolean;
@@ -307,6 +309,9 @@ export async function convertToOpenAIResponsesInput({
               }
 
               if (store && id != null) {
+                if (hasPreviousResponseId) {
+                  break;
+                }
                 input.push({ type: 'item_reference', id });
                 break;
               }
@@ -505,7 +510,10 @@ export async function convertToOpenAIResponsesInput({
 
               const reasoningId = providerOptions?.itemId;
 
-              if (hasConversation && reasoningId != null) {
+              if (
+                (hasConversation || hasPreviousResponseId) &&
+                reasoningId != null
+              ) {
                 break;
               }
 
