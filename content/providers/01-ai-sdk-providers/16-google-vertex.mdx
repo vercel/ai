@@ -347,6 +347,35 @@ The following optional provider options are available for Google Vertex models:
 
   Consult [Google's Documentation](https://docs.cloud.google.com/vertex-ai/generative-ai/docs/multimodal/function-calling#streaming-fc) for details.
 
+- **sharedRequestType** _'priority' | 'flex' | 'standard'_
+
+  Optional. Selects a pay-as-you-go (PayGo) tier by setting the
+  `X-Vertex-AI-LLM-Shared-Request-Type` request header. Use `'priority'` for
+  consistent low-latency performance at a premium, or `'flex'` for a 50%
+  discount with longer expected latency. Both are supported only on the
+  `global` endpoint and on a subset of Gemini models.
+
+  By default — with Provisioned Throughput allocated and `requestType` unset
+  — the request consumes Provisioned Throughput quota first and only falls
+  back to the chosen shared tier if PT capacity is exhausted. To bypass
+  Provisioned Throughput entirely, also set `requestType: 'shared'`.
+
+  The served tier is reported back on
+  `result.providerMetadata.googleVertex.usageMetadata.trafficType` as
+  `ON_DEMAND_PRIORITY`, `ON_DEMAND_FLEX`, or (if downgraded under load) plain
+  `ON_DEMAND`.
+
+  See [Priority PayGo](https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/priority-paygo)
+  and [Flex PayGo](https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/flex-paygo)
+  for supported models, ramp limits, and downgrade behavior.
+
+- **requestType** _'shared'_
+
+  Optional. Sets the `X-Vertex-AI-LLM-Request-Type` request header. Combine
+  with `sharedRequestType` to skip Provisioned Throughput entirely and route
+  the request through shared PayGo capacity. See
+  [Priority PayGo](https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/priority-paygo).
+
 You can use Google Vertex language models to generate text with the `generateText` function:
 
 ```ts highlight="1,4"
