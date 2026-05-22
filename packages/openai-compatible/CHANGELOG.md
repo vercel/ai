@@ -1,5 +1,11 @@
 # @ai-sdk/openai-compatible
 
+## 2.0.48
+
+### Patch Changes
+
+- e40e1d4: fix: accept empty string `role` in streaming delta chunks from OpenAI-compatible providers
+
 ## 2.0.47
 
 ### Patch Changes
