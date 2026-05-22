@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 3.0.79
+
+### Patch Changes
+
+- d61a788: Handle errors from anthropic websearch tool
+
 ## 3.0.78
 
 ### Patch Changes
