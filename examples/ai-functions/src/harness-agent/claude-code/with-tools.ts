@@ -3,10 +3,14 @@ import { createClaudeCode } from '@ai-sdk/harness-claude-code';
 import { tool } from 'ai';
 import { z } from 'zod';
 import { run } from '../../lib/run';
-import { createVercelHarnessSandbox } from '../../lib/harness-sandbox';
+import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 
 run(async () => {
-  const sandbox = await createVercelHarnessSandbox();
+  const sandbox = createVercelSandbox({
+    runtime: 'node24',
+    ports: [4000],
+    timeout: 10 * 60 * 1000,
+  });
   const weather = tool({
     description: 'Get the current temperature for a city.',
     inputSchema: z.object({ city: z.string() }),
@@ -41,7 +45,6 @@ run(async () => {
     console.error('[example] failed:', err);
   } finally {
     await agent.close();
-    await sandbox.stop();
     process.exit(exitCode);
   }
 });

@@ -3,7 +3,7 @@ import type {
   HarnessV1Options,
   HarnessV1Prompt,
   HarnessV1PromptControl,
-  HarnessV1Sandbox,
+  HarnessV1SandboxSession,
   HarnessV1Session,
   HarnessV1ToolSpec,
 } from '../../v1';
@@ -39,7 +39,7 @@ export function runPrompt<
   instructions: string | undefined;
   tools: TOOLS;
   toolSpecs: HarnessV1ToolSpec[];
-  sandbox: HarnessV1Sandbox | undefined;
+  sandboxSession: HarnessV1SandboxSession | undefined;
   harnessOptions: HarnessV1Options | undefined;
   runtimeContext: RUNTIME_CONTEXT;
   abortSignal: AbortSignal | undefined;
@@ -99,7 +99,7 @@ export function runPrompt<
           await maybeExecuteHostTool({
             event: value,
             tools: input.tools,
-            sandbox: input.sandbox,
+            sandboxSession: input.sandboxSession,
             abortSignal: input.abortSignal,
             control,
           });
@@ -130,7 +130,7 @@ export function runPrompt<
 async function maybeExecuteHostTool<TOOLS extends ToolSet>(input: {
   event: { toolCallId: string; toolName: string; input: string };
   tools: TOOLS;
-  sandbox: HarnessV1Sandbox | undefined;
+  sandboxSession: HarnessV1SandboxSession | undefined;
   abortSignal: AbortSignal | undefined;
   control: HarnessV1PromptControl;
 }): Promise<void> {
@@ -140,7 +140,7 @@ async function maybeExecuteHostTool<TOOLS extends ToolSet>(input: {
           args: unknown,
           options: {
             abortSignal?: AbortSignal;
-            experimental_sandbox?: HarnessV1Sandbox;
+            experimental_sandbox?: HarnessV1SandboxSession;
           },
         ) => unknown | Promise<unknown>;
       }
@@ -154,7 +154,7 @@ async function maybeExecuteHostTool<TOOLS extends ToolSet>(input: {
   try {
     const output = await tool.execute(args, {
       abortSignal: input.abortSignal,
-      experimental_sandbox: input.sandbox,
+      experimental_sandbox: input.sandboxSession,
     });
     await input.control.submitToolResult({
       toolCallId: input.event.toolCallId,

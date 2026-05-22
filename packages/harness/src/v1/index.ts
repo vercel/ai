@@ -16,10 +16,12 @@ export type {
 } from './harness-v1-metadata';
 export type { HarnessV1Prompt } from './harness-v1-prompt';
 export type { HarnessV1ResumeState } from './harness-v1-resume-state';
+export type { HarnessV1SandboxProvider } from './harness-v1-sandbox';
 export type {
   HarnessV1NetworkPolicy,
-  HarnessV1Sandbox,
-} from './harness-v1-sandbox';
+  HarnessV1SandboxHandle,
+} from './harness-v1-sandbox-handle';
+export type { HarnessV1SandboxSession } from './harness-v1-sandbox-session';
 export type { HarnessV1Session } from './harness-v1-session';
 export type { HarnessV1StreamPart } from './harness-v1-stream-part';
 export type { HarnessV1ToolSpec } from './harness-v1-tool-spec';

@@ -1,6 +1,8 @@
 # AI SDK - just-bash Sandbox
 
-AI SDK sandbox implementation backed by [`just-bash`](https://github.com/vercel-labs/just-bash), an in-process JavaScript bash environment with a virtual filesystem. File operations and spawned processes share the same in-memory state, so harness bridges can be exercised locally without a hosted sandbox.
+`HarnessV1SandboxProvider` implementation backed by [`just-bash`](https://github.com/vercel-labs/just-bash), an in-process JavaScript bash environment with a virtual filesystem. File operations and spawned processes share the same in-memory state.
+
+This provider does not expose ports, so it cannot host bridge-backed harness adapters (claude-code, codex). It is primarily useful for handing a local `Experimental_Sandbox` to AI SDK tools that accept `experimental_sandbox`, or for non-bridge harness flows.
 
 ## Setup
 
@@ -10,26 +12,33 @@ npm i @ai-sdk/sandbox-just-bash
 
 ## Usage
 
+The factory is synchronous. The returned provider is stable; the actual `just-bash` `Sandbox` is created on demand inside `provider.create()`.
+
 ```ts
 import { createJustBashSandbox } from '@ai-sdk/sandbox-just-bash';
 
-const sandbox = await createJustBashSandbox({ cwd: '/work' });
+const sandbox = createJustBashSandbox({ cwd: '/work' });
 
-await sandbox.writeTextFile({ path: '/work/hello.txt', content: 'hi' });
+const handle = await sandbox.create();
 
-const { stdout } = await sandbox.runCommand({ command: 'cat /work/hello.txt' });
+await handle.session.writeTextFile({ path: '/work/hello.txt', content: 'hi' });
+
+const { stdout } = await handle.session.runCommand({
+  command: 'cat /work/hello.txt',
+});
 console.log(stdout); // "hi"
 ```
 
-To wrap an already-created `just-bash` `Sandbox` (e.g. with a custom `fs`),
-pass it via `sandbox`:
+`handle.session` is typed as `Experimental_Sandbox` and is the surface to hand to user tools. The handle's `getPortUrl` throws (just-bash has no port story) and `setNetworkPolicy` is omitted (no local enforcement primitive).
+
+To wrap an already-created `just-bash` `Sandbox` (e.g. with a custom `fs`), pass it via `sandbox`:
 
 ```ts
 import { createJustBashSandbox } from '@ai-sdk/sandbox-just-bash';
 import { OverlayFs, Sandbox } from 'just-bash';
 
 const overlay = new OverlayFs({ root: process.cwd() });
-const sandbox = await createJustBashSandbox({
+const sandbox = createJustBashSandbox({
   sandbox: await Sandbox.create({ fs: overlay, cwd: overlay.getMountPoint() }),
 });
 ```

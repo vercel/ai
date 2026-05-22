@@ -1,7 +1,7 @@
 import type { HarnessV1Options } from './harness-v1-metadata';
 import type { HarnessV1Prompt } from './harness-v1-prompt';
 import type { HarnessV1ResumeState } from './harness-v1-resume-state';
-import type { HarnessV1Sandbox } from './harness-v1-sandbox';
+import type { HarnessV1SandboxHandle } from './harness-v1-sandbox-handle';
 import type { HarnessV1StreamPart } from './harness-v1-stream-part';
 import type { HarnessV1ToolSpec } from './harness-v1-tool-spec';
 
@@ -17,11 +17,16 @@ export type HarnessV1StartOptions = {
   readonly sessionId: string;
 
   /**
-   * Sandbox in which the adapter should operate. Optional because some
-   * adapters do not need one. Adapters that do require a sandbox throw
+   * Sandbox handle the adapter operates against. Optional because some
+   * adapters do not need a sandbox. Adapters that do require one throw
    * `HarnessCapabilityUnsupportedError` when none is provided.
+   *
+   * The handle is owned and lifecycled by `HarnessAgent`. Adapters use the
+   * `session` field for filesystem/exec/spawn, and the infra methods
+   * (`getPortUrl`, `ports`, `setNetworkPolicy`) for bridge wiring. Adapters
+   * must not call `stop()` themselves; the agent does that during cleanup.
    */
-  readonly sandbox?: HarnessV1Sandbox;
+  readonly sandboxHandle?: HarnessV1SandboxHandle;
 
   /**
    * Adapter-namespaced configuration, keyed by harness id.

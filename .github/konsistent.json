@@ -195,68 +195,24 @@
           "must": {
             "importTypes": [
               {
-                "name": "Experimental_Sandbox",
-                "from": "@ai-sdk/provider-utils"
+                "name": "HarnessV1SandboxProvider",
+                "from": "@ai-sdk/harness"
               }
             ],
             "exportClasses": [
               {
-                "name": "${sandboxId.toPascalCase()}Sandbox",
-                "implement": ["Experimental_Sandbox"]
+                "name": "${sandboxId.toPascalCase()}SandboxProvider",
+                "implement": ["HarnessV1SandboxProvider"]
               }
             ],
             "exportFunctions": [
               {
                 "name": "create${sandboxId.toPascalCase()}Sandbox",
                 "receiveParamOfType": "${sandboxId.toPascalCase()}SandboxSettings",
-                "returnValueOfType": "Promise<Experimental_Sandbox>"
+                "returnValueOfType": "HarnessV1SandboxProvider"
               }
             ],
             "exportTypes": ["${sandboxId.toPascalCase()}SandboxSettings"]
-          }
-        },
-        {
-          "name": "harness-sandbox-entrypoint-must-export-sandbox-creator-and-settings",
-          "description": "Every harness sandbox entrypoint must export a harness sandbox creator function and class from its index.ts file.",
-          "for": { "files": ["../harness/index.ts"] },
-          "must": {
-            "export": [
-              {
-                "name": "create${sandboxId.toPascalCase()}HarnessSandbox",
-                "from": "./${sandboxId}-harness-sandbox"
-              },
-              {
-                "name": "${sandboxId.toPascalCase()}HarnessSandbox",
-                "from": "./${sandboxId}-harness-sandbox"
-              }
-            ],
-            "haveFiles": ["${sandboxId}-harness-sandbox.ts"]
-          }
-        },
-        {
-          "name": "harness-sandbox-file-must-export-sandbox-creator-and-settings-type",
-          "description": "Every harness sandbox file must export a harness sandbox creator function and class.",
-          "for": { "files": ["../harness/${sandboxId}-harness-sandbox.ts"] },
-          "must": {
-            "importTypes": [
-              {
-                "name": "HarnessV1Sandbox",
-                "from": "@ai-sdk/harness"
-              }
-            ],
-            "exportClasses": [
-              {
-                "name": "${sandboxId.toPascalCase()}HarnessSandbox",
-                "implement": ["HarnessV1Sandbox"]
-              }
-            ],
-            "exportFunctions": [
-              {
-                "name": "create${sandboxId.toPascalCase()}HarnessSandbox",
-                "receiveParamOfType": "${sandboxId.toPascalCase()}SandboxSettings",
-                "returnValueOfType": "Promise<HarnessV1Sandbox>"
-              }
-            ]
           }
         }
       ]

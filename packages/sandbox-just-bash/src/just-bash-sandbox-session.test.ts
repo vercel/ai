@@ -1,6 +1,6 @@
 import { Sandbox } from 'just-bash';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { JustBashSandbox } from './just-bash-sandbox';
+import { JustBashSandboxSession } from './just-bash-sandbox-session';
 
 const decoder = new TextDecoder();
 
@@ -16,11 +16,13 @@ async function collect(stream: ReadableStream<Uint8Array>): Promise<string> {
   return text;
 }
 
-describe('JustBashSandbox', () => {
-  let sandbox: JustBashSandbox;
+describe('JustBashSandboxSession', () => {
+  let sandbox: JustBashSandboxSession;
 
   beforeEach(async () => {
-    sandbox = new JustBashSandbox(await Sandbox.create({ cwd: '/work' }));
+    sandbox = new JustBashSandboxSession(
+      await Sandbox.create({ cwd: '/work' }),
+    );
   });
 
   describe('description', () => {

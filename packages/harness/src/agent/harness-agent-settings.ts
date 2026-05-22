@@ -2,7 +2,7 @@ import type {
   HarnessV1,
   HarnessV1Options,
   HarnessV1ResumeState,
-  HarnessV1Sandbox,
+  HarnessV1SandboxProvider,
 } from '../v1';
 import type { ToolSet } from '@ai-sdk/provider-utils';
 
@@ -41,10 +41,12 @@ export type HarnessAgentSettings<TOOLS extends ToolSet = ToolSet> = {
   readonly system?: string;
 
   /**
-   * Sandbox passed to the harness at start and propagated to user tool
-   * `execute()` calls.
+   * Sandbox provider whose `create()` produces the sandbox handle the harness
+   * runs against. The handle's `session` is also propagated to user tool
+   * `execute()` calls (as the `experimental_sandbox` field), typed as
+   * `Experimental_Sandbox` so tools cannot reach the infra surface.
    */
-  readonly sandbox?: HarnessV1Sandbox;
+  readonly sandbox?: HarnessV1SandboxProvider;
 
   /**
    * Adapter-namespaced configuration applied to every call.

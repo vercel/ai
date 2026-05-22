@@ -15,14 +15,9 @@ The bridge installs `@anthropic-ai/claude-agent-sdk` and `@anthropic-ai/claude-c
 ```ts
 import { HarnessAgent } from '@ai-sdk/harness/agent';
 import { createClaudeCode } from '@ai-sdk/harness-claude-code';
-import { createVercelHarnessSandbox } from '@ai-sdk/sandbox-vercel/harness';
+import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 import { tool } from 'ai';
 import { z } from 'zod/v4';
-
-const sandbox = await createVercelHarnessSandbox({
-  runtime: 'node24',
-  ports: [4000],
-});
 
 const agent = new HarnessAgent({
   harness: createClaudeCode({
@@ -35,7 +30,10 @@ const agent = new HarnessAgent({
     ],
   }),
   id: 'demo',
-  sandbox,
+  sandbox: createVercelSandbox({
+    runtime: 'node24',
+    ports: [4000],
+  }),
   tools: {
     deploy: tool({
       description: 'Deploy a service.',
@@ -58,4 +56,4 @@ try {
 }
 ```
 
-The adapter requires a sandbox that implements `HarnessV1Sandbox.getPortUrl` — `VercelHarnessSandbox` from `@ai-sdk/sandbox-vercel/harness` is the supported choice today.
+The adapter requires a `HarnessV1SandboxProvider` whose handles expose at least one port — `@ai-sdk/sandbox-vercel` is the supported choice today. The agent calls `provider.create()` on its first turn and stops the underlying sandbox during `agent.close()`.

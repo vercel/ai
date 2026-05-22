@@ -1,304 +1,68 @@
-import { isAbsolute, posix } from 'node:path';
-import {
-  extractLines,
-  type Experimental_Sandbox,
-  type Experimental_SandboxProcess,
-} from '@ai-sdk/provider-utils';
-import { Sandbox, type SandboxCommand } from 'just-bash';
+import type {
+  HarnessV1SandboxHandle,
+  HarnessV1SandboxProvider,
+} from '@ai-sdk/harness';
+import { Sandbox } from 'just-bash';
+import { JustBashSandboxHandle } from './just-bash-sandbox-handle';
 
-type JustBashCreateParams = NonNullable<Parameters<typeof Sandbox.create>[0]>;
+/**
+ * Parameters forwarded to `just-bash`'s `Sandbox.create` when creating a
+ * sandbox from scratch. Aliased directly from the underlying SDK so the full
+ * surface is available without us re-declaring it.
+ */
+type JustBashSandboxCreateParams = NonNullable<
+  Parameters<typeof Sandbox.create>[0]
+>;
 
+/**
+ * Settings for {@link createJustBashSandbox}. Two mutually-exclusive shapes:
+ *
+ * - `{ sandbox }` — wrap an already-created `just-bash` `Sandbox`. The caller
+ *   owns its lifecycle.
+ * - {@link JustBashSandboxCreateParams} fields — provider calls
+ *   `Sandbox.create(settings)` on every `create()`.
+ */
 export type JustBashSandboxSettings =
-  | {
-      /**
-       * An already-created `just-bash` `Sandbox` to wrap. The caller retains
-       * lifecycle ownership.
-       */
-      sandbox: Sandbox;
-    }
-  | (Pick<JustBashCreateParams, 'cwd' | 'env' | 'timeoutMs' | 'network'> & {
-      sandbox?: never;
-    });
+  | { sandbox: Sandbox }
+  | (JustBashSandboxCreateParams & { sandbox?: never });
 
-export async function createJustBashSandbox(
-  settings: JustBashSandboxSettings = {},
-): Promise<Experimental_Sandbox> {
-  if ('sandbox' in settings && settings.sandbox) {
-    return new JustBashSandbox(settings.sandbox);
-  }
-  const { sandbox: _ignored, ...createParams } = settings;
-  return new JustBashSandbox(await Sandbox.create(createParams));
+const JUST_BASH_PROVIDER_ID = 'just-bash-sandbox';
+
+export function createJustBashSandbox(
+  settings: JustBashSandboxSettings = {} as JustBashSandboxSettings,
+): HarnessV1SandboxProvider {
+  return new JustBashSandboxProvider(settings);
 }
 
 /**
- * `Experimental_Sandbox` backed by a `just-bash` `Sandbox`. File operations and
- * spawned processes share the same in-memory filesystem, so a bridge process
- * spawned via `spawnCommand` can read files the host wrote via `writeTextFile`
- * (and vice versa).
+ * `HarnessV1SandboxProvider` implementation backed by `just-bash`. Useful for
+ * non-bridge harness flows and for handing a local `Experimental_Sandbox` to
+ * AI SDK tools — use `provider.create()` then `handle.session` to get the
+ * latter.
+ *
+ * Note: just-bash cannot expose ports, so bridge-backed harness adapters
+ * (claude-code, codex) will reject this provider at start.
  */
-export class JustBashSandbox implements Experimental_Sandbox {
-  constructor(private readonly sandbox: Sandbox) {}
+export class JustBashSandboxProvider implements HarnessV1SandboxProvider {
+  readonly specificationVersion = 'harness-sandbox-v1' as const;
+  readonly providerId = JUST_BASH_PROVIDER_ID;
 
-  get description(): string {
-    return [
-      'just-bash JavaScript bash environment with a virtual filesystem.',
-      'Filesystem changes and spawned processes share the same in-memory state.',
-      `Current working directory: ${this.sandbox.bashEnvInstance.getCwd()}`,
-    ].join('\n');
-  }
+  constructor(private readonly settings: JustBashSandboxSettings) {}
 
-  private resolvePath(path: string): string {
-    return isAbsolute(path)
-      ? path
-      : posix.join(this.sandbox.bashEnvInstance.getCwd(), path);
-  }
-
-  async runCommand({
-    command,
-    workingDirectory,
-    abortSignal,
-  }: {
-    command: string;
-    workingDirectory?: string;
+  create = async (options?: {
     abortSignal?: AbortSignal;
-  }): Promise<{ exitCode: number; stdout: string; stderr: string }> {
-    abortSignal?.throwIfAborted();
+  }): Promise<HarnessV1SandboxHandle> => {
+    options?.abortSignal?.throwIfAborted();
 
-    const finished = await this.sandbox.runCommand({
-      cmd: 'bash',
-      args: ['-c', command],
-      ...(workingDirectory !== undefined ? { cwd: workingDirectory } : {}),
-      ...(abortSignal !== undefined ? { signal: abortSignal } : {}),
-    });
-
-    const [stdout, stderr] = await Promise.all([
-      finished.stdout(),
-      finished.stderr(),
-    ]);
-
-    return {
-      exitCode: finished.exitCode,
-      stdout,
-      stderr,
-    };
-  }
-
-  async spawnCommand({
-    command,
-    workingDirectory,
-    abortSignal,
-  }: {
-    command: string;
-    workingDirectory?: string;
-    abortSignal?: AbortSignal;
-  }): Promise<Experimental_SandboxProcess> {
-    abortSignal?.throwIfAborted();
-
-    const live = await this.sandbox.runCommand({
-      cmd: 'bash',
-      args: ['-c', command],
-      detached: true,
-      ...(workingDirectory !== undefined ? { cwd: workingDirectory } : {}),
-      ...(abortSignal !== undefined ? { signal: abortSignal } : {}),
-    });
-
-    return createSandboxProcess(live, abortSignal);
-  }
-
-  async readFile({
-    path,
-    abortSignal,
-  }: {
-    path: string;
-    abortSignal?: AbortSignal;
-  }): Promise<ReadableStream<Uint8Array> | null> {
-    const bytes = await this.readBinaryFile({ path, abortSignal });
-    if (bytes == null) return null;
-    return bytesToStream(bytes);
-  }
-
-  async readBinaryFile({
-    path,
-    abortSignal,
-  }: {
-    path: string;
-    abortSignal?: AbortSignal;
-  }): Promise<Uint8Array | null> {
-    abortSignal?.throwIfAborted();
-    const resolved = this.resolvePath(path);
-    try {
-      const bytes =
-        await this.sandbox.bashEnvInstance.fs.readFileBuffer(resolved);
-      return bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
-    } catch (error) {
-      if (isFileNotFoundError(error)) return null;
-      throw error;
+    if ('sandbox' in this.settings && this.settings.sandbox) {
+      return new JustBashSandboxHandle({
+        sandbox: this.settings.sandbox,
+        ownsLifecycle: false,
+      });
     }
-  }
 
-  async readTextFile({
-    path,
-    encoding = 'utf-8',
-    startLine,
-    endLine,
-    abortSignal,
-  }: {
-    path: string;
-    encoding?: string;
-    startLine?: number;
-    endLine?: number;
-    abortSignal?: AbortSignal;
-  }): Promise<string | null> {
-    const bytes = await this.readBinaryFile({ path, abortSignal });
-    if (bytes == null) return null;
-    const text = Buffer.from(bytes).toString(encoding as BufferEncoding);
-    return extractLines({ text, startLine, endLine });
-  }
-
-  async writeFile({
-    path,
-    content,
-    abortSignal,
-  }: {
-    path: string;
-    content: ReadableStream<Uint8Array>;
-    abortSignal?: AbortSignal;
-  }): Promise<void> {
-    const bytes = await collectStream(content);
-    await this.writeBinaryFile({ path, content: bytes, abortSignal });
-  }
-
-  async writeBinaryFile({
-    path,
-    content,
-    abortSignal,
-  }: {
-    path: string;
-    content: Uint8Array;
-    abortSignal?: AbortSignal;
-  }): Promise<void> {
-    abortSignal?.throwIfAborted();
-    const resolved = this.resolvePath(path);
-    await this.sandbox.bashEnvInstance.fs.writeFile(resolved, content);
-  }
-
-  async writeTextFile({
-    path,
-    content,
-    encoding = 'utf-8',
-    abortSignal,
-  }: {
-    path: string;
-    content: string;
-    encoding?: string;
-    abortSignal?: AbortSignal;
-  }): Promise<void> {
-    const buffer = Buffer.from(content, encoding as BufferEncoding);
-    await this.writeBinaryFile({
-      path,
-      content: new Uint8Array(
-        buffer.buffer,
-        buffer.byteOffset,
-        buffer.byteLength,
-      ),
-      abortSignal,
-    });
-  }
-}
-
-function createSandboxProcess(
-  command: SandboxCommand,
-  abortSignal: AbortSignal | undefined,
-): Experimental_SandboxProcess {
-  const encoder = new TextEncoder();
-  const controllers: {
-    stdout?: ReadableStreamDefaultController<Uint8Array>;
-    stderr?: ReadableStreamDefaultController<Uint8Array>;
-  } = {};
-
-  const stdout = new ReadableStream<Uint8Array>({
-    start(controller) {
-      controllers.stdout = controller;
-    },
-  });
-
-  const stderr = new ReadableStream<Uint8Array>({
-    start(controller) {
-      controllers.stderr = controller;
-    },
-  });
-
-  const drained = (async () => {
-    try {
-      for await (const message of command.logs()) {
-        const target =
-          message.type === 'stdout' ? controllers.stdout : controllers.stderr;
-        target?.enqueue(encoder.encode(message.data));
-      }
-      controllers.stdout?.close();
-      controllers.stderr?.close();
-    } catch (error) {
-      controllers.stdout?.error(error);
-      controllers.stderr?.error(error);
-    }
-  })();
-
-  return {
-    stdout,
-    stderr,
-    async wait(): Promise<{ exitCode: number }> {
-      const finished = await command.wait();
-      await drained;
-      if (abortSignal?.aborted) {
-        throw abortSignal.reason ?? new DOMException('Aborted', 'AbortError');
-      }
-      return { exitCode: finished.exitCode };
-    },
-    async kill(): Promise<void> {
-      await command.kill();
-    },
+    const { sandbox: _ignored, ...createParams } = this.settings;
+    const sandbox = await Sandbox.create(createParams);
+    return new JustBashSandboxHandle({ sandbox, ownsLifecycle: true });
   };
-}
-
-function bytesToStream(bytes: Uint8Array): ReadableStream<Uint8Array> {
-  return new ReadableStream<Uint8Array>({
-    start(controller) {
-      controller.enqueue(bytes);
-      controller.close();
-    },
-  });
-}
-
-async function collectStream(
-  stream: ReadableStream<Uint8Array>,
-): Promise<Uint8Array> {
-  const reader = stream.getReader();
-  const chunks: Uint8Array[] = [];
-  let total = 0;
-  while (true) {
-    const { value, done } = await reader.read();
-    if (done) break;
-    if (value) {
-      chunks.push(value);
-      total += value.byteLength;
-    }
-  }
-  const out = new Uint8Array(total);
-  let offset = 0;
-  for (const chunk of chunks) {
-    out.set(chunk, offset);
-    offset += chunk.byteLength;
-  }
-  return out;
-}
-
-function isFileNotFoundError(error: unknown): boolean {
-  if (error == null || typeof error !== 'object') return false;
-  const code = (error as { code?: unknown }).code;
-  if (code === 'ENOENT') return true;
-  const message = (error as { message?: unknown }).message;
-  return (
-    typeof message === 'string' &&
-    /no such file|not found|does not exist|ENOENT/i.test(message)
-  );
 }

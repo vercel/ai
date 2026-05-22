@@ -32,9 +32,11 @@ import { SessionManager } from './internal/session-manager';
  *    executed on the host whenever the underlying runtime calls them; the
  *    result is fed back to the harness via `submitToolResult`. Adapter
  *    builtin tools (e.g. Claude Code's `Bash`) pass through untouched.
- *  - **Sandbox propagation.** A sandbox in `settings.sandbox` is passed to
- *    `doStart` and also handed to user-tool `execute()` calls via
- *    `experimental_sandbox`.
+ *  - **Sandbox propagation.** `settings.sandbox` is a sandbox provider. On
+ *    session start, the agent calls `provider.create()` and passes the
+ *    resulting handle into `doStart`. The handle's `session` (a tool-safe
+ *    `Experimental_Sandbox` view) is also handed to user-tool `execute()`
+ *    calls via `experimental_sandbox`.
  */
 export class HarnessAgent<
   TOOLS extends ToolSet = {},
@@ -129,9 +131,7 @@ export class HarnessAgent<
       instructions: this.settings.system,
       tools: this.tools,
       toolSpecs,
-      sandbox:
-        (options as { sandbox?: HarnessAgentSettings['sandbox'] }).sandbox ??
-        this.settings.sandbox,
+      sandboxSession: this.sessions.currentSandboxHandle?.session,
       harnessOptions: mergeHarnessOptions(
         this.settings.harnessOptions,
         callHarnessOptions,

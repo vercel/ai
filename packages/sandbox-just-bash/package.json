@@ -35,6 +35,7 @@
     }
   },
   "dependencies": {
+    "@ai-sdk/harness": "workspace:*",
     "@ai-sdk/provider-utils": "workspace:*"
   },
   "peerDependencies": {

@@ -3147,6 +3147,9 @@ importers:
 
   packages/sandbox-just-bash:
     dependencies:
+      '@ai-sdk/harness':
+        specifier: workspace:*
+        version: link:../harness
       '@ai-sdk/provider-utils':
         specifier: workspace:*
         version: link:../provider-utils

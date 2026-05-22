@@ -13,6 +13,7 @@
     "tsup.config.ts"
   ],
   "references": [
+    { "path": "../harness" },
     { "path": "../provider-utils" }
   ]
 }

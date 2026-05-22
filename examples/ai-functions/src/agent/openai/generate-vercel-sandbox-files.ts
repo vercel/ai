@@ -1,25 +1,22 @@
-import {
-  createVercelSandbox,
-  type VercelSandbox,
-} from '@ai-sdk/sandbox-vercel';
+import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 import { run } from '../../lib/run';
 import { sandboxAgent } from './sandbox-agent';
 
 run(async () => {
-  const sandbox = (await createVercelSandbox({
+  const handle = await createVercelSandbox({
     timeout: 5 * 60 * 1000,
     runtime: 'node22',
-  })) as VercelSandbox;
+  }).create();
 
   try {
     const result = await sandboxAgent.generate({
       prompt:
         'Write a haiku about TypeScript to a file named "haiku.txt", then read it back and summarize what it says.',
-      experimental_sandbox: sandbox,
+      experimental_sandbox: handle.session,
     });
 
     console.log(result.text);
   } finally {
-    await sandbox.stop();
+    await handle.stop();
   }
 });

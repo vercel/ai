@@ -15,17 +15,18 @@ npm i @ai-sdk/harness
 ```ts
 import { HarnessAgent } from '@ai-sdk/harness/agent';
 import { createClaudeCode } from '@ai-sdk/harness-claude-code';
-import { createJustBashSandbox } from '@ai-sdk/sandbox-just-bash';
+import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 import { tool } from 'ai';
 import { z } from 'zod';
-
-const justBashSandbox = await createJustBashSandbox();
 
 const agent = new HarnessAgent({
   harness: createClaudeCode(),
   id: 'auth-agent',
   system: 'You are a careful refactoring assistant. Prefer minimal diffs.',
-  sandbox: justBashSandbox,
+  sandbox: createVercelSandbox({
+    runtime: 'node24',
+    ports: [4000],
+  }),
   tools: {
     deploy: tool({
       description: 'Deploy to a target environment',
@@ -56,6 +57,8 @@ try {
 }
 ```
 
+`sandbox` is a `HarnessV1SandboxProvider` — the agent calls `provider.create()` lazily on the first turn and stops the underlying sandbox during `agent.close()`. Bridge-backed adapters (claude-code, codex) require a provider that exposes ports — `@ai-sdk/sandbox-vercel` is the supported choice today. `@ai-sdk/sandbox-just-bash` is suitable only for non-bridge flows.
+
 ### Available harnesses
 
 - `@ai-sdk/harness-claude-code`
@@ -69,7 +72,7 @@ try {
 
 ## Implementing a harness
 
-Implement the `HarnessV1` factory and a `HarnessV1Session` whose `doPrompt` emits events; the agent surface, streaming, tool execution, and multi-turn state are handled for you.
+Implement the `HarnessV1` factory and a `HarnessV1Session` whose `doPrompt` emits events; the agent surface, streaming, tool execution, and multi-turn state are handled for you. If the adapter needs a sandbox, read `startOpts.sandboxHandle` — the agent has already created the handle for you and will stop it on cleanup.
 
 ```ts
 import type { HarnessV1, HarnessV1Session } from '@ai-sdk/harness';

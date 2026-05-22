@@ -1,10 +1,14 @@
 import { HarnessAgent } from '@ai-sdk/harness/agent';
 import { createCodex } from '@ai-sdk/harness-codex';
 import { run } from '../../lib/run';
-import { createVercelHarnessSandbox } from '../../lib/harness-sandbox';
+import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 
 run(async () => {
-  const sandbox = await createVercelHarnessSandbox();
+  const sandbox = createVercelSandbox({
+    runtime: 'node24',
+    ports: [4000],
+    timeout: 10 * 60 * 1000,
+  });
   const agent = new HarnessAgent({
     harness: createCodex(),
     sandbox,
@@ -34,7 +38,6 @@ run(async () => {
     console.error('[example] failed:', err);
   } finally {
     await agent.close();
-    await sandbox.stop();
     process.exit(exitCode);
   }
 });

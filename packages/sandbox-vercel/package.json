@@ -10,11 +10,8 @@
   "files": [
     "dist/**/*",
     "src",
-    "harness",
     "!src/**/*.test.ts",
     "!src/**/*.test-d.ts",
-    "!harness/**/*.test.ts",
-    "!harness/**/*.test-d.ts",
     "!src/**/__snapshots__",
     "!src/**/__fixtures__",
     "CHANGELOG.md",
@@ -35,11 +32,6 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
-    },
-    "./harness": {
-      "types": "./dist/harness/index.d.ts",
-      "import": "./dist/harness/index.js",
-      "default": "./dist/harness/index.js"
     }
   },
   "dependencies": {

@@ -3,7 +3,8 @@ import type {
   HarnessV1,
   HarnessV1Options,
   HarnessV1ResumeState,
-  HarnessV1Sandbox,
+  HarnessV1SandboxProvider,
+  HarnessV1SandboxHandle,
   HarnessV1Session,
 } from '../../v1';
 import { generateId } from '@ai-sdk/provider-utils';
@@ -11,37 +12,45 @@ import { generateId } from '@ai-sdk/provider-utils';
 /**
  * Owns the lifecycle of one `HarnessV1Session` on behalf of a `HarnessAgent`.
  *
- * The session is created lazily on the first `getSession()` call so the
- * `HarnessAgent` constructor is cheap and never throws for setup reasons.
- * Once created, the session is sticky: every subsequent `getSession()` call
- * returns the same instance until `close()` or `detach()` is invoked.
+ * On first `getSession()`, if a sandbox provider was supplied, the manager
+ * creates the sandbox handle and passes it into `harness.doStart()`. The
+ * handle is held for the lifetime of the session and stopped during `close()`.
+ *
+ * Session and handle are sticky: every subsequent `getSession()` call returns
+ * the same instances until `close()` or `detach()` is invoked.
  *
  * `close()` and `detach()` are idempotent.
  */
 export class SessionManager {
   private readonly harness: HarnessV1;
-  private readonly sandbox: HarnessV1Sandbox | undefined;
+  private readonly sandboxProvider: HarnessV1SandboxProvider | undefined;
   private readonly harnessOptions: HarnessV1Options | undefined;
   private readonly resumeFrom: HarnessV1ResumeState | undefined;
 
   readonly sessionId: string;
 
   private session: HarnessV1Session | null = null;
+  private sandboxHandle: HarnessV1SandboxHandle | null = null;
   private startPromise: Promise<HarnessV1Session> | null = null;
   private stopped = false;
 
   constructor(options: {
     harness: HarnessV1;
     sessionId?: string;
-    sandbox?: HarnessV1Sandbox;
+    sandbox?: HarnessV1SandboxProvider;
     harnessOptions?: HarnessV1Options;
     resumeFrom?: HarnessV1ResumeState;
   }) {
     this.harness = options.harness;
-    this.sandbox = options.sandbox;
+    this.sandboxProvider = options.sandbox;
     this.harnessOptions = options.harnessOptions;
     this.resumeFrom = options.resumeFrom;
     this.sessionId = options.sessionId ?? generateId();
+  }
+
+  /** The sandbox handle currently in use, if any. */
+  get currentSandboxHandle(): HarnessV1SandboxHandle | null {
+    return this.sandboxHandle;
   }
 
   /**
@@ -63,22 +72,35 @@ export class SessionManager {
       return this.startPromise;
     }
 
-    this.startPromise = Promise.resolve(
-      this.harness.doStart({
-        sessionId: this.sessionId,
-        sandbox: this.sandbox,
-        harnessOptions: this.harnessOptions,
-        resumeFrom: this.resumeFrom,
-        abortSignal: options?.abortSignal,
-      }),
-    )
-      .then(session => {
+    this.startPromise = (async () => {
+      const sandboxHandle =
+        this.sandboxProvider != null
+          ? await this.sandboxProvider.create({
+              abortSignal: options?.abortSignal,
+            })
+          : undefined;
+      this.sandboxHandle = sandboxHandle ?? null;
+
+      try {
+        const session = await this.harness.doStart({
+          sessionId: this.sessionId,
+          sandboxHandle,
+          harnessOptions: this.harnessOptions,
+          resumeFrom: this.resumeFrom,
+          abortSignal: options?.abortSignal,
+        });
         this.session = session;
         return session;
-      })
-      .finally(() => {
-        this.startPromise = null;
-      });
+      } catch (error) {
+        if (sandboxHandle != null) {
+          await Promise.resolve(sandboxHandle.stop()).catch(() => {});
+          this.sandboxHandle = null;
+        }
+        throw error;
+      }
+    })().finally(() => {
+      this.startPromise = null;
+    });
 
     return this.startPromise;
   }
@@ -87,9 +109,14 @@ export class SessionManager {
     if (this.stopped) return;
     this.stopped = true;
     const session = this.session;
+    const handle = this.sandboxHandle;
     this.session = null;
+    this.sandboxHandle = null;
     if (session != null) {
-      await session.doStop();
+      await Promise.resolve(session.doStop()).catch(() => {});
+    }
+    if (handle != null) {
+      await Promise.resolve(handle.stop()).catch(() => {});
     }
   }
 
@@ -113,8 +140,15 @@ export class SessionManager {
       });
     }
     const state = await session.doDetach();
+    const handle = this.sandboxHandle;
     this.stopped = true;
     this.session = null;
+    this.sandboxHandle = null;
+    if (handle != null) {
+      // Detach is "release host without tearing down the runtime" — but the
+      // sandbox is host infrastructure, not the runtime. We stop it.
+      await Promise.resolve(handle.stop()).catch(() => {});
+    }
     return state;
   }
 }

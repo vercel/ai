@@ -5,7 +5,7 @@
     "rootDir": ".",
     "outDir": "dist"
   },
-  "include": ["index.ts", "src", "harness"],
+  "include": ["index.ts", "src"],
   "exclude": [
     "dist",
     "build",

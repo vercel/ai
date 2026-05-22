@@ -6,7 +6,7 @@ import {
   type HarnessV1,
   type HarnessV1BuiltinToolDescriptor,
   type HarnessV1PromptControl,
-  type HarnessV1Sandbox,
+  type HarnessV1SandboxHandle,
   type HarnessV1Session,
   type HarnessV1StreamPart,
 } from '@ai-sdk/harness';
@@ -55,10 +55,11 @@ export function createClaudeCode(
     harnessId: 'claude-code',
     builtinTools: BUILTIN_TOOLS,
     doStart: async startOpts => {
-      const sandbox = requireGetPortUrl(startOpts.sandbox);
+      const handle = requireHandle(startOpts.sandboxHandle);
+      const { session } = handle;
 
       const workdir = `/tmp/harness/${startOpts.sessionId}`;
-      const port = resolveBridgePort(sandbox, settings.port);
+      const port = resolveBridgePort(handle, settings.port);
       const token = randomBytes(32).toString('hex');
       const env = {
         ...resolveClaudeCodeEnv(settings.auth),
@@ -66,35 +67,35 @@ export function createClaudeCode(
         BRIDGE_WS_PORT: String(port),
       };
 
-      await sandbox.runCommand({
+      await session.runCommand({
         command: `mkdir -p ${workdir}`,
         abortSignal: startOpts.abortSignal,
       });
 
       await Promise.all([
-        sandbox.writeTextFile({
+        session.writeTextFile({
           path: `${workdir}/env.json`,
           content: JSON.stringify(env),
           abortSignal: startOpts.abortSignal,
         }),
-        sandbox.writeTextFile({
+        session.writeTextFile({
           path: `${workdir}/package.json`,
           content: await readBridgeAsset('package.json'),
           abortSignal: startOpts.abortSignal,
         }),
-        sandbox.writeTextFile({
+        session.writeTextFile({
           path: `${workdir}/bridge.mjs`,
           content: await readBridgeAsset('index.mjs'),
           abortSignal: startOpts.abortSignal,
         }),
-        sandbox.writeTextFile({
+        session.writeTextFile({
           path: `${workdir}/pnpm-lock.yaml`,
           content: await readBridgeAsset('pnpm-lock.yaml'),
           abortSignal: startOpts.abortSignal,
         }),
       ]);
 
-      const install = await sandbox.runCommand({
+      const install = await session.runCommand({
         command: `pnpm --dir ${workdir} install --frozen-lockfile --store-dir ${workdir}/.pnpm-store`,
         abortSignal: startOpts.abortSignal,
       });
@@ -104,7 +105,7 @@ export function createClaudeCode(
         );
       }
 
-      const postInstall = await sandbox.runCommand({
+      const postInstall = await session.runCommand({
         command: `cd ${workdir} && if [ -f node_modules/@anthropic-ai/claude-code/install.cjs ]; then node node_modules/@anthropic-ai/claude-code/install.cjs; fi && ./node_modules/.bin/claude --version`,
         abortSignal: startOpts.abortSignal,
       });
@@ -116,14 +117,14 @@ export function createClaudeCode(
 
       if (settings.skills && settings.skills.length > 0) {
         await writeSkills({
-          sandbox,
+          sandbox: session,
           workdir,
           skills: settings.skills,
           abortSignal: startOpts.abortSignal,
         });
       }
 
-      const proc = await sandbox.spawnCommand({
+      const proc = await session.spawnCommand({
         command: `node ${workdir}/bridge.mjs --workdir ${workdir}`,
         abortSignal: startOpts.abortSignal,
       });
@@ -135,7 +136,7 @@ export function createClaudeCode(
       });
 
       const wsUrl =
-        (await sandbox.getPortUrl!({ port, protocol: 'ws' })) +
+        (await handle.getPortUrl({ port, protocol: 'ws' })) +
         `?agent_bridge_token=${encodeURIComponent(token)}`;
 
       const ws = await openWebSocket(wsUrl);
@@ -146,41 +147,29 @@ export function createClaudeCode(
   };
 }
 
-function requireGetPortUrl(
-  sandbox: HarnessV1Sandbox | undefined,
-): HarnessV1Sandbox & {
-  getPortUrl: NonNullable<HarnessV1Sandbox['getPortUrl']>;
-} {
-  if (!sandbox) {
+function requireHandle(
+  handle: HarnessV1SandboxHandle | undefined,
+): HarnessV1SandboxHandle {
+  if (!handle) {
     throw new HarnessCapabilityUnsupportedError({
       harnessId: 'claude-code',
       message:
-        'The claude-code harness requires a sandbox. Supply `sandbox` when starting the agent.',
+        'The claude-code harness requires a sandbox provider. Pass `sandbox` to the HarnessAgent constructor.',
     });
   }
-  if (!sandbox.getPortUrl) {
-    throw new HarnessCapabilityUnsupportedError({
-      harnessId: 'claude-code',
-      message:
-        'The claude-code harness requires a sandbox that exposes `getPortUrl` (e.g. `VercelHarnessSandbox`).',
-    });
-  }
-  return sandbox as HarnessV1Sandbox & {
-    getPortUrl: NonNullable<HarnessV1Sandbox['getPortUrl']>;
-  };
+  return handle;
 }
 
 function resolveBridgePort(
-  sandbox: HarnessV1Sandbox,
+  handle: HarnessV1SandboxHandle,
   override: number | undefined,
 ): number {
   if (override !== undefined) return override;
-  const declared = sandbox.ports;
-  if (declared && declared.length > 0) return declared[0];
+  if (handle.ports.length > 0) return handle.ports[0];
   throw new HarnessCapabilityUnsupportedError({
     harnessId: 'claude-code',
     message:
-      'The claude-code harness needs a TCP port declared on the sandbox. ' +
+      'The claude-code harness needs a TCP port exposed by the sandbox. ' +
       'Create the sandbox with `ports: [<port>]` or pass `createClaudeCode({ port })`.',
   });
 }

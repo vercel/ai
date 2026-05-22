@@ -10,29 +10,26 @@ import { createJustBashSandbox } from '@ai-sdk/sandbox-just-bash';
 import { OverlayFs, Sandbox } from 'just-bash';
 import { openai } from '@ai-sdk/openai';
 
-const overlay = new OverlayFs({
-  root: process.cwd(),
-});
-
-const sandbox = await createJustBashSandbox({
-  sandbox: await Sandbox.create({
-    fs: overlay,
-    cwd: overlay.getMountPoint(),
-  }),
-});
-
 const COMPACTION_THRESHOLD = 8000;
 const estimateTokens = (messages: ModelMessage[]) => {
   return JSON.stringify(messages).length / 4;
 };
 
 run(async () => {
+  const overlay = new OverlayFs({ root: process.cwd() });
+  const handle = await createJustBashSandbox({
+    sandbox: await Sandbox.create({
+      fs: overlay,
+      cwd: overlay.getMountPoint(),
+    }),
+  }).create();
+
   const result = await generateText({
     model: openai('gpt-5.5'),
     instructions:
-      'You have access to a filesystem. Details: ' + sandbox.description,
+      'You have access to a filesystem. Details: ' + handle.session.description,
     prompt: 'Read every .ts file in this directory',
-    experimental_sandbox: sandbox,
+    experimental_sandbox: handle.session,
     tools: {
       bash: anthropic.tools.bash_20250124(),
     },
@@ -46,7 +43,6 @@ run(async () => {
       if (tokenCount > COMPACTION_THRESHOLD) {
         console.log('Compacting messages...');
         return {
-          // message changes persist over steps now
           messages: pruneMessages({
             messages,
             reasoning: 'all',
