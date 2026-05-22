@@ -18,6 +18,7 @@ import { AnthropicFiles } from './anthropic-files';
 import { AnthropicLanguageModel } from './anthropic-language-model';
 import type { AnthropicModelId } from './anthropic-language-model-options';
 import { anthropicTools } from './anthropic-tools';
+import { normalizeAnthropicBaseURL } from './normalize-anthropic-base-url';
 import { AnthropicSkills } from './skills/anthropic-skills';
 import { VERSION } from './version';
 
@@ -102,11 +103,13 @@ export function createAnthropic(
   options: AnthropicProviderSettings = {},
 ): AnthropicProvider {
   const baseURL =
-    withoutTrailingSlash(
-      loadOptionalSetting({
-        settingValue: options.baseURL,
-        environmentVariableName: 'ANTHROPIC_BASE_URL',
-      }),
+    normalizeAnthropicBaseURL(
+      withoutTrailingSlash(
+        loadOptionalSetting({
+          settingValue: options.baseURL,
+          environmentVariableName: 'ANTHROPIC_BASE_URL',
+        }),
+      ),
     ) ?? 'https://api.anthropic.com/v1';
 
   const providerName = options.name ?? 'anthropic.messages';

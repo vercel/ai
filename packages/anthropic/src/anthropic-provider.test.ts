@@ -83,6 +83,24 @@ describe('createAnthropic', () => {
       expect(requestUrl).toBe('https://proxy.anthropic.example/v1/messages');
     });
 
+    it('treats the bare canonical Anthropic host as the /v1 endpoint', async () => {
+      process.env.ANTHROPIC_BASE_URL = 'https://api.anthropic.com';
+
+      const fetchMock = createFetchMock();
+      const provider = createAnthropic({
+        apiKey: 'test-api-key',
+        fetch: fetchMock,
+      });
+
+      await provider('claude-3-haiku-20240307').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      const [requestUrl] = fetchMock.mock.calls[0]!;
+      expect(requestUrl).toBe('https://api.anthropic.com/v1/messages');
+    });
+
     it('prefers the baseURL option over ANTHROPIC_BASE_URL', async () => {
       process.env.ANTHROPIC_BASE_URL = 'https://env.anthropic.example/v1';
 
