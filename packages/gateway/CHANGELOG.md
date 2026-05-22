@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 4.0.0-canary.90
+
+### Patch Changes
+
+- 8b811d8: feat(provider/gateway): add optional Vercel team scoping for Gateway authentication. The existing `apiKey` option can be used with AI Gateway API keys, Vercel personal access tokens, and Vercel app access tokens.
+
 ## 4.0.0-canary.89
 
 ### Patch Changes
