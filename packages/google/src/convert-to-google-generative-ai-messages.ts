@@ -25,6 +25,34 @@ import type {
 export const SKIP_THOUGHT_SIGNATURE_VALIDATOR =
   'skip_thought_signature_validator';
 
+type GoogleProviderOptions = {
+  thought?: unknown;
+  thoughtSignature?: unknown;
+  serverToolCallId?: unknown;
+  serverToolType?: unknown;
+};
+
+function getGoogleProviderOptions(
+  providerOptions: Record<string, GoogleProviderOptions> | undefined,
+  providerOptionsName: string,
+): GoogleProviderOptions | undefined {
+  const namespaces = [
+    providerOptionsName,
+    'google',
+    'googleVertex',
+    'vertex',
+  ].filter((namespace, index, allNamespaces) => {
+    return allNamespaces.indexOf(namespace) === index;
+  });
+
+  for (const namespace of namespaces) {
+    const options = providerOptions?.[namespace];
+    if (options != null) {
+      return options;
+    }
+  }
+}
+
 const dataUrlRegex = /^data:([^;,]+);base64,(.+)$/s;
 
 function parseBase64DataUrl(
@@ -282,11 +310,10 @@ export function convertToGoogleGenerativeAIMessages(
           role: 'model',
           parts: content
             .map(part => {
-              const providerOpts =
-                part.providerOptions?.[providerOptionsName] ??
-                (providerOptionsName !== 'google'
-                  ? part.providerOptions?.google
-                  : part.providerOptions?.vertex);
+              const providerOpts = getGoogleProviderOptions(
+                part.providerOptions,
+                providerOptionsName,
+              );
               const thoughtSignature =
                 providerOpts?.thoughtSignature != null
                   ? String(providerOpts.thoughtSignature)
@@ -420,11 +447,10 @@ export function convertToGoogleGenerativeAIMessages(
             continue;
           }
 
-          const partProviderOpts =
-            part.providerOptions?.[providerOptionsName] ??
-            (providerOptionsName !== 'google'
-              ? part.providerOptions?.google
-              : part.providerOptions?.vertex);
+          const partProviderOpts = getGoogleProviderOptions(
+            part.providerOptions,
+            providerOptionsName,
+          );
           const serverToolCallId =
             partProviderOpts?.serverToolCallId != null
               ? String(partProviderOpts.serverToolCallId)

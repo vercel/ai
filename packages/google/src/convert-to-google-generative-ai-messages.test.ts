@@ -1368,6 +1368,36 @@ describe('Gemini 3 missing thoughtSignature mitigation', () => {
     expect(onWarning).not.toHaveBeenCalled();
   });
 
+  it('does NOT inject the sentinel when a real signature is present under `googleVertex`', () => {
+    const onWarning = vi.fn();
+    const result = convertToGoogleGenerativeAIMessages(
+      [
+        { role: 'user', content: [{ type: 'text', text: 'hi' }] },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'tc_1',
+              toolName: 'weather',
+              input: { location: 'SF' },
+              providerOptions: {
+                googleVertex: { thoughtSignature: 'google_vertex_sig' },
+              },
+            },
+          ],
+        },
+      ],
+      { isGemini3Model: true, onWarning },
+    );
+
+    const assistant = result.contents.find(c => c.role === 'model');
+    expect(assistant?.parts[0]).toMatchObject({
+      thoughtSignature: 'google_vertex_sig',
+    });
+    expect(onWarning).not.toHaveBeenCalled();
+  });
+
   it('emits one warning per request listing each affected tool name (parallel calls without signatures)', () => {
     const onWarning = vi.fn();
     convertToGoogleGenerativeAIMessages(
