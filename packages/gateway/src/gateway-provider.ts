@@ -7,8 +7,9 @@ import {
 import { asGatewayError, GatewayAuthenticationError } from './errors';
 import {
   GATEWAY_AUTH_METHOD_HEADER,
-  parseAuthMethod,
-} from './errors/parse-auth-method';
+  VERCEL_AI_GATEWAY_TEAM_HEADER,
+} from './gateway-headers';
+import { parseAuthMethod } from './errors/parse-auth-method';
 import {
   GatewayFetchMetadata,
   type GatewayFetchMetadataResponse,
@@ -166,14 +167,21 @@ export interface GatewayProvider extends ProviderV4 {
 
 export interface GatewayProviderSettings {
   /**
-   * The base URL prefix for API calls. Defaults to `https://ai-gateway.vercel.sh/v1/ai`.
+   * The base URL prefix for API calls. Defaults to `https://ai-gateway.vercel.sh/v4/ai`.
    */
   baseURL?: string;
 
   /**
-   * API key that is being sent using the `Authorization` header.
+   * API key or Vercel access token that is being sent using the `Authorization`
+   * header. It defaults to the `AI_GATEWAY_API_KEY` environment variable.
    */
   apiKey?: string;
+
+  /**
+   * Vercel team ID or slug to scope requests for access tokens that can access
+   * multiple teams.
+   */
+  teamIdOrSlug?: string;
 
   /**
    * Custom headers to include in the requests.
@@ -217,18 +225,26 @@ export function createGateway(
     withoutTrailingSlash(options.baseURL) ??
     'https://ai-gateway.vercel.sh/v4/ai';
 
+  const createAuthHeaders = (auth: {
+    token: string;
+    authMethod: 'api-key' | 'oidc';
+  }) =>
+    withUserAgentSuffix(
+      {
+        Authorization: `Bearer ${auth.token}`,
+        'ai-gateway-protocol-version': AI_GATEWAY_PROTOCOL_VERSION,
+        [GATEWAY_AUTH_METHOD_HEADER]: auth.authMethod,
+        ...(options.teamIdOrSlug != null
+          ? { [VERCEL_AI_GATEWAY_TEAM_HEADER]: options.teamIdOrSlug }
+          : {}),
+        ...options.headers,
+      },
+      `ai-sdk/gateway/${VERSION}`,
+    );
+
   const getHeaders = async () => {
     try {
-      const auth = await getGatewayAuthToken(options);
-      return withUserAgentSuffix(
-        {
-          Authorization: `Bearer ${auth.token}`,
-          'ai-gateway-protocol-version': AI_GATEWAY_PROTOCOL_VERSION,
-          [GATEWAY_AUTH_METHOD_HEADER]: auth.authMethod,
-          ...options.headers,
-        },
-        `ai-sdk/gateway/${VERSION}`,
-      );
+      return createAuthHeaders(await getGatewayAuthToken(options));
     } catch (error) {
       throw GatewayAuthenticationError.createContextualError({
         apiKeyProvided: false,

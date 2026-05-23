@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 4.0.0-canary.72
+
+### Patch Changes
+
+- b71c0d7: feat(provider/google): support Google search grounding when using `generateImage` with Gemini
+
 ## 4.0.0-canary.71
 
 ### Patch Changes
