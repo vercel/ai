@@ -370,7 +370,7 @@ export const array = <ELEMENT>({
 
 /**
  * Output specification for choice generation.
- * When the model generates a text response, it will return a one of the choice options.
+ * When the model generates a text response, it will return one of the choice options.
  *
  * @param options - The available choices.
  * @param name - Optional name of the output that should be generated. Used by some providers for additional LLM guidance, e.g. via tool or schema name.
