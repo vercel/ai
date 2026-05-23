@@ -240,6 +240,34 @@ export function extractReasoningMiddleware({
                 }
               } while (true);
             },
+
+            flush: controller => {
+              // At end-of-stream, any content still in a buffer could not have
+              // been a complete tag (no more deltas are coming), so emit it as
+              // plain text or reasoning verbatim.
+              for (const extraction of Object.values(reasoningExtractions)) {
+                if (extraction.buffer.length > 0) {
+                  if (extraction.isReasoning) {
+                    controller.enqueue({
+                      type: 'reasoning-delta',
+                      delta: extraction.buffer,
+                      id: `reasoning-${extraction.idCounter}`,
+                    });
+                  } else {
+                    if (delayedTextStart) {
+                      controller.enqueue(delayedTextStart);
+                      delayedTextStart = undefined;
+                    }
+                    controller.enqueue({
+                      type: 'text-delta',
+                      delta: extraction.buffer,
+                      id: extraction.textId,
+                    });
+                  }
+                  extraction.buffer = '';
+                }
+              }
+            },
           }),
         ),
         ...rest,

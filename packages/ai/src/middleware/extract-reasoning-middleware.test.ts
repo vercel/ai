@@ -1118,6 +1118,55 @@ describe('extractReasoningMiddleware', () => {
       `);
     });
 
+    it('should flush buffered partial-tag content at end of stream', async () => {
+      // If the last text-delta ends with characters that are a prefix of the
+      // opening tag (e.g. "<th" when tagName is "think"), getPotentialStartIndex
+      // holds them in the buffer waiting for more chunks.  Without a flush()
+      // callback those characters are silently dropped.
+      const mockModel = new MockLanguageModelV4({
+        async doStream() {
+          return {
+            stream: convertArrayToReadableStream([
+              {
+                type: 'response-metadata',
+                id: 'id-0',
+                modelId: 'mock-model-id',
+                timestamp: new Date(0),
+              },
+              { type: 'text-start', id: '1' },
+              // The response ends with "<th" — a valid prefix of "<think>" that
+              // must NOT be silently dropped.
+              { type: 'text-delta', id: '1', delta: 'answer: <th' },
+              { type: 'text-end', id: '1' },
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: testUsage,
+              },
+            ]),
+          };
+        },
+      });
+
+      const result = streamText({
+        model: wrapLanguageModel({
+          model: mockModel,
+          middleware: extractReasoningMiddleware({ tagName: 'think' }),
+        }),
+        prompt: 'Test prompt',
+      });
+
+      const fullStream = await convertAsyncIterableToArray(result.fullStream);
+      const textDeltas = fullStream
+        .filter(part => part.type === 'text-delta')
+        .map(part => (part as { text: string }).text)
+        .join('');
+
+      // "<th" must appear in the output — it is not a complete tag and should
+      // be emitted verbatim instead of being swallowed.
+      expect(textDeltas).toBe('answer: <th');
+    });
+
     it('should handle empty <think></think> tags without crashing', async () => {
       const mockModel = new MockLanguageModelV4({
         async doStream() {
