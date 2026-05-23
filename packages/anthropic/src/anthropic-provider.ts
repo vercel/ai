@@ -58,6 +58,11 @@ export interface AnthropicProviderSettings {
   /**
    * Use a different URL prefix for API calls, e.g. to use proxy servers.
    * The default prefix is `https://api.anthropic.com/v1`.
+   *
+   * Also accepts the bare-host form (`https://api.anthropic.com`) for
+   * compatibility with Claude Code, Cursor, and LiteLLM, which follow the
+   * `@anthropic-ai/sdk` convention of injecting a base URL without `/v1`.
+   * The `/v1` suffix is appended automatically when missing.
    */
   baseURL?: string;
 
@@ -96,18 +101,44 @@ export interface AnthropicProviderSettings {
 }
 
 /**
+ * Normalize an Anthropic base URL so it always ends with `/v1`.
+ *
+ * Claude Code, Cursor, and LiteLLM inject `ANTHROPIC_BASE_URL` as a bare
+ * host (`https://api.anthropic.com`) following the `@anthropic-ai/sdk`
+ * convention. This helper accepts both forms and always returns the `/v1`
+ * form, preventing silent 404 errors in those environments.
+ *
+ * Examples:
+ *   https://api.anthropic.com        -> https://api.anthropic.com/v1
+ *   https://api.anthropic.com/v1     -> https://api.anthropic.com/v1
+ *   https://api.anthropic.com/v1/    -> https://api.anthropic.com/v1
+ *   https://my.proxy.com             -> https://my.proxy.com/v1
+ *   https://my.proxy.com/v1          -> https://my.proxy.com/v1
+ */
+export function normalizeAnthropicBaseURL(url: string): string {
+  // Remove trailing slashes first, then remove a trailing /v1 if present,
+  // so we can always append exactly one /v1.
+  const stripped = url.replace(/\/+$/, '').replace(/\/v1$/, '');
+  return `${stripped}/v1`;
+}
+
+/**
  * Create an Anthropic provider instance.
  */
 export function createAnthropic(
   options: AnthropicProviderSettings = {},
 ): AnthropicProvider {
-  const baseURL =
+  const rawBaseURL =
     withoutTrailingSlash(
       loadOptionalSetting({
         settingValue: options.baseURL,
         environmentVariableName: 'ANTHROPIC_BASE_URL',
       }),
     ) ?? 'https://api.anthropic.com/v1';
+
+  // Normalize to always include /v1, accepting both the bare-host form
+  // (https://api.anthropic.com) and the /v1 form as input.
+  const baseURL = normalizeAnthropicBaseURL(rawBaseURL);
 
   const providerName = options.name ?? 'anthropic.messages';
 
