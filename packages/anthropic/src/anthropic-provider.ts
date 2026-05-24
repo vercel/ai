@@ -101,13 +101,18 @@ export interface AnthropicProviderSettings {
 export function createAnthropic(
   options: AnthropicProviderSettings = {},
 ): AnthropicProvider {
-  const baseURL =
-    withoutTrailingSlash(
+  const baseURL = (() => {
+    const url = withoutTrailingSlash(
       loadOptionalSetting({
         settingValue: options.baseURL,
         environmentVariableName: 'ANTHROPIC_BASE_URL',
       }),
-    ) ?? 'https://api.anthropic.com/v1';
+    );
+    if (url && !url.endsWith('/v1')) {
+      return url.replace(/\/+$/, '') + '/v1';
+    }
+    return url ?? 'https://api.anthropic.com/v1';
+  })();
 
   const providerName = options.name ?? 'anthropic.messages';
 
