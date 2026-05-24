@@ -259,6 +259,7 @@ export function createOpenAI(
   const createResponsesModel = (modelId: OpenAIResponsesModelId) => {
     return new OpenAIResponsesLanguageModel(modelId, {
       provider: `${providerName}.responses`,
+      baseURL,
       url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,
       fetch: options.fetch,

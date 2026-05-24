@@ -7,6 +7,10 @@ import type {
   LanguageModelV4StreamPart,
 } from '@ai-sdk/provider';
 import {
+  WORKFLOW_DESERIALIZE,
+  WORKFLOW_SERIALIZE,
+} from '@ai-sdk/provider-utils';
+import {
   convertReadableStreamToArray,
   mockId,
 } from '@ai-sdk/provider-utils/test';
@@ -239,6 +243,87 @@ describe('OpenAIResponsesLanguageModel', () => {
       chunks,
     };
   }
+
+  it('should deserialize workflow model config with url and headers', async () => {
+    const serialized = OpenAIResponsesLanguageModel[WORKFLOW_SERIALIZE](
+      new OpenAIResponsesLanguageModel('gpt-4o', {
+        provider: 'openai',
+        baseURL: 'https://api.openai.com/v1',
+        url: ({ path }) => `https://api.openai.com/v1${path}`,
+        headers: () => ({ Authorization: `Bearer APIKEY` }),
+      }),
+    );
+
+    const deserialized =
+      OpenAIResponsesLanguageModel[WORKFLOW_DESERIALIZE](serialized);
+
+    server.urls['https://api.openai.com/v1/responses'].response = {
+      type: 'json-value',
+      body: {
+        id: 'resp_67c97c0203188190a025beb4a75242bc',
+        object: 'response',
+        created_at: 1741257730,
+        status: 'completed',
+        error: null,
+        incomplete_details: null,
+        input: [],
+        instructions: null,
+        max_output_tokens: null,
+        model: 'gpt-4o-2024-07-18',
+        output: [
+          {
+            id: 'msg_67c97c02656c81908e080dfdf4a03cd1',
+            type: 'message',
+            status: 'completed',
+            role: 'assistant',
+            content: [
+              {
+                type: 'output_text',
+                text: 'answer text',
+                annotations: [],
+              },
+            ],
+          },
+        ],
+        parallel_tool_calls: true,
+        previous_response_id: null,
+        reasoning: {
+          effort: null,
+          summary: null,
+        },
+        store: true,
+        temperature: 1,
+        text: {
+          format: {
+            type: 'text',
+          },
+        },
+        tool_choice: 'auto',
+        tools: [],
+        top_p: 1,
+        truncation: 'disabled',
+        usage: {
+          input_tokens: 345,
+          input_tokens_details: {
+            cached_tokens: 234,
+          },
+          output_tokens: 538,
+          output_tokens_details: {
+            reasoning_tokens: 123,
+          },
+          total_tokens: 572,
+        },
+        user: null,
+        metadata: {},
+      },
+    };
+
+    await deserialized.doGenerate({ prompt: TEST_PROMPT });
+
+    expect(server.calls[0].requestHeaders.authorization).toStrictEqual(
+      'Bearer APIKEY',
+    );
+  });
 
   describe('doGenerate', () => {
     describe('basic text response', () => {

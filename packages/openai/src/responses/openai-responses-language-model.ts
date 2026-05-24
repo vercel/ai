@@ -29,7 +29,10 @@ import {
   type InferSchema,
   type ParseResult,
 } from '@ai-sdk/provider-utils';
-import type { OpenAIConfig } from '../openai-config';
+import {
+  prepareOpenAIConfigForWorkflowDeserialize,
+  type OpenAIConfig,
+} from '../openai-config';
 import { openaiFailedResponseHandler } from '../openai-error';
 import { getOpenAILanguageModelCapabilities } from '../openai-language-model-capabilities';
 import type { applyPatchInputSchema } from '../tool/apply-patch';
@@ -118,10 +121,13 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
-    modelId: OpenAIResponsesModelId;
-    config: OpenAIConfig;
+    modelId: string;
+    config: Parameters<typeof prepareOpenAIConfigForWorkflowDeserialize>[0];
   }) {
-    return new OpenAIResponsesLanguageModel(options.modelId, options.config);
+    return new OpenAIResponsesLanguageModel(
+      options.modelId as OpenAIResponsesModelId,
+      prepareOpenAIConfigForWorkflowDeserialize(options.config),
+    );
   }
 
   constructor(modelId: OpenAIResponsesModelId, config: OpenAIConfig) {
