@@ -238,6 +238,9 @@ importers:
       '@ai-sdk/anthropic':
         specifier: workspace:*
         version: link:../../packages/anthropic
+      '@ai-sdk/anthropic-aws':
+        specifier: workspace:*
+        version: link:../../packages/anthropic-aws
       '@ai-sdk/assemblyai':
         specifier: workspace:*
         version: link:../../packages/assemblyai
@@ -1606,6 +1609,40 @@ importers:
       '@ai-sdk/provider-utils':
         specifier: workspace:*
         version: link:../provider-utils
+    devDependencies:
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
+      '@types/node':
+        specifier: 22.19.19
+        version: 22.19.19
+      '@vercel/ai-tsconfig':
+        specifier: workspace:*
+        version: link:../../tools/tsconfig
+      tsup:
+        specifier: ^8.5.1
+        version: 8.5.1(@swc/core@1.15.3(@swc/helpers@0.5.21))(jiti@2.7.0)(postcss@8.5.14)(tsx@4.22.0)(typescript@5.8.3)(yaml@2.9.0)
+      typescript:
+        specifier: 5.8.3
+        version: 5.8.3
+      zod:
+        specifier: 3.25.76
+        version: 3.25.76
+
+  packages/anthropic-aws:
+    dependencies:
+      '@ai-sdk/anthropic':
+        specifier: workspace:*
+        version: link:../anthropic
+      '@ai-sdk/provider':
+        specifier: workspace:*
+        version: link:../provider
+      '@ai-sdk/provider-utils':
+        specifier: workspace:*
+        version: link:../provider-utils
+      aws4fetch:
+        specifier: ^1.0.20
+        version: 1.0.20
     devDependencies:
       '@ai-sdk/test-server':
         specifier: workspace:*

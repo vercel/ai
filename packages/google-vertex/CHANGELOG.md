@@ -1,5 +1,26 @@
 # @ai-sdk/google-vertex
 
+## 5.0.0-canary.94
+
+### Patch Changes
+
+- Updated dependencies [9f1e1ba]
+  - @ai-sdk/openai-compatible@3.0.0-canary.51
+
+## 5.0.0-canary.93
+
+### Patch Changes
+
+- Updated dependencies [648705c]
+  - @ai-sdk/anthropic@4.0.0-canary.59
+
+## 5.0.0-canary.92
+
+### Patch Changes
+
+- Updated dependencies [acdbf84]
+  - @ai-sdk/anthropic@4.0.0-canary.58
+
 ## 5.0.0-canary.91
 
 ### Patch Changes

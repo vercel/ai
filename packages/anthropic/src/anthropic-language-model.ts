@@ -1012,12 +1012,23 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
             part.name === 'text_editor_code_execution' ||
             part.name === 'bash_code_execution'
           ) {
+            // map tool names for the code execution 20250825 tool:
+            // both map to 'code_execution'.
+            const providerToolName = 'code_execution';
             content.push({
               type: 'tool-call',
               toolCallId: part.id,
               toolName: toolNameMapping.toCustomToolName('code_execution'),
               input: JSON.stringify({ type: part.name, ...part.input }),
               providerExecuted: true,
+              // Specific 'web_fetch' or 'web_search' tools may need code execution, which the Anthropic API
+              // implicitly allows. In this scenario, we need to allow 'code_execution' tool calls even if the
+              // tool was not explicitly provided. We therefore bypass the general validation by marking the
+              // tool as dynamic.
+              ...(markCodeExecutionDynamic &&
+              providerToolName === 'code_execution'
+                ? { dynamic: true }
+                : {}),
             });
           } else if (
             part.name === 'web_search' ||
@@ -1040,8 +1051,10 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
               toolName: toolNameMapping.toCustomToolName(part.name),
               input: JSON.stringify(inputToSerialize),
               providerExecuted: true,
-              // We want this 'code_execution' tool call to be allowed even if the tool is not explicitly provided.
-              // Since the validation generally bypasses dynamic tools, we mark this specific tool as dynamic.
+              // Specific 'web_fetch' or 'web_search' tools may need code execution, which the Anthropic API
+              // implicitly allows. In this scenario, we need to allow 'code_execution' tool calls even if the
+              // tool was not explicitly provided. We therefore bypass the general validation by marking the
+              // tool as dynamic.
               ...(markCodeExecutionDynamic && part.name === 'code_execution'
                 ? { dynamic: true }
                 : {}),
@@ -1694,12 +1707,16 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                       toolName: customToolName,
                       input: finalInput,
                       providerExecuted: true,
+                      // Specific 'web_fetch' or 'web_search' tools may need code execution, which the Anthropic API
+                      // implicitly allows. In this scenario, we need to allow 'code_execution' tool calls even if the
+                      // tool was not explicitly provided. We therefore bypass the general validation by marking the
+                      // tool as dynamic.
                       ...(markCodeExecutionDynamic &&
                       providerToolName === 'code_execution'
                         ? { dynamic: true }
                         : {}),
                       firstDelta: true,
-                      providerToolName: part.name,
+                      providerToolName,
                     };
 
                     controller.enqueue({
@@ -1707,6 +1724,10 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                       id: part.id,
                       toolName: customToolName,
                       providerExecuted: true,
+                      // Specific 'web_fetch' or 'web_search' tools may need code execution, which the Anthropic API
+                      // implicitly allows. In this scenario, we need to allow 'code_execution' tool calls even if the
+                      // tool was not explicitly provided. We therefore bypass the general validation by marking the
+                      // tool as dynamic.
                       ...(markCodeExecutionDynamic &&
                       providerToolName === 'code_execution'
                         ? { dynamic: true }
@@ -2107,6 +2128,10 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                         toolName: contentBlock.toolName,
                         input: finalInput,
                         providerExecuted: contentBlock.providerExecuted,
+                        // Specific 'web_fetch' or 'web_search' tools may need code execution, which the Anthropic API
+                        // implicitly allows. In this scenario, we need to allow 'code_execution' tool calls even if the
+                        // tool was not explicitly provided. We therefore bypass the general validation by marking the
+                        // tool as dynamic.
                         ...(markCodeExecutionDynamic &&
                         contentBlock.providerToolName === 'code_execution'
                           ? { dynamic: true }
@@ -2220,12 +2245,9 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                     // the type to the delta and change the tool name.
                     if (
                       contentBlock.firstDelta &&
-                      (contentBlock.providerToolName ===
-                        'bash_code_execution' ||
-                        contentBlock.providerToolName ===
-                          'text_editor_code_execution')
+                      contentBlock.providerToolName === 'code_execution'
                     ) {
-                      delta = `{"type": "${contentBlock.providerToolName}",${delta.substring(1)}`;
+                      delta = `{"type": "programmatic-tool-call",${delta.substring(1)}`;
                     }
 
                     controller.enqueue({
