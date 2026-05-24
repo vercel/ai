@@ -129,14 +129,14 @@ export function createClaudeCode(
         abortSignal: startOpts.abortSignal,
       });
 
-      await waitForBridgeReady({
+      const { port: boundPort } = await waitForBridgeReady({
         proc,
         timeoutMs: settings.startupTimeoutMs ?? 120_000,
         abortSignal: startOpts.abortSignal,
       });
 
       const wsUrl =
-        (await handle.getPortUrl({ port, protocol: 'ws' })) +
+        (await handle.getPortUrl({ port: boundPort, protocol: 'ws' })) +
         `?agent_bridge_token=${encodeURIComponent(token)}`;
 
       const ws = await openWebSocket(wsUrl);
