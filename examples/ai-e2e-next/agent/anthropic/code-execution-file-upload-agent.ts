@@ -7,6 +7,9 @@ import { z } from 'zod';
 
 export const anthropicCodeExecutionFileUploadAgent = new ToolLoopAgent({
   model: anthropic('claude-sonnet-4-5'),
+  telemetry: {
+    recordInputs: false,
+  },
   callOptionsSchema: z.object({
     containerId: z.string().optional(),
   }),
