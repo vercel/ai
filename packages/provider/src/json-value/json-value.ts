@@ -14,4 +14,4 @@ export type JSONObject = {
   [key: string]: JSONValue | undefined;
 };
 
-export type JSONArray = JSONValue[];
+export type JSONArray = readonly JSONValue[];
