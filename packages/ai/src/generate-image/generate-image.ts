@@ -240,9 +240,13 @@ export async function generateImage({
           }
         } else {
           providerMetadata[providerName] ??= { images: [] };
-          providerMetadata[providerName].images.push(
-            ...result.providerMetadata[providerName].images,
-          );
+          providerMetadata[providerName] = {
+            ...providerMetadata[providerName],
+            images: [
+              ...providerMetadata[providerName].images,
+              ...result.providerMetadata[providerName].images,
+            ],
+          };
         }
       }
     }
