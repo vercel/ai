@@ -124,15 +124,18 @@ function parseJsonMessages(body: string): GradiumTTSMessage[] {
     return parsed as GradiumTTSMessage[];
   }
 
-  return trimmed.split(/\r?\n/).map(line => {
-    try {
-      return JSON.parse(line) as GradiumTTSMessage;
-    } catch {
-      throw new Error(
-        `Gradium returned a malformed TTS JSON message: ${line.slice(0, 200)}`,
-      );
-    }
-  });
+  return trimmed
+    .split(/\r?\n/)
+    .filter(line => line.length > 0)
+    .map(line => {
+      try {
+        return JSON.parse(line) as GradiumTTSMessage;
+      } catch {
+        throw new Error(
+          `Gradium returned a malformed TTS JSON message: ${line.slice(0, 200)}`,
+        );
+      }
+    });
 }
 
 function createGradiumTTSJsonResponseHandler(): ResponseHandler<GradiumTTSJsonResponse> {

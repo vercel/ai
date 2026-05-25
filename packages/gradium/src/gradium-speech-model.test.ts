@@ -341,6 +341,7 @@ describe('GradiumSpeechModel', () => {
               stop_s: 0.3,
             }),
             JSON.stringify({ type: 'audio', audio: b64(first) }),
+            '',
             JSON.stringify({ type: 'audio', audio: b64(second) }),
           ].join('\n'),
           { status: 200, headers: { 'content-type': 'application/x-ndjson' } },
