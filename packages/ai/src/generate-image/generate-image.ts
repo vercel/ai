@@ -3,6 +3,7 @@ import type {
   ImageModelV4CallOptions,
   ImageModelV4File,
   ImageModelV4ProviderMetadata,
+  JSONValue,
 } from '@ai-sdk/provider';
 import {
   convertBase64ToUint8Array,
@@ -240,13 +241,9 @@ export async function generateImage({
           }
         } else {
           providerMetadata[providerName] ??= { images: [] };
-          providerMetadata[providerName] = {
-            ...providerMetadata[providerName],
-            images: [
-              ...providerMetadata[providerName].images,
-              ...result.providerMetadata[providerName].images,
-            ],
-          };
+          (providerMetadata[providerName].images as JSONValue[]).push(
+            ...result.providerMetadata[providerName].images,
+          );
         }
       }
     }
