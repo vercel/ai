@@ -1,5 +1,11 @@
 # @ai-sdk/mcp
 
+## 2.0.0-canary.53
+
+### Patch Changes
+
+- 6c17a9f: fix(mcp): deduplicate auth refresh on http transport
+
 ## 2.0.0-canary.52
 
 ### Patch Changes
