@@ -484,6 +484,60 @@ describe('validateUIMessages', () => {
         ]
       `);
     });
+
+    it('should preserve provider references on file parts', async () => {
+      const messages = await validateUIMessages({
+        messages: [
+          {
+            id: '1',
+            role: 'user',
+            parts: [
+              {
+                type: 'file',
+                mediaType: 'text/csv',
+                filename: 'sample.csv',
+                url: 'data:text/csv;base64,bW9udGgscmV2ZW51ZQ==',
+                providerReference: {
+                  anthropic: 'file_abc123',
+                },
+                providerMetadata: {
+                  anthropic: {
+                    containerUpload: true,
+                  },
+                },
+              },
+            ],
+          },
+        ],
+      });
+
+      expectTypeOf(messages).toEqualTypeOf<Array<UIMessage>>();
+
+      expect(messages).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "1",
+            "parts": [
+              {
+                "filename": "sample.csv",
+                "mediaType": "text/csv",
+                "providerMetadata": {
+                  "anthropic": {
+                    "containerUpload": true,
+                  },
+                },
+                "providerReference": {
+                  "anthropic": "file_abc123",
+                },
+                "type": "file",
+                "url": "data:text/csv;base64,bW9udGgscmV2ZW51ZQ==",
+              },
+            ],
+            "role": "user",
+          },
+        ]
+      `);
+    });
   });
 
   describe('step start parts', () => {
