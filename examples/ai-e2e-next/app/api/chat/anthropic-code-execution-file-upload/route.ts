@@ -6,20 +6,44 @@ import {
   type UIMessage,
 } from 'ai';
 
+type AnthropicCodeExecutionFileUploadMessage = UIMessage<{
+  containerId?: string;
+}>;
+
+function removeCodeExecutionToolParts(
+  messages: AnthropicCodeExecutionFileUploadMessage[],
+) {
+  return messages
+    .map(message =>
+      message.role !== 'assistant'
+        ? message
+        : {
+            ...message,
+            parts: message.parts.filter(
+              part => part.type !== 'tool-code_execution',
+            ),
+          },
+    )
+    .filter(message => message.parts.length > 0);
+}
+
 export async function POST(request: Request) {
   const { messages } = await request.json();
 
-  const uiMessages = await validateUIMessages<
-    UIMessage<{ containerId?: string }>
-  >({ messages });
+  const uiMessages =
+    await validateUIMessages<AnthropicCodeExecutionFileUploadMessage>({
+      messages,
+    });
 
   const lastAssistantMessage = uiMessages.findLast(
     message => message.role === 'assistant',
   );
 
+  const sanitizedMessages = removeCodeExecutionToolParts(uiMessages);
+
   return createAgentUIStreamResponse({
     agent: anthropicCodeExecutionFileUploadAgent,
-    uiMessages,
+    uiMessages: sanitizedMessages,
     messageMetadata({ part }) {
       if (part.type !== 'finish-step') {
         return;
