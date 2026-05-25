@@ -1,0 +1,347 @@
+---
+title: Gradium
+description: Learn how to use the Gradium provider for the AI SDK.
+---
+
+# Gradium Provider
+
+The [Gradium](https://gradium.ai/) provider contains support for Gradium speech generation and transcription APIs. Gradium is designed for low-latency voice applications, with natural text-to-speech, speech-to-text, telephony-friendly audio formats, voice management, pronunciation dictionaries, and realtime APIs for agent turn-taking.
+
+## Capabilities
+
+- **Speech generation**: Generate natural speech with Gradium voices or custom voice clones using the AI SDK `generateSpeech` function.
+- **Transcription**: Transcribe audio into text and timestamped segments using the AI SDK `transcribe` function.
+- **Low-latency audio formats**: Use `wav`, `pcm`, `opus`, telephony formats such as `ulaw_8000` and `alaw_8000`, or explicit PCM sample rates such as `pcm_16000`.
+- **Voice and pronunciation APIs**: List, create, update, and delete voices and pronunciation dictionaries from the provider instance.
+- **Realtime agent features**: Gradium's WebSocket APIs provide streaming audio, semantic VAD `step` messages, adaptive `delay_in_frames`, and `flush` for turn boundaries.
+
+<Note>
+  The AI SDK `generateSpeech` and `transcribe` helpers use Gradium's request/response APIs. For live microphones, telephony streams, LLM token-to-speech streaming, semantic VAD events, or flush-driven turn-taking, use Gradium's realtime WebSocket APIs directly. See the [Gradium speech-to-text guide](https://docs.gradium.ai/guides/speech-to-text) and [turn-taking recipe](https://docs.gradium.ai/guides/recipes/turn-taking).
+</Note>
+
+## Setup
+
+The Gradium provider is available in the `@ai-sdk/gradium` module. You can install it with
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add @ai-sdk/gradium" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @ai-sdk/gradium" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @ai-sdk/gradium" dark />
+  </Tab>
+
+  <Tab>
+    <Snippet text="bun add @ai-sdk/gradium" dark />
+  </Tab>
+</Tabs>
+
+## Provider Instance
+
+You can import the default provider instance `gradium` from `@ai-sdk/gradium`:
+
+```ts
+import { gradium } from '@ai-sdk/gradium';
+```
+
+If you need a customized setup, you can import `createGradium` from `@ai-sdk/gradium` and create a provider instance with your settings:
+
+```ts
+import { createGradium } from '@ai-sdk/gradium';
+
+const gradium = createGradium({
+  // custom settings, e.g.
+  fetch: customFetch,
+});
+```
+
+You can use the following optional settings to customize the Gradium provider instance:
+
+- **baseURL** _string_
+
+  Use a different Gradium API URL prefix. It defaults to `https://api.gradium.ai/api`.
+
+- **apiKey** _string_
+
+  API key that is sent using the `x-api-key` header.
+  It defaults to the `GRADIUM_API_KEY` environment variable.
+
+- **headers** _Record&lt;string,string&gt;_
+
+  Custom headers to include in the requests.
+
+- **fetch** _(input: RequestInfo, init?: RequestInit) => Promise&lt;Response&gt;_
+
+  Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch) implementation.
+  Defaults to the global `fetch` function.
+  You can use it as a middleware to intercept requests,
+  or to provide a custom fetch implementation for e.g. testing.
+
+## Speech Models
+
+You can create models that call the [Gradium text-to-speech API](https://api.gradium.ai/api/post/speech/tts)
+using the `.speech()` factory method.
+
+Use this API when you want the AI SDK to return a complete audio result for a text input. For realtime LLM-to-speech flows where text arrives token-by-token and audio should begin playing as soon as possible, use Gradium's WebSocket TTS API directly.
+
+The first argument is the model id. Use `default` for Gradium's production model.
+
+```ts
+const model = gradium.speech('default');
+```
+
+The `voice` argument can be set to any Gradium library voice ID or custom clone ID.
+
+```ts highlight="6"
+import { experimental_generateSpeech as generateSpeech } from 'ai';
+import { gradium } from '@ai-sdk/gradium';
+
+const result = await generateSpeech({
+  model: gradium.speech('default'),
+  text: 'Welcome to Gradium.',
+  voice: 'YTpq7expH9539ERJ',
+  outputFormat: 'wav',
+});
+```
+
+You can also pass additional provider-specific options using the `providerOptions` argument:
+
+```ts highlight="7-14"
+import { experimental_generateSpeech as generateSpeech } from 'ai';
+import { gradium, type GradiumSpeechModelOptions } from '@ai-sdk/gradium';
+
+const result = await generateSpeech({
+  model: gradium.speech('default'),
+  text: 'Bonjour, monde.',
+  providerOptions: {
+    gradium: {
+      voiceId: 'custom-clone-id',
+      outputFormat: 'ulaw_8000',
+      rewriteRules: 'fr',
+      paddingBonus: -1.2,
+      cfgCoef: 2.4,
+      temperature: 0.35,
+    } satisfies GradiumSpeechModelOptions,
+  },
+});
+```
+
+The following provider options are available:
+
+- **voiceId** _string_
+
+  Overrides the top-level `voice` argument. Accepts any Gradium library voice ID or custom clone ID.
+  Optional.
+
+- **outputFormat** _string_
+
+  Overrides the top-level `outputFormat` argument. Supports `wav`, `pcm`, `opus`, `ulaw_8000`, `mulaw_8000`, `alaw_8000`, `pcm_8000`, `pcm_16000`, `pcm_22050`, `pcm_24000`, `pcm_44100`, and `pcm_48000`.
+  Use telephony formats when sending generated speech directly to phone audio streams, and explicit PCM rates when your downstream player or transport expects a fixed sample rate.
+  Optional.
+
+- **paddingBonus** _number_
+
+  Extra pause duration between spoken chunks. Lower values, including negative values, make speech feel faster; higher values add spacing.
+  The top-level AI SDK `speed` setting is mapped to this option when `paddingBonus` is not provided.
+  Optional.
+
+- **cfgCoef** _number_
+
+  Voice-similarity coefficient between `1.0` and `4.0`.
+  Optional.
+
+- **temperature** _number_
+
+  Sampling temperature for generation.
+  Optional.
+
+- **rewriteRules** _string_
+
+  Text-rewrite rules applied before synthesis. Pass a language code such as `en`, `fr`, `de`, `es`, or `pt`, or a comma-separated list of rule names.
+  Optional.
+
+- **pronunciationDictionary** _string_
+
+  Pronunciation dictionary ID to apply during synthesis.
+  Optional.
+
+- **onlyAudio** _boolean_
+
+  When `true`, the response body is raw audio. When `false`, Gradium returns JSON messages and the provider extracts the audio.
+  Optional. Defaults to `true`.
+
+- **jsonConfig** _string_
+
+  Raw `json_config` string forwarded verbatim for advanced Gradium options.
+  Optional.
+
+### Realtime Speech
+
+The AI SDK speech model returns a complete audio response. Gradium also supports realtime TTS over WebSocket for voice agents and LLM output streaming. In that mode, your application sends a `setup` message once, streams `text` messages as they arrive, and receives `audio` chunks as soon as they are generated.
+
+Use realtime TTS when you need:
+
+- Low first-byte latency for interactive voice agents.
+- Audio playback while the upstream LLM is still generating text.
+- A persistent socket for multiple utterances or multiplexed requests.
+- Fine control over chunking, interruption, and graceful `end_of_stream` handling.
+
+### Model Capabilities
+
+| Model     |
+| --------- |
+| `default` |
+
+## Transcription Models
+
+You can create models that call the [Gradium transcription API](https://api.gradium.ai/api/post/speech/asr)
+using the `.transcription()` factory method.
+
+Use this API when you have an audio file or audio buffer and want the AI SDK to return a transcript. For live microphone or telephony audio, Gradium's WebSocket STT API gives lower latency and emits additional realtime signals for turn-taking.
+
+The first argument is the model id. Use `default` for Gradium's production model.
+
+```ts
+const model = gradium.transcription('default');
+```
+
+You can use the model with the `transcribe` function:
+
+```ts
+import { experimental_transcribe as transcribe } from 'ai';
+import { gradium } from '@ai-sdk/gradium';
+import { readFile } from 'node:fs/promises';
+
+const result = await transcribe({
+  model: gradium.transcription('default'),
+  audio: await readFile('audio.wav'),
+  mediaType: 'audio/wav',
+});
+```
+
+You can also pass additional provider-specific options using the `providerOptions` argument:
+
+```ts highlight="8-13"
+import { experimental_transcribe as transcribe } from 'ai';
+import {
+  gradium,
+  type GradiumTranscriptionModelOptions,
+} from '@ai-sdk/gradium';
+
+const result = await transcribe({
+  model: gradium.transcription('default'),
+  audio: new Uint8Array([1, 2, 3, 4]),
+  mediaType: 'audio/wav',
+  providerOptions: {
+    gradium: {
+      language: 'en',
+      inputFormat: 'pcm_16000',
+    } satisfies GradiumTranscriptionModelOptions,
+  },
+});
+```
+
+Advanced STT controls are passed through `jsonConfig` as a JSON string:
+
+```ts highlight="10-16"
+import { experimental_transcribe as transcribe } from 'ai';
+import {
+  gradium,
+  type GradiumTranscriptionModelOptions,
+} from '@ai-sdk/gradium';
+
+const result = await transcribe({
+  model: gradium.transcription('default'),
+  audio,
+  mediaType: 'audio/pcm',
+  providerOptions: {
+    gradium: {
+      inputFormat: 'pcm_16000',
+      jsonConfig: JSON.stringify({
+        language: 'en',
+        temp: 0.3,
+        padding_bonus: -1,
+        delay_in_frames: 16,
+      }),
+    } satisfies GradiumTranscriptionModelOptions,
+  },
+});
+```
+
+The following provider options are available:
+
+- **inputFormat** _string_
+
+  Overrides the input format detected from `mediaType`. Supports `wav`, `pcm`, `opus`, and explicit-rate or telephony variants such as `pcm_16000` and `ulaw_8000`.
+  Optional.
+
+- **language** _string_
+
+  Language hint passed inside `json_config.language`.
+  Optional.
+
+- **jsonConfig** _string_
+
+  Raw `json_config` string forwarded verbatim as the `?json_config=` query parameter. Use this for advanced Gradium settings such as `temp`, `padding_bonus`, and `delay_in_frames`.
+  Optional.
+
+### Semantic VAD, Adaptive Delay, and Flush
+
+Gradium's realtime STT WebSocket API is built for conversational agents. It emits semantic VAD `step` messages every 80 ms. Each `step` includes future horizons with an `inactivity_prob`, which lets your application decide when the speaker has probably finished instead of relying on a simple silence detector.
+
+```json
+{
+  "type": "step",
+  "vad": [
+    {"horizon_s": 0.5, "inactivity_prob": 0.05},
+    {"horizon_s": 1.0, "inactivity_prob": 0.08},
+    {"horizon_s": 2.0, "inactivity_prob": 0.62}
+  ],
+  "step_duration_s": 0.08
+}
+```
+
+A common starting point is to watch the longest horizon and treat values above `0.5` as a possible end of turn. For noisy audio or high-stakes flows, require several consecutive high-confidence steps before responding.
+
+`delay_in_frames` controls the latency/quality tradeoff for realtime STT. Each frame is 80 ms. Lower values are more reactive; higher values give the model more context and can improve transcript stability. Gradium supports `7`, `8`, `10`, `12`, `14`, `16`, `20`, `24`, `32`, `36`, and `48`.
+
+When your app decides a turn has ended, send `flush` on the WebSocket. Gradium processes buffered audio immediately and responds with `flushed`, so the agent can move to the next step without waiting for natural silence.
+
+<Note>
+  The AI SDK `transcribe` function returns transcript text, segments, warnings, and response metadata. It does not expose realtime WebSocket `step`, `flush`, or `flushed` events. Use Gradium's realtime STT API directly when those signals are part of your application logic.
+</Note>
+
+### Model Capabilities
+
+| Model     |
+| --------- |
+| `default` |
+
+## Gradium Resource APIs
+
+The provider also exposes Gradium-specific resource APIs that are useful around speech workflows:
+
+```ts
+import { gradium } from '@ai-sdk/gradium';
+
+const voices = await gradium.voices.list({ includeCatalog: true });
+const credits = await gradium.credits.get();
+
+const pronunciation = await gradium.pronunciations.create({
+  name: 'Product terms',
+  language: 'en',
+  rules: [
+    {
+      original: 'Gradium',
+      rewrite: 'gray-dee-um',
+    },
+  ],
+});
+```
+
+- **voices**: Manage library and custom cloned voices for TTS.
+- **pronunciations**: Create dictionaries for brand names, domain terms, acronyms, and other words that need controlled pronunciation.
+- **credits**: Read the authenticated account's billing-period credit balance.
