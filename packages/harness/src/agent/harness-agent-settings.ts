@@ -34,11 +34,11 @@ export type HarnessAgentSettings<TOOLS extends ToolSet = ToolSet> = {
   readonly tools?: TOOLS;
 
   /**
-   * System instructions appended to the underlying agent's system prompt.
+   * Instructions appended to the underlying agent's system prompt.
    * Adapters decide how to place this (system message, prompt prefix,
    * file in the working tree).
    */
-  readonly system?: string;
+  readonly instructions?: string;
 
   /**
    * Sandbox provider whose `create()` produces the sandbox handle the harness

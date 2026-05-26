@@ -128,7 +128,7 @@ export class HarnessAgent<
       harness: this.settings.harness,
       session,
       prompt,
-      instructions: this.settings.system,
+      instructions: this.settings.instructions,
       tools: this.tools,
       toolSpecs,
       sandboxSession: this.sessions.currentSandboxHandle?.session,
