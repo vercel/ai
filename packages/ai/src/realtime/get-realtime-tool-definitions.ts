@@ -1,6 +1,5 @@
-import { RealtimeToolDefinition } from '../types/realtime-model';
-import { asSchema } from '@ai-sdk/provider-utils';
-import { ToolSet } from '../generate-text/tool-set';
+import { asSchema, type ToolSet } from '@ai-sdk/provider-utils';
+import type { RealtimeToolDefinition } from '../types/realtime-model';
 
 export async function getRealtimeToolDefinitions({
   tools,
@@ -16,10 +15,14 @@ export async function getRealtimeToolDefinitions({
       case undefined:
       case 'function':
       case 'dynamic': {
+        const description =
+          typeof tool.description === 'function'
+            ? tool.description({ context: undefined as never })
+            : tool.description;
         definitions.push({
           type: 'function',
           name,
-          description: tool.description,
+          description,
           parameters: await asSchema(tool.inputSchema).jsonSchema,
         });
         break;

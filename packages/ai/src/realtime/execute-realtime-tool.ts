@@ -1,5 +1,9 @@
-import { asSchema, executeTool } from '@ai-sdk/provider-utils';
-import { ToolSet } from '../generate-text/tool-set';
+import {
+  asSchema,
+  executeTool,
+  isExecutableTool,
+  type ToolSet,
+} from '@ai-sdk/provider-utils';
 
 export async function executeRealtimeTool({
   tools,
@@ -22,7 +26,7 @@ export async function executeRealtimeTool({
     return { success: false, error: `Tool not found: ${name}` };
   }
 
-  if (tool.execute == null) {
+  if (!isExecutableTool(tool)) {
     return {
       success: false,
       error: `Tool "${name}" has no execute function`,
@@ -45,12 +49,13 @@ export async function executeRealtimeTool({
 
   try {
     const stream = executeTool({
-      execute: tool.execute.bind(tool),
+      tool,
       input: validatedArgs,
       options: {
         toolCallId: callId ?? `realtime-${name}-${Date.now()}`,
         messages: [],
         abortSignal,
+        context: undefined as never,
       },
     });
 
