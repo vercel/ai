@@ -346,9 +346,9 @@ To see `streamText` in action, check out [these examples](#examples).
             {
               name: 'description',
               isOptional: true,
-              type: 'string | ((options: { context: CONTEXT; sandbox?: Sandbox }) => string)',
+              type: 'string | ((options: { context: CONTEXT; experimental_sandbox?: Experimental_Sandbox }) => string)',
               description:
-                'Information about the purpose of the tool including details on how and when it can be used by the model. Provide a string for a fixed description, or a function to derive the description from the tool-specific context and optional sandbox before each model call.',
+                'Information about the purpose of the tool including details on how and when it can be used by the model. Provide a string for a fixed description, or a function to derive the description from the tool-specific context and optional experimental sandbox before each model call.',
             },
             {
               name: 'inputSchema',
@@ -634,7 +634,7 @@ To see `streamText` in action, check out [these examples](#examples).
       type: '(options: PrepareStepOptions) => PrepareStepResult<TOOLS> | Promise<PrepareStepResult<TOOLS>>',
       isOptional: true,
       description:
-        'Optional function that you can use to provide different settings for a step. You can modify the model, tool choices, active tools, instructions, input messages, and sandbox for each step.',
+        'Optional function that you can use to provide different settings for a step. You can modify the model, tool choices, active tools, instructions, input messages, and experimental sandbox for each step.',
       properties: [
         {
           type: 'PrepareStepFunction<TOOLS>',
@@ -695,11 +695,11 @@ To see `streamText` in action, check out [these examples](#examples).
                         'The per-tool context map passed via the `toolsContext` setting.',
                     },
                     {
-                      name: 'sandbox',
-                      type: 'Sandbox | undefined',
+                      name: 'experimental_sandbox',
+                      type: 'Experimental_Sandbox | undefined',
                       isOptional: true,
                       description:
-                        'The sandbox environment passed via the `sandbox` setting.',
+                        'The experimental sandbox environment passed via the `experimental_sandbox` setting.',
                     },
                   ],
                 },
@@ -761,11 +761,11 @@ To see `streamText` in action, check out [these examples](#examples).
                 'Per-tool context map. Changing it will affect tool-specific context in this step and all subsequent steps.',
             },
             {
-              name: 'sandbox',
-              type: 'Sandbox',
+              name: 'experimental_sandbox',
+              type: 'Experimental_Sandbox',
               isOptional: true,
               description:
-                'Sandbox environment for this step. Changing it will affect tool execution in this step only.',
+                'Experimental sandbox environment for this step. Changing it will affect tool execution in this step only.',
             },
             {
               name: 'providerOptions',
@@ -792,11 +792,11 @@ To see `streamText` in action, check out [these examples](#examples).
         'Per-tool context map keyed by tool name. Required when at least one tool defines `contextSchema`; not accepted when no tools need context.',
     },
     {
-      name: 'sandbox',
-      type: 'Sandbox',
+      name: 'experimental_sandbox',
+      type: 'Experimental_Sandbox',
       isOptional: true,
       description:
-        'Sandbox environment that is passed through to `prepareStep`, tool description functions, and tool execution. Tools can access it from their description function options and execution options.',
+        'Experimental sandbox environment that is passed through to `prepareStep`, tool description functions, and tool execution. Tools can access it from their description function options and execution options.',
     },
     {
       name: 'experimental_download',
@@ -1387,10 +1387,28 @@ To see `streamText` in action, check out [these examples](#examples).
                   type: 'StepResultPerformance',
                   parameters: [
                     {
-                      name: 'tokensPerSecond',
+                      name: 'effectiveOutputTokensPerSecond',
                       type: 'number',
                       description:
-                        'Average number of output tokens per second for the language model response.',
+                        'Effective number of output tokens per second over the full language model response.',
+                    },
+                    {
+                      name: 'outputTokensPerSecond',
+                      type: 'number | undefined',
+                      description:
+                        'Number of output tokens per second after the first output token was received. Only available for streaming steps.',
+                    },
+                    {
+                      name: 'inputTokensPerSecond',
+                      type: 'number | undefined',
+                      description:
+                        'Number of input tokens processed per second before the first output token was received. Only available for streaming steps.',
+                    },
+                    {
+                      name: 'effectiveTotalTokensPerSecond',
+                      type: 'number',
+                      description:
+                        'Effective number of input and output tokens per second over the full language model response.',
                     },
                     {
                       name: 'stepTimeMs',
@@ -1411,7 +1429,7 @@ To see `streamText` in action, check out [these examples](#examples).
                         'Time spent executing each client-side tool call in the step in milliseconds, keyed by tool call ID.',
                     },
                     {
-                      name: 'timeToFirstTokenMs',
+                      name: 'timeToFirstOutputTokenMs',
                       type: 'number | undefined',
                       description:
                         'Time until the first text, reasoning, or tool input delta was received in milliseconds. Only available for streaming steps.',
@@ -2289,7 +2307,7 @@ To see `streamText` in action, check out [these examples](#examples).
             },
             {
               name: 'performance',
-              type: '{ responseTimeMs: number; tokensPerSecond: number; timeToFirstTokenMs: number | undefined }',
+              type: '{ responseTimeMs: number; effectiveOutputTokensPerSecond: number; outputTokensPerSecond: number | undefined; inputTokensPerSecond: number | undefined; effectiveTotalTokensPerSecond: number; timeToFirstOutputTokenMs: number | undefined }',
               description: 'Performance metrics for the model call.',
               properties: [
                 {
@@ -2302,13 +2320,31 @@ To see `streamText` in action, check out [these examples](#examples).
                         'Time spent waiting for the language model response in milliseconds.',
                     },
                     {
-                      name: 'tokensPerSecond',
+                      name: 'effectiveOutputTokensPerSecond',
                       type: 'number',
                       description:
-                        'Average number of output tokens per second during the language model response.',
+                        'Effective number of output tokens per second over the full language model response.',
                     },
                     {
-                      name: 'timeToFirstTokenMs',
+                      name: 'outputTokensPerSecond',
+                      type: 'number | undefined',
+                      description:
+                        'Number of output tokens per second after the first output token was received. Only available for streaming model calls.',
+                    },
+                    {
+                      name: 'inputTokensPerSecond',
+                      type: 'number | undefined',
+                      description:
+                        'Number of input tokens processed per second before the first output token was received. Only available for streaming model calls.',
+                    },
+                    {
+                      name: 'effectiveTotalTokensPerSecond',
+                      type: 'number',
+                      description:
+                        'Effective number of input and output tokens per second over the full language model response.',
+                    },
+                    {
+                      name: 'timeToFirstOutputTokenMs',
                       type: 'number | undefined',
                       description:
                         'Time until the first text, reasoning, or tool input delta was received in milliseconds. Only available for streaming model calls.',
@@ -3568,10 +3604,28 @@ To see `streamText` in action, check out [these examples](#examples).
                   type: 'StepResultPerformance',
                   parameters: [
                     {
-                      name: 'tokensPerSecond',
+              name: 'effectiveOutputTokensPerSecond',
                       type: 'number',
                       description:
-                        'Average number of output tokens per second for the language model response.',
+                'Effective number of output tokens per second over the full language model response.',
+            },
+            {
+              name: 'outputTokensPerSecond',
+              type: 'number | undefined',
+              description:
+                'Number of output tokens per second after the first output token was received. Only available for streaming steps.',
+            },
+            {
+              name: 'inputTokensPerSecond',
+              type: 'number | undefined',
+              description:
+                'Number of input tokens processed per second before the first output token was received. Only available for streaming steps.',
+            },
+            {
+              name: 'effectiveTotalTokensPerSecond',
+              type: 'number',
+              description:
+                'Effective number of input and output tokens per second over the full language model response.',
                     },
                     {
                       name: 'stepTimeMs',
@@ -3592,7 +3646,7 @@ To see `streamText` in action, check out [these examples](#examples).
                         'Time spent executing each client-side tool call in the step in milliseconds, keyed by tool call ID.',
                     },
                     {
-                      name: 'timeToFirstTokenMs',
+              name: 'timeToFirstOutputTokenMs',
                       type: 'number | undefined',
                       description:
                         'Time until the first text, reasoning, or tool input delta was received in milliseconds. Only available for streaming steps.',

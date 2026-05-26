@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/angular",
-  "version": "3.0.0-canary.133",
+  "version": "3.0.0-canary.152",
   "type": "module",
   "description": "Angular implementation of ai-sdk.",
   "license": "Apache-2.0",
@@ -39,19 +39,19 @@
   },
   "devDependencies": {
     "@ai-sdk/test-server": "workspace:*",
-    "@types/node": "20.17.24",
+    "@types/node": "22.19.19",
     "@vercel/ai-tsconfig": "workspace:*",
-    "jsdom": "^24.0.0",
+    "jsdom": "^24.1.3",
     "tsup": "^7.2.0",
     "typescript": "5.8.3",
-    "vitest": "^4.1.5",
+    "vitest": "^4.1.6",
     "zod": "3.25.76"
   },
   "peerDependencies": {
     "@angular/core": ">=16.0.0"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=22"
   },
   "publishConfig": {
     "access": "public",

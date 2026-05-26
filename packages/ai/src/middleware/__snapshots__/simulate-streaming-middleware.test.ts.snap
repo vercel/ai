@@ -16,10 +16,13 @@ exports[`simulateStreamingMiddleware > should handle empty text response 1`] = `
   {
     "finishReason": "stop",
     "performance": {
+      "effectiveOutputTokensPerSecond": 0,
+      "effectiveTotalTokensPerSecond": 0,
+      "inputTokensPerSecond": undefined,
+      "outputTokensPerSecond": undefined,
       "responseTimeMs": 0,
       "stepTimeMs": 0,
-      "timeToFirstTokenMs": undefined,
-      "tokensPerSecond": 0,
+      "timeToFirstOutputTokenMs": undefined,
       "toolExecutionMs": {},
     },
     "providerMetadata": undefined,

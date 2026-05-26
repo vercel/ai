@@ -31,7 +31,7 @@ export async function* streamAgent(
     agent,
     uiMessages,
     abortSignal,
-    // sandbox, // optional: pass a sandbox through to tool execution
+    // experimental_sandbox, // optional: pass an experimental sandbox through to tool execution
     // ...other options (see below)
   });
 
@@ -74,11 +74,11 @@ export async function* streamAgent(
         'Timeout in milliseconds. Can be specified as a number or as an object with a totalMs property. The call will be aborted if it takes longer than the specified timeout. Can be used alongside abortSignal.',
     },
     {
-      name: 'sandbox',
-      type: 'Sandbox',
+      name: 'experimental_sandbox',
+      type: 'Experimental_Sandbox',
       isRequired: false,
       description:
-        'Optional sandbox environment that is passed through to tool execution. Tools can access it from their execution context.',
+        'Optional experimental sandbox environment that is passed through to tool execution. Tools can access it from their execution context.',
     },
     {
       name: 'options',
@@ -126,7 +126,7 @@ const stream = await createAgentUIStream({
   agent,
   uiMessages: [{ role: 'user', content: 'What is the weather in SF today?' }],
   abortSignal: controller.signal,
-  // sandbox, // optional
+  // experimental_sandbox, // optional
   sendStart: true,
   // ...other UIMessageStreamOptions
 });
@@ -143,7 +143,7 @@ for await (const chunk of stream) {
 
 1. **UI Message Validation:** The input `uiMessages` array is validated and normalized using the agent's `tools` definition. Any invalid messages cause an error.
 2. **Conversion to Model Messages:** The validated UI messages are converted into model-specific message format, as required by the agent.
-3. **Agent Streaming:** The agent's `.stream({ prompt, ... })` method is invoked with the converted model messages, optional call options, abort signal, sandbox, and any experimental transforms.
+3. **Agent Streaming:** The agent's `.stream({ prompt, ... })` method is invoked with the converted model messages, optional call options, abort signal, experimental_sandbox, and any experimental transforms.
 4. **UI Message Stream Building:** The result stream is converted and exposed as a streaming async iterable of UI message chunks for you to consume.
 
 ## Notes
@@ -153,7 +153,7 @@ for await (const chunk of stream) {
 - The `uiMessages` parameter is named `uiMessages`, **not** just `messages`.
 - You can provide advanced options via `UIMessageStreamOptions` (for example, to include sources or usage).
 - To cancel the stream, pass an [`AbortSignal`](https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal) via the `abortSignal` parameter.
-- Pass `sandbox` when your agent tools need a sandbox environment during execution.
+- Pass `experimental_sandbox` when your agent tools need an experimental sandbox environment during execution.
 
 ## See Also
 

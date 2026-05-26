@@ -1,5 +1,9 @@
-import { tool, type Sandbox } from '@ai-sdk/provider-utils';
+import {
+  tool,
+  type Experimental_Sandbox as Sandbox,
+} from '@ai-sdk/provider-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { mockSandboxFileStubs } from '../test/mock-sandbox';
 import * as z from 'zod/v4';
 import { TypeValidationError } from '../error';
 import { now } from '../util/now';
@@ -84,11 +88,12 @@ describe('executeToolCall', () => {
     it('should pass sandbox to tool execution', async () => {
       const sandbox = {
         description: 'test sandbox',
-        executeCommand: vi.fn(async () => ({
+        runCommand: vi.fn(async () => ({
           exitCode: 0,
           stdout: 'ok',
           stderr: '',
         })),
+        ...mockSandboxFileStubs,
       } satisfies Sandbox;
       let receivedSandbox: Sandbox | undefined;
 
@@ -97,7 +102,7 @@ describe('executeToolCall', () => {
         tools: {
           testTool: tool({
             inputSchema: z.object({ value: z.string() }),
-            execute: async ({ value }, { sandbox }) => {
+            execute: async ({ value }, { experimental_sandbox: sandbox }) => {
               receivedSandbox = sandbox;
               return `${value}-result`;
             },
@@ -106,7 +111,7 @@ describe('executeToolCall', () => {
         callId: 'test-telemetry-call-id',
         messages: [],
         abortSignal: undefined,
-        sandbox,
+        experimental_sandbox: sandbox,
         toolsContext: {},
       });
 

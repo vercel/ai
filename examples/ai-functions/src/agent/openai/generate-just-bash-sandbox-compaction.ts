@@ -32,7 +32,7 @@ run(async () => {
     instructions:
       'You have access to a filesystem. Details: ' + sandbox.description,
     prompt: 'Read every .ts file in this directory',
-    sandbox,
+    experimental_sandbox: sandbox,
     tools: {
       bash: anthropic.tools.bash_20250124(),
     },

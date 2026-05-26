@@ -14,6 +14,7 @@
     "type-check:full": "tsc --build tsconfig.with-examples.json",
     "publint": "turbo publint",
     "test": "turbo test --concurrency 16 --filter=!@example/*",
+    "test:ci": "turbo test --concurrency 16 --filter=!@example/* --filter=!ai --filter=!@ai-sdk/codemod --only",
     "test:update": "turbo test:update --concurrency 16 --filter=!@example/*",
     "ci:release": "turbo clean && turbo build && changeset publish",
     "ci:version": "changeset version && node .github/scripts/cleanup-examples-changesets.mjs && pnpm install --no-frozen-lockfile",
@@ -33,7 +34,7 @@
   "devDependencies": {
     "konsistent-provider": "workspace:*",
     "@changesets/cli": "2.27.10",
-    "@playwright/test": "^1.44.1",
+    "@playwright/test": "^1.60.0",
     "del-cli": "^5.1.0",
     "husky": "^9.1.7",
     "konsistent": "0.0.1-alpha.20",
@@ -41,7 +42,7 @@
     "next": "15.0.7",
     "oxfmt": "^0.41.0",
     "oxlint": "^1.56.0",
-    "playwright": "^1.44.1",
+    "playwright": "^1.60.0",
     "publint": "0.2.12",
     "react": "19.0.0-rc-cc1ec60d0d-20240607",
     "react-dom": "19.0.0-rc-cc1ec60d0d-20240607",
@@ -52,7 +53,7 @@
     "vitest": "4.1.5"
   },
   "engines": {
-    "node": "^18.0.0 || ^20.0.0 || ^22.0.0 || ^24.0.0"
+    "node": "^22.0.0 || ^24.0.0 || ^26.0.0"
   },
   "homepage": "https://ai-sdk.dev/docs",
   "repository": {
@@ -66,13 +67,14 @@
   "keywords": [
     "ai"
   ],
-  "packageManager": "pnpm@10.11.0",
+  "packageManager": "pnpm@10.33.4",
   "pnpm": {
     "onlyBuiltDependencies": [
       "esbuild"
     ],
     "overrides": {
-      "tinyexec": "1.0.2"
+      "tinyexec": "1.0.2",
+      "oxlint": "1.56.0"
     }
   }
 }

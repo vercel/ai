@@ -1,5 +1,147 @@
 # @ai-sdk/workflow
 
+## 1.0.0-canary.69
+
+### Patch Changes
+
+- ai@7.0.0-canary.152
+
+## 1.0.0-canary.68
+
+### Patch Changes
+
+- ai@7.0.0-canary.151
+
+## 1.0.0-canary.67
+
+### Patch Changes
+
+- ai@7.0.0-canary.150
+
+## 1.0.0-canary.66
+
+### Patch Changes
+
+- Updated dependencies [e3d9c0e]
+  - ai@7.0.0-canary.149
+
+## 1.0.0-canary.65
+
+### Patch Changes
+
+- Updated dependencies [2852a84]
+  - ai@7.0.0-canary.148
+
+## 1.0.0-canary.64
+
+### Patch Changes
+
+- ai@7.0.0-canary.147
+
+## 1.0.0-canary.63
+
+### Patch Changes
+
+- ai@7.0.0-canary.146
+
+## 1.0.0-canary.62
+
+### Patch Changes
+
+- ai@7.0.0-canary.145
+
+## 1.0.0-canary.61
+
+### Patch Changes
+
+- 7fc6bd6: Raise minimum supported Node.js version to 22. Supported versions: 22, 24, and 26.
+- Updated dependencies [7fc6bd6]
+  - ai@7.0.0-canary.144
+  - @ai-sdk/provider-utils@5.0.0-canary.43
+  - @ai-sdk/provider@4.0.0-canary.17
+
+## 1.0.0-canary.60
+
+### Patch Changes
+
+- b567a6c: dependency updates
+- Updated dependencies [a6617c5]
+  - @ai-sdk/provider-utils@5.0.0-canary.42
+  - ai@7.0.0-canary.143
+
+## 1.0.0-canary.59
+
+### Patch Changes
+
+- Updated dependencies [62d6481]
+  - ai@7.0.0-canary.142
+
+## 1.0.0-canary.58
+
+### Patch Changes
+
+- Updated dependencies [e3a0419]
+  - ai@7.0.0-canary.141
+
+## 1.0.0-canary.57
+
+### Patch Changes
+
+- ai@7.0.0-canary.140
+
+## 1.0.0-canary.56
+
+### Patch Changes
+
+- 334ae5d: Update step performance metrics with explicit effective, input, output, and total token throughput fields.
+- Updated dependencies [334ae5d]
+- Updated dependencies [28dfa06]
+- Updated dependencies [e93fa91]
+  - ai@7.0.0-canary.139
+  - @ai-sdk/provider-utils@5.0.0-canary.41
+
+## 1.0.0-canary.55
+
+### Patch Changes
+
+- ai@7.0.0-canary.138
+
+## 1.0.0-canary.54
+
+### Patch Changes
+
+- 98627e5: feat(ai): remove onChunk event from telemetry
+- Updated dependencies [98627e5]
+- Updated dependencies [476e1ca]
+  - ai@7.0.0-canary.137
+
+## 1.0.0-canary.53
+
+### Patch Changes
+
+- Updated dependencies [a7de9c9]
+  - @ai-sdk/provider-utils@5.0.0-canary.40
+  - ai@7.0.0-canary.136
+
+## 1.0.0-canary.52
+
+### Patch Changes
+
+- Updated dependencies [105f95b]
+  - @ai-sdk/provider-utils@5.0.0-canary.39
+  - ai@7.0.0-canary.135
+
+## 1.0.0-canary.51
+
+### Patch Changes
+
+- Updated dependencies [ed74dae]
+- Updated dependencies [f4cc8eb]
+- Updated dependencies [e80ada0]
+- Updated dependencies [1dca341]
+- Updated dependencies [2605e5f]
+  - ai@7.0.0-canary.134
+
 ## 1.0.0-canary.50
 
 ### Patch Changes

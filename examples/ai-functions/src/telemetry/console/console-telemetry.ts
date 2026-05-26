@@ -13,7 +13,6 @@ export const consoleTelemetry = {
   onLanguageModelCallEnd: logCallback('onLanguageModelCallEnd'),
   onToolExecutionStart: logCallback('onToolExecutionStart'),
   onToolExecutionEnd: logCallback('onToolExecutionEnd'),
-  onChunk: logCallback('onChunk'),
   onStepFinish: logCallback('onStepFinish'),
   onObjectStepStart: logCallback('onObjectStepStart'),
   onObjectStepFinish: logCallback('onObjectStepFinish'),

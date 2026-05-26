@@ -18,7 +18,7 @@ import {
   tool,
   type ToolSet,
   type ModelMessage,
-  type Sandbox,
+  type Experimental_Sandbox as Sandbox,
   type Tool,
   type ToolExecuteFunction,
 } from '@ai-sdk/provider-utils';
@@ -40,6 +40,7 @@ import {
   vi,
   vitest,
 } from 'vitest';
+import { mockSandboxFileStubs } from '../test/mock-sandbox';
 import { z } from 'zod/v4';
 import { Output, type LanguageModelCallEndEvent } from '..';
 import * as logWarningsModule from '../logger/log-warnings';
@@ -624,10 +625,13 @@ describe('streamText', () => {
             {
               "finishReason": "stop",
               "performance": {
+                "effectiveOutputTokensPerSecond": 0,
+                "effectiveTotalTokensPerSecond": 0,
+                "inputTokensPerSecond": 0,
+                "outputTokensPerSecond": 0,
                 "responseTimeMs": 0,
                 "stepTimeMs": 0,
-                "timeToFirstTokenMs": 0,
-                "tokensPerSecond": 0,
+                "timeToFirstOutputTokenMs": 0,
                 "toolExecutionMs": {},
               },
               "providerMetadata": undefined,
@@ -860,10 +864,13 @@ describe('streamText', () => {
             {
               "finishReason": "stop",
               "performance": {
+                "effectiveOutputTokensPerSecond": 0,
+                "effectiveTotalTokensPerSecond": 0,
+                "inputTokensPerSecond": 0,
+                "outputTokensPerSecond": 0,
                 "responseTimeMs": 0,
                 "stepTimeMs": 0,
-                "timeToFirstTokenMs": 0,
-                "tokensPerSecond": 0,
+                "timeToFirstOutputTokenMs": 0,
                 "toolExecutionMs": {},
               },
               "providerMetadata": undefined,
@@ -975,10 +982,13 @@ describe('streamText', () => {
             {
               "finishReason": "stop",
               "performance": {
+                "effectiveOutputTokensPerSecond": 0,
+                "effectiveTotalTokensPerSecond": 0,
+                "inputTokensPerSecond": 0,
+                "outputTokensPerSecond": 0,
                 "responseTimeMs": 0,
                 "stepTimeMs": 0,
-                "timeToFirstTokenMs": 0,
-                "tokensPerSecond": 0,
+                "timeToFirstOutputTokenMs": 0,
                 "toolExecutionMs": {},
               },
               "providerMetadata": undefined,
@@ -1075,10 +1085,13 @@ describe('streamText', () => {
             {
               "finishReason": "stop",
               "performance": {
+                "effectiveOutputTokensPerSecond": 0,
+                "effectiveTotalTokensPerSecond": 0,
+                "inputTokensPerSecond": 0,
+                "outputTokensPerSecond": 0,
                 "responseTimeMs": 0,
                 "stepTimeMs": 0,
-                "timeToFirstTokenMs": 0,
-                "tokensPerSecond": 0,
+                "timeToFirstOutputTokenMs": 0,
                 "toolExecutionMs": {},
               },
               "providerMetadata": undefined,
@@ -1186,10 +1199,13 @@ describe('streamText', () => {
             {
               "finishReason": "stop",
               "performance": {
+                "effectiveOutputTokensPerSecond": 0,
+                "effectiveTotalTokensPerSecond": 0,
+                "inputTokensPerSecond": 0,
+                "outputTokensPerSecond": 0,
                 "responseTimeMs": 0,
                 "stepTimeMs": 0,
-                "timeToFirstTokenMs": 0,
-                "tokensPerSecond": 0,
+                "timeToFirstOutputTokenMs": 0,
                 "toolExecutionMs": {},
               },
               "providerMetadata": undefined,
@@ -1354,10 +1370,13 @@ describe('streamText', () => {
             {
               "finishReason": "stop",
               "performance": {
+                "effectiveOutputTokensPerSecond": 0,
+                "effectiveTotalTokensPerSecond": 0,
+                "inputTokensPerSecond": 0,
+                "outputTokensPerSecond": 0,
                 "responseTimeMs": 0,
                 "stepTimeMs": 0,
-                "timeToFirstTokenMs": 0,
-                "tokensPerSecond": 0,
+                "timeToFirstOutputTokenMs": 0,
                 "toolExecutionMs": {},
               },
               "providerMetadata": undefined,
@@ -1486,10 +1505,13 @@ describe('streamText', () => {
             {
               "finishReason": "stop",
               "performance": {
+                "effectiveOutputTokensPerSecond": 0,
+                "effectiveTotalTokensPerSecond": 0,
+                "inputTokensPerSecond": 0,
+                "outputTokensPerSecond": 0,
                 "responseTimeMs": 0,
                 "stepTimeMs": 0,
-                "timeToFirstTokenMs": 0,
-                "tokensPerSecond": 0,
+                "timeToFirstOutputTokenMs": 0,
                 "toolExecutionMs": {},
               },
               "providerMetadata": undefined,
@@ -1834,10 +1856,13 @@ describe('streamText', () => {
             {
               "finishReason": "tool-calls",
               "performance": {
+                "effectiveOutputTokensPerSecond": 0,
+                "effectiveTotalTokensPerSecond": 0,
+                "inputTokensPerSecond": 0,
+                "outputTokensPerSecond": 0,
                 "responseTimeMs": 0,
                 "stepTimeMs": 0,
-                "timeToFirstTokenMs": 0,
-                "tokensPerSecond": 0,
+                "timeToFirstOutputTokenMs": 0,
                 "toolExecutionMs": {},
               },
               "providerMetadata": undefined,
@@ -2105,10 +2130,13 @@ describe('streamText', () => {
             {
               "finishReason": "stop",
               "performance": {
+                "effectiveOutputTokensPerSecond": 0,
+                "effectiveTotalTokensPerSecond": 0,
+                "inputTokensPerSecond": 0,
+                "outputTokensPerSecond": 0,
                 "responseTimeMs": 0,
                 "stepTimeMs": 0,
-                "timeToFirstTokenMs": 0,
-                "tokensPerSecond": 0,
+                "timeToFirstOutputTokenMs": 0,
                 "toolExecutionMs": {},
               },
               "providerMetadata": undefined,
@@ -4809,10 +4837,13 @@ describe('streamText', () => {
             {
               "finishReason": "stop",
               "performance": {
+                "effectiveOutputTokensPerSecond": 0,
+                "effectiveTotalTokensPerSecond": 0,
+                "inputTokensPerSecond": 0,
+                "outputTokensPerSecond": 0,
                 "responseTimeMs": 0,
                 "stepTimeMs": 0,
-                "timeToFirstTokenMs": 0,
-                "tokensPerSecond": 0,
+                "timeToFirstOutputTokenMs": 0,
                 "toolExecutionMs": {},
               },
               "providerMetadata": undefined,
@@ -6002,10 +6033,13 @@ describe('streamText', () => {
               "provider": "mock-provider",
             },
             "performance": {
+              "effectiveOutputTokensPerSecond": 0,
+              "effectiveTotalTokensPerSecond": 0,
+              "inputTokensPerSecond": 0,
+              "outputTokensPerSecond": 0,
               "responseTimeMs": 0,
               "stepTimeMs": 0,
-              "timeToFirstTokenMs": 0,
-              "tokensPerSecond": 0,
+              "timeToFirstOutputTokenMs": 0,
               "toolExecutionMs": {},
             },
             "providerMetadata": undefined,
@@ -6152,10 +6186,13 @@ describe('streamText', () => {
               "provider": "mock-provider",
             },
             "performance": {
+              "effectiveOutputTokensPerSecond": 0,
+              "effectiveTotalTokensPerSecond": 0,
+              "inputTokensPerSecond": 0,
+              "outputTokensPerSecond": 0,
               "responseTimeMs": 0,
               "stepTimeMs": 0,
-              "timeToFirstTokenMs": 0,
-              "tokensPerSecond": 0,
+              "timeToFirstOutputTokenMs": 0,
               "toolExecutionMs": {},
             },
             "providerMetadata": undefined,
@@ -6247,10 +6284,13 @@ describe('streamText', () => {
               "provider": "mock-provider",
             },
             "performance": {
+              "effectiveOutputTokensPerSecond": 0,
+              "effectiveTotalTokensPerSecond": 0,
+              "inputTokensPerSecond": 0,
+              "outputTokensPerSecond": 0,
               "responseTimeMs": 0,
               "stepTimeMs": 0,
-              "timeToFirstTokenMs": 0,
-              "tokensPerSecond": 0,
+              "timeToFirstOutputTokenMs": 0,
               "toolExecutionMs": {},
             },
             "providerMetadata": undefined,
@@ -6364,10 +6404,13 @@ describe('streamText', () => {
               "provider": "mock-provider",
             },
             "performance": {
+              "effectiveOutputTokensPerSecond": 0,
+              "effectiveTotalTokensPerSecond": 0,
+              "inputTokensPerSecond": 0,
+              "outputTokensPerSecond": 0,
               "responseTimeMs": 0,
               "stepTimeMs": 0,
-              "timeToFirstTokenMs": 0,
-              "tokensPerSecond": 0,
+              "timeToFirstOutputTokenMs": 0,
               "toolExecutionMs": {},
             },
             "providerMetadata": undefined,
@@ -6463,11 +6506,14 @@ describe('streamText', () => {
       });
 
       expect((await result.finalStep).performance).toStrictEqual({
-        tokensPerSecond: 20,
+        effectiveOutputTokensPerSecond: 20,
+        outputTokensPerSecond: 33.333333333333336,
+        inputTokensPerSecond: 15,
+        effectiveTotalTokensPerSecond: 26,
         stepTimeMs: 500,
         responseTimeMs: 500,
         toolExecutionMs: {},
-        timeToFirstTokenMs: 500,
+        timeToFirstOutputTokenMs: 200,
       });
     });
 
@@ -6510,11 +6556,14 @@ describe('streamText', () => {
       });
 
       expect((await result.finalStep).performance).toStrictEqual({
-        tokensPerSecond: 20,
+        effectiveOutputTokensPerSecond: 50,
+        outputTokensPerSecond: 100,
+        inputTokensPerSecond: 30,
+        effectiveTotalTokensPerSecond: 65,
         stepTimeMs: 500,
-        responseTimeMs: 500,
+        responseTimeMs: 200,
         toolExecutionMs: {},
-        timeToFirstTokenMs: 200,
+        timeToFirstOutputTokenMs: 100,
       });
     });
   });
@@ -7857,9 +7906,12 @@ describe('streamText', () => {
             "finishReason": "tool-calls",
             "modelId": "mock-model-id",
             "performance": {
+              "effectiveOutputTokensPerSecond": 0,
+              "effectiveTotalTokensPerSecond": 0,
+              "inputTokensPerSecond": 0,
+              "outputTokensPerSecond": 0,
               "responseTimeMs": 0,
-              "timeToFirstTokenMs": 0,
-              "tokensPerSecond": 0,
+              "timeToFirstOutputTokenMs": 0,
             },
             "provider": "mock-provider",
             "responseId": "response-1",
@@ -9449,10 +9501,13 @@ describe('streamText', () => {
                 "provider": "mock-provider",
               },
               "performance": {
+                "effectiveOutputTokensPerSecond": 0,
+                "effectiveTotalTokensPerSecond": 0,
+                "inputTokensPerSecond": 0,
+                "outputTokensPerSecond": 0,
                 "responseTimeMs": 0,
                 "stepTimeMs": 0,
-                "timeToFirstTokenMs": 0,
-                "tokensPerSecond": 0,
+                "timeToFirstOutputTokenMs": 0,
                 "toolExecutionMs": {
                   "call-1": 0,
                 },
@@ -9758,10 +9813,13 @@ describe('streamText', () => {
                 "provider": "mock-provider",
               },
               "performance": {
+                "effectiveOutputTokensPerSecond": 0,
+                "effectiveTotalTokensPerSecond": 0,
+                "inputTokensPerSecond": 0,
+                "outputTokensPerSecond": 0,
                 "responseTimeMs": 0,
                 "stepTimeMs": 0,
-                "timeToFirstTokenMs": 0,
-                "tokensPerSecond": 0,
+                "timeToFirstOutputTokenMs": 0,
                 "toolExecutionMs": {},
               },
               "providerMetadata": undefined,
@@ -10043,10 +10101,13 @@ describe('streamText', () => {
                 "provider": "mock-provider",
               },
               "performance": {
+                "effectiveOutputTokensPerSecond": 0,
+                "effectiveTotalTokensPerSecond": 0,
+                "inputTokensPerSecond": 0,
+                "outputTokensPerSecond": 0,
                 "responseTimeMs": 0,
                 "stepTimeMs": 0,
-                "timeToFirstTokenMs": 0,
-                "tokensPerSecond": 0,
+                "timeToFirstOutputTokenMs": 0,
                 "toolExecutionMs": {},
               },
               "providerMetadata": undefined,
@@ -10548,10 +10609,13 @@ describe('streamText', () => {
               {
                 "finishReason": "tool-calls",
                 "performance": {
-                  "responseTimeMs": 600,
-                  "stepTimeMs": 1000,
-                  "timeToFirstTokenMs": 500,
-                  "tokensPerSecond": 16.666666666666668,
+                  "effectiveOutputTokensPerSecond": 20,
+                  "effectiveTotalTokensPerSecond": 26,
+                  "inputTokensPerSecond": 30,
+                  "outputTokensPerSecond": 25,
+                  "responseTimeMs": 500,
+                  "stepTimeMs": 600,
+                  "timeToFirstOutputTokenMs": 100,
                   "toolExecutionMs": {
                     "call-1": 0,
                   },
@@ -10614,10 +10678,13 @@ describe('streamText', () => {
               {
                 "finishReason": "stop",
                 "performance": {
+                  "effectiveOutputTokensPerSecond": 0,
+                  "effectiveTotalTokensPerSecond": 0,
+                  "inputTokensPerSecond": 0,
+                  "outputTokensPerSecond": 0,
                   "responseTimeMs": 0,
                   "stepTimeMs": 0,
-                  "timeToFirstTokenMs": 0,
-                  "tokensPerSecond": 0,
+                  "timeToFirstOutputTokenMs": 0,
                   "toolExecutionMs": {},
                 },
                 "providerMetadata": undefined,
@@ -10810,10 +10877,13 @@ describe('streamText', () => {
                     "provider": "mock-provider",
                   },
                   "performance": {
-                    "responseTimeMs": 600,
-                    "stepTimeMs": 1000,
-                    "timeToFirstTokenMs": 500,
-                    "tokensPerSecond": 16.666666666666668,
+                    "effectiveOutputTokensPerSecond": 20,
+                    "effectiveTotalTokensPerSecond": 26,
+                    "inputTokensPerSecond": 30,
+                    "outputTokensPerSecond": 25,
+                    "responseTimeMs": 500,
+                    "stepTimeMs": 600,
+                    "timeToFirstOutputTokenMs": 100,
                     "toolExecutionMs": {
                       "call-1": 0,
                     },
@@ -10903,10 +10973,13 @@ describe('streamText', () => {
                     "provider": "mock-provider",
                   },
                   "performance": {
+                    "effectiveOutputTokensPerSecond": 0,
+                    "effectiveTotalTokensPerSecond": 0,
+                    "inputTokensPerSecond": 0,
+                    "outputTokensPerSecond": 0,
                     "responseTimeMs": 0,
                     "stepTimeMs": 0,
-                    "timeToFirstTokenMs": 0,
-                    "tokensPerSecond": 0,
+                    "timeToFirstOutputTokenMs": 0,
                     "toolExecutionMs": {},
                   },
                   "providerMetadata": undefined,
@@ -11033,10 +11106,13 @@ describe('streamText', () => {
                   "provider": "mock-provider",
                 },
                 "performance": {
-                  "responseTimeMs": 600,
-                  "stepTimeMs": 1000,
-                  "timeToFirstTokenMs": 500,
-                  "tokensPerSecond": 16.666666666666668,
+                  "effectiveOutputTokensPerSecond": 20,
+                  "effectiveTotalTokensPerSecond": 26,
+                  "inputTokensPerSecond": 30,
+                  "outputTokensPerSecond": 25,
+                  "responseTimeMs": 500,
+                  "stepTimeMs": 600,
+                  "timeToFirstOutputTokenMs": 100,
                   "toolExecutionMs": {
                     "call-1": 0,
                   },
@@ -11126,10 +11202,13 @@ describe('streamText', () => {
                   "provider": "mock-provider",
                 },
                 "performance": {
+                  "effectiveOutputTokensPerSecond": 0,
+                  "effectiveTotalTokensPerSecond": 0,
+                  "inputTokensPerSecond": 0,
+                  "outputTokensPerSecond": 0,
                   "responseTimeMs": 0,
                   "stepTimeMs": 0,
-                  "timeToFirstTokenMs": 0,
-                  "tokensPerSecond": 0,
+                  "timeToFirstOutputTokenMs": 0,
                   "toolExecutionMs": {},
                 },
                 "providerMetadata": undefined,
@@ -11293,10 +11372,13 @@ describe('streamText', () => {
                   "provider": "mock-provider",
                 },
                 "performance": {
-                  "responseTimeMs": 600,
-                  "stepTimeMs": 1000,
-                  "timeToFirstTokenMs": 500,
-                  "tokensPerSecond": 16.666666666666668,
+                  "effectiveOutputTokensPerSecond": 20,
+                  "effectiveTotalTokensPerSecond": 26,
+                  "inputTokensPerSecond": 30,
+                  "outputTokensPerSecond": 25,
+                  "responseTimeMs": 500,
+                  "stepTimeMs": 600,
+                  "timeToFirstOutputTokenMs": 100,
                   "toolExecutionMs": {
                     "call-1": 0,
                   },
@@ -11386,10 +11468,13 @@ describe('streamText', () => {
                   "provider": "mock-provider",
                 },
                 "performance": {
+                  "effectiveOutputTokensPerSecond": 0,
+                  "effectiveTotalTokensPerSecond": 0,
+                  "inputTokensPerSecond": 0,
+                  "outputTokensPerSecond": 0,
                   "responseTimeMs": 0,
                   "stepTimeMs": 0,
-                  "timeToFirstTokenMs": 0,
-                  "tokensPerSecond": 0,
+                  "timeToFirstOutputTokenMs": 0,
                   "toolExecutionMs": {},
                 },
                 "providerMetadata": undefined,
@@ -11871,10 +11956,13 @@ describe('streamText', () => {
                     "provider": "mock-provider",
                   },
                   "performance": {
+                    "effectiveOutputTokensPerSecond": 0,
+                    "effectiveTotalTokensPerSecond": 0,
+                    "inputTokensPerSecond": undefined,
+                    "outputTokensPerSecond": undefined,
                     "responseTimeMs": 0,
                     "stepTimeMs": 0,
-                    "timeToFirstTokenMs": undefined,
-                    "tokensPerSecond": 0,
+                    "timeToFirstOutputTokenMs": undefined,
                     "toolExecutionMs": {
                       "call-1": 0,
                     },
@@ -11961,10 +12049,13 @@ describe('streamText', () => {
                     "provider": "mock-provider",
                   },
                   "performance": {
+                    "effectiveOutputTokensPerSecond": 0,
+                    "effectiveTotalTokensPerSecond": 0,
+                    "inputTokensPerSecond": 0,
+                    "outputTokensPerSecond": 0,
                     "responseTimeMs": 0,
                     "stepTimeMs": 0,
-                    "timeToFirstTokenMs": 0,
-                    "tokensPerSecond": 0,
+                    "timeToFirstOutputTokenMs": 0,
                     "toolExecutionMs": {},
                   },
                   "providerMetadata": undefined,
@@ -12090,10 +12181,13 @@ describe('streamText', () => {
                     "provider": "mock-provider",
                   },
                   "performance": {
+                    "effectiveOutputTokensPerSecond": 0,
+                    "effectiveTotalTokensPerSecond": 0,
+                    "inputTokensPerSecond": undefined,
+                    "outputTokensPerSecond": undefined,
                     "responseTimeMs": 0,
                     "stepTimeMs": 0,
-                    "timeToFirstTokenMs": undefined,
-                    "tokensPerSecond": 0,
+                    "timeToFirstOutputTokenMs": undefined,
                     "toolExecutionMs": {
                       "call-1": 0,
                     },
@@ -12180,10 +12274,13 @@ describe('streamText', () => {
                     "provider": "mock-provider",
                   },
                   "performance": {
+                    "effectiveOutputTokensPerSecond": 0,
+                    "effectiveTotalTokensPerSecond": 0,
+                    "inputTokensPerSecond": 0,
+                    "outputTokensPerSecond": 0,
                     "responseTimeMs": 0,
                     "stepTimeMs": 0,
-                    "timeToFirstTokenMs": 0,
-                    "tokensPerSecond": 0,
+                    "timeToFirstOutputTokenMs": 0,
                     "toolExecutionMs": {},
                   },
                   "providerMetadata": undefined,
@@ -12403,10 +12500,13 @@ describe('streamText', () => {
               {
                 "finishReason": "tool-calls",
                 "performance": {
-                  "responseTimeMs": 600,
-                  "stepTimeMs": 1000,
-                  "timeToFirstTokenMs": 500,
-                  "tokensPerSecond": 16.666666666666668,
+                  "effectiveOutputTokensPerSecond": 20,
+                  "effectiveTotalTokensPerSecond": 26,
+                  "inputTokensPerSecond": 30,
+                  "outputTokensPerSecond": 25,
+                  "responseTimeMs": 500,
+                  "stepTimeMs": 600,
+                  "timeToFirstOutputTokenMs": 100,
                   "toolExecutionMs": {
                     "call-1": 0,
                   },
@@ -12469,10 +12569,13 @@ describe('streamText', () => {
               {
                 "finishReason": "stop",
                 "performance": {
+                  "effectiveOutputTokensPerSecond": 0,
+                  "effectiveTotalTokensPerSecond": 0,
+                  "inputTokensPerSecond": 0,
+                  "outputTokensPerSecond": 0,
                   "responseTimeMs": 0,
                   "stepTimeMs": 0,
-                  "timeToFirstTokenMs": 0,
-                  "tokensPerSecond": 0,
+                  "timeToFirstOutputTokenMs": 0,
                   "toolExecutionMs": {},
                 },
                 "providerMetadata": undefined,
@@ -12665,10 +12768,13 @@ describe('streamText', () => {
                     "provider": "mock-provider",
                   },
                   "performance": {
-                    "responseTimeMs": 600,
-                    "stepTimeMs": 1000,
-                    "timeToFirstTokenMs": 500,
-                    "tokensPerSecond": 16.666666666666668,
+                    "effectiveOutputTokensPerSecond": 20,
+                    "effectiveTotalTokensPerSecond": 26,
+                    "inputTokensPerSecond": 30,
+                    "outputTokensPerSecond": 25,
+                    "responseTimeMs": 500,
+                    "stepTimeMs": 600,
+                    "timeToFirstOutputTokenMs": 100,
                     "toolExecutionMs": {
                       "call-1": 0,
                     },
@@ -12758,10 +12864,13 @@ describe('streamText', () => {
                     "provider": "mock-provider",
                   },
                   "performance": {
+                    "effectiveOutputTokensPerSecond": 0,
+                    "effectiveTotalTokensPerSecond": 0,
+                    "inputTokensPerSecond": 0,
+                    "outputTokensPerSecond": 0,
                     "responseTimeMs": 0,
                     "stepTimeMs": 0,
-                    "timeToFirstTokenMs": 0,
-                    "tokensPerSecond": 0,
+                    "timeToFirstOutputTokenMs": 0,
                     "toolExecutionMs": {},
                   },
                   "providerMetadata": undefined,
@@ -12888,10 +12997,13 @@ describe('streamText', () => {
                   "provider": "mock-provider",
                 },
                 "performance": {
-                  "responseTimeMs": 600,
-                  "stepTimeMs": 1000,
-                  "timeToFirstTokenMs": 500,
-                  "tokensPerSecond": 16.666666666666668,
+                  "effectiveOutputTokensPerSecond": 20,
+                  "effectiveTotalTokensPerSecond": 26,
+                  "inputTokensPerSecond": 30,
+                  "outputTokensPerSecond": 25,
+                  "responseTimeMs": 500,
+                  "stepTimeMs": 600,
+                  "timeToFirstOutputTokenMs": 100,
                   "toolExecutionMs": {
                     "call-1": 0,
                   },
@@ -12981,10 +13093,13 @@ describe('streamText', () => {
                   "provider": "mock-provider",
                 },
                 "performance": {
+                  "effectiveOutputTokensPerSecond": 0,
+                  "effectiveTotalTokensPerSecond": 0,
+                  "inputTokensPerSecond": 0,
+                  "outputTokensPerSecond": 0,
                   "responseTimeMs": 0,
                   "stepTimeMs": 0,
-                  "timeToFirstTokenMs": 0,
-                  "tokensPerSecond": 0,
+                  "timeToFirstOutputTokenMs": 0,
                   "toolExecutionMs": {},
                 },
                 "providerMetadata": undefined,
@@ -13144,10 +13259,13 @@ describe('streamText', () => {
                   "provider": "mock-provider",
                 },
                 "performance": {
-                  "responseTimeMs": 600,
-                  "stepTimeMs": 1000,
-                  "timeToFirstTokenMs": 500,
-                  "tokensPerSecond": 16.666666666666668,
+                  "effectiveOutputTokensPerSecond": 20,
+                  "effectiveTotalTokensPerSecond": 26,
+                  "inputTokensPerSecond": 30,
+                  "outputTokensPerSecond": 25,
+                  "responseTimeMs": 500,
+                  "stepTimeMs": 600,
+                  "timeToFirstOutputTokenMs": 100,
                   "toolExecutionMs": {
                     "call-1": 0,
                   },
@@ -13237,10 +13355,13 @@ describe('streamText', () => {
                   "provider": "mock-provider",
                 },
                 "performance": {
+                  "effectiveOutputTokensPerSecond": 0,
+                  "effectiveTotalTokensPerSecond": 0,
+                  "inputTokensPerSecond": 0,
+                  "outputTokensPerSecond": 0,
                   "responseTimeMs": 0,
                   "stepTimeMs": 0,
-                  "timeToFirstTokenMs": 0,
-                  "tokensPerSecond": 0,
+                  "timeToFirstOutputTokenMs": 0,
                   "toolExecutionMs": {},
                 },
                 "providerMetadata": undefined,
@@ -13548,10 +13669,13 @@ describe('streamText', () => {
                     "provider": "mock-provider",
                   },
                   "performance": {
-                    "responseTimeMs": 600,
-                    "stepTimeMs": 1000,
-                    "timeToFirstTokenMs": 500,
-                    "tokensPerSecond": 16.666666666666668,
+                    "effectiveOutputTokensPerSecond": 20,
+                    "effectiveTotalTokensPerSecond": 26,
+                    "inputTokensPerSecond": 30,
+                    "outputTokensPerSecond": 25,
+                    "responseTimeMs": 500,
+                    "stepTimeMs": 600,
+                    "timeToFirstOutputTokenMs": 100,
                     "toolExecutionMs": {
                       "call-1": 0,
                     },
@@ -13667,10 +13791,13 @@ describe('streamText', () => {
                     "provider": "mock-provider",
                   },
                   "performance": {
-                    "responseTimeMs": 600,
-                    "stepTimeMs": 1000,
-                    "timeToFirstTokenMs": 500,
-                    "tokensPerSecond": 16.666666666666668,
+                    "effectiveOutputTokensPerSecond": 20,
+                    "effectiveTotalTokensPerSecond": 26,
+                    "inputTokensPerSecond": 30,
+                    "outputTokensPerSecond": 25,
+                    "responseTimeMs": 500,
+                    "stepTimeMs": 600,
+                    "timeToFirstOutputTokenMs": 100,
                     "toolExecutionMs": {
                       "call-1": 0,
                     },
@@ -14094,10 +14221,13 @@ describe('streamText', () => {
               {
                 "finishReason": "stop",
                 "performance": {
+                  "effectiveOutputTokensPerSecond": 0,
+                  "effectiveTotalTokensPerSecond": 0,
+                  "inputTokensPerSecond": 0,
+                  "outputTokensPerSecond": 0,
                   "responseTimeMs": 0,
                   "stepTimeMs": 0,
-                  "timeToFirstTokenMs": 0,
-                  "tokensPerSecond": 0,
+                  "timeToFirstOutputTokenMs": 0,
                   "toolExecutionMs": {},
                 },
                 "providerMetadata": undefined,
@@ -14640,10 +14770,13 @@ describe('streamText', () => {
               {
                 "finishReason": "tool-calls",
                 "performance": {
+                  "effectiveOutputTokensPerSecond": 0,
+                  "effectiveTotalTokensPerSecond": 0,
+                  "inputTokensPerSecond": 0,
+                  "outputTokensPerSecond": 0,
                   "responseTimeMs": 0,
                   "stepTimeMs": 0,
-                  "timeToFirstTokenMs": 0,
-                  "tokensPerSecond": 0,
+                  "timeToFirstOutputTokenMs": 0,
                   "toolExecutionMs": {
                     "call-1": 0,
                   },
@@ -15848,10 +15981,13 @@ describe('streamText', () => {
             {
               "finishReason": "stop",
               "performance": {
+                "effectiveOutputTokensPerSecond": 0,
+                "effectiveTotalTokensPerSecond": 0,
+                "inputTokensPerSecond": undefined,
+                "outputTokensPerSecond": undefined,
                 "responseTimeMs": 0,
                 "stepTimeMs": 0,
-                "timeToFirstTokenMs": undefined,
-                "tokensPerSecond": 0,
+                "timeToFirstOutputTokenMs": undefined,
                 "toolExecutionMs": {
                   "call-1": 0,
                 },
@@ -15938,10 +16074,13 @@ describe('streamText', () => {
               "provider": "mock-provider",
             },
             "performance": {
+              "effectiveOutputTokensPerSecond": 0,
+              "effectiveTotalTokensPerSecond": 0,
+              "inputTokensPerSecond": undefined,
+              "outputTokensPerSecond": undefined,
               "responseTimeMs": 0,
               "stepTimeMs": 0,
-              "timeToFirstTokenMs": undefined,
-              "tokensPerSecond": 0,
+              "timeToFirstOutputTokenMs": undefined,
               "toolExecutionMs": {
                 "call-1": 0,
               },
@@ -16440,10 +16579,13 @@ describe('streamText', () => {
                 "provider": "mock-provider",
               },
               "performance": {
+                "effectiveOutputTokensPerSecond": 0,
+                "effectiveTotalTokensPerSecond": 0,
+                "inputTokensPerSecond": 0,
+                "outputTokensPerSecond": 0,
                 "responseTimeMs": 0,
                 "stepTimeMs": 0,
-                "timeToFirstTokenMs": 0,
-                "tokensPerSecond": 0,
+                "timeToFirstOutputTokenMs": 0,
                 "toolExecutionMs": {
                   "call-1": 0,
                 },
@@ -16810,10 +16952,13 @@ describe('streamText', () => {
                   "provider": "mock-provider",
                 },
                 "performance": {
+                  "effectiveOutputTokensPerSecond": 0,
+                  "effectiveTotalTokensPerSecond": 0,
+                  "inputTokensPerSecond": 0,
+                  "outputTokensPerSecond": 0,
                   "responseTimeMs": 0,
                   "stepTimeMs": 0,
-                  "timeToFirstTokenMs": 0,
-                  "tokensPerSecond": 0,
+                  "timeToFirstOutputTokenMs": 0,
                   "toolExecutionMs": {
                     "call-1": 0,
                   },
@@ -17046,10 +17191,13 @@ describe('streamText', () => {
               "provider": "mock-provider",
             },
             "performance": {
+              "effectiveOutputTokensPerSecond": 0,
+              "effectiveTotalTokensPerSecond": 0,
+              "inputTokensPerSecond": 0,
+              "outputTokensPerSecond": 0,
               "responseTimeMs": 0,
               "stepTimeMs": 0,
-              "timeToFirstTokenMs": 0,
-              "tokensPerSecond": 0,
+              "timeToFirstOutputTokenMs": 0,
               "toolExecutionMs": {
                 "call-1": 0,
               },
@@ -17339,9 +17487,12 @@ describe('streamText', () => {
                   performance: {
                     stepTimeMs: 0,
                     responseTimeMs: 0,
-                    tokensPerSecond: 0,
+                    effectiveOutputTokensPerSecond: 0,
+                    outputTokensPerSecond: undefined,
+                    inputTokensPerSecond: undefined,
+                    effectiveTotalTokensPerSecond: 0,
                     toolExecutionMs: {},
-                    timeToFirstTokenMs: undefined,
+                    timeToFirstOutputTokenMs: undefined,
                   },
                   response: {
                     id: 'response-id',
@@ -17423,10 +17574,13 @@ describe('streamText', () => {
               {
                 "finishReason": "stop",
                 "performance": {
+                  "effectiveOutputTokensPerSecond": 0,
+                  "effectiveTotalTokensPerSecond": 0,
+                  "inputTokensPerSecond": undefined,
+                  "outputTokensPerSecond": undefined,
                   "responseTimeMs": 0,
                   "stepTimeMs": 0,
-                  "timeToFirstTokenMs": undefined,
-                  "tokensPerSecond": 0,
+                  "timeToFirstOutputTokenMs": undefined,
                   "toolExecutionMs": {},
                 },
                 "providerMetadata": undefined,
@@ -17526,10 +17680,13 @@ describe('streamText', () => {
               "provider": "mock-provider",
             },
             "performance": {
+              "effectiveOutputTokensPerSecond": 0,
+              "effectiveTotalTokensPerSecond": 0,
+              "inputTokensPerSecond": undefined,
+              "outputTokensPerSecond": undefined,
               "responseTimeMs": 0,
               "stepTimeMs": 0,
-              "timeToFirstTokenMs": undefined,
-              "tokensPerSecond": 0,
+              "timeToFirstOutputTokenMs": undefined,
               "toolExecutionMs": {},
             },
             "providerMetadata": undefined,
@@ -18083,10 +18240,13 @@ describe('streamText', () => {
                   "provider": "mock-provider",
                 },
                 "performance": {
+                  "effectiveOutputTokensPerSecond": 0,
+                  "effectiveTotalTokensPerSecond": 0,
+                  "inputTokensPerSecond": 0,
+                  "outputTokensPerSecond": 0,
                   "responseTimeMs": 0,
                   "stepTimeMs": 0,
-                  "timeToFirstTokenMs": 0,
-                  "tokensPerSecond": 0,
+                  "timeToFirstOutputTokenMs": 0,
                   "toolExecutionMs": {},
                 },
                 "providerMetadata": undefined,
@@ -19207,10 +19367,13 @@ describe('streamText', () => {
               {
                 "finishReason": "stop",
                 "performance": {
+                  "effectiveOutputTokensPerSecond": 0,
+                  "effectiveTotalTokensPerSecond": 0,
+                  "inputTokensPerSecond": 0,
+                  "outputTokensPerSecond": 0,
                   "responseTimeMs": 0,
                   "stepTimeMs": 0,
-                  "timeToFirstTokenMs": 0,
-                  "tokensPerSecond": 0,
+                  "timeToFirstOutputTokenMs": 0,
                   "toolExecutionMs": {},
                 },
                 "providerMetadata": undefined,
@@ -19321,10 +19484,13 @@ describe('streamText', () => {
                 "provider": "mock-provider",
               },
               "performance": {
+                "effectiveOutputTokensPerSecond": 0,
+                "effectiveTotalTokensPerSecond": 0,
+                "inputTokensPerSecond": 0,
+                "outputTokensPerSecond": 0,
                 "responseTimeMs": 0,
                 "stepTimeMs": 0,
-                "timeToFirstTokenMs": 0,
-                "tokensPerSecond": 0,
+                "timeToFirstOutputTokenMs": 0,
                 "toolExecutionMs": {},
               },
               "providerMetadata": undefined,
@@ -19728,10 +19894,13 @@ describe('streamText', () => {
                     "provider": "mock-provider",
                   },
                   "performance": {
+                    "effectiveOutputTokensPerSecond": 0,
+                    "effectiveTotalTokensPerSecond": 0,
+                    "inputTokensPerSecond": undefined,
+                    "outputTokensPerSecond": undefined,
                     "responseTimeMs": 0,
                     "stepTimeMs": 0,
-                    "timeToFirstTokenMs": undefined,
-                    "tokensPerSecond": 0,
+                    "timeToFirstOutputTokenMs": undefined,
                     "toolExecutionMs": {
                       "call-1": 0,
                     },
@@ -19844,10 +20013,13 @@ describe('streamText', () => {
               {
                 "finishReason": "tool-calls",
                 "performance": {
+                  "effectiveOutputTokensPerSecond": 0,
+                  "effectiveTotalTokensPerSecond": 0,
+                  "inputTokensPerSecond": undefined,
+                  "outputTokensPerSecond": undefined,
                   "responseTimeMs": 0,
                   "stepTimeMs": 0,
-                  "timeToFirstTokenMs": undefined,
-                  "tokensPerSecond": 0,
+                  "timeToFirstOutputTokenMs": undefined,
                   "toolExecutionMs": {
                     "call-1": 0,
                   },
@@ -20148,11 +20320,12 @@ describe('streamText', () => {
     it('should pass sandbox to tool execution', async () => {
       const sandbox = {
         description: 'test sandbox',
-        executeCommand: vi.fn(async () => ({
+        runCommand: vi.fn(async () => ({
           exitCode: 0,
           stdout: 'ok',
           stderr: '',
         })),
+        ...mockSandboxFileStubs,
       } satisfies Sandbox;
       let recordedSandbox: Sandbox | undefined;
 
@@ -20175,13 +20348,13 @@ describe('streamText', () => {
         tools: {
           t1: tool({
             inputSchema: z.object({ value: z.string() }),
-            execute: async ({ value }, { sandbox }) => {
+            execute: async ({ value }, { experimental_sandbox: sandbox }) => {
               recordedSandbox = sandbox;
               return { value };
             },
           }),
         },
-        sandbox,
+        experimental_sandbox: sandbox,
         prompt: 'test-input',
       });
 
@@ -20224,11 +20397,12 @@ describe('streamText', () => {
     it('should pass sandbox to prepareStep', async () => {
       const sandbox = {
         description: 'test sandbox',
-        executeCommand: vi.fn(async () => ({
+        runCommand: vi.fn(async () => ({
           exitCode: 0,
           stdout: 'ok',
           stderr: '',
         })),
+        ...mockSandboxFileStubs,
       } satisfies Sandbox;
       let capturedSandbox: Sandbox | undefined;
 
@@ -20248,8 +20422,8 @@ describe('streamText', () => {
             response: {},
           }),
         }),
-        sandbox,
-        prepareStep: async ({ sandbox }) => {
+        experimental_sandbox: sandbox,
+        prepareStep: async ({ experimental_sandbox: sandbox }) => {
           capturedSandbox = sandbox;
           return undefined;
         },
@@ -20264,19 +20438,21 @@ describe('streamText', () => {
     it('should use sandbox returned from prepareStep for that step only', async () => {
       const sandbox = {
         description: 'default sandbox',
-        executeCommand: vi.fn(async () => ({
+        runCommand: vi.fn(async () => ({
           exitCode: 0,
           stdout: 'ok',
           stderr: '',
         })),
+        ...mockSandboxFileStubs,
       } satisfies Sandbox;
       const stepSandbox = {
         description: 'step sandbox',
-        executeCommand: vi.fn(async () => ({
+        runCommand: vi.fn(async () => ({
           exitCode: 0,
           stdout: 'ok',
           stderr: '',
         })),
+        ...mockSandboxFileStubs,
       } satisfies Sandbox;
       const recordedSandboxes: Array<Sandbox | undefined> = [];
       let responseCount = 0;
@@ -20336,15 +20512,15 @@ describe('streamText', () => {
         tools: {
           t1: tool({
             inputSchema: z.object({ value: z.string() }),
-            execute: async ({ value }, { sandbox }) => {
+            execute: async ({ value }, { experimental_sandbox: sandbox }) => {
               recordedSandboxes.push(sandbox);
               return { value };
             },
           }),
         },
-        sandbox,
+        experimental_sandbox: sandbox,
         prepareStep: async ({ stepNumber }) =>
-          stepNumber === 0 ? { sandbox: stepSandbox } : {},
+          stepNumber === 0 ? { experimental_sandbox: stepSandbox } : {},
         prompt: 'test-input',
         stopWhen: isStepCount(3),
       });
@@ -20572,10 +20748,13 @@ describe('streamText', () => {
               {
                 "finishReason": "stop",
                 "performance": {
+                  "effectiveOutputTokensPerSecond": 0,
+                  "effectiveTotalTokensPerSecond": 0,
+                  "inputTokensPerSecond": 0,
+                  "outputTokensPerSecond": 0,
                   "responseTimeMs": 0,
                   "stepTimeMs": 0,
-                  "timeToFirstTokenMs": 0,
-                  "tokensPerSecond": 0,
+                  "timeToFirstOutputTokenMs": 0,
                   "toolExecutionMs": {},
                 },
                 "providerMetadata": undefined,
@@ -20817,10 +20996,13 @@ describe('streamText', () => {
               {
                 "finishReason": "stop",
                 "performance": {
+                  "effectiveOutputTokensPerSecond": 0,
+                  "effectiveTotalTokensPerSecond": 0,
+                  "inputTokensPerSecond": undefined,
+                  "outputTokensPerSecond": undefined,
                   "responseTimeMs": 0,
                   "stepTimeMs": 0,
-                  "timeToFirstTokenMs": undefined,
-                  "tokensPerSecond": 0,
+                  "timeToFirstOutputTokenMs": undefined,
                   "toolExecutionMs": {
                     "call-1": 0,
                   },
@@ -21000,10 +21182,13 @@ describe('streamText', () => {
                 "provider": "mock-provider",
               },
               "performance": {
+                "effectiveOutputTokensPerSecond": 0,
+                "effectiveTotalTokensPerSecond": 0,
+                "inputTokensPerSecond": undefined,
+                "outputTokensPerSecond": undefined,
                 "responseTimeMs": 0,
                 "stepTimeMs": 0,
-                "timeToFirstTokenMs": undefined,
-                "tokensPerSecond": 0,
+                "timeToFirstOutputTokenMs": undefined,
                 "toolExecutionMs": {
                   "call-1": 0,
                 },
@@ -21230,10 +21415,13 @@ describe('streamText', () => {
               {
                 "finishReason": "stop",
                 "performance": {
+                  "effectiveOutputTokensPerSecond": 0,
+                  "effectiveTotalTokensPerSecond": 0,
+                  "inputTokensPerSecond": 0,
+                  "outputTokensPerSecond": 0,
                   "responseTimeMs": 0,
                   "stepTimeMs": 0,
-                  "timeToFirstTokenMs": 0,
-                  "tokensPerSecond": 0,
+                  "timeToFirstOutputTokenMs": 0,
                   "toolExecutionMs": {},
                 },
                 "providerMetadata": undefined,
@@ -22579,10 +22767,13 @@ describe('streamText', () => {
                 {
                   "finishReason": "tool-calls",
                   "performance": {
+                    "effectiveOutputTokensPerSecond": 0,
+                    "effectiveTotalTokensPerSecond": 0,
+                    "inputTokensPerSecond": 0,
+                    "outputTokensPerSecond": 0,
                     "responseTimeMs": 0,
                     "stepTimeMs": 0,
-                    "timeToFirstTokenMs": 0,
-                    "tokensPerSecond": 0,
+                    "timeToFirstOutputTokenMs": 0,
                     "toolExecutionMs": {
                       "toolu_019jKkXz4jAdwHweHBw92CVY": 0,
                     },
@@ -22652,10 +22843,13 @@ describe('streamText', () => {
                 {
                   "finishReason": "tool-calls",
                   "performance": {
+                    "effectiveOutputTokensPerSecond": 0,
+                    "effectiveTotalTokensPerSecond": 0,
+                    "inputTokensPerSecond": undefined,
+                    "outputTokensPerSecond": undefined,
                     "responseTimeMs": 0,
                     "stepTimeMs": 0,
-                    "timeToFirstTokenMs": undefined,
-                    "tokensPerSecond": 0,
+                    "timeToFirstOutputTokenMs": undefined,
                     "toolExecutionMs": {
                       "toolu_015dGLMbwBKv1ZRQr6KdJzeH": 0,
                     },
@@ -22725,10 +22919,13 @@ describe('streamText', () => {
                 {
                   "finishReason": "tool-calls",
                   "performance": {
+                    "effectiveOutputTokensPerSecond": 0,
+                    "effectiveTotalTokensPerSecond": 0,
+                    "inputTokensPerSecond": undefined,
+                    "outputTokensPerSecond": undefined,
                     "responseTimeMs": 0,
                     "stepTimeMs": 0,
-                    "timeToFirstTokenMs": undefined,
-                    "tokensPerSecond": 0,
+                    "timeToFirstOutputTokenMs": undefined,
                     "toolExecutionMs": {
                       "toolu_01YYqBNq5mk1wMtv3PAqY44m": 0,
                     },
@@ -22798,10 +22995,13 @@ describe('streamText', () => {
                 {
                   "finishReason": "tool-calls",
                   "performance": {
+                    "effectiveOutputTokensPerSecond": 0,
+                    "effectiveTotalTokensPerSecond": 0,
+                    "inputTokensPerSecond": undefined,
+                    "outputTokensPerSecond": undefined,
                     "responseTimeMs": 0,
                     "stepTimeMs": 0,
-                    "timeToFirstTokenMs": undefined,
-                    "tokensPerSecond": 0,
+                    "timeToFirstOutputTokenMs": undefined,
                     "toolExecutionMs": {
                       "toolu_018WxjDkQG8h7i63poySGT2x": 0,
                     },
@@ -22939,10 +23139,13 @@ describe('streamText', () => {
                 {
                   "finishReason": "stop",
                   "performance": {
+                    "effectiveOutputTokensPerSecond": 0,
+                    "effectiveTotalTokensPerSecond": 0,
+                    "inputTokensPerSecond": 0,
+                    "outputTokensPerSecond": 0,
                     "responseTimeMs": 0,
                     "stepTimeMs": 0,
-                    "timeToFirstTokenMs": 0,
-                    "tokensPerSecond": 0,
+                    "timeToFirstOutputTokenMs": 0,
                     "toolExecutionMs": {},
                   },
                   "providerMetadata": undefined,
@@ -23470,10 +23673,13 @@ describe('streamText', () => {
               {
                 "finishReason": "tool-calls",
                 "performance": {
+                  "effectiveOutputTokensPerSecond": 0,
+                  "effectiveTotalTokensPerSecond": 0,
+                  "inputTokensPerSecond": undefined,
+                  "outputTokensPerSecond": undefined,
                   "responseTimeMs": 0,
                   "stepTimeMs": 0,
-                  "timeToFirstTokenMs": undefined,
-                  "tokensPerSecond": 0,
+                  "timeToFirstOutputTokenMs": undefined,
                   "toolExecutionMs": {},
                 },
                 "providerMetadata": undefined,
@@ -24285,10 +24491,13 @@ describe('streamText', () => {
               {
                 "finishReason": "tool-calls",
                 "performance": {
+                  "effectiveOutputTokensPerSecond": 0,
+                  "effectiveTotalTokensPerSecond": 0,
+                  "inputTokensPerSecond": undefined,
+                  "outputTokensPerSecond": undefined,
                   "responseTimeMs": 0,
                   "stepTimeMs": 0,
-                  "timeToFirstTokenMs": undefined,
-                  "tokensPerSecond": 0,
+                  "timeToFirstOutputTokenMs": undefined,
                   "toolExecutionMs": {
                     "call-2": 0,
                   },
@@ -24555,11 +24764,12 @@ describe('streamText', () => {
         executeFunction = vi.fn().mockReturnValue('result1');
         sandbox = {
           description: 'test sandbox',
-          executeCommand: vi.fn(async () => ({
+          runCommand: vi.fn(async () => ({
             exitCode: 0,
             stdout: 'ok',
             stderr: '',
           })),
+          ...mockSandboxFileStubs,
         };
         result = streamText({
           model: new MockLanguageModelV4({
@@ -24593,7 +24803,7 @@ describe('streamText', () => {
           toolApproval: {
             tool1: 'user-approval',
           },
-          sandbox,
+          experimental_sandbox: sandbox,
           stopWhen: isStepCount(3),
           _internal: {
             generateId: mockId({ prefix: 'id' }),
@@ -24652,7 +24862,7 @@ describe('streamText', () => {
         expect(executeFunction).toHaveBeenCalledWith(
           { value: 'value' },
           expect.objectContaining({
-            sandbox,
+            experimental_sandbox: sandbox,
           }),
         );
       });
@@ -24875,10 +25085,13 @@ describe('streamText', () => {
               {
                 "finishReason": "stop",
                 "performance": {
+                  "effectiveOutputTokensPerSecond": 0,
+                  "effectiveTotalTokensPerSecond": 0,
+                  "inputTokensPerSecond": 0,
+                  "outputTokensPerSecond": 0,
                   "responseTimeMs": 0,
                   "stepTimeMs": 0,
-                  "timeToFirstTokenMs": 0,
-                  "tokensPerSecond": 0,
+                  "timeToFirstOutputTokenMs": 0,
                   "toolExecutionMs": {},
                 },
                 "providerMetadata": undefined,
@@ -25326,10 +25539,13 @@ describe('streamText', () => {
               {
                 "finishReason": "stop",
                 "performance": {
+                  "effectiveOutputTokensPerSecond": 0,
+                  "effectiveTotalTokensPerSecond": 0,
+                  "inputTokensPerSecond": 0,
+                  "outputTokensPerSecond": 0,
                   "responseTimeMs": 0,
                   "stepTimeMs": 0,
-                  "timeToFirstTokenMs": 0,
-                  "tokensPerSecond": 0,
+                  "timeToFirstOutputTokenMs": 0,
                   "toolExecutionMs": {},
                 },
                 "providerMetadata": undefined,
@@ -25638,10 +25854,13 @@ describe('streamText', () => {
               {
                 "finishReason": "stop",
                 "performance": {
+                  "effectiveOutputTokensPerSecond": 0,
+                  "effectiveTotalTokensPerSecond": 0,
+                  "inputTokensPerSecond": 0,
+                  "outputTokensPerSecond": 0,
                   "responseTimeMs": 0,
                   "stepTimeMs": 0,
-                  "timeToFirstTokenMs": 0,
-                  "tokensPerSecond": 0,
+                  "timeToFirstOutputTokenMs": 0,
                   "toolExecutionMs": {},
                 },
                 "providerMetadata": undefined,
@@ -25820,10 +26039,13 @@ describe('streamText', () => {
                 {
                   "finishReason": "tool-calls",
                   "performance": {
+                    "effectiveOutputTokensPerSecond": 0,
+                    "effectiveTotalTokensPerSecond": 0,
+                    "inputTokensPerSecond": undefined,
+                    "outputTokensPerSecond": undefined,
                     "responseTimeMs": 0,
                     "stepTimeMs": 0,
-                    "timeToFirstTokenMs": undefined,
-                    "tokensPerSecond": 0,
+                    "timeToFirstOutputTokenMs": undefined,
                     "toolExecutionMs": {},
                   },
                   "providerMetadata": undefined,
@@ -26666,189 +26888,6 @@ describe('streamText', () => {
       await result.consumeStream();
 
       expect(await result.text).toBe('Hello, world!');
-    });
-
-    it('should call integration onChunk with content stream chunks', async () => {
-      const chunks: Array<Record<string, unknown>> = [];
-
-      const result = streamText({
-        model: new MockLanguageModelV4({
-          doStream: async () => ({
-            stream: convertArrayToReadableStream([
-              {
-                type: 'response-metadata',
-                id: 'id-0',
-                modelId: 'mock-model-id',
-                timestamp: new Date(0),
-              },
-              { type: 'text-start', id: '1' },
-              { type: 'text-delta', id: '1', delta: 'Hello' },
-              { type: 'text-delta', id: '1', delta: ', world!' },
-              { type: 'text-end', id: '1' },
-              {
-                type: 'tool-call',
-                toolCallId: 'call-1',
-                toolName: 'testTool',
-                input: '{ "value": "test" }',
-              },
-              {
-                type: 'finish',
-                finishReason: { unified: 'tool-calls', raw: undefined },
-                usage: testUsage,
-              },
-            ]),
-          }),
-        }),
-        tools: {
-          testTool: tool({
-            inputSchema: z.object({ value: z.string() }),
-            execute: async ({ value }) => `${value}-result`,
-          }),
-        },
-        prompt: 'test-input',
-        onError: () => {},
-        telemetry: {
-          integrations: {
-            onChunk: async event => {
-              chunks.push(event.chunk as Record<string, unknown>);
-            },
-          },
-        },
-      });
-
-      await result.consumeStream();
-
-      expect(chunks.map(c => c.type)).toMatchInlineSnapshot(`
-        [
-          "ai.stream.firstChunk",
-          "text-start",
-          "text-delta",
-          "text-delta",
-          "text-end",
-          "tool-call",
-          "ai.stream.finish",
-          "tool-result",
-        ]
-      `);
-
-      const contentChunks = chunks.filter(
-        c => c.type !== 'ai.stream.firstChunk' && c.type !== 'ai.stream.finish',
-      );
-      expect(contentChunks).toMatchInlineSnapshot(`
-        [
-          {
-            "id": "1",
-            "type": "text-start",
-          },
-          {
-            "id": "1",
-            "providerMetadata": undefined,
-            "text": "Hello",
-            "type": "text-delta",
-          },
-          {
-            "id": "1",
-            "providerMetadata": undefined,
-            "text": ", world!",
-            "type": "text-delta",
-          },
-          {
-            "id": "1",
-            "type": "text-end",
-          },
-          {
-            "input": {
-              "value": "test",
-            },
-            "providerExecuted": undefined,
-            "providerMetadata": undefined,
-            "title": undefined,
-            "toolCallId": "call-1",
-            "toolName": "testTool",
-            "type": "tool-call",
-          },
-          {
-            "dynamic": false,
-            "input": {
-              "value": "test",
-            },
-            "output": "test-result",
-            "toolCallId": "call-1",
-            "toolName": "testTool",
-            "type": "tool-result",
-          },
-        ]
-      `);
-    });
-
-    it('should call integration onChunk with raw chunks when include.rawChunks is enabled', async () => {
-      const chunks: Array<Record<string, unknown>> = [];
-
-      const result = streamText({
-        model: new MockLanguageModelV4({
-          doStream: async () => ({
-            stream: convertArrayToReadableStream([
-              {
-                type: 'response-metadata',
-                id: 'id-0',
-                modelId: 'mock-model-id',
-                timestamp: new Date(0),
-              },
-              { type: 'text-start', id: '1' },
-              {
-                type: 'raw',
-                rawValue: { type: 'content_block_delta', delta: 'Hello' },
-              },
-              { type: 'text-delta', id: '1', delta: 'Hello' },
-              { type: 'text-end', id: '1' },
-              {
-                type: 'finish',
-                finishReason: { unified: 'stop', raw: 'stop' },
-                usage: testUsage,
-              },
-            ]),
-          }),
-        }),
-        prompt: 'test-input',
-        include: {
-          rawChunks: true,
-        },
-        onError: () => {},
-        telemetry: {
-          integrations: {
-            onChunk: async event => {
-              chunks.push(event.chunk as Record<string, unknown>);
-            },
-          },
-        },
-      });
-
-      await result.consumeStream();
-
-      const rawChunks = chunks.filter(c => c.type === 'raw');
-      const textChunks = chunks.filter(c => c.type === 'text-delta');
-
-      expect(rawChunks).toMatchInlineSnapshot(`
-        [
-          {
-            "rawValue": {
-              "delta": "Hello",
-              "type": "content_block_delta",
-            },
-            "type": "raw",
-          },
-        ]
-      `);
-      expect(textChunks).toMatchInlineSnapshot(`
-        [
-          {
-            "id": "1",
-            "providerMetadata": undefined,
-            "text": "Hello",
-            "type": "text-delta",
-          },
-        ]
-      `);
     });
 
     it('should support multiple per-call integrations as an array', async () => {

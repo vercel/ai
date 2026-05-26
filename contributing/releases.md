@@ -56,16 +56,7 @@ Steps:
    ```json
    {
      "name": "@ai-sdk/<package-name>",
-     "version": "0.0.0",
-     "publishConfig": {
-       "access": "public",
-       "provenance": true
-     },
-     "repository": {
-       "type": "git",
-       "url": "https://github.com/vercel/ai",
-       "directory": "packages/<package-name>"
-     }
+     "version": "0.0.0"
    }
    ```
 

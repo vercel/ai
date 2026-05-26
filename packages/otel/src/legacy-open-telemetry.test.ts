@@ -253,11 +253,14 @@ function makeStepFinishEvent(overrides?: Record<string, unknown>) {
       },
     },
     performance: {
-      tokensPerSecond: 20,
+      effectiveOutputTokensPerSecond: 20,
+      outputTokensPerSecond: undefined,
+      inputTokensPerSecond: undefined,
+      effectiveTotalTokensPerSecond: 30,
       stepTimeMs: 1000,
       responseTimeMs: 1000,
       toolExecutionMs: {},
-      timeToFirstTokenMs: undefined,
+      timeToFirstOutputTokenMs: undefined,
     },
     warnings: undefined,
     request: { body: undefined, messages: [] },
@@ -359,12 +362,6 @@ function makeToolCallFinishEvent(
       dynamic: false,
     },
   } as Parameters<NonNullable<Telemetry['onToolExecutionEnd']>>[0];
-}
-
-function makeChunkEvent(
-  chunk: Parameters<NonNullable<Telemetry['onChunk']>>[0]['chunk'],
-) {
-  return { chunk } as Parameters<NonNullable<Telemetry['onChunk']>>[0];
 }
 
 describe('LegacyOpenTelemetry', () => {
@@ -865,101 +862,6 @@ describe('LegacyOpenTelemetry', () => {
     });
   });
 
-  describe('onChunk', () => {
-    it('adds event to step span for ai.stream.firstChunk', () => {
-      otelIntegration.onStart!(makeOnStartEvent());
-      otelIntegration.onStepStart!(makeStepStartEvent());
-
-      otelIntegration.onChunk!(
-        makeChunkEvent({
-          type: 'ai.stream.firstChunk',
-          callId,
-          stepNumber: 0,
-          attributes: { 'ai.stream.msToFirstChunk': 42 },
-        }),
-      );
-
-      const stepSpan = tracer.spans[1];
-      expect(stepSpan.addEvent).toHaveBeenCalledWith(
-        'ai.stream.firstChunk',
-        expect.objectContaining({ 'ai.stream.msToFirstChunk': 42 }),
-      );
-    });
-
-    it('adds event to step span for ai.stream.finish', () => {
-      otelIntegration.onStart!(makeOnStartEvent());
-      otelIntegration.onStepStart!(makeStepStartEvent());
-
-      otelIntegration.onChunk!(
-        makeChunkEvent({
-          type: 'ai.stream.finish',
-          callId,
-          stepNumber: 0,
-          attributes: { 'ai.stream.msToFinish': 500 },
-        }),
-      );
-
-      const stepSpan = tracer.spans[1];
-      expect(stepSpan.addEvent).toHaveBeenCalledWith(
-        'ai.stream.finish',
-        expect.objectContaining({ 'ai.stream.msToFinish': 500 }),
-      );
-    });
-
-    it('sets attributes on step span when chunk has attributes', () => {
-      otelIntegration.onStart!(makeOnStartEvent());
-      otelIntegration.onStepStart!(makeStepStartEvent());
-
-      otelIntegration.onChunk!(
-        makeChunkEvent({
-          type: 'ai.stream.firstChunk',
-          callId,
-          stepNumber: 0,
-          attributes: { 'ai.stream.msToFirstChunk': 42 },
-        }),
-      );
-
-      const stepSpan = tracer.spans[1];
-      expect(stepSpan.setAttributes).toHaveBeenCalledWith(
-        expect.objectContaining({ 'ai.stream.msToFirstChunk': 42 }),
-      );
-    });
-
-    it('ignores chunks without callId in the chunk body', () => {
-      otelIntegration.onStart!(makeOnStartEvent());
-      otelIntegration.onStepStart!(makeStepStartEvent());
-
-      otelIntegration.onChunk!(
-        makeChunkEvent({
-          type: 'text-delta',
-          id: 'td-1',
-          text: 'hello',
-        }),
-      );
-
-      const stepSpan = tracer.spans[1];
-      expect(stepSpan.addEvent).not.toHaveBeenCalled();
-    });
-
-    it('does not set attributes when chunk attributes are empty', () => {
-      otelIntegration.onStart!(makeOnStartEvent());
-      otelIntegration.onStepStart!(makeStepStartEvent());
-
-      otelIntegration.onChunk!(
-        makeChunkEvent({
-          type: 'ai.stream.firstChunk',
-          callId,
-          stepNumber: 0,
-          attributes: {},
-        }),
-      );
-
-      const stepSpan = tracer.spans[1];
-      expect(stepSpan.addEvent).toHaveBeenCalled();
-      expect(stepSpan.setAttributes).not.toHaveBeenCalled();
-    });
-  });
-
   describe('onError', () => {
     it('records error on root span and ends it', () => {
       otelIntegration.onStart!(makeOnStartEvent());
@@ -1171,26 +1073,20 @@ describe('LegacyOpenTelemetry', () => {
         makeOnStartEvent({ operationId: 'ai.streamText' }),
       );
       otelIntegration.onStepStart!(makeStepStartEvent());
-
-      otelIntegration.onChunk!(
-        makeChunkEvent({
-          type: 'ai.stream.firstChunk',
-          callId,
-          stepNumber: 0,
-          attributes: { 'ai.stream.msToFirstChunk': 10 },
+      otelIntegration.onStepFinish!(
+        makeStepFinishEvent({
+          performance: {
+            effectiveOutputTokensPerSecond: 20,
+            outputTokensPerSecond: 20.2020202020202,
+            inputTokensPerSecond: 1000,
+            effectiveTotalTokensPerSecond: 30,
+            stepTimeMs: 1000,
+            responseTimeMs: 1000,
+            toolExecutionMs: {},
+            timeToFirstOutputTokenMs: 10,
+          },
         }),
       );
-
-      otelIntegration.onChunk!(
-        makeChunkEvent({
-          type: 'ai.stream.finish',
-          callId,
-          stepNumber: 0,
-          attributes: { 'ai.stream.msToFinish': 200 },
-        }),
-      );
-
-      otelIntegration.onStepFinish!(makeStepFinishEvent());
       otelIntegration.onEnd!(makeFinishEvent());
 
       expect(tracer.spans).toHaveLength(2);
@@ -1817,11 +1713,11 @@ function createStreamTestModel({
 }
 
 function mockTokenStreamTextTelemetryNow() {
-  return mockValues(0, 0, 100, 100, 500);
+  return mockValues(0, 0, 100, 500, 500);
 }
 
 function mockToolOnlyStreamTextTelemetryNow() {
-  return mockValues(0, 0, 100, 500);
+  return mockValues(0, 0, 500, 500);
 }
 
 function mockTwoStepStreamTextTelemetryNow() {
@@ -1829,11 +1725,10 @@ function mockTwoStepStreamTextTelemetryNow() {
     0,
     0,
     100,
-    100,
+    500,
     500,
     600,
     600,
-    1000,
     1000,
     1000,
     1400,

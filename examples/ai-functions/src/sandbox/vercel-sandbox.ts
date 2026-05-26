@@ -1,16 +1,24 @@
-import { type Sandbox as AISandbox } from 'ai';
+import { isAbsolute, join } from 'node:path';
+import { Readable } from 'node:stream';
+import { extractLines } from '@ai-sdk/provider-utils';
+import { type Experimental_Sandbox as Sandbox } from 'ai';
 import type { Sandbox as VercelSandboxSDK } from '@vercel/sandbox';
+import { bytesToStream, collectStream } from './lib/stream-utils';
 
 const rootDirectory = '/vercel/sandbox';
 
-export class VercelSandbox implements AISandbox {
+export class VercelSandbox implements Sandbox {
   constructor(
     public readonly sandbox: Awaited<
       ReturnType<typeof VercelSandboxSDK.create>
     >,
   ) {}
 
-  async executeCommand({
+  private resolvePath(path: string): string {
+    return isAbsolute(path) ? path : join(rootDirectory, path);
+  }
+
+  async runCommand({
     command,
     workingDirectory,
     abortSignal,
@@ -44,6 +52,106 @@ export class VercelSandbox implements AISandbox {
     } finally {
       abortSignal?.removeEventListener('abort', abortCommand);
     }
+  }
+
+  async readFile({
+    path,
+    abortSignal,
+  }: {
+    path: string;
+    abortSignal?: AbortSignal;
+  }): Promise<ReadableStream<Uint8Array> | null> {
+    abortSignal?.throwIfAborted();
+    const result = await this.sandbox.readFile({
+      path: this.resolvePath(path),
+    });
+    if (result == null) return null;
+    return Readable.toWeb(
+      Readable.from(result as NodeJS.ReadableStream),
+    ) as ReadableStream<Uint8Array>;
+  }
+
+  async writeFile({
+    path,
+    content,
+    abortSignal,
+  }: {
+    path: string;
+    content: ReadableStream<Uint8Array>;
+    abortSignal?: AbortSignal;
+  }): Promise<void> {
+    abortSignal?.throwIfAborted();
+    const bytes = await collectStream(content);
+    abortSignal?.throwIfAborted();
+    await this.sandbox.writeFiles([
+      { path: this.resolvePath(path), content: Buffer.from(bytes) },
+    ]);
+  }
+
+  async readBinaryFile({
+    path,
+    abortSignal,
+  }: {
+    path: string;
+    abortSignal?: AbortSignal;
+  }): Promise<Uint8Array | null> {
+    const stream = await this.readFile({ path, abortSignal });
+    if (stream == null) return null;
+    return collectStream(stream);
+  }
+
+  async writeBinaryFile({
+    path,
+    content,
+    abortSignal,
+  }: {
+    path: string;
+    content: Uint8Array;
+    abortSignal?: AbortSignal;
+  }): Promise<void> {
+    await this.writeFile({
+      path,
+      content: bytesToStream(content),
+      abortSignal,
+    });
+  }
+
+  async readTextFile({
+    path,
+    encoding = 'utf-8',
+    startLine,
+    endLine,
+    abortSignal,
+  }: {
+    path: string;
+    encoding?: string;
+    startLine?: number;
+    endLine?: number;
+    abortSignal?: AbortSignal;
+  }): Promise<string | null> {
+    const bytes = await this.readBinaryFile({ path, abortSignal });
+    if (bytes == null) return null;
+    const text = Buffer.from(bytes).toString(encoding as BufferEncoding);
+    return extractLines({ text, startLine, endLine });
+  }
+
+  async writeTextFile({
+    path,
+    content,
+    encoding = 'utf-8',
+    abortSignal,
+  }: {
+    path: string;
+    content: string;
+    encoding?: string;
+    abortSignal?: AbortSignal;
+  }): Promise<void> {
+    const bytes = Buffer.from(content, encoding as BufferEncoding);
+    await this.writeBinaryFile({
+      path,
+      content: new Uint8Array(bytes.buffer, bytes.byteOffset, bytes.byteLength),
+      abortSignal,
+    });
   }
 
   async stop() {

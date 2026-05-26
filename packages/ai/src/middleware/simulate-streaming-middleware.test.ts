@@ -108,10 +108,13 @@ describe('simulateStreamingMiddleware', () => {
           {
             "finishReason": "stop",
             "performance": {
+              "effectiveOutputTokensPerSecond": 0,
+              "effectiveTotalTokensPerSecond": 0,
+              "inputTokensPerSecond": 0,
+              "outputTokensPerSecond": 0,
               "responseTimeMs": 0,
               "stepTimeMs": 0,
-              "timeToFirstTokenMs": 0,
-              "tokensPerSecond": 0,
+              "timeToFirstOutputTokenMs": 0,
               "toolExecutionMs": {},
             },
             "providerMetadata": undefined,
@@ -235,10 +238,13 @@ describe('simulateStreamingMiddleware', () => {
           {
             "finishReason": "stop",
             "performance": {
+              "effectiveOutputTokensPerSecond": 0,
+              "effectiveTotalTokensPerSecond": 0,
+              "inputTokensPerSecond": 0,
+              "outputTokensPerSecond": 0,
               "responseTimeMs": 0,
               "stepTimeMs": 0,
-              "timeToFirstTokenMs": 0,
-              "tokensPerSecond": 0,
+              "timeToFirstOutputTokenMs": 0,
               "toolExecutionMs": {},
             },
             "providerMetadata": undefined,
@@ -408,10 +414,13 @@ describe('simulateStreamingMiddleware', () => {
           {
             "finishReason": "stop",
             "performance": {
+              "effectiveOutputTokensPerSecond": 0,
+              "effectiveTotalTokensPerSecond": 0,
+              "inputTokensPerSecond": 0,
+              "outputTokensPerSecond": 0,
               "responseTimeMs": 0,
               "stepTimeMs": 0,
-              "timeToFirstTokenMs": 0,
-              "tokensPerSecond": 0,
+              "timeToFirstOutputTokenMs": 0,
               "toolExecutionMs": {},
             },
             "providerMetadata": undefined,
@@ -563,10 +572,13 @@ describe('simulateStreamingMiddleware', () => {
           {
             "finishReason": "stop",
             "performance": {
+              "effectiveOutputTokensPerSecond": 0,
+              "effectiveTotalTokensPerSecond": 0,
+              "inputTokensPerSecond": 0,
+              "outputTokensPerSecond": 0,
               "responseTimeMs": 0,
               "stepTimeMs": 0,
-              "timeToFirstTokenMs": 0,
-              "tokensPerSecond": 0,
+              "timeToFirstOutputTokenMs": 0,
               "toolExecutionMs": {},
             },
             "providerMetadata": undefined,
@@ -721,10 +733,13 @@ describe('simulateStreamingMiddleware', () => {
           {
             "finishReason": "tool-calls",
             "performance": {
+              "effectiveOutputTokensPerSecond": 0,
+              "effectiveTotalTokensPerSecond": 0,
+              "inputTokensPerSecond": 0,
+              "outputTokensPerSecond": 0,
               "responseTimeMs": 0,
               "stepTimeMs": 0,
-              "timeToFirstTokenMs": 0,
-              "tokensPerSecond": 0,
+              "timeToFirstOutputTokenMs": 0,
               "toolExecutionMs": {},
             },
             "providerMetadata": undefined,
@@ -827,10 +842,13 @@ describe('simulateStreamingMiddleware', () => {
           {
             "finishReason": "stop",
             "performance": {
+              "effectiveOutputTokensPerSecond": 0,
+              "effectiveTotalTokensPerSecond": 0,
+              "inputTokensPerSecond": 0,
+              "outputTokensPerSecond": 0,
               "responseTimeMs": 0,
               "stepTimeMs": 0,
-              "timeToFirstTokenMs": 0,
-              "tokensPerSecond": 0,
+              "timeToFirstOutputTokenMs": 0,
               "toolExecutionMs": {},
             },
             "providerMetadata": {

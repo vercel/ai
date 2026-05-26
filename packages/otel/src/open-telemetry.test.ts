@@ -242,8 +242,11 @@ function makeLanguageModelCallEndEvent(overrides?: Record<string, unknown>) {
     responseId: 'test-response-id',
     performance: {
       responseTimeMs: 1000,
-      tokensPerSecond: 20,
-      timeToFirstTokenMs: undefined,
+      effectiveOutputTokensPerSecond: 20,
+      outputTokensPerSecond: undefined,
+      inputTokensPerSecond: undefined,
+      effectiveTotalTokensPerSecond: 30,
+      timeToFirstOutputTokenMs: undefined,
     },
     ...overrides,
   } as Parameters<NonNullable<Telemetry['onLanguageModelCallEnd']>>[0];
@@ -283,11 +286,14 @@ function makeStepFinishEvent(overrides?: Record<string, unknown>) {
       },
     },
     performance: {
-      tokensPerSecond: 20,
+      effectiveOutputTokensPerSecond: 20,
+      outputTokensPerSecond: undefined,
+      inputTokensPerSecond: undefined,
+      effectiveTotalTokensPerSecond: 30,
       stepTimeMs: 1000,
       responseTimeMs: 1000,
       toolExecutionMs: {},
-      timeToFirstTokenMs: undefined,
+      timeToFirstOutputTokenMs: undefined,
     },
     warnings: undefined,
     request: { body: undefined, messages: [] },
@@ -1058,46 +1064,6 @@ describe('OpenTelemetry', () => {
           "gen_ai.request.temperature": 0.7,
         }
       `);
-    });
-  });
-
-  describe('onChunk (streaming events)', () => {
-    it('is a no-op for stream chunk events', () => {
-      integration.onStart!(makeOnStartEvent());
-      integration.onStepStart!(makeStepStartEvent());
-      integration.onLanguageModelCallStart!(makeLanguageModelCallStartEvent());
-
-      integration.onChunk!({
-        chunk: {
-          type: 'ai.stream.firstChunk',
-          callId,
-          stepNumber: 0,
-          attributes: {
-            'ai.stream.msToFirstChunk': 150,
-          },
-        },
-      });
-
-      const chatSpan = tracer.spans[2];
-      expect(chatSpan.events).toMatchInlineSnapshot(`[]`);
-    });
-
-    it('does not emit events for stream finish', () => {
-      integration.onStart!(makeOnStartEvent());
-      integration.onStepStart!(makeStepStartEvent());
-      integration.onLanguageModelCallStart!(makeLanguageModelCallStartEvent());
-
-      integration.onChunk!({
-        chunk: {
-          type: 'ai.stream.finish',
-          callId,
-          stepNumber: 0,
-          attributes: {},
-        },
-      });
-
-      const chatSpan = tracer.spans[2];
-      expect(chatSpan.events).toMatchInlineSnapshot(`[]`);
     });
   });
 

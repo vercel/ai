@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/test-server",
-  "version": "2.0.0-canary.4",
+  "version": "2.0.0-canary.6",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -41,16 +41,16 @@
     }
   },
   "dependencies": {
-    "msw": "^2.7.0"
+    "msw": "^2.14.6"
   },
   "devDependencies": {
-    "@types/node": "20.17.24",
+    "@types/node": "22.19.19",
     "@vercel/ai-tsconfig": "workspace:*",
-    "tsup": "^8",
+    "tsup": "^8.5.1",
     "typescript": "5.8.3"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=22"
   },
   "publishConfig": {
     "access": "public",
